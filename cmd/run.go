@@ -15,15 +15,20 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
+	"os"
 
+	"github.com/olekukonko/tablewriter"
+	query "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
 )
 
-// queryCmd represents the query command
-var queryCmd = &cobra.Command{
-	Use:   "query",
-	Short: "A brief description of your command",
+// runCmd represents the run command
+var runCmd = &cobra.Command{
+	Use:   "run",
+	Short: "run a query",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -31,22 +36,53 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("query called")
+		stmt, err := query.Parse(args[0])
+		if err != nil {
+			fmt.Printf("statement parse error: %s", err.Error())
+			os.Exit(1)
+		}
+
+		results, err := stmt.Exec(GetDomainList())
+		if err != nil {
+			fmt.Println(err.Error())
+			os.Exit(1)
+		}
+
+		fmt.Println()
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetCenterSeparator("|")
+		table.SetHeader(results.FieldNames())
+
+		r := csv.NewReader(bytes.NewBuffer(results.Data))
+		for {
+			rec, err := r.Read()
+			if err != nil {
+				if err.Error() == "EOF" {
+					break
+				}
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			table.Append(rec)
+		}
+
+		table.Render()
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(queryCmd)
+	RootCmd.AddCommand(runCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// queryCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// runCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// queryCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// runCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 }
