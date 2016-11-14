@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func GetDomainList() Domains {
+func GetDomains() Domains {
 	return Domains{LocalDomain{}}
 }
 

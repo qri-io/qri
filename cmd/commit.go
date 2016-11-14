@@ -15,20 +15,16 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/csv"
 	"fmt"
-	"os"
 
-	"github.com/olekukonko/tablewriter"
-	query "github.com/qri-io/dataset_sql"
+	"github.com/qri-io/repo"
 	"github.com/spf13/cobra"
 )
 
-// runCmd represents the run command
-var runCmd = &cobra.Command{
-	Use:   "run",
-	Short: "run a query",
+// commitCmd represents the commit command
+var commitCmd = &cobra.Command{
+	Use:   "commit",
+	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
 
@@ -36,53 +32,29 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		stmt, err := query.Parse(args[0])
+		commit, err := GetRepo(cmd, args).Commit(func(o *repo.CommitOpt) {
+			// o.Messsage =
+		})
+
 		if err != nil {
-			fmt.Printf("statement parse error: %s", err.Error())
-			os.Exit(1)
+			ErrExit(err)
 		}
 
-		results, err := stmt.Exec(GetDomains())
-		if err != nil {
-			fmt.Println(err.Error())
-			os.Exit(1)
-		}
-
-		fmt.Println()
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-		table.SetCenterSeparator("|")
-		table.SetHeader(results.FieldNames())
-
-		r := csv.NewReader(bytes.NewBuffer(results.Data))
-		for {
-			rec, err := r.Read()
-			if err != nil {
-				if err.Error() == "EOF" {
-					break
-				}
-				fmt.Println(err.Error())
-				os.Exit(1)
-			}
-
-			table.Append(rec)
-		}
-
-		table.Render()
+		fmt.Println(commit.String())
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(runCmd)
+	RootCmd.AddCommand(commitCmd)
 
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
 	// and all subcommands, e.g.:
-	// runCmd.PersistentFlags().String("foo", "", "A help for foo")
+	// commitCmd.PersistentFlags().String("foo", "", "A help for foo")
 
 	// Cobra supports local flags which will only run when this command
 	// is called directly, e.g.:
-	// runCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	// commitCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 
 }
