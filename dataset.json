@@ -1,11 +1,1 @@
-{
-	"address" : "hours",
-	"file" : "/data/hours.csv",
-	"format" : "csv",
-	"fields" : [
-		{ "name" : "timestamp", "type" : "date" },
-		{ "name" : "hours", "type" : "float" },
-		{ "name" : "category", "type" : "string" },
-		{ "name" : "description", "type" : "string" }
-	]
-}
+{"address":"hours","file":"/data/hours.csv","format":"csv","fields":[{"name":"timestamp","type":"date"},{"name":"hours","type":"float"},{"name":"category","type":"string"},{"name":"description","type":"string"}]}

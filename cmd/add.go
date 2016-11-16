@@ -21,9 +21,9 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// commitCmd represents the commit command
-var commitCmd = &cobra.Command{
-	Use:   "commit",
+// addCmd represents the add command
+var addCmd = &cobra.Command{
+	Use:   "add",
 	Short: "A brief description of your command",
 	Long: `A longer description that spans multiple lines and likely contains examples
 and usage of using your command. For example:
@@ -32,24 +32,31 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		msg, err := cmd.Flags().GetString("message")
-		if err != nil {
+		r := GetRepo(cmd, args)
+
+		// TODO - add is currently unfinished
+
+		if err := r.Add(func(o *repo.AddOpt) {
+			o.All = true
+		}); err != nil {
 			ErrExit(err)
 		}
 
-		commit, err := GetRepo(cmd, args).Commit(func(o *repo.CommitOpt) {
-			o.Message = msg
-		})
-
-		if err != nil {
-			ErrExit(err)
-		}
-
-		fmt.Println(commit.String())
+		fmt.Println("added stuff")
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(commitCmd)
-	commitCmd.Flags().StringP("message", "m", "", "message for this commit")
+	RootCmd.AddCommand(addCmd)
+
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// addCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// addCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+
 }
