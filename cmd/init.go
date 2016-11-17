@@ -51,6 +51,7 @@ to quickly create a Cobra application.`,
 			if fi.IsDir() {
 				continue
 			} else if ds, err := dataset_detect.FromFile(fi.Name()); err == nil {
+				ds.Data = nil
 				dataset.Datasets = append(dataset.Datasets, ds)
 			}
 		}
