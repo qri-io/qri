@@ -46,7 +46,7 @@ to quickly create a Cobra application.`,
 			ErrExit(err)
 		}
 
-		var dataset *dataset.Dataset
+		dataset := &dataset.Dataset{}
 		for _, fi := range files {
 			if fi.IsDir() {
 				continue
