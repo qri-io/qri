@@ -16,6 +16,10 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
+
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset_detect"
 
 	"github.com/qri-io/repo"
 	"github.com/spf13/cobra"
@@ -37,7 +41,30 @@ to quickly create a Cobra application.`,
 			o.BasePath = base
 		})
 
-		if err := r.Init(); err != nil {
+		files, err := ioutil.ReadDir(base)
+		if err != nil {
+			ErrExit(err)
+		}
+
+		var dataset *dataset.Dataset
+		for _, fi := range files {
+			if fi.IsDir() {
+				continue
+			} else if ds, err := dataset_detect.FromFile(fi.Name()); err == nil {
+				dataset.Datasets = append(dataset.Datasets, ds)
+			}
+		}
+
+		if len(dataset.Datasets) == 1 {
+			dataset = dataset.Datasets[0]
+			dataset.Datasets = nil
+		} else if len(dataset.Datasets) == 0 {
+			dataset = nil
+		}
+
+		if err := r.Init(func(o *repo.InitOpt) {
+			o.Dataset = dataset
+		}); err != nil {
 			ErrExit(err)
 		}
 
