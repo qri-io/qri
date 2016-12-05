@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/qri-io/fs"
+	"github.com/qri-io/fs/local"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -84,4 +86,10 @@ func GetWd() string {
 	}
 
 	return dir
+}
+
+// Store creates the appropriate store for a given command
+// defaulting to creating a new store from the local directory
+func Store(cmd *cobra.Command, args []string) fs.Store {
+	return local.NewLocalStore(GetWd())
 }

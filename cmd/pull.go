@@ -17,7 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/repo"
+	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
 
@@ -32,15 +32,8 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		r := GetRepo(cmd, args)
-		remote, err := r.RemoteForName(args[0])
-		if err != nil {
-			ErrExit(err)
-		}
-
-		if err := r.Pull(remote, func(o *repo.RemoteOpts) {
-
-		}); err != nil {
+		store := Store(cmd, args)
+		if err := history.Pull(store, store, "localhost:5380"); err != nil {
 			ErrExit(err)
 		}
 

@@ -21,7 +21,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset_detect"
 
-	"github.com/qri-io/repo"
+	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
 
@@ -37,9 +37,7 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		base := GetWd()
-		r := repo.NewRepo(func(o *repo.RepoOpt) {
-			o.BasePath = base
-		})
+		store := Store(cmd, args)
 
 		files, err := ioutil.ReadDir(base)
 		if err != nil {
@@ -63,7 +61,7 @@ to quickly create a Cobra application.`,
 			dataset = nil
 		}
 
-		if err := r.Init(func(o *repo.InitOpt) {
+		if err := history.Init(store, func(o *history.InitOpt) {
 			o.Dataset = dataset
 		}); err != nil {
 			ErrExit(err)

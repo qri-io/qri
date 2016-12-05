@@ -17,7 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/repo"
+	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +37,8 @@ to quickly create a Cobra application.`,
 			ErrExit(err)
 		}
 
-		commit, err := GetRepo(cmd, args).Commit(func(o *repo.CommitOpt) {
+		store := Store(cmd, args)
+		commit, err := history.WriteCommit(store, store, func(o *history.CommitOpt) {
 			o.Message = msg
 		})
 
