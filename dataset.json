@@ -1,5 +1,6 @@
 {
   "name": "hours",
+  "address" : "qri.b5.hours",
   "file": "hours.csv",
   "format": "csv",
   "fields": [

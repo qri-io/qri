@@ -18,8 +18,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/qri-io/fs"
-	"github.com/qri-io/fs/local"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -74,22 +72,4 @@ func initConfig() {
 	if err := viper.ReadInConfig(); err == nil {
 		fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
-}
-
-// GetWd is a convenience method to get the working
-// directory or bail.
-func GetWd() string {
-	dir, err := os.Getwd()
-	if err != nil {
-		fmt.Printf("Error getting working directory: %s", err.Error())
-		os.Exit(1)
-	}
-
-	return dir
-}
-
-// Store creates the appropriate store for a given command
-// defaulting to creating a new store from the local directory
-func Store(cmd *cobra.Command, args []string) fs.Store {
-	return local.NewLocalStore(GetWd())
 }

@@ -17,6 +17,8 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 
@@ -31,8 +33,19 @@ Cobra is a CLI library for Go that empowers applications.
 This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("namespace called")
+		adr := dataset.NewAddress("")
+		if len(args) > 0 {
+			adr = dataset.NewAddress(args[0])
+		}
+
+		adrs, err := namespace.ReadAllAddresses(GetNamespaces(cmd, args).ChildAddresses(adr))
+		if err != nil {
+			ErrExit(err)
+		}
+
+		for _, a := range adrs {
+			fmt.Println(a.String())
+		}
 	},
 }
 

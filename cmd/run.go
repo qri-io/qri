@@ -42,7 +42,7 @@ to quickly create a Cobra application.`,
 			os.Exit(1)
 		}
 
-		results, err := stmt.Exec(GetDomains())
+		results, err := stmt.Exec(GetNamespaces(cmd, args))
 		if err != nil {
 			fmt.Println(err.Error())
 			os.Exit(1)

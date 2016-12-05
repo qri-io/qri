@@ -38,7 +38,7 @@ to quickly create a Cobra application.`,
 		}
 
 		store := Store(cmd, args)
-		commit, err := history.WriteCommit(store, store, func(o *history.CommitOpt) {
+		commit, err := history.WriteCommit(store, store, func(o *history.WriteCommitOpt) {
 			o.Message = msg
 		})
 

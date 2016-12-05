@@ -17,9 +17,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/fs/local"
 	"github.com/qri-io/history"
-
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +33,6 @@ This application is a tool to generate the needed files
 to quickly create a Cobra application.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		srv := history.NewServer(func(o *history.ServerOpt) {
-			o.Namespace = local.NewLocalStore(GetWd())
 		})
 
 		fmt.Println("starting server at address: %s", srv)

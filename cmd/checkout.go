@@ -38,7 +38,7 @@ to quickly create a Cobra application.`,
 			ErrExit(err)
 		}
 
-		if err := r.Checkout(store, store, commitSha1); err != nil {
+		if err := history.Checkout(store, store, commitSha1); err != nil {
 			ErrExit(err)
 		}
 
