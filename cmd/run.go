@@ -20,6 +20,8 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/qri-io/dataset"
+
 	"github.com/olekukonko/tablewriter"
 	query "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
@@ -35,11 +37,29 @@ var runCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("Please provide a query to execute"))
 		}
 
+		adr := dataset.NewAddress("")
+		if save := cmd.Flag("save").Value.String(); save != "" {
+			if !dataset.ValidAddressString(save) {
+				PrintErr("'%s' is not a valid address string to save to", save)
+				os.Exit(-1)
+			}
+			adr = dataset.NewAddress(save)
+
+		}
+
 		stmt, err := query.Parse(args[0])
 		ExitIfErr(err)
 
 		results, err := stmt.Exec(GetNamespaces(cmd, args))
 		ExitIfErr(err)
+
+		if !adr.IsEmpty() {
+			store := Cache()
+			results.Address = adr
+			store.Write(adr.String()+".csv", results.Data)
+			PrintSuccess("results saved to: %s", adr.String()+".csv")
+			os.Exit(0)
+		}
 
 		fmt.Println()
 		table := tablewriter.NewWriter(os.Stdout)
