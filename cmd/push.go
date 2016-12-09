@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
@@ -24,34 +22,16 @@ import (
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Update remote repository with local history",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		store := Store(cmd, args)
-		if err := history.Push(store, "localhost:5380"); err != nil {
-			ErrExit(err)
-		}
-
-		fmt.Println("sucessfully pushed")
+		err := history.Push(store, "localhost:5380")
+		ExitIfErr(err)
+		PrintSuccess("sucessfully pushed")
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(pushCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// pushCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// pushCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

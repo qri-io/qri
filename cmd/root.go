@@ -28,9 +28,10 @@ var cfgFile string
 var RootCmd = &cobra.Command{
 	Use:   "qri",
 	Short: "qri.io command line client",
-	Long: `this is a very early alpha tool for working with data hosted on qri.io.
-	
-	At the moment it's a bit an experiment. 
+	Long: `this is a very early (like 0.0.0.0.0.1.alpha) tool for working with datasets.
+	At the moment it's a bit an experiment.
+	A nice web introduction is available at:
+	http://docs.qri.io
 
 	Email brendan with any questions:
 	sparkle_pony_2000@qri.io`,
@@ -40,7 +41,7 @@ var RootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		fmt.Println(err)
+		PrintErr(err)
 		os.Exit(-1)
 	}
 }
@@ -48,18 +49,14 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	// Here you will define your flags and configuration settings.
-	// Cobra supports Persistent Flags, which, if defined here,
-	// will be global for your application.
-
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qri.json)")
-	// Cobra also supports local flags, which will only run
-	// when this action is called directly.
-	RootCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 }
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	SetNoColor()
+
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
 	}

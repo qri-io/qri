@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
@@ -24,41 +22,27 @@ import (
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "List errors in a dataset",
+	Long: `Validate will load the dataset in question
+and check each of it's rows against the constraints listed
+in the dataset's fields.
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+For a full rundown on validation visit:
+http://docs.qri.io/concepts/validation`,
 	Run: func(cmd *cobra.Command, args []string) {
 		store := Store(cmd, args)
 
 		errs, err := history.Validate(store)
-		if err != nil {
-			ErrExit(err)
-		}
+		ExitIfErr(err)
 
 		if len(errs) > 0 {
-			// TODO - yeah, format this stuff
-			fmt.Println(errs)
+			PrintValidationErrors(errs)
 		} else {
-			fmt.Println("✔ All good!")
+			PrintSuccess("✔ All good!")
 		}
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(validateCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// validateCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// validateCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

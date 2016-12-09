@@ -14,23 +14,19 @@
 
 package cmd
 
-import (
-	"fmt"
-
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
 const VERSION_NUMBER = "0.0.1alpha"
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
 	Use:   "version",
-	Short: "Prints the version number for this CLI",
+	Short: "Print the version number",
 	Long: `qri uses semantic versioning.
 	
 	For updates & further information check qri.io`,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(VERSION_NUMBER)
+		PrintInfo(VERSION_NUMBER)
 	},
 }
 

@@ -15,38 +15,61 @@
 package cmd
 
 import (
-	"fmt"
+	"archive/zip"
+	"io/ioutil"
 
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
+	"github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
 	Use:   "download",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Download a dataset",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO: Work your own magic here
-		fmt.Println("download called")
+		PrintNotYetFinished(cmd)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(downloadCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+func downloadPackage(ns namespace.Namespace, adr dataset.Address) (fs.Store, error) {
+	store := Cache()
+	r, size, err := ns.Package(adr)
+	if err != nil {
+		return store, err
+	}
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// downloadCmd.PersistentFlags().String("foo", "", "A help for foo")
+	buf := make([]byte, size)
+	if _, err := r.ReadAt(buf, 0); err != nil {
+		return store, err
+	}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// downloadCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+	zipr, err := zip.NewReader(r, size)
+	if err != nil {
+		return store, err
+	}
 
+	for _, f := range zipr.File {
+		r, err := f.Open()
+		if err != nil {
+			return store, err
+		}
+
+		data, err := ioutil.ReadAll(r)
+		if err != nil {
+			return store, err
+		}
+
+		if err := store.Write(f.Name, data); err != nil {
+			return store, err
+		}
+	}
+
+	return store, nil
 }

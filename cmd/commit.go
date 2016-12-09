@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
@@ -24,13 +22,8 @@ import (
 // commitCmd represents the commit command
 var commitCmd = &cobra.Command{
 	Use:   "commit",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Add a history entry",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		msg, err := cmd.Flags().GetString("message")
 		if err != nil {
@@ -46,7 +39,7 @@ to quickly create a Cobra application.`,
 			ErrExit(err)
 		}
 
-		fmt.Println(commit.String())
+		PrintSuccess(commit.String())
 	},
 }
 

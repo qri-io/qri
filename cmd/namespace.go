@@ -16,22 +16,25 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
+	lns "github.com/qri-io/namespace/local"
 	"github.com/spf13/cobra"
 )
 
 // namespaceCmd represents the namespace command
 var namespaceCmd = &cobra.Command{
 	Use:   "namespace",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
+	Short: "tools listing & editing this client's namespaces",
+	Long:  `Namespaces are a domain connected with a base address.`,
+}
 
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+var nsList = &cobra.Command{
+	Use:   "list",
+	Short: "List namespaces",
 	Run: func(cmd *cobra.Command, args []string) {
 		adr := dataset.NewAddress("")
 		if len(args) > 0 {
@@ -49,17 +52,108 @@ to quickly create a Cobra application.`,
 	},
 }
 
+var nsAdd = &cobra.Command{
+	Use:   "add",
+	Short: "Add a namespace",
+	Run: func(cmd *cobra.Command, args []string) {
+		PrintNotYetFinished(cmd)
+	},
+}
+
+var nsRemove = &cobra.Command{
+	Use:   "remove",
+	Short: "Remove a namespace",
+	Run: func(cmd *cobra.Command, args []string) {
+		PrintNotYetFinished(cmd)
+	},
+}
+
 func init() {
+	namespaceCmd.AddCommand(nsList)
+	namespaceCmd.AddCommand(nsAdd)
+	namespaceCmd.AddCommand(nsRemove)
 	RootCmd.AddCommand(namespaceCmd)
+}
 
-	// Here you will define your flags and configuration settings.
+// Namespaces is a collection of namespaces that also satisfies the namespace interface
+// by querying each namespace in order
+type Namespaces []namespace.Namespace
 
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// namespaceCmd.PersistentFlags().String("foo", "", "A help for foo")
+func (n Namespaces) Url() string {
+	str := ""
+	for _, ns := range n {
+		str += ns.Url() + "\n"
+	}
+	return str
+}
+func (n Namespaces) Base() dataset.Address {
+	// str := ""
+	// for _, ns := range n {
+	// 	str += ns.Base().String() + "\n"
+	// }
+	return dataset.NewAddress("")
+}
+func (n Namespaces) String() string {
+	str := ""
+	for _, ns := range n {
+		str += ns.String() + "\n"
+	}
+	return str
+}
 
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// namespaceCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
+func (n Namespaces) ChildAddresses(adr dataset.Address) (namespace.Addresses, error) {
+	for _, ns := range n {
+		if ds, err := ns.ChildAddresses(adr); err == nil {
+			return ds, nil
+		}
+	}
+	return nil, namespace.ErrNotFound
+}
 
+func (n Namespaces) ChildDatasets(adr dataset.Address) (namespace.Datasets, error) {
+	for _, ns := range n {
+		if ds, err := ns.ChildDatasets(adr); err == nil {
+			return ds, nil
+		}
+	}
+	return nil, namespace.ErrNotFound
+}
+
+func (n Namespaces) Dataset(adr dataset.Address) (*dataset.Dataset, error) {
+	for _, ns := range n {
+		if ds, err := ns.Dataset(adr); err == nil {
+			return ds, nil
+		}
+	}
+	return nil, namespace.ErrNotFound
+}
+
+func (n Namespaces) Package(adr dataset.Address) (io.ReaderAt, int64, error) {
+	for _, ns := range n {
+		if ds, size, err := ns.Package(adr); err == nil {
+			return ds, size, nil
+		}
+	}
+
+	return nil, 0, namespace.ErrNotFound
+}
+
+func (n Namespaces) Store(adr dataset.Address) (fs.Store, error) {
+	for _, ns := range n {
+		if _, err := ns.Dataset(adr); err == nil {
+			// if the base is local, we can just hand back the local store
+			if lcl, ok := ns.(*lns.Namespace); ok {
+				return lcl.Store(adr)
+			}
+
+			// otherwise we need to download the dataset to our local store
+			store, err := downloadPackage(ns, adr)
+			if err != nil {
+				return nil, err
+			}
+			return store, nil
+		}
+	}
+
+	return nil, namespace.ErrNotFound
 }

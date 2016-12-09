@@ -14,23 +14,18 @@
 
 package cmd
 
-import (
-	"github.com/qri-io/history"
-	"github.com/spf13/cobra"
-)
+import "github.com/spf13/cobra"
 
-// statusCmd represents the status command
-var statusCmd = &cobra.Command{
-	Use:   "status",
-	Short: "Show detailed information about a dataset",
-	Long:  ``,
+// searchCmd represents the search command
+var searchCmd = &cobra.Command{
+	Use:   "search",
+	Short: "Search for datasets",
+	Long:  `Search looks through all of your namespaces for terms that match your query`,
 	Run: func(cmd *cobra.Command, args []string) {
-		msg, err := history.Status(Store(cmd, args))
-		ExitIfErr(err)
-		PrintInfo(msg.String())
+		PrintNotYetFinished(cmd)
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(statusCmd)
+	RootCmd.AddCommand(searchCmd)
 }

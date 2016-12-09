@@ -16,23 +16,17 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
-	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 
 // infoCmd represents the info command
 var infoCmd = &cobra.Command{
-	Use:   "info",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Use:     "info",
+	Aliases: []string{"describe"},
+	Short:   "Show info about a dataset",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("please specify an address to get the info of")
@@ -40,37 +34,11 @@ to quickly create a Cobra application.`,
 		}
 
 		ds, err := GetNamespaces(cmd, args).Dataset(dataset.NewAddress(args[0]))
-		if err != nil {
-			ErrExit(err)
-		}
-
-		fmt.Printf("dataset: %s\n", ds.Address)
-		if ds.Description != "" {
-			fmt.Printf("description:\n%s", ds.Description)
-		}
-
-		fmt.Println("fields:")
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-		table.SetCenterSeparator("")
-		table.Append(ds.FieldNames())
-		table.Append(ds.FieldTypeStrings())
-		table.Render()
-		fmt.Println()
+		ExitIfErr(err)
+		PrintDatasetDetailedInfo(ds)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(infoCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// infoCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// infoCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
-
 }

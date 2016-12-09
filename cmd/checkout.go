@@ -15,8 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +40,7 @@ to quickly create a Cobra application.`,
 			ErrExit(err)
 		}
 
-		fmt.Printf("checked out: %s", args[0])
+		PrintSuccess("checked out: %s", args[0])
 	},
 }
 
