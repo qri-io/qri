@@ -31,6 +31,10 @@ var runCmd = &cobra.Command{
 	Short: "Run a query",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			ErrExit(fmt.Errorf("Please provide a query to execute"))
+		}
+
 		stmt, err := query.Parse(args[0])
 		ExitIfErr(err)
 

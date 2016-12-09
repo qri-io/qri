@@ -16,25 +16,16 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-// searchCmd represents the search command
-var searchCmd = &cobra.Command{
-	Use:   "search",
-	Short: "Search for datasets",
-	Long:  `Search looks through all of your namespaces for terms that match your query`,
+// addressCmd represents the address command
+var addressCmd = &cobra.Command{
+	Use:   "address",
+	Short: "Get the address of the current working directory",
+	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		var q string
-		if len(args) > 0 {
-			q = args[0]
-		}
-		ns := GetNamespaces(cmd, args)
-		results, err := ns.Search(q)
-		ExitIfErr(err)
-		for _, ds := range results {
-			PrintDatasetShortInfo(ds)
-		}
+		PrintSuccess("this is the address")
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(searchCmd)
+	RootCmd.AddCommand(addressCmd)
 }

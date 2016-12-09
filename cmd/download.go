@@ -17,6 +17,7 @@ package cmd
 import (
 	"archive/zip"
 	"io/ioutil"
+	"path/filepath"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
@@ -27,10 +28,14 @@ import (
 // downloadCmd represents the download command
 var downloadCmd = &cobra.Command{
 	Use:   "download",
-	Short: "Download a dataset",
+	Short: "Download dataset(s)",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		PrintNotYetFinished(cmd)
+		ns := GetNamespaces(cmd, args)
+		adr := GetAddress(cmd, args)
+		_, err := downloadPackage(ns, adr, adr.String())
+		ExitIfErr(err)
+		PrintSuccess("downloaded %s to %s", adr.String(), adr.String())
 	},
 }
 
@@ -38,7 +43,7 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 }
 
-func downloadPackage(ns namespace.Namespace, adr dataset.Address) (fs.Store, error) {
+func downloadPackage(ns namespace.Namespace, adr dataset.Address, path string) (fs.Store, error) {
 	store := Cache()
 	r, size, err := ns.Package(adr)
 	if err != nil {
@@ -66,7 +71,7 @@ func downloadPackage(ns namespace.Namespace, adr dataset.Address) (fs.Store, err
 			return store, err
 		}
 
-		if err := store.Write(f.Name, data); err != nil {
+		if err := store.Write(filepath.Join(path, f.Name), data); err != nil {
 			return store, err
 		}
 	}

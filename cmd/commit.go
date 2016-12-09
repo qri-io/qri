@@ -22,7 +22,7 @@ import (
 // commitCmd represents the commit command
 var commitCmd = &cobra.Command{
 	Use:   "commit",
-	Short: "Add a history entry",
+	Short: "Save a history entry",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		msg, err := cmd.Flags().GetString("message")

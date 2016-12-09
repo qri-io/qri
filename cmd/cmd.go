@@ -4,8 +4,10 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/fs/local"
+	lns "github.com/qri-io/namespace/local"
 	"github.com/qri-io/namespace/remote"
 	"github.com/spf13/cobra"
 )
@@ -35,6 +37,14 @@ func GetWd() string {
 	return dir
 }
 
+func GetAddress(cmd *cobra.Command, args []string) dataset.Address {
+	adr := dataset.NewAddress("")
+	if len(args) > 0 {
+		adr = dataset.NewAddress(args[0])
+	}
+	return adr
+}
+
 // Store creates the appropriate store for a given command
 // defaulting to creating a new store from the local directory
 func Store(cmd *cobra.Command, args []string) fs.Store {
@@ -49,7 +59,7 @@ func Cache() fs.Store {
 // Namespaces reads the list of namespaces from the config
 func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
 	return Namespaces{
+		lns.NewNamespaceFromPath(GetWd()),
 		remote.New("localhost", "qri"),
-		// lns.NewNamespaceFromPath(GetWd()),
 	}
 }

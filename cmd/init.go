@@ -28,7 +28,7 @@ import (
 // initCmd represents the init command
 var initCmd = &cobra.Command{
 	Use:   "init",
-	Short: "Initialize a qri repository",
+	Short: "Initialize a dataset",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		base := GetWd()

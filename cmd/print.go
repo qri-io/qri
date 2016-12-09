@@ -3,10 +3,8 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 
 	"github.com/fatih/color"
-	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
@@ -48,33 +46,45 @@ func PrintValidationErrors(errs map[string][]*history.ValidationError) {
 }
 
 func PrintDatasetShortInfo(ds *dataset.Dataset) {
-	fmt.Printf("dataset: %s\n", ds.Address)
-	if ds.Description != "" {
-		fmt.Printf("description:\n%s", ds.Description)
-	}
+	white := color.New(color.FgWhite).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	fmt.Println()
+	fmt.Printf("dataset: %s\n", white(ds.Address))
+	fmt.Printf("description: %s\n", white(ds.Description))
 
 	fmt.Println("fields:")
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-	table.SetCenterSeparator("")
-	table.Append(ds.FieldNames())
-	table.Append(ds.FieldTypeStrings())
-	table.Render()
+	for _, f := range ds.Fields {
+		fmt.Printf("\t%s\t%s", cyan(f.Name), blue(f.Type.String()))
+	}
 	fmt.Println()
+	// table := tablewriter.NewWriter(os.Stdout)
+	// table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
+	// table.SetCenterSeparator("")
+	// table.Append(ds.FieldNames())
+	// table.Append(ds.FieldTypeStrings())
+	// table.Render()
+	// fmt.Println()
 }
 
 func PrintDatasetDetailedInfo(ds *dataset.Dataset) {
-	fmt.Printf("dataset: %s\n", ds.Address)
+	fmt.Println("")
+	white := color.New(color.FgWhite).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	fmt.Printf("\taddress: %s\n", white(ds.Address))
+	fmt.Printf("\tname: %s\n", white(ds.Name))
 	if ds.Description != "" {
-		fmt.Printf("description:\n%s", ds.Description)
+		fmt.Printf("\tdescription: %s\n", white(ds.Description))
 	}
 
-	fmt.Println("fields:")
-	table := tablewriter.NewWriter(os.Stdout)
-	table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-	table.SetCenterSeparator("")
-	table.Append(ds.FieldNames())
-	table.Append(ds.FieldTypeStrings())
-	table.Render()
-	fmt.Println()
+	fmt.Println("\tfields:")
+	for _, f := range ds.Fields {
+		fmt.Printf("\t%s", cyan(f.Name))
+	}
+	fmt.Printf("\n")
+	for _, f := range ds.Fields {
+		fmt.Printf("\t%s", blue(f.Type.String()))
+	}
+	fmt.Printf("\n")
 }

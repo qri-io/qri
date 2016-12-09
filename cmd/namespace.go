@@ -28,7 +28,7 @@ import (
 // namespaceCmd represents the namespace command
 var namespaceCmd = &cobra.Command{
 	Use:   "namespace",
-	Short: "tools listing & editing this client's namespaces",
+	Short: "List & edit namespaces",
 	Long:  `Namespaces are a domain connected with a base address.`,
 }
 
@@ -36,10 +36,7 @@ var nsList = &cobra.Command{
 	Use:   "list",
 	Short: "List namespaces",
 	Run: func(cmd *cobra.Command, args []string) {
-		adr := dataset.NewAddress("")
-		if len(args) > 0 {
-			adr = dataset.NewAddress(args[0])
-		}
+		adr := GetAddress(cmd, args)
 
 		adrs, err := namespace.ReadAllAddresses(GetNamespaces(cmd, args).ChildAddresses(adr))
 		if err != nil {
@@ -147,7 +144,7 @@ func (n Namespaces) Store(adr dataset.Address) (fs.Store, error) {
 			}
 
 			// otherwise we need to download the dataset to our local store
-			store, err := downloadPackage(ns, adr)
+			store, err := downloadPackage(ns, adr, adr.String())
 			if err != nil {
 				return nil, err
 			}
@@ -156,4 +153,30 @@ func (n Namespaces) Store(adr dataset.Address) (fs.Store, error) {
 	}
 
 	return nil, namespace.ErrNotFound
+}
+
+func (ns Namespaces) Search(query string) ([]*dataset.Dataset, error) {
+	found := false
+	results := make([]*dataset.Dataset, 0)
+
+	if len(ns) == 0 {
+		return nil, fmt.Errorf("no namespaces available for search!")
+	}
+
+	for _, n := range ns {
+		if s, ok := n.(namespace.SearchableNamespace); ok {
+			found = true
+			ds, err := namespace.ReadAllDatasets(s.Search(query, -1, 0))
+			if err != nil {
+				return results, err
+			}
+			results = append(results, ds...)
+		}
+	}
+
+	if !found {
+		return nil, fmt.Errorf("none of your namespaces are searchable!")
+	}
+
+	return results, nil
 }
