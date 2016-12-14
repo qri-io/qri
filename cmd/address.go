@@ -14,7 +14,11 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"github.com/qri-io/namespace/local"
+
+	"github.com/spf13/cobra"
+)
 
 // addressCmd represents the address command
 var addressCmd = &cobra.Command{
@@ -22,7 +26,7 @@ var addressCmd = &cobra.Command{
 	Short: "Get the address of the current working directory",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		PrintSuccess("this is the address")
+		PrintSuccess(local.NewWorkingDirNamespace().Base().String())
 	},
 }
 

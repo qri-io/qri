@@ -15,13 +15,13 @@
 package cmd
 
 import (
-	"fmt"
+	"encoding/json"
 	"io/ioutil"
+	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset_detect"
 
-	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
 )
 
@@ -32,7 +32,7 @@ var initCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		base := GetWd()
-		store := Store(cmd, args)
+		// store := Store(cmd, args)
 
 		files, err := ioutil.ReadDir(base)
 		if err != nil {
@@ -56,16 +56,29 @@ var initCmd = &cobra.Command{
 			dataset = nil
 		}
 
-		if err := history.Init(store, func(o *history.InitOpt) {
-			o.Dataset = dataset
-		}); err != nil {
-			ErrExit(err)
+		adr, err := InputAddress("", dataset.Address)
+		ExitIfErr(err)
+		dataset.Address = adr
+
+		if dataset != nil {
+			data, err := json.Marshal(dataset)
+			ExitIfErr(err)
+			err = ioutil.WriteFile("dataset.json", data, os.ModePerm)
+			ExitIfErr(err)
 		}
 
-		fmt.Printf("created new repository at %s\n", base)
+		// if err := history.Init(store, func(o *history.InitOpt) {
+		// 	o.Dataset = dataset
+		// }); err != nil {
+		// 	ErrExit(err)
+		// }
+		// fmt.Printf("created new repository at %s\n", base)
+		PrintSuccess("successfully initialized dataset:")
+		PrintDatasetDetailedInfo(dataset)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(initCmd)
+	// TODO - add passive flag to disable interacive input.
 }

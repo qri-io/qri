@@ -15,8 +15,12 @@
 package cmd
 
 import (
-	"github.com/qri-io/history"
+	"fmt"
+
 	"github.com/spf13/cobra"
+	// "github.com/qri-io/history"
+	lns "github.com/qri-io/namespace/local"
+	"github.com/qri-io/namespace/remote"
 )
 
 // pushCmd represents the push command
@@ -25,9 +29,23 @@ var pushCmd = &cobra.Command{
 	Short: "Update remote repository with local history",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		store := Store(cmd, args)
-		err := history.Push(store, "localhost:5380")
-		ExitIfErr(err)
+		// store := Store(cmd, args)
+		// err := history.Push(store, "localhost:5380")
+		// ExitIfErr(err)
+
+		adr := GetAddress(cmd, args)
+		ns := lns.NewNamespaceFromPath(GetWd())
+		zr, size, err := ns.Package(adr)
+		if err != nil {
+			ErrExit(fmt.Errorf("couldn't build local package for address: %s", adr.String()))
+		}
+
+		rmt := remote.New("localhost", "qri")
+		err = rmt.WritePackage(adr, zr, size)
+		if err != nil {
+			ErrExit(err)
+		}
+
 		PrintSuccess("sucessfully pushed")
 	},
 }

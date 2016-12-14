@@ -34,23 +34,28 @@ var runCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			ErrExit(fmt.Errorf("Please provide a query to execute"))
+			ErrExit(fmt.Errorf("Please provide a query or address to execute"))
 		}
+		stmt, err := query.Parse(args[0])
+		ExitIfErr(err)
 
 		adr := dataset.NewAddress("")
 		if save := cmd.Flag("save").Value.String(); save != "" {
 			if !dataset.ValidAddressString(save) {
-				PrintErr("'%s' is not a valid address string to save to", save)
+				PrintErr(fmt.Errorf("'%s' is not a valid address string to save to", save))
 				os.Exit(-1)
 			}
 			adr = dataset.NewAddress(save)
-
 		}
 
-		stmt, err := query.Parse(args[0])
-		ExitIfErr(err)
+		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
+		if err != nil {
+			ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
+		}
 
-		results, err := stmt.Exec(GetNamespaces(cmd, args))
+		results, data, err := stmt.Exec(GetNamespaces(cmd, args), func(o *query.ExecOpt) {
+			o.Format = format
+		})
 		ExitIfErr(err)
 
 		if !adr.IsEmpty() {
@@ -61,31 +66,38 @@ var runCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		fmt.Println()
-		table := tablewriter.NewWriter(os.Stdout)
-		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-		table.SetCenterSeparator("|")
-		table.SetHeader(results.FieldNames())
+		switch format {
+		case dataset.JsonDataFormat:
+			fmt.Println()
+			fmt.Println(string(data))
+		case dataset.CsvDataFormat:
+			fmt.Println()
+			table := tablewriter.NewWriter(os.Stdout)
+			table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+			table.SetCenterSeparator("|")
+			table.SetHeader(results.FieldNames())
 
-		r := csv.NewReader(bytes.NewBuffer(results.Data))
-		for {
-			rec, err := r.Read()
-			if err != nil {
-				if err.Error() == "EOF" {
-					break
+			r := csv.NewReader(bytes.NewBuffer(data))
+			for {
+				rec, err := r.Read()
+				if err != nil {
+					if err.Error() == "EOF" {
+						break
+					}
+					fmt.Println(err.Error())
+					os.Exit(1)
 				}
-				fmt.Println(err.Error())
-				os.Exit(1)
+
+				table.Append(rec)
 			}
 
-			table.Append(rec)
+			table.Render()
 		}
-
-		table.Render()
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
+	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
 }

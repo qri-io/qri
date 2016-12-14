@@ -11,6 +11,7 @@ import (
 )
 
 var noColor bool
+var printPrompt = color.New(color.FgWhite).PrintfFunc()
 
 func SetNoColor() {
 	color.NoColor = noColor
@@ -26,6 +27,11 @@ func PrintInfo(msg string, params ...interface{}) {
 
 func PrintWarning(msg string, params ...interface{}) {
 	color.Yellow(msg, params...)
+}
+
+// TODO - remove this shit. wtf, PrintRed!?
+func PrintRed(msg string, params ...interface{}) {
+	color.Red(msg, params...)
 }
 
 func PrintErr(err error, params ...interface{}) {
