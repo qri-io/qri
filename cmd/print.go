@@ -2,9 +2,13 @@
 package cmd
 
 import (
+	"bytes"
+	"encoding/csv"
 	"fmt"
+	"os"
 
 	"github.com/fatih/color"
+	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/history"
 	"github.com/spf13/cobra"
@@ -97,4 +101,34 @@ func PrintDatasetDetailedInfo(ds *dataset.Dataset) {
 		fmt.Printf("\t%s", blue(f.Type.String()))
 	}
 	fmt.Printf("\n")
+}
+
+func PrintResults(ds *dataset.Dataset, data []byte, format dataset.DataFormat) {
+	switch format {
+	case dataset.JsonDataFormat:
+		fmt.Println()
+		fmt.Println(string(data))
+	case dataset.CsvDataFormat:
+		fmt.Println()
+		table := tablewriter.NewWriter(os.Stdout)
+		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
+		table.SetCenterSeparator("|")
+		table.SetHeader(ds.FieldNames())
+
+		r := csv.NewReader(bytes.NewBuffer(data))
+		for {
+			rec, err := r.Read()
+			if err != nil {
+				if err.Error() == "EOF" {
+					break
+				}
+				fmt.Println(err.Error())
+				os.Exit(1)
+			}
+
+			table.Append(rec)
+		}
+
+		table.Render()
+	}
 }

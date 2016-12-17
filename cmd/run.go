@@ -15,14 +15,11 @@
 package cmd
 
 import (
-	"bytes"
-	"encoding/csv"
 	"fmt"
 	"os"
 
 	"github.com/qri-io/dataset"
 
-	"github.com/olekukonko/tablewriter"
 	query "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
 )
@@ -67,33 +64,7 @@ var runCmd = &cobra.Command{
 			os.Exit(0)
 		}
 
-		switch format {
-		case dataset.JsonDataFormat:
-			fmt.Println()
-			fmt.Println(string(data))
-		case dataset.CsvDataFormat:
-			fmt.Println()
-			table := tablewriter.NewWriter(os.Stdout)
-			table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
-			table.SetCenterSeparator("|")
-			table.SetHeader(results.FieldNames())
-
-			r := csv.NewReader(bytes.NewBuffer(data))
-			for {
-				rec, err := r.Read()
-				if err != nil {
-					if err.Error() == "EOF" {
-						break
-					}
-					fmt.Println(err.Error())
-					os.Exit(1)
-				}
-
-				table.Append(rec)
-			}
-
-			table.Render()
-		}
+		PrintResults(results, data, format)
 	},
 }
 

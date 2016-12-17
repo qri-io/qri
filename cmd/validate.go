@@ -15,7 +15,8 @@
 package cmd
 
 import (
-	"github.com/qri-io/history"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/namespace/local"
 	"github.com/spf13/cobra"
 )
 
@@ -30,13 +31,29 @@ in the dataset's fields.
 For a full rundown on validation visit:
 http://docs.qri.io/concepts/validation`,
 	Run: func(cmd *cobra.Command, args []string) {
-		store := Store(cmd, args)
+		// store := Store(cmd, args)
+		// errs, err := history.Validate(store)
+		// ExitIfErr(err)
 
-		errs, err := history.Validate(store)
+		adr := GetAddress(cmd, args)
+		ns := local.NewNamespaceFromPath(GetWd())
+		ds, err := ns.Dataset(adr)
 		ExitIfErr(err)
 
-		if len(errs) > 0 {
-			PrintValidationErrors(errs)
+		if cmd.Flag("check-links").Value.String() == "true" {
+			validation, data, count, err := ds.ValidateDeadLinks(Cache())
+			ExitIfErr(err)
+			if count > 0 {
+				PrintResults(validation, data, dataset.CsvDataFormat)
+			} else {
+				PrintSuccess("✔ All good!")
+			}
+		}
+
+		validation, data, count, err := ds.ValidateData(Cache())
+		ExitIfErr(err)
+		if count > 0 {
+			PrintResults(validation, data, dataset.CsvDataFormat)
 		} else {
 			PrintSuccess("✔ All good!")
 		}
@@ -45,4 +62,5 @@ http://docs.qri.io/concepts/validation`,
 
 func init() {
 	RootCmd.AddCommand(validateCmd)
+	validateCmd.Flags().BoolP("check-links", "l", false, "check dead links")
 }
