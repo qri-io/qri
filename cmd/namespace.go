@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
 	lns "github.com/qri-io/namespace/local"
+	rns "github.com/qri-io/namespace/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -72,9 +73,22 @@ func init() {
 	RootCmd.AddCommand(namespaceCmd)
 }
 
+// Namespaces reads the list of namespaces from the config
+func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
+	return Namespaces{
+		CliNamespace{Namespace: lns.NewNamespaceFromPath(GetWd())},
+		CliNamespace{Namespace: rns.New("localhost", "qri")},
+	}
+}
+
+type CliNamespace struct {
+	namespace.Namespace
+	CachePath string
+}
+
 // Namespaces is a collection of namespaces that also satisfies the namespace interface
 // by querying each namespace in order
-type Namespaces []namespace.Namespace
+type Namespaces []CliNamespace
 
 func (n Namespaces) Url() string {
 	str := ""
@@ -139,12 +153,13 @@ func (n Namespaces) Store(adr dataset.Address) (fs.Store, error) {
 	for _, ns := range n {
 		if _, err := ns.Dataset(adr); err == nil {
 			// if the base is local, we can just hand back the local store
-			if lcl, ok := ns.(*lns.Namespace); ok {
+			// TODO - clean this up (the n.Namespace.(typeAssertion) bit)
+			if lcl, ok := ns.Namespace.(*lns.Namespace); ok {
 				return lcl.Store(adr)
 			}
 
 			// otherwise we need to download the dataset to our local store
-			store, err := downloadPackage(ns, adr, adr.String())
+			store, err := downloadPackage(ns, adr)
 			if err != nil {
 				return nil, err
 			}
@@ -164,7 +179,8 @@ func (ns Namespaces) Search(query string) ([]*dataset.Dataset, error) {
 	}
 
 	for _, n := range ns {
-		if s, ok := n.(namespace.SearchableNamespace); ok {
+		// TODO - clean this up (the n.Namespace.(typeAssertion) bit)
+		if s, ok := n.Namespace.(namespace.SearchableNamespace); ok {
 			found = true
 			ds, err := namespace.ReadAllDatasets(s.Search(query, -1, 0))
 			if err != nil {

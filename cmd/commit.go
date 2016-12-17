@@ -44,6 +44,6 @@ var commitCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(commitCmd)
 	commitCmd.Flags().StringP("message", "m", "", "message for this commit")
+	// RootCmd.AddCommand(commitCmd)
 }

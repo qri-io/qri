@@ -14,7 +14,12 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"fmt"
+
+	"github.com/qri-io/namespace"
+	"github.com/spf13/cobra"
+)
 
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
@@ -26,12 +31,40 @@ var searchCmd = &cobra.Command{
 		if len(args) > 0 {
 			q = args[0]
 		}
-		ns := GetNamespaces(cmd, args)
-		results, err := ns.Search(q)
-		ExitIfErr(err)
-		for _, ds := range results {
-			PrintDatasetShortInfo(ds)
+
+		namespaces := GetNamespaces(cmd, args)
+		// tasks := len(namespaces)
+		// done := make(chan int)
+		for _, ns := range namespaces {
+			// go func(done chan int) {
+			if s, ok := ns.Namespace.(namespace.SearchableNamespace); ok {
+				results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
+				if err != nil {
+					PrintErr(err)
+				} else {
+					PrintNamespace(ns)
+					if len(results) > 0 {
+						for i, ds := range results {
+							PrintDatasetShortInfo(i+1, ds)
+						}
+					} else {
+						PrintInfo("no results.")
+					}
+				}
+				fmt.Println()
+			} else {
+				PrintWarning("namspace %s doesn't support searching", ns.String())
+			}
+			// 	done <- i
+			// }(done)
 		}
+		// for {
+		// 	<-done
+		// 	tasks -= 1
+		// 	if tasks == 0 {
+		// 		return
+		// 	}
+		// }
 	},
 }
 

@@ -26,7 +26,7 @@ import (
 // pushCmd represents the push command
 var pushCmd = &cobra.Command{
 	Use:   "push",
-	Short: "Update remote repository with local history",
+	Short: "Update remote repository with local datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// store := Store(cmd, args)

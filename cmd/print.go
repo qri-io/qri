@@ -51,17 +51,21 @@ func PrintValidationErrors(errs map[string][]*history.ValidationError) {
 	}
 }
 
-func PrintDatasetShortInfo(ds *dataset.Dataset) {
+func PrintNamespace(ns CliNamespace) {
+	color.Cyan("namespace %s: ", ns.String())
+}
+
+func PrintDatasetShortInfo(i int, ds *dataset.Dataset) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Println()
-	fmt.Printf("dataset: %s\n", white(ds.Address))
-	fmt.Printf("description: %s\n", white(ds.Description))
+	fmt.Printf("%s\tdataset: %s\n", cyan(i), white(ds.Address))
+	fmt.Printf("\tdescription: %s\n", white(ds.Description))
 
-	fmt.Println("fields:")
+	fmt.Println("\tfields:")
+	fmt.Printf("\t\t")
 	for _, f := range ds.Fields {
-		fmt.Printf("\t%s\t%s", cyan(f.Name), blue(f.Type.String()))
+		fmt.Printf("%s|%s\t", cyan(f.Name), blue(f.Type.String()))
 	}
 	fmt.Println()
 	// table := tablewriter.NewWriter(os.Stdout)

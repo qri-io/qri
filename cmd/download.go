@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
+	"github.com/qri-io/namespace/local"
 	"github.com/spf13/cobra"
 )
 
@@ -31,11 +32,18 @@ var downloadCmd = &cobra.Command{
 	Short: "Download dataset(s)",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		ns := GetNamespaces(cmd, args)
-		adr := GetAddress(cmd, args)
-		_, err := downloadPackage(ns, adr, adr.String())
-		ExitIfErr(err)
-		PrintSuccess("downloaded %s to %s", adr.String(), adr.String())
+		namespaces := GetNamespaces(cmd, args)
+		for _, ns := range namespaces {
+			// ignore local namespace
+			if _, ok := ns.Namespace.(*local.Namespace); ok {
+				continue
+			}
+
+			adr := GetAddress(cmd, args)
+			_, err := downloadPackage(ns, adr)
+			ExitIfErr(err)
+			PrintSuccess("downloaded %s to %s", adr.String(), adr.PathString())
+		}
 	},
 }
 
@@ -43,7 +51,7 @@ func init() {
 	RootCmd.AddCommand(downloadCmd)
 }
 
-func downloadPackage(ns namespace.Namespace, adr dataset.Address, path string) (fs.Store, error) {
+func downloadPackage(ns namespace.Namespace, adr dataset.Address) (fs.Store, error) {
 	store := Cache()
 	r, size, err := ns.Package(adr)
 	if err != nil {
@@ -71,7 +79,7 @@ func downloadPackage(ns namespace.Namespace, adr dataset.Address, path string) (
 			return store, err
 		}
 
-		if err := store.Write(filepath.Join(path, f.Name), data); err != nil {
+		if err := store.Write(filepath.Join(adr.PathString(), f.Name), data); err != nil {
 			return store, err
 		}
 	}

@@ -3,7 +3,7 @@
   "address": "qri.b5.hours",
   "file": "hours.csv",
   "format": "csv",
-  "description": "hours worked, yo",
+  "description": "hours worked, yo!",
   "fields": [
     {
       "name": "field_1",

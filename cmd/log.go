@@ -32,5 +32,5 @@ var logCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(logCmd)
+	// RootCmd.AddCommand(logCmd)
 }

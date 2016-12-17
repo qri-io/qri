@@ -7,8 +7,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/fs/local"
-	lns "github.com/qri-io/namespace/local"
-	"github.com/qri-io/namespace/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -54,12 +52,4 @@ func Store(cmd *cobra.Command, args []string) fs.Store {
 // Cache is the place to put downloaded stuff. default is the local store
 func Cache() fs.Store {
 	return local.NewLocalStore(GetWd())
-}
-
-// Namespaces reads the list of namespaces from the config
-func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
-	return Namespaces{
-		lns.NewNamespaceFromPath(GetWd()),
-		remote.New("localhost", "qri"),
-	}
 }
