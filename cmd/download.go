@@ -35,7 +35,7 @@ var downloadCmd = &cobra.Command{
 		namespaces := GetNamespaces(cmd, args)
 		for _, ns := range namespaces {
 			// ignore local namespace
-			if _, ok := ns.Namespace.(*local.Namespace); ok {
+			if _, ok := ns.(*local.Namespace); ok {
 				continue
 			}
 

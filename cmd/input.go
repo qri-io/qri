@@ -21,14 +21,14 @@ func InputAddress(message string, defaultAdr dataset.Address) (dataset.Address, 
 	if message == "" {
 		message = "please enter an address"
 	}
-	input := prompt(fmt.Sprintf("%s [%s]: ", message, defaultAdr))
+	input := strings.ToLower(prompt(fmt.Sprintf("%s [%s]: ", message, defaultAdr)))
 
 	if input == "" && defaultAdr.String() != "" {
 		return defaultAdr, nil
 	}
 
 	if !dataset.ValidAddressString(input) {
-		PrintRed("invalid address: '%s'. Addresses are alpha_numeric.separated.by.dots", input)
+		PrintRed("invalid address: '%s'. Addresses are lower_case.alpha_numeric.separated.by.dots", input)
 		return InputAddress(message, defaultAdr)
 	}
 

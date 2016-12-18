@@ -46,10 +46,10 @@ func GetAddress(cmd *cobra.Command, args []string) dataset.Address {
 // Store creates the appropriate store for a given command
 // defaulting to creating a new store from the local directory
 func Store(cmd *cobra.Command, args []string) fs.Store {
-	return local.NewLocalStore(GetWd())
+	return local.NewLocalStore(cachePath())
 }
 
 // Cache is the place to put downloaded stuff. default is the local store
 func Cache() fs.Store {
-	return local.NewLocalStore(GetWd())
+	return local.NewLocalStore(cachePath())
 }

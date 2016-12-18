@@ -37,7 +37,7 @@ var searchCmd = &cobra.Command{
 		// done := make(chan int)
 		for _, ns := range namespaces {
 			// go func(done chan int) {
-			if s, ok := ns.Namespace.(namespace.SearchableNamespace); ok {
+			if s, ok := ns.(namespace.SearchableNamespace); ok {
 				results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
 				if err != nil {
 					PrintErr(err)

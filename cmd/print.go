@@ -11,6 +11,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/history"
+	"github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 
@@ -55,8 +56,8 @@ func PrintValidationErrors(errs map[string][]*history.ValidationError) {
 	}
 }
 
-func PrintNamespace(ns CliNamespace) {
-	color.Cyan("namespace %s: ", ns.String())
+func PrintNamespace(ns namespace.Namespace) {
+	color.Cyan("%s: ", ns.String())
 }
 
 func PrintDatasetShortInfo(i int, ds *dataset.Dataset) {
@@ -114,7 +115,6 @@ func PrintResults(ds *dataset.Dataset, data []byte, format dataset.DataFormat) {
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")
 		table.SetHeader(ds.FieldNames())
-
 		r := csv.NewReader(bytes.NewBuffer(data))
 		for {
 			rec, err := r.Read()

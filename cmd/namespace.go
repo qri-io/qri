@@ -18,6 +18,8 @@ import (
 	"fmt"
 	"io"
 
+	"github.com/spf13/viper"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
@@ -73,22 +75,47 @@ func init() {
 	RootCmd.AddCommand(namespaceCmd)
 }
 
-// Namespaces reads the list of namespaces from the config
-func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
-	return Namespaces{
-		CliNamespace{Namespace: lns.NewNamespaceFromPath(GetWd())},
-		CliNamespace{Namespace: rns.New("localhost", "qri")},
-	}
+func cachePath() string {
+	return viper.GetString("cache")
 }
 
-type CliNamespace struct {
-	namespace.Namespace
-	CachePath string
+// Namespaces reads the list of namespaces from the config
+func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
+	namespaceList := viper.Get("namespaces")
+	if nsSlice, ok := namespaceList.([]interface{}); ok {
+		namespaces := Namespaces{}
+		addedLocal := false
+		for _, nsI := range nsSlice {
+			if ns, ok := nsI.(map[string]interface{}); ok {
+				url := iFaceStr(ns["url"])
+				adr := iFaceStr(ns["address"])
+				if !addedLocal && (url == "local" || url == "") {
+					namespaces = append(namespaces, lns.NewNamespaceFromPath(cachePath()))
+					addedLocal = true
+				} else {
+					namespaces = append(namespaces, rns.New(url, adr))
+				}
+			} else {
+				ErrExit(fmt.Errorf("invalid namespaces configuration. Check your config file!"))
+			}
+		}
+		return namespaces
+	} else {
+		ErrExit(fmt.Errorf("invalid namespaces configuration. Check your config file!"))
+	}
+	return nil
+}
+
+func iFaceStr(str interface{}) string {
+	if s, ok := str.(string); ok {
+		return s
+	}
+	return ""
 }
 
 // Namespaces is a collection of namespaces that also satisfies the namespace interface
 // by querying each namespace in order
-type Namespaces []CliNamespace
+type Namespaces []namespace.Namespace
 
 func (n Namespaces) Url() string {
 	str := ""
@@ -97,6 +124,7 @@ func (n Namespaces) Url() string {
 	}
 	return str
 }
+
 func (n Namespaces) Base() dataset.Address {
 	// str := ""
 	// for _, ns := range n {
@@ -153,8 +181,7 @@ func (n Namespaces) Store(adr dataset.Address) (fs.Store, error) {
 	for _, ns := range n {
 		if _, err := ns.Dataset(adr); err == nil {
 			// if the base is local, we can just hand back the local store
-			// TODO - clean this up (the n.Namespace.(typeAssertion) bit)
-			if lcl, ok := ns.Namespace.(*lns.Namespace); ok {
+			if lcl, ok := ns.(*lns.Namespace); ok {
 				return lcl.Store(adr)
 			}
 
@@ -179,8 +206,7 @@ func (ns Namespaces) Search(query string) ([]*dataset.Dataset, error) {
 	}
 
 	for _, n := range ns {
-		// TODO - clean this up (the n.Namespace.(typeAssertion) bit)
-		if s, ok := n.Namespace.(namespace.SearchableNamespace); ok {
+		if s, ok := n.(namespace.SearchableNamespace); ok {
 			found = true
 			ds, err := namespace.ReadAllDatasets(s.Search(query, -1, 0))
 			if err != nil {

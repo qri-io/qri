@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -63,10 +62,22 @@ func initConfig() {
 
 	viper.SetConfigName(".qri")  // name of config file (without extension)
 	viper.AddConfigPath("$HOME") // adding home directory as first search path
+	viper.AddConfigPath(".")     // adding home directory as first search path
 	viper.AutomaticEnv()         // read in environment variables that match
+
+	viper.SetDefault("cache", "$HOME/datasets")
+	viper.SetDefault("namespaces", []map[string]interface{}{
+		map[string]interface{}{
+			"url":     "www.qri.io",
+			"address": "qri",
+		},
+		map[string]interface{}{
+			"url": "local",
+		},
+	})
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
-		fmt.Println("Using config file:", viper.ConfigFileUsed())
+		// fmt.Println("Using config file:", viper.ConfigFileUsed())
 	}
 }
