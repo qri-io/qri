@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -65,7 +66,7 @@ func initConfig() {
 	viper.AddConfigPath(".")     // adding home directory as first search path
 	viper.AutomaticEnv()         // read in environment variables that match
 
-	viper.SetDefault("cache", "$HOME/datasets")
+	viper.SetDefault("cache", filepath.Join(userHomeDir(), "datasets"))
 	viper.SetDefault("namespaces", []map[string]interface{}{
 		map[string]interface{}{
 			"url":     "www.qri.io",

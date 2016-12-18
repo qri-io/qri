@@ -15,9 +15,7 @@
 package cmd
 
 import (
-	"encoding/json"
 	"io/ioutil"
-	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset_detect"
@@ -32,7 +30,6 @@ var initCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		base := GetWd()
-		// store := Store(cmd, args)
 
 		files, err := ioutil.ReadDir(base)
 		if err != nil {
@@ -40,12 +37,17 @@ var initCmd = &cobra.Command{
 		}
 
 		dataset := &dataset.Dataset{}
+		foundFiles := map[string][]byte{}
 		for _, fi := range files {
 			if fi.IsDir() {
 				continue
 			} else if ds, err := dataset_detect.FromFile(fi.Name()); err == nil {
+				foundFiles[fi.Name()] = ds.Data
 				ds.Data = nil
+
 				dataset.Datasets = append(dataset.Datasets, ds)
+
+				break
 			}
 		}
 
@@ -60,20 +62,16 @@ var initCmd = &cobra.Command{
 		ExitIfErr(err)
 		dataset.Address = adr
 
-		if dataset != nil {
-			data, err := json.Marshal(dataset)
-			ExitIfErr(err)
-			err = ioutil.WriteFile("dataset.json", data, os.ModePerm)
-			ExitIfErr(err)
-		}
-
 		// if err := history.Init(store, func(o *history.InitOpt) {
 		// 	o.Dataset = dataset
 		// }); err != nil {
 		// 	ErrExit(err)
 		// }
 		// fmt.Printf("created new repository at %s\n", base)
-		PrintSuccess("successfully initialized dataset:")
+
+		err = WriteDataset(Cache(), dataset, foundFiles)
+		ExitIfErr(err)
+		PrintSuccess("successfully initialized dataset at: %s%s", cachePath(), DatasetPath(dataset))
 		PrintDatasetDetailedInfo(dataset)
 	},
 }

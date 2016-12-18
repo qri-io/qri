@@ -75,10 +75,6 @@ func init() {
 	RootCmd.AddCommand(namespaceCmd)
 }
 
-func cachePath() string {
-	return viper.GetString("cache")
-}
-
 // Namespaces reads the list of namespaces from the config
 func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
 	namespaceList := viper.Get("namespaces")

@@ -2,13 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/qri-io/dataset"
 )
-
-var validAddress = regexp.MustCompile(`^[a-z0-9\.]1,250}$`)
 
 func prompt(msg string) string {
 	var input string

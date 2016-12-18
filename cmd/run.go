@@ -56,12 +56,14 @@ var runCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		if !adr.IsEmpty() {
-			store := Cache()
 			results.Address = adr
-			// TODO - need "writeDataset" func
-			store.Write(adr.String()+".csv", results.Data)
-			PrintSuccess("results saved to: %s", adr.String()+".csv")
-			os.Exit(0)
+			err := WriteDataset(Cache(), results, map[string][]byte{
+				fmt.Sprintf("%s.%s", adr.String(), format.String()): data,
+			})
+
+			ExitIfErr(err)
+			PrintSuccess("results saved to: %s%s", cachePath(), DatasetPath(results))
+			return
 		}
 
 		PrintResults(results, data, format)

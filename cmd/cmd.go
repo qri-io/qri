@@ -1,13 +1,17 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
+	"path/filepath"
+	"runtime"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/fs/local"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // ErrExit writes an error to stdout & exits
@@ -52,4 +56,42 @@ func Store(cmd *cobra.Command, args []string) fs.Store {
 // Cache is the place to put downloaded stuff. default is the local store
 func Cache() fs.Store {
 	return local.NewLocalStore(cachePath())
+}
+
+// cachePath returns the configurable place to keep data
+func cachePath() string {
+	return viper.GetString("cache")
+}
+
+func userHomeDir() string {
+	if runtime.GOOS == "windows" {
+		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+		if home == "" {
+			home = os.Getenv("USERPROFILE")
+		}
+		return home
+	}
+	return os.Getenv("HOME")
+}
+
+func DatasetPath(ds *dataset.Dataset, elem ...string) string {
+	return filepath.Join(append([]string{ds.Address.PathString()}, elem...)...)
+}
+
+func WriteDataset(store fs.Store, ds *dataset.Dataset, files map[string][]byte) error {
+	if data, err := json.Marshal(ds); err != nil {
+		return err
+	} else {
+		if err := store.Write(DatasetPath(ds, dataset.Filename), data); err != nil {
+			return err
+		}
+	}
+
+	for filename, data := range files {
+		if err := store.Write(DatasetPath(ds, filename), data); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
