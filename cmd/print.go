@@ -6,6 +6,7 @@ import (
 	"encoding/csv"
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
@@ -130,5 +131,17 @@ func PrintResults(ds *dataset.Dataset, data []byte, format dataset.DataFormat) {
 		}
 
 		table.Render()
+	}
+}
+
+func PrintTree(ds *dataset.Dataset, indent int) {
+	fmt.Println(strings.Repeat(" ", indent), ds.Address.String())
+	for i, d := range ds.Datasets {
+		if i < len(ds.Datasets)-1 {
+			fmt.Println(strings.Repeat(" ", indent), "├──", d.Address.String())
+		} else {
+			fmt.Println(strings.Repeat(" ", indent), "└──", d.Address.String())
+
+		}
 	}
 }
