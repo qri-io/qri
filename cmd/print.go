@@ -7,7 +7,9 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
+	sp "github.com/briandowns/spinner"
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
@@ -18,6 +20,7 @@ import (
 
 var noColor bool
 var printPrompt = color.New(color.FgWhite).PrintfFunc()
+var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
 func SetNoColor() {
 	color.NoColor = noColor

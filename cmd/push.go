@@ -41,10 +41,12 @@ var pushCmd = &cobra.Command{
 		}
 
 		rmt := remote.New("localhost", "qri")
+		spinner.Start()
 		err = rmt.WritePackage(adr, zr, size)
 		if err != nil {
 			ErrExit(err)
 		}
+		spinner.Stop()
 
 		PrintSuccess("sucessfully pushed")
 	},
