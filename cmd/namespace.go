@@ -23,8 +23,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
+	"github.com/qri-io/namespace/json_api"
 	lns "github.com/qri-io/namespace/local"
-	rns "github.com/qri-io/namespace/remote"
 	"github.com/spf13/cobra"
 )
 
@@ -85,11 +85,13 @@ func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
 			if ns, ok := nsI.(map[string]interface{}); ok {
 				url := iFaceStr(ns["url"])
 				adr := iFaceStr(ns["address"])
+				access_token := iFaceStr(ns["access_token"])
 				if !addedLocal && (url == "local" || url == "") {
 					namespaces = append(namespaces, lns.NewNamespaceFromPath(cachePath()))
 					addedLocal = true
 				} else {
-					namespaces = append(namespaces, rns.New(url, adr))
+					// namespaces = append(namespaces, rns.New(url, adr))
+					namespaces = append(namespaces, json_api.NewNamespace(url, adr, access_token))
 				}
 			} else {
 				ErrExit(fmt.Errorf("invalid namespaces configuration. Check your config file!"))
