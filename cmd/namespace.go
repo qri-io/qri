@@ -18,90 +18,16 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/spf13/viper"
-
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/namespace"
-	"github.com/qri-io/namespace/json_api"
 	lns "github.com/qri-io/namespace/local"
 	"github.com/spf13/cobra"
 )
 
-// namespaceCmd represents the namespace command
-var namespaceCmd = &cobra.Command{
-	Use:   "namespace",
-	Short: "List & edit namespaces",
-	Long:  `Namespaces are a domain connected with a base address.`,
-}
-
-var nsList = &cobra.Command{
-	Use:   "list",
-	Short: "List namespaces",
-	Run: func(cmd *cobra.Command, args []string) {
-		adr := GetAddress(cmd, args)
-
-		adrs, err := namespace.ReadAllAddresses(GetNamespaces(cmd, args).ChildAddresses(adr))
-		if err != nil {
-			ErrExit(err)
-		}
-
-		for _, a := range adrs {
-			fmt.Println(a.String())
-		}
-	},
-}
-
-var nsAdd = &cobra.Command{
-	Use:   "add",
-	Short: "Add a namespace",
-	Run: func(cmd *cobra.Command, args []string) {
-		PrintNotYetFinished(cmd)
-	},
-}
-
-var nsRemove = &cobra.Command{
-	Use:   "remove",
-	Short: "Remove a namespace",
-	Run: func(cmd *cobra.Command, args []string) {
-		PrintNotYetFinished(cmd)
-	},
-}
-
-func init() {
-	namespaceCmd.AddCommand(nsList)
-	namespaceCmd.AddCommand(nsAdd)
-	namespaceCmd.AddCommand(nsRemove)
-	RootCmd.AddCommand(namespaceCmd)
-}
-
 // Namespaces reads the list of namespaces from the config
 func GetNamespaces(cmd *cobra.Command, args []string) Namespaces {
-	namespaceList := viper.Get("namespaces")
-	if nsSlice, ok := namespaceList.([]interface{}); ok {
-		namespaces := Namespaces{}
-		addedLocal := false
-		for _, nsI := range nsSlice {
-			if ns, ok := nsI.(map[string]interface{}); ok {
-				url := iFaceStr(ns["url"])
-				adr := iFaceStr(ns["address"])
-				access_token := iFaceStr(ns["access_token"])
-				if !addedLocal && (url == "local" || url == "") {
-					namespaces = append(namespaces, lns.NewNamespaceFromPath(cachePath()))
-					addedLocal = true
-				} else {
-					// namespaces = append(namespaces, rns.New(url, adr))
-					namespaces = append(namespaces, json_api.NewNamespace(url, adr, access_token))
-				}
-			} else {
-				ErrExit(fmt.Errorf("invalid namespaces configuration. Check your config file!"))
-			}
-		}
-		return namespaces
-	} else {
-		ErrExit(fmt.Errorf("invalid namespaces configuration. Check your config file!"))
-	}
-	return nil
+	return append(LocalNamespaces(cmd, args), RemoteNamespaces(cmd, args)...)
 }
 
 func iFaceStr(str interface{}) string {
@@ -124,12 +50,9 @@ func (n Namespaces) Url() string {
 }
 
 func (n Namespaces) Base() dataset.Address {
-	// str := ""
-	// for _, ns := range n {
-	// 	str += ns.Base().String() + "\n"
-	// }
 	return dataset.NewAddress("")
 }
+
 func (n Namespaces) String() string {
 	str := ""
 	for _, ns := range n {

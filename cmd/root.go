@@ -67,15 +67,13 @@ func initConfig() {
 	viper.AutomaticEnv()         // read in environment variables that match
 
 	viper.SetDefault("cache", filepath.Join(userHomeDir(), "datasets"))
-	viper.SetDefault("namespaces", []map[string]interface{}{
+	viper.SetDefault("remotes", []map[string]interface{}{
 		map[string]interface{}{
 			"url":     "www.qri.io",
 			"address": "qri",
 		},
-		map[string]interface{}{
-			"url": "local",
-		},
 	})
+	viper.SetDefault("folders", []map[string]interface{}{})
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

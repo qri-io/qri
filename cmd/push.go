@@ -17,10 +17,9 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/qri-io/namespace"
+
 	"github.com/spf13/cobra"
-	// "github.com/qri-io/history"
-	lns "github.com/qri-io/namespace/local"
-	"github.com/qri-io/namespace/remote"
 )
 
 // pushCmd represents the push command
@@ -29,26 +28,34 @@ var pushCmd = &cobra.Command{
 	Short: "Update remote repository with local datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// store := Store(cmd, args)
-		// err := history.Push(store, "localhost:5380")
-		// ExitIfErr(err)
-
 		adr := GetAddress(cmd, args)
-		ns := lns.NewNamespaceFromPath(GetWd())
-		zr, size, err := ns.Package(adr)
+
+		lns := LocalNamespaces(cmd, args)
+		zr, size, err := lns.Package(adr)
 		if err != nil {
 			ErrExit(fmt.Errorf("couldn't build local package for address: %s", adr.String()))
 		}
 
-		rmt := remote.New("localhost", "qri")
-		spinner.Start()
-		err = rmt.WritePackage(adr, zr, size)
-		if err != nil {
-			ErrExit(err)
+		for _, rmt := range GetRemotes(cmd, args) {
+			if rmt.Address.IsAncestor(adr) {
+				rns := rmt.Namespace()
+				if writableNs, ok := rns.(namespace.WritableNamespace); ok {
+					spinner.Start()
+					err = writableNs.WritePackage(adr, zr, size)
+					if err != nil {
+						ErrExit(err)
+					}
+					spinner.Stop()
+					PrintSuccess("sucessfully pushed")
+					return
+				} else {
+					PrintErr(fmt.Errorf("remote: %s isn't writable.", rns.Url()))
+					return
+				}
+			}
 		}
-		spinner.Stop()
 
-		PrintSuccess("sucessfully pushed")
+		PrintErr(fmt.Errorf("couldn't find a place to push address: %s. are your remotes configured properly?", adr.String()))
 	},
 }
 

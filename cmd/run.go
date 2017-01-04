@@ -50,7 +50,8 @@ var runCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
 		}
 
-		results, data, err := stmt.Exec(GetNamespaces(cmd, args), func(o *query.ExecOpt) {
+		// results, data, err := stmt.Exec(GetNamespaces(cmd, args), func(o *query.ExecOpt) {
+		results, data, err := stmt.Exec(LocalNamespaces(cmd, args), func(o *query.ExecOpt) {
 			o.Format = format
 		})
 		ExitIfErr(err)
