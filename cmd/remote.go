@@ -42,6 +42,27 @@ var remoteListCmd = &cobra.Command{
 	},
 }
 
+var remoteSetTokenCmd = &cobra.Command{
+	Use:   "set-token",
+	Short: "Set access token for a remote",
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 2 {
+			ErrExit(fmt.Errorf("require [remote-name] [access-token] as arguments"))
+		}
+
+		rmt := GetRemotes(cmd, args)
+		for _, r := range rmt {
+			if r.Url == args[0] {
+				r.AccessToken = args[1]
+				ExitIfErr(WriteConfigFile(&Config{
+					Remotes: rmt,
+					Folders: GetFolders(cmd, args),
+				}))
+			}
+		}
+	},
+}
+
 var remoteAddCmd = &cobra.Command{
 	Use:   "add",
 	Short: "Add a remote",
@@ -62,13 +83,14 @@ func init() {
 	remoteCmd.AddCommand(remoteListCmd)
 	remoteCmd.AddCommand(remoteAddCmd)
 	remoteCmd.AddCommand(remoteRemoveCmd)
+	remoteCmd.AddCommand(remoteSetTokenCmd)
 	RootCmd.AddCommand(remoteCmd)
 }
 
 type Remote struct {
-	Url         string
-	Address     dataset.Address
-	AccessToken string
+	Url         string          `json:"url"`
+	Address     dataset.Address `json:"address"`
+	AccessToken string          `json:"access_token"`
 }
 
 func (r *Remote) Namespace() namespace.Namespace {

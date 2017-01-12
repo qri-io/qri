@@ -42,10 +42,10 @@ var pushCmd = &cobra.Command{
 				if writableNs, ok := rns.(namespace.WritableNamespace); ok {
 					spinner.Start()
 					err = writableNs.WritePackage(adr, zr, size)
+					spinner.Stop()
 					if err != nil {
 						ErrExit(err)
 					}
-					spinner.Stop()
 					PrintSuccess("sucessfully pushed")
 					return
 				} else {

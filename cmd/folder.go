@@ -67,8 +67,8 @@ func init() {
 }
 
 type Folder struct {
-	Path    string
-	Address dataset.Address
+	Path    string          `json:"path"`
+	Address dataset.Address `json:"address"`
 }
 
 func (f *Folder) Namespace() namespace.Namespace {

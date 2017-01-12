@@ -36,13 +36,13 @@ var searchCmd = &cobra.Command{
 		// tasks := len(namespaces)
 		// done := make(chan int)
 		for _, ns := range namespaces {
+			PrintNamespace(ns)
 			// go func(done chan int) {
 			if s, ok := ns.(namespace.SearchableNamespace); ok {
 				results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
 				if err != nil {
 					PrintErr(err)
 				} else {
-					PrintNamespace(ns)
 					if len(results) > 0 {
 						for i, ds := range results {
 							PrintDatasetShortInfo(i+1, ds)

@@ -17,6 +17,8 @@ package cmd
 import (
 	"io/ioutil"
 
+	"github.com/qri-io/fs/local"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset_detect"
 
@@ -36,31 +38,39 @@ var initCmd = &cobra.Command{
 			ErrExit(err)
 		}
 
-		dataset := &dataset.Dataset{}
+		ds := &dataset.Dataset{}
 		foundFiles := map[string][]byte{}
 		for _, fi := range files {
-			if fi.IsDir() {
+			if fi.IsDir() || fi.Name() == dataset.Filename {
 				continue
-			} else if ds, err := dataset_detect.FromFile(fi.Name()); err == nil {
-				foundFiles[fi.Name()] = ds.Data
-				ds.Data = nil
+			} else {
 
-				dataset.Datasets = append(dataset.Datasets, ds)
+				// only work with files that have a proper extension
+				if _, err := dataset_detect.ExtensionDataFormat(fi.Name()); err != nil {
+					continue
+				}
 
-				break
+				if d, err := dataset_detect.FromFile(local.NewWorkingDirStore(), fi.Name()); err == nil {
+					foundFiles[fi.Name()] = d.Data
+					d.Data = nil
+					ds.Datasets = append(ds.Datasets, d)
+					break
+				} else {
+					PrintWarning("error with file '%s': %s", fi.Name(), err.Error())
+				}
 			}
 		}
 
-		if len(dataset.Datasets) == 1 {
-			dataset = dataset.Datasets[0]
-			dataset.Datasets = nil
-		} else if len(dataset.Datasets) == 0 {
-			dataset = nil
+		if len(ds.Datasets) == 1 {
+			ds = ds.Datasets[0]
+			ds.Datasets = nil
+		} else if len(ds.Datasets) == 0 {
+			ds = &dataset.Dataset{}
 		}
 
-		adr, err := InputAddress("", dataset.Address)
+		adr, err := InputAddress("", ds.Address)
 		ExitIfErr(err)
-		dataset.Address = adr
+		ds.Address = adr
 
 		// if err := history.Init(store, func(o *history.InitOpt) {
 		// 	o.Dataset = dataset
@@ -69,10 +79,10 @@ var initCmd = &cobra.Command{
 		// }
 		// fmt.Printf("created new repository at %s\n", base)
 
-		err = WriteDataset(Cache(), dataset, foundFiles)
+		err = WriteDataset(Cache(), ds, foundFiles)
 		ExitIfErr(err)
-		PrintSuccess("successfully initialized dataset at: %s%s", cachePath(), DatasetPath(dataset))
-		PrintDatasetDetailedInfo(dataset)
+		PrintSuccess("successfully initialized dataset at: %s%s", cachePath(), DatasetPath(ds))
+		PrintDatasetDetailedInfo(ds)
 	},
 }
 

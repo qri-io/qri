@@ -16,7 +16,7 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-const VERSION_NUMBER = "0.0.1alpha"
+const VERSION_NUMBER = "0.1.0alpha"
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{

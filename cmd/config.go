@@ -14,7 +14,19 @@
 
 package cmd
 
-import "github.com/spf13/cobra"
+import (
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"os"
+
+	"github.com/spf13/cobra"
+)
+
+type Config struct {
+	Remotes []*Remote `json:"remotes"`
+	Folders []*Folder `json:"folders"`
+}
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
@@ -43,4 +55,13 @@ func init() {
 	configCmd.AddCommand(configGetCommand)
 	configCmd.AddCommand(configSetCommand)
 	RootCmd.AddCommand(configCmd)
+}
+
+func WriteConfigFile(cfg *Config) error {
+	data, err := json.MarshalIndent(cfg, "", "\t")
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(fmt.Sprintf("%s/.qri.json", os.Getenv("HOME")), data, os.ModePerm)
 }
