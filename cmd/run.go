@@ -15,100 +15,18 @@
 package cmd
 
 import (
-	"context"
-	// "encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
+	// "io/ioutil"
+
+	// "encoding/json"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
 	// sql "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
-
-	// bstore "github.com/ipfs/go-ipfs/blocks/blockstore"
-	blockservice "github.com/ipfs/go-ipfs/blockservice"
-	"github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreunix"
-	dag "github.com/ipfs/go-ipfs/merkledag"
-	// dagtest "github.com/ipfs/go-ipfs/merkledag/test"
-	files "github.com/ipfs/go-ipfs/commands/files"
-	fsrepo "github.com/ipfs/go-ipfs/repo/fsrepo"
+	"gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	// "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
 )
-
-func runQuery() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	repo, err := fsrepo.Open("~/ipfs")
-	ExitIfErr(err)
-
-	cfg := &core.BuildCfg{
-		Repo:   repo,
-		Online: false,
-	}
-
-	node, err := core.NewNode(ctx, cfg)
-	ExitIfErr(err)
-
-	bserv := blockservice.New(node.Blockstore, node.Exchange)
-	dagserv := dag.NewDAGService(bserv)
-
-	fileAdder, err := coreunix.NewAdder(ctx, node.Pinning, node.Blockstore, dagserv)
-	ExitIfErr(err)
-
-	r := &dataset.Resource{
-		Format: dataset.CsvDataFormat,
-		Schema: &dataset.Schema{
-			Fields: []*dataset.Field{
-				&dataset.Field{Name: "field_1", Type: datatypes.Date},
-				&dataset.Field{Name: "field_3", Type: datatypes.Float},
-				&dataset.Field{Name: "field_3", Type: datatypes.String},
-				&dataset.Field{Name: "field_4", Type: datatypes.String},
-			},
-		},
-	}
-
-	rdata, err := r.MarshalJSON()
-	ExitIfErr(err)
-
-	err = ioutil.WriteFile("testdata/resource.json", rdata, os.ModePerm)
-	ExitIfErr(err)
-
-	fi, err := os.Stat("testdata/resource.json")
-	ExitIfErr(err)
-
-	rfile, err := files.NewSerialFile("resource.json", "testdata/resource.json", false, fi)
-	ExitIfErr(err)
-
-	outChan := make(chan interface{}, 8)
-
-	fileAdder.Out = outChan
-	go func() {
-		defer close(outChan)
-		for {
-			select {
-			case out, ok := <-outChan:
-				if ok {
-					output := out.(*coreunix.AddedObject)
-					if len(output.Hash) > 0 {
-						fmt.Printf("added %s", output.Hash)
-						return
-					}
-				}
-			}
-		}
-	}()
-
-	err = fileAdder.AddFile(rfile)
-	ExitIfErr(err)
-
-	_, err = fileAdder.Finalize()
-	ExitIfErr(err)
-
-	err = fileAdder.PinRoot()
-	ExitIfErr(err)
-}
 
 // runCmd represents the run command
 var runCmd = &cobra.Command{
@@ -116,15 +34,65 @@ var runCmd = &cobra.Command{
 	Short: "Run a query",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		runQuery()
-		// repo, err := fsrepo.Open("~/ipfs")
-		// ExitIfErr(err)
-
 		// if len(args) == 0 {
 		// 	ErrExit(fmt.Errorf("Please provide a query or address to execute"))
 		// }
 
-		// q := &dataset.Query{}
+		r := &dataset.Resource{
+			Format: dataset.CsvDataFormat,
+			Schema: &dataset.Schema{
+				Fields: []*dataset.Field{
+					&dataset.Field{Name: "field_1", Type: datatypes.Date},
+					&dataset.Field{Name: "field_3", Type: datatypes.Float},
+					&dataset.Field{Name: "field_3", Type: datatypes.String},
+					&dataset.Field{Name: "field_4", Type: datatypes.String},
+				},
+			},
+		}
+
+		rdata, err := r.MarshalJSON()
+		ExitIfErr(err)
+
+		hash, err := addAndPinFile("resource.json", rdata)
+		ExitIfErr(err)
+
+		fmt.Printf("resource hash: %s\n", hash)
+
+		// store := localRepo.Datastore()
+		// res, err := store.Query(query.Query{
+		// 	Prefix:   "",
+		// 	KeysOnly: true,
+		// 	// Limit:    500,
+		// })
+		// entries, err := res.Rest()
+		// ExitIfErr(err)
+		// for _, e := range entries {
+		// 	fmt.Println(e.Key)
+		// }
+
+		data, err := getKey(datastore.NewKey("/ipfs/" + hash))
+		ExitIfErr(err)
+
+		// data, err := store.Get(datastore.NewKey(hash))
+		// data, err := ioutil.ReadAll(rdr)
+		// ExitIfErr(err)
+
+		fmt.Println(string(data))
+
+		// r2 := &dataset.Resource{}
+		// err = r2.UnmarshalJSON(data)
+		// ExitIfErr(err)
+
+		// fmt.Println(r2)
+
+		// q := &dataset.Query{
+		// 	Syntax: "sql",
+		// 	Resources: map[string]datastore.Key{
+		// 		"a": datastore.NewKey(""),
+		// 	},
+		// 	Statement: "select field_1 from a",
+		// }
+
 		// q.UnmarshalJSON([]byte(args[0]))
 		// ExitIfErr(err)
 
