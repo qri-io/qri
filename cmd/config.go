@@ -24,8 +24,8 @@ import (
 )
 
 type Config struct {
-	Remotes []*Remote `json:"remotes"`
-	Folders []*Folder `json:"folders"`
+	// Remotes []*Remote `json:"remotes"`
+	// Folders []*Folder `json:"folders"`
 }
 
 // configCmd represents the config command

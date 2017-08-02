@@ -15,8 +15,7 @@
 package cmd
 
 import (
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/namespace/local"
+	// "github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 
@@ -35,32 +34,32 @@ http://docs.qri.io/concepts/validation`,
 		// errs, err := history.Validate(store)
 		// ExitIfErr(err)
 
-		adr := GetAddress(cmd, args)
-		ns := local.NewNamespaceFromPath(GetWd())
-		ds, err := ns.Dataset(adr)
-		ExitIfErr(err)
+		// adr := GetAddress(cmd, args)
+		// ns := local.NewNamespaceFromPath(GetWd())
+		// ds, err := ns.Dataset(adr)
+		// ExitIfErr(err)
 
-		if cmd.Flag("check-links").Value.String() == "true" {
-			validation, data, count, err := ds.ValidateDeadLinks(Cache())
-			ExitIfErr(err)
-			if count > 0 {
-				PrintResults(validation, data, dataset.CsvDataFormat)
-			} else {
-				PrintSuccess("✔ All good!")
-			}
-		}
+		// if cmd.Flag("check-links").Value.String() == "true" {
+		// 	validation, data, count, err := ds.ValidateDeadLinks(Cache())
+		// 	ExitIfErr(err)
+		// 	if count > 0 {
+		// 		PrintResults(validation, data, dataset.CsvDataFormat)
+		// 	} else {
+		// 		PrintSuccess("✔ All good!")
+		// 	}
+		// }
 
-		validation, data, count, err := ds.ValidateData(Cache())
-		ExitIfErr(err)
-		if count > 0 {
-			PrintResults(validation, data, dataset.CsvDataFormat)
-		} else {
-			PrintSuccess("✔ All good!")
-		}
+		// validation, data, count, err := ds.ValidateData(Cache())
+		// ExitIfErr(err)
+		// if count > 0 {
+		// 	PrintResults(validation, data, dataset.CsvDataFormat)
+		// } else {
+		// 	PrintSuccess("✔ All good!")
+		// }
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(validateCmd)
-	validateCmd.Flags().BoolP("check-links", "l", false, "check dead links")
+	// RootCmd.AddCommand(validateCmd)
+	// validateCmd.Flags().BoolP("check-links", "l", false, "check dead links")
 }

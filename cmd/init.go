@@ -15,12 +15,10 @@
 package cmd
 
 import (
-	"io/ioutil"
+	// "io/ioutil"
 
-	"github.com/qri-io/fs/local"
-
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset_detect"
+	// "github.com/qri-io/dataset"
+	// "github.com/qri-io/dataset/detect"
 
 	"github.com/spf13/cobra"
 )
@@ -31,62 +29,62 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a dataset",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		base := GetWd()
+		// base := GetWd()
 
-		files, err := ioutil.ReadDir(base)
-		if err != nil {
-			ErrExit(err)
-		}
-
-		ds := &dataset.Dataset{}
-		foundFiles := map[string][]byte{}
-		for _, fi := range files {
-			if fi.IsDir() || fi.Name() == dataset.Filename {
-				continue
-			} else {
-
-				// only work with files that have a proper extension
-				if _, err := dataset_detect.ExtensionDataFormat(fi.Name()); err != nil {
-					continue
-				}
-
-				if d, err := dataset_detect.FromFile(local.NewWorkingDirStore(), fi.Name()); err == nil {
-					foundFiles[fi.Name()] = d.Data
-					d.Data = nil
-					ds.Datasets = append(ds.Datasets, d)
-					break
-				} else {
-					PrintWarning("error with file '%s': %s", fi.Name(), err.Error())
-				}
-			}
-		}
-
-		if len(ds.Datasets) == 1 {
-			ds = ds.Datasets[0]
-			ds.Datasets = nil
-		} else if len(ds.Datasets) == 0 {
-			ds = &dataset.Dataset{}
-		}
-
-		adr, err := InputAddress("", ds.Address)
-		ExitIfErr(err)
-		ds.Address = adr
-
-		// if err := history.Init(store, func(o *history.InitOpt) {
-		// 	o.Dataset = dataset
-		// }); err != nil {
+		// files, err := ioutil.ReadDir(base)
+		// if err != nil {
 		// 	ErrExit(err)
 		// }
-		// fmt.Printf("created new repository at %s\n", base)
 
-		err = WriteDataset(Cache(), ds, foundFiles)
-		ExitIfErr(err)
-		PrintSuccess("successfully initialized dataset at: %s%s", cachePath(), DatasetPath(ds))
-		PrintDatasetDetailedInfo(ds)
+		// ds := &dataset.Dataset{}
+		// foundFiles := map[string][]byte{}
+		// for _, fi := range files {
+		// 	if fi.IsDir() {
+		// 		continue
+		// 	} else {
+
+		// 		// only work with files that have a proper extension
+		// 		if _, err := detect.ExtensionDataFormat(fi.Name()); err != nil {
+		// 			continue
+		// 		}
+
+		// 		if d, err := detect.FromFile(fi.Name()); err == nil {
+		// 			foundFiles[fi.Name()] = d.Data
+		// 			// d.Data = nil
+		// 			ds.Datasets = append(ds.Datasets, d)
+		// 			break
+		// 		} else {
+		// 			PrintWarning("error with file '%s': %s", fi.Name(), err.Error())
+		// 		}
+		// 	}
+		// }
+
+		// if len(ds.Datasets) == 1 {
+		// 	ds = ds.Datasets[0]
+		// 	ds.Datasets = nil
+		// } else if len(ds.Datasets) == 0 {
+		// 	ds = &dataset.Dataset{}
+		// }
+
+		// adr, err := InputText("", ds.Address)
+		// ExitIfErr(err)
+		// ds.Address = adr
+
+		// // if err := history.Init(store, func(o *history.InitOpt) {
+		// // 	o.Dataset = dataset
+		// // }); err != nil {
+		// // 	ErrExit(err)
+		// // }
+		// // fmt.Printf("created new repository at %s\n", base)
+
+		// err = WriteDataset(Cache(), ds, foundFiles)
+		// ExitIfErr(err)
+		// PrintSuccess("successfully initialized dataset at: %s%s", cachePath(), DatasetPath(ds))
+		// PrintDatasetDetailedInfo(ds)
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(initCmd)
+	// RootCmd.AddCommand(initCmd)
 	// TODO - add passive flag to disable interacive input.
 }
