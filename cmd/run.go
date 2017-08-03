@@ -20,11 +20,13 @@ import (
 
 	// "encoding/json"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
-	// sql "github.com/qri-io/dataset_sql"
+	sql "github.com/qri-io/dataset_sql"
+	"github.com/qri-io/ipfs_datastore"
 	"github.com/spf13/cobra"
-	"gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
+	// "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
 	// "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
 )
 
@@ -37,6 +39,13 @@ var runCmd = &cobra.Command{
 		// if len(args) == 0 {
 		// 	ErrExit(fmt.Errorf("Please provide a query or address to execute"))
 		// }
+		ds, err := ipfs_datastore.NewDatastore()
+		ExitIfErr(err)
+
+		hhash, err := ds.AddAndPinPath("testdata/hours.csv")
+		ExitIfErr(err)
+
+		fmt.Printf("hours hash: %s\n", hhash)
 
 		r := &dataset.Resource{
 			Format: dataset.CsvDataFormat,
@@ -48,16 +57,16 @@ var runCmd = &cobra.Command{
 					&dataset.Field{Name: "field_4", Type: datatypes.String},
 				},
 			},
+			Path: datastore.NewKey("/ipfs/" + hhash),
 		}
 
 		rdata, err := r.MarshalJSON()
 		ExitIfErr(err)
 
-		hash, err := addAndPinFile("resource.json", rdata)
+		hash, err := ds.AddAndPinBytes(rdata)
 		ExitIfErr(err)
 
 		// fmt.Printf("resource hash: %s\n", hash)
-
 		// store := localRepo.Datastore()
 		// res, err := store.Query(query.Query{
 		// 	Prefix:   "",
@@ -70,14 +79,22 @@ var runCmd = &cobra.Command{
 		// 	fmt.Println(e.Key)
 		// }
 
-		data, err := getKey(datastore.NewKey("/ipfs/" + hash))
-		ExitIfErr(err)
+		key := datastore.NewKey("/ipfs/" + hash)
+		fmt.Printf("resource hash: %s\n", key.String())
+
+		// idata, err := ds.Get(key)
+		// ExitIfErr(err)
+
+		// data, ok := idata.([]byte)
+		// if !ok {
+		// 	ErrExit(fmt.Errorf("data is not a byte slice"))
+		// }
+
+		// ds.AddAndPinFile("", data)
 
 		// data, err := store.Get(datastore.NewKey(hash))
 		// data, err := ioutil.ReadAll(rdr)
 		// ExitIfErr(err)
-
-		fmt.Println(string(data))
 
 		// r2 := &dataset.Resource{}
 		// err = r2.UnmarshalJSON(data)
@@ -85,13 +102,20 @@ var runCmd = &cobra.Command{
 
 		// fmt.Println(r2)
 
-		// q := &dataset.Query{
-		// 	Syntax: "sql",
-		// 	Resources: map[string]datastore.Key{
-		// 		"a": datastore.NewKey(""),
-		// 	},
-		// 	Statement: "select field_1 from a",
-		// }
+		q := &dataset.Query{
+			Syntax: "sql",
+			Resources: map[string]datastore.Key{
+				"a": key,
+			},
+			Statement: "select field_1 from a",
+		}
+
+		qData, err := q.MarshalJSON()
+		ExitIfErr(err)
+
+		qhash, err := ds.AddAndPinBytes(qData)
+		ExitIfErr(err)
+		fmt.Printf("query hash: %s\n", qhash)
 
 		// q.UnmarshalJSON([]byte(args[0]))
 		// ExitIfErr(err)
@@ -100,11 +124,25 @@ var runCmd = &cobra.Command{
 		// if err != nil {
 		// 	ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
 		// }
+		resource, results, err := sql.ExecQuery(ds, q, func(o *sql.ExecOpt) {
+			// o.Format = format
+			o.Format = dataset.CsvDataFormat
+		})
+		fmt.Println(resource)
+		fmt.Println(string(results))
+		fmt.Println(err)
+		ExitIfErr(err)
 
-		// resource, data, err := sql.ExecQuery(repo.Datastore(), q, func(o *sql.ExecOpt) {
-		// 	o.Format = format
-		// })
-		// ExitIfErr(err)
+		rbytes, err := resource.MarshalJSON()
+		ExitIfErr(err)
+
+		rhash, err := ds.AddAndPinBytes(rbytes)
+		fmt.Printf("result hash: %s\n", rhash)
+
+		resultshash, err := ds.AddAndPinBytes(results)
+		ExitIfErr(err)
+
+		fmt.Printf("results hash: %s\n", resultshash)
 
 		// stmt, err := query.Parse(args[0])
 		// ExitIfErr(err)
