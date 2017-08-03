@@ -65,21 +65,20 @@ func getKey(key datastore.Key) ([]byte, error) {
 	}
 
 	// switch dn := dn.(type) {
-	// case *dag.ProtoNode:
-	// 	size, err := dn.Size()
-	// 	if err != nil {
-	// 		res.SetError(err, cmds.ErrNormal)
-	// 		return
-	// 	}
+	//   case *dag.ProtoNode:
+	//     size, err := dn.Size()
+	//     if err != nil {
+	//       res.SetError(err, cmds.ErrNormal)
+	//       return
+	//     }
 
-	// 	res.SetLength(size)
-	// case *dag.RawNode:
-	// 	res.SetLength(uint64(len(dn.RawData())))
-	// default:
-	// 	res.SetError(fmt.Errorf("'ipfs get' only supports unixfs nodes"), cmds.ErrNormal)
-	// 	return
-	// }
-
+	//     res.SetLength(size)
+	//   case *dag.RawNode:
+	//     res.SetLength(uint64(len(dn.RawData())))
+	//   default:
+	//     res.SetError(fmt.Errorf("'ipfs get' only supports unixfs nodes"), cmds.ErrNormal)
+	//     return
+	//   }
 	rdr, err := uarchive.DagArchive(ctx, dn, p.String(), node.DAG, false, 0)
 	if err != nil {
 		return nil, err

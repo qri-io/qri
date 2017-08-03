@@ -56,7 +56,7 @@ var runCmd = &cobra.Command{
 		hash, err := addAndPinFile("resource.json", rdata)
 		ExitIfErr(err)
 
-		fmt.Printf("resource hash: %s\n", hash)
+		// fmt.Printf("resource hash: %s\n", hash)
 
 		// store := localRepo.Datastore()
 		// res, err := store.Query(query.Query{
