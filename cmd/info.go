@@ -17,7 +17,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 
@@ -33,12 +32,12 @@ var infoCmd = &cobra.Command{
 			return
 		}
 
-		ds, err := GetNamespaces(cmd, args).Dataset(dataset.NewAddress(args[0]))
-		ExitIfErr(err)
-		PrintDatasetDetailedInfo(ds)
+		// ds, err := GetNamespaces(cmd, args).Dataset(dataset.NewAddress(args[0]))
+		// ExitIfErr(err)
+		// PrintDatasetDetailedInfo(ds)
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(infoCmd)
+	// RootCmd.AddCommand(infoCmd)
 }

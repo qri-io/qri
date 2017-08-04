@@ -3,8 +3,6 @@ package cmd
 import (
 	"fmt"
 	"strings"
-
-	"github.com/qri-io/dataset"
 )
 
 func prompt(msg string) string {
@@ -14,20 +12,11 @@ func prompt(msg string) string {
 	return strings.TrimSpace(input)
 }
 
-func InputAddress(message string, defaultAdr dataset.Address) (dataset.Address, error) {
+func InputText(message, defaultText string) string {
 	if message == "" {
-		message = "please enter an address"
+		message = "enter text:"
 	}
-	input := strings.ToLower(prompt(fmt.Sprintf("%s [%s]: ", message, defaultAdr)))
+	input := prompt(fmt.Sprintf("%s [%s]: ", message, defaultText))
 
-	if input == "" && defaultAdr.String() != "" {
-		return defaultAdr, nil
-	}
-
-	if !dataset.ValidAddressString(input) {
-		PrintRed("invalid address: '%s'. Addresses are lower_case.alpha_numeric.separated.by.dots", input)
-		return InputAddress(message, defaultAdr)
-	}
-
-	return dataset.NewAddress(input), nil
+	return input
 }

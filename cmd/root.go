@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -23,6 +24,11 @@ import (
 )
 
 var cfgFile string
+
+const (
+	ResultGraphPath   = "resultGraphPath"
+	MetadataGraphPath = "metadataGraphPath"
+)
 
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
@@ -55,25 +61,32 @@ func init() {
 
 // initConfig reads in config file and ENV variables if set.
 func initConfig() {
+	home := userHomeDir()
 	SetNoColor()
 
 	if cfgFile != "" { // enable ability to specify config file via flag
 		viper.SetConfigFile(cfgFile)
 	}
 
-	viper.SetConfigName(".qri")  // name of config file (without extension)
-	viper.AddConfigPath("$HOME") // adding home directory as first search path
-	viper.AddConfigPath(".")     // adding home directory as first search path
-	viper.AutomaticEnv()         // read in environment variables that match
+	if err := os.Mkdir(filepath.Join(userHomeDir(), ".qri"), os.ModePerm); err != nil {
+		fmt.Errorf("error creating home dir: %s\n", err.Error())
+	}
 
-	viper.SetDefault("cache", filepath.Join(userHomeDir(), "datasets"))
-	viper.SetDefault("remotes", []map[string]interface{}{
-		map[string]interface{}{
-			"url":     "www.qri.io",
-			"address": "qri",
-		},
-	})
-	viper.SetDefault("folders", []map[string]interface{}{})
+	viper.SetConfigName("config")     // name of config file (without extension)
+	viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
+	viper.AddConfigPath(".")          // adding home directory as first search path
+	viper.AutomaticEnv()              // read in environment variables that match
+
+	// viper.SetDefault("cache", filepath.Join(home, "datasets"))
+	viper.SetDefault(ResultGraphPath, filepath.Join(home, ".qri", "results.json"))
+	viper.SetDefault(MetadataGraphPath, filepath.Join(home, ".qri", "metadata.json"))
+	// viper.SetDefault("remotes", []map[string]interface{}{
+	// 	map[string]interface{}{
+	// 		"url":     "www.qri.io",
+	// 		"address": "qri",
+	// 	},
+	// })
+	// viper.SetDefault("folders", []map[string]interface{}{})
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

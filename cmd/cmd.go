@@ -1,16 +1,10 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
-	"path/filepath"
 	"runtime"
 
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/fs"
-	"github.com/qri-io/fs/local"
-	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
 
@@ -39,24 +33,24 @@ func GetWd() string {
 	return dir
 }
 
-func GetAddress(cmd *cobra.Command, args []string) dataset.Address {
-	adr := dataset.NewAddress("")
-	if len(args) > 0 {
-		adr = dataset.NewAddress(args[0])
-	}
-	return adr
-}
+// func GetAddress(cmd *cobra.Command, args []string) dataset.Address {
+// 	adr := dataset.NewAddress("")
+// 	if len(args) > 0 {
+// 		adr = dataset.NewAddress(args[0])
+// 	}
+// 	return adr
+// }
 
 // Store creates the appropriate store for a given command
 // defaulting to creating a new store from the local directory
-func Store(cmd *cobra.Command, args []string) fs.Store {
-	return local.NewLocalStore(cachePath())
-}
+// func Store(cmd *cobra.Command, args []string) fs.Store {
+// 	return local.NewLocalStore(cachePath())
+// }
 
 // Cache is the place to put downloaded stuff. default is the local store
-func Cache() fs.Store {
-	return local.NewLocalStore(cachePath())
-}
+// func Cache() fs.Store {
+// 	return local.NewLocalStore(cachePath())
+// }
 
 // cachePath returns the configurable place to keep data
 func cachePath() string {
@@ -74,24 +68,24 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func DatasetPath(ds *dataset.Dataset, elem ...string) string {
-	return filepath.Join(append([]string{ds.Address.PathString()}, elem...)...)
-}
+// func DatasetPath(ds *dataset.Dataset, elem ...string) string {
+// 	return filepath.Join(append([]string{ds.Address.PathString()}, elem...)...)
+// }
 
-func WriteDataset(store fs.Store, ds *dataset.Dataset, files map[string][]byte) error {
-	if data, err := json.Marshal(ds); err != nil {
-		return err
-	} else {
-		if err := store.Write(DatasetPath(ds, dataset.Filename), data); err != nil {
-			return err
-		}
-	}
+// func WriteDataset(store fs.Store, ds *dataset.Dataset, files map[string][]byte) error {
+// 	if data, err := json.Marshal(ds); err != nil {
+// 		return err
+// 	} else {
+// 		if err := store.Write(DatasetPath(ds, dataset.Filename), data); err != nil {
+// 			return err
+// 		}
+// 	}
 
-	for filename, data := range files {
-		if err := store.Write(DatasetPath(ds, filename), data); err != nil {
-			return err
-		}
-	}
+// 	for filename, data := range files {
+// 		if err := store.Write(DatasetPath(ds, filename), data); err != nil {
+// 			return err
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }

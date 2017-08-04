@@ -15,9 +15,6 @@
 package cmd
 
 import (
-	"fmt"
-
-	"github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 
@@ -27,47 +24,47 @@ var searchCmd = &cobra.Command{
 	Short: "Search for datasets",
 	Long:  `Search looks through all of your namespaces for terms that match your query`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var q string
-		if len(args) > 0 {
-			q = args[0]
-		}
-
-		namespaces := GetNamespaces(cmd, args)
-		// tasks := len(namespaces)
-		// done := make(chan int)
-		for _, ns := range namespaces {
-			PrintNamespace(ns)
-			// go func(done chan int) {
-			if s, ok := ns.(namespace.SearchableNamespace); ok {
-				results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
-				if err != nil {
-					PrintErr(err)
-				} else {
-					if len(results) > 0 {
-						for i, ds := range results {
-							PrintDatasetShortInfo(i+1, ds)
-						}
-					} else {
-						PrintInfo("no results.")
-					}
-				}
-				fmt.Println()
-			} else {
-				PrintWarning("namspace %s doesn't support searching", ns.String())
-			}
-			// 	done <- i
-			// }(done)
-		}
-		// for {
-		// 	<-done
-		// 	tasks -= 1
-		// 	if tasks == 0 {
-		// 		return
-		// 	}
+		// var q string
+		// if len(args) > 0 {
+		// 	q = args[0]
 		// }
+
+		// namespaces := GetNamespaces(cmd, args)
+		// // tasks := len(namespaces)
+		// // done := make(chan int)
+		// for _, ns := range namespaces {
+		// 	PrintNamespace(ns)
+		// 	// go func(done chan int) {
+		// 	if s, ok := ns.(namespace.SearchableNamespace); ok {
+		// 		results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
+		// 		if err != nil {
+		// 			PrintErr(err)
+		// 		} else {
+		// 			if len(results) > 0 {
+		// 				for i, ds := range results {
+		// 					PrintDatasetShortInfo(i+1, ds)
+		// 				}
+		// 			} else {
+		// 				PrintInfo("no results.")
+		// 			}
+		// 		}
+		// 		fmt.Println()
+		// 	} else {
+		// 		PrintWarning("namspace %s doesn't support searching", ns.String())
+		// 	}
+		// 	// 	done <- i
+		// 	// }(done)
+		// }
+		// // for {
+		// // 	<-done
+		// // 	tasks -= 1
+		// // 	if tasks == 0 {
+		// // 		return
+		// // 	}
+		// // }
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(searchCmd)
+	// RootCmd.AddCommand(searchCmd)
 }
