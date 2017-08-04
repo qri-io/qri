@@ -15,7 +15,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	// "io/ioutil"
 
 	// "encoding/json"
@@ -23,11 +26,11 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
+	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/ipfs_datastore"
 	"github.com/spf13/cobra"
-	// "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore"
-	// "gx/ipfs/QmVSase1JP7cq9QkPT46oNwdp9pT6kBkG3oqS14y3QcZjG/go-datastore/query"
+	"github.com/spf13/viper"
 )
 
 // runCmd represents the run command
@@ -36,9 +39,15 @@ var runCmd = &cobra.Command{
 	Short: "Run a query",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		var (
+			resource *dataset.Resource
+			results  []byte
+		)
 		// if len(args) == 0 {
 		// 	ErrExit(fmt.Errorf("Please provide a query or address to execute"))
 		// }
+		rgraph := LoadResultsGraph()
+
 		ds, err := ipfs_datastore.NewDatastore()
 		ExitIfErr(err)
 
@@ -116,33 +125,55 @@ var runCmd = &cobra.Command{
 		qhash, err := ds.AddAndPinBytes(qData)
 		ExitIfErr(err)
 		fmt.Printf("query hash: %s\n", qhash)
+		qpath := datastore.NewKey("/ipfs/" + qhash)
 
-		// q.UnmarshalJSON([]byte(args[0]))
-		// ExitIfErr(err)
+		cache := rgraph[qpath]
+		fmt.Println(cache)
+		if len(cache) > 0 {
+			fmt.Println("returning hashed result:")
+			riface, err := ds.Get(cache[0])
+			if err != nil {
+				fmt.Println("error getting cache result:", err.Error())
+			} else if rbytes, ok := riface.([]byte); ok {
+				resource := &dataset.Resource{}
+				if err = resource.UnmarshalJSON(rbytes); err != nil {
+					fmt.Println("error getting cached resource:", err.Error())
+				}
+				dataiface, err := ds.Get(resource.Path)
+				if err != nil {
+					fmt.Println("error getting cached data:", err.Error())
+				} else if databytes, ok := dataiface.([]byte); ok {
+					results = databytes
+				}
+			}
+		}
 
-		// format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
-		// if err != nil {
-		// 	ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
-		// }
-		resource, results, err := sql.ExecQuery(ds, q, func(o *sql.ExecOpt) {
-			// o.Format = format
-			o.Format = dataset.CsvDataFormat
+		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
+		if err != nil {
+			ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
+		}
+		resource, results, err = sql.ExecQuery(ds, q, func(o *sql.ExecOpt) {
+			o.Format = format
 		})
-		fmt.Println(resource)
-		fmt.Println(string(results))
-		fmt.Println(err)
 		ExitIfErr(err)
+
+		resource.Query = qpath
+
+		resultshash, err := ds.AddAndPinBytes(results)
+		ExitIfErr(err)
+		fmt.Printf("results hash: %s\n", resultshash)
+
+		resource.Path = datastore.NewKey("/ipfs/" + resultshash)
 
 		rbytes, err := resource.MarshalJSON()
 		ExitIfErr(err)
 
 		rhash, err := ds.AddAndPinBytes(rbytes)
-		fmt.Printf("result hash: %s\n", rhash)
+		fmt.Printf("result resource hash: %s\n", rhash)
 
-		resultshash, err := ds.AddAndPinBytes(results)
+		rgraph.AddResult(qpath, datastore.NewKey("/ipfs/"+rhash))
+		err = SaveResultsGraph(rgraph)
 		ExitIfErr(err)
-
-		fmt.Printf("results hash: %s\n", resultshash)
 
 		// stmt, err := query.Parse(args[0])
 		// ExitIfErr(err)
@@ -173,7 +204,7 @@ var runCmd = &cobra.Command{
 		// 	return
 		// }
 
-		// PrintResults(resource, data, format)
+		PrintResults(resource, results, format)
 	},
 }
 
@@ -181,4 +212,28 @@ func init() {
 	RootCmd.AddCommand(runCmd)
 	runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
 	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
+}
+
+func LoadResultsGraph() dsgraph.QueryResults {
+	r := dsgraph.QueryResults{}
+	data, err := ioutil.ReadFile(viper.GetString(ResultGraphPath))
+	if err != nil {
+		fmt.Println("error loading results graph:", err.Error())
+		return r
+	}
+
+	if err := json.Unmarshal(data, &r); err != nil {
+		fmt.Println("error unmarshaling results graph:", err.Error())
+		return dsgraph.QueryResults{}
+	}
+	return r
+}
+
+func SaveResultsGraph(graph dsgraph.QueryResults) error {
+	data, err := json.Marshal(graph)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(viper.GetString(ResultGraphPath), data, os.ModePerm)
 }
