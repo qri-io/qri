@@ -29,6 +29,7 @@ const (
 	QueryResultsGraphPath    = "resultGraphPath"
 	ResourceMetaGraphPath    = "metadataGraphPath"
 	ResourceQueriesGraphPath = "resourceQueriesGraphPath"
+	NamespaceGraphPath       = "namespaceGraphPath"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -82,6 +83,7 @@ func initConfig() {
 	viper.SetDefault(QueryResultsGraphPath, filepath.Join(home, ".qri", "query_results.json"))
 	viper.SetDefault(ResourceMetaGraphPath, filepath.Join(home, ".qri", "resouce_meta.json"))
 	viper.SetDefault(ResourceQueriesGraphPath, filepath.Join(home, ".qri", "resource_queries.json"))
+	viper.SetDefault(NamespaceGraphPath, filepath.Join(home, ".qri", "namespace.json"))
 	// viper.SetDefault("remotes", []map[string]interface{}{
 	// 	map[string]interface{}{
 	// 		"url":     "www.qri.io",
