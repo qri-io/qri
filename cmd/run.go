@@ -104,20 +104,9 @@ var runCmd = &cobra.Command{
 
 		if len(cache) > 0 {
 			fmt.Println("returning hashed result.")
-			riface, err := ds.Get(cache[0])
+			resource, err = GetResource(ds, cache[0])
 			if err != nil {
-				fmt.Println("error getting cache result:", err.Error())
-			} else if rbytes, ok := riface.([]byte); ok {
-				resource = &dataset.Resource{}
-				if err = resource.UnmarshalJSON(rbytes); err != nil {
-					fmt.Println("error getting cached resource:", err.Error())
-				}
-				dataiface, err := ds.Get(resource.Path)
-				if err != nil {
-					fmt.Println("error getting cached data:", err.Error())
-				} else if databytes, ok := dataiface.([]byte); ok {
-					results = databytes
-				}
+				results, err = GetStructuredData(ds, resource.Path)
 			}
 		}
 
