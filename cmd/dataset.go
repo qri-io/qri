@@ -76,6 +76,9 @@ var datasetAddCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name] [resource hash]"))
 		}
 		ns := LoadNamespaceGraph()
+
+		// TODO - valid resource check
+
 		ns[args[0]] = datastore.NewKey(args[1])
 		err := SaveNamespaceGraph(ns)
 		ExitIfErr(err)

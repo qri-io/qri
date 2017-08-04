@@ -176,6 +176,6 @@ var runCmd = &cobra.Command{
 
 func init() {
 	RootCmd.AddCommand(runCmd)
-	runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
+	// runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
 	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
 }
