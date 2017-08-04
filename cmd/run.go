@@ -20,7 +20,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/datatypes"
+	// "github.com/qri-io/dataset/datatypes"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
 )
@@ -31,65 +31,40 @@ var runCmd = &cobra.Command{
 	Short: "Run a query",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) == 0 {
+			ErrExit(fmt.Errorf("Please provide a query string to execute"))
+		}
+
 		var (
 			resource *dataset.Resource
 			results  []byte
 		)
-		// if len(args) == 0 {
-		// 	ErrExit(fmt.Errorf("Please provide a query or address to execute"))
-		// }
 		rgraph := LoadQueryResultsGraph()
 		rqgraph := LoadResourceQueriesGraph()
+		ns := LoadNamespaceGraph()
 
 		ds, err := ipfs.NewDatastore()
 		ExitIfErr(err)
 
-		hhash, err := ds.AddAndPinPath("testdata/hours.csv")
+		// TODO - make format output the parsed statement as well
+		// to avoid triple-parsing
+		sqlstr, _, remap, err := sql.Format(args[0])
 		ExitIfErr(err)
-
-		fmt.Printf("structed data hash: %s\n", hhash)
-
-		r := &dataset.Resource{
-			Format: dataset.CsvDataFormat,
-			Schema: &dataset.Schema{
-				Fields: []*dataset.Field{
-					&dataset.Field{Name: "field_1", Type: datatypes.Date},
-					&dataset.Field{Name: "field_3", Type: datatypes.Float},
-					&dataset.Field{Name: "field_3", Type: datatypes.String},
-					&dataset.Field{Name: "field_4", Type: datatypes.String},
-				},
-			},
-			Path: datastore.NewKey("/ipfs/" + hhash),
-		}
-
-		rdata, err := r.MarshalJSON()
-		ExitIfErr(err)
-
-		hash, err := ds.AddAndPinBytes(rdata)
-		ExitIfErr(err)
-
-		// fmt.Printf("resource hash: %s\n", hash)
-		// store := localRepo.Datastore()
-		// res, err := store.Query(query.Query{
-		// 	Prefix:   "",
-		// 	KeysOnly: true,
-		// 	// Limit:    500,
-		// })
-		// entries, err := res.Rest()
-		// ExitIfErr(err)
-		// for _, e := range entries {
-		// 	fmt.Println(e.Key)
-		// }
-
-		key := datastore.NewKey("/ipfs/" + hash)
-		fmt.Printf("resource hash: %s\n", key.String())
 
 		q := &dataset.Query{
-			Syntax: "sql",
-			Resources: map[string]datastore.Key{
-				"a": key,
-			},
-			Statement: "select field_1 from a",
+			Syntax:    "sql",
+			Resources: map[string]datastore.Key{},
+			Statement: sqlstr,
+			// TODO - set query schema
+		}
+
+		// collect table references
+		for mapped, ref := range remap {
+			// for i, adr := range stmt.References() {
+			if ns[ref].String() == "" {
+				ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
+			}
+			q.Resources[mapped] = ns[ref]
 		}
 
 		qData, err := q.MarshalJSON()
@@ -137,7 +112,9 @@ var runCmd = &cobra.Command{
 		err = SaveQueryResultsGraph(rgraph)
 		ExitIfErr(err)
 
-		rqgraph.AddQuery(key, qpath)
+		for _, key := range q.Resources {
+			rqgraph.AddQuery(key, qpath)
+		}
 		err = SaveResourceQueriesGraph(rqgraph)
 		ExitIfErr(err)
 
