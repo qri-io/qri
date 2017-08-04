@@ -26,8 +26,9 @@ import (
 var cfgFile string
 
 const (
-	ResultGraphPath   = "resultGraphPath"
-	MetadataGraphPath = "metadataGraphPath"
+	QueryResultsGraphPath    = "resultGraphPath"
+	ResourceMetaGraphPath    = "metadataGraphPath"
+	ResourceQueriesGraphPath = "resourceQueriesGraphPath"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -78,8 +79,9 @@ func initConfig() {
 	viper.AutomaticEnv()              // read in environment variables that match
 
 	// viper.SetDefault("cache", filepath.Join(home, "datasets"))
-	viper.SetDefault(ResultGraphPath, filepath.Join(home, ".qri", "results.json"))
-	viper.SetDefault(MetadataGraphPath, filepath.Join(home, ".qri", "metadata.json"))
+	viper.SetDefault(QueryResultsGraphPath, filepath.Join(home, ".qri", "query_results.json"))
+	viper.SetDefault(ResourceMetaGraphPath, filepath.Join(home, ".qri", "resouce_meta.json"))
+	viper.SetDefault(ResourceQueriesGraphPath, filepath.Join(home, ".qri", "resource_queries.json"))
 	// viper.SetDefault("remotes", []map[string]interface{}{
 	// 	map[string]interface{}{
 	// 		"url":     "www.qri.io",
