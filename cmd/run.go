@@ -19,16 +19,13 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	// "io/ioutil"
-
-	// "encoding/json"
 
 	"github.com/ipfs/go-datastore"
+	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
 	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
-	"github.com/qri-io/ipfs_datastore"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -48,7 +45,7 @@ var runCmd = &cobra.Command{
 		// }
 		rgraph := LoadResultsGraph()
 
-		ds, err := ipfs_datastore.NewDatastore()
+		ds, err := ipfs.NewDatastore()
 		ExitIfErr(err)
 
 		hhash, err := ds.AddAndPinPath("testdata/hours.csv")
