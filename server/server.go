@@ -86,9 +86,9 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	dsh := datasets.NewHandlers(s.store, s.ns)
-	m.Handle("/datasets", s.middleware(dsh.ListHandler))
-	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
+	dsh := datasets.NewHandlers(s.store, s.ns, s.cfg.NamespaceGraphPath)
+	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
+	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 
 	qh := queries.NewHandlers(queries.Requests{
 		Store:       s.store,
