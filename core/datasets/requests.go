@@ -27,15 +27,6 @@ type ListParams struct {
 }
 
 func (d *Requests) List(p *ListParams, res *map[string]datastore.Key) error {
-	// urls, err := archive.ListUrls(store, p.Limit, p.Offset)
-	// if err != nil {
-	// 	return err
-	// }
-	// *res = urls
-	// return nil
-	// for name, resource := range ns {
-	// 	PrintInfo("%s\t\t: %s", name, resource.String())
-	// }
 	*res = d.ns
 	return nil
 }
@@ -52,16 +43,6 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	if err != nil {
 		return err
 	}
-
-	// v, err := d.store.Get(datastore.NewKey(p.Path))
-	// if err != nil {
-	// 	return err
-	// }
-
-	// ds, err := dataset.UnmarshalDataset(v)
-	// if err != nil {
-	// 	return err
-	// }
 
 	*res = dataset.Dataset{
 		Resource: *resource,

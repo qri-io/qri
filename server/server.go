@@ -5,17 +5,22 @@ import (
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/graphs"
+	"github.com/qri-io/qri/core/queries"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
 )
 
 type Server struct {
-	cfg   *Config
-	log   *logrus.Logger
-	ns    map[string]datastore.Key
+	cfg     *Config
+	log     *logrus.Logger
+	ns      map[string]datastore.Key
+	rgraph  dsgraph.QueryResults
+	rqgraph dsgraph.ResourceQueries
+
 	store *ipfs.Datastore
 }
 
@@ -29,13 +34,12 @@ func New(options ...func(*Config)) (*Server, error) {
 		return nil, fmt.Errorf("server configuration error: %s", err.Error())
 	}
 
-	ns := graphs.LoadNamespaceGraph(cfg.NamespaceGraphPath)
-
 	s := &Server{
-		cfg: cfg,
-		log: logrus.New(),
-
-		ns: ns,
+		cfg:     cfg,
+		log:     logrus.New(),
+		ns:      graphs.LoadNamespaceGraph(cfg.NamespaceGraphPath),
+		rqgraph: graphs.LoadResourceQueriesGraph(cfg.ResourceQueriesGraphPath),
+		rgraph:  graphs.LoadQueryResultsGraph(cfg.QueryResultsGraphPath),
 	}
 
 	// output to stdout in dev mode
@@ -55,7 +59,7 @@ func New(options ...func(*Config)) (*Server, error) {
 // main app entry point
 func (s *Server) Serve() error {
 	store, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
-		cfg.Online = true
+		cfg.Online = false
 	})
 	if err != nil {
 		return err
@@ -80,9 +84,22 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 	m.HandleFunc("/", apiutil.NotFoundHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 
+	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
+
 	dsh := datasets.NewHandlers(s.store, s.ns)
 	m.Handle("/datasets", s.middleware(dsh.ListHandler))
 	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
+
+	qh := queries.NewHandlers(queries.Requests{
+		Store:       s.store,
+		Ns:          s.ns,
+		RGraph:      s.rgraph,
+		RqGraph:     s.rqgraph,
+		NsGraphPath: s.cfg.NamespaceGraphPath,
+		RqGraphPath: s.cfg.ResourceQueriesGraphPath,
+		RGraphPath:  s.cfg.QueryResultsGraphPath,
+	})
+	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m
 }
