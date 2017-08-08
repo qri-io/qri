@@ -2,7 +2,6 @@ package server
 
 import (
 	"fmt"
-	"os"
 )
 
 // server modes
@@ -14,9 +13,8 @@ const (
 
 func DefaultConfig() *Config {
 	return &Config{
-		Mode:   "develop",
-		Port:   "8080",
-		Gopath: os.Getenv("GOPATH"),
+		Mode: "develop",
+		Port: "8080",
 	}
 }
 
@@ -33,37 +31,31 @@ func DefaultConfig() *Config {
 type Config struct {
 	// operation mode
 	Mode string
-	// path to go source code
-	Gopath string
-
 	// port to listen on, will be read from PORT env variable if present.
 	Port string
-
 	// root url for service
 	UrlRoot string
-
 	// path to ipfs filestore
 	FsStorePath string
-
 	// DNS service discovery. Should be either "env" or "dns", default is env
 	GetHostsFrom string
-
 	// Public Key to use for signing metablocks. required.
 	PublicKey string
-
 	// TLS (HTTPS) enable support via LetsEncrypt, default false
 	// should be true in production
 	TLS bool
-
 	// support CORS signing from a list of origins
 	AllowedOrigins []string
-
 	// if true, requests that have X-Forwarded-Proto: http will be redirected
 	// to their https variant
 	ProxyForceHttps bool
-
 	// token for analytics tracking
 	AnalyticsToken string
+
+	QueryResultsGraphPath    string
+	ResourceMetaGraphPath    string
+	ResourceQueriesGraphPath string
+	NamespaceGraphPath       string
 }
 
 // Validate returns nil if this configuration is valid,

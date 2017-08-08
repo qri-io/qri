@@ -15,10 +15,9 @@
 package cmd
 
 import (
-	// ipfs "github.com/qri-io/castore/ipfs"
-	// "github.com/qri-io/dataset"
 	"github.com/qri-io/qri/server"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 // serverCmd represents the run command
@@ -27,17 +26,15 @@ var serverCmd = &cobra.Command{
 	Short: "start a qri server",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// var (
-		// 	resource *dataset.Resource
-		// 	results  []byte
-		// )
+		s, err := server.New(func(cfg *server.Config) {
+			cfg.NamespaceGraphPath = viper.GetString(NamespaceGraphPath)
+			cfg.QueryResultsGraphPath = viper.GetString(QueryResultsGraphPath)
+			cfg.ResourceQueriesGraphPath = viper.GetString(ResourceQueriesGraphPath)
+			cfg.ResourceMetaGraphPath = viper.GetString(ResourceMetaGraphPath)
+		})
+		ExitIfErr(err)
 
-		// ds, err := ipfs.NewDatastore(func(c *ipfs.StoreCfg) {
-		// 	c.Online = true
-		// })
-		// ExitIfErr(err)
-
-		err := server.New().Serve()
+		err = s.Serve()
 		ExitIfErr(err)
 	},
 }
