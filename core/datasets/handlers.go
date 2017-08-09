@@ -49,9 +49,20 @@ func (h *Handlers) DatasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.getStructuredDataHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
-	res := map[string]datastore.Key{}
+	res := []*dataset.Dataset{}
 	args := &ListParams{
 		Limit:   p.Limit(),
 		Offset:  p.Offset(),
@@ -107,4 +118,17 @@ func (h *Handlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	util.WriteResponse(w, res)
+}
+
+func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
+	p := &StructuredDataParams{
+		Path: datastore.NewKey(r.URL.Path[len("/data"):]),
+	}
+	data := &StructuredData{}
+	if err := h.StructuredData(p, data); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, data)
 }

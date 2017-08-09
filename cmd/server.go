@@ -20,6 +20,10 @@ import (
 	"github.com/spf13/viper"
 )
 
+var (
+	serverCmdPort string
+)
+
 // serverCmd represents the run command
 var serverCmd = &cobra.Command{
 	Use:   "server",
@@ -31,6 +35,7 @@ var serverCmd = &cobra.Command{
 			cfg.QueryResultsGraphPath = viper.GetString(QueryResultsGraphPath)
 			cfg.ResourceQueriesGraphPath = viper.GetString(ResourceQueriesGraphPath)
 			cfg.ResourceMetaGraphPath = viper.GetString(ResourceMetaGraphPath)
+			cfg.Port = serverCmdPort
 		})
 		ExitIfErr(err)
 
@@ -40,5 +45,6 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
+	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", "3000", "port to start server on")
 	RootCmd.AddCommand(serverCmd)
 }

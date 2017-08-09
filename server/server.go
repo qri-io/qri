@@ -81,7 +81,7 @@ func (s *Server) Serve() error {
 func (s *Server) NewServerRoutes() *http.ServeMux {
 	m := http.NewServeMux()
 
-	m.HandleFunc("/", apiutil.NotFoundHandler)
+	m.HandleFunc("/", WebappHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
@@ -89,6 +89,7 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 	dsh := datasets.NewHandlers(s.store, s.ns, s.cfg.NamespaceGraphPath)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
+	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 
 	qh := queries.NewHandlers(queries.Requests{
 		Store:       s.store,

@@ -7,7 +7,6 @@ import (
 
 // middleware handles request logging
 func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
-	// no-auth middware func
 	return func(w http.ResponseWriter, r *http.Request) {
 		s.log.Infoln(r.Method, r.URL.Path, time.Now())
 

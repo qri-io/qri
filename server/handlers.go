@@ -21,3 +21,8 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 
 	apiutil.WriteResponse(w, v)
 }
+
+// WebappHandler renders the home page
+func WebappHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(w, "webapp")
+}

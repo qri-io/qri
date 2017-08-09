@@ -30,8 +30,34 @@ type ListParams struct {
 	Offset  int
 }
 
-func (d *Requests) List(p *ListParams, res *map[string]datastore.Key) error {
-	*res = d.ns
+func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
+	replies := make([]*dataset.Dataset, p.Limit)
+	i := 0
+	// TODO - generate a sorted copy of keys, iterate through that respecting
+	// limit & offset
+	for name, key := range d.ns {
+		if i >= p.Limit {
+			break
+		}
+
+		v, err := d.store.Get(key)
+		if err != nil {
+			return err
+		}
+		resource, err := dataset.UnmarshalResource(v)
+		if err != nil {
+			return err
+		}
+		replies[i] = &dataset.Dataset{
+			Metadata: dataset.Metadata{
+				Title:   name,
+				Subject: key,
+			},
+			Resource: *resource,
+		}
+		i++
+	}
+	*res = replies[:i]
 	return nil
 }
 
@@ -94,5 +120,32 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 		return err
 	}
 	*ok = true
+	return nil
+}
+
+type StructuredDataParams struct {
+	Path datastore.Key
+}
+
+type StructuredData struct {
+	Path datastore.Key `json:"path"`
+	Data interface{}   `json:"data"`
+}
+
+func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) error {
+	v, err := r.store.Get(p.Path)
+	if err != nil {
+		return err
+	}
+
+	switch t := v.(type) {
+	case []byte:
+		v = string(t)
+	}
+
+	*data = StructuredData{
+		Path: p.Path,
+		Data: v,
+	}
 	return nil
 }
