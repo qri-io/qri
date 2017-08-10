@@ -79,18 +79,10 @@ func initConfig() {
 	viper.AddConfigPath(".")          // adding home directory as first search path
 	viper.AutomaticEnv()              // read in environment variables that match
 
-	// viper.SetDefault("cache", filepath.Join(home, "datasets"))
 	viper.SetDefault(QueryResultsGraphPath, filepath.Join(home, ".qri", "query_results.json"))
 	viper.SetDefault(ResourceMetaGraphPath, filepath.Join(home, ".qri", "resouce_meta.json"))
 	viper.SetDefault(ResourceQueriesGraphPath, filepath.Join(home, ".qri", "resource_queries.json"))
 	viper.SetDefault(NamespaceGraphPath, filepath.Join(home, ".qri", "namespace.json"))
-	// viper.SetDefault("remotes", []map[string]interface{}{
-	// 	map[string]interface{}{
-	// 		"url":     "www.qri.io",
-	// 		"address": "qri",
-	// 	},
-	// })
-	// viper.SetDefault("folders", []map[string]interface{}{})
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

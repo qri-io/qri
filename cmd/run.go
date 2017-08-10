@@ -118,35 +118,6 @@ var runCmd = &cobra.Command{
 		err = SaveResourceQueriesGraph(rqgraph)
 		ExitIfErr(err)
 
-		// stmt, err := query.Parse(args[0])
-		// ExitIfErr(err)
-
-		// adr := dataset.NewAddress("")
-		// if save := cmd.Flag("save").Value.String(); save != "" {
-		// 	if !dataset.ValidAddressString(save) {
-		// 		PrintErr(fmt.Errorf("'%s' is not a valid address string to save to", save))
-		// 		os.Exit(-1)
-		// 	}
-		// 	adr = dataset.NewAddress(save)
-		// }
-
-		// results, data, err := stmt.Exec(GetNamespaces(cmd, args), func(o *query.ExecOpt) {
-		// results, data, err := stmt.Exec(LocalNamespaces(cmd, args), func(o *query.ExecOpt) {
-		// 	o.Format = format
-		// })
-		// ExitIfErr(err)
-
-		// if !adr.IsEmpty() {
-		// 	results.Address = adr
-		// 	err := WriteDataset(Cache(), results, map[string][]byte{
-		// 		fmt.Sprintf("%s.%s", adr.String(), format.String()): data,
-		// 	})
-
-		// 	ExitIfErr(err)
-		// 	PrintSuccess("results saved to: %s%s", cachePath(), DatasetPath(results))
-		// 	return
-		// }
-
 		PrintResults(resource, results, format)
 	},
 }
