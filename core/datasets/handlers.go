@@ -118,6 +118,7 @@ func (h *Handlers) saveResourceHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
+// TODO - move this into a request method
 func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request) {
 	infile, header, err := r.FormFile("file")
 	if err != nil {
@@ -146,6 +147,10 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 	}
 
 	adr := detect.Camelize(header.Filename)
+	if r.FormValue("name") != "" {
+		adr = detect.Camelize(r.FormValue("name"))
+	}
+
 	h.ns[adr] = rkey
 	if err := graphs.SaveNamespaceGraph(h.nsGraphPath, h.ns); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
