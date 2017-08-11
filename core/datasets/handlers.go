@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/core/graphs"
 	"io/ioutil"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/castore/ipfs"
@@ -144,9 +145,16 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
+	adr := detect.Camelize(header.Filename)
+	h.ns[adr] = rkey
+	if err := graphs.SaveNamespaceGraph(h.nsGraphPath, h.ns); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
 	util.WriteResponse(w, &dataset.Dataset{
 		Metadata: dataset.Metadata{
-			Title:   header.Filename,
+			Title:   adr,
 			Subject: rkey,
 		},
 		Resource: *rsc,
