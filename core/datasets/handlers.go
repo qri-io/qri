@@ -1,12 +1,15 @@
 package datasets
 
 import (
+	"bytes"
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	"io/ioutil"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"net/http"
 )
 
@@ -91,6 +94,15 @@ func (h *Handlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		h.saveResourceHandler(w, r)
+	default:
+		h.initDatasetFileHandler(w, r)
+	}
+}
+
+func (h *Handlers) saveResourceHandler(w http.ResponseWriter, r *http.Request) {
 	p := &SaveParams{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
@@ -103,6 +115,42 @@ func (h *Handlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteResponse(w, res)
+}
+
+func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request) {
+	infile, header, err := r.FormFile("file")
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	// TODO - split this into some sort of re-readable reader instead
+	// of reading the entire file
+	data, err := ioutil.ReadAll(infile)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	rsc, err := detect.FromReader(header.Filename, bytes.NewReader(data))
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	rkey, err := AddReaderResource(h.store, bytes.NewReader(data), rsc)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, &dataset.Dataset{
+		Metadata: dataset.Metadata{
+			Title:   header.Filename,
+			Subject: rkey,
+		},
+		Resource: *rsc,
+	})
 }
 
 func (h *Handlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {

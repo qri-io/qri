@@ -20,10 +20,10 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/qri/core/datasets"
 
 	"github.com/spf13/cobra"
 )
@@ -37,6 +37,8 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a dataset, adding it to your local collection of datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		var adr string
+
 		base := args[0]
 		ns := LoadNamespaceGraph()
 		ds, err := ipfs.NewDatastore()
@@ -50,21 +52,42 @@ var initCmd = &cobra.Command{
 				if fi.IsDir() {
 					continue
 				} else {
-					if r := InferResource(fi); r != nil {
-						foundFiles[fi.Name()] = r
-						_, err = AddFileResource(ds, ns, r, filepath.Join(base, fi.Name()), true)
-						ExitIfErr(err)
-					}
+					adr = fi.Name()
+					rsc, err := detect.FromFile(adr)
+					ExitIfErr(err)
+					// Add to the namespace as the filename
+					// TODO - require this be a proper, no-space alphanumeric type thing
+					foundFiles[adr] = rsc
+
+					rkey, err := datasets.AddFileResource(ds, filepath.Join(base, fi.Name()), rsc)
+					ExitIfErr(err)
+					ns[adr] = rkey
 				}
 			}
 		} else {
 			file, err := os.Stat(base)
 			ExitIfErr(err)
 
-			if r := InferResource(file); r != nil {
-				_, err = AddFileResource(ds, ns, r, base, passive)
-				ExitIfErr(err)
+			// TODO - extract a default name from the file name
+			// TODO - require this be a proper, no-space alphanumeric type thing
+			if !passive {
+				adr = InputText(fmt.Sprintf("choose a variable name for %s", file.Name()), file.Name())
+				if err != nil {
+					return
+				}
+			} else {
+				adr = file.Name()
 			}
+
+			rsc, err := detect.FromFile(file.Name())
+			ExitIfErr(err)
+
+			rkey, err := datasets.AddFileResource(ds, base, rsc)
+			ExitIfErr(err)
+
+			// Add to the namespace as the filename
+			// TODO - require this be a proper, no-space alphanumeric type thing
+			ns[adr] = rkey
 			// PrintSuccess("successfully initialized dataset %s: %s")
 			// PrintDatasetDetailedInfo(ds)
 		}
@@ -78,51 +101,4 @@ func init() {
 	RootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVarP(&rescursive, "recursive", "r", false, "recursive add from a directory")
 	initCmd.Flags().BoolVarP(&passive, "passive", "p", false, "disable interactive init")
-}
-
-func InferResource(file os.FileInfo) *dataset.Resource {
-	// only work with files that have a proper extension
-	if _, err := detect.ExtensionDataFormat(file.Name()); err != nil {
-		return nil
-	}
-
-	if r, err := detect.FromFile(file.Name()); err == nil {
-		return r
-	} else {
-		PrintWarning("error with file '%s': %s", file.Name(), err.Error())
-		return nil
-	}
-	return nil
-}
-
-func AddFileResource(ds *ipfs.Datastore, ns map[string]datastore.Key, r *dataset.Resource, path string, passive bool) (rkey datastore.Key, err error) {
-	rkey = datastore.NewKey("")
-	var adr string
-	// TODO - extract a default name from the file name
-	// TODO - require this be a proper, no-space alphanumeric type thing
-	if !passive {
-		adr = InputText(fmt.Sprintf("choose a variable name for %s", path), path)
-		if err != nil {
-			return
-		}
-	} else {
-		adr = path
-	}
-
-	datahash, err := ds.AddAndPinPath(path)
-	r.Path = datastore.NewKey("/ipfs/" + datahash)
-
-	rdata, err := r.MarshalJSON()
-	if err != nil {
-		return
-	}
-	rhash, err := ds.AddAndPinBytes(rdata)
-	if err != nil {
-		return
-	}
-
-	rkey = datastore.NewKey("/ipfs/" + rhash)
-	ns[adr] = rkey
-
-	return
 }
