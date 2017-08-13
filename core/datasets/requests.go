@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/qri/core/graphs"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/dataset"
@@ -139,7 +140,9 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 }
 
 type StructuredDataParams struct {
-	Path datastore.Key
+	Path          datastore.Key
+	Limit, Offset int
+	All           bool
 }
 
 type StructuredData struct {
@@ -147,20 +150,26 @@ type StructuredData struct {
 	Data interface{}   `json:"data"`
 }
 
-func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) error {
-	v, err := r.store.Get(p.Path)
+func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
+	var raw []byte
+	rsc, err := load.Resource(r.store, p.Path)
 	if err != nil {
 		return err
 	}
 
-	switch t := v.(type) {
-	case []byte:
-		v = string(t)
+	if p.All {
+		raw, err = load.RawData(r.store, rsc.Path)
+	} else {
+		raw, err = load.RawDataRows(r.store, rsc, p.Limit, p.Offset)
+	}
+
+	if err != nil {
+		return err
 	}
 
 	*data = StructuredData{
 		Path: p.Path,
-		Data: v,
+		Data: string(raw),
 	}
 	return nil
 }
