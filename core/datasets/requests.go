@@ -1,6 +1,7 @@
 package datasets
 
 import (
+	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/qri/core/graphs"
@@ -62,13 +63,13 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
 }
 
 type GetParams struct {
-	Path string
+	Path datastore.Key
 	Name string
 	Hash string
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	resource, err := core.GetResource(d.store, datastore.NewKey(p.Path))
+	resource, err := core.GetResource(d.store, p.Path)
 	if err != nil {
 		return err
 	}
@@ -109,11 +110,25 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 
 type DeleteParams struct {
 	Name string
+	Path datastore.Key
 }
 
 func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 	// TODO - unpin resource and data
 	// resource := p.Dataset.Resource
+	if p.Name == "" && p.Path.String() != "" {
+		for name, val := range r.ns {
+			if val.Equal(p.Path) {
+				p.Name = name
+			}
+		}
+	}
+
+	if p.Name == "" {
+		return fmt.Errorf("couldn't find dataset: %s", p.Path.String())
+	} else if r.ns[p.Name] == datastore.NewKey("") {
+		return fmt.Errorf("couldn't find dataset: %s", p.Name)
+	}
 
 	delete(r.ns, p.Name)
 	if err := graphs.SaveNamespaceGraph(r.nsGraphPath, r.ns); err != nil {

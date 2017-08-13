@@ -83,7 +83,7 @@ func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &dataset.Dataset{}
 	args := &GetParams{
-		Path: r.URL.Path[len("/datasets/"):],
+		Path: datastore.NewKey(r.URL.Path[len("/datasets/"):]),
 		Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
@@ -167,18 +167,23 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *Handlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	p := &DeleteParams{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+	p := &DeleteParams{
+		Name: r.FormValue("name"),
+		Path: datastore.NewKey(r.URL.Path[len("/datasets"):]),
+	}
+
+	ds := &dataset.Dataset{}
+	if err := h.Get(&GetParams{Name: p.Name, Path: p.Path}, ds); err != nil {
 		return
 	}
+
 	res := false
 	if err := h.Delete(p, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, res)
+	util.WriteResponse(w, ds)
 }
 
 func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
