@@ -10,11 +10,33 @@ import (
 	json "github.com/multiformats/go-multicodec/json"
 )
 
+type MsgType int
+
+const (
+	MtUnknown MsgType = iota
+	MtInfo
+	MtProfile
+	MtNamespaces
+	MtResources
+	MtQueries
+	MtMetadata
+)
+
+type MsgPhase int
+
+const (
+	MpRequest MsgPhase = iota
+	MpResponse
+	MpError
+)
+
 // Message is a serializable/encodable object that we will send
 // on a Stream.
 type Message struct {
-	Msg    []byte
-	HangUp bool
+	Type    MsgType
+	Phase   MsgPhase
+	Payload interface{}
+	HangUp  bool
 }
 
 // streamWrap wraps a libp2p stream. We encode/decode whenever we
@@ -58,7 +80,7 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 }
 
 // SendMessage to a given multiaddr
-func (qn *QriNode) SendMessage(multiaddr string, msg []byte) (res []byte, err error) {
+func (qn *QriNode) SendMessage(multiaddr string, msg *Message) (res *Message, err error) {
 	peerid, err := qn.PeerIdForMultiaddr(multiaddr)
 	if err != nil {
 		return
@@ -72,17 +94,13 @@ func (qn *QriNode) SendMessage(multiaddr string, msg []byte) (res []byte, err er
 
 	wrappedStream := WrapStream(s)
 
-	err = sendMessage(&Message{Msg: msg, HangUp: true}, wrappedStream)
+	msg.Phase = MpRequest
+	err = sendMessage(msg, wrappedStream)
 	if err != nil {
 		return
 	}
 
-	reply, err := receiveMessage(wrappedStream)
-	if err != nil {
-		return
-	}
-
-	return reply.Msg, nil
+	return receiveMessage(wrappedStream)
 }
 
 // receiveMessage reads and decodes a message from the stream

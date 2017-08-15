@@ -13,6 +13,8 @@ const (
 	// FileInfo stores information about this repository
 	// like version number, size of repo, etc.
 	FileInfo
+	// FileProfile is this node's user profile
+	FileProfile
 	// FileConfig holds configuration specific to this repo
 	FileConfig
 	// FileNamespace holds this repo's local namespace
@@ -23,16 +25,21 @@ const (
 	FileResourceMeta
 	// FileResourceQueries holds query hashes for a resource key
 	FileResourceQueries
+	// FilePeerRepos holds peer repositories
+	// Ideally this won't stick around for long
+	FilePeers
 )
 
 var paths = map[File]string{
 	FileUnknown:         "",
 	FileInfo:            "/info",
+	FileProfile:         "/profile",
 	FileConfig:          "/config",
 	FileNamespace:       "/namespace",
 	FileQueryResults:    "/query_results",
 	FileResourceMeta:    "/resource_meta",
 	FileResourceQueries: "/resource_queries",
+	FilePeers:           "/peers",
 }
 
 // Filepath gives the relative filepath to a repofile

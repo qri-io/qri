@@ -3,9 +3,7 @@ package server
 import (
 	"fmt"
 	"github.com/datatogether/api/apiutil"
-	// "github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
-	// "github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"

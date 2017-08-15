@@ -33,10 +33,6 @@ var serverCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		s, err := server.New(func(cfg *server.Config) {
 			cfg.QriRepoPath = viper.GetString(QriRepoPath)
-			// cfg.NamespaceGraphPath = viper.GetString(NamespaceGraphPath)
-			// cfg.QueryResultsGraphPath = viper.GetString(QueryResultsGraphPath)
-			// cfg.ResourceQueriesGraphPath = viper.GetString(ResourceQueriesGraphPath)
-			// cfg.ResourceMetaGraphPath = viper.GetString(ResourceMetaGraphPath)
 			cfg.Port = serverCmdPort
 			cfg.LocalIpfs = !serverNoIpfs
 		})

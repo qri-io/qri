@@ -19,7 +19,7 @@ import (
 	yamux "github.com/whyrusleeping/go-smux-yamux"
 )
 
-// QriNode encapsulates a qri distributed node
+// QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
 	Identity   peer.ID        // the local node's identity
 	PrivateKey crypto.PrivKey // the local node's private Key
@@ -89,6 +89,20 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	}
 
 	return res
+}
+
+// PeerInfo gives an overview of information about this Peer, used in handshaking
+// with other peers
+func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
+	ns, err := n.repo.Namespace()
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]interface{}{
+		"Id":        n.Identity.String(),
+		"namespace": ns,
+	}, nil
 }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg

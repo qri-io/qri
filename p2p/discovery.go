@@ -17,6 +17,16 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	}
 	n.Host.Peerstore().AddAddr(pinfo.ID, pinfo.Addrs[0], time.Hour)
 
+	p, err := n.repo.Profile()
+	if err != nil {
+		return
+	}
+
+	n.SendMessage(pinfo.Addrs[0], &Message{
+		Type:    MtProfile,
+		Payload: p,
+	})
+
 	fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }
 

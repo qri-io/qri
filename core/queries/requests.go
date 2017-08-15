@@ -22,14 +22,6 @@ func NewRequests(store *ipfs_datastore.Datastore, r repo.Repo) *Requests {
 type Requests struct {
 	store *ipfs_datastore.Datastore
 	repo  repo.Repo
-	// namespace graph
-	// Ns      map[string]datastore.Key
-	// RGraph  dsgraph.QueryResults
-	// RqGraph dsgraph.ResourceQueries
-
-	// NsGraphPath string
-	// RqGraphPath string
-	// RGraphPath  string
 }
 
 type ListParams struct {

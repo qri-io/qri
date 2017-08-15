@@ -6,6 +6,8 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/peer"
+	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,6 +28,32 @@ func NewRepo(base string) (repo.Repo, error) {
 
 func (r *Repo) filepath(rf repo.File) string {
 	return filepath.Join(r.base, fmt.Sprintf("%s.json", repo.Filepath(rf)))
+}
+
+func (r *Repo) Profile() (*profile.Profile, error) {
+	p := &profile.Profile{}
+	data, err := ioutil.ReadFile(r.filepath(repo.FileProfile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return p, nil
+		}
+		return p, fmt.Errorf("error loading profile: %s", err.Error())
+	}
+
+	if err := json.Unmarshal(data, &p); err != nil {
+		return p, fmt.Errorf("error unmarshaling profile: %s", err.Error())
+	}
+
+	return p, nil
+}
+
+func (r *Repo) SaveProfile(p *profile.Profile) error {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(r.filepath(repo.FileProfile), data, os.ModePerm)
 }
 
 func (r *Repo) Namespace() (map[string]datastore.Key, error) {
@@ -128,6 +156,32 @@ func (r *Repo) SaveResourceMeta(graph dsgraph.ResourceMeta) error {
 	}
 
 	return ioutil.WriteFile(r.filepath(repo.FileResourceMeta), data, os.ModePerm)
+}
+
+func (r *Repo) Peers() ([]*peer.Repo, error) {
+	p := []*peer.Repo{}
+	data, err := ioutil.ReadFile(r.filepath(repo.FilePeers))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return p, nil
+		}
+		return p, fmt.Errorf("error loading peers: %s", err.Error())
+	}
+
+	if err := json.Unmarshal(data, &p); err != nil {
+		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
+	}
+
+	return p, nil
+}
+
+func (r *Repo) SavePeers(p []*peer.Repo) error {
+	data, err := json.Marshal(p)
+	if err != nil {
+		return err
+	}
+
+	return ioutil.WriteFile(r.filepath(repo.FilePeers), data, os.ModePerm)
 }
 
 func (r *Repo) Destroy() error {

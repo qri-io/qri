@@ -38,7 +38,7 @@ var peerMsgCommand = &cobra.Command{
 
 		fmt.Println(node.EncapsulatedAddresses())
 
-		res, err := node.SendMessage(addr, []byte("PING\n"))
+		res, err := node.SendMessage(addr, &p2p.Message{Type: p2p.MtUnknown, Payload: "PING"})
 		ExitIfErr(err)
 
 		fmt.Println(string(res))
