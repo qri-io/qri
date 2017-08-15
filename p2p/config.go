@@ -3,10 +3,12 @@ package p2p
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/qri-io/qri/repo"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	ma "github.com/multiformats/go-multiaddr"
+	fs_repo "github.com/qri-io/qri/repo/fs"
 )
 
 // NodeCfg is all configuration options for a Qri Node
@@ -15,6 +17,11 @@ type NodeCfg struct {
 
 	PubKey  crypto.PubKey
 	PrivKey crypto.PrivKey
+
+	// Bring-Your-Own Qri Repo...
+	Repo repo.Repo
+	// Or supply a filepath to one
+	RepoPath string
 
 	// default port to bind tcp listener to
 	// ignored if Addrs is supplied
@@ -44,17 +51,25 @@ func DefaultNodeCfg() *NodeCfg {
 	}
 
 	return &NodeCfg{
-		PeerId:  pid,
-		PrivKey: priv,
-		PubKey:  pub,
-
-		// Addrs:  []ma.Multiaddr{addr},
-		Secure: true,
+		PeerId:   pid,
+		PrivKey:  priv,
+		PubKey:   pub,
+		RepoPath: "~/qri",
+		Port:     4444,
+		Secure:   true,
 	}
 }
 
 // Validate confirms that the given settings will work, returning an error if not.
 func (cfg *NodeCfg) Validate() error {
+
+	if cfg.Repo == nil && cfg.RepoPath != "" {
+		repo, err := fs_repo.NewRepo(cfg.RepoPath)
+		if err != nil {
+			return err
+		}
+		cfg.Repo = repo
+	}
 
 	// If no listening addresses are set, allocate
 	// a tcp multiaddress on local host bound to the default port

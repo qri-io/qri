@@ -31,7 +31,7 @@ func AddFileResource(ds *ipfs.Datastore, path string, rsc *dataset.Resource) (rk
 	return
 }
 
-// AddReaderReasource adds a resource from an io.Reader
+// AddReaderResource adds a resource from an io.Reader
 // TODO - reverse the implementation, having AddBytesResource be a shorthand for AddReaderResource ;)
 func AddReaderResource(ds *ipfs.Datastore, rdr io.Reader, rsc *dataset.Resource) (rkey datastore.Key, err error) {
 	data, err := ioutil.ReadAll(rdr)

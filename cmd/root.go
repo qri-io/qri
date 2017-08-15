@@ -15,7 +15,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -26,10 +25,11 @@ import (
 var cfgFile string
 
 const (
-	QueryResultsGraphPath    = "resultGraphPath"
-	ResourceMetaGraphPath    = "metadataGraphPath"
-	ResourceQueriesGraphPath = "resourceQueriesGraphPath"
-	NamespaceGraphPath       = "namespaceGraphPath"
+	QriRepoPath = "QriRepoPath"
+	// QueryResultsGraphPath    = "resultGraphPath"
+	// ResourceMetaGraphPath    = "metadataGraphPath"
+	// ResourceQueriesGraphPath = "resourceQueriesGraphPath"
+	// NamespaceGraphPath       = "namespaceGraphPath"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -70,19 +70,20 @@ func initConfig() {
 		viper.SetConfigFile(cfgFile)
 	}
 
-	if err := os.Mkdir(filepath.Join(userHomeDir(), ".qri"), os.ModePerm); err != nil {
-		fmt.Errorf("error creating home dir: %s\n", err.Error())
-	}
+	// if err := os.Mkdir(filepath.Join(userHomeDir(), ".qri"), os.ModePerm); err != nil {
+	// 	fmt.Errorf("error creating home dir: %s\n", err.Error())
+	// }
 
 	viper.SetConfigName("config")     // name of config file (without extension)
 	viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
 	viper.AddConfigPath(".")          // adding home directory as first search path
 	viper.AutomaticEnv()              // read in environment variables that match
 
-	viper.SetDefault(QueryResultsGraphPath, filepath.Join(home, ".qri", "query_results.json"))
-	viper.SetDefault(ResourceMetaGraphPath, filepath.Join(home, ".qri", "resouce_meta.json"))
-	viper.SetDefault(ResourceQueriesGraphPath, filepath.Join(home, ".qri", "resource_queries.json"))
-	viper.SetDefault(NamespaceGraphPath, filepath.Join(home, ".qri", "namespace.json"))
+	viper.SetDefault(QriRepoPath, filepath.Join(home, "qri"))
+	// viper.SetDefault(QueryResultsGraphPath, filepath.Join(home, ".qri", "query_results.json"))
+	// viper.SetDefault(ResourceMetaGraphPath, filepath.Join(home, ".qri", "resouce_meta.json"))
+	// viper.SetDefault(ResourceQueriesGraphPath, filepath.Join(home, ".qri", "resource_queries.json"))
+	// viper.SetDefault(NamespaceGraphPath, filepath.Join(home, ".qri", "namespace.json"))
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {

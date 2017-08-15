@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/qri-io/qri/repo"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
@@ -26,6 +27,8 @@ type QriNode struct {
 	Host      host.Host // p2p Host
 	Pings     *ping.PingService
 	Discovery discovery.Service
+
+	repo repo.Repo
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -70,6 +73,24 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 // // setup local discovery
 // }
 
+// Repo gives this node's repository
+func (n *QriNode) Repo() repo.Repo {
+	return n.repo
+}
+
+// Encapsulated Addresses returns a slice of full multaddrs for this node
+func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
+	// Build host multiaddress
+	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
+
+	res := make([]ma.Multiaddr, len(qn.Host.Addrs()))
+	for i, a := range qn.Host.Addrs() {
+		res[i] = a.Encapsulate(hostAddr)
+	}
+
+	return res
+}
+
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(cfg *NodeCfg) (host.Host, error) {
 	// Create a peerstore
@@ -103,17 +124,4 @@ func makeBasicHost(cfg *NodeCfg) (host.Host, error) {
 	netw := (*swarm.Network)(swrm)
 	basicHost := bhost.New(netw)
 	return basicHost, nil
-}
-
-// Encapsulated Addresses returns a slice of full multaddrs for this node
-func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
-	// Build host multiaddress
-	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
-
-	res := make([]ma.Multiaddr, len(qn.Host.Addrs()))
-	for i, a := range qn.Host.Addrs() {
-		res[i] = a.Encapsulate(hostAddr)
-	}
-
-	return res
 }
