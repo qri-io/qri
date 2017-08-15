@@ -9,18 +9,20 @@ import (
 )
 
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
-	fmt.Println("trying peer info: ", pinfo)
+	// fmt.Println("trying peer info: ", pinfo)
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*10)
 	defer cancel()
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
 		fmt.Println("Failed to connect to peer found by discovery: ", err)
 	}
-	fmt.Println("connected to host: ", pinfo.ID.Pretty())
+	n.Host.Peerstore().AddAddr(pinfo.ID, pinfo.Addrs[0], time.Hour)
+
+	fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }
 
-// TODO - major work in progress
+// StartDiscovery initiates peer discovery
 func (n *QriNode) StartDiscovery() error {
-	service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Millisecond*200)
+	service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*2)
 	if err != nil {
 		return err
 	}
