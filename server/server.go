@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/graphs"
 	"github.com/qri-io/qri/core/queries"
+	"github.com/qri-io/qri/p2p"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -21,7 +22,8 @@ type Server struct {
 	rgraph  dsgraph.QueryResults
 	rqgraph dsgraph.ResourceQueries
 
-	store *ipfs.Datastore
+	qriNode *p2p.QriNode
+	store   *ipfs.Datastore
 }
 
 func New(options ...func(*Config)) (*Server, error) {
@@ -30,7 +32,6 @@ func New(options ...func(*Config)) (*Server, error) {
 		opt(cfg)
 	}
 	if err := cfg.Validate(); err != nil {
-		// panic if the server is missing a vital configuration detail
 		return nil, fmt.Errorf("server configuration error: %s", err.Error())
 	}
 
@@ -68,6 +69,18 @@ func (s *Server) Serve() error {
 
 	server := &http.Server{}
 	server.Handler = s.NewServerRoutes()
+
+	qriNode, err := p2p.NewQriNode()
+	if err != nil {
+		return err
+	}
+
+	s.qriNode = qriNode
+
+	fmt.Println("qri addresses:")
+	for _, a := range s.qriNode.EncapsulatedAddresses() {
+		fmt.Printf("\t%s\n", a.String())
+	}
 
 	// fire it up!
 	s.log.Println("starting server on port", s.cfg.Port)
