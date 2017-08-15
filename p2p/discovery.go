@@ -15,17 +15,34 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
 		fmt.Println("Failed to connect to peer found by discovery: ", err)
 	}
+
+	data, _ := pinfo.MarshalJSON()
+	fmt.Println(string(data))
+
 	n.Host.Peerstore().AddAddr(pinfo.ID, pinfo.Addrs[0], time.Hour)
 
-	p, err := n.repo.Profile()
+	// p, err := n.repo.Profile()
+	// if err != nil {
+	// 	return
+	// }
+
+	res, err := n.SendMessage(pinfo.Addrs[0].String(), &Message{
+		Type:    MtProfile,
+		Payload: nil,
+	})
 	if err != nil {
+		fmt.Println(err.Error())
 		return
 	}
 
-	n.SendMessage(pinfo.Addrs[0], &Message{
-		Type:    MtProfile,
-		Payload: p,
-	})
+	if res.Phase == MpResponse {
+		fmt.Println(res)
+
+		// peers, err := n.repo.Peers()
+		// if err != nil {
+		// 	return
+		// }
+	}
 
 	fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }

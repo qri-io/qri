@@ -76,7 +76,7 @@ func WrapStream(s net.Stream) *WrappedStream {
 // StreamHandler handles connections to this node
 func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 	defer s.Close()
-	handleStream(WrapStream(s))
+	qn.handleStream(WrapStream(s))
 }
 
 // SendMessage to a given multiaddr
@@ -125,22 +125,24 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 // When Message.HangUp is true, it exits. This will close the stream
 // on one of the sides. The other side's receiveMessage() will error
 // with EOF, thus also breaking out from the loop.
-func handleStream(ws *WrappedStream) {
+func (n *QriNode) handleStream(ws *WrappedStream) {
 	for {
 		// Read
-		msg, err := receiveMessage(ws)
+		r, err := receiveMessage(ws)
 		if err != nil {
 			break
 		}
-		fmt.Printf("received message: %s", string(msg.Msg))
+		fmt.Printf("received message: %v", r)
 
 		// Send response
-		err = sendMessage(&Message{Msg: []byte("ok"), HangUp: true}, ws)
-		if err != nil {
-			break
+		if r.Phase == MpRequest {
+			switch r.Type {
+			case MtProfile:
+				n.handleProfileRequest(r)
+			}
 		}
 
-		if msg.HangUp {
+		if r.HangUp {
 			break
 		}
 	}
