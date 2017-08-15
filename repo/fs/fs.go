@@ -4,9 +4,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/peer"
+	"github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
@@ -158,9 +159,9 @@ func (r *Repo) SaveResourceMeta(graph dsgraph.ResourceMeta) error {
 	return ioutil.WriteFile(r.filepath(repo.FileResourceMeta), data, os.ModePerm)
 }
 
-func (r *Repo) Peers() ([]*peer.Repo, error) {
-	p := []*peer.Repo{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FilePeers))
+func (r *Repo) Peers() (map[peer.ID]*peer_repo.Repo, error) {
+	p := map[peer.ID]*peer_repo.Repo{}
+	data, err := ioutil.ReadFile(r.filepath(repo.FilePeerRepos))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return p, nil
@@ -175,13 +176,13 @@ func (r *Repo) Peers() ([]*peer.Repo, error) {
 	return p, nil
 }
 
-func (r *Repo) SavePeers(p []*peer.Repo) error {
+func (r *Repo) SavePeers(p map[peer.ID]*peer_repo.Repo) error {
 	data, err := json.Marshal(p)
 	if err != nil {
 		return err
 	}
 
-	return ioutil.WriteFile(r.filepath(repo.FilePeers), data, os.ModePerm)
+	return ioutil.WriteFile(r.filepath(repo.FilePeerRepos), data, os.ModePerm)
 }
 
 func (r *Repo) Destroy() error {

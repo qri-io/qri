@@ -27,7 +27,7 @@ const (
 	FileResourceQueries
 	// FilePeerRepos holds peer repositories
 	// Ideally this won't stick around for long
-	FilePeers
+	FilePeerRepos
 )
 
 var paths = map[File]string{
@@ -39,7 +39,7 @@ var paths = map[File]string{
 	FileQueryResults:    "/query_results",
 	FileResourceMeta:    "/resource_meta",
 	FileResourceQueries: "/resource_queries",
-	FilePeers:           "/peers",
+	FilePeerRepos:       "/peer_repos",
 }
 
 // Filepath gives the relative filepath to a repofile
