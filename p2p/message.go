@@ -103,9 +103,8 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 	return err
 }
 
-// handleStream is a for loop which receives and then sends a message
-// an artificial delay of 500ms happens in-between.
-// When Message.HangUp is true, it exists. This will close the stream
+// handleStream is a for loop which receives and then sends a message.
+// When Message.HangUp is true, it exits. This will close the stream
 // on one of the sides. The other side's receiveMessage() will error
 // with EOF, thus also breaking out from the loop.
 func handleStream(ws *WrappedStream) {
@@ -116,13 +115,14 @@ func handleStream(ws *WrappedStream) {
 			break
 		}
 		fmt.Printf("received message: %s", string(msg.Msg))
-		if msg.HangUp {
-			break
-		}
 
 		// Send response
 		err = sendMessage(&Message{Msg: []byte("ok"), HangUp: true}, ws)
 		if err != nil {
+			break
+		}
+
+		if msg.HangUp {
 			break
 		}
 	}

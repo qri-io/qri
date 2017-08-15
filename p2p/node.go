@@ -50,6 +50,11 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 	}
 
 	host.SetStreamHandler(ProtocolId, node.MessageStreamHandler)
+
+	if err = node.StartDiscovery(); err != nil {
+		return nil, err
+	}
+
 	return node, nil
 }
 
@@ -58,20 +63,11 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 // }
 
 // TODO - Finish
-// func (n *QriNode) startOnlineServices() error {
-// if n
-// n.Pings = ping.NewPingService(n.Host)
+// func (n *QriNode) startOnlineServices(cfg *NodeCfg) error {
+// // if n
+// // n.Pings = ping.NewPingService(n.Host)
 
-// setup local discovery
-// if do != nil {
-// 	service, err := do(ctx, n.PeerHost)
-// 	if err != nil {
-// 		log.Error("mdns error: ", err)
-// 	} else {
-// 		service.RegisterNotifee(n)
-// 		n.Discovery = service
-// 	}
-// }
+// // setup local discovery
 // }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg

@@ -22,6 +22,7 @@ import (
 
 var (
 	serverCmdPort string
+	serverNoIpfs  bool
 )
 
 // serverCmd represents the run command
@@ -36,6 +37,7 @@ var serverCmd = &cobra.Command{
 			cfg.ResourceQueriesGraphPath = viper.GetString(ResourceQueriesGraphPath)
 			cfg.ResourceMetaGraphPath = viper.GetString(ResourceMetaGraphPath)
 			cfg.Port = serverCmdPort
+			cfg.LocalIpfs = !serverNoIpfs
 		})
 		ExitIfErr(err)
 
@@ -46,5 +48,6 @@ var serverCmd = &cobra.Command{
 
 func init() {
 	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", "3000", "port to start server on")
+	serverCmd.Flags().BoolVarP(&serverNoIpfs, "no-ipfs", "", false, "disable local ipfs node")
 	RootCmd.AddCommand(serverCmd)
 }

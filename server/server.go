@@ -59,13 +59,15 @@ func New(options ...func(*Config)) (*Server, error) {
 
 // main app entry point
 func (s *Server) Serve() error {
-	store, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
-		cfg.Online = false
-	})
-	if err != nil {
-		return err
+	if s.cfg.LocalIpfs {
+		store, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
+			cfg.Online = false
+		})
+		if err != nil {
+			return err
+		}
+		s.store = store
 	}
-	s.store = store
 
 	server := &http.Server{}
 	server.Handler = s.NewServerRoutes()

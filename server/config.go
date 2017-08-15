@@ -13,8 +13,9 @@ const (
 
 func DefaultConfig() *Config {
 	return &Config{
-		Mode: "develop",
-		Port: "8080",
+		Mode:      "develop",
+		Port:      "8080",
+		LocalIpfs: true,
 	}
 }
 
@@ -51,6 +52,9 @@ type Config struct {
 	ProxyForceHttps bool
 	// token for analytics tracking
 	AnalyticsToken string
+
+	// set to false to disable local IPFS connection
+	LocalIpfs bool
 
 	QueryResultsGraphPath    string
 	ResourceMetaGraphPath    string
