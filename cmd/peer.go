@@ -27,9 +27,9 @@ var peerCommand = &cobra.Command{
 	Long:  ``,
 }
 
-var peerHelloCmd = &cobra.Command{
-	Use:   "ping",
-	Short: "ping a peer node",
+var peerMsgCommand = &cobra.Command{
+	Use:   "message",
+	Short: "message a peer node",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		addr := args[0]
@@ -38,7 +38,7 @@ var peerHelloCmd = &cobra.Command{
 
 		fmt.Println(node.EncapsulatedAddresses())
 
-		res, err := node.SendByteMsg(addr, []byte("PING\n"))
+		res, err := node.SendMessage(addr, []byte("PING\n"))
 		ExitIfErr(err)
 
 		fmt.Println(string(res))
@@ -46,6 +46,6 @@ var peerHelloCmd = &cobra.Command{
 }
 
 func init() {
-	peerCommand.AddCommand(peerHelloCmd)
+	peerCommand.AddCommand(peerMsgCommand)
 	RootCmd.AddCommand(peerCommand)
 }
