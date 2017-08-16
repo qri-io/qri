@@ -19,7 +19,7 @@ type Profile struct {
 	// user-filled description of self
 	Description string `json:"description"`
 	// url this user wants the world to click
-	HomeUrl string `json:"home_url"`
+	HomeUrl string `json:"homeUrl"`
 	// color this user likes to use as their theme color
 	Color string `json:"color"`
 	// url for their thumbnail

@@ -5,7 +5,6 @@ package repo
 
 import (
 	"github.com/ipfs/go-datastore"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -28,8 +27,8 @@ type Repo interface {
 	ResourceQueries() (dsgraph.ResourceQueries, error)
 	SaveResourceQueries(dsgraph.ResourceQueries) error
 
-	Peers() (map[peer.ID]*peer_repo.Repo, error)
-	SavePeers(map[peer.ID]*peer_repo.Repo) error
+	Peers() (map[string]*peer_repo.Repo, error)
+	SavePeers(map[string]*peer_repo.Repo) error
 
 	Destroy() error
 }

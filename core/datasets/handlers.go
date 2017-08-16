@@ -72,8 +72,7 @@ func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 		Offset:  p.Offset(),
 		OrderBy: "created",
 	}
-	err := d.List(args, &res)
-	if err != nil {
+	if err := d.List(args, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

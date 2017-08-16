@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/peer_repo"
@@ -159,8 +158,8 @@ func (r *Repo) SaveResourceMeta(graph dsgraph.ResourceMeta) error {
 	return ioutil.WriteFile(r.filepath(repo.FileResourceMeta), data, os.ModePerm)
 }
 
-func (r *Repo) Peers() (map[peer.ID]*peer_repo.Repo, error) {
-	p := map[peer.ID]*peer_repo.Repo{}
+func (r *Repo) Peers() (map[string]*peer_repo.Repo, error) {
+	p := map[string]*peer_repo.Repo{}
 	data, err := ioutil.ReadFile(r.filepath(repo.FilePeerRepos))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -176,7 +175,7 @@ func (r *Repo) Peers() (map[peer.ID]*peer_repo.Repo, error) {
 	return p, nil
 }
 
-func (r *Repo) SavePeers(p map[peer.ID]*peer_repo.Repo) error {
+func (r *Repo) SavePeers(p map[string]*peer_repo.Repo) error {
 	data, err := json.Marshal(p)
 	if err != nil {
 		return err

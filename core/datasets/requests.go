@@ -36,6 +36,7 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
 	// limit & offset
 	ns, err := d.repo.Namespace()
 	if err != nil {
+		fmt.Println(err.Error())
 		return err
 	}
 	for name, key := range ns {

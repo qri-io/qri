@@ -7,7 +7,6 @@ import (
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -18,7 +17,6 @@ type Server struct {
 	log *logrus.Logger
 
 	qriNode *p2p.QriNode
-	repo    repo.Repo
 	store   *ipfs.Datastore
 }
 
@@ -62,16 +60,12 @@ func (s *Server) Serve() error {
 		s.store = store
 	}
 
-	server := &http.Server{}
-	server.Handler = s.NewServerRoutes()
-
 	qriNode, err := p2p.NewQriNode(func(ncfg *p2p.NodeCfg) {
 		ncfg.RepoPath = s.cfg.QriRepoPath
 	})
 	if err != nil {
 		return err
 	}
-	s.repo = qriNode.Repo()
 
 	s.qriNode = qriNode
 
@@ -80,9 +74,10 @@ func (s *Server) Serve() error {
 		fmt.Printf("  %s\n", a.String())
 	}
 
+	server := &http.Server{}
+	server.Handler = s.NewServerRoutes()
 	// fire it up!
 	s.log.Println("starting server on port", s.cfg.Port)
-
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
 }
@@ -97,12 +92,12 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	dsh := datasets.NewHandlers(s.store, s.repo)
+	dsh := datasets.NewHandlers(s.store, s.qriNode.Repo())
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 
-	qh := queries.NewHandlers(s.store, s.repo)
+	qh := queries.NewHandlers(s.store, s.qriNode.Repo())
 	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m

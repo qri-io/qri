@@ -11,6 +11,7 @@ import (
 
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// fmt.Println("trying peer info: ", pinfo)
+
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
@@ -39,16 +40,13 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 		return
 	}
 
-	fmt.Println(res)
-
 	if res.Phase == MpResponse {
-		// peers, err := n.repo.Peers()
-		// if err != nil {
-		// 	return
-		// }
+		if err := n.handleProfileResponse(pinfo, res); err != nil {
+			fmt.Println(err.Error())
+		}
 	}
 
-	fmt.Println("connected to peer: ", pinfo.ID.Pretty())
+	// fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }
 
 // StartDiscovery initiates peer discovery
