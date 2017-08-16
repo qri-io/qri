@@ -42,6 +42,8 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 		return nil, err
 	}
 
+	fmt.Println(cfg.Addrs)
+
 	host, err := makeBasicHost(cfg)
 	if err != nil {
 		return nil, err
@@ -50,6 +52,7 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 	node := &QriNode{
 		Identity: cfg.PeerId,
 		Host:     host,
+		repo:     cfg.Repo,
 	}
 
 	host.SetStreamHandler(ProtocolId, node.MessageStreamHandler)

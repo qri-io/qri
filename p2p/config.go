@@ -55,8 +55,10 @@ func DefaultNodeCfg() *NodeCfg {
 		PrivKey:  priv,
 		PubKey:   pub,
 		RepoPath: "~/qri",
-		Port:     4444,
-		Secure:   true,
+		// TODO - enabling this causes all nodes to broadcast
+		// on the same address, which isn't good. figure out why
+		// Port:     4444,
+		Secure: true,
 	}
 }
 

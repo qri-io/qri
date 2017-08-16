@@ -5,7 +5,7 @@ import (
 	"fmt"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
-	// ma "github.com/multiformats/go-multiaddr"
+	ma "github.com/multiformats/go-multiaddr"
 	"time"
 )
 
@@ -26,33 +26,34 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// 	return
 	// }
 
-	// peerAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pinfo.ID.Pretty()))
+	peerAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pinfo.ID.Pretty()))
 
-	// addr := pinfo.Addrs[0].Encapsulate(peerAddr)
+	addr := pinfo.Addrs[0].Encapsulate(peerAddr)
 
-	// res, err := n.SendMessage(addr.String(), &Message{
-	// 	Type:    MtProfile,
-	// 	Payload: nil,
-	// })
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return
-	// }
+	res, err := n.SendMessage(addr.String(), &Message{
+		Type:    MtProfile,
+		Payload: nil,
+	})
+	if err != nil {
+		fmt.Println(err.Error())
+		return
+	}
 
-	// if res.Phase == MpResponse {
-	// 	fmt.Println(res)
-	// 	// peers, err := n.repo.Peers()
-	// 	// if err != nil {
-	// 	// 	return
-	// 	// }
-	// }
+	fmt.Println(res)
+
+	if res.Phase == MpResponse {
+		// peers, err := n.repo.Peers()
+		// if err != nil {
+		// 	return
+		// }
+	}
 
 	fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }
 
 // StartDiscovery initiates peer discovery
 func (n *QriNode) StartDiscovery() error {
-	service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*10)
+	service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
 	if err != nil {
 		return err
 	}

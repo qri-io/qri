@@ -132,13 +132,20 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("received message: %v", r)
+		fmt.Printf("received message: %v\n", r)
 
-		// Send response
+		var res *Message
+
 		if r.Phase == MpRequest {
 			switch r.Type {
 			case MtProfile:
-				n.handleProfileRequest(r)
+				res = n.handleProfileRequest(r)
+			}
+		}
+
+		if res != nil {
+			if err := sendMessage(res, ws); err != nil {
+				fmt.Println(err)
 			}
 		}
 
