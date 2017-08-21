@@ -17,9 +17,11 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"github.com/ipfs/go-datastore"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
@@ -48,7 +50,7 @@ var initCmd = &cobra.Command{
 		if rescursive {
 			files, err := ioutil.ReadDir(base)
 			ExitIfErr(err)
-			foundFiles := map[string]*dataset.Resource{}
+			foundFiles := map[string]*dataset.Structure{}
 			for _, fi := range files {
 				if fi.IsDir() {
 					continue
@@ -60,9 +62,19 @@ var initCmd = &cobra.Command{
 					// TODO - require this be a proper, no-space alphanumeric type thing
 					foundFiles[adr] = rsc
 
-					rkey, err := datasets.AddFileResource(ds, filepath.Join(base, fi.Name()), rsc)
+					rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(base, fi.Name()), rsc)
+					d := &dataset.Dataset{
+						Timestamp: time.Now().In(time.UTC),
+						Structure: rkey,
+						Data:      dskey,
+					}
+					ddata, err := d.MarshalJSON()
 					ExitIfErr(err)
-					ns[adr] = rkey
+
+					dshash, err := ds.AddAndPinBytes(ddata)
+					ExitIfErr(err)
+
+					ns[adr] = datastore.NewKey("/ipfs/" + dshash)
 				}
 			}
 		} else {
@@ -83,8 +95,19 @@ var initCmd = &cobra.Command{
 			rsc, err := detect.FromFile(file.Name())
 			ExitIfErr(err)
 
-			rkey, err := datasets.AddFileResource(ds, base, rsc)
+			rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(base, file.Name()), rsc)
+			d := &dataset.Dataset{
+				Timestamp: time.Now().In(time.UTC),
+				Structure: rkey,
+				Data:      dskey,
+			}
+			ddata, err := d.MarshalJSON()
 			ExitIfErr(err)
+
+			dshash, err := ds.AddAndPinBytes(ddata)
+			ExitIfErr(err)
+
+			ns[adr] = datastore.NewKey("/ipfs/" + dshash)
 
 			// Add to the namespace as the filename
 			// TODO - require this be a proper, no-space alphanumeric type thing

@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/repo"
 	"io/ioutil"
+	"time"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
@@ -96,13 +97,13 @@ func (h *Handlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		h.saveResourceHandler(w, r)
+		h.saveStructureHandler(w, r)
 	default:
 		h.initDatasetFileHandler(w, r)
 	}
 }
 
-func (h *Handlers) saveResourceHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) saveStructureHandler(w http.ResponseWriter, r *http.Request) {
 	p := &SaveParams{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
@@ -133,17 +134,23 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	rsc, err := detect.FromReader(header.Filename, bytes.NewReader(data))
+	st, err := detect.FromReader(header.Filename, bytes.NewReader(data))
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	rkey, err := AddReaderResource(h.store, bytes.NewReader(data), rsc)
+	stkey, datakey, err := AddReaderStructure(h.store, bytes.NewReader(data), st)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
+
+	// stkey, err := AddBytesStructure(h.store, data, rsc)
+	// if err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
+	// 	return
+	// }
 
 	adr := detect.Camelize(header.Filename)
 	if r.FormValue("name") != "" {
@@ -156,20 +163,35 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ns[adr] = rkey
+	ds := &dataset.Dataset{
+		Timestamp: time.Now().In(time.UTC),
+		Title:     adr,
+		Data:      datakey,
+		Structure: stkey,
+	}
+
+	dsdata, err := ds.MarshalJSON()
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	dshash, err := h.store.AddAndPinBytes(dsdata)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	dskey := datastore.NewKey("/ipfs/" + dshash)
+
+	ns[adr] = dskey
 
 	if err := h.repo.SaveNamespace(ns); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	util.WriteResponse(w, &dataset.Dataset{
-		Metadata: dataset.Metadata{
-			Title:   adr,
-			Subject: rkey,
-		},
-		Resource: *rsc,
-	})
+	util.WriteResponse(w, ds)
 }
 
 func (h *Handlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {

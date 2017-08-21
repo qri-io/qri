@@ -57,10 +57,10 @@ var datasetInfoCmd = &cobra.Command{
 			path = ns[args[0]]
 		}
 
-		resource, err := GetResource(ds, path)
+		st, err := GetStructure(ds, path)
 		ExitIfErr(err)
 
-		out, err := json.MarshalIndent(resource, "", "  ")
+		out, err := json.MarshalIndent(st, "", "  ")
 		ExitIfErr(err)
 
 		fmt.Printf("%s\n", string(out))

@@ -103,7 +103,7 @@ func PrintNotYetFinished(cmd *cobra.Command) {
 // 	fmt.Printf("\n")
 // }
 
-func PrintResults(r *dataset.Resource, data []byte, format dataset.DataFormat) {
+func PrintResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
 	case dataset.JsonDataFormat:
 		fmt.Println(string(data))

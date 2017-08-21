@@ -7,12 +7,12 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func GetResource(store *ipfs.Datastore, key datastore.Key) (*dataset.Resource, error) {
+func GetStructure(store *ipfs.Datastore, key datastore.Key) (*dataset.Structure, error) {
 	riface, err := store.Get(key)
 	if err != nil {
 		return nil, fmt.Errorf("error getting resource:", err.Error())
 	}
-	return dataset.UnmarshalResource(riface)
+	return dataset.UnmarshalStructure(riface)
 }
 
 func GetStructuredData(store *ipfs.Datastore, key datastore.Key) ([]byte, error) {

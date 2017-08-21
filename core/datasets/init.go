@@ -9,55 +9,55 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-// AddFileResource adds a file from a given filepath on the local filesystem
-func AddFileResource(ds *ipfs.Datastore, path string, rsc *dataset.Resource) (rkey datastore.Key, err error) {
-	rkey = datastore.NewKey("")
+// AddFileStructure adds a file from a given filepath on the local filesystem
+func AddFileStructure(ds *ipfs.Datastore, path string, st *dataset.Structure) (structkey, datakey datastore.Key, err error) {
+	structkey = datastore.NewKey("")
 
 	datahash, err := ds.AddAndPinPath(path)
-	rsc.Path = datastore.NewKey("/ipfs/" + datahash)
+	datakey = datastore.NewKey("/ipfs/" + datahash)
 
-	rdata, err := rsc.MarshalJSON()
+	stdata, err := st.MarshalJSON()
 	if err != nil {
 		return
 	}
 
-	rhash, err := ds.AddAndPinBytes(rdata)
+	sthash, err := ds.AddAndPinBytes(stdata)
 	if err != nil {
 		return
 	}
 
-	rkey = datastore.NewKey("/ipfs/" + rhash)
+	structkey = datastore.NewKey("/ipfs/" + sthash)
 
 	return
 }
 
-// AddReaderResource adds a resource from an io.Reader
-// TODO - reverse the implementation, having AddBytesResource be a shorthand for AddReaderResource ;)
-func AddReaderResource(ds *ipfs.Datastore, rdr io.Reader, rsc *dataset.Resource) (rkey datastore.Key, err error) {
+// AddReaderStructure adds a resource from an io.Reader
+// TODO - reverse the implementation, having AddBytesStructure be a shorthand for AddReaderStructure ;)
+func AddReaderStructure(ds *ipfs.Datastore, rdr io.Reader, rsc *dataset.Structure) (stkey, datakey datastore.Key, err error) {
 	data, err := ioutil.ReadAll(rdr)
 	if err != nil {
 		return
 	}
-	return AddBytesResource(ds, data, rsc)
+	return AddBytesStructure(ds, data, rsc)
 }
 
-// AddBytesResource adds a slice of bytes as
-func AddBytesResource(ds *ipfs.Datastore, data []byte, rsc *dataset.Resource) (rkey datastore.Key, err error) {
-	rkey = datastore.NewKey("")
+// AddBytesStructure adds a slice of bytes to ipfs
+func AddBytesStructure(ds *ipfs.Datastore, data []byte, st *dataset.Structure) (stkey, datakey datastore.Key, err error) {
+	stkey = datastore.NewKey("")
 
 	datahash, err := ds.AddAndPinBytes(data)
-	rsc.Path = datastore.NewKey("/ipfs/" + datahash)
+	datakey = datastore.NewKey("/ipfs/" + datahash)
 
-	rdata, err := rsc.MarshalJSON()
+	stdata, err := st.MarshalJSON()
 	if err != nil {
 		return
 	}
 
-	rhash, err := ds.AddAndPinBytes(rdata)
+	sthash, err := ds.AddAndPinBytes(stdata)
 	if err != nil {
 		return
 	}
 
-	rkey = datastore.NewKey("/ipfs/" + rhash)
+	stkey = datastore.NewKey("/ipfs/" + sthash)
 	return
 }

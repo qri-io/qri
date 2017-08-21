@@ -85,14 +85,14 @@ func (h *Handlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
-	p := &dataset.Query{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+	ds := &dataset.Dataset{}
+	if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	res := &dataset.Dataset{}
-	if err := h.Run(p, res); err != nil {
+	if err := h.Run(ds, res); err != nil {
 		fmt.Println("err:")
 		fmt.Println(err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

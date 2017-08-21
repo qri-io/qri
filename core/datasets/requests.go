@@ -48,16 +48,17 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
 		if err != nil {
 			return err
 		}
-		resource, err := dataset.UnmarshalResource(v)
+		// structure, err := dataset.UnmarshalStructure(v)
+		_, err = dataset.UnmarshalStructure(v)
 		if err != nil {
 			return err
 		}
 		replies[i] = &dataset.Dataset{
-			Metadata: dataset.Metadata{
-				Title:   name,
-				Subject: key,
-			},
-			Resource: *resource,
+			Title: name,
+			// TODO - need to figure out how to deref a dataset
+			// Path:  key,
+			// into the right position
+			// Structure: *resource,
 		}
 		i++
 	}
@@ -72,13 +73,15 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	resource, err := core.GetResource(d.store, p.Path)
+	// resource, err := core.GetStructure(d.store, p.Path)
+	_, err := core.GetStructure(d.store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	*res = dataset.Dataset{
-		Resource: *resource,
+	// TODO - put back
+	// Resource: *resource,
 	}
 	return nil
 }
@@ -89,13 +92,13 @@ type SaveParams struct {
 }
 
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
-	resource := p.Dataset.Resource
+	ds := p.Dataset
 
-	rdata, err := resource.MarshalJSON()
+	dsdata, err := ds.MarshalJSON()
 	if err != nil {
 		return err
 	}
-	qhash, err := r.store.AddAndPinBytes(rdata)
+	dshash, err := r.store.AddAndPinBytes(dsdata)
 	if err != nil {
 		return err
 	}
@@ -104,14 +107,12 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	if err != nil {
 		return err
 	}
-	ns[p.Name] = datastore.NewKey("/ipfs/" + qhash)
+	ns[p.Name] = datastore.NewKey("/ipfs/" + dshash)
 	if err := r.repo.SaveNamespace(ns); err != nil {
 		return err
 	}
 
-	*res = dataset.Dataset{
-		Resource: resource,
-	}
+	*res = *ds
 	return nil
 }
 
@@ -162,15 +163,15 @@ type StructuredData struct {
 
 func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	var raw []byte
-	rsc, err := load.Resource(r.store, p.Path)
+	ds, err := dataset.LoadDataset(r.store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	if p.All {
-		raw, err = load.RawData(r.store, rsc.Path)
+		raw, err = ds.LoadData(r.store)
 	} else {
-		raw, err = load.RawDataRows(r.store, rsc, p.Limit, p.Offset)
+		raw, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
 	}
 
 	if err != nil {
