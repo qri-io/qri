@@ -15,36 +15,37 @@
 package cmd
 
 import (
-	"github.com/qri-io/qri/server"
+	"fmt"
+	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
-var (
-	serverCmdPort string
-	serverNoIpfs  bool
-)
+// peerCommand represents the dataset commands
+var peerCommand = &cobra.Command{
+	Use:   "peer",
+	Short: "peer tools",
+	Long:  ``,
+}
 
-// serverCmd represents the run command
-var serverCmd = &cobra.Command{
-	Use:   "server",
-	Short: "start a qri server",
+var peerMsgCommand = &cobra.Command{
+	Use:   "message",
+	Short: "message a peer node",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		s, err := server.New(func(cfg *server.Config) {
-			cfg.QriRepoPath = viper.GetString(QriRepoPath)
-			cfg.Port = serverCmdPort
-			cfg.LocalIpfs = !serverNoIpfs
-		})
+		addr := args[0]
+		node, err := p2p.NewQriNode()
 		ExitIfErr(err)
 
-		err = s.Serve()
+		fmt.Println(node.EncapsulatedAddresses())
+
+		res, err := node.SendMessage(addr, &p2p.Message{Type: p2p.MtUnknown, Payload: "PING"})
 		ExitIfErr(err)
+
+		fmt.Println(res)
 	},
 }
 
 func init() {
-	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", "3000", "port to start server on")
-	serverCmd.Flags().BoolVarP(&serverNoIpfs, "no-ipfs", "", false, "disable local ipfs node")
-	RootCmd.AddCommand(serverCmd)
+	peerCommand.AddCommand(peerMsgCommand)
+	RootCmd.AddCommand(peerCommand)
 }

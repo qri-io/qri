@@ -15,6 +15,7 @@
 package cmd
 
 import (
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -98,6 +99,7 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
+	flag.Parse()
 	RootCmd.AddCommand(initCmd)
 	initCmd.Flags().BoolVarP(&rescursive, "recursive", "r", false, "recursive add from a directory")
 	initCmd.Flags().BoolVarP(&passive, "passive", "p", false, "disable interactive init")

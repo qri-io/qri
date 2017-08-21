@@ -5,25 +5,22 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset/load"
-	"github.com/qri-io/qri/core/graphs"
+	"github.com/qri-io/qri/repo"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 )
 
-func NewRequests(store *ipfs_datastore.Datastore, ns map[string]datastore.Key, nspath string) *Requests {
+func NewRequests(store *ipfs_datastore.Datastore, r repo.Repo) *Requests {
 	return &Requests{
-		store:       store,
-		ns:          ns,
-		nsGraphPath: nspath,
+		store: store,
+		repo:  r,
 	}
 }
 
 type Requests struct {
 	store *ipfs_datastore.Datastore
-	// namespace graph
-	ns          map[string]datastore.Key
-	nsGraphPath string
+	repo  repo.Repo
 }
 
 type ListParams struct {
@@ -35,9 +32,14 @@ type ListParams struct {
 func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
 	replies := make([]*dataset.Dataset, p.Limit)
 	i := 0
-	// TODO - generate a sorted copy of keys, iterate through that respecting
+	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
-	for name, key := range d.ns {
+	ns, err := d.repo.Namespace()
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
+	for name, key := range ns {
 		if i >= p.Limit {
 			break
 		}
@@ -98,8 +100,12 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	r.ns[p.Name] = datastore.NewKey("/ipfs/" + qhash)
-	if err := graphs.SaveNamespaceGraph(r.nsGraphPath, r.ns); err != nil {
+	ns, err := r.repo.Namespace()
+	if err != nil {
+		return err
+	}
+	ns[p.Name] = datastore.NewKey("/ipfs/" + qhash)
+	if err := r.repo.SaveNamespace(ns); err != nil {
 		return err
 	}
 
@@ -117,8 +123,12 @@ type DeleteParams struct {
 func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 	// TODO - unpin resource and data
 	// resource := p.Dataset.Resource
+	ns, err := r.repo.Namespace()
+	if err != nil {
+		return err
+	}
 	if p.Name == "" && p.Path.String() != "" {
-		for name, val := range r.ns {
+		for name, val := range ns {
 			if val.Equal(p.Path) {
 				p.Name = name
 			}
@@ -127,12 +137,12 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 
 	if p.Name == "" {
 		return fmt.Errorf("couldn't find dataset: %s", p.Path.String())
-	} else if r.ns[p.Name] == datastore.NewKey("") {
+	} else if ns[p.Name] == datastore.NewKey("") {
 		return fmt.Errorf("couldn't find dataset: %s", p.Name)
 	}
 
-	delete(r.ns, p.Name)
-	if err := graphs.SaveNamespaceGraph(r.nsGraphPath, r.ns); err != nil {
+	delete(ns, p.Name)
+	if err := r.repo.SaveNamespace(ns); err != nil {
 		return err
 	}
 	*ok = true

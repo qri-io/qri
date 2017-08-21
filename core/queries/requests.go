@@ -3,32 +3,25 @@ package queries
 import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/repo"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/core/graphs"
 )
 
-// func NewRequests(store *ipfs_datastore.Datastore, ns map[string]datastore.Key) *Requests {
-// 	return &Requests{
-// 		store: store,
-// 		ns:    ns,
-// 	}
-// }
+func NewRequests(store *ipfs_datastore.Datastore, r repo.Repo) *Requests {
+	return &Requests{
+		store: store,
+		repo:  r,
+	}
+}
 
 type Requests struct {
-	Store *ipfs_datastore.Datastore
-	// namespace graph
-	Ns      map[string]datastore.Key
-	RGraph  dsgraph.QueryResults
-	RqGraph dsgraph.ResourceQueries
-
-	NsGraphPath string
-	RqGraphPath string
-	RGraphPath  string
+	store *ipfs_datastore.Datastore
+	repo  repo.Repo
 }
 
 type ListParams struct {
@@ -39,7 +32,11 @@ type ListParams struct {
 
 func (d *Requests) List(p *ListParams, res *dsgraph.QueryResults) error {
 	// TODO - is this right?
-	*res = d.RGraph
+	qr, err := d.repo.QueryResults()
+	if err != nil {
+		return err
+	}
+	*res = qr
 	return nil
 }
 
@@ -50,7 +47,7 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	resource, err := core.GetResource(d.Store, datastore.NewKey(p.Path))
+	resource, err := core.GetResource(d.store, datastore.NewKey(p.Path))
 	if err != nil {
 		return err
 	}
@@ -66,6 +63,11 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 		resource *dataset.Resource
 		results  []byte
 	)
+
+	ns, err := r.repo.Namespace()
+	if err != nil {
+		return err
+	}
 
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
@@ -84,10 +86,10 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 	// collect table references
 	for mapped, ref := range remap {
 		// for i, adr := range stmt.References() {
-		if r.Ns[ref].String() == "" {
+		if ns[ref].String() == "" {
 			return fmt.Errorf("couldn't find resource for table name: %s", ref)
 		}
-		q.Resources[mapped] = r.Ns[ref]
+		q.Resources[mapped] = ns[ref]
 	}
 
 	qData, err := q.MarshalJSON()
@@ -95,7 +97,7 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 		return err
 	}
 
-	qhash, err := r.Store.AddAndPinBytes(qData)
+	qhash, err := r.store.AddAndPinBytes(qData)
 	if err != nil {
 		fmt.Println("add bytes error", err.Error())
 		return err
@@ -105,12 +107,13 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 
 	qpath := datastore.NewKey("/ipfs/" + qhash)
 
-	cache := r.RGraph[qpath]
+	rgraph, err := r.repo.QueryResults()
+	cache := rgraph[qpath]
 
 	if len(cache) > 0 {
-		resource, err = core.GetResource(r.Store, cache[0])
+		resource, err = core.GetResource(r.store, cache[0])
 		if err != nil {
-			results, err = core.GetStructuredData(r.Store, resource.Path)
+			results, err = core.GetStructuredData(r.store, resource.Path)
 		}
 	}
 
@@ -118,7 +121,7 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 	// if err != nil {
 	// 	ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
 	// }
-	resource, results, err = sql.ExecQuery(r.Store, q, func(o *sql.ExecOpt) {
+	resource, results, err = sql.ExecQuery(r.store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.JsonDataFormat
 	})
 	if err != nil {
@@ -128,7 +131,7 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 
 	resource.Query = qpath
 
-	resultshash, err := r.Store.AddAndPinBytes(results)
+	resultshash, err := r.store.AddAndPinBytes(results)
 	if err != nil {
 		return err
 	}
@@ -141,19 +144,24 @@ func (r *Requests) Run(p *dataset.Query, res *dataset.Dataset) error {
 		return err
 	}
 
-	rhash, err := r.Store.AddAndPinBytes(rbytes)
+	rhash, err := r.store.AddAndPinBytes(rbytes)
 	fmt.Printf("result resource hash: %s\n", rhash)
 
-	r.RGraph.AddResult(qpath, datastore.NewKey("/ipfs/"+rhash))
-	err = graphs.SaveQueryResultsGraph(r.RGraphPath, r.RGraph)
+	rgraph.AddResult(qpath, datastore.NewKey("/ipfs/"+rhash))
+	err = r.repo.SaveQueryResults(rgraph)
+	if err != nil {
+		return err
+	}
+
+	rqgraph, err := r.repo.ResourceQueries()
 	if err != nil {
 		return err
 	}
 
 	for _, key := range q.Resources {
-		r.RqGraph.AddQuery(key, qpath)
+		rqgraph.AddQuery(key, qpath)
 	}
-	err = graphs.SaveResourceQueriesGraph(r.RqGraphPath, r.RqGraph)
+	err = r.repo.SaveResourceQueries(rqgraph)
 	if err != nil {
 		return err
 	}

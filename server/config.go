@@ -13,8 +13,10 @@ const (
 
 func DefaultConfig() *Config {
 	return &Config{
-		Mode: "develop",
-		Port: "8080",
+		Mode:        "develop",
+		Port:        "8080",
+		QriRepoPath: "~/qri",
+		LocalIpfs:   true,
 	}
 }
 
@@ -37,6 +39,8 @@ type Config struct {
 	UrlRoot string
 	// path to ipfs filestore
 	FsStorePath string
+	// path to qri repository
+	QriRepoPath string
 	// DNS service discovery. Should be either "env" or "dns", default is env
 	GetHostsFrom string
 	// Public Key to use for signing metablocks. required.
@@ -52,10 +56,13 @@ type Config struct {
 	// token for analytics tracking
 	AnalyticsToken string
 
-	QueryResultsGraphPath    string
-	ResourceMetaGraphPath    string
-	ResourceQueriesGraphPath string
-	NamespaceGraphPath       string
+	// set to false to disable local IPFS connection
+	LocalIpfs bool
+
+	// QueryResultsGraphPath    string
+	// ResourceMetaGraphPath    string
+	// ResourceQueriesGraphPath string
+	// NamespaceGraphPath       string
 }
 
 // Validate returns nil if this configuration is valid,

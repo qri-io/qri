@@ -5,7 +5,7 @@ import (
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/qri/core/graphs"
+	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	// "github.com/qri-io/castore"
 	"github.com/qri-io/castore/ipfs"
@@ -14,9 +14,9 @@ import (
 	"net/http"
 )
 
-func NewHandlers(store *ipfs_datastore.Datastore, ns map[string]datastore.Key, nspath string) *Handlers {
-	r := NewRequests(store, ns, nspath)
-	h := Handlers{*r}
+func NewHandlers(store *ipfs_datastore.Datastore, r repo.Repo) *Handlers {
+	req := NewRequests(store, r)
+	h := Handlers{*req}
 	return &h
 }
 
@@ -72,8 +72,7 @@ func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 		Offset:  p.Offset(),
 		OrderBy: "created",
 	}
-	err := d.List(args, &res)
-	if err != nil {
+	if err := d.List(args, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -151,8 +150,15 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		adr = detect.Camelize(r.FormValue("name"))
 	}
 
-	h.ns[adr] = rkey
-	if err := graphs.SaveNamespaceGraph(h.nsGraphPath, h.ns); err != nil {
+	ns, err := h.repo.Namespace()
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	ns[adr] = rkey
+
+	if err := h.repo.SaveNamespace(ns); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}

@@ -4,14 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
+	"github.com/qri-io/qri/repo"
 	// "github.com/ipfs/go-datastore"
-	// "github.com/qri-io/castore"
+	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"net/http"
 )
 
-func NewHandlers(r Requests) *Handlers {
-	return &Handlers{r}
+func NewHandlers(store *ipfs_datastore.Datastore, r repo.Repo) *Handlers {
+	req := NewRequests(store, r)
+	return &Handlers{*req}
 }
 
 // Handlers wraps a requests struct to interface with http.HandlerFunc
