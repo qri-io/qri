@@ -31,8 +31,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var passive bool
-var rescursive bool
+var (
+	initFile       string
+	initName       string
+	initPassive    bool
+	initRescursive bool
+)
 
 // initCmd represents the init command
 var initCmd = &cobra.Command{
@@ -40,29 +44,34 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a dataset, adding it to your local collection of datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		var adr string
+		if initFile == "" {
+			ErrExit(fmt.Errorf("please provide a file argument"))
+		}
 
-		base := args[0]
+		path, err := filepath.Abs(initFile)
+		ExitIfErr(err)
+		fmt.Println(path)
+
 		ns := LoadNamespaceGraph()
 		ds, err := ipfs.NewDatastore()
 		ExitIfErr(err)
 
-		if rescursive {
-			files, err := ioutil.ReadDir(base)
+		if initRescursive {
+			files, err := ioutil.ReadDir(path)
 			ExitIfErr(err)
 			foundFiles := map[string]*dataset.Structure{}
 			for _, fi := range files {
 				if fi.IsDir() {
 					continue
 				} else {
-					adr = fi.Name()
-					rsc, err := detect.FromFile(adr)
+					initName = fi.Name()
+					rsc, err := detect.FromFile(initName)
 					ExitIfErr(err)
 					// Add to the namespace as the filename
 					// TODO - require this be a proper, no-space alphanumeric type thing
-					foundFiles[adr] = rsc
+					foundFiles[initName] = rsc
 
-					rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(base, fi.Name()), rsc)
+					rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(path, fi.Name()), rsc)
 					d := &dataset.Dataset{
 						Timestamp: time.Now().In(time.UTC),
 						Structure: rkey,
@@ -74,28 +83,28 @@ var initCmd = &cobra.Command{
 					dshash, err := ds.AddAndPinBytes(ddata)
 					ExitIfErr(err)
 
-					ns[adr] = datastore.NewKey("/ipfs/" + dshash)
+					ns[initName] = datastore.NewKey("/ipfs/" + dshash)
 				}
 			}
 		} else {
-			file, err := os.Stat(base)
+			file, err := os.Stat(path)
 			ExitIfErr(err)
 
 			// TODO - extract a default name from the file name
 			// TODO - require this be a proper, no-space alphanumeric type thing
-			if !passive {
-				adr = InputText(fmt.Sprintf("choose a variable name for %s", file.Name()), file.Name())
+			if !initPassive && initName == "" {
+				initName = InputText(fmt.Sprintf("choose a variable name for %s", file.Name()), file.Name())
 				if err != nil {
 					return
 				}
 			} else {
-				adr = file.Name()
+				initName = file.Name()
 			}
 
-			rsc, err := detect.FromFile(file.Name())
+			rsc, err := detect.FromFile(path)
 			ExitIfErr(err)
 
-			rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(base, file.Name()), rsc)
+			rkey, dskey, err := datasets.AddFileStructure(ds, path, rsc)
 			d := &dataset.Dataset{
 				Timestamp: time.Now().In(time.UTC),
 				Structure: rkey,
@@ -107,11 +116,11 @@ var initCmd = &cobra.Command{
 			dshash, err := ds.AddAndPinBytes(ddata)
 			ExitIfErr(err)
 
-			ns[adr] = datastore.NewKey("/ipfs/" + dshash)
+			ns[initName] = datastore.NewKey("/ipfs/" + dshash)
 
 			// Add to the namespace as the filename
 			// TODO - require this be a proper, no-space alphanumeric type thing
-			ns[adr] = rkey
+			ns[initName] = rkey
 			// PrintSuccess("successfully initialized dataset %s: %s")
 			// PrintDatasetDetailedInfo(ds)
 		}
@@ -124,6 +133,8 @@ var initCmd = &cobra.Command{
 func init() {
 	flag.Parse()
 	RootCmd.AddCommand(initCmd)
-	initCmd.Flags().BoolVarP(&rescursive, "recursive", "r", false, "recursive add from a directory")
-	initCmd.Flags().BoolVarP(&passive, "passive", "p", false, "disable interactive init")
+	initCmd.Flags().StringVarP(&initFile, "file", "f", "", "data file to initialize from")
+	initCmd.Flags().StringVarP(&initName, "name", "n", "", "name to give dataset")
+	initCmd.Flags().BoolVarP(&initRescursive, "recursive", "r", false, "recursive add from a directory")
+	initCmd.Flags().BoolVarP(&initPassive, "passive", "p", false, "disable interactive init")
 }
