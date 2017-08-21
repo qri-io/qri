@@ -97,7 +97,7 @@ var initCmd = &cobra.Command{
 				if err != nil {
 					return
 				}
-			} else {
+			} else if initName == "" {
 				initName = file.Name()
 			}
 
@@ -116,11 +116,10 @@ var initCmd = &cobra.Command{
 			dshash, err := ds.AddAndPinBytes(ddata)
 			ExitIfErr(err)
 
-			ns[initName] = datastore.NewKey("/ipfs/" + dshash)
-
 			// Add to the namespace as the filename
 			// TODO - require this be a proper, no-space alphanumeric type thing
-			ns[initName] = rkey
+			ns[initName] = datastore.NewKey("/ipfs/" + dshash)
+
 			// PrintSuccess("successfully initialized dataset %s: %s")
 			// PrintDatasetDetailedInfo(ds)
 		}

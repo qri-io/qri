@@ -15,13 +15,14 @@
 package cmd
 
 import (
-	// "fmt"
+	"fmt"
+	"time"
 
-	// "github.com/ipfs/go-datastore"
-	// ipfs "github.com/qri-io/castore/ipfs"
-	// "github.com/qri-io/dataset"
+	"github.com/ipfs/go-datastore"
+	ipfs "github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/dataset"
 	// "github.com/qri-io/dataset/datatypes"
-	// sql "github.com/qri-io/dataset_sql"
+	sql "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
 )
 
@@ -31,47 +32,47 @@ var runCmd = &cobra.Command{
 	Short: "Run a query",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO - lolololololol
-		// if len(args) == 0 {
-		// 	ErrExit(fmt.Errorf("Please provide a query string to execute"))
-		// }
+		if len(args) == 0 {
+			ErrExit(fmt.Errorf("Please provide a query string to execute"))
+		}
 
-		// var (
-		// 	resource *dataset.Resource
-		// 	results  []byte
-		// )
-		// rgraph := LoadQueryResultsGraph()
-		// rqgraph := LoadResourceQueriesGraph()
-		// ns := LoadNamespaceGraph()
+		var (
+			structure *dataset.Structure
+			results   []byte
+		)
+		rgraph := LoadQueryResultsGraph()
+		rqgraph := LoadResourceQueriesGraph()
+		ns := LoadNamespaceGraph()
 
-		// ds, err := ipfs.NewDatastore()
-		// ExitIfErr(err)
+		store, err := ipfs.NewDatastore()
+		ExitIfErr(err)
 
-		// // TODO - make format output the parsed statement as well
-		// // to avoid triple-parsing
-		// sqlstr, _, remap, err := sql.Format(args[0])
-		// ExitIfErr(err)
+		// TODO - make format output the parsed statement as well
+		// to avoid triple-parsing
+		sqlstr, _, remap, err := sql.Format(args[0])
+		ExitIfErr(err)
 
-		// q := &dataset.Query{
-		// 	Syntax:    "sql",
-		// 	Resources: map[string]datastore.Key{},
-		// 	Statement: sqlstr,
-		// 	// TODO - set query schema
-		// }
+		ds := &dataset.Dataset{
+			Timestamp:   time.Now().In(time.UTC),
+			QuerySyntax: "sql",
+			Resources:   map[string]datastore.Key{},
+			Query:       sqlstr,
+			// TODO - set query schema
+		}
 
-		// // collect table references
-		// for mapped, ref := range remap {
-		// 	// for i, adr := range stmt.References() {
-		// 	if ns[ref].String() == "" {
-		// 		ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
-		// 	}
-		// 	q.Resources[mapped] = ns[ref]
-		// }
+		// collect table references
+		for mapped, ref := range remap {
+			// for i, adr := range stmt.References() {
+			if ns[ref].String() == "" {
+				ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
+			}
+			ds.Resources[mapped] = ns[ref]
+		}
 
 		// qData, err := q.MarshalJSON()
 		// ExitIfErr(err)
 
-		// qhash, err := ds.AddAndPinBytes(qData)
+		// qhash, err := store.AddAndPinBytes(qData)
 		// ExitIfErr(err)
 		// fmt.Printf("query hash: %s\n", qhash)
 		// qpath := datastore.NewKey("/ipfs/" + qhash)
@@ -80,46 +81,55 @@ var runCmd = &cobra.Command{
 
 		// if len(cache) > 0 {
 		// 	fmt.Println("returning hashed result.")
-		// 	resource, err = GetResource(ds, cache[0])
+		// 	resource, err = GetStructure(store, cache[0])
 		// 	if err != nil {
-		// 		results, err = GetStructuredData(ds, resource.Path)
+		// 		results, err = GetStructuredData(store, resource.Path)
 		// 	}
 		// }
 
-		// format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
-		// if err != nil {
-		// 	ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
-		// }
-		// resource, results, err = sql.ExecQuery(ds, q, func(o *sql.ExecOpt) {
-		// 	o.Format = format
-		// })
-		// ExitIfErr(err)
+		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
+		if err != nil {
+			ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
+		}
+		structure, results, err = sql.Exec(store, ds, func(o *sql.ExecOpt) {
+			o.Format = format
+		})
+		ExitIfErr(err)
 
-		// resource.Query = qpath
+		resultshash, err := store.AddAndPinBytes(results)
+		ExitIfErr(err)
+		fmt.Printf("results hash: %s\n", resultshash)
 
-		// resultshash, err := ds.AddAndPinBytes(results)
-		// ExitIfErr(err)
-		// fmt.Printf("results hash: %s\n", resultshash)
+		ds.Data = datastore.NewKey("/ipfs/" + resultshash)
 
-		// resource.Path = datastore.NewKey("/ipfs/" + resultshash)
+		stbytes, err := structure.MarshalJSON()
+		ExitIfErr(err)
 
-		// rbytes, err := resource.MarshalJSON()
-		// ExitIfErr(err)
+		sthash, err := store.AddAndPinBytes(stbytes)
+		ExitIfErr(err)
+		fmt.Printf("result resource hash: %s\n", sthash)
 
-		// rhash, err := ds.AddAndPinBytes(rbytes)
-		// fmt.Printf("result resource hash: %s\n", rhash)
+		stpath := datastore.NewKey("/ipfs/" + sthash)
+		ds.Structure = stpath
 
-		// rgraph.AddResult(qpath, datastore.NewKey("/ipfs/"+rhash))
-		// err = SaveQueryResultsGraph(rgraph)
-		// ExitIfErr(err)
+		dsdata, err := ds.MarshalJSON()
+		ExitIfErr(err)
+		dshash, err := store.AddAndPinBytes(dsdata)
+		ExitIfErr(err)
 
-		// for _, key := range q.Resources {
-		// 	rqgraph.AddQuery(key, qpath)
-		// }
-		// err = SaveResourceQueriesGraph(rqgraph)
-		// ExitIfErr(err)
+		dspath := datastore.NewKey("/ipfs/" + dshash)
 
-		// PrintResults(resource, results, format)
+		rgraph.AddResult(dspath, stpath)
+		err = SaveQueryResultsGraph(rgraph)
+		ExitIfErr(err)
+
+		for _, key := range ds.Resources {
+			rqgraph.AddQuery(key, dspath)
+		}
+		err = SaveResourceQueriesGraph(rqgraph)
+		ExitIfErr(err)
+
+		PrintResults(structure, results, format)
 	},
 }
 

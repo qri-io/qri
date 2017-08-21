@@ -16,7 +16,8 @@ func ErrExit(err error) {
 
 func ExitIfErr(err error) {
 	if err != nil {
-		PrintErr(err)
+		// PrintErr(err)
+		panic(err)
 		os.Exit(1)
 	}
 }
