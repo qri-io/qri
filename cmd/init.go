@@ -26,7 +26,6 @@ import (
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/qri/core/datasets"
 
 	"github.com/spf13/cobra"
 )
@@ -59,31 +58,33 @@ var initCmd = &cobra.Command{
 		if initRescursive {
 			files, err := ioutil.ReadDir(path)
 			ExitIfErr(err)
-			foundFiles := map[string]*dataset.Structure{}
+			foundFiles := map[string]datastore.Key{}
 			for _, fi := range files {
 				if fi.IsDir() {
 					continue
 				} else {
 					initName = fi.Name()
-					rsc, err := detect.FromFile(initName)
+					st, err := detect.FromFile(initName)
 					ExitIfErr(err)
 					// Add to the namespace as the filename
 					// TODO - require this be a proper, no-space alphanumeric type thing
-					foundFiles[initName] = rsc
 
-					rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(path, fi.Name()), rsc)
+					datahash, err := ds.AddAndPinPath(filepath.Join(path, fi.Name()))
+					ExitIfErr(err)
+					datakey := datastore.NewKey("/ipfs/" + datahash)
+
+					// rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(path, fi.Name()), rsc)
 					d := &dataset.Dataset{
 						Timestamp: time.Now().In(time.UTC),
-						Structure: rkey,
-						Data:      dskey,
+						Structure: st,
+						Data:      datakey,
 					}
-					ddata, err := d.MarshalJSON()
+
+					dspath, err := d.Save(ds)
 					ExitIfErr(err)
 
-					dshash, err := ds.AddAndPinBytes(ddata)
-					ExitIfErr(err)
-
-					ns[initName] = datastore.NewKey("/ipfs/" + dshash)
+					foundFiles[initName] = dspath
+					ns[initName] = dspath
 				}
 			}
 		} else {
@@ -101,24 +102,25 @@ var initCmd = &cobra.Command{
 				initName = file.Name()
 			}
 
-			rsc, err := detect.FromFile(path)
+			st, err := detect.FromFile(path)
 			ExitIfErr(err)
 
-			rkey, dskey, err := datasets.AddFileStructure(ds, path, rsc)
+			datahash, err := ds.AddAndPinPath(path)
+			ExitIfErr(err)
+			datakey := datastore.NewKey("/ipfs/" + datahash)
+
 			d := &dataset.Dataset{
 				Timestamp: time.Now().In(time.UTC),
-				Structure: rkey,
-				Data:      dskey,
+				Structure: st,
+				Data:      datakey,
 			}
-			ddata, err := d.MarshalJSON()
-			ExitIfErr(err)
 
-			dshash, err := ds.AddAndPinBytes(ddata)
+			dspath, err := d.Save(ds)
 			ExitIfErr(err)
 
 			// Add to the namespace as the filename
 			// TODO - require this be a proper, no-space alphanumeric type thing
-			ns[initName] = datastore.NewKey("/ipfs/" + dshash)
+			ns[initName] = dspath
 
 			// PrintSuccess("successfully initialized dataset %s: %s")
 			// PrintDatasetDetailedInfo(ds)
