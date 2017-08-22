@@ -32,9 +32,10 @@ var serverCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		s, err := server.New(func(cfg *server.Config) {
-			cfg.QriRepoPath = viper.GetString(QriRepoPath)
 			cfg.Port = serverCmdPort
 			cfg.LocalIpfs = !serverNoIpfs
+			cfg.QriRepoPath = viper.GetString(QriRepoPath)
+			cfg.FsStorePath = viper.GetString(IpfsFsPath)
 		})
 		ExitIfErr(err)
 

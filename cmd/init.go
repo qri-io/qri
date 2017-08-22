@@ -18,6 +18,7 @@ import (
 	"flag"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,7 +53,9 @@ var initCmd = &cobra.Command{
 		fmt.Println(path)
 
 		ns := LoadNamespaceGraph()
-		ds, err := ipfs.NewDatastore()
+		ds, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
+			cfg.FsRepoPath = viper.GetString(IpfsFsPath)
+		})
 		ExitIfErr(err)
 
 		if initRescursive {

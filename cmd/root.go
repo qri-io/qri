@@ -26,6 +26,7 @@ var cfgFile string
 
 const (
 	QriRepoPath = "QriRepoPath"
+	IpfsFsPath  = "IpfsFsPath"
 )
 
 // RootCmd represents the base command when called without any subcommands
@@ -71,11 +72,18 @@ func initConfig() {
 	// }
 
 	viper.SetConfigName("config")     // name of config file (without extension)
+	viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
 	viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
 	viper.AddConfigPath(".")          // adding home directory as first search path
 	viper.AutomaticEnv()              // read in environment variables that match
 
 	viper.SetDefault(QriRepoPath, filepath.Join(home, "qri"))
+
+	ipfsFsPath := os.Getenv("IPFS_PATH")
+	if ipfsFsPath == "" {
+		ipfsFsPath = "~/.ipfs"
+	}
+	viper.SetDefault(IpfsFsPath, ipfsFsPath)
 
 	// If a config file is found, read it in.
 	if err := viper.ReadInConfig(); err == nil {
