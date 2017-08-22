@@ -18,7 +18,6 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	// "github.com/qri-io/dataset/datatypes"
@@ -41,7 +40,7 @@ var runCmd = &cobra.Command{
 			results   []byte
 		)
 		rgraph := LoadQueryResultsGraph()
-		rqgraph := LoadResourceQueriesGraph()
+		// rqgraph := LoadResourceQueriesGraph()
 		ns := LoadNamespaceGraph()
 
 		store, err := ipfs.NewDatastore()
@@ -55,8 +54,8 @@ var runCmd = &cobra.Command{
 		ds := &dataset.Dataset{
 			Timestamp:   time.Now().In(time.UTC),
 			QuerySyntax: "sql",
-			Resources:   map[string]datastore.Key{},
-			Query:       sqlstr,
+			Resources:   map[string]*dataset.Dataset{},
+			QueryString: sqlstr,
 			// TODO - set query schema
 		}
 
@@ -66,7 +65,11 @@ var runCmd = &cobra.Command{
 			if ns[ref].String() == "" {
 				ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
 			}
-			ds.Resources[mapped] = ns[ref]
+			d, err := dataset.LoadDataset(store, ns[ref])
+			if err != nil {
+				ErrExit(err)
+			}
+			ds.Resources[mapped] = d
 		}
 
 		// qData, err := q.MarshalJSON()
@@ -96,38 +99,33 @@ var runCmd = &cobra.Command{
 		})
 		ExitIfErr(err)
 
-		resultshash, err := store.AddAndPinBytes(results)
-		ExitIfErr(err)
-		fmt.Printf("results hash: %s\n", resultshash)
+		// TODO - move this into setting on the dataset outparam
+		ds.Structure = structure
+		ds.Length = len(results)
 
-		ds.Data = datastore.NewKey("/ipfs/" + resultshash)
-
-		stbytes, err := structure.MarshalJSON()
+		ds.Data, err = store.Put(results)
 		ExitIfErr(err)
 
-		sthash, err := store.AddAndPinBytes(stbytes)
-		ExitIfErr(err)
-		fmt.Printf("result resource hash: %s\n", sthash)
-
-		stpath := datastore.NewKey("/ipfs/" + sthash)
-		ds.Structure = stpath
-
-		dsdata, err := ds.MarshalJSON()
-		ExitIfErr(err)
-		dshash, err := store.AddAndPinBytes(dsdata)
+		dspath, err := ds.Save(store)
 		ExitIfErr(err)
 
-		dspath := datastore.NewKey("/ipfs/" + dshash)
-
-		rgraph.AddResult(dspath, stpath)
+		rgraph.AddResult(dspath, dspath)
 		err = SaveQueryResultsGraph(rgraph)
 		ExitIfErr(err)
 
-		for _, key := range ds.Resources {
-			rqgraph.AddQuery(key, dspath)
-		}
-		err = SaveResourceQueriesGraph(rqgraph)
-		ExitIfErr(err)
+		// TODO - restore
+		// rqgraph, err := r.repo.ResourceQueries()
+		// if err != nil {
+		// 	return err
+		// }
+
+		// for _, key := range ds.Resources {
+		// 	rqgraph.AddQuery(key, dspath)
+		// }
+		// err = r.repo.SaveResourceQueries(rqgraph)
+		// if err != nil {
+		// 	return err
+		// }
 
 		PrintResults(structure, results, format)
 	},

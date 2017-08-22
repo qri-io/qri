@@ -19,6 +19,7 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	ipfs "github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +58,7 @@ var datasetInfoCmd = &cobra.Command{
 			path = ns[args[0]]
 		}
 
-		st, err := GetStructure(ds, path)
+		st, err := dataset.LoadStructure(ds, path)
 		ExitIfErr(err)
 
 		out, err := json.MarshalIndent(st, "", "  ")

@@ -140,17 +140,11 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	stkey, datakey, err := AddReaderStructure(h.store, bytes.NewReader(data), st)
+	datakey, err := h.store.Put(data)
 	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	// stkey, err := AddBytesStructure(h.store, data, rsc)
-	// if err != nil {
-	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
-	// 	return
-	// }
 
 	adr := detect.Camelize(header.Filename)
 	if r.FormValue("name") != "" {
@@ -167,25 +161,16 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		Timestamp: time.Now().In(time.UTC),
 		Title:     adr,
 		Data:      datakey,
-		Structure: stkey,
+		Structure: st,
 	}
 
-	dsdata, err := ds.MarshalJSON()
+	dskey, err := ds.Save(h.store)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	dshash, err := h.store.AddAndPinBytes(dsdata)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	dskey := datastore.NewKey("/ipfs/" + dshash)
 
 	ns[adr] = dskey
-
 	if err := h.repo.SaveNamespace(ns); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

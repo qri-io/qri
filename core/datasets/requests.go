@@ -3,15 +3,13 @@ package datasets
 import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/castore"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/qri/repo"
-	// "github.com/qri-io/castore"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/core"
 )
 
-func NewRequests(store *ipfs_datastore.Datastore, r repo.Repo) *Requests {
+func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
 	return &Requests{
 		store: store,
 		repo:  r,
@@ -19,7 +17,7 @@ func NewRequests(store *ipfs_datastore.Datastore, r repo.Repo) *Requests {
 }
 
 type Requests struct {
-	store *ipfs_datastore.Datastore
+	store castore.Datastore
 	repo  repo.Repo
 }
 
@@ -73,16 +71,12 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	// resource, err := core.GetStructure(d.store, p.Path)
-	_, err := core.GetStructure(d.store, p.Path)
+	ds, err := dataset.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return err
 	}
 
-	*res = dataset.Dataset{
-	// TODO - put back
-	// Resource: *resource,
-	}
+	*res = *ds
 	return nil
 }
 
@@ -94,11 +88,7 @@ type SaveParams struct {
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	dsdata, err := ds.MarshalJSON()
-	if err != nil {
-		return err
-	}
-	dshash, err := r.store.AddAndPinBytes(dsdata)
+	key, err := ds.Save(r.store)
 	if err != nil {
 		return err
 	}
@@ -107,7 +97,7 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	if err != nil {
 		return err
 	}
-	ns[p.Name] = datastore.NewKey("/ipfs/" + dshash)
+	ns[p.Name] = key
 	if err := r.repo.SaveNamespace(ns); err != nil {
 		return err
 	}
