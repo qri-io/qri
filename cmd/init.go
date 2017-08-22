@@ -17,22 +17,20 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/spf13/viper"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
 
-	ipfs "github.com/qri-io/castore/ipfs"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
-
 	"github.com/spf13/cobra"
 )
 
 var (
 	initFile       string
+	initMetaFile   string
 	initName       string
 	initPassive    bool
 	initRescursive bool
@@ -50,12 +48,9 @@ var initCmd = &cobra.Command{
 
 		path, err := filepath.Abs(initFile)
 		ExitIfErr(err)
-		fmt.Println(path)
 
 		ns := LoadNamespaceGraph()
-		ds, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
-			cfg.FsRepoPath = viper.GetString(IpfsFsPath)
-		})
+		ds, err := GetIpfsDatastore()
 		ExitIfErr(err)
 
 		if initRescursive {
@@ -112,11 +107,23 @@ var initCmd = &cobra.Command{
 			ExitIfErr(err)
 			datakey := datastore.NewKey("/ipfs/" + datahash)
 
-			d := &dataset.Dataset{
-				Timestamp: time.Now().In(time.UTC),
-				Structure: st,
-				Data:      datakey,
+			d := &dataset.Dataset{}
+
+			// parse any provided metadata
+			if initMetaFile != "" {
+				mdata, err := ioutil.ReadFile(initMetaFile)
+				if err != nil {
+					ErrExit(fmt.Errorf("error parsing metadata file: %s", err.Error()))
+				}
+				if err := d.UnmarshalJSON(mdata); err != nil {
+					ErrExit(fmt.Errorf("error parsing metadata file: %s", err.Error()))
+				}
 			}
+
+			d.Timestamp = time.Now().In(time.UTC)
+			d.Structure = st
+			d.Data = datakey
+			d.Length = int(file.Size())
 
 			dspath, err := d.Save(ds)
 			ExitIfErr(err)
@@ -125,7 +132,7 @@ var initCmd = &cobra.Command{
 			// TODO - require this be a proper, no-space alphanumeric type thing
 			ns[initName] = dspath
 
-			// PrintSuccess("successfully initialized dataset %s: %s")
+			PrintSuccess("successfully initialized dataset %s: %s", initName, dspath)
 			// PrintDatasetDetailedInfo(ds)
 		}
 
@@ -139,6 +146,7 @@ func init() {
 	RootCmd.AddCommand(initCmd)
 	initCmd.Flags().StringVarP(&initFile, "file", "f", "", "data file to initialize from")
 	initCmd.Flags().StringVarP(&initName, "name", "n", "", "name to give dataset")
+	initCmd.Flags().StringVarP(&initMetaFile, "meta", "m", "", "dataset metadata")
 	initCmd.Flags().BoolVarP(&initRescursive, "recursive", "r", false, "recursive add from a directory")
 	initCmd.Flags().BoolVarP(&initPassive, "passive", "p", false, "disable interactive init")
 }

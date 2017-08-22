@@ -53,6 +53,7 @@ func (s *Server) Serve() error {
 	if s.cfg.LocalIpfs {
 		store, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
 			cfg.Online = false
+			cfg.FsRepoPath = s.cfg.FsStorePath
 		})
 		if err != nil {
 			return err

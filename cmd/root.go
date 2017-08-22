@@ -71,8 +71,8 @@ func initConfig() {
 	// 	fmt.Errorf("error creating home dir: %s\n", err.Error())
 	// }
 
-	viper.SetConfigName("config")     // name of config file (without extension)
-	viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
+	viper.SetConfigName("config") // name of config file (without extension)
+	// viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
 	viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
 	viper.AddConfigPath(".")          // adding home directory as first search path
 	viper.AutomaticEnv()              // read in environment variables that match

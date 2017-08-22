@@ -18,7 +18,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
@@ -48,7 +47,7 @@ var datasetInfoCmd = &cobra.Command{
 	Short: "get information about a dataset",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		ds, err := ipfs.NewDatastore()
+		ds, err := GetIpfsDatastore()
 		ExitIfErr(err)
 
 		ns := LoadNamespaceGraph()
@@ -58,10 +57,10 @@ var datasetInfoCmd = &cobra.Command{
 			path = ns[args[0]]
 		}
 
-		st, err := dataset.LoadStructure(ds, path)
+		d, err := dataset.LoadDataset(ds, path)
 		ExitIfErr(err)
 
-		out, err := json.MarshalIndent(st, "", "  ")
+		out, err := json.MarshalIndent(d, "", "  ")
 		ExitIfErr(err)
 
 		fmt.Printf("%s\n", string(out))

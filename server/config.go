@@ -16,6 +16,7 @@ func DefaultConfig() *Config {
 		Mode:        "develop",
 		Port:        "8080",
 		QriRepoPath: "~/qri",
+		FsStorePath: "~/.ipfs",
 		LocalIpfs:   true,
 	}
 }

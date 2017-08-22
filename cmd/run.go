@@ -18,9 +18,7 @@ import (
 	"fmt"
 	"time"
 
-	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
-	// "github.com/qri-io/dataset/datatypes"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +41,7 @@ var runCmd = &cobra.Command{
 		// rqgraph := LoadResourceQueriesGraph()
 		ns := LoadNamespaceGraph()
 
-		store, err := ipfs.NewDatastore()
+		store, err := GetIpfsDatastore()
 		ExitIfErr(err)
 
 		// TODO - make format output the parsed statement as well
