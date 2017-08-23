@@ -5,6 +5,7 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
+	"github.com/spf13/viper"
 )
 
 var r repo.Repo
@@ -13,7 +14,7 @@ func GetRepo() repo.Repo {
 	if r != nil {
 		return r
 	}
-	r, err := fs_repo.NewRepo(QriRepoPath)
+	r, err := fs_repo.NewRepo(viper.GetString(QriRepoPath))
 	ExitIfErr(err)
 	return r
 }
