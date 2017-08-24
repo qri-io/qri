@@ -78,6 +78,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.Dataset) error {
 	}
 
 	ds.QueryString = sqlstr
+
 	// fmt.Println(sqlstr)
 
 	if ds.Resources == nil {
@@ -126,7 +127,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.Dataset) error {
 
 	// TODO - detect data format from passed-in results structure
 	structure, results, err = sql.Exec(r.store, ds, func(o *sql.ExecOpt) {
-		o.Format = dataset.CsvDataFormat
+		o.Format = dataset.JsonDataFormat
 	})
 	if err != nil {
 		fmt.Println("exec error", err)

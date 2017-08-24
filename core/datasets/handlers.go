@@ -67,7 +67,7 @@ func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request)
 
 func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
-	res := []*dataset.Dataset{}
+	res := []*DatasetRef{}
 	args := &ListParams{
 		Limit:   p.Limit(),
 		Offset:  p.Offset(),
@@ -210,6 +210,7 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	p := &StructuredDataParams{
+		Format: dataset.JsonDataFormat,
 		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),
 		Limit:  page.Limit(),
 		Offset: page.Offset(),
