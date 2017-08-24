@@ -29,14 +29,8 @@ type ListParams struct {
 	Offset  int
 }
 
-type DatasetRef struct {
-	Dataset *dataset.Dataset `json:"dataset"`
-	Name    string           `json:"name"`
-	Path    datastore.Key    `json:"path"`
-}
-
-func (d *Requests) List(p *ListParams, res *[]*DatasetRef) error {
-	replies := make([]*DatasetRef, p.Limit)
+func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
+	replies := make([]*dataset.DatasetRef, p.Limit)
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
@@ -64,7 +58,7 @@ func (d *Requests) List(p *ListParams, res *[]*DatasetRef) error {
 			fmt.Println("error loading path:", key)
 			return err
 		}
-		replies[i] = &DatasetRef{
+		replies[i] = &dataset.DatasetRef{
 			Name:    name,
 			Path:    key,
 			Dataset: ds,

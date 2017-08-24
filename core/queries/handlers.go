@@ -91,7 +91,9 @@ func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := &dataset.Dataset{}
+	fmt.Println(ds)
+
+	res := &dataset.DatasetRef{}
 	if err := h.Run(ds, res); err != nil {
 		fmt.Println("err:")
 		fmt.Println(err.Error())
