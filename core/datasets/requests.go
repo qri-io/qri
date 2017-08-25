@@ -1,11 +1,13 @@
 package datasets
 
 import (
+	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/castore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
+	"github.com/qri-io/dataset/writers"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -27,8 +29,8 @@ type ListParams struct {
 	Offset  int
 }
 
-func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
-	replies := make([]*dataset.Dataset, p.Limit)
+func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
+	replies := make([]*dataset.DatasetRef, p.Limit)
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
@@ -42,21 +44,24 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.Dataset) error {
 			break
 		}
 
-		v, err := d.store.Get(key)
+		// v, err := d.store.Get(key)
+		// if err != nil {
+		// 	return err
+		// }
+		// // structure, err := dataset.UnmarshalStructure(v)
+		// _, err = dataset.UnmarshalStructure(v)
+		// if err != nil {
+		// 	return err
+		// }
+		ds, err := dataset.LoadDataset(d.store, key)
 		if err != nil {
+			fmt.Println("error loading path:", key)
 			return err
 		}
-		// structure, err := dataset.UnmarshalStructure(v)
-		_, err = dataset.UnmarshalStructure(v)
-		if err != nil {
-			return err
-		}
-		replies[i] = &dataset.Dataset{
-			Title: name,
-			// TODO - need to figure out how to deref a dataset
-			// Path:  key,
-			// into the right position
-			// Structure: *resource,
+		replies[i] = &dataset.DatasetRef{
+			Name:    name,
+			Path:    key,
+			Dataset: ds,
 		}
 		i++
 	}
@@ -141,6 +146,7 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 }
 
 type StructuredDataParams struct {
+	Format        dataset.DataFormat
 	Path          datastore.Key
 	Limit, Offset int
 	All           bool
@@ -168,9 +174,21 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		return err
 	}
 
+	w := writers.NewJsonWriter(ds.Structure, false)
+	load.EachRow(ds.Structure, raw, func(i int, row [][]byte, err error) error {
+		if err != nil {
+			return err
+		}
+		return w.WriteRow(row)
+	})
+
+	if err := w.Close(); err != nil {
+		return err
+	}
+
 	*data = StructuredData{
 		Path: p.Path,
-		Data: string(raw),
+		Data: json.RawMessage(w.Bytes()),
 	}
 	return nil
 }

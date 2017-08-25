@@ -56,7 +56,7 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	return nil
 }
 
-func (r *Requests) Run(ds *dataset.Dataset, res *dataset.Dataset) error {
+func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 	var (
 		structure *dataset.Structure
 		results   []byte
@@ -78,7 +78,6 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.Dataset) error {
 	}
 
 	ds.QueryString = sqlstr
-	// fmt.Println(sqlstr)
 
 	if ds.Resources == nil {
 		ds.Resources = map[string]*dataset.Dataset{}
@@ -169,6 +168,15 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.Dataset) error {
 	// 	return err
 	// }
 
-	*res = *ds
+	// TODO - need to re-load dataset here to get a dereferenced version
+	lds, err := dataset.LoadDataset(r.store, dspath)
+	if err != nil {
+		return err
+	}
+
+	*res = dataset.DatasetRef{
+		Dataset: lds,
+		Path:    dspath,
+	}
 	return nil
 }
