@@ -6,6 +6,7 @@ import (
 	"strings"
 )
 
+// regex for dataset name validation
 var alphaNumericRegex = regexp.MustCompile(`^[a-z0-9_]{1-144}$`)
 
 // CoerceDatasetName tries to extract a usable variable name from a string of text
@@ -19,6 +20,7 @@ func CoerceDatasetName(name string) string {
 	return name
 }
 
+// ValidDatasetName returns true if the given string can be used as the name of a dataset
 func ValidDatasetName(name string) bool {
 	return alphaNumericRegex.MatchString(name)
 }

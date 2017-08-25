@@ -30,6 +30,7 @@ func TestValidDatasetName(t *testing.T) {
 		{"hyphen-name", false},
 		{"dot.name", false},
 		{"/slash/name", false},
+		{"CAPSNAME", false},
 	}
 
 	for i, c := range cases {
