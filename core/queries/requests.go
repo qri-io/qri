@@ -79,8 +79,6 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 
 	ds.QueryString = sqlstr
 
-	// fmt.Println(sqlstr)
-
 	if ds.Resources == nil {
 		ds.Resources = map[string]*dataset.Dataset{}
 		// collect table references
