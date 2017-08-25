@@ -10,6 +10,7 @@ import (
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
+	"strings"
 )
 
 type Server struct {
@@ -56,6 +57,9 @@ func (s *Server) Serve() error {
 			cfg.FsRepoPath = s.cfg.FsStorePath
 		})
 		if err != nil {
+			if strings.Contains(err.Error(), "resource temporarily unavailable") {
+				return fmt.Errorf("Couldn't obtain filestore lock. Is an ipfs daemon already running?")
+			}
 			return err
 		}
 		s.store = store

@@ -25,6 +25,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -97,7 +98,11 @@ var initCmd = &cobra.Command{
 					return
 				}
 			} else if initName == "" {
-				initName = file.Name()
+				initName = repo.CoerceDatasetName(file.Name())
+			}
+
+			if !repo.ValidDatasetName(initName) {
+				ErrExit(fmt.Errorf("invalid dataset name: %s", initName))
 			}
 
 			st, err := detect.FromFile(path)
