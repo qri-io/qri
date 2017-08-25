@@ -72,26 +72,29 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
-	sqlstr, _, remap, err := sql.Format(ds.QueryString)
+	// sqlstr, _, remap, err := sql.Format(ds.QueryString)
+	// if err != nil {
+	// 	return err
+	// }
+	names, err := sql.StatementTableNames(ds.QueryString)
 	if err != nil {
 		return err
 	}
-
-	ds.QueryString = sqlstr
+	// ds.QueryString = sqlstr
 
 	if ds.Resources == nil {
 		ds.Resources = map[string]*dataset.Dataset{}
 		// collect table references
-		for mapped, ref := range remap {
+		for _, name := range names {
 			// for i, adr := range stmt.References() {
-			if ns[ref].String() == "" {
-				return fmt.Errorf("couldn't find resource for table name: %s", ref)
+			if ns[name].String() == "" {
+				return fmt.Errorf("couldn't find resource for table name: %s", name)
 			}
-			d, err := dataset.LoadDataset(r.store, ns[ref])
+			d, err := dataset.LoadDataset(r.store, ns[name])
 			if err != nil {
 				return err
 			}
-			ds.Resources[mapped] = d
+			ds.Resources[name] = d
 		}
 	}
 
@@ -107,7 +110,6 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 
 	// TODO - restore query hash discovery
 	// fmt.Printf("query hash: %s\n", dshash)
-
 	// dspath := datastore.NewKey("/ipfs/" + dshash)
 
 	rgraph, err := r.repo.QueryResults()
