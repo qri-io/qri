@@ -58,7 +58,7 @@ func (s *Server) Serve() error {
 		})
 		if err != nil {
 			if strings.Contains(err.Error(), "resource temporarily unavailable") {
-				return fmt.Errorf("couldn't obtain filestore lock. Is an ipfs daemon already running?")
+				return fmt.Errorf("Couldn't obtain filestore lock. Is an ipfs daemon already running?")
 			}
 			return err
 		}

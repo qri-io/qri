@@ -1,0 +1,24 @@
+package repo
+
+import (
+	"path/filepath"
+	"regexp"
+	"strings"
+)
+
+var alphaNumericRegex = regexp.MustCompile(`^[a-z0-9_]{1-144}$`)
+
+// CoerceDatasetName tries to extract a usable variable name from a string of text
+// TODO - this will need to be more robust
+func CoerceDatasetName(name string) string {
+	name = strings.ToLower(name)
+	name = strings.TrimSuffix(name, filepath.Ext(name))
+	name = strings.Replace(name, "/.:\\", "", -1)
+	name = strings.Replace(name, "-", "_", -1)
+	name = strings.Replace(name, " ", "_", -1)
+	return name
+}
+
+func ValidDatasetName(name string) bool {
+	return alphaNumericRegex.MatchString(name)
+}
