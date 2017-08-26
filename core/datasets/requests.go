@@ -179,6 +179,13 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		if err != nil {
 			return err
 		}
+
+		if i < p.Offset {
+			return nil
+		} else if i-p.Offset > p.Limit {
+			return fmt.Errorf("EOF")
+		}
+
 		return w.WriteRow(row)
 	})
 
