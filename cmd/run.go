@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+	"io/ioutil"
 	"time"
 
 	"github.com/qri-io/dataset"
@@ -125,6 +126,12 @@ var runCmd = &cobra.Command{
 		// 	return err
 		// }
 
+		o := cmd.Flag("output").Value.String()
+		if o != "" {
+			ioutil.WriteFile(o, results, 0666)
+			return
+		}
+
 		PrintResults(structure, results, format)
 	},
 }
@@ -132,5 +139,6 @@ var runCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(runCmd)
 	// runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
+	runCmd.Flags().StringP("output", "o", "", "file to write to")
 	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
 }
