@@ -26,11 +26,15 @@ func TestValidDatasetName(t *testing.T) {
 		in  string
 		out bool
 	}{
+		{"name", true},
+		{"underscore_name", true},
+		{"Underscore_namE", true},
+		{"CAPSNAME", true},
 		{"space name", false},
 		{"hyphen-name", false},
 		{"dot.name", false},
 		{"/slash/name", false},
-		{"CAPSNAME", false},
+		{"0hno3s", false},
 	}
 
 	for i, c := range cases {

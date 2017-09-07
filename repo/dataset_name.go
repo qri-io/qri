@@ -7,7 +7,7 @@ import (
 )
 
 // regex for dataset name validation
-var alphaNumericRegex = regexp.MustCompile(`^[a-z0-9_]{1-144}$`)
+var alphaNumericRegex = regexp.MustCompile(`^[a-zA-Z][a-zA-Z0-9_]*$`)
 
 // CoerceDatasetName tries to extract a usable variable name from a string of text
 // TODO - this will need to be more robust

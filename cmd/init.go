@@ -118,15 +118,24 @@ var initCmd = &cobra.Command{
 			if initMetaFile != "" {
 				mdata, err := ioutil.ReadFile(initMetaFile)
 				if err != nil {
-					ErrExit(fmt.Errorf("error parsing metadata file: %s", err.Error()))
+					ErrExit(fmt.Errorf("error opening metadata file: %s", err.Error()))
 				}
 				if err := d.UnmarshalJSON(mdata); err != nil {
 					ErrExit(fmt.Errorf("error parsing metadata file: %s", err.Error()))
 				}
 			}
 
+			fmt.Println(d.Structure)
+			fmt.Println("--")
+			fmt.Println(st)
+
+			// structure may have been set by the metadata file above
+			// by calling assign on ourselves with inferred structure in
+			// the middle, any user-contributed schema metadata will overwrite
+			// inferred metadata, but inferred schema properties will populate
+			// empty fields
+			d.Structure.Assign(st, d.Structure)
 			d.Timestamp = time.Now().In(time.UTC)
-			d.Structure = st
 			d.Data = datakey
 			d.Length = int(file.Size())
 
