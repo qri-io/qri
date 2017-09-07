@@ -125,9 +125,9 @@ var initCmd = &cobra.Command{
 				}
 			}
 
-			fmt.Println(d.Structure)
-			fmt.Println("--")
-			fmt.Println(st)
+			if d.Structure == nil {
+				d.Structure = &dataset.Structure{}
+			}
 
 			// structure may have been set by the metadata file above
 			// by calling assign on ourselves with inferred structure in
