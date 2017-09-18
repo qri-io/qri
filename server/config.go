@@ -18,6 +18,7 @@ func DefaultConfig() *Config {
 		QriRepoPath: "~/qri",
 		FsStorePath: "~/.ipfs",
 		LocalIpfs:   true,
+		Online:      true,
 	}
 }
 
@@ -59,6 +60,9 @@ type Config struct {
 
 	// set to false to disable local IPFS connection
 	LocalIpfs bool
+
+	// disable networking
+	Online bool
 
 	// QueryResultsGraphPath    string
 	// ResourceMetaGraphPath    string

@@ -67,6 +67,7 @@ func (s *Server) Serve() error {
 
 	qriNode, err := p2p.NewQriNode(func(ncfg *p2p.NodeCfg) {
 		ncfg.RepoPath = s.cfg.QriRepoPath
+		ncfg.Online = s.cfg.Online
 	})
 	if err != nil {
 		return err
@@ -74,9 +75,13 @@ func (s *Server) Serve() error {
 
 	s.qriNode = qriNode
 
-	fmt.Println("qri addresses:")
-	for _, a := range s.qriNode.EncapsulatedAddresses() {
-		fmt.Printf("  %s\n", a.String())
+	if s.cfg.Online {
+		fmt.Println("qri addresses:")
+		for _, a := range s.qriNode.EncapsulatedAddresses() {
+			fmt.Printf("  %s\n", a.String())
+		}
+	} else {
+		fmt.Println("running qri in offline mode, no peer-2-peer connections")
 	}
 
 	server := &http.Server{}

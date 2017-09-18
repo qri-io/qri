@@ -24,6 +24,7 @@ type QriNode struct {
 	Identity   peer.ID        // the local node's identity
 	PrivateKey crypto.PrivKey // the local node's private Key
 
+	Online    bool      // is this node online?
 	Host      host.Host // p2p Host
 	Pings     *ping.PingService
 	Discovery discovery.Service
@@ -42,7 +43,7 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 		return nil, err
 	}
 
-	fmt.Println(cfg.Addrs)
+	// fmt.Println(cfg.Addrs)
 
 	host, err := makeBasicHost(cfg)
 	if err != nil {
@@ -53,12 +54,15 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 		Identity: cfg.PeerId,
 		Host:     host,
 		repo:     cfg.Repo,
+		Online:   cfg.Online,
 	}
 
 	host.SetStreamHandler(ProtocolId, node.MessageStreamHandler)
 
-	if err = node.StartDiscovery(); err != nil {
-		return nil, err
+	if cfg.Online {
+		if err = node.StartDiscovery(); err != nil {
+			return nil, err
+		}
 	}
 
 	return node, nil

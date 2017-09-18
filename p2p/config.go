@@ -13,6 +13,7 @@ import (
 
 // NodeCfg is all configuration options for a Qri Node
 type NodeCfg struct {
+	Online bool
 	PeerId peer.ID // peer identifier
 
 	PubKey  crypto.PubKey
@@ -51,6 +52,7 @@ func DefaultNodeCfg() *NodeCfg {
 	}
 
 	return &NodeCfg{
+		Online:   true,
 		PeerId:   pid,
 		PrivKey:  priv,
 		PubKey:   pub,
