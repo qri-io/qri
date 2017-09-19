@@ -14,12 +14,10 @@ type MsgType int
 
 const (
 	MtUnknown MsgType = iota
-	MtInfo
-	MtProfile
+	MtPeerInfo
+	MtDatasets
 	MtNamespaces
-	MtResources
-	MtQueries
-	MtMetadata
+	MtSearch
 )
 
 type MsgPhase int
@@ -138,8 +136,10 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 
 		if r.Phase == MpRequest {
 			switch r.Type {
-			case MtProfile:
-				res = n.handleProfileRequest(r)
+			case MtPeerInfo:
+				res = n.handlePeerInfoRequest(r)
+			case MtDatasets:
+			case MtSearch:
 			}
 		}
 

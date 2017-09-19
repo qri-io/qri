@@ -26,14 +26,29 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// if err != nil {
 	// 	return
 	// }
+	peers, err := n.Repo().Peers()
+	if err != nil {
+		fmt.Println("error getting peers list: ", err)
+		return
+	}
+
+	if peers[pinfo.ID.Pretty()] != nil {
+		return
+	}
 
 	peerAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", pinfo.ID.Pretty()))
 
 	addr := pinfo.Addrs[0].Encapsulate(peerAddr)
 
+	profile, err := n.Repo().Profile()
+	if err != nil {
+		fmt.Println("error getting node profile info:", err)
+		return
+	}
+
 	res, err := n.SendMessage(addr.String(), &Message{
-		Type:    MtProfile,
-		Payload: nil,
+		Type:    MtPeerInfo,
+		Payload: profile,
 	})
 	if err != nil {
 		fmt.Println(err.Error())

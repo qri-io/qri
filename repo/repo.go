@@ -5,6 +5,7 @@ package repo
 
 import (
 	"github.com/ipfs/go-datastore"
+	// "github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -17,6 +18,8 @@ type Repo interface {
 
 	Namespace() (map[string]datastore.Key, error)
 	SaveNamespace(map[string]datastore.Key) error
+
+	// Datasets() ([]*dataset.Dataset, error)
 
 	QueryResults() (dsgraph.QueryResults, error)
 	SaveQueryResults(dsgraph.QueryResults) error

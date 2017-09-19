@@ -5,6 +5,7 @@ import (
 	"github.com/datatogether/api/apiutil"
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/qri/core/datasets"
+	"github.com/qri-io/qri/core/peers"
 	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"
 	"github.com/sirupsen/logrus"
@@ -106,6 +107,10 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
+
+	ph := peers.NewHandlers(s.qriNode.Repo())
+	m.Handle("/peers", s.middleware(ph.PeersHandler))
+	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	qh := queries.NewHandlers(s.store, s.qriNode.Repo())
 	m.Handle("/run", s.middleware(qh.RunHandler))

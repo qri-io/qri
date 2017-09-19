@@ -8,16 +8,21 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func (n *QriNode) handleProfileRequest(r *Message) *Message {
+func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 	p, err := n.repo.Profile()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
 	return &Message{
-		Type:    MtProfile,
+		Type:    MtPeerInfo,
 		Phase:   MpResponse,
 		Payload: p,
 	}
+}
+
+type DatasetsReqParams struct {
+	Limit  int
+	Offset int
 }
 
 func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
@@ -40,6 +45,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	pinfo.Profile = p
 	peers[pi.ID.Pretty()] = pinfo
+	fmt.Println("added peer:", pi.ID.Pretty())
 
 	return n.repo.SavePeers(peers)
 }
