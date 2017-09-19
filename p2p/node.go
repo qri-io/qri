@@ -13,7 +13,6 @@ import (
 	swarm "github.com/libp2p/go-libp2p-swarm"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	ping "github.com/libp2p/go-libp2p/p2p/protocol/ping"
 	ma "github.com/multiformats/go-multiaddr"
 	msmux "github.com/whyrusleeping/go-smux-multistream"
 	yamux "github.com/whyrusleeping/go-smux-yamux"
@@ -26,8 +25,8 @@ type QriNode struct {
 
 	Online    bool      // is this node online?
 	Host      host.Host // p2p Host
-	Pings     *ping.PingService
 	Discovery discovery.Service
+	Peerstore pstore.Peerstore // storage for other Peer instances
 
 	repo repo.Repo
 }
@@ -45,19 +44,23 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 
 	// fmt.Println(cfg.Addrs)
 
-	host, err := makeBasicHost(cfg)
+	// Create a peerstore
+	ps := pstore.NewPeerstore()
+
+	host, err := makeBasicHost(ps, cfg)
 	if err != nil {
 		return nil, err
 	}
 
 	node := &QriNode{
-		Identity: cfg.PeerId,
-		Host:     host,
-		repo:     cfg.Repo,
-		Online:   cfg.Online,
+		Identity:  cfg.PeerId,
+		Host:      host,
+		repo:      cfg.Repo,
+		Online:    cfg.Online,
+		Peerstore: ps,
 	}
 
-	host.SetStreamHandler(ProtocolId, node.MessageStreamHandler)
+	host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
 
 	if cfg.Online {
 		if err = node.StartDiscovery(); err != nil {
@@ -67,18 +70,6 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 
 	return node, nil
 }
-
-// func (n *QriNode) Ping() (time.Duration, error) {
-//   dur, err := n.Pings.Ping(context.Background(), p)
-// }
-
-// TODO - Finish
-// func (n *QriNode) startOnlineServices(cfg *NodeCfg) error {
-// // if n
-// // n.Pings = ping.NewPingService(n.Host)
-
-// // setup local discovery
-// }
 
 // Repo gives this node's repository
 func (n *QriNode) Repo() repo.Repo {
@@ -113,10 +104,7 @@ func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
 }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
-func makeBasicHost(cfg *NodeCfg) (host.Host, error) {
-	// Create a peerstore
-	ps := pstore.NewPeerstore()
-
+func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	// If using secio, we add the keys to the peerstore
 	// for this peer ID.
 	if cfg.Secure {
