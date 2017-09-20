@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/castore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
@@ -34,7 +35,11 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
-	ns, err := d.repo.Namespace()
+	// ns, err := d.repo.Namespace()
+	ds, err := repo.QueryDatasets(d.repo, query.Query{
+		Limit:  p.Limit,
+		Offset: p.Offset,
+	})
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
@@ -98,14 +103,18 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 		return err
 	}
 
-	ns, err := r.repo.Namespace()
-	if err != nil {
+	if err := r.repo.PutDataset(p.Name, ds); err != nil {
 		return err
 	}
-	ns[p.Name] = key
-	if err := r.repo.SaveNamespace(ns); err != nil {
-		return err
-	}
+
+	// ns, err := r.repo.Namespace()
+	// if err != nil {
+	// 	return err
+	// }
+	// ns[p.Name] = key
+	// if err := r.repo.SaveNamespace(ns); err != nil {
+	// 	return err
+	// }
 
 	*res = *ds
 	return nil

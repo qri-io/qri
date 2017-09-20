@@ -151,11 +151,11 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		adr = detect.Camelize(r.FormValue("name"))
 	}
 
-	ns, err := h.repo.Namespace()
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
+	// ns, err := h.repo.Namespace()
+	// if err != nil {
+	// 	util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	ds := &dataset.Dataset{
 		Timestamp: time.Now().In(time.UTC),
@@ -170,11 +170,16 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ns[adr] = dskey
-	if err := h.repo.SaveNamespace(ns); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+	if err = h.repo.PutDataset(adr, ds); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// ns[adr] = dskey
+	// if err := h.repo.SaveNamespace(ns); err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
+	// 	return
+	// }
 
 	util.WriteResponse(w, ds)
 }

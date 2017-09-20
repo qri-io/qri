@@ -1,6 +1,7 @@
 package peers
 
 import (
+	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p-peer"
@@ -14,6 +15,38 @@ type Peers interface {
 	PutPeer(id peer.ID, profile *profile.Profile) error
 	DeletePeer(id peer.ID) error
 	GetPeer(id peer.ID) (*profile.Profile, error)
+}
+
+func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
+	i := 0
+	peers := []*profile.Profile{}
+	results, err := ps.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	if q.Limit != 0 {
+		peers = make([]*profile.Profile, q.Limit)
+	}
+
+	for res := range results.Next() {
+		p, ok := res.Value.(*profile.Profile)
+		if !ok {
+			return nil, fmt.Errorf("query returned the wrong type, expected a profile pointer")
+		}
+		if q.Limit != 0 {
+			peers[i] = p
+		} else {
+			peers = append(peers, p)
+		}
+		i++
+	}
+
+	if q.Limit != 0 {
+		peers = peers[:i]
+	}
+
+	return peers, nil
 }
 
 // Memstore is an in-memory implementation of the Peers interface

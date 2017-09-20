@@ -4,6 +4,7 @@
 package repo
 
 import (
+	"fmt"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset"
 	// "github.com/qri-io/dataset"
@@ -49,4 +50,37 @@ type DatasetStore interface {
 	PutDataset(path string, ds *dataset.Dataset) error
 	GetDataset(path string) (*dataset.Dataset, error)
 	DeleteDataset(path string) error
+}
+
+func QueryDatasets(dss DatasetStore, q query.Query) (map[string]*dataset.Dataset, error) {
+	// i := 0
+	ds := map[string]*dataset.Dataset{}
+	results, err := dss.Query(q)
+	if err != nil {
+		return nil, err
+	}
+
+	// if q.Limit != 0 {
+	// 	ds = make([]*dataset.Dataset, q.Limit)
+	// }
+
+	for res := range results.Next() {
+		d, ok := res.Value.(*dataset.Dataset)
+		if !ok {
+			return nil, fmt.Errorf("query returned the wrong type, expected a profile pointer")
+		}
+		ds[res.Key] = d
+		// if q.Limit != 0 {
+		// 	ds[i] = d
+		// } else {
+		// 	ds = append(ds, d)
+		// }
+		// i++
+	}
+
+	// if q.Limit != 0 {
+	// 	ds = ds[:i]
+	// }
+
+	return ds, nil
 }

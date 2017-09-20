@@ -2,7 +2,9 @@ package peers
 
 import (
 	"fmt"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -25,19 +27,21 @@ type ListParams struct {
 func (d *Requests) List(p *ListParams, res *[]*profile.Profile) error {
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0
-	peers, err := d.repo.Peers()
+
+	ps, err := peers.QueryPeers(d.repo.Peers(), query.Query{})
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
 
-	for _, repo := range peers {
+	for _, peer := range ps {
 		if i >= p.Limit {
 			break
 		}
-		replies[i] = repo.Profile
+		replies[i] = peer
 		i++
 	}
+
 	*res = replies[:i]
 	return nil
 }
@@ -49,22 +53,23 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *profile.Profile) error {
-	peers, err := d.repo.Peers()
-	if err != nil {
-		fmt.Println(err.Error())
-		return err
-	}
+	// TODO - restore
+	// peers, err := d.repo.Peers()
+	// if err != nil {
+	// 	fmt.Println(err.Error())
+	// 	return err
+	// }
 
-	for name, repo := range peers {
-		if p.Hash == name ||
-			p.Username == repo.Profile.Username {
-			*res = *repo.Profile
-		}
-	}
+	// for name, repo := range peers {
+	// 	if p.Hash == name ||
+	// 		p.Username == repo.Profile.Username {
+	// 		*res = *repo.Profile
+	// 	}
+	// }
 
-	if res != nil {
-		return nil
-	}
+	// if res != nil {
+	// 	return nil
+	// }
 
 	// TODO - ErrNotFound plz
 	return fmt.Errorf("Not Found")
