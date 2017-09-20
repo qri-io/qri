@@ -4,6 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/analytics"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/peer_repo"
@@ -14,7 +17,8 @@ import (
 )
 
 type Repo struct {
-	base string
+	base      string
+	analytics analytics.Analytics
 }
 
 func NewRepo(base string) (repo.Repo, error) {
@@ -28,6 +32,18 @@ func NewRepo(base string) (repo.Repo, error) {
 
 func (r *Repo) filepath(rf repo.File) string {
 	return filepath.Join(r.base, fmt.Sprintf("%s.json", repo.Filepath(rf)))
+}
+
+func (r *Repo) AddDataset(path string, ds *dataset.Dataset) error {
+
+}
+
+func (r *Repo) DeleteDataset(path string) error {
+
+}
+
+func (r *Repo) Query(query.Query) (query.Results, error) {
+
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {

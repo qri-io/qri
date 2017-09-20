@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/qri-io/castore"
 	"github.com/qri-io/qri/repo"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -21,19 +22,20 @@ import (
 // QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
 	Identity   peer.ID        // the local node's identity
-	PrivateKey crypto.PrivKey // the local node's private Key
+	privateKey crypto.PrivKey // the local node's private Key
 
 	Online    bool      // is this node online?
 	Host      host.Host // p2p Host
 	Discovery discovery.Service
 	Peerstore pstore.Peerstore // storage for other Peer instances
 
-	repo repo.Repo
+	repo  repo.Repo
+	Store castore.Datastore
 }
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
+func NewQriNode(store castore.Datastore, options ...func(o *NodeCfg)) (*QriNode, error) {
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)
@@ -58,6 +60,7 @@ func NewQriNode(options ...func(o *NodeCfg)) (*QriNode, error) {
 		repo:      cfg.Repo,
 		Online:    cfg.Online,
 		Peerstore: ps,
+		Store:     store,
 	}
 
 	host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)

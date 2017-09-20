@@ -12,7 +12,7 @@ func (qn *QriNode) PutQueryKey(key datastore.Key, q *dataset.Query) error {
 	if err != nil {
 		return err
 	}
-	_, err = record.MakePutRecord(qn.PrivateKey, key.String(), data, true)
+	_, err = record.MakePutRecord(qn.privateKey, key.String(), data, true)
 	if err != nil {
 		return err
 	}

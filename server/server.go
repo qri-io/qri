@@ -19,7 +19,7 @@ type Server struct {
 	log *logrus.Logger
 
 	qriNode *p2p.QriNode
-	store   *ipfs.Datastore
+	// store   *ipfs.Datastore
 }
 
 func New(options ...func(*Config)) (*Server, error) {
