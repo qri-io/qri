@@ -5,14 +5,12 @@ package repo
 
 import (
 	"github.com/ipfs/go-datastore/query"
-	"github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/dataset"
-	"time"
 	// "github.com/qri-io/dataset"
 	// "github.com/qri-io/dataset/dsgraph"
 	// "github.com/ipfs/go-datastore"
 	// "github.com/qri-io/qri/repo/peer_repo"
-	"github.com/qri-io/qri/analytics"
+	"github.com/qri-io/analytics"
 	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -47,7 +45,8 @@ type DatasetStore interface {
 	// We track with the query package to support a uniform
 	// querying interface between datastores & these custom
 	// stores
-	Query(query.Query) (query.Result, error)
+	Query(query.Query) (query.Results, error)
 	PutDataset(path string, ds *dataset.Dataset) error
+	GetDataset(path string) (*dataset.Dataset, error)
 	DeleteDataset(path string) error
 }

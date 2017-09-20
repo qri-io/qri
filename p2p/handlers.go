@@ -6,7 +6,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	// "github.com/qri-io/dataset"
-	"github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -29,7 +28,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	pinfo := peers[pi.ID.Pretty()]
 	if pinfo == nil {
-		pinfo = &peer_repo.Repo{}
+		pinfo = &profile.Profile{}
 	}
 
 	data, err := json.Marshal(r.Payload)
@@ -108,7 +107,7 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	pinfo := peers[pi.ID.Pretty()]
 	if pinfo == nil {
-		pinfo = &peer_repo.Repo{}
+		pinfo = &profile.Profile{}
 	}
 
 	data, err := json.Marshal(r.Payload)

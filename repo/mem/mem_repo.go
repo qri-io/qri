@@ -1,7 +1,8 @@
+// mem_repo is an in-memory implementation of
+// the Repo interface
 package mem_repo
 
 import (
-	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -12,38 +13,24 @@ import (
 	"github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
-	"io/ioutil"
-	"os"
-	"path/filepath"
 )
 
 type Repo struct {
-	base      string
+	datasets  Datasets
 	profile   *profile.Profile
-	analytics analytics.Analytics
 	peers     peers.Peers
 	cache     *Repo
+	analytics analytics.Analytics
 }
 
-// func NewRepo(base string) (repo.Repo, error) {
-// 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
-// 		return nil, err
-// 	}
-// 	return &Repo{
-// 		base: base,
-// 	}, nil
-// }
-
-func (r *Repo) AddDataset(path string, ds *dataset.Dataset) error {
-
-}
-
-func (r *Repo) DeleteDataset(path string) error {
-
-}
-
-func (r *Repo) Query(query.Query) (query.Results, error) {
-
+func NewRepo(p *profile.Profile, ps peers.Peers, a analytics.Analytics) (repo.Repo, error) {
+	return &Repo{
+		datasets:  map[string]*dataset.Dataset{},
+		profile:   p,
+		peers:     ps,
+		analytics: a,
+		cache:     Datasets{},
+	}, nil
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {
@@ -53,4 +40,16 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 func (r *Repo) SaveProfile(p *profile.Profile) error {
 	r.profile = p
 	return nil
+}
+
+func (r *Repo) Peers() peers.Peers {
+	return r.peers
+}
+
+func (r *Repo) Cache() repo.DatasetStore {
+	return r.cache
+}
+
+func (r *Repo) Analytics() analytics.Analytics {
+	return r.analytics
 }

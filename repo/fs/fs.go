@@ -3,52 +3,41 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/analytics"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/peer_repo"
+	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 )
 
+var ErrNotFinished = fmt.Errorf("not finished")
+
 type Repo struct {
-	base      string
-	analytics analytics.Analytics
+	basepath
+	DatasetStore
+	analytics Analytics
+	peers     PeerStore
+	cache     DatasetStore
 }
 
 func NewRepo(base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
+	bp := basepath(base)
 	return &Repo{
-		base: base,
+		basepath:     bp,
+		DatasetStore: NewDatasetStore(base, FileDatasets),
+		analytics:    NewAnalytics(base),
+		peers:        PeerStore{basepath(bp)},
+		cache:        NewDatasetStore(base, FileCache),
 	}, nil
-}
-
-func (r *Repo) filepath(rf repo.File) string {
-	return filepath.Join(r.base, fmt.Sprintf("%s.json", repo.Filepath(rf)))
-}
-
-func (r *Repo) AddDataset(path string, ds *dataset.Dataset) error {
-
-}
-
-func (r *Repo) DeleteDataset(path string) error {
-
-}
-
-func (r *Repo) Query(query.Query) (query.Results, error) {
-
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {
 	p := &profile.Profile{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FileProfile))
+	data, err := ioutil.ReadFile(r.filepath(FileProfile))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return p, nil
@@ -64,142 +53,41 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 }
 
 func (r *Repo) SaveProfile(p *profile.Profile) error {
-	data, err := json.Marshal(p)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FileProfile), data, os.ModePerm)
+	return r.saveFile(p, FileProfile)
 }
 
-func (r *Repo) Namespace() (map[string]datastore.Key, error) {
-	g := map[string]datastore.Key{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FileNamespace))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return g, nil
-		}
-		return g, fmt.Errorf("error loading namespace graph:", err.Error())
-	}
+// func (r *Repo) Peers() (map[string]*profile.Profile, error) {
+// 	p := map[string]*profile.Profile{}
+// 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
+// 	if err != nil {
+// 		if os.IsNotExist(err) {
+// 			return p, nil
+// 		}
+// 		return p, fmt.Errorf("error loading peers: %s", err.Error())
+// 	}
 
-	if err := json.Unmarshal(data, &g); err != nil {
-		return g, fmt.Errorf("error unmarshaling namespace graph:", err.Error())
-	}
+// 	if err := json.Unmarshal(data, &p); err != nil {
+// 		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
+// 	}
 
-	return g, nil
+// 	return p, nil
+// }
+func (r *Repo) Peers() peers.Peers {
+	return r.peers
 }
 
-func (r *Repo) SaveNamespace(graph map[string]datastore.Key) error {
-	data, err := json.Marshal(graph)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FileNamespace), data, os.ModePerm)
+func (r *Repo) Cache() repo.DatasetStore {
+	return r.cache
 }
 
-func (r *Repo) QueryResults() (dsgraph.QueryResults, error) {
-	g := dsgraph.QueryResults{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FileQueryResults))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return g, nil
-		}
-		return g, fmt.Errorf("error loading query results graph:", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &g); err != nil {
-		return g, fmt.Errorf("error unmarshaling query results graph:", err.Error())
-	}
-	return g, nil
+func (r *Repo) Analytics() analytics.Analytics {
+	return r.analytics
 }
 
-func (r *Repo) SaveQueryResults(graph dsgraph.QueryResults) error {
-	data, err := json.Marshal(graph)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FileQueryResults), data, os.ModePerm)
-}
-
-func (r *Repo) ResourceQueries() (dsgraph.ResourceQueries, error) {
-	g := dsgraph.ResourceQueries{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FileResourceQueries))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return g, nil
-		}
-		return g, fmt.Errorf("error loading resource queries graph:", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &g); err != nil {
-		return g, fmt.Errorf("error unmarshaling resource queries graph:", err.Error())
-	}
-	return g, nil
-}
-
-func (r *Repo) SaveResourceQueries(graph dsgraph.ResourceQueries) error {
-	data, err := json.Marshal(graph)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FileResourceQueries), data, os.ModePerm)
-}
-
-func (r *Repo) ResourceMeta() (dsgraph.ResourceMeta, error) {
-	g := dsgraph.ResourceMeta{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FileResourceMeta))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return g, nil
-		}
-		return g, fmt.Errorf("error loading resource meta graph:", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &g); err != nil {
-		return g, fmt.Errorf("error unmarshaling resource meta graph:", err.Error())
-	}
-
-	return g, nil
-}
-
-func (r *Repo) SaveResourceMeta(graph dsgraph.ResourceMeta) error {
-	data, err := json.Marshal(graph)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FileResourceMeta), data, os.ModePerm)
-}
-
-func (r *Repo) Peers() (map[string]*peer_repo.Repo, error) {
-	p := map[string]*peer_repo.Repo{}
-	data, err := ioutil.ReadFile(r.filepath(repo.FilePeerRepos))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return p, nil
-		}
-		return p, fmt.Errorf("error loading peers: %s", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &p); err != nil {
-		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
-	}
-
-	return p, nil
-}
-
-func (r *Repo) SavePeers(p map[string]*peer_repo.Repo) error {
-	data, err := json.Marshal(p)
-	if err != nil {
-		return err
-	}
-
-	return ioutil.WriteFile(r.filepath(repo.FilePeerRepos), data, os.ModePerm)
+func (r *Repo) SavePeers(p map[string]*profile.Profile) error {
+	return r.saveFile(p, FilePeers)
 }
 
 func (r *Repo) Destroy() error {
-	return os.RemoveAll(r.base)
+	return os.RemoveAll(string(r.basepath))
 }
