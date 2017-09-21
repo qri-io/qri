@@ -27,6 +27,7 @@ var infoCmd = &cobra.Command{
 	Short:   "Show info about a dataset",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		fmt.Println(args)
 		if len(args) == 0 {
 			fmt.Println("please specify an address to get the info of")
 			return

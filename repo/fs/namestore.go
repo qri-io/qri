@@ -13,6 +13,10 @@ type Namestore struct {
 	basepath
 }
 
+func NewNamestore(base string) Datasets {
+	return Datasets{basepath: basepath(base)}
+}
+
 func (n Namestore) PutName(name string, path datastore.Key) error {
 	names, err := n.names()
 	if err != nil {
@@ -69,7 +73,7 @@ func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error
 			continue
 		}
 
-		if limit > 0 && added < limit {
+		if limit != 0 && added < limit {
 			res[name] = path
 			added++
 		} else if added == limit {

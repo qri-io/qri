@@ -34,7 +34,7 @@ var datasetListCmd = &cobra.Command{
 	Short: "list your local datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		ns, err := GetRepo().Namespace(0, 100)
+		ns, err := GetRepo().Namespace(100, 0)
 		ExitIfErr(err)
 		for name, resource := range ns {
 			PrintInfo("%s\t\t: %s", name, resource.String())
@@ -47,7 +47,7 @@ var datasetInfoCmd = &cobra.Command{
 	Short: "get information about a dataset",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 0 {
+		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
 		}
 		ds, err := GetIpfsDatastore()

@@ -27,8 +27,9 @@ func NewRepo(base string) (repo.Repo, error) {
 	return &Repo{
 		basepath:  bp,
 		Datasets:  NewDatasets(base, FileDatasets),
+		Namestore: Namestore{bp},
 		analytics: NewAnalytics(base),
-		peers:     PeerStore{basepath(bp)},
+		peers:     PeerStore{bp},
 		cache:     NewDatasets(base, FileCache),
 	}, nil
 }

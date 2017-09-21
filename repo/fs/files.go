@@ -62,7 +62,7 @@ var paths = map[File]string{
 	FileProfile:   "/profile",
 	FileConfig:    "/config",
 	FileDatasets:  "/datasets",
-	FileNamestore: "/names",
+	FileNamestore: "/namespace",
 	FilePeers:     "/peers",
 	FileCache:     "/cache",
 	FileAnalytics: "/analytics",
