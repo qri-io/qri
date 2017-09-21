@@ -18,17 +18,20 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 		return
 	}
 
-	peers, err := n.Repo().Peers()
-	if err != nil {
-		fmt.Println("error getting peers list: ", err)
+	if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
 		return
 	}
+	// peers, err := n.Repo().Peers()
+	// if err != nil {
+	// 	fmt.Println("error getting peers list: ", err)
+	// 	return
+	// }
 
-	if peers[pinfo.ID.Pretty()] != nil {
-		return
-	}
+	// if peers[pinfo.ID.Pretty()] != nil {
+	// 	return
+	// }
 
-	profile, err := n.Repo().Profile()
+	profile, err := n.Repo.Profile()
 	if err != nil {
 		fmt.Println("error getting node profile info:", err)
 		return

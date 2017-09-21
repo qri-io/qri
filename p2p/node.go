@@ -29,7 +29,7 @@ type QriNode struct {
 	Discovery discovery.Service
 	Peerstore pstore.Peerstore // storage for other Peer instances
 
-	repo  repo.Repo
+	Repo  repo.Repo
 	Store castore.Datastore
 }
 
@@ -57,9 +57,9 @@ func NewQriNode(store castore.Datastore, options ...func(o *NodeCfg)) (*QriNode,
 	node := &QriNode{
 		Identity:  cfg.PeerId,
 		Host:      host,
-		repo:      cfg.Repo,
 		Online:    cfg.Online,
 		Peerstore: ps,
+		Repo:      cfg.Repo,
 		Store:     store,
 	}
 
@@ -75,9 +75,9 @@ func NewQriNode(store castore.Datastore, options ...func(o *NodeCfg)) (*QriNode,
 }
 
 // Repo gives this node's repository
-func (n *QriNode) Repo() repo.Repo {
-	return n.repo
-}
+// func (n *QriNode) Repo() repo.Repo {
+// 	return n.repo
+// }
 
 // Encapsulated Addresses returns a slice of full multaddrs for this node
 func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
@@ -94,17 +94,19 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 
 // PeerInfo gives an overview of information about this Peer, used in handshaking
 // with other peers
-func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
-	ns, err := n.repo.Namespace()
-	if err != nil {
-		return nil, err
-	}
+// func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
+// 	repo.QueryPeers(n.Repo.Peers(), query.Query{
 
-	return map[string]interface{}{
-		"Id":        n.Identity.String(),
-		"namespace": ns,
-	}, nil
-}
+// 		})
+// 	if err != nil {
+// 		return nil, err
+// 	}
+
+// 	return map[string]interface{}{
+// 		"Id":        n.Identity.String(),
+// 		"namespace": ns,
+// 	}, nil
+// }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {

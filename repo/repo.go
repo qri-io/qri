@@ -5,6 +5,7 @@ package repo
 
 import (
 	"fmt"
+	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/dataset"
@@ -16,11 +17,12 @@ var (
 )
 
 // Repo is the interface for working with a qri repository
+// conceptually, it's a more-specific version of a datastore.
 type Repo interface {
 	// The primary purpose of a qri repo is to serve as
 	// a store of datasets. The behaviour of the embedded
 	// DatasetStore will typically differ from the
-	DatasetStore
+	Datasets
 	//
 	Namestore
 	// A repository must maintain profile information
@@ -34,26 +36,27 @@ type Repo interface {
 	Peers() Peers
 	// Cache keeps an ephemeral store of dataset information
 	// that may be purged at any moment
-	Cache() DatasetStore
+	Cache() Datasets
 	// All repositories provide their own analytics information
 	Analytics() analytics.Analytics
 }
 
 // Dataset store is the minimum interface to act as a
 // store of datasets
-type DatasetStore interface {
+type Datasets interface {
 	// Query is extracted from the ipfs datastore interface:
 	// github.com/ipfs/go-datastore
 	// We track with the query package to support a uniform
 	// querying interface between datastores & these custom
 	// stores
 	Query(query.Query) (query.Results, error)
-	PutDataset(path string, ds *dataset.Dataset) error
-	GetDataset(path string) (*dataset.Dataset, error)
-	DeleteDataset(path string) error
+	PutDataset(path datastore.Key, ds *dataset.Dataset) error
+	PutDatasets([]*dataset.DatasetRef) error
+	GetDataset(path datastore.Key) (*dataset.Dataset, error)
+	DeleteDataset(path datastore.Key) error
 }
 
-func QueryDatasets(dss DatasetStore, q query.Query) (map[string]*dataset.Dataset, error) {
+func DatasetsQuery(dss Datasets, q query.Query) (map[string]*dataset.Dataset, error) {
 	// i := 0
 	ds := map[string]*dataset.Dataset{}
 	results, err := dss.Query(q)

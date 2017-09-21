@@ -170,7 +170,12 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	if err = h.repo.PutDataset(adr, ds); err != nil {
+	if err = h.repo.PutDataset(dskey, ds); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	if err = h.repo.PutName(adr, dskey); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

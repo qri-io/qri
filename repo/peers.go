@@ -13,8 +13,8 @@ import (
 type Peers interface {
 	Query(query.Query) (query.Results, error)
 	PutPeer(id peer.ID, profile *profile.Profile) error
-	DeletePeer(id peer.ID) error
 	GetPeer(id peer.ID) (*profile.Profile, error)
+	DeletePeer(id peer.ID) error
 }
 
 func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {

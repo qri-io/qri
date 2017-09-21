@@ -3,14 +3,13 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
-	// "github.com/qri-io/dataset"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo/profile"
 )
 
 func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
-	p, err := n.repo.Profile()
+	p, err := n.Repo.Profile()
 	if err != nil {
 		fmt.Println(err.Error())
 	}
@@ -22,14 +21,14 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
-	peers, err := n.repo.Peers()
-	if err != nil {
-		return err
-	}
-	pinfo := peers[pi.ID.Pretty()]
-	if pinfo == nil {
-		pinfo = &profile.Profile{}
-	}
+	// peers, err := n.Repo.Peers()
+	// if err != nil {
+	// 	return err
+	// }
+	// pinfo := peers[pi.ID.Pretty()]
+	// if pinfo == nil {
+	// 	pinfo = &profile.Profile{}
+	// }
 
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
@@ -39,10 +38,10 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	if err := json.Unmarshal(data, p); err != nil {
 		return err
 	}
-	pinfo.Profile = p
-	peers[pi.ID.Pretty()] = pinfo
+	// pinfo.Profile = p
+	// peers[pi.ID.Pretty()] = pinfo
 	// fmt.Println("added peer:", pi.ID.Pretty())
-	return n.repo.SavePeers(peers)
+	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
 type DatasetsReqParams struct {
@@ -66,60 +65,58 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	if p.Limit == 0 {
 		p.Limit = 50
 	}
-
-	// replies := make([]*dataset.DatasetRef, p.Limit)
-	// TODO - generate a sorted copy of keys, iterate through, respecting
-	// limit & offset
-	ns, err := n.repo.Namespace()
+	names, err := n.Repo.Names(p.Limit, p.Offset)
 	if err != nil {
-		fmt.Println("repo namespace error:", err.Error())
+		fmt.Println("repo names error:", err)
 		return nil
 	}
 
-	// for name, key := range ns {
-	// 	if i >= p.Limit {
-	// 		break
-	// 	}
-	// 	// ds, err := dataset.LoadDataset(n., key)
-	// 	// if err != nil {
-	// 	// 	fmt.Println("error loading path:", key)
-	// 	// 	return err
-	// 	// }
-	// 	replies[i] = &dataset.DatasetRef{
-	// 		Name: name,
-	// 		Path: key,
-	// 		// Dataset: ds,
-	// 	}
-	// 	i++
-	// }
+	replies := make([]*dataset.DatasetRef, p.Limit)
+	i := 0
+	for name, path := range names {
+		if i >= p.Limit {
+			break
+		}
+		ds, err := dataset.LoadDataset(n.Store, path)
+		if err != nil {
+			fmt.Println("error loading dataset at path:", path)
+			return nil
+		}
+		replies[i] = &dataset.DatasetRef{
+			Name:    name,
+			Path:    path,
+			Dataset: ds,
+		}
+		i++
+	}
 
 	return &Message{
 		Type:    MtDatasets,
 		Phase:   MpResponse,
-		Payload: ns,
+		Payload: replies,
 	}
 }
 
 func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
-	peers, err := n.repo.Peers()
-	if err != nil {
-		return err
-	}
-	pinfo := peers[pi.ID.Pretty()]
-	if pinfo == nil {
-		pinfo = &profile.Profile{}
-	}
+	// peers, err := n.Repo.Peers()
+	// if err != nil {
+	// 	return err
+	// }
+	// pinfo := peers[pi.ID.Pretty()]
+	// if pinfo == nil {
+	// 	pinfo = &profile.Profile{}
+	// }
 
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		return err
 	}
-	ns := map[string]datastore.Key{}
-	if err := json.Unmarshal(data, &ns); err != nil {
+	ds := []*dataset.DatasetRef{}
+	if err := json.Unmarshal(data, &ds); err != nil {
 		return err
 	}
-	pinfo.Namespace = ns
-	peers[pi.ID.Pretty()] = pinfo
-	fmt.Println("added peer dataset info:", pi.ID.Pretty())
-	return n.repo.SavePeers(peers)
+	// pinfo.Namespace = ns
+	// peers[pi.ID.Pretty()] = pinfo
+	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
+	return n.Repo.Cache().PutDatasets(ds)
 }

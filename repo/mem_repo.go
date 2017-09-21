@@ -38,7 +38,7 @@ func (r *MemRepo) Peers() Peers {
 	return r.peers
 }
 
-func (r *MemRepo) Cache() DatasetStore {
+func (r *MemRepo) Cache() Datasets {
 	return r.cache
 }
 

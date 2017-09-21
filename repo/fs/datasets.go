@@ -10,31 +10,46 @@ import (
 	"os"
 )
 
-type DatasetStore struct {
+type Datasets struct {
 	basepath
 	file File
 }
 
-func NewDatasetStore(base string, file File) DatasetStore {
-	return DatasetStore{basepath: basepath(base), file: file}
+func NewDatasets(base string, file File) Datasets {
+	return Datasets{basepath: basepath(base), file: file}
 }
 
-func (r DatasetStore) PutDataset(path string, ds *dataset.Dataset) error {
+func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	d, err := r.datasets()
 	if err != nil {
 		return err
 	}
-	d[path] = ds
+	d[path.String()] = ds
 	return r.saveFile(d, r.file)
 }
 
-func (r DatasetStore) GetDataset(path string) (*dataset.Dataset, error) {
+func (r Datasets) PutDatasets(datasets []*dataset.DatasetRef) error {
+	ds, err := r.datasets()
+	if err != nil {
+		return err
+	}
+	for _, dr := range datasets {
+		ps := dr.Path.String()
+		if ps != "" && dr.Dataset != nil {
+			ds[ps] = dr.Dataset
+		}
+	}
+	return r.saveFile(ds, r.file)
+}
+
+func (r Datasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
 	ds, err := r.datasets()
 	if err != nil {
 		return nil, err
 	}
+	ps := path.String()
 	for p, d := range ds {
-		if path == p {
+		if ps == p {
 			return d, nil
 		}
 	}
@@ -42,16 +57,16 @@ func (r DatasetStore) GetDataset(path string) (*dataset.Dataset, error) {
 	return nil, datastore.ErrNotFound
 }
 
-func (r DatasetStore) DeleteDataset(path string) error {
+func (r Datasets) DeleteDataset(path datastore.Key) error {
 	ds, err := r.datasets()
 	if err != nil {
 		return err
 	}
-	delete(ds, path)
+	delete(ds, path.String())
 	return r.saveFile(ds, r.file)
 }
 
-func (r DatasetStore) Query(q query.Query) (query.Results, error) {
+func (r Datasets) Query(q query.Query) (query.Results, error) {
 	ds, err := r.datasets()
 	if err != nil {
 		return nil, err
@@ -66,7 +81,7 @@ func (r DatasetStore) Query(q query.Query) (query.Results, error) {
 	return res, nil
 }
 
-func (r *DatasetStore) datasets() (map[string]*dataset.Dataset, error) {
+func (r *Datasets) datasets() (map[string]*dataset.Dataset, error) {
 	ds := map[string]*dataset.Dataset{}
 	data, err := ioutil.ReadFile(r.filepath(r.file))
 	if err != nil {

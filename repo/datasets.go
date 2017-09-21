@@ -8,20 +8,30 @@ import (
 
 type MemDatasets map[string]*dataset.Dataset
 
-func (d MemDatasets) PutDataset(path string, ds *dataset.Dataset) error {
-	d[path] = ds
+func (d MemDatasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
+	d[path.String()] = ds
 	return nil
 }
 
-func (d MemDatasets) GetDataset(path string) (*dataset.Dataset, error) {
-	if d[path] == nil {
-		return nil, datastore.ErrNotFound
+func (d MemDatasets) PutDatasets(datasets []*dataset.DatasetRef) error {
+	for _, ds := range datasets {
+		ps := ds.Path.String()
+		if ps != "" {
+			d[ps] = ds.Dataset
+		}
 	}
-	return d[path], nil
+	return nil
 }
 
-func (d MemDatasets) DeleteDataset(path string) error {
-	delete(d, path)
+func (d MemDatasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
+	if d[path.String()] == nil {
+		return nil, datastore.ErrNotFound
+	}
+	return d[path.String()], nil
+}
+
+func (d MemDatasets) DeleteDataset(path datastore.Key) error {
+	delete(d, path.String())
 	return nil
 }
 

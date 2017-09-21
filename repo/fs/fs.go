@@ -12,11 +12,11 @@ import (
 
 type Repo struct {
 	basepath
-	DatasetStore
+	Datasets
 	Namestore
 	analytics Analytics
 	peers     PeerStore
-	cache     DatasetStore
+	cache     Datasets
 }
 
 func NewRepo(base string) (repo.Repo, error) {
@@ -25,11 +25,11 @@ func NewRepo(base string) (repo.Repo, error) {
 	}
 	bp := basepath(base)
 	return &Repo{
-		basepath:     bp,
-		DatasetStore: NewDatasetStore(base, FileDatasets),
-		analytics:    NewAnalytics(base),
-		peers:        PeerStore{basepath(bp)},
-		cache:        NewDatasetStore(base, FileCache),
+		basepath:  bp,
+		Datasets:  NewDatasets(base, FileDatasets),
+		analytics: NewAnalytics(base),
+		peers:     PeerStore{basepath(bp)},
+		cache:     NewDatasets(base, FileCache),
 	}, nil
 }
 
@@ -75,7 +75,7 @@ func (r *Repo) Peers() repo.Peers {
 	return r.peers
 }
 
-func (r *Repo) Cache() repo.DatasetStore {
+func (r *Repo) Cache() repo.Datasets {
 	return r.cache
 }
 
