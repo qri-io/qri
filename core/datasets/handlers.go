@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/castore"
 	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	"time"
 	// "github.com/qri-io/castore"
-	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"net/http"
 )
 
-func NewHandlers(store *ipfs_datastore.Datastore, r repo.Repo) *Handlers {
+func NewHandlers(store castore.Datastore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
 	h := Handlers{*req}
 	return &h
