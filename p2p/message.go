@@ -6,6 +6,8 @@ import (
 	"fmt"
 
 	net "github.com/libp2p/go-libp2p-net"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	// ma "github.com/multiformats/go-multiaddr"
 	multicodec "github.com/multiformats/go-multicodec"
 	json "github.com/multiformats/go-multicodec/json"
 )
@@ -14,12 +16,10 @@ type MsgType int
 
 const (
 	MtUnknown MsgType = iota
-	MtInfo
-	MtProfile
+	MtPeerInfo
+	MtDatasets
 	MtNamespaces
-	MtResources
-	MtQueries
-	MtMetadata
+	MtSearch
 )
 
 type MsgPhase int
@@ -80,13 +80,8 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 }
 
 // SendMessage to a given multiaddr
-func (qn *QriNode) SendMessage(multiaddr string, msg *Message) (res *Message, err error) {
-	peerid, err := qn.PeerIdForMultiaddr(multiaddr)
-	if err != nil {
-		return
-	}
-
-	s, err := qn.Host.NewStream(context.Background(), peerid, ProtocolId)
+func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, err error) {
+	s, err := qn.Host.NewStream(context.Background(), pi.ID, QriProtocolId)
 	if err != nil {
 		return
 	}
@@ -101,6 +96,15 @@ func (qn *QriNode) SendMessage(multiaddr string, msg *Message) (res *Message, er
 	}
 
 	return receiveMessage(wrappedStream)
+}
+
+// BroadcastMessage sends a message to all connected peers
+func (qn *QriNode) BroadcastMessage(msg *Message) (res *Message, err error) {
+	peers := qn.Peerstore.Peers()
+	for _, p := range peers {
+		qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+	}
+	return nil, fmt.Errorf("not finished: broadcast message")
 }
 
 // receiveMessage reads and decodes a message from the stream
@@ -138,14 +142,17 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 
 		if r.Phase == MpRequest {
 			switch r.Type {
-			case MtProfile:
-				res = n.handleProfileRequest(r)
+			case MtPeerInfo:
+				res = n.handlePeerInfoRequest(r)
+			case MtDatasets:
+				res = n.handleDatasetsRequest(r)
+			case MtSearch:
 			}
 		}
 
 		if res != nil {
 			if err := sendMessage(res, ws); err != nil {
-				fmt.Println(err)
+				fmt.Println("send message error", err)
 			}
 		}
 

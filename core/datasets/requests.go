@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	// "github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/castore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
@@ -34,33 +35,30 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
-	ns, err := d.repo.Namespace()
+	// ns, err := d.repo.Namespace()
+	// ds, err := repo.DatasetsQuery(d.repo, query.Query{
+	// 	Limit:  p.Limit,
+	// 	Offset: p.Offset,
+	// })
+	names, err := d.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
-	for name, key := range ns {
+
+	for name, path := range names {
 		if i >= p.Limit {
 			break
 		}
 
-		// v, err := d.store.Get(key)
-		// if err != nil {
-		// 	return err
-		// }
-		// // structure, err := dataset.UnmarshalStructure(v)
-		// _, err = dataset.UnmarshalStructure(v)
-		// if err != nil {
-		// 	return err
-		// }
-		ds, err := dataset.LoadDataset(d.store, key)
+		ds, err := dataset.LoadDataset(d.store, path)
 		if err != nil {
-			fmt.Println("error loading path:", key)
+			fmt.Println("error loading path:", path)
 			return err
 		}
 		replies[i] = &dataset.DatasetRef{
 			Name:    name,
-			Path:    key,
+			Path:    path,
 			Dataset: ds,
 		}
 		i++
@@ -93,17 +91,15 @@ type SaveParams struct {
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	key, err := ds.Save(r.store)
+	path, err := ds.Save(r.store)
 	if err != nil {
 		return err
 	}
 
-	ns, err := r.repo.Namespace()
-	if err != nil {
+	if err := r.repo.PutName(p.Name, path); err != nil {
 		return err
 	}
-	ns[p.Name] = key
-	if err := r.repo.SaveNamespace(ns); err != nil {
+	if err := r.repo.PutDataset(path, ds); err != nil {
 		return err
 	}
 
@@ -112,37 +108,45 @@ func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 }
 
 type DeleteParams struct {
-	Name string
 	Path datastore.Key
+	Name string
 }
 
 func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
+	// TODO - restore
+	// if p.Path.String() == "" {
+	// 	r.
+	// }
 	// TODO - unpin resource and data
 	// resource := p.Dataset.Resource
-	ns, err := r.repo.Namespace()
-	if err != nil {
-		return err
-	}
-	if p.Name == "" && p.Path.String() != "" {
-		for name, val := range ns {
-			if val.Equal(p.Path) {
-				p.Name = name
-			}
-		}
-	}
+	// npath, err := r.repo.GetPath(p.Name)
 
-	if p.Name == "" {
-		return fmt.Errorf("couldn't find dataset: %s", p.Path.String())
-	} else if ns[p.Name] == datastore.NewKey("") {
-		return fmt.Errorf("couldn't find dataset: %s", p.Name)
-	}
+	// err := r.repo.DeleteName(p.Name)
+	// ns, err := r.repo.Namespace()
+	// if err != nil {
+	// 	return err
+	// }
+	// if p.Name == "" && p.Path.String() != "" {
+	// 	for name, val := range ns {
+	// 		if val.Equal(p.Path) {
+	// 			p.Name = name
+	// 		}
+	// 	}
+	// }
 
-	delete(ns, p.Name)
-	if err := r.repo.SaveNamespace(ns); err != nil {
-		return err
-	}
-	*ok = true
-	return nil
+	// if p.Name == "" {
+	// 	return fmt.Errorf("couldn't find dataset: %s", p.Path.String())
+	// } else if ns[p.Name] == datastore.NewKey("") {
+	// 	return fmt.Errorf("couldn't find dataset: %s", p.Name)
+	// }
+
+	// delete(ns, p.Name)
+	// if err := r.repo.SaveNamespace(ns); err != nil {
+	// 	return err
+	// }
+	// *ok = true
+	// return nil
+	return fmt.Errorf("delete dataset not yet finished")
 }
 
 type StructuredDataParams struct {

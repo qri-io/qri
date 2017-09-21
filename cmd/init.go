@@ -50,7 +50,8 @@ var initCmd = &cobra.Command{
 		path, err := filepath.Abs(initFile)
 		ExitIfErr(err)
 
-		ns := LoadNamespaceGraph()
+		r := GetRepo()
+		// ns := LoadNamespaceGraph()
 		ds, err := GetIpfsDatastore()
 		ExitIfErr(err)
 
@@ -83,7 +84,7 @@ var initCmd = &cobra.Command{
 					ExitIfErr(err)
 
 					foundFiles[initName] = dspath
-					ns[initName] = dspath
+					r.PutName(initName, dspath)
 				}
 			}
 		} else {
@@ -144,14 +145,13 @@ var initCmd = &cobra.Command{
 
 			// Add to the namespace as the filename
 			// TODO - require this be a proper, no-space alphanumeric type thing
-			ns[initName] = dspath
+			// ns[initName] = dspath
+			err = r.PutName(initName, dspath)
+			ExitIfErr(err)
 
 			PrintSuccess("successfully initialized dataset %s: %s", initName, dspath)
 			// PrintDatasetDetailedInfo(ds)
 		}
-
-		err = SaveNamespaceGraph(ns)
-		ExitIfErr(err)
 	},
 }
 

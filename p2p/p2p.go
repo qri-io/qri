@@ -7,7 +7,7 @@ import (
 )
 
 // Protocol Identifier
-const ProtocolId = "/qri/0.0.1"
+const QriProtocolId = "/qri/0.0.1"
 
 func init() {
 	// LibP2P code uses golog to log messages. They log with different

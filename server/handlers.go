@@ -7,7 +7,7 @@ import (
 )
 
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	data, err := s.store.Get(datastore.NewKey(r.URL.Path))
+	data, err := s.qriNode.Store.Get(datastore.NewKey(r.URL.Path))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

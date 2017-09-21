@@ -5,17 +5,17 @@ import (
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/castore"
 	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	"time"
 	// "github.com/qri-io/castore"
-	"github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"net/http"
 )
 
-func NewHandlers(store *ipfs_datastore.Datastore, r repo.Repo) *Handlers {
+func NewHandlers(store castore.Datastore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
 	h := Handlers{*req}
 	return &h
@@ -151,11 +151,11 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		adr = detect.Camelize(r.FormValue("name"))
 	}
 
-	ns, err := h.repo.Namespace()
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
+	// ns, err := h.repo.Namespace()
+	// if err != nil {
+	// 	util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 
 	ds := &dataset.Dataset{
 		Timestamp: time.Now().In(time.UTC),
@@ -170,11 +170,21 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	ns[adr] = dskey
-	if err := h.repo.SaveNamespace(ns); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+	if err = h.repo.PutDataset(dskey, ds); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	if err = h.repo.PutName(adr, dskey); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	// ns[adr] = dskey
+	// if err := h.repo.SaveNamespace(ns); err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
+	// 	return
+	// }
 
 	util.WriteResponse(w, ds)
 }

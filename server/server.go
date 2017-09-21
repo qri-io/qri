@@ -3,8 +3,10 @@ package server
 import (
 	"fmt"
 	"github.com/datatogether/api/apiutil"
+	"github.com/qri-io/castore"
 	ipfs "github.com/qri-io/castore/ipfs"
 	"github.com/qri-io/qri/core/datasets"
+	"github.com/qri-io/qri/core/peers"
 	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"
 	"github.com/sirupsen/logrus"
@@ -18,7 +20,7 @@ type Server struct {
 	log *logrus.Logger
 
 	qriNode *p2p.QriNode
-	store   *ipfs.Datastore
+	// store   *ipfs.Datastore
 }
 
 func New(options ...func(*Config)) (*Server, error) {
@@ -50,9 +52,10 @@ func New(options ...func(*Config)) (*Server, error) {
 }
 
 // main app entry point
-func (s *Server) Serve() error {
+func (s *Server) Serve() (err error) {
+	var store castore.Datastore
 	if s.cfg.LocalIpfs {
-		store, err := ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
+		store, err = ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
 			cfg.Online = false
 			cfg.FsRepoPath = s.cfg.FsStorePath
 		})
@@ -62,10 +65,9 @@ func (s *Server) Serve() error {
 			}
 			return err
 		}
-		s.store = store
 	}
 
-	qriNode, err := p2p.NewQriNode(func(ncfg *p2p.NodeCfg) {
+	qriNode, err := p2p.NewQriNode(store, func(ncfg *p2p.NodeCfg) {
 		ncfg.RepoPath = s.cfg.QriRepoPath
 		ncfg.Online = s.cfg.Online
 	})
@@ -102,12 +104,16 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	dsh := datasets.NewHandlers(s.store, s.qriNode.Repo())
+	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 
-	qh := queries.NewHandlers(s.store, s.qriNode.Repo())
+	ph := peers.NewHandlers(s.qriNode.Repo)
+	m.Handle("/peers", s.middleware(ph.PeersHandler))
+	m.Handle("/peers/", s.middleware(ph.PeerHandler))
+
+	qh := queries.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m

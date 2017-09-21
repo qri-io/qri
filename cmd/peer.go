@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/qri/p2p"
+	// "github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 )
 
@@ -32,16 +32,17 @@ var peerMsgCommand = &cobra.Command{
 	Short: "message a peer node",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		addr := args[0]
-		node, err := p2p.NewQriNode()
-		ExitIfErr(err)
+		ErrExit(fmt.Errorf("message not finished"))
+		// addr := args[0]
+		// node, err := p2p.NewQriNode()
+		// ExitIfErr(err)
 
-		fmt.Println(node.EncapsulatedAddresses())
+		// fmt.Println(node.EncapsulatedAddresses())
 
-		res, err := node.SendMessage(addr, &p2p.Message{Type: p2p.MtUnknown, Payload: "PING"})
-		ExitIfErr(err)
+		// res, err := node.SendMessage(addr, &p2p.Message{Type: p2p.MtUnknown, Payload: "PING"})
+		// ExitIfErr(err)
 
-		fmt.Println(res)
+		// fmt.Println(res)
 	},
 }
 

@@ -30,13 +30,14 @@ type ListParams struct {
 }
 
 func (d *Requests) List(p *ListParams, res *dsgraph.QueryResults) error {
-	// TODO - is this right?
-	qr, err := d.repo.QueryResults()
-	if err != nil {
-		return err
-	}
-	*res = qr
-	return nil
+	// TODO - finish, need to restore query results graph
+	// qr, err := repo.DatasetsQuery(d.repo, query.Query{})
+	// qr, err := d.repo.QueryResults()
+	// if err != nil {
+	// 	return err
+	// }
+	// *res = qr
+	return fmt.Errorf("listing queries is not yet finished")
 }
 
 type GetParams struct {
@@ -65,10 +66,10 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 
 	ds.Timestamp = time.Now()
 
-	ns, err := r.repo.Namespace()
-	if err != nil {
-		return err
-	}
+	// ns, err := r.repo.Namespace()
+	// if err != nil {
+	// 	return err
+	// }
 
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
@@ -86,11 +87,16 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 		ds.Resources = map[string]*dataset.Dataset{}
 		// collect table references
 		for _, name := range names {
-			// for i, adr := range stmt.References() {
-			if ns[name].String() == "" {
-				return fmt.Errorf("couldn't find resource for table name: %s", name)
+			path, err := r.repo.GetPath(name)
+			if err != nil {
+				// return fmt.Errorf("couldn't find resource for table name: %s", name)
+				return err
 			}
-			d, err := dataset.LoadDataset(r.store, ns[name])
+			// for i, adr := range stmt.References() {
+			// if ns[name].String() == "" {
+			// 	return fmt.Errorf("couldn't find resource for table name: %s", name)
+			// }
+			d, err := dataset.LoadDataset(r.store, path)
 			if err != nil {
 				return err
 			}
@@ -112,10 +118,11 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 	// fmt.Printf("query hash: %s\n", dshash)
 	// dspath := datastore.NewKey("/ipfs/" + dshash)
 
-	rgraph, err := r.repo.QueryResults()
-	if err != nil {
-		return err
-	}
+	// TODO - restore query results graph
+	// rgraph, err := r.repo.QueryResults()
+	// if err != nil {
+	// 	return err
+	// }
 
 	// cache := rgraph[qpath]
 	// if len(cache) > 0 {
@@ -150,11 +157,11 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 		return err
 	}
 
-	rgraph.AddResult(dspath, dspath)
-	err = r.repo.SaveQueryResults(rgraph)
-	if err != nil {
-		return err
-	}
+	// rgraph.AddResult(dspath, dspath)
+	// err = r.repo.SaveQueryResults(rgraph)
+	// if err != nil {
+	// 	return err
+	// }
 
 	// rqgraph, err := r.repo.ResourceQueries()
 	// if err != nil {
