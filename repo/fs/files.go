@@ -44,6 +44,8 @@ const (
 	FileConfig
 	// FileDatasets holds the list of datasets
 	FileDatasets
+	//
+	FileNamestore
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
 	FilePeers
@@ -60,6 +62,7 @@ var paths = map[File]string{
 	FileProfile:   "/profile",
 	FileConfig:    "/config",
 	FileDatasets:  "/datasets",
+	FileNamestore: "/names",
 	FilePeers:     "/peers",
 	FileCache:     "/cache",
 	FileAnalytics: "/analytics",

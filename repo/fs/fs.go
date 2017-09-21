@@ -5,17 +5,15 @@ import (
 	"fmt"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
 )
 
-var ErrNotFinished = fmt.Errorf("not finished")
-
 type Repo struct {
 	basepath
 	DatasetStore
+	Namestore
 	analytics Analytics
 	peers     PeerStore
 	cache     DatasetStore
@@ -73,7 +71,7 @@ func (r *Repo) SaveProfile(p *profile.Profile) error {
 // 	return p, nil
 // }
 
-func (r *Repo) Peers() peers.Peers {
+func (r *Repo) Peers() repo.Peers {
 	return r.peers
 }
 

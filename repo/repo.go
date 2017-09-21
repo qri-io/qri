@@ -6,22 +6,23 @@ package repo
 import (
 	"fmt"
 	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/dataset"
-	// "github.com/qri-io/dataset"
-	// "github.com/qri-io/dataset/dsgraph"
-	// "github.com/ipfs/go-datastore"
-	// "github.com/qri-io/qri/repo/peer_repo"
 	"github.com/qri-io/analytics"
-	"github.com/qri-io/qri/repo/peers"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo/profile"
 )
 
-// Repo is the uniform interface of a qri repository
+var (
+	ErrNotFound = fmt.Errorf("repo: not found")
+)
+
+// Repo is the interface for working with a qri repository
 type Repo interface {
 	// The primary purpose of a qri repo is to serve as
 	// a store of datasets. The behaviour of the embedded
 	// DatasetStore will typically differ from the
 	DatasetStore
+	//
+	Namestore
 	// A repository must maintain profile information
 	// about the owner of this dataset
 	Profile() (*profile.Profile, error)
@@ -30,7 +31,7 @@ type Repo interface {
 	// A repository must maintain profile information
 	// about encountered peers. Decsisions regarding
 	// retentaion of peers is left to the the implementation
-	Peers() peers.Peers
+	Peers() Peers
 	// Cache keeps an ephemeral store of dataset information
 	// that may be purged at any moment
 	Cache() DatasetStore

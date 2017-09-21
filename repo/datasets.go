@@ -1,30 +1,31 @@
-package mem_repo
+package repo
 
 import (
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset"
 )
 
-type Datasets map[string]*dataset.Dataset
+type MemDatasets map[string]*dataset.Dataset
 
-func (d Datasets) PutDataset(path string, ds *dataset.Dataset) error {
+func (d MemDatasets) PutDataset(path string, ds *dataset.Dataset) error {
 	d[path] = ds
 	return nil
 }
 
-func (d Datasets) GetDataset(path string) (*dataset.Dataset, error) {
+func (d MemDatasets) GetDataset(path string) (*dataset.Dataset, error) {
 	if d[path] == nil {
 		return nil, datastore.ErrNotFound
 	}
 	return d[path], nil
 }
 
-func (d Datasets) DeleteDataset(path string) error {
+func (d MemDatasets) DeleteDataset(path string) error {
 	delete(d, path)
 	return nil
 }
 
-func (d Datasets) Query(query.Query) (query.Results, error) {
+func (d MemDatasets) Query(q query.Query) (query.Results, error) {
 	re := make([]query.Entry, 0, len(d))
 	for path, ds := range d {
 		re = append(re, query.Entry{Key: path, Value: ds})

@@ -44,7 +44,8 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 		fmt.Println(err.Error())
 		return err
 	}
-	for name, key := range ns {
+
+	for name, dataset := range ds {
 		if i >= p.Limit {
 			break
 		}
@@ -58,11 +59,12 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 		// if err != nil {
 		// 	return err
 		// }
-		ds, err := dataset.LoadDataset(d.store, key)
-		if err != nil {
-			fmt.Println("error loading path:", key)
-			return err
-		}
+
+		// ds, err := dataset.LoadDataset(d.store, key)
+		// if err != nil {
+		// 	fmt.Println("error loading path:", key)
+		// 	return err
+		// }
 		replies[i] = &dataset.DatasetRef{
 			Name:    name,
 			Path:    key,

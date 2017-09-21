@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/peers"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -28,7 +27,7 @@ func (d *Requests) List(p *ListParams, res *[]*profile.Profile) error {
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0
 
-	ps, err := peers.QueryPeers(d.repo.Peers(), query.Query{})
+	ps, err := repo.QueryPeers(d.repo.Peers(), query.Query{})
 	if err != nil {
 		fmt.Println(err.Error())
 		return err

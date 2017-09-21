@@ -1,4 +1,4 @@
-package peers
+package repo
 
 import (
 	"fmt"
