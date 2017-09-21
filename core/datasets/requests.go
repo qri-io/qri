@@ -40,7 +40,7 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 	// 	Limit:  p.Limit,
 	// 	Offset: p.Offset,
 	// })
-	names, err := d.repo.Names(p.Limit, p.Offset)
+	names, err := d.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err

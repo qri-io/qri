@@ -65,7 +65,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	if p.Limit == 0 {
 		p.Limit = 50
 	}
-	names, err := n.Repo.Names(p.Limit, p.Offset)
+	names, err := n.Repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		fmt.Println("repo names error:", err)
 		return nil

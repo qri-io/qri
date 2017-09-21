@@ -38,9 +38,10 @@ var runCmd = &cobra.Command{
 			structure *dataset.Structure
 			results   []byte
 		)
-		rgraph := LoadQueryResultsGraph()
+		// rgraph := LoadQueryResultsGraph()
 		// rqgraph := LoadResourceQueriesGraph()
-		ns := LoadNamespaceGraph()
+		// ns := LoadNamespaceGraph()
+		r := GetRepo()
 
 		store, err := GetIpfsDatastore()
 		ExitIfErr(err)
@@ -61,10 +62,13 @@ var runCmd = &cobra.Command{
 		// collect table references
 		for mapped, ref := range remap {
 			// for i, adr := range stmt.References() {
-			if ns[ref].String() == "" {
-				ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
-			}
-			d, err := dataset.LoadDataset(store, ns[ref])
+			// if ns[ref].String() == "" {
+			// 	ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
+			// }
+			path, err := r.GetPath(ref)
+			ExitIfErr(err)
+
+			d, err := dataset.LoadDataset(store, path)
 			if err != nil {
 				ErrExit(err)
 			}
@@ -108,9 +112,12 @@ var runCmd = &cobra.Command{
 		dspath, err := ds.Save(store)
 		ExitIfErr(err)
 
-		rgraph.AddResult(dspath, dspath)
-		err = SaveQueryResultsGraph(rgraph)
+		err = r.PutDataset(dspath, ds)
 		ExitIfErr(err)
+
+		// rgraph.AddResult(dspath, dspath)
+		// err = SaveQueryResultsGraph(rgraph)
+		// ExitIfErr(err)
 
 		// TODO - restore
 		// rqgraph, err := r.repo.ResourceQueries()

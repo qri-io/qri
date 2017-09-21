@@ -16,11 +16,10 @@ package cmd
 
 import (
 	"fmt"
-	"strings"
-
-	"github.com/ipfs/go-datastore"
-	ipfs "github.com/qri-io/castore/ipfs"
-	"github.com/qri-io/dataset"
+	// "strings"
+	// "github.com/ipfs/go-datastore"
+	// ipfs "github.com/qri-io/castore/ipfs"
+	// "github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 
@@ -35,39 +34,40 @@ var queriesCmd = &cobra.Command{
 			fmt.Println("please specify a dataset to get the info of")
 			return
 		}
+		PrintNotYetFinished(cmd)
 
-		ds, err := ipfs.NewDatastore()
-		ExitIfErr(err)
+		// ds, err := ipfs.NewDatastore()
+		// ExitIfErr(err)
 
-		path := datastore.NewKey(args[0])
-		ns := LoadNamespaceGraph()
+		// path := datastore.NewKey(args[0])
+		// ns := LoadNamespaceGraph()
 
-		for n, resource := range ns {
-			if args[0] == n {
-				path = resource
-				break
-			}
-		}
+		// for n, resource := range ns {
+		// 	if args[0] == n {
+		// 		path = resource
+		// 		break
+		// 	}
+		// }
 
-		rqg := LoadResourceQueriesGraph()
-		for p, res := range rqg {
-			if p.Equal(path) {
-				for i, q := range res {
-					iface, err := ds.Get(q)
-					ExitIfErr(err)
-					q, err := dataset.UnmarshalQuery(iface)
-					ExitIfErr(err)
-					s := q.Statement
-					spaces := ""
-					if len(s) > 40 {
-						s = s[:40]
-					} else {
-						spaces = strings.Repeat(" ", 40-len(s))
-					}
-					fmt.Printf("%d. %s%s%s\n", i+1, s, spaces, path.String())
-				}
-			}
-		}
+		// rqg := LoadResourceQueriesGraph()
+		// for p, res := range rqg {
+		// 	if p.Equal(path) {
+		// 		for i, q := range res {
+		// 			iface, err := ds.Get(q)
+		// 			ExitIfErr(err)
+		// 			q, err := dataset.UnmarshalQuery(iface)
+		// 			ExitIfErr(err)
+		// 			s := q.Statement
+		// 			spaces := ""
+		// 			if len(s) > 40 {
+		// 				s = s[:40]
+		// 			} else {
+		// 				spaces = strings.Repeat(" ", 40-len(s))
+		// 			}
+		// 			fmt.Printf("%d. %s%s%s\n", i+1, s, spaces, path.String())
+		// 		}
+		// 	}
+		// }
 	},
 }
 

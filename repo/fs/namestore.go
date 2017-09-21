@@ -55,7 +55,7 @@ func (n Namestore) DeleteName(name string) error {
 	return n.saveFile(names, FileNamestore)
 }
 
-func (n Namestore) Names(limit, offset int) (map[string]datastore.Key, error) {
+func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error) {
 	names, err := n.names()
 	if err != nil {
 		return nil, err

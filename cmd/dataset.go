@@ -17,7 +17,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
@@ -35,7 +34,8 @@ var datasetListCmd = &cobra.Command{
 	Short: "list your local datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		ns := LoadNamespaceGraph()
+		ns, err := GetRepo().Namespace(0, 100)
+		ExitIfErr(err)
 		for name, resource := range ns {
 			PrintInfo("%s\t\t: %s", name, resource.String())
 		}
@@ -47,15 +47,20 @@ var datasetInfoCmd = &cobra.Command{
 	Short: "get information about a dataset",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) != 0 {
+			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
+		}
 		ds, err := GetIpfsDatastore()
 		ExitIfErr(err)
 
-		ns := LoadNamespaceGraph()
+		path, err := GetRepo().GetPath(args[0])
+		ExitIfErr(err)
 
-		path := datastore.NewKey(args[0])
-		if ns[args[0]].String() != "" {
-			path = ns[args[0]]
-		}
+		// ns := LoadNamespaceGraph()
+		// path := datastore.NewKey(args[0])
+		// if ns[args[0]].String() != "" {
+		// 	path = ns[args[0]]
+		// }
 
 		d, err := dataset.LoadDataset(ds, path)
 		ExitIfErr(err)
@@ -75,13 +80,16 @@ var datasetAddCmd = &cobra.Command{
 		if len(args) != 2 {
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name] [resource hash]"))
 		}
-		ns := LoadNamespaceGraph()
+		PrintNotYetFinished(cmd)
+		// ns := LoadNamespaceGraph()
 
 		// TODO - valid resource check
 
-		ns[args[0]] = datastore.NewKey(args[1])
-		err := SaveNamespaceGraph(ns)
-		ExitIfErr(err)
+		// ns[args[0]] = datastore.NewKey(args[1])
+		// repo := GetRepo()
+		// repo.AddDataset()
+		// err := SaveNamespaceGraph(ns)
+		// ExitIfErr(err)
 	},
 }
 
@@ -93,10 +101,11 @@ var datasetRemoveCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name]"))
 		}
-		ns := LoadNamespaceGraph()
-		delete(ns, args[0])
-		err := SaveNamespaceGraph(ns)
-		ExitIfErr(err)
+		PrintNotYetFinished(cmd)
+		// ns := LoadNamespaceGraph()
+		// delete(ns, args[0])
+		// err := SaveNamespaceGraph(ns)
+		// ExitIfErr(err)
 	},
 }
 
