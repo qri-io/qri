@@ -145,13 +145,13 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 	ds.Structure = structure
 	ds.Length = len(results)
 
-	ds.Data, err = r.store.Put(results)
+	ds.Data, err = r.store.Put(results, false)
 	if err != nil {
 		fmt.Println("error putting results in store:", err)
 		return err
 	}
 
-	dspath, err := ds.Save(r.store)
+	dspath, err := ds.Save(r.store, false)
 	if err != nil {
 		fmt.Println("error putting dataset in store:", err)
 		return err

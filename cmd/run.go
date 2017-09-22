@@ -106,10 +106,10 @@ var runCmd = &cobra.Command{
 		ds.Structure = structure
 		ds.Length = len(results)
 
-		ds.Data, err = store.Put(results)
+		ds.Data, err = store.Put(results, false)
 		ExitIfErr(err)
 
-		dspath, err := ds.Save(store)
+		dspath, err := ds.Save(store, false)
 		ExitIfErr(err)
 
 		err = r.PutDataset(dspath, ds)

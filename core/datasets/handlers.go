@@ -140,7 +140,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	datakey, err := h.store.Put(data)
+	datakey, err := h.store.Put(data, true)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -164,7 +164,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		Structure: st,
 	}
 
-	dskey, err := ds.Save(h.store)
+	dskey, err := ds.Save(h.store, true)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

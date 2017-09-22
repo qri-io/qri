@@ -91,7 +91,7 @@ type SaveParams struct {
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	path, err := ds.Save(r.store)
+	path, err := ds.Save(r.store, true)
 	if err != nil {
 		return err
 	}
