@@ -4,7 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/dataset/writers"
@@ -161,16 +163,20 @@ type StructuredData struct {
 }
 
 func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
-	var raw []byte
+	var (
+		file files.File
+		d    []byte
+	)
 	ds, err := dataset.LoadDataset(r.store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	if p.All {
-		raw, err = ds.LoadData(r.store)
+		file, err = ds.LoadData(r.store)
 	} else {
-		raw, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		file = memfile.NewMemfileBytes("data", d)
 	}
 
 	if err != nil {
@@ -178,7 +184,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 	}
 
 	w := writers.NewJsonWriter(ds.Structure, false)
-	load.EachRow(ds.Structure, raw, func(i int, row [][]byte, err error) error {
+	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
 		}
