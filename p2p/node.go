@@ -3,12 +3,11 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"github.com/qri-io/castore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	host "github.com/libp2p/go-libp2p-host"
-	// net "github.com/libp2p/go-libp2p-net"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	swarm "github.com/libp2p/go-libp2p-swarm"
@@ -30,12 +29,12 @@ type QriNode struct {
 	Peerstore pstore.Peerstore // storage for other Peer instances
 
 	Repo  repo.Repo
-	Store castore.Datastore
+	Store cafs.Filestore
 }
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(store castore.Datastore, options ...func(o *NodeCfg)) (*QriNode, error) {
+func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, error) {
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)

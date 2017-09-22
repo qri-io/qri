@@ -43,7 +43,7 @@ var runCmd = &cobra.Command{
 		// ns := LoadNamespaceGraph()
 		r := GetRepo()
 
-		store, err := GetIpfsDatastore()
+		store, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
 		// TODO - make format output the parsed statement as well

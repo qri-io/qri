@@ -5,17 +5,16 @@ import (
 	"encoding/json"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/castore"
-	"github.com/qri-io/qri/repo"
-	"io/ioutil"
-	"time"
-	// "github.com/qri-io/castore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/qri/repo"
+	"io/ioutil"
 	"net/http"
+	"time"
 )
 
-func NewHandlers(store castore.Datastore, r repo.Repo) *Handlers {
+func NewHandlers(store cafs.Filestore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
 	h := Handlers{*req}
 	return &h
@@ -67,7 +66,7 @@ func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request)
 
 func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
-	res := []*dataset.DatasetRef{}
+	res := []*repo.DatasetRef{}
 	args := &ListParams{
 		Limit:   p.Limit(),
 		Offset:  p.Offset(),

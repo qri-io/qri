@@ -6,6 +6,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	"os"
 )
@@ -28,7 +29,7 @@ func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	return r.saveFile(d, r.file)
 }
 
-func (r Datasets) PutDatasets(datasets []*dataset.DatasetRef) error {
+func (r Datasets) PutDatasets(datasets []*repo.DatasetRef) error {
 	ds, err := r.datasets()
 	if err != nil {
 		return err

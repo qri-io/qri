@@ -4,14 +4,13 @@ import (
 	"encoding/json"
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/castore"
-	"github.com/qri-io/qri/repo"
-	// "github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/repo"
 	"net/http"
 )
 
-func NewHandlers(store castore.Datastore, r repo.Repo) *Handlers {
+func NewHandlers(store cafs.Filestore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
 	return &Handlers{*req}
 }
@@ -91,7 +90,7 @@ func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	res := &dataset.DatasetRef{}
+	res := &repo.DatasetRef{}
 	if err := h.Run(ds, res); err != nil {
 		fmt.Println("err:")
 		fmt.Println(err.Error())

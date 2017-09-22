@@ -4,15 +4,14 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	// "github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/castore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/dataset/writers"
 	"github.com/qri-io/qri/repo"
 )
 
-func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
+func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
 	return &Requests{
 		store: store,
 		repo:  r,
@@ -20,7 +19,7 @@ func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
 }
 
 type Requests struct {
-	store castore.Datastore
+	store cafs.Filestore
 	repo  repo.Repo
 }
 
@@ -30,8 +29,8 @@ type ListParams struct {
 	Offset  int
 }
 
-func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
-	replies := make([]*dataset.DatasetRef, p.Limit)
+func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	replies := make([]*repo.DatasetRef, p.Limit)
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
@@ -56,7 +55,7 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 			fmt.Println("error loading path:", path)
 			return err
 		}
-		replies[i] = &dataset.DatasetRef{
+		replies[i] = &repo.DatasetRef{
 			Name:    name,
 			Path:    path,
 			Dataset: ds,

@@ -50,7 +50,7 @@ var datasetInfoCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
 		}
-		ds, err := GetIpfsDatastore()
+		ds, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
 		path, err := GetRepo().GetPath(args[0])

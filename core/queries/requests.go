@@ -3,7 +3,7 @@ package queries
 import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/castore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
@@ -11,7 +11,7 @@ import (
 	"time"
 )
 
-func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
+func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
 	return &Requests{
 		store: store,
 		repo:  r,
@@ -19,7 +19,7 @@ func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
 }
 
 type Requests struct {
-	store castore.Datastore
+	store cafs.Filestore
 	repo  repo.Repo
 }
 
@@ -57,7 +57,7 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	return nil
 }
 
-func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
+func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 	var (
 		structure *dataset.Structure
 		results   []byte
@@ -183,7 +183,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 		return err
 	}
 
-	*res = dataset.DatasetRef{
+	*res = repo.DatasetRef{
 		Dataset: lds,
 		Path:    dspath,
 	}
