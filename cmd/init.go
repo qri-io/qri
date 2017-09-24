@@ -17,6 +17,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -80,7 +81,7 @@ var initCmd = &cobra.Command{
 						Data:      datakey,
 					}
 
-					dspath, err := d.Save(ds, true)
+					dspath, err := dsfs.SaveDataset(ds, d, true)
 					ExitIfErr(err)
 
 					foundFiles[initName] = dspath
@@ -140,7 +141,7 @@ var initCmd = &cobra.Command{
 			d.Data = datakey
 			d.Length = int(file.Size())
 
-			dspath, err := d.Save(ds, true)
+			dspath, err := dsfs.SaveDataset(ds, d, true)
 			ExitIfErr(err)
 
 			// Add to the namespace as the filename

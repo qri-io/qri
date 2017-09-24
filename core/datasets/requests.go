@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/dataset/writers"
 	"github.com/qri-io/qri/repo"
@@ -52,7 +53,7 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 			break
 		}
 
-		ds, err := dataset.LoadDataset(d.store, path)
+		ds, err := dsfs.LoadDataset(d.store, path)
 		if err != nil {
 			fmt.Println("error loading path:", path)
 			return err
@@ -75,7 +76,7 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	ds, err := dataset.LoadDataset(d.store, p.Path)
+	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return err
 	}
@@ -92,7 +93,7 @@ type SaveParams struct {
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	path, err := ds.Save(r.store, true)
+	path, err := dsfs.SaveDataset(r.store, ds, true)
 	if err != nil {
 		return err
 	}
@@ -167,13 +168,13 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		file files.File
 		d    []byte
 	)
-	ds, err := dataset.LoadDataset(r.store, p.Path)
+	ds, err := dsfs.LoadDataset(r.store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	if p.All {
-		file, err = ds.LoadData(r.store)
+		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
 		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
 		file = memfile.NewMemfileBytes("data", d)

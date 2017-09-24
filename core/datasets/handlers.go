@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	"net/http"
@@ -164,7 +165,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		Structure: st,
 	}
 
-	dskey, err := ds.Save(h.store, true)
+	dskey, err := dsfs.SaveDataset(h.store, ds, true)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

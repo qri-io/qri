@@ -17,6 +17,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"time"
 
@@ -69,7 +70,7 @@ var runCmd = &cobra.Command{
 			path, err := r.GetPath(ref)
 			ExitIfErr(err)
 
-			d, err := dataset.LoadDataset(store, path)
+			d, err := dsfs.LoadDataset(store, path)
 			if err != nil {
 				ErrExit(err)
 			}
@@ -109,7 +110,7 @@ var runCmd = &cobra.Command{
 		ds.Data, err = store.Put(memfile.NewMemfileBytes("data", results), false)
 		ExitIfErr(err)
 
-		dspath, err := ds.Save(store, false)
+		dspath, err := dsfs.SaveDataset(store, ds, false)
 		ExitIfErr(err)
 
 		err = r.PutDataset(dspath, ds)

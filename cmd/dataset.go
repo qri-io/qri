@@ -17,7 +17,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/spf13/cobra"
 )
 
@@ -62,7 +62,7 @@ var datasetInfoCmd = &cobra.Command{
 		// 	path = ns[args[0]]
 		// }
 
-		d, err := dataset.LoadDataset(ds, path)
+		d, err := dsfs.LoadDataset(ds, path)
 		ExitIfErr(err)
 
 		out, err := json.MarshalIndent(d, "", "  ")

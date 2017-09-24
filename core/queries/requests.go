@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/qri/repo"
@@ -49,7 +50,7 @@ type GetParams struct {
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	// TODO - huh? do we even need to load queries
-	q, err := dataset.LoadDataset(d.store, datastore.NewKey(p.Path))
+	q, err := dsfs.LoadDataset(d.store, datastore.NewKey(p.Path))
 	if err != nil {
 		return err
 	}
@@ -97,7 +98,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 			// if ns[name].String() == "" {
 			// 	return fmt.Errorf("couldn't find resource for table name: %s", name)
 			// }
-			d, err := dataset.LoadDataset(r.store, path)
+			d, err := dsfs.LoadDataset(r.store, path)
 			if err != nil {
 				return err
 			}
@@ -152,7 +153,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 		return err
 	}
 
-	dspath, err := ds.Save(r.store, false)
+	dspath, err := dsfs.SaveDataset(r.store, ds, false)
 	if err != nil {
 		fmt.Println("error putting dataset in store:", err)
 		return err
@@ -179,7 +180,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 	// }
 
 	// TODO - need to re-load dataset here to get a dereferenced version
-	lds, err := dataset.LoadDataset(r.store, dspath)
+	lds, err := dsfs.LoadDataset(r.store, dspath)
 	if err != nil {
 		return err
 	}

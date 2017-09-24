@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -78,7 +78,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		if i >= p.Limit {
 			break
 		}
-		ds, err := dataset.LoadDataset(n.Store, path)
+		ds, err := dsfs.LoadDataset(n.Store, path)
 		if err != nil {
 			fmt.Println("error loading dataset at path:", path)
 			return nil
