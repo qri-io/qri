@@ -150,7 +150,7 @@ var initCmd = &cobra.Command{
 			err = r.PutName(initName, dspath)
 			ExitIfErr(err)
 
-			PrintSuccess("successfully initialized dataset %s: %s", initName, dspath)
+			PrintSuccess("initialized dataset %s: %s", initName, dspath)
 			// PrintDatasetDetailedInfo(ds)
 		}
 	},

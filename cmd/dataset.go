@@ -101,11 +101,19 @@ var datasetRemoveCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name]"))
 		}
-		PrintNotYetFinished(cmd)
-		// ns := LoadNamespaceGraph()
-		// delete(ns, args[0])
-		// err := SaveNamespaceGraph(ns)
-		// ExitIfErr(err)
+		name := args[0]
+
+		r := GetRepo()
+		path, err := r.GetPath(name)
+		ExitIfErr(err)
+
+		err = r.DeleteDataset(path)
+		ExitIfErr(err)
+
+		r.DeleteName(name)
+		ExitIfErr(err)
+
+		PrintSuccess("removed dataset %s: %s", name, path)
 	},
 }
 
