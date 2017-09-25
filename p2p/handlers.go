@@ -42,7 +42,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	// pinfo.Profile = p
 	// peers[pi.ID.Pretty()] = pinfo
-	// fmt.Println("added peer:", pi.ID.Pretty())
+	fmt.Println("added peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
@@ -93,7 +93,6 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	}
 
 	replies = replies[:i]
-
 	return &Message{
 		Type:    MtDatasets,
 		Phase:   MpResponse,
@@ -122,14 +121,15 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	// pinfo.Namespace = ns
 	// peers[pi.ID.Pretty()] = pinfo
 	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
-	fmt.Println(ds)
+	// fmt.Println(ds)
 
 	return n.Repo.Cache().PutDatasets(ds)
 }
 
-func (qn *QriNode) Search(terms string, limit, offset int) (res *Message, err error) {
+func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRef, err error) {
 	responses, err := qn.BroadcastMessage(&Message{
 		Phase: MpRequest,
+		Type:  MtSearch,
 		Payload: &SearchParams{
 			Query:  terms,
 			Limit:  limit,
@@ -139,8 +139,23 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res *Message, err er
 	if err != nil {
 		return nil, err
 	}
-	fmt.Println(responses)
-	return nil, nil
+
+	// fmt.Println(responses)
+	datasets := []*repo.DatasetRef{}
+
+	for _, r := range responses {
+		data, err := json.Marshal(r.Payload)
+		if err != nil {
+			return datasets, err
+		}
+		ds := []*repo.DatasetRef{}
+		if err := json.Unmarshal(data, &ds); err != nil {
+			return datasets, err
+		}
+		datasets = append(datasets, ds...)
+	}
+
+	return datasets, nil
 }
 
 type SearchParams struct {
@@ -160,7 +175,6 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		fmt.Println("unmarshal search request error:", err.Error())
 		return nil
 	}
-	fmt.Println("search request", p)
 
 	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	return &Message{

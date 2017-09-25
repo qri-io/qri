@@ -105,6 +105,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	reschan := make(chan Message, 4)
 	done := make(chan bool, 0)
 	timer := time.NewTimer(time.Second * 6)
+	nodeId := qn.Host.ID()
 
 	go func() {
 		defer func() {
@@ -125,20 +126,21 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	}()
 
 	tasks := len(peers)
-	if tasks == 0 {
+	if tasks == 1 && peers[0] == nodeId {
 		close(reschan)
 		return nil, fmt.Errorf("no peers connected")
 	}
 
 	fmt.Printf("broadcasting message to %d peers\n", tasks)
-
 	for _, p := range peers {
 		go func() {
-			r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
-			if e != nil {
-				fmt.Errorf(e.Error())
-			} else {
-				reschan <- *r
+			if p != nodeId {
+				r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+				if e != nil {
+					fmt.Errorf(e.Error())
+				} else {
+					reschan <- *r
+				}
 			}
 
 			tasks--
@@ -164,6 +166,10 @@ func receiveMessage(ws *WrappedStream) (*Message, error) {
 
 // // sendMessage encodes and writes a message to the stream
 func sendMessage(msg *Message, ws *WrappedStream) error {
+	if msg.Type == MtUnknown {
+		return fmt.Errorf("message type is required to send a message")
+	}
+
 	err := ws.enc.Encode(msg)
 	// Because output is buffered with bufio, we need to flush!
 	ws.w.Flush()

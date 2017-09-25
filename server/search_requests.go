@@ -1,7 +1,6 @@
 package server
 
 import (
-	"fmt"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/p2p"
@@ -30,14 +29,12 @@ type SearchParams struct {
 
 func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error {
 	if d.node != nil {
-		msg, err := d.node.Search(p.Query, p.Limit, p.Offset)
+		r, err := d.node.Search(p.Query, p.Limit, p.Offset)
 		if err != nil {
 			return err
 		}
 
-		fmt.Println(msg)
-
-		*res = []*repo.DatasetRef{}
+		*res = r
 		return nil
 	}
 
