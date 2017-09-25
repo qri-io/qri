@@ -46,6 +46,7 @@ type GetParams struct {
 	Path string
 	Name string
 	Hash string
+	Save string
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
@@ -159,34 +160,14 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 		return err
 	}
 
-	// rgraph.AddResult(dspath, dspath)
-	// err = r.repo.SaveQueryResults(rgraph)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// rqgraph, err := r.repo.ResourceQueries()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// TODO - restore
-	// for _, key := range ds.Resources {
-	// 	rqgraph.AddQuery(key, dspath)
-	// }
-	// err = r.repo.SaveResourceQueries(rqgraph)
-	// if err != nil {
-	// 	return err
-	// }
-
 	// TODO - need to re-load dataset here to get a dereferenced version
-	lds, err := dsfs.LoadDataset(r.store, dspath)
-	if err != nil {
-		return err
-	}
+	// lds, err := dsfs.LoadDataset(r.store, dspath)
+	// if err != nil {
+	// 	return err
+	// }
 
 	*res = repo.DatasetRef{
-		Dataset: lds,
+		Dataset: ds,
 		Path:    dspath,
 	}
 	return nil
