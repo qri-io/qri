@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"time"
 
 	net "github.com/libp2p/go-libp2p-net"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -99,12 +100,46 @@ func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, 
 }
 
 // BroadcastMessage sends a message to all connected peers
-func (qn *QriNode) BroadcastMessage(msg *Message) (res *Message, err error) {
+func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	peers := qn.Peerstore.Peers()
+	reschan := make(chan Message, 4)
+	done := make(chan bool, 0)
+	timer := time.NewTimer(time.Second * 6)
+
+	go func() {
+		for {
+			select {
+			case r, ok := <-reschan:
+				if !ok {
+					break
+				}
+				res = append(res, &r)
+			case <-timer.C:
+				break
+			}
+		}
+		done <- true
+	}()
+
+	tasks := len(peers)
 	for _, p := range peers {
-		qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+		go func() {
+			r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+			if e != nil {
+				fmt.Errorf(e.Error())
+				return
+			}
+			reschan <- *r
+
+			tasks--
+			if tasks == 0 {
+				close(reschan)
+			}
+		}()
 	}
-	return nil, fmt.Errorf("not finished: broadcast message")
+
+	<-done
+	return
 }
 
 // receiveMessage reads and decodes a message from the stream
@@ -147,6 +182,7 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 			case MtDatasets:
 				res = n.handleDatasetsRequest(r)
 			case MtSearch:
+				res = n.handleSearchRequest(r)
 			}
 		}
 

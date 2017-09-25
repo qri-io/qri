@@ -16,10 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/core/search"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 // searchCmd represents the search command
@@ -32,50 +30,18 @@ var searchCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
 		}
 
-		q := strings.ToLower(args[0])
-		limit := 30
-		results := make([]*repo.DatasetRef, limit)
-		r := GetRepo()
-
-		store, err := GetIpfsFilestore()
+		fs, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
-		ns, err := r.Namespace(1000, 0)
+		results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
 		ExitIfErr(err)
-		i := 0
 
-		for name, path := range ns {
-			if i == limit {
-				break
-			}
-
-			ds, err := dsfs.LoadDataset(store, path)
-			if err != nil {
-				PrintWarning("skipped dataset: %s", name, err.Error())
-			}
-
-			if strings.Contains(strings.ToLower(name), q) ||
-				strings.Contains(strings.ToLower(ds.Title), q) ||
-				strings.Contains(strings.ToLower(ds.Description), q) {
-
-				ref := &repo.DatasetRef{
-					Name:    name,
-					Path:    path,
-					Dataset: ds,
-				}
-				results[i] = ref
-				i++
-
-			}
-		}
-
-		results = results[:i]
 		if len(results) > 0 {
 			for i, ds := range results {
 				PrintDatasetRefInfo(i+1, ds)
 			}
 		} else {
-			PrintInfo("no results.")
+			PrintWarning("no results")
 		}
 	},
 }
@@ -83,3 +49,39 @@ var searchCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(searchCmd)
 }
+
+// q := strings.ToLower(args[0])
+// limit := 30
+// results := make([]*repo.DatasetRef, limit)
+// r := GetRepo()
+
+// store, err := GetIpfsFilestore()
+// ExitIfErr(err)
+
+// ns, err := r.Namespace(1000, 0)
+// ExitIfErr(err)
+// i := 0
+
+// for name, path := range ns {
+// 	if i == limit {
+// 		break
+// 	}
+
+// 	ds, err := dsfs.LoadDataset(store, path)
+// 	if err != nil {
+// 		PrintWarning("skipped dataset: %s", name, err.Error())
+// 	}
+
+// 	if strings.Contains(strings.ToLower(name), q) ||
+// 		strings.Contains(strings.ToLower(ds.Title), q) ||
+// 		strings.Contains(strings.ToLower(ds.Description), q) {
+
+// 		ref := &repo.DatasetRef{
+// 			Name:    name,
+// 			Path:    path,
+// 			Dataset: ds,
+// 		}
+// 		results[i] = ref
+// 		i++
+// 	}
+// }

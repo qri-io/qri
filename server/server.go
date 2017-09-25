@@ -113,6 +113,9 @@ func (s *Server) NewServerRoutes() *http.ServeMux {
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
+	sh := NewSearchHandlers(s.qriNode.Store, s.qriNode.Repo, s.qriNode)
+	m.Handle("/search", s.middleware(sh.SearchHandler))
+
 	qh := queries.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/run", s.middleware(qh.RunHandler))
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -120,4 +121,50 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	// peers[pi.ID.Pretty()] = pinfo
 	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
 	return n.Repo.Cache().PutDatasets(ds)
+}
+
+func (qn *QriNode) Search(terms string, limit, offset int) (res *Message, err error) {
+	responses, err := qn.BroadcastMessage(&Message{
+		Phase: MpRequest,
+		Payload: &SearchParams{
+			Query:  terms,
+			Limit:  limit,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+	fmt.Println(responses)
+	return nil, fmt.Errorf("not finished")
+}
+
+type SearchParams struct {
+	Query  string
+	Limit  int
+	Offset int
+}
+
+func (n *QriNode) handleSearchRequest(r *Message) *Message {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+	p := &SearchParams{}
+	if err := json.Unmarshal(data, p); err != nil {
+		fmt.Println("unmarshal search request error:", err.Error())
+		return nil
+	}
+
+	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
+	return &Message{
+		Phase:   MpResponse,
+		Type:    MtSearch,
+		Payload: results,
+	}
+}
+
+func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
+	return fmt.Errorf("not yet finished")
 }
