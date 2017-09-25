@@ -40,9 +40,7 @@ var runCmd = &cobra.Command{
 			structure *dataset.Structure
 			results   []byte
 		)
-		// rgraph := LoadQueryResultsGraph()
-		// rqgraph := LoadResourceQueriesGraph()
-		// ns := LoadNamespaceGraph()
+
 		r := GetRepo()
 
 		store, err := GetIpfsFilestore()
@@ -110,11 +108,21 @@ var runCmd = &cobra.Command{
 		ds.Data, err = store.Put(memfile.NewMemfileBytes("data", results), false)
 		ExitIfErr(err)
 
-		dspath, err := dsfs.SaveDataset(store, ds, false)
+		name, err := cmd.Flags().GetString("name")
+		ExitIfErr(err)
+
+		pin := name != ""
+
+		dspath, err := dsfs.SaveDataset(store, ds, pin)
 		ExitIfErr(err)
 
 		err = r.PutDataset(dspath, ds)
 		ExitIfErr(err)
+
+		if name != "" {
+			err = r.PutName(name, dspath)
+			ExitIfErr(err)
+		}
 
 		// rgraph.AddResult(dspath, dspath)
 		// err = SaveQueryResultsGraph(rgraph)
@@ -149,4 +157,5 @@ func init() {
 	// runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
 	runCmd.Flags().StringP("output", "o", "", "file to write to")
 	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
+	runCmd.Flags().StringP("name", "n", "", "save output to local repository with given name")
 }

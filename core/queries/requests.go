@@ -60,12 +60,24 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	return nil
 }
 
-func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
+type RunParams struct {
+	// embed all execution options
+	sql.ExecOpt
+	SaveName string
+	Dataset  *dataset.Dataset
+}
+
+func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 	var (
 		structure *dataset.Structure
 		results   []byte
 		err       error
+		ds        = p.Dataset
 	)
+
+	if ds == nil {
+		return fmt.Errorf("dataset is required")
+	}
 
 	ds.Timestamp = time.Now()
 
@@ -154,10 +166,19 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 		return err
 	}
 
-	dspath, err := dsfs.SaveDataset(r.store, ds, false)
+	pin := p.SaveName != ""
+
+	dspath, err := dsfs.SaveDataset(r.store, ds, pin)
 	if err != nil {
 		fmt.Println("error putting dataset in store:", err)
 		return err
+	}
+
+	if p.SaveName != "" {
+		if err := r.repo.PutName(p.SaveName, dspath); err != nil {
+			fmt.Println("error saving dataset name:", err)
+			return err
+		}
 	}
 
 	// TODO - need to re-load dataset here to get a dereferenced version
@@ -168,6 +189,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 
 	*res = repo.DatasetRef{
 		Dataset: ds,
+		Name:    p.SaveName,
 		Path:    dspath,
 	}
 	return nil
