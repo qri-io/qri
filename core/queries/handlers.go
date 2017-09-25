@@ -90,8 +90,24 @@ func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	format := r.FormValue("format")
+	if format == "" {
+		format = "csv"
+	}
+	df, err := dataset.ParseDataFormatString(format)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	p := &RunParams{
+		SaveName: r.FormValue("name"),
+		Dataset:  ds,
+	}
+	p.Format = df
+
 	res := &repo.DatasetRef{}
-	if err := h.Run(ds, res); err != nil {
+	if err := h.Run(p, res); err != nil {
 		fmt.Println("err:")
 		fmt.Println(err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
