@@ -17,6 +17,7 @@ package cmd
 import (
 	"flag"
 	"fmt"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -52,7 +53,7 @@ var initCmd = &cobra.Command{
 
 		r := GetRepo()
 		// ns := LoadNamespaceGraph()
-		ds, err := GetIpfsDatastore()
+		ds, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
 		if initRescursive {
@@ -69,7 +70,7 @@ var initCmd = &cobra.Command{
 					// Add to the namespace as the filename
 					// TODO - require this be a proper, no-space alphanumeric type thing
 
-					datahash, err := ds.AddAndPinPath(filepath.Join(path, fi.Name()))
+					datahash, err := ds.AddPath(filepath.Join(path, fi.Name()), true)
 					ExitIfErr(err)
 					datakey := datastore.NewKey("/ipfs/" + datahash)
 
@@ -80,7 +81,7 @@ var initCmd = &cobra.Command{
 						Data:      datakey,
 					}
 
-					dspath, err := d.Save(ds)
+					dspath, err := dsfs.SaveDataset(ds, d, true)
 					ExitIfErr(err)
 
 					foundFiles[initName] = dspath
@@ -109,7 +110,7 @@ var initCmd = &cobra.Command{
 			st, err := detect.FromFile(path)
 			ExitIfErr(err)
 
-			datahash, err := ds.AddAndPinPath(path)
+			datahash, err := ds.AddPath(path, true)
 			ExitIfErr(err)
 			datakey := datastore.NewKey("/ipfs/" + datahash)
 
@@ -140,7 +141,7 @@ var initCmd = &cobra.Command{
 			d.Data = datakey
 			d.Length = int(file.Size())
 
-			dspath, err := d.Save(ds)
+			dspath, err := dsfs.SaveDataset(ds, d, true)
 			ExitIfErr(err)
 
 			// Add to the namespace as the filename
@@ -149,7 +150,7 @@ var initCmd = &cobra.Command{
 			err = r.PutName(initName, dspath)
 			ExitIfErr(err)
 
-			PrintSuccess("successfully initialized dataset %s: %s", initName, dspath)
+			PrintSuccess("initialized dataset %s: %s", initName, dspath)
 			// PrintDatasetDetailedInfo(ds)
 		}
 	},

@@ -3,8 +3,8 @@ package server
 import (
 	"fmt"
 	"github.com/datatogether/api/apiutil"
-	"github.com/qri-io/castore"
-	ipfs "github.com/qri-io/castore/ipfs"
+	"github.com/qri-io/cafs"
+	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/peers"
 	"github.com/qri-io/qri/core/queries"
@@ -20,7 +20,7 @@ type Server struct {
 	log *logrus.Logger
 
 	qriNode *p2p.QriNode
-	// store   *ipfs.Datastore
+	// store   *ipfs.Filestore
 }
 
 func New(options ...func(*Config)) (*Server, error) {
@@ -53,9 +53,9 @@ func New(options ...func(*Config)) (*Server, error) {
 
 // main app entry point
 func (s *Server) Serve() (err error) {
-	var store castore.Datastore
+	var store cafs.Filestore
 	if s.cfg.LocalIpfs {
-		store, err = ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
+		store, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 			cfg.Online = false
 			cfg.FsRepoPath = s.cfg.FsStorePath
 		})

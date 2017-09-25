@@ -17,7 +17,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/spf13/cobra"
 )
 
@@ -50,7 +50,7 @@ var datasetInfoCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
 		}
-		ds, err := GetIpfsDatastore()
+		ds, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
 		path, err := GetRepo().GetPath(args[0])
@@ -62,7 +62,7 @@ var datasetInfoCmd = &cobra.Command{
 		// 	path = ns[args[0]]
 		// }
 
-		d, err := dataset.LoadDataset(ds, path)
+		d, err := dsfs.LoadDataset(ds, path)
 		ExitIfErr(err)
 
 		out, err := json.MarshalIndent(d, "", "  ")
@@ -101,11 +101,19 @@ var datasetRemoveCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name]"))
 		}
-		PrintNotYetFinished(cmd)
-		// ns := LoadNamespaceGraph()
-		// delete(ns, args[0])
-		// err := SaveNamespaceGraph(ns)
-		// ExitIfErr(err)
+		name := args[0]
+
+		r := GetRepo()
+		path, err := r.GetPath(name)
+		ExitIfErr(err)
+
+		err = r.DeleteDataset(path)
+		ExitIfErr(err)
+
+		r.DeleteName(name)
+		ExitIfErr(err)
+
+		PrintSuccess("removed dataset %s: %s", name, path)
 	},
 }
 

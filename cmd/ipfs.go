@@ -1,12 +1,12 @@
 package cmd
 
 import (
-	ipfs "github.com/qri-io/castore/ipfs"
+	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/spf13/viper"
 )
 
-func GetIpfsDatastore() (*ipfs.Datastore, error) {
-	return ipfs.NewDatastore(func(cfg *ipfs.StoreCfg) {
+func GetIpfsFilestore() (*ipfs.Filestore, error) {
+	return ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
 	})
 }

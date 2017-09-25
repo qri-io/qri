@@ -4,15 +4,17 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	// "github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/castore"
+	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/dataset/writers"
 	"github.com/qri-io/qri/repo"
 )
 
-func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
+func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
 	return &Requests{
 		store: store,
 		repo:  r,
@@ -20,7 +22,7 @@ func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
 }
 
 type Requests struct {
-	store castore.Datastore
+	store cafs.Filestore
 	repo  repo.Repo
 }
 
@@ -30,8 +32,8 @@ type ListParams struct {
 	Offset  int
 }
 
-func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
-	replies := make([]*dataset.DatasetRef, p.Limit)
+func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	replies := make([]*repo.DatasetRef, p.Limit)
 	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
@@ -51,12 +53,12 @@ func (d *Requests) List(p *ListParams, res *[]*dataset.DatasetRef) error {
 			break
 		}
 
-		ds, err := dataset.LoadDataset(d.store, path)
+		ds, err := dsfs.LoadDataset(d.store, path)
 		if err != nil {
 			fmt.Println("error loading path:", path)
 			return err
 		}
-		replies[i] = &dataset.DatasetRef{
+		replies[i] = &repo.DatasetRef{
 			Name:    name,
 			Path:    path,
 			Dataset: ds,
@@ -74,7 +76,7 @@ type GetParams struct {
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
-	ds, err := dataset.LoadDataset(d.store, p.Path)
+	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return err
 	}
@@ -91,7 +93,7 @@ type SaveParams struct {
 func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	path, err := ds.Save(r.store)
+	path, err := dsfs.SaveDataset(r.store, ds, true)
 	if err != nil {
 		return err
 	}
@@ -162,16 +164,20 @@ type StructuredData struct {
 }
 
 func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
-	var raw []byte
-	ds, err := dataset.LoadDataset(r.store, p.Path)
+	var (
+		file files.File
+		d    []byte
+	)
+	ds, err := dsfs.LoadDataset(r.store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	if p.All {
-		raw, err = ds.LoadData(r.store)
+		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
-		raw, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		file = memfile.NewMemfileBytes("data", d)
 	}
 
 	if err != nil {
@@ -179,7 +185,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 	}
 
 	w := writers.NewJsonWriter(ds.Structure, false)
-	load.EachRow(ds.Structure, raw, func(i int, row [][]byte, err error) error {
+	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
 		}

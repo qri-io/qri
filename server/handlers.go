@@ -3,17 +3,18 @@ package server
 import (
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	"io"
 	"net/http"
 )
 
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	data, err := s.qriNode.Store.Get(datastore.NewKey(r.URL.Path))
+	file, err := s.qriNode.Store.Get(datastore.NewKey(r.URL.Path))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	w.Write(data)
+	io.Copy(w, file)
 }
 
 // WebappHandler renders the home page

@@ -16,10 +16,6 @@ package cmd
 
 import (
 	"fmt"
-	// "strings"
-	// "github.com/ipfs/go-datastore"
-	// ipfs "github.com/qri-io/castore/ipfs"
-	// "github.com/qri-io/dataset"
 	"github.com/spf13/cobra"
 )
 

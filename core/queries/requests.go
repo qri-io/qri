@@ -3,15 +3,17 @@ package queries
 import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/castore"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/cafs/memfile"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/qri/repo"
 	"time"
 )
 
-func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
+func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
 	return &Requests{
 		store: store,
 		repo:  r,
@@ -19,7 +21,7 @@ func NewRequests(store castore.Datastore, r repo.Repo) *Requests {
 }
 
 type Requests struct {
-	store castore.Datastore
+	store cafs.Filestore
 	repo  repo.Repo
 }
 
@@ -44,11 +46,12 @@ type GetParams struct {
 	Path string
 	Name string
 	Hash string
+	Save string
 }
 
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	// TODO - huh? do we even need to load queries
-	q, err := dataset.LoadDataset(d.store, datastore.NewKey(p.Path))
+	q, err := dsfs.LoadDataset(d.store, datastore.NewKey(p.Path))
 	if err != nil {
 		return err
 	}
@@ -57,7 +60,7 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	return nil
 }
 
-func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
+func (r *Requests) Run(ds *dataset.Dataset, res *repo.DatasetRef) error {
 	var (
 		structure *dataset.Structure
 		results   []byte
@@ -96,7 +99,7 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 			// if ns[name].String() == "" {
 			// 	return fmt.Errorf("couldn't find resource for table name: %s", name)
 			// }
-			d, err := dataset.LoadDataset(r.store, path)
+			d, err := dsfs.LoadDataset(r.store, path)
 			if err != nil {
 				return err
 			}
@@ -145,46 +148,26 @@ func (r *Requests) Run(ds *dataset.Dataset, res *dataset.DatasetRef) error {
 	ds.Structure = structure
 	ds.Length = len(results)
 
-	ds.Data, err = r.store.Put(results)
+	ds.Data, err = r.store.Put(memfile.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
 		fmt.Println("error putting results in store:", err)
 		return err
 	}
 
-	dspath, err := ds.Save(r.store)
+	dspath, err := dsfs.SaveDataset(r.store, ds, false)
 	if err != nil {
 		fmt.Println("error putting dataset in store:", err)
 		return err
 	}
 
-	// rgraph.AddResult(dspath, dspath)
-	// err = r.repo.SaveQueryResults(rgraph)
-	// if err != nil {
-	// 	return err
-	// }
-
-	// rqgraph, err := r.repo.ResourceQueries()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// TODO - restore
-	// for _, key := range ds.Resources {
-	// 	rqgraph.AddQuery(key, dspath)
-	// }
-	// err = r.repo.SaveResourceQueries(rqgraph)
-	// if err != nil {
-	// 	return err
-	// }
-
 	// TODO - need to re-load dataset here to get a dereferenced version
-	lds, err := dataset.LoadDataset(r.store, dspath)
-	if err != nil {
-		return err
-	}
+	// lds, err := dsfs.LoadDataset(r.store, dspath)
+	// if err != nil {
+	// 	return err
+	// }
 
-	*res = dataset.DatasetRef{
-		Dataset: lds,
+	*res = repo.DatasetRef{
+		Dataset: ds,
 		Path:    dspath,
 	}
 	return nil

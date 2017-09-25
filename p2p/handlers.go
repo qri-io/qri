@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -71,18 +72,18 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		return nil
 	}
 
-	replies := make([]*dataset.DatasetRef, p.Limit)
+	replies := make([]*repo.DatasetRef, p.Limit)
 	i := 0
 	for name, path := range names {
 		if i >= p.Limit {
 			break
 		}
-		ds, err := dataset.LoadDataset(n.Store, path)
+		ds, err := dsfs.LoadDataset(n.Store, path)
 		if err != nil {
 			fmt.Println("error loading dataset at path:", path)
 			return nil
 		}
-		replies[i] = &dataset.DatasetRef{
+		replies[i] = &repo.DatasetRef{
 			Name:    name,
 			Path:    path,
 			Dataset: ds,
@@ -111,7 +112,7 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	if err != nil {
 		return err
 	}
-	ds := []*dataset.DatasetRef{}
+	ds := []*repo.DatasetRef{}
 	if err := json.Unmarshal(data, &ds); err != nil {
 		return err
 	}

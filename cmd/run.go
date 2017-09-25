@@ -16,6 +16,8 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"time"
 
@@ -43,7 +45,7 @@ var runCmd = &cobra.Command{
 		// ns := LoadNamespaceGraph()
 		r := GetRepo()
 
-		store, err := GetIpfsDatastore()
+		store, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
 		// TODO - make format output the parsed statement as well
@@ -68,7 +70,7 @@ var runCmd = &cobra.Command{
 			path, err := r.GetPath(ref)
 			ExitIfErr(err)
 
-			d, err := dataset.LoadDataset(store, path)
+			d, err := dsfs.LoadDataset(store, path)
 			if err != nil {
 				ErrExit(err)
 			}
@@ -105,11 +107,10 @@ var runCmd = &cobra.Command{
 		// TODO - move this into setting on the dataset outparam
 		ds.Structure = structure
 		ds.Length = len(results)
-
-		ds.Data, err = store.Put(results)
+		ds.Data, err = store.Put(memfile.NewMemfileBytes("data", results), false)
 		ExitIfErr(err)
 
-		dspath, err := ds.Save(store)
+		dspath, err := dsfs.SaveDataset(store, ds, false)
 		ExitIfErr(err)
 
 		err = r.PutDataset(dspath, ds)

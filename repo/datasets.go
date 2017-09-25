@@ -13,7 +13,7 @@ func (d MemDatasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	return nil
 }
 
-func (d MemDatasets) PutDatasets(datasets []*dataset.DatasetRef) error {
+func (d MemDatasets) PutDatasets(datasets []*DatasetRef) error {
 	for _, ds := range datasets {
 		ps := ds.Path.String()
 		if ps != "" {
