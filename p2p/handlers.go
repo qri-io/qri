@@ -5,6 +5,7 @@ import (
 	"fmt"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -41,7 +42,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	// pinfo.Profile = p
 	// peers[pi.ID.Pretty()] = pinfo
-	// fmt.Println("added peer:", pi.ID.Pretty())
+	fmt.Println("added peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
@@ -91,6 +92,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		i++
 	}
 
+	replies = replies[:i]
 	return &Message{
 		Type:    MtDatasets,
 		Phase:   MpResponse,
@@ -119,5 +121,69 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	// pinfo.Namespace = ns
 	// peers[pi.ID.Pretty()] = pinfo
 	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
+	// fmt.Println(ds)
+
 	return n.Repo.Cache().PutDatasets(ds)
+}
+
+func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRef, err error) {
+	responses, err := qn.BroadcastMessage(&Message{
+		Phase: MpRequest,
+		Type:  MtSearch,
+		Payload: &SearchParams{
+			Query:  terms,
+			Limit:  limit,
+			Offset: offset,
+		},
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	// fmt.Println(responses)
+	datasets := []*repo.DatasetRef{}
+
+	for _, r := range responses {
+		data, err := json.Marshal(r.Payload)
+		if err != nil {
+			return datasets, err
+		}
+		ds := []*repo.DatasetRef{}
+		if err := json.Unmarshal(data, &ds); err != nil {
+			return datasets, err
+		}
+		datasets = append(datasets, ds...)
+	}
+
+	return datasets, nil
+}
+
+type SearchParams struct {
+	Query  string
+	Limit  int
+	Offset int
+}
+
+func (n *QriNode) handleSearchRequest(r *Message) *Message {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
+	p := &SearchParams{}
+	if err := json.Unmarshal(data, p); err != nil {
+		fmt.Println("unmarshal search request error:", err.Error())
+		return nil
+	}
+
+	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
+	return &Message{
+		Phase:   MpResponse,
+		Type:    MtSearch,
+		Payload: results,
+	}
+}
+
+func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
+	return fmt.Errorf("not yet finished")
 }

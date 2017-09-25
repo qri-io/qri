@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"context"
 	"fmt"
+	"time"
 
 	net "github.com/libp2p/go-libp2p-net"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
@@ -99,12 +100,58 @@ func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, 
 }
 
 // BroadcastMessage sends a message to all connected peers
-func (qn *QriNode) BroadcastMessage(msg *Message) (res *Message, err error) {
+func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	peers := qn.Peerstore.Peers()
-	for _, p := range peers {
-		qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+	reschan := make(chan Message, 4)
+	done := make(chan bool, 0)
+	timer := time.NewTimer(time.Second * 6)
+	nodeId := qn.Host.ID()
+
+	go func() {
+		defer func() {
+			done <- true
+		}()
+		for {
+			select {
+			case r, ok := <-reschan:
+				if !ok {
+					return
+				}
+				res = append(res, &r)
+			case <-timer.C:
+				fmt.Println("timeout")
+				return
+			}
+		}
+	}()
+
+	tasks := len(peers)
+	if tasks == 1 && peers[0] == nodeId {
+		close(reschan)
+		return nil, fmt.Errorf("no peers connected")
 	}
-	return nil, fmt.Errorf("not finished: broadcast message")
+
+	fmt.Printf("broadcasting message to %d peers\n", tasks)
+	for _, p := range peers {
+		go func() {
+			if p != nodeId {
+				r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+				if e != nil {
+					fmt.Errorf(e.Error())
+				} else {
+					reschan <- *r
+				}
+			}
+
+			tasks--
+			if tasks == 0 {
+				close(reschan)
+			}
+		}()
+	}
+
+	<-done
+	return
 }
 
 // receiveMessage reads and decodes a message from the stream
@@ -119,6 +166,10 @@ func receiveMessage(ws *WrappedStream) (*Message, error) {
 
 // // sendMessage encodes and writes a message to the stream
 func sendMessage(msg *Message, ws *WrappedStream) error {
+	if msg.Type == MtUnknown {
+		return fmt.Errorf("message type is required to send a message")
+	}
+
 	err := ws.enc.Encode(msg)
 	// Because output is buffered with bufio, we need to flush!
 	ws.w.Flush()
@@ -147,6 +198,7 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 			case MtDatasets:
 				res = n.handleDatasetsRequest(r)
 			case MtSearch:
+				res = n.handleSearchRequest(r)
 			}
 		}
 

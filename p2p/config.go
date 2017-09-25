@@ -21,7 +21,7 @@ type NodeCfg struct {
 
 	// Bring-Your-Own Qri Repo...
 	Repo repo.Repo
-	// Or supply a filepath to one
+	// ... Or supply a filepath to one
 	RepoPath string
 
 	// default port to bind tcp listener to

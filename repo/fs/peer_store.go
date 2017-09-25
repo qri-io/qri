@@ -20,7 +20,7 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	ps[id] = p
+	ps[id.String()] = p
 	return r.saveFile(ps, FilePeers)
 }
 
@@ -29,8 +29,9 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
+	ids := id.String()
 	for p, d := range ps {
-		if id == p {
+		if ids == p {
 			return d, nil
 		}
 	}
@@ -43,7 +44,7 @@ func (r PeerStore) DeletePeer(id peer.ID) error {
 	if err != nil {
 		return err
 	}
-	delete(ps, id)
+	delete(ps, id.String())
 	return r.saveFile(ps, FilePeers)
 }
 
@@ -55,15 +56,15 @@ func (r PeerStore) Query(q query.Query) (query.Results, error) {
 
 	re := make([]query.Entry, 0, len(ps))
 	for id, peer := range ps {
-		re = append(re, query.Entry{Key: id.String(), Value: peer})
+		re = append(re, query.Entry{Key: id, Value: peer})
 	}
 	res := query.ResultsWithEntries(q, re)
 	res = query.NaiveQueryApply(q, res)
 	return res, nil
 }
 
-func (r *PeerStore) peers() (map[peer.ID]*profile.Profile, error) {
-	ps := map[peer.ID]*profile.Profile{}
+func (r *PeerStore) peers() (map[string]*profile.Profile, error) {
+	ps := map[string]*profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
 		if os.IsNotExist(err) {

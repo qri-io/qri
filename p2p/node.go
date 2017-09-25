@@ -35,6 +35,10 @@ type QriNode struct {
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
 func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, error) {
+	if store == nil {
+		return nil, fmt.Errorf("need a store to create a qri node")
+	}
+
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)

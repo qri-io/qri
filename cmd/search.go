@@ -15,6 +15,8 @@
 package cmd
 
 import (
+	"fmt"
+	"github.com/qri-io/qri/core/search"
 	"github.com/spf13/cobra"
 )
 
@@ -24,47 +26,64 @@ var searchCmd = &cobra.Command{
 	Short: "Search for datasets",
 	Long:  `Search looks through all of your namespaces for terms that match your query`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// var q string
-		// if len(args) > 0 {
-		// 	q = args[0]
-		// }
+		if len(args) != 1 {
+			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
+		}
 
-		// namespaces := GetNamespaces(cmd, args)
-		// // tasks := len(namespaces)
-		// // done := make(chan int)
-		// for _, ns := range namespaces {
-		// 	PrintNamespace(ns)
-		// 	// go func(done chan int) {
-		// 	if s, ok := ns.(namespace.SearchableNamespace); ok {
-		// 		results, err := namespace.ReadAllDatasets(s.Search(q, -1, 0))
-		// 		if err != nil {
-		// 			PrintErr(err)
-		// 		} else {
-		// 			if len(results) > 0 {
-		// 				for i, ds := range results {
-		// 					PrintDatasetShortInfo(i+1, ds)
-		// 				}
-		// 			} else {
-		// 				PrintInfo("no results.")
-		// 			}
-		// 		}
-		// 		fmt.Println()
-		// 	} else {
-		// 		PrintWarning("namspace %s doesn't support searching", ns.String())
-		// 	}
-		// 	// 	done <- i
-		// 	// }(done)
-		// }
-		// // for {
-		// // 	<-done
-		// // 	tasks -= 1
-		// // 	if tasks == 0 {
-		// // 		return
-		// // 	}
-		// // }
+		PrintWarning("CLI search only supports searching local datasets for now")
+
+		fs, err := GetIpfsFilestore()
+		ExitIfErr(err)
+
+		results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
+		ExitIfErr(err)
+
+		if len(results) > 0 {
+			for i, ds := range results {
+				PrintDatasetRefInfo(i+1, ds)
+			}
+		} else {
+			PrintWarning("no results")
+		}
 	},
 }
 
 func init() {
-	// RootCmd.AddCommand(searchCmd)
+	RootCmd.AddCommand(searchCmd)
 }
+
+// q := strings.ToLower(args[0])
+// limit := 30
+// results := make([]*repo.DatasetRef, limit)
+// r := GetRepo()
+
+// store, err := GetIpfsFilestore()
+// ExitIfErr(err)
+
+// ns, err := r.Namespace(1000, 0)
+// ExitIfErr(err)
+// i := 0
+
+// for name, path := range ns {
+// 	if i == limit {
+// 		break
+// 	}
+
+// 	ds, err := dsfs.LoadDataset(store, path)
+// 	if err != nil {
+// 		PrintWarning("skipped dataset: %s", name, err.Error())
+// 	}
+
+// 	if strings.Contains(strings.ToLower(name), q) ||
+// 		strings.Contains(strings.ToLower(ds.Title), q) ||
+// 		strings.Contains(strings.ToLower(ds.Description), q) {
+
+// 		ref := &repo.DatasetRef{
+// 			Name:    name,
+// 			Path:    path,
+// 			Dataset: ds,
+// 		}
+// 		results[i] = ref
+// 		i++
+// 	}
+// }

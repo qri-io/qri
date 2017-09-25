@@ -14,7 +14,7 @@ type MemRepo struct {
 	analytics analytics.Analytics
 }
 
-func NewRepo(p *profile.Profile, ps Peers, a analytics.Analytics) (Repo, error) {
+func NewMemRepo(p *profile.Profile, ps Peers, a analytics.Analytics) (Repo, error) {
 	return &MemRepo{
 		MemDatasets:  MemDatasets{},
 		MemNamestore: MemNamestore{},
