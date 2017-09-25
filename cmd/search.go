@@ -30,6 +30,8 @@ var searchCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
 		}
 
+		PrintWarning("CLI search only supports searching local datasets for now")
+
 		fs, err := GetIpfsFilestore()
 		ExitIfErr(err)
 

@@ -92,6 +92,8 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		i++
 	}
 
+	replies = replies[:i]
+
 	return &Message{
 		Type:    MtDatasets,
 		Phase:   MpResponse,
@@ -120,6 +122,8 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	// pinfo.Namespace = ns
 	// peers[pi.ID.Pretty()] = pinfo
 	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
+	fmt.Println(ds)
+
 	return n.Repo.Cache().PutDatasets(ds)
 }
 
@@ -136,7 +140,7 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res *Message, err er
 		return nil, err
 	}
 	fmt.Println(responses)
-	return nil, fmt.Errorf("not finished")
+	return nil, nil
 }
 
 type SearchParams struct {
@@ -156,6 +160,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		fmt.Println("unmarshal search request error:", err.Error())
 		return nil
 	}
+	fmt.Println("search request", p)
 
 	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	return &Message{

@@ -107,29 +107,39 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	timer := time.NewTimer(time.Second * 6)
 
 	go func() {
+		defer func() {
+			done <- true
+		}()
 		for {
 			select {
 			case r, ok := <-reschan:
 				if !ok {
-					break
+					return
 				}
 				res = append(res, &r)
 			case <-timer.C:
-				break
+				fmt.Println("timeout")
+				return
 			}
 		}
-		done <- true
 	}()
 
 	tasks := len(peers)
+	if tasks == 0 {
+		close(reschan)
+		return nil, fmt.Errorf("no peers connected")
+	}
+
+	fmt.Printf("broadcasting message to %d peers\n", tasks)
+
 	for _, p := range peers {
 		go func() {
 			r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
 			if e != nil {
 				fmt.Errorf(e.Error())
-				return
+			} else {
+				reschan <- *r
 			}
-			reschan <- *r
 
 			tasks--
 			if tasks == 0 {

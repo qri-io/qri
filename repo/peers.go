@@ -49,27 +49,27 @@ func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
 	return peers, nil
 }
 
-// Memstore is an in-memory implementation of the Peers interface
-type Memstore map[peer.ID]*profile.Profile
+// MemPeers is an in-memory implementation of the Peers interface
+type MemPeers map[peer.ID]*profile.Profile
 
-func (m Memstore) PutPeer(id peer.ID, profile *profile.Profile) error {
+func (m MemPeers) PutPeer(id peer.ID, profile *profile.Profile) error {
 	m[id] = profile
 	return nil
 }
 
-func (m Memstore) GetPeer(id peer.ID) (*profile.Profile, error) {
+func (m MemPeers) GetPeer(id peer.ID) (*profile.Profile, error) {
 	if m[id] == nil {
 		return nil, datastore.ErrNotFound
 	}
 	return m[id], nil
 }
 
-func (m Memstore) DeletePeer(id peer.ID) error {
+func (m MemPeers) DeletePeer(id peer.ID) error {
 	delete(m, id)
 	return nil
 }
 
-func (m Memstore) Query(q query.Query) (query.Results, error) {
+func (m MemPeers) Query(q query.Query) (query.Results, error) {
 	re := make([]query.Entry, 0, len(m))
 	for id, v := range m {
 		re = append(re, query.Entry{Key: id.String(), Value: v})

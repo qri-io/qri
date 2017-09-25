@@ -17,7 +17,6 @@ func DefaultConfig() *Config {
 		Port:        "8080",
 		QriRepoPath: "~/qri",
 		FsStorePath: "~/.ipfs",
-		LocalIpfs:   true,
 		Online:      true,
 	}
 }
@@ -58,8 +57,8 @@ type Config struct {
 	// token for analytics tracking
 	AnalyticsToken string
 
-	// set to false to disable local IPFS connection
-	LocalIpfs bool
+	// set to true to run entire server with in-memory structures
+	MemOnly bool
 
 	// disable networking
 	Online bool

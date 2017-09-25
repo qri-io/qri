@@ -3,12 +3,15 @@ package server
 import (
 	"fmt"
 	"github.com/datatogether/api/apiutil"
+	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/peers"
 	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -54,7 +57,21 @@ func New(options ...func(*Config)) (*Server, error) {
 // main app entry point
 func (s *Server) Serve() (err error) {
 	var store cafs.Filestore
-	if s.cfg.LocalIpfs {
+	var qrepo repo.Repo
+
+	if s.cfg.MemOnly {
+		store = cafs.NewMapstore()
+		// TODO - refine
+		qrepo, err = repo.NewMemRepo(
+			&profile.Profile{
+				Username: "mem user",
+			},
+			repo.MemPeers{},
+			&analytics.Memstore{})
+		if err != nil {
+			return err
+		}
+	} else {
 		store, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 			cfg.Online = false
 			cfg.FsRepoPath = s.cfg.FsStorePath
@@ -68,6 +85,7 @@ func (s *Server) Serve() (err error) {
 	}
 
 	qriNode, err := p2p.NewQriNode(store, func(ncfg *p2p.NodeCfg) {
+		ncfg.Repo = qrepo
 		ncfg.RepoPath = s.cfg.QriRepoPath
 		ncfg.Online = s.cfg.Online
 	})
