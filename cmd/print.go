@@ -5,6 +5,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
+	"github.com/qri-io/qri/repo"
 	"os"
 	"time"
 
@@ -59,27 +60,43 @@ func PrintNotYetFinished(cmd *cobra.Command) {
 // 	}
 // }
 
-// func PrintDatasetShortInfo(i int, ds *dataset.Dataset) {
-// 	white := color.New(color.FgWhite).SprintFunc()
-// 	cyan := color.New(color.FgCyan).SprintFunc()
-// 	blue := color.New(color.FgBlue).SprintFunc()
-// 	fmt.Printf("%s\tdataset: %s\n", cyan(i), white(ds.Title))
-// 	fmt.Printf("\tdescription: %s\n", white(ds.Description))
+func PrintDatasetRefInfo(i int, ref *repo.DatasetRef) {
+	white := color.New(color.FgWhite).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	ds := ref.Dataset
 
-// 	fmt.Println("\tfields:")
-// 	fmt.Printf("\t\t")
-// 	for _, f := range ds.Fields {
-// 		fmt.Printf("%s|%s\t", cyan(f.Name), blue(f.Type.String()))
-// 	}
-// 	fmt.Println()
-// 	// table := tablewriter.NewWriter(os.Stdout)
-// 	// table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-// 	// table.SetCenterSeparator("")
-// 	// table.Append(ds.FieldNames())
-// 	// table.Append(ds.FieldTypeStrings())
-// 	// table.Render()
-// 	// fmt.Println()
-// }
+	fmt.Printf("%s  %s\n", cyan(i), white(ref.Name))
+	fmt.Printf("    %s\n", blue(ref.Path))
+	if ds.Title != "" {
+		fmt.Printf("    %s\n", white(ds.Title))
+	}
+
+	if ds.Description != "" {
+		if len(ds.Description) > 77 {
+			fmt.Printf("    %s...\n", white(ds.Description[:77]))
+		} else {
+			fmt.Printf("    %s\n", white(ds.Description))
+		}
+	}
+
+	fmt.Println()
+
+	// fmt.Println("\tfields:")
+	// fmt.Printf("\t\t")
+	// for _, f := range ds.Fields {
+	// 	fmt.Printf("%s|%s\t", cyan(f.Name), blue(f.Type.String()))
+	// }
+	// fmt.Println()
+
+	// table := tablewriter.NewWriter(os.Stdout)
+	// table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
+	// table.SetCenterSeparator("")
+	// table.Append(ds.FieldNames())
+	// table.Append(ds.FieldTypeStrings())
+	// table.Render()
+	// fmt.Println()
+}
 
 // func PrintDatasetDetailedInfo(ds *dataset.Dataset) {
 // 	fmt.Println("")
