@@ -15,11 +15,16 @@
 package cmd
 
 import (
+	"archive/zip"
+	"encoding/json"
 	"fmt"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -44,22 +49,107 @@ var exportCmd = &cobra.Command{
 		store, err := GetIpfsFilestore()
 		ExitIfErr(err)
 
-		ds, err := FindDataset(args[0])
+		ds, err := FindDataset(r, store, args[0])
 		ExitIfErr(err)
 
-		file, err := dsfs.LoadDatasetData(store, ds)
-		ExitIfErr(err)
+		if cmd.Flag("data-only").Value.String() == "true" {
+			src, err := dsfs.LoadDatasetData(store, ds)
+			ExitIfErr(err)
 
-		os.Open(path)
+			dst, err := os.Create(fmt.Sprintf("%s.%s", path, ds.Structure.Format.String()))
+			ExitIfErr(err)
 
-		ioutil.WriteFile(o, data, perm)
+			_, err = io.Copy(dst, src)
+			ExitIfErr(err)
+
+			err = dst.Close()
+			ExitIfErr(err)
+			return
+		}
+
+		if cmd.Flag("zip").Value.String() == "true" {
+			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
+			ExitIfErr(err)
+
+			err = writePackage(store, ds, dst)
+			ExitIfErr(err)
+			err = dst.Close()
+			ExitIfErr(err)
+			return
+		}
+
+		writeDir(store, ds, path)
 	},
+}
+
+// TODO - move this somewhere more useful, like that defunct dataset subpackage
+func writePackage(store cafs.Filestore, ds *dataset.Dataset, w io.Writer) error {
+	zw := zip.NewWriter(w)
+
+	dsf, err := zw.Create(dsfs.PackageFileDataset.String())
+	if err != nil {
+		return err
+	}
+	dsdata, err := json.MarshalIndent(ds, "", "  ")
+	if err != nil {
+		return err
+	}
+	_, err = dsf.Write(dsdata)
+	if err != nil {
+		return err
+	}
+
+	datadst, err := zw.Create(fmt.Sprintf("data.%s", ds.Structure.Format.String()))
+	if err != nil {
+		return err
+	}
+
+	datasrc, err := dsfs.LoadDatasetData(store, ds)
+	if err != nil {
+		return err
+	}
+
+	if _, err = io.Copy(datadst, datasrc); err != nil {
+		return err
+	}
+
+	return zw.Close()
+}
+
+func writeDir(store cafs.Filestore, ds *dataset.Dataset, path string) error {
+	if err := os.MkdirAll(path, os.ModePerm); err != nil {
+		return err
+	}
+
+	dsdata, err := json.MarshalIndent(ds, "", "  ")
+	if err != nil {
+		return err
+	}
+	err = ioutil.WriteFile(filepath.Join(path, dsfs.PackageFileDataset.String()), dsdata, os.ModePerm)
+	if err != nil {
+		return err
+	}
+
+	datasrc, err := dsfs.LoadDatasetData(store, ds)
+	if err != nil {
+		return err
+	}
+
+	datadst, err := os.Create(filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format.String())))
+	if err != nil {
+		return err
+	}
+	if _, err = io.Copy(datadst, datasrc); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func init() {
 	RootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().StringP("output", "o", "dataset", "path to write to")
 	exportCmd.Flags().BoolP("data-only", "d", false, "write data only (no package)")
-	// exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
+	exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
 }
