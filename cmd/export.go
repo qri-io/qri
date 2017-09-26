@@ -15,16 +15,11 @@
 package cmd
 
 import (
-	"archive/zip"
-	"encoding/json"
 	"fmt"
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsutil"
 	"io"
-	"io/ioutil"
 	"os"
-	"path/filepath"
 
 	"github.com/spf13/cobra"
 )
@@ -71,79 +66,16 @@ var exportCmd = &cobra.Command{
 			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 			ExitIfErr(err)
 
-			err = writePackage(store, ds, dst)
+			err = dsutil.WriteZipArchive(store, ds, dst)
 			ExitIfErr(err)
 			err = dst.Close()
 			ExitIfErr(err)
 			return
 		}
 
-		writeDir(store, ds, path)
+		err = dsutil.WriteDir(store, ds, path)
+		ExitIfErr(err)
 	},
-}
-
-// TODO - move this somewhere more useful, like that defunct dataset subpackage
-func writePackage(store cafs.Filestore, ds *dataset.Dataset, w io.Writer) error {
-	zw := zip.NewWriter(w)
-
-	dsf, err := zw.Create(dsfs.PackageFileDataset.String())
-	if err != nil {
-		return err
-	}
-	dsdata, err := json.MarshalIndent(ds, "", "  ")
-	if err != nil {
-		return err
-	}
-	_, err = dsf.Write(dsdata)
-	if err != nil {
-		return err
-	}
-
-	datadst, err := zw.Create(fmt.Sprintf("data.%s", ds.Structure.Format.String()))
-	if err != nil {
-		return err
-	}
-
-	datasrc, err := dsfs.LoadDatasetData(store, ds)
-	if err != nil {
-		return err
-	}
-
-	if _, err = io.Copy(datadst, datasrc); err != nil {
-		return err
-	}
-
-	return zw.Close()
-}
-
-func writeDir(store cafs.Filestore, ds *dataset.Dataset, path string) error {
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		return err
-	}
-
-	dsdata, err := json.MarshalIndent(ds, "", "  ")
-	if err != nil {
-		return err
-	}
-	err = ioutil.WriteFile(filepath.Join(path, dsfs.PackageFileDataset.String()), dsdata, os.ModePerm)
-	if err != nil {
-		return err
-	}
-
-	datasrc, err := dsfs.LoadDatasetData(store, ds)
-	if err != nil {
-		return err
-	}
-
-	datadst, err := os.Create(filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format.String())))
-	if err != nil {
-		return err
-	}
-	if _, err = io.Copy(datadst, datasrc); err != nil {
-		return err
-	}
-
-	return nil
 }
 
 func init() {
@@ -151,5 +83,6 @@ func init() {
 	exportCmd.Flags().StringP("output", "o", "dataset", "path to write to")
 	exportCmd.Flags().BoolP("data-only", "d", false, "write data only (no package)")
 	exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
+	// TODO - get format conversion up & running
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
 }
