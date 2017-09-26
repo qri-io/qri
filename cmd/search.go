@@ -51,39 +51,3 @@ var searchCmd = &cobra.Command{
 func init() {
 	RootCmd.AddCommand(searchCmd)
 }
-
-// q := strings.ToLower(args[0])
-// limit := 30
-// results := make([]*repo.DatasetRef, limit)
-// r := GetRepo()
-
-// store, err := GetIpfsFilestore()
-// ExitIfErr(err)
-
-// ns, err := r.Namespace(1000, 0)
-// ExitIfErr(err)
-// i := 0
-
-// for name, path := range ns {
-// 	if i == limit {
-// 		break
-// 	}
-
-// 	ds, err := dsfs.LoadDataset(store, path)
-// 	if err != nil {
-// 		PrintWarning("skipped dataset: %s", name, err.Error())
-// 	}
-
-// 	if strings.Contains(strings.ToLower(name), q) ||
-// 		strings.Contains(strings.ToLower(ds.Title), q) ||
-// 		strings.Contains(strings.ToLower(ds.Description), q) {
-
-// 		ref := &repo.DatasetRef{
-// 			Name:    name,
-// 			Path:    path,
-// 			Dataset: ds,
-// 		}
-// 		results[i] = ref
-// 		i++
-// 	}
-// }
