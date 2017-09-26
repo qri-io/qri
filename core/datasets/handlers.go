@@ -216,16 +216,20 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 	all, err := util.ReqParamBool("all", r)
 	if err != nil {
 		all = false
-		// util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid param 'all': %s", err.Error()))
-		// return
+	}
+
+	objectRows, err := util.ReqParamBool("object_rows", r)
+	if err != nil {
+		objectRows = true
 	}
 
 	p := &StructuredDataParams{
-		Format: dataset.JsonDataFormat,
-		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
-		All:    all,
+		Format:  dataset.JsonDataFormat,
+		Path:    datastore.NewKey(r.URL.Path[len("/data"):]),
+		Objects: objectRows,
+		Limit:   page.Limit(),
+		Offset:  page.Offset(),
+		All:     all,
 	}
 	data := &StructuredData{}
 	if err := h.StructuredData(p, data); err != nil {

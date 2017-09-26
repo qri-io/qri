@@ -154,6 +154,7 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 type StructuredDataParams struct {
 	Format        dataset.DataFormat
 	Path          datastore.Key
+	Objects       bool
 	Limit, Offset int
 	All           bool
 }
@@ -184,7 +185,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		return err
 	}
 
-	w := writers.NewJsonWriter(ds.Structure, false)
+	w := writers.NewJsonWriter(ds.Structure, p.Objects)
 	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err

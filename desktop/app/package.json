@@ -1,0 +1,12 @@
+{
+  "name": "electron-rampup",
+  "version": "0.1.0",
+  "main": "main.js",
+  "dependencies": {
+    "electron": "latest",
+    "websocket": "latest"
+  },
+  "devDependencies": {
+    "electron": "latest"
+  }
+}
