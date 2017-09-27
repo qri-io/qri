@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
@@ -145,7 +145,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 	ds.Structure = structure
 	ds.Length = len(results)
 
-	ds.Data, err = r.store.Put(memfile.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
+	ds.Data, err = r.store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
 		fmt.Println("error putting results in store:", err)
 		return err

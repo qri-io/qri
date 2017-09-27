@@ -6,7 +6,7 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
@@ -143,7 +143,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	datakey, err := h.store.Put(memfile.NewMemfileBytes("data."+st.Format.String(), data), true)
+	datakey, err := h.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

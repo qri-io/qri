@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/load"
@@ -178,7 +178,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
 		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
-		file = memfile.NewMemfileBytes("data", d)
+		file = memfs.NewMemfileBytes("data", d)
 	}
 
 	if err != nil {

@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/core/datasets"
 	"github.com/qri-io/qri/core/peers"
 	"github.com/qri-io/qri/core/queries"
@@ -59,7 +60,7 @@ func (s *Server) Serve() (err error) {
 	var qrepo repo.Repo
 
 	if s.cfg.MemOnly {
-		store = cafs.NewMapstore()
+		store = memfs.NewMapstore()
 		// TODO - refine
 		qrepo, err = repo.NewMemRepo(
 			&profile.Profile{
