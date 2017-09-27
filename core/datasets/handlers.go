@@ -46,8 +46,10 @@ func (h *Handlers) DatasetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getDatasetHandler(w, r)
-	case "PUT", "POST":
+	case "POST":
 		h.saveDatasetHandler(w, r)
+	// case "PUT":
+	// h.commitDatasetHandler(w, r)
 	case "DELETE":
 		h.deleteDatasetHandler(w, r)
 	default:
