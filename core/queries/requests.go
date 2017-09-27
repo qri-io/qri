@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
@@ -81,11 +81,6 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ds.Timestamp = time.Now()
 
-	// ns, err := r.repo.Namespace()
-	// if err != nil {
-	// 	return err
-	// }
-
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
 	// sqlstr, _, remap, err := sql.Format(ds.QueryString)
@@ -119,16 +114,6 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 		}
 	}
 
-	// dsData, err := ds.MarshalJSON()
-	// if err != nil {
-	// 	return err
-	// }
-	// dshash, err := r.store.AddAndPinBytes(dsData)
-	// if err != nil {
-	// 	fmt.Println("add bytes error", err.Error())
-	// 	return err
-	// }
-
 	// TODO - restore query hash discovery
 	// fmt.Printf("query hash: %s\n", dshash)
 	// dspath := datastore.NewKey("/ipfs/" + dshash)
@@ -160,7 +145,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 	ds.Structure = structure
 	ds.Length = len(results)
 
-	ds.Data, err = r.store.Put(memfile.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
+	ds.Data, err = r.store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
 		fmt.Println("error putting results in store:", err)
 		return err
@@ -181,11 +166,12 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 		}
 	}
 
-	// TODO - need to re-load dataset here to get a dereferenced version
-	// lds, err := dsfs.LoadDataset(r.store, dspath)
-	// if err != nil {
-	// 	return err
-	// }
+	if err := dsfs.DerefDatasetStructure(r.store, ds); err != nil {
+		return err
+	}
+	if err := dsfs.DerefDatasetQuery(r.store, ds); err != nil {
+		return err
+	}
 
 	*res = repo.DatasetRef{
 		Dataset: ds,

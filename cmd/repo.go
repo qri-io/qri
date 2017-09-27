@@ -25,7 +25,30 @@ func FindDataset(r repo.Repo, store cafs.Filestore, arg string) (*dataset.Datase
 	if err == nil {
 		return dsfs.LoadDataset(store, path)
 	}
-
 	// TODO - add lookups by hashes & stuff
 	return nil, cafs.ErrNotFound
+}
+
+func DatasetRef(r repo.Repo, store cafs.Filestore, arg string) (*repo.DatasetRef, error) {
+	path, err := r.GetPath(arg)
+	if err != nil {
+		return nil, err
+	}
+
+	ds, err := dsfs.LoadDataset(store, path)
+	if err != nil {
+		return nil, err
+	}
+	// TODO - add hash lookup
+
+	name, err := r.GetName(path)
+	if err != nil {
+		return nil, err
+	}
+
+	return &repo.DatasetRef{
+		Path:    path,
+		Name:    name,
+		Dataset: ds,
+	}, nil
 }

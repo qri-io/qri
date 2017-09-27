@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/load"
@@ -154,6 +154,7 @@ func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
 type StructuredDataParams struct {
 	Format        dataset.DataFormat
 	Path          datastore.Key
+	Objects       bool
 	Limit, Offset int
 	All           bool
 }
@@ -177,14 +178,14 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
 		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
-		file = memfile.NewMemfileBytes("data", d)
+		file = memfs.NewMemfileBytes("data", d)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	w := writers.NewJsonWriter(ds.Structure, false)
+	w := writers.NewJsonWriter(ds.Structure, p.Objects)
 	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err

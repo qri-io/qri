@@ -6,7 +6,7 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
@@ -33,6 +33,8 @@ func (h *Handlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.listDatasetsHandler(w, r)
+	case "PUT":
+		h.updateDatasetHandler(w, r)
 	case "POST":
 		h.saveDatasetHandler(w, r)
 	default:
@@ -46,8 +48,10 @@ func (h *Handlers) DatasetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getDatasetHandler(w, r)
-	case "PUT", "POST":
+	case "POST":
 		h.saveDatasetHandler(w, r)
+	case "PUT":
+		h.updateDatasetHandler(w, r)
 	case "DELETE":
 		h.deleteDatasetHandler(w, r)
 	default:
@@ -104,6 +108,29 @@ func (h *Handlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *Handlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		h.updateMetadataHandler(w, r)
+		// default:
+		// 	h.initDatasetFileHandler(w, r)
+	}
+}
+
+func (h *Handlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	p := &Commit{}
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	res := &repo.DatasetRef{}
+	if err := h.Update(p, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, res)
+}
+
 func (h *Handlers) saveStructureHandler(w http.ResponseWriter, r *http.Request) {
 	p := &SaveParams{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
@@ -141,7 +168,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 		return
 	}
 
-	datakey, err := h.store.Put(memfile.NewMemfileBytes("data."+st.Format.String(), data), true)
+	datakey, err := h.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -216,16 +243,20 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 	all, err := util.ReqParamBool("all", r)
 	if err != nil {
 		all = false
-		// util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid param 'all': %s", err.Error()))
-		// return
+	}
+
+	objectRows, err := util.ReqParamBool("object_rows", r)
+	if err != nil {
+		objectRows = true
 	}
 
 	p := &StructuredDataParams{
-		Format: dataset.JsonDataFormat,
-		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
-		All:    all,
+		Format:  dataset.JsonDataFormat,
+		Path:    datastore.NewKey(r.URL.Path[len("/data"):]),
+		Objects: objectRows,
+		Limit:   page.Limit(),
+		Offset:  page.Offset(),
+		All:     all,
 	}
 	data := &StructuredData{}
 	if err := h.StructuredData(p, data); err != nil {

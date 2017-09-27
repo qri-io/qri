@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/cafs/memfile"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"time"
@@ -105,7 +105,7 @@ var runCmd = &cobra.Command{
 		// TODO - move this into setting on the dataset outparam
 		ds.Structure = structure
 		ds.Length = len(results)
-		ds.Data, err = store.Put(memfile.NewMemfileBytes("data", results), false)
+		ds.Data, err = store.Put(memfs.NewMemfileBytes("data", results), false)
 		ExitIfErr(err)
 
 		name, err := cmd.Flags().GetString("name")
