@@ -1,4 +1,4 @@
-package desktop
+package main
 
 import (
 	"encoding/json"
