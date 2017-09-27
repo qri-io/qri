@@ -3,7 +3,6 @@ package datasets
 import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -21,12 +20,12 @@ type Commit struct {
 
 // Update adds a history entry updating a dataset
 // TODO - work in progress
-func Update(r repo.Repo, store cafs.Filestore, commit *Commit) (*repo.DatasetRef, error) {
+func (r *Requests) Update(commit *Commit, ref *repo.DatasetRef) error {
 	ds := &dataset.Dataset{}
 
-	prev, err := r.GetDataset(commit.Prev)
+	prev, err := r.repo.GetDataset(commit.Prev)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	// add all previous fields and any changes
@@ -36,11 +35,11 @@ func Update(r repo.Repo, store cafs.Filestore, commit *Commit) (*repo.DatasetRef
 	if commit.Data != nil {
 		size, err := commit.Data.Size()
 		if err != nil {
-			return nil, err
+			return err
 		}
-		path, err := store.Put(commit.Data, false)
+		path, err := r.store.Put(commit.Data, false)
 		if err != nil {
-			return nil, err
+			return err
 		}
 
 		ds.Data = path
@@ -65,13 +64,15 @@ func Update(r repo.Repo, store cafs.Filestore, commit *Commit) (*repo.DatasetRef
 
 	// TODO - should this go into the save method?
 	ds.Timestamp = time.Now().In(time.UTC)
-	dspath, err := dsfs.SaveDataset(store, ds, true)
+	dspath, err := dsfs.SaveDataset(r.store, ds, true)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	return &repo.DatasetRef{
+	*ref = repo.DatasetRef{
 		Path:    dspath,
 		Dataset: ds,
-	}, nil
+	}
+
+	return nil
 }

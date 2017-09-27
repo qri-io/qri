@@ -33,6 +33,8 @@ func (h *Handlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.listDatasetsHandler(w, r)
+	case "PUT":
+		h.updateDatasetHandler(w, r)
 	case "POST":
 		h.saveDatasetHandler(w, r)
 	default:
@@ -48,8 +50,8 @@ func (h *Handlers) DatasetHandler(w http.ResponseWriter, r *http.Request) {
 		h.getDatasetHandler(w, r)
 	case "POST":
 		h.saveDatasetHandler(w, r)
-	// case "PUT":
-	// h.commitDatasetHandler(w, r)
+	case "PUT":
+		h.updateDatasetHandler(w, r)
 	case "DELETE":
 		h.deleteDatasetHandler(w, r)
 	default:
@@ -104,6 +106,29 @@ func (h *Handlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	default:
 		h.initDatasetFileHandler(w, r)
 	}
+}
+
+func (h *Handlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		h.updateMetadataHandler(w, r)
+		// default:
+		// 	h.initDatasetFileHandler(w, r)
+	}
+}
+
+func (h *Handlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	p := &Commit{}
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	res := &repo.DatasetRef{}
+	if err := h.Update(p, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, res)
 }
 
 func (h *Handlers) saveStructureHandler(w http.ResponseWriter, r *http.Request) {
