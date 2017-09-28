@@ -17,8 +17,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/spf13/cobra"
+	"strings"
 )
 
 // datasetCmd represents the dataset commands
@@ -56,12 +58,6 @@ var datasetInfoCmd = &cobra.Command{
 		path, err := GetRepo().GetPath(args[0])
 		ExitIfErr(err)
 
-		// ns := LoadNamespaceGraph()
-		// path := datastore.NewKey(args[0])
-		// if ns[args[0]].String() != "" {
-		// 	path = ns[args[0]]
-		// }
-
 		d, err := dsfs.LoadDataset(ds, path)
 		ExitIfErr(err)
 
@@ -77,19 +73,32 @@ var datasetAddCmd = &cobra.Command{
 	Short: "add a dataset to your local namespace based on a resource hash",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
-			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name] [resource hash]"))
+		if len(args) != 1 {
+			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected qri dataset add [resource hash]"))
 		}
-		PrintNotYetFinished(cmd)
-		// ns := LoadNamespaceGraph()
+		if !strings.HasSuffix(args[0], dsfs.PackageFileDataset.String()) {
+			ErrExit(fmt.Errorf("invalid dataset path. paths should be /ipfs/[hash]/dataset.json"))
+		}
 
-		// TODO - valid resource check
+		r := GetRepo()
+		fs, err := GetIpfsFilestore()
+		ExitIfErr(err)
 
-		// ns[args[0]] = datastore.NewKey(args[1])
-		// repo := GetRepo()
-		// repo.AddDataset()
-		// err := SaveNamespaceGraph(ns)
-		// ExitIfErr(err)
+		name := cmd.Flag("name").Value.String()
+		if name == "" {
+			ErrExit(fmt.Errorf("please provide a name for the dataset using the --name flag"))
+		}
+
+		root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
+
+		PrintInfo("downloading %s...", root)
+		err = fs.Pin(datastore.NewKey(root), true)
+		ExitIfErr(err)
+
+		err = r.PutName(name, datastore.NewKey(args[0]))
+		ExitIfErr(err)
+
+		PrintInfo("Successfully added dataset %s : %s", name, args[0])
 	},
 }
 
@@ -103,8 +112,16 @@ var datasetRemoveCmd = &cobra.Command{
 		}
 		name := args[0]
 
+		fs, err := GetIpfsFilestore()
+		ExitIfErr(err)
+
 		r := GetRepo()
 		path, err := r.GetPath(name)
+		ExitIfErr(err)
+
+		root := datastore.NewKey(strings.TrimSuffix(path.String(), "/"+dsfs.PackageFileDataset.String()))
+
+		err = fs.Delete(root)
 		ExitIfErr(err)
 
 		err = r.DeleteDataset(path)
@@ -122,5 +139,8 @@ func init() {
 	datasetCmd.AddCommand(datasetInfoCmd)
 	datasetCmd.AddCommand(datasetAddCmd)
 	datasetCmd.AddCommand(datasetRemoveCmd)
+
+	datasetAddCmd.Flags().StringP("name", "n", "", "local name for dataset")
+
 	RootCmd.AddCommand(datasetCmd)
 }
