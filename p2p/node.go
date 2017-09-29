@@ -3,10 +3,10 @@ package p2p
 import (
 	"context"
 	"fmt"
+
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
-	"os"
 
 	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -25,10 +25,10 @@ type QriNode struct {
 	Identity   peer.ID        // the local node's identity
 	privateKey crypto.PrivKey // the local node's private Key
 
-	Online    bool      // is this node online?
-	Host      host.Host // p2p Host
-	Discovery discovery.Service
-	Peerstore pstore.Peerstore // storage for other Peer instances
+	Online    bool              // is this node online?
+	Host      host.Host         // p2p Host, can be provided by an ipfs node
+	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
+	Peerstore pstore.Peerstore  // storage for other qri Peer instances
 
 	Repo  repo.Repo
 	Store cafs.Filestore
@@ -60,22 +60,25 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 		Store:     store,
 	}
 
-	if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
-		ipfsnode := ipfsfs.Node()
-		if ipfsnode.PeerHost != nil {
-			// for _, p := range ipfsnode.PeerHost.Addrs() {
-			// 	fmt.Println(p)
-			// }
-			node.Host = ipfsnode.PeerHost
-			fmt.Println("ipfs host muxer:")
-			ipfsnode.PeerHost.Mux().Ls(os.Stderr)
-		}
-		if ipfsnode.Discovery != nil {
-			node.Discovery = ipfsnode.Discovery
-		}
-	}
-
 	if cfg.Online {
+		// If the underlying content-addressed-filestore is an ipfs
+		// node, it has built-in p2p, overlay the qri protocol
+		// on the ipfs node's p2p connections.
+		if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
+			// TODO - in this situation we should adopt the keypair
+			// if the ipfs node to avoid conflicts.
+
+			ipfsnode := ipfsfs.Node()
+			if ipfsnode.PeerHost != nil {
+				node.Host = ipfsnode.PeerHost
+				// fmt.Println("ipfs host muxer:")
+				// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
+			}
+			if ipfsnode.Discovery != nil {
+				node.Discovery = ipfsnode.Discovery
+			}
+		}
+
 		if node.Host == nil {
 			host, err := makeBasicHost(ps, cfg)
 			if err != nil {
@@ -84,9 +87,11 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 			node.Host = host
 		}
 
+		// add handler for qri protocol to the host
 		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
-		fmt.Println("qri host muxer:")
-		node.Host.Mux().Ls(os.Stderr)
+
+		// fmt.Println("qri host muxer:")
+		// node.Host.Mux().Ls(os.Stderr)
 
 		if err := node.StartDiscovery(); err != nil {
 			return nil, err
@@ -112,22 +117,6 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 
 	return res
 }
-
-// PeerInfo gives an overview of information about this Peer, used in handshaking
-// with other peers
-// func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
-// 	repo.QueryPeers(n.Repo.Peers(), query.Query{
-
-// 		})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return map[string]interface{}{
-// 		"Id":        n.Identity.String(),
-// 		"namespace": ns,
-// 	}, nil
-// }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {

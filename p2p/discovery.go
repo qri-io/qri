@@ -9,6 +9,23 @@ import (
 	discovery "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/discovery"
 )
 
+// StartDiscovery initiates peer discovery, allocating a discovery
+// services if one doesn't exist, then registering to be notified on peer discovery
+func (n *QriNode) StartDiscovery() error {
+	if n.Discovery == nil {
+		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
+		if err != nil {
+			return err
+		}
+		n.Discovery = service
+	}
+
+	// Registering will call n.HandlePeerFound when peers are discovered
+	n.Discovery.RegisterNotifee(n)
+	return nil
+}
+
+// HandlePeerFound
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// fmt.Println("trying peer info: ", pinfo)
 	// fmt.Println(pinfo.Addrs)
@@ -21,17 +38,11 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	}
 
 	if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
+		// we've already seen this peer
 		return
 	}
-	// peers, err := n.Repo().Peers()
-	// if err != nil {
-	// 	fmt.Println("error getting peers list: ", err)
-	// 	return
-	// }
 
-	// if peers[pinfo.ID.Pretty()] != nil {
-	// 	return
-	// }
+	// TODO - check for qri protocol support
 
 	profile, err := n.Repo.Profile()
 	if err != nil {
@@ -72,17 +83,4 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	}
 
 	// fmt.Println("connected to peer: ", pinfo.ID.Pretty())
-}
-
-// StartDiscovery initiates peer discovery
-func (n *QriNode) StartDiscovery() error {
-	if n.Discovery == nil {
-		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
-		if err != nil {
-			return err
-		}
-		n.Discovery = service
-	}
-	n.Discovery.RegisterNotifee(n)
-	return nil
 }
