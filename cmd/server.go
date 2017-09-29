@@ -32,6 +32,7 @@ var serverCmd = &cobra.Command{
 	Short: "start a qri server",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
+		PrintInfo(viper.GetString(QriRepoPath))
 		s, err := server.New(func(cfg *server.Config) {
 			cfg.Port = serverCmdPort
 			cfg.MemOnly = serverMemOnly

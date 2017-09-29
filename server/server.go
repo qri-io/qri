@@ -73,7 +73,8 @@ func (s *Server) Serve() (err error) {
 		}
 	} else {
 		store, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-			cfg.Online = false
+			// cfg.Online = false
+			cfg.Online = s.cfg.Online
 			cfg.FsRepoPath = s.cfg.FsStorePath
 		})
 		if err != nil {
@@ -99,6 +100,7 @@ func (s *Server) Serve() (err error) {
 		fmt.Println("qri addresses:")
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			fmt.Printf("  %s\n", a.String())
+			fmt.Println(a.Protocols())
 		}
 	} else {
 		fmt.Println("running qri in offline mode, no peer-2-peer connections")

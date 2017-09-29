@@ -3,13 +3,15 @@ package p2p
 import (
 	"context"
 	"fmt"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	"time"
+
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	discovery "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/discovery"
 )
 
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// fmt.Println("trying peer info: ", pinfo)
+	// fmt.Println(pinfo.Addrs)
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
 	defer cancel()
@@ -74,12 +76,13 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 
 // StartDiscovery initiates peer discovery
 func (n *QriNode) StartDiscovery() error {
-	service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
-	if err != nil {
-		return err
+	if n.Discovery == nil {
+		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
+		if err != nil {
+			return err
+		}
+		n.Discovery = service
 	}
-
-	service.RegisterNotifee(n)
-	n.Discovery = service
+	n.Discovery.RegisterNotifee(n)
 	return nil
 }

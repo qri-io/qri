@@ -5,10 +5,11 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
-	"github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
+
+	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 type PeerStore struct {

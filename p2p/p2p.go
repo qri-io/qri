@@ -2,12 +2,14 @@ package p2p
 
 import (
 	golog "github.com/ipfs/go-log"
-	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 	gologging "github.com/whyrusleeping/go-logging"
+
+	identify "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/protocol/identify"
+	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
 // Protocol Identifier
-const QriProtocolId = "/qri/0.0.1"
+const QriProtocolId = protocol.ID("/qri")
 
 func init() {
 	// LibP2P code uses golog to log messages. They log with different

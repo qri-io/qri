@@ -3,11 +3,13 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 )
 
 func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {

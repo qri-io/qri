@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
-	"github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/qri/repo/profile"
+
+	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // Peers is a store of peer information
