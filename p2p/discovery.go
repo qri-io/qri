@@ -40,11 +40,6 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// 	return
 	// }
 
-	// n.Host.Peerstore().Addrs(p)
-	// if addrs := n.QriPeers.Addrs(pinfo.ID); len(addrs) != 0 {
-	// 	return
-	// }
-
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
@@ -72,9 +67,7 @@ func (n *QriNode) SupportsQriProtocol(pinfo pstore.PeerInfo) (bool, error) {
 	protos, err := n.Host.Peerstore().GetProtocols(pinfo.ID)
 
 	if err == nil {
-		// fmt.Printf("peer %s supports the following protocols:", pinfo.ID.String())
 		for _, p := range protos {
-			fmt.Println("\t", p)
 			if p == string(QriProtocolId) {
 				return true, nil
 			}
@@ -118,22 +111,22 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 
 	// TODO - move dataset list exchange into a better place
 	// Also, get a DHT or something
-	res, err = n.SendMessage(pinfo, &Message{
-		Type: MtDatasets,
-		Payload: &DatasetsReqParams{
-			Limit:  30,
-			Offset: 0,
-		},
-	})
-	if err != nil {
-		fmt.Println("send message error", err.Error())
-		return err
-	}
-	if res.Phase == MpResponse {
-		if err := n.handleDatasetsResponse(pinfo, res); err != nil {
-			fmt.Println("dataset response error:", err.Error())
-		}
-	}
+	// res, err = n.SendMessage(pinfo, &Message{
+	// 	Type: MtDatasets,
+	// 	Payload: &DatasetsReqParams{
+	// 		Limit:  30,
+	// 		Offset: 0,
+	// 	},
+	// })
+	// if err != nil {
+	// 	fmt.Println("send message error", err.Error())
+	// 	return err
+	// }
+	// if res.Phase == MpResponse {
+	// 	if err := n.handleDatasetsResponse(pinfo, res); err != nil {
+	// 		fmt.Println("dataset response error:", err.Error())
+	// 	}
+	// }
 
 	return nil
 }

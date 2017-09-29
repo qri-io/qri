@@ -10,6 +10,7 @@ import (
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	multicodec "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec"
 	json "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec/json"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 type MsgType int
@@ -21,6 +22,16 @@ const (
 	MtNamespaces
 	MtSearch
 )
+
+func (mt MsgType) String() string {
+	return map[MsgType]string{
+		MtUnknown:    "UNKNOWN",
+		MtPeerInfo:   "PEER_INFO",
+		MtDatasets:   "DATASETS",
+		MtNamespaces: "NAMESPACES",
+		MtSearch:     "SEARCH",
+	}[mt]
+}
 
 type MsgPhase int
 
@@ -131,8 +142,13 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	}
 
 	fmt.Printf("broadcasting message to %d peers\n", tasks)
+	sent := map[peer.ID]bool{}
 	for _, p := range peers {
 		go func() {
+			if sent[p] {
+				return
+			}
+			sent[p] = true
 			if p != nodeId {
 				r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
 				if e != nil {
@@ -168,6 +184,7 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 	if msg.Type == MtUnknown {
 		return fmt.Errorf("message type is required to send a message")
 	}
+	fmt.Println("sending message:", msg.Type.String())
 
 	err := ws.enc.Encode(msg)
 	// Because output is buffered with bufio, we need to flush!
@@ -186,10 +203,9 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("received message: %v\n", r)
+		fmt.Printf("received message: %s\n", r.Type.String())
 
 		var res *Message
-
 		if r.Phase == MpRequest {
 			switch r.Type {
 			case MtPeerInfo:

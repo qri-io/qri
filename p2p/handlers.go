@@ -25,15 +25,6 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
-	// peers, err := n.Repo.Peers()
-	// if err != nil {
-	// 	return err
-	// }
-	// pinfo := peers[pi.ID.Pretty()]
-	// if pinfo == nil {
-	// 	pinfo = &profile.Profile{}
-	// }
-
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		return err
@@ -167,6 +158,7 @@ type SearchParams struct {
 }
 
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
+	fmt.Println("handling search request")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		fmt.Println(err.Error())
@@ -177,6 +169,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		fmt.Println("unmarshal search request error:", err.Error())
 		return nil
 	}
+	fmt.Println(p)
 
 	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	return &Message{
