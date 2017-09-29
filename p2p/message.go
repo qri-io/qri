@@ -79,7 +79,7 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 	qn.handleStream(WrapStream(s))
 }
 
-// SendMessage to a given multiaddr
+// SendMessage to a given multiaddr, this assumes that the
 func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, err error) {
 	s, err := qn.Host.NewStream(context.Background(), pi.ID, QriProtocolId)
 	if err != nil {
@@ -100,7 +100,7 @@ func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, 
 
 // BroadcastMessage sends a message to all connected peers
 func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
-	peers := qn.Peerstore.Peers()
+	peers := qn.QriPeers.Peers()
 	reschan := make(chan Message, 4)
 	done := make(chan bool, 0)
 	timer := time.NewTimer(time.Second * 6)
@@ -134,7 +134,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	for _, p := range peers {
 		go func() {
 			if p != nodeId {
-				r, e := qn.SendMessage(qn.Peerstore.PeerInfo(p), msg)
+				r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
 				if e != nil {
 					fmt.Errorf(e.Error())
 				} else {

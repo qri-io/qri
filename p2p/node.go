@@ -28,10 +28,10 @@ type QriNode struct {
 	Online    bool              // is this node online?
 	Host      host.Host         // p2p Host, can be provided by an ipfs node
 	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
-	Peerstore pstore.Peerstore  // storage for other qri Peer instances
+	QriPeers  pstore.Peerstore  // storage for other qri Peer instances
 
-	Repo  repo.Repo
-	Store cafs.Filestore
+	Repo  repo.Repo      // repository of this node's qri data
+	Store cafs.Filestore // a content addressed filestore for data storage, usually ipfs
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -53,11 +53,11 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 	ps := pstore.NewPeerstore()
 
 	node := &QriNode{
-		Identity:  cfg.PeerId,
-		Online:    cfg.Online,
-		Peerstore: ps,
-		Repo:      cfg.Repo,
-		Store:     store,
+		Identity: cfg.PeerId,
+		Online:   cfg.Online,
+		QriPeers: ps,
+		Repo:     cfg.Repo,
+		Store:    store,
 	}
 
 	if cfg.Online {
@@ -87,11 +87,9 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 			node.Host = host
 		}
 
-		// add handler for qri protocol to the host
+		// add multistream handler for qri protocol to the host
+		// for more info on multistreams check github.com/multformats/go-multistream
 		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
-
-		// fmt.Println("qri host muxer:")
-		// node.Host.Mux().Ls(os.Stderr)
 
 		if err := node.StartDiscovery(); err != nil {
 			return nil, err
