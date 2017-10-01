@@ -94,15 +94,6 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
-	// peers, err := n.Repo.Peers()
-	// if err != nil {
-	// 	return err
-	// }
-	// pinfo := peers[pi.ID.Pretty()]
-	// if pinfo == nil {
-	// 	pinfo = &profile.Profile{}
-	// }
-
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		return err
@@ -111,10 +102,6 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	if err := json.Unmarshal(data, &ds); err != nil {
 		return err
 	}
-	// pinfo.Namespace = ns
-	// peers[pi.ID.Pretty()] = pinfo
-	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
-	// fmt.Println(ds)
 
 	return n.Repo.Cache().PutDatasets(ds)
 }
@@ -133,7 +120,6 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetR
 		return nil, err
 	}
 
-	// fmt.Println(responses)
 	datasets := []*repo.DatasetRef{}
 
 	for _, r := range responses {
@@ -169,7 +155,6 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		fmt.Println("unmarshal search request error:", err.Error())
 		return nil
 	}
-	fmt.Println(p)
 
 	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	return &Message{

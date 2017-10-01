@@ -120,7 +120,7 @@ func (s *Server) Serve() (err error) {
 		s.log.Infoln("running qri in offline mode, no peer-2-peer connections")
 	}
 
-	p2p.PrintSwarmAddrs(qriNode)
+	// p2p.PrintSwarmAddrs(qriNode)
 
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)

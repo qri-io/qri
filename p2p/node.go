@@ -149,6 +149,7 @@ func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	return basicHost, nil
 }
 
+// PrintSwarmAddrs is pulled from ipfs codebase
 func PrintSwarmAddrs(node *QriNode) {
 	if !node.Online {
 		fmt.Println("qri node running in offline mode.")

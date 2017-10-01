@@ -31,20 +31,11 @@ func (n *QriNode) StartDiscovery() error {
 // HandlePeerFound
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 
-	// TODO - this explicit connection seems to move exchange along quicker, but
-	// seems like a bad idea. resolve.
-	// ctx, cancel := context.WithTimeout(context.Background(), time.Second*20)
-	// defer cancel()
-	// if err := n.Host.Connect(ctx, pinfo); err != nil {
-	// 	fmt.Println("Failed to connect to peer found by discovery: ", err)
-	// 	return
-	// }
-
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
 	} else if supports, err := n.SupportsQriProtocol(pinfo); supports && err == nil {
-		fmt.Println("checking qri support for peer: ", pinfo.ID.Pretty())
+		fmt.Printf("peer %s qri support: %t", pinfo.ID.Pretty(), supports)
 
 		if err := n.Host.Peerstore().Put(pinfo.ID, qriSupportKey, supports); err != nil {
 			fmt.Println("errror setting qri support flag", err.Error())
