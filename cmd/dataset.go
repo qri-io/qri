@@ -18,6 +18,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/spf13/cobra"
 	"strings"
@@ -32,9 +33,10 @@ var datasetCmd = &cobra.Command{
 }
 
 var datasetListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list your local datasets",
-	Long:  ``,
+	Use:     "list",
+	Aliases: []string{"ls"},
+	Short:   "list your local datasets",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		ns, err := GetRepo().Namespace(100, 0)
 		ExitIfErr(err)
@@ -92,6 +94,9 @@ var datasetAddCmd = &cobra.Command{
 		root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
 
 		PrintInfo("downloading %s...", root)
+		_, err = fs.Fetch(cafs.SourceAny, datastore.NewKey(root))
+		ExitIfErr(err)
+
 		err = fs.Pin(datastore.NewKey(root), true)
 		ExitIfErr(err)
 
@@ -103,9 +108,10 @@ var datasetAddCmd = &cobra.Command{
 }
 
 var datasetRemoveCmd = &cobra.Command{
-	Use:   "remove",
-	Short: "remove a dataset from your local namespace based on a resource hash",
-	Long:  ``,
+	Use:     "remove",
+	Aliases: []string{"rm"},
+	Short:   "remove a dataset from your local namespace based on a resource hash",
+	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name]"))
@@ -122,7 +128,10 @@ var datasetRemoveCmd = &cobra.Command{
 		root := datastore.NewKey(strings.TrimSuffix(path.String(), "/"+dsfs.PackageFileDataset.String()))
 
 		err = fs.Delete(root)
-		ExitIfErr(err)
+		if err != nil {
+			PrintWarning(err.Error())
+		}
+		// ExitIfErr(err)
 
 		err = r.DeleteDataset(path)
 		ExitIfErr(err)

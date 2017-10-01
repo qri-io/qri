@@ -136,7 +136,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	}()
 
 	tasks := len(peers)
-	if tasks == 1 && peers[0] == nodeId {
+	if len(peers) == 0 || tasks == 1 && peers[0] == nodeId {
 		close(reschan)
 		return nil, fmt.Errorf("no peers connected")
 	}
@@ -145,16 +145,15 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	sent := map[peer.ID]bool{}
 	for _, p := range peers {
 		go func() {
-			if sent[p] {
-				return
-			}
-			sent[p] = true
-			if p != nodeId {
-				r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
-				if e != nil {
-					fmt.Errorf(e.Error())
-				} else {
-					reschan <- *r
+			if !sent[p] {
+				sent[p] = true
+				if p != nodeId {
+					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
+					if e != nil {
+						fmt.Errorf(e.Error())
+					} else {
+						reschan <- *r
+					}
 				}
 			}
 

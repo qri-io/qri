@@ -109,8 +109,8 @@ func (s *Server) Serve() (err error) {
 	s.qriNode = qriNode
 
 	if s.cfg.Online {
-
 		s.log.Infoln("qri peer id:", s.qriNode.Identity.Pretty())
+
 		s.log.Infoln("qri addresses:")
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			s.log.Infof("  %s", a.String())
@@ -120,10 +120,12 @@ func (s *Server) Serve() (err error) {
 		s.log.Infoln("running qri in offline mode, no peer-2-peer connections")
 	}
 
+	p2p.PrintSwarmAddrs(qriNode)
+
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
-	// fire it up!
-	s.log.Infoln("starting server on port", s.cfg.Port)
+
+	s.log.Infoln("starting api server on port", s.cfg.Port)
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
 }
