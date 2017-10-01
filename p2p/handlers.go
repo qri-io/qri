@@ -3,11 +3,13 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
+
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 )
 
 func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
@@ -23,15 +25,6 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
-	// peers, err := n.Repo.Peers()
-	// if err != nil {
-	// 	return err
-	// }
-	// pinfo := peers[pi.ID.Pretty()]
-	// if pinfo == nil {
-	// 	pinfo = &profile.Profile{}
-	// }
-
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		return err
@@ -101,15 +94,6 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
-	// peers, err := n.Repo.Peers()
-	// if err != nil {
-	// 	return err
-	// }
-	// pinfo := peers[pi.ID.Pretty()]
-	// if pinfo == nil {
-	// 	pinfo = &profile.Profile{}
-	// }
-
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		return err
@@ -118,10 +102,6 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	if err := json.Unmarshal(data, &ds); err != nil {
 		return err
 	}
-	// pinfo.Namespace = ns
-	// peers[pi.ID.Pretty()] = pinfo
-	// fmt.Println("added peer dataset info:", pi.ID.Pretty())
-	// fmt.Println(ds)
 
 	return n.Repo.Cache().PutDatasets(ds)
 }
@@ -140,7 +120,6 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetR
 		return nil, err
 	}
 
-	// fmt.Println(responses)
 	datasets := []*repo.DatasetRef{}
 
 	for _, r := range responses {
@@ -165,6 +144,7 @@ type SearchParams struct {
 }
 
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
+	fmt.Println("handling search request")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		fmt.Println(err.Error())

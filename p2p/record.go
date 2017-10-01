@@ -2,8 +2,9 @@ package p2p
 
 import (
 	"github.com/ipfs/go-datastore"
-	record "github.com/libp2p/go-libp2p-record"
 	"github.com/qri-io/dataset"
+
+	record "gx/ipfs/QmbxkgUceEcuSZ4ZdBA3x74VUDSSYjHYmmeEqkjxbtZ6Jg/go-libp2p-record"
 )
 
 // TODO - work in progress

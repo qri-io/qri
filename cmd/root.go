@@ -71,13 +71,17 @@ func initConfig() {
 	// 	fmt.Errorf("error creating home dir: %s\n", err.Error())
 	// }
 
-	viper.SetConfigName("config") // name of config file (without extension)
-	// viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
-	viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
-	viper.AddConfigPath(".")          // adding home directory as first search path
-	viper.AutomaticEnv()              // read in environment variables that match
+	// viper.SetConfigName("config") // name of config file (without extension)
+	// // viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
+	// viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
+	// viper.AddConfigPath(".")          // adding home directory as first search path
+	// viper.AutomaticEnv()              // read in environment variables that match
 
-	viper.SetDefault(QriRepoPath, filepath.Join(home, "qri"))
+	qriPath := os.Getenv("QRI_PATH")
+	if qriPath == "" {
+		qriPath = filepath.Join(home, "qri")
+	}
+	viper.SetDefault(QriRepoPath, qriPath)
 
 	ipfsFsPath := os.Getenv("IPFS_PATH")
 	if ipfsFsPath == "" {
@@ -86,7 +90,7 @@ func initConfig() {
 	viper.SetDefault(IpfsFsPath, ipfsFsPath)
 
 	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		// fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
+	// if err := viper.ReadInConfig(); err == nil {
+	// 	// fmt.Println("Using config file:", viper.ConfigFileUsed())
+	// }
 }

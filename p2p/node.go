@@ -3,19 +3,22 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"sort"
+
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	host "github.com/libp2p/go-libp2p-host"
-	peer "github.com/libp2p/go-libp2p-peer"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	swarm "github.com/libp2p/go-libp2p-swarm"
-	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
-	bhost "github.com/libp2p/go-libp2p/p2p/host/basic"
-	ma "github.com/multiformats/go-multiaddr"
-	msmux "github.com/whyrusleeping/go-smux-multistream"
-	yamux "github.com/whyrusleeping/go-smux-yamux"
+	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
+	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	discovery "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/discovery"
+	bhost "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/host/basic"
+	msmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
+	swarm "gx/ipfs/QmWpJ4y2vxJ6GZpPfQbpVpQxAYS3UeR6AKNbAHxw7wN3qw/go-libp2p-swarm"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+	host "gx/ipfs/QmaSxYRuMq4pkpBBG2CYaRrPx2z7NmMVEs34b9g61biQA6/go-libp2p-host"
 )
 
 // QriNode encapsulates a qri peer-to-peer node
@@ -23,13 +26,13 @@ type QriNode struct {
 	Identity   peer.ID        // the local node's identity
 	privateKey crypto.PrivKey // the local node's private Key
 
-	Online    bool      // is this node online?
-	Host      host.Host // p2p Host
-	Discovery discovery.Service
-	Peerstore pstore.Peerstore // storage for other Peer instances
+	Online    bool              // is this node online?
+	Host      host.Host         // p2p Host, can be provided by an ipfs node
+	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
+	QriPeers  pstore.Peerstore  // storage for other qri Peer instances
 
-	Repo  repo.Repo
-	Store cafs.Filestore
+	Repo  repo.Repo      // repository of this node's qri data
+	Store cafs.Filestore // a content addressed filestore for data storage, usually ipfs
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -47,29 +50,49 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 		return nil, err
 	}
 
-	// fmt.Println(cfg.Addrs)
-
 	// Create a peerstore
 	ps := pstore.NewPeerstore()
 
-	host, err := makeBasicHost(ps, cfg)
-	if err != nil {
-		return nil, err
-	}
-
 	node := &QriNode{
-		Identity:  cfg.PeerId,
-		Host:      host,
-		Online:    cfg.Online,
-		Peerstore: ps,
-		Repo:      cfg.Repo,
-		Store:     store,
+		Identity: cfg.PeerId,
+		Online:   cfg.Online,
+		QriPeers: ps,
+		Repo:     cfg.Repo,
+		Store:    store,
 	}
-
-	host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
 
 	if cfg.Online {
-		if err = node.StartDiscovery(); err != nil {
+		// If the underlying content-addressed-filestore is an ipfs
+		// node, it has built-in p2p, overlay the qri protocol
+		// on the ipfs node's p2p connections.
+		if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
+			// TODO - in this situation we should adopt the keypair
+			// if the ipfs node to avoid conflicts.
+
+			ipfsnode := ipfsfs.Node()
+			if ipfsnode.PeerHost != nil {
+				node.Host = ipfsnode.PeerHost
+				// fmt.Println("ipfs host muxer:")
+				// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
+			}
+			if ipfsnode.Discovery != nil {
+				node.Discovery = ipfsnode.Discovery
+			}
+		}
+
+		if node.Host == nil {
+			host, err := makeBasicHost(ps, cfg)
+			if err != nil {
+				return nil, err
+			}
+			node.Host = host
+		}
+
+		// add multistream handler for qri protocol to the host
+		// for more info on multistreams check github.com/multformats/go-multistream
+		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
+
+		if err := node.StartDiscovery(); err != nil {
 			return nil, err
 		}
 	}
@@ -77,15 +100,14 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 	return node, nil
 }
 
-// Repo gives this node's repository
-// func (n *QriNode) Repo() repo.Repo {
-// 	return n.repo
-// }
-
 // Encapsulated Addresses returns a slice of full multaddrs for this node
 func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	// Build host multiaddress
-	hostAddr, _ := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
+	if err != nil {
+		fmt.Println(err.Error())
+		return nil
+	}
 
 	res := make([]ma.Multiaddr, len(qn.Host.Addrs()))
 	for i, a := range qn.Host.Addrs() {
@@ -94,22 +116,6 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 
 	return res
 }
-
-// PeerInfo gives an overview of information about this Peer, used in handshaking
-// with other peers
-// func (n *QriNode) PeerInfo() (map[string]interface{}, error) {
-// 	repo.QueryPeers(n.Repo.Peers(), query.Query{
-
-// 		})
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	return map[string]interface{}{
-// 		"Id":        n.Identity.String(),
-// 		"namespace": ns,
-// 	}, nil
-// }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
 func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
@@ -141,4 +147,34 @@ func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	netw := (*swarm.Network)(swrm)
 	basicHost := bhost.New(netw)
 	return basicHost, nil
+}
+
+// PrintSwarmAddrs is pulled from ipfs codebase
+func PrintSwarmAddrs(node *QriNode) {
+	if !node.Online {
+		fmt.Println("qri node running in offline mode.")
+		return
+	}
+
+	var lisAddrs []string
+	ifaceAddrs, err := node.Host.Network().InterfaceListenAddresses()
+	if err != nil {
+		fmt.Printf("failed to read listening addresses: %s\n", err)
+	}
+	for _, addr := range ifaceAddrs {
+		lisAddrs = append(lisAddrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(lisAddrs))
+	for _, addr := range lisAddrs {
+		fmt.Printf("Swarm listening on %s\n", addr)
+	}
+
+	var addrs []string
+	for _, addr := range node.Host.Addrs() {
+		addrs = append(addrs, addr.String())
+	}
+	sort.Sort(sort.StringSlice(addrs))
+	for _, addr := range addrs {
+		fmt.Printf("Swarm announcing %s\n", addr)
+	}
 }
