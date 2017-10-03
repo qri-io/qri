@@ -28,15 +28,15 @@ type SearchParams struct {
 }
 
 func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error {
-	if d.node != nil {
-		r, err := d.node.Search(p.Query, p.Limit, p.Offset)
-		if err != nil {
-			return err
-		}
+	// if d.node != nil {
+	// 	r, err := d.node.Search(p.Query, p.Limit, p.Offset)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		*res = r
-		return nil
-	}
+	// 	*res = r
+	// 	return nil
+	// }
 
 	r, err := search.Search(d.repo, d.store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	if err != nil {

@@ -1,6 +1,7 @@
 package server
 
 import (
+	"encoding/json"
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
@@ -37,6 +38,13 @@ func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 		Query:  r.FormValue("q"),
 		Limit:  p.Limit(),
 		Offset: p.Offset(),
+	}
+
+	if r.Header.Get("Content-Type") == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(sp); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 
 	res := make([]*repo.DatasetRef, p.Limit())
