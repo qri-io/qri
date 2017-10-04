@@ -1,17 +1,16 @@
-package server
+package search
 
 import (
 	"encoding/json"
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"net/http"
 )
 
-func NewSearchHandlers(store cafs.Filestore, r repo.Repo, node *p2p.QriNode) *SearchHandlers {
-	req := NewSearchRequests(store, r, node)
+func NewSearchHandlers(store cafs.Filestore, r repo.Repo) *SearchHandlers {
+	req := NewSearchRequests(store, r)
 	return &SearchHandlers{*req}
 }
 

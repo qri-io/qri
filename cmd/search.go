@@ -16,7 +16,7 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/qri/core/search"
+	"github.com/qri-io/qri/repo/search"
 	"github.com/spf13/cobra"
 )
 
