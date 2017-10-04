@@ -35,7 +35,11 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	// pinfo.Profile = p
 	// peers[pi.ID.Pretty()] = pinfo
-	fmt.Println("added peer:", pi.ID.Pretty())
+
+	// ignore any id property in case peers a lying jerks
+	p.Id = pi.ID.Pretty()
+
+	fmt.Println("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 

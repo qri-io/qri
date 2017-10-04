@@ -10,8 +10,6 @@ type Profile struct {
 	Username string `json:"username"`
 	// specifies weather this is a user or an organization
 	Type UserType `json:"type"`
-	// password, only really used on account creation
-	password string
 	// user's email address
 	Email string `json:"email"`
 	// user name field. could be first[space]last, but not strictly enforced
@@ -26,8 +24,8 @@ type Profile struct {
 	ThumbUrl string `json:"thumbUrl"`
 	// profile photo url
 	ProfileUrl string `json:"profileUrl"`
-	// header image url
-	PosterUrl string `json:"posterUrl"`
+	// users's twitter handle
+	Twitter string `json:"twitter"`
 	// often users get auto-generated based on IP for rate lmiting & stuff
 	// this flag tracks that.
 	// TODO - for this to be useful it'll need to be Exported

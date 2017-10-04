@@ -24,6 +24,10 @@ func NewRepo(base string) (repo.Repo, error) {
 		return nil, err
 	}
 	bp := basepath(base)
+	if err := ensureProfile(bp); err != nil {
+		return nil, err
+	}
+
 	return &Repo{
 		basepath:  bp,
 		Datasets:  NewDatasets(base, FileDatasets),
@@ -53,6 +57,15 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 
 func (r *Repo) SaveProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
+}
+
+// ensureProfile makes sure a profile file is saved locally
+// makes it easier to edit that file to change user data
+func ensureProfile(bp basepath) error {
+	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
+		return bp.saveFile(&profile.Profile{}, FileProfile)
+	}
+	return nil
 }
 
 // func (r *Repo) Peers() (map[string]*profile.Profile, error) {
