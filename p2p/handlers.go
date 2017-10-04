@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -38,6 +39,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 
 	// ignore any id property in case peers a lying jerks
 	p.Id = pi.ID.Pretty()
+	p.Updated = time.Now()
 
 	fmt.Println("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)

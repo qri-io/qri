@@ -1,11 +1,15 @@
 package profile
 
+import (
+	"time"
+)
+
 type Profile struct {
 	Id string `json:"id"`
-	// Created timestamp rounded to seconds in UTC
-	Created int64 `json:"created"`
-	// Updated timestamp rounded to seconds in UTC
-	Updated int64 `json:"updated"`
+	// Created timestamp
+	Created time.Time `json:"created,omitempty"`
+	// Updated timestamp
+	Updated time.Time `json:"updated,omitempty"`
 	// handle for the user. min 1 character, max 80. composed of [_,-,a-z,A-Z,1-9]
 	Username string `json:"username"`
 	// specifies weather this is a user or an organization
