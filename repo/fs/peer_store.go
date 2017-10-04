@@ -21,7 +21,7 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	ps[id.String()] = p
+	ps[id.Pretty()] = p
 	return r.saveFile(ps, FilePeers)
 }
 
@@ -30,7 +30,8 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	if err != nil {
 		return nil, err
 	}
-	ids := id.String()
+
+	ids := id.Pretty()
 	for p, d := range ps {
 		if ids == p {
 			return d, nil
@@ -45,7 +46,7 @@ func (r PeerStore) DeletePeer(id peer.ID) error {
 	if err != nil {
 		return err
 	}
-	delete(ps, id.String())
+	delete(ps, id.Pretty())
 	return r.saveFile(ps, FilePeers)
 }
 
