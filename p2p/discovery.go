@@ -34,22 +34,20 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
-	} else if supports, err := n.SupportsQriProtocol(pinfo); supports && err == nil {
-		fmt.Printf("peer %s qri support: %t", pinfo.ID.Pretty(), supports)
-
-		if err := n.Host.Peerstore().Put(pinfo.ID, qriSupportKey, supports); err != nil {
+	} else if support, err := n.SupportsQriProtocol(pinfo); err == nil {
+		if err := n.Host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
 			fmt.Println("errror setting qri support flag", err.Error())
 			return
 		}
 
-		if err := n.AddQriPeer(pinfo); err != nil {
-			fmt.Println(err.Error())
+		if support {
+			if err := n.AddQriPeer(pinfo); err != nil {
+				fmt.Println(err.Error())
+			}
 		}
 	} else if err != nil {
 		fmt.Println("error checking for qri support:", err.Error())
 	}
-
-	// fmt.Println("connected to peer: ", pinfo.ID.Pretty())
 }
 
 // SupportsQriProtocol checks to see if this peer supports the qri

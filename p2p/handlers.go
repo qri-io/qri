@@ -3,11 +3,12 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/core/search"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/repo/search"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 )
@@ -35,7 +36,12 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	}
 	// pinfo.Profile = p
 	// peers[pi.ID.Pretty()] = pinfo
-	fmt.Println("added peer:", pi.ID.Pretty())
+
+	// ignore any id property in case peers a lying jerks
+	p.Id = pi.ID.Pretty()
+	p.Updated = time.Now()
+
+	fmt.Println("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 

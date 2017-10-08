@@ -1,16 +1,16 @@
-package server
+package search
 
 import (
+	"encoding/json"
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"net/http"
 )
 
-func NewSearchHandlers(store cafs.Filestore, r repo.Repo, node *p2p.QriNode) *SearchHandlers {
-	req := NewSearchRequests(store, r, node)
+func NewSearchHandlers(store cafs.Filestore, r repo.Repo) *SearchHandlers {
+	req := NewSearchRequests(store, r)
 	return &SearchHandlers{*req}
 }
 
@@ -37,6 +37,13 @@ func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 		Query:  r.FormValue("q"),
 		Limit:  p.Limit(),
 		Offset: p.Offset(),
+	}
+
+	if r.Header.Get("Content-Type") == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(sp); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 
 	res := make([]*repo.DatasetRef, p.Limit())

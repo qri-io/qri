@@ -3,6 +3,7 @@ package datasets
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -10,6 +11,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/repo"
 	"io/ioutil"
 	"net/http"
@@ -68,6 +70,23 @@ func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request)
 	default:
 		util.NotFoundHandler(w, r)
 	}
+}
+
+func (h *Handlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	res := &dataset.Dataset{}
+	args := &GetParams{
+		Path: datastore.NewKey(r.URL.Path[len("/download/"):]),
+		Hash: r.FormValue("hash"),
+	}
+	err := h.Get(args, res)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "application/zip")
+	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
+	dsutil.WriteZipArchive(h.store, res, w)
 }
 
 func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {

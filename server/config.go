@@ -56,17 +56,10 @@ type Config struct {
 	ProxyForceHttps bool
 	// token for analytics tracking
 	AnalyticsToken string
-
 	// set to true to run entire server with in-memory structures
 	MemOnly bool
-
 	// disable networking
 	Online bool
-
-	// QueryResultsGraphPath    string
-	// ResourceMetaGraphPath    string
-	// ResourceQueriesGraphPath string
-	// NamespaceGraphPath       string
 }
 
 // Validate returns nil if this configuration is valid,

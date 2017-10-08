@@ -7,12 +7,13 @@ import (
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/qri/core/datasets"
-	"github.com/qri-io/qri/core/peers"
-	"github.com/qri-io/qri/core/queries"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/server/datasets"
+	"github.com/qri-io/qri/server/peers"
+	"github.com/qri-io/qri/server/queries"
+	"github.com/qri-io/qri/server/search"
 	"github.com/sirupsen/logrus"
 	"net/http"
 	"os"
@@ -33,7 +34,7 @@ type Server struct {
 // New creates a new qri server with optional configuration
 // calling New() with no options will return the default configuration
 // as specified in DefaultConfig
-func New(options ...func(*Config)) (*Server, error) {
+func New(options ...func(*Config)) (s *Server, err error) {
 	cfg := DefaultConfig()
 	for _, opt := range options {
 		opt(cfg)
@@ -42,7 +43,7 @@ func New(options ...func(*Config)) (*Server, error) {
 		return nil, fmt.Errorf("server configuration error: %s", err.Error())
 	}
 
-	s := &Server{
+	s = &Server{
 		cfg: cfg,
 		log: logrus.New(),
 	}
@@ -58,12 +59,6 @@ func New(options ...func(*Config)) (*Server, error) {
 		ForceColors: true,
 	}
 
-	return s, nil
-}
-
-// Serve starts the server. It will block while the server
-// is running
-func (s *Server) Serve() (err error) {
 	var store cafs.Filestore
 	var qrepo repo.Repo
 
@@ -78,10 +73,9 @@ func (s *Server) Serve() (err error) {
 			repo.MemPeers{},
 			&analytics.Memstore{})
 		if err != nil {
-			return err
+			return s, err
 		}
 	} else {
-
 		store, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 			// cfg.Online = false
 			cfg.Online = s.cfg.Online
@@ -89,10 +83,9 @@ func (s *Server) Serve() (err error) {
 		})
 		if err != nil {
 			if strings.Contains(err.Error(), "resource temporarily unavailable") {
-				return fmt.Errorf("Couldn't obtain filestore lock. Is an ipfs daemon already running?")
+				return s, fmt.Errorf("Couldn't obtain filestore lock. Is an ipfs daemon already running?")
 			}
-
-			return err
+			return s, err
 		}
 	}
 
@@ -103,7 +96,7 @@ func (s *Server) Serve() (err error) {
 		ncfg.Online = s.cfg.Online
 	})
 	if err != nil {
-		return err
+		return s, err
 	}
 
 	s.qriNode = qriNode
@@ -122,6 +115,12 @@ func (s *Server) Serve() (err error) {
 
 	// p2p.PrintSwarmAddrs(qriNode)
 
+	return s, nil
+}
+
+// Serve starts the server. It will block while the server
+// is running
+func (s *Server) Serve() (err error) {
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
 
@@ -136,20 +135,20 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	m.HandleFunc("/", WebappHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
-
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
-	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
-	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
-	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
+	sh := search.NewSearchHandlers(s.qriNode.Store, s.qriNode.Repo)
+	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	ph := peers.NewHandlers(s.qriNode.Repo)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
-	sh := NewSearchHandlers(s.qriNode.Store, s.qriNode.Repo, s.qriNode)
-	m.Handle("/search", s.middleware(sh.SearchHandler))
+	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
+	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
+	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
+	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
+	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
 	qh := queries.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/run", s.middleware(qh.RunHandler))
