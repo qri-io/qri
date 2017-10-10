@@ -16,7 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/qri/repo/search"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/fs"
 	"github.com/spf13/cobra"
 )
 
@@ -32,19 +33,36 @@ var searchCmd = &cobra.Command{
 
 		PrintWarning("CLI search only supports searching local datasets for now")
 
-		fs, err := GetIpfsFilestore()
+		fs, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
-		results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
-		ExitIfErr(err)
+		r := GetRepo()
 
-		if len(results) > 0 {
-			for i, ds := range results {
-				PrintDatasetRefInfo(i+1, ds)
-			}
-		} else {
-			PrintWarning("no results")
+		if fsr, ok := r.(*fs_repo.Repo); ok {
+			PrintInfo("building index...")
+			err = fsr.UpdateSearchIndex(fs)
+			ExitIfErr(err)
 		}
+
+		PrintInfo("running search...")
+		if s, ok := r.(repo.Searchable); ok {
+			res, err := s.Search(args[0])
+			ExitIfErr(err)
+			PrintInfo(res)
+		} else {
+			ErrExit(fmt.Errorf("this repository doesn't support search"))
+		}
+
+		// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
+		// ExitIfErr(err)
+
+		// if len(results) > 0 {
+		// 	for i, ds := range results {
+		// 		PrintDatasetRefInfo(i+1, ds)
+		// 	}
+		// } else {
+		// 	PrintWarning("no results")
+		// }
 	},
 }
 

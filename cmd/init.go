@@ -53,7 +53,7 @@ var initCmd = &cobra.Command{
 
 		r := GetRepo()
 		// ns := LoadNamespaceGraph()
-		ds, err := GetIpfsFilestore()
+		ds, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		if initRescursive {

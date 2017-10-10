@@ -41,7 +41,7 @@ var exportCmd = &cobra.Command{
 		}
 
 		r := GetRepo()
-		store, err := GetIpfsFilestore()
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		ds, err := FindDataset(r, store, args[0])

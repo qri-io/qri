@@ -1,57 +1,65 @@
 package search
 
 import (
-	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/repo"
 	"strings"
+
+	"github.com/blevesearch/bleve"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/dataset"
 )
 
-func Search(r repo.Repo, store cafs.Filestore, q query.Query) ([]*repo.DatasetRef, error) {
-	results := make([]*repo.DatasetRef, q.Limit)
+func Search(i Index, q string) (string, error) {
+	// results := make([]*repo.DatasetRef, q.Limit)
 
-	// TODO - lol 10000?
-	ns, err := r.Namespace(10000, 0)
+	query := bleve.NewQueryStringQuery(q)
+	search := bleve.NewSearchRequest(query)
+	searchResults, err := i.Search(search)
 	if err != nil {
-		return nil, err
+		return "", err
 	}
 
-	i := 0
-NAMES:
-	for name, path := range ns {
-		if i == q.Limit {
-			break
-		}
+	// fmt.Println(searchResults)
+	return searchResults.String(), nil
 
-		ds, err := dsfs.LoadDataset(store, path)
-		if err != nil {
-			return nil, err
-		}
+	// 	// TODO - lol 10000?
+	// 	ns, err := r.Namespace(10000, 0)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
 
-		entry := query.Entry{
-			Key:   path.String(),
-			Value: ds,
-		}
+	// 	i := 0
+	// NAMES:
+	// 	for name, path := range ns {
+	// 		if i == q.Limit {
+	// 			break
+	// 		}
 
-		for _, f := range q.Filters {
-			if !f.Filter(entry) {
-				continue NAMES
-			}
-		}
+	// 		ds, err := dsfs.LoadDataset(store, path)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
 
-		results[i] = &repo.DatasetRef{
-			Name:    name,
-			Path:    path,
-			Dataset: ds,
-		}
-		i++
-	}
+	// 		entry := query.Entry{
+	// 			Key:   path.String(),
+	// 			Value: ds,
+	// 		}
 
-	results = results[:i]
+	// 		for _, f := range q.Filters {
+	// 			if !f.Filter(entry) {
+	// 				continue NAMES
+	// 			}
+	// 		}
 
-	return results, nil
+	// 		results[i] = &repo.DatasetRef{
+	// 			Name:    name,
+	// 			Path:    path,
+	// 			Dataset: ds,
+	// 		}
+	// 		i++
+	// 	}
+	// 	results = results[:i]
+
+	// return results, nil
 }
 
 func NewDatasetQuery(q string, limit, offset int) query.Query {

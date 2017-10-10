@@ -38,10 +38,10 @@ var datasetListCmd = &cobra.Command{
 	Short:   "list your local datasets",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		ns, err := GetRepo().Namespace(100, 0)
+		refs, err := GetRepo().Namespace(100, 0)
 		ExitIfErr(err)
-		for name, resource := range ns {
-			PrintInfo("%s\t\t: %s", name, resource.String())
+		for _, ref := range refs {
+			PrintInfo("%s\t\t: %s", ref.Name, ref.Path)
 		}
 	},
 }
@@ -54,7 +54,7 @@ var datasetInfoCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
 		}
-		ds, err := GetIpfsFilestore()
+		ds, err := GetIpfsFilestore(true)
 		ExitIfErr(err)
 
 		path, err := GetRepo().GetPath(args[0])
@@ -83,7 +83,7 @@ var datasetAddCmd = &cobra.Command{
 		}
 
 		r := GetRepo()
-		fs, err := GetIpfsFilestore()
+		fs, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		name := cmd.Flag("name").Value.String()
@@ -118,7 +118,7 @@ var datasetRemoveCmd = &cobra.Command{
 		}
 		name := args[0]
 
-		fs, err := GetIpfsFilestore()
+		fs, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		r := GetRepo()

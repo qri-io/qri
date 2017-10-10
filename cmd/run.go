@@ -43,7 +43,7 @@ var runCmd = &cobra.Command{
 
 		r := GetRepo()
 
-		store, err := GetIpfsFilestore()
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		// TODO - make format output the parsed statement as well

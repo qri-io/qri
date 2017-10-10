@@ -1,9 +1,9 @@
 package search
 
 import (
+	"fmt"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/search"
 )
 
 func NewSearchRequests(store cafs.Filestore, r repo.Repo) *SearchRequests {
@@ -33,15 +33,26 @@ func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error 
 	// 		return err
 	// 	}
 
+	if s, ok := d.repo.(repo.Searchable); ok {
+		results, err := s.Search(p.Query)
+		if err != nil {
+			return err
+		}
+		fmt.Println(results)
+	} else {
+		return fmt.Errorf("this repo doesn't support search")
+	}
+
 	// 	*res = r
 	// 	return nil
 	// }
 
-	r, err := search.Search(d.repo, d.store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
-	if err != nil {
-		return err
-	}
+	// r, err := search.Search(d.repo, d.store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
+	// if err != nil {
+	// 	return err
+	// }
+	// r, err := search.Search(p.Query)
 
-	*res = r
+	// *res = r
 	return nil
 }

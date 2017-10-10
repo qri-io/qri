@@ -59,22 +59,28 @@ func (n Namestore) DeleteName(name string) error {
 	return n.saveFile(names, FileNamestore)
 }
 
-func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error) {
+func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	names, err := n.names()
 	if err != nil {
 		return nil, err
 	}
+	if limit < 0 {
+		limit = len(names)
+	}
 
 	i := 0
 	added := 0
-	res := map[string]datastore.Key{}
+	res := make([]*repo.DatasetRef, limit)
 	for name, path := range names {
 		if i < offset {
 			continue
 		}
 
 		if limit != 0 && added < limit {
-			res[name] = path
+			res[i] = &repo.DatasetRef{
+				Name: name,
+				Path: path,
+			}
 			added++
 		} else if added == limit {
 			break
@@ -82,6 +88,7 @@ func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error
 
 		i++
 	}
+	res = res[:i]
 	return res, nil
 }
 

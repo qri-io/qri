@@ -43,7 +43,7 @@ var updateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := GetRepo()
-		store, err := GetIpfsFilestore()
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		ref, err := DatasetRef(r, store, args[0])

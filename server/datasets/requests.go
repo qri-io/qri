@@ -33,8 +33,6 @@ type ListParams struct {
 }
 
 func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
-	replies := make([]*repo.DatasetRef, p.Limit)
-	i := 0
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
 	// ns, err := d.repo.Namespace()
@@ -42,30 +40,30 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// 	Limit:  p.Limit,
 	// 	Offset: p.Offset,
 	// })
-	names, err := d.repo.Namespace(p.Limit, p.Offset)
+	replies, err := d.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		fmt.Println(err.Error())
 		return err
 	}
 
-	for name, path := range names {
+	for i, ref := range replies {
 		if i >= p.Limit {
 			break
 		}
 
-		ds, err := dsfs.LoadDataset(d.store, path)
+		ds, err := dsfs.LoadDataset(d.store, ref.Path)
 		if err != nil {
-			fmt.Println("error loading path:", path)
+			fmt.Println("error loading path:", ref.Path)
 			return err
 		}
-		replies[i] = &repo.DatasetRef{
-			Name:    name,
-			Path:    path,
-			Dataset: ds,
-		}
-		i++
+		replies[i].Dataset = ds
+		// replies[i] = &repo.DatasetRef{
+		// 	Name:    name,
+		// 	Path:    path,
+		// 	Dataset: ds,
+		// }
 	}
-	*res = replies[:i]
+	*res = replies
 	return nil
 }
 

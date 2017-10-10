@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/repo/search"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 )
@@ -66,36 +65,32 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	if p.Limit == 0 {
 		p.Limit = 50
 	}
-	names, err := n.Repo.Namespace(p.Limit, p.Offset)
+	refs, err := n.Repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		fmt.Println("repo names error:", err)
 		return nil
 	}
 
-	replies := make([]*repo.DatasetRef, p.Limit)
-	i := 0
-	for name, path := range names {
+	// replies := make([]*repo.DatasetRef, p.Limit)
+	// i := 0
+	for i, ref := range refs {
 		if i >= p.Limit {
 			break
 		}
-		ds, err := dsfs.LoadDataset(n.Store, path)
+		ds, err := dsfs.LoadDataset(n.Store, ref.Path)
 		if err != nil {
-			fmt.Println("error loading dataset at path:", path)
+			fmt.Println("error loading dataset at path:", ref.Path)
 			return nil
 		}
-		replies[i] = &repo.DatasetRef{
-			Name:    name,
-			Path:    path,
-			Dataset: ds,
-		}
-		i++
+		refs[i].Dataset = ds
+		// i++
 	}
 
-	replies = replies[:i]
+	// replies = replies[:i]
 	return &Message{
 		Type:    MtDatasets,
 		Phase:   MpResponse,
-		Payload: replies,
+		Payload: refs,
 	}
 }
 
@@ -162,12 +157,23 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		return nil
 	}
 
-	results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
-	return &Message{
-		Phase:   MpResponse,
-		Type:    MtSearch,
-		Payload: results,
+	// results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
+	if s, ok := n.Repo.(repo.Searchable); ok {
+		results, err := s.Search(p.Query)
+		if err != nil {
+			fmt.Println("search error:", err.Error())
+			return nil
+		}
+		return &Message{
+			Phase:   MpResponse,
+			Type:    MtSearch,
+			Payload: results,
+		}
+	} else {
+		// TODO - repo doesn't support search
 	}
+
+	return nil
 }
 
 func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {

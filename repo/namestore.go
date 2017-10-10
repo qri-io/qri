@@ -11,7 +11,7 @@ type Namestore interface {
 	GetPath(name string) (datastore.Key, error)
 	GetName(path datastore.Key) (string, error)
 	DeleteName(name string) error
-	Namespace(limit, offset int) (map[string]datastore.Key, error)
+	Namespace(limit, offset int) ([]*DatasetRef, error)
 	NameCount() (int, error)
 }
 
@@ -44,17 +44,24 @@ func (r MemNamestore) DeleteName(name string) error {
 	return nil
 }
 
-func (r MemNamestore) Namespace(limit, offset int) (map[string]datastore.Key, error) {
+func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
+	if limit == -1 {
+		limit = len(r)
+	}
+
 	i := 0
 	added := 0
-	res := map[string]datastore.Key{}
+	res := make([]*DatasetRef, limit)
 	for name, path := range r {
 		if i < offset {
 			continue
 		}
 
 		if limit > 0 && added < limit {
-			res[name] = path
+			res[i] = &DatasetRef{
+				Name: name,
+				Path: path,
+			}
 			added++
 		} else if added == limit {
 			break

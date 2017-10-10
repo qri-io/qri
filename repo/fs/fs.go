@@ -3,11 +3,14 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/cafs"
+	"io/ioutil"
+	"os"
+
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"io/ioutil"
-	"os"
+	"github.com/qri-io/qri/repo/search"
 )
 
 type Repo struct {
@@ -17,6 +20,7 @@ type Repo struct {
 	analytics Analytics
 	peers     PeerStore
 	cache     Datasets
+	index     search.Index
 }
 
 func NewRepo(base string) (repo.Repo, error) {
@@ -28,6 +32,11 @@ func NewRepo(base string) (repo.Repo, error) {
 		return nil, err
 	}
 
+	index, err := search.LoadIndex(bp.filepath(FileSearchIndex))
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repo{
 		basepath:  bp,
 		Datasets:  NewDatasets(base, FileDatasets),
@@ -35,6 +44,7 @@ func NewRepo(base string) (repo.Repo, error) {
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
 		cache:     NewDatasets(base, FileCache),
+		index:     index,
 	}, nil
 }
 
@@ -77,13 +87,20 @@ func ensureProfile(bp basepath) error {
 // 		}
 // 		return p, fmt.Errorf("error loading peers: %s", err.Error())
 // 	}
-
 // 	if err := json.Unmarshal(data, &p); err != nil {
 // 		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
 // 	}
-
 // 	return p, nil
 // }
+
+// fs implements the search interface
+func (r *Repo) Search(query string) (string, error) {
+	return search.Search(r.index, query)
+}
+
+func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
+	return search.IndexRepo(store, r, r.index)
+}
 
 func (r *Repo) Peers() repo.Peers {
 	return r.peers

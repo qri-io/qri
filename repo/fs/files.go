@@ -2,7 +2,6 @@ package fs_repo
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/ipfs/go-datastore"
 	"io/ioutil"
 	"os"
@@ -12,7 +11,7 @@ import (
 type basepath string
 
 func (bp basepath) filepath(f File) string {
-	return filepath.Join(string(bp), fmt.Sprintf("%s.json", Filepath(f)))
+	return filepath.Join(string(bp), Filepath(f))
 }
 
 func (bp basepath) readBytes(f File) ([]byte, error) {
@@ -53,19 +52,22 @@ const (
 	FileCache
 	// FileAnalytics holds analytics data
 	FileAnalytics
+	// SearchIndex
+	FileSearchIndex
 )
 
 var paths = map[File]string{
-	FileUnknown:   "",
-	FileLockfile:  "/repo.lock",
-	FileInfo:      "/info",
-	FileProfile:   "/profile",
-	FileConfig:    "/config",
-	FileDatasets:  "/datasets",
-	FileNamestore: "/namespace",
-	FilePeers:     "/peers",
-	FileCache:     "/cache",
-	FileAnalytics: "/analytics",
+	FileUnknown:     "",
+	FileLockfile:    "/repo.lock",
+	FileInfo:        "/info.json",
+	FileProfile:     "/profile.json",
+	FileConfig:      "/config.json",
+	FileDatasets:    "/datasets.json",
+	FileNamestore:   "/namespace.json",
+	FilePeers:       "/peers.json",
+	FileCache:       "/cache.json",
+	FileAnalytics:   "/analytics.json",
+	FileSearchIndex: "/index.bleve",
 }
 
 // Filepath gives the relative filepath to a repofile
