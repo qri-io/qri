@@ -4,17 +4,6 @@ import (
 	"github.com/ipfs/go-datastore"
 )
 
-// Namespace is an in-progress solution for aliasing
-// datasets locally
-type Namestore interface {
-	PutName(name string, path datastore.Key) error
-	GetPath(name string) (datastore.Key, error)
-	GetName(path datastore.Key) (string, error)
-	DeleteName(name string) error
-	Namespace(limit, offset int) ([]*DatasetRef, error)
-	NameCount() (int, error)
-}
-
 // MemNamestore is an in-memory implementation of the Namestore interface
 type MemNamestore map[string]datastore.Key
 

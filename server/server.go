@@ -151,6 +151,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
 	qh := queries.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
+	m.Handle("/queries", s.middleware(qh.ListHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m

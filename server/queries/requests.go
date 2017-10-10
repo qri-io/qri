@@ -7,7 +7,6 @@ import (
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/dataset/dsgraph"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/qri/repo"
 	"time"
@@ -31,15 +30,13 @@ type ListParams struct {
 	Offset  int
 }
 
-func (d *Requests) List(p *ListParams, res *dsgraph.QueryResults) error {
-	// TODO - finish, need to restore query results graph
-	// qr, err := repo.DatasetsQuery(d.repo, query.Query{})
-	// qr, err := d.repo.QueryResults()
-	// if err != nil {
-	// 	return err
-	// }
-	// *res = qr
-	return fmt.Errorf("listing queries is not yet finished")
+func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	results, err := d.repo.GetQueryLogs(p.Limit, p.Offset)
+	if err != nil {
+		return err
+	}
+	*res = results
+	return nil
 }
 
 type GetParams struct {
@@ -173,10 +170,12 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return err
 	}
 
-	*res = repo.DatasetRef{
-		Dataset: ds,
-		Name:    p.SaveName,
-		Path:    dspath,
+	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
+
+	if err := r.repo.LogQuery(ref); err != nil {
+		return err
 	}
+
+	*res = *ref
 	return nil
 }
