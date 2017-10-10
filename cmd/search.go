@@ -51,23 +51,23 @@ var searchCmd = &cobra.Command{
 
 		PrintInfo("running search...")
 		if s, ok := r.(repo.Searchable); ok {
-			res, err := s.Search(args[0])
+			results, err := s.Search(args[0])
 			ExitIfErr(err)
-			PrintInfo(res)
+
+			// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
+			// ExitIfErr(err)
+
+			if len(results) > 0 {
+				for i, ds := range results {
+					PrintDatasetRefInfo(i+1, ds)
+				}
+			} else {
+				PrintWarning("no results")
+			}
 		} else {
 			ErrExit(fmt.Errorf("this repository doesn't support search"))
 		}
 
-		// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
-		// ExitIfErr(err)
-
-		// if len(results) > 0 {
-		// 	for i, ds := range results {
-		// 		PrintDatasetRefInfo(i+1, ds)
-		// 	}
-		// } else {
-		// 	PrintWarning("no results")
-		// }
 	},
 }
 

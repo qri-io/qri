@@ -91,7 +91,7 @@ type DatasetRef struct {
 
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
-	Search(q string) (string, error)
+	Search(q string) ([]*DatasetRef, error)
 }
 
 // DatasetsQuery is a convenience function to read all query results & parse into a

@@ -38,7 +38,8 @@ func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error 
 		if err != nil {
 			return err
 		}
-		fmt.Println(results)
+		*res = results
+		return nil
 	} else {
 		return fmt.Errorf("this repo doesn't support search")
 	}

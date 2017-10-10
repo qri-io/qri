@@ -94,8 +94,23 @@ func ensureProfile(bp basepath) error {
 // }
 
 // fs implements the search interface
-func (r *Repo) Search(query string) (string, error) {
-	return search.Search(r.index, query)
+func (r *Repo) Search(query string) ([]*repo.DatasetRef, error) {
+	refs, err := search.Search(r.index, query)
+	if err != nil {
+		return refs, err
+	}
+	for _, ref := range refs {
+		if name, err := r.GetName(ref.Path); err == nil {
+			ref.Name = name
+		}
+
+		if ds, err := r.GetDataset(ref.Path); err == nil {
+			ref.Dataset = ds
+		} else {
+			// fmt.Println(err.Error())
+		}
+	}
+	return refs, nil
 }
 
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {

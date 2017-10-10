@@ -3,6 +3,7 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 
@@ -56,6 +57,9 @@ func (r Datasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
 		if ps == p {
 			return d, nil
 		}
+	}
+	if r.store != nil {
+		return dsfs.LoadDataset(r.store, path)
 	}
 
 	return nil, datastore.ErrNotFound

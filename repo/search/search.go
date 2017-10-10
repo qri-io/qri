@@ -1,6 +1,8 @@
 package search
 
 import (
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/repo"
 	"strings"
 
 	"github.com/blevesearch/bleve"
@@ -8,18 +10,22 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func Search(i Index, q string) (string, error) {
-	// results := make([]*repo.DatasetRef, q.Limit)
+func Search(i Index, q string) ([]*repo.DatasetRef, error) {
 
 	query := bleve.NewQueryStringQuery(q)
 	search := bleve.NewSearchRequest(query)
-	searchResults, err := i.Search(search)
+	results, err := i.Search(search)
 	if err != nil {
-		return "", err
+		return nil, err
+	}
+
+	res := make([]*repo.DatasetRef, results.Hits.Len())
+	for i, hit := range results.Hits {
+		res[i] = &repo.DatasetRef{Path: datastore.NewKey(hit.ID)}
 	}
 
 	// fmt.Println(searchResults)
-	return searchResults.String(), nil
+	return res, nil
 
 	// 	// TODO - lol 10000?
 	// 	ns, err := r.Namespace(10000, 0)
