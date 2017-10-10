@@ -40,7 +40,7 @@ var exportCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please specify an output path"))
 		}
 
-		r := GetRepo()
+		r := GetRepo(false)
 		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 

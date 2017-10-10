@@ -23,7 +23,7 @@ type Repo struct {
 	index     search.Index
 }
 
-func NewRepo(base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -39,11 +39,11 @@ func NewRepo(base string) (repo.Repo, error) {
 
 	return &Repo{
 		basepath:  bp,
-		Datasets:  NewDatasets(base, FileDatasets),
-		Namestore: Namestore{bp},
+		Datasets:  NewDatasets(base, FileDatasets, store),
+		Namestore: Namestore{bp, index, store},
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
-		cache:     NewDatasets(base, FileCache),
+		cache:     NewDatasets(base, FileCache, nil),
 		index:     index,
 	}, nil
 }

@@ -36,12 +36,17 @@ var searchCmd = &cobra.Command{
 		fs, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
-		r := GetRepo()
+		r := GetRepo(false)
 
-		if fsr, ok := r.(*fs_repo.Repo); ok {
-			PrintInfo("building index...")
-			err = fsr.UpdateSearchIndex(fs)
-			ExitIfErr(err)
+		reindex, err := cmd.Flags().GetBool("reindex")
+		ExitIfErr(err)
+
+		if reindex {
+			if fsr, ok := r.(*fs_repo.Repo); ok {
+				PrintInfo("building index...")
+				err = fsr.UpdateSearchIndex(fs)
+				ExitIfErr(err)
+			}
 		}
 
 		PrintInfo("running search...")
@@ -67,5 +72,6 @@ var searchCmd = &cobra.Command{
 }
 
 func init() {
+	searchCmd.Flags().BoolP("reindex", "r", false, "re-generate search index from scratch. might take a while.")
 	RootCmd.AddCommand(searchCmd)
 }

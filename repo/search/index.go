@@ -35,13 +35,6 @@ func LoadIndex(indexPath string) (Index, error) {
 			return nil, err
 		}
 
-		//index data in the background
-		// go func() {
-		// 	err = IndexRepo(store, r, repoIndex)
-		// 	if err != nil {
-		// 		log.Println(err.Error())
-		// 	}
-		// }()
 	} else if err != nil {
 		return nil, err
 	} else {

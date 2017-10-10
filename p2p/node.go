@@ -46,7 +46,7 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 	for _, opt := range options {
 		opt(cfg)
 	}
-	if err := cfg.Validate(); err != nil {
+	if err := cfg.Validate(store); err != nil {
 		return nil, err
 	}
 

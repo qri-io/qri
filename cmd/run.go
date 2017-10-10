@@ -41,7 +41,7 @@ var runCmd = &cobra.Command{
 			results   []byte
 		)
 
-		r := GetRepo()
+		r := GetRepo(false)
 
 		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)

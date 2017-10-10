@@ -3,26 +3,57 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
+
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/search"
 )
 
 type Namestore struct {
 	basepath
+	// optional search index to add/remove from
+	index search.Index
+	// filestore for checking dataset integrity
+	store cafs.Filestore
 }
 
 func NewNamestore(base string) Datasets {
 	return Datasets{basepath: basepath(base)}
 }
 
-func (n Namestore) PutName(name string, path datastore.Key) error {
+func (n Namestore) PutName(name string, path datastore.Key) (err error) {
+	var ds *dataset.Dataset
+
 	names, err := n.names()
 	if err != nil {
 		return err
 	}
+
+	if n.store != nil {
+		ds, err = dsfs.LoadDataset(n.store, path)
+		if err != nil {
+			return err
+		}
+	}
+
 	names[name] = path
+	if n.index != nil {
+		batch := n.index.NewBatch()
+		err = batch.Index(path.String(), ds)
+		if err != nil {
+			return err
+		}
+		err = n.index.Batch(batch)
+		if err != nil {
+			return err
+		}
+	}
+
 	return n.saveFile(names, FileNamestore)
 }
 
@@ -55,6 +86,14 @@ func (n Namestore) DeleteName(name string) error {
 	if err != nil {
 		return err
 	}
+	path := names[name]
+
+	if path.String() != "" && n.index != nil {
+		if err := n.index.Delete(path.String()); err != nil {
+			return err
+		}
+	}
+
 	delete(names, name)
 	return n.saveFile(names, FileNamestore)
 }
