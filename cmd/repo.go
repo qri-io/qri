@@ -11,11 +11,15 @@ import (
 
 var r repo.Repo
 
-func GetRepo() repo.Repo {
+func GetRepo(online bool) repo.Repo {
 	if r != nil {
 		return r
 	}
-	r, err := fs_repo.NewRepo(viper.GetString(QriRepoPath))
+
+	fs, err := GetIpfsFilestore(online)
+	ExitIfErr(err)
+
+	r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath))
 	ExitIfErr(err)
 	return r
 }

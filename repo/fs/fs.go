@@ -3,11 +3,14 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/cafs"
+	"io/ioutil"
+	"os"
+
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"io/ioutil"
-	"os"
+	"github.com/qri-io/qri/repo/search"
 )
 
 type Repo struct {
@@ -17,9 +20,10 @@ type Repo struct {
 	analytics Analytics
 	peers     PeerStore
 	cache     Datasets
+	index     search.Index
 }
 
-func NewRepo(base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -28,13 +32,19 @@ func NewRepo(base string) (repo.Repo, error) {
 		return nil, err
 	}
 
+	index, err := search.LoadIndex(bp.filepath(FileSearchIndex))
+	if err != nil {
+		return nil, err
+	}
+
 	return &Repo{
 		basepath:  bp,
-		Datasets:  NewDatasets(base, FileDatasets),
-		Namestore: Namestore{bp},
+		Datasets:  NewDatasets(base, FileDatasets, store),
+		Namestore: Namestore{bp, index, store},
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
-		cache:     NewDatasets(base, FileCache),
+		cache:     NewDatasets(base, FileCache, nil),
+		index:     index,
 	}, nil
 }
 
@@ -77,13 +87,35 @@ func ensureProfile(bp basepath) error {
 // 		}
 // 		return p, fmt.Errorf("error loading peers: %s", err.Error())
 // 	}
-
 // 	if err := json.Unmarshal(data, &p); err != nil {
 // 		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
 // 	}
-
 // 	return p, nil
 // }
+
+// fs implements the search interface
+func (r *Repo) Search(query string) ([]*repo.DatasetRef, error) {
+	refs, err := search.Search(r.index, query)
+	if err != nil {
+		return refs, err
+	}
+	for _, ref := range refs {
+		if name, err := r.GetName(ref.Path); err == nil {
+			ref.Name = name
+		}
+
+		if ds, err := r.GetDataset(ref.Path); err == nil {
+			ref.Dataset = ds
+		} else {
+			// fmt.Println(err.Error())
+		}
+	}
+	return refs, nil
+}
+
+func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
+	return search.IndexRepo(store, r, r.index)
+}
 
 func (r *Repo) Peers() repo.Peers {
 	return r.peers

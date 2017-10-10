@@ -16,7 +16,8 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/qri/repo/search"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/fs"
 	"github.com/spf13/cobra"
 )
 
@@ -32,22 +33,45 @@ var searchCmd = &cobra.Command{
 
 		PrintWarning("CLI search only supports searching local datasets for now")
 
-		fs, err := GetIpfsFilestore()
+		fs, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
-		results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
+		r := GetRepo(false)
+
+		reindex, err := cmd.Flags().GetBool("reindex")
 		ExitIfErr(err)
 
-		if len(results) > 0 {
-			for i, ds := range results {
-				PrintDatasetRefInfo(i+1, ds)
+		if reindex {
+			if fsr, ok := r.(*fs_repo.Repo); ok {
+				PrintInfo("building index...")
+				err = fsr.UpdateSearchIndex(fs)
+				ExitIfErr(err)
+			}
+		}
+
+		PrintInfo("running search...")
+		if s, ok := r.(repo.Searchable); ok {
+			results, err := s.Search(args[0])
+			ExitIfErr(err)
+
+			// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
+			// ExitIfErr(err)
+
+			if len(results) > 0 {
+				for i, ds := range results {
+					PrintDatasetRefInfo(i+1, ds)
+				}
+			} else {
+				PrintWarning("no results")
 			}
 		} else {
-			PrintWarning("no results")
+			ErrExit(fmt.Errorf("this repository doesn't support search"))
 		}
+
 	},
 }
 
 func init() {
+	searchCmd.Flags().BoolP("reindex", "r", false, "re-generate search index from scratch. might take a while.")
 	RootCmd.AddCommand(searchCmd)
 }

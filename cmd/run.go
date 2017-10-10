@@ -41,9 +41,9 @@ var runCmd = &cobra.Command{
 			results   []byte
 		)
 
-		r := GetRepo()
+		r := GetRepo(false)
 
-		store, err := GetIpfsFilestore()
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		// TODO - make format output the parsed statement as well

@@ -5,9 +5,9 @@ import (
 	"github.com/spf13/viper"
 )
 
-func GetIpfsFilestore() (*ipfs.Filestore, error) {
+func GetIpfsFilestore(online bool) (*ipfs.Filestore, error) {
 	return ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
-		cfg.Online = true
+		cfg.Online = online
 	})
 }

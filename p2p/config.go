@@ -3,6 +3,7 @@ package p2p
 import (
 	"crypto/rand"
 	"fmt"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 	fs_repo "github.com/qri-io/qri/repo/fs"
 
@@ -65,10 +66,10 @@ func DefaultNodeCfg() *NodeCfg {
 }
 
 // Validate confirms that the given settings will work, returning an error if not.
-func (cfg *NodeCfg) Validate() error {
+func (cfg *NodeCfg) Validate(store cafs.Filestore) error {
 
 	if cfg.Repo == nil && cfg.RepoPath != "" {
-		repo, err := fs_repo.NewRepo(cfg.RepoPath)
+		repo, err := fs_repo.NewRepo(store, cfg.RepoPath)
 		if err != nil {
 			return err
 		}

@@ -73,7 +73,7 @@ type Datasets interface {
 	Query(query.Query) (query.Results, error)
 }
 
-// DatasetRef encapsulates references to a dataset. This needs to exist to bind
+// DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
 // ways of referring to a dataset to a dataset itself, as datasets can't easily
 // contain their own hash information, and names are unique on a per-repository
 // basis.
@@ -87,6 +87,11 @@ type DatasetRef struct {
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
 	Path datastore.Key `json:"path"`
+}
+
+// Searchable is an opt-in interface for supporting repository search
+type Searchable interface {
+	Search(q string) ([]*DatasetRef, error)
 }
 
 // DatasetsQuery is a convenience function to read all query results & parse into a

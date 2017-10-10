@@ -3,21 +3,25 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
+
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/repo"
 )
 
 type Datasets struct {
 	basepath
-	file File
+	file  File
+	store cafs.Filestore
 }
 
-func NewDatasets(base string, file File) Datasets {
-	return Datasets{basepath: basepath(base), file: file}
+func NewDatasets(base string, file File, store cafs.Filestore) Datasets {
+	return Datasets{basepath: basepath(base), file: file, store: store}
 }
 
 func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
@@ -53,6 +57,9 @@ func (r Datasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
 		if ps == p {
 			return d, nil
 		}
+	}
+	if r.store != nil {
+		return dsfs.LoadDataset(r.store, path)
 	}
 
 	return nil, datastore.ErrNotFound

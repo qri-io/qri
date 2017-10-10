@@ -3,26 +3,57 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
+
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/search"
 )
 
 type Namestore struct {
 	basepath
+	// optional search index to add/remove from
+	index search.Index
+	// filestore for checking dataset integrity
+	store cafs.Filestore
 }
 
 func NewNamestore(base string) Datasets {
 	return Datasets{basepath: basepath(base)}
 }
 
-func (n Namestore) PutName(name string, path datastore.Key) error {
+func (n Namestore) PutName(name string, path datastore.Key) (err error) {
+	var ds *dataset.Dataset
+
 	names, err := n.names()
 	if err != nil {
 		return err
 	}
+
+	if n.store != nil {
+		ds, err = dsfs.LoadDataset(n.store, path)
+		if err != nil {
+			return err
+		}
+	}
+
 	names[name] = path
+	if n.index != nil {
+		batch := n.index.NewBatch()
+		err = batch.Index(path.String(), ds)
+		if err != nil {
+			return err
+		}
+		err = n.index.Batch(batch)
+		if err != nil {
+			return err
+		}
+	}
+
 	return n.saveFile(names, FileNamestore)
 }
 
@@ -55,26 +86,40 @@ func (n Namestore) DeleteName(name string) error {
 	if err != nil {
 		return err
 	}
+	path := names[name]
+
+	if path.String() != "" && n.index != nil {
+		if err := n.index.Delete(path.String()); err != nil {
+			return err
+		}
+	}
+
 	delete(names, name)
 	return n.saveFile(names, FileNamestore)
 }
 
-func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error) {
+func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	names, err := n.names()
 	if err != nil {
 		return nil, err
 	}
+	if limit < 0 {
+		limit = len(names)
+	}
 
 	i := 0
 	added := 0
-	res := map[string]datastore.Key{}
+	res := make([]*repo.DatasetRef, limit)
 	for name, path := range names {
 		if i < offset {
 			continue
 		}
 
 		if limit != 0 && added < limit {
-			res[name] = path
+			res[i] = &repo.DatasetRef{
+				Name: name,
+				Path: path,
+			}
 			added++
 		} else if added == limit {
 			break
@@ -82,6 +127,7 @@ func (n Namestore) Namespace(limit, offset int) (map[string]datastore.Key, error
 
 		i++
 	}
+	res = res[:i]
 	return res, nil
 }
 

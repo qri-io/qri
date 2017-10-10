@@ -42,8 +42,8 @@ var updateCmd = &cobra.Command{
 	Short: "Update a dataset, changing metadata and/or data",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		r := GetRepo()
-		store, err := GetIpfsFilestore()
+		r := GetRepo(false)
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
 		ref, err := DatasetRef(r, store, args[0])

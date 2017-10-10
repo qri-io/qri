@@ -1,57 +1,71 @@
 package search
 
 import (
-	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/repo"
 	"strings"
+
+	"github.com/blevesearch/bleve"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/dataset"
 )
 
-func Search(r repo.Repo, store cafs.Filestore, q query.Query) ([]*repo.DatasetRef, error) {
-	results := make([]*repo.DatasetRef, q.Limit)
+func Search(i Index, q string) ([]*repo.DatasetRef, error) {
 
-	// TODO - lol 10000?
-	ns, err := r.Namespace(10000, 0)
+	query := bleve.NewQueryStringQuery(q)
+	search := bleve.NewSearchRequest(query)
+	results, err := i.Search(search)
 	if err != nil {
 		return nil, err
 	}
 
-	i := 0
-NAMES:
-	for name, path := range ns {
-		if i == q.Limit {
-			break
-		}
-
-		ds, err := dsfs.LoadDataset(store, path)
-		if err != nil {
-			return nil, err
-		}
-
-		entry := query.Entry{
-			Key:   path.String(),
-			Value: ds,
-		}
-
-		for _, f := range q.Filters {
-			if !f.Filter(entry) {
-				continue NAMES
-			}
-		}
-
-		results[i] = &repo.DatasetRef{
-			Name:    name,
-			Path:    path,
-			Dataset: ds,
-		}
-		i++
+	res := make([]*repo.DatasetRef, results.Hits.Len())
+	for i, hit := range results.Hits {
+		res[i] = &repo.DatasetRef{Path: datastore.NewKey(hit.ID)}
 	}
 
-	results = results[:i]
+	// fmt.Println(searchResults)
+	return res, nil
 
-	return results, nil
+	// 	// TODO - lol 10000?
+	// 	ns, err := r.Namespace(10000, 0)
+	// 	if err != nil {
+	// 		return nil, err
+	// 	}
+
+	// 	i := 0
+	// NAMES:
+	// 	for name, path := range ns {
+	// 		if i == q.Limit {
+	// 			break
+	// 		}
+
+	// 		ds, err := dsfs.LoadDataset(store, path)
+	// 		if err != nil {
+	// 			return nil, err
+	// 		}
+
+	// 		entry := query.Entry{
+	// 			Key:   path.String(),
+	// 			Value: ds,
+	// 		}
+
+	// 		for _, f := range q.Filters {
+	// 			if !f.Filter(entry) {
+	// 				continue NAMES
+	// 			}
+	// 		}
+
+	// 		results[i] = &repo.DatasetRef{
+	// 			Name:    name,
+	// 			Path:    path,
+	// 			Dataset: ds,
+	// 		}
+	// 		i++
+	// 	}
+	// 	results = results[:i]
+
+	// return results, nil
 }
 
 func NewDatasetQuery(q string, limit, offset int) query.Query {

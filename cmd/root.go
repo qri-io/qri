@@ -17,6 +17,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -81,12 +82,15 @@ func initConfig() {
 	if qriPath == "" {
 		qriPath = filepath.Join(home, "qri")
 	}
+	// TODO - this is stupid
+	qriPath = strings.Replace(qriPath, "~", home, 1)
 	viper.SetDefault(QriRepoPath, qriPath)
 
 	ipfsFsPath := os.Getenv("IPFS_PATH")
 	if ipfsFsPath == "" {
-		ipfsFsPath = "~/.ipfs"
+		ipfsFsPath = "$HOME/.ipfs"
 	}
+	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
 	viper.SetDefault(IpfsFsPath, ipfsFsPath)
 
 	// If a config file is found, read it in.
