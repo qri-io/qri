@@ -44,16 +44,5 @@ func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error 
 		return fmt.Errorf("this repo doesn't support search")
 	}
 
-	// 	*res = r
-	// 	return nil
-	// }
-
-	// r, err := search.Search(d.repo, d.store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
-	// if err != nil {
-	// 	return err
-	// }
-	// r, err := search.Search(p.Query)
-
-	// *res = r
 	return nil
 }
