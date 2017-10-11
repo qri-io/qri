@@ -16,13 +16,14 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"time"
 
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	sql "github.com/qri-io/dataset_sql"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -116,13 +117,16 @@ var runCmd = &cobra.Command{
 		dspath, err := dsfs.SaveDataset(store, ds, pin)
 		ExitIfErr(err)
 
-		err = r.PutDataset(dspath, ds)
-		ExitIfErr(err)
+		// err = r.PutDataset(dspath, ds)
+		// ExitIfErr(err)
 
 		if name != "" {
 			err = r.PutName(name, dspath)
 			ExitIfErr(err)
 		}
+
+		err = r.LogQuery(&repo.DatasetRef{Name: name, Path: dspath, Dataset: ds})
+		ExitIfErr(err)
 
 		// rgraph.AddResult(dspath, dspath)
 		// err = SaveQueryResultsGraph(rgraph)

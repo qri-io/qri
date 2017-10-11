@@ -15,8 +15,11 @@ import (
 
 type Repo struct {
 	basepath
+
 	Datasets
 	Namestore
+	QueryLog
+
 	analytics Analytics
 	peers     PeerStore
 	cache     Datasets
@@ -41,6 +44,7 @@ func NewRepo(store cafs.Filestore, base string) (repo.Repo, error) {
 		basepath:  bp,
 		Datasets:  NewDatasets(base, FileDatasets, store),
 		Namestore: Namestore{bp, index, store},
+		QueryLog:  NewQueryLog(base, FileQueryLogs, store),
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
 		cache:     NewDatasets(base, FileCache, nil),

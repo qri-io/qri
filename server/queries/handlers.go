@@ -20,16 +20,16 @@ type Handlers struct {
 	Requests
 }
 
-// func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
-// 	switch r.Method {
-// 	case "OPTIONS":
-// 		util.EmptyOkHandler(w, r)
-// 	case "GET":
-// 		d.listQueriesHandler(w, r)
-// 	default:
-// 		util.NotFoundHandler(w, r)
-// 	}
-// }
+func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		d.listQueriesHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
 
 // func (d *Handlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 // 	switch r.Method {
@@ -56,21 +56,21 @@ type Handlers struct {
 // 	util.WriteResponse(w, res)
 // }
 
-// func (d *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
-// 	p := util.PageFromRequest(r)
-// 	res := map[string]datastore.Key{}
-// 	args := &ListParams{
-// 		Limit:   p.Limit(),
-// 		Offset:  p.Offset(),
-// 		OrderBy: "created",
-// 	}
-// 	err := d.List(args, &res)
-// 	if err != nil {
-// 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-// 		return
-// 	}
-// 	util.WritePageResponse(w, res, r, p)
-// }
+func (d *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
+	p := util.PageFromRequest(r)
+	res := []*repo.DatasetRef{}
+	args := &ListParams{
+		Limit:   p.Limit(),
+		Offset:  p.Offset(),
+		OrderBy: "created",
+	}
+	err := d.List(args, &res)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WritePageResponse(w, res, r, p)
+}
 
 func (h *Handlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {

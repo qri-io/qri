@@ -7,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/analytics"
@@ -35,6 +36,8 @@ type Repo interface {
 	// The behaviour of the embedded DatasetStore will typically differ from the cache,
 	// by only returning saved/pinned/permanent datasets.
 	Datasets
+	// QueryLog keeps a log of queries that have been run
+	QueryLog
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the user.
 	Profile() (*profile.Profile, error)
@@ -50,6 +53,17 @@ type Repo interface {
 	// All repositories provide their own analytics information.
 	// Our analytics implementation is under super-active development.
 	Analytics() analytics.Analytics
+}
+
+// Namespace is an in-progress solution for aliasing
+// datasets locally
+type Namestore interface {
+	PutName(name string, path datastore.Key) error
+	GetPath(name string) (datastore.Key, error)
+	GetName(path datastore.Key) (string, error)
+	DeleteName(name string) error
+	Namespace(limit, offset int) ([]*DatasetRef, error)
+	NameCount() (int, error)
 }
 
 // Dataset store is the minimum interface to act as a store of datasets.
@@ -71,6 +85,12 @@ type Datasets interface {
 	DeleteDataset(path datastore.Key) error
 	// Query is extracted from the ipfs datastore interface:
 	Query(query.Query) (query.Results, error)
+}
+
+// QueryLog keeps logs
+type QueryLog interface {
+	LogQuery(*DatasetRef) error
+	GetQueryLogs(limit, offset int) ([]*DatasetRef, error)
 }
 
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
