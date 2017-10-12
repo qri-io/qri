@@ -35,6 +35,12 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	if err != nil {
 		return err
 	}
+
+	for _, ref := range results {
+		if ds, err := dsfs.LoadDataset(d.store, ref.Path); err == nil {
+			ref.Dataset = ds
+		}
+	}
 	*res = results
 	return nil
 }
