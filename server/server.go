@@ -140,9 +140,10 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	sh := search.NewSearchHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
-	ph := peers.NewHandlers(s.qriNode.Repo)
+	ph := peers.NewHandlers(s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
+	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))

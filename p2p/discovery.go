@@ -36,7 +36,7 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 		return
 	} else if support, err := n.SupportsQriProtocol(pinfo); err == nil {
 		if err := n.Host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
-			fmt.Println("errror setting qri support flag", err.Error())
+			fmt.Println("error setting qri support flag", err.Error())
 			return
 		}
 
@@ -82,7 +82,7 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 		return err
 	}
 
-	res, err := n.SendMessage(pinfo, &Message{
+	res, err := n.SendMessage(pinfo.ID, &Message{
 		Type:    MtPeerInfo,
 		Payload: profile,
 	})

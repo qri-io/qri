@@ -7,7 +7,6 @@ import (
 	"time"
 
 	net "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	multicodec "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec"
 	json "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec/json"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -91,8 +90,11 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 }
 
 // SendMessage to a given multiaddr, this assumes that the
-func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, err error) {
-	s, err := qn.Host.NewStream(context.Background(), pi.ID, QriProtocolId)
+func (qn *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err error) {
+	// TODO - add timeout
+	// ctx := context.WithTimeout(context.Background(), time.Second*20)
+
+	s, err := qn.Host.NewStream(context.Background(), pi, QriProtocolId)
 	if err != nil {
 		return
 	}
@@ -148,7 +150,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 			if !sent[p] {
 				sent[p] = true
 				if p != nodeId {
-					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
+					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p).ID, msg)
 					if e != nil {
 						fmt.Errorf(e.Error())
 					} else {
