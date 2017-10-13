@@ -93,14 +93,10 @@ func (d *Requests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) err
 		return err
 	}
 
-	fmt.Println(id.Pretty())
-
 	profile, err := d.repo.Peers().GetPeer(id)
 	if err != nil || profile == nil {
 		return err
 	}
-
-	fmt.Println(profile.Username)
 
 	r, err := d.qriNode.SendMessage(id, &p2p.Message{
 		Phase: p2p.MpRequest,

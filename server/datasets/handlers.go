@@ -72,6 +72,17 @@ func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (h *Handlers) AddDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.addDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *Handlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &dataset.Dataset{}
 	args := &GetParams{
@@ -284,4 +295,19 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	util.WriteResponse(w, data)
+}
+
+func (h *Handlers) addDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	p := &AddParams{
+		Name: r.URL.Query().Get("name"),
+		Hash: r.URL.Path[len("/add/"):],
+	}
+
+	res := &repo.DatasetRef{}
+	if err := h.AddDataset(p, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }

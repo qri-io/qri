@@ -3,9 +3,12 @@ package datasets
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/cafs"
+	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -207,4 +210,51 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		Data: json.RawMessage(w.Bytes()),
 	}
 	return nil
+}
+
+type AddParams struct {
+	Name string
+	Hash string
+}
+
+func (r *Requests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+	fs, ok := r.store.(*ipfs.Filestore)
+	if !ok {
+		return fmt.Errorf("can only add datasets when running an IPFS filestore")
+	}
+
+	hash := strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String())
+	key := datastore.NewKey(hash)
+	fmt.Println(key.String())
+	_, err = fs.Fetch(cafs.SourceAny, key)
+	if err != nil {
+		return
+	}
+
+	err = fs.Pin(key, true)
+	if err != nil {
+		return
+	}
+
+	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+	fmt.Println(path.String())
+	err = r.repo.PutName(p.Name, path)
+	if err != nil {
+		return
+	}
+
+	fmt.Printf("Successfully added dataset %s : %s\n", p.Name, path.String())
+
+	ds, err := dsfs.LoadDataset(r.store, path)
+	if err != nil {
+		fmt.Println("error loading path:", path)
+		return err
+	}
+
+	*res = repo.DatasetRef{
+		Name:    p.Name,
+		Path:    path,
+		Dataset: ds,
+	}
+	return
 }

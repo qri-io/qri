@@ -148,6 +148,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
+	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
