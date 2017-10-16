@@ -113,8 +113,7 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		s.log.Infoln("running qri in offline mode, no peer-2-peer connections")
 	}
 
-	p2p.PrintSwarmAddrs(qriNode)
-
+	// p2p.PrintSwarmAddrs(qriNode)
 	return s, nil
 }
 

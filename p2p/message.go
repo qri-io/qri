@@ -16,6 +16,7 @@ type MsgType int
 
 const (
 	MtUnknown MsgType = iota
+	MtPeers
 	MtPeerInfo
 	MtDatasets
 	MtNamespaces
@@ -26,6 +27,7 @@ func (mt MsgType) String() string {
 	return map[MsgType]string{
 		MtUnknown:    "UNKNOWN",
 		MtPeerInfo:   "PEER_INFO",
+		MtPeers:      "PEERS",
 		MtDatasets:   "DATASETS",
 		MtNamespaces: "NAMESPACES",
 		MtSearch:     "SEARCH",
@@ -180,7 +182,7 @@ func receiveMessage(ws *WrappedStream) (*Message, error) {
 	return &msg, nil
 }
 
-// // sendMessage encodes and writes a message to the stream
+// sendMessage encodes and writes a message to the stream
 func sendMessage(msg *Message, ws *WrappedStream) error {
 	if msg.Type == MtUnknown {
 		return fmt.Errorf("message type is required to send a message")
@@ -197,6 +199,8 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 // When Message.HangUp is true, it exits. This will close the stream
 // on one of the sides. The other side's receiveMessage() will error
 // with EOF, thus also breaking out from the loop.
+// TODO - I know this is completely fucking awful. it'll get better in
+// due time
 func (n *QriNode) handleStream(ws *WrappedStream) {
 	for {
 		// Read
@@ -215,6 +219,8 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 				res = n.handleDatasetsRequest(r)
 			case MtSearch:
 				res = n.handleSearchRequest(r)
+			case MtPeers:
+				res = n.handlePeersRequest(r)
 			}
 		}
 

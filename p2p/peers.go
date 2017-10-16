@@ -43,6 +43,7 @@ func (n *QriNode) PeerIdForMultiaddr(multiaddr string) (peerid peer.ID, err erro
 	return
 }
 
+// ConnectedPeers lists all IPFS connected peers
 func (n *QriNode) ConnectedPeers() []string {
 	conns := n.Host.Network().Conns()
 	peers := make([]string, len(conns))

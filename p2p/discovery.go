@@ -3,6 +3,8 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/qri/repo"
 	"time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -26,13 +28,32 @@ func (n *QriNode) StartDiscovery() error {
 	// Registering will call n.HandlePeerFound when peers are discovered
 	n.Discovery.RegisterNotifee(n)
 
+	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
+
+	// TODO - replace with a sampling of peers intstead of the first 10
+	go func() {
+		peers, err := repo.QueryPeers(n.Repo.Peers(), query.Query{Limit: 10})
+		if err != nil {
+			fmt.Println("error getting peers", err.Error())
+			return
+		}
+		for _, p := range peers {
+			pid, err := p.PeerID()
+			if err != nil {
+				fmt.Println("invalid peer id peers", err.Error())
+				return
+			}
+			n.RequestPeersList(pid)
+		}
+	}()
 
 	return nil
 }
 
 // HandlePeerFound
-// TODO - TEST THIS. suspect there's a bug in the implentation
+// TODO - TEST THIS. I suspect there's a bug in this implentation, or discovery
+// notifications aren't working so well these days...
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
@@ -100,20 +121,47 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 		}
 	}
 
+	// some time later ask for a list of their peers, you know, "for a friend"
+	go func() {
+		time.Sleep(time.Second * 2)
+		n.RequestPeersList(pinfo.ID)
+	}()
+
 	return nil
+}
+
+func (n *QriNode) RequestPeersList(id peer.ID) {
+	res, err := n.SendMessage(id, &Message{
+		Type: MtPeers,
+		Payload: &PeersReqParams{
+			Offset: 0,
+			Limit:  10,
+		},
+	})
+
+	if err != nil {
+		fmt.Println("send peers message error:", err.Error())
+		return
+	}
+
+	if res.Phase == MpResponse {
+		if err := n.handlePeersResponse(res); err != nil {
+			fmt.Println("peers response error", err.Error())
+			return
+		}
+	}
 }
 
 // DiscoverPeerstoreQriPeers handles the case where a store has seen peers that
 // support the qri protocol, but we haven't added them to our own peers list
 func (n *QriNode) DiscoverPeerstoreQriPeers(store pstore.Peerstore) {
 	for _, pid := range store.Peers() {
-		res, err := n.Host.Peerstore().Get(pid, qriSupportKey)
-		fmt.Println(pid.Pretty(), res, err)
-
-		if supports, err := n.SupportsQriProtocol(pid); err == nil && supports {
-			// TODO - slow this down plz
-			if err := n.AddQriPeer(store.PeerInfo(pid)); err != nil {
-				fmt.Println(err.Error())
+		if _, err := n.Host.Peerstore().Get(pid, qriSupportKey); err == pstore.ErrNotFound {
+			if supports, err := n.SupportsQriProtocol(pid); err == nil && supports {
+				// TODO - slow this down plz
+				if err := n.AddQriPeer(store.PeerInfo(pid)); err != nil {
+					fmt.Println(err.Error())
+				}
 			}
 		}
 	}

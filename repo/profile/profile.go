@@ -2,6 +2,8 @@ package profile
 
 import (
 	"time"
+
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 type Profile struct {
@@ -34,4 +36,8 @@ type Profile struct {
 	// this flag tracks that.
 	// TODO - for this to be useful it'll need to be Exported
 	Anonymous bool `json:",omitempty"`
+}
+
+func (p *Profile) PeerID() (peer.ID, error) {
+	return peer.IDB58Decode(p.Id)
 }
