@@ -1,0 +1,36 @@
+{
+  "author": "multiformats",
+  "bugs": {
+    "URL": "https://github.com/multiformats/go-multicodec/issues",
+    "url": "https://github.com/multiformats/go-multicodec/issues"
+  },
+  "gx": {
+    "dvcsimport": "github.com/multiformats/go-multicodec"
+  },
+  "gxDependencies": [
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
+      "name": "gogo-protobuf",
+      "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmRQhVisS8dmPbjBUthVkenn81pBxrx1GxE281csJhm2vL",
+      "name": "go-msgio",
+      "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmPL3RCWaM6s7b82LSLS1MGX2jpxPxA1v2vmgLm15b1NcW",
+      "name": "cbor",
+      "version": "0.2.0"
+    }
+  ],
+  "gxVersion": "0.9.1",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-multicodec",
+  "version": "0.1.0"
+}
+

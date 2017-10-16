@@ -1,0 +1,48 @@
+{
+  "author": "whyrusleeping",
+  "bugs": {
+    "url": "https://github.com/libp2p/go-floodsub"
+  },
+  "gx": {
+    "dvcsimport": "github.com/libp2p/go-floodsub"
+  },
+  "gxDependencies": [
+    {
+      "author": "whyrusleeping",
+      "hash": "QmZ4Qi3GaRbjcx28Sme5eMH7RQjGkt8wHxt2a65oLaeFEV",
+      "name": "gogo-protobuf",
+      "version": "0.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYftoT56eEfUBTD3erR6heXuPSUhGRezSmhSU8LeczP8b",
+      "name": "timecache",
+      "version": "1.0.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmbzbRyd22gcW92U1rA2yKagB3myMYhk45XBknJ49F9XWJ",
+      "name": "go-libp2p-host",
+      "version": "1.3.7"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdGRzr9bPTt2ZrBFaq5R2zzD7JFXNRxXZGkzsVcW6pEzh",
+      "name": "go-libp2p-netutil",
+      "version": "0.2.12"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYoXb647nhBeMgviWFANouVFvtA7GUoo7Xx86h8rwbu2e",
+      "name": "go-libp2p-blankhost",
+      "version": "0.1.6"
+    }
+  ],
+  "gxVersion": "0.9.0",
+  "language": "go",
+  "license": "",
+  "name": "floodsub",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "0.8.13"
+}
+
