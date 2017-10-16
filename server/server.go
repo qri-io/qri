@@ -113,7 +113,7 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		s.log.Infoln("running qri in offline mode, no peer-2-peer connections")
 	}
 
-	// p2p.PrintSwarmAddrs(qriNode)
+	p2p.PrintSwarmAddrs(qriNode)
 
 	return s, nil
 }
@@ -143,6 +143,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	ph := peers.NewHandlers(s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
+	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)

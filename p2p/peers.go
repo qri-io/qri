@@ -42,3 +42,13 @@ func (n *QriNode) PeerIdForMultiaddr(multiaddr string) (peerid peer.ID, err erro
 
 	return
 }
+
+func (n *QriNode) ConnectedPeers() []string {
+	conns := n.Host.Network().Conns()
+	peers := make([]string, len(conns))
+	for i, c := range conns {
+		peers[i] = c.RemotePeer().Pretty()
+	}
+
+	return peers
+}

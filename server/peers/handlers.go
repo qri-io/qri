@@ -67,6 +67,21 @@ func (d *Handlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	util.WritePageResponse(w, res, r, p)
 }
 
+func (d *Handlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		d.listConnectionsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (d *Handlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	util.WriteResponse(w, d.qriNode.ConnectedPeers())
+}
+
 func (h *Handlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 	res := &profile.Profile{}
 	args := &GetParams{
