@@ -28,24 +28,6 @@ func (n *QriNode) StartDiscovery() error {
 
 	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
-
-	// TODO - replace with a sampling of peers intstead of the first 10
-	// go func() {
-	// 	peers, err := repo.QueryPeers(n.Repo.Peers(), query.Query{Limit: 10})
-	// 	if err != nil {
-	// 		fmt.Println("error getting peers", err.Error())
-	// 		return
-	// 	}
-	// 	for _, p := range peers {
-	// 		pid, err := p.PeerID()
-	// 		if err != nil {
-	// 			fmt.Println("invalid peer id peers", err.Error())
-	// 			return
-	// 		}
-	// 		n.RequestPeersList(pid)
-	// 	}
-	// }()
-
 	// Boostrap off of default addresses
 	go n.Bootstrap(DefaultBootstrapAddresses)
 
@@ -86,71 +68,7 @@ func (n *QriNode) SupportsQriProtocol(peer peer.ID) (bool, error) {
 			}
 		}
 	}
-
 	return false, err
-}
-
-func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store
-	n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
-
-	if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
-		// we've already seen this peer
-		return nil
-	}
-
-	// Get this repo's profile information
-	profile, err := n.Repo.Profile()
-	if err != nil {
-		fmt.Println("error getting node profile info:", err)
-		return err
-	}
-
-	res, err := n.SendMessage(pinfo.ID, &Message{
-		Type:    MtPeerInfo,
-		Payload: profile,
-	})
-	if err != nil {
-		fmt.Println("send profile message error:", err.Error())
-		return err
-	}
-
-	if res.Phase == MpResponse {
-		if err := n.handleProfileResponse(pinfo, res); err != nil {
-			fmt.Println("profile response error", err.Error())
-			return err
-		}
-	}
-
-	// some time later ask for a list of their peers, you know, "for a friend"
-	go func() {
-		time.Sleep(time.Second * 2)
-		n.RequestPeersList(pinfo.ID)
-	}()
-
-	return nil
-}
-
-func (n *QriNode) RequestPeersList(id peer.ID) {
-	res, err := n.SendMessage(id, &Message{
-		Type: MtPeers,
-		Payload: &PeersReqParams{
-			Offset: 0,
-			Limit:  10,
-		},
-	})
-
-	if err != nil {
-		fmt.Println("send peers message error:", err.Error())
-		return
-	}
-
-	if res.Phase == MpResponse {
-		if err := n.handlePeersResponse(res); err != nil {
-			fmt.Println("peers response error", err.Error())
-			return
-		}
-	}
 }
 
 // DiscoverPeerstoreQriPeers handles the case where a store has seen peers that

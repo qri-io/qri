@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
@@ -115,6 +116,13 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	}
 
 	return res
+}
+
+func (n *QriNode) IpfsNode() (*core.IpfsNode, error) {
+	if ipfsfs, ok := n.Store.(*ipfs_filestore.Filestore); ok {
+		return ipfsfs.Node(), nil
+	}
+	return nil, fmt.Errorf("not using IPFS")
 }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
