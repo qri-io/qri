@@ -3,8 +3,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/qri/repo"
 	"time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -32,21 +30,24 @@ func (n *QriNode) StartDiscovery() error {
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
 
 	// TODO - replace with a sampling of peers intstead of the first 10
-	go func() {
-		peers, err := repo.QueryPeers(n.Repo.Peers(), query.Query{Limit: 10})
-		if err != nil {
-			fmt.Println("error getting peers", err.Error())
-			return
-		}
-		for _, p := range peers {
-			pid, err := p.PeerID()
-			if err != nil {
-				fmt.Println("invalid peer id peers", err.Error())
-				return
-			}
-			n.RequestPeersList(pid)
-		}
-	}()
+	// go func() {
+	// 	peers, err := repo.QueryPeers(n.Repo.Peers(), query.Query{Limit: 10})
+	// 	if err != nil {
+	// 		fmt.Println("error getting peers", err.Error())
+	// 		return
+	// 	}
+	// 	for _, p := range peers {
+	// 		pid, err := p.PeerID()
+	// 		if err != nil {
+	// 			fmt.Println("invalid peer id peers", err.Error())
+	// 			return
+	// 		}
+	// 		n.RequestPeersList(pid)
+	// 	}
+	// }()
+
+	// Boostrap off of default addresses
+	go n.Bootstrap(DefaultBootstrapAddresses)
 
 	return nil
 }

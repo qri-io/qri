@@ -17,8 +17,8 @@ RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
 
 # Expose the fs-repo & qri-repos as volumes.
 # Important this happens after the USER directive so permission are correct.
-VOLUME $IPFS_PATH
-VOLUME $QRI_PATH
+# VOLUME $IPFS_PATH
+# VOLUME $QRI_PATH
 
 # Set binary as entrypoint, initalizing ipfs repo if none is mounted
 CMD ["qri", "server", "--init-ipfs"]
