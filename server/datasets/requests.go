@@ -1,6 +1,7 @@
 package datasets
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -12,8 +13,8 @@ import (
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/load"
-	"github.com/qri-io/dataset/writers"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -186,7 +187,8 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		return err
 	}
 
-	w := writers.NewJsonWriter(ds.Structure, p.Objects)
+	buf := &bytes.Buffer{}
+	w := dsio.NewJsonWriter(ds.Structure, buf, p.Objects)
 	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
@@ -207,7 +209,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 
 	*data = StructuredData{
 		Path: p.Path,
-		Data: json.RawMessage(w.Bytes()),
+		Data: json.RawMessage(buf.Bytes()),
 	}
 	return nil
 }
