@@ -36,8 +36,7 @@ func (d *Requests) List(p *ListParams, res *[]*profile.Profile) error {
 
 	ps, err := repo.QueryPeers(d.repo.Peers(), query.Query{})
 	if err != nil {
-		fmt.Println(err.Error())
-		return err
+		return fmt.Errorf("error querying peers: %s", err.Error())
 	}
 
 	for _, peer := range ps {
@@ -90,7 +89,7 @@ type NamespaceParams struct {
 func (d *Requests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
 	id, err := peer.IDB58Decode(p.PeerId)
 	if err != nil {
-		return err
+		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}
 
 	profile, err := d.repo.Peers().GetPeer(id)
@@ -107,16 +106,16 @@ func (d *Requests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) err
 		},
 	})
 	if err != nil {
-		return err
+		return fmt.Errorf("error sending message to peer: %s", err.Error())
 	}
 
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		return err
+		return fmt.Errorf("error encoding peer response: %s", err.Error())
 	}
 	refs := []*repo.DatasetRef{}
 	if err := json.Unmarshal(data, &refs); err != nil {
-		return err
+		return fmt.Errorf("error parsing peer response: %s", err.Error())
 	}
 
 	*res = refs

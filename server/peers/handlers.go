@@ -7,19 +7,21 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/server/logging"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-func NewHandlers(r repo.Repo, node *p2p.QriNode) *Handlers {
+func NewHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *Handlers {
 	req := NewRequests(r, node)
-	h := Handlers{*req}
+	h := Handlers{*req, log}
 	return &h
 }
 
 // Handlers wraps a requests struct to interface with http.HandlerFunc
 type Handlers struct {
 	Requests
+	log logging.Logger
 }
 
 func (h *Handlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
@@ -77,7 +79,7 @@ func (d *Handlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (d *Handlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	res := []*profile.Profile{}
 	args := &ListParams{
@@ -85,18 +87,19 @@ func (d *Handlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 		Offset:  p.Offset(),
 		OrderBy: "created",
 	}
-	if err := d.List(args, &res); err != nil {
+	if err := h.List(args, &res); err != nil {
+		h.log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 	util.WritePageResponse(w, res, r, p)
 }
 
-func (d *Handlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteResponse(w, d.qriNode.ConnectedPeers())
+func (h *Handlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+	util.WriteResponse(w, h.qriNode.ConnectedPeers())
 }
 
-func (d *Handlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
 	b58pid := r.URL.Path[len("/connect/"):]
 	pid, err := peer.IDB58Decode(b58pid)
 	if err != nil {
@@ -104,13 +107,15 @@ func (d *Handlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	if err := d.qriNode.ConnectToPeer(pid); err != nil {
+	if err := h.qriNode.ConnectToPeer(pid); err != nil {
+		h.log.Infof("connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	profile, err := d.qriNode.Repo.Peers().GetPeer(pid)
+	profile, err := h.qriNode.Repo.Peers().GetPeer(pid)
 	if err != nil {
+		h.log.Infof("error getting peer profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -126,6 +131,7 @@ func (h *Handlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := h.Get(args, res)
 	if err != nil {
+		h.log.Infof("error getting peer profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -141,6 +147,7 @@ func (h *Handlers) peerNamespaceHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	res := []*repo.DatasetRef{}
 	if err := h.GetNamespace(args, &res); err != nil {
+		h.log.Infof("error getting peer namespace: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

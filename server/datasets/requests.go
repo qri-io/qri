@@ -46,8 +46,7 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// })
 	replies, err := d.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
-		fmt.Println(err.Error())
-		return err
+		return fmt.Errorf("error getting namespace: %s", err.Error())
 	}
 
 	for i, ref := range replies {
@@ -57,15 +56,9 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 
 		ds, err := dsfs.LoadDataset(d.store, ref.Path)
 		if err != nil {
-			fmt.Println("error loading path:", ref.Path)
-			return err
+			return fmt.Errorf("error loading path: %s", ref.Path.String())
 		}
 		replies[i].Dataset = ds
-		// replies[i] = &repo.DatasetRef{
-		// 	Name:    name,
-		// 	Path:    path,
-		// 	Dataset: ds,
-		// }
 	}
 	*res = replies
 	return nil
@@ -80,7 +73,7 @@ type GetParams struct {
 func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
-		return err
+		return fmt.Errorf("error loading dataset: %s", err.Error())
 	}
 
 	*res = *ds
@@ -227,30 +220,25 @@ func (r *Requests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
 
 	hash := strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String())
 	key := datastore.NewKey(hash)
-	fmt.Println(key.String())
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
-		return
+		return fmt.Errorf("error fetching file: %s", err.Error())
 	}
 
 	err = fs.Pin(key, true)
 	if err != nil {
-		return
+		return fmt.Errorf("error pinning root key: %s", err.Error())
 	}
 
 	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
-	fmt.Println(path.String())
 	err = r.repo.PutName(p.Name, path)
 	if err != nil {
-		return
+		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
-
-	fmt.Printf("Successfully added dataset %s : %s\n", p.Name, path.String())
 
 	ds, err := dsfs.LoadDataset(r.store, path)
 	if err != nil {
-		fmt.Println("error loading path:", path)
-		return err
+		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
 	}
 
 	*res = repo.DatasetRef{

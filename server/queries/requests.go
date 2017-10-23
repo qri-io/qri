@@ -2,6 +2,8 @@ package queries
 
 import (
 	"fmt"
+	"time"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
@@ -9,7 +11,6 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	sql "github.com/qri-io/dataset_sql"
 	"github.com/qri-io/qri/repo"
-	"time"
 )
 
 func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
@@ -33,7 +34,7 @@ type ListParams struct {
 func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	results, err := d.repo.GetQueryLogs(p.Limit, p.Offset)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting query logs: %s", err.Error())
 	}
 
 	for _, ref := range results {
@@ -56,7 +57,7 @@ func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
 	// TODO - huh? do we even need to load queries
 	q, err := dsfs.LoadDataset(d.store, datastore.NewKey(p.Path))
 	if err != nil {
-		return err
+		return fmt.Errorf("error loading dataset: %s", err.Error())
 	}
 
 	*res = *q
@@ -92,7 +93,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// }
 	names, err := sql.StatementTableNames(ds.QueryString)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting statement table names: %s", err.Error())
 	}
 	// ds.QueryString = sqlstr
 
@@ -102,8 +103,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 		for _, name := range names {
 			path, err := r.repo.GetPath(name)
 			if err != nil {
-				// return fmt.Errorf("couldn't find resource for table name: %s", name)
-				return err
+				return fmt.Errorf("error getting path to dataset %s: %s", name, err.Error())
 			}
 			// for i, adr := range stmt.References() {
 			// if ns[name].String() == "" {
@@ -111,8 +111,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 			// }
 			d, err := dsfs.LoadDataset(r.store, path)
 			if err != nil {
-				fmt.Println("load dataset error:", err.Error())
-				return err
+				return fmt.Errorf("error loading dataset: %s", err.Error())
 			}
 			ds.Resources[name] = d
 		}
@@ -141,8 +140,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 		o.Format = dataset.CsvDataFormat
 	})
 	if err != nil {
-		fmt.Println("exec error", err)
-		return err
+		return fmt.Errorf("error executing query: %s", err.Error())
 	}
 
 	// TODO - move this into setting on the dataset outparam
@@ -151,36 +149,33 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ds.Data, err = r.store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
-		fmt.Println("error putting results in store:", err)
-		return err
+		return fmt.Errorf("error putting results in store: %s", err.Error())
 	}
 
 	pin := p.SaveName != ""
 
 	dspath, err := dsfs.SaveDataset(r.store, ds, pin)
 	if err != nil {
-		fmt.Println("error putting dataset in store:", err)
-		return err
+		return fmt.Errorf("error putting dataset in store: %s", err.Error())
 	}
 
 	if p.SaveName != "" {
 		if err := r.repo.PutName(p.SaveName, dspath); err != nil {
-			fmt.Println("error saving dataset name:", err)
-			return err
+			return fmt.Errorf("error saving dataset name: %s", err.Error())
 		}
 	}
 
 	if err := dsfs.DerefDatasetStructure(r.store, ds); err != nil {
-		return err
+		return fmt.Errorf("error dereferencing dataset structure: %s", err.Error())
 	}
 	if err := dsfs.DerefDatasetQuery(r.store, ds); err != nil {
-		return err
+		return fmt.Errorf("error dereferencing dataset query: %s", err.Error())
 	}
 
 	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
 
 	if err := r.repo.LogQuery(ref); err != nil {
-		return err
+		return fmt.Errorf("error logging query to repo: %s", err.Error())
 	}
 
 	*res = *ref

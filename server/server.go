@@ -2,6 +2,9 @@ package server
 
 import (
 	"fmt"
+	"net/http"
+	"strings"
+
 	"github.com/datatogether/api/apiutil"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
@@ -11,13 +14,10 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/server/datasets"
+	"github.com/qri-io/qri/server/logging"
 	"github.com/qri-io/qri/server/peers"
 	"github.com/qri-io/qri/server/queries"
 	"github.com/qri-io/qri/server/search"
-	// "github.com/sirupsen/logrus"
-	"net/http"
-	// "os"
-	"strings"
 )
 
 // Server wraps a qri p2p node, providing traditional access via http
@@ -25,7 +25,7 @@ import (
 type Server struct {
 	// configuration options
 	cfg     *Config
-	log     Logger
+	log     logging.Logger
 	qriNode *p2p.QriNode
 }
 
@@ -133,24 +133,24 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	sh := search.NewSearchHandlers(s.qriNode.Store, s.qriNode.Repo)
+	sh := search.NewSearchHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
-	ph := peers.NewHandlers(s.qriNode.Repo, s.qriNode)
+	ph := peers.NewHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
-	dsh := datasets.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
+	dsh := datasets.NewHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
-	qh := queries.NewHandlers(s.qriNode.Store, s.qriNode.Repo)
+	qh := queries.NewHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/queries", s.middleware(qh.ListHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
 

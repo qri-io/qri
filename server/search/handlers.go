@@ -2,21 +2,23 @@ package search
 
 import (
 	"encoding/json"
-	"fmt"
+	"net/http"
+
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
-	"net/http"
+	"github.com/qri-io/qri/server/logging"
 )
 
-func NewSearchHandlers(store cafs.Filestore, r repo.Repo) *SearchHandlers {
+func NewSearchHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *SearchHandlers {
 	req := NewSearchRequests(store, r)
-	return &SearchHandlers{*req}
+	return &SearchHandlers{*req, log}
 }
 
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
 type SearchHandlers struct {
 	SearchRequests
+	log logging.Logger
 }
 
 func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -48,8 +50,7 @@ func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := make([]*repo.DatasetRef, p.Limit())
 	if err := h.Search(sp, &res); err != nil {
-		fmt.Println("err:")
-		fmt.Println(err.Error())
+		h.log.Infof("search error: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
