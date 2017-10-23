@@ -56,7 +56,12 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 
 		ds, err := dsfs.LoadDataset(d.store, ref.Path)
 		if err != nil {
-			return fmt.Errorf("error loading path: %s", ref.Path.String())
+			// try one extra time...
+			// TODO - remove this horrible hack
+			ds, err = dsfs.LoadDataset(d.store, ref.Path)
+			if err != nil {
+				return fmt.Errorf("error loading path: %s, err: %s", ref.Path.String(), err.Error())
+			}
 		}
 		replies[i].Dataset = ds
 	}
