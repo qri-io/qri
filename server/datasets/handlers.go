@@ -307,6 +307,10 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
+	if data, ok := data.Data.([]byte); ok {
+		h.log.Info(string(data))
+	}
+
 	util.WriteResponse(w, data)
 }
 

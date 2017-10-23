@@ -1,7 +1,6 @@
 package datasets
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
 	"strings"
@@ -14,7 +13,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -177,7 +175,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 	if p.All {
 		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
-		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		d, err = dsio.ReadRows(r.store, ds, p.Limit, p.Offset)
 		file = memfs.NewMemfileBytes("data", d)
 	}
 
@@ -185,24 +183,27 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		return err
 	}
 
-	buf := &bytes.Buffer{}
-	w := dsio.NewJsonWriter(ds.Structure, buf, p.Objects)
-	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
+	st := &dataset.Structure{}
+	st.Assign(ds.Structure, &dataset.Structure{
+		Format: p.Format,
+		FormatConfig: &dataset.JsonOptions{
+			ObjectEntries: p.Objects,
+		},
+	})
+
+	buf := dsio.NewBuffer(st)
+
+	if err = dsio.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
 		}
+		return buf.WriteRow(row)
+	}); err != nil {
+		return fmt.Errorf("row iteration error: %s", err.Error())
+	}
 
-		if i < p.Offset {
-			return nil
-		} else if i-p.Offset > p.Limit {
-			return fmt.Errorf("EOF")
-		}
-
-		return w.WriteRow(row)
-	})
-
-	if err := w.Close(); err != nil {
-		return err
+	if err := buf.Close(); err != nil {
+		return fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
 	*data = StructuredData{
