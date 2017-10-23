@@ -16,6 +16,7 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/spf13/cobra"
@@ -34,17 +35,26 @@ var searchCmd = &cobra.Command{
 		PrintWarning("CLI search only supports searching local datasets for now")
 
 		fs, err := GetIpfsFilestore(false)
+		if err != nil {
+			fmt.Printf("error: %s", err.Error())
+		}
 		ExitIfErr(err)
 
 		r := GetRepo(false)
 
 		reindex, err := cmd.Flags().GetBool("reindex")
+		if err != nil {
+			fmt.Printf("error: %s", err.Error())
+		}
 		ExitIfErr(err)
 
 		if reindex {
 			if fsr, ok := r.(*fs_repo.Repo); ok {
 				PrintInfo("building index...")
 				err = fsr.UpdateSearchIndex(fs)
+				if err != nil {
+					fmt.Printf("error: %s", err.Error())
+				}
 				ExitIfErr(err)
 			}
 		}
