@@ -1,16 +1,47 @@
 package search
 
 import (
+	"encoding/json"
 	"log"
 	"time"
 
 	"github.com/blevesearch/bleve"
 	"github.com/blevesearch/bleve/analysis/lang/en"
+	//_ "github.com/blevesearch/bleve/config"
 	"github.com/blevesearch/bleve/mapping"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
+
+// IndexableMetadata specifies the subset of fields we want to keep from
+// a dataset's metadata file to be used in the bleveindex
+// ExternalScore and internalScore are placeholders for future use.
+type IndexableMetadata struct {
+	Category      string `json:"category"`
+	Title         string `json:"title"`
+	Description   string `json:"description"`
+	Kind          string `json:"kind"`
+	ExternalScore int    `json:"externalScore"`
+	internalScore int
+}
+
+// NewIndexableMetadataStruct sets the default variable used to identify document type to 'table'
+func NewIndexableMetadataStruct() *IndexableMetadata {
+	return &IndexableMetadata{Kind: "table"}
+}
+
+// MapValues converts the IndexableMetadata back to type map[string]interface{}
+func (imd *IndexableMetadata) MapValues() map[string]interface{} {
+	return map[string]interface{}{
+		"category":      imd.Category,
+		"title":         imd.Title,
+		"description":   imd.Description,
+		"kind":          imd.Kind,
+		"externalScore": imd.ExternalScore,
+		"internalScore": imd.internalScore,
+	}
+}
 
 var (
 	// batch size for indexing
@@ -49,31 +80,22 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 	englishTextFieldMapping := bleve.NewTextFieldMapping()
 	englishTextFieldMapping.Analyzer = en.AnalyzerName
 
-	// a generic reusable mapping for things we want to ignore
-	dontStoreMeFieldMapping := bleve.NewTextFieldMapping()
-	dontStoreMeFieldMapping.Store = false
-	dontStoreMeFieldMapping.IncludeInAll = false
-	dontStoreMeFieldMapping.IncludeTermVectors = false
-	dontStoreMeFieldMapping.Index = false
+	// a generic reusable mapping for things we want to ignore - not in use
+	// dontStoreMeFieldMapping := bleve.NewTextFieldMapping()
+	// dontStoreMeFieldMapping.Store = false
+	// dontStoreMeFieldMapping.IncludeInAll = false
+	// dontStoreMeFieldMapping.IncludeTermVectors = false
+	// dontStoreMeFieldMapping.Index = false
 
 	datasetMapping := bleve.NewDocumentMapping()
-	//mappings for things we want
+	//mappings for fields we want to index
 	datasetMapping.AddFieldMappingsAt("title", englishTextFieldMapping)
 	datasetMapping.AddFieldMappingsAt("description", englishTextFieldMapping)
-
-	//things we don't want
-	// datasetMapping.AddFieldMappingsAt("pgTitle", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("sectionTitle", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("numDataRows", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("tableCaption", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("_id", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("pgId", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("numCols", dontStoreMeFieldMapping)
-	// datasetMapping.AddFieldMappingsAt("numHeaderRows", dontStoreMeFieldMapping)
+	datasetMapping.AddFieldMappingsAt("category", englishTextFieldMapping)
 
 	indexMapping := bleve.NewIndexMapping()
 	indexMapping.AddDocumentMapping("table", datasetMapping)
-	indexMapping.TypeField = "type"
+	indexMapping.TypeField = "kind"
 	indexMapping.DefaultAnalyzer = "en"
 
 	return indexMapping, nil
@@ -99,8 +121,17 @@ func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []*repo.DatasetR
 			log.Printf("error loading dataset: %s", err.Error())
 			continue
 		}
+		//remove extra fields
+		data, err := json.Marshal(ds)
+		if err != nil {
+			log.Printf("error marshalling dataset: %s", err.Error())
+			//continue
+			return err
+		}
+		leanMetadata := NewIndexableMetadataStruct()
+		json.Unmarshal(data, leanMetadata)
 
-		batch.Index(ref.Path.String(), ds)
+		batch.Index(ref.Path.String(), leanMetadata.MapValues())
 		batchCount++
 
 		if batchCount >= batchSize {
