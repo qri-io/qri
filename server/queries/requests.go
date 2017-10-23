@@ -111,6 +111,7 @@ func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
 			// }
 			d, err := dsfs.LoadDataset(r.store, path)
 			if err != nil {
+				fmt.Println("load dataset error:", err.Error())
 				return err
 			}
 			ds.Resources[name] = d

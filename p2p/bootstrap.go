@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 
 	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
@@ -28,7 +27,7 @@ var DefaultBootstrapAddresses = []string{
 func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 	peers, err := ParseMultiaddrs(boostrapAddrs)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info("error parsing bootstrap addresses:", err.Error())
 		return
 	}
 
@@ -37,10 +36,10 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 	for _, pi := range randomSubsetOfPeers(pinfos, 4) {
 		go func() {
 			if err := n.Host.Connect(context.Background(), pi); err == nil {
-				fmt.Printf("boostrapping to: %s\n", pi.ID.Pretty())
+				n.log.Infof("boostrapping to: %s", pi.ID.Pretty())
 				n.RequestPeersList(pi.ID)
 			} else {
-				fmt.Println(err.Error())
+				n.log.Infof("error connecting to host: %s", err.Error())
 			}
 		}()
 	}

@@ -13,6 +13,7 @@ const (
 
 func DefaultConfig() *Config {
 	return &Config{
+		Logger:      log,
 		Mode:        "develop",
 		Port:        "8080",
 		QriRepoPath: "~/qri",
@@ -32,6 +33,7 @@ func DefaultConfig() *Config {
 //
 // configuration is read at startup and cannot be alterd without restarting the server.
 type Config struct {
+	Logger Logger
 	// operation mode
 	Mode string
 	// port to listen on, will be read from PORT env variable if present.

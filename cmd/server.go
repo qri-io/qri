@@ -43,6 +43,7 @@ var serverCmd = &cobra.Command{
 		}
 
 		s, err := server.New(func(cfg *server.Config) {
+			cfg.Logger = log
 			cfg.Port = serverCmdPort
 			cfg.MemOnly = serverMemOnly
 			cfg.QriRepoPath = viper.GetString(QriRepoPath)

@@ -14,9 +14,9 @@ import (
 	"github.com/qri-io/qri/server/peers"
 	"github.com/qri-io/qri/server/queries"
 	"github.com/qri-io/qri/server/search"
-	"github.com/sirupsen/logrus"
+	// "github.com/sirupsen/logrus"
 	"net/http"
-	"os"
+	// "os"
 	"strings"
 )
 
@@ -24,10 +24,8 @@ import (
 // Create one with New, start it up with Serve
 type Server struct {
 	// configuration options
-	cfg *Config
-	// TODO - remove this logger
-	log *logrus.Logger
-
+	cfg     *Config
+	log     Logger
 	qriNode *p2p.QriNode
 }
 
@@ -45,19 +43,19 @@ func New(options ...func(*Config)) (s *Server, err error) {
 
 	s = &Server{
 		cfg: cfg,
-		log: logrus.New(),
+		log: cfg.Logger,
 	}
 
 	// output to stdout in dev mode
-	if s.cfg.Mode == DEVELOP_MODE {
-		s.log.Out = os.Stdout
-	} else {
-		s.log.Out = os.Stderr
-	}
-	s.log.Level = logrus.InfoLevel
-	s.log.Formatter = &logrus.TextFormatter{
-		ForceColors: true,
-	}
+	// if s.cfg.Mode == DEVELOP_MODE {
+	// 	s.log.Out = os.Stdout
+	// } else {
+	// 	s.log.Out = os.Stderr
+	// }
+	// s.log.Level = logrus.InfoLevel
+	// s.log.Formatter = &logrus.TextFormatter{
+	// 	ForceColors: true,
+	// }
 
 	var store cafs.Filestore
 	var qrepo repo.Repo
@@ -90,7 +88,8 @@ func New(options ...func(*Config)) (s *Server, err error) {
 	}
 
 	// allocate a new node
-	qriNode, err := p2p.NewQriNode(store, func(ncfg *p2p.NodeCfg) {
+	s.qriNode, err = p2p.NewQriNode(store, func(ncfg *p2p.NodeCfg) {
+		ncfg.Logger = s.log
 		ncfg.Repo = qrepo
 		ncfg.RepoPath = s.cfg.QriRepoPath
 		ncfg.Online = s.cfg.Online
@@ -99,19 +98,18 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		return s, err
 	}
 
-	s.qriNode = qriNode
-
 	if s.cfg.Online {
-		s.log.Infoln("qri peer id:", s.qriNode.Identity.Pretty())
-
-		s.log.Infoln("qri addresses:")
+		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
+		s.log.Info("p2p addresses:")
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			s.log.Infof("  %s", a.String())
 			// s.log.Infln(a.Protocols())
 		}
 	} else {
-		s.log.Infoln("running qri in offline mode, no peer-2-peer connections")
+		s.log.Info("running qri in offline mode, no peer-2-peer connections")
 	}
+
+	s.qriNode.StartOnlineServices()
 
 	// p2p.PrintSwarmAddrs(qriNode)
 	return s, nil
@@ -122,8 +120,7 @@ func New(options ...func(*Config)) (s *Server, err error) {
 func (s *Server) Serve() (err error) {
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
-
-	s.log.Infoln("starting api server on port", s.cfg.Port)
+	s.log.Infof("starting api server on port %s", s.cfg.Port)
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
 }

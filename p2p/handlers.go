@@ -30,13 +30,14 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 		}
 
 		p.Updated = time.Now()
-		fmt.Println("adding peer:", pid.Pretty())
+		n.log.Infof("adding peer: %s\n", pid.Pretty())
 		return n.Repo.Peers().PutPeer(pid, p)
 	}(r)
 
 	p, err := n.Repo.Profile()
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Infof("error getting repo profile: %s\n", err.Error())
+		return nil
 	}
 
 	return &Message{
@@ -62,7 +63,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	p.Id = pi.ID.Pretty()
 	p.Updated = time.Now()
 
-	fmt.Println("adding peer:", pi.ID.Pretty())
+	n.log.Info("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
@@ -74,12 +75,12 @@ type PeersReqParams struct {
 func (n *QriNode) handlePeersRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info(err.Error())
 		return nil
 	}
 	p := &PeersReqParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		fmt.Println("unmarshal peers request error:", err.Error())
+		n.log.Info("unmarshal peers request error:", err.Error())
 		return nil
 	}
 
@@ -89,7 +90,7 @@ func (n *QriNode) handlePeersRequest(r *Message) *Message {
 	})
 
 	if err != nil {
-		fmt.Println("error getting peer profiles:", err.Error())
+		n.log.Info("error getting peer profiles:", err.Error())
 		return nil
 	}
 
@@ -134,12 +135,12 @@ type DatasetsReqParams struct {
 func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info(err.Error())
 		return nil
 	}
 	p := &DatasetsReqParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		fmt.Println("unmarshal dataset request error:", err.Error())
+		n.log.Info("unmarshal dataset request error:", err.Error())
 		return nil
 	}
 
@@ -148,7 +149,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	}
 	refs, err := n.Repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
-		fmt.Println("repo names error:", err)
+		n.log.Info("repo names error:", err)
 		return nil
 	}
 
@@ -160,7 +161,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		}
 		ds, err := dsfs.LoadDataset(n.Store, ref.Path)
 		if err != nil {
-			fmt.Println("error loading dataset at path:", ref.Path)
+			n.log.Info("error loading dataset at path:", ref.Path)
 			return nil
 		}
 		refs[i].Dataset = ds
@@ -226,15 +227,15 @@ type SearchParams struct {
 }
 
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
-	fmt.Println("handling search request")
+	n.log.Info("handling search request")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info(err.Error())
 		return nil
 	}
 	p := &SearchParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		fmt.Println("unmarshal search request error:", err.Error())
+		n.log.Info("unmarshal search request error:", err.Error())
 		return nil
 	}
 
@@ -242,7 +243,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 	if s, ok := n.Repo.(repo.Searchable); ok {
 		results, err := s.Search(p.Query)
 		if err != nil {
-			fmt.Println("search error:", err.Error())
+			n.log.Info("search error:", err.Error())
 			return nil
 		}
 		return &Message{

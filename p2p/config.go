@@ -16,6 +16,7 @@ import (
 type NodeCfg struct {
 	Online bool
 	PeerId peer.ID // peer identifier
+	Logger Logger
 
 	PubKey  crypto.PubKey
 	PrivKey crypto.PrivKey
@@ -54,6 +55,7 @@ func DefaultNodeCfg() *NodeCfg {
 
 	return &NodeCfg{
 		Online:   true,
+		Logger:   log,
 		PeerId:   pid,
 		PrivKey:  priv,
 		PubKey:   pub,

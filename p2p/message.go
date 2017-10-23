@@ -187,7 +187,6 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 	if msg.Type == MtUnknown {
 		return fmt.Errorf("message type is required to send a message")
 	}
-	fmt.Println("sending message:", msg.Type.String())
 
 	err := ws.enc.Encode(msg)
 	// Because output is buffered with bufio, we need to flush!
@@ -208,7 +207,7 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("received message: %s\n", r.Type.String())
+		n.log.Infof("received message: %s\n", r.Type.String())
 
 		var res *Message
 		if r.Phase == MpRequest {
@@ -225,8 +224,9 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		}
 
 		if res != nil {
+			n.log.Infof("sending response: %s", res.Type.String())
 			if err := sendMessage(res, ws); err != nil {
-				fmt.Println("send message error", err)
+				n.log.Infof("send message error: %s\n", err.Error())
 			}
 		}
 
