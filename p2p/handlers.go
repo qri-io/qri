@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ipfs/go-datastore/query"
 	"time"
 
 	"github.com/qri-io/dataset/dsfs"
@@ -13,10 +14,32 @@ import (
 )
 
 func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
+	go func(r *Message) error {
+		data, err := json.Marshal(r.Payload)
+		if err != nil {
+			return nil
+		}
+		p := &profile.Profile{}
+		if err := json.Unmarshal(data, p); err != nil {
+			return err
+		}
+
+		pid, err := p.PeerID()
+		if err != nil {
+			return fmt.Errorf("error decoding base58 peer id: %s\n", err.Error())
+		}
+
+		p.Updated = time.Now()
+		n.log.Infof("adding peer: %s\n", pid.Pretty())
+		return n.Repo.Peers().PutPeer(pid, p)
+	}(r)
+
 	p, err := n.Repo.Profile()
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Infof("error getting repo profile: %s\n", err.Error())
+		return nil
 	}
+
 	return &Message{
 		Type:    MtPeerInfo,
 		Phase:   MpResponse,
@@ -40,8 +63,67 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	p.Id = pi.ID.Pretty()
 	p.Updated = time.Now()
 
-	fmt.Println("adding peer:", pi.ID.Pretty())
+	n.log.Info("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
+}
+
+type PeersReqParams struct {
+	Limit  int
+	Offset int
+}
+
+func (n *QriNode) handlePeersRequest(r *Message) *Message {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		n.log.Info(err.Error())
+		return nil
+	}
+	p := &PeersReqParams{}
+	if err := json.Unmarshal(data, p); err != nil {
+		n.log.Info("unmarshal peers request error:", err.Error())
+		return nil
+	}
+
+	profiles, err := repo.QueryPeers(n.Repo.Peers(), query.Query{
+		Limit:  p.Limit,
+		Offset: p.Offset,
+	})
+
+	if err != nil {
+		n.log.Info("error getting peer profiles:", err.Error())
+		return nil
+	}
+
+	return &Message{
+		Type:    MtPeers,
+		Phase:   MpResponse,
+		Payload: profiles,
+	}
+}
+
+func (n *QriNode) handlePeersResponse(r *Message) error {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		return err
+	}
+	peers := []*profile.Profile{}
+	if err := json.Unmarshal(data, &peers); err != nil {
+		return err
+	}
+
+	for _, p := range peers {
+		id, err := p.PeerID()
+		if err != nil {
+			fmt.Printf("error decoding base58 peer id: %s\n", err.Error())
+			continue
+		}
+		if profile, err := n.Repo.Peers().GetPeer(id); err != nil || profile != nil && profile.Updated.Before(p.Updated) {
+			if err := n.Repo.Peers().PutPeer(id, p); err != nil {
+				fmt.Errorf("error putting peer: %s\n", err.Error())
+			}
+		}
+	}
+	return nil
 }
 
 type DatasetsReqParams struct {
@@ -53,12 +135,12 @@ type DatasetsReqParams struct {
 func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info(err.Error())
 		return nil
 	}
 	p := &DatasetsReqParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		fmt.Println("unmarshal dataset request error:", err.Error())
+		n.log.Info("unmarshal dataset request error:", err.Error())
 		return nil
 	}
 
@@ -67,7 +149,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	}
 	refs, err := n.Repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
-		fmt.Println("repo names error:", err)
+		n.log.Info("repo names error:", err)
 		return nil
 	}
 
@@ -79,7 +161,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		}
 		ds, err := dsfs.LoadDataset(n.Store, ref.Path)
 		if err != nil {
-			fmt.Println("error loading dataset at path:", ref.Path)
+			n.log.Info("error loading dataset at path:", ref.Path)
 			return nil
 		}
 		refs[i].Dataset = ds
@@ -145,15 +227,15 @@ type SearchParams struct {
 }
 
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
-	fmt.Println("handling search request")
+	n.log.Info("handling search request")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		fmt.Println(err.Error())
+		n.log.Info(err.Error())
 		return nil
 	}
 	p := &SearchParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		fmt.Println("unmarshal search request error:", err.Error())
+		n.log.Info("unmarshal search request error:", err.Error())
 		return nil
 	}
 
@@ -161,7 +243,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 	if s, ok := n.Repo.(repo.Searchable); ok {
 		results, err := s.Search(p.Query)
 		if err != nil {
-			fmt.Println("search error:", err.Error())
+			n.log.Info("search error:", err.Error())
 			return nil
 		}
 		return &Message{

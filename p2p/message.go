@@ -7,7 +7,6 @@ import (
 	"time"
 
 	net "gx/ipfs/QmNa31VPzC561NWwRsJLE7nGYZYuuD2QfpK2b1q9BK54J1/go-libp2p-net"
-	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	multicodec "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec"
 	json "gx/ipfs/QmVRuqGJ881CFiNLgwWSfRVjTjqQ6FeCNufkftNC4fpACZ/go-multicodec/json"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -17,6 +16,7 @@ type MsgType int
 
 const (
 	MtUnknown MsgType = iota
+	MtPeers
 	MtPeerInfo
 	MtDatasets
 	MtNamespaces
@@ -27,6 +27,7 @@ func (mt MsgType) String() string {
 	return map[MsgType]string{
 		MtUnknown:    "UNKNOWN",
 		MtPeerInfo:   "PEER_INFO",
+		MtPeers:      "PEERS",
 		MtDatasets:   "DATASETS",
 		MtNamespaces: "NAMESPACES",
 		MtSearch:     "SEARCH",
@@ -91,8 +92,11 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 }
 
 // SendMessage to a given multiaddr, this assumes that the
-func (qn *QriNode) SendMessage(pi pstore.PeerInfo, msg *Message) (res *Message, err error) {
-	s, err := qn.Host.NewStream(context.Background(), pi.ID, QriProtocolId)
+func (qn *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err error) {
+	// TODO - add timeout
+	// ctx := context.WithTimeout(context.Background(), time.Second*20)
+
+	s, err := qn.Host.NewStream(context.Background(), pi, QriProtocolId)
 	if err != nil {
 		return
 	}
@@ -148,7 +152,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 			if !sent[p] {
 				sent[p] = true
 				if p != nodeId {
-					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p), msg)
+					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p).ID, msg)
 					if e != nil {
 						fmt.Errorf(e.Error())
 					} else {
@@ -178,12 +182,11 @@ func receiveMessage(ws *WrappedStream) (*Message, error) {
 	return &msg, nil
 }
 
-// // sendMessage encodes and writes a message to the stream
+// sendMessage encodes and writes a message to the stream
 func sendMessage(msg *Message, ws *WrappedStream) error {
 	if msg.Type == MtUnknown {
 		return fmt.Errorf("message type is required to send a message")
 	}
-	fmt.Println("sending message:", msg.Type.String())
 
 	err := ws.enc.Encode(msg)
 	// Because output is buffered with bufio, we need to flush!
@@ -195,6 +198,8 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 // When Message.HangUp is true, it exits. This will close the stream
 // on one of the sides. The other side's receiveMessage() will error
 // with EOF, thus also breaking out from the loop.
+// TODO - I know this is completely fucking awful. it'll get better in
+// due time
 func (n *QriNode) handleStream(ws *WrappedStream) {
 	for {
 		// Read
@@ -202,7 +207,7 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		if err != nil {
 			break
 		}
-		fmt.Printf("received message: %s\n", r.Type.String())
+		n.log.Infof("received message: %s\n", r.Type.String())
 
 		var res *Message
 		if r.Phase == MpRequest {
@@ -213,12 +218,15 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 				res = n.handleDatasetsRequest(r)
 			case MtSearch:
 				res = n.handleSearchRequest(r)
+			case MtPeers:
+				res = n.handlePeersRequest(r)
 			}
 		}
 
 		if res != nil {
+			n.log.Infof("sending response: %s", res.Type.String())
 			if err := sendMessage(res, ws); err != nil {
-				fmt.Println("send message error", err)
+				n.log.Infof("send message error: %s\n", err.Error())
 			}
 		}
 

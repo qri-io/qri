@@ -1,0 +1,30 @@
+{
+  "author": "Kubuxu",
+  "bugs": {
+    "URL": "https://github.com/Kubuxu/go-libp2p-dummy-conn/issues",
+    "url": "https://github.com/Kubuxu/go-libp2p-dummy-conn/issues"
+  },
+  "gx": {
+    "dvcsimport": "github.com/Kubuxu/go-libp2p-dummy-conn"
+  },
+  "gxDependencies": [
+    {
+      "author": "whyrusleeping",
+      "hash": "QmdaFHcDk53RWnq4R6wH2Uy5YuBmvbSWLK8gFhQwqU3jZH",
+      "name": "bufpipe",
+      "version": "0.1.0"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmcYnysCkyGezY6k6MQ1yHHdrRiZaU9x3M9Y1tE9qZ5hD2",
+      "name": "go-libp2p-interface-conn",
+      "version": "0.4.5"
+    }
+  ],
+  "gxVersion": "0.9.1",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-libp2p-dummy-conn",
+  "version": "0.2.1"
+}
+

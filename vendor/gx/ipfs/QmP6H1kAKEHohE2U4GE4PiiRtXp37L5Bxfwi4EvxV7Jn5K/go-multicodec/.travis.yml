@@ -1,0 +1,14 @@
+os:
+  - linux
+  - osx
+
+language: go
+
+go:
+  - 1.4
+  - 1.5
+
+script:
+  - go test -race -cpu 5 ./...
+
+sudo: false #docker containers for CI

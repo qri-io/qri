@@ -1,13 +1,15 @@
 package datasets
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"time"
 )
 
 type Commit struct {
@@ -25,7 +27,7 @@ func (r *Requests) Update(commit *Commit, ref *repo.DatasetRef) error {
 
 	prev, err := r.repo.GetDataset(commit.Prev)
 	if err != nil {
-		return err
+		return fmt.Errorf("error getting previous dataset from repo: %s", err.Error())
 	}
 
 	// add all previous fields and any changes
@@ -35,11 +37,11 @@ func (r *Requests) Update(commit *Commit, ref *repo.DatasetRef) error {
 	if commit.Data != nil {
 		size, err := commit.Data.Size()
 		if err != nil {
-			return err
+			return fmt.Errorf("error getting data byte size: %s", err.Error())
 		}
 		path, err := r.store.Put(commit.Data, false)
 		if err != nil {
-			return err
+			return fmt.Errorf("error putting data in store: %s", err.Error())
 		}
 
 		ds.Data = path
@@ -66,7 +68,7 @@ func (r *Requests) Update(commit *Commit, ref *repo.DatasetRef) error {
 	ds.Timestamp = time.Now().In(time.UTC)
 	dspath, err := dsfs.SaveDataset(r.store, ds, true)
 	if err != nil {
-		return err
+		return fmt.Errorf("error saving dataset: %s", err.Error())
 	}
 
 	*ref = repo.DatasetRef{

@@ -1,0 +1,35 @@
+{
+  "author": "whyrusleeping",
+  "bugs": {
+    "url": "https://github.com/libp2p/go-libp2p-transport"
+  },
+  "gx": {
+    "dvcsimport": "github.com/libp2p/go-libp2p-transport"
+  },
+  "gxDependencies": [
+    {
+      "author": "jbenet",
+      "hash": "QmVCNGTyD4EkvNYaAp253uMQ9Rjsjy2oGMvcdJJUoVRfja",
+      "name": "go-multiaddr-net",
+      "version": "1.5.2"
+    },
+    {
+      "author": "whyrusleeping",
+      "hash": "QmYjJnSTfXWhYL2cV1xFphPqjqowJqH7ZKLA1As8QrPHbn",
+      "name": "mafmt",
+      "version": "1.1.3"
+    },
+    {
+      "hash": "QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52",
+      "name": "go-log",
+      "version": "1.2.0"
+    }
+  ],
+  "gxVersion": "0.4.0",
+  "language": "go",
+  "license": "MIT",
+  "name": "go-libp2p-transport",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "2.2.5"
+}
+

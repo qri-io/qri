@@ -2,6 +2,7 @@ package search
 
 import (
 	"fmt"
+
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 )
@@ -36,7 +37,7 @@ func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error 
 	if s, ok := d.repo.(repo.Searchable); ok {
 		results, err := s.Search(p.Query)
 		if err != nil {
-			return err
+			return fmt.Errorf("error searching: %s", err.Error())
 		}
 		*res = results
 		return nil

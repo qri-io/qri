@@ -2,22 +2,24 @@ package queries
 
 import (
 	"encoding/json"
-	"fmt"
+	"net/http"
+
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
-	"net/http"
+	"github.com/qri-io/qri/server/logging"
 )
 
-func NewHandlers(store cafs.Filestore, r repo.Repo) *Handlers {
+func NewHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
-	return &Handlers{*req}
+	return &Handlers{*req, log}
 }
 
 // Handlers wraps a requests struct to interface with http.HandlerFunc
 type Handlers struct {
 	Requests
+	log logging.Logger
 }
 
 func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
@@ -56,7 +58,7 @@ func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // 	util.WriteResponse(w, res)
 // }
 
-func (d *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	res := []*repo.DatasetRef{}
 	args := &ListParams{
@@ -64,8 +66,9 @@ func (d *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 		Offset:  p.Offset(),
 		OrderBy: "created",
 	}
-	err := d.List(args, &res)
+	err := h.List(args, &res)
 	if err != nil {
+		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -108,8 +111,7 @@ func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := &repo.DatasetRef{}
 	if err := h.Run(p, res); err != nil {
-		fmt.Println("err:")
-		fmt.Println(err.Error())
+		h.log.Infof("error running query: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

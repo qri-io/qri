@@ -47,52 +47,12 @@ var runCmd = &cobra.Command{
 		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
 
-		// TODO - make format output the parsed statement as well
-		// to avoid triple-parsing
-		sqlstr, _, remap, err := sql.Format(args[0])
-		ExitIfErr(err)
-
 		ds := &dataset.Dataset{
 			Timestamp:   time.Now().In(time.UTC),
 			QuerySyntax: "sql",
-			Resources:   map[string]*dataset.Dataset{},
-			QueryString: sqlstr,
+			QueryString: args[0],
 			// TODO - set query schema
 		}
-
-		// collect table references
-		for mapped, ref := range remap {
-			// for i, adr := range stmt.References() {
-			// if ns[ref].String() == "" {
-			// 	ErrExit(fmt.Errorf("couldn't find resource for table name: %s", ref))
-			// }
-			path, err := r.GetPath(ref)
-			ExitIfErr(err)
-
-			d, err := dsfs.LoadDataset(store, path)
-			if err != nil {
-				ErrExit(err)
-			}
-			ds.Resources[mapped] = d
-		}
-
-		// qData, err := q.MarshalJSON()
-		// ExitIfErr(err)
-
-		// qhash, err := store.AddAndPinBytes(qData)
-		// ExitIfErr(err)
-		// fmt.Printf("query hash: %s\n", qhash)
-		// qpath := datastore.NewKey("/ipfs/" + qhash)
-
-		// cache := rgraph[qpath]
-
-		// if len(cache) > 0 {
-		// 	fmt.Println("returning hashed result.")
-		// 	resource, err = GetStructure(store, cache[0])
-		// 	if err != nil {
-		// 		results, err = GetStructuredData(store, resource.Path)
-		// 	}
-		// }
 
 		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
 		if err != nil {

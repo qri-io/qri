@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"sort"
 
+	"github.com/ipfs/go-ipfs/core"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
@@ -23,6 +24,7 @@ import (
 
 // QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
+	log        Logger
 	Identity   peer.ID        // the local node's identity
 	privateKey crypto.PrivKey // the local node's private Key
 
@@ -54,6 +56,7 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 	ps := pstore.NewPeerstore()
 
 	node := &QriNode{
+		log:      cfg.Logger,
 		Identity: cfg.PeerId,
 		Online:   cfg.Online,
 		QriPeers: ps,
@@ -91,13 +94,13 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 		// add multistream handler for qri protocol to the host
 		// for more info on multistreams check github.com/multformats/go-multistream
 		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
-
-		if err := node.StartDiscovery(); err != nil {
-			return nil, err
-		}
 	}
 
 	return node, nil
+}
+
+func (n *QriNode) StartOnlineServices() error {
+	return n.StartDiscovery()
 }
 
 // Encapsulated Addresses returns a slice of full multaddrs for this node
@@ -115,6 +118,13 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	}
 
 	return res
+}
+
+func (n *QriNode) IpfsNode() (*core.IpfsNode, error) {
+	if ipfsfs, ok := n.Store.(*ipfs_filestore.Filestore); ok {
+		return ipfsfs.Node(), nil
+	}
+	return nil, fmt.Errorf("not using IPFS")
 }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg

@@ -4,6 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"net/http"
+	"time"
+
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -13,20 +17,19 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/repo"
-	"io/ioutil"
-	"net/http"
-	"time"
+	"github.com/qri-io/qri/server/logging"
 )
 
-func NewHandlers(store cafs.Filestore, r repo.Repo) *Handlers {
+func NewHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *Handlers {
 	req := NewRequests(store, r)
-	h := Handlers{*req}
+	h := Handlers{*req, log}
 	return &h
 }
 
 // Handlers wraps a requests struct to interface with http.HandlerFunc
 type Handlers struct {
 	Requests
+	log logging.Logger
 }
 
 func (h *Handlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
@@ -72,6 +75,17 @@ func (h *Handlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (h *Handlers) AddDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.addDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *Handlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &dataset.Dataset{}
 	args := &GetParams{
@@ -80,6 +94,7 @@ func (h *Handlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	err := h.Get(args, res)
 	if err != nil {
+		h.log.Infof("error getting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -89,7 +104,7 @@ func (h *Handlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	dsutil.WriteZipArchive(h.store, res, w)
 }
 
-func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
+func (h *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	res := []*repo.DatasetRef{}
 	args := &ListParams{
@@ -97,7 +112,8 @@ func (d *Handlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 		Offset:  p.Offset(),
 		OrderBy: "created",
 	}
-	if err := d.List(args, &res); err != nil {
+	if err := h.List(args, &res); err != nil {
+		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -144,6 +160,7 @@ func (h *Handlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request)
 	}
 	res := &repo.DatasetRef{}
 	if err := h.Update(p, res); err != nil {
+		h.log.Infof("error updating dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -158,6 +175,7 @@ func (h *Handlers) saveStructureHandler(w http.ResponseWriter, r *http.Request) 
 	}
 	res := &dataset.Dataset{}
 	if err := h.Save(p, res); err != nil {
+		h.log.Infof("error saving dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -189,6 +207,7 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 
 	datakey, err := h.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
 	if err != nil {
+		h.log.Infof("error putting data file in store: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -213,16 +232,19 @@ func (h *Handlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request
 
 	dskey, err := dsfs.SaveDataset(h.store, ds, true)
 	if err != nil {
+		h.log.Infof("error saving dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = h.repo.PutDataset(dskey, ds); err != nil {
+		h.log.Infof("error putting dataset in repo: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	if err = h.repo.PutName(adr, dskey); err != nil {
+		h.log.Infof("error adding dataset name to repo: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -249,6 +271,7 @@ func (h *Handlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) 
 
 	res := false
 	if err := h.Delete(p, &res); err != nil {
+		h.log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -279,9 +302,26 @@ func (h *Handlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Reque
 	}
 	data := &StructuredData{}
 	if err := h.StructuredData(p, data); err != nil {
+		h.log.Infof("error reading structured data: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	util.WriteResponse(w, data)
+}
+
+func (h *Handlers) addDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	p := &AddParams{
+		Name: r.URL.Query().Get("name"),
+		Hash: r.URL.Path[len("/add/"):],
+	}
+
+	res := &repo.DatasetRef{}
+	if err := h.AddDataset(p, res); err != nil {
+		h.log.Infof("error adding dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }

@@ -16,8 +16,28 @@ package main
 
 import (
 	"fmt"
+	"os"
+
 	"github.com/qri-io/qri/cmd"
+	"github.com/sirupsen/logrus"
 )
+
+func init() {
+	log := logrus.New()
+	log.Level = logrus.InfoLevel
+	log.Formatter = &logrus.TextFormatter{
+		ForceColors: true,
+	}
+
+	mode := os.Getenv("GOLANG_ENV")
+	if mode != "PRODUCTION" {
+		log.Out = os.Stdout
+	} else {
+		log.Out = os.Stderr
+	}
+
+	cmd.SetLogger(log)
+}
 
 func main() {
 	// Catch errors & pretty-print.
