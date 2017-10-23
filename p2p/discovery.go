@@ -6,8 +6,8 @@ import (
 	"time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
-	discovery "gx/ipfs/QmRQ76P5dgvxTujhfPsCRAG83rC15jgb1G9bKLuomuC6dQ/go-libp2p/p2p/discovery"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	discovery "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/discovery"
 )
 
 const qriSupportKey = "qri-support"
@@ -16,7 +16,7 @@ const qriSupportKey = "qri-support"
 // services if one doesn't exist, then registering to be notified on peer discovery
 func (n *QriNode) StartDiscovery() error {
 	if n.Discovery == nil {
-		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5)
+		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5, QriServiceTag)
 		if err != nil {
 			return err
 		}
