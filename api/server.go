@@ -15,9 +15,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	// "github.com/qri-io/qri/server/peers"
-	// "github.com/qri-io/qri/server/queries"
-	// "github.com/qri-io/qri/server/search"
 )
 
 // Server wraps a qri p2p node, providing traditional access via http
@@ -45,17 +42,6 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		cfg: cfg,
 		log: cfg.Logger,
 	}
-
-	// output to stdout in dev mode
-	// if s.cfg.Mode == DEVELOP_MODE {
-	// 	s.log.Out = os.Stdout
-	// } else {
-	// 	s.log.Out = os.Stderr
-	// }
-	// s.log.Level = logrus.InfoLevel
-	// s.log.Formatter = &logrus.TextFormatter{
-	// 	ForceColors: true,
-	// }
 
 	var store cafs.Filestore
 	var qrepo repo.Repo
@@ -110,7 +96,6 @@ func New(options ...func(*Config)) (s *Server, err error) {
 	}
 
 	s.qriNode.StartOnlineServices()
-
 	// p2p.PrintSwarmAddrs(qriNode)
 	return s, nil
 }
