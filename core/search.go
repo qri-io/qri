@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/fs"
 )
 
 type SearchRequests struct {
@@ -40,4 +41,21 @@ func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) e
 	}
 
 	return nil
+}
+
+type ReindexSearchParams struct {
+	// no args for reindex
+}
+
+func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
+	if fsr, ok := d.repo.(*fs_repo.Repo); ok {
+		err := fsr.UpdateSearchIndex(d.store)
+		if err != nil {
+			return fmt.Errorf("error reindexing: %s", err.Error())
+		}
+		*done = true
+		return nil
+	}
+
+	return fmt.Errorf("search reindexing is currently only supported on file-system repos")
 }

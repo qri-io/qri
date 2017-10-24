@@ -11,15 +11,15 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewSearchHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *SearchHandlers {
-	req := core.NewSearchRequests(store, r)
-	return &SearchHandlers{*req, log}
-}
-
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
 type SearchHandlers struct {
 	core.SearchRequests
 	log logging.Logger
+}
+
+func NewSearchHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *SearchHandlers {
+	req := core.NewSearchRequests(store, r)
+	return &SearchHandlers{*req, log}
 }
 
 func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
@@ -35,7 +35,6 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
-
 	sp := &repo.SearchParams{
 		Q:      r.FormValue("q"),
 		Limit:  p.Limit(),

@@ -32,6 +32,5 @@ func TestDatasetRequestsInit(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
-
 	}
 }

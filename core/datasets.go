@@ -167,6 +167,7 @@ type SaveParams struct {
 	Dataset *dataset.Dataset
 }
 
+// TODO - naming of "save" is ambiguous
 func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
