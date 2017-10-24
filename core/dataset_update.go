@@ -1,4 +1,4 @@
-package datasets
+package core
 
 import (
 	"fmt"
@@ -22,7 +22,7 @@ type Commit struct {
 
 // Update adds a history entry updating a dataset
 // TODO - work in progress
-func (r *Requests) Update(commit *Commit, ref *repo.DatasetRef) error {
+func (r *DatasetRequests) Update(commit *Commit, ref *repo.DatasetRef) error {
 	ds := &dataset.Dataset{}
 
 	prev, err := r.repo.GetDataset(commit.Prev)

@@ -1,4 +1,4 @@
-package search
+package core
 
 import (
 	"fmt"
@@ -21,13 +21,7 @@ type SearchRequests struct {
 	// node  *p2p.QriNode
 }
 
-type SearchParams struct {
-	Query  string
-	Limit  int
-	Offset int
-}
-
-func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error {
+func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) error {
 	// if d.node != nil {
 	// 	r, err := d.node.Search(p.Query, p.Limit, p.Offset)
 	// 	if err != nil {
@@ -35,7 +29,7 @@ func (d *SearchRequests) Search(p *SearchParams, res *[]*repo.DatasetRef) error 
 	// 	}
 
 	if s, ok := d.repo.(repo.Searchable); ok {
-		results, err := s.Search(p.Query)
+		results, err := s.Search(*p)
 		if err != nil {
 			return fmt.Errorf("error searching: %s", err.Error())
 		}

@@ -19,7 +19,7 @@ import (
 	"path/filepath"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
-	"github.com/qri-io/qri/server"
+	"github.com/qri-io/qri/api"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -42,7 +42,7 @@ var serverCmd = &cobra.Command{
 			ExitIfErr(err)
 		}
 
-		s, err := server.New(func(cfg *server.Config) {
+		s, err := api.New(func(cfg *api.Config) {
 			cfg.Logger = log
 			cfg.Port = serverCmdPort
 			cfg.MemOnly = serverMemOnly

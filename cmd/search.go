@@ -59,9 +59,10 @@ var searchCmd = &cobra.Command{
 			}
 		}
 
-		PrintInfo("running search...")
 		if s, ok := r.(repo.Searchable); ok {
-			results, err := s.Search(args[0])
+			results, err := s.Search(repo.SearchParams{
+				Q: args[0],
+			})
 			ExitIfErr(err)
 
 			// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))

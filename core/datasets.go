@@ -1,10 +1,13 @@
-package datasets
+package core
 
 import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/dataset/detect"
+	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
@@ -14,29 +17,22 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/load"
 	"github.com/qri-io/qri/repo"
 )
 
-func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
-	return &Requests{
+func NewDatasetRequests(store cafs.Filestore, r repo.Repo) *DatasetRequests {
+	return &DatasetRequests{
 		store: store,
 		repo:  r,
 	}
 }
 
-type Requests struct {
+type DatasetRequests struct {
 	store cafs.Filestore
 	repo  repo.Repo
 }
 
-type ListParams struct {
-	OrderBy string
-	Limit   int
-	Offset  int
-}
-
-func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
 	// ns, err := d.repo.Namespace()
@@ -69,16 +65,73 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
-type GetParams struct {
+type GetDatasetParams struct {
 	Path datastore.Key
 	Name string
 	Hash string
 }
 
-func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
+func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
 	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
+	}
+
+	*res = *ds
+	return nil
+}
+
+type InitDatasetParams struct {
+	Data files.File
+	Name string
+}
+
+func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset) error {
+	// TODO - split this into some sort of re-readable reader instead
+	// of reading the entire file
+	data, err := ioutil.ReadAll(p.Data)
+	if err != nil {
+		return fmt.Errorf("error reading file: %s", err.Error())
+	}
+
+	st, err := detect.FromReader(p.Data.FileName(), bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("error determining dataset schema: %s", err.Error())
+	}
+
+	datakey, err := r.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
+	if err != nil {
+		return fmt.Errorf("error putting data file in store: %s", err.Error())
+	}
+
+	adr := detect.Camelize(p.Data.FileName())
+	if p.Name != "" {
+		adr = detect.Camelize(p.Data.FileName())
+	}
+
+	ds := &dataset.Dataset{
+		Timestamp: time.Now().In(time.UTC),
+		Title:     adr,
+		Data:      datakey,
+		Structure: st,
+	}
+
+	dskey, err := dsfs.SaveDataset(r.store, ds, true)
+	if err != nil {
+		return fmt.Errorf("error saving dataset: %s", err.Error())
+	}
+
+	if err = r.repo.PutDataset(dskey, ds); err != nil {
+		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
+	}
+
+	if err = r.repo.PutName(adr, dskey); err != nil {
+		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
+	}
+
+	ds, err = r.repo.GetDataset(dskey)
+	if err != nil {
+		return fmt.Errorf("error reading dataset: %s", err.Error())
 	}
 
 	*res = *ds
@@ -90,7 +143,7 @@ type SaveParams struct {
 	Dataset *dataset.Dataset
 }
 
-func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
+func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
 	path, err := dsfs.SaveDataset(r.store, ds, true)
@@ -114,7 +167,7 @@ type DeleteParams struct {
 	Name string
 }
 
-func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
+func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) error {
 	// TODO - restore
 	// if p.Path.String() == "" {
 	// 	r.
@@ -164,7 +217,7 @@ type StructuredData struct {
 	Data interface{}   `json:"data"`
 }
 
-func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
+func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	var (
 		file files.File
 		d    []byte
@@ -177,7 +230,7 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 	if p.All {
 		file, err = dsfs.LoadDatasetData(r.store, ds)
 	} else {
-		d, err = load.RawDataRows(r.store, ds, p.Limit, p.Offset)
+		d, err = dsio.ReadRows(r.store, ds, p.Limit, p.Offset)
 		file = memfs.NewMemfileBytes("data", d)
 	}
 
@@ -185,24 +238,27 @@ func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData)
 		return err
 	}
 
-	buf := &bytes.Buffer{}
-	w := dsio.NewJsonWriter(ds.Structure, buf, p.Objects)
-	load.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
+	st := &dataset.Structure{}
+	st.Assign(ds.Structure, &dataset.Structure{
+		Format: p.Format,
+		FormatConfig: &dataset.JsonOptions{
+			ObjectEntries: p.Objects,
+		},
+	})
+
+	buf := dsio.NewBuffer(st)
+
+	if err = dsio.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
 		}
+		return buf.WriteRow(row)
+	}); err != nil {
+		return fmt.Errorf("row iteration error: %s", err.Error())
+	}
 
-		if i < p.Offset {
-			return nil
-		} else if i-p.Offset > p.Limit {
-			return fmt.Errorf("EOF")
-		}
-
-		return w.WriteRow(row)
-	})
-
-	if err := w.Close(); err != nil {
-		return err
+	if err := buf.Close(); err != nil {
+		return fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
 	*data = StructuredData{
@@ -217,7 +273,7 @@ type AddParams struct {
 	Hash string
 }
 
-func (r *Requests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
 	fs, ok := r.store.(*ipfs.Filestore)
 	if !ok {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")

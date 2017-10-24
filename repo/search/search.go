@@ -11,13 +11,13 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func Search(i Index, q string) ([]*repo.DatasetRef, error) {
+func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
 
-	query := bleve.NewQueryStringQuery(q)
+	query := bleve.NewQueryStringQuery(p.Q)
 	search := bleve.NewSearchRequest(query)
 	//TODO: find better place to set default, and/or expose option
-	search.Size = 10
-	//search.Offset
+	search.Size = p.Limit
+	search.From = p.Offset
 	results, err := i.Search(search)
 	if err != nil {
 		return nil, err

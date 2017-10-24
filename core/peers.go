@@ -1,4 +1,4 @@
-package peers
+package core
 
 import (
 	"encoding/json"
@@ -12,25 +12,19 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-func NewRequests(r repo.Repo, node *p2p.QriNode) *Requests {
-	return &Requests{
+func NewPeerRequests(r repo.Repo, node *p2p.QriNode) *PeerRequests {
+	return &PeerRequests{
 		repo:    r,
 		qriNode: node,
 	}
 }
 
-type Requests struct {
+type PeerRequests struct {
 	repo    repo.Repo
 	qriNode *p2p.QriNode
 }
 
-type ListParams struct {
-	OrderBy string
-	Limit   int
-	Offset  int
-}
-
-func (d *Requests) List(p *ListParams, res *[]*profile.Profile) error {
+func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0
 
@@ -51,13 +45,26 @@ func (d *Requests) List(p *ListParams, res *[]*profile.Profile) error {
 	return nil
 }
 
-type GetParams struct {
-	Username string
-	Name     string
-	Hash     string
+func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
+	*peers = d.qriNode.ConnectedPeers()
+	return nil
 }
 
-func (d *Requests) Get(p *GetParams, res *profile.Profile) error {
+func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
+	if err := d.qriNode.ConnectToPeer(*pid); err != nil {
+		return fmt.Errorf("error connecting to peer: %s", err.Error())
+	}
+
+	profile, err := d.repo.Peers().GetPeer(*pid)
+	if err != nil {
+		return fmt.Errorf("error getting peer profile: %s", err.Error())
+	}
+
+	*res = *profile
+	return nil
+}
+
+func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
 	// TODO - restore
 	// peers, err := d.repo.Peers()
 	// if err != nil {
@@ -86,7 +93,7 @@ type NamespaceParams struct {
 	Offset int
 }
 
-func (d *Requests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
+func (d *PeerRequests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
 	id, err := peer.IDB58Decode(p.PeerId)
 	if err != nil {
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())

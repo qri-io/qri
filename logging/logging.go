@@ -21,20 +21,8 @@ type Logger interface {
 	Debugf(string, ...interface{})
 }
 
-// LogSetter is an abstract interface that packages above this package
-// should define & check this package for, along with others.
-// this'll be an interesting test of the interface system
-// type LogSetter interface {
-//  SetLogger(logger Logger)
-// }
-
-// package-level log variable
-var log Logger = fmtLogger(0)
-
-// this package implements the LogSetter interface
-func SetLogger(logger Logger) {
-	log = logger
-}
+// mega-silly default logger
+var DefaultLogger Logger = fmtLogger(0)
 
 // fmtLogger proxies various logging levels as a basic logger
 type fmtLogger int

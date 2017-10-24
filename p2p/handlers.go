@@ -193,8 +193,8 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetR
 	responses, err := qn.BroadcastMessage(&Message{
 		Phase: MpRequest,
 		Type:  MtSearch,
-		Payload: &SearchParams{
-			Query:  terms,
+		Payload: &repo.SearchParams{
+			Q:      terms,
 			Limit:  limit,
 			Offset: offset,
 		},
@@ -220,12 +220,6 @@ func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetR
 	return datasets, nil
 }
 
-type SearchParams struct {
-	Query  string
-	Limit  int
-	Offset int
-}
-
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
 	n.log.Info("handling search request")
 	data, err := json.Marshal(r.Payload)
@@ -233,7 +227,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		n.log.Info(err.Error())
 		return nil
 	}
-	p := &SearchParams{}
+	p := &repo.SearchParams{}
 	if err := json.Unmarshal(data, p); err != nil {
 		n.log.Info("unmarshal search request error:", err.Error())
 		return nil
@@ -241,7 +235,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 
 	// results, err := search.Search(n.Repo, n.Store, search.NewDatasetQuery(p.Query, p.Limit, p.Offset))
 	if s, ok := n.Repo.(repo.Searchable); ok {
-		results, err := s.Search(p.Query)
+		results, err := s.Search(*p)
 		if err != nil {
 			n.log.Info("search error:", err.Error())
 			return nil

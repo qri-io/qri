@@ -15,15 +15,15 @@
 package main
 
 import (
-	"fmt"
 	"os"
 
 	"github.com/qri-io/qri/cmd"
 	"github.com/sirupsen/logrus"
 )
 
+var log = logrus.New()
+
 func init() {
-	log := logrus.New()
 	log.Level = logrus.InfoLevel
 	log.Formatter = &logrus.TextFormatter{
 		ForceColors: true,
@@ -47,7 +47,7 @@ func main() {
 			if err, ok := r.(error); ok {
 				cmd.PrintErr(err)
 			} else {
-				fmt.Printf("%v\n", r)
+				log.Info(r)
 			}
 		}
 	}()

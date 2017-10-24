@@ -103,31 +103,26 @@ func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	if err != nil {
 		return nil, err
 	}
-	if limit < 0 {
-		limit = len(names)
-	}
 
-	i := 0
+	i := -1
 	added := 0
 	res := make([]*repo.DatasetRef, limit)
 	for name, path := range names {
+		i++
 		if i < offset {
 			continue
 		}
-
-		if limit != 0 && added < limit {
-			res[i] = &repo.DatasetRef{
-				Name: name,
-				Path: path,
-			}
-			added++
-		} else if added == limit {
+		if limit > 0 && added == limit {
 			break
 		}
 
-		i++
+		res[added] = &repo.DatasetRef{
+			Name: name,
+			Path: path,
+		}
+		added++
 	}
-	res = res[:i]
+	res = res[:added]
 	return res, nil
 }
 
