@@ -25,7 +25,7 @@ func (ql QueryLog) LogQuery(ref *repo.DatasetRef) error {
 	if err != nil {
 		return err
 	}
-	log = append(log, &repo.DatasetRef{Name: ref.Name, Path: ref.Path})
+	log = append([]*repo.DatasetRef{&repo.DatasetRef{Name: ref.Name, Path: ref.Path}}, log...)
 	return ql.saveFile(log, ql.file)
 }
 
