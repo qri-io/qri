@@ -228,9 +228,9 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	}
 
 	if p.All {
-		file, err = dsfs.LoadDatasetData(r.store, ds)
+		file, err = dsfs.LoadData(r.store, ds)
 	} else {
-		d, err = dsio.ReadRows(r.store, ds, p.Limit, p.Offset)
+		d, err = dsfs.LoadRows(r.store, ds, p.Limit, p.Offset)
 		file = memfs.NewMemfileBytes("data", d)
 	}
 
@@ -247,8 +247,8 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	})
 
 	buf := dsio.NewBuffer(st)
-
-	if err = dsio.EachRow(ds.Structure, file, func(i int, row [][]byte, err error) error {
+	rr := dsio.NewRowReader(ds.Structure, file)
+	if err = dsio.EachRow(rr, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err
 		}

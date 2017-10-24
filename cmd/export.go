@@ -48,7 +48,7 @@ var exportCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		if cmd.Flag("data-only").Value.String() == "true" {
-			src, err := dsfs.LoadDatasetData(store, ds)
+			src, err := dsfs.LoadData(store, ds)
 			ExitIfErr(err)
 
 			dst, err := os.Create(fmt.Sprintf("%s.%s", path, ds.Structure.Format.String()))
