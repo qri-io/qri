@@ -1,9 +1,13 @@
 package core
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/dataset/detect"
+	"io/ioutil"
 	"strings"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-ipfs/commands/files"
@@ -71,6 +75,63 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
 	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
+	}
+
+	*res = *ds
+	return nil
+}
+
+type InitDatasetParams struct {
+	Data files.File
+	Name string
+}
+
+func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset) error {
+	// TODO - split this into some sort of re-readable reader instead
+	// of reading the entire file
+	data, err := ioutil.ReadAll(p.Data)
+	if err != nil {
+		return fmt.Errorf("error reading file: %s", err.Error())
+	}
+
+	st, err := detect.FromReader(p.Data.FileName(), bytes.NewReader(data))
+	if err != nil {
+		return fmt.Errorf("error determining dataset schema: %s", err.Error())
+	}
+
+	datakey, err := r.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
+	if err != nil {
+		return fmt.Errorf("error putting data file in store: %s", err.Error())
+	}
+
+	adr := detect.Camelize(p.Data.FileName())
+	if p.Name != "" {
+		adr = detect.Camelize(p.Data.FileName())
+	}
+
+	ds := &dataset.Dataset{
+		Timestamp: time.Now().In(time.UTC),
+		Title:     adr,
+		Data:      datakey,
+		Structure: st,
+	}
+
+	dskey, err := dsfs.SaveDataset(r.store, ds, true)
+	if err != nil {
+		return fmt.Errorf("error saving dataset: %s", err.Error())
+	}
+
+	if err = r.repo.PutDataset(dskey, ds); err != nil {
+		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
+	}
+
+	if err = r.repo.PutName(adr, dskey); err != nil {
+		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
+	}
+
+	ds, err = r.repo.GetDataset(dskey)
+	if err != nil {
+		return fmt.Errorf("error reading dataset: %s", err.Error())
 	}
 
 	*res = *ds

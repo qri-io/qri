@@ -97,7 +97,15 @@ func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) 
 }
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteResponse(w, h.qriNode.ConnectedPeers())
+	limit := 0
+	peers := []string{}
+	if err := h.ConnectedPeers(&limit, &peers); err != nil {
+		h.log.Infof("error showing connected peers: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, peers)
 }
 
 func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
@@ -108,20 +116,14 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	if err := h.qriNode.ConnectToPeer(pid); err != nil {
-		h.log.Infof("connecting to peer: %s", err.Error())
+	res := &profile.Profile{}
+	if err := h.ConnectToPeer(&pid, res); err != nil {
+		h.log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	profile, err := h.qriNode.Repo.Peers().GetPeer(pid)
-	if err != nil {
-		h.log.Infof("error getting peer profile: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, profile)
+	util.WriteResponse(w, res)
 }
 
 func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {

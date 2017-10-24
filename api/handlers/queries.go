@@ -12,18 +12,18 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *Handlers {
+func NewQueryHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *QueryHandlers {
 	req := core.NewQueryRequests(store, r)
-	return &Handlers{*req, log}
+	return &QueryHandlers{*req, log}
 }
 
-// Handlers wraps a requests struct to interface with http.HandlerFunc
-type Handlers struct {
+// QueryHandlers wraps a requests struct to interface with http.HandlerFunc
+type QueryHandlers struct {
 	core.QueryRequests
 	log logging.Logger
 }
 
-func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
+func (d *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
@@ -34,7 +34,7 @@ func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// func (d *Handlers) GetHandler(w http.ResponseWriter, r *http.Request) {
+// func (d *QueryHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 // 	switch r.Method {
 // 	case "OPTIONS":
 // 		util.EmptyOkHandler(w, r)
@@ -45,7 +45,7 @@ func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // 	}
 // }
 
-// func (d *Handlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
+// func (d *QueryHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
 // 	res := &dataset.Dataset{}
 // 	args := &GetParams{
 // 		Path: r.URL.Path[len("/queries/"):],
@@ -59,7 +59,7 @@ func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // 	util.WriteResponse(w, res)
 // }
 
-func (h *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
+func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	res := []*repo.DatasetRef{}
 	args := &core.ListParams{
@@ -76,7 +76,7 @@ func (h *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	util.WritePageResponse(w, res, r, p)
 }
 
-func (h *Handlers) RunHandler(w http.ResponseWriter, r *http.Request) {
+func (h *QueryHandlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
@@ -87,7 +87,7 @@ func (h *Handlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
+func (h *QueryHandlers) runHandler(w http.ResponseWriter, r *http.Request) {
 	ds := &dataset.Dataset{}
 	if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)

@@ -45,6 +45,25 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	return nil
 }
 
+func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
+	*peers = d.qriNode.ConnectedPeers()
+	return nil
+}
+
+func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
+	if err := d.qriNode.ConnectToPeer(*pid); err != nil {
+		return fmt.Errorf("error connecting to peer: %s", err.Error())
+	}
+
+	profile, err := d.repo.Peers().GetPeer(*pid)
+	if err != nil {
+		return fmt.Errorf("error getting peer profile: %s", err.Error())
+	}
+
+	*res = *profile
+	return nil
+}
+
 func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
 	// TODO - restore
 	// peers, err := d.repo.Peers()

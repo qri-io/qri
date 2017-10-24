@@ -1,20 +1,15 @@
 package handlers
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
-	"time"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -185,7 +180,6 @@ func (h *DatasetHandlers) saveStructureHandler(w http.ResponseWriter, r *http.Re
 	util.WriteResponse(w, res)
 }
 
-// TODO - move this into a request method
 func (h *DatasetHandlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request) {
 	infile, header, err := r.FormFile("file")
 	if err != nil {
@@ -193,71 +187,17 @@ func (h *DatasetHandlers) initDatasetFileHandler(w http.ResponseWriter, r *http.
 		return
 	}
 
-	// TODO - split this into some sort of re-readable reader instead
-	// of reading the entire file
-	data, err := ioutil.ReadAll(infile)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+	p := &core.InitDatasetParams{
+		Name: r.FormValue("name"),
+		Data: memfs.NewMemfileReader(header.Filename, infile),
 	}
-
-	st, err := detect.FromReader(header.Filename, bytes.NewReader(data))
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	datakey, err := h.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
-	if err != nil {
-		h.log.Infof("error putting data file in store: %s", err.Error())
+	res := &dataset.Dataset{}
+	if err := h.InitDataset(p, res); err != nil {
+		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	adr := detect.Camelize(header.Filename)
-	if r.FormValue("name") != "" {
-		adr = detect.Camelize(r.FormValue("name"))
-	}
-
-	// ns, err := h.repo.Namespace()
-	// if err != nil {
-	//  util.WriteErrResponse(w, http.StatusInternalServerError, err)
-	//  return
-	// }
-
-	ds := &dataset.Dataset{
-		Timestamp: time.Now().In(time.UTC),
-		Title:     adr,
-		Data:      datakey,
-		Structure: st,
-	}
-
-	dskey, err := dsfs.SaveDataset(h.store, ds, true)
-	if err != nil {
-		h.log.Infof("error saving dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if err = h.repo.PutDataset(dskey, ds); err != nil {
-		h.log.Infof("error putting dataset in repo: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	if err = h.repo.PutName(adr, dskey); err != nil {
-		h.log.Infof("error adding dataset name to repo: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	// ns[adr] = dskey
-	// if err := h.repo.SaveNamespace(ns); err != nil {
-	//  util.WriteErrResponse(w, http.StatusBadRequest, err)
-	//  return
-	// }
-
-	util.WriteResponse(w, ds)
+	util.WriteResponse(w, res)
 }
 
 func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
