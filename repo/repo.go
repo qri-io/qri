@@ -18,6 +18,8 @@ import (
 var (
 	// implementers should return this variable when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
+	// when a Namestore name is already taken
+	ErrNameTaken = fmt.Errorf("repo: name already in use")
 )
 
 // Repo is the interface for working with a qri repository

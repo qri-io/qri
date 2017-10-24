@@ -13,16 +13,16 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+type QueryRequests struct {
+	store cafs.Filestore
+	repo  repo.Repo
+}
+
 func NewQueryRequests(store cafs.Filestore, r repo.Repo) *QueryRequests {
 	return &QueryRequests{
 		store: store,
 		repo:  r,
 	}
-}
-
-type QueryRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
 }
 
 func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/validate"
 	"io/ioutil"
 	"strings"
 	"time"
@@ -20,16 +21,16 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+type DatasetRequests struct {
+	store cafs.Filestore
+	repo  repo.Repo
+}
+
 func NewDatasetRequests(store cafs.Filestore, r repo.Repo) *DatasetRequests {
 	return &DatasetRequests{
 		store: store,
 		repo:  r,
 	}
-}
-
-type DatasetRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
 }
 
 func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
@@ -82,13 +83,18 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
 }
 
 type InitDatasetParams struct {
-	Data files.File
-	Name string
+	Data     files.File
+	Metadata files.File
+	Name     string
 }
 
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset) error {
 	// TODO - split this into some sort of re-readable reader instead
 	// of reading the entire file
+	if p.Data == nil {
+		return fmt.Errorf("data file is required")
+	}
+
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
@@ -97,6 +103,10 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset
 	st, err := detect.FromReader(p.Data.FileName(), bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("error determining dataset schema: %s", err.Error())
+	}
+
+	if _, _, err := validate.Data(dsio.NewRowReader(st, bytes.NewReader(data))); err != nil {
+		return fmt.Errorf("data is invalid")
 	}
 
 	datakey, err := r.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
@@ -109,11 +119,25 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset
 		adr = detect.Camelize(p.Data.FileName())
 	}
 
-	ds := &dataset.Dataset{
-		Timestamp: time.Now().In(time.UTC),
-		Title:     adr,
-		Data:      datakey,
-		Structure: st,
+	ds := &dataset.Dataset{}
+	if p.Metadata != nil {
+		if err := json.NewDecoder(p.Metadata).Decode(ds); err != nil {
+			return fmt.Errorf("error parsing metadata json: %s", err.Error())
+		}
+	}
+
+	ds.Timestamp = time.Now().In(time.UTC)
+	if ds.Title == "" {
+		ds.Title = adr
+	}
+	ds.Data = datakey
+	if ds.Structure == nil {
+		ds.Structure = &dataset.Structure{}
+	}
+	ds.Structure.Assign(st, ds.Structure)
+
+	if err := validate.Dataset(ds); err != nil {
+		return err
 	}
 
 	dskey, err := dsfs.SaveDataset(r.store, ds, true)

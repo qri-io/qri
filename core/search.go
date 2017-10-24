@@ -7,18 +7,18 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+type SearchRequests struct {
+	store cafs.Filestore
+	repo  repo.Repo
+	// node  *p2p.QriNode
+}
+
 func NewSearchRequests(store cafs.Filestore, r repo.Repo) *SearchRequests {
 	return &SearchRequests{
 		store: store,
 		repo:  r,
 		// node:  node,
 	}
-}
-
-type SearchRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
-	// node  *p2p.QriNode
 }
 
 func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) error {

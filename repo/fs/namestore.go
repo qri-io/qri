@@ -3,13 +3,13 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/search"
 )
@@ -32,6 +32,10 @@ func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 	names, err := n.names()
 	if err != nil {
 		return err
+	}
+
+	if names[name].String() != "" {
+		return repo.ErrNameTaken
 	}
 
 	if n.store != nil {
