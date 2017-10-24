@@ -1,4 +1,4 @@
-package queries
+package handlers
 
 import (
 	"encoding/json"
@@ -7,18 +7,19 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/server/logging"
 )
 
 func NewHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *Handlers {
-	req := NewRequests(store, r)
+	req := core.NewQueryRequests(store, r)
 	return &Handlers{*req, log}
 }
 
 // Handlers wraps a requests struct to interface with http.HandlerFunc
 type Handlers struct {
-	Requests
+	core.QueryRequests
 	log logging.Logger
 }
 
@@ -61,7 +62,7 @@ func (d *Handlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 func (h *Handlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	res := []*repo.DatasetRef{}
-	args := &ListParams{
+	args := &core.ListParams{
 		Limit:   p.Limit(),
 		Offset:  p.Offset(),
 		OrderBy: "created",
@@ -103,7 +104,7 @@ func (h *Handlers) runHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := &RunParams{
+	p := &core.RunParams{
 		SaveName: r.FormValue("name"),
 		Dataset:  ds,
 	}

@@ -1,4 +1,4 @@
-package search
+package handlers
 
 import (
 	"encoding/json"
@@ -6,18 +6,19 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/server/logging"
 )
 
 func NewSearchHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *SearchHandlers {
-	req := NewSearchRequests(store, r)
+	req := core.NewSearchRequests(store, r)
 	return &SearchHandlers{*req, log}
 }
 
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
 type SearchHandlers struct {
-	SearchRequests
+	core.SearchRequests
 	log logging.Logger
 }
 
@@ -35,7 +36,7 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 
-	sp := &SearchParams{
+	sp := &core.SearchParams{
 		Query:  r.FormValue("q"),
 		Limit:  p.Limit(),
 		Offset: p.Offset(),

@@ -1,4 +1,4 @@
-package queries
+package core
 
 import (
 	"fmt"
@@ -13,25 +13,19 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
-	return &Requests{
+func NewQueryRequests(store cafs.Filestore, r repo.Repo) *QueryRequests {
+	return &QueryRequests{
 		store: store,
 		repo:  r,
 	}
 }
 
-type Requests struct {
+type QueryRequests struct {
 	store cafs.Filestore
 	repo  repo.Repo
 }
 
-type ListParams struct {
-	OrderBy string
-	Limit   int
-	Offset  int
-}
-
-func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	results, err := d.repo.GetQueryLogs(p.Limit, p.Offset)
 	if err != nil {
 		return fmt.Errorf("error getting query logs: %s", err.Error())
@@ -46,14 +40,14 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
-type GetParams struct {
+type GetQueryParams struct {
 	Path string
 	Name string
 	Hash string
 	Save string
 }
 
-func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
+func (d *QueryRequests) Get(p *GetQueryParams, res *dataset.Dataset) error {
 	// TODO - huh? do we even need to load queries
 	q, err := dsfs.LoadDataset(d.store, datastore.NewKey(p.Path))
 	if err != nil {
@@ -71,7 +65,7 @@ type RunParams struct {
 	Dataset  *dataset.Dataset
 }
 
-func (r *Requests) Run(p *RunParams, res *repo.DatasetRef) error {
+func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	var (
 		structure *dataset.Structure
 		results   []byte

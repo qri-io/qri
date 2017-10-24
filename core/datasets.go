@@ -1,4 +1,4 @@
-package datasets
+package core
 
 import (
 	"encoding/json"
@@ -16,25 +16,19 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewRequests(store cafs.Filestore, r repo.Repo) *Requests {
-	return &Requests{
+func NewDatasetRequests(store cafs.Filestore, r repo.Repo) *DatasetRequests {
+	return &DatasetRequests{
 		store: store,
 		repo:  r,
 	}
 }
 
-type Requests struct {
+type DatasetRequests struct {
 	store cafs.Filestore
 	repo  repo.Repo
 }
 
-type ListParams struct {
-	OrderBy string
-	Limit   int
-	Offset  int
-}
-
-func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
 	// ns, err := d.repo.Namespace()
@@ -67,13 +61,13 @@ func (d *Requests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
-type GetParams struct {
+type GetDatasetParams struct {
 	Path datastore.Key
 	Name string
 	Hash string
 }
 
-func (d *Requests) Get(p *GetParams, res *dataset.Dataset) error {
+func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
 	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
@@ -88,7 +82,7 @@ type SaveParams struct {
 	Dataset *dataset.Dataset
 }
 
-func (r *Requests) Save(p *SaveParams, res *dataset.Dataset) error {
+func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
 	path, err := dsfs.SaveDataset(r.store, ds, true)
@@ -112,7 +106,7 @@ type DeleteParams struct {
 	Name string
 }
 
-func (r *Requests) Delete(p *DeleteParams, ok *bool) error {
+func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) error {
 	// TODO - restore
 	// if p.Path.String() == "" {
 	// 	r.
@@ -162,7 +156,7 @@ type StructuredData struct {
 	Data interface{}   `json:"data"`
 }
 
-func (r *Requests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
+func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	var (
 		file files.File
 		d    []byte
@@ -218,7 +212,7 @@ type AddParams struct {
 	Hash string
 }
 
-func (r *Requests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
 	fs, ok := r.store.(*ipfs.Filestore)
 	if !ok {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")

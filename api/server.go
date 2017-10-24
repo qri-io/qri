@@ -1,4 +1,4 @@
-package server
+package api
 
 import (
 	"fmt"
@@ -10,14 +10,14 @@ import (
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/qri/api/handlers"
+	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/server/datasets"
-	"github.com/qri-io/qri/server/logging"
-	"github.com/qri-io/qri/server/peers"
-	"github.com/qri-io/qri/server/queries"
-	"github.com/qri-io/qri/server/search"
+	// "github.com/qri-io/qri/server/peers"
+	// "github.com/qri-io/qri/server/queries"
+	// "github.com/qri-io/qri/server/search"
 )
 
 // Server wraps a qri p2p node, providing traditional access via http
@@ -133,17 +133,17 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	sh := search.NewSearchHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
+	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
-	ph := peers.NewHandlers(s.log, s.qriNode.Repo, s.qriNode)
+	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
-	dsh := datasets.NewHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
+	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
