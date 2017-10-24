@@ -36,8 +36,8 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 
-	sp := &core.SearchParams{
-		Query:  r.FormValue("q"),
+	sp := &repo.SearchParams{
+		Q:      r.FormValue("q"),
 		Limit:  p.Limit(),
 		Offset: p.Offset(),
 	}

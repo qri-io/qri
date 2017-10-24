@@ -98,8 +98,8 @@ func ensureProfile(bp basepath) error {
 // }
 
 // fs implements the search interface
-func (r *Repo) Search(query string) ([]*repo.DatasetRef, error) {
-	refs, err := search.Search(r.index, query)
+func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
+	refs, err := search.Search(r.index, p)
 	if err != nil {
 		return refs, err
 	}
