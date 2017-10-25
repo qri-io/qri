@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"github.com/ipfs/go-datastore"
 )
 
@@ -34,7 +35,9 @@ func (r MemNamestore) DeleteName(name string) error {
 }
 
 func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
-	if limit == -1 {
+	if limit == -1 && len(r) <= 0 {
+		return nil, fmt.Errorf("MemNamestore: nonpositive length")
+	} else if limit == -1 {
 		limit = len(r)
 	}
 

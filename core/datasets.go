@@ -41,6 +41,18 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// 	Limit:  p.Limit,
 	// 	Offset: p.Offset,
 	// })
+	// ensure valid limit value
+	//fmt.Printf("*** p: %v\n", &p)
+	//fmt.Printf("*** p.Limit: %v\n", &p.Limit)
+	//fmt.Printf("*** p.Offset: %v\n", &p.Offset)
+
+	if p.Limit <= 0 {
+		p.Limit = 25
+	}
+	// ensure valid offset value
+	if p.Offset < 0 {
+		p.Offset = 0
+	}
 	replies, err := d.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		return fmt.Errorf("error getting namespace: %s", err.Error())
