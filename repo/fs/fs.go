@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/doggos"
 	"io/ioutil"
 	"os"
 
@@ -26,12 +27,12 @@ type Repo struct {
 	index     search.Index
 }
 
-func NewRepo(store cafs.Filestore, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
 	bp := basepath(base)
-	if err := ensureProfile(bp); err != nil {
+	if err := ensureProfile(bp, id); err != nil {
 		return nil, err
 	}
 
@@ -75,9 +76,33 @@ func (r *Repo) SaveProfile(p *profile.Profile) error {
 
 // ensureProfile makes sure a profile file is saved locally
 // makes it easier to edit that file to change user data
-func ensureProfile(bp basepath) error {
+func ensureProfile(bp basepath, id string) error {
 	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
-		return bp.saveFile(&profile.Profile{}, FileProfile)
+		return bp.saveFile(&profile.Profile{
+			Id:       id,
+			Username: doggos.DoggoNick(id),
+		}, FileProfile)
+	} else {
+		p := &profile.Profile{}
+		data, err := ioutil.ReadFile(bp.filepath(FileProfile))
+		if err != nil {
+			if os.IsNotExist(err) {
+				return nil
+			}
+			return fmt.Errorf("error loading profile: %s", err.Error())
+		}
+
+		if err := json.Unmarshal(data, &p); err != nil {
+			return fmt.Errorf("error unmarshaling profile: %s", err.Error())
+		}
+
+		if p.Id != id {
+			p.Id = id
+			if p.Username == "" {
+				p.Username = doggos.DoggoNick(p.Id)
+			}
+			bp.saveFile(p, FileProfile)
+		}
 	}
 	return nil
 }

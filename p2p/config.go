@@ -3,7 +3,9 @@ package p2p
 import (
 	"crypto/rand"
 	"fmt"
+
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
 	fs_repo "github.com/qri-io/qri/repo/fs"
 
@@ -71,7 +73,7 @@ func DefaultNodeCfg() *NodeCfg {
 func (cfg *NodeCfg) Validate(store cafs.Filestore) error {
 
 	if cfg.Repo == nil && cfg.RepoPath != "" {
-		repo, err := fs_repo.NewRepo(store, cfg.RepoPath)
+		repo, err := fs_repo.NewRepo(store, cfg.RepoPath, cfg.canonicalPeerId(store))
 		if err != nil {
 			return err
 		}
@@ -103,4 +105,14 @@ func (cfg *NodeCfg) Validate(store cafs.Filestore) error {
 
 	// TODO - more checks
 	return nil
+}
+
+// TODO - currently we're in a bit of a debate between using underlying IPFS node
+// ids & generated query profile ids, once that's cleared up we can remove this
+// method
+func (cfg *NodeCfg) canonicalPeerId(store cafs.Filestore) string {
+	if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
+		return ipfsfs.Node().PeerHost.ID().Pretty()
+	}
+	return cfg.PeerId.Pretty()
 }
