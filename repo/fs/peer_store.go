@@ -3,11 +3,13 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
-	"github.com/qri-io/qri/repo/profile"
 	"io/ioutil"
 	"os"
+
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
+	"github.com/qri-io/doggos"
+	"github.com/qri-io/qri/repo/profile"
 
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
@@ -20,6 +22,9 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	ps, err := r.peers()
 	if err != nil {
 		return err
+	}
+	if p.Username == "" {
+		p.Username = doggos.DoggoNick(id.Pretty())
 	}
 	ps[id.Pretty()] = p
 	return r.saveFile(ps, FilePeers)
@@ -58,6 +63,9 @@ func (r PeerStore) Query(q query.Query) (query.Results, error) {
 
 	re := make([]query.Entry, 0, len(ps))
 	for id, peer := range ps {
+		if peer.Username == "" {
+			peer.Username = doggos.DoggoNick(id)
+		}
 		re = append(re, query.Entry{Key: id, Value: peer})
 	}
 	res := query.ResultsWithEntries(q, re)

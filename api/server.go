@@ -118,6 +118,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
+	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
+	m.Handle("/profile", s.middleware(proh.ProfileHandler))
+
 	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
