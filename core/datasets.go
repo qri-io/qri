@@ -4,20 +4,19 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/validate"
 	"io/ioutil"
 	"strings"
 	"time"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-ipfs/commands/files"
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -83,8 +82,8 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
 }
 
 type InitDatasetParams struct {
-	Data     files.File
-	Metadata files.File
+	Data     cafs.File
+	Metadata cafs.File
 	Name     string
 }
 
@@ -244,7 +243,7 @@ type StructuredData struct {
 
 func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	var (
-		file files.File
+		file cafs.File
 		d    []byte
 	)
 	ds, err := dsfs.LoadDataset(r.store, p.Path)

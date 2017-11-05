@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-ipfs/commands/files"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -16,7 +16,7 @@ type Commit struct {
 	Author  *profile.Profile
 	Prev    datastore.Key
 	Changes *dataset.Dataset
-	Data    files.SizeFile
+	Data    cafs.SizeFile
 	Message string
 }
 
