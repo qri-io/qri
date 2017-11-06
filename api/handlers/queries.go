@@ -60,12 +60,13 @@ func (d *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
+	//p := util.PageFromRequest(r)
+	lp := core.ListParamsFromRequest(r)
 	res := []*repo.DatasetRef{}
 	args := &core.ListParams{
-		Limit:   p.Limit(),
-		Offset:  p.Offset(),
-		OrderBy: "created",
+		Limit:   lp.Limit,
+		Offset:  lp.Offset,
+		OrderBy: "created", //TODO: should there be a global default for OrderBy?
 	}
 	err := h.List(args, &res)
 	if err != nil {

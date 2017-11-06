@@ -81,25 +81,30 @@ func (d *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
+	//p := util.PageFromRequest(r)
+	lp := core.ListParamsFromRequest(r)
 	res := []*profile.Profile{}
 	args := &core.ListParams{
-		Limit:   p.Limit(),
-		Offset:  p.Offset(),
-		OrderBy: "created",
+		Limit:   lp.Limit,
+		Offset:  lp.Offset,
+		OrderBy: "created", //TODO: should there be a global default for OrderBy?
 	}
 	if err := h.List(args, &res); err != nil {
 		h.log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WritePageResponse(w, res, r, p)
+	// TODO: need to update util.WritePageResponse to take a
+	// core.ListParams rather than a util.Page struct
+	// for time being I added an empty util.Page struct
+	util.WritePageResponse(w, res, r, util.Page{})
 }
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
-	limit := 0
+	//limit := 0
+	listParams := core.ListParamsFromRequest(r)
 	peers := []string{}
-	if err := h.ConnectedPeers(&limit, &peers); err != nil {
+	if err := h.ConnectedPeers(&listParams.Limit, &peers); err != nil {
 		h.log.Infof("error showing connected peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -142,11 +147,12 @@ func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PeerHandlers) peerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
-	page := util.PageFromRequest(r)
+	//page := util.PageFromRequest(r)
+	listParams := core.ListParamsFromRequest(r)
 	args := &core.NamespaceParams{
 		PeerId: r.URL.Path[len("/peernamespace/"):],
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
+		Limit:  listParams.Limit,
+		Offset: listParams.Offset,
 	}
 	res := []*repo.DatasetRef{}
 	if err := h.GetNamespace(args, &res); err != nil {

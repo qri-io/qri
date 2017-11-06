@@ -102,20 +102,22 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
+	lp := core.ListParamsFromRequest(r)
 	res := []*repo.DatasetRef{}
 	args := &core.ListParams{
-		Limit:   p.Limit(),
-		Offset:  p.Offset(),
-		OrderBy: "created",
+		Limit:   lp.Limit,
+		Offset:  lp.Offset,
+		OrderBy: "created", //TODO: should there be a global default orderby?
 	}
 	if err := h.List(args, &res); err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	if err := util.WritePageResponse(w, res, r, p); err != nil {
+	// TODO: need to update util.WritePageResponse to take a
+	// core.ListParams rather than a util.Page struct
+	// for time being I added an empty util.Page struct
+	if err := util.WritePageResponse(w, res, r, util.Page{}); err != nil {
 		h.log.Infof("error list datasests response: %s", err.Error())
 	}
 }
@@ -225,7 +227,8 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	page := util.PageFromRequest(r)
+	//page := util.PageFromRequest(r)
+	listParams := core.ListParamsFromRequest(r)
 
 	all, err := util.ReqParamBool("all", r)
 	if err != nil {
@@ -241,8 +244,8 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 		Format:  dataset.JsonDataFormat,
 		Path:    datastore.NewKey(r.URL.Path[len("/data"):]),
 		Objects: objectRows,
-		Limit:   page.Limit(),
-		Offset:  page.Offset(),
+		Limit:   listParams.Limit,
+		Offset:  listParams.Offset,
 		All:     all,
 	}
 	data := &core.StructuredData{}
