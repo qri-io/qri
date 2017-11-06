@@ -102,14 +102,14 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	lp := core.ListParamsFromRequest(r)
+	args := core.ListParamsFromRequest(r)
 	res := []*repo.DatasetRef{}
-	args := &core.ListParams{
-		Limit:   lp.Limit,
-		Offset:  lp.Offset,
-		OrderBy: "created", //TODO: should there be a global default orderby?
-	}
-	if err := h.List(args, &res); err != nil {
+	// args := &core.ListParams{
+	// 	Limit:   lp.Limit,
+	// 	Offset:  lp.Offset,
+	// 	OrderBy: "created", //TODO: should there be a global default orderby?
+	// }
+	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

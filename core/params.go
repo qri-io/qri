@@ -7,8 +7,13 @@ import (
 )
 
 const DEFAULT_PAGE_SIZE = 100
+const DEFAULT_LIST_ORDERING = "created"
 
-var validOrderingArguments map[string]bool = {"created": true,}
+var validOrderingArguments = map[string]bool{
+	"created": true,
+	//"modified": true,
+	//"name": true,
+}
 
 type GetParams struct {
 	Username string
@@ -44,10 +49,10 @@ func ListParamsFromRequest(r *http.Request) ListParams {
 	lp.Offset = pageIndex * lp.Limit
 	// Orderby
 	orderKey := r.FormValue("orderBy")
-	if validOrder, ok := validOrderingArguments[orderKey]; ok {
+	if _, ok := validOrderingArguments[orderKey]; ok {
 		lp.OrderBy = orderKey
 	} else {
-		lp.OrderBy = "created"
+		lp.OrderBy = DEFAULT_LIST_ORDERING
 	}
 	return lp
 

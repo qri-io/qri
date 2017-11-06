@@ -82,14 +82,14 @@ func (d *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	//p := util.PageFromRequest(r)
-	lp := core.ListParamsFromRequest(r)
+	args := core.ListParamsFromRequest(r)
 	res := []*profile.Profile{}
-	args := &core.ListParams{
-		Limit:   lp.Limit,
-		Offset:  lp.Offset,
-		OrderBy: "created", //TODO: should there be a global default for OrderBy?
-	}
-	if err := h.List(args, &res); err != nil {
+	// args := &core.ListParams{
+	// 	Limit:   lp.Limit,
+	// 	Offset:  lp.Offset,
+	// 	OrderBy: "created", //TODO: should there be a global default for OrderBy?
+	// }
+	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -102,6 +102,7 @@ func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	//limit := 0
+	// TODO: double check with @b5 on this change
 	listParams := core.ListParamsFromRequest(r)
 	peers := []string{}
 	if err := h.ConnectedPeers(&listParams.Limit, &peers); err != nil {
