@@ -41,10 +41,6 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	// 	Offset: p.Offset,
 	// })
 	// ensure valid limit value
-	//fmt.Printf("*** p: %v\n", &p)
-	//fmt.Printf("*** p.Limit: %v\n", &p.Limit)
-	//fmt.Printf("*** p.Offset: %v\n", &p.Offset)
-
 	if p.Limit <= 0 {
 		p.Limit = 25
 	}
