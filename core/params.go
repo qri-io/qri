@@ -7,13 +7,6 @@ import (
 )
 
 const DEFAULT_PAGE_SIZE = 100
-const DEFAULT_LIST_ORDERING = "created"
-
-var validOrderingArguments = map[string]bool{
-	"created": true,
-	//"modified": true,
-	//"name": true,
-}
 
 type GetParams struct {
 	Username string
@@ -27,19 +20,16 @@ type ListParams struct {
 	Offset  int
 }
 
-// ListParamsFromRequest extracts and returns a ListParams struct
-// given a pointer to an http request *r
+// ListParamsFromRequest extracts ListParams from an http.Request pointer
 func ListParamsFromRequest(r *http.Request) ListParams {
 	var lp ListParams
 	var pageIndex int
-	// Limit
 	if i, err := util.ReqParamInt("pageSize", r); err == nil {
 		lp.Limit = i
 	}
 	if lp.Limit <= 0 {
 		lp.Limit = DEFAULT_PAGE_SIZE
 	}
-	// Offset
 	if i, err := util.ReqParamInt("page", r); err == nil {
 		pageIndex = i
 	}
@@ -47,13 +37,18 @@ func ListParamsFromRequest(r *http.Request) ListParams {
 		pageIndex = 0
 	}
 	lp.Offset = pageIndex * lp.Limit
-	// Orderby
-	orderKey := r.FormValue("orderBy")
-	if _, ok := validOrderingArguments[orderKey]; ok {
-		lp.OrderBy = orderKey
-	} else {
-		lp.OrderBy = DEFAULT_LIST_ORDERING
-	}
+	// lp.OrderBy defaults to empty string
 	return lp
 
+}
+
+// Page converts a ListParams struct to a util.Page struct
+func (lp ListParams) Page() util.Page {
+	var number, size int
+	size = lp.Limit
+	if size <= 0 {
+		size = DEFAULT_PAGE_SIZE
+	}
+	number = lp.Offset/size + 1
+	return util.NewPage(number, size)
 }
