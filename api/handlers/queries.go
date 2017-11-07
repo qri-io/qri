@@ -60,20 +60,16 @@ func (d *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 // }
 
 func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
+	args := core.ListParamsFromRequest(r)
+	args.OrderBy = "created"
 	res := []*repo.DatasetRef{}
-	args := &core.ListParams{
-		Limit:   p.Limit(),
-		Offset:  p.Offset(),
-		OrderBy: "created",
-	}
-	err := h.List(args, &res)
+	err := h.List(&args, &res)
 	if err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WritePageResponse(w, res, r, p)
+	util.WritePageResponse(w, res, r, args.Page())
 }
 
 func (h *QueryHandlers) RunHandler(w http.ResponseWriter, r *http.Request) {

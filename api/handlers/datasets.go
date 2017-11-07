@@ -102,20 +102,15 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
+	args := core.ListParamsFromRequest(r)
+	args.OrderBy = "created"
 	res := []*repo.DatasetRef{}
-	args := &core.ListParams{
-		Limit:   p.Limit(),
-		Offset:  p.Offset(),
-		OrderBy: "created",
-	}
-	if err := h.List(args, &res); err != nil {
+	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	if err := util.WritePageResponse(w, res, r, p); err != nil {
+	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
 		h.log.Infof("error list datasests response: %s", err.Error())
 	}
 }
@@ -225,8 +220,8 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	page := util.PageFromRequest(r)
-
+	listParams := core.ListParamsFromRequest(r)
+	page := listParams.Page()
 	all, err := util.ReqParamBool("all", r)
 	if err != nil {
 		all = false
@@ -241,8 +236,8 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 		Format:  dataset.JsonDataFormat,
 		Path:    datastore.NewKey(r.URL.Path[len("/data"):]),
 		Objects: objectRows,
-		Limit:   page.Limit(),
-		Offset:  page.Offset(),
+		Limit:   listParams.Limit,
+		Offset:  listParams.Offset,
 		All:     all,
 	}
 	data := &core.StructuredData{}
