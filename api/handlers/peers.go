@@ -81,23 +81,16 @@ func (d *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
-	//p := util.PageFromRequest(r)
 	args := core.ListParamsFromRequest(r)
+	args.OrderBy = "created"
+	p := args.Page()
 	res := []*profile.Profile{}
-	// args := &core.ListParams{
-	// 	Limit:   lp.Limit,
-	// 	Offset:  lp.Offset,
-	// 	OrderBy: "created", //TODO: should there be a global default for OrderBy?
-	// }
 	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	// TODO: need to update util.WritePageResponse to take a
-	// core.ListParams rather than a util.Page struct
-	// for time being I added an empty util.Page struct
-	util.WritePageResponse(w, res, r, util.Page{})
+	util.WritePageResponse(w, res, r, p)
 }
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -148,7 +141,6 @@ func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *PeerHandlers) peerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
-	//page := util.PageFromRequest(r)
 	listParams := core.ListParamsFromRequest(r)
 	args := &core.NamespaceParams{
 		PeerId: r.URL.Path[len("/peernamespace/"):],
