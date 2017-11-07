@@ -9,6 +9,7 @@ type MemRepo struct {
 	MemDatasets
 	MemNamestore
 	*MemQueryLog
+	MemChangeRequests
 	profile   *profile.Profile
 	peers     Peers
 	cache     MemDatasets
@@ -16,15 +17,15 @@ type MemRepo struct {
 }
 
 func NewMemRepo(p *profile.Profile, ps Peers, a analytics.Analytics) (Repo, error) {
-	log := MemQueryLog{}
 	return &MemRepo{
-		MemDatasets:  MemDatasets{},
-		MemNamestore: MemNamestore{},
-		MemQueryLog:  &log,
-		profile:      p,
-		peers:        ps,
-		analytics:    a,
-		cache:        MemDatasets{},
+		MemDatasets:       MemDatasets{},
+		MemNamestore:      MemNamestore{},
+		MemQueryLog:       &MemQueryLog{},
+		MemChangeRequests: MemChangeRequests{},
+		profile:           p,
+		peers:             ps,
+		analytics:         a,
+		cache:             MemDatasets{},
 	}, nil
 }
 

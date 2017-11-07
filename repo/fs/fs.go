@@ -20,6 +20,7 @@ type Repo struct {
 	Datasets
 	Namestore
 	QueryLog
+	ChangeRequests
 
 	analytics Analytics
 	peers     PeerStore
@@ -42,10 +43,13 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	}
 
 	return &Repo{
-		basepath:  bp,
-		Datasets:  NewDatasets(base, FileDatasets, store),
-		Namestore: Namestore{bp, index, store},
-		QueryLog:  NewQueryLog(base, FileQueryLogs, store),
+		basepath: bp,
+
+		Datasets:       NewDatasets(base, FileDatasets, store),
+		Namestore:      Namestore{bp, index, store},
+		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
+		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
+
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
 		cache:     NewDatasets(base, FileCache, nil),

@@ -40,6 +40,8 @@ type Repo interface {
 	Datasets
 	// QueryLog keeps a log of queries that have been run
 	QueryLog
+	// ChangeRequets gives this repo's change request store
+	ChangeRequestStore
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the user.
 	Profile() (*profile.Profile, error)
@@ -47,6 +49,8 @@ type Repo interface {
 	SaveProfile(*profile.Profile) error
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
+	// TODO - should rename this to "profiles" to separate from the networking
+	// concept of a peer
 	Peers() Peers
 	// Cache keeps an ephemeral store of dataset information
 	// that may be purged at any moment. Results of searching for datasets,

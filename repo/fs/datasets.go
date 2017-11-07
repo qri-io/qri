@@ -3,7 +3,6 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 
@@ -11,6 +10,7 @@ import (
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
