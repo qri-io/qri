@@ -138,6 +138,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
+	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo, s.qriNode.Store)
+	m.Handle("/history/", s.middleware(hh.LogHandler))
+
 	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
 	m.Handle("/queries", s.middleware(qh.ListHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
