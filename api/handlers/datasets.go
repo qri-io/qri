@@ -221,7 +221,6 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 
 func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
 	listParams := core.ListParamsFromRequest(r)
-	page := listParams.Page()
 	all, err := util.ReqParamBool("all", r)
 	if err != nil {
 		all = false

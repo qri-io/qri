@@ -56,21 +56,24 @@ const (
 	FileAnalytics
 	// SearchIndex
 	FileSearchIndex
+	// ChangeRequests
+	FileChangeRequests
 )
 
 var paths = map[File]string{
-	FileUnknown:     "",
-	FileLockfile:    "/repo.lock",
-	FileInfo:        "/info.json",
-	FileProfile:     "/profile.json",
-	FileConfig:      "/config.json",
-	FileDatasets:    "/datasets.json",
-	FileQueryLogs:   "/queries.json",
-	FileNamestore:   "/namespace.json",
-	FilePeers:       "/peers.json",
-	FileCache:       "/cache.json",
-	FileAnalytics:   "/analytics.json",
-	FileSearchIndex: "/index.bleve",
+	FileUnknown:        "",
+	FileLockfile:       "/repo.lock",
+	FileInfo:           "/info.json",
+	FileProfile:        "/profile.json",
+	FileConfig:         "/config.json",
+	FileDatasets:       "/datasets.json",
+	FileQueryLogs:      "/queries.json",
+	FileNamestore:      "/namespace.json",
+	FilePeers:          "/peers.json",
+	FileCache:          "/cache.json",
+	FileAnalytics:      "/analytics.json",
+	FileSearchIndex:    "/index.bleve",
+	FileChangeRequests: "/change_requests.json",
 }
 
 // Filepath gives the relative filepath to a repofile
