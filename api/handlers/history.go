@@ -38,11 +38,8 @@ func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	p := util.PageFromRequest(r)
 	params := &core.LogParams{
-		ListParams: core.ListParams{
-			Limit:  p.Limit(),
-			Offset: p.Offset(),
-		},
-		Path: datastore.NewKey(r.URL.Path[len("/history/"):]),
+		ListParams: core.ListParamsFromRequest(r),
+		Path:       datastore.NewKey(r.URL.Path[len("/history/"):]),
 	}
 
 	res := []*dataset.Dataset{}
@@ -52,5 +49,5 @@ func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	util.WritePageResponse(w, res, r, p)
+	util.WritePageResponse(w, res, r, params.Page())
 }
