@@ -11,12 +11,13 @@ import (
 func TestDatasetRequestsInit(t *testing.T) {
 	cases := []struct {
 		p   *InitDatasetParams
-		res *dataset.Dataset
+		res *repo.DatasetRef
 		err string
 	}{
-		{&InitDatasetParams{}, nil, "data file is required"},
-		{&InitDatasetParams{Data: badDataFile}, nil, "error determining dataset schema: line 3, column 0: wrong number of fields in line"},
-		{&InitDatasetParams{Data: jobsByAutomationFile}, nil, ""},
+		{&InitDatasetParams{}, nil, "either a file or a url is required to create a dataset"},
+		{&InitDatasetParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
+		{&InitDatasetParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
+		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 	}
 
 	mr, ms, err := NewTestRepo()
@@ -27,7 +28,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 	req := NewDatasetRequests(ms, mr)
 	for i, c := range cases {
-		got := &dataset.Dataset{}
+		got := &repo.DatasetRef{}
 		err := req.InitDataset(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -97,7 +98,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 
 	req := NewDatasetRequests(ms, mr)
 	for i, c := range cases {
-		got := &dataset.Dataset{}
+		got := &repo.DatasetRef{}
 		err := req.Get(c.p, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)

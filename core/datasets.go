@@ -4,7 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
+	"net/http"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -79,35 +82,58 @@ type GetDatasetParams struct {
 	Hash string
 }
 
-func (d *DatasetRequests) Get(p *GetDatasetParams, res *dataset.Dataset) error {
+func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	ds, err := dsfs.LoadDataset(d.store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
 	}
 
-	*res = *ds
+	name := p.Name
+	if p.Path.String() != "" {
+		name, _ = d.repo.GetName(p.Path)
+	}
+
+	*res = repo.DatasetRef{
+		Name:    name,
+		Path:    p.Path,
+		Dataset: ds,
+	}
 	return nil
 }
 
 type InitDatasetParams struct {
-	Data     cafs.File
-	Metadata cafs.File
-	Name     string
+	Name         string
+	Url          string
+	DataFilename string
+	Data         io.Reader
+	Metadata     io.Reader
 }
 
-func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset) error {
-	// TODO - split this into some sort of re-readable reader instead
-	// of reading the entire file
-	if p.Data == nil {
-		return fmt.Errorf("data file is required")
+func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
+	var rdr io.Reader
+	var filename = p.DataFilename
+	if p.Url != "" {
+		res, err := http.Get(p.Url)
+		if err != nil {
+			return fmt.Errorf("error fetching url: %s", err.Error())
+		}
+		filename = filepath.Base(p.Url)
+		defer res.Body.Close()
+		rdr = res.Body
+	} else if p.Data != nil {
+		rdr = p.Data
+	} else {
+		return fmt.Errorf("either a file or a url is required to create a dataset")
 	}
 
-	data, err := ioutil.ReadAll(p.Data)
+	// TODO - split this into some sort of re-readable reader instead
+	// of reading the entire file
+	data, err := ioutil.ReadAll(rdr)
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
 
-	st, err := detect.FromReader(p.Data.FileName(), bytes.NewReader(data))
+	st, err := detect.FromReader(filename, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("error determining dataset schema: %s", err.Error())
 	}
@@ -121,9 +147,9 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
-	adr := detect.Camelize(p.Data.FileName())
+	adr := detect.Camelize(filename)
 	if p.Name != "" {
-		adr = detect.Camelize(p.Data.FileName())
+		adr = detect.Camelize(filename)
 	}
 
 	ds := &dataset.Dataset{}
@@ -165,7 +191,11 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *dataset.Dataset
 		return fmt.Errorf("error reading dataset: %s", err.Error())
 	}
 
-	*res = *ds
+	*res = repo.DatasetRef{
+		Name:    p.Name,
+		Path:    dskey,
+		Dataset: ds,
+	}
 	return nil
 }
 

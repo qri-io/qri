@@ -17,25 +17,20 @@ package cmd
 import (
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"time"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 var (
-	initFile       string
-	initMetaFile   string
-	initName       string
-	initPassive    bool
-	initRescursive bool
+	initFile     string
+	initMetaFile string
+	initName     string
+	initUrl      string
+	initPassive  bool
 )
 
 // initCmd represents the init command
@@ -44,124 +39,63 @@ var initCmd = &cobra.Command{
 	Short: "Initialize a dataset, adding it to your local collection of datasets",
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if initFile == "" {
-			ErrExit(fmt.Errorf("please provide a file argument"))
+		var dataFile, metaFile *os.File
+
+		if initFile == "" && initUrl == "" {
+			ErrExit(fmt.Errorf("please provide either a file or a url argument"))
 		}
 
-		path, err := filepath.Abs(initFile)
-		ExitIfErr(err)
+		if initName == "" {
+			ErrExit(fmt.Errorf("please provide a --name"))
+		}
+
+		if initFile != "" {
+			filepath, err := filepath.Abs(initFile)
+			ExitIfErr(err)
+			dataFile, err = os.Open(filepath)
+			ExitIfErr(err)
+		}
+
+		if initMetaFile != "" {
+			filepath, err := filepath.Abs(initMetaFile)
+			ExitIfErr(err)
+			metaFile, err = os.Open(filepath)
+			ExitIfErr(err)
+		}
 
 		r := GetRepo(false)
-		// ns := LoadNamespaceGraph()
-		ds, err := GetIpfsFilestore(false)
+		store, err := GetIpfsFilestore(false)
 		ExitIfErr(err)
+		req := core.NewDatasetRequests(store, r)
 
-		if initRescursive {
-			files, err := ioutil.ReadDir(path)
-			ExitIfErr(err)
-			foundFiles := map[string]datastore.Key{}
-			for _, fi := range files {
-				if fi.IsDir() {
-					continue
-				} else {
-					initName = fi.Name()
-					st, err := detect.FromFile(initName)
-					ExitIfErr(err)
-					// Add to the namespace as the filename
-					// TODO - require this be a proper, no-space alphanumeric type thing
-
-					datahash, err := ds.AddPath(filepath.Join(path, fi.Name()), true)
-					ExitIfErr(err)
-					datakey := datastore.NewKey("/ipfs/" + datahash)
-
-					// rkey, dskey, err := datasets.AddFileStructure(ds, filepath.Join(path, fi.Name()), rsc)
-					d := &dataset.Dataset{
-						Timestamp: time.Now().In(time.UTC),
-						Structure: st,
-						Data:      datakey,
-					}
-
-					dspath, err := dsfs.SaveDataset(ds, d, true)
-					ExitIfErr(err)
-
-					foundFiles[initName] = dspath
-					r.PutName(initName, dspath)
-				}
-			}
-		} else {
-			file, err := os.Stat(path)
-			ExitIfErr(err)
-
-			// TODO - extract a default name from the file name
-			// TODO - require this be a proper, no-space alphanumeric type thing
-			if !initPassive && initName == "" {
-				initName = InputText(fmt.Sprintf("choose a variable name for %s", file.Name()), file.Name())
-				if err != nil {
-					return
-				}
-			} else if initName == "" {
-				initName = repo.CoerceDatasetName(file.Name())
-			}
-
-			if !repo.ValidDatasetName(initName) {
-				ErrExit(fmt.Errorf("invalid dataset name: %s", initName))
-			}
-
-			st, err := detect.FromFile(path)
-			ExitIfErr(err)
-
-			datahash, err := ds.AddPath(path, true)
-			ExitIfErr(err)
-			datakey := datastore.NewKey("/ipfs/" + datahash)
-
-			d := &dataset.Dataset{}
-
-			// parse any provided metadata
-			if initMetaFile != "" {
-				mdata, err := ioutil.ReadFile(initMetaFile)
-				if err != nil {
-					ErrExit(fmt.Errorf("error opening metadata file: %s", err.Error()))
-				}
-				if err := d.UnmarshalJSON(mdata); err != nil {
-					ErrExit(fmt.Errorf("error parsing metadata file: %s", err.Error()))
-				}
-			}
-
-			if d.Structure == nil {
-				d.Structure = &dataset.Structure{}
-			}
-
-			// structure may have been set by the metadata file above
-			// by calling assign on ourselves with inferred structure in
-			// the middle, any user-contributed schema metadata will overwrite
-			// inferred metadata, but inferred schema properties will populate
-			// empty fields
-			d.Structure.Assign(st, d.Structure)
-			d.Timestamp = time.Now().In(time.UTC)
-			d.Data = datakey
-			d.Length = int(file.Size())
-
-			dspath, err := dsfs.SaveDataset(ds, d, true)
-			ExitIfErr(err)
-
-			// Add to the namespace as the filename
-			// TODO - require this be a proper, no-space alphanumeric type thing
-			// ns[initName] = dspath
-			err = r.PutName(initName, dspath)
-			ExitIfErr(err)
-
-			PrintSuccess("initialized dataset %s: %s", initName, dspath)
-			// PrintDatasetDetailedInfo(ds)
+		p := &core.InitDatasetParams{
+			Name:         initName,
+			Url:          initUrl,
+			DataFilename: filepath.Base(initFile),
 		}
+
+		// this is because passing nil to interfaces is bad: https://golang.org/doc/faq#nil_error
+		if dataFile != nil {
+			p.Data = dataFile
+		}
+		if metaFile != nil {
+			p.Metadata = metaFile
+		}
+
+		ref := &repo.DatasetRef{}
+		err = req.InitDataset(p, ref)
+		ExitIfErr(err)
+		// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
+		PrintSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
 	},
 }
 
 func init() {
 	flag.Parse()
 	RootCmd.AddCommand(initCmd)
+	initCmd.Flags().StringVarP(&initUrl, "url", "u", "", "url to file to initialize from")
 	initCmd.Flags().StringVarP(&initFile, "file", "f", "", "data file to initialize from")
 	initCmd.Flags().StringVarP(&initName, "name", "n", "", "name to give dataset")
 	initCmd.Flags().StringVarP(&initMetaFile, "meta", "m", "", "dataset metadata")
-	initCmd.Flags().BoolVarP(&initRescursive, "recursive", "r", false, "recursive add from a directory")
 	initCmd.Flags().BoolVarP(&initPassive, "passive", "p", false, "disable interactive init")
 }
