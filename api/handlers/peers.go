@@ -83,14 +83,13 @@ func (d *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	p := args.Page()
 	res := []*profile.Profile{}
 	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WritePageResponse(w, res, r, p)
+	util.WritePageResponse(w, res, r, args.Page())
 }
 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {

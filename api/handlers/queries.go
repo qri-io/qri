@@ -62,7 +62,6 @@ func (d *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	p := args.Page()
 	res := []*repo.DatasetRef{}
 	err := h.List(&args, &res)
 	if err != nil {
@@ -70,7 +69,7 @@ func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Reques
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WritePageResponse(w, res, r, p)
+	util.WritePageResponse(w, res, r, args.Page())
 }
 
 func (h *QueryHandlers) RunHandler(w http.ResponseWriter, r *http.Request) {

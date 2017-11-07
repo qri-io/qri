@@ -110,8 +110,7 @@ func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Req
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	p = args.Page()
-	if err := util.WritePageResponse(w, res, r, p); err != nil {
+	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
 		h.log.Infof("error list datasests response: %s", err.Error())
 	}
 }
