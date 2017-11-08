@@ -229,41 +229,35 @@ type DeleteParams struct {
 	Name string
 }
 
-func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) error {
-	// TODO - restore
-	// if p.Path.String() == "" {
-	// 	r.
-	// }
-	// TODO - unpin resource and data
-	// resource := p.Dataset.Resource
-	// npath, err := r.repo.GetPath(p.Name)
+func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
+	path := p.Path
+	if path == "" {
+		path, err = r.repo.GetPath(name)
+		if err != nil {
+			return
+		}
+	}
 
-	// err := r.repo.DeleteName(p.Name)
-	// ns, err := r.repo.Namespace()
-	// if err != nil {
-	// 	return err
-	// }
-	// if p.Name == "" && p.Path.String() != "" {
-	// 	for name, val := range ns {
-	// 		if val.Equal(p.Path) {
-	// 			p.Name = name
-	// 		}
-	// 	}
-	// }
+	name := p.Name
+	if name == "" {
+		name, err = r.repo.GetName(path)
+		if err != nil {
+			return
+		}
+	}
 
-	// if p.Name == "" {
-	// 	return fmt.Errorf("couldn't find dataset: %s", p.Path.String())
-	// } else if ns[p.Name] == datastore.NewKey("") {
-	// 	return fmt.Errorf("couldn't find dataset: %s", p.Name)
-	// }
+	if pinner, ok := r.store.(cafs.Pinner); ok {
+		if err = pinner.Unpin(path, true); err != nil {
+			return
+		}
+	}
 
-	// delete(ns, p.Name)
-	// if err := r.repo.SaveNamespace(ns); err != nil {
-	// 	return err
-	// }
-	// *ok = true
-	// return nil
-	return fmt.Errorf("delete dataset not yet finished")
+	if err = r.repo.DeleteName(name); err != nil {
+		return
+	}
+
+	*ok = true
+	return nil
 }
 
 type StructuredDataParams struct {
