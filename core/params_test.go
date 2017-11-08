@@ -18,42 +18,15 @@ func ListParamsEqual(a, b ListParams) error {
 
 func TestListParamsFromRequest(t *testing.T) {
 	cases := []struct {
-		urlStr   string
-		res      ListParams
-		expected string
+		urlStr string
+		res    ListParams
 	}{
-		{"abc.com/123/?pageSize=44&page=22",
-			ListParams{Limit: 43, Offset: 968},
-			"ListParams.Limit fields not equal: '43' != '44'"},
-		{"abc.com/123/?pageSize=44&page=22",
-			ListParams{Limit: 44, Offset: 22},
-			"ListParams.Offset fields not equal: '22' != '968'"},
-		{"abc.com/123/?pageSize=44&page=22",
-			ListParams{Limit: 44, Offset: 968},
-			""},
-
-		{"abc.com/123/?pageSize=-44&page=22",
-			ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 968},
-			"ListParams.Offset fields not equal: '968' != '2200'"},
-		{"abc.com/123/?pageSize=-44&page=22",
-			ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 22 * DEFAULT_PAGE_SIZE},
-			""},
-		{"abc.com/123/?pageSize=44&page=-22",
-			ListParams{Limit: 44, Offset: 968},
-			"ListParams.Offset fields not equal: '968' != '0'"},
-		{"abc.com/123/?pageSize=44&page=-22",
-			ListParams{Limit: 44, Offset: 0},
-			""},
-
-		{"abc.com/123/?pageSize=pageSize&page=22",
-			ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 2200},
-			""},
-		{"abc.com/123/?pageSize=44&page=abc",
-			ListParams{Limit: 44, Offset: 0},
-			""},
-		{"abc.com/123/",
-			ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 0},
-			""},
+		{"abc.com/123/", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 0}},
+		{"abc.com/123/?pageSize=44&page=22", ListParams{Limit: 44, Offset: 924}},
+		{"abc.com/123/?pageSize=-44&page=22", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: (22 - 1) * DEFAULT_PAGE_SIZE}},
+		{"abc.com/123/?pageSize=44&page=-22", ListParams{Limit: 44, Offset: 0}},
+		{"abc.com/123/?pageSize=pageSize&page=22", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: (22 - 1) * DEFAULT_PAGE_SIZE}},
+		{"abc.com/123/?pageSize=44&page=abc", ListParams{Limit: 44, Offset: 0}},
 	}
 
 	for i, c := range cases {
@@ -62,11 +35,13 @@ func TestListParamsFromRequest(t *testing.T) {
 			t.Errorf("error creating request object: %s", err.Error())
 			return
 		}
+
 		lp := ListParamsFromRequest(req)
-		got := ListParamsEqual(c.res, lp)
-		if got != nil && got.Error() != c.expected {
-			errorMessage := got.Error()
-			t.Errorf("case [%d]: %s", i, errorMessage)
+
+		if err := ListParamsEqual(c.res, lp); err != nil {
+			t.Errorf("case [%d]: %s", i, err.Error())
+			continue
 		}
+
 	}
 }

@@ -166,8 +166,9 @@ func TestDatasetRequestsDelete(t *testing.T) {
 		res *dataset.Dataset
 		err string
 	}{
-		{&DeleteParams{Path: path, Name: "movies"}, nil, "delete dataset not yet finished"},
-		{&DeleteParams{Path: datastore.NewKey("abc"), Name: "ABC"}, nil, "delete dataset not yet finished"},
+		{&DeleteParams{}, nil, "either name or path is required"},
+		{&DeleteParams{Path: datastore.NewKey("abc"), Name: "ABC"}, nil, "repo: not found"},
+		{&DeleteParams{Path: path}, nil, ""},
 	}
 
 	req := NewDatasetRequests(ms, mr)

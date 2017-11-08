@@ -230,29 +230,29 @@ type DeleteParams struct {
 }
 
 func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
-	path := p.Path
-	if path == "" {
-		path, err = r.repo.GetPath(name)
+	if p.Name == "" && p.Path.String() == "" {
+		return fmt.Errorf("either name or path is required")
+	}
+
+	if p.Path.String() == "" {
+		p.Path, err = r.repo.GetPath(p.Name)
 		if err != nil {
 			return
 		}
 	}
 
-	name := p.Name
-	if name == "" {
-		name, err = r.repo.GetName(path)
-		if err != nil {
-			return
-		}
+	p.Name, err = r.repo.GetName(p.Path)
+	if err != nil {
+		return
 	}
 
 	if pinner, ok := r.store.(cafs.Pinner); ok {
-		if err = pinner.Unpin(path, true); err != nil {
+		if err = pinner.Unpin(p.Path, true); err != nil {
 			return
 		}
 	}
 
-	if err = r.repo.DeleteName(name); err != nil {
+	if err = r.repo.DeleteName(p.Name); err != nil {
 		return
 	}
 
