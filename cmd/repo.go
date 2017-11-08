@@ -19,7 +19,12 @@ func GetRepo(online bool) repo.Repo {
 	fs, err := GetIpfsFilestore(online)
 	ExitIfErr(err)
 
-	r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath), fs.Node().PeerHost.ID().Pretty())
+	id := ""
+	if fs.Node().PeerHost != nil {
+		id = fs.Node().PeerHost.ID().Pretty()
+	}
+
+	r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath), id)
 	ExitIfErr(err)
 	return r
 }

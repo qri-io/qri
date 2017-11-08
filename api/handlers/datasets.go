@@ -84,7 +84,7 @@ func (h *DatasetHandlers) AddDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	res := &dataset.Dataset{}
+	res := &repo.DatasetRef{}
 	args := &core.GetDatasetParams{
 		Path: datastore.NewKey(r.URL.Path[len("/download/"):]),
 		Hash: r.FormValue("hash"),
@@ -98,7 +98,7 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	dsutil.WriteZipArchive(h.store, res, w)
+	dsutil.WriteZipArchive(h.store, res.Dataset, w)
 }
 
 func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {
@@ -116,7 +116,7 @@ func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (h *DatasetHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	res := &dataset.Dataset{}
+	res := &repo.DatasetRef{}
 	args := &core.GetDatasetParams{
 		Path: datastore.NewKey(r.URL.Path[len("/datasets/"):]),
 		Hash: r.FormValue("hash"),
@@ -126,7 +126,7 @@ func (h *DatasetHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Reque
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res)
+	util.WriteResponse(w, res.Dataset)
 }
 
 func (h *DatasetHandlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
@@ -179,23 +179,27 @@ func (h *DatasetHandlers) saveStructureHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request) {
+	var f cafs.File
 	infile, header, err := r.FormFile("file")
-	if err != nil {
+	if err != nil && err != http.ErrMissingFile {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
+	} else {
+		f = memfs.NewMemfileReader(header.Filename, infile)
 	}
 
 	p := &core.InitDatasetParams{
+		Url:  r.FormValue("url"),
 		Name: r.FormValue("name"),
-		Data: memfs.NewMemfileReader(header.Filename, infile),
+		Data: f,
 	}
-	res := &dataset.Dataset{}
+	res := &repo.DatasetRef{}
 	if err := h.InitDataset(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res)
+	util.WriteResponse(w, res.Dataset)
 }
 
 func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
@@ -204,8 +208,8 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 		Path: datastore.NewKey(r.URL.Path[len("/datasets"):]),
 	}
 
-	ds := &dataset.Dataset{}
-	if err := h.Get(&core.GetDatasetParams{Name: p.Name, Path: p.Path}, ds); err != nil {
+	ref := &repo.DatasetRef{}
+	if err := h.Get(&core.GetDatasetParams{Name: p.Name, Path: p.Path}, ref); err != nil {
 		return
 	}
 
@@ -216,7 +220,7 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 		return
 	}
 
-	util.WriteResponse(w, ds)
+	util.WriteResponse(w, ref.Dataset)
 }
 
 func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {

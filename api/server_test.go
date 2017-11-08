@@ -15,8 +15,8 @@ func TestServerRoutes(t *testing.T) {
 		resStatus        int
 	}{
 		// {"GET", "/", nil, 200},
-		{"GET", "/datasets", nil, 200},
 		{"GET", "/status", nil, 200},
+		// {"GET", "/datasets", nil, 200},
 		// {"GET", "/ipfs", nil, 200},
 		// {"GET", "/datasets", nil, 200},
 		// {"GET", "/datasets", nil, 200},
