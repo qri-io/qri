@@ -47,8 +47,12 @@ cd qri
 # Add the main Qri repository as an upstream remote to your repository:
 git remote add upstream "https://github.com/qri-io/frontend.git"
 
+
 # Install dependencies, make sure you have gx installed first
 gx install
+
+# This will complain *lots* about `package gx/ipfs unrecoginzed import path...`, that's ok
+go get ./...
 
 # Build the qri binary
 go install

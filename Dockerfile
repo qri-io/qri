@@ -7,9 +7,9 @@ RUN go get -u github.com/whyrusleeping/gx
 # RUN go get -u github.com/whyrusleeping/gx-go
 RUN cd /go/src/github.com/qri-io/qri && gx install
 
+RUN go get ./...
+
 RUN go install github.com/qri-io/qri
-
-
 # set default port to 8080, default log level, QRI_PATH env, IPFS_PATH env
 ENV PORT=8080 IPFS_LOGGING="" QRI_PATH=/data/qri IPFS_PATH=/data/ipfs
 
