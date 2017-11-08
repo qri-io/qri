@@ -36,7 +36,6 @@ func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
-	p := util.PageFromRequest(r)
 	params := &core.LogParams{
 		ListParams: core.ListParamsFromRequest(r),
 		Path:       datastore.NewKey(r.URL.Path[len("/history/"):]),

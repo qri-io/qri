@@ -14,39 +14,40 @@ type GetParams struct {
 	Hash     string
 }
 
+// ListParams is the general input for any sort of Paginated Request
+// ListParams define limits & offsets, not pages & page sizes.
+// TODO - rename this to PageParams.
 type ListParams struct {
 	OrderBy string
 	Limit   int
 	Offset  int
 }
 
-// ListParamsFromRequest extracts ListParams from an http.Request pointer
-func ListParamsFromRequest(r *http.Request) ListParams {
-	lp := &ListParams{}
-	var pageIndex int
-	if i, err := util.ReqParamInt("pageSize", r); err == nil {
-		lp.Limit = i
+// NewListParams creates a ListParams from page & pagesize, pages are 1-indexed
+// (the first element is 1, not 0), NewListParams performs the conversion
+func NewListParams(orderBy string, page, pageSize int) ListParams {
+	if page < 1 {
+		page = 1
 	}
-	if i, err := util.ReqParamInt("page", r); err == nil {
-		pageIndex = i
+	if pageSize <= 0 {
+		pageSize = DEFAULT_PAGE_SIZE
 	}
-	if pageIndex < 0 {
-		pageIndex = 0
+	return ListParams{
+		Limit:  pageSize,
+		Offset: (page - 1) * pageSize,
 	}
-	lp.Clean()
-	lp.Offset = pageIndex * lp.Limit
-	// lp.OrderBy defaults to empty string
-	return *lp
-
 }
 
-func (lp *ListParams) Clean() {
-	if lp.Limit <= 0 {
-		lp.Limit = DEFAULT_PAGE_SIZE
+// ListParamsFromRequest extracts ListParams from an http.Request pointer
+func ListParamsFromRequest(r *http.Request) ListParams {
+	var page, pageSize int
+	if i, err := util.ReqParamInt("page", r); err == nil {
+		page = i
 	}
-	if lp.Offset < 0 {
-		lp.Offset = 0
+	if i, err := util.ReqParamInt("pageSize", r); err == nil {
+		pageSize = i
 	}
+	return NewListParams(r.FormValue("orderBy"), page, pageSize)
 }
 
 // Page converts a ListParams struct to a util.Page struct
