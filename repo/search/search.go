@@ -3,8 +3,8 @@ package search
 import (
 	"strings"
 
-	"github.com/blevesearch/bleve"
-	//_ "github.com/blevesearch/bleve/config"
+	"github.com/qri-io/bleve"
+	//_ "github.com/qri-io/bleve/config"
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset"
