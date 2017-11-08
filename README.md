@@ -1,28 +1,20 @@
-# Qri CLI
+# qri
 
+[![Qri](https://img.shields.io/badge/made%20by-qri-magenta.svg?style=flat-square)](https://qri.io)
+[![GoDoc](https://godoc.org/github.com/qri-io/qri?status.svg)](http://godoc.org/github.com/qri-io/qri)
+[![License](https://img.shields.io/github/license/qri-io/qri.svg?style=flat-square)](./LICENSE)
+<!-- [![Codecov](https://img.shields.io/codecov/c/github/qri-io/qri.svg?style=flat-square)](https://codecov.io/gh/qri-io/qri)
+[![CI](https://img.shields.io/circleci/project/github/qri-io/qri.svg?style=flat-square)](https://circleci.com/gh/qri-io/qri) -->
 
-Qri should behave like npm & git combined, for data.
+Frictionless distributed data.
+qri (“query”) animates data stored on the distributed web to work like a database.
 
-The datapackage.json file should be considered an integral part of the version-tracking structure, identifying sources of data & checking for data validity. Everything that isn't specified by the datapackage file should be considered a "script", and just tracked as blob data.
+## Getting Involved
 
-Commits should break out 3 types of changes:
-	1. Schema Changes
-	2. Data Changes
-	3. Plaintext Changes
+We would love involvement from more people! If you notice any errors or would
+like to submit changes, please see our
+[Contributing Guidelines](./.github/CONTRIBUTING.md).
 
+## Developing
 
-There are a few different concepts that need to be resolved before the qri cli will make proper sense:
-
-### Migrations & Changes
-This is the notion that there are two distinct types of changes in a dataset:
-1. Changes to the way data is organized (schema changes)
-2. Changes to the data in a dataset (dataset changes)
-
-### Commits
-This is the idea that a series of changes must be grouped together into a logical "save" that arrests changes into a record. In Git-land a "commit" marks a point in time & series of changes.
-
-### DataPackages
-This bit feels less connected to the first two problems, but is connected to the notion that the data package must be connected with t
-
-### Query
-In this world a query is nothing more than a computed dataset
+We've set up a separate document for [developer guildlines](https://github.com/qri-io/qri/DEVELOPERS.md)!

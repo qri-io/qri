@@ -1,8 +1,14 @@
-FROM golang:1.9-alpine
+FROM golang:1.9
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
 ADD . /go/src/github.com/qri-io/qri
+
+RUN go get -u github.com/whyrusleeping/gx
+# RUN go get -u github.com/whyrusleeping/gx-go
+RUN cd /go/src/github.com/qri-io/qri && gx install
+
 RUN go install github.com/qri-io/qri
+
 
 # set default port to 8080, default log level, QRI_PATH env, IPFS_PATH env
 ENV PORT=8080 IPFS_LOGGING="" QRI_PATH=/data/qri IPFS_PATH=/data/ipfs
@@ -10,6 +16,7 @@ ENV PORT=8080 IPFS_LOGGING="" QRI_PATH=/data/qri IPFS_PATH=/data/ipfs
 # Ports for Swarm TCP, Swarm uTP, API, Gateway, Swarm Websockets
 EXPOSE 4001 4002/udp 5001 8080 8081
 
+# create directories for IPFS & QRI, setting proper owners
 RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
   && adduser -D -h $IPFS_PATH -u 1000 -g 100 ipfs \
   && chown 1000:100 $IPFS_PATH \
