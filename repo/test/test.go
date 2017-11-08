@@ -38,27 +38,17 @@ func RunTestProfile(t *testing.T, r repo.Repo) {
 }
 
 func RunTestDatasetStore(t *testing.T, r repo.Repo) {
-
+	// TODO
 }
 
 func RunTestPeers(t *testing.T, r repo.Repo) {
-	p, err := r.Peers()
-	if err != nil {
-		t.Errorf("Unexpected Peers error: %s", err.Error())
-		return
-	}
-
-	err = r.SavePeers(p)
-	if err != nil {
-		t.Errorf("Unexpected SavePeers error: %s", err.Error())
-		return
-	}
+	// TODO
 }
 
 func RunTestAnalytics(t *testing.T, r repo.Repo) {
-
+	// TODO
 }
 
 func RunTestCache(t *testing.T, r repo.Repo) {
-
+	// TODO
 }

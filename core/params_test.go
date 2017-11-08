@@ -39,7 +39,7 @@ func TestListParamsFromRequest(t *testing.T) {
 		lp := ListParamsFromRequest(req)
 
 		if err := ListParamsEqual(c.res, lp); err != nil {
-			t.Errorf("case [%d]: %s", i, err.Error())
+			t.Errorf("case [%d] error: %s", i, err.Error())
 			continue
 		}
 

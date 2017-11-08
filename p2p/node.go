@@ -100,6 +100,9 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 }
 
 func (n *QriNode) StartOnlineServices() error {
+	if !n.Online {
+		return nil
+	}
 	return n.StartDiscovery()
 }
 
