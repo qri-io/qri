@@ -1,0 +1,14 @@
+{
+  "author": "The Go Authors",
+  "bugs": {},
+  "gx": {
+    "dvcsimport": "golang.org/x/sys"
+  },
+  "gxVersion": "0.11.0",
+  "language": "go",
+  "license": "BSD-3-Clause",
+  "name": "sys",
+  "releaseCmd": "git commit -a -m \"gx publish $VERSION\"",
+  "version": "0.1.0"
+}
+

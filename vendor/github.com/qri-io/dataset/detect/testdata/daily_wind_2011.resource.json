@@ -1,0 +1,124 @@
+{
+  "format": "csv",
+  "formatConfig": null,
+  "schema": {
+    "fields": [
+      {
+        "name": "state_code",
+        "type": "float"
+      },
+      {
+        "name": "county_code",
+        "type": "float"
+      },
+      {
+        "name": "site_num",
+        "type": "float"
+      },
+      {
+        "name": "parameter_code",
+        "type": "float"
+      },
+      {
+        "name": "poc",
+        "type": "float"
+      },
+      {
+        "name": "latitude",
+        "type": "float"
+      },
+      {
+        "name": "longitude",
+        "type": "float"
+      },
+      {
+        "name": "datum",
+        "type": "string"
+      },
+      {
+        "name": "parameter_name",
+        "type": "string"
+      },
+      {
+        "name": "sample_duration",
+        "type": "string"
+      },
+      {
+        "name": "pollutant_standard",
+        "type": "string"
+      },
+      {
+        "name": "date_local",
+        "type": "string"
+      },
+      {
+        "name": "units_of_measure",
+        "type": "string"
+      },
+      {
+        "name": "event_type",
+        "type": "string"
+      },
+      {
+        "name": "observation_count",
+        "type": "float"
+      },
+      {
+        "name": "observation_percent",
+        "type": "float"
+      },
+      {
+        "name": "arithmetic_mean",
+        "type": "float"
+      },
+      {
+        "name": "_1st_max_value",
+        "type": "float"
+      },
+      {
+        "name": "_1st_max_hour",
+        "type": "float"
+      },
+      {
+        "name": "aqi",
+        "type": "string"
+      },
+      {
+        "name": "method_code",
+        "type": "float"
+      },
+      {
+        "name": "method_name",
+        "type": "string"
+      },
+      {
+        "name": "local_site_name",
+        "type": "string"
+      },
+      {
+        "name": "address",
+        "type": "string"
+      },
+      {
+        "name": "state_name",
+        "type": "string"
+      },
+      {
+        "name": "county_name",
+        "type": "string"
+      },
+      {
+        "name": "city_name",
+        "type": "string"
+      },
+      {
+        "name": "cbsa_name",
+        "type": "string"
+      },
+      {
+        "name": "date_of_last_change",
+        "type": "string"
+      }
+    ]
+  }
+}

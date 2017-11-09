@@ -1,0 +1,21 @@
+{
+  "title": "example movie data",
+  "structure": {
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "fields": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "type": "integer"
+        }
+      ]
+    }
+  }
+}

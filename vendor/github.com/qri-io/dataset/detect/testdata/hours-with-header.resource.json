@@ -1,0 +1,23 @@
+{
+  "format": "csv",
+  "schema": {
+    "fields": [
+      {
+        "name": "timestamp",
+        "type": "date"
+      },
+      {
+        "name": "hours",
+        "type": "float"
+      },
+      {
+        "name": "category",
+        "type": "string"
+      },
+      {
+        "name": "comments",
+        "type": "string"
+      }
+    ]
+  }
+}
