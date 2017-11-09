@@ -3,19 +3,21 @@ jobs:
   build:
     working_directory: /go/src/github.com/qri-io/qri
     docker:
-      - image: circleci/cci-demo-go-primary:0.0.2
+      - image: circleci/golang:1.9
         environment:
           GOLANG_ENV: test
           PORT: 3000
-          DEBUG: false
+    environment:
+      TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
-      - run: 
-          name: Make test results directory
-          command: mkdir -p /tmp/test-reports/qri-io
+      - run: mkdir -p $TEST_RESULTS
+      - run: go get github.com/jstemmer/go-junit-report
       - run:
           name: Run Tests
-          command: ./.circleci/cover.test.sh
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            ./.circleci/cover.test.sh | tee ${TEST_RESULTS}/go-test.out
       # - run: 
       #     name: Convert test output to junit-style xml
       #     command: cat /tmp/test-reports/qri-io/original.txt | go-junit-report > /tmp/test-reports/qri-io/junit.xml
@@ -24,6 +26,11 @@ jobs:
       - run:
           name: Publish coverage info to codecov.io
           command: bash <(curl -s https://codecov.io/bash)
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+      - store_test_results:
+          path: /tmp/test-results
       # - setup_remote_docker
       # - run:
       #     name: Install Docker client
