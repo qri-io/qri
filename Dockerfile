@@ -2,12 +2,12 @@ FROM golang:1.9
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
 ADD . /go/src/github.com/qri-io/qri
+RUN cd /go/src/github.com/qri-io/qri
 
-RUN go get -u github.com/whyrusleeping/gx
+# RUN go get -u github.com/whyrusleeping/gx
 # RUN go get -u github.com/whyrusleeping/gx-go
-RUN cd /go/src/github.com/qri-io/qri && gx install
-
-RUN go get ./...
+# RUN gx install
+# RUN go get ./...
 
 RUN go install github.com/qri-io/qri
 # set default port to 8080, default log level, QRI_PATH env, IPFS_PATH env

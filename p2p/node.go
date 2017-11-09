@@ -35,6 +35,8 @@ type QriNode struct {
 
 	Repo  repo.Repo      // repository of this node's qri data
 	Store cafs.Filestore // a content addressed filestore for data storage, usually ipfs
+
+	BootstrapAddrs []string // list of addresses to bootrap *qri* from (not IPFS)
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -56,12 +58,13 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 	ps := pstore.NewPeerstore()
 
 	node := &QriNode{
-		log:      cfg.Logger,
-		Identity: cfg.PeerId,
-		Online:   cfg.Online,
-		QriPeers: ps,
-		Repo:     cfg.Repo,
-		Store:    store,
+		log:            cfg.Logger,
+		Identity:       cfg.PeerId,
+		Online:         cfg.Online,
+		QriPeers:       ps,
+		Repo:           cfg.Repo,
+		Store:          store,
+		BootstrapAddrs: cfg.QriBootstrapAddrs,
 	}
 
 	if cfg.Online {

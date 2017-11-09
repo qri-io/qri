@@ -1,23 +1,8 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"flag"
 	"fmt"
-	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -25,6 +10,9 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -43,11 +31,18 @@ var updateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		r := GetRepo(false)
-		store, err := GetIpfsFilestore(false)
+		store := GetIpfsFilestore(false)
+		req := core.NewDatasetRequests(store, r)
+
+		p := &core.GetDatasetParams{
+			Name: args[0],
+			Path: datastore.NewKey(args[0]),
+		}
+		ref := &repo.DatasetRef{}
+		err := req.Get(p, ref)
 		ExitIfErr(err)
 
-		ref, err := DatasetRef(r, store, args[0])
-		ExitIfErr(err)
+		// ref, err := DatasetRef(r, store, args[0])
 
 		var datapath string
 		if updateFile != "" {

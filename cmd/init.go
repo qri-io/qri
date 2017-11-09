@@ -1,17 +1,3 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -43,29 +29,17 @@ var initCmd = &cobra.Command{
 
 		if initFile == "" && initUrl == "" {
 			ErrExit(fmt.Errorf("please provide either a file or a url argument"))
-		}
-
-		if initName == "" {
+		} else if initName == "" {
 			ErrExit(fmt.Errorf("please provide a --name"))
 		}
 
-		if initFile != "" {
-			filepath, err := filepath.Abs(initFile)
-			ExitIfErr(err)
-			dataFile, err = os.Open(filepath)
-			ExitIfErr(err)
-		}
-
-		if initMetaFile != "" {
-			filepath, err := filepath.Abs(initMetaFile)
-			ExitIfErr(err)
-			metaFile, err = os.Open(filepath)
-			ExitIfErr(err)
-		}
+		err := loadFileIfPath(initFile, dataFile)
+		ExitIfErr(err)
+		err = loadFileIfPath(initMetaFile, metaFile)
+		ExitIfErr(err)
 
 		r := GetRepo(false)
-		store, err := GetIpfsFilestore(false)
-		ExitIfErr(err)
+		store := GetIpfsFilestore(false)
 		req := core.NewDatasetRequests(store, r)
 
 		p := &core.InitDatasetParams{
@@ -74,7 +48,8 @@ var initCmd = &cobra.Command{
 			DataFilename: filepath.Base(initFile),
 		}
 
-		// this is because passing nil to interfaces is bad: https://golang.org/doc/faq#nil_error
+		// this is because passing nil to interfaces is bad
+		// see: https://golang.org/doc/faq#nil_error
 		if dataFile != nil {
 			p.Data = dataFile
 		}

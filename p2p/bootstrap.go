@@ -18,7 +18,7 @@ import (
 // One day it would be super nice to bootstrap from a stored history & only
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
-	"/ip4/35.192.124.143/tcp/4001/ipfs/QmXhrdvGRBF5ocvgdLdnMDBMbxJWDngZDBjS2PUYc4ahpb",
+	"/ip4/35.192.124.143/tcp/4001/ipfs/QmQffqhgce94UFS9mSvvqcAWXQNr1bcZRM659VFakySair",
 }
 
 // Bootstrap samples a subset of peers & requests their peers list

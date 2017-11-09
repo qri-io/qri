@@ -963,66 +963,6 @@
 			"revisionTime": "2017-10-31T18:12:39Z"
 		},
 		{
-			"checksumSHA1": "rDMytOmBUpsS1/vfS8jAVMM+DjI=",
-			"path": "github.com/qri-io/qri/api",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "5ySiPYQEiRttjA02fWKgCnNpeIk=",
-			"path": "github.com/qri-io/qri/api/handlers",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "gyuug3+3taK70my8PPyDi9c+3I0=",
-			"path": "github.com/qri-io/qri/cmd",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "HHuvTrDEji8v3GqRmSyRNwoXaRM=",
-			"path": "github.com/qri-io/qri/core",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "4hV963qWaQl+ydpwCwEVgnTdYzw=",
-			"path": "github.com/qri-io/qri/logging",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "fOqortX6B6uvSCrtd1Neba9ni80=",
-			"path": "github.com/qri-io/qri/p2p",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "8EVL2pkdOQ5mgEnChugXn4OKxbQ=",
-			"path": "github.com/qri-io/qri/repo",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "/GwpnK6uTT89Wgrm+mSSTdZcMoE=",
-			"path": "github.com/qri-io/qri/repo/fs",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "utIKcraiQEQaLegWTMlFGwVo6T0=",
-			"path": "github.com/qri-io/qri/repo/profile",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
-			"checksumSHA1": "pXkBUWj9RIjEfx2N++STkiCxj00=",
-			"path": "github.com/qri-io/qri/repo/search",
-			"revision": "1dfdff852108a87c6442dd607fc2c081ece65a4b",
-			"revisionTime": "2017-11-08T22:30:10Z"
-		},
-		{
 			"checksumSHA1": "uH0XygBiVvVrdTW1Uj593huX35U=",
 			"path": "github.com/satori/go.uuid",
 			"revision": "5bf94b69c6b68ee1b541973bb8e1144db23a194b",
