@@ -64,6 +64,8 @@ type Config struct {
 	MemOnly bool
 	// disable networking
 	Online bool
+	// list of addresses to bootsrap qri peers on
+	BoostrapAddrs []string
 }
 
 // Validate returns nil if this configuration is valid,

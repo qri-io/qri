@@ -31,10 +31,13 @@ type NodeCfg struct {
 	// default port to bind tcp listener to
 	// ignored if Addrs is supplied
 	Port int
+	// list of addresses to bootstrap qri node from
+	QriBootstrapAddrs []string
 	// List of multiaddresses to listen on
 	Addrs []ma.Multiaddr
 	// secure connection flag. if true
-	// PubKey & PrivKey are required
+	// PubKey & PrivKey are required. just, like, never set this
+	// to false, okay?
 	Secure bool
 }
 
@@ -65,7 +68,8 @@ func DefaultNodeCfg() *NodeCfg {
 		// TODO - enabling this causes all nodes to broadcast
 		// on the same address, which isn't good. figure out why
 		// Port:     4444,
-		Secure: true,
+		QriBootstrapAddrs: DefaultBootstrapAddresses,
+		Secure:            true,
 	}
 }
 

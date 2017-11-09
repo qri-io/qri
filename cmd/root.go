@@ -2,11 +2,8 @@ package cmd
 
 import (
 	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var cfgFile string
@@ -41,48 +38,4 @@ func init() {
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")
 	RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
-	home := userHomeDir()
-	SetNoColor()
-
-	// if cfgFile is specified, override
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		err := viper.ReadInConfig()
-		ExitIfErr(err)
-		return
-	}
-
-	// if err := os.Mkdir(filepath.Join(userHomeDir(), ".qri"), os.ModePerm); err != nil {
-	// 	fmt.Errorf("error creating home dir: %s\n", err.Error())
-	// }
-	qriPath := os.Getenv("QRI_PATH")
-	if qriPath == "" {
-		qriPath = filepath.Join(home, "qri")
-	}
-
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.AddConfigPath(qriPath)  // add QRI_PATH env var
-	// viper.AddConfigPath("$HOME/.qri/config") // adding home directory as first search path
-	// viper.AddConfigPath(".")                 // adding home directory as first search path
-	viper.AutomaticEnv() // read in environment variables that match
-
-	// TODO - this is stupid
-	qriPath = strings.Replace(qriPath, "~", home, 1)
-	viper.SetDefault(QriRepoPath, qriPath)
-
-	ipfsFsPath := os.Getenv("IPFS_PATH")
-	if ipfsFsPath == "" {
-		ipfsFsPath = "$HOME/.ipfs"
-	}
-	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
-	viper.SetDefault(IpfsFsPath, ipfsFsPath)
-
-	// If a config file is found, read it in.
-	if err := viper.ReadInConfig(); err == nil {
-		// fmt.Println("Using config file:", viper.ConfigFileUsed())
-	}
 }

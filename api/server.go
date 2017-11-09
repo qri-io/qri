@@ -79,6 +79,9 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		ncfg.Repo = qrepo
 		ncfg.RepoPath = s.cfg.QriRepoPath
 		ncfg.Online = s.cfg.Online
+		if cfg.BoostrapAddrs != nil {
+			ncfg.QriBootstrapAddrs = cfg.BoostrapAddrs
+		}
 	})
 	if err != nil {
 		return s, err

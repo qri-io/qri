@@ -35,6 +35,7 @@ var serverCmd = &cobra.Command{
 			cfg.QriRepoPath = viper.GetString(QriRepoPath)
 			cfg.FsStorePath = viper.GetString(IpfsFsPath)
 			cfg.Online = !serverOffline
+			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
 		})
 		ExitIfErr(err)
 

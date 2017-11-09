@@ -29,7 +29,7 @@ func (n *QriNode) StartDiscovery() error {
 	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
 	// Boostrap off of default addresses
-	go n.Bootstrap(DefaultBootstrapAddresses)
+	go n.Bootstrap(n.BootstrapAddrs)
 
 	return nil
 }

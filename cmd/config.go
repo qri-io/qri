@@ -5,12 +5,20 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
+	"strings"
 
+	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
+	"github.com/spf13/viper"
 )
 
 type Config struct {
-	Bootstrap []string
+	Bootstrap []string `json:"bootstrap"`
+}
+
+var defaultCfg = &Config{
+	Bootstrap: p2p.DefaultBootstrapAddresses,
 }
 
 // configCmd represents the config command
@@ -42,11 +50,67 @@ func init() {
 	RootCmd.AddCommand(configCmd)
 }
 
+// initConfig reads in config file and ENV variables if set.
+func initConfig() {
+	home := userHomeDir()
+	SetNoColor()
+
+	// if cfgFile is specified, override
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+		err := viper.ReadInConfig()
+		ExitIfErr(err)
+		return
+	}
+
+	qriPath := os.Getenv("QRI_PATH")
+	if qriPath == "" {
+		qriPath = filepath.Join(home, ".qri")
+	}
+	// TODO - this is stupid
+	qriPath = strings.Replace(qriPath, "~", home, 1)
+	viper.SetDefault(QriRepoPath, filepath.Join(qriPath))
+	if err := os.MkdirAll(qriPath, os.ModePerm); err != nil {
+		fmt.Errorf("error creating home dir: %s\n", err.Error())
+	}
+
+	ipfsFsPath := os.Getenv("IPFS_PATH")
+	if ipfsFsPath == "" {
+		ipfsFsPath = "$HOME/.ipfs"
+	}
+	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
+	viper.SetDefault(IpfsFsPath, ipfsFsPath)
+
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.AddConfigPath(qriPath)  // add QRI_PATH env var
+
+	err := EnsureConfigFile()
+	ExitIfErr(err)
+
+	err = viper.ReadInConfig()
+	ExitIfErr(err)
+}
+
+func configFilepath() string {
+	path := viper.ConfigFileUsed()
+	if path == "" {
+		path = filepath.Join(viper.GetString(QriRepoPath), "config.json")
+	}
+	return path
+}
+
+func EnsureConfigFile() error {
+	if _, err := os.Stat(configFilepath()); os.IsNotExist(err) {
+		fmt.Println("writing config file")
+		return WriteConfigFile(defaultCfg)
+	}
+	return nil
+}
+
 func WriteConfigFile(cfg *Config) error {
-	data, err := json.MarshalIndent(cfg, "", "\t")
+	data, err := json.MarshalIndent(cfg, "", "  ")
 	if err != nil {
 		return err
 	}
-
-	return ioutil.WriteFile(fmt.Sprintf("%s/.qri.json", os.Getenv("HOME")), data, os.ModePerm)
+	return ioutil.WriteFile(configFilepath(), data, os.ModePerm)
 }
