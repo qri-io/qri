@@ -14,19 +14,13 @@ jobs:
           name: Make test results directory
           command: mkdir -p /tmp/test-reports/qri-io
       - run:
-          name: Install dependencies
-          command: go-wrapper download && go-wrapper install && go get -v github.com/jstemmer/go-junit-report
-      - run: 
-          name: Run tests
-          command: go test -v -race | tee /tmp/test-reports/qri-io/original.txt ; test ${PIPESTATUS[0]} -eq 0
-      - run:
-          name: Coverage tests
+          name: Run Tests
           command: ./.circleci/cover.test.sh
-      - run: 
-          name: Convert test output to junit-style xml
-          command: cat /tmp/test-reports/qri-io/original.txt | go-junit-report > /tmp/test-reports/qri-io/junit.xml
-      - store_test_results:
-          path: /tmp/test-reports/qri-io/junit.xml
+      # - run: 
+      #     name: Convert test output to junit-style xml
+      #     command: cat /tmp/test-reports/qri-io/original.txt | go-junit-report > /tmp/test-reports/qri-io/junit.xml
+      # - store_test_results:
+      #     path: /tmp/test-reports/qri-io/junit.xml
       - run:
           name: Publish coverage info to codecov.io
           command: bash <(curl -s https://codecov.io/bash)
