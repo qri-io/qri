@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"runtime"
 
 	"github.com/spf13/viper"
@@ -48,4 +49,18 @@ func userHomeDir() string {
 		return home
 	}
 	return os.Getenv("HOME")
+}
+
+func loadFileIfPath(path string, f *os.File) (err error) {
+	if path == "" {
+		return nil
+	}
+
+	filepath, err := filepath.Abs(path)
+	if err != nil {
+		return err
+	}
+
+	f, err = os.Open(filepath)
+	return
 }

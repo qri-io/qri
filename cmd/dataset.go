@@ -1,17 +1,3 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -54,8 +40,7 @@ var datasetInfoCmd = &cobra.Command{
 		if len(args) != 1 {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri info [dataset_name]"))
 		}
-		ds, err := GetIpfsFilestore(true)
-		ExitIfErr(err)
+		ds := GetIpfsFilestore(true)
 
 		path, err := GetRepo(true).GetPath(args[0])
 		ExitIfErr(err)
@@ -83,8 +68,7 @@ var datasetAddCmd = &cobra.Command{
 		}
 
 		r := GetRepo(false)
-		fs, err := GetIpfsFilestore(false)
-		ExitIfErr(err)
+		fs := GetIpfsFilestore(false)
 
 		name := cmd.Flag("name").Value.String()
 		if name == "" {
@@ -94,7 +78,7 @@ var datasetAddCmd = &cobra.Command{
 		root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
 
 		PrintInfo("downloading %s...", root)
-		_, err = fs.Fetch(cafs.SourceAny, datastore.NewKey(root))
+		_, err := fs.Fetch(cafs.SourceAny, datastore.NewKey(root))
 		ExitIfErr(err)
 
 		err = fs.Pin(datastore.NewKey(root), true)
@@ -118,8 +102,7 @@ var datasetRemoveCmd = &cobra.Command{
 		}
 		name := args[0]
 
-		fs, err := GetIpfsFilestore(false)
-		ExitIfErr(err)
+		fs := GetIpfsFilestore(false)
 
 		r := GetRepo(false)
 		path, err := r.GetPath(name)

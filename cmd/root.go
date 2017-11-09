@@ -1,17 +1,3 @@
-// Copyright © 2016 qri.io <info@qri.io>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
@@ -34,10 +20,8 @@ const (
 var RootCmd = &cobra.Command{
 	Use:   "qri",
 	Short: "qri.io command line client",
-	Long: `this is a very early (like 0.0.0.0.0.1.alpha) tool for working with datasets.
+	Long: `this is a very early tool for working with datasets on the distributed web.
 	At the moment it's a bit an experiment.
-	A nice web introduction is available at:
-	http://docs.qri.io
 
 	Email brendan with any questions:
 	sparkle_pony_2000@qri.io`,
@@ -55,7 +39,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initConfig)
 
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $HOME/.qri.json)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")
 	RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 }
 
@@ -64,24 +48,28 @@ func initConfig() {
 	home := userHomeDir()
 	SetNoColor()
 
-	if cfgFile != "" { // enable ability to specify config file via flag
+	// if cfgFile is specified, override
+	if cfgFile != "" {
 		viper.SetConfigFile(cfgFile)
+		err := viper.ReadInConfig()
+		ExitIfErr(err)
+		return
 	}
 
 	// if err := os.Mkdir(filepath.Join(userHomeDir(), ".qri"), os.ModePerm); err != nil {
 	// 	fmt.Errorf("error creating home dir: %s\n", err.Error())
 	// }
-
-	// viper.SetConfigName("config") // name of config file (without extension)
-	// // viper.AddConfigPath("$QRI_PATH")  // add QRI_PATH env var
-	// viper.AddConfigPath("$HOME/.qri") // adding home directory as first search path
-	// viper.AddConfigPath(".")          // adding home directory as first search path
-	// viper.AutomaticEnv()              // read in environment variables that match
-
 	qriPath := os.Getenv("QRI_PATH")
 	if qriPath == "" {
 		qriPath = filepath.Join(home, "qri")
 	}
+
+	viper.SetConfigName("config") // name of config file (without extension)
+	viper.AddConfigPath(qriPath)  // add QRI_PATH env var
+	// viper.AddConfigPath("$HOME/.qri/config") // adding home directory as first search path
+	// viper.AddConfigPath(".")                 // adding home directory as first search path
+	viper.AutomaticEnv() // read in environment variables that match
+
 	// TODO - this is stupid
 	qriPath = strings.Replace(qriPath, "~", home, 1)
 	viper.SetDefault(QriRepoPath, qriPath)
@@ -94,7 +82,7 @@ func initConfig() {
 	viper.SetDefault(IpfsFsPath, ipfsFsPath)
 
 	// If a config file is found, read it in.
-	// if err := viper.ReadInConfig(); err == nil {
-	// 	// fmt.Println("Using config file:", viper.ConfigFileUsed())
-	// }
+	if err := viper.ReadInConfig(); err == nil {
+		// fmt.Println("Using config file:", viper.ConfigFileUsed())
+	}
 }

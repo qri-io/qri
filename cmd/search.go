@@ -1,22 +1,9 @@
-// Copyright © 2016 NAME HERE <EMAIL ADDRESS>
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-//     http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 package cmd
 
 import (
 	"fmt"
 
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/spf13/cobra"
@@ -28,57 +15,48 @@ var searchCmd = &cobra.Command{
 	Short: "Search for datasets",
 	Long:  `Search looks through all of your namespaces for terms that match your query`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
-		}
-
-		PrintWarning("CLI search only supports searching local datasets for now")
-
-		fs, err := GetIpfsFilestore(false)
-		if err != nil {
-			fmt.Printf("error: %s", err.Error())
-		}
-		ExitIfErr(err)
-
-		r := GetRepo(false)
-
 		reindex, err := cmd.Flags().GetBool("reindex")
 		if err != nil {
 			fmt.Printf("error: %s", err.Error())
 		}
 		ExitIfErr(err)
 
+		if len(args) != 1 && !reindex {
+			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
+		}
+
+		r := GetRepo(false)
+		store := GetIpfsFilestore(false)
+		req := core.NewSearchRequests(store, r)
+
 		if reindex {
 			if fsr, ok := r.(*fs_repo.Repo); ok {
 				PrintInfo("building index...")
-				err = fsr.UpdateSearchIndex(fs)
+				err = fsr.UpdateSearchIndex(store)
 				if err != nil {
 					fmt.Printf("error: %s", err.Error())
 				}
 				ExitIfErr(err)
 			}
-		}
-
-		if s, ok := r.(repo.Searchable); ok {
-			results, err := s.Search(repo.SearchParams{
-				Q: args[0],
-			})
-			ExitIfErr(err)
-
-			// results, err := search.Search(GetRepo(), fs, search.NewDatasetQuery(args[0], 30, 0))
-			// ExitIfErr(err)
-
-			if len(results) > 0 {
-				for i, ds := range results {
-					PrintDatasetRefInfo(i+1, ds)
-				}
-			} else {
-				PrintWarning("no results")
+			PrintSuccess("reindex complete")
+			if len(args) == 0 {
+				return
 			}
-		} else {
-			ErrExit(fmt.Errorf("this repository doesn't support search"))
 		}
 
+		p := &repo.SearchParams{
+			Q:      args[0],
+			Limit:  30,
+			Offset: 0,
+		}
+
+		res := []*repo.DatasetRef{}
+		err = req.Search(p, &res)
+		ExitIfErr(err)
+
+		for i, ref := range res {
+			PrintDatasetRefInfo(i, ref)
+		}
 	},
 }
 
