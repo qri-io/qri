@@ -61,6 +61,17 @@ func (h *DatasetHandlers) DatasetHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+func (h *DatasetHandlers) InitDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.initDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -134,7 +145,7 @@ func (h *DatasetHandlers) saveDatasetHandler(w http.ResponseWriter, r *http.Requ
 	case "application/json":
 		h.saveStructureHandler(w, r)
 	default:
-		h.initDatasetFileHandler(w, r)
+		h.initDatasetHandler(w, r)
 	}
 }
 
@@ -178,21 +189,28 @@ func (h *DatasetHandlers) saveStructureHandler(w http.ResponseWriter, r *http.Re
 	util.WriteResponse(w, res)
 }
 
-func (h *DatasetHandlers) initDatasetFileHandler(w http.ResponseWriter, r *http.Request) {
-	var f cafs.File
-	infile, header, err := r.FormFile("file")
-	if err != nil && err != http.ErrMissingFile {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+func (h *DatasetHandlers) initDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	p := &core.InitDatasetParams{}
+	if r.Header.Get("Content-Type") == "application/json" {
+		json.NewDecoder(r.Body).Decode(p)
 	} else {
-		f = memfs.NewMemfileReader(header.Filename, infile)
+		var f cafs.File
+		infile, header, err := r.FormFile("file")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		} else {
+			f = memfs.NewMemfileReader(header.Filename, infile)
+		}
+
+		p = &core.InitDatasetParams{
+			Url:          r.FormValue("url"),
+			Name:         r.FormValue("name"),
+			DataFilename: header.Filename,
+			Data:         f,
+		}
 	}
 
-	p := &core.InitDatasetParams{
-		Url:  r.FormValue("url"),
-		Name: r.FormValue("name"),
-		Data: f,
-	}
 	res := &repo.DatasetRef{}
 	if err := h.InitDataset(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
@@ -254,9 +272,17 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 }
 
 func (h *DatasetHandlers) addDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.AddParams{
-		Name: r.URL.Query().Get("name"),
-		Hash: r.URL.Path[len("/add/"):],
+	p := &core.AddParams{}
+	if r.Header.Get("Content-Type") == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+	} else {
+		p = &core.AddParams{
+			Name: r.URL.Query().Get("name"),
+			Hash: r.URL.Path[len("/add/"):],
+		}
 	}
 
 	res := &repo.DatasetRef{}
