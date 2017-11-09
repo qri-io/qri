@@ -18,11 +18,6 @@ jobs:
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
             ./.circleci/cover.test.sh | tee ${TEST_RESULTS}/go-test.out
-      # - run: 
-      #     name: Convert test output to junit-style xml
-      #     command: cat /tmp/test-reports/qri-io/original.txt | go-junit-report > /tmp/test-reports/qri-io/junit.xml
-      # - store_test_results:
-      #     path: /tmp/test-reports/qri-io/junit.xml
       - run:
           name: Publish coverage info to codecov.io
           command: bash <(curl -s https://codecov.io/bash)
@@ -31,24 +26,3 @@ jobs:
           destination: raw-test-output
       - store_test_results:
           path: /tmp/test-results
-      # - setup_remote_docker
-      # - run:
-      #     name: Install Docker client
-      #     command: |
-      #       if [ $CIRCLE_BRANCH = 'master' ]; then
-      #         set -x
-      #         VER="17.03.0-ce"
-      #         curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
-      #         tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-      #         mv /tmp/docker/* /usr/bin
-      #       fi
-      # - run:
-      #     name: Publish to Docker Hub
-      #     command: |
-      #       if [ $CIRCLE_BRANCH = 'master' ]; then
-      #         TAG=0.1.$CIRCLE_BUILD_NUM
-      #         docker build -t qri-io/qri:latest -t qri-io/qri:$TAG .
-      #         docker login -u $DOCKER_USER -p $DOCKER_PASS
-      #         docker push qri-io/qri:$TAG
-      #         docker push qri-io/qri:latest
-      #       fi
