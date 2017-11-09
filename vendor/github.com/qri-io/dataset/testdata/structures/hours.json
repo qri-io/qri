@@ -1,0 +1,25 @@
+{
+  "format": "csv",
+  "formatOptions": null,
+  "schema": {
+    "fields": [
+      {
+        "name": "field_1",
+        "type": "date"
+      },
+      {
+        "name": "field_2",
+        "type": "float"
+      },
+      {
+        "name": "field_3",
+        "type": "string"
+      },
+      {
+        "name": "field_4",
+        "type": "string"
+      }
+    ],
+    "primaryKey": null
+  }
+}

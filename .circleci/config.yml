@@ -3,51 +3,26 @@ jobs:
   build:
     working_directory: /go/src/github.com/qri-io/qri
     docker:
-      - image: circleci/cci-demo-go-primary:0.0.2
+      - image: circleci/golang:1.9
         environment:
           GOLANG_ENV: test
           PORT: 3000
-          DEBUG: false
+    environment:
+      TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
-      - run: 
-          name: Make test results directory
-          command: mkdir -p /tmp/test-reports/qri-io
+      - run: mkdir -p $TEST_RESULTS
+      - run: go get github.com/jstemmer/go-junit-report
       - run:
-          name: Install dependencies
-          command: go-wrapper download && go-wrapper install && go get -v github.com/jstemmer/go-junit-report
-      - run: 
-          name: Run tests
-          command: go test -v -race | tee /tmp/test-reports/qri-io/original.txt ; test ${PIPESTATUS[0]} -eq 0
-      - run:
-          name: Coverage tests
-          command: ./.circleci/cover.test.sh
-      - run: 
-          name: Convert test output to junit-style xml
-          command: cat /tmp/test-reports/qri-io/original.txt | go-junit-report > /tmp/test-reports/qri-io/junit.xml
-      - store_test_results:
-          path: /tmp/test-reports/qri-io/junit.xml
+          name: Run Tests
+          command: |
+            trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
+            ./.circleci/cover.test.sh | tee ${TEST_RESULTS}/go-test.out
       - run:
           name: Publish coverage info to codecov.io
           command: bash <(curl -s https://codecov.io/bash)
-      # - setup_remote_docker
-      # - run:
-      #     name: Install Docker client
-      #     command: |
-      #       if [ $CIRCLE_BRANCH = 'master' ]; then
-      #         set -x
-      #         VER="17.03.0-ce"
-      #         curl -L -o /tmp/docker-$VER.tgz https://get.docker.com/builds/Linux/x86_64/docker-$VER.tgz
-      #         tar -xz -C /tmp -f /tmp/docker-$VER.tgz
-      #         mv /tmp/docker/* /usr/bin
-      #       fi
-      # - run:
-      #     name: Publish to Docker Hub
-      #     command: |
-      #       if [ $CIRCLE_BRANCH = 'master' ]; then
-      #         TAG=0.1.$CIRCLE_BUILD_NUM
-      #         docker build -t qri-io/qri:latest -t qri-io/qri:$TAG .
-      #         docker login -u $DOCKER_USER -p $DOCKER_PASS
-      #         docker push qri-io/qri:$TAG
-      #         docker push qri-io/qri:latest
-      #       fi
+      - store_artifacts:
+          path: /tmp/test-results
+          destination: raw-test-output
+      - store_test_results:
+          path: /tmp/test-results

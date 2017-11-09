@@ -1,0 +1,14 @@
+{
+  "title": "Continent Codes",
+  "description": "list of continents with corresponding two letter codes",
+  "license": {
+    "type": "odc-pddl",
+    "url": "http://opendatacommons.org/licenses/pddl/"
+  },
+  "keywords": [
+    "Continents",
+    "Two letter code",
+    "Continent codes",
+    "Continent code list"
+  ]
+}

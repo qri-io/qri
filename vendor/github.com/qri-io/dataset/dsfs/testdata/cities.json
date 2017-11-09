@@ -1,0 +1,29 @@
+{
+  "title": "example city data",
+  "structure": {
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "fields": [
+        {
+          "name": "city",
+          "type": "string"
+        },
+        {
+          "name": "pop",
+          "type": "integer"
+        },
+        {
+          "name": "avg_age",
+          "type": "float"
+        },
+        {
+          "name": "in_usa",
+          "type": "boolean"
+        }
+      ]
+    }
+  }
+}

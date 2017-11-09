@@ -1,0 +1,32 @@
+{
+  "structure": {
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": false
+    },
+    "schema": {
+      "fields": [
+        {
+          "name": "created",
+          "type": "date"
+        },
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "views",
+          "type": "integer"
+        },
+        {
+          "name": "rating",
+          "type": "float"
+        },
+        {
+          "name": "notes",
+          "type": "string"
+        }
+      ]
+    }
+  }
+}

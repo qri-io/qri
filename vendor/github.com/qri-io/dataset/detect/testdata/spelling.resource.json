@@ -1,0 +1,15 @@
+{
+  "format": "csv",
+  "schema": {
+    "fields": [
+      {
+        "name": "state",
+        "type": "string"
+      },
+      {
+        "name": "search_interest",
+        "type": "float"
+      }
+    ]
+  }
+}
