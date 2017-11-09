@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"flag"
 	"os"
 
 	"github.com/spf13/cobra"
@@ -34,6 +35,7 @@ func Execute() {
 }
 
 func init() {
+	flag.Parse()
 	cobra.OnInitialize(initConfig)
 
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")

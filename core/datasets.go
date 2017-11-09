@@ -147,9 +147,9 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
-	adr := detect.Camelize(filename)
-	if p.Name != "" {
-		adr = detect.Camelize(filename)
+	name := p.Name
+	if name == "" && filename != "" {
+		name = detect.Camelize(filename)
 	}
 
 	ds := &dataset.Dataset{}
@@ -161,7 +161,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 
 	ds.Timestamp = time.Now().In(time.UTC)
 	if ds.Title == "" {
-		ds.Title = adr
+		ds.Title = name
 	}
 	ds.Data = datakey
 	if ds.Structure == nil {
@@ -182,7 +182,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
 	}
 
-	if err = r.repo.PutName(adr, dskey); err != nil {
+	if err = r.repo.PutName(name, dskey); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}
 
