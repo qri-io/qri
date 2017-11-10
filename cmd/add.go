@@ -47,16 +47,6 @@ var datasetAddCmd = &cobra.Command{
 			err := req.AddDataset(p, res)
 			ExitIfErr(err)
 
-			// PrintInfo("downloading %s...", root)
-			// _, err := fs.Fetch(cafs.SourceAny, datastore.NewKey(root))
-			// ExitIfErr(err)
-
-			// err = fs.Pin(datastore.NewKey(root), true)
-			// ExitIfErr(err)
-
-			// err = r.PutName(name, datastore.NewKey(args[0]))
-			// ExitIfErr(err)
-
 			PrintInfo("Successfully added dataset %s : %s", addDsName, res.Path.String())
 		} else {
 			initDataset()

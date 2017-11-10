@@ -3,25 +3,41 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // infoCmd represents the info command
 var infoCmd = &cobra.Command{
 	Use:     "info",
-	Aliases: []string{"describe"},
+	Aliases: []string{"get", "describe"},
 	Short:   "Show info about a dataset",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Println(args)
 		if len(args) == 0 {
-			fmt.Println("please specify an address to get the info of")
-			return
+			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
 
-		// ds, err := GetNamespaces(cmd, args).Dataset(dataset.NewAddress(args[0]))
-		// ExitIfErr(err)
-		// PrintDatasetDetailedInfo(ds)
+		r := GetRepo(false)
+		store := GetIpfsFilestore(true)
+		req := core.NewDatasetRequests(store, r)
+
+		for i, arg := range args {
+			rt, ref := Ref(arg)
+			p := &core.GetDatasetParams{}
+			switch rt {
+			case "path":
+				p.Path = datastore.NewKey(ref)
+			case "name":
+				p.Name = ref
+			}
+			res := &repo.DatasetRef{}
+			err := req.Get(p, res)
+			ExitIfErr(err)
+			PrintDatasetRefInfo(i, res)
+		}
 	},
 }
 

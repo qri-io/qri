@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
-	"strings"
 )
 
 var datasetRemoveCmd = &cobra.Command{
@@ -14,32 +14,28 @@ var datasetRemoveCmd = &cobra.Command{
 	Short:   "remove a dataset from your local namespace based on a resource hash",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 1 {
-			ErrExit(fmt.Errorf("wrong number of arguments for adding a dataset, expected [name]"))
+		if len(args) == 0 {
+			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
-		name := args[0]
 
 		fs := GetIpfsFilestore(false)
-
 		r := GetRepo(false)
-		path, err := r.GetPath(name)
-		ExitIfErr(err)
+		req := core.NewDatasetRequests(fs, r)
 
-		root := datastore.NewKey(strings.TrimSuffix(path.String(), "/"+dsfs.PackageFileDataset.String()))
-
-		err = fs.Delete(root)
-		if err != nil {
-			PrintWarning(err.Error())
+		for _, arg := range args {
+			rt, ref := Ref(arg)
+			p := &core.DeleteParams{}
+			switch rt {
+			case "path":
+				p.Path = datastore.NewKey(ref)
+			case "name":
+				p.Name = ref
+			}
+			res := false
+			err := req.Delete(p, &res)
+			ExitIfErr(err)
+			PrintSuccess("removed dataset %s", ref)
 		}
-		// ExitIfErr(err)
-
-		err = r.DeleteDataset(path)
-		ExitIfErr(err)
-
-		r.DeleteName(name)
-		ExitIfErr(err)
-
-		PrintSuccess("removed dataset %s: %s", name, path)
 	},
 }
 

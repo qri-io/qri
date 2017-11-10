@@ -365,3 +365,41 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 	}
 	return
 }
+
+type ValidateDatasetParams struct {
+	Name         string
+	Url          string
+	Path         datastore.Key
+	DataFilename string
+	Data         io.Reader
+	Metadata     io.Reader
+}
+
+func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
+	// store := Store(cmd, args)
+	// errs, err := history.Validate(store)
+	// ExitIfErr(err)
+
+	// if cmd.Flag("check-links").Value.String() == "true" {
+	// 	validation, data, count, err := ds.ValidateDeadLinks(Cache())
+	// 	ExitIfErr(err)
+	// 	if count > 0 {
+	// 		PrintResults(validation, data, dataset.CsvDataFormat)
+	// 	} else {
+	// 		PrintSuccess("✔ All good!")
+	// 	}
+	// }
+
+	// if p.Data != nil {
+	// 	errr, count, err := validate.Data(r)
+	// }
+
+	// validation, data, count, err := ds.ValidateData(Cache())
+	// ExitIfErr(err)
+	// if count > 0 {
+	// 	PrintResults(validation, data, dataset.CsvDataFormat)
+	// } else {
+	// 	PrintSuccess("✔ All good!")
+	// }
+	return fmt.Errorf("not finished")
+}
