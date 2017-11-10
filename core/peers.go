@@ -28,6 +28,11 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0
 
+	user, err := d.repo.Profile()
+	if err != nil {
+		return err
+	}
+
 	ps, err := repo.QueryPeers(d.repo.Peers(), query.Query{})
 	if err != nil {
 		return fmt.Errorf("error querying peers: %s", err.Error())
@@ -36,6 +41,9 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	for _, peer := range ps {
 		if i >= p.Limit {
 			break
+		}
+		if peer.Id == user.Id {
+			continue
 		}
 		replies[i] = peer
 		i++

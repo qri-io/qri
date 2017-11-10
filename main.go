@@ -28,15 +28,15 @@ func init() {
 func main() {
 	// Catch errors & pretty-print.
 	// comment this out to get stack traces back.
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		if err, ok := r.(error); ok {
-	// 			cmd.PrintErr(err)
-	// 		} else {
-	// 			log.Info(r)
-	// 		}
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				cmd.PrintErr(err)
+			} else {
+				log.Info(r)
+			}
+		}
+	}()
 
 	cmd.Execute()
 }

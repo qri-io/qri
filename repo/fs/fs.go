@@ -37,24 +37,25 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	index, err := search.LoadIndex(bp.filepath(FileSearchIndex))
-	if err != nil {
-		return nil, err
-	}
-
-	return &Repo{
+	repo := &Repo{
 		basepath: bp,
 
 		Datasets:       NewDatasets(base, FileDatasets, store),
-		Namestore:      Namestore{bp, index, store},
+		Namestore:      Namestore{basepath: bp, store: store},
 		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
 		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
 
 		analytics: NewAnalytics(base),
 		peers:     PeerStore{bp},
 		cache:     NewDatasets(base, FileCache, nil),
-		index:     index,
-	}, nil
+	}
+
+	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
+		repo.index = index
+		repo.Namestore.index = index
+	}
+
+	return repo, nil
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {
@@ -128,6 +129,10 @@ func ensureProfile(bp basepath, id string) error {
 
 // fs implements the search interface
 func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
+	if r.index == nil {
+		return nil, fmt.Errorf("search not supported")
+	}
+
 	refs, err := search.Search(r.index, p)
 	if err != nil {
 		return refs, err

@@ -5,42 +5,40 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
-// infoCmd represents the info command
-var infoCmd = &cobra.Command{
-	Use:     "info",
-	Aliases: []string{"get", "describe"},
-	Short:   "Show info about a dataset",
+var datasetRemoveCmd = &cobra.Command{
+	Use:     "remove",
+	Aliases: []string{"rm"},
+	Short:   "remove a dataset from your local namespace based on a resource hash",
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
 
+		fs := GetIpfsFilestore(false)
 		r := GetRepo(false)
-		store := GetIpfsFilestore(true)
-		req := core.NewDatasetRequests(store, r)
+		req := core.NewDatasetRequests(fs, r)
 
-		for i, arg := range args {
+		for _, arg := range args {
 			rt, ref := Ref(arg)
-			p := &core.GetDatasetParams{}
+			p := &core.DeleteParams{}
 			switch rt {
 			case "path":
 				p.Path = datastore.NewKey(ref)
 			case "name":
 				p.Name = ref
 			}
-			res := &repo.DatasetRef{}
-			err := req.Get(p, res)
+			res := false
+			err := req.Delete(p, &res)
 			ExitIfErr(err)
-			PrintDatasetRefInfo(i, res)
+			PrintSuccess("removed dataset %s", ref)
 		}
 	},
 }
 
 func init() {
-	RootCmd.AddCommand(infoCmd)
+	RootCmd.AddCommand(datasetRemoveCmd)
 }

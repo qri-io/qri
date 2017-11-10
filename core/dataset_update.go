@@ -71,7 +71,20 @@ func (r *DatasetRequests) Update(commit *Commit, ref *repo.DatasetRef) error {
 		return fmt.Errorf("error saving dataset: %s", err.Error())
 	}
 
+	name, err := r.repo.GetName(commit.Prev)
+	if err != nil {
+		return err
+	}
+
+	if err := r.repo.DeleteName(name); err != nil {
+		return err
+	}
+	if err := r.repo.PutName(name, dspath); err != nil {
+		return err
+	}
+
 	*ref = repo.DatasetRef{
+		Name:    name,
 		Path:    dspath,
 		Dataset: ds,
 	}

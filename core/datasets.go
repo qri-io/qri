@@ -147,9 +147,9 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
-	adr := detect.Camelize(filename)
-	if p.Name != "" {
-		adr = detect.Camelize(filename)
+	name := p.Name
+	if name == "" && filename != "" {
+		name = detect.Camelize(filename)
 	}
 
 	ds := &dataset.Dataset{}
@@ -161,7 +161,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 
 	ds.Timestamp = time.Now().In(time.UTC)
 	if ds.Title == "" {
-		ds.Title = adr
+		ds.Title = name
 	}
 	ds.Data = datakey
 	if ds.Structure == nil {
@@ -182,7 +182,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
 	}
 
-	if err = r.repo.PutName(adr, dskey); err != nil {
+	if err = r.repo.PutName(name, dskey); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}
 
@@ -364,4 +364,42 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 		Dataset: ds,
 	}
 	return
+}
+
+type ValidateDatasetParams struct {
+	Name         string
+	Url          string
+	Path         datastore.Key
+	DataFilename string
+	Data         io.Reader
+	Metadata     io.Reader
+}
+
+func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
+	// store := Store(cmd, args)
+	// errs, err := history.Validate(store)
+	// ExitIfErr(err)
+
+	// if cmd.Flag("check-links").Value.String() == "true" {
+	// 	validation, data, count, err := ds.ValidateDeadLinks(Cache())
+	// 	ExitIfErr(err)
+	// 	if count > 0 {
+	// 		PrintResults(validation, data, dataset.CsvDataFormat)
+	// 	} else {
+	// 		PrintSuccess("✔ All good!")
+	// 	}
+	// }
+
+	// if p.Data != nil {
+	// 	errr, count, err := validate.Data(r)
+	// }
+
+	// validation, data, count, err := ds.ValidateData(Cache())
+	// ExitIfErr(err)
+	// if count > 0 {
+	// 	PrintResults(validation, data, dataset.CsvDataFormat)
+	// } else {
+	// 	PrintSuccess("✔ All good!")
+	// }
+	return fmt.Errorf("not finished")
 }

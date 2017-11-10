@@ -51,16 +51,15 @@ func userHomeDir() string {
 	return os.Getenv("HOME")
 }
 
-func loadFileIfPath(path string, f *os.File) (err error) {
+func loadFileIfPath(path string) (file *os.File, err error) {
 	if path == "" {
-		return nil
+		return nil, nil
 	}
 
 	filepath, err := filepath.Abs(path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	f, err = os.Open(filepath)
-	return
+	return os.Open(filepath)
 }

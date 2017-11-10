@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/ipfs/go-datastore"
 	"io"
 	"os"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
@@ -31,7 +31,6 @@ var exportCmd = &cobra.Command{
 
 		r := GetRepo(false)
 		store := GetIpfsFilestore(false)
-
 		req := core.NewDatasetRequests(store, r)
 
 		p := &core.GetDatasetParams{
@@ -43,8 +42,6 @@ var exportCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		ds := res.Dataset
-
-		// ds, err := FindDataset(r, store, args[0])
 
 		if cmd.Flag("data-only").Value.String() == "true" {
 			src, err := dsfs.LoadData(store, ds)
