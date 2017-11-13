@@ -45,9 +45,7 @@ var updateCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("either a metadata or data option is required"))
 		}
 
-		r := GetRepo(false)
-		store := GetIpfsFilestore(false)
-		req := core.NewDatasetRequests(store, r)
+		req := core.NewDatasetRequests(GetRepo(false))
 
 		p := &core.GetDatasetParams{
 			Name: args[0],

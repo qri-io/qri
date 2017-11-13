@@ -2,10 +2,12 @@ package repo
 
 import (
 	"github.com/qri-io/analytics"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
 type MemRepo struct {
+	store cafs.Filestore
 	MemDatasets
 	MemNamestore
 	*MemQueryLog
@@ -16,8 +18,9 @@ type MemRepo struct {
 	analytics analytics.Analytics
 }
 
-func NewMemRepo(p *profile.Profile, ps Peers, a analytics.Analytics) (Repo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.Analytics) (Repo, error) {
 	return &MemRepo{
+		store:             store,
 		MemDatasets:       MemDatasets{},
 		MemNamestore:      MemNamestore{},
 		MemQueryLog:       &MemQueryLog{},
@@ -27,6 +30,10 @@ func NewMemRepo(p *profile.Profile, ps Peers, a analytics.Analytics) (Repo, erro
 		analytics:         a,
 		cache:             MemDatasets{},
 	}, nil
+}
+
+func (r *MemRepo) Store() cafs.Filestore {
+	return r.store
 }
 
 func (r *MemRepo) Profile() (*profile.Profile, error) {

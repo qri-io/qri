@@ -7,7 +7,6 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
-	fs_repo "github.com/qri-io/qri/repo/fs"
 
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -24,9 +23,9 @@ type NodeCfg struct {
 	PrivKey crypto.PrivKey
 
 	// Bring-Your-Own Qri Repo...
-	Repo repo.Repo
+	// Repo repo.Repo
 	// ... Or supply a filepath to one
-	RepoPath string
+	// RepoPath string
 
 	// default port to bind tcp listener to
 	// ignored if Addrs is supplied
@@ -59,12 +58,12 @@ func DefaultNodeCfg() *NodeCfg {
 	}
 
 	return &NodeCfg{
-		Online:   true,
-		Logger:   log,
-		PeerId:   pid,
-		PrivKey:  priv,
-		PubKey:   pub,
-		RepoPath: "~/qri",
+		Online:  true,
+		Logger:  log,
+		PeerId:  pid,
+		PrivKey: priv,
+		PubKey:  pub,
+		// RepoPath: "~/qri",
 		// TODO - enabling this causes all nodes to broadcast
 		// on the same address, which isn't good. figure out why
 		// Port:     4444,
@@ -74,15 +73,17 @@ func DefaultNodeCfg() *NodeCfg {
 }
 
 // Validate confirms that the given settings will work, returning an error if not.
-func (cfg *NodeCfg) Validate(store cafs.Filestore) error {
-
-	if cfg.Repo == nil && cfg.RepoPath != "" {
-		repo, err := fs_repo.NewRepo(store, cfg.RepoPath, cfg.canonicalPeerId(store))
-		if err != nil {
-			return err
-		}
-		cfg.Repo = repo
+func (cfg *NodeCfg) Validate(r repo.Repo) error {
+	if r == nil {
+		return fmt.Errorf("need a qri Repo to create a qri node")
 	}
+	// if r == nil && cfg.RepoPath != "" {
+	// 	repo, err := fs_repo.NewRepo(store, cfg.RepoPath, cfg.canonicalPeerId(store))
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	cfg.Repo = repo
+	// }
 
 	// If no listening addresses are set, allocate
 	// a tcp multiaddress on local host bound to the default port

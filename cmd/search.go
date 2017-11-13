@@ -22,9 +22,7 @@ var searchCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
 		}
 
-		r := GetRepo(false)
-		store := GetIpfsFilestore(false)
-		req := core.NewSearchRequests(store, r)
+		req := core.NewSearchRequests(GetRepo(false))
 
 		if searchCmdReindex {
 			PrintInfo("building index...")

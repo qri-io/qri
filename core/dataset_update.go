@@ -23,6 +23,7 @@ type Commit struct {
 // Update adds a history entry updating a dataset
 // TODO - work in progress
 func (r *DatasetRequests) Update(commit *Commit, ref *repo.DatasetRef) error {
+	store := r.repo.Store()
 	ds := &dataset.Dataset{}
 
 	prev, err := r.repo.GetDataset(commit.Prev)
@@ -39,7 +40,7 @@ func (r *DatasetRequests) Update(commit *Commit, ref *repo.DatasetRef) error {
 		if err != nil {
 			return fmt.Errorf("error getting data byte size: %s", err.Error())
 		}
-		path, err := r.store.Put(commit.Data, false)
+		path, err := store.Put(commit.Data, false)
 		if err != nil {
 			return fmt.Errorf("error putting data in store: %s", err.Error())
 		}
@@ -66,7 +67,7 @@ func (r *DatasetRequests) Update(commit *Commit, ref *repo.DatasetRef) error {
 
 	// TODO - should this go into the save method?
 	ds.Timestamp = time.Now().In(time.UTC)
-	dspath, err := dsfs.SaveDataset(r.store, ds, true)
+	dspath, err := dsfs.SaveDataset(store, ds, true)
 	if err != nil {
 		return fmt.Errorf("error saving dataset: %s", err.Error())
 	}

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
@@ -17,8 +16,8 @@ type SearchHandlers struct {
 	log logging.Logger
 }
 
-func NewSearchHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *SearchHandlers {
-	req := core.NewSearchRequests(store, r)
+func NewSearchHandlers(log logging.Logger, r repo.Repo) *SearchHandlers {
+	req := core.NewSearchRequests(r)
 	return &SearchHandlers{*req, log}
 }
 

@@ -14,9 +14,7 @@ var queriesCmd = &cobra.Command{
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			r := GetRepo(false)
-			store := GetIpfsFilestore(false)
-			req := core.NewQueryRequests(store, r)
+			req := core.NewQueryRequests(GetRepo(false))
 
 			p := &core.ListParams{
 				Limit:  30,

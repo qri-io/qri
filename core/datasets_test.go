@@ -7,9 +7,13 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
+	badDataFile := testrepo.BadDataFile
+	jobsByAutomationFile := testrepo.JobsByAutomationFile
+
 	cases := []struct {
 		p   *InitDatasetParams
 		res *repo.DatasetRef
@@ -21,13 +25,13 @@ func TestDatasetRequestsInit(t *testing.T) {
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 	}
 
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.InitDataset(c.p, got)
@@ -44,7 +48,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		movies, counter, cities *repo.DatasetRef
 	)
 
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -79,7 +83,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := []*repo.DatasetRef{}
 		err := req.List(c.p, &got)
@@ -105,7 +109,7 @@ func TestDatasetRequestsList(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -115,7 +119,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Errorf("error getting path: %s", err.Error())
 		return
 	}
-	moviesDs, err := dsfs.LoadDataset(ms, path)
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 		return
@@ -132,7 +136,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		{&GetDatasetParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Get(c.p, got)
@@ -147,7 +151,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 }
 
 func TestDatasetRequestsSave(t *testing.T) {
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -157,7 +161,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Errorf("error getting path: %s", err.Error())
 		return
 	}
-	moviesDs, err := dsfs.LoadDataset(ms, path)
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 		return
@@ -173,7 +177,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		{&SaveParams{Name: "ABC", Dataset: moviesDs}, nil, "error marshaling dataset abstract structure to json: json: error calling MarshalJSON for type *dataset.Structure: json: error calling MarshalJSON for type dataset.DataFormat: Unknown Data Format"},
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := &dataset.Dataset{}
 		err := req.Save(c.p, got)
@@ -186,7 +190,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 }
 
 func TestDatasetRequestsDelete(t *testing.T) {
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -207,7 +211,7 @@ func TestDatasetRequestsDelete(t *testing.T) {
 		{&DeleteParams{Path: path}, nil, ""},
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := false
 		err := req.Delete(c.p, &got)
@@ -220,7 +224,7 @@ func TestDatasetRequestsDelete(t *testing.T) {
 }
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -242,7 +246,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		{&StructuredDataParams{Format: df1, Path: path, Objects: false, Limit: -5, Offset: -100, All: true}, nil, ""},
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := &StructuredData{}
 		err := req.StructuredData(c.p, got)
@@ -263,13 +267,13 @@ func TestDatasetRequestsAddDataset(t *testing.T) {
 		{&AddParams{Name: "abc", Hash: "hash###"}, nil, "can only add datasets when running an IPFS filestore"},
 	}
 
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
 
-	req := NewDatasetRequests(ms, mr)
+	req := NewDatasetRequests(mr)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.AddDataset(c.p, got)

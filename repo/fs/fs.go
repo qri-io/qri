@@ -15,6 +15,7 @@ import (
 )
 
 type Repo struct {
+	store cafs.Filestore
 	basepath
 
 	Datasets
@@ -38,6 +39,7 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	}
 
 	repo := &Repo{
+		store:    store,
 		basepath: bp,
 
 		Datasets:       NewDatasets(base, FileDatasets, store),
@@ -56,6 +58,10 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	}
 
 	return repo, nil
+}
+
+func (r Repo) Store() cafs.Filestore {
+	return r.store
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {
