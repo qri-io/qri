@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -72,6 +73,10 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 		}
 		replies[i].Dataset = ds
 	}
+
+	// TODO - horrible hack to make sure results are default-sorted
+	sort.Slice(replies, func(i, j int) bool { return replies[i].Dataset.Timestamp.After(replies[j].Dataset.Timestamp) })
+
 	*res = replies
 	return nil
 }

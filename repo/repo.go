@@ -99,22 +99,6 @@ type QueryLog interface {
 	GetQueryLogs(limit, offset int) ([]*DatasetRef, error)
 }
 
-// DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
-// ways of referring to a dataset to a dataset itself, as datasets can't easily
-// contain their own hash information, and names are unique on a per-repository
-// basis.
-// It's tempting to think this needs to be "bigger", supporting more fields,
-// keep in mind that if the information is important at all, it should
-// be stored as metadata within the dataset itself.
-type DatasetRef struct {
-	// The dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset"`
-	// Unique name reference for this dataset
-	Name string `json:"name,omitempty"`
-	// Content-addressed path for this dataset
-	Path datastore.Key `json:"path"`
-}
-
 type SearchParams struct {
 	Q             string
 	Limit, Offset int

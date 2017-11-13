@@ -16,7 +16,7 @@ import (
 )
 
 func NewTestRepo() (mr repo.Repo, ms cafs.Filestore, err error) {
-	datasets := []string{"movies", "cities"}
+	datasets := []string{"movies", "cities", "counter"}
 	p := &profile.Profile{
 		Username: "test_user",
 	}

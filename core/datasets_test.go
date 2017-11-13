@@ -1,11 +1,12 @@
 package core
 
 import (
+	"testing"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
-	"testing"
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
@@ -39,16 +40,9 @@ func TestDatasetRequestsInit(t *testing.T) {
 }
 
 func TestDatasetRequestsList(t *testing.T) {
-	cases := []struct {
-		p   *ListParams
-		res *[]*repo.DatasetRef
-		err string
-	}{
-		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: 0}, nil, ""},
-		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		//TODO: get this to work
-		// {&ListParams{OrderBy: "chaos", Limit: -6, Offset: -50}, nil, ""},
-	}
+	var (
+		movies, counter, cities *repo.DatasetRef
+	)
 
 	mr, ms, err := NewTestRepo()
 	if err != nil {
@@ -56,14 +50,56 @@ func TestDatasetRequestsList(t *testing.T) {
 		return
 	}
 
+	refs, err := mr.Namespace(30, 0)
+	if err != nil {
+		t.Errorf("error getting namespace: %s", err.Error())
+		return
+	}
+
+	for _, ref := range refs {
+		switch ref.Name {
+		case "movies":
+			movies = ref
+		case "counter":
+			counter = ref
+		case "cities":
+			cities = ref
+		}
+	}
+
+	cases := []struct {
+		p   *ListParams
+		res []*repo.DatasetRef
+		err string
+	}{
+		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
+		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []*repo.DatasetRef{movies, counter, cities}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []*repo.DatasetRef{movies, counter, cities}, ""},
+		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
+	}
+
 	req := NewDatasetRequests(ms, mr)
 	for i, c := range cases {
-		got := &[]*repo.DatasetRef{}
-		err := req.List(c.p, got)
+		got := []*repo.DatasetRef{}
+		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
+		}
+
+		if c.err == "" && c.res != nil {
+			if len(c.res) != len(got) {
+				t.Errorf("case %d response length mismatch. expected %d, got: %d", i, len(c.res), len(got))
+				continue
+			}
+			for j, expect := range c.res {
+				if err := repo.CompareDatasetRef(expect, got[j]); err != nil {
+					t.Errorf("case %d expected dataset error. index %d mismatch: %s", i, j, err.Error())
+					continue
+				}
+			}
 		}
 	}
 }
