@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
+	"sort"
 	"strings"
 	"time"
 
@@ -24,18 +25,17 @@ import (
 )
 
 type DatasetRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
+	repo repo.Repo
 }
 
-func NewDatasetRequests(store cafs.Filestore, r repo.Repo) *DatasetRequests {
+func NewDatasetRequests(r repo.Repo) *DatasetRequests {
 	return &DatasetRequests{
-		store: store,
-		repo:  r,
+		repo: r,
 	}
 }
 
 func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	store := d.repo.Store()
 	// TODO - generate a sorted copy of keys, iterate through, respecting
 	// limit & offset
 	// ns, err := d.repo.Namespace()
@@ -61,17 +61,21 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 			break
 		}
 
-		ds, err := dsfs.LoadDataset(d.store, ref.Path)
+		ds, err := dsfs.LoadDataset(store, ref.Path)
 		if err != nil {
 			// try one extra time...
 			// TODO - remove this horrible hack
-			ds, err = dsfs.LoadDataset(d.store, ref.Path)
+			ds, err = dsfs.LoadDataset(store, ref.Path)
 			if err != nil {
 				return fmt.Errorf("error loading path: %s, err: %s", ref.Path.String(), err.Error())
 			}
 		}
 		replies[i].Dataset = ds
 	}
+
+	// TODO - horrible hack to make sure results are default-sorted
+	sort.Slice(replies, func(i, j int) bool { return replies[i].Dataset.Timestamp.After(replies[j].Dataset.Timestamp) })
+
 	*res = replies
 	return nil
 }
@@ -83,7 +87,8 @@ type GetDatasetParams struct {
 }
 
 func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
-	ds, err := dsfs.LoadDataset(d.store, p.Path)
+	store := d.repo.Store()
+	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
 	}
@@ -110,7 +115,10 @@ type InitDatasetParams struct {
 }
 
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
-	var rdr io.Reader
+	var (
+		rdr   io.Reader
+		store = r.repo.Store()
+	)
 	var filename = p.DataFilename
 	if p.Url != "" {
 		res, err := http.Get(p.Url)
@@ -142,7 +150,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("data is invalid")
 	}
 
-	datakey, err := r.store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
+	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
 	if err != nil {
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
@@ -173,7 +181,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return err
 	}
 
-	dskey, err := dsfs.SaveDataset(r.store, ds, true)
+	dskey, err := dsfs.SaveDataset(store, ds, true)
 	if err != nil {
 		return fmt.Errorf("error saving dataset: %s", err.Error())
 	}
@@ -208,7 +216,7 @@ type SaveParams struct {
 func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
 	ds := p.Dataset
 
-	path, err := dsfs.SaveDataset(r.store, ds, true)
+	path, err := dsfs.SaveDataset(r.repo.Store(), ds, true)
 	if err != nil {
 		return err
 	}
@@ -246,7 +254,7 @@ func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 		return
 	}
 
-	if pinner, ok := r.store.(cafs.Pinner); ok {
+	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
 		if err = pinner.Unpin(p.Path, true); err != nil {
 			return
 		}
@@ -275,18 +283,19 @@ type StructuredData struct {
 
 func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	var (
-		file cafs.File
-		d    []byte
+		file  cafs.File
+		d     []byte
+		store = r.repo.Store()
 	)
-	ds, err := dsfs.LoadDataset(r.store, p.Path)
+	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return err
 	}
 
 	if p.All {
-		file, err = dsfs.LoadData(r.store, ds)
+		file, err = dsfs.LoadData(store, ds)
 	} else {
-		d, err = dsfs.LoadRows(r.store, ds, p.Limit, p.Offset)
+		d, err = dsfs.LoadRows(store, ds, p.Limit, p.Offset)
 		file = memfs.NewMemfileBytes("data", d)
 	}
 
@@ -330,7 +339,7 @@ type AddParams struct {
 }
 
 func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
-	fs, ok := r.store.(*ipfs.Filestore)
+	fs, ok := r.repo.Store().(*ipfs.Filestore)
 	if !ok {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
@@ -353,7 +362,7 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
 
-	ds, err := dsfs.LoadDataset(r.store, path)
+	ds, err := dsfs.LoadDataset(fs, path)
 	if err != nil {
 		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
 	}

@@ -1,5 +1,6 @@
 {
-  "title": "example movie data",
+  "title": "it's a counter",
+  "timestamp": "2017-02-01T01:00:00.000Z",
   "structure": {
     "format": "csv",
     "formatConfig": {
@@ -8,11 +9,7 @@
     "schema": {
       "fields": [
         {
-          "name": "title",
-          "type": "string"
-        },
-        {
-          "name": "duration",
+          "name": "count",
           "type": "integer"
         }
       ]

@@ -4,21 +4,18 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
 type HistoryRequests struct {
-	repo  repo.Repo
-	store cafs.Filestore
+	repo repo.Repo
 }
 
-func NewHistoryRequests(r repo.Repo, store cafs.Filestore) *HistoryRequests {
+func NewHistoryRequests(r repo.Repo) *HistoryRequests {
 	return &HistoryRequests{
-		repo:  r,
-		store: store,
+		repo: r,
 	}
 }
 
@@ -41,7 +38,7 @@ func (d *HistoryRequests) Log(params *LogParams, log *[]*dataset.Dataset) (err e
 			break
 		}
 
-		ds, err = dsfs.LoadDataset(d.store, ds.Previous)
+		ds, err = dsfs.LoadDataset(d.repo.Store(), ds.Previous)
 		if err != nil {
 			return err
 		}

@@ -11,6 +11,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/analytics"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -25,6 +26,10 @@ var (
 // Repo is the interface for working with a qri repository
 // conceptually, it's a more-specific version of a datastore.
 type Repo interface {
+	// All repositories wrapp a content-addressed filestore as the cannonical
+	// record of this repository's data. Store gives direct access to the
+	// cafs.Filestore instance any given repo is using.
+	Store() cafs.Filestore
 	// At the heart of all repositories is a namestore, which maps user-defined
 	// aliases for datasets to their underlying content-addressed hash
 	// as an example:
@@ -99,22 +104,7 @@ type QueryLog interface {
 	GetQueryLogs(limit, offset int) ([]*DatasetRef, error)
 }
 
-// DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
-// ways of referring to a dataset to a dataset itself, as datasets can't easily
-// contain their own hash information, and names are unique on a per-repository
-// basis.
-// It's tempting to think this needs to be "bigger", supporting more fields,
-// keep in mind that if the information is important at all, it should
-// be stored as metadata within the dataset itself.
-type DatasetRef struct {
-	// The dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset"`
-	// Unique name reference for this dataset
-	Name string `json:"name,omitempty"`
-	// Content-addressed path for this dataset
-	Path datastore.Key `json:"path"`
-}
-
+// SearchParams encapsulates parameters provided to Searchable.Search
 type SearchParams struct {
 	Q             string
 	Limit, Offset int

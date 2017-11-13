@@ -61,6 +61,7 @@ func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
 
 		i++
 	}
+	res = res[:added]
 	return res, nil
 }
 

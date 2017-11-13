@@ -5,15 +5,14 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
 )
 
-func NewQueryHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *QueryHandlers {
-	req := core.NewQueryRequests(store, r)
+func NewQueryHandlers(log logging.Logger, r repo.Repo) *QueryHandlers {
+	req := core.NewQueryRequests(r)
 	return &QueryHandlers{*req, log}
 }
 

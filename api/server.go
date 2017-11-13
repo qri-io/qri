@@ -3,18 +3,12 @@ package api
 import (
 	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/datatogether/api/apiutil"
-	"github.com/qri-io/analytics"
-	"github.com/qri-io/cafs"
-	ipfs "github.com/qri-io/cafs/ipfs"
-	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/api/handlers"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // Server wraps a qri p2p node, providing traditional access via http
@@ -29,7 +23,7 @@ type Server struct {
 // New creates a new qri server with optional configuration
 // calling New() with no options will return the default configuration
 // as specified in DefaultConfig
-func New(options ...func(*Config)) (s *Server, err error) {
+func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 	cfg := DefaultConfig()
 	for _, opt := range options {
 		opt(cfg)
@@ -43,41 +37,9 @@ func New(options ...func(*Config)) (s *Server, err error) {
 		log: cfg.Logger,
 	}
 
-	var store cafs.Filestore
-	var qrepo repo.Repo
-
-	if s.cfg.MemOnly {
-		store = memfs.NewMapstore()
-		// TODO - refine, adding better identity generation
-		// or options for BYO user profile
-		qrepo, err = repo.NewMemRepo(
-			&profile.Profile{
-				Username: "mem user",
-			},
-			repo.MemPeers{},
-			&analytics.Memstore{})
-		if err != nil {
-			return s, err
-		}
-	} else {
-		store, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-			// cfg.Online = false
-			cfg.Online = s.cfg.Online
-			cfg.FsRepoPath = s.cfg.FsStorePath
-		})
-		if err != nil {
-			if strings.Contains(err.Error(), "resource temporarily unavailable") {
-				return s, fmt.Errorf("Couldn't obtain filestore lock. Is an ipfs daemon already running?")
-			}
-			return s, err
-		}
-	}
-
 	// allocate a new node
-	s.qriNode, err = p2p.NewQriNode(store, func(ncfg *p2p.NodeCfg) {
+	s.qriNode, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
 		ncfg.Logger = s.log
-		ncfg.Repo = qrepo
-		ncfg.RepoPath = s.cfg.QriRepoPath
 		ncfg.Online = s.cfg.Online
 		if cfg.BoostrapAddrs != nil {
 			ncfg.QriBootstrapAddrs = cfg.BoostrapAddrs
@@ -124,7 +86,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 
-	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
+	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
@@ -134,7 +96,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
-	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
+	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
@@ -142,10 +104,10 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
-	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo, s.qriNode.Store)
+	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
-	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Store, s.qriNode.Repo)
+	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/queries", s.middleware(qh.ListHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
 

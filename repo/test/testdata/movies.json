@@ -1,0 +1,22 @@
+{
+  "title": "example movie data",
+  "timestamp": "2017-03-01T01:00:00.000Z",
+  "structure": {
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "fields": [
+        {
+          "name": "title",
+          "type": "string"
+        },
+        {
+          "name": "duration",
+          "type": "integer"
+        }
+      ]
+    }
+  }
+}

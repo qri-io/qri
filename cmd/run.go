@@ -28,8 +28,7 @@ var runCmd = &cobra.Command{
 		}
 
 		r := GetRepo(false)
-		store := GetIpfsFilestore(false)
-		req := core.NewQueryRequests(store, r)
+		req := core.NewQueryRequests(r)
 
 		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
 		if err != nil {
@@ -52,7 +51,7 @@ var runCmd = &cobra.Command{
 		err = req.Run(p, res)
 		ExitIfErr(err)
 
-		f, err := dsfs.LoadData(store, res.Dataset)
+		f, err := dsfs.LoadData(r.Store(), res.Dataset)
 		ExitIfErr(err)
 
 		results, err := ioutil.ReadAll(f)

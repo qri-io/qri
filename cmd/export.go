@@ -30,8 +30,7 @@ var exportCmd = &cobra.Command{
 		}
 
 		r := GetRepo(false)
-		store := GetIpfsFilestore(false)
-		req := core.NewDatasetRequests(store, r)
+		req := core.NewDatasetRequests(r)
 
 		p := &core.GetDatasetParams{
 			Name: args[0],
@@ -44,7 +43,7 @@ var exportCmd = &cobra.Command{
 		ds := res.Dataset
 
 		if cmd.Flag("data-only").Value.String() == "true" {
-			src, err := dsfs.LoadData(store, ds)
+			src, err := dsfs.LoadData(r.Store(), ds)
 			ExitIfErr(err)
 
 			dst, err := os.Create(fmt.Sprintf("%s.%s", path, ds.Structure.Format.String()))
@@ -62,14 +61,14 @@ var exportCmd = &cobra.Command{
 			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 			ExitIfErr(err)
 
-			err = dsutil.WriteZipArchive(store, ds, dst)
+			err = dsutil.WriteZipArchive(r.Store(), ds, dst)
 			ExitIfErr(err)
 			err = dst.Close()
 			ExitIfErr(err)
 			return
 		}
 
-		err = dsutil.WriteDir(store, ds, path)
+		err = dsutil.WriteDir(r.Store(), ds, path)
 		ExitIfErr(err)
 	},
 }

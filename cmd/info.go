@@ -20,9 +20,7 @@ var infoCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
 
-		r := GetRepo(false)
-		store := GetIpfsFilestore(true)
-		req := core.NewDatasetRequests(store, r)
+		req := core.NewDatasetRequests(GetRepo(false))
 
 		for i, arg := range args {
 			rt, ref := Ref(arg)

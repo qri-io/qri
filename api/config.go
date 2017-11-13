@@ -15,12 +15,10 @@ const (
 
 func DefaultConfig() *Config {
 	return &Config{
-		Logger:      logging.DefaultLogger,
-		Mode:        "develop",
-		Port:        "8080",
-		QriRepoPath: "~/qri",
-		FsStorePath: "~/.ipfs",
-		Online:      true,
+		Logger: logging.DefaultLogger,
+		Mode:   "develop",
+		Port:   "8080",
+		Online: true,
 	}
 }
 
@@ -42,10 +40,6 @@ type Config struct {
 	Port string
 	// root url for service
 	UrlRoot string
-	// path to ipfs filestore
-	FsStorePath string
-	// path to qri repository
-	QriRepoPath string
 	// DNS service discovery. Should be either "env" or "dns", default is env
 	GetHostsFrom string
 	// Public Key to use for signing metablocks. required.

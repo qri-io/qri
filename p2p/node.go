@@ -6,7 +6,6 @@ import (
 	"sort"
 
 	"github.com/ipfs/go-ipfs/core"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
 
@@ -33,27 +32,29 @@ type QriNode struct {
 	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
 	QriPeers  pstore.Peerstore  // storage for other qri Peer instances
 
-	Repo  repo.Repo      // repository of this node's qri data
-	Store cafs.Filestore // a content addressed filestore for data storage, usually ipfs
+	// repository of this node's qri data
+	// note that repo's are built upon a cafs.Filestore, which
+	// may contain a reference to a functioning IPFS node. In that case
+	// QriNode should piggyback non-qri-specific p2p functionality on the
+	// ipfs node provided by repo
+	Repo repo.Repo
 
 	BootstrapAddrs []string // list of addresses to bootrap *qri* from (not IPFS)
 }
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, error) {
-	if store == nil {
-		return nil, fmt.Errorf("need a store to create a qri node")
-	}
-
+func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)
 	}
-	if err := cfg.Validate(store); err != nil {
+	if err := cfg.Validate(r); err != nil {
 		return nil, err
 	}
 
+	// hoist store from repo
+	store := r.Store()
 	// Create a peerstore
 	ps := pstore.NewPeerstore()
 
@@ -62,8 +63,7 @@ func NewQriNode(store cafs.Filestore, options ...func(o *NodeCfg)) (*QriNode, er
 		Identity:       cfg.PeerId,
 		Online:         cfg.Online,
 		QriPeers:       ps,
-		Repo:           cfg.Repo,
-		Store:          store,
+		Repo:           r,
 		BootstrapAddrs: cfg.QriBootstrapAddrs,
 	}
 
@@ -127,7 +127,7 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 }
 
 func (n *QriNode) IpfsNode() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Store.(*ipfs_filestore.Filestore); ok {
+	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")

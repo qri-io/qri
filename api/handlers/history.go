@@ -5,7 +5,6 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -18,8 +17,8 @@ type HistoryHandlers struct {
 	log logging.Logger
 }
 
-func NewHistoryHandlers(log logging.Logger, r repo.Repo, store cafs.Filestore) *HistoryHandlers {
-	req := core.NewHistoryRequests(r, store)
+func NewHistoryHandlers(log logging.Logger, r repo.Repo) *HistoryHandlers {
+	req := core.NewHistoryRequests(r)
 	h := HistoryHandlers{*req, log}
 	return &h
 }

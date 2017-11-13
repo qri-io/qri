@@ -14,10 +14,9 @@ type SearchRequests struct {
 	// node  *p2p.QriNode
 }
 
-func NewSearchRequests(store cafs.Filestore, r repo.Repo) *SearchRequests {
+func NewSearchRequests(r repo.Repo) *SearchRequests {
 	return &SearchRequests{
-		store: store,
-		repo:  r,
+		repo: r,
 		// node:  node,
 	}
 }
@@ -49,7 +48,7 @@ type ReindexSearchParams struct {
 
 func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
 	if fsr, ok := d.repo.(*fs_repo.Repo); ok {
-		err := fsr.UpdateSearchIndex(d.store)
+		err := fsr.UpdateSearchIndex(d.repo.Store())
 		if err != nil {
 			return fmt.Errorf("error reindexing: %s", err.Error())
 		}

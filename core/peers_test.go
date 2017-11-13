@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestPeerRequestsList(t *testing.T) {
@@ -20,7 +21,7 @@ func TestPeerRequestsList(t *testing.T) {
 		// TODO - need a test that confirms that this node's identity is never present in peers list
 	}
 
-	mr, _, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

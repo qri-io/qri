@@ -1,13 +1,14 @@
-package core
+package test
 
 import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/analytics"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -15,23 +16,23 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func NewTestRepo() (mr repo.Repo, ms cafs.Filestore, err error) {
-	datasets := []string{"movies", "cities"}
+func NewTestRepo() (mr repo.Repo, err error) {
+	datasets := []string{"movies", "cities", "counter"}
 	p := &profile.Profile{
 		Username: "test_user",
 	}
-	mr, err = repo.NewMemRepo(p, repo.MemPeers{}, &analytics.Memstore{})
+	ms := memfs.NewMapstore()
+	mr, err = repo.NewMemRepo(p, ms, repo.MemPeers{}, &analytics.Memstore{})
 	if err != nil {
 		return
 	}
-	ms = memfs.NewMapstore()
 
 	var (
 		rawdata, dsdata []byte
 		datakey, dskey  datastore.Key
 	)
 	for _, k := range datasets {
-		rawdata, err = ioutil.ReadFile(fmt.Sprintf("testdata/%s.csv", k))
+		rawdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.csv", k)))
 		if err != nil {
 			return
 		}
@@ -41,7 +42,7 @@ func NewTestRepo() (mr repo.Repo, ms cafs.Filestore, err error) {
 			return
 		}
 
-		dsdata, err = ioutil.ReadFile(fmt.Sprintf("testdata/%s.json", k))
+		dsdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.json", k)))
 		if err != nil {
 			return
 		}
@@ -64,7 +65,12 @@ func NewTestRepo() (mr repo.Repo, ms cafs.Filestore, err error) {
 	return
 }
 
-var badDataFile = memfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
+func pkgPath(paths ...string) string {
+	gp := os.Getenv("GOPATH")
+	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)
+}
+
+var BadDataFile = memfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
 f;lajsmf 
@@ -72,7 +78,7 @@ a
 's;f a'
 sdlfj asdf`))
 
-var jobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
+var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"

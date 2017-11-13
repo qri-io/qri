@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/qri-io/qri/repo/test"
 )
 
 func TestServerRoutes(t *testing.T) {
@@ -27,7 +29,13 @@ func TestServerRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	s, err := New(func(opt *Config) {
+	r, err := test.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	s, err := New(r, func(opt *Config) {
 		opt.Online = false
 		opt.MemOnly = true
 	})

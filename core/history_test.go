@@ -5,10 +5,11 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestHistoryRequestsLog(t *testing.T) {
-	mr, ms, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -29,7 +30,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{&LogParams{Path: path}, []*dataset.Dataset{&dataset.Dataset{}}, ""},
 	}
 
-	req := NewHistoryRequests(mr, ms)
+	req := NewHistoryRequests(mr)
 	for i, c := range cases {
 		got := []*dataset.Dataset{}
 		err := req.Log(c.p, &got)

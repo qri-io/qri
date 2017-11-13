@@ -159,7 +159,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		if i >= p.Limit {
 			break
 		}
-		ds, err := dsfs.LoadDataset(n.Store, ref.Path)
+		ds, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
 		if err != nil {
 			n.log.Info("error loading dataset at path:", ref.Path)
 			return nil

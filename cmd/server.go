@@ -4,8 +4,12 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/analytics"
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/api"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 )
@@ -28,12 +32,30 @@ var serverCmd = &cobra.Command{
 			ExitIfErr(err)
 		}
 
-		s, err := api.New(func(cfg *api.Config) {
+		var (
+			r   repo.Repo
+			err error
+		)
+
+		if serverMemOnly {
+			// TODO - refine, adding better identity generation
+			// or options for BYO user profile
+			r, err = repo.NewMemRepo(
+				&profile.Profile{
+					Username: "mem user",
+				},
+				memfs.NewMapstore(),
+				repo.MemPeers{},
+				&analytics.Memstore{})
+			ExitIfErr(err)
+		} else {
+			r = GetRepo(true)
+		}
+
+		s, err := api.New(r, func(cfg *api.Config) {
 			cfg.Logger = log
 			cfg.Port = serverCmdPort
 			cfg.MemOnly = serverMemOnly
-			cfg.QriRepoPath = viper.GetString(QriRepoPath)
-			cfg.FsStorePath = viper.GetString(IpfsFsPath)
 			cfg.Online = !serverOffline
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
 		})

@@ -34,9 +34,7 @@ var datasetAddCmd = &cobra.Command{
 				ErrExit(fmt.Errorf("please provide a --name"))
 			}
 
-			r := GetRepo(false)
-			fs := GetIpfsFilestore(true)
-			req := core.NewDatasetRequests(fs, r)
+			req := core.NewDatasetRequests(GetRepo(false))
 
 			root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
 			p := &core.AddParams{
@@ -71,9 +69,7 @@ func initDataset() {
 	metaFile, err = loadFileIfPath(addDsMetaFilepath)
 	ExitIfErr(err)
 
-	r := GetRepo(false)
-	store := GetIpfsFilestore(false)
-	req := core.NewDatasetRequests(store, r)
+	req := core.NewDatasetRequests(GetRepo(false))
 
 	p := &core.InitDatasetParams{
 		Name:         addDsName,

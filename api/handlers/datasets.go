@@ -16,17 +16,17 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewDatasetHandlers(log logging.Logger, store cafs.Filestore, r repo.Repo) *DatasetHandlers {
-	req := core.NewDatasetRequests(store, r)
-	h := DatasetHandlers{*req, log, store}
+func NewDatasetHandlers(log logging.Logger, r repo.Repo) *DatasetHandlers {
+	req := core.NewDatasetRequests(r)
+	h := DatasetHandlers{*req, log, r}
 	return &h
 }
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	core.DatasetRequests
-	log   logging.Logger
-	store cafs.Filestore
+	log  logging.Logger
+	repo repo.Repo
 }
 
 func (h *DatasetHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
@@ -109,7 +109,7 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	dsutil.WriteZipArchive(h.store, res.Dataset, w)
+	dsutil.WriteZipArchive(h.repo.Store(), res.Dataset, w)
 }
 
 func (h *DatasetHandlers) listDatasetsHandler(w http.ResponseWriter, r *http.Request) {

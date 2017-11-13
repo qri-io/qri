@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/repo/profile"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestProfileRequestsGet(t *testing.T) {
@@ -16,7 +17,7 @@ func TestProfileRequestsGet(t *testing.T) {
 		{false, nil, ""},
 	}
 
-	mr, _, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -44,7 +45,7 @@ func TestProfileRequestsSave(t *testing.T) {
 		// TODO - moar tests
 	}
 
-	mr, _, err := NewTestRepo()
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
