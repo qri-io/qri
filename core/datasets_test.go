@@ -156,16 +156,16 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	path, err := mr.GetPath("movies")
-	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
-		return
-	}
-	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
-	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
-		return
-	}
+	// path, err := mr.GetPath("movies")
+	// if err != nil {
+	// 	t.Errorf("error getting path: %s", err.Error())
+	// 	return
+	// }
+	// moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
+	// if err != nil {
+	// 	t.Errorf("error loading dataset: %s", err.Error())
+	// 	return
+	// }
 	cases := []struct {
 		p   *UpdateParams
 		res *repo.DatasetRef
@@ -189,45 +189,6 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 		// if got != c.res && c.checkResult == true {
 		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
 		// }
-	}
-}
-
-func TestDatasetRequestsSave(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-	path, err := mr.GetPath("movies")
-	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
-		return
-	}
-	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
-	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
-		return
-	}
-
-	cases := []struct {
-		p   *SaveParams
-		res *dataset.Dataset
-		err string
-	}{
-		//TODO find out why this fails second time but not first
-		{&SaveParams{Name: "ABC", Dataset: moviesDs}, nil, ""},
-		{&SaveParams{Name: "ABC", Dataset: moviesDs}, nil, "error marshaling dataset abstract structure to json: json: error calling MarshalJSON for type *dataset.Structure: json: error calling MarshalJSON for type dataset.DataFormat: Unknown Data Format"},
-	}
-
-	req := NewDatasetRequests(mr)
-	for i, c := range cases {
-		got := &dataset.Dataset{}
-		err := req.Save(c.p, got)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
 	}
 }
 

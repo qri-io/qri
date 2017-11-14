@@ -300,31 +300,6 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
-type SaveParams struct {
-	Name    string
-	Dataset *dataset.Dataset
-}
-
-// TODO - naming of "save" is ambiguous
-func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
-	ds := p.Dataset
-
-	path, err := dsfs.SaveDataset(r.repo.Store(), ds, true)
-	if err != nil {
-		return err
-	}
-
-	if err := r.repo.PutName(p.Name, path); err != nil {
-		return err
-	}
-	if err := r.repo.PutDataset(path, ds); err != nil {
-		return err
-	}
-
-	*res = *ds
-	return nil
-}
-
 type DeleteParams struct {
 	Path datastore.Key
 	Name string
