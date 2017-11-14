@@ -251,6 +251,8 @@ func (h *DatasetHandlers) addDatasetHandler(w http.ResponseWriter, r *http.Reque
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
+		// TODO - clean this up
+		p.Hash = r.URL.Path[len("/add/"):]
 	} else {
 		p = &core.AddParams{
 			Name: r.URL.Query().Get("name"),

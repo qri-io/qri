@@ -43,7 +43,9 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 		if limit == 0 || ref.Dataset.Previous.String() == "" {
 			break
 		}
-		ref = &repo.DatasetRef{Path: ref.Dataset.Previous}
+		// TODO - clean this up
+		_, cleaned := dsfs.RefType(ref.Dataset.Previous.String())
+		ref = &repo.DatasetRef{Path: datastore.NewKey(cleaned)}
 	}
 
 	*res = log

@@ -419,8 +419,8 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
 
-	hash := strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String())
-	key := datastore.NewKey(hash)
+	// _, cleaned := dsfs.RefType(p.Hash)
+	key := datastore.NewKey(strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String()))
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
