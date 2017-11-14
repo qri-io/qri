@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
@@ -24,32 +23,29 @@ type LogParams struct {
 	ListParams
 }
 
-func (d *HistoryRequests) Log(params *LogParams, log *[]*dataset.Dataset) (err error) {
-	dss := []*dataset.Dataset{}
+func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err error) {
+	log := []*repo.DatasetRef{}
 	limit := params.Limit
-	ds := &dataset.Dataset{Previous: params.Path}
+	ref := &repo.DatasetRef{Path: params.Path}
 
 	if params.Path.String() == "" {
 		return fmt.Errorf("path is required")
 	}
 
 	for {
-		if ds.Previous.String() == "" {
-			break
-		}
-
-		ds, err = dsfs.LoadDataset(d.repo.Store(), ds.Previous)
+		ref.Dataset, err = dsfs.LoadDataset(d.repo.Store(), ref.Path)
 		if err != nil {
 			return err
 		}
-		dss = append(dss, ds)
+		log = append(log, ref)
 
 		limit--
-		if limit == 0 {
+		if limit == 0 || ref.Dataset.Previous.String() == "" {
 			break
 		}
+		ref = &repo.DatasetRef{Path: ref.Dataset.Previous}
 	}
 
-	*log = dss
+	*res = log
 	return nil
 }

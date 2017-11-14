@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -22,17 +22,17 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	cases := []struct {
 		p   *LogParams
-		res []*dataset.Dataset
+		res []*repo.DatasetRef
 		err string
 	}{
 		{&LogParams{}, nil, "path is required"},
 		{&LogParams{Path: datastore.NewKey("/badpath")}, nil, "error getting file bytes: datastore: key not found"},
-		{&LogParams{Path: path}, []*dataset.Dataset{&dataset.Dataset{}}, ""},
+		{&LogParams{Path: path}, []*repo.DatasetRef{&repo.DatasetRef{Path: path}}, ""},
 	}
 
 	req := NewHistoryRequests(mr)
 	for i, c := range cases {
-		got := []*dataset.Dataset{}
+		got := []*repo.DatasetRef{}
 		err := req.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
