@@ -21,6 +21,8 @@ var (
 	ErrNotFound = fmt.Errorf("repo: not found")
 	// when a Namestore name is already taken
 	ErrNameTaken = fmt.Errorf("repo: name already in use")
+	// when the repo has no datasets
+	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
 )
 
 // Repo is the interface for working with a qri repository

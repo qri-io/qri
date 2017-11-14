@@ -47,6 +47,8 @@ type Dataset struct {
 	AccessUrl string `json:"accessUrl,omitempty"`
 	// Url that should / must lead directly to the data itself
 	DownloadUrl string `json:"downloadUrl,omitempty"`
+	// The frequency with which dataset changes. Must be an ISO 8601 repeating duration
+	AccrualPeriodicity string `json:"accrualPeriodicity,omitempty"`
 	// path to readme
 	Readme datastore.Key `json:"readme,omitempty"`
 	// Author
@@ -154,6 +156,9 @@ func (d *Dataset) Assign(datasets ...*Dataset) {
 		}
 		if ds.Author != nil {
 			d.Author = ds.Author
+		}
+		if ds.AccrualPeriodicity != "" {
+			d.AccrualPeriodicity = ds.AccrualPeriodicity
 		}
 		if ds.Citations != nil {
 			d.Citations = ds.Citations
@@ -308,6 +313,9 @@ func (d *Dataset) MarshalJSON() ([]byte, error) {
 	}
 	data["timestamp"] = d.Timestamp
 	data["title"] = d.Title
+	if d.AccrualPeriodicity != "" {
+		data["accrualPeriodicity"] = d.AccrualPeriodicity
+	}
 	if d.Version != VersionNumber("") {
 		data["version"] = d.Version
 	}
@@ -341,6 +349,7 @@ func (d *Dataset) UnmarshalJSON(data []byte) error {
 	for _, f := range []string{
 		"abstractStructure",
 		"accessUrl",
+		"accrualPeriodicity",
 		"author",
 		"citations",
 		"commit",
@@ -438,6 +447,9 @@ func CompareDatasets(a, b *Dataset) error {
 	}
 	if a.DownloadUrl != b.DownloadUrl {
 		return fmt.Errorf("DownloadUrl mismatch: %s != %s", a.DownloadUrl, b.DownloadUrl)
+	}
+	if a.AccrualPeriodicity != b.AccrualPeriodicity {
+		return fmt.Errorf("AccrualPeriodicity mismatch: %s != %s", a.AccrualPeriodicity, b.AccrualPeriodicity)
 	}
 	// if err := CompareLicense(a.License, b.License); err != nil {
 	// 	return err

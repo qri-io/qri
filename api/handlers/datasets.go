@@ -135,7 +135,7 @@ func (h *DatasetHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Reque
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res.Dataset)
+	util.WriteResponse(w, res)
 }
 
 func (h *DatasetHandlers) initDatasetHandler(w http.ResponseWriter, r *http.Request) {

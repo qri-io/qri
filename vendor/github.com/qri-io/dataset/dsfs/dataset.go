@@ -11,8 +11,31 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-// Load a dataset from a cafs
+// LoadDataset reads a dataset from a cafs and dereferences structure, query, and commitMsg if they exist,
+// returning a fully-hydrated dataset
 func LoadDataset(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, error) {
+	ds, err := LoadDatasetRefs(store, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := DerefDatasetStructure(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileStructure, err.Error())
+	}
+
+	if err := DerefDatasetQuery(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
+	}
+
+	if err := DerefDatasetCommitMsg(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
+	}
+
+	return ds, nil
+}
+
+// LoadDatasetRefs reads a dataset from a content addressed filesystem
+func LoadDatasetRefs(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, error) {
 	ds := &dataset.Dataset{}
 
 	data, err := fileBytes(store.Get(path))
@@ -32,18 +55,6 @@ func LoadDataset(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, er
 	ds, err = dataset.UnmarshalDataset(data)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling %s file: %s", PackageFileDataset.String(), err.Error())
-	}
-
-	if err := DerefDatasetStructure(store, ds); err != nil {
-		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileStructure, err.Error())
-	}
-
-	if err := DerefDatasetQuery(store, ds); err != nil {
-		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
-	}
-
-	if err := DerefDatasetCommitMsg(store, ds); err != nil {
-		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
 	}
 
 	return ds, nil
@@ -88,6 +99,8 @@ func DerefDatasetCommitMsg(store cafs.Filestore, ds *dataset.Dataset) error {
 	return nil
 }
 
+// SaveDataset writes a dataset to a cafs, replacing subcomponents of a dataset with hash references
+// during the write process. Directory structure is according to PackageFile nameing conventions
 func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore.Key, error) {
 	if ds == nil {
 		return datastore.NewKey(""), nil

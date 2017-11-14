@@ -6,6 +6,20 @@ import (
 	"testing"
 )
 
+func TestLoadDataset(t *testing.T) {
+	store := memfs.NewMapstore()
+	apath, err := SaveDataset(store, AirportCodes, true)
+	if err != nil {
+		t.Errorf(err.Error())
+		return
+	}
+
+	_, err = LoadDataset(store, apath)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+}
+
 func TestDatasetSave(t *testing.T) {
 	store := memfs.NewMapstore()
 
@@ -34,18 +48,4 @@ func TestDatasetSave(t *testing.T) {
 		return
 	}
 	// fmt.Println(string(store.(memfs.MapStore)[datastore.NewKey("/mem/Qmdv5WeDGw1f6pw4DSYQdsugNDFUqHw9FuFU8Gu7T4PUqF")].([]byte)))
-}
-
-func TestLoadDataset(t *testing.T) {
-	store := memfs.NewMapstore()
-	apath, err := SaveDataset(store, AirportCodes, true)
-	if err != nil {
-		t.Errorf(err.Error())
-		return
-	}
-
-	_, err = LoadDataset(store, apath)
-	if err != nil {
-		t.Errorf(err.Error())
-	}
 }

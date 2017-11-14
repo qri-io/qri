@@ -165,6 +165,13 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	}
 
 	ds := &dataset.Dataset{}
+	if p.Url != "" {
+		ds.DownloadUrl = p.Url
+		// if we're adding from a dataset url, set a default accrual periodicity of once a week
+		// this'll set us up to re-check urls over time
+		// TODO - make this configurable via a param
+		ds.AccrualPeriodicity = "R/P1W"
+	}
 	if p.Metadata != nil {
 		if err := json.NewDecoder(p.Metadata).Decode(ds); err != nil {
 			return fmt.Errorf("error parsing metadata json: %s", err.Error())
