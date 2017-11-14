@@ -106,14 +106,19 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	return nil
 }
 
+// InitDatasetParams encapsulates arguments to InitDataset
 type InitDatasetParams struct {
-	Name         string
-	Url          string
-	DataFilename string
-	Data         io.Reader
-	Metadata     io.Reader
+	Name             string    // variable name for referring to this dataset. required.
+	Url              string    // url to download data from. either Url or Data is required
+	DataFilename     string    // filename of data file. extension is used for filetype detection
+	Data             io.Reader // reader of structured data. either Url or Data is required
+	MetadataFilename string    // filename of metadata file. optional.
+	Metadata         io.Reader // reader of json-formatted metadata
+	// TODO - add support for adding via path/hash
+	// DataPath         datastore.Key // path to structured data
 }
 
+// InitDataset creates a new qri dataset from a source of data
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
 	var (
 		rdr   io.Reader
@@ -134,8 +139,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("either a file or a url is required to create a dataset")
 	}
 
-	// TODO - split this into some sort of re-readable reader instead
-	// of reading the entire file
+	// TODO - need a better strategy for huge files
 	data, err := ioutil.ReadAll(rdr)
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
@@ -204,6 +208,95 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		Path:    dskey,
 		Dataset: ds,
 	}
+	return nil
+}
+
+type UpdateParams struct {
+	Changes      *dataset.Dataset // all dataset changes. required.
+	DataFilename string           // filename for new data. optional.
+	Data         io.Reader        // stream of complete dataset update. optional.
+}
+
+// Update adds a history entry, updating a dataset
+func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err error) {
+	var (
+		name     string
+		prevpath datastore.Key
+	)
+	store := r.repo.Store()
+	ds := &dataset.Dataset{}
+
+	rt, ref := dsfs.RefType(p.Changes.Previous.String())
+	// allows using dataset names as "previous" fields
+	if rt == "name" {
+		name = ref
+		prevpath, err = r.repo.GetPath(strings.Trim(ref, "/"))
+		if err != nil {
+			return fmt.Errorf("error getting previous dataset path: %s", err.Error())
+		}
+	} else {
+		prevpath = datastore.NewKey(ref)
+		// attempt to grab name for later if path is provided
+		name, _ = r.repo.GetName(prevpath)
+	}
+
+	// read previous changes
+	prev, err := r.repo.GetDataset(prevpath)
+	if err != nil {
+		return fmt.Errorf("error getting previous dataset: %s", err.Error())
+	}
+
+	// add all previous fields and any changes
+	ds.Assign(prev, p.Changes)
+
+	// store file if one is provided
+	if p.Data != nil {
+		data, err := ioutil.ReadAll(p.Data)
+		if err != nil {
+			return fmt.Errorf("error reading data: %s", err.Error())
+		}
+
+		path, err := store.Put(memfs.NewMemfileReader(p.DataFilename, p.Data), false)
+		if err != nil {
+			return fmt.Errorf("error putting data in store: %s", err.Error())
+		}
+
+		ds.Data = path
+		ds.Length = len(data)
+	}
+
+	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
+		ds.Previous = datastore.NewKey(strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String()))
+	} else {
+		ds.Previous = prevpath
+	}
+
+	if err := validate.Dataset(ds); err != nil {
+		return err
+	}
+
+	// TODO - should this go into the save method?
+	ds.Timestamp = time.Now().In(time.UTC)
+	dspath, err := dsfs.SaveDataset(store, ds, true)
+	if err != nil {
+		return fmt.Errorf("error saving dataset: %s", err.Error())
+	}
+
+	if name != "" {
+		if err := r.repo.DeleteName(name); err != nil {
+			return err
+		}
+		if err := r.repo.PutName(name, dspath); err != nil {
+			return err
+		}
+	}
+
+	*res = repo.DatasetRef{
+		Name:    name,
+		Path:    dspath,
+		Dataset: ds,
+	}
+
 	return nil
 }
 

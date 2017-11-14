@@ -159,7 +159,7 @@ func (h *DatasetHandlers) updateDatasetHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.Commit{}
+	p := &core.UpdateParams{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

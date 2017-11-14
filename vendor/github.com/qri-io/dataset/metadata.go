@@ -14,8 +14,9 @@ type VersionNumber string
 
 // User is a placholder for talking about people, groups, organizations
 type User struct {
-	Fullname string `fn,omitempty`
-	Email    string `email,omitempty`
+	Id       string `json:"id,omitempty"`
+	Fullname string `json:"name,omitempty"`
+	Email    string `json:"email,omitempty"`
 }
 
 // License represents a legal licensing agreement

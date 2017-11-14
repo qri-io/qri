@@ -29,6 +29,10 @@ var AirportCodes = &dataset.Dataset{
 	// Format: "text/csv",
 }
 
+var AirportCodesCommitMsg = &dataset.CommitMsg{
+	Message: "initial commit",
+}
+
 var AirportCodesStructure = &dataset.Structure{
 	Format: dataset.CsvDataFormat,
 	FormatConfig: &dataset.CsvOptions{

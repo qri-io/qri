@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ var infoCmd = &cobra.Command{
 		req := core.NewDatasetRequests(GetRepo(false))
 
 		for i, arg := range args {
-			rt, ref := Ref(arg)
+			rt, ref := dsfs.RefType(arg)
 			p := &core.GetDatasetParams{}
 			switch rt {
 			case "path":

@@ -150,6 +150,48 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsUpdate(t *testing.T) {
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+	path, err := mr.GetPath("movies")
+	if err != nil {
+		t.Errorf("error getting path: %s", err.Error())
+		return
+	}
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
+	if err != nil {
+		t.Errorf("error loading dataset: %s", err.Error())
+		return
+	}
+	cases := []struct {
+		p   *UpdateParams
+		res *repo.DatasetRef
+		err string
+	}{
+	//TODO: probably delete some of these
+	// {&UpdateParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
+	// {&UpdateParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
+	// {&UpdateParams{Path: path, Name: "movies", Hash: "123"}, moviesDs, ""},
+	// {&UpdateParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
+	}
+
+	req := NewDatasetRequests(mr)
+	for i, c := range cases {
+		got := &repo.DatasetRef{}
+		err := req.Update(c.p, got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+		// if got != c.res && c.checkResult == true {
+		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
+		// }
+	}
+}
+
 func TestDatasetRequestsSave(t *testing.T) {
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
