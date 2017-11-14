@@ -38,7 +38,7 @@ func (h *DatasetHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request
 	case "PUT":
 		h.updateDatasetHandler(w, r)
 	case "POST":
-		h.saveDatasetHandler(w, r)
+		h.initDatasetHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -50,8 +50,6 @@ func (h *DatasetHandlers) DatasetHandler(w http.ResponseWriter, r *http.Request)
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getDatasetHandler(w, r)
-	case "POST":
-		h.saveDatasetHandler(w, r)
 	case "PUT":
 		h.updateDatasetHandler(w, r)
 	case "DELETE":
@@ -137,55 +135,6 @@ func (h *DatasetHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Reque
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res.Dataset)
-}
-
-func (h *DatasetHandlers) saveDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		h.saveStructureHandler(w, r)
-	default:
-		h.initDatasetHandler(w, r)
-	}
-}
-
-func (h *DatasetHandlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		h.updateMetadataHandler(w, r)
-		// default:
-		//  h.initDatasetFileHandler(w, r)
-	}
-}
-
-func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.Commit{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	res := &repo.DatasetRef{}
-	if err := h.Update(p, res); err != nil {
-		h.log.Infof("error updating dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
-}
-
-func (h *DatasetHandlers) saveStructureHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.SaveParams{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	res := &dataset.Dataset{}
-	if err := h.Save(p, res); err != nil {
-		h.log.Infof("error saving dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
 	util.WriteResponse(w, res)
 }
 
@@ -218,6 +167,30 @@ func (h *DatasetHandlers) initDatasetHandler(w http.ResponseWriter, r *http.Requ
 		return
 	}
 	util.WriteResponse(w, res.Dataset)
+}
+
+func (h *DatasetHandlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		h.updateMetadataHandler(w, r)
+		// default:
+		//  h.initDatasetFileHandler(w, r)
+	}
+}
+
+func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
+	p := &core.UpdateParams{}
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	res := &repo.DatasetRef{}
+	if err := h.Update(p, res); err != nil {
+		h.log.Infof("error updating dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, res)
 }
 
 func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
@@ -278,6 +251,8 @@ func (h *DatasetHandlers) addDatasetHandler(w http.ResponseWriter, r *http.Reque
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
+		// TODO - clean this up
+		p.Hash = r.URL.Path[len("/add/"):]
 	} else {
 		p = &core.AddParams{
 			Name: r.URL.Query().Get("name"),

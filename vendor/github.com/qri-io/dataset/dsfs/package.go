@@ -8,6 +8,7 @@ const (
 	PackageFileStructure
 	PackageFileAbstractStructure
 	PackageFileResources
+	PackageFileCommitMsg
 	PackageFileQuery
 )
 
@@ -17,6 +18,7 @@ var filenames = map[PackageFile]string{
 	PackageFileStructure:         "structure.json",
 	PackageFileAbstractStructure: "abstract_structure.json",
 	PackageFileResources:         "resources",
+	PackageFileCommitMsg:         "commit.json",
 	PackageFileQuery:             "query.json",
 }
 

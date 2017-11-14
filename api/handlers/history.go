@@ -5,7 +5,6 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
@@ -40,7 +39,7 @@ func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		Path:       datastore.NewKey(r.URL.Path[len("/history/"):]),
 	}
 
-	res := []*dataset.Dataset{}
+	res := []*repo.DatasetRef{}
 	if err := h.Log(params, &res); err != nil {
 		h.log.Infof("")
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

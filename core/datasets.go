@@ -106,14 +106,19 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	return nil
 }
 
+// InitDatasetParams encapsulates arguments to InitDataset
 type InitDatasetParams struct {
-	Name         string
-	Url          string
-	DataFilename string
-	Data         io.Reader
-	Metadata     io.Reader
+	Name             string    // variable name for referring to this dataset. required.
+	Url              string    // url to download data from. either Url or Data is required
+	DataFilename     string    // filename of data file. extension is used for filetype detection
+	Data             io.Reader // reader of structured data. either Url or Data is required
+	MetadataFilename string    // filename of metadata file. optional.
+	Metadata         io.Reader // reader of json-formatted metadata
+	// TODO - add support for adding via path/hash
+	// DataPath         datastore.Key // path to structured data
 }
 
+// InitDataset creates a new qri dataset from a source of data
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
 	var (
 		rdr   io.Reader
@@ -134,8 +139,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("either a file or a url is required to create a dataset")
 	}
 
-	// TODO - split this into some sort of re-readable reader instead
-	// of reading the entire file
+	// TODO - need a better strategy for huge files
 	data, err := ioutil.ReadAll(rdr)
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
@@ -161,6 +165,13 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	}
 
 	ds := &dataset.Dataset{}
+	if p.Url != "" {
+		ds.DownloadUrl = p.Url
+		// if we're adding from a dataset url, set a default accrual periodicity of once a week
+		// this'll set us up to re-check urls over time
+		// TODO - make this configurable via a param
+		ds.AccrualPeriodicity = "R/P1W"
+	}
 	if p.Metadata != nil {
 		if err := json.NewDecoder(p.Metadata).Decode(ds); err != nil {
 			return fmt.Errorf("error parsing metadata json: %s", err.Error())
@@ -207,28 +218,92 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	return nil
 }
 
-type SaveParams struct {
-	Name    string
-	Dataset *dataset.Dataset
+type UpdateParams struct {
+	Changes      *dataset.Dataset // all dataset changes. required.
+	DataFilename string           // filename for new data. optional.
+	Data         io.Reader        // stream of complete dataset update. optional.
 }
 
-// TODO - naming of "save" is ambiguous
-func (r *DatasetRequests) Save(p *SaveParams, res *dataset.Dataset) error {
-	ds := p.Dataset
+// Update adds a history entry, updating a dataset
+func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err error) {
+	var (
+		name     string
+		prevpath datastore.Key
+	)
+	store := r.repo.Store()
+	ds := &dataset.Dataset{}
 
-	path, err := dsfs.SaveDataset(r.repo.Store(), ds, true)
+	rt, ref := dsfs.RefType(p.Changes.Previous.String())
+	// allows using dataset names as "previous" fields
+	if rt == "name" {
+		name = ref
+		prevpath, err = r.repo.GetPath(strings.Trim(ref, "/"))
+		if err != nil {
+			return fmt.Errorf("error getting previous dataset path: %s", err.Error())
+		}
+	} else {
+		prevpath = datastore.NewKey(ref)
+		// attempt to grab name for later if path is provided
+		name, _ = r.repo.GetName(prevpath)
+	}
+
+	// read previous changes
+	prev, err := r.repo.GetDataset(prevpath)
 	if err != nil {
+		return fmt.Errorf("error getting previous dataset: %s", err.Error())
+	}
+
+	// add all previous fields and any changes
+	ds.Assign(prev, p.Changes)
+
+	// store file if one is provided
+	if p.Data != nil {
+		data, err := ioutil.ReadAll(p.Data)
+		if err != nil {
+			return fmt.Errorf("error reading data: %s", err.Error())
+		}
+
+		path, err := store.Put(memfs.NewMemfileReader(p.DataFilename, p.Data), false)
+		if err != nil {
+			return fmt.Errorf("error putting data in store: %s", err.Error())
+		}
+
+		ds.Data = path
+		ds.Length = len(data)
+	}
+
+	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
+		ds.Previous = datastore.NewKey(strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String()))
+	} else {
+		ds.Previous = prevpath
+	}
+
+	if err := validate.Dataset(ds); err != nil {
 		return err
 	}
 
-	if err := r.repo.PutName(p.Name, path); err != nil {
-		return err
-	}
-	if err := r.repo.PutDataset(path, ds); err != nil {
-		return err
+	// TODO - should this go into the save method?
+	ds.Timestamp = time.Now().In(time.UTC)
+	dspath, err := dsfs.SaveDataset(store, ds, true)
+	if err != nil {
+		return fmt.Errorf("error saving dataset: %s", err.Error())
 	}
 
-	*res = *ds
+	if name != "" {
+		if err := r.repo.DeleteName(name); err != nil {
+			return err
+		}
+		if err := r.repo.PutName(name, dspath); err != nil {
+			return err
+		}
+	}
+
+	*res = repo.DatasetRef{
+		Name:    name,
+		Path:    dspath,
+		Dataset: ds,
+	}
+
 	return nil
 }
 
@@ -344,8 +419,8 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
 
-	hash := strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String())
-	key := datastore.NewKey(hash)
+	// _, cleaned := dsfs.RefType(p.Hash)
+	key := datastore.NewKey(strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String()))
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())

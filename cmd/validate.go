@@ -7,6 +7,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +31,7 @@ in the dataset's fields.`,
 		if len(args) > 0 {
 			req := core.NewDatasetRequests(GetRepo(false))
 			for _, arg := range args {
-				rt, ref := Ref(arg)
+				rt, ref := dsfs.RefType(arg)
 				p := &core.ValidateDatasetParams{}
 				switch rt {
 				case "path":

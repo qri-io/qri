@@ -34,16 +34,16 @@ func TestStrucureHash(t *testing.T) {
 	}
 }
 
-func TestAbstractColName(t *testing.T) {
-	if AbstractColName(0) != "a" {
+func TestAbstractColumnName(t *testing.T) {
+	if AbstractColumnName(0) != "a" {
 		t.Errorf("expected 0 == a")
 	}
 	// I found the h button & pushed it twice.
-	if AbstractColName(215) != "hh" {
-		t.Errorf("expected 26 == hh, got: %s", AbstractColName(215))
+	if AbstractColumnName(215) != "hh" {
+		t.Errorf("expected 26 == hh, got: %s", AbstractColumnName(215))
 	}
-	if AbstractColName(30000) != "ariw" {
-		t.Errorf("expected 300 == ariw, got: %s", AbstractColName(30000))
+	if AbstractColumnName(30000) != "ariw" {
+		t.Errorf("expected 300 == ariw, got: %s", AbstractColumnName(30000))
 	}
 }
 
@@ -51,7 +51,7 @@ func TestStructureAbstract(t *testing.T) {
 	cases := []struct {
 		in, out *Structure
 	}{
-		{AirportCodesStructure, AirportCodesStructureAgebraic},
+		{AirportCodesStructure, AirportCodesStructureAbstract},
 	}
 
 	for i, c := range cases {

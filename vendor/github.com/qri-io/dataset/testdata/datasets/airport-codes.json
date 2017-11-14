@@ -2,6 +2,9 @@
   "title": "Airport Codes",
   "homepage": "http://www.ourairports.com/",
   "license": "PDDL-1.0",
+  "commit" : {
+    "title" : "initial commit"
+  },
   "citations": [
     {
       "name": "Our Airports",

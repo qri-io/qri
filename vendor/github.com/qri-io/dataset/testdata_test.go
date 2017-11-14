@@ -16,10 +16,14 @@ var AirportCodes = &Dataset{
 			Url:  "http://ourairports.com/data/",
 		},
 	},
+	Commit:    &CommitMsg{Title: "initial commit"},
+	Structure: AirportCodesStructure,
 	// File:   "data/airport-codes.csv",
 	// Readme: "readme.md",
 	// Format: "text/csv",
 }
+
+const AirportCodesJSON = `{"citations":[{"name":"Our Airports","url":"http://ourairports.com/data/"}],"commit":{"title":"initial commit"},"data":"","homepage":"http://www.ourairports.com/","length":0,"license":"PDDL-1.0","structure":{"format":"csv","formatConfig":{"headerRow":true},"schema":{"fields":[{"name":"ident","type":"string"},{"name":"type","type":"string"},{"name":"name","type":"string"},{"name":"latitude_deg","type":"float"},{"name":"longitude_deg","type":"float"},{"name":"elevation_ft","type":"integer"},{"name":"continent","type":"string"},{"name":"iso_country","type":"string"},{"name":"iso_region","type":"string"},{"name":"municipality","type":"string"},{"name":"gps_code","type":"string"},{"name":"iata_code","type":"string"},{"name":"local_code","type":"string"}]}},"timestamp":"0001-01-01T00:00:00Z","title":"Airport Codes"}`
 
 var AirportCodesStructure = &Structure{
 	Format: CsvDataFormat,
@@ -84,61 +88,61 @@ var AirportCodesStructure = &Structure{
 	},
 }
 
-var AirportCodesStructureAgebraic = &Structure{
+var AirportCodesStructureAbstract = &Structure{
 	Format:       CsvDataFormat,
 	FormatConfig: &CsvOptions{HeaderRow: true},
 	Schema: &Schema{
 		Fields: []*Field{
 			&Field{
-				Name: "col_0",
+				Name: "a",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_1",
+				Name: "b",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_2",
+				Name: "c",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_3",
+				Name: "d",
 				Type: datatypes.Float,
 			},
 			&Field{
-				Name: "col_4",
+				Name: "e",
 				Type: datatypes.Float,
 			},
 			&Field{
-				Name: "col_5",
+				Name: "f",
 				Type: datatypes.Integer,
 			},
 			&Field{
-				Name: "col_6",
+				Name: "g",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_7",
+				Name: "h",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_8",
+				Name: "i",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_9",
+				Name: "j",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_10",
+				Name: "k",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_11",
+				Name: "l",
 				Type: datatypes.String,
 			},
 			&Field{
-				Name: "col_12",
+				Name: "m",
 				Type: datatypes.String,
 			},
 		},

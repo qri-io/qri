@@ -228,10 +228,40 @@ func UnmarshalStructure(v interface{}) (*Structure, error) {
 	}
 }
 
+// AbstractTableName prepends a given index with "t"
+// t1, t2, t3, ...
 func AbstractTableName(i int) string {
 	return fmt.Sprintf("t%d", i+1)
 }
 
+// AbstractColumnName is the "base26" value of a column name
+// to make short, sql-valid, deterministic column names
 func AbstractColumnName(i int) string {
 	return base26(i)
+}
+
+// b26chars is a-z, lowercase
+const b26chars = "abcdefghijklmnopqrstuvwxyz"
+
+// base26 maps the set of natural numbers
+// to letters, using repeating characters to handle values
+// greater than 26
+func base26(d int) (s string) {
+	var cols []int
+	if d == 0 {
+		return "a"
+	}
+
+	for d != 0 {
+		cols = append(cols, d%26)
+		d = d / 26
+	}
+	for i := len(cols) - 1; i >= 0; i-- {
+		if i != 0 && cols[i] > 0 {
+			s += string(b26chars[cols[i]-1])
+		} else {
+			s += string(b26chars[cols[i]])
+		}
+	}
+	return s
 }

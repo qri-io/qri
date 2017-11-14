@@ -11,8 +11,31 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-// Load a dataset from a cafs
+// LoadDataset reads a dataset from a cafs and dereferences structure, query, and commitMsg if they exist,
+// returning a fully-hydrated dataset
 func LoadDataset(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, error) {
+	ds, err := LoadDatasetRefs(store, path)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := DerefDatasetStructure(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileStructure, err.Error())
+	}
+
+	if err := DerefDatasetQuery(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
+	}
+
+	if err := DerefDatasetCommitMsg(store, ds); err != nil {
+		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
+	}
+
+	return ds, nil
+}
+
+// LoadDatasetRefs reads a dataset from a content addressed filesystem
+func LoadDatasetRefs(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, error) {
 	ds := &dataset.Dataset{}
 
 	data, err := fileBytes(store.Get(path))
@@ -32,14 +55,6 @@ func LoadDataset(store cafs.Filestore, path datastore.Key) (*dataset.Dataset, er
 	ds, err = dataset.UnmarshalDataset(data)
 	if err != nil {
 		return nil, fmt.Errorf("error unmarshaling %s file: %s", PackageFileDataset.String(), err.Error())
-	}
-
-	if err := DerefDatasetStructure(store, ds); err != nil {
-		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileStructure, err.Error())
-	}
-
-	if err := DerefDatasetQuery(store, ds); err != nil {
-		return nil, fmt.Errorf("error dereferencing %s file: %s", PackageFileQuery, err.Error())
 	}
 
 	return ds, nil
@@ -71,6 +86,21 @@ func DerefDatasetQuery(store cafs.Filestore, ds *dataset.Dataset) error {
 	return nil
 }
 
+// DerefDatasetCommitMsg derferences a dataset's Commit element if required
+// should be a no-op if ds.Structure is nil or isn't a reference
+func DerefDatasetCommitMsg(store cafs.Filestore, ds *dataset.Dataset) error {
+	if ds.Commit != nil && ds.Commit.IsEmpty() && ds.Commit.Path().String() != "" {
+		cm, err := LoadCommitMsg(store, ds.Commit.Path())
+		if err != nil {
+			return fmt.Errorf("error loading dataset commit: %s", err.Error())
+		}
+		ds.Commit = cm
+	}
+	return nil
+}
+
+// SaveDataset writes a dataset to a cafs, replacing subcomponents of a dataset with hash references
+// during the write process. Directory structure is according to PackageFile nameing conventions
 func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore.Key, error) {
 	if ds == nil {
 		return datastore.NewKey(""), nil
@@ -97,34 +127,43 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	}
 
 	if ds.Query != nil {
-		fileTasks++
 		qdata, err := json.Marshal(ds.Query)
 		if err != nil {
 			return datastore.NewKey(""), fmt.Errorf("error marshaling dataset query to json: %s", err.Error())
 		}
+		fileTasks++
 		adder.AddFile(memfs.NewMemfileBytes(PackageFileQuery.String(), qdata))
 	}
 
-	if ds.Structure != nil {
+	if ds.Commit != nil {
+		cmdata, err := json.Marshal(ds.Commit)
+		if err != nil {
+			return datastore.NewKey(""), fmt.Errorf("error marshilng dataset commit message to json: %s", err.Error())
+		}
 		fileTasks++
+		adder.AddFile(memfs.NewMemfileBytes(PackageFileCommitMsg.String(), cmdata))
+	}
+
+	if ds.Structure != nil {
 		stdata, err := json.Marshal(ds.Structure)
 		if err != nil {
 			return datastore.NewKey(""), fmt.Errorf("error marshaling dataset structure to json: %s", err.Error())
 		}
+		fileTasks++
 		adder.AddFile(memfs.NewMemfileBytes(PackageFileStructure.String(), stdata))
 
-		fileTasks++
 		asdata, err := json.Marshal(ds.Structure.Abstract())
 		if err != nil {
 			return datastore.NewKey(""), fmt.Errorf("error marshaling dataset abstract structure to json: %s", err.Error())
 		}
+		fileTasks++
 		adder.AddFile(memfs.NewMemfileBytes(PackageFileAbstractStructure.String(), asdata))
 
-		fileTasks++
 		data, err := store.Get(ds.Data)
 		if err != nil {
 			return datastore.NewKey(""), fmt.Errorf("error getting dataset raw data: %s", err.Error())
 		}
+		fileTasks++
 		adder.AddFile(memfs.NewMemfileReader("data."+ds.Structure.Format.String(), data))
 	}
 
@@ -155,7 +194,9 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 				ds.AbstractStructure = dataset.NewStructureRef(ao.Path)
 			case PackageFileQuery.String():
 				ds.Query = dataset.NewQueryRef(ao.Path)
-			case "resources":
+			case PackageFileCommitMsg.String():
+				ds.Commit = dataset.NewCommitMsgRef(ao.Path)
+				// case "resources":
 			}
 
 			fileTasks--
@@ -189,7 +230,8 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	// /[hash]/abstract_structure.json, and so on, but it's hard to extract
 	// in a clean way. maybe a function that re-extracts this info on either
 	// the cafs interface, or the concrete cafs/ipfs implementation?
-	// TODO - remove this in favour of some sort of tree-walking
+	// TODO - remove this in favour of some sort of method on filestores
+	// that generate path roots
 	if _, ok := store.(*ipfs_filestore.Filestore); ok {
 		path = datastore.NewKey(path.String() + "/" + PackageFileDataset.String())
 	}

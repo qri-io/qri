@@ -16,6 +16,7 @@ import (
 var (
 	updateFile       string
 	updateMetaFile   string
+	updateTitle      string
 	updateMessage    string
 	updateName       string
 	updatePassive    bool
@@ -59,11 +60,7 @@ var updateCmd = &cobra.Command{
 		author, err := r.Profile()
 		ExitIfErr(err)
 
-		commit := &core.Commit{
-			Author:  author,
-			Message: updateMessage,
-			Prev:    prev.Path,
-		}
+		update := &core.UpdateParams{}
 
 		metaFile, err = loadFileIfPath(updateMetaFile)
 		ExitIfErr(err)
@@ -72,11 +69,18 @@ var updateCmd = &cobra.Command{
 			changes := &dataset.Dataset{}
 			err = json.NewDecoder(metaFile).Decode(changes)
 			ExitIfErr(err)
-			commit.Changes = changes
+			update.Changes = changes
 		}
 
+		update.Changes.Commit.Assign(&dataset.CommitMsg{
+			Author:  &dataset.User{Id: author.Id, Email: author.Email},
+			Title:   updateTitle,
+			Message: updateMessage,
+		})
+		update.Changes.Previous = prev.Path
+
 		res := &repo.DatasetRef{}
-		err = req.Update(commit, res)
+		err = req.Update(update, res)
 		ExitIfErr(err)
 		PrintSuccess("dataset updated:", res.Path)
 	},
@@ -85,6 +89,7 @@ var updateCmd = &cobra.Command{
 func init() {
 	updateCmd.Flags().StringVarP(&updateFile, "file", "f", "", "data file to updateialize from")
 	updateCmd.Flags().StringVarP(&updateMetaFile, "meta", "", "", "dataset metadata updates")
+	updateCmd.Flags().StringVarP(&updateTitle, "title", "t", "", "title of commit message for update")
 	updateCmd.Flags().StringVarP(&updateMessage, "message", "m", "", "commit message for update")
 	updateCmd.Flags().StringVarP(&updateName, "name", "n", "", "name to give dataset")
 	RootCmd.AddCommand(updateCmd)

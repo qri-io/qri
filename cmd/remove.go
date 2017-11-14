@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 )
@@ -21,7 +22,7 @@ var datasetRemoveCmd = &cobra.Command{
 		req := core.NewDatasetRequests(GetRepo(false))
 
 		for _, arg := range args {
-			rt, ref := Ref(arg)
+			rt, ref := dsfs.RefType(arg)
 			p := &core.DeleteParams{}
 			switch rt {
 			case "path":
