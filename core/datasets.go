@@ -144,12 +144,22 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
-
+	// Ensure that dataset is well-formed
+	format, err := detect.ExtensionDataFormat(filename)
+	if err != nil {
+		return fmt.Errorf("error detecting format extension: %s", err.Error())
+	}
+	if err = validate.DataFormat(format, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("invalid data format: %s", err.Error())
+	}
 	st, err := detect.FromReader(filename, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("error determining dataset schema: %s", err.Error())
 	}
-
+	// Ensure that dataset contains valid field names
+	if err = validate.CheckStructure(st); err != nil {
+		return fmt.Errorf("invalid structure: %s", err.Error())
+	}
 	if _, _, err := validate.Data(dsio.NewRowReader(st, bytes.NewReader(data))); err != nil {
 		return fmt.Errorf("data is invalid")
 	}

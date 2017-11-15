@@ -78,6 +78,16 @@ a
 's;f a'
 sdlfj asdf`))
 
+var BadDataFormatFile = memfs.NewMemfileBytes("abc.csv", []byte(`
+"colA","colB","colC","colD"
+1,2,3,4
+1,2,3`))
+
+var BadStructureFile = memfs.NewMemfileBytes("badStructure.csv", []byte(`
+colA, colB, colB, colC
+1,2,3,4
+1,2,3,4`))
+
 var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
