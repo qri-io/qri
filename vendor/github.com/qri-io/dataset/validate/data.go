@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"io"
 	"regexp"
 	"strconv"
 
@@ -10,7 +11,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 )
 
-var alphaNumericRegex = regexp.MustCompile(`^[a-z0-9_-]{1-144}$`)
+var alphaNumericRegex = regexp.MustCompile(`^[a-zA-Z]\w{0,143}$`)
 
 // truthCount returns the number of arguments that are true
 func truthCount(args ...bool) (count int) {
@@ -35,12 +36,59 @@ type ValidateDataOpt struct {
 	// DataFormat  DataFormat
 }
 
+// func Dataset(d *dataset.Dataset) error {
+// 	// TODO: implement
+// 	return nil
+// }
+
+// DataFormat ensures that for each accepted dataset.DataFormat,
+// we havea well-formed dataset (eg. for csv, we need rows to all
+// be of same length)
+func DataFormat(df dataset.DataFormat, r io.Reader) error {
+	switch df {
+	// explicitly supported at present
+	case dataset.CsvDataFormat:
+		return CheckCsvRowLengths(r)
+	// explicitly unsupported at present
+	case dataset.JsonDataFormat:
+		return fmt.Errorf("error: data format 'JsonData' not currently supported")
+	case dataset.JsonArrayDataFormat:
+		return fmt.Errorf("error: data format 'JsonArrayData' not currently supported")
+	case dataset.XlsDataFormat:
+		return fmt.Errorf("error: data format 'XlsData' not currently supported")
+	case dataset.XmlDataFormat:
+		return fmt.Errorf("error: data format 'XmlData' not currently supported")
+	// *implicitly unsupported
+	case dataset.UnknownDataFormat:
+		return fmt.Errorf("error: unknown data format not currently supported")
+	default:
+		return fmt.Errorf("error: data format not currently supported")
+	}
+}
+
+func CheckStructure(s *dataset.Structure) error {
+	checkedFieldNames := map[string]bool{}
+	fields := s.Schema.Fields
+	for _, field := range fields {
+		if alphaNumericRegex.FindString(field.Name) == "" {
+			return fmt.Errorf("error: illegal name '%s', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters", field.Name)
+		}
+		seen := checkedFieldNames[field.Name]
+		if seen {
+			return fmt.Errorf("error: cannot use the same name, '%s' more than once", field.Name)
+		}
+		checkedFieldNames[field.Name] = true
+	}
+	return nil
+}
+
+// generating a new dataset
 func Data(r dsio.RowReader, options ...func(*ValidateDataOpt)) (errors dsio.RowReader, count int, err error) {
 	vst := &dataset.Structure{
 		Format: dataset.CsvDataFormat,
 		Schema: &dataset.Schema{
 			Fields: []*dataset.Field{
-				&dataset.Field{Name: "row_index", Type: datatypes.Integer},
+				{Name: "row_index", Type: datatypes.Integer},
 			},
 		},
 	}

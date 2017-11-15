@@ -833,8 +833,8 @@
 		{
 			"checksumSHA1": "wpnXvucWvEsuTdsHRpFKtI9sjPU=",
 			"path": "github.com/qri-io/dataset",
-			"revision": "44f7728f7a46a59f3c9c0ccf08c0d328f0dd4550",
-			"revisionTime": "2017-11-14T17:43:48Z"
+			"revision": "02e9a57f35c5b374e58f64d07bcee6ce190e2917",
+			"revisionTime": "2017-11-15T23:16:39Z"
 		},
 		{
 			"checksumSHA1": "sPVjpo1FHsa+nZhWvgyC5us7UDs=",
@@ -873,10 +873,10 @@
 			"revisionTime": "2017-11-08T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "507b5caXg/Kb1b8npWDOtyqINLs=",
+			"checksumSHA1": "redvJrEyEs02ydLhqsivseCGNXk=",
 			"path": "github.com/qri-io/dataset/validate",
-			"revision": "99de9b222a12fb3c12c2d77b75d0e9f7fe73662f",
-			"revisionTime": "2017-11-08T20:07:50Z"
+			"revision": "02e9a57f35c5b374e58f64d07bcee6ce190e2917",
+			"revisionTime": "2017-11-15T23:16:39Z"
 		},
 		{
 			"checksumSHA1": "98VdmDZSF98ICVt2JDGpZxK+zlA=",
