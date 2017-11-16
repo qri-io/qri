@@ -45,3 +45,25 @@ func TestListParamsFromRequest(t *testing.T) {
 
 	}
 }
+
+func TestPage(t *testing.T) {
+	cases := []struct {
+		input  ListParams
+		number int
+		size   int
+	}{
+		{ListParams{Limit: 25, Offset: 0}, 1, 25},
+		{ListParams{Limit: 25, Offset: 2}, 1, 25},
+		{ListParams{Limit: 25, Offset: 24}, 1, 25},
+		{ListParams{Limit: 25, Offset: 25}, 2, 25},
+		{ListParams{Limit: 25, Offset: 49}, 2, 25},
+		{ListParams{Limit: -100, Offset: 50}, 1, 100},
+	}
+	for i, c := range cases {
+		p := c.input.Page()
+		if !(p.Number == c.number && p.Size == c.size) {
+			t.Errorf("case %d error mismatch: expected: (%d, %d), got: (%d, %d) for Page.Number, Page.Size", i, c.number, c.size, p.Number, p.Size)
+			continue
+		}
+	}
+}
