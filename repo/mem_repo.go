@@ -3,13 +3,15 @@ package repo
 import (
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
 )
 
 type MemRepo struct {
 	store cafs.Filestore
+	graph map[string]*dsgraph.Node
 	MemDatasets
-	MemNamestore
+	*MemNamestore
 	*MemQueryLog
 	MemChangeRequests
 	profile   *profile.Profile
@@ -22,7 +24,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.
 	return &MemRepo{
 		store:             store,
 		MemDatasets:       MemDatasets{},
-		MemNamestore:      MemNamestore{},
+		MemNamestore:      &MemNamestore{},
 		MemQueryLog:       &MemQueryLog{},
 		MemChangeRequests: MemChangeRequests{},
 		profile:           p,
@@ -34,6 +36,10 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.
 
 func (r *MemRepo) Store() cafs.Filestore {
 	return r.store
+}
+
+func (r *MemRepo) Graph() (map[string]*dsgraph.Node, error) {
+	return RepoGraph(r)
 }
 
 func (r *MemRepo) Profile() (*profile.Profile, error) {

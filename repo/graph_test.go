@@ -1,15 +1,13 @@
-package graph
+package repo
 
 import (
 	"fmt"
-	"github.com/qri-io/dataset/dsfs"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsgraph"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -19,7 +17,7 @@ func TestRepoGraph(t *testing.T) {
 		t.Errorf("error making test repo: %s", err.Error())
 		return
 	}
-	node, err := RepoGraph(r)
+	nodes, err := RepoGraph(r)
 	if err != nil {
 		t.Errorf("error generating repo graph: %s", err.Error())
 		return
@@ -27,11 +25,9 @@ func TestRepoGraph(t *testing.T) {
 
 	expect := 9
 	count := 0
-	dsgraph.Walk(node, 0, func(n *dsgraph.Node) error {
-		// fmt.Println(n.Type, n.Path, len(n.Links), n.Links)
+	for range nodes {
 		count++
-		return nil
-	})
+	}
 	if count != expect {
 		t.Errorf("node count mismatch. expected: %d, got: %d", expect, count)
 	}
@@ -75,7 +71,7 @@ func TestDataNodes(t *testing.T) {
 	}
 }
 
-func makeTestRepo() (repo.Repo, error) {
+func makeTestRepo() (Repo, error) {
 	ds1 := &dataset.Dataset{
 		Title:    "dataset 1",
 		Previous: datastore.NewKey(""),
@@ -97,7 +93,7 @@ func makeTestRepo() (repo.Repo, error) {
 	store := memfs.NewMapstore()
 	p := &profile.Profile{}
 
-	r, err := repo.NewMemRepo(p, store, nil, nil)
+	r, err := NewMemRepo(p, store, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}

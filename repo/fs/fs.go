@@ -3,12 +3,13 @@ package fs_repo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/doggos"
 	"io/ioutil"
 	"os"
 
 	"github.com/qri-io/analytics"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset/dsgraph"
+	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
@@ -17,6 +18,7 @@ import (
 type Repo struct {
 	store cafs.Filestore
 	basepath
+	graph map[string]*dsgraph.Node
 
 	Datasets
 	Namestore
@@ -38,7 +40,7 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		return nil, err
 	}
 
-	repo := &Repo{
+	r := &Repo{
 		store:    store,
 		basepath: bp,
 
@@ -53,15 +55,30 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	}
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
-		repo.index = index
-		repo.Namestore.index = index
+		r.index = index
+		r.Namestore.index = index
 	}
 
-	return repo, nil
+	go func() {
+		r.graph, _ = repo.RepoGraph(r)
+	}()
+
+	return r, nil
 }
 
 func (r Repo) Store() cafs.Filestore {
 	return r.store
+}
+
+func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
+	if r.graph == nil {
+		nodes, err := repo.RepoGraph(r)
+		if err != nil {
+			return nil, err
+		}
+		r.graph = nodes
+	}
+	return r.graph, nil
 }
 
 func (r *Repo) Profile() (*profile.Profile, error) {
