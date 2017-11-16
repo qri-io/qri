@@ -13,6 +13,7 @@ import (
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
 	jobsByAutomationFile := testrepo.JobsByAutomationFile
+	jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
 	badDataFormatFile := testrepo.BadDataFormatFile
 	badStructureFile := testrepo.BadStructureFile
 
@@ -24,13 +25,16 @@ func TestDatasetRequestsInit(t *testing.T) {
 		{&InitDatasetParams{}, nil, "either a file or a url is required to create a dataset"},
 		{&InitDatasetParams{Data: badDataFile}, nil, "error detecting format extension: no file extension provided"},
 		{&InitDatasetParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "invalid data format: error reading first row of csv: EOF"},
-		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that DataFormat validation is being called
 		{&InitDatasetParams{DataFilename: badDataFormatFile.FileName(),
 			Data: badDataFormatFile}, nil, "invalid data format: error: inconsistent column length on line 2 of length 3 (rather than 4). ensure all csv columns same length"},
 		// Ensure that structure validation is being called
 		{&InitDatasetParams{DataFilename: badStructureFile.FileName(),
 			Data: badStructureFile}, nil, "invalid structure: error: cannot use the same name, 'colb' more than once"},
+		// this should work
+		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
+		// Ensure that we can't double-add data
+		{&InitDatasetParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
 	}
 
 	mr, err := testrepo.NewTestRepo()

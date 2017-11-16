@@ -169,6 +169,14 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
+	dataexists, err := repo.HasPath(r.repo, datakey)
+	if err != nil {
+		return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
+	}
+	if dataexists {
+		return fmt.Errorf("this data already exists")
+	}
+
 	name := p.Name
 	if name == "" && filename != "" {
 		name = detect.Camelize(filename)

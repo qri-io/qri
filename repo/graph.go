@@ -1,6 +1,7 @@
 package repo
 
 import (
+	"fmt"
 	"sync"
 
 	"github.com/ipfs/go-datastore"
@@ -9,6 +10,40 @@ import (
 )
 
 var walkParallelism = 4
+
+// HasPath returns true if this repo already has a reference to
+// a given path.
+func HasPath(r Repo, path datastore.Key) (bool, error) {
+	nodes, err := r.Graph()
+	if err != nil {
+		return false, fmt.Errorf("error getting repo graph: %s", err.Error())
+	}
+	p := path.String()
+	for np := range nodes {
+		if p == np {
+			return true, nil
+		}
+	}
+	return false, nil
+}
+
+func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
+	nodes, err := r.Graph()
+	if err != nil {
+		return datastore.NewKey(""), fmt.Errorf("error getting repo graph: %s", err.Error())
+	}
+	qps := qpath.String()
+	fmt.Println("checking", qps)
+	qs := QueriesMap(nodes)
+	fmt.Println(qs)
+	for qp, dsp := range qs {
+		if qp == qps {
+			fmt.Println("MATCH", qp, qps)
+			return dsp, nil
+		}
+	}
+	return datastore.NewKey(""), ErrNotFound
+}
 
 // RepoGraph generates a map of all paths on this repository pointing
 // to dsgraph.Node structs with all links configured. This is potentially
@@ -84,10 +119,10 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 		To:   nl.node(dsgraph.NtData, ds.Data.String()),
 	})
 
-	if ds.Previous.Path().String() != "/" {
+	if ds.Previous.String() != "/" {
 		root.AddLinks(dsgraph.Link{
 			From: root,
-			To:   nl.node(dsgraph.NtDataset, ds.Previous.Path().String()),
+			To:   nl.node(dsgraph.NtDataset, ds.Previous.String()),
 		})
 	}
 	// if ds.Commit.Path().String() != "" {
@@ -103,7 +138,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 	if ds.Query != nil && ds.Query.Path().String() != "" {
 		if q, err := dsfs.LoadQuery(r.Store(), ds.Query.Path()); err == nil {
 			query := nl.node(dsgraph.NtQuery, ds.Query.Path().String())
-			if q.Abstract.Path().String() != "" {
+			if q.Abstract != nil && q.Abstract.Path().String() != "" {
 				query.AddLinks(dsgraph.Link{
 					From: query,
 					To:   nl.node(dsgraph.NtAbstQuery, q.Abstract.Path().String()),

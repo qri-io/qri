@@ -47,6 +47,42 @@ func (q *Query) IsEmpty() bool {
 	return q.Abstract == nil && q.Resources == nil
 }
 
+func (q *Query) Assign(qs ...*Query) {
+	for _, q2 := range qs {
+		if q2 == nil {
+			continue
+		}
+		if q2.Path().String() != "" {
+			q.path = q2.path
+		}
+		if q2.Syntax != "" {
+			q.Syntax = q2.Syntax
+		}
+		if q2.Config != nil {
+			if q.Config == nil {
+				q.Config = map[string]interface{}{}
+			}
+			for key, val := range q2.Config {
+				q.Config[key] = val
+			}
+		}
+		if q2.Abstract != nil {
+			if q.Abstract == nil {
+				q.Abstract = &AbstractQuery{}
+			}
+			q.Abstract.Assign(q2.Abstract)
+		}
+		if q2.Resources != nil {
+			if q.Resources == nil {
+				q.Resources = map[string]*Dataset{}
+			}
+			for key, val := range q2.Resources {
+				q.Resources[key] = val
+			}
+		}
+	}
+}
+
 // _query is a private struct for marshaling into & out of.
 // fields must remain sorted in lexographical order
 type _query struct {
@@ -146,6 +182,37 @@ func NewAbstractQueryRef(path datastore.Key) *AbstractQuery {
 
 func (q *AbstractQuery) IsEmpty() bool {
 	return q.Statement == "" && q.Syntax == "" && q.Structure == nil && q.Structures == nil
+}
+
+func (aq *AbstractQuery) Assign(aqs ...*AbstractQuery) {
+	for _, aq2 := range aqs {
+		if aq2 == nil {
+			continue
+		}
+		if aq2.path.String() != "" {
+			aq.path = aq2.path
+		}
+		if aq2.Statement != "" {
+			aq.Statement = aq2.Statement
+		}
+		if aq2.Structure != nil {
+			if aq.Structure == nil {
+				aq.Structure = &Structure{}
+			}
+			aq.Structure.Assign(aq2.Structure)
+		}
+		if aq2.Structures != nil {
+			if aq.Structures == nil {
+				aq.Structures = map[string]*Structure{}
+			}
+			for key, val := range aq2.Structures {
+				aq.Structures[key] = val
+			}
+		}
+		if aq2.Syntax != "" {
+			aq.Syntax = aq2.Syntax
+		}
+	}
 }
 
 // _abstractQuery is a private struct for marshaling into & out of.

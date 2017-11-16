@@ -9,6 +9,64 @@ import (
 	"testing"
 )
 
+func TestQueryAssign(t *testing.T) {
+	expect := &Query{
+		path:       datastore.NewKey("path"),
+		Syntax:     "a",
+		AppVersion: "b",
+		Config: map[string]interface{}{
+			"foo": "bar",
+		},
+		Abstract: &AbstractQuery{
+			Syntax: "abstract_syntax",
+		},
+		Resources: map[string]*Dataset{
+			"a": NewDatasetRef(datastore.NewKey("/path/to/a")),
+		},
+	}
+	got := &Query{
+		Syntax:     "no",
+		AppVersion: "change",
+		Config: map[string]interface{}{
+			"foo": "baz",
+		},
+		Abstract:  nil,
+		Resources: nil,
+	}
+
+	got.Assign(&Query{
+		Syntax:     "a",
+		AppVersion: "b",
+		Config: map[string]interface{}{
+			"foo": "bar",
+		},
+		Abstract:  nil,
+		Resources: nil,
+	}, &Query{
+		Abstract: &AbstractQuery{
+			Syntax: "abstract_syntax",
+		},
+		Resources: map[string]*Dataset{
+			"a": NewDatasetRef(datastore.NewKey("/path/to/a")),
+		},
+	})
+
+	if err := CompareQuery(expect, got); err != nil {
+		t.Error(err)
+	}
+
+	got.Assign(nil, nil)
+	if err := CompareQuery(expect, got); err != nil {
+		t.Error(err)
+	}
+
+	emptyMsg := &Query{}
+	emptyMsg.Assign(expect)
+	if err := CompareQuery(expect, emptyMsg); err != nil {
+		t.Error(err)
+	}
+}
+
 func CompareQuery(a, b *Query) error {
 	if a == nil && b != nil || a != nil && b == nil {
 		return fmt.Errorf("nil mismatch: %v != %v", a, b)
@@ -115,6 +173,66 @@ func CompareAbstractQuery(a, b *AbstractQuery) error {
 	}
 
 	return nil
+}
+
+func TestAbstractQueryAssign(t *testing.T) {
+	expect := &AbstractQuery{
+		path:      datastore.NewKey("/path/to/abstract/query"),
+		Statement: "what a statement",
+		Structure: &Structure{
+			Schema: &Schema{
+				Fields: []*Field{
+					&Field{Name: "col_a"},
+					&Field{Name: "col_b"},
+				},
+			},
+		},
+		Structures: map[string]*Structure{
+			"a": &Structure{
+				Format: CsvDataFormat,
+			},
+		},
+		Syntax: "foobar",
+	}
+	got := &AbstractQuery{
+		path:      datastore.NewKey("/clobber/me/plz"),
+		Statement: "who the statement",
+	}
+
+	got.Assign(&AbstractQuery{
+		path:      datastore.NewKey("/path/to/abstract/query"),
+		Statement: "what a statement",
+		Structure: &Structure{
+			Schema: &Schema{
+				Fields: []*Field{
+					&Field{Name: "col_a"},
+					&Field{Name: "col_b"},
+				},
+			},
+		},
+	}, &AbstractQuery{
+		Structures: map[string]*Structure{
+			"a": &Structure{
+				Format: CsvDataFormat,
+			},
+		},
+		Syntax: "foobar",
+	})
+
+	if err := CompareAbstractQuery(expect, got); err != nil {
+		t.Error(err)
+	}
+
+	got.Assign(nil, nil)
+	if err := CompareAbstractQuery(expect, got); err != nil {
+		t.Error(err)
+	}
+
+	emptyMsg := &AbstractQuery{}
+	emptyMsg.Assign(expect)
+	if err := CompareAbstractQuery(expect, emptyMsg); err != nil {
+		t.Error(err)
+	}
 }
 
 func TestAbstractQueryUnmarshalJSON(t *testing.T) {
