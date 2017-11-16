@@ -3,12 +3,39 @@ package graph
 import (
 	"sync"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
 )
 
 var walkParallelism = 4
+
+func QueriesMap(g *dsgraph.Node) (qs map[string]datastore.Key) {
+	qs = map[string]datastore.Key{}
+	dsgraph.Walk(g, 0, func(n *dsgraph.Node) error {
+		if n.Type == dsgraph.NtDataset && len(n.Links) > 0 {
+			for _, l := range n.Links {
+				if l.To.Type == dsgraph.NtQuery {
+					qs[l.To.Path] = datastore.NewKey(n.Path)
+				}
+			}
+		}
+		return nil
+	})
+	return
+}
+
+func DataNodes(g *dsgraph.Node) (ds map[string]bool) {
+	ds = map[string]bool{}
+	dsgraph.Walk(g, 0, func(n *dsgraph.Node) error {
+		if n.Type == dsgraph.NtData {
+			ds[n.Path] = true
+		}
+		return nil
+	})
+	return
+}
 
 func RepoGraph(r repo.Repo) (*dsgraph.Node, error) {
 	mu := sync.Mutex{}
@@ -19,7 +46,7 @@ func RepoGraph(r repo.Repo) (*dsgraph.Node, error) {
 				return false, e
 			}
 
-			ds := NodesFromDatasetRef(ref)
+			ds := NodesFromDatasetRef(r, ref)
 			mu.Lock()
 			if depth == 0 {
 				prev.AddLinks(dsgraph.Link{From: prev, To: ds})
@@ -34,19 +61,20 @@ func RepoGraph(r repo.Repo) (*dsgraph.Node, error) {
 	return root, err
 }
 
-func NodesFromDatasetRef(ref *repo.DatasetRef) *dsgraph.Node {
+func NodesFromDatasetRef(r repo.Repo, ref *repo.DatasetRef) *dsgraph.Node {
 	root := &dsgraph.Node{Type: dsgraph.NtDataset, Path: ref.Path.String()}
 	ds := ref.Dataset
 	if ds == nil {
 		return root
 	}
 
-	data := &dsgraph.Node{Type: dsgraph.NtData, Path: ds.Data.Path().String()}
-	prev := &dsgraph.Node{Type: dsgraph.NtDataset, Path: ds.Previous.Path().String()}
-	root.AddLinks(
-		dsgraph.Link{From: root, To: data},
-		dsgraph.Link{From: root, To: prev},
-	)
+	data := &dsgraph.Node{Type: dsgraph.NtData, Path: ds.Data.String()}
+	root.AddLinks(dsgraph.Link{From: root, To: data})
+
+	if ds.Previous.Path().String() != "/" {
+		prev := &dsgraph.Node{Type: dsgraph.NtDataset, Path: ds.Previous.Path().String()}
+		root.AddLinks(dsgraph.Link{From: root, To: prev})
+	}
 	// if ds.Commit.Path().String() != "" {
 	//   commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path()}
 	// root.AddLinks(dsgraph.Link{From: root, To: data})
@@ -56,8 +84,20 @@ func NodesFromDatasetRef(ref *repo.DatasetRef) *dsgraph.Node {
 		root.AddLinks(dsgraph.Link{From: root, To: abst})
 	}
 	if ds.Query != nil && ds.Query.Path().String() != "" {
-		query := &dsgraph.Node{Type: dsgraph.NtQuery, Path: ds.Query.Path().String()}
-		root.AddLinks(dsgraph.Link{From: root, To: query})
+		if q, err := dsfs.LoadQuery(r.Store(), ds.Query.Path()); err == nil {
+			query := &dsgraph.Node{Type: dsgraph.NtQuery, Path: ds.Query.Path().String()}
+			if q.Abstract.Path().String() != "" {
+				abs := &dsgraph.Node{Type: dsgraph.NtAbstQuery, Path: q.Abstract.Path().String()}
+				query.AddLinks(dsgraph.Link{From: query, To: abs})
+			}
+			for _, ref := range q.Resources {
+				query.AddLinks(dsgraph.Link{
+					From: query,
+					To:   &dsgraph.Node{Type: dsgraph.NtDataset, Path: ref.Path().String()},
+				})
+			}
+			root.AddLinks(dsgraph.Link{From: root, To: query})
+		}
 	}
 
 	return root
