@@ -27,6 +27,10 @@ type Filestore struct {
 	node *core.IpfsNode
 }
 
+func (f Filestore) PathPrefix() string {
+	return "ipfs"
+}
+
 func NewFilestore(config ...func(cfg *StoreCfg)) (*Filestore, error) {
 	cfg := DefaultConfig()
 	for _, option := range config {
@@ -59,7 +63,20 @@ func (fs *Filestore) Node() *core.IpfsNode {
 
 func (fs *Filestore) Has(key datastore.Key) (exists bool, err error) {
 	ipfskey := ipfsds.NewKey(key.String())
-	return fs.Node().Repo.Datastore().Has(ipfskey)
+	// TODO - we'll need a "local" list for this to work properly
+	// currently this thing is *always* going to check the d.web for
+	// a hash if it's online, which is a behaviour we need control over
+	// might be worth expanding the cafs interface with the concept of
+	// remote gets
+	// update 2017-10-23 - we now have a fetch interface, integrate? is it integrated?
+	if _, err = core.Resolve(fs.node.Context(), fs.node.Namesys, fs.node.Resolver, path.Path(ipfskey.String())); err != nil {
+		// TODO - return error here?
+		return false, nil
+	}
+
+	// I had hoped this would work, it doesn't.
+	// fs.Node().Repo.Datastore().Has(ipfskey)
+	return true, nil
 }
 
 func (fs *Filestore) Get(key datastore.Key) (cafs.File, error) {
@@ -82,7 +99,13 @@ func (fs *Filestore) Put(file cafs.File, pin bool) (key datastore.Key, err error
 
 func (fs *Filestore) Delete(path datastore.Key) error {
 	// TODO - formally remove files?
-	return fs.Unpin(path, true)
+	err := fs.Unpin(path, true)
+	if err != nil {
+		if err.Error() == "not pinned" {
+			return nil
+		}
+	}
+	return nil
 }
 
 func (fs *Filestore) getKey(key datastore.Key) (cafs.File, error) {
@@ -169,7 +192,6 @@ func (fs *Filestore) NewAdder(pin, wrap bool) (cafs.Adder, error) {
 				if ok {
 					output := out.(*coreunix.AddedObject)
 					if len(output.Hash) > 0 {
-						// fmt.Println(output.Name, output.Size, output.Bytes, output.Hash)
 						added <- cafs.AddedFile{
 							Path:  datastore.NewKey("/ipfs/" + output.Hash),
 							Name:  output.Name,
@@ -296,7 +318,6 @@ func (fs *Filestore) AddFile(file cafs.File, pin bool) (hash string, err error) 
 				errChan <- err
 				return
 			}
-			// fmt.Println(file.FileName())
 			if err := fileAdder.AddFile(wrapFile{file}); err != nil {
 				errChan <- err
 				return
@@ -321,7 +342,6 @@ func (fs *Filestore) AddFile(file cafs.File, pin bool) (hash string, err error) 
 			}
 			output := out.(*coreunix.AddedObject)
 			if len(output.Hash) > 0 {
-				fmt.Println(output.Hash)
 				hash = output.Hash
 				// return
 			}

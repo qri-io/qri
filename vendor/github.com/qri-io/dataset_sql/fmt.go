@@ -24,9 +24,9 @@ func StatementTableNames(sql string) ([]string, error) {
 // This will be *heavily* refined, improved, and moved into a
 // separate package
 // TODO - milestone & break down this core piece of tech
-func Format(ds *dataset.Dataset) (string, Statement, map[string]string, error) {
+func Format(q *dataset.Query) (string, Statement, map[string]string, error) {
 	remap := map[string]string{}
-	stmt, err := Parse(ds.QueryString)
+	stmt, err := Parse(q.Abstract.Statement)
 	if err != nil {
 		return "", nil, nil, err
 	}
@@ -36,7 +36,7 @@ func Format(ds *dataset.Dataset) (string, Statement, map[string]string, error) {
 	// 	return "", nil, nil, NotYetImplemented("Statements other than 'SELECT'")
 	// }
 
-	ds.Query = &dataset.Query{
+	q.Abstract = &dataset.AbstractQuery{
 		Structures: map[string]*dataset.Structure{},
 	}
 
@@ -67,11 +67,11 @@ func Format(ds *dataset.Dataset) (string, Statement, map[string]string, error) {
 	// collect table references
 	for mapped, ref := range remap {
 		// for i, adr := range stmt.References() {
-		if ds.Resources[ref] == nil {
+		if q.Resources[ref] == nil {
 			return "", nil, nil, fmt.Errorf("couldn't find resource for table name: %s", ref)
 		}
-		paths[mapped] = ds.Resources[ref].Data
-		ds.Query.Structures[mapped] = ds.Resources[ref].Structure.Abstract()
+		paths[mapped] = q.Resources[ref].Data
+		q.Abstract.Structures[mapped] = q.Resources[ref].Structure.Abstract()
 	}
 
 	// This is a basic-column name rewriter from concrete to abstract
@@ -84,13 +84,13 @@ func Format(ds *dataset.Dataset) (string, Statement, map[string]string, error) {
 			// 		if cn.Name.String() ==
 			// 	}
 			// }
-			for con, r := range ds.Resources {
+			for con, r := range q.Resources {
 				for i, f := range r.Structure.Schema.Fields {
 					if f.Name == cn.Name.String() {
 						for mapped, ref := range remap {
 							if ref == con {
 								*cn = ColName{
-									Name:      NewColIdent(ds.Query.Structures[mapped].Schema.Fields[i].Name),
+									Name:      NewColIdent(q.Abstract.Structures[mapped].Schema.Fields[i].Name),
 									Qualifier: TableName{Name: NewTableIdent(mapped)},
 								}
 							}
@@ -225,7 +225,7 @@ EXPRESSIONS:
 // RemoveUnusedReferences sets ds.Resources to a new map that that contains
 // only datasets refrerenced in the provided select statement,
 // it errors if it cannot find a named dataset from the provided ds.Resources map.
-func RemoveUnusedReferences(stmt Statement, ds *dataset.Dataset) error {
+func RemoveUnusedReferences(stmt Statement, q *dataset.Query) error {
 	sel, ok := stmt.(*Select)
 	if !ok {
 		return NotYetImplemented("statements other than select")
@@ -233,13 +233,13 @@ func RemoveUnusedReferences(stmt Statement, ds *dataset.Dataset) error {
 
 	resources := map[string]*dataset.Dataset{}
 	for _, name := range sel.From.TableNames() {
-		datas := ds.Resources[name]
+		datas := q.Resources[name]
 		if datas == nil {
 			return ErrUnrecognizedReference(name)
 		}
 		resources[name] = datas
 	}
-	ds.Resources = resources
+	q.Resources = resources
 	return nil
 }
 

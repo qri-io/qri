@@ -9,8 +9,10 @@ import (
 )
 
 func TestPrepare(t *testing.T) {
-	ds := &dataset.Dataset{
-		QueryString: "select * from t1",
+	ds := &dataset.Query{
+		Abstract: &dataset.AbstractQuery{
+			Statement: "select * from t1",
+		},
 		Resources: map[string]*dataset.Dataset{
 			"t1": &dataset.Dataset{
 				Data: datastore.NewKey("t1/data/path"),
@@ -27,21 +29,21 @@ func TestPrepare(t *testing.T) {
 		},
 	}
 
-	stmt, paths, err := Prepare(ds, &ExecOpt{Format: dataset.CsvDataFormat})
+	prep, err := Prepare(ds, &ExecOpt{Format: dataset.CsvDataFormat})
 	if err != nil {
 		t.Errorf("unexpected error from Prepare: %s", err.Error())
 		return
 	}
 
-	str := String(stmt)
+	str := String(prep.stmt)
 	expect := "select t1.a as a, t1.b as b from t1"
 	if expect != str {
 		t.Errorf("statement error, expected: '%s', got: '%s'", expect, str)
 		return
 	}
 
-	if paths["t1"].String() != "/t1/data/path" {
-		t.Errorf("data path error, expected %s, got %s", "/t1/data/path", paths["a"].String())
+	if prep.paths["t1"].String() != "/t1/data/path" {
+		t.Errorf("data path error, expected %s, got %s", "/t1/data/path", prep.paths["a"].String())
 	}
 }
 
