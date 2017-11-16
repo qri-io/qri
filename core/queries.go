@@ -77,35 +77,42 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ds.Timestamp = time.Now()
 
+	q := ds.Query
+	if q == nil {
+		q = &dataset.Query{
+			Abstract: &dataset.AbstractQuery{
+				Statement: ds.QueryString,
+			},
+		}
+	}
+	if ds.QueryString == "" {
+		ds.QueryString = q.Abstract.Statement
+	}
+
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
 	// sqlstr, _, remap, err := sql.Format(ds.QueryString)
 	// if err != nil {
 	// 	return err
 	// }
-	names, err := sql.StatementTableNames(ds.QueryString)
+	names, err := sql.StatementTableNames(q.Abstract.Statement)
 	if err != nil {
 		return fmt.Errorf("error getting statement table names: %s", err.Error())
 	}
-	// ds.QueryString = sqlstr
 
-	if ds.Resources == nil {
-		ds.Resources = map[string]*dataset.Dataset{}
+	if q.Resources == nil {
+		q.Resources = map[string]*dataset.Dataset{}
 		// collect table references
 		for _, name := range names {
 			path, err := r.repo.GetPath(name)
 			if err != nil {
 				return fmt.Errorf("error getting path to dataset %s: %s", name, err.Error())
 			}
-			// for i, adr := range stmt.References() {
-			// if ns[name].String() == "" {
-			// 	return fmt.Errorf("couldn't find resource for table name: %s", name)
-			// }
 			d, err := dsfs.LoadDataset(store, path)
 			if err != nil {
 				return fmt.Errorf("error loading dataset: %s", err.Error())
 			}
-			ds.Resources[name] = d
+			q.Resources[name] = d
 		}
 	}
 
@@ -128,7 +135,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// }
 
 	// TODO - detect data format from passed-in results structure
-	structure, results, err = sql.Exec(store, ds, func(o *sql.ExecOpt) {
+	structure, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.CsvDataFormat
 	})
 	if err != nil {
@@ -138,6 +145,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = structure
 	ds.Length = len(results)
+	ds.Query = q
 
 	ds.Data, err = store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {

@@ -15,14 +15,10 @@ var queriesCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			req := core.NewQueryRequests(GetRepo(false))
-
-			p := &core.ListParams{
-				Limit:  30,
-				Offset: 0,
-			}
+			p := core.NewListParams("-created", pageNum, pageSize)
 
 			res := []*repo.DatasetRef{}
-			err := req.List(p, &res)
+			err := req.List(&p, &res)
 			ExitIfErr(err)
 
 			for i, q := range res {
@@ -33,5 +29,7 @@ var queriesCmd = &cobra.Command{
 }
 
 func init() {
+	queriesCmd.Flags().IntVarP(&pageNum, "page", "p", 1, "page of results to show")
+	queriesCmd.Flags().IntVarP(&pageSize, "size", "s", 30, "max number of results to show per page")
 	RootCmd.AddCommand(queriesCmd)
 }

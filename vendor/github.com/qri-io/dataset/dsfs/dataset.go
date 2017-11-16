@@ -57,6 +57,10 @@ func LoadDatasetRefs(store cafs.Filestore, path datastore.Key) (*dataset.Dataset
 		return nil, fmt.Errorf("error unmarshaling %s file: %s", PackageFileDataset.String(), err.Error())
 	}
 
+	// assign path to retain internal reference to the
+	// path this dataset was read from
+	ds.Assign(dataset.NewDatasetRef(path))
+
 	return ds, nil
 }
 

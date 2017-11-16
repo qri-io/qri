@@ -41,9 +41,14 @@ var runCmd = &cobra.Command{
 			},
 			SaveName: runCmdName,
 			Dataset: &dataset.Dataset{
-				Timestamp:   time.Now().In(time.UTC),
-				QuerySyntax: "sql",
-				QueryString: args[0],
+				Timestamp: time.Now().In(time.UTC),
+				Query: &dataset.Query{
+					Syntax: "sql",
+					Abstract: &dataset.AbstractQuery{
+						Syntax:    "sql",
+						Statement: args[0],
+					},
+				},
 			},
 		}
 
