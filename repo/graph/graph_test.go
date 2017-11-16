@@ -1,13 +1,12 @@
 package graph
 
 import (
-	"fmt"
-	"github.com/qri-io/dataset/dsgraph"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -34,7 +33,6 @@ func TestRepoGraph(t *testing.T) {
 	}
 
 	data1p, _ := store.Put(memfs.NewMemfileBytes("data1", []byte("dataset_1")), true)
-	fmt.Println(data1p.String())
 	ds1.Data = data1p
 	ds1j, _ := ds1.MarshalJSON()
 	ds1p, err := store.Put(memfs.NewMemfileBytes("ds1", ds1j), true)
@@ -63,7 +61,6 @@ func TestRepoGraph(t *testing.T) {
 	}
 
 	dsgraph.Walk(node, 0, func(n *dsgraph.Node) error {
-		fmt.Println(n.Type, n.Path, n.Links)
 		return nil
 	})
 }

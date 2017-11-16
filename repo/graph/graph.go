@@ -1,7 +1,7 @@
 package graph
 
 import (
-	"fmt"
+	"sync"
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
@@ -11,6 +11,7 @@ import (
 var walkParallelism = 4
 
 func RepoGraph(r repo.Repo) (*dsgraph.Node, error) {
+	mu := sync.Mutex{}
 	root := &dsgraph.Node{Type: dsgraph.NtNamespace, Path: "root"}
 	err := WalkRepoDatasets(r, func(prev *dsgraph.Node) func(int, *repo.DatasetRef, error) (bool, error) {
 		return func(depth int, ref *repo.DatasetRef, e error) (kontinue bool, err error) {
@@ -19,12 +20,14 @@ func RepoGraph(r repo.Repo) (*dsgraph.Node, error) {
 			}
 
 			ds := NodesFromDatasetRef(ref)
+			mu.Lock()
 			if depth == 0 {
 				prev.AddLinks(dsgraph.Link{From: prev, To: ds})
 			} else {
 				prev.AddLinks(dsgraph.Link{From: prev, To: ds})
 			}
 			prev = ds
+			mu.Unlock()
 			return true, nil
 		}
 	}(root))
@@ -87,7 +90,6 @@ func WalkRepoDatasets(r repo.Repo, visit func(depth int, ref *repo.DatasetRef, e
 			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
 			kontinue, err := visit(0, ref, err)
 			if err != nil {
-				fmt.Println("top", err.Error())
 				done <- err
 				return
 			}
@@ -101,7 +103,6 @@ func WalkRepoDatasets(r repo.Repo, visit func(depth int, ref *repo.DatasetRef, e
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
 				kontinue, err = visit(depth, ref, err)
 				if err != nil {
-					fmt.Println("prev", err.Error())
 					done <- err
 					return
 				}
