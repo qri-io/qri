@@ -253,6 +253,9 @@ func (h *DatasetHandlers) addDatasetHandler(w http.ResponseWriter, r *http.Reque
 		}
 		// TODO - clean this up
 		p.Hash = r.URL.Path[len("/add/"):]
+		if p.Name == "" && r.FormValue("name") != "" {
+			p.Name = r.FormValue("name")
+		}
 	} else {
 		p = &core.AddParams{
 			Name: r.URL.Query().Get("name"),

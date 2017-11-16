@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
 	"github.com/qri-io/dataset/dsfs"
-	// "github.com/qri-io/dataset/generate"
 	dmp "github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -96,13 +95,15 @@ type execTestCase struct {
 func runCases(store cafs.Filestore, ns map[string]*dataset.Dataset, cases []execTestCase, t *testing.T) {
 	for i, c := range cases {
 
-		ds := &dataset.Dataset{
-			QueryString: c.statement,
-			QuerySyntax: "sql",
-			Resources:   ns,
+		q := &dataset.Query{
+			Syntax: "sql",
+			Abstract: &dataset.AbstractQuery{
+				Statement: c.statement,
+			},
+			Resources: ns,
 		}
 
-		results, data, err := Exec(store, ds, func(o *ExecOpt) {
+		results, data, err := Exec(store, q, func(o *ExecOpt) {
 			o.Format = dataset.CsvDataFormat
 		})
 		if err != c.expect {

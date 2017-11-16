@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"fmt"
 	"io/ioutil"
-	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/jbenet/go-base58"
@@ -22,17 +21,8 @@ func NewMapstore() cafs.Filestore {
 // TODO - fixme
 type MapStore map[datastore.Key]filer
 
-func (m MapStore) Tree() string {
-	buf := &bytes.Buffer{}
-	for path, file := range m {
-		buf.WriteString(path.String() + "\n")
-		// fmt.Println(path, file)
-		cafs.Walk(file.File(), 0, func(f cafs.File, depth int) error {
-			buf.WriteString(strings.Repeat("  ", depth+1) + f.FileName() + "\n")
-			return nil
-		})
-	}
-	return buf.String()
+func (m MapStore) PathPrefix() string {
+	return "map"
 }
 
 func (m MapStore) Put(file cafs.File, pin bool) (key datastore.Key, err error) {

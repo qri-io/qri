@@ -1,128 +1,227 @@
 package repo
 
-// import (
-// 	"fmt"
-// 	"github.com/qri-io/dataset/dsfs"
-// 	"github.com/qri-io/dataset/dsgraph"
-// )
+import (
+	"fmt"
+	"sync"
 
-// var walkParallelism = 4
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsgraph"
+)
 
-// func RepoGraph(r Repo) (*dsgraph.Node, error) {
-// 	root := &dsgraph.Node{Type: dsgraph.NtNamespace, Path: "root"}
-// 	err := WalkRepoDatasets(r, func(prev *dsgraph.Node) func(int, *DatasetRef, error) (bool, error) {
-// 		return func(depth int, ref *DatasetRef, e error) (kontinue bool, err error) {
-// 			if e != nil {
-// 				return false, e
-// 			}
+var walkParallelism = 4
 
-// 			ds := NodesFromDatasetRef(ref)
-// 			if depth == 0 {
-// 				prev.AddLinks(dsgraph.Link{Type: dsgraph.LtNamespaceTip, From: prev, To: ds})
-// 			} else {
-// 				prev.AddLinks(dsgraph.Link{Type: dsgraph.LtPrevious, From: prev, To: ds})
-// 			}
-// 			prev = ds
-// 			return true, nil
-// 		}
-// 	}(root))
-// 	return root, err
-// }
+// HasPath returns true if this repo already has a reference to
+// a given path.
+func HasPath(r Repo, path datastore.Key) (bool, error) {
+	nodes, err := r.Graph()
+	if err != nil {
+		return false, fmt.Errorf("error getting repo graph: %s", err.Error())
+	}
+	p := path.String()
+	for np := range nodes {
+		if p == np {
+			return true, nil
+		}
+	}
+	return false, nil
+}
 
-// func NodesFromDatasetRef(ref *DatasetRef) *dsgraph.Node {
-// 	root := &dsgraph.Node{Type: dsgraph.NtDataset, Path: ref.Path.String()}
-// 	ds := ref.Dataset
-// 	if ds == nil {
-// 		return root
-// 	}
+func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
+	nodes, err := r.Graph()
+	if err != nil {
+		return datastore.NewKey(""), fmt.Errorf("error getting repo graph: %s", err.Error())
+	}
+	qps := qpath.String()
+	fmt.Println("checking", qps)
+	qs := QueriesMap(nodes)
+	fmt.Println(qs)
+	for qp, dsp := range qs {
+		if qp == qps {
+			fmt.Println("MATCH", qp, qps)
+			return dsp, nil
+		}
+	}
+	return datastore.NewKey(""), ErrNotFound
+}
 
-// 	data := &dsgraph.Node{Type: dsgraph.NtData, Path: ds.Data.Path().String()}
-// 	prev := &dsgraph.Node{Type: dsgraph.NtDataset, Path: ds.Previous.Path().String()}
-// 	root.AddLinks(
-// 		dsgraph.Link{Type: dsgraph.LtDsData, From: root, To: data},
-// 		dsgraph.Link{Type: dsgraph.LtPrevious, From: root, To: prev},
-// 	)
-// 	// if ds.Commit.Path().String() != "" {
-// 	//   commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path()}
-// 	// root.AddLinks(dsgraph.Link{Type: dsgraph.LtDsData, From: root, To: data})
-// 	// }
-// 	if ds.AbstractStructure != nil && ds.AbstractStructure.Path().String() != "" {
-// 		abst := &dsgraph.Node{Type: dsgraph.NtAbstStructure, Path: ds.AbstractStructure.Path().String()}
-// 		root.AddLinks(dsgraph.Link{Type: dsgraph.LtAbstStructure, From: root, To: abst})
-// 	}
-// 	if ds.Query != nil && ds.Query.Path().String() != "" {
-// 		query := &dsgraph.Node{Type: dsgraph.NtQuery, Path: ds.Query.Path().String()}
-// 		root.AddLinks(dsgraph.Link{Type: dsgraph.LtQuery, From: root, To: query})
-// 	}
+// RepoGraph generates a map of all paths on this repository pointing
+// to dsgraph.Node structs with all links configured. This is potentially
+// expensive to calculate. Best to do some caching.
+func RepoGraph(r Repo) (map[string]*dsgraph.Node, error) {
+	nodes := NodeList{Nodes: map[string]*dsgraph.Node{}}
+	root := nodes.node(dsgraph.NtNamespace, "root")
+	mu := sync.Mutex{}
+	err := WalkRepoDatasets(r, func(prev *dsgraph.Node) func(int, *DatasetRef, error) (bool, error) {
+		return func(depth int, ref *DatasetRef, e error) (kontinue bool, err error) {
+			if e != nil {
+				return false, e
+			}
+			mu.Lock()
+			ds := nodes.nodesFromDatasetRef(r, ref)
+			prev.AddLinks(dsgraph.Link{From: prev, To: ds})
+			prev = ds
+			mu.Unlock()
+			return true, nil
+		}
+	}(root))
+	return nodes.Nodes, err
+}
 
-// 	return root
-// }
+// QueriesMap returns a mapped subset of a list of nodes in the form:
+// 		QueryHash : DatasetHash
+func QueriesMap(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
+	qs = map[string]datastore.Key{}
+	for path, node := range nodes {
+		if node.Type == dsgraph.NtDataset && len(node.Links) > 0 {
+			for _, l := range node.Links {
+				if l.To.Type == dsgraph.NtQuery {
+					qs[l.To.Path] = datastore.NewKey(path)
+				}
+			}
+		}
+	}
+	return
+}
 
-// // WalkDatasets visits every dataset in the history of a user's namespace
-// // Yes, this potentially a very expensive function to call, use sparingly.
-// func WalkRepoDatasets(r Repo, visit func(logdepth int, ref *DatasetRef, err error) (bool, error)) error {
-// 	store := r.Store()
-// 	count, err := r.NameCount()
-// 	if err != nil {
-// 		return err
-// 	} else if count == 0 {
-// 		return ErrRepoEmpty
-// 	}
+// DataNodes returns a map[path]bool of all raw data nodes
+func DataNodes(nodes map[string]*dsgraph.Node) (ds map[string]bool) {
+	ds = map[string]bool{}
+	for path, node := range nodes {
+		if node.Type == dsgraph.NtData {
+			ds[path] = true
+		}
+	}
+	return
+}
 
-// 	if count < walkParallelism {
-// 		walkParallelism = count
-// 	}
+type NodeList struct {
+	Nodes map[string]*dsgraph.Node
+}
 
-// 	doSection := func(idx, pageSize int, done chan error) {
-// 		refs, err := r.Namespace(pageSize, idx*pageSize)
-// 		if err != nil {
-// 			done <- err
-// 			return
-// 		}
+func (nl NodeList) node(t dsgraph.NodeType, path string) *dsgraph.Node {
+	if nl.Nodes[path] != nil {
+		return nl.Nodes[path]
+	}
+	nl.Nodes[path] = &dsgraph.Node{Type: t, Path: path}
+	return nl.Nodes[path]
+}
 
-// 		for _, ref := range refs {
-// 			fmt.Println(ref.Path.String())
-// 			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
-// 			kontinue, err := visit(0, ref, err)
-// 			if err != nil {
-// 				fmt.Println("top", err.Error())
-// 				done <- err
-// 				return
-// 			}
-// 			if !kontinue {
-// 				break
-// 			}
+func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
+	root := nl.node(dsgraph.NtDataset, ref.Path.String())
+	ds := ref.Dataset
+	if ds == nil {
+		return root
+	}
 
-// 			depth := 1
-// 			for ref.Dataset != nil && ref.Dataset.Previous.String() != "" && ref.Dataset.Previous.String() != "/" {
-// 				ref.Path = ref.Dataset.Previous
-// 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
-// 				kontinue, err = visit(depth, ref, err)
-// 				if err != nil {
-// 					fmt.Println("prev", err.Error())
-// 					done <- err
-// 					return
-// 				}
-// 				if !kontinue {
-// 					break
-// 				}
-// 				depth++
-// 			}
-// 		}
-// 	}
+	root.AddLinks(dsgraph.Link{
+		From: root,
+		To:   nl.node(dsgraph.NtData, ds.Data.String()),
+	})
 
-// 	pageSize := count / walkParallelism
-// 	done := make(chan error, 0)
-// 	for i := 0; i < walkParallelism; i++ {
-// 		go doSection(i, pageSize, done)
-// 	}
+	if ds.Previous.String() != "/" {
+		root.AddLinks(dsgraph.Link{
+			From: root,
+			To:   nl.node(dsgraph.NtDataset, ds.Previous.String()),
+		})
+	}
+	// if ds.Commit.Path().String() != "" {
+	//   commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path()}
+	// root.AddLinks(dsgraph.Link{From: root, To: data})
+	// }
+	if ds.AbstractStructure != nil && ds.AbstractStructure.Path().String() != "" {
+		root.AddLinks(dsgraph.Link{
+			From: root,
+			To:   nl.node(dsgraph.NtAbstStructure, ds.AbstractStructure.Path().String()),
+		})
+	}
+	if ds.Query != nil && ds.Query.Path().String() != "" {
+		if q, err := dsfs.LoadQuery(r.Store(), ds.Query.Path()); err == nil {
+			query := nl.node(dsgraph.NtQuery, ds.Query.Path().String())
+			if q.Abstract != nil && q.Abstract.Path().String() != "" {
+				query.AddLinks(dsgraph.Link{
+					From: query,
+					To:   nl.node(dsgraph.NtAbstQuery, q.Abstract.Path().String()),
+				})
+			}
+			for _, ref := range q.Resources {
+				query.AddLinks(dsgraph.Link{
+					From: query,
+					To:   nl.node(dsgraph.NtDataset, ref.Path().String()),
+				})
+			}
+			root.AddLinks(dsgraph.Link{From: root, To: query})
+		}
+	}
 
-// 	for i := 0; i < walkParallelism; i++ {
-// 		err := <-done
-// 		if err != nil {
-// 			return err
-// 		}
-// 	}
+	return root
+}
 
-// 	return nil
-// }
+// WalkDatasets visits every dataset in the history of a user's namespace
+// Yes, this potentially a very expensive function to call, use sparingly.
+func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) (bool, error)) error {
+	pll := walkParallelism
+	store := r.Store()
+	count, err := r.NameCount()
+	if err != nil {
+		return err
+	} else if count == 0 {
+		return ErrRepoEmpty
+	}
+
+	if count < pll {
+		pll = count
+	}
+
+	doSection := func(idx, pageSize int, done chan error) error {
+		refs, err := r.Namespace(pageSize, idx*pageSize)
+		if err != nil {
+			done <- err
+			return err
+		}
+
+		for _, ref := range refs {
+			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			kontinue, err := visit(0, ref, err)
+			if err != nil {
+				done <- err
+				return err
+			}
+			if !kontinue {
+				break
+			}
+
+			depth := 1
+			for ref.Dataset != nil && ref.Dataset.Previous.String() != "" && ref.Dataset.Previous.String() != "/" {
+				ref.Path = ref.Dataset.Previous
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				kontinue, err = visit(depth, ref, err)
+				if err != nil {
+					done <- err
+					return err
+				}
+				if !kontinue {
+					break
+				}
+				depth++
+			}
+		}
+		done <- nil
+		return nil
+	}
+
+	pageSize := count / pll
+	done := make(chan error, pll)
+	for i := 0; i < pll; i++ {
+		go doSection(i, pageSize, done)
+	}
+
+	for i := 0; i < pll; i++ {
+		err := <-done
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

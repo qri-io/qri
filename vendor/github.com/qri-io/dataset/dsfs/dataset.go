@@ -6,7 +6,6 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 )
@@ -57,6 +56,10 @@ func LoadDatasetRefs(store cafs.Filestore, path datastore.Key) (*dataset.Dataset
 		return nil, fmt.Errorf("error unmarshaling %s file: %s", PackageFileDataset.String(), err.Error())
 	}
 
+	// assign path to retain internal reference to the
+	// path this dataset was read from
+	ds.Assign(dataset.NewDatasetRef(path))
+
 	return ds, nil
 }
 
@@ -100,7 +103,7 @@ func DerefDatasetCommitMsg(store cafs.Filestore, ds *dataset.Dataset) error {
 }
 
 // SaveDataset writes a dataset to a cafs, replacing subcomponents of a dataset with hash references
-// during the write process. Directory structure is according to PackageFile nameing conventions
+// during the write process. Directory structure is according to PackageFile naming conventions
 func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore.Key, error) {
 	if ds == nil {
 		return datastore.NewKey(""), nil
@@ -116,7 +119,7 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	// if dataset contains no references, place directly in.
 	// TODO - this might not constitute a valid dataset. should we be
 	// validating datasets in here?
-	if ds.Query == nil && ds.Structure == nil && ds.Resources == nil {
+	if ds.Query == nil && ds.Structure == nil {
 		fileTasks++
 		dsdata, err := json.Marshal(ds)
 		if err != nil {
@@ -127,12 +130,24 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	}
 
 	if ds.Query != nil {
-		qdata, err := json.Marshal(ds.Query)
+		if ds.Query.Abstract != nil {
+			ds.AbstractQuery = ds.Query.Abstract
+		}
+		// qdata, err := json.Marshal(ds.Query)
+		// if err != nil {
+		// 	return datastore.NewKey(""), fmt.Errorf("error marshaling dataset query to json: %s", err.Error())
+		// }
+		// fileTasks++
+		// adder.AddFile(memfs.NewMemfileBytes(PackageFileQuery.String(), qdata))
+	}
+
+	if ds.AbstractQuery != nil {
+		qdata, err := json.Marshal(ds.AbstractQuery)
 		if err != nil {
-			return datastore.NewKey(""), fmt.Errorf("error marshaling dataset query to json: %s", err.Error())
+			return datastore.NewKey(""), fmt.Errorf("error marshaling dataset abstract query to json: %s", err.Error())
 		}
 		fileTasks++
-		adder.AddFile(memfs.NewMemfileBytes(PackageFileQuery.String(), qdata))
+		adder.AddFile(memfs.NewMemfileBytes(PackageFileAbstractQuery.String(), qdata))
 	}
 
 	if ds.Commit != nil {
@@ -170,18 +185,6 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	// if ds.Previous != nil {
 	// }
 
-	// for name, d := range ds.Resources {
-	//  if d.path.String() != "" && d.IsEmpty() {
-	//    continue
-	//  } else if d != nil {
-	//    // dspath, err := d.Save(store, pin)
-	//    // if err != nil {
-	//    //  return datastore.NewKey(""), fmt.Errorf("error saving dataset resource: %s", err.Error())
-	//    // }
-	//    // ds.Resources[name] = &Dataset{path: dspath}
-	//  }
-	// }
-
 	var path datastore.Key
 	done := make(chan error, 0)
 	go func() {
@@ -194,6 +197,17 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 				ds.AbstractStructure = dataset.NewStructureRef(ao.Path)
 			case PackageFileQuery.String():
 				ds.Query = dataset.NewQueryRef(ao.Path)
+			case PackageFileAbstractQuery.String():
+				ds.AbstractQuery = dataset.NewAbstractQueryRef(ao.Path)
+				ds.Query.Abstract = ds.AbstractQuery
+				if ds.Query != nil {
+					if f, err := queryFile(ds.Query); err != nil {
+						done <- fmt.Errorf("error generating query file: %s", err.Error())
+					} else {
+						fileTasks++
+						adder.AddFile(f)
+					}
+				}
 			case PackageFileCommitMsg.String():
 				ds.Commit = dataset.NewCommitMsgRef(ao.Path)
 				// case "resources":
@@ -232,7 +246,7 @@ func SaveDataset(store cafs.Filestore, ds *dataset.Dataset, pin bool) (datastore
 	// the cafs interface, or the concrete cafs/ipfs implementation?
 	// TODO - remove this in favour of some sort of method on filestores
 	// that generate path roots
-	if _, ok := store.(*ipfs_filestore.Filestore); ok {
+	if store.PathPrefix() == "ipfs" {
 		path = datastore.NewKey(path.String() + "/" + PackageFileDataset.String())
 	}
 	return path, err

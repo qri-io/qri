@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -32,6 +33,8 @@ type Repo interface {
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.
 	Store() cafs.Filestore
+	// Graph returns a graph of this repositories data resources
+	Graph() (map[string]*dsgraph.Node, error)
 	// At the heart of all repositories is a namestore, which maps user-defined
 	// aliases for datasets to their underlying content-addressed hash
 	// as an example:

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sort"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -108,26 +109,29 @@ func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 		return nil, err
 	}
 
-	i := -1
-	added := 0
-	res := make([]*repo.DatasetRef, limit)
+	// TODO -- horrible hack. Fix.
+	namesl := make([]*repo.DatasetRef, len(names))
+	idx := 0
 	for name, path := range names {
-		i++
-		if i < offset {
-			continue
-		}
-		if limit > 0 && added == limit {
-			break
-		}
-
-		res[added] = &repo.DatasetRef{
+		namesl[idx] = &repo.DatasetRef{
 			Name: name,
 			Path: path,
 		}
-		added++
+		idx++
 	}
-	res = res[:added]
-	return res, nil
+	sort.Slice(namesl, func(i, j int) bool { return namesl[i].Name < namesl[j].Name })
+
+	res := make([]*repo.DatasetRef, limit)
+	for i, ref := range namesl {
+		if i < offset {
+			continue
+		}
+		if i-offset == limit {
+			return res, nil
+		}
+		res[i-offset] = ref
+	}
+	return res[:len(namesl)-offset], nil
 }
 
 func (n Namestore) NameCount() (int, error) {

@@ -8,55 +8,76 @@ import (
 	q "github.com/qri-io/dataset_sql/vt/proto/query"
 )
 
-func Prepare(ds *dataset.Dataset, opts *ExecOpt) (Statement, map[string]datastore.Key, error) {
-	concreteStmt, err := Parse(ds.QueryString)
+// query encapsulates internal state of a prepared query
+type preparedQuery struct {
+	q      *dataset.Query
+	opts   *ExecOpt
+	stmt   Statement
+	paths  map[string]datastore.Key
+	result *dataset.Structure
+}
+
+// Prepare preps a statement for execution
+// TODO - move this & the fmt stuff into it's own package, call it before
+// sending anything to dataset_sql, or right off the top within dataset_sql, whatever.
+func Prepare(q *dataset.Query, opts *ExecOpt) (preparedQuery, error) {
+	prep := preparedQuery{q: q, opts: opts}
+
+	if q.Abstract == nil {
+		return prep, fmt.Errorf("abstract query is required to prepare")
+	}
+	concreteStmt, err := Parse(q.Abstract.Statement)
 	if err != nil {
-		return nil, nil, err
+		return prep, err
 	}
 
-	err = RemoveUnusedReferences(concreteStmt, ds)
+	err = RemoveUnusedReferences(concreteStmt, q)
 	if err != nil {
-		return nil, nil, err
+		return prep, err
 	}
 
 	strs := map[string]*dataset.Structure{}
-	for name, ds := range ds.Resources {
+	for name, ds := range q.Resources {
 		strs[name] = ds.Structure
 	}
 
-	ds.Structure, err = ResultStructure(concreteStmt, strs, opts)
+	prep.result, err = ResultStructure(concreteStmt, strs, opts)
 	if err != nil {
-		return nil, nil, err
+		return prep, err
 	}
 
-	queryString, stmt, remap, err := Format(ds)
+	queryString, stmt, remap, err := Format(q)
 	if err != nil {
-		return nil, nil, err
+		return prep, err
 	}
 
 	// TODO - turn this on once we have client-side formatting
+	// or have at least formatted before this call
 	// ds.QueryString = queryString
 
 	paths := map[string]datastore.Key{}
 	// collect table references
 	for mapped, ref := range remap {
 		// for i, adr := range stmt.References() {
-		if ds.Resources[ref] == nil {
-			return nil, nil, fmt.Errorf("couldn't find resource for table name: %s", ref)
+		if q.Resources[ref] == nil {
+			return prep, fmt.Errorf("couldn't find resource for table name: %s", ref)
 		}
-		paths[mapped] = ds.Resources[ref].Data
-		ds.Query.Structures[mapped] = ds.Resources[ref].Structure.Abstract()
+		paths[mapped] = q.Resources[ref].Data
+		q.Abstract.Structures[mapped] = q.Resources[ref].Structure.Abstract()
 	}
 
-	ds.Query.Syntax = "sql"
-	ds.Query.Statement = queryString
-	ds.Query.Structure, err = ResultStructure(stmt, ds.Query.Structures, opts)
+	q.Syntax = "sql"
+	q.Abstract.Syntax = "sql"
+	q.Abstract.Statement = queryString
+	q.Abstract.Structure, err = ResultStructure(stmt, q.Abstract.Structures, opts)
 	if err != nil {
-		return nil, nil, err
+		return prep, err
 	}
+	prep.stmt = stmt
+	prep.paths = paths
 
-	err = PrepareStatement(stmt, ds.Query.Structures)
-	return stmt, paths, err
+	err = PrepareStatement(stmt, q.Abstract.Structures)
+	return prep, err
 }
 
 // PrepareStatement sets up a statement for exectution. It modifies the passed-in statement

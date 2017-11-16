@@ -23,7 +23,6 @@ import (
 	"errors"
 	"strings"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/datatypes"
@@ -116,7 +115,7 @@ func GenerateParsedQuery(node SQLNode) *ParsedQuery {
 // Statement represents a statement.
 type Statement interface {
 	iStatement()
-	exec(cafs.Filestore, *dataset.Dataset, map[string]datastore.Key, *ExecOpt) (*dataset.Structure, []byte, error)
+	exec(cafs.Filestore, preparedQuery) (*dataset.Structure, []byte, error)
 	References() []string
 	SQLNode
 }
@@ -145,7 +144,7 @@ type SelectStatement interface {
 	iInsertRows()
 	AddOrder(*Order)
 	SetLimit(*Limit)
-	exec(cafs.Filestore, *dataset.Dataset, map[string]datastore.Key, *ExecOpt) (*dataset.Structure, []byte, error)
+	exec(cafs.Filestore, preparedQuery) (*dataset.Structure, []byte, error)
 	References() []string
 	SQLNode
 }

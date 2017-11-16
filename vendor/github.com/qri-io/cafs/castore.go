@@ -20,10 +20,11 @@ var (
 // It's currently form-fitting around IPFS (ipfs.io), with far-off plans to generalize
 // toward compatibility with git (git-scm.com), then maybe other stuff, who knows.
 type Filestore interface {
-	// put places a raw slice of bytes. Expect this to change to something like:
-	// Put(file File, options map[string]interface{}) (key datastore.Key, err error)
+	// Put places a file or a directory in the store.
 	// The most notable difference from a standard file store is the store itself determines
 	// the resulting key (google "content addressing" for more info ;)
+	// keys returned by put must be prefixed with the PathPrefix,
+	// eg. /ipfs/QmZ3KfGaSrb3cnTriJbddCzG7hwQi2j6km7Xe7hVpnsW5S
 	Put(file File, pin bool) (key datastore.Key, err error)
 
 	// Get retrieves the object `value` named by `key`.
@@ -47,6 +48,11 @@ type Filestore interface {
 	// expect this to change to something like:
 	// NewAdder(opt map[string]interface{}) (Adder, error)
 	NewAdder(pin, wrap bool) (Adder, error)
+
+	// PathPrefix is a top-level identifier to distinguish between filestores,
+	// for exmple: the "ipfs" in /ipfs/QmZ3KfGaSrb3cnTriJbddCzG7hwQi2j6km7Xe7hVpnsW5S
+	// a Filestore implementation should always return the same
+	PathPrefix() string
 }
 
 // Fetcher is the interface for getting files from a remote source

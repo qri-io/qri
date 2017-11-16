@@ -1,68 +1,70 @@
 package repo
 
 import (
-	"fmt"
 	"github.com/ipfs/go-datastore"
 )
 
 // MemNamestore is an in-memory implementation of the Namestore interface
-type MemNamestore map[string]datastore.Key
+type MemNamestore []*DatasetRef
 
-func (r MemNamestore) PutName(name string, path datastore.Key) error {
-	r[name] = path
+func (r *MemNamestore) PutName(name string, path datastore.Key) error {
+	// r[name] = path
+	for _, ref := range *r {
+		if ref.Name == name {
+			ref.Path = path
+			return nil
+		}
+	}
+	*r = append(*r, &DatasetRef{
+		Name: name,
+		Path: path,
+	})
 	return nil
 }
 
 func (r MemNamestore) GetPath(name string) (datastore.Key, error) {
-	if r[name].String() == "" {
-		return datastore.NewKey(""), ErrNotFound
+	for _, ref := range r {
+		if ref.Name == name {
+			return ref.Path, nil
+		}
 	}
-	return r[name], nil
+	return datastore.NewKey(""), ErrNotFound
 }
 
 func (r MemNamestore) GetName(path datastore.Key) (string, error) {
-	for name, p := range r {
-		if path.Equal(p) {
-			return name, nil
+	for _, ref := range r {
+		if ref.Path.Equal(path) {
+			return ref.Name, nil
 		}
 	}
 	return "", ErrNotFound
 }
 
 func (r MemNamestore) DeleteName(name string) error {
-	delete(r, name)
-	return nil
+	for i, ref := range r {
+		if ref.Name == name {
+			r = append(r[:i], r[i+1:]...)
+			return nil
+		}
+	}
+	return ErrNotFound
 }
 
 func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
-	if limit == -1 && len(r) <= 0 {
-		return nil, fmt.Errorf("MemNamestore: nonpositive length")
-	} else if limit == -1 {
-		limit = len(r)
-	}
-
-	i := 0
-	added := 0
 	res := make([]*DatasetRef, limit)
-	for name, path := range r {
+	for i, ref := range r {
 		if i < offset {
 			continue
 		}
-
-		if limit > 0 && added < limit {
-			res[i] = &DatasetRef{
-				Name: name,
-				Path: path,
-			}
-			added++
-		} else if added == limit {
-			break
+		if i-offset == limit {
+			return res, nil
 		}
-
-		i++
+		res[i-offset] = &DatasetRef{
+			Name: ref.Name,
+			Path: ref.Path,
+		}
 	}
-	res = res[:added]
-	return res, nil
+	return res[:len(r)-offset], nil
 }
 
 func (r MemNamestore) NameCount() (int, error) {

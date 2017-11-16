@@ -3,7 +3,6 @@ package dataset_sql
 import (
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 )
@@ -22,7 +21,7 @@ func opts(options ...func(*ExecOpt)) *ExecOpt {
 	return o
 }
 
-func Exec(store cafs.Filestore, ds *dataset.Dataset, options ...func(o *ExecOpt)) (result *dataset.Structure, resultBytes []byte, err error) {
+func Exec(store cafs.Filestore, q *dataset.Query, options ...func(o *ExecOpt)) (result *dataset.Structure, resultBytes []byte, err error) {
 	opts := &ExecOpt{
 		Format: dataset.CsvDataFormat,
 	}
@@ -30,16 +29,16 @@ func Exec(store cafs.Filestore, ds *dataset.Dataset, options ...func(o *ExecOpt)
 		option(opts)
 	}
 
-	if ds.QuerySyntax != "sql" {
-		return nil, nil, fmt.Errorf("Invalid syntax: '%s' sql_dataset only supports sql syntax. ", ds.QuerySyntax)
+	if q.Syntax != "sql" {
+		return nil, nil, fmt.Errorf("Invalid syntax: '%s' sql_dataset only supports sql syntax. ", q.Syntax)
 	}
 
-	stmt, paths, err := Prepare(ds, opts)
+	prep, err := Prepare(q, opts)
 	if err != nil {
 		return nil, nil, err
 	}
 
-	return stmt.exec(store, ds, paths, opts)
+	return prep.stmt.exec(store, prep)
 }
 
 // CollectColNames grabs a slice of pointers to all columns
@@ -69,11 +68,12 @@ func SetSourceRow(cols []*ColName, sr SourceRow) error {
 	return nil
 }
 
-func (stmt *Select) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (result *dataset.Structure, resultBytes []byte, err error) {
-
+func (stmt *Select) exec(store cafs.Filestore, prep preparedQuery) (result *dataset.Structure, resultBytes []byte, err error) {
+	q := prep.q
+	absq := q.Abstract
 	cols := CollectColNames(stmt)
-	buf := NewResultBuffer(stmt, ds.Query.Structure)
-	srg, err := NewSourceRowGenerator(store, remap, ds.Query.Structures)
+	buf := NewResultBuffer(stmt, absq.Structure)
+	srg, err := NewSourceRowGenerator(store, prep.paths, absq.Structures)
 	if err != nil {
 		return result, nil, err
 	}
@@ -81,7 +81,7 @@ func (stmt *Select) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[st
 	if err != nil {
 		return result, nil, err
 	}
-	rrg, err := NewResultRowGenerator(stmt, ds.Query.Structure)
+	rrg, err := NewResultRowGenerator(stmt, absq.Structure)
 	if err != nil {
 		return result, nil, err
 	}
@@ -126,42 +126,41 @@ func (stmt *Select) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[st
 	}
 
 	// TODO - rename / deref result var
-	result = ds.Structure
-
+	result = prep.result
 	resultBytes = buf.Bytes()
 	return
 }
 
-func (node *Union) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Union) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("union statements")
 }
-func (node *Insert) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Insert) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("insert statements")
 }
-func (node *Update) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Update) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("update statements")
 }
-func (node *Delete) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Delete) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("delete statements")
 }
-func (node *Set) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Set) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("set statements")
 }
-func (node *DDL) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *DDL) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("ddl statements")
 }
-func (node *ParenSelect) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *ParenSelect) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("ParenSelect statements")
 }
-func (node *Show) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Show) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("Show statements")
 }
-func (node *Use) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *Use) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("Use statements")
 }
-func (node *OtherRead) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *OtherRead) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("OtherRead statements")
 }
-func (node *OtherAdmin) exec(store cafs.Filestore, ds *dataset.Dataset, remap map[string]datastore.Key, opts *ExecOpt) (*dataset.Structure, []byte, error) {
+func (node *OtherAdmin) exec(store cafs.Filestore, prep preparedQuery) (*dataset.Structure, []byte, error) {
 	return nil, nil, NotYetImplemented("OtherAdmin statements")
 }

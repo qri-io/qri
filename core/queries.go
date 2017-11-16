@@ -63,6 +63,7 @@ type RunParams struct {
 }
 
 func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
+	fmt.Println("running query: %s", p.Dataset.QueryString)
 	var (
 		store     = r.repo.Store()
 		structure *dataset.Structure
@@ -77,58 +78,67 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ds.Timestamp = time.Now()
 
+	q := ds.Query
+	if q == nil {
+		q = &dataset.Query{
+			Syntax: "sql",
+			Abstract: &dataset.AbstractQuery{
+				Syntax:    "sql",
+				Statement: ds.QueryString,
+			},
+		}
+	}
+	if ds.QueryString == "" {
+		ds.QueryString = q.Abstract.Statement
+	}
+
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
 	// sqlstr, _, remap, err := sql.Format(ds.QueryString)
 	// if err != nil {
 	// 	return err
 	// }
-	names, err := sql.StatementTableNames(ds.QueryString)
+	names, err := sql.StatementTableNames(q.Abstract.Statement)
 	if err != nil {
 		return fmt.Errorf("error getting statement table names: %s", err.Error())
 	}
-	// ds.QueryString = sqlstr
 
-	if ds.Resources == nil {
-		ds.Resources = map[string]*dataset.Dataset{}
+	if q.Resources == nil {
+		q.Resources = map[string]*dataset.Dataset{}
 		// collect table references
 		for _, name := range names {
 			path, err := r.repo.GetPath(name)
 			if err != nil {
 				return fmt.Errorf("error getting path to dataset %s: %s", name, err.Error())
 			}
-			// for i, adr := range stmt.References() {
-			// if ns[name].String() == "" {
-			// 	return fmt.Errorf("couldn't find resource for table name: %s", name)
-			// }
 			d, err := dsfs.LoadDataset(store, path)
 			if err != nil {
 				return fmt.Errorf("error loading dataset: %s", err.Error())
 			}
-			ds.Resources[name] = d
+			q.Resources[name] = d
 		}
 	}
 
-	// TODO - restore query hash discovery
-	// fmt.Printf("query hash: %s\n", dshash)
-	// dspath := datastore.NewKey("/ipfs/" + dshash)
+	qpath, err := dsfs.SaveQuery(store, q, false)
+	if err != nil {
+		return fmt.Errorf("error calculating query hash: %s", err.Error())
+	}
 
-	// TODO - restore query results graph
-	// rgraph, err := r.repo.QueryResults()
-	// if err != nil {
-	// 	return err
-	// }
-
-	// cache := rgraph[qpath]
-	// if len(cache) > 0 {
-	// 	resource, err = core.GetStructure(store, cache[0])
-	// 	if err != nil {
-	// 		results, err = core.GetStructuredData(store, resource.Path)
-	// 	}
-	// }
+	if dsp, err := repo.DatasetForQuery(r.repo, qpath); err != nil && err != repo.ErrNotFound {
+		return fmt.Errorf("error checking for existing query: %s", err.Error())
+	} else if err != repo.ErrNotFound {
+		if ds, err := dsfs.LoadDataset(store, dsp); err == nil {
+			ref := &repo.DatasetRef{Name: p.SaveName, Path: dsp, Dataset: ds}
+			if err := r.repo.LogQuery(ref); err != nil {
+				return fmt.Errorf("error logging query to repo: %s", err.Error())
+			}
+			*res = *ref
+			return nil
+		}
+	}
 
 	// TODO - detect data format from passed-in results structure
-	structure, results, err = sql.Exec(store, ds, func(o *sql.ExecOpt) {
+	structure, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.CsvDataFormat
 	})
 	if err != nil {
@@ -138,6 +148,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = structure
 	ds.Length = len(results)
+	ds.Query = q
 
 	ds.Data, err = store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {

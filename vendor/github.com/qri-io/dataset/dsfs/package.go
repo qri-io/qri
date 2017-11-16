@@ -10,6 +10,7 @@ const (
 	PackageFileResources
 	PackageFileCommitMsg
 	PackageFileQuery
+	PackageFileAbstractQuery
 )
 
 var filenames = map[PackageFile]string{
@@ -17,6 +18,7 @@ var filenames = map[PackageFile]string{
 	PackageFileDataset:           "dataset.json",
 	PackageFileStructure:         "structure.json",
 	PackageFileAbstractStructure: "abstract_structure.json",
+	PackageFileAbstractQuery:     "abstract_query.json",
 	PackageFileResources:         "resources",
 	PackageFileCommitMsg:         "commit.json",
 	PackageFileQuery:             "query.json",

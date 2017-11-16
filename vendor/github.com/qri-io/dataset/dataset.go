@@ -36,6 +36,9 @@ type Dataset struct {
 	// Length is the length of the data object in bytes.
 	// must always match & be present
 	Length int `json:"length"`
+	// number of rows in the dataset.
+	// required and must match underlying dataset.
+	Rows int `json:"rows"`
 	// Previous connects datasets to form a historical DAG
 	Previous datastore.Key `json:"previous,omitempty"`
 	// Commit contains author & change message information
@@ -78,23 +81,26 @@ type Dataset struct {
 
 	// QueryString is the user-inputted string of this query
 	QueryString string `json:"queryString,omitempty"`
-	// Query is a path to a query that generated this resource
+	// AbstractQuery is a reference to the general form of the query this dataset represents
+	AbstractQuery *AbstractQuery `json:"abstractQuery,omitempty"`
+	// Query is a path to the query that generated this resource
 	Query *Query `json:"query,omitempty"`
-	// Syntax this query was written in
-	QuerySyntax string `json:"querySyntax,omitempty"`
-	// queryPlatform is an identifier for the operating system that performed the query
-	QueryPlatform string `json:"queryPlatform,omitempty"`
-	// QueryEngine is an identifier for the application that produced the result
-	QueryEngine string `json:"queryEngine,omitempty"`
-	// QueryEngineConfig outlines any configuration that would affect the resulting hash
-	QueryEngineConfig map[string]interface{} `json:"queryEngineConfig,omitempty`
-	// Resources is a map of dataset names to dataset references this query is derived from
-	// all tables referred to in the query should be present here
-	Resources map[string]*Dataset `json:"resources,omitempty"`
 	// meta holds additional arbitrarty metadata not covered by the spec
 	// when encoding & decoding json values here will be hoisted into the
 	// Dataset object
 	meta map[string]interface{}
+}
+
+func (ds *Dataset) IsEmpty() bool {
+	return ds.Title == "" && ds.Description == "" && ds.Structure == nil && ds.Timestamp.IsZero() && ds.Previous.String() == ""
+}
+
+func (ds *Dataset) Path() datastore.Key {
+	return ds.path
+}
+
+func NewDatasetRef(path datastore.Key) *Dataset {
+	return &Dataset{path: path}
 }
 
 // Meta gives access to additional metadata not covered by dataset metadata
@@ -202,21 +208,6 @@ func (d *Dataset) Assign(datasets ...*Dataset) {
 		if ds.Query != nil {
 			d.Query = ds.Query
 		}
-		if ds.QuerySyntax != "" {
-			d.QuerySyntax = ds.QuerySyntax
-		}
-		if ds.QueryPlatform != "" {
-			d.QueryPlatform = ds.QueryPlatform
-		}
-		if ds.QueryEngine != "" {
-			d.QueryEngine = ds.QueryEngine
-		}
-		if ds.QueryEngineConfig != nil {
-			d.QueryEngineConfig = ds.QueryEngineConfig
-		}
-		if ds.Resources != nil {
-			d.Resources = ds.Resources
-		}
 		if ds.meta != nil {
 			d.meta = ds.meta
 		}
@@ -233,6 +224,9 @@ func (d *Dataset) MarshalJSON() ([]byte, error) {
 	}
 
 	data := d.Meta()
+	if d.AbstractQuery != nil {
+		data["abstractQuery"] = d.AbstractQuery
+	}
 	if d.AbstractStructure != nil {
 		data["abstractStructure"] = d.AbstractStructure
 	}
@@ -286,26 +280,11 @@ func (d *Dataset) MarshalJSON() ([]byte, error) {
 	if d.Query != nil {
 		data["query"] = d.Query
 	}
-	if d.QueryEngine != "" {
-		data["queryEngine"] = d.QueryEngine
-	}
-	if d.QueryEngineConfig != nil {
-		data["queryEngineConfig"] = d.QueryEngineConfig
-	}
-	if d.QueryPlatform != "" {
-		data["queryPlatform"] = d.QueryPlatform
-	}
 	if d.QueryString != "" {
 		data["queryString"] = d.QueryString
 	}
-	if d.QueryPlatform != "" {
-		data["querySyntax"] = d.QuerySyntax
-	}
 	if d.Readme.String() != "" {
 		data["readme"] = d.Readme
-	}
-	if d.Resources != nil {
-		data["resources"] = d.Resources
 	}
 	data["structure"] = d.Structure
 	if d.Theme != nil {
@@ -347,6 +326,7 @@ func (d *Dataset) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, f := range []string{
+		"abstractQuery",
 		"abstractStructure",
 		"accessUrl",
 		"accrualPeriodicity",
@@ -367,13 +347,8 @@ func (d *Dataset) UnmarshalJSON(data []byte) error {
 		"license",
 		"previous",
 		"query",
-		"queryEngine",
-		"queryEngineConfig",
-		"queryPlatform",
 		"queryString",
-		"querySyntax",
 		"readme",
-		"resources",
 		"structure",
 		"theme",
 		"timestamp",
@@ -386,14 +361,6 @@ func (d *Dataset) UnmarshalJSON(data []byte) error {
 	ds.meta = meta
 	*d = Dataset(ds)
 	return nil
-}
-
-func (ds *Dataset) IsEmpty() bool {
-	return ds.Title == "" && ds.Description == "" && ds.Structure == nil && ds.Timestamp.IsZero() && ds.Previous.String() == ""
-}
-
-func (ds *Dataset) Path() datastore.Key {
-	return ds.path
 }
 
 // UnmarshalDataset tries to extract a dataset type from an empty

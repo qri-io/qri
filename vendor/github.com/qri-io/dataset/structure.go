@@ -139,22 +139,6 @@ func (s *Structure) UnmarshalJSON(data []byte) error {
 	return nil
 }
 
-// Valid validates weather or not this structure
-func (ds *Structure) Valid() error {
-	// if count := truthCount(ds.Url != "", ds.File != "", len(ds.Data) > 0); count > 1 {
-	// 	return errors.New("only one of url, file, or data can be set")
-	// } else if count == 1 {
-	// 	if ds.Format == UnknownDataFormat {
-	// 		// if format is unspecified, we need to be able to derive the format from
-	// 		// the extension of either the url or filepath
-	// 		if ds.DataFormat() == "" {
-	// 			return errors.New("format is required for data source")
-	// 		}
-	// 	}
-	// }
-	return nil
-}
-
 func (st *Structure) IsEmpty() bool {
 	return st.Format == UnknownDataFormat && st.FormatConfig == nil && st.Encoding == "" && st.Schema == nil
 }
@@ -166,12 +150,6 @@ func (s *Structure) Assign(structures ...*Structure) {
 		if st == nil {
 			continue
 		}
-
-		// @TODO - wouldn't this be nice...
-		// if s == nil && st != nil {
-		// 	s = st
-		// 	continue
-		// }
 
 		if st.path.String() != "" {
 			s.path = st.path
