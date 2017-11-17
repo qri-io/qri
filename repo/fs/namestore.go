@@ -30,14 +30,26 @@ func NewNamestore(base string) Datasets {
 func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 	var ds *dataset.Dataset
 
+	if name == "" {
+		return repo.ErrNameRequired
+	}
+
 	names, err := n.names()
 	if err != nil {
 		return err
 	}
 
-	if names[name].String() != "" {
-		return repo.ErrNameTaken
+	for _, ref := range names {
+		if ref.Name == name {
+			return repo.ErrNameTaken
+		}
 	}
+
+	r := &repo.DatasetRef{
+		Name: name,
+		Path: path,
+	}
+	names = append(names, r)
 
 	if n.store != nil {
 		ds, err = dsfs.LoadDataset(n.store, path)
@@ -46,7 +58,6 @@ func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 		}
 	}
 
-	names[name] = path
 	if n.index != nil {
 		batch := n.index.NewBatch()
 		err = batch.Index(path.String(), ds)
@@ -59,7 +70,7 @@ func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 		}
 	}
 
-	return n.saveFile(names, FileNamestore)
+	return n.save(names)
 }
 
 func (n Namestore) GetPath(name string) (datastore.Key, error) {
@@ -67,10 +78,12 @@ func (n Namestore) GetPath(name string) (datastore.Key, error) {
 	if err != nil {
 		return datastore.NewKey(""), err
 	}
-	if names[name].String() == "" {
-		return datastore.NewKey(""), repo.ErrNotFound
+	for _, ref := range names {
+		if ref.Name == name {
+			return ref.Path, nil
+		}
 	}
-	return names[name], nil
+	return datastore.NewKey(""), repo.ErrNotFound
 }
 
 func (n Namestore) GetName(path datastore.Key) (string, error) {
@@ -78,9 +91,9 @@ func (n Namestore) GetName(path datastore.Key) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	for name, p := range names {
-		if path.Equal(p) {
-			return name, nil
+	for _, ref := range names {
+		if ref.Path.Equal(path) {
+			return ref.Name, nil
 		}
 	}
 	return "", repo.ErrNotFound
@@ -91,16 +104,20 @@ func (n Namestore) DeleteName(name string) error {
 	if err != nil {
 		return err
 	}
-	path := names[name]
 
-	if path.String() != "" && n.index != nil {
-		if err := n.index.Delete(path.String()); err != nil {
-			return err
+	for i, ref := range names {
+		if ref.Name == name {
+			if ref.Path.String() != "" && n.index != nil {
+				if err := n.index.Delete(ref.Path.String()); err != nil {
+					return err
+				}
+			}
+			names = append(names[:i], names[i+1:]...)
+			break
 		}
 	}
 
-	delete(names, name)
-	return n.saveFile(names, FileNamestore)
+	return n.save(names)
 }
 
 func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
@@ -108,21 +125,8 @@ func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO -- horrible hack. Fix.
-	namesl := make([]*repo.DatasetRef, len(names))
-	idx := 0
-	for name, path := range names {
-		namesl[idx] = &repo.DatasetRef{
-			Name: name,
-			Path: path,
-		}
-		idx++
-	}
-	sort.Slice(namesl, func(i, j int) bool { return namesl[i].Name < namesl[j].Name })
-
 	res := make([]*repo.DatasetRef, limit)
-	for i, ref := range namesl {
+	for i, ref := range names {
 		if i < offset {
 			continue
 		}
@@ -131,7 +135,7 @@ func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 		}
 		res[i-offset] = ref
 	}
-	return res[:len(namesl)-offset], nil
+	return res[:len(names)-offset], nil
 }
 
 func (n Namestore) NameCount() (int, error) {
@@ -142,8 +146,8 @@ func (n Namestore) NameCount() (int, error) {
 	return len(names), nil
 }
 
-func (r *Namestore) names() (map[string]datastore.Key, error) {
-	ns := map[string]datastore.Key{}
+func (r *Namestore) names() ([]*repo.DatasetRef, error) {
+	ns := []*repo.DatasetRef{}
 	data, err := ioutil.ReadFile(r.filepath(FileNamestore))
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -153,7 +157,26 @@ func (r *Namestore) names() (map[string]datastore.Key, error) {
 	}
 
 	if err := json.Unmarshal(data, &ns); err != nil {
-		return ns, fmt.Errorf("error unmarshaling names: %s", err.Error())
+		prevns := map[string]datastore.Key{}
+		if err := json.Unmarshal(data, &prevns); err != nil {
+			return ns, fmt.Errorf("error unmarshaling names: %s", err.Error())
+		}
+		ns = make([]*repo.DatasetRef, len(prevns))
+		i := 0
+		for name, path := range prevns {
+			ns[i] = &repo.DatasetRef{
+				Name: name,
+				Path: path,
+			}
+			i++
+		}
+		sort.Slice(ns, func(i, j int) bool { return ns[i].Name < ns[j].Name })
 	}
+
 	return ns, nil
+}
+
+func (r *Namestore) save(ns []*repo.DatasetRef) error {
+	sort.Slice(ns, func(i, j int) bool { return ns[i].Name < ns[j].Name })
+	return r.saveFile(ns, FileNamestore)
 }

@@ -20,6 +20,8 @@ import (
 var (
 	// implementers should return this variable when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
+	// when a name is missing-but-expected
+	ErrNameRequired = fmt.Errorf("repo: name is required")
 	// when a Namestore name is already taken
 	ErrNameTaken = fmt.Errorf("repo: name already in use")
 	// when the repo has no datasets

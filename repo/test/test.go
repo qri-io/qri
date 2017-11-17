@@ -1,16 +1,18 @@
 package test
 
 import (
-	"github.com/qri-io/qri/repo"
+	"fmt"
 	"testing"
+
+	"github.com/qri-io/qri/repo"
 )
 
-type RepoTestFunc func(t *testing.T, r repo.Repo)
+type RepoTestFunc func(r repo.Repo) error
 
 func RunRepoTests(t *testing.T, r repo.Repo) {
 	tests := []RepoTestFunc{
 		RunTestProfile,
-		// RunTestNamespace,
+		RunTestNamespace,
 		// RunTestQueryResults,
 		// RunTestResourceMeta,
 		// RunTestResourceQueries,
@@ -19,36 +21,41 @@ func RunRepoTests(t *testing.T, r repo.Repo) {
 	}
 
 	for _, test := range tests {
-		test(t, r)
+		if err := test(r); err != nil {
+			t.Errorf(err.Error())
+		}
 	}
 }
 
-func RunTestProfile(t *testing.T, r repo.Repo) {
+func RunTestProfile(r repo.Repo) error {
 	p, err := r.Profile()
 	if err != nil {
-		t.Errorf("Unexpected Profile error: %s", err.Error())
-		return
+		return fmt.Errorf("Unexpected Profile error: %s", err.Error())
 	}
 
 	err = r.SaveProfile(p)
 	if err != nil {
-		t.Errorf("Unexpected SaveProfile error: %s", err.Error())
-		return
+		return fmt.Errorf("Unexpected SaveProfile error: %s", err.Error())
 	}
+	return nil
 }
 
-func RunTestDatasetStore(t *testing.T, r repo.Repo) {
+func RunTestDatasetStore(r repo.Repo) error {
 	// TODO
+	return nil
 }
 
-func RunTestPeers(t *testing.T, r repo.Repo) {
+func RunTestPeers(r repo.Repo) error {
 	// TODO
+	return nil
 }
 
-func RunTestAnalytics(t *testing.T, r repo.Repo) {
+func RunTestAnalytics(r repo.Repo) error {
 	// TODO
+	return nil
 }
 
-func RunTestCache(t *testing.T, r repo.Repo) {
+func RunTestCache(r repo.Repo) error {
 	// TODO
+	return nil
 }

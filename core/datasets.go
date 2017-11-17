@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"net/http"
 	"path/filepath"
-	"sort"
 	"strings"
 	"time"
 
@@ -36,13 +35,6 @@ func NewDatasetRequests(r repo.Repo) *DatasetRequests {
 
 func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	store := d.repo.Store()
-	// TODO - generate a sorted copy of keys, iterate through, respecting
-	// limit & offset
-	// ns, err := d.repo.Namespace()
-	// ds, err := repo.DatasetsQuery(d.repo, query.Query{
-	// 	Limit:  p.Limit,
-	// 	Offset: p.Offset,
-	// })
 	// ensure valid limit value
 	if p.Limit <= 0 {
 		p.Limit = 25
@@ -72,9 +64,6 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 		}
 		replies[i].Dataset = ds
 	}
-
-	// TODO - horrible hack to make sure results are default-sorted
-	sort.Slice(replies, func(i, j int) bool { return replies[i].Dataset.Timestamp.After(replies[j].Dataset.Timestamp) })
 
 	*res = replies
 	return nil

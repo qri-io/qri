@@ -90,8 +90,8 @@ func TestDatasetRequestsList(t *testing.T) {
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []*repo.DatasetRef{movies, counter, cities}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []*repo.DatasetRef{movies, counter, cities}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 

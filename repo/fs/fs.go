@@ -59,9 +59,10 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		r.Namestore.index = index
 	}
 
-	go func() {
-		r.graph, _ = repo.RepoGraph(r)
-	}()
+	// TODO - this is racey.
+	// go func() {
+	// 	r.graph, _ = repo.RepoGraph(r)
+	// }()
 
 	return r, nil
 }
