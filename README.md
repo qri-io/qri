@@ -17,4 +17,4 @@ like to submit changes, please see our
 
 ## Developing
 
-We've set up a separate document for [developer guildlines](https://github.com/qri-io/qri/DEVELOPERS.md)!
+We've set up a separate document for [developer guildlines](https://github.com/qri-io/qri/blob/master/DEVELOPERS.md)!
