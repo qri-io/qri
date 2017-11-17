@@ -63,7 +63,6 @@ type RunParams struct {
 }
 
 func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
-	fmt.Println("running query: %s", p.Dataset.QueryString)
 	var (
 		store     = r.repo.Store()
 		structure *dataset.Structure
@@ -75,6 +74,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if ds == nil {
 		return fmt.Errorf("dataset is required")
 	}
+	// fmt.Println("running query: %s", p.Dataset.QueryString)
 
 	ds.Timestamp = time.Now()
 

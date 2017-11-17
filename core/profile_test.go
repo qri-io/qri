@@ -42,6 +42,7 @@ func TestProfileRequestsSave(t *testing.T) {
 		err string
 	}{
 		{nil, nil, "profile required for update"},
+		{&profile.Profile{}, nil, ""},
 		// TODO - moar tests
 	}
 
