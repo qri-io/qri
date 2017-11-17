@@ -2,9 +2,11 @@ package dataset_sql
 
 import (
 	"fmt"
-	"github.com/ipfs/go-datastore"
 
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	q "github.com/qri-io/dataset_sql/vt/proto/query"
 )
 
@@ -15,6 +17,16 @@ type preparedQuery struct {
 	stmt   Statement
 	paths  map[string]datastore.Key
 	result *dataset.Structure
+}
+
+func PreparedQueryPath(fs cafs.Filestore, q *dataset.Query, opts *ExecOpt) (datastore.Key, error) {
+	q2 := &dataset.Query{}
+	q2.Assign(q)
+	prep, err := Prepare(q2, opts)
+	if err != nil {
+		return datastore.NewKey(""), err
+	}
+	return dsfs.SaveQuery(fs, prep.q, false)
 }
 
 // Prepare preps a statement for execution

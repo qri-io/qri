@@ -119,7 +119,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		}
 	}
 
-	qpath, err := dsfs.SaveQuery(store, q, false)
+	qpath, err := sql.PreparedQueryPath(r.repo.Store(), q, &sql.ExecOpt{Format: dataset.CsvDataFormat})
 	if err != nil {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}
@@ -171,6 +171,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err := dsfs.DerefDatasetStructure(store, ds); err != nil {
 		return fmt.Errorf("error dereferencing dataset structure: %s", err.Error())
 	}
+	fmt.Println("result query:", ds.Query.Path())
 	if err := dsfs.DerefDatasetQuery(store, ds); err != nil {
 		return fmt.Errorf("error dereferencing dataset query: %s", err.Error())
 	}

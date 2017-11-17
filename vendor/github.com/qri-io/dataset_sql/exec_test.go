@@ -191,6 +191,7 @@ func makeTestStore() (store cafs.Filestore, datasets map[string]*dataset.Dataset
 		if err != nil {
 			return nil, nil, err
 		}
+		datasets[td.name].Assign(dataset.NewDatasetRef(dspath))
 	}
 
 	return store, datasets, nil
