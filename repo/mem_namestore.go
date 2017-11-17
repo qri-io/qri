@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"sort"
+
 	"github.com/ipfs/go-datastore"
 )
 
@@ -8,7 +10,6 @@ import (
 type MemNamestore []*DatasetRef
 
 func (r *MemNamestore) PutName(name string, path datastore.Key) error {
-	// r[name] = path
 	for _, ref := range *r {
 		if ref.Name == name {
 			ref.Path = path
@@ -19,6 +20,9 @@ func (r *MemNamestore) PutName(name string, path datastore.Key) error {
 		Name: name,
 		Path: path,
 	})
+	sl := *r
+	sort.Slice(sl, func(i, j int) bool { return sl[i].Name < sl[j].Name })
+	*r = sl
 	return nil
 }
 

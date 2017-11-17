@@ -2,6 +2,7 @@ package test
 
 import (
 	"fmt"
+	"github.com/ipfs/go-datastore"
 
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/repo"
@@ -9,6 +10,7 @@ import (
 
 func RunTestNamespace(r repo.Repo) error {
 	for _, test := range []RepoTestFunc{
+		testBlankName,
 		testNames,
 		testNamespace,
 	} {
@@ -17,6 +19,14 @@ func RunTestNamespace(r repo.Repo) error {
 		}
 	}
 
+	return nil
+}
+
+func testBlankName(r repo.Repo) error {
+	err := r.PutName("", datastore.NewKey("/path/to/a/thing"))
+	if err != repo.ErrNameRequired {
+		return fmt.Errorf("attempting to place empty name in namestore should return repo.ErrNameRequired")
+	}
 	return nil
 }
 

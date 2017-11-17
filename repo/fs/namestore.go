@@ -30,6 +30,10 @@ func NewNamestore(base string) Datasets {
 func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 	var ds *dataset.Dataset
 
+	if name == "" {
+		return repo.ErrNameRequired
+	}
+
 	names, err := n.names()
 	if err != nil {
 		return err
