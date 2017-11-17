@@ -225,8 +225,19 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 	}
 
 	pageSize := count / pll
-	pll++
 	done := make(chan error, pll)
+	for i := 0; i < pll; i++ {
+		go doSection(i, pageSize, done)
+	}
+
+	for i := 0; i < pll; i++ {
+		err := <-done
+		if err != nil {
+			return err
+		}
+	}
+
+	// TODO - make properly parallel
 	go func() {
 		refs, err := r.GetQueryLogs(1000, 0)
 		if err != nil {
@@ -254,16 +265,5 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 		done <- nil
 	}()
 
-	for i := 0; i < pll; i++ {
-		go doSection(i, pageSize, done)
-	}
-
-	for i := 0; i < pll; i++ {
-		err := <-done
-		if err != nil {
-			return err
-		}
-	}
-
-	return nil
+	return <-done
 }
