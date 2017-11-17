@@ -103,7 +103,7 @@ func TestRun(t *testing.T) {
 	}{
 		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
 		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies"}}, &repo.DatasetRef{}, "error executing query: Invalid syntax: '' sql_dataset only supports sql syntax. "},
+		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies"}}, &repo.DatasetRef{}, ""},
 		// TODO: add more tests
 
 	}
