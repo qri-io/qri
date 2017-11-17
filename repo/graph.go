@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"strings"
 	"sync"
 
 	"github.com/ipfs/go-datastore"
@@ -33,12 +34,9 @@ func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
 		return datastore.NewKey(""), fmt.Errorf("error getting repo graph: %s", err.Error())
 	}
 	qps := qpath.String()
-	fmt.Println("checking", qps)
 	qs := QueriesMap(nodes)
-	fmt.Println(qs)
 	for qp, dsp := range qs {
 		if qp == qps {
-			fmt.Println("MATCH", qp, qps)
 			return dsp, nil
 		}
 	}
@@ -182,6 +180,14 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 
 		for _, ref := range refs {
 			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			// TODO - remove this once loading is more consistent.
+			if err != nil {
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			}
+			if err != nil {
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			}
+
 			kontinue, err := visit(0, ref, err)
 			if err != nil {
 				done <- err
@@ -194,6 +200,14 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			depth := 1
 			for ref.Dataset != nil && ref.Dataset.Previous.String() != "" && ref.Dataset.Previous.String() != "/" {
 				ref.Path = ref.Dataset.Previous
+
+				// TODO - remove this horrible hack.
+				if r.Store().PathPrefix() == "ipfs" {
+					if !strings.HasSuffix(ref.Path.String(), "/dataset.json") {
+						ref.Path = datastore.NewKey(ref.Path.String() + "/dataset.json")
+					}
+				}
+
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
 				kontinue, err = visit(depth, ref, err)
 				if err != nil {
@@ -223,5 +237,33 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 		}
 	}
 
-	return nil
+	// TODO - make properly parallel
+	go func() {
+		refs, err := r.GetQueryLogs(1000, 0)
+		if err != nil {
+			done <- err
+		}
+		for _, ref := range refs {
+			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			// TODO - remove this once loading is more consistent.
+			if err != nil {
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			}
+			if err != nil {
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			}
+
+			kontinue, err := visit(0, ref, err)
+			if err != nil {
+				done <- err
+				return
+			}
+			if !kontinue {
+				break
+			}
+		}
+		done <- nil
+	}()
+
+	return <-done
 }

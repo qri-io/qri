@@ -885,10 +885,10 @@
 			"revisionTime": "2017-11-15T23:16:39Z"
 		},
 		{
-			"checksumSHA1": "ZyviONY5D7qnK7Ea8gragcGYKmA=",
+			"checksumSHA1": "UEQ8Mhq8hOT5QSmayWfqMF9IpLE=",
 			"path": "github.com/qri-io/dataset_sql",
-			"revision": "b8e2b7caeaf2a81a40e688b7e7b46e23345b720f",
-			"revisionTime": "2017-11-16T01:44:34Z"
+			"revision": "57ee626e24c35476150c8b6e4f8b2f9556cbed2a",
+			"revisionTime": "2017-11-17T22:06:47Z"
 		},
 		{
 			"checksumSHA1": "9PyD9KZxQg1Bvgf1+3PPM1pjN64=",
@@ -967,6 +967,12 @@
 			"path": "github.com/qri-io/doggos",
 			"revision": "a885446210d10e50d901672520fbfdbdacd41fdf",
 			"revisionTime": "2017-10-31T18:12:39Z"
+		},
+		{
+			"checksumSHA1": "J3O4e8irtmUwtosNUawjL8I26CQ=",
+			"path": "github.com/qri-io/qri",
+			"revision": "67a0621b6c0a4546f305998b2e8f0ffaa16ac384",
+			"revisionTime": "2017-11-17T18:23:11Z"
 		},
 		{
 			"checksumSHA1": "uH0XygBiVvVrdTW1Uj593huX35U=",
