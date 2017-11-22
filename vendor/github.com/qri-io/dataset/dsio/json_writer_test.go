@@ -12,22 +12,21 @@ import (
 func TestJsonWriter(t *testing.T) {
 
 	cases := []struct {
-		structure    *dataset.Structure
-		writeObjects bool
-		entries      [][][]byte
-		out          string
+		structure *dataset.Structure
+		entries   [][][]byte
+		out       string
 	}{
-		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, true, [][][]byte{[][]byte{[]byte("hello")}}, "[\n{\"a\":\"hello\"}\n]"},
-		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, false, [][][]byte{[][]byte{[]byte("hello")}}, "[\n[\"hello\"]\n]"},
-		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, true, [][][]byte{
+		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, [][][]byte{[][]byte{[]byte("hello")}}, "[\n{\"a\":\"hello\"}\n]"},
+		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}, FormatConfig: &dataset.JsonOptions{ArrayEntries: true}}, [][][]byte{[][]byte{[]byte("hello")}}, "[\n[\"hello\"]\n]"},
+		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, [][][]byte{
 			[][]byte{[]byte("hello")},
 			[][]byte{[]byte("world")},
 		}, "[\n{\"a\":\"hello\"},\n{\"a\":\"world\"}\n]"},
-		// {&dataset.Structure{ Schema: &dataset.Schema{ Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, false, [][][]byte{
+		// {&dataset.Structure{ Schema: &dataset.Schema{ Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, [][][]byte{
 		// 	[][]byte{[]byte("hello")},
 		// 	[][]byte{[]byte("world")},
 		// }, "[\n[\"hello\"],\n[\"world\"]\n]"},
-		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}}, false, [][][]byte{
+		{&dataset.Structure{Schema: &dataset.Schema{Fields: []*dataset.Field{&dataset.Field{Name: "a", Type: datatypes.String}}}, FormatConfig: &dataset.JsonOptions{ArrayEntries: true}}, [][][]byte{
 			[][]byte{[]byte("hello\n?")},
 			[][]byte{[]byte("world")},
 		}, "[\n[\"hello\\n?\"],\n[\"world\"]\n]"},
@@ -47,8 +46,8 @@ func TestJsonWriter(t *testing.T) {
 				&dataset.Field{Name: "iata_code", Type: datatypes.String},
 				&dataset.Field{Name: "local_code", Type: datatypes.String},
 				&dataset.Field{Name: "bool_teim", Type: datatypes.Boolean},
-			}}},
-			false,
+			}},
+			FormatConfig: &dataset.JsonOptions{ArrayEntries: true}},
 			[][][]byte{
 				[][]byte{[]byte("00AR"), []byte("heliport"), []byte("Newport Hospital & Clinic Heliport"), []byte{}, []byte{}, []byte{}, []byte("NA"), []byte("US"), []byte("US-AR"), []byte("Newport"), []byte("00AR"), []byte{}, []byte("00AR"), []byte{}},
 			},
@@ -74,7 +73,6 @@ func TestJsonWriter(t *testing.T) {
 				&dataset.Field{Name: "local_code", Type: datatypes.String},
 				&dataset.Field{Name: "bool_teim", Type: datatypes.Boolean},
 			}}},
-			true,
 			[][][]byte{
 				[][]byte{[]byte("00AR"), []byte("heliport"), []byte("Newport Hospital & Clinic Heliport"), []byte{}, []byte("0"), []byte{}, []byte("NA"), []byte("US"), []byte("US-AR"), []byte("Newport"), []byte("00AR"), []byte{}, []byte("00AR"), []byte{}},
 			},
@@ -86,7 +84,7 @@ func TestJsonWriter(t *testing.T) {
 
 	for i, c := range cases {
 		buf := &bytes.Buffer{}
-		w := NewJsonWriter(c.structure, buf, c.writeObjects)
+		w := NewJsonWriter(c.structure, buf)
 		for _, ent := range c.entries {
 			if err := w.WriteRow(ent); err != nil {
 				t.Errorf("case %d WriteRow error: %s", i, err.Error())
@@ -102,10 +100,10 @@ func TestJsonWriter(t *testing.T) {
 		}
 
 		var v interface{}
-		if c.writeObjects {
-			v = map[string]interface{}{}
-		} else {
+		if cfg, ok := c.structure.FormatConfig.(*dataset.JsonOptions); ok && cfg.ArrayEntries {
 			v = []interface{}{}
+		} else {
+			v = map[string]interface{}{}
 		}
 
 		if err := json.Unmarshal(buf.Bytes(), &v); err != nil {

@@ -59,18 +59,18 @@ func NewJsonOptions(opts map[string]interface{}) (FormatConfig, error) {
 	if opts == nil {
 		return o, nil
 	}
-	if opts["objectEntries"] != nil {
-		if objEntries, ok := opts["objectEntries"].(bool); ok {
-			o.ObjectEntries = objEntries
+	if opts["arrayEntries"] != nil {
+		if arrayEntries, ok := opts["arrayEntries"].(bool); ok {
+			o.ArrayEntries = arrayEntries
 		} else {
-			return nil, fmt.Errorf("invalid objectEntries value: %s", opts["objectEntries"])
+			return nil, fmt.Errorf("invalid arrayEntries value: %s", opts["arrayEntries"])
 		}
 	}
 	return o, nil
 }
 
 type JsonOptions struct {
-	ObjectEntries bool `json:"objectEntries"`
+	ArrayEntries bool `json:"arrayEntries"`
 }
 
 func (*JsonOptions) Format() DataFormat {
@@ -82,6 +82,6 @@ func (o *JsonOptions) Map() map[string]interface{} {
 		return nil
 	}
 	return map[string]interface{}{
-		"objectEntries": o.ObjectEntries,
+		"arrayEntries": o.ArrayEntries,
 	}
 }

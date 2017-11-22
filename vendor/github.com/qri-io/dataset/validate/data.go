@@ -2,6 +2,7 @@ package validate
 
 import (
 	"fmt"
+	"github.com/datatogether/cdxj"
 	"io"
 	"regexp"
 	"strconv"
@@ -13,34 +14,6 @@ import (
 
 var alphaNumericRegex = regexp.MustCompile(`^[a-zA-Z]\w{0,143}$`)
 
-// truthCount returns the number of arguments that are true
-func truthCount(args ...bool) (count int) {
-	for _, arg := range args {
-		if arg {
-			count++
-		}
-	}
-	return
-}
-
-type ErrFormat int
-
-const (
-	ErrFmtUnknown ErrFormat = iota
-	ErrFmtOneHotMatrix
-	ErrFmtErrStrings
-)
-
-type ValidateDataOpt struct {
-	ErrorFormat ErrFormat
-	// DataFormat  DataFormat
-}
-
-// func Dataset(d *dataset.Dataset) error {
-// 	// TODO: implement
-// 	return nil
-// }
-
 // DataFormat ensures that for each accepted dataset.DataFormat,
 // we havea well-formed dataset (eg. for csv, we need rows to all
 // be of same length)
@@ -49,11 +22,11 @@ func DataFormat(df dataset.DataFormat, r io.Reader) error {
 	// explicitly supported at present
 	case dataset.CsvDataFormat:
 		return CheckCsvRowLengths(r)
+	case dataset.CdxjDataFormat:
+		return cdxj.Validate(r)
 	// explicitly unsupported at present
 	case dataset.JsonDataFormat:
 		return fmt.Errorf("error: data format 'JsonData' not currently supported")
-	case dataset.JsonArrayDataFormat:
-		return fmt.Errorf("error: data format 'JsonArrayData' not currently supported")
 	case dataset.XlsDataFormat:
 		return fmt.Errorf("error: data format 'XlsData' not currently supported")
 	case dataset.XmlDataFormat:
@@ -66,24 +39,29 @@ func DataFormat(df dataset.DataFormat, r io.Reader) error {
 	}
 }
 
-func CheckStructure(s *dataset.Structure) error {
-	checkedFieldNames := map[string]bool{}
-	fields := s.Schema.Fields
-	for _, field := range fields {
-		if alphaNumericRegex.FindString(field.Name) == "" {
-			return fmt.Errorf("error: illegal name '%s', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters", field.Name)
-		}
-		seen := checkedFieldNames[field.Name]
-		if seen {
-			return fmt.Errorf("error: cannot use the same name, '%s' more than once", field.Name)
-		}
-		checkedFieldNames[field.Name] = true
-	}
-	return nil
+const (
+	ErrFmtOneHotMatrix = "oneHotMatrix"
+	ErrFmtString       = "string"
+)
+
+type DataErrorsCfg struct {
+	ErrorFormat string
+	// DataFormat  DataFormat
 }
 
-// generating a new dataset
-func Data(r dsio.RowReader, options ...func(*ValidateDataOpt)) (errors dsio.RowReader, count int, err error) {
+func DefaultDataErrorsCfg() *DataErrorsCfg {
+	return &DataErrorsCfg{
+		ErrorFormat: ErrFmtString,
+	}
+}
+
+// DataErrors generates a new dataset that represents data errors with the passed in dataset reader
+func DataErrors(r dsio.RowReader, options ...func(*DataErrorsCfg)) (errors dsio.RowReader, count int, err error) {
+	cfg := DefaultDataErrorsCfg()
+	for _, opt := range options {
+		opt(cfg)
+	}
+
 	vst := &dataset.Structure{
 		Format: dataset.CsvDataFormat,
 		Schema: &dataset.Schema{
@@ -115,6 +93,9 @@ func Data(r dsio.RowReader, options ...func(*ValidateDataOpt)) (errors dsio.RowR
 
 		return nil
 	})
+	if err != nil {
+		return
+	}
 
 	if err = buf.Close(); err != nil {
 		err = fmt.Errorf("error closing valdation buffer: %s", err.Error())

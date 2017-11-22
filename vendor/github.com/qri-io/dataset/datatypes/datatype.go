@@ -1,12 +1,12 @@
 package datatypes
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/url"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -21,11 +21,10 @@ const (
 	Boolean
 	Date
 	Url
-	Object
-	Array
+	Json
 )
 
-const NUM_DATA_TYPES = 9
+const NUM_DATA_TYPES = 11
 
 func (dt Type) String() string {
 	s, ok := map[Type]string{
@@ -37,8 +36,7 @@ func (dt Type) String() string {
 		Boolean: "boolean",
 		Date:    "date",
 		Url:     "url",
-		Object:  "object",
-		Array:   "array",
+		Json:    "json",
 	}[dt]
 
 	if !ok {
@@ -59,8 +57,7 @@ func TypeFromString(t string) Type {
 		"boolean": Boolean,
 		"date":    Date,
 		"url":     Url,
-		"object":  Object,
-		"array":   Array,
+		"json":    Json,
 	}[t]
 	if !ok {
 		return Unknown
@@ -69,10 +66,12 @@ func TypeFromString(t string) Type {
 	return got
 }
 
+// MarshalJSON implements json.Marshaler on Type
 func (dt Type) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, dt.String())), nil
 }
 
+// UnmarshalJSON implements json.Unmarshaler on Type
 func (dt *Type) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
@@ -93,11 +92,8 @@ func (dt *Type) UnmarshalJSON(data []byte) error {
 // that just return t/f. these funcs should aim to bail ASAP when proven false
 func ParseDatatype(value []byte) Type {
 	var err error
-	if _, err = ParseArray(value); err == nil {
-		return Object
-	}
-	if _, err = ParseObject(value); err == nil {
-		return Object
+	if _, err = ParseJson(value); err == nil {
+		return Json
 	}
 	if _, err = ParseFloat(value); err == nil {
 		return Float
@@ -113,9 +109,6 @@ func ParseDatatype(value []byte) Type {
 	}
 	// if _, err = ParseUrl(value); err == nil {
 	// 	return Url
-	// }
-	// if _, err = ParseArray(value); err == nil {
-	// 	return Array
 	// }
 	if _, err = ParseString(value); err == nil {
 		return String
@@ -139,12 +132,10 @@ func (dt Type) Parse(value []byte) (parsed interface{}, err error) {
 		parsed, err = ParseBoolean(value)
 	case Date:
 		parsed, err = ParseDate(value)
-	case Object:
-		parsed, err = ParseObject(value)
 	case Url:
 		parsed, err = ParseUrl(value)
-	case Array:
-		parsed, err = ParseArray(value)
+	case Json:
+		parsed, err = ParseJson(value)
 	}
 	return
 }
@@ -185,7 +176,7 @@ func (dt Type) ValueToString(value interface{}) (str string, err error) {
 			return
 		}
 		str = strconv.FormatBool(val)
-	case Object, Array:
+	case Json:
 		data, e := json.Marshal(value)
 		if e != nil {
 			err = e
@@ -236,11 +227,11 @@ func ParseString(value []byte) (string, error) {
 }
 
 func ParseFloat(value []byte) (float64, error) {
-	return strconv.ParseFloat(strings.TrimSpace(string(value)), 64)
+	return strconv.ParseFloat(string(value), 64)
 }
 
 func ParseInteger(value []byte) (int64, error) {
-	return strconv.ParseInt(strings.TrimSpace(string(value)), 10, 64)
+	return strconv.ParseInt(string(value), 10, 64)
 }
 
 func ParseBoolean(value []byte) (bool, error) {
@@ -275,16 +266,31 @@ func ParseUrl(value []byte) (*url.URL, error) {
 	return url.Parse(string(value))
 }
 
-// ParseObject assumes a json object
-// WARNING - this may be an improper assumption
-func ParseObject(value []byte) (object map[string]interface{}, err error) {
-	err = json.Unmarshal(value, &object)
-	return
+func JsonArrayOrObject(value []byte) (string, error) {
+	obji := bytes.IndexRune(value, '{')
+	arri := bytes.IndexRune(value, '[')
+	if obji == -1 && arri == -1 {
+		return "", fmt.Errorf("invalid json data")
+	}
+	if (obji < arri || arri == -1) && obji >= 0 {
+		return "object", nil
+	}
+	return "array", nil
 }
 
-// ParseArray assumes a json array
-// WARNING - this may be an improper assumption
-func ParseArray(value []byte) (array []interface{}, err error) {
-	err = json.Unmarshal(value, &array)
-	return
+func ParseJson(value []byte) (interface{}, error) {
+	t, err := JsonArrayOrObject(value)
+	if err != nil {
+		return nil, err
+	}
+
+	if t == "object" {
+		p := map[string]interface{}{}
+		err = json.Unmarshal(value, &p)
+		return p, err
+	}
+
+	p := []interface{}{}
+	err = json.Unmarshal(value, &p)
+	return p, err
 }

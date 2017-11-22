@@ -146,12 +146,17 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error determining dataset schema: %s", err.Error())
 	}
 	// Ensure that dataset contains valid field names
-	if err = validate.CheckStructure(st); err != nil {
+	if err = validate.Structure(st); err != nil {
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
-	if _, _, err := validate.Data(dsio.NewRowReader(st, bytes.NewReader(data))); err != nil {
-		return fmt.Errorf("data is invalid")
+	if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("invalid data format: %s", err.Error())
 	}
+
+	// TODO - check for errors in dataset and warn user if errors exist
+	// if _, _, err := validate.DataFor(dsio.NewRowReader(st, bytes.NewReader(data))); err != nil {
+	// 	return fmt.Errorf("data is invalid")
+	// }
 
 	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
 	if err != nil {
@@ -176,7 +181,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		ds.DownloadUrl = p.Url
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
-		// TODO - make this configurable via a param
+		// TODO - make this configurable via a param?
 		ds.AccrualPeriodicity = "R/P1W"
 	}
 	if p.Metadata != nil {
@@ -389,7 +394,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	st.Assign(ds.Structure, &dataset.Structure{
 		Format: p.Format,
 		FormatConfig: &dataset.JsonOptions{
-			ObjectEntries: p.Objects,
+			ArrayEntries: !p.Objects,
 		},
 	})
 

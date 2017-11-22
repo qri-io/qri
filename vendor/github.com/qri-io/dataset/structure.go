@@ -243,3 +243,19 @@ func base26(d int) (s string) {
 	}
 	return s
 }
+
+// CompareStructures checks if all fields of two structure pointers are equal,
+// returning an error on the first mismatch, nil if equal
+func CompareStructures(a, b *Structure) error {
+	if a == nil && b == nil {
+		return nil
+	} else if a == nil && b != nil || a != nil && b == nil {
+		return fmt.Errorf("Structure mismatch: %s != %s", a, b)
+	}
+
+	if err := CompareSchemas(a.Schema, b.Schema); err != nil {
+		return fmt.Errorf("Schema mismatch: %s", err.Error())
+	}
+
+	return nil
+}

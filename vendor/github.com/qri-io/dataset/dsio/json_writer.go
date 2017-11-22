@@ -16,7 +16,11 @@ type JsonWriter struct {
 	wr           io.Writer
 }
 
-func NewJsonWriter(st *dataset.Structure, w io.Writer, writeObjects bool) *JsonWriter {
+func NewJsonWriter(st *dataset.Structure, w io.Writer) *JsonWriter {
+	writeObjects := true
+	if opt, ok := st.FormatConfig.(*dataset.JsonOptions); ok {
+		writeObjects = !opt.ArrayEntries
+	}
 	return &JsonWriter{
 		writeObjects: writeObjects,
 		st:           st,

@@ -7,28 +7,27 @@ import (
 	"testing"
 )
 
-const data = `a,b,c,d
+const csvData = `a,b,c,d
 a,b,c,d
 a,b,c,d
 a,b,c,d
-a,b,c,d
-`
+a,b,c,d`
+
+var csvStruct = &dataset.Structure{
+	Format: dataset.CsvDataFormat,
+	Schema: &dataset.Schema{
+		Fields: []*dataset.Field{
+			&dataset.Field{Name: "a", Type: datatypes.String},
+			&dataset.Field{Name: "b", Type: datatypes.String},
+			&dataset.Field{Name: "c", Type: datatypes.String},
+			&dataset.Field{Name: "d", Type: datatypes.String},
+		},
+	},
+}
 
 func TestCsvReader(t *testing.T) {
-	st := &dataset.Structure{
-		Format: dataset.CsvDataFormat,
-		Schema: &dataset.Schema{
-			Fields: []*dataset.Field{
-				&dataset.Field{Name: "a", Type: datatypes.String},
-				&dataset.Field{Name: "b", Type: datatypes.String},
-				&dataset.Field{Name: "c", Type: datatypes.String},
-				&dataset.Field{Name: "d", Type: datatypes.String},
-			},
-		},
-	}
-
-	buf := bytes.NewBuffer([]byte(data))
-	rdr := NewRowReader(st, buf)
+	buf := bytes.NewBuffer([]byte(csvData))
+	rdr := NewRowReader(csvStruct, buf)
 	count := 0
 	for {
 		row, err := rdr.ReadRow()
@@ -48,5 +47,39 @@ func TestCsvReader(t *testing.T) {
 	}
 	if count != 5 {
 		t.Errorf("expected: %d rows, got: %d", 5, count)
+	}
+}
+
+func TestCsvWriter(t *testing.T) {
+	rows := [][][]byte{
+		// TODO - vary up test input
+		[][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")},
+		[][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")},
+		[][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")},
+		[][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")},
+		[][]byte{[]byte("a"), []byte("b"), []byte("c"), []byte("d")},
+	}
+
+	buf := &bytes.Buffer{}
+	rw := NewRowWriter(csvStruct, buf)
+	st := rw.Structure()
+	if err := dataset.CompareStructures(&st, csvStruct); err != nil {
+		t.Errorf("structure mismatch: %s", err.Error())
+		return
+	}
+
+	for i, row := range rows {
+		if err := rw.WriteRow(row); err != nil {
+			t.Errorf("row %d write error: %s", i, err.Error())
+		}
+	}
+
+	if err := rw.Close(); err != nil {
+		t.Errorf("close reader error: %s", err.Error())
+		return
+	}
+
+	if bytes.Equal(buf.Bytes(), []byte(csvData)) {
+		t.Errorf("output mismatch. %s != %s", buf.String(), csvData)
 	}
 }

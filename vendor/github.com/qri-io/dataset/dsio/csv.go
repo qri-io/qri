@@ -34,7 +34,6 @@ func (w *CsvWriter) WriteRow(data [][]byte) error {
 
 func (w *CsvWriter) Close() error {
 	w.w.Flush()
-	// no-op to satisfy interface
 	return nil
 }
 

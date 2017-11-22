@@ -1,13 +1,12 @@
 package validate
 
 import (
-	"github.com/qri-io/dataset"
-
+	"github.com/qri-io/dataset/dsio"
 	"strings"
 	"testing"
-)
 
-//Note text examples in testdata.go
+	"github.com/qri-io/dataset"
+)
 
 func TestDataFormat(t *testing.T) {
 	cases := []struct {
@@ -18,10 +17,6 @@ func TestDataFormat(t *testing.T) {
 		{dataset.JsonDataFormat,
 			rawText1,
 			"error: data format 'JsonData' not currently supported",
-		},
-		{dataset.JsonArrayDataFormat,
-			rawText1,
-			"error: data format 'JsonArrayData' not currently supported",
 		},
 		{
 			dataset.XlsDataFormat,
@@ -53,6 +48,8 @@ func TestDataFormat(t *testing.T) {
 			rawText1,
 			"",
 		},
+		{dataset.CdxjDataFormat, emptyRawText, "invalid format, missing cdxj header"},
+		{dataset.CdxjDataFormat, cdxjRawText, ""},
 	}
 	for i, c := range cases {
 		r := strings.NewReader(c.input)
@@ -64,36 +61,35 @@ func TestDataFormat(t *testing.T) {
 	}
 }
 
-// takes a slice of strings and createws a pointer to a Structure
-// containing a schema containing those fields
-func structureTestHelper(s []string) *dataset.Structure {
-	fields := []*dataset.Field{}
-	for _, fieldName := range s {
-		newField := dataset.Field{Name: fieldName}
-		fields = append(fields, &newField)
-	}
-	schema := &dataset.Schema{Fields: fields}
-	structure := &dataset.Structure{Schema: schema}
-	return structure
-}
-
-func TestCheckStructure(t *testing.T) {
+func TestDataErrors(t *testing.T) {
 	cases := []struct {
-		input []string
+		structure *dataset.Structure
+		data      string
+		cfg       *DataErrorsCfg
+		// TODO - validate output structure
+		count int
 		err   string
 	}{
-		{[]string{"abc", "12startsWithNumber"}, `error: illegal name '12startsWithNumber', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters`},
-		{[]string{"abc", "$dollarsAtBeginning"}, `error: illegal name '$dollarsAtBeginning', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters`},
-		{[]string{"abc", "Dollars$inTheMiddle"}, `error: illegal name 'Dollars$inTheMiddle', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters`},
-		{[]string{"abc", ""}, `error: illegal name '', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters`},
-		{[]string{"abc", "No|pipes"}, `error: illegal name 'No|pipes', must start with a letter and consist of only alpha-numeric characters and/or underscores and have a total length of no more than 144 characters`},
-		{[]string{"repeatedName", "repeatedName", "repeatedName"}, "error: cannot use the same name, 'repeatedName' more than once"},
+		// {namesStructure, rawText2, DefaultDataErrorsCfg(), 0, ""},
+		{namesStructure, rawText2c, DefaultDataErrorsCfg(), 1, ""},
 	}
+
 	for i, c := range cases {
-		s := structureTestHelper(c.input)
-		err := CheckStructure(s)
+		r := dsio.NewRowReader(c.structure, strings.NewReader(c.data))
+
+		got, count, err := DataErrors(r, func(cfg *DataErrorsCfg) { *cfg = *c.cfg })
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case [%d] error mismatch. expected: '%s', got: '%s'", i, c.err, err)
+			t.Errorf("case [%d] error mismatch. expected '%s', got: '%s'", i, c.err, err)
+			continue
+		}
+
+		if c.count != count {
+			t.Errorf("case [%d] count mismatch. expected: %d, got: %d", i, c.count, count)
+			continue
+		}
+
+		if len(c.structure.Schema.Fields) != len(got.Structure().Schema.Fields)-1 {
+			t.Errorf("case [%d] structure field length mismatch. expected: %d, got: %d", i, len(c.structure.Schema.Fields)+1, len(got.Structure().Schema.Fields))
 			continue
 		}
 	}

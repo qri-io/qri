@@ -3,7 +3,6 @@ package dataset
 import (
 	"bytes"
 	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"testing"
 
@@ -183,18 +182,4 @@ func TestStructureMarshalJSON(t *testing.T) {
 	if !bytes.Equal(strbytes, []byte("\"/path/to/structure\"")) {
 		t.Errorf("marshal strbyte interface byte mismatch: %s != %s", string(strbytes), "\"/path/to/structure\"")
 	}
-}
-
-func CompareStructures(a, b *Structure) error {
-	if a == nil && b == nil {
-		return nil
-	} else if a == nil && b != nil || a != nil && b == nil {
-		return fmt.Errorf("Structure mismatch: %s != %s", a, b)
-	}
-
-	if err := CompareSchemas(a.Schema, b.Schema); err != nil {
-		return fmt.Errorf("Schema mismatch: %s", err.Error())
-	}
-
-	return nil
 }

@@ -24,7 +24,7 @@ func TestBuffer(t *testing.T) {
 	outst := &dataset.Structure{
 		Format: dataset.JsonDataFormat,
 		FormatConfig: &dataset.JsonOptions{
-			ObjectEntries: true,
+			ArrayEntries: false,
 		},
 		Schema: ds.Structure.Schema,
 	}

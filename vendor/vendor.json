@@ -27,6 +27,12 @@
 			"revisionTime": "2017-10-27T00:07:07Z"
 		},
 		{
+			"checksumSHA1": "CClBijbXledYSyKoSN5UfeBbw2I=",
+			"path": "github.com/datatogether/cdxj",
+			"revision": "9f35ae94829b533988225556c301187713e193f2",
+			"revisionTime": "2017-11-22T14:51:42Z"
+		},
+		{
 			"checksumSHA1": "vbWt7Z3g57iOpCcxWjfTF2BuNLw=",
 			"path": "github.com/fatih/color",
 			"revision": "5ec5d9d3c2cf82e9688b34e9bc27a94d616a7193",
@@ -831,10 +837,10 @@
 			"revisionTime": "2017-11-15T15:56:09Z"
 		},
 		{
-			"checksumSHA1": "Km0MDCQWpUb5EgpYA7oGfoE5X6k=",
+			"checksumSHA1": "eG1cZYh/ier14fsOKzTyY29Lk+E=",
 			"path": "github.com/qri-io/dataset",
-			"revision": "40fa97b7664e095dbe6f54b9d72f5e3cd1968307",
-			"revisionTime": "2017-11-16T21:42:46Z"
+			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
+			"revisionTime": "2017-11-22T16:02:41Z"
 		},
 		{
 			"checksumSHA1": "sPVjpo1FHsa+nZhWvgyC5us7UDs=",
@@ -843,10 +849,10 @@
 			"revisionTime": "2017-11-08T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "OXsY4hjKP5IS+4qR0RErLMXF9AU=",
+			"checksumSHA1": "U6f4Saw1I/esizLiaOofb/Mu2vs=",
 			"path": "github.com/qri-io/dataset/datatypes",
-			"revision": "99de9b222a12fb3c12c2d77b75d0e9f7fe73662f",
-			"revisionTime": "2017-11-08T20:07:50Z"
+			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
+			"revisionTime": "2017-11-22T16:02:41Z"
 		},
 		{
 			"checksumSHA1": "3WzfrihKwhdiS3h86oHnkYgi1FU=",
@@ -857,8 +863,8 @@
 		{
 			"checksumSHA1": "lCk5gFItaVWtPTSryLsMPX8/600=",
 			"path": "github.com/qri-io/dataset/dsfs",
-			"revision": "40fa97b7664e095dbe6f54b9d72f5e3cd1968307",
-			"revisionTime": "2017-11-16T21:42:46Z"
+			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
+			"revisionTime": "2017-11-22T16:02:41Z"
 		},
 		{
 			"checksumSHA1": "DV0UGOknxYqT7CqjdY1b20Y5TaE=",
@@ -867,10 +873,10 @@
 			"revisionTime": "2017-11-16T13:41:00Z"
 		},
 		{
-			"checksumSHA1": "TNpJqOXK8DsFCCb7eouHTgiQRzw=",
+			"checksumSHA1": "ypcwkD7KSkv4rR+SA0W6diSWeMQ=",
 			"path": "github.com/qri-io/dataset/dsio",
-			"revision": "99de9b222a12fb3c12c2d77b75d0e9f7fe73662f",
-			"revisionTime": "2017-11-08T20:07:50Z"
+			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
+			"revisionTime": "2017-11-22T16:02:41Z"
 		},
 		{
 			"checksumSHA1": "qpVpcY6waS8SOeTNzZI29KDC0hI=",
@@ -879,10 +885,10 @@
 			"revisionTime": "2017-11-08T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "redvJrEyEs02ydLhqsivseCGNXk=",
+			"checksumSHA1": "1KoXV0rlo5l8PprmHNndNj5W4uk=",
 			"path": "github.com/qri-io/dataset/validate",
-			"revision": "02e9a57f35c5b374e58f64d07bcee6ce190e2917",
-			"revisionTime": "2017-11-15T23:16:39Z"
+			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
+			"revisionTime": "2017-11-22T16:02:41Z"
 		},
 		{
 			"checksumSHA1": "UEQ8Mhq8hOT5QSmayWfqMF9IpLE=",

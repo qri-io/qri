@@ -14,7 +14,7 @@ func TestParseFormatConfigMap(t *testing.T) {
 	}{
 		{CsvDataFormat, map[string]interface{}{}, &CsvOptions{}, nil},
 		{JsonDataFormat, map[string]interface{}{}, &JsonOptions{}, nil},
-		{JsonDataFormat, map[string]interface{}{"objectEntries": true}, &JsonOptions{ObjectEntries: true}, nil},
+		{JsonDataFormat, map[string]interface{}{"arrayEntries": true}, &JsonOptions{ArrayEntries: true}, nil},
 	}
 
 	for i, c := range cases {

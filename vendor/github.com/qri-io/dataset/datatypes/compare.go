@@ -7,9 +7,9 @@ import (
 
 func CompareTypeBytes(a, b []byte, t Type) (int, error) {
 	if len(a) == 0 && len(b) > 0 {
-		return 1, nil
-	} else if len(b) == 0 && len(a) > 0 {
 		return -1, nil
+	} else if len(b) == 0 && len(a) > 0 {
+		return 1, nil
 	} else if len(b) == 0 && len(a) == 0 {
 		return 0, nil
 	}
