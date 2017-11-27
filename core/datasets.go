@@ -357,8 +357,8 @@ func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 
 type StructuredDataParams struct {
 	Format        dataset.DataFormat
+	FormatConfig  dataset.FormatConfig
 	Path          datastore.Key
-	Objects       bool
 	Limit, Offset int
 	All           bool
 }
@@ -374,6 +374,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		d     []byte
 		store = r.repo.Store()
 	)
+
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return err
@@ -392,14 +393,18 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 
 	st := &dataset.Structure{}
 	st.Assign(ds.Structure, &dataset.Structure{
-		Format: p.Format,
-		FormatConfig: &dataset.JsonOptions{
-			ArrayEntries: !p.Objects,
-		},
+		Format:       p.Format,
+		FormatConfig: p.FormatConfig,
 	})
 
-	buf := dsio.NewBuffer(st)
-	rr := dsio.NewRowReader(ds.Structure, file)
+	buf, err := dsio.NewBuffer(st)
+	if err != nil {
+		return fmt.Errorf("error allocating result buffer: %s", err)
+	}
+	rr, err := dsio.NewRowReader(ds.Structure, file)
+	if err != nil {
+		return fmt.Errorf("error allocating data reader: %s", err)
+	}
 	if err = dsio.EachRow(rr, func(i int, row [][]byte, err error) error {
 		if err != nil {
 			return err

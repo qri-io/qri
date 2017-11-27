@@ -29,28 +29,41 @@ func TestBuffer(t *testing.T) {
 		Schema: ds.Structure.Schema,
 	}
 
-	buf := NewBuffer(outst)
-
-	rr := NewRowReader(ds.Structure, bytes.NewBuffer(datasets["movies"].data))
-	err = EachRow(rr, func(i int, row [][]byte, err error) error {
-		if err != nil {
-			return err
-		}
-		return buf.WriteRow(row)
-	})
-
+	rbuf, err := NewBuffer(outst)
 	if err != nil {
-		t.Errorf("error iterating through rows: %s", err.Error())
+		t.Errorf("error allocating Buffer: %s", err.Error())
 		return
 	}
 
-	if err := buf.Close(); err != nil {
+	rr, err := NewRowReader(ds.Structure, bytes.NewBuffer(datasets["movies"].data))
+	if err != nil {
+		t.Errorf("error allocating RowReader: %s", err.Error())
+		return
+	}
+
+	if err = EachRow(rr, func(i int, row [][]byte, err error) error {
+		if err != nil {
+			return err
+		}
+		return rbuf.WriteRow(row)
+	}); err != nil {
+		t.Errorf("error writing rows: %s", err.Error())
+		return
+	}
+
+	bst := rbuf.Structure()
+	if err := dataset.CompareStructures(outst, &bst); err != nil {
+		t.Errorf("buffer structure mismatch: %s", err.Error())
+		return
+	}
+
+	if err := rbuf.Close(); err != nil {
 		t.Errorf("error closing buffer: %s", err.Error())
 		return
 	}
 
 	out := []interface{}{}
-	if err := json.Unmarshal(buf.Bytes(), &out); err != nil {
+	if err := json.Unmarshal(rbuf.Bytes(), &out); err != nil {
 		t.Errorf("error unmarshaling encoded bytes: %s", err.Error())
 		return
 	}

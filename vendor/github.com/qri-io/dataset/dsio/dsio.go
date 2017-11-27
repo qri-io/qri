@@ -2,6 +2,7 @@
 package dsio
 
 import (
+	"fmt"
 	"io"
 
 	"github.com/qri-io/dataset"
@@ -26,31 +27,34 @@ type RowReadWriter interface {
 	Bytes() []byte
 }
 
-func NewRowWriter(st *dataset.Structure, w io.Writer) RowWriter {
+// NewRowReader allocates a RowReader based on a given structure
+func NewRowReader(st *dataset.Structure, r io.Reader) (RowReader, error) {
 	switch st.Format {
 	case dataset.CsvDataFormat:
-		return NewCsvWriter(st, w)
+		return NewCsvReader(st, r), nil
 	case dataset.JsonDataFormat:
-		return NewJsonWriter(st, w)
+		return NewJsonReader(st, r), nil
 	case dataset.CdxjDataFormat:
-		return NewCdxjWriter(st, w)
+		return NewCdxjReader(st, r), nil
+	case dataset.UnknownDataFormat:
+		return nil, fmt.Errorf("structure must have a data format")
 	default:
-		// TODO - should this error or something?
-		return nil
+		return nil, fmt.Errorf("invalid format to create reader: %s", st.Format.String())
 	}
 }
 
-func NewRowReader(st *dataset.Structure, r io.Reader) RowReader {
+// NewRowWriter allocates a RowWriter based on a given structure
+func NewRowWriter(st *dataset.Structure, w io.Writer) (RowWriter, error) {
 	switch st.Format {
 	case dataset.CsvDataFormat:
-		return NewCsvReader(st, r)
+		return NewCsvWriter(st, w), nil
 	case dataset.JsonDataFormat:
-		// fmt.Errorf("json readers not yet supported")
-		return nil
+		return NewJsonWriter(st, w), nil
 	case dataset.CdxjDataFormat:
-		return NewCdxjReader(st, r)
+		return NewCdxjWriter(st, w), nil
+	case dataset.UnknownDataFormat:
+		return nil, fmt.Errorf("structure must have a data format")
 	default:
-		// fmt.Errorf("invalid format to create reader: %s", st.Format.String())
-		return nil
+		return nil, fmt.Errorf("invalid format to create writer: %s", st.Format.String())
 	}
 }

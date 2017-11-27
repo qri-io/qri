@@ -27,7 +27,11 @@ var csvStruct = &dataset.Structure{
 
 func TestCsvReader(t *testing.T) {
 	buf := bytes.NewBuffer([]byte(csvData))
-	rdr := NewRowReader(csvStruct, buf)
+	rdr, err := NewRowReader(csvStruct, buf)
+	if err != nil {
+		t.Errorf("error allocating RowReader: %s", err.Error())
+		return
+	}
 	count := 0
 	for {
 		row, err := rdr.ReadRow()
@@ -61,7 +65,11 @@ func TestCsvWriter(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	rw := NewRowWriter(csvStruct, buf)
+	rw, err := NewRowWriter(csvStruct, buf)
+	if err != nil {
+		t.Errorf("error allocating RowWriter: %s", err.Error())
+		return
+	}
 	st := rw.Structure()
 	if err := dataset.CompareStructures(&st, csvStruct); err != nil {
 		t.Errorf("structure mismatch: %s", err.Error())

@@ -75,7 +75,11 @@ func TestDataErrors(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		r := dsio.NewRowReader(c.structure, strings.NewReader(c.data))
+		r, err := dsio.NewRowReader(c.structure, strings.NewReader(c.data))
+		if err != nil {
+			t.Errorf("case [%d] error allocating row reader: %s", i, err.Error())
+			continue
+		}
 
 		got, count, err := DataErrors(r, func(cfg *DataErrorsCfg) { *cfg = *c.cfg })
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {

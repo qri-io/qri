@@ -1,0 +1,7 @@
+[
+  { "city" : "toronto", "pop" : 40000000, "avg_age" : 55.5 , "in_usa" : false },
+  { "city" : "new york",  "pop" : 8500000, "avg_age": 44.4, "in_usa" : true },
+  { "city" : "chicago", "pop" : 300000, "avg_age" : 44.4 , "in_usa" : true },
+  { "city" : "chatham", "pop" : 35000, "avg_age" : 65.25 , "in_usa" : false },
+  { "city" : "raleigh", "pop" : 250000, "avg_age" : 50.65 , "in_usa" : true }
+]

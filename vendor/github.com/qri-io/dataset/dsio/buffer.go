@@ -5,14 +5,23 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func NewBuffer(st *dataset.Structure) *Buffer {
+func NewBuffer(st *dataset.Structure) (*Buffer, error) {
 	buf := &bytes.Buffer{}
+	r, err := NewRowReader(st, buf)
+	if err != nil {
+		return nil, err
+	}
+	w, err := NewRowWriter(st, buf)
+	if err != nil {
+		return nil, err
+	}
+
 	return &Buffer{
 		structure: st,
-		r:         NewRowReader(st, buf),
-		w:         NewRowWriter(st, buf),
+		r:         r,
+		w:         w,
 		buf:       buf,
-	}
+	}, nil
 }
 
 type Buffer struct {

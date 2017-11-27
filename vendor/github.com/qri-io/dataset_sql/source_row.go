@@ -129,7 +129,10 @@ func (rr *rowReader) Reset(store cafs.Filestore) error {
 	}
 	rr.i = 0
 	rr.done = false
-	rr.reader = dsio.NewRowReader(rr.st, f)
+	rr.reader, err = dsio.NewRowReader(rr.st, f)
+	if err != nil {
+		return err
+	}
 	return rr.Next()
 }
 

@@ -12,7 +12,7 @@ import (
 // NewResultBuffer returns either a *RowBuffer or *dsio.Buffer depending on
 // which is required. RowBuffer is (much) more expensive but supports introspection
 // into already-written rows
-func NewResultBuffer(stmt Statement, st *dataset.Structure) dsio.RowReadWriter {
+func NewResultBuffer(stmt Statement, st *dataset.Structure) (dsio.RowReadWriter, error) {
 	if needsRowBuffer(stmt) {
 		return NewRowBuffer(stmt, st)
 	}
@@ -42,13 +42,17 @@ type RowBuffer struct {
 }
 
 // NewRowBuffer allocates a RowBuffer from a statement
-func NewRowBuffer(stmt Statement, st *dataset.Structure) *RowBuffer {
+func NewRowBuffer(stmt Statement, st *dataset.Structure) (*RowBuffer, error) {
+	buf, err := dsio.NewBuffer(st)
+	if err != nil {
+		return nil, err
+	}
 	rb := &RowBuffer{
-		buf: dsio.NewBuffer(st),
+		buf: buf,
 	}
 	rb.less, rb.err = makeLessFunc(rb, stmt, st)
 
-	return rb
+	return rb, nil
 }
 
 func (rb *RowBuffer) Structure() dataset.Structure {

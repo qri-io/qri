@@ -15,7 +15,11 @@ func TestEachRow(t *testing.T) {
 
 	ds := datasets["cities"].ds
 	expect := datasets["cities"].rows
-	rr := NewRowReader(ds.Structure, bytes.NewBuffer(datasets["cities"].data))
+	rr, err := NewRowReader(ds.Structure, bytes.NewBuffer(datasets["cities"].data))
+	if err != nil {
+		t.Errorf("error allocating RowReader: %s", err.Error())
+		return
+	}
 	err = EachRow(rr, func(i int, data [][]byte, err error) error {
 		if err != nil {
 			return err

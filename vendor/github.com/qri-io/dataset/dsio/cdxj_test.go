@@ -31,7 +31,11 @@ var cdxjStruct = &dataset.Structure{
 
 func TestCdxjReader(t *testing.T) {
 	buf := bytes.NewBuffer([]byte(cdxjData))
-	rdr := NewRowReader(cdxjStruct, buf)
+	rdr, err := NewRowReader(cdxjStruct, buf)
+	if err != nil {
+		t.Errorf("error allocating rowReader: %s", err.Error())
+		return
+	}
 	count := 0
 	for {
 		row, err := rdr.ReadRow()
@@ -64,7 +68,11 @@ func TestCdxjWriter(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	rw := NewRowWriter(cdxjStruct, buf)
+	rw, err := NewRowWriter(cdxjStruct, buf)
+	if err != nil {
+		t.Errorf("error allocating RowWriter: %s", err.Error())
+		return
+	}
 	st := rw.Structure()
 	if err := dataset.CompareStructures(&st, cdxjStruct); err != nil {
 		t.Errorf("structure mismatch: %s", err.Error())

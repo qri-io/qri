@@ -1,0 +1,27 @@
+{
+  "title": "example cdxj index archive",
+  "timestamp": "2017-01-01T01:00:00.000Z",
+  "structure": {
+    "format": "cdxj",
+    "schema": {
+      "fields": [
+        {
+          "name": "url",
+          "type": "string"
+        },
+        {
+          "name": "timestamp",
+          "type": "string"
+        },
+        {
+          "name": "record_type",
+          "type": "string"
+        },
+        {
+          "name": "metadata",
+          "type": "json"
+        }
+      ]
+    }
+  }
+}

@@ -839,8 +839,8 @@
 		{
 			"checksumSHA1": "eG1cZYh/ier14fsOKzTyY29Lk+E=",
 			"path": "github.com/qri-io/dataset",
-			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
-			"revisionTime": "2017-11-22T16:02:41Z"
+			"revision": "3018ce0a877290a8bee5d7dae263dd282cccbf12",
+			"revisionTime": "2017-11-22T21:36:53Z"
 		},
 		{
 			"checksumSHA1": "sPVjpo1FHsa+nZhWvgyC5us7UDs=",
@@ -861,10 +861,10 @@
 			"revisionTime": "2017-11-08T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "lCk5gFItaVWtPTSryLsMPX8/600=",
+			"checksumSHA1": "sqAtQpcQY7914UiYr3oBLBkf/6A=",
 			"path": "github.com/qri-io/dataset/dsfs",
-			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
-			"revisionTime": "2017-11-22T16:02:41Z"
+			"revision": "4905f773875ed714d5b74dc98ddec7e642b6035e",
+			"revisionTime": "2017-11-24T19:14:07Z"
 		},
 		{
 			"checksumSHA1": "DV0UGOknxYqT7CqjdY1b20Y5TaE=",
@@ -873,10 +873,10 @@
 			"revisionTime": "2017-11-16T13:41:00Z"
 		},
 		{
-			"checksumSHA1": "ypcwkD7KSkv4rR+SA0W6diSWeMQ=",
+			"checksumSHA1": "bfVEXhtALxfU8uNnp+ArcZcrKeU=",
 			"path": "github.com/qri-io/dataset/dsio",
-			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
-			"revisionTime": "2017-11-22T16:02:41Z"
+			"revision": "4905f773875ed714d5b74dc98ddec7e642b6035e",
+			"revisionTime": "2017-11-24T19:14:07Z"
 		},
 		{
 			"checksumSHA1": "qpVpcY6waS8SOeTNzZI29KDC0hI=",
@@ -885,16 +885,16 @@
 			"revisionTime": "2017-11-08T20:07:50Z"
 		},
 		{
-			"checksumSHA1": "1KoXV0rlo5l8PprmHNndNj5W4uk=",
+			"checksumSHA1": "QlraqWVhcr9MMAjCzwkvlZ9SYc0=",
 			"path": "github.com/qri-io/dataset/validate",
-			"revision": "ae494011a238a091d6be8f0145f8f264ec288532",
-			"revisionTime": "2017-11-22T16:02:41Z"
+			"revision": "8a58b859c965ac9f0947f0c9f26005155a160496",
+			"revisionTime": "2017-11-23T22:21:34Z"
 		},
 		{
-			"checksumSHA1": "UEQ8Mhq8hOT5QSmayWfqMF9IpLE=",
+			"checksumSHA1": "wS0D4dTAYSt71Avjjz0LZO5Dd9k=",
 			"path": "github.com/qri-io/dataset_sql",
-			"revision": "57ee626e24c35476150c8b6e4f8b2f9556cbed2a",
-			"revisionTime": "2017-11-17T22:06:47Z"
+			"revision": "c1500e3e93cfe727bb6e954b834917ab76b21086",
+			"revisionTime": "2017-11-24T12:24:04Z"
 		},
 		{
 			"checksumSHA1": "9PyD9KZxQg1Bvgf1+3PPM1pjN64=",

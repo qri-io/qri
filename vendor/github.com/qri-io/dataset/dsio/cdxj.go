@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"io"
+	"time"
 
 	"github.com/datatogether/cdxj"
 	"github.com/qri-io/dataset"
@@ -29,7 +30,8 @@ func (w *CdxjWriter) Structure() dataset.Structure {
 
 func (w *CdxjWriter) WriteRow(data [][]byte) error {
 	r := &cdxj.Record{}
-	if err := r.UnmarshalCDXJ(bytes.Join(data, []byte(" "))); err != nil {
+	joined := bytes.Join(data, []byte(" "))
+	if err := r.UnmarshalCDXJ(joined); err != nil {
 		return err
 	}
 	return w.WriteRecord(r)
@@ -65,9 +67,14 @@ func (r *CdxjReader) ReadRow() ([][]byte, error) {
 		return nil, err
 	}
 
+	u, err := cdxj.SURTUrl(rec.Uri)
+	if err != nil {
+		return nil, err
+	}
+
 	row := make([][]byte, 4)
-	row[0] = []byte(rec.Uri)
-	row[1] = []byte(rec.Timestamp.String())
+	row[0] = []byte(u)
+	row[1] = []byte(rec.Timestamp.Format(time.RFC3339))
 	row[2] = []byte(rec.RecordType.String())
 	row[3], err = json.Marshal(rec.JSON)
 	if err != nil {

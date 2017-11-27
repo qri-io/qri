@@ -23,7 +23,7 @@ func StatementTableNames(sql string) ([]string, error) {
 // Format places an sql statement in it's standard form.
 // This will be *heavily* refined, improved, and moved into a
 // separate package
-// TODO - milestone & break down this core piece of tech
+// TODO - ^^
 func Format(q *dataset.Query) (string, Statement, map[string]string, error) {
 	remap := map[string]string{}
 	stmt, err := Parse(q.Abstract.Statement)

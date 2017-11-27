@@ -74,7 +74,10 @@ func DataErrors(r dsio.RowReader, options ...func(*DataErrorsCfg)) (errors dsio.
 		vst.Schema.Fields = append(vst.Schema.Fields, &dataset.Field{Name: f.Name + "_error", Type: datatypes.String})
 	}
 
-	buf := dsio.NewBuffer(vst)
+	buf, err := dsio.NewBuffer(vst)
+	if err != nil {
+		return nil, 0, fmt.Errorf("error creating a row buffer: %s", err.Error())
+	}
 
 	err = dsio.EachRow(r, func(num int, row [][]byte, err error) error {
 		if err != nil {

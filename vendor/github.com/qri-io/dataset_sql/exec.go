@@ -72,7 +72,10 @@ func (stmt *Select) exec(store cafs.Filestore, prep preparedQuery) (result *data
 	q := prep.q
 	absq := q.Abstract
 	cols := CollectColNames(stmt)
-	buf := NewResultBuffer(stmt, absq.Structure)
+	buf, err := NewResultBuffer(stmt, absq.Structure)
+	if err != nil {
+		return result, nil, err
+	}
 	srg, err := NewSourceRowGenerator(store, prep.paths, absq.Structures)
 	if err != nil {
 		return result, nil, err

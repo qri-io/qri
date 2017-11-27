@@ -43,6 +43,7 @@ func TestSelectFields(t *testing.T) {
 			&dataset.Field{Name: "min", Type: datatypes.Float},
 		}, "ratings/t1_agg.csv"},
 
+		// TODO - order by isn't working properly.
 		{"select * from t3 order by rating", nil, []*dataset.Field{created, title, views, rating, notes}, "ratings/t3_order_rating.csv"},
 		{"select sum(views), avg(views), count(views), max(views), min(views) from t3", nil, []*dataset.Field{
 			&dataset.Field{Name: "sum", Type: datatypes.Float},
