@@ -227,8 +227,8 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 	}
 
 	p := &core.StructuredDataParams{
-		Format: dataset.JsonDataFormat,
-		FormatConfig: &dataset.JsonOptions{
+		Format: dataset.JSONDataFormat,
+		FormatConfig: &dataset.JSONOptions{
 			ArrayEntries: !objectRows,
 		},
 		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),

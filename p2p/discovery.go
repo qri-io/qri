@@ -6,8 +6,8 @@ import (
 	"time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	discovery "gx/ipfs/QmTzs3Gp2rU3HuNayjBVG7qBgbaKWE8bgtwJ7faRxAe9UP/go-libp2p/p2p/discovery"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	discovery "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/discovery"
 )
 
 const qriSupportKey = "qri-support"

@@ -14,6 +14,53 @@ jobs:
       - run: mkdir -p $TEST_RESULTS
       - run: go get github.com/jstemmer/go-junit-report
       - run:
+          name: Install non-gx deps
+          command: >
+            go get -v -d
+            github.com/briandowns/spinner
+            github.com/datatogether/api/apiutil
+            github.com/fatih/color
+            github.com/ipfs/go-datastore
+            github.com/ipfs/go-datastore/query
+            github.com/ipfs/go-ipfs/core
+            github.com/ipfs/go-ipfs/thirdparty/math2
+            github.com/olekukonko/tablewriter
+            github.com/qri-io/analytics
+            github.com/qri-io/bleve
+            github.com/qri-io/bleve/analysis/lang/en
+            github.com/qri-io/bleve/mapping
+            github.com/qri-io/cafs
+            github.com/qri-io/cafs/ipfs
+            github.com/qri-io/cafs/memfs
+            github.com/qri-io/dataset
+            github.com/qri-io/dataset/detect
+            github.com/qri-io/dataset/dsfs
+            github.com/qri-io/dataset/dsgraph
+            github.com/qri-io/dataset/dsio
+            github.com/qri-io/dataset/dsutil
+            github.com/qri-io/dataset/validate
+            github.com/qri-io/dataset_sql
+            github.com/qri-io/doggos
+            github.com/sirupsen/logrus
+            github.com/spf13/cobra
+            github.com/spf13/viper
+      - restore_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+      - run: 
+          name: Install gx
+          command: >
+            go get -v -u
+            github.com/whyrusleeping/gx 
+            github.com/whyrusleeping/gx-go
+      - run:
+          name: Install gx deps
+          command: >
+            gx install
+      - save_cache:
+          key: dependency-cache-{{ checksum "package.json" }}
+          paths:
+            - /go/src/gx/
+      - run:
           name: Run Tests
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT

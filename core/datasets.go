@@ -178,7 +178,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 
 	ds := &dataset.Dataset{}
 	if p.Url != "" {
-		ds.DownloadUrl = p.Url
+		ds.DownloadURL = p.Url
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
 		// TODO - make this configurable via a param?
@@ -397,7 +397,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		FormatConfig: p.FormatConfig,
 	})
 
-	buf, err := dsio.NewBuffer(st)
+	buf, err := dsio.NewStructuredBuffer(st)
 	if err != nil {
 		return fmt.Errorf("error allocating result buffer: %s", err)
 	}

@@ -4,8 +4,8 @@ import (
 	golog "github.com/ipfs/go-log"
 	gologging "github.com/whyrusleeping/go-logging"
 
+	identify "gx/ipfs/QmTzs3Gp2rU3HuNayjBVG7qBgbaKWE8bgtwJ7faRxAe9UP/go-libp2p/p2p/protocol/identify"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
-	identify "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
 )
 
 // Protocol Identifier
