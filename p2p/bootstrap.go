@@ -4,10 +4,10 @@ import (
 	"context"
 	"math/rand"
 
-	math2 "github.com/ipfs/go-ipfs/thirdparty/math2"
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	math2 "gx/ipfs/QmdKL1GVaUaDVt3JUWiYQSLYRsJMym2KRWxsiXAeEU6pzX/go-ipfs/thirdparty/math2"
 )
 
 // DefaultBootstrapAddresses follows the pattern of IPFS boostrapping off known "gateways".

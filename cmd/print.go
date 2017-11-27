@@ -130,9 +130,9 @@ func PrintQuery(i int, r *repo.DatasetRef) {
 
 func PrintResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
-	case dataset.JsonDataFormat:
+	case dataset.JSONDataFormat:
 		fmt.Println(string(data))
-	case dataset.CsvDataFormat:
+	case dataset.CSVDataFormat:
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")

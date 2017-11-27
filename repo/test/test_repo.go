@@ -17,7 +17,7 @@ import (
 )
 
 func NewTestRepo() (mr repo.Repo, err error) {
-	datasets := []string{"movies", "cities", "counter"}
+	datasets := []string{"movies", "cities", "counter", "archive"}
 	p := &profile.Profile{
 		Username: "test_user",
 	}
@@ -32,15 +32,6 @@ func NewTestRepo() (mr repo.Repo, err error) {
 		datakey, dskey  datastore.Key
 	)
 	for _, k := range datasets {
-		rawdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.csv", k)))
-		if err != nil {
-			return
-		}
-
-		datakey, err = ms.Put(memfs.NewMemfileBytes(k, rawdata), true)
-		if err != nil {
-			return
-		}
 
 		dsdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.json", k)))
 		if err != nil {
@@ -51,6 +42,17 @@ func NewTestRepo() (mr repo.Repo, err error) {
 		if err = json.Unmarshal(dsdata, ds); err != nil {
 			return
 		}
+
+		rawdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.%s", k, ds.Structure.Format.String())))
+		if err != nil {
+			return
+		}
+
+		datakey, err = ms.Put(memfs.NewMemfileBytes(k, rawdata), true)
+		if err != nil {
+			return
+		}
+
 		ds.Data = datakey
 
 		dskey, err = dsfs.SaveDataset(ms, ds, true)

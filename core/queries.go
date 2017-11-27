@@ -119,7 +119,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		}
 	}
 
-	qpath, err := sql.PreparedQueryPath(r.repo.Store(), q, &sql.ExecOpt{Format: dataset.CsvDataFormat})
+	qpath, err := sql.PreparedQueryPath(r.repo.Store(), q, &sql.ExecOpt{Format: dataset.CSVDataFormat})
 	if err != nil {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}
@@ -139,7 +139,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	// TODO - detect data format from passed-in results structure
 	structure, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
-		o.Format = dataset.CsvDataFormat
+		o.Format = dataset.CSVDataFormat
 	})
 	if err != nil {
 		return fmt.Errorf("error executing query: %s", err.Error())
