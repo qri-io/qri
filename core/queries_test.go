@@ -101,9 +101,9 @@ func TestRun(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CsvDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies"}}, &repo.DatasetRef{}, ""},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies"}}, &repo.DatasetRef{}, ""},
 		// TODO: add more tests
 
 	}

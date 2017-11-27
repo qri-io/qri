@@ -259,7 +259,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		t.Errorf("error getting archive path: %s", err.Error())
 		return
 	}
-	var df1 = dataset.JsonDataFormat
+	var df1 = dataset.JSONDataFormat
 	cases := []struct {
 		p        *StructuredDataParams
 		resCount int
@@ -272,7 +272,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: dataset.JsonDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 
 	req := NewDatasetRequests(mr)
@@ -297,7 +297,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 				t.Errorf("case %d error parsing response data: %s", i, err.Error())
 				continue
 			}
-		case dataset.CsvDataFormat:
+		case dataset.CSVDataFormat:
 			r := csv.NewReader(bytes.NewBuffer(got.Data.([]byte)))
 			_, err := r.ReadAll()
 			if err != nil {

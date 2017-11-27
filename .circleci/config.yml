@@ -22,16 +22,11 @@ jobs:
             github.com/fatih/color
             github.com/ipfs/go-datastore
             github.com/ipfs/go-datastore/query
-            github.com/ipfs/go-ipfs/core
-            github.com/ipfs/go-ipfs/thirdparty/math2
             github.com/olekukonko/tablewriter
             github.com/qri-io/analytics
             github.com/qri-io/bleve
             github.com/qri-io/bleve/analysis/lang/en
             github.com/qri-io/bleve/mapping
-            github.com/qri-io/cafs
-            github.com/qri-io/cafs/ipfs
-            github.com/qri-io/cafs/memfs
             github.com/qri-io/dataset
             github.com/qri-io/dataset/detect
             github.com/qri-io/dataset/dsfs
@@ -56,6 +51,10 @@ jobs:
           name: Install gx deps
           command: >
             gx install
+      - run:
+          name: Install gx-dependant packages
+          command: >
+            go get github.com/qri-io/cafs
       - save_cache:
           key: dependency-cache-{{ checksum "package.json" }}
           paths:
