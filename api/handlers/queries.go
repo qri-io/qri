@@ -114,3 +114,27 @@ func (h *QueryHandlers) runHandler(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteResponse(w, res)
 }
+
+func (h *QueryHandlers) DatasetQueriesHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		h.datasetQueriesHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *QueryHandlers) datasetQueriesHandler(w http.ResponseWriter, r *http.Request) {
+	p := &core.DatasetQueriesParams{
+		Path: r.URL.Path[len("/queries"):],
+	}
+
+	res := []*repo.DatasetRef{}
+	if err := h.DatasetQueries(p, &res); err != nil {
+		h.log.Info("error listing dataset queries: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}

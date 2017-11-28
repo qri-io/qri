@@ -1,6 +1,7 @@
 package core
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -90,6 +91,7 @@ func TestRun(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
+
 	req := NewQueryRequests(mr)
 
 	if req == nil {
@@ -113,6 +115,67 @@ func TestRun(t *testing.T) {
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+	}
+}
+
+func TestDatasetQueries(t *testing.T) {
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	req := NewQueryRequests(mr)
+
+	path, err := mr.GetPath("movies")
+	if err != nil {
+		t.Errorf("errog getting path for 'movies' dataset: %s", err.Error())
+		return
+	}
+
+	ns, err := mr.Namespace(30, 0)
+	if err != nil {
+		t.Errorf("error getting repo namespace: %s", err.Error())
+		return
+	}
+
+	for _, n := range ns {
+		fmt.Println(n)
+	}
+
+	qres := &repo.DatasetRef{}
+	if err = req.Run(&RunParams{
+		Dataset: &dataset.Dataset{
+			QueryString: "select * from movies",
+		}}, qres); err != nil {
+		t.Errorf("error running query: %s", err.Error())
+		return
+	}
+
+	cases := []struct {
+		p   *DatasetQueriesParams
+		res []*repo.DatasetRef
+		err string
+	}{
+		{&DatasetQueriesParams{}, []*repo.DatasetRef{}, "path is required"},
+		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{}, ""},
+		// TODO: add more tests
+	}
+
+	for i, c := range cases {
+		got := []*repo.DatasetRef{}
+		err := req.DatasetQueries(c.p, &got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+
+		fmt.Println(got)
+
+		if len(c.res) != len(got) {
+			t.Errorf("case %d returned wrong number of responses. exepected: %d, got %d", i, len(c.res), len(got))
 			continue
 		}
 	}

@@ -185,3 +185,47 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	*res = *ref
 	return nil
 }
+
+type DatasetQueriesParams struct {
+	Path    string
+	Orderby string
+	Limit   int
+	Offset  int
+}
+
+func (r *QueryRequests) DatasetQueries(p *DatasetQueriesParams, res *[]*repo.DatasetRef) error {
+	if p.Path == "" {
+		return fmt.Errorf("path is required")
+	}
+
+	store := r.repo.Store()
+	_, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
+	if err != nil {
+		return fmt.Errorf("error loading dataset: %s", err.Error())
+	}
+
+	nodes, err := r.repo.Graph()
+	if err != nil {
+		return fmt.Errorf("error loading graph: %s", err.Error())
+	}
+
+	dsq := repo.DatasetQueries(nodes)
+	list := []*repo.DatasetRef{}
+
+	for dshash, qKey := range dsq {
+		if dshash == p.Path {
+			ds, err := dsfs.LoadDataset(store, datastore.NewKey(dshash))
+			if err != nil {
+				return fmt.Errorf("error loading dataset: %s", err.Error())
+			}
+
+			list = append(list, &repo.DatasetRef{
+				Path:    qKey,
+				Dataset: ds,
+			})
+		}
+	}
+
+	*res = list
+	return nil
+}

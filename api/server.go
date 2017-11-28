@@ -109,6 +109,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/queries", s.middleware(qh.ListHandler))
+	m.Handle("/queries/", s.middleware(qh.DatasetQueriesHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m
