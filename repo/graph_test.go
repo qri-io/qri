@@ -65,7 +65,7 @@ func TestDatasetQueries(t *testing.T) {
 	}
 
 	qs := DatasetQueries(node)
-	expect := 1
+	expect := 2
 	if len(qs) != expect {
 		t.Errorf("query count mismatch, expected: %d, got: %d", expect, len(qs))
 	}

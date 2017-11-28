@@ -135,15 +135,15 @@ func TestDatasetQueries(t *testing.T) {
 		return
 	}
 
-	ns, err := mr.Namespace(30, 0)
-	if err != nil {
-		t.Errorf("error getting repo namespace: %s", err.Error())
-		return
-	}
+	// ns, err := mr.Namespace(30, 0)
+	// if err != nil {
+	// 	t.Errorf("error getting repo namespace: %s", err.Error())
+	// 	return
+	// }
 
-	for _, n := range ns {
-		fmt.Println(n)
-	}
+	// for _, n := range ns {
+	// 	fmt.Println(n)
+	// }
 
 	qres := &repo.DatasetRef{}
 	if err = req.Run(&RunParams{
@@ -160,7 +160,7 @@ func TestDatasetQueries(t *testing.T) {
 		err string
 	}{
 		{&DatasetQueriesParams{}, []*repo.DatasetRef{}, "path is required"},
-		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{}, ""},
+		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{&repo.DatasetRef{}}, ""},
 		// TODO: add more tests
 	}
 

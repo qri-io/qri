@@ -33,7 +33,17 @@ func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 			ref.Dataset = ds
 		}
 	}
-	*res = results
+
+	// TODO - clean this up, this is a hack to prevent null datasets from
+	// being sent back as responses.
+	// Warning - this could throw off pagination :/
+	final := []*repo.DatasetRef{}
+	for _, ref := range results {
+		if ref.Dataset != nil {
+			final = append(final, ref)
+		}
+	}
+	*res = final
 	return nil
 }
 
