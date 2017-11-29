@@ -228,15 +228,15 @@ func TestDatasetRequestsRename(t *testing.T) {
 
 	req := NewDatasetRequests(mr)
 	for i, c := range cases {
-		got := ""
-		err := req.Rename(c.p, &got)
+		got := &repo.DatasetRef{}
+		err := req.Rename(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
 
-		if got != c.res {
+		if got.Name != c.res {
 			t.Errorf("case %d response name mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
 		}

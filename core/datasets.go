@@ -324,7 +324,7 @@ type RenameParams struct {
 	Current, New string
 }
 
-func (r *DatasetRequests) Rename(p *RenameParams, res *string) (err error) {
+func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
 	if p.Current == "" {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
@@ -344,7 +344,16 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *string) (err error) {
 		return err
 	}
 
-	*res = p.New
+	ds, err := dsfs.LoadDataset(r.repo.Store(), path)
+	if err != nil {
+		return err
+	}
+
+	*res = repo.DatasetRef{
+		Name:    p.New,
+		Path:    path,
+		Dataset: ds,
+	}
 	return nil
 }
 

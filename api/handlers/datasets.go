@@ -298,30 +298,12 @@ func (h DatasetHandlers) renameDatasetHandler(w http.ResponseWriter, r *http.Req
 		}
 	}
 
-	res := ""
-	if err := h.Rename(p, &res); err != nil {
+	res := &repo.DatasetRef{}
+	if err := h.Rename(p, res); err != nil {
 		h.log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	path, err := h.repo.GetPath(res)
-	if err != nil {
-		h.log.Infof("error getting renamed dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	ds, err := h.repo.GetDataset(path)
-	if err != nil {
-		h.log.Infof("error reading dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, &repo.DatasetRef{
-		Name:    res,
-		Path:    path,
-		Dataset: ds,
-	})
+	util.WriteResponse(w, res)
 }

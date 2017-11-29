@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -22,11 +23,11 @@ var datasetRenameCmd = &cobra.Command{
 			Current: args[0],
 			New:     args[1],
 		}
-		newName := ""
-		err := req.Rename(p, &newName)
+		res := &repo.DatasetRef{}
+		err := req.Rename(p, res)
 		ExitIfErr(err)
 
-		PrintSuccess("renamed dataset %s", newName)
+		PrintSuccess("renamed dataset %s", res.Name)
 	},
 }
 
