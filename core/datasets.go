@@ -158,13 +158,13 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	// 	return fmt.Errorf("data is invalid")
 	// }
 
-	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
+	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), false)
 	if err != nil {
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
 	dataexists, err := repo.HasPath(r.repo, datakey)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), repo.ErrRepoEmpty.Error()) {
 		return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
 	}
 	if dataexists {
@@ -213,6 +213,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
 	}
 
+	fmt.Println(dskey.String())
 	if err = r.repo.PutName(name, dskey); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}
@@ -342,7 +343,8 @@ func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 	}
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-		if err = pinner.Unpin(p.Path, true); err != nil {
+		path := datastore.NewKey(strings.TrimSuffix(p.Path.String(), "/"+dsfs.PackageFileDataset.String()))
+		if err = pinner.Unpin(path, true); err != nil {
 			return
 		}
 	}

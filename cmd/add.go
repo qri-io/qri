@@ -45,7 +45,7 @@ var datasetAddCmd = &cobra.Command{
 			err := req.AddDataset(p, res)
 			ExitIfErr(err)
 
-			PrintInfo("Successfully added dataset %s : %s", addDsName, res.Path.String())
+			PrintInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
 		} else {
 			initDataset()
 		}
