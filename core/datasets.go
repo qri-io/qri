@@ -320,6 +320,34 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
+type RenameParams struct {
+	Current, New string
+}
+
+func (r *DatasetRequests) Rename(p *RenameParams, res *string) (err error) {
+	if p.Current == "" {
+		return fmt.Errorf("current name is required to rename a dataset")
+	}
+
+	path, err := r.repo.GetPath(p.Current)
+	if err != nil {
+		return fmt.Errorf("error getting dataset: %s", err.Error())
+	}
+
+	if err := validate.ValidName(p.New); err != nil {
+		return err
+	}
+	if err := r.repo.DeleteName(p.Current); err != nil {
+		return err
+	}
+	if err := r.repo.PutName(p.New, path); err != nil {
+		return err
+	}
+
+	*res = p.New
+	return nil
+}
+
 type DeleteParams struct {
 	Path datastore.Key
 	Name string

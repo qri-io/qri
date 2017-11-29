@@ -101,6 +101,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
 	m.Handle("/init/", s.middleware(dsh.InitDatasetHandler))
+	m.Handle("/rename", s.middleware(dsh.RenameDatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
