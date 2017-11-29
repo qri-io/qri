@@ -85,6 +85,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
+	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
+	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
 	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/search", s.middleware(sh.SearchHandler))

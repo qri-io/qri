@@ -3,6 +3,7 @@ package profile
 import (
 	"time"
 
+	"github.com/ipfs/go-datastore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
@@ -26,16 +27,14 @@ type Profile struct {
 	HomeUrl string `json:"homeUrl"`
 	// color this user likes to use as their theme color
 	Color string `json:"color"`
-	// url for their thumbnail
-	ThumbUrl string `json:"thumbUrl"`
-	// profile photo url
-	ProfileUrl string `json:"profileUrl"`
+	// Thumb path for user's thumbnail
+	Thumb datastore.Key `json:"thumb"`
+	// Profile photo
+	Profile datastore.Key `json:"profile"`
+	// Poster photo for users's profile page
+	Poster datastore.Key `json:"poster"`
 	// users's twitter handle
 	Twitter string `json:"twitter"`
-	// often users get auto-generated based on IP for rate lmiting & stuff
-	// this flag tracks that.
-	// TODO - for this to be useful it'll need to be Exported
-	Anonymous bool `json:",omitempty"`
 }
 
 func (p *Profile) PeerID() (peer.ID, error) {
