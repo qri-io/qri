@@ -92,6 +92,15 @@ func (h *DatasetHandlers) AddDatasetHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+func (h *DatasetHandlers) RenameDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "POST", "PUT":
+		h.renameDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	args := &core.GetDatasetParams{
@@ -273,4 +282,46 @@ func (h *DatasetHandlers) addDatasetHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	util.WriteResponse(w, res)
+}
+
+func (h DatasetHandlers) renameDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	p := &core.RenameParams{}
+	if r.Header.Get("Content-Type") == "application/json" {
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+	} else {
+		p = &core.RenameParams{
+			Current: r.URL.Query().Get("current"),
+			New:     r.URL.Query().Get("new"),
+		}
+	}
+
+	res := ""
+	if err := h.Rename(p, &res); err != nil {
+		h.log.Infof("error renaming dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	path, err := h.repo.GetPath(res)
+	if err != nil {
+		h.log.Infof("error getting renamed dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	ds, err := h.repo.GetDataset(path)
+	if err != nil {
+		h.log.Infof("error reading dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, &repo.DatasetRef{
+		Name:    res,
+		Path:    path,
+		Dataset: ds,
+	})
 }

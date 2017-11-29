@@ -101,6 +101,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
 	m.Handle("/init/", s.middleware(dsh.InitDatasetHandler))
+	m.Handle("/rename", s.middleware(dsh.RenameDatasetHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
@@ -109,6 +110,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/queries", s.middleware(qh.ListHandler))
+	m.Handle("/queries/", s.middleware(qh.DatasetQueriesHandler))
 	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m

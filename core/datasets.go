@@ -158,13 +158,13 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	// 	return fmt.Errorf("data is invalid")
 	// }
 
-	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), true)
+	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), false)
 	if err != nil {
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
 
 	dataexists, err := repo.HasPath(r.repo, datakey)
-	if err != nil {
+	if err != nil && !strings.Contains(err.Error(), repo.ErrRepoEmpty.Error()) {
 		return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
 	}
 	if dataexists {
@@ -213,6 +213,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
 	}
 
+	fmt.Println(dskey.String())
 	if err = r.repo.PutName(name, dskey); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}
@@ -319,6 +320,34 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
+type RenameParams struct {
+	Current, New string
+}
+
+func (r *DatasetRequests) Rename(p *RenameParams, res *string) (err error) {
+	if p.Current == "" {
+		return fmt.Errorf("current name is required to rename a dataset")
+	}
+
+	path, err := r.repo.GetPath(p.Current)
+	if err != nil {
+		return fmt.Errorf("error getting dataset: %s", err.Error())
+	}
+
+	if err := validate.ValidName(p.New); err != nil {
+		return err
+	}
+	if err := r.repo.DeleteName(p.Current); err != nil {
+		return err
+	}
+	if err := r.repo.PutName(p.New, path); err != nil {
+		return err
+	}
+
+	*res = p.New
+	return nil
+}
+
 type DeleteParams struct {
 	Path datastore.Key
 	Name string
@@ -342,7 +371,8 @@ func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 	}
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-		if err = pinner.Unpin(p.Path, true); err != nil {
+		path := datastore.NewKey(strings.TrimSuffix(p.Path.String(), "/"+dsfs.PackageFileDataset.String()))
+		if err = pinner.Unpin(path, true); err != nil {
 			return
 		}
 	}

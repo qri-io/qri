@@ -52,6 +52,25 @@ func TestQueriesMap(t *testing.T) {
 	}
 }
 
+func TestDatasetQueries(t *testing.T) {
+	r, err := makeTestRepo()
+	if err != nil {
+		t.Errorf("error making test repo: %s", err.Error())
+		return
+	}
+	node, err := RepoGraph(r)
+	if err != nil {
+		t.Errorf("error generating repo graph: %s", err.Error())
+		return
+	}
+
+	qs := DatasetQueries(node)
+	expect := 2
+	if len(qs) != expect {
+		t.Errorf("query count mismatch, expected: %d, got: %d", expect, len(qs))
+	}
+}
+
 func TestDataNodes(t *testing.T) {
 	r, err := makeTestRepo()
 	if err != nil {

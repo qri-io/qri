@@ -74,6 +74,23 @@ func QueriesMap(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
 		if node.Type == dsgraph.NtDataset && len(node.Links) > 0 {
 			for _, l := range node.Links {
 				if l.To.Type == dsgraph.NtQuery {
+					qs[path] = datastore.NewKey(l.To.Path)
+				}
+			}
+		}
+	}
+	return
+}
+
+// DatasetQueries returns a mapped subset of a list of nodes in the form:
+// 		DatasetHash : QueryHash
+func DatasetQueries(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
+	qs = map[string]datastore.Key{}
+	for path, node := range nodes {
+		if node.Type == dsgraph.NtQuery && len(node.Links) > 0 {
+			for _, l := range node.Links {
+				if l.To.Type == dsgraph.NtDataset {
+					// qs[path] = datastore.NewKey(l.To.Path)
 					qs[l.To.Path] = datastore.NewKey(path)
 				}
 			}

@@ -209,6 +209,40 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsRename(t *testing.T) {
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	cases := []struct {
+		p   *RenameParams
+		res string
+		err string
+	}{
+		{&RenameParams{}, "", "current name is required to rename a dataset"},
+		{&RenameParams{Current: "movies", New: "new movies"}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&RenameParams{Current: "movies", New: "new_movies"}, "new_movies", ""},
+	}
+
+	req := NewDatasetRequests(mr)
+	for i, c := range cases {
+		got := ""
+		err := req.Rename(c.p, &got)
+
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+
+		if got != c.res {
+			t.Errorf("case %d response name mismatch. expected: '%s', got: '%s'", i, c.err, err)
+			continue
+		}
+	}
+}
+
 func TestDatasetRequestsDelete(t *testing.T) {
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
