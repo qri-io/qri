@@ -224,6 +224,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{}, "", "current name is required to rename a dataset"},
 		{&RenameParams{Current: "movies", New: "new movies"}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		{&RenameParams{Current: "movies", New: "new_movies"}, "new_movies", ""},
+		{&RenameParams{Current: "new_movies", New: "new_movies"}, "", "name 'new_movies' already exists"},
 	}
 
 	req := NewDatasetRequests(mr)

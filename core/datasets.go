@@ -329,13 +329,17 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
+	if err := validate.ValidName(p.New); err != nil {
+		return err
+	}
+
+	if _, err := r.repo.GetPath(p.New); err != repo.ErrNotFound {
+		return fmt.Errorf("name '%s' already exists", p.New)
+	}
+
 	path, err := r.repo.GetPath(p.Current)
 	if err != nil {
 		return fmt.Errorf("error getting dataset: %s", err.Error())
-	}
-
-	if err := validate.ValidName(p.New); err != nil {
-		return err
 	}
 	if err := r.repo.DeleteName(p.Current); err != nil {
 		return err
