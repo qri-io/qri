@@ -8,7 +8,7 @@ import (
 )
 
 // TODO - work in progress
-func (qn *QriNode) PutQueryKey(key datastore.Key, q *dataset.Query) error {
+func (qn *QriNode) PutQueryKey(key datastore.Key, q *dataset.Transform) error {
 	data, err := q.MarshalJSON()
 	if err != nil {
 		return err

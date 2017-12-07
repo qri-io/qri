@@ -75,7 +75,7 @@ type RunParams struct {
 func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	var (
 		store     = r.repo.Store()
-		structure *dataset.Structure
+		transform *dataset.Transform
 		results   []byte
 		err       error
 		ds        = p.Dataset
@@ -88,19 +88,17 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ds.Timestamp = time.Now()
 
-	q := ds.Query
+	q := ds.Transform
 	if q == nil {
-		q = &dataset.Query{
+		q = &dataset.Transform{
 			Syntax: "sql",
-			Abstract: &dataset.AbstractQuery{
-				Syntax:    "sql",
-				Statement: ds.QueryString,
-			},
+			Data:   ds.QueryString,
 		}
 	}
-	if ds.QueryString == "" {
-		ds.QueryString = q.Abstract.Statement
-	}
+
+	// if ds.QueryString == "" {
+	// 	ds.QueryString = q.Abstract.Statement
+	// }
 
 	// TODO - make format output the parsed statement as well
 	// to avoid triple-parsing
@@ -108,7 +106,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// if err != nil {
 	// 	return err
 	// }
-	names, err := sql.StatementTableNames(q.Abstract.Statement)
+	names, err := sql.StatementTableNames(q.Data)
 	if err != nil {
 		return fmt.Errorf("error getting statement table names: %s", err.Error())
 	}
@@ -129,10 +127,37 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		}
 	}
 
-	qpath, err := sql.PreparedQueryPath(r.repo.Store(), q, &sql.ExecOpt{Format: dataset.CSVDataFormat})
+	// 	func PreparedQueryPath(fs cafs.Filestore, q *dataset.Query, opts *ExecOpt) (datastore.Key, error) {
+	// 	q2 := &dataset.Query{}
+	// 	q2.Assign(q)
+	// 	prep, err := Prepare(q2, opts)
+	// 	if err != nil {
+	// 		return datastore.NewKey(""), err
+	// 	}
+	// 	return dsfs.SaveQuery(fs, prep.q, false)
+	// }
+
+	q2 := &dataset.Transform{}
+	q2.Assign(q)
+	_, abst, err := sql.Format(q, func(o *sql.ExecOpt) {
+		o.Format = dataset.CSVDataFormat
+	})
+	if err != nil {
+		return fmt.Errorf("formatting error: %s", err.Error())
+	}
+	qpath, err := dsfs.SaveTransform(store, abst, false)
 	if err != nil {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}
+
+	// fmt.Println(qpath.String())
+	// atb, _ := abst.MarshalJSON()
+	// fmt.Println(string(atb))
+
+	// qpath, err := sql.PreparedQueryPath(r.repo.Store(), q, &sql.ExecOpt{Format: dataset.CSVDataFormat})
+	// if err != nil {
+	// 	return fmt.Errorf("error calculating query hash: %s", err.Error())
+	// }
 
 	if dsp, err := repo.DatasetForQuery(r.repo, qpath); err != nil && err != repo.ErrNotFound {
 		return fmt.Errorf("error checking for existing query: %s", err.Error())
@@ -148,22 +173,27 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	}
 
 	// TODO - detect data format from passed-in results structure
-	structure, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
+	transform, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.CSVDataFormat
 	})
 	if err != nil {
 		return fmt.Errorf("error executing query: %s", err.Error())
 	}
 
-	// TODO - move this into setting on the dataset outparam
-	ds.Structure = structure
-	ds.Length = len(results)
-	ds.Query = q
+	// tb, _ := transform.MarshalJSON()
+	// fmt.Println(string(tb))
 
-	ds.Data, err = store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
+	// TODO - move this into setting on the dataset outparam
+	ds.Structure = transform.Structure
+	ds.Length = len(results)
+	ds.Transform = q
+	ds.AbstractTransform = transform
+
+	datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
 		return fmt.Errorf("error putting results in store: %s", err.Error())
 	}
+	ds.Data = datakey.String()
 
 	pin := p.SaveName != ""
 
@@ -181,10 +211,11 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err := dsfs.DerefDatasetStructure(store, ds); err != nil {
 		return fmt.Errorf("error dereferencing dataset structure: %s", err.Error())
 	}
-	fmt.Println("result query:", ds.Query.Path())
-	if err := dsfs.DerefDatasetQuery(store, ds); err != nil {
+	// fmt.Println("result query:", ds.AbstractTransform.Path())
+	if err := dsfs.DerefDatasetTransform(store, ds); err != nil {
 		return fmt.Errorf("error dereferencing dataset query: %s", err.Error())
 	}
+	fmt.Println(ds.AbstractTransform.Path().String())
 
 	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
 

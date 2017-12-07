@@ -110,10 +110,11 @@ type InitDatasetParams struct {
 // InitDataset creates a new qri dataset from a source of data
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
 	var (
-		rdr   io.Reader
-		store = r.repo.Store()
+		rdr      io.Reader
+		store    = r.repo.Store()
+		filename = p.DataFilename
 	)
-	var filename = p.DataFilename
+
 	if p.Url != "" {
 		res, err := http.Get(p.Url)
 		if err != nil {
@@ -126,6 +127,12 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		rdr = p.Data
 	} else {
 		return fmt.Errorf("either a file or a url is required to create a dataset")
+	}
+
+	if p.Name != "" {
+		if err := validate.ValidName(p.Name); err != nil {
+			return fmt.Errorf("invalid name: %s", err.Error())
+		}
 	}
 
 	// TODO - need a better strategy for huge files
@@ -194,7 +201,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	if ds.Title == "" {
 		ds.Title = name
 	}
-	ds.Data = datakey
+	ds.Data = datakey.String()
 	if ds.Structure == nil {
 		ds.Structure = &dataset.Structure{}
 	}
@@ -213,7 +220,6 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
 	}
 
-	fmt.Println(dskey.String())
 	if err = r.repo.PutName(name, dskey); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}
@@ -281,7 +287,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 			return fmt.Errorf("error putting data in store: %s", err.Error())
 		}
 
-		ds.Data = path
+		ds.Data = path.String()
 		ds.Length = len(data)
 	}
 

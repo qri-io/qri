@@ -34,6 +34,9 @@ func TestDatasetRequestsInit(t *testing.T) {
 		// Ensure that structure validation is being called
 		{&InitDatasetParams{DataFilename: badStructureFile.FileName(),
 			Data: badStructureFile}, nil, "invalid structure: error: cannot use the same name, 'colb' more than once"},
+		// should reject invalid names
+		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
+			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// this should work
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that we can't double-add data

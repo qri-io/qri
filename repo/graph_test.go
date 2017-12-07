@@ -23,7 +23,7 @@ func TestRepoGraph(t *testing.T) {
 		return
 	}
 
-	expect := 9
+	expect := 8
 	count := 0
 	for range nodes {
 		count++
@@ -98,11 +98,9 @@ func makeTestRepo() (Repo, error) {
 	ds2 := &dataset.Dataset{
 		Title:    "dataset 2",
 		Previous: datastore.NewKey(""),
-		Query: &dataset.Query{
-			Abstract: &dataset.AbstractQuery{
-				Syntax:    "sql",
-				Statement: "select * from a,b where b.id = 'foo'",
-			},
+		Transform: &dataset.Transform{
+			Syntax: "sql",
+			Data:   "select * from a,b where b.id = 'foo'",
 			Resources: map[string]*dataset.Dataset{
 				"a": dataset.NewDatasetRef(datastore.NewKey("/path/to/a")),
 				"b": dataset.NewDatasetRef(datastore.NewKey("/path/to/b")),
@@ -118,7 +116,7 @@ func makeTestRepo() (Repo, error) {
 	}
 
 	data1p, _ := store.Put(memfs.NewMemfileBytes("data1", []byte("dataset_1")), true)
-	ds1.Data = data1p
+	ds1.Data = data1p.String()
 	ds1p, err := dsfs.SaveDataset(store, ds1, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
@@ -127,7 +125,7 @@ func makeTestRepo() (Repo, error) {
 	r.PutName("ds1", ds1p)
 
 	data2p, _ := store.Put(memfs.NewMemfileBytes("data2", []byte("dataset_2")), true)
-	ds2.Data = data2p
+	ds2.Data = data2p.String()
 	ds2p, err := dsfs.SaveDataset(store, ds2, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
