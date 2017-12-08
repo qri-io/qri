@@ -19,7 +19,7 @@ var datasetRemoveCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
 
-		req := core.NewDatasetRequests(GetRepo(false))
+		req := core.NewDatasetRequests(RepoOrClient(false))
 
 		for _, arg := range args {
 			rt, ref := dsfs.RefType(arg)

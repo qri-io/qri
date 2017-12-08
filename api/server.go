@@ -2,10 +2,13 @@ package api
 
 import (
 	"fmt"
+	"net"
 	"net/http"
+	"net/rpc"
 
 	"github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/api/handlers"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -71,8 +74,33 @@ func (s *Server) Serve() (err error) {
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
 	s.log.Infof("starting api server on port %s", s.cfg.Port)
+	go s.ServeRPC()
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
+}
+
+// ServeRPC checks for a configured RPC port, and registers a listner if so
+func (s *Server) ServeRPC() {
+	if s.cfg.RPCPort == "" {
+		return
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.RPCPort))
+	if err != nil {
+		s.log.Infof("RPC listen on port %s error: %s", s.cfg.RPCPort, err)
+		return
+	}
+
+	for _, rcvr := range core.Receivers(s.qriNode) {
+		if err := rpc.Register(rcvr); err != nil {
+			s.log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
+			return
+		}
+	}
+
+	s.log.Infof("accepting RPC requests on port %s", s.cfg.RPCPort)
+	rpc.Accept(listener)
+	return
 }
 
 // NewServerRoutes returns a Muxer that has all API routes

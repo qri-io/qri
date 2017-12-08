@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
+	"net/rpc"
 	"path/filepath"
 	"strings"
 	"time"
@@ -25,15 +26,27 @@ import (
 
 type DatasetRequests struct {
 	repo repo.Repo
+	cli  *rpc.Client
 }
 
-func NewDatasetRequests(r repo.Repo) *DatasetRequests {
+func (d DatasetRequests) CoreRequestsName() string { return "datasets" }
+
+func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
+	if r != nil && cli != nil {
+		panic(fmt.Errorf("both repo and client supplied to NewDatasetRequests"))
+	}
+
 	return &DatasetRequests{
 		repo: r,
+		cli:  cli,
 	}
 }
 
 func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	if d.cli != nil {
+		return d.cli.Call("DatasetRequests.List", p, res)
+	}
+
 	store := d.repo.Store()
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -76,6 +89,10 @@ type GetDatasetParams struct {
 }
 
 func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
+	if d.cli != nil {
+		return d.cli.Call("DatasetRequests.Get", p, res)
+	}
+
 	store := d.repo.Store()
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
@@ -109,6 +126,10 @@ type InitDatasetParams struct {
 
 // InitDataset creates a new qri dataset from a source of data
 func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.InitDataset", p, res)
+	}
+
 	var (
 		rdr      io.Reader
 		store    = r.repo.Store()
@@ -245,6 +266,10 @@ type UpdateParams struct {
 
 // Update adds a history entry, updating a dataset
 func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Update", p, res)
+	}
+
 	var (
 		name     string
 		prevpath datastore.Key
@@ -331,6 +356,10 @@ type RenameParams struct {
 }
 
 func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Rename", p, res)
+	}
+
 	if p.Current == "" {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
@@ -373,6 +402,10 @@ type DeleteParams struct {
 }
 
 func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.List", p, ok)
+	}
+
 	if p.Name == "" && p.Path.String() == "" {
 		return fmt.Errorf("either name or path is required")
 	}
@@ -418,6 +451,10 @@ type StructuredData struct {
 }
 
 func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.StructuredData", p, data)
+	}
+
 	var (
 		file  cafs.File
 		d     []byte
@@ -480,6 +517,10 @@ type AddParams struct {
 }
 
 func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.AddDataset", p, res)
+	}
+
 	fs, ok := r.repo.Store().(*ipfs.Filestore)
 	if !ok {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
@@ -526,6 +567,10 @@ type ValidateDatasetParams struct {
 }
 
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Validate", p, errors)
+	}
+
 	// store := Store(cmd, args)
 	// errs, err := history.Validate(store)
 	// ExitIfErr(err)

@@ -67,9 +67,9 @@ var serverCmd = &cobra.Command{
 }
 
 func init() {
-	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", "3000", "port to start server on")
+	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", api.DefaultPort, "port to start server on")
 	serverCmd.Flags().BoolVarP(&serverInitIpfs, "init-ipfs", "", false, "initialize a new default ipfs repo if empty")
-	serverCmd.Flags().BoolVarP(&serverMemOnly, "mem-only", "", false, "run qri entirely in-memory")
+	serverCmd.Flags().BoolVarP(&serverMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	serverCmd.Flags().BoolVarP(&serverOffline, "offline", "", false, "disable networking")
 	RootCmd.AddCommand(serverCmd)
 }
@@ -80,7 +80,9 @@ func initRepoIfEmpty(repoPath, configPath string) error {
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 				return err
 			}
-			return ipfs.InitRepo(repoPath, configPath)
+			if err := ipfs.InitRepo(repoPath, configPath, defaultDatasets); err != nil {
+				return err
+			}
 		}
 	}
 	return nil

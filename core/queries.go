@@ -16,6 +16,8 @@ type QueryRequests struct {
 	repo repo.Repo
 }
 
+func (d QueryRequests) CoreRequestsName() string { return "queries" }
+
 func NewQueryRequests(r repo.Repo) *QueryRequests {
 	return &QueryRequests{
 		repo: r,
@@ -215,7 +217,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err := dsfs.DerefDatasetTransform(store, ds); err != nil {
 		return fmt.Errorf("error dereferencing dataset query: %s", err.Error())
 	}
-	fmt.Println(ds.AbstractTransform.Path().String())
+	// fmt.Println(ds.AbstractTransform.Path().String())
 
 	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
 

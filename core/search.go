@@ -14,6 +14,8 @@ type SearchRequests struct {
 	// node  *p2p.QriNode
 }
 
+func (d SearchRequests) CoreRequestsName() string { return "search" }
+
 func NewSearchRequests(r repo.Repo) *SearchRequests {
 	return &SearchRequests{
 		repo: r,

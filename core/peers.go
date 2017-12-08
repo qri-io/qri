@@ -24,6 +24,8 @@ type PeerRequests struct {
 	qriNode *p2p.QriNode
 }
 
+func (d PeerRequests) CoreRequestsName() string { return "peers" }
+
 func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0

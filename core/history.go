@@ -12,6 +12,8 @@ type HistoryRequests struct {
 	repo repo.Repo
 }
 
+func (d HistoryRequests) CoreRequestsName() string { return "history" }
+
 func NewHistoryRequests(r repo.Repo) *HistoryRequests {
 	return &HistoryRequests{
 		repo: r,

@@ -11,14 +11,17 @@ const (
 	DEVELOP_MODE    = "develop"
 	PRODUCTION_MODE = "production"
 	TEST_MODE       = "test"
+	DefaultPort     = "2503"
+	DefaultRPCPort  = "2504"
 )
 
 func DefaultConfig() *Config {
 	return &Config{
-		Logger: logging.DefaultLogger,
-		Mode:   "develop",
-		Port:   "8080",
-		Online: true,
+		Logger:  logging.DefaultLogger,
+		Mode:    "develop",
+		Port:    DefaultPort,
+		RPCPort: DefaultRPCPort,
+		Online:  true,
 	}
 }
 
@@ -38,6 +41,8 @@ type Config struct {
 	Mode string
 	// port to listen on, will be read from PORT env variable if present.
 	Port string
+	// port to listen for RPC calls on, if empty server will not register a RPC listener
+	RPCPort string
 	// root url for service
 	UrlRoot string
 	// DNS service discovery. Should be either "env" or "dns", default is env
@@ -67,7 +72,7 @@ type Config struct {
 func (cfg *Config) Validate() (err error) {
 	// make sure port is set
 	if cfg.Port == "" {
-		cfg.Port = "8080"
+		cfg.Port = DefaultPort
 	}
 
 	err = requireConfigStrings(map[string]string{

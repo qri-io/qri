@@ -15,6 +15,8 @@ type ProfileRequests struct {
 	repo repo.Repo
 }
 
+func (d ProfileRequests) CoreRequestsName() string { return "profile" }
+
 func NewProfileRequests(r repo.Repo) *ProfileRequests {
 	return &ProfileRequests{
 		repo: r,

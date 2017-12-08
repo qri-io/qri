@@ -59,7 +59,13 @@ var runCmd = &cobra.Command{
 		results, err := ioutil.ReadAll(f)
 		ExitIfErr(err)
 
-		PrintResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
+		switch cmd.Flag("format").Value.String() {
+		case "csv", "json":
+			fmt.Printf("%s", string(results))
+		default:
+			PrintResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
+		}
+
 	},
 }
 
@@ -67,6 +73,6 @@ func init() {
 	RootCmd.AddCommand(runCmd)
 	// runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
 	runCmd.Flags().StringP("output", "o", "", "file to write to")
-	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
+	runCmd.Flags().StringP("format", "f", "", "set output format [csv,json]")
 	runCmd.Flags().StringVarP(&runCmdName, "name", "n", "", "save output to name")
 }

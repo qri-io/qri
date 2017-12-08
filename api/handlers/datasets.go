@@ -17,7 +17,7 @@ import (
 )
 
 func NewDatasetHandlers(log logging.Logger, r repo.Repo) *DatasetHandlers {
-	req := core.NewDatasetRequests(r)
+	req := core.NewDatasetRequests(r, nil)
 	h := DatasetHandlers{*req, log, r}
 	return &h
 }
