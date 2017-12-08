@@ -46,7 +46,8 @@ var updateCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("either a metadata or data option is required"))
 		}
 
-		req := core.NewDatasetRequests(RepoOrClient(false))
+		req, err := DatasetRequests(false)
+		ExitIfErr(err)
 
 		p := &core.GetDatasetParams{
 			Name: args[0],

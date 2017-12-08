@@ -34,7 +34,8 @@ var infoCmd = &cobra.Command{
 			}
 		}
 
-		req := core.NewDatasetRequests(RepoOrClient(false))
+		req, err := DatasetRequests(false)
+		ExitIfErr(err)
 
 		for i, arg := range args {
 			rt, ref := dsfs.RefType(arg)

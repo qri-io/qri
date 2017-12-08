@@ -80,7 +80,7 @@ func initRepoIfEmpty(repoPath, configPath string) error {
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 				return err
 			}
-			if err := ipfs.InitRepo(repoPath, configPath, defaultDatasets); err != nil {
+			if err := ipfs.InitRepo(repoPath, configPath); err != nil {
 				return err
 			}
 		}

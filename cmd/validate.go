@@ -29,7 +29,9 @@ and check each of it's rows against the constraints listed
 in the dataset's fields.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
-			req := core.NewDatasetRequests(RepoOrClient(false))
+			req, err := DatasetRequests(false)
+			ExitIfErr(err)
+
 			for _, arg := range args {
 				rt, ref := dsfs.RefType(arg)
 				p := &core.ValidateDatasetParams{}
@@ -78,7 +80,8 @@ func validateDataset() {
 	metaFile, err = loadFileIfPath(validateDsMetaFilepath)
 	ExitIfErr(err)
 
-	req := core.NewDatasetRequests(RepoOrClient(false))
+	req, err := DatasetRequests(false)
+	ExitIfErr(err)
 
 	p := &core.ValidateDatasetParams{
 		Name:         validateDsName,

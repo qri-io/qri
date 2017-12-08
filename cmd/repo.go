@@ -1,11 +1,13 @@
 package cmd
 
 import (
+	"fmt"
 	"net"
 	"net/rpc"
 	"strings"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/spf13/viper"
@@ -29,8 +31,25 @@ func GetRepo(online bool) repo.Repo {
 	return r
 }
 
+func GetIpfsFilestore(online bool) *ipfs.Filestore {
+	fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
+		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
+		cfg.Online = online
+	})
+	ExitIfErr(err)
+	return fs
+}
+
+func DatasetRequests(online bool) (*core.DatasetRequests, error) {
+	r, cli, err := RepoOrClient(online)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewDatasetRequests(r, cli), nil
+}
+
 // RepoOrClient returns either a
-func RepoOrClient(online bool) (repo.Repo, *rpc.Client) {
+func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
 		cfg.Online = online
@@ -41,26 +60,18 @@ func RepoOrClient(online bool) (repo.Repo, *rpc.Client) {
 		}
 
 		r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath), id)
-		ExitIfErr(err)
-		return r, nil
+		return r, nil, err
+
 	} else if strings.Contains(err.Error(), "lock") {
 		// TODO - bad bad hardcode
 		conn, err := net.Dial("tcp", ":2504")
 		if err != nil {
-			ErrExit(err)
+			return nil, nil, err
 		}
-		return nil, rpc.NewClient(conn)
+		return nil, rpc.NewClient(conn), nil
 	} else {
-		ErrExit(err)
+		return nil, nil, err
 	}
-	return nil, nil
-}
 
-func GetIpfsFilestore(online bool) *ipfs.Filestore {
-	fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
-		cfg.Online = online
-	})
-	ExitIfErr(err)
-	return fs
+	return nil, nil, fmt.Errorf("badbadnotgood")
 }
