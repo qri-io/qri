@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -45,13 +47,26 @@ var searchCmd = &cobra.Command{
 		err := req.Search(p, &res)
 		ExitIfErr(err)
 
-		for i, ref := range res {
-			PrintDatasetRefInfo(i, ref)
+		outformat := cmd.Flag("format").Value.String()
+
+		switch outformat {
+		case "":
+			for i, ref := range res {
+				PrintDatasetRefInfo(i, ref)
+			}
+		case dataset.JSONDataFormat.String():
+			data, err := json.MarshalIndent(res, "", "  ")
+			ExitIfErr(err)
+			fmt.Printf("%s\n", string(data))
+		default:
+			ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
 		}
+
 	},
 }
 
 func init() {
 	searchCmd.Flags().BoolVarP(&searchCmdReindex, "reindex", "r", false, "re-generate search index from scratch. might take a while.")
+	searchCmd.Flags().StringP("format", "f", "", "set output format [json]")
 	RootCmd.AddCommand(searchCmd)
 }

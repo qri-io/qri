@@ -30,8 +30,8 @@ func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) e
 	// 		return err
 	// 	}
 
-	if s, ok := d.repo.(repo.Searchable); ok {
-		results, err := s.Search(*p)
+	if searchable, ok := d.repo.(repo.Searchable); ok {
+		results, err := searchable.Search(*p)
 		if err != nil {
 			return fmt.Errorf("error searching: %s", err.Error())
 		}
