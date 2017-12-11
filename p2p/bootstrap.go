@@ -14,7 +14,7 @@ import (
 // This boostrapping is specific to finding qri peers, which are IPFS peers that also
 // support the qri protocol.
 // (we also perform standard IPFS boostrapping when IPFS networking is enabled, and it's almost always enabled).
-// These are addresses to public, qri nodes hosted by qri.
+// These are addresses to public qri nodes hosted by qri, inc.
 // One day it would be super nice to bootstrap from a stored history & only
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
@@ -33,18 +33,18 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 
 	pinfos := toPeerInfos(peers)
 
-	for _, pi := range randomSubsetOfPeers(pinfos, 4) {
-		go func() {
-			if err := n.Host.Connect(context.Background(), pi); err == nil {
-				n.log.Infof("boostrapping to: %s", pi.ID.Pretty())
-				if err = n.AddQriPeer(pi); err != nil {
+	for _, p := range randomSubsetOfPeers(pinfos, 4) {
+		go func(p pstore.PeerInfo) {
+			n.Host.Peerstore().AddAddrs(p.ID, p.Addrs, pstore.RecentlyConnectedAddrTTL)
+			if err := n.Host.Connect(context.Background(), p); err == nil {
+				n.log.Infof("boostrapping to: %s", p.ID.Pretty())
+				if err = n.AddQriPeer(p); err != nil {
 					n.log.Infof("error adding peer: %s", err.Error())
 				}
-				n.RequestPeersList(pi.ID)
 			} else {
 				n.log.Infof("error connecting to host: %s", err.Error())
 			}
-		}()
+		}(p)
 	}
 }
 

@@ -77,7 +77,7 @@ func initConfig() (created bool) {
 
 	ipfsFsPath := os.Getenv("IPFS_PATH")
 	if ipfsFsPath == "" {
-		ipfsFsPath = "$HOME/.ipfs"
+		ipfsFsPath = filepath.Join(home, ".ipfs")
 	}
 	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
 	viper.SetDefault(IpfsFsPath, ipfsFsPath)

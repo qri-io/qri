@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"time"
+	// "time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -13,10 +13,10 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// add this peer to our store
 	n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
-	if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
-		// we've already seen this peer
-		return nil
-	}
+	// if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
+	// 	// we've already seen this peer
+	// 	return nil
+	// }
 
 	if err := n.RequestProfileInfo(pinfo); err != nil {
 		return err
@@ -24,7 +24,7 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 
 	// some time later ask for a list of their peers, you know, "for a friend"
 	go func() {
-		time.Sleep(time.Second * 2)
+		// time.Sleep(time.Second * 2)
 		n.RequestPeersList(pinfo.ID)
 	}()
 
