@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"net/rpc"
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
@@ -12,18 +13,27 @@ type SearchRequests struct {
 	store cafs.Filestore
 	repo  repo.Repo
 	// node  *p2p.QriNode
+	cli *rpc.Client
 }
 
 func (d SearchRequests) CoreRequestsName() string { return "search" }
 
-func NewSearchRequests(r repo.Repo) *SearchRequests {
+func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
+	if r != nil && cli != nil {
+		panic(fmt.Errorf("both repo and client supplied to NewSearchRequests"))
+	}
+
 	return &SearchRequests{
 		repo: r,
 		// node:  node,
+		cli: cli,
 	}
 }
 
 func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) error {
+	if d.cli != nil {
+		return d.cli.Call("SearchRequests.Search", p, res)
+	}
 	// if d.node != nil {
 	// 	r, err := d.node.Search(p.Query, p.Limit, p.Offset)
 	// 	if err != nil {
@@ -49,6 +59,10 @@ type ReindexSearchParams struct {
 }
 
 func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
+	if d.cli != nil {
+		return d.cli.Call("SearchRequests.Reindex", p, done)
+	}
+
 	if fsr, ok := d.repo.(*fs_repo.Repo); ok {
 		err := fsr.UpdateSearchIndex(d.repo.Store())
 		if err != nil {

@@ -24,7 +24,8 @@ var searchCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
 		}
 
-		req := core.NewSearchRequests(GetRepo(false))
+		req, err := SearchRequests(false)
+		ExitIfErr(err)
 
 		if searchCmdReindex {
 			PrintInfo("building index...")
@@ -44,7 +45,7 @@ var searchCmd = &cobra.Command{
 		}
 		res := []*repo.DatasetRef{}
 
-		err := req.Search(p, &res)
+		err = req.Search(p, &res)
 		ExitIfErr(err)
 
 		outformat := cmd.Flag("format").Value.String()

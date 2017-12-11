@@ -17,7 +17,7 @@ type SearchHandlers struct {
 }
 
 func NewSearchHandlers(log logging.Logger, r repo.Repo) *SearchHandlers {
-	req := core.NewSearchRequests(r)
+	req := core.NewSearchRequests(r, nil)
 	return &SearchHandlers{*req, log}
 }
 

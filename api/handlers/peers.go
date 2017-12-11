@@ -14,7 +14,7 @@ import (
 )
 
 func NewPeerHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *PeerHandlers {
-	req := core.NewPeerRequests(r, node)
+	req := core.NewPeerRequests(node, nil)
 	h := PeerHandlers{*req, log}
 	return &h
 }

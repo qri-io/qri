@@ -27,8 +27,8 @@ var runCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("Please provide a query string to execute"))
 		}
 
-		r := GetRepo(false)
-		req := core.NewQueryRequests(r)
+		req, err := QueryRequests(false)
+		ExitIfErr(err)
 
 		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
 		if err != nil {

@@ -17,11 +17,11 @@ func Receivers(node *p2p.QriNode) []CoreRequests {
 	r := node.Repo
 	return []CoreRequests{
 		NewDatasetRequests(r, nil),
-		NewHistoryRequests(r),
-		NewPeerRequests(r, node),
-		NewProfileRequests(r),
-		NewQueryRequests(r),
-		NewSearchRequests(r),
+		NewHistoryRequests(r, nil),
+		NewPeerRequests(node, nil),
+		NewProfileRequests(r, nil),
+		NewQueryRequests(r, nil),
+		NewSearchRequests(r, nil),
 	}
 }
 

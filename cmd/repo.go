@@ -48,6 +48,30 @@ func DatasetRequests(online bool) (*core.DatasetRequests, error) {
 	return core.NewDatasetRequests(r, cli), nil
 }
 
+func QueryRequests(online bool) (*core.QueryRequests, error) {
+	r, cli, err := RepoOrClient(online)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewQueryRequests(r, cli), nil
+}
+
+func ProfileRequests(online bool) (*core.ProfileRequests, error) {
+	r, cli, err := RepoOrClient(online)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewProfileRequests(r, cli), nil
+}
+
+func SearchRequests(online bool) (*core.SearchRequests, error) {
+	r, cli, err := RepoOrClient(online)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewSearchRequests(r, cli), nil
+}
+
 // RepoOrClient returns either a
 func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {

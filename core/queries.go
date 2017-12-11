@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"net/rpc"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -14,17 +15,27 @@ import (
 
 type QueryRequests struct {
 	repo repo.Repo
+	cli  *rpc.Client
 }
 
 func (d QueryRequests) CoreRequestsName() string { return "queries" }
 
-func NewQueryRequests(r repo.Repo) *QueryRequests {
+func NewQueryRequests(r repo.Repo, cli *rpc.Client) *QueryRequests {
+	if r != nil && cli != nil {
+		panic(fmt.Errorf("both repo and client supplied to NewQueryRequests"))
+	}
+
 	return &QueryRequests{
 		repo: r,
+		cli:  cli,
 	}
 }
 
 func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	if d.cli != nil {
+		return d.cli.Call("QueryRequests.List", p, res)
+	}
+
 	results, err := d.repo.GetQueryLogs(p.Limit, p.Offset)
 	if err != nil {
 		return fmt.Errorf("error getting query logs: %s", err.Error())
@@ -57,7 +68,11 @@ type GetQueryParams struct {
 }
 
 func (d *QueryRequests) Get(p *GetQueryParams, res *dataset.Dataset) error {
-	// TODO - huh? do we even need to load queries
+	if d.cli != nil {
+		return d.cli.Call("QueryRequests.Get", p, res)
+	}
+
+	// TODO - huh? do we even need to load query datasets?
 	q, err := dsfs.LoadDataset(d.repo.Store(), datastore.NewKey(p.Path))
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
@@ -75,6 +90,10 @@ type RunParams struct {
 }
 
 func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("QueryRequests.Run", p, res)
+	}
+
 	var (
 		store     = r.repo.Store()
 		transform *dataset.Transform
@@ -237,6 +256,10 @@ type DatasetQueriesParams struct {
 }
 
 func (r *QueryRequests) DatasetQueries(p *DatasetQueriesParams, res *[]*repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("QueryRequests.DatasetQueries", p, res)
+	}
+
 	if p.Path == "" {
 		return fmt.Errorf("path is required")
 	}

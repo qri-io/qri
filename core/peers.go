@@ -3,6 +3,7 @@ package core
 import (
 	"encoding/json"
 	"fmt"
+	"net/rpc"
 
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/p2p"
@@ -12,30 +13,39 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-func NewPeerRequests(r repo.Repo, node *p2p.QriNode) *PeerRequests {
-	return &PeerRequests{
-		repo:    r,
-		qriNode: node,
-	}
+type PeerRequests struct {
+	qriNode *p2p.QriNode
+	cli     *rpc.Client
 }
 
-type PeerRequests struct {
-	repo    repo.Repo
-	qriNode *p2p.QriNode
+func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
+	if node != nil && cli != nil {
+		panic(fmt.Errorf("both node and client supplied to NewPeerRequests"))
+	}
+
+	return &PeerRequests{
+		qriNode: node,
+		cli:     cli,
+	}
 }
 
 func (d PeerRequests) CoreRequestsName() string { return "peers" }
 
 func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.List", p, res)
+	}
+
+	r := d.qriNode.Repo
 	replies := make([]*profile.Profile, p.Limit)
 	i := 0
 
-	user, err := d.repo.Profile()
+	user, err := r.Profile()
 	if err != nil {
 		return err
 	}
 
-	ps, err := repo.QueryPeers(d.repo.Peers(), query.Query{})
+	ps, err := repo.QueryPeers(r.Peers(), query.Query{})
 	if err != nil {
 		return fmt.Errorf("error querying peers: %s", err.Error())
 	}
@@ -56,16 +66,24 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 }
 
 func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.ConnectedPeers", limit, peers)
+	}
+
 	*peers = d.qriNode.ConnectedPeers()
 	return nil
 }
 
 func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
+	}
+
 	if err := d.qriNode.ConnectToPeer(*pid); err != nil {
 		return fmt.Errorf("error connecting to peer: %s", err.Error())
 	}
 
-	profile, err := d.repo.Peers().GetPeer(*pid)
+	profile, err := d.qriNode.Repo.Peers().GetPeer(*pid)
 	if err != nil {
 		return fmt.Errorf("error getting peer profile: %s", err.Error())
 	}
@@ -75,6 +93,10 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 }
 
 func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.Get", p, res)
+	}
+
 	// TODO - restore
 	// peers, err := d.repo.Peers()
 	// if err != nil {
@@ -104,12 +126,16 @@ type NamespaceParams struct {
 }
 
 func (d *PeerRequests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.GetNamespace", p, res)
+	}
+
 	id, err := peer.IDB58Decode(p.PeerId)
 	if err != nil {
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}
 
-	profile, err := d.repo.Peers().GetPeer(id)
+	profile, err := d.qriNode.Repo.Peers().GetPeer(id)
 	if err != nil || profile == nil {
 		return err
 	}

@@ -18,7 +18,7 @@ type ProfileHandlers struct {
 }
 
 func NewProfileHandlers(log logging.Logger, r repo.Repo) *ProfileHandlers {
-	req := core.NewProfileRequests(r)
+	req := core.NewProfileRequests(r, nil)
 	h := ProfileHandlers{*req, log}
 	return &h
 }
@@ -38,7 +38,7 @@ func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request)
 
 func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 	args := true
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.GetProfile(&args, res); err != nil {
 		h.log.Infof("error getting profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -49,12 +49,12 @@ func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Request) {
-	p := &profile.Profile{}
+	p := &core.Profile{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SaveProfile(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
