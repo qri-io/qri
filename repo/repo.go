@@ -7,6 +7,7 @@ package repo
 
 import (
 	"fmt"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -105,10 +106,19 @@ type Datasets interface {
 	Query(query.Query) (query.Results, error)
 }
 
+type QueryLogItem struct {
+	Query       string
+	Name        string
+	Key         datastore.Key
+	DatasetPath datastore.Key
+	Time        time.Time
+}
+
 // QueryLog keeps logs
 type QueryLog interface {
-	LogQuery(*DatasetRef) error
-	GetQueryLogs(limit, offset int) ([]*DatasetRef, error)
+	LogQuery(*QueryLogItem) error
+	ListQueryLogs(limit, offset int) ([]*QueryLogItem, error)
+	QueryLogItem(q *QueryLogItem) (*QueryLogItem, error)
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search

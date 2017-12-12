@@ -259,18 +259,20 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 
 	// TODO - make properly parallel
 	go func() {
-		refs, err := r.GetQueryLogs(1000, 0)
+		items, err := r.ListQueryLogs(1000, 0)
 		if err != nil {
 			done <- err
 		}
-		for _, ref := range refs {
-			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+		for _, item := range items {
+			ref := &DatasetRef{Path: item.DatasetPath}
+
+			ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			// TODO - remove this once loading is more consistent.
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			}
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			}
 
 			kontinue, err := visit(0, ref, err)
