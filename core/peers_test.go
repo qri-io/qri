@@ -28,7 +28,7 @@ func TestPeerRequestsList(t *testing.T) {
 	}
 
 	// TODO - need to upgrade this to include a mock node
-	req := NewPeerRequests(mr, &p2p.QriNode{})
+	req := NewPeerRequests(&p2p.QriNode{Repo: mr}, nil)
 	for i, c := range cases {
 		got := []*profile.Profile{}
 		err := req.List(c.p, &got)

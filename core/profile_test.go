@@ -26,9 +26,9 @@ func TestProfileRequestsGet(t *testing.T) {
 		return
 	}
 
-	req := NewProfileRequests(mr)
+	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &profile.Profile{}
+		got := &Profile{}
 		err := req.GetProfile(&c.in, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -40,12 +40,12 @@ func TestProfileRequestsGet(t *testing.T) {
 
 func TestProfileRequestsSave(t *testing.T) {
 	cases := []struct {
-		p   *profile.Profile
-		res *profile.Profile
+		p   *Profile
+		res *Profile
 		err string
 	}{
 		{nil, nil, "profile required for update"},
-		{&profile.Profile{}, nil, ""},
+		{&Profile{}, nil, ""},
 		// TODO - moar tests
 	}
 
@@ -55,9 +55,9 @@ func TestProfileRequestsSave(t *testing.T) {
 		return
 	}
 
-	req := NewProfileRequests(mr)
+	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &profile.Profile{}
+		got := &Profile{}
 		err := req.SaveProfile(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -73,9 +73,9 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		respath datastore.Key
 		err     string
 	}{
-		{"", datastore.Key{}, "file is required"},
-		{"testdata/ink_big_photo.jpg", datastore.Key{}, "file size too large. max size is 250kb"},
-		{"testdata/q_bang.svg", datastore.Key{}, "invalid file format. only .jpg & .png images allowed"},
+		{"", datastore.NewKey(""), "file is required"},
+		{"testdata/ink_big_photo.jpg", datastore.NewKey(""), "file size too large. max size is 250kb"},
+		{"testdata/q_bang.svg", datastore.NewKey(""), "invalid file format. only .jpg & .png images allowed"},
 		{"testdata/rico_400x400.jpg", datastore.NewKey("/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"), ""},
 	}
 
@@ -85,7 +85,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		return
 	}
 
-	req := NewProfileRequests(mr)
+	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -98,15 +98,15 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &profile.Profile{}
+		res := &Profile{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
 			continue
 		}
 
-		if !c.respath.Equal(res.Profile) {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Profile.String())
+		if !c.respath.Equal(datastore.NewKey(res.Profile)) {
+			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Profile)
 			continue
 		}
 	}
@@ -118,9 +118,9 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		respath datastore.Key
 		err     string
 	}{
-		{"", datastore.Key{}, "file is required"},
-		{"testdata/ink_big_photo.jpg", datastore.Key{}, "file size too large. max size is 250kb"},
-		{"testdata/q_bang.svg", datastore.Key{}, "invalid file format. only .jpg & .png images allowed"},
+		{"", datastore.NewKey(""), "file is required"},
+		{"testdata/ink_big_photo.jpg", datastore.NewKey(""), "file size too large. max size is 250kb"},
+		{"testdata/q_bang.svg", datastore.NewKey(""), "invalid file format. only .jpg & .png images allowed"},
 		{"testdata/rico_poster_1500x500.jpg", datastore.NewKey("/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL"), ""},
 	}
 
@@ -130,7 +130,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		return
 	}
 
-	req := NewProfileRequests(mr)
+	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -143,15 +143,15 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &profile.Profile{}
+		res := &Profile{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
 			continue
 		}
 
-		if !c.respath.Equal(res.Profile) {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Profile.String())
+		if !c.respath.Equal(datastore.NewKey(res.Profile)) {
+			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Profile)
 			continue
 		}
 	}

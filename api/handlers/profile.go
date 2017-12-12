@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -91,7 +90,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SetProfilePhoto(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -128,7 +127,7 @@ func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SetPosterPhoto(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

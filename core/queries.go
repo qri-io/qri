@@ -166,7 +166,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err != nil {
 		return fmt.Errorf("formatting error: %s", err.Error())
 	}
-	qpath, err := dsfs.SaveTransform(store, abst, false)
+	qpath, err := dsfs.SaveAbstractTransform(store, abst, false)
 	if err != nil {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}

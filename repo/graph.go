@@ -145,10 +145,10 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 		root.AddLinks(dsgraph.Link{From: root, To: commit})
 	}
 
-	if ds.AbstractStructure != nil && ds.AbstractStructure.Path().String() != "" {
+	if ds.Abstract != nil && ds.Abstract.Path().String() != "" {
 		root.AddLinks(dsgraph.Link{
 			From: root,
-			To:   nl.node(dsgraph.NtAbstStructure, ds.AbstractStructure.Path().String()),
+			To:   nl.node(dsgraph.NtAbstDataset, ds.Abstract.Path().String()),
 		})
 	}
 

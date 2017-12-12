@@ -135,7 +135,7 @@ type FileParams struct {
 	Data     io.Reader // reader of structured data. either Url or Data is required
 }
 
-func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *profile.Profile) error {
+func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetProfilePhoto", p, res)
 	}
@@ -176,11 +176,16 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *profile.Profile) e
 		return fmt.Errorf("error saving profile: %s", err.Error())
 	}
 
-	*res = *pro
+	_p, err := marshalProfile(pro)
+	if err != nil {
+		return err
+	}
+
+	*res = *_p
 	return nil
 }
 
-func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *profile.Profile) error {
+func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetPosterPhoto", p, res)
 	}
@@ -219,5 +224,11 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *profile.Profile) er
 		return fmt.Errorf("error saving profile: %s", err.Error())
 	}
 
+	_p, err := marshalProfile(pro)
+	if err != nil {
+		return err
+	}
+
+	*res = *_p
 	return nil
 }

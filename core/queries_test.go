@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -17,7 +16,7 @@ func TestList(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
 		return
@@ -48,7 +47,7 @@ func TestGet(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
@@ -81,7 +80,7 @@ func TestRun(t *testing.T) {
 		return
 	}
 
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
@@ -108,7 +107,6 @@ func TestRun(t *testing.T) {
 		}
 
 		if c.err == "" {
-			fmt.Println("path:", got.Path.String())
 			df, err := mr.Store().Get(got.Path)
 			if err != nil {
 				t.Errorf("case %d error getting dataset path: %s: %s", i, got.Path.String(), err.Error())
@@ -130,72 +128,61 @@ func TestRun(t *testing.T) {
 			if !ds.Structure.IsEmpty() {
 				t.Errorf("expected stored dataset.Structure to be a reference")
 			}
-			if !ds.AbstractStructure.IsEmpty() {
-				t.Errorf("expected stored dataset.AbstractStructure to be a reference")
+			if !ds.Abstract.IsEmpty() {
+				t.Errorf("expected stored dataset.Abstract to be a reference")
 			}
 
 		}
 	}
 }
 
-// TODO - RESTORE BEFORE MERGING
-// func TestDatasetQueries(t *testing.T) {
-// 	mr, err := testrepo.NewTestRepo()
-// 	if err != nil {
-// 		t.Errorf("error allocating test repo: %s", err.Error())
-// 		return
-// 	}
+func TestDatasetQueries(t *testing.T) {
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
 
-// 	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
-// 	path, err := mr.GetPath("movies")
-// 	if err != nil {
-// 		t.Errorf("errog getting path for 'movies' dataset: %s", err.Error())
-// 		return
-// 	}
+	path, err := mr.GetPath("movies")
+	if err != nil {
+		t.Errorf("errog getting path for 'movies' dataset: %s", err.Error())
+		return
+	}
 
-// 	// ns, err := mr.Namespace(30, 0)
-// 	// if err != nil {
-// 	// 	t.Errorf("error getting repo namespace: %s", err.Error())
-// 	// 	return
-// 	// }
+	qres := &repo.DatasetRef{}
+	if err = req.Run(&RunParams{
+		Dataset: &dataset.Dataset{
+			QueryString: "select * from movies",
+		}}, qres); err != nil {
+		t.Errorf("error running query: %s", err.Error())
+		return
+	}
 
-// 	// for _, n := range ns {
-// 	// 	fmt.Println(n)
-// 	// }
+	cases := []struct {
+		p   *DatasetQueriesParams
+		res []*repo.DatasetRef
+		err string
+	}{
+		{&DatasetQueriesParams{}, []*repo.DatasetRef{}, "path is required"},
+		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{&repo.DatasetRef{}}, ""},
+		// TODO: ALWAYS MOAR TESTS. OM NOM NOM FEED THE TEST MONSTER.
+	}
 
-// 	qres := &repo.DatasetRef{}
-// 	if err = req.Run(&RunParams{
-// 		Dataset: &dataset.Dataset{
-// 			QueryString: "select * from movies",
-// 		}}, qres); err != nil {
-// 		t.Errorf("error running query: %s", err.Error())
-// 		return
-// 	}
+	for i, c := range cases {
+		got := []*repo.DatasetRef{}
+		err := req.DatasetQueries(c.p, &got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
 
-// 	cases := []struct {
-// 		p   *DatasetQueriesParams
-// 		res []*repo.DatasetRef
-// 		err string
-// 	}{
-// 		{&DatasetQueriesParams{}, []*repo.DatasetRef{}, "path is required"},
-// 		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{&repo.DatasetRef{}}, ""},
-// 		// TODO: add more tests
-// 	}
+		// fmt.Println(got)
 
-// 	for i, c := range cases {
-// 		got := []*repo.DatasetRef{}
-// 		err := req.DatasetQueries(c.p, &got)
-// 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-// 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-// 			continue
-// 		}
-
-// 		// fmt.Println(got)
-
-// 		if len(c.res) != len(got) {
-// 			t.Errorf("case %d returned wrong number of responses. exepected: %d, got %d", i, len(c.res), len(got))
-// 			continue
-// 		}
-// 	}
-// }
+		if len(c.res) != len(got) {
+			t.Errorf("case %d returned wrong number of responses. exepected: %d, got %d", i, len(c.res), len(got))
+			continue
+		}
+	}
+}
