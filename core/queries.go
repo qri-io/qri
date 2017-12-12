@@ -43,8 +43,9 @@ func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 
 	results := make([]*repo.DatasetRef, len(items))
 	for i, item := range items {
-		results[i].Path = item.DatasetPath
+		results[i] = &repo.DatasetRef{Path: item.DatasetPath}
 		if ds, err := dsfs.LoadDataset(d.repo.Store(), item.DatasetPath); err == nil {
+			results[i].Name = ds.Transform.Data
 			results[i].Dataset = ds
 		}
 	}
