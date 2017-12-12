@@ -1,7 +1,7 @@
 package core
 
 import (
-	"fmt"
+	"encoding/json"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -10,30 +10,18 @@ import (
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
-// func TestNewQueryRequests(t *testing.T) {
-// 	mr, err := testrepo.NewTestRepo()
-// 	if err != nil {
-// 		t.Errorf("error allocating test repo: %s", err.Error())
-// 		return
-// 	}
-// 	req := NewQueryRequests(mr)
-// 	if req == nil {
-// 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
-// 		return
-// 	}
-// }
-
 func TestList(t *testing.T) {
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
 		return
 	}
+
 	cases := []struct {
 		p   *ListParams
 		res *[]*repo.DatasetRef
@@ -59,7 +47,7 @@ func TestGet(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
@@ -92,7 +80,7 @@ func TestRun(t *testing.T) {
 		return
 	}
 
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
 	if req == nil {
 		t.Errorf("error: expected non-nil result from NewQueryRequests()")
@@ -117,6 +105,34 @@ func TestRun(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
+
+		if c.err == "" {
+			df, err := mr.Store().Get(got.Path)
+			if err != nil {
+				t.Errorf("case %d error getting dataset path: %s: %s", i, got.Path.String(), err.Error())
+				continue
+			}
+
+			ds := &dataset.Dataset{}
+			if err := json.NewDecoder(df).Decode(ds); err != nil {
+				t.Errorf("case %d decode dataset error: %s", i, err.Error())
+				continue
+			}
+
+			if !ds.Transform.IsEmpty() {
+				t.Errorf("expected stored dataset.Transform to be a reference")
+			}
+			if !ds.AbstractTransform.IsEmpty() {
+				t.Errorf("expected stored dataset.AbstractTransform to be a reference")
+			}
+			if !ds.Structure.IsEmpty() {
+				t.Errorf("expected stored dataset.Structure to be a reference")
+			}
+			if !ds.Abstract.IsEmpty() {
+				t.Errorf("expected stored dataset.Abstract to be a reference")
+			}
+
+		}
 	}
 }
 
@@ -127,23 +143,13 @@ func TestDatasetQueries(t *testing.T) {
 		return
 	}
 
-	req := NewQueryRequests(mr)
+	req := NewQueryRequests(mr, nil)
 
 	path, err := mr.GetPath("movies")
 	if err != nil {
 		t.Errorf("errog getting path for 'movies' dataset: %s", err.Error())
 		return
 	}
-
-	// ns, err := mr.Namespace(30, 0)
-	// if err != nil {
-	// 	t.Errorf("error getting repo namespace: %s", err.Error())
-	// 	return
-	// }
-
-	// for _, n := range ns {
-	// 	fmt.Println(n)
-	// }
 
 	qres := &repo.DatasetRef{}
 	if err = req.Run(&RunParams{
@@ -161,7 +167,7 @@ func TestDatasetQueries(t *testing.T) {
 	}{
 		{&DatasetQueriesParams{}, []*repo.DatasetRef{}, "path is required"},
 		{&DatasetQueriesParams{Path: path.String()}, []*repo.DatasetRef{&repo.DatasetRef{}}, ""},
-		// TODO: add more tests
+		// TODO: ALWAYS MOAR TESTS. OM NOM NOM FEED THE TEST MONSTER.
 	}
 
 	for i, c := range cases {
@@ -172,7 +178,7 @@ func TestDatasetQueries(t *testing.T) {
 			continue
 		}
 
-		fmt.Println(got)
+		// fmt.Println(got)
 
 		if len(c.res) != len(got) {
 			t.Errorf("case %d returned wrong number of responses. exepected: %d, got %d", i, len(c.res), len(got))

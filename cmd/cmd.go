@@ -4,8 +4,8 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"runtime"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/viper"
 )
 
@@ -41,14 +41,20 @@ func cachePath() string {
 }
 
 func userHomeDir() string {
-	if runtime.GOOS == "windows" {
-		home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-		if home == "" {
-			home = os.Getenv("USERPROFILE")
-		}
-		return home
+	dir, err := homedir.Dir()
+	if err != nil {
+		panic(err)
 	}
-	return os.Getenv("HOME")
+	return dir
+
+	// if runtime.GOOS == "windows" {
+	// 	home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
+	// 	if home == "" {
+	// 		home = os.Getenv("USERPROFILE")
+	// 	}
+	// 	return home
+	// }
+	// return os.Getenv("HOME")
 }
 
 func loadFileIfPath(path string) (file *os.File, err error) {

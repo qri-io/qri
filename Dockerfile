@@ -4,10 +4,10 @@ LABEL maintainer="sparkle_pony_2000@qri.io"
 ADD . /go/src/github.com/qri-io/qri
 RUN cd /go/src/github.com/qri-io/qri
 
-# RUN go get -u github.com/whyrusleeping/gx
-# RUN go get -u github.com/whyrusleeping/gx-go
-# RUN gx install
-# RUN go get ./...
+RUN go get -v github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/analytics github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/dataset_sql github.com/qri-io/doggos github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/viper
+
+RUN go get -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
+RUN cd /go/src/github.com/qri-io/qri && pwd && gx install
 
 RUN go install github.com/qri-io/qri
 # set default port to 8080, default log level, QRI_PATH env, IPFS_PATH env

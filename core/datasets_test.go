@@ -34,6 +34,9 @@ func TestDatasetRequestsInit(t *testing.T) {
 		// Ensure that structure validation is being called
 		{&InitDatasetParams{DataFilename: badStructureFile.FileName(),
 			Data: badStructureFile}, nil, "invalid structure: error: cannot use the same name, 'colb' more than once"},
+		// should reject invalid names
+		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
+			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// this should work
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that we can't double-add data
@@ -46,7 +49,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		return
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.InitDataset(c.p, got)
@@ -100,7 +103,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := []*repo.DatasetRef{}
 		err := req.List(c.p, &got)
@@ -153,7 +156,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		{&GetDatasetParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Get(c.p, got)
@@ -195,7 +198,7 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 	// {&UpdateParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Update(c.p, got)
@@ -227,7 +230,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: "new_movies", New: "new_movies"}, "", "name 'new_movies' already exists"},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
@@ -266,7 +269,7 @@ func TestDatasetRequestsDelete(t *testing.T) {
 		{&DeleteParams{Path: path}, nil, ""},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := false
 		err := req.Delete(c.p, &got)
@@ -310,7 +313,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &StructuredData{}
 		err := req.StructuredData(c.p, got)
@@ -358,7 +361,7 @@ func TestDatasetRequestsAddDataset(t *testing.T) {
 		return
 	}
 
-	req := NewDatasetRequests(mr)
+	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.AddDataset(c.p, got)

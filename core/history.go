@@ -2,6 +2,7 @@ package core
 
 import (
 	"fmt"
+	"net/rpc"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
@@ -10,9 +11,16 @@ import (
 
 type HistoryRequests struct {
 	repo repo.Repo
+	cli  *rpc.Client
 }
 
-func NewHistoryRequests(r repo.Repo) *HistoryRequests {
+func (d HistoryRequests) CoreRequestsName() string { return "history" }
+
+func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
+	if r != nil && cli != nil {
+		panic(fmt.Errorf("both repo and client supplied to NewHistoryRequests"))
+	}
+
 	return &HistoryRequests{
 		repo: r,
 	}
@@ -24,6 +32,10 @@ type LogParams struct {
 }
 
 func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err error) {
+	if d.cli != nil {
+		return d.cli.Call("HistoryRequests.Log", params, res)
+	}
+
 	log := []*repo.DatasetRef{}
 	limit := params.Limit
 	ref := &repo.DatasetRef{Path: params.Path}

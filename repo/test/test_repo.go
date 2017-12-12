@@ -53,7 +53,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 			return
 		}
 
-		ds.Data = datakey
+		ds.Data = datakey.String()
 
 		dskey, err = dsfs.SaveDataset(ms, ds, true)
 		if err != nil {

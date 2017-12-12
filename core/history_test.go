@@ -30,7 +30,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{&LogParams{Path: path}, []*repo.DatasetRef{&repo.DatasetRef{Path: path}}, ""},
 	}
 
-	req := NewHistoryRequests(mr)
+	req := NewHistoryRequests(mr, nil)
 	for i, c := range cases {
 		got := []*repo.DatasetRef{}
 		err := req.Log(c.p, &got)

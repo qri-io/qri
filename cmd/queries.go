@@ -14,11 +14,12 @@ var queriesCmd = &cobra.Command{
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			req := core.NewQueryRequests(GetRepo(false))
+			req, err := QueryRequests(false)
+			ExitIfErr(err)
 			p := core.NewListParams("-created", pageNum, pageSize)
 
 			res := []*repo.DatasetRef{}
-			err := req.List(&p, &res)
+			err = req.List(&p, &res)
 			ExitIfErr(err)
 
 			for i, q := range res {

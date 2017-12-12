@@ -30,7 +30,7 @@ var exportCmd = &cobra.Command{
 		}
 
 		r := GetRepo(false)
-		req := core.NewDatasetRequests(r)
+		req := core.NewDatasetRequests(r, nil)
 
 		p := &core.GetDatasetParams{
 			Name: args[0],

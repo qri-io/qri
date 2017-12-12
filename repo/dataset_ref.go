@@ -16,7 +16,7 @@ import (
 // be stored as metadata within the dataset itself.
 type DatasetRef struct {
 	// The dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset"`
+	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset

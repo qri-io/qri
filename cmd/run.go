@@ -27,8 +27,9 @@ var runCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("Please provide a query string to execute"))
 		}
 
-		r := GetRepo(false)
-		req := core.NewQueryRequests(r)
+		r, cli, err := RepoOrClient(false)
+		ExitIfErr(err)
+		req := core.NewQueryRequests(r, cli)
 
 		format, err := dataset.ParseDataFormatString(cmd.Flag("format").Value.String())
 		if err != nil {
@@ -42,12 +43,9 @@ var runCmd = &cobra.Command{
 			SaveName: runCmdName,
 			Dataset: &dataset.Dataset{
 				Timestamp: time.Now().In(time.UTC),
-				Query: &dataset.Query{
+				Transform: &dataset.Transform{
 					Syntax: "sql",
-					Abstract: &dataset.AbstractQuery{
-						Syntax:    "sql",
-						Statement: args[0],
-					},
+					Data:   args[0],
 				},
 			},
 		}
@@ -62,7 +60,13 @@ var runCmd = &cobra.Command{
 		results, err := ioutil.ReadAll(f)
 		ExitIfErr(err)
 
-		PrintResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
+		switch cmd.Flag("format").Value.String() {
+		case "csv", "json":
+			fmt.Printf("%s", string(results))
+		default:
+			PrintResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
+		}
+
 	},
 }
 
@@ -70,6 +74,6 @@ func init() {
 	RootCmd.AddCommand(runCmd)
 	// runCmd.Flags().StringP("save", "s", "", "save the resulting dataset to a given address")
 	runCmd.Flags().StringP("output", "o", "", "file to write to")
-	runCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
+	runCmd.Flags().StringP("format", "f", "", "set output format [csv,json]")
 	runCmd.Flags().StringVarP(&runCmdName, "name", "n", "", "save output to name")
 }

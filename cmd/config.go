@@ -51,7 +51,8 @@ func init() {
 }
 
 // initConfig reads in config file and ENV variables if set.
-func initConfig() {
+func initConfig() (created bool) {
+	var err error
 	home := userHomeDir()
 	SetNoColor()
 
@@ -76,7 +77,7 @@ func initConfig() {
 
 	ipfsFsPath := os.Getenv("IPFS_PATH")
 	if ipfsFsPath == "" {
-		ipfsFsPath = "$HOME/.ipfs"
+		ipfsFsPath = filepath.Join(home, ".ipfs")
 	}
 	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
 	viper.SetDefault(IpfsFsPath, ipfsFsPath)
@@ -84,11 +85,13 @@ func initConfig() {
 	viper.SetConfigName("config") // name of config file (without extension)
 	viper.AddConfigPath(qriPath)  // add QRI_PATH env var
 
-	err := EnsureConfigFile()
+	created, err = EnsureConfigFile()
 	ExitIfErr(err)
 
 	err = viper.ReadInConfig()
 	ExitIfErr(err)
+
+	return
 }
 
 func configFilepath() string {
@@ -99,12 +102,12 @@ func configFilepath() string {
 	return path
 }
 
-func EnsureConfigFile() error {
+func EnsureConfigFile() (bool, error) {
 	if _, err := os.Stat(configFilepath()); os.IsNotExist(err) {
 		fmt.Println("writing config file")
-		return WriteConfigFile(defaultCfg)
+		return true, WriteConfigFile(defaultCfg)
 	}
-	return nil
+	return false, nil
 }
 
 func WriteConfigFile(cfg *Config) error {

@@ -73,7 +73,7 @@ func QueriesMap(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
 	for path, node := range nodes {
 		if node.Type == dsgraph.NtDataset && len(node.Links) > 0 {
 			for _, l := range node.Links {
-				if l.To.Type == dsgraph.NtQuery {
+				if l.To.Type == dsgraph.NtTransform {
 					qs[path] = datastore.NewKey(l.To.Path)
 				}
 			}
@@ -87,7 +87,7 @@ func QueriesMap(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
 func DatasetQueries(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
 	qs = map[string]datastore.Key{}
 	for path, node := range nodes {
-		if node.Type == dsgraph.NtQuery && len(node.Links) > 0 {
+		if node.Type == dsgraph.NtTransform && len(node.Links) > 0 {
 			for _, l := range node.Links {
 				if l.To.Type == dsgraph.NtDataset {
 					// qs[path] = datastore.NewKey(l.To.Path)
@@ -131,7 +131,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 
 	root.AddLinks(dsgraph.Link{
 		From: root,
-		To:   nl.node(dsgraph.NtData, ds.Data.String()),
+		To:   nl.node(dsgraph.NtData, ds.Data),
 	})
 
 	if ds.Previous.String() != "/" {
@@ -140,33 +140,36 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 			To:   nl.node(dsgraph.NtDataset, ds.Previous.String()),
 		})
 	}
-	// if ds.Commit.Path().String() != "" {
-	//   commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path()}
-	// root.AddLinks(dsgraph.Link{From: root, To: data})
-	// }
-	if ds.AbstractStructure != nil && ds.AbstractStructure.Path().String() != "" {
+	if ds.Commit != nil && ds.Commit.Path().String() != "" {
+		commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path().String()}
+		root.AddLinks(dsgraph.Link{From: root, To: commit})
+	}
+
+	if ds.Abstract != nil && ds.Abstract.Path().String() != "" {
 		root.AddLinks(dsgraph.Link{
 			From: root,
-			To:   nl.node(dsgraph.NtAbstStructure, ds.AbstractStructure.Path().String()),
+			To:   nl.node(dsgraph.NtAbstDataset, ds.Abstract.Path().String()),
 		})
 	}
-	if ds.Query != nil && ds.Query.Path().String() != "" {
-		if q, err := dsfs.LoadQuery(r.Store(), ds.Query.Path()); err == nil {
-			query := nl.node(dsgraph.NtQuery, ds.Query.Path().String())
-			if q.Abstract != nil && q.Abstract.Path().String() != "" {
-				query.AddLinks(dsgraph.Link{
-					From: query,
-					To:   nl.node(dsgraph.NtAbstQuery, q.Abstract.Path().String()),
-				})
-			}
+
+	if ds.Transform != nil && ds.Transform.Path().String() != "" {
+		if q, err := dsfs.LoadTransform(r.Store(), ds.Transform.Path()); err == nil {
+			trans := nl.node(dsgraph.NtTransform, ds.Transform.Path().String())
 			for _, ref := range q.Resources {
-				query.AddLinks(dsgraph.Link{
-					From: query,
+				trans.AddLinks(dsgraph.Link{
+					From: trans,
 					To:   nl.node(dsgraph.NtDataset, ref.Path().String()),
 				})
 			}
-			root.AddLinks(dsgraph.Link{From: root, To: query})
+			root.AddLinks(dsgraph.Link{From: root, To: trans})
 		}
+	}
+
+	if ds.AbstractTransform != nil && ds.AbstractTransform.Path().String() != "" {
+		root.AddLinks(dsgraph.Link{
+			From: root,
+			To:   nl.node(dsgraph.NtAbstTransform, ds.AbstractTransform.Path().String()),
+		})
 	}
 
 	return root
@@ -256,18 +259,20 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 
 	// TODO - make properly parallel
 	go func() {
-		refs, err := r.GetQueryLogs(1000, 0)
+		items, err := r.ListQueryLogs(1000, 0)
 		if err != nil {
 			done <- err
 		}
-		for _, ref := range refs {
-			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+		for _, item := range items {
+			ref := &DatasetRef{Path: item.DatasetPath}
+
+			ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			// TODO - remove this once loading is more consistent.
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			}
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			}
 
 			kontinue, err := visit(0, ref, err)

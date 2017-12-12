@@ -125,7 +125,7 @@ func PrintQuery(i int, r *repo.DatasetRef) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.QueryString), blue(r.Path))
+	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.Transform.Data), blue(r.Path))
 }
 
 func PrintResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {

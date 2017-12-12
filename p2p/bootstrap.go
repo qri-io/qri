@@ -5,20 +5,20 @@ import (
 	"math/rand"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	math2 "gx/ipfs/QmViBzgruNUoLNBnXcx8YWbDNwV8MNGEGKkLo6JGetygdw/go-ipfs/thirdparty/math2"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
-	math2 "gx/ipfs/QmdKL1GVaUaDVt3JUWiYQSLYRsJMym2KRWxsiXAeEU6pzX/go-ipfs/thirdparty/math2"
 )
 
 // DefaultBootstrapAddresses follows the pattern of IPFS boostrapping off known "gateways".
 // This boostrapping is specific to finding qri peers, which are IPFS peers that also
 // support the qri protocol.
 // (we also perform standard IPFS boostrapping when IPFS networking is enabled, and it's almost always enabled).
-// These are addresses to public, qri nodes hosted by qri.
+// These are addresses to public qri nodes hosted by qri, inc.
 // One day it would be super nice to bootstrap from a stored history & only
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
-	"/ip4/35.192.124.143/tcp/4001/ipfs/QmQffqhgce94UFS9mSvvqcAWXQNr1bcZRM659VFakySair",
+	"/ip4/35.192.124.143/tcp/4001/ipfs/QmXNqD5ATi1ejL4HNzUzDyeWn46hHgJTqA26JmYiUWERcb",
 }
 
 // Bootstrap samples a subset of peers & requests their peers list
@@ -33,15 +33,18 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 
 	pinfos := toPeerInfos(peers)
 
-	for _, pi := range randomSubsetOfPeers(pinfos, 4) {
-		go func() {
-			if err := n.Host.Connect(context.Background(), pi); err == nil {
-				n.log.Infof("boostrapping to: %s", pi.ID.Pretty())
-				n.RequestPeersList(pi.ID)
+	for _, p := range randomSubsetOfPeers(pinfos, 4) {
+		go func(p pstore.PeerInfo) {
+			n.Host.Peerstore().AddAddrs(p.ID, p.Addrs, pstore.RecentlyConnectedAddrTTL)
+			if err := n.Host.Connect(context.Background(), p); err == nil {
+				n.log.Infof("boostrapping to: %s", p.ID.Pretty())
+				if err = n.AddQriPeer(p); err != nil {
+					n.log.Infof("error adding peer: %s", err.Error())
+				}
 			} else {
 				n.log.Infof("error connecting to host: %s", err.Error())
 			}
-		}()
+		}(p)
 	}
 }
 

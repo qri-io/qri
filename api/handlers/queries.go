@@ -12,7 +12,7 @@ import (
 )
 
 func NewQueryHandlers(log logging.Logger, r repo.Repo) *QueryHandlers {
-	req := core.NewQueryRequests(r)
+	req := core.NewQueryRequests(r, nil)
 	return &QueryHandlers{*req, log}
 }
 

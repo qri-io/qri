@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -18,7 +17,7 @@ type ProfileHandlers struct {
 }
 
 func NewProfileHandlers(log logging.Logger, r repo.Repo) *ProfileHandlers {
-	req := core.NewProfileRequests(r)
+	req := core.NewProfileRequests(r, nil)
 	h := ProfileHandlers{*req, log}
 	return &h
 }
@@ -38,7 +37,7 @@ func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request)
 
 func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 	args := true
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.GetProfile(&args, res); err != nil {
 		h.log.Infof("error getting profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -49,12 +48,12 @@ func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Request) {
-	p := &profile.Profile{}
+	p := &core.Profile{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SaveProfile(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -91,7 +90,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SetProfilePhoto(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -128,7 +127,7 @@ func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.SetPosterPhoto(p, res); err != nil {
 		h.log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

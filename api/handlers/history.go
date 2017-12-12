@@ -17,7 +17,7 @@ type HistoryHandlers struct {
 }
 
 func NewHistoryHandlers(log logging.Logger, r repo.Repo) *HistoryHandlers {
-	req := core.NewHistoryRequests(r)
+	req := core.NewHistoryRequests(r, nil)
 	h := HistoryHandlers{*req, log}
 	return &h
 }
