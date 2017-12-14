@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
-	"github.com/spf13/viper"
 )
 
 var r repo.Repo
@@ -79,7 +78,7 @@ func SearchRequests(online bool) (*core.SearchRequests, error) {
 // RepoOrClient returns either a
 func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
+		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	}); err == nil {
 		id := ""
@@ -87,7 +86,7 @@ func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 			id = fs.Node().PeerHost.ID().Pretty()
 		}
 
-		r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath), id)
+		r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {

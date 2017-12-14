@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/logging"
+	"github.com/qri-io/qri/p2p"
 )
 
 // server modes
@@ -65,6 +66,8 @@ type Config struct {
 	Online bool
 	// list of addresses to bootsrap qri peers on
 	BoostrapAddrs []string
+	// PostP2POnlineHook is a chance to call a function after starting P2P services
+	PostP2POnlineHook func(*p2p.QriNode)
 }
 
 // Validate returns nil if this configuration is valid,

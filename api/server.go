@@ -63,7 +63,13 @@ func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 		s.log.Info("running qri in offline mode, no peer-2-peer connections")
 	}
 
-	s.qriNode.StartOnlineServices()
+	err = s.qriNode.StartOnlineServices()
+	if err != nil {
+		return nil, fmt.Errorf("error starting P2P service: %s", err.Error())
+	}
+	if cfg.PostP2POnlineHook != nil {
+		cfg.PostP2POnlineHook(s.qriNode)
+	}
 	// p2p.PrintSwarmAddrs(qriNode)
 	return s, nil
 }

@@ -5,20 +5,19 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
 )
 
-// Config configures the behaviour of qri
+// Config configures the behavior of qri
 type Config struct {
 	// Initialized is a flag for when this repo has been properly initialized at least once.
 	// used to check weather default datasets should be added or not
 	Initialized bool
 	// Identity Configuration details
-	Identity IdentityCfg
+	// Identity IdentityCfg
 	// List of nodes to boostrap to
 	Bootstrap []string
 	// Datastore configuration details
@@ -28,14 +27,14 @@ type Config struct {
 }
 
 // IdentityCfg holds details about user identity & configuration
-type IdentityCfg struct {
-	// ID to feed to IPFS node, and for profile identification
-	PeerID string
-	// PrivateKey for
-	PrivateKey string
-	// Profile
-	Profile *core.Profile
-}
+// type IdentityCfg struct {
+// 	// ID to feed to IPFS node, and for profile identification
+// 	PeerID string
+// 	// PrivateKey for
+// 	PrivateKey string
+// 	// Profile
+// 	Profile *core.Profile
+// }
 
 // DatastoreCfg configures the underlying IPFS datastore. WIP.
 // type DatastoreCfg struct {
@@ -92,13 +91,15 @@ func configFilepath() string {
 	return path
 }
 
-// func EnsureConfigFile() (bool, error) {
-// 	if _, err := os.Stat(configFilepath()); os.IsNotExist(err) {
-// 		fmt.Println("writing config file")
-// 		return true, WriteConfigFile(defaultCfg)
-// 	}
-// 	return false, nil
-// }
+func ReadConfigFile() (*Config, error) {
+	data, err := ioutil.ReadFile(configFilepath())
+	if err != nil {
+		return nil, err
+	}
+	cfg := Config{}
+	err = yaml.Unmarshal(data, &cfg)
+	return &cfg, err
+}
 
 func WriteConfigFile(cfg *Config) error {
 	data, err := yaml.Marshal(cfg)
