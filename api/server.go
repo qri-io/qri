@@ -68,7 +68,7 @@ func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 		return nil, fmt.Errorf("error starting P2P service: %s", err.Error())
 	}
 	if cfg.PostP2POnlineHook != nil {
-		cfg.PostP2POnlineHook(s.qriNode)
+		go cfg.PostP2POnlineHook(s.qriNode)
 	}
 	// p2p.PrintSwarmAddrs(qriNode)
 	return s, nil

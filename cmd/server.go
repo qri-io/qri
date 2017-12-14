@@ -15,10 +15,10 @@ import (
 )
 
 var (
-	serverCmdPort  string
-	serverMemOnly  bool
-	serverOffline  bool
-	serverInitIpfs bool
+	serverCmdPort string
+	serverMemOnly bool
+	serverOffline bool
+	serverInit    bool
 )
 
 // serverCmd represents the run command
@@ -31,6 +31,10 @@ var serverCmd = &cobra.Command{
 			r   repo.Repo
 			err error
 		)
+
+		if serverInit && !QRIRepoInitialized() {
+			initCmd.Run(&cobra.Command{}, []string{})
+		}
 
 		if serverMemOnly {
 			// TODO - refine, adding better identity generation
@@ -95,7 +99,7 @@ func addDefaultDatasets(node *p2p.QriNode) {
 
 func init() {
 	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", api.DefaultPort, "port to start server on")
-	// serverCmd.Flags().BoolVarP(&serverInitIpfs, "init-ipfs", "", false, "initialize a new default ipfs repo if empty")
+	serverCmd.Flags().BoolVarP(&serverInit, "init", "", false, "initialize if necessary, reading options from enviornment variables")
 	serverCmd.Flags().BoolVarP(&serverMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	serverCmd.Flags().BoolVarP(&serverOffline, "offline", "", false, "disable networking")
 	RootCmd.AddCommand(serverCmd)

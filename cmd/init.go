@@ -22,6 +22,7 @@ var (
 	initIPFSConfigFile string
 	initIdentityData   string
 	initProfileData    string
+	initDatasetsData   string
 )
 
 // initCmd represents the init command
@@ -31,6 +32,13 @@ var initCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfgData []byte
+
+		envVars := map[string]*string{
+			"QRI_INIT_IDENTITY_DATA": &initIdentityData,
+			"QRI_INIT_PROFILE_DATA":  &initProfileData,
+			"QRI_INIT_DATASETS_DATA": &initDatasetsData,
+		}
+		mapEnvVars(envVars)
 
 		if QRIRepoInitialized() && !initOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
@@ -51,6 +59,17 @@ var initCmd = &cobra.Command{
 		err := yaml.Unmarshal(cfgData, cfg)
 		ExitIfErr(err)
 
+		if initDatasetsData != "" {
+			err = readAtFile(&initDatasetsData)
+			ExitIfErr(err)
+
+			datasets := map[string]string{}
+			err = json.Unmarshal([]byte(initDatasetsData), &datasets)
+			ExitIfErr(err)
+
+			cfg.DefaultDatasets = datasets
+		}
+
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
 			ErrExit(fmt.Errorf("error creating home dir: %s\n", err.Error()))
 		}
@@ -69,7 +88,7 @@ var initCmd = &cobra.Command{
 			ExitIfErr(err)
 
 			path := filepath.Join(os.TempDir(), "config")
-			data, err := json.Marshal(DefaaultIPFSConfig(id))
+			data, err := json.Marshal(DefaultIPFSConfig(id))
 			ExitIfErr(err)
 
 			err = ioutil.WriteFile(path, data, os.ModePerm)
@@ -109,6 +128,7 @@ func init() {
 	// initCmd.Flags().StringVarP(&initIPFSConfigFile, "ipfs-config", "", "", "config file for initialization")
 	initCmd.Flags().StringVarP(&initIdentityData, "id", "", "", "json-encoded identity data, specify a filepath with '@' prefix")
 	initCmd.Flags().StringVarP(&initProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
+	initCmd.Flags().StringVarP(&initDatasetsData, "datasets", "", "", "json-encoded object of default datasets")
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH
@@ -116,6 +136,17 @@ func QRIRepoInitialized() bool {
 	// for now this just checks for an existing config file
 	_, err := os.Stat(configFilepath())
 	return !os.IsNotExist(err)
+}
+
+func mapEnvVars(vars map[string]*string) {
+	for envVar, value := range vars {
+		envVal := os.Getenv(envVar)
+		fmt.Println("%s=%s", envVar, envVal)
+		if envVal != "" {
+			fmt.Println("reading %s from env", envVar)
+			*value = envVal
+		}
+	}
 }
 
 func initRepoIfEmpty(repoPath, configPath string) error {
@@ -148,7 +179,7 @@ func readAtFile(data *string) error {
 }
 
 // TODO - this is a bit of a hack for the moment, will be removed later
-func DefaaultIPFSConfig(identity config.Identity) *config.Config {
+func DefaultIPFSConfig(identity config.Identity) *config.Config {
 	return &config.Config{
 		Identity: identity,
 		Datastore: config.Datastore{
