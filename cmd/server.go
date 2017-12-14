@@ -1,11 +1,7 @@
 package cmd
 
 import (
-	"os"
-	"path/filepath"
-
 	"github.com/qri-io/analytics"
-	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/repo"
@@ -66,24 +62,35 @@ var serverCmd = &cobra.Command{
 	},
 }
 
+// Init sets up a repository with sensible defaults
+func addDefaultDatasets() error {
+	// req, err := DatasetRequests(true)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// TODO - restore
+	// for name, ds := range defaultDatasets {
+	// 	fmt.Printf("attempting to add default dataset: %s\n", ds.String())
+	// 	res := &repo.DatasetRef{}
+	// 	err := req.AddDataset(&core.AddParams{
+	// 		Hash: ds.String(),
+	// 		Name: name,
+	// 	}, res)
+	// 	if err != nil {
+	// 		fmt.Printf("add dataset %s error: %s\n", ds.String(), err.Error())
+	// 		return err
+	// 	}
+	// 	fmt.Printf("added default dataset: %s\n", ds.String())
+	// }
+
+	return nil
+}
+
 func init() {
 	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", api.DefaultPort, "port to start server on")
 	serverCmd.Flags().BoolVarP(&serverInitIpfs, "init-ipfs", "", false, "initialize a new default ipfs repo if empty")
 	serverCmd.Flags().BoolVarP(&serverMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	serverCmd.Flags().BoolVarP(&serverOffline, "offline", "", false, "disable networking")
 	RootCmd.AddCommand(serverCmd)
-}
-
-func initRepoIfEmpty(repoPath, configPath string) error {
-	if repoPath != "" {
-		if _, err := os.Stat(filepath.Join(repoPath, "config")); os.IsNotExist(err) {
-			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
-				return err
-			}
-			if err := ipfs.InitRepo(repoPath, configPath); err != nil {
-				return err
-			}
-		}
-	}
-	return nil
 }

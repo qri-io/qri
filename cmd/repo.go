@@ -20,20 +20,24 @@ func GetRepo(online bool) repo.Repo {
 		return r
 	}
 
+	if !QRIRepoInitialized() {
+		ErrExit(fmt.Errorf("no qri repo found, please run `qri init`"))
+	}
+
 	fs := GetIpfsFilestore(online)
 	id := ""
 	if fs.Node().PeerHost != nil {
 		id = fs.Node().PeerHost.ID().Pretty()
 	}
 
-	r, err := fs_repo.NewRepo(fs, viper.GetString(QriRepoPath), id)
+	r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
 	ExitIfErr(err)
 	return r
 }
 
 func GetIpfsFilestore(online bool) *ipfs.Filestore {
 	fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-		cfg.FsRepoPath = viper.GetString(IpfsFsPath)
+		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	})
 	ExitIfErr(err)

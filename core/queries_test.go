@@ -2,6 +2,8 @@ package core
 
 import (
 	"encoding/json"
+	"fmt"
+	"github.com/qri-io/dataset/dsfs"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -80,6 +82,18 @@ func TestRun(t *testing.T) {
 		return
 	}
 
+	mpath, err := mr.GetPath("movies")
+	if err != nil {
+		t.Errorf("error getting movies path: %s", err.Error())
+		return
+	}
+
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), mpath)
+	if err != nil {
+		t.Errorf("error getting movies dataset: %s", err.Error())
+		return
+	}
+
 	req := NewQueryRequests(mr, nil)
 
 	if req == nil {
@@ -93,7 +107,7 @@ func TestRun(t *testing.T) {
 	}{
 		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
 		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies"}}, &repo.DatasetRef{}, ""},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies limit 5"}}, &repo.DatasetRef{Dataset: moviesDs}, ""},
 		// TODO: add more tests
 
 	}
@@ -104,9 +118,12 @@ func TestRun(t *testing.T) {
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
-		}
+		} else if c.err == "" {
+			fmt.Println(got.Dataset.Structure.Schema.FieldNames())
+			if err := dataset.CompareDatasets(c.res.Dataset, got.Dataset); err != nil {
+				t.Errorf("case %d dataset mismatch: %s", i, err.Error())
+			}
 
-		if c.err == "" {
 			df, err := mr.Store().Get(got.Path)
 			if err != nil {
 				t.Errorf("case %d error getting dataset path: %s: %s", i, got.Path.String(), err.Error())
@@ -177,8 +194,6 @@ func TestDatasetQueries(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
-
-		// fmt.Println(got)
 
 		if len(c.res) != len(got) {
 			t.Errorf("case %d returned wrong number of responses. exepected: %d, got %d", i, len(c.res), len(got))
