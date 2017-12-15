@@ -149,21 +149,22 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}
 
-	if qi, err := r.repo.QueryLogItem(&repo.QueryLogItem{Key: qrpath}); err != nil && err != repo.ErrNotFound {
-		return fmt.Errorf("error checking for existing query: %s", err.Error())
-	} else if err != repo.ErrNotFound {
-		if ds, err := dsfs.LoadDataset(store, qi.DatasetPath); err == nil {
-			// ref := &repo.QueryLogItem{Name: p.SaveName, Query: q.Data, Key: dsp, Dataset: dsp}
-			// if err := r.repo.LogQuery(ref); err != nil {
-			// 	return fmt.Errorf("error logging query to repo: %s", err.Error())
-			// }
-			*res = repo.DatasetRef{
-				Path:    qi.DatasetPath,
-				Dataset: ds,
-			}
-			return nil
-		}
-	}
+	// TODO - currently broken. Fix & Add Tests
+	// if qi, err := r.repo.QueryLogItem(&repo.QueryLogItem{Key: qrpath}); err != nil && err != repo.ErrNotFound {
+	// 	return fmt.Errorf("error checking for existing query: %s", err.Error())
+	// } else if err != repo.ErrNotFound {
+	// 	if ds, err := dsfs.LoadDataset(store, qi.DatasetPath); err == nil {
+	// 		// ref := &repo.QueryLogItem{Name: p.SaveName, Query: q.Data, Key: dsp, Dataset: dsp}
+	// 		// if err := r.repo.LogQuery(ref); err != nil {
+	// 		// 	return fmt.Errorf("error logging query to repo: %s", err.Error())
+	// 		// }
+	// 		*res = repo.DatasetRef{
+	// 			Path:    qi.DatasetPath,
+	// 			Dataset: ds,
+	// 		}
+	// 		return nil
+	// 	}
+	// }
 
 	if q.Structure != nil {
 		fmt.Println("q structure post-queryLogItem:", q.Structure.Schema.FieldNames())
