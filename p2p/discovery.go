@@ -14,7 +14,7 @@ const qriSupportKey = "qri-support"
 
 // StartDiscovery initiates peer discovery, allocating a discovery
 // services if one doesn't exist, then registering to be notified on peer discovery
-func (n *QriNode) StartDiscovery() error {
+func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 	if n.Discovery == nil {
 		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5, QriServiceTag)
 		if err != nil {
@@ -29,7 +29,9 @@ func (n *QriNode) StartDiscovery() error {
 	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
 	// Boostrap off of default addresses
-	go n.Bootstrap(n.BootstrapAddrs)
+	go n.Bootstrap(n.BootstrapAddrs, bootstrapPeers)
+	// Bootstrap to IPFS network if this node is using an IPFS fs
+	go n.BoostrapIPFS()
 
 	return nil
 }

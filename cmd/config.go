@@ -84,11 +84,11 @@ var configSetCommand = &cobra.Command{
 }
 
 func configFilepath() string {
-	path := viper.ConfigFileUsed()
-	if path == "" {
-		path = filepath.Join(QriRepoPath, "config.yaml")
-	}
-	return path
+	// path := viper.ConfigFileUsed()
+	// if path == "" {
+	// path = filepath.Join(QriRepoPath, "config.yaml")
+	// }
+	return filepath.Join(QriRepoPath, "config.yaml")
 }
 
 func ReadConfigFile() (*Config, error) {

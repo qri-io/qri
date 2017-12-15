@@ -2,12 +2,13 @@ package cmd
 
 import (
 	"fmt"
-	"github.com/qri-io/qri/p2p"
 
 	"github.com/qri-io/analytics"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
@@ -57,7 +58,7 @@ var serverCmd = &cobra.Command{
 			cfg.MemOnly = serverMemOnly
 			cfg.Online = !serverOffline
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
-			cfg.PostP2POnlineHook = addDefaultDatasets
+			cfg.PostP2POnlineHook = initializeDistributedAssets
 		})
 		ExitIfErr(err)
 
@@ -66,11 +67,42 @@ var serverCmd = &cobra.Command{
 	},
 }
 
-// Init sets up a repository with default datasets
-func addDefaultDatasets(node *p2p.QriNode) {
+// initializeDistributedAssets adds all distributed assets to the dataset
+// by grabbing them from the network.
+// eg.defaultDatasets, user profile photos & posters
+func initializeDistributedAssets(node *p2p.QriNode) {
 	cfg, err := ReadConfigFile()
 	if err != nil || cfg.Initialized {
 		return
+	}
+
+	if p, err := node.Repo.Profile(); err == nil {
+		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
+			go func() {
+				fmt.Println("pinning profile data")
+				if p.Thumb.String() != "" {
+					if err := pinner.Pin(p.Thumb, false); err != nil {
+						fmt.Printf("error pinning thumb path: %s\n", err.Error())
+					} else {
+						fmt.Println("pinned thumb photo")
+					}
+				}
+				if p.Profile.String() != "" {
+					if err := pinner.Pin(p.Profile, false); err != nil {
+						fmt.Printf("error pinning profile path: %s\n", err.Error())
+					} else {
+						fmt.Println("pinned profile photo photo")
+					}
+				}
+				if p.Poster.String() != "" {
+					if err := pinner.Pin(p.Poster, false); err != nil {
+						fmt.Printf("error pinning poster path: %s\n", err.Error())
+					} else {
+						fmt.Println("pinned poster photo")
+					}
+				}
+			}()
+		}
 	}
 
 	req := core.NewDatasetRequests(node.Repo, nil)

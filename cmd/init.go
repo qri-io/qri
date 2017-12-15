@@ -23,6 +23,7 @@ var (
 	initIdentityData   string
 	initProfileData    string
 	initDatasetsData   string
+	initBootstrapData  string
 )
 
 // initCmd represents the init command
@@ -33,17 +34,19 @@ var initCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfgData []byte
 
-		envVars := map[string]*string{
-			"QRI_INIT_IDENTITY_DATA": &initIdentityData,
-			"QRI_INIT_PROFILE_DATA":  &initProfileData,
-			"QRI_INIT_DATASETS_DATA": &initDatasetsData,
-		}
-		mapEnvVars(envVars)
-
 		if QRIRepoInitialized() && !initOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
 			ErrExit(fmt.Errorf("repo already initialized."))
 		}
+		fmt.Println("initializing qri repo")
+
+		envVars := map[string]*string{
+			"QRI_INIT_IDENTITY_DATA":  &initIdentityData,
+			"QRI_INIT_PROFILE_DATA":   &initProfileData,
+			"QRI_INIT_DATASETS_DATA":  &initDatasetsData,
+			"QRI_INIT_BOOTSTRAP_DATA": &initBootstrapData,
+		}
+		mapEnvVars(envVars)
 
 		// if cfgFile is specified, override
 		if cfgFile != "" {
@@ -68,6 +71,17 @@ var initCmd = &cobra.Command{
 			ExitIfErr(err)
 
 			cfg.DefaultDatasets = datasets
+		}
+
+		if initBootstrapData != "" {
+			err = readAtFile(&initBootstrapData)
+			ExitIfErr(err)
+
+			boostrap := []string{}
+			err = json.Unmarshal([]byte(initBootstrapData), &boostrap)
+			ExitIfErr(err)
+
+			cfg.Bootstrap = boostrap
 		}
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
@@ -129,6 +143,7 @@ func init() {
 	initCmd.Flags().StringVarP(&initIdentityData, "id", "", "", "json-encoded identity data, specify a filepath with '@' prefix")
 	initCmd.Flags().StringVarP(&initProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
 	initCmd.Flags().StringVarP(&initDatasetsData, "datasets", "", "", "json-encoded object of default datasets")
+	initCmd.Flags().StringVarP(&initBootstrapData, "bootstrap", "", "", "json-encoded array of boostrap multiaddrs")
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH
@@ -141,9 +156,8 @@ func QRIRepoInitialized() bool {
 func mapEnvVars(vars map[string]*string) {
 	for envVar, value := range vars {
 		envVal := os.Getenv(envVar)
-		fmt.Println("%s=%s", envVar, envVal)
 		if envVal != "" {
-			fmt.Println("reading %s from env", envVar)
+			fmt.Printf("reading %s from env\n", envVar)
 			*value = envVal
 		}
 	}

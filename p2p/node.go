@@ -102,11 +102,22 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 	return node, nil
 }
 
-func (n *QriNode) StartOnlineServices() error {
+func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	if !n.Online {
 		return nil
 	}
-	return n.StartDiscovery()
+
+	bsPeers := make(chan pstore.PeerInfo, len(n.BootstrapAddrs))
+	go func() {
+		pInfo := <-bsPeers
+		bootstrapped(pInfo.ID.Pretty())
+	}()
+
+	// need a call here to ensure boostrapped is called at least once
+	// TODO - this is an "original node" problem probably solved by being able
+	// to start a node with *no* qri peers specified.
+	defer bootstrapped("")
+	return n.StartDiscovery(bsPeers)
 }
 
 // Encapsulated Addresses returns a slice of full multaddrs for this node

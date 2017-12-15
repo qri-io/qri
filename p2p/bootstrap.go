@@ -2,9 +2,11 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 	"math/rand"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	ipfscore "gx/ipfs/QmViBzgruNUoLNBnXcx8YWbDNwV8MNGEGKkLo6JGetygdw/go-ipfs/core"
 	math2 "gx/ipfs/QmViBzgruNUoLNBnXcx8YWbDNwV8MNGEGKkLo6JGetygdw/go-ipfs/thirdparty/math2"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -18,13 +20,13 @@ import (
 // One day it would be super nice to bootstrap from a stored history & only
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
-	"/ip4/35.192.124.143/tcp/4001/ipfs/QmXNqD5ATi1ejL4HNzUzDyeWn46hHgJTqA26JmYiUWERcb",
+	"/ip4/35.224.133.67/tcp/4001/ipfs/QmamJUR83rGtDMEvugcC2gtLDx2nhZUTzpzhH6MA2Pb3Md", // EDGI
 }
 
 // Bootstrap samples a subset of peers & requests their peers list
 // This is a naive version of IPFS bootstrapping, which we'll add in once
 // qri's settled on a shared-state implementation
-func (n *QriNode) Bootstrap(boostrapAddrs []string) {
+func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.PeerInfo) {
 	peers, err := ParseMultiaddrs(boostrapAddrs)
 	if err != nil {
 		n.log.Info("error parsing bootstrap addresses:", err.Error())
@@ -35,16 +37,26 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string) {
 
 	for _, p := range randomSubsetOfPeers(pinfos, 4) {
 		go func(p pstore.PeerInfo) {
-			n.Host.Peerstore().AddAddrs(p.ID, p.Addrs, pstore.RecentlyConnectedAddrTTL)
+			n.log.Infof("boostrapping to: %s", p.ID.Pretty())
 			if err := n.Host.Connect(context.Background(), p); err == nil {
-				n.log.Infof("boostrapping to: %s", p.ID.Pretty())
 				if err = n.AddQriPeer(p); err != nil {
 					n.log.Infof("error adding peer: %s", err.Error())
+				} else {
+					boostrapPeers <- p
 				}
 			} else {
 				n.log.Infof("error connecting to host: %s", err.Error())
 			}
 		}(p)
+	}
+}
+
+// BootstrapIPFS connects this node to standard ipfs nodes for file exchange
+func (n *QriNode) BoostrapIPFS() {
+	if node, err := n.IpfsNode(); err == nil {
+		if err := node.Bootstrap(ipfscore.DefaultBootstrapConfig); err != nil {
+			fmt.Errorf("IPFS bootsrap error: %s", err.Error())
+		}
 	}
 }
 
