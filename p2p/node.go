@@ -23,23 +23,35 @@ import (
 
 // QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
-	log        Logger
-	Identity   peer.ID        // the local node's identity
-	privateKey crypto.PrivKey // the local node's private Key
+	// internal logger
+	log Logger
+	// Identity is the node's identifier both locally & on the network
+	// Identity has a relationship to privateKey (hash of PublicKey)
+	Identity peer.ID
+	// private key for encrypted communication & verifying identity
+	privateKey crypto.PrivKey
 
-	Online    bool              // is this node online?
-	Host      host.Host         // p2p Host, can be provided by an ipfs node
-	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
-	QriPeers  pstore.Peerstore  // storage for other qri Peer instances
+	// Online indicates weather this is node is connected to the p2p network
+	Online bool
+	// Host for p2p connections. can be provided by an ipfs node
+	Host host.Host
+	// Discovery service, can be provided by an ipfs node
+	Discovery discovery.Service
+	// QriPeers is a peerstore of only qri instances
+	QriPeers pstore.Peerstore
 
-	// repository of this node's qri data
+	// base context for this node
+	ctx context.Context
+
+	// Repo is a repository of this node's qri data
 	// note that repo's are built upon a cafs.Filestore, which
 	// may contain a reference to a functioning IPFS node. In that case
 	// QriNode should piggyback non-qri-specific p2p functionality on the
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	BootstrapAddrs []string // list of addresses to bootrap *qri* from (not IPFS)
+	// BootstrapAddrs is a list of multiaddresses to bootrap *qri* from (not IPFS)
+	BootstrapAddrs []string
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -60,10 +72,11 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 
 	node := &QriNode{
 		log:            cfg.Logger,
-		Identity:       cfg.PeerId,
+		Identity:       cfg.PeerID,
 		Online:         cfg.Online,
 		QriPeers:       ps,
 		Repo:           r,
+		ctx:            context.Background(),
 		BootstrapAddrs: cfg.QriBootstrapAddrs,
 	}
 
@@ -87,7 +100,7 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 		}
 
 		if node.Host == nil {
-			host, err := makeBasicHost(ps, cfg)
+			host, err := makeBasicHost(node.ctx, ps, cfg)
 			if err != nil {
 				return nil, err
 			}
@@ -96,7 +109,7 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 
 		// add multistream handler for qri protocol to the host
 		// for more info on multistreams check github.com/multformats/go-multistream
-		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
+		node.Host.SetStreamHandler(QriProtocolID, node.MessageStreamHandler)
 	}
 
 	return node, nil
@@ -137,20 +150,37 @@ func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	return res
 }
 
-func (n *QriNode) IpfsNode() (*core.IpfsNode, error) {
+// IPFSNode returns the underlying IPFS node if this Qri Node is running
+// on IPFS
+func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
 	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
 }
 
+// Context returns this node's context
+func (n *QriNode) Context() context.Context {
+	if n.ctx == nil {
+		n.ctx = context.Background()
+	}
+	return n.ctx
+}
+
+// TODO - finish
+// func (n *QriNode) Close() error {
+// 	if node, err := n.IPFSNode(); err == nil {
+// 		return node.Close()
+// 	}
+// }
+
 // makeBasicHost creates a LibP2P host from a NodeCfg
-func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
+func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	// If using secio, we add the keys to the peerstore
 	// for this peer ID.
 	if cfg.Secure {
-		ps.AddPrivKey(cfg.PeerId, cfg.PrivKey)
-		ps.AddPubKey(cfg.PeerId, cfg.PubKey)
+		ps.AddPrivKey(cfg.PeerID, cfg.PrivKey)
+		ps.AddPubKey(cfg.PeerID, cfg.PubKey)
 	}
 
 	// Set up stream multiplexer
@@ -159,9 +189,9 @@ func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 
 	// Create swarm (implements libP2P Network)
 	swrm, err := swarm.NewSwarmWithProtector(
-		context.Background(),
+		ctx,
 		cfg.Addrs,
-		cfg.PeerId,
+		cfg.PeerID,
 		ps,
 		nil,
 		tpt,

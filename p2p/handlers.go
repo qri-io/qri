@@ -13,6 +13,13 @@ import (
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 )
 
+func (n *QriNode) handlePingRequest(r *Message) *Message {
+	return &Message{
+		Phase: MpResponse,
+		Type:  MtPing,
+	}
+}
+
 func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 	go func(r *Message) error {
 		data, err := json.Marshal(r.Payload)

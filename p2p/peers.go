@@ -87,7 +87,7 @@ func (n *QriNode) ConnectToPeer(pid peer.ID) error {
 	}
 
 	// attempt to use ipfs routing table to discover peer
-	ipfsnode, err := n.IpfsNode()
+	ipfsnode, err := n.IPFSNode()
 	if err != nil {
 		return err
 	}

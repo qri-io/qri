@@ -15,29 +15,27 @@ import (
 
 // NodeCfg is all configuration options for a Qri Node
 type NodeCfg struct {
-	Online bool
-	PeerId peer.ID // peer identifier
 	Logger Logger
 
+	// PeerID is this nodes peer identifier
+	PeerID  peer.ID
 	PubKey  crypto.PubKey
 	PrivKey crypto.PrivKey
 
-	// Bring-Your-Own Qri Repo...
-	// Repo repo.Repo
-	// ... Or supply a filepath to one
-	// RepoPath string
-
-	// default port to bind tcp listener to
+	// Port default port to bind a tcp listener to
 	// ignored if Addrs is supplied
 	Port int
-	// list of addresses to bootstrap qri node from
-	QriBootstrapAddrs []string
 	// List of multiaddresses to listen on
 	Addrs []ma.Multiaddr
-	// secure connection flag. if true
+	// QriBootstrapAddrs lists addresses to bootstrap qri node from
+	QriBootstrapAddrs []string
+	// Secure connection flag. if true
 	// PubKey & PrivKey are required. just, like, never set this
 	// to false, okay?
 	Secure bool
+	// Online is a flag for weather this node should connect
+	// to the distributed network
+	Online bool
 }
 
 // DefaultNodeCfg generates sensible settings for a Qri Node
@@ -60,7 +58,7 @@ func DefaultNodeCfg() *NodeCfg {
 	return &NodeCfg{
 		Online:  true,
 		Logger:  log,
-		PeerId:  pid,
+		PeerID:  pid,
 		PrivKey: priv,
 		PubKey:  pub,
 		// RepoPath: "~/qri",
@@ -119,5 +117,5 @@ func (cfg *NodeCfg) canonicalPeerId(store cafs.Filestore) string {
 	if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node().PeerHost.ID().Pretty()
 	}
-	return cfg.PeerId.Pretty()
+	return cfg.PeerID.Pretty()
 }

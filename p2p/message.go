@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"bufio"
-	"context"
 	"fmt"
 	"time"
 
@@ -12,6 +11,7 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// MsgType indicates the type of message being sent
 type MsgType int
 
 const (
@@ -21,6 +21,7 @@ const (
 	MtDatasets
 	MtNamespaces
 	MtSearch
+	MtPing
 )
 
 func (mt MsgType) String() string {
@@ -31,6 +32,7 @@ func (mt MsgType) String() string {
 		MtDatasets:   "DATASETS",
 		MtNamespaces: "NAMESPACES",
 		MtSearch:     "SEARCH",
+		MtPing:       "PING",
 	}[mt]
 }
 
@@ -91,14 +93,15 @@ func (qn *QriNode) MessageStreamHandler(s net.Stream) {
 	qn.handleStream(WrapStream(s))
 }
 
-// SendMessage to a given multiaddr, this assumes that the
+// SendMessage to a given multiaddr
 func (qn *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err error) {
-	// TODO - add timeout
-	// ctx := context.WithTimeout(context.Background(), time.Second*20)
+	// TODO - do we need a timeout here?
+	// ctx, cancel := context.WithTimeout(qn.ctx, time.Second*60)
+	// defer cancel()
 
-	s, err := qn.Host.NewStream(context.Background(), pi, QriProtocolId)
+	s, err := qn.Host.NewStream(qn.ctx, pi, QriProtocolID)
 	if err != nil {
-		return
+		return nil, fmt.Errorf("error opening stream: %s", err.Error())
 	}
 	defer s.Close()
 
@@ -220,6 +223,8 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 				res = n.handleSearchRequest(r)
 			case MtPeers:
 				res = n.handlePeersRequest(r)
+			case MtPing:
+				res = n.handlePingRequest(r)
 			}
 		}
 

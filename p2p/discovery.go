@@ -65,7 +65,7 @@ func (n *QriNode) SupportsQriProtocol(peer peer.ID) (bool, error) {
 	protos, err := n.Host.Peerstore().GetProtocols(peer)
 	if err == nil {
 		for _, p := range protos {
-			if p == string(QriProtocolId) {
+			if p == string(QriProtocolID) {
 				return true, nil
 			}
 		}
