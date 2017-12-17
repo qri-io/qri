@@ -1,30 +1,69 @@
 package cmd
 
 import (
-	"encoding/json"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
+	"gopkg.in/yaml.v2"
 )
 
+// Config configures the behavior of qri
 type Config struct {
-	Bootstrap []string `json:"bootstrap"`
+	// Initialized is a flag for when this repo has been properly initialized at least once.
+	// used to check weather default datasets should be added or not
+	Initialized bool
+	// Identity Configuration details
+	// Identity IdentityCfg
+	// List of nodes to boostrap to
+	Bootstrap []string
+	// Datastore configuration details
+	// Datastore       DatastoreCfg
+	// DefaultDatasets is a list of datasets to grab on initially joining the network
+	DefaultDatasets map[string]string
 }
 
-var defaultCfg = &Config{
-	Bootstrap: p2p.DefaultBootstrapAddresses,
+// IdentityCfg holds details about user identity & configuration
+// type IdentityCfg struct {
+// 	// ID to feed to IPFS node, and for profile identification
+// 	PeerID string
+// 	// PrivateKey for
+// 	PrivateKey string
+// 	// Profile
+// 	Profile *core.Profile
+// }
+
+// DatastoreCfg configures the underlying IPFS datastore. WIP.
+// type DatastoreCfg struct {
+// 	StorageMax         string
+// 	StorageGCWatermark int
+// 	GCPeriod           string
+// }
+
+func defaultCfgBytes() []byte {
+	cfg := &Config{
+		Initialized: false,
+		Bootstrap:   p2p.DefaultBootstrapAddresses,
+		// defaultDatasets is a hard-coded dataset added when a new qri repo is created
+		// these hashes should always/highly available
+		DefaultDatasets: map[string]string{
+			// fivethirtyeight comic characters
+			"comic_characters": "/ipfs/QmcqkHFA2LujZxY38dYZKmxsUstN4unk95azBjwEhwrnM6/dataset.json",
+		},
+	}
+
+	data, err := yaml.Marshal(cfg)
+	ExitIfErr(err)
+	return data
 }
 
-// configCmd represents the config command
+// configCmd represents commands that read & modify configuration settings
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Edit settings",
+	Short: "Read & Edit settings",
 	Long:  ``,
 }
 
@@ -44,76 +83,48 @@ var configSetCommand = &cobra.Command{
 	},
 }
 
-func init() {
-	configCmd.AddCommand(configGetCommand)
-	configCmd.AddCommand(configSetCommand)
-	RootCmd.AddCommand(configCmd)
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() (created bool) {
-	var err error
-	home := userHomeDir()
-	SetNoColor()
-
-	// if cfgFile is specified, override
-	if cfgFile != "" {
-		viper.SetConfigFile(cfgFile)
-		err := viper.ReadInConfig()
-		ExitIfErr(err)
-		return
-	}
-
-	qriPath := os.Getenv("QRI_PATH")
-	if qriPath == "" {
-		qriPath = filepath.Join(home, ".qri")
-	}
-	// TODO - this is stupid
-	qriPath = strings.Replace(qriPath, "~", home, 1)
-	viper.SetDefault(QriRepoPath, filepath.Join(qriPath))
-	if err := os.MkdirAll(qriPath, os.ModePerm); err != nil {
-		fmt.Errorf("error creating home dir: %s\n", err.Error())
-	}
-
-	ipfsFsPath := os.Getenv("IPFS_PATH")
-	if ipfsFsPath == "" {
-		ipfsFsPath = filepath.Join(home, ".ipfs")
-	}
-	ipfsFsPath = strings.Replace(ipfsFsPath, "~", home, 1)
-	viper.SetDefault(IpfsFsPath, ipfsFsPath)
-
-	viper.SetConfigName("config") // name of config file (without extension)
-	viper.AddConfigPath(qriPath)  // add QRI_PATH env var
-
-	created, err = EnsureConfigFile()
-	ExitIfErr(err)
-
-	err = viper.ReadInConfig()
-	ExitIfErr(err)
-
-	return
-}
-
 func configFilepath() string {
-	path := viper.ConfigFileUsed()
-	if path == "" {
-		path = filepath.Join(viper.GetString(QriRepoPath), "config.json")
-	}
-	return path
+	// path := viper.ConfigFileUsed()
+	// if path == "" {
+	// path = filepath.Join(QriRepoPath, "config.yaml")
+	// }
+	return filepath.Join(QriRepoPath, "config.yaml")
 }
 
-func EnsureConfigFile() (bool, error) {
-	if _, err := os.Stat(configFilepath()); os.IsNotExist(err) {
-		fmt.Println("writing config file")
-		return true, WriteConfigFile(defaultCfg)
+func ReadConfigFile() (*Config, error) {
+	data, err := ioutil.ReadFile(configFilepath())
+	if err != nil {
+		return nil, err
 	}
-	return false, nil
+	cfg := Config{}
+	err = yaml.Unmarshal(data, &cfg)
+	return &cfg, err
 }
 
 func WriteConfigFile(cfg *Config) error {
-	data, err := json.MarshalIndent(cfg, "", "  ")
+	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err
 	}
 	return ioutil.WriteFile(configFilepath(), data, os.ModePerm)
+}
+
+func loadConfig() {
+	viper.SetConfigName("config")    // name of config file (without extension)
+	viper.AddConfigPath(QriRepoPath) // add QRI_PATH env var
+	viper.SetConfigType("yaml")
+	viper.SetEnvPrefix("QRI_")
+
+	// if cfgFile is specified, override
+	if cfgFile != "" {
+		viper.SetConfigFile(cfgFile)
+	}
+	viper.ReadInConfig()
+	// ExitIfErr(err)
+}
+
+func init() {
+	configCmd.AddCommand(configGetCommand)
+	configCmd.AddCommand(configSetCommand)
+	RootCmd.AddCommand(configCmd)
 }

@@ -5,7 +5,7 @@ import (
 	"net"
 )
 
-// OpenPort looks for the first open port, starting at start,
+// LocalOpenPort looks for the first open port, starting at start,
 // incrementing by 1 port num until a number is found
 // network must be one of: "tcp", "tcp4", "tcp6", "unix" or "unixpacket"
 func LocalOpenPort(network string, start int) (int, error) {

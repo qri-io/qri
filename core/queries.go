@@ -142,14 +142,6 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	q2 := &dataset.Transform{}
 	q2.Assign(q)
-	// _, abst, err = sql.Format(q, func(o *sql.ExecOpt) {
-	// 	o.Format = dataset.CSVDataFormat
-	// })
-	// if err != nil {
-	// 	return fmt.Errorf("formatting error: %s", err.Error())
-	// }
-	// qpath, err := dsfs.SaveAbstractTransform(store, abst, false)
-	fmt.Println("queries", q.Data, q2.Data)
 	qrpath, err := sql.QueryRecordPath(store, q2, func(o *sql.ExecOpt) {
 		o.Format = dataset.CSVDataFormat
 	})
@@ -157,20 +149,25 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("error calculating query hash: %s", err.Error())
 	}
 
-	if qi, err := r.repo.QueryLogItem(&repo.QueryLogItem{Key: qrpath}); err != nil && err != repo.ErrNotFound {
-		return fmt.Errorf("error checking for existing query: %s", err.Error())
-	} else if err != repo.ErrNotFound {
-		if ds, err := dsfs.LoadDataset(store, qi.DatasetPath); err == nil {
-			// ref := &repo.QueryLogItem{Name: p.SaveName, Query: q.Data, Key: dsp, Dataset: dsp}
-			// if err := r.repo.LogQuery(ref); err != nil {
-			// 	return fmt.Errorf("error logging query to repo: %s", err.Error())
-			// }
-			*res = repo.DatasetRef{
-				Path:    qi.DatasetPath,
-				Dataset: ds,
-			}
-			return nil
-		}
+	// TODO - currently broken. Fix & Add Tests
+	// if qi, err := r.repo.QueryLogItem(&repo.QueryLogItem{Key: qrpath}); err != nil && err != repo.ErrNotFound {
+	// 	return fmt.Errorf("error checking for existing query: %s", err.Error())
+	// } else if err != repo.ErrNotFound {
+	// 	if ds, err := dsfs.LoadDataset(store, qi.DatasetPath); err == nil {
+	// 		// ref := &repo.QueryLogItem{Name: p.SaveName, Query: q.Data, Key: dsp, Dataset: dsp}
+	// 		// if err := r.repo.LogQuery(ref); err != nil {
+	// 		// 	return fmt.Errorf("error logging query to repo: %s", err.Error())
+	// 		// }
+	// 		*res = repo.DatasetRef{
+	// 			Path:    qi.DatasetPath,
+	// 			Dataset: ds,
+	// 		}
+	// 		return nil
+	// 	}
+	// }
+
+	if q.Structure != nil {
+		fmt.Println("q structure post-queryLogItem:", q.Structure.Schema.FieldNames())
 	}
 
 	// TODO - detect data format from passed-in results structure
@@ -180,13 +177,14 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err != nil {
 		return fmt.Errorf("error executing query: %s", err.Error())
 	}
+	fmt.Println("q structure post-exec:", q.Structure.Schema.FieldNames())
 
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = q.Structure
 	ds.Length = len(results)
 	ds.Transform = q
 	ds.AbstractTransform = abst
-	fmt.Printf("abst: %#v\n", abst)
+	// fmt.Printf("abst: %#v\n", abst)
 
 	datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {

@@ -10,11 +10,12 @@ import (
 	discovery "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/discovery"
 )
 
+// qriSupportKey is the key we store the flag for qri support under in Peerstores
 const qriSupportKey = "qri-support"
 
 // StartDiscovery initiates peer discovery, allocating a discovery
 // services if one doesn't exist, then registering to be notified on peer discovery
-func (n *QriNode) StartDiscovery() error {
+func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 	if n.Discovery == nil {
 		service, err := discovery.NewMdnsService(context.Background(), n.Host, time.Second*5, QriServiceTag)
 		if err != nil {
@@ -29,14 +30,15 @@ func (n *QriNode) StartDiscovery() error {
 	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.Host.Peerstore())
 	// Boostrap off of default addresses
-	go n.Bootstrap(n.BootstrapAddrs)
+	go n.Bootstrap(n.BootstrapAddrs, bootstrapPeers)
+	// Bootstrap to IPFS network if this node is using an IPFS fs
+	go n.BootstrapIPFS()
 
 	return nil
 }
 
-// HandlePeerFound
-// TODO - TEST THIS. I suspect there's a bug in this implentation, or discovery
-// notifications aren't working so well these days...
+// HandlePeerFound deals with the discovery of a peer that may or may not support
+// the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
@@ -63,7 +65,7 @@ func (n *QriNode) SupportsQriProtocol(peer peer.ID) (bool, error) {
 	protos, err := n.Host.Peerstore().GetProtocols(peer)
 	if err == nil {
 		for _, p := range protos {
-			if p == string(QriProtocolId) {
+			if p == string(QriProtocolID) {
 				return true, nil
 			}
 		}

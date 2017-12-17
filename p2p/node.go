@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"sort"
+	// "sort"
 
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
@@ -23,28 +23,40 @@ import (
 
 // QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
-	log        Logger
-	Identity   peer.ID        // the local node's identity
-	privateKey crypto.PrivKey // the local node's private Key
+	// internal logger
+	log Logger
+	// Identity is the node's identifier both locally & on the network
+	// Identity has a relationship to privateKey (hash of PublicKey)
+	Identity peer.ID
+	// private key for encrypted communication & verifying identity
+	privateKey crypto.PrivKey
 
-	Online    bool              // is this node online?
-	Host      host.Host         // p2p Host, can be provided by an ipfs node
-	Discovery discovery.Service // peer discovery, can be provided by an ipfs node
-	QriPeers  pstore.Peerstore  // storage for other qri Peer instances
+	// Online indicates weather this is node is connected to the p2p network
+	Online bool
+	// Host for p2p connections. can be provided by an ipfs node
+	Host host.Host
+	// Discovery service, can be provided by an ipfs node
+	Discovery discovery.Service
+	// QriPeers is a peerstore of only qri instances
+	QriPeers pstore.Peerstore
 
-	// repository of this node's qri data
+	// base context for this node
+	ctx context.Context
+
+	// Repo is a repository of this node's qri data
 	// note that repo's are built upon a cafs.Filestore, which
 	// may contain a reference to a functioning IPFS node. In that case
 	// QriNode should piggyback non-qri-specific p2p functionality on the
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	BootstrapAddrs []string // list of addresses to bootrap *qri* from (not IPFS)
+	// BootstrapAddrs is a list of multiaddresses to bootrap *qri* from (not IPFS)
+	BootstrapAddrs []string
 }
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
+func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err error) {
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)
@@ -58,12 +70,13 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 	// Create a peerstore
 	ps := pstore.NewPeerstore()
 
-	node := &QriNode{
+	node = &QriNode{
 		log:            cfg.Logger,
-		Identity:       cfg.PeerId,
+		Identity:       cfg.PeerID,
 		Online:         cfg.Online,
 		QriPeers:       ps,
 		Repo:           r,
+		ctx:            context.Background(),
 		BootstrapAddrs: cfg.QriBootstrapAddrs,
 	}
 
@@ -84,62 +97,88 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 			if ipfsnode.Discovery != nil {
 				node.Discovery = ipfsnode.Discovery
 			}
-		}
-
-		if node.Host == nil {
-			host, err := makeBasicHost(ps, cfg)
+		} else if node.Host == nil {
+			node.Host, err = makeBasicHost(node.ctx, ps, cfg)
 			if err != nil {
 				return nil, err
 			}
-			node.Host = host
 		}
 
 		// add multistream handler for qri protocol to the host
 		// for more info on multistreams check github.com/multformats/go-multistream
-		node.Host.SetStreamHandler(QriProtocolId, node.MessageStreamHandler)
+		node.Host.SetStreamHandler(QriProtocolID, node.MessageStreamHandler)
 	}
 
 	return node, nil
 }
 
-func (n *QriNode) StartOnlineServices() error {
+// StartOnlineServices bootstraps the node to qri & IPFS networks
+// and begins NAT discovery
+func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	if !n.Online {
 		return nil
 	}
-	return n.StartDiscovery()
+
+	bsPeers := make(chan pstore.PeerInfo, len(n.BootstrapAddrs))
+	go func() {
+		pInfo := <-bsPeers
+		bootstrapped(pInfo.ID.Pretty())
+	}()
+
+	// need a call here to ensure boostrapped is called at least once
+	// TODO - this is an "original node" problem probably solved by being able
+	// to start a node with *no* qri peers specified.
+	defer bootstrapped("")
+	return n.StartDiscovery(bsPeers)
 }
 
-// Encapsulated Addresses returns a slice of full multaddrs for this node
-func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
+// EncapsulatedAddresses returns a slice of full multaddrs for this node
+func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	// Build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", n.Host.ID().Pretty()))
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
 	}
 
-	res := make([]ma.Multiaddr, len(qn.Host.Addrs()))
-	for i, a := range qn.Host.Addrs() {
+	res := make([]ma.Multiaddr, len(n.Host.Addrs()))
+	for i, a := range n.Host.Addrs() {
 		res[i] = a.Encapsulate(hostAddr)
 	}
 
 	return res
 }
 
-func (n *QriNode) IpfsNode() (*core.IpfsNode, error) {
+// IPFSNode returns the underlying IPFS node if this Qri Node is running on IPFS
+func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
 	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
 }
 
+// Context returns this node's context
+func (n *QriNode) Context() context.Context {
+	if n.ctx == nil {
+		n.ctx = context.Background()
+	}
+	return n.ctx
+}
+
+// TODO - finish. We need a proper termination & cleanup process
+// func (n *QriNode) Close() error {
+// 	if node, err := n.IPFSNode(); err == nil {
+// 		return node.Close()
+// 	}
+// }
+
 // makeBasicHost creates a LibP2P host from a NodeCfg
-func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
+func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	// If using secio, we add the keys to the peerstore
 	// for this peer ID.
 	if cfg.Secure {
-		ps.AddPrivKey(cfg.PeerId, cfg.PrivKey)
-		ps.AddPubKey(cfg.PeerId, cfg.PubKey)
+		ps.AddPrivKey(cfg.PeerID, cfg.PrivKey)
+		ps.AddPubKey(cfg.PeerID, cfg.PubKey)
 	}
 
 	// Set up stream multiplexer
@@ -148,9 +187,9 @@ func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 
 	// Create swarm (implements libP2P Network)
 	swrm, err := swarm.NewSwarmWithProtector(
-		context.Background(),
+		ctx,
 		cfg.Addrs,
-		cfg.PeerId,
+		cfg.PeerID,
 		ps,
 		nil,
 		tpt,
@@ -163,34 +202,4 @@ func makeBasicHost(ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
 	netw := (*swarm.Network)(swrm)
 	basicHost := bhost.New(netw)
 	return basicHost, nil
-}
-
-// PrintSwarmAddrs is pulled from ipfs codebase
-func PrintSwarmAddrs(node *QriNode) {
-	if !node.Online {
-		fmt.Println("qri node running in offline mode.")
-		return
-	}
-
-	var lisAddrs []string
-	ifaceAddrs, err := node.Host.Network().InterfaceListenAddresses()
-	if err != nil {
-		fmt.Printf("failed to read listening addresses: %s\n", err)
-	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(lisAddrs))
-	for _, addr := range lisAddrs {
-		fmt.Printf("Swarm listening on %s\n", addr)
-	}
-
-	var addrs []string
-	for _, addr := range node.Host.Addrs() {
-		addrs = append(addrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(addrs))
-	for _, addr := range addrs {
-		fmt.Printf("Swarm announcing %s\n", addr)
-	}
 }

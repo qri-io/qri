@@ -38,7 +38,7 @@ var profileGetCmd = &cobra.Command{
 
 var profileSetCmd = &cobra.Command{
 	Use:   "set",
-	Short: "add peers to the profile list",
+	Short: "set profile details",
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			dataFile *os.File

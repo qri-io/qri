@@ -28,4 +28,4 @@ RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
 # VOLUME $QRI_PATH
 
 # Set binary as entrypoint, initalizing ipfs repo if none is mounted
-CMD ["qri", "server", "--init-ipfs"]
+CMD ["qri", "server", "--init"]
