@@ -21,7 +21,7 @@ type Logger interface {
 	Debugf(string, ...interface{})
 }
 
-// mega-silly default logger
+// DefaultLogger is a mega-silly default logger
 var DefaultLogger Logger = fmtLogger(0)
 
 // fmtLogger proxies various logging levels as a basic logger

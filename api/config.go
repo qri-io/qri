@@ -9,13 +9,14 @@ import (
 
 // server modes
 const (
-	DEVELOP_MODE    = "develop"
-	PRODUCTION_MODE = "production"
-	TEST_MODE       = "test"
-	DefaultPort     = "2503"
-	DefaultRPCPort  = "2504"
+	ModeDevelop    = "develop"
+	ModeProduction = "production"
+	ModeTest       = "test"
+	DefaultPort    = "2503"
+	DefaultRPCPort = "2504"
 )
 
+// DefaultConfig returns the default configuration details
 func DefaultConfig() *Config {
 	return &Config{
 		Logger:  logging.DefaultLogger,
@@ -26,7 +27,7 @@ func DefaultConfig() *Config {
 	}
 }
 
-// config holds all configuration for the server. It pulls from three places (in order):
+// Config holds all configuration for the server. It pulls from three places (in order):
 // 		1. environment variables
 // 		2. .[MODE].env OR .env
 //
@@ -42,10 +43,10 @@ type Config struct {
 	Mode string
 	// port to listen on, will be read from PORT env variable if present.
 	Port string
+	// URLRoot is the base url for this server
+	URLRoot string
 	// port to listen for RPC calls on, if empty server will not register a RPC listener
 	RPCPort string
-	// root url for service
-	UrlRoot string
 	// DNS service discovery. Should be either "env" or "dns", default is env
 	GetHostsFrom string
 	// Public Key to use for signing metablocks. required.
@@ -57,7 +58,7 @@ type Config struct {
 	AllowedOrigins []string
 	// if true, requests that have X-Forwarded-Proto: http will be redirected
 	// to their https variant
-	ProxyForceHttps bool
+	ProxyForceHTTPS bool
 	// token for analytics tracking
 	AnalyticsToken string
 	// set to true to run entire server with in-memory structures

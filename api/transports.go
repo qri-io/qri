@@ -28,12 +28,12 @@ func StartServer(c *Config, s *http.Server) error {
 	// LetsEncrypt is good. Thanks LetsEncrypt.
 	certManager := autocert.Manager{
 		Prompt:     autocert.AcceptTOS,
-		HostPolicy: autocert.HostWhitelist(c.UrlRoot),
+		HostPolicy: autocert.HostWhitelist(c.URLRoot),
 		Cache:      autocert.DirCache(certCache),
 	}
 
 	// Attempt to boot a port 80 https redirect
-	go func() { HttpsRedirect() }()
+	go func() { HTTPSRedirect() }()
 
 	s.TLSConfig = &tls.Config{
 		GetCertificate: certManager.GetCertificate,
@@ -50,8 +50,8 @@ func StartServer(c *Config, s *http.Server) error {
 	return s.ListenAndServeTLS(cert, key)
 }
 
-// Redirect HTTP to https if port 80 is open
-func HttpsRedirect() {
+// HTTPSRedirect listens on port 80, redirecting HTTP requests to https
+func HTTPSRedirect() {
 	ln, err := net.Listen("tcp", ":80")
 	if err != nil {
 		return

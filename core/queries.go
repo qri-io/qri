@@ -166,10 +166,6 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// 	}
 	// }
 
-	if q.Structure != nil {
-		fmt.Println("q structure post-queryLogItem:", q.Structure.Schema.FieldNames())
-	}
-
 	// TODO - detect data format from passed-in results structure
 	abst, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.CSVDataFormat
@@ -177,14 +173,12 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err != nil {
 		return fmt.Errorf("error executing query: %s", err.Error())
 	}
-	fmt.Println("q structure post-exec:", q.Structure.Schema.FieldNames())
 
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = q.Structure
 	ds.Length = len(results)
 	ds.Transform = q
 	ds.AbstractTransform = abst
-	// fmt.Printf("abst: %#v\n", abst)
 
 	datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
