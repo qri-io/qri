@@ -113,7 +113,7 @@ func (cfg *NodeCfg) Validate(r repo.Repo) error {
 // TODO - currently we're in a bit of a debate between using underlying IPFS node
 // ids & generated query profile ids, once that's cleared up we can remove this
 // method
-func (cfg *NodeCfg) canonicalPeerId(store cafs.Filestore) string {
+func (cfg *NodeCfg) canonicalPeerID(store cafs.Filestore) string {
 	if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node().PeerHost.ID().Pretty()
 	}

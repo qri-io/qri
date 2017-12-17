@@ -3,7 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"sort"
+	// "sort"
 
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/repo"
@@ -56,7 +56,7 @@ type QriNode struct {
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
+func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err error) {
 	cfg := DefaultNodeCfg()
 	for _, opt := range options {
 		opt(cfg)
@@ -70,7 +70,7 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 	// Create a peerstore
 	ps := pstore.NewPeerstore()
 
-	node := &QriNode{
+	node = &QriNode{
 		log:            cfg.Logger,
 		Identity:       cfg.PeerID,
 		Online:         cfg.Online,
@@ -97,14 +97,11 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 			if ipfsnode.Discovery != nil {
 				node.Discovery = ipfsnode.Discovery
 			}
-		}
-
-		if node.Host == nil {
-			host, err := makeBasicHost(node.ctx, ps, cfg)
+		} else if node.Host == nil {
+			node.Host, err = makeBasicHost(node.ctx, ps, cfg)
 			if err != nil {
 				return nil, err
 			}
-			node.Host = host
 		}
 
 		// add multistream handler for qri protocol to the host
@@ -115,6 +112,8 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (*QriNode, error) {
 	return node, nil
 }
 
+// StartOnlineServices bootstraps the node to qri & IPFS networks
+// and begins NAT discovery
 func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	if !n.Online {
 		return nil
@@ -133,25 +132,24 @@ func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	return n.StartDiscovery(bsPeers)
 }
 
-// Encapsulated Addresses returns a slice of full multaddrs for this node
-func (qn *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
+// EncapsulatedAddresses returns a slice of full multaddrs for this node
+func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	// Build host multiaddress
-	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", qn.Host.ID().Pretty()))
+	hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", n.Host.ID().Pretty()))
 	if err != nil {
 		fmt.Println(err.Error())
 		return nil
 	}
 
-	res := make([]ma.Multiaddr, len(qn.Host.Addrs()))
-	for i, a := range qn.Host.Addrs() {
+	res := make([]ma.Multiaddr, len(n.Host.Addrs()))
+	for i, a := range n.Host.Addrs() {
 		res[i] = a.Encapsulate(hostAddr)
 	}
 
 	return res
 }
 
-// IPFSNode returns the underlying IPFS node if this Qri Node is running
-// on IPFS
+// IPFSNode returns the underlying IPFS node if this Qri Node is running on IPFS
 func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
 	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node(), nil
@@ -167,7 +165,7 @@ func (n *QriNode) Context() context.Context {
 	return n.ctx
 }
 
-// TODO - finish
+// TODO - finish. We need a proper termination & cleanup process
 // func (n *QriNode) Close() error {
 // 	if node, err := n.IPFSNode(); err == nil {
 // 		return node.Close()
@@ -207,31 +205,31 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host
 }
 
 // PrintSwarmAddrs is pulled from ipfs codebase
-func PrintSwarmAddrs(node *QriNode) {
-	if !node.Online {
-		fmt.Println("qri node running in offline mode.")
-		return
-	}
+// func PrintSwarmAddrs(node *QriNode) {
+// 	if !node.Online {
+// 		fmt.Println("qri node running in offline mode.")
+// 		return
+// 	}
 
-	var lisAddrs []string
-	ifaceAddrs, err := node.Host.Network().InterfaceListenAddresses()
-	if err != nil {
-		fmt.Printf("failed to read listening addresses: %s\n", err)
-	}
-	for _, addr := range ifaceAddrs {
-		lisAddrs = append(lisAddrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(lisAddrs))
-	for _, addr := range lisAddrs {
-		fmt.Printf("Swarm listening on %s\n", addr)
-	}
+// 	var lisAddrs []string
+// 	ifaceAddrs, err := node.Host.Network().InterfaceListenAddresses()
+// 	if err != nil {
+// 		fmt.Printf("failed to read listening addresses: %s\n", err)
+// 	}
+// 	for _, addr := range ifaceAddrs {
+// 		lisAddrs = append(lisAddrs, addr.String())
+// 	}
+// 	sort.Sort(sort.StringSlice(lisAddrs))
+// 	for _, addr := range lisAddrs {
+// 		fmt.Printf("Swarm listening on %s\n", addr)
+// 	}
 
-	var addrs []string
-	for _, addr := range node.Host.Addrs() {
-		addrs = append(addrs, addr.String())
-	}
-	sort.Sort(sort.StringSlice(addrs))
-	for _, addr := range addrs {
-		fmt.Printf("Swarm announcing %s\n", addr)
-	}
-}
+// 	var addrs []string
+// 	for _, addr := range node.Host.Addrs() {
+// 		addrs = append(addrs, addr.String())
+// 	}
+// 	sort.Sort(sort.StringSlice(addrs))
+// 	for _, addr := range addrs {
+// 		fmt.Printf("Swarm announcing %s\n", addr)
+// 	}
+// }

@@ -52,7 +52,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 }
 
 // BootstrapIPFS connects this node to standard ipfs nodes for file exchange
-func (n *QriNode) BoostrapIPFS() {
+func (n *QriNode) BootstrapIPFS() {
 	if node, err := n.IPFSNode(); err == nil {
 		if err := node.Bootstrap(ipfscore.DefaultBootstrapConfig); err != nil {
 			fmt.Errorf("IPFS bootsrap error: %s", err.Error())
@@ -60,6 +60,7 @@ func (n *QriNode) BoostrapIPFS() {
 	}
 }
 
+// ParseMultiaddrs turns a slice of strings into a slice of Multiaddrs
 func ParseMultiaddrs(addrs []string) (maddrs []ma.Multiaddr, err error) {
 	maddrs = make([]ma.Multiaddr, len(addrs))
 	for i, adr := range addrs {
@@ -71,6 +72,7 @@ func ParseMultiaddrs(addrs []string) (maddrs []ma.Multiaddr, err error) {
 	return
 }
 
+// toPeerInfos turns a slice of multiaddrs into a slice of PeerInfos
 func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 	pinfos := make(map[peer.ID]*pstore.PeerInfo)
 	for _, addr := range addrs {
@@ -104,6 +106,7 @@ func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 	return peers
 }
 
+// randomSubsetOfPeers samples up to max from a slice of PeerInfos
 func randomSubsetOfPeers(in []pstore.PeerInfo, max int) []pstore.PeerInfo {
 	n := math2.IntMin(max, len(in))
 	var out []pstore.PeerInfo

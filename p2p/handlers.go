@@ -33,7 +33,7 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 
 		pid, err := p.PeerID()
 		if err != nil {
-			return fmt.Errorf("error decoding base58 peer id: %s\n", err.Error())
+			return fmt.Errorf("error decoding base58 peer id: %s", err.Error())
 		}
 
 		p.Updated = time.Now()
@@ -74,6 +74,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
+// PeersReqParams outlines params for requesting peers
 type PeersReqParams struct {
 	Limit  int
 	Offset int
@@ -126,13 +127,14 @@ func (n *QriNode) handlePeersResponse(r *Message) error {
 		}
 		if profile, err := n.Repo.Peers().GetPeer(id); err != nil || profile != nil && profile.Updated.Before(p.Updated) {
 			if err := n.Repo.Peers().PutPeer(id, p); err != nil {
-				fmt.Errorf("error putting peer: %s\n", err.Error())
+				fmt.Errorf("error putting peer: %s", err.Error())
 			}
 		}
 	}
 	return nil
 }
 
+// DatasetsReqParams encapsulates options for requesting datasets
 type DatasetsReqParams struct {
 	Query  string
 	Limit  int
@@ -196,8 +198,9 @@ func (n *QriNode) handleDatasetsResponse(pi pstore.PeerInfo, r *Message) error {
 	return n.Repo.Cache().PutDatasets(ds)
 }
 
-func (qn *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRef, err error) {
-	responses, err := qn.BroadcastMessage(&Message{
+// Search broadcasts a search request to all connected peers, aggregating results
+func (n *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRef, err error) {
+	responses, err := n.BroadcastMessage(&Message{
 		Phase: MpRequest,
 		Type:  MtSearch,
 		Payload: &repo.SearchParams{
@@ -252,11 +255,9 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 			Type:    MtSearch,
 			Payload: results,
 		}
-	} else {
-		// TODO - repo doesn't support search
 	}
 
-	return nil
+	return fmt.Errorf("repo doesn't support search")
 }
 
 func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {

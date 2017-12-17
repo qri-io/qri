@@ -9,6 +9,8 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// AddQriPeer negotiates a connection with a peer to get their profile details
+// and peer list.
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// add this peer to our store
 	n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
@@ -31,6 +33,7 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	return nil
 }
 
+// RequestProfileInfo get's qri profile information from a PeerInfo
 func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 	// Get this repo's profile information
 	profile, err := n.Repo.Profile()
@@ -58,6 +61,7 @@ func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 	return nil
 }
 
+// RequestPeersList asks a peer for a list of peers they've seen
 func (n *QriNode) RequestPeersList(id peer.ID) {
 	res, err := n.SendMessage(id, &Message{
 		Type: MtPeers,
@@ -80,6 +84,8 @@ func (n *QriNode) RequestPeersList(id peer.ID) {
 	}
 }
 
+// ConnectToPeer takes a raw peer ID & tries to work out a route to that
+// peer, explicitly connecting to them.
 func (n *QriNode) ConnectToPeer(pid peer.ID) error {
 	// first check for local peer info
 	if pinfo := n.Host.Peerstore().PeerInfo(pid); pinfo.ID.String() != "" {

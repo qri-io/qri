@@ -13,7 +13,7 @@ func TestPing(t *testing.T) {
 	}
 
 	a, b := ntwk[0], ntwk[1]
-	connectNodes(t, context.Background(), ntwk)
+	connectNodes(context.Background(), t, ntwk)
 
 	for i := 1; i <= 10; i++ {
 		ping := &Message{

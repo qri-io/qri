@@ -12,15 +12,24 @@ import (
 )
 
 // MsgType indicates the type of message being sent
+// TODO - these should be switched out for string representations,
+// as changes to these ints as versions change will break the API real bad.
 type MsgType int
 
 const (
+	// MtUnknown is the default, errored message type
 	MtUnknown MsgType = iota
+	// MtPeers is a peers list message
 	MtPeers
+	// MtPeerInfo is a peer info message
 	MtPeerInfo
+	// MtDatasets is a dataset list message
 	MtDatasets
+	// MtNamespaces is a dataset namespace message
 	MtNamespaces
+	// MtSearch is a search message
 	MtSearch
+	// MtPing is a ping/pong message
 	MtPing
 )
 
@@ -36,11 +45,15 @@ func (mt MsgType) String() string {
 	}[mt]
 }
 
+// MsgPhase tracks the point in a message lifecycle
 type MsgPhase int
 
 const (
+	// MpRequest is the request phase of a message
 	MpRequest MsgPhase = iota
+	// MpResponse is the response phase of a message
 	MpResponse
+	// MpError is an errored-response phase
 	MpError
 )
 
@@ -53,7 +66,7 @@ type Message struct {
 	HangUp  bool
 }
 
-// streamWrap wraps a libp2p stream. We encode/decode whenever we
+// WrappedStream wraps a libp2p stream. We encode/decode whenever we
 // write/read from a stream, so we can just carry the encoders
 // and bufios with us
 type WrappedStream struct {
@@ -64,7 +77,7 @@ type WrappedStream struct {
 	r      *bufio.Reader
 }
 
-// wrapStream takes a stream and complements it with r/w bufios and
+// WrapStream takes a stream and complements it with r/w bufios and
 // decoder/encoder. In order to write raw data to the stream we can use
 // wrap.w.Write(). To encode something into it we can wrap.enc.Encode().
 // Finally, we should wrap.w.Flush() to actually send the data. Handling
@@ -87,19 +100,19 @@ func WrapStream(s net.Stream) *WrappedStream {
 	}
 }
 
-// StreamHandler handles connections to this node
-func (qn *QriNode) MessageStreamHandler(s net.Stream) {
+// MessageStreamHandler handles connections to this node
+func (n *QriNode) MessageStreamHandler(s net.Stream) {
 	defer s.Close()
-	qn.handleStream(WrapStream(s))
+	n.handleStream(WrapStream(s))
 }
 
 // SendMessage to a given multiaddr
-func (qn *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err error) {
+func (n *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err error) {
 	// TODO - do we need a timeout here?
-	// ctx, cancel := context.WithTimeout(qn.ctx, time.Second*60)
+	// ctx, cancel := context.WithTimeout(n.ctx, time.Second*60)
 	// defer cancel()
 
-	s, err := qn.Host.NewStream(qn.ctx, pi, QriProtocolID)
+	s, err := n.Host.NewStream(n.ctx, pi, QriProtocolID)
 	if err != nil {
 		return nil, fmt.Errorf("error opening stream: %s", err.Error())
 	}
@@ -117,12 +130,12 @@ func (qn *QriNode) SendMessage(pi peer.ID, msg *Message) (res *Message, err erro
 }
 
 // BroadcastMessage sends a message to all connected peers
-func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
-	peers := qn.QriPeers.Peers()
+func (n *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
+	peers := n.QriPeers.Peers()
 	reschan := make(chan Message, 4)
 	done := make(chan bool, 0)
 	timer := time.NewTimer(time.Second * 6)
-	nodeId := qn.Host.ID()
+	nodeID := n.Host.ID()
 
 	go func() {
 		defer func() {
@@ -143,7 +156,7 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 	}()
 
 	tasks := len(peers)
-	if len(peers) == 0 || tasks == 1 && peers[0] == nodeId {
+	if len(peers) == 0 || tasks == 1 && peers[0] == nodeID {
 		close(reschan)
 		return nil, fmt.Errorf("no peers connected")
 	}
@@ -154,8 +167,8 @@ func (qn *QriNode) BroadcastMessage(msg *Message) (res []*Message, err error) {
 		go func() {
 			if !sent[p] {
 				sent[p] = true
-				if p != nodeId {
-					r, e := qn.SendMessage(qn.QriPeers.PeerInfo(p).ID, msg)
+				if p != nodeID {
+					r, e := n.SendMessage(n.QriPeers.PeerInfo(p).ID, msg)
 					if e != nil {
 						fmt.Errorf(e.Error())
 					} else {

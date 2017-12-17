@@ -10,6 +10,7 @@ import (
 	discovery "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/discovery"
 )
 
+// qriSupportKey is the key we store the flag for qri support under in Peerstores
 const qriSupportKey = "qri-support"
 
 // StartDiscovery initiates peer discovery, allocating a discovery
@@ -31,14 +32,13 @@ func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 	// Boostrap off of default addresses
 	go n.Bootstrap(n.BootstrapAddrs, bootstrapPeers)
 	// Bootstrap to IPFS network if this node is using an IPFS fs
-	go n.BoostrapIPFS()
+	go n.BootstrapIPFS()
 
 	return nil
 }
 
-// HandlePeerFound
-// TODO - TEST THIS. I suspect there's a bug in this implentation, or discovery
-// notifications aren't working so well these days...
+// HandlePeerFound deals with the discovery of a peer that may or may not support
+// the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {

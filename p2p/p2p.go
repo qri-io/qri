@@ -1,4 +1,4 @@
-// package p2p implements qri peer-to-peer communication.
+// Package p2p implements qri peer-to-peer communication.
 // This is very, very early days, with message passing sorely in need of a
 // rewrite, but hey it's a start.
 package p2p
@@ -10,7 +10,7 @@ import (
 	identify "gx/ipfs/QmefgzMbKZYsmHFkLqxgaTBG9ypeEjrdWRD5WXH4j1cWDL/go-libp2p/p2p/protocol/identify"
 )
 
-// QriProtoclID is the top level Protocol Identifier
+// QriProtocolID is the top level Protocol Identifier
 const QriProtocolID = protocol.ID("/qri")
 
 // QriServiceTag tags the type & version of the qri service

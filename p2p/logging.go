@@ -30,7 +30,7 @@ type Logger interface {
 // package-level log variable
 var log Logger = fmtLogger(0)
 
-// this package implements the LogSetter interface
+// SetLogger sets this package's logger
 func SetLogger(logger Logger) {
 	log = logger
 }
