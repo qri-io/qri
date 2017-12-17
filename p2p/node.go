@@ -203,33 +203,3 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host
 	basicHost := bhost.New(netw)
 	return basicHost, nil
 }
-
-// PrintSwarmAddrs is pulled from ipfs codebase
-// func PrintSwarmAddrs(node *QriNode) {
-// 	if !node.Online {
-// 		fmt.Println("qri node running in offline mode.")
-// 		return
-// 	}
-
-// 	var lisAddrs []string
-// 	ifaceAddrs, err := node.Host.Network().InterfaceListenAddresses()
-// 	if err != nil {
-// 		fmt.Printf("failed to read listening addresses: %s\n", err)
-// 	}
-// 	for _, addr := range ifaceAddrs {
-// 		lisAddrs = append(lisAddrs, addr.String())
-// 	}
-// 	sort.Sort(sort.StringSlice(lisAddrs))
-// 	for _, addr := range lisAddrs {
-// 		fmt.Printf("Swarm listening on %s\n", addr)
-// 	}
-
-// 	var addrs []string
-// 	for _, addr := range node.Host.Addrs() {
-// 		addrs = append(addrs, addr.String())
-// 	}
-// 	sort.Sort(sort.StringSlice(addrs))
-// 	for _, addr := range addrs {
-// 		fmt.Printf("Swarm announcing %s\n", addr)
-// 	}
-// }

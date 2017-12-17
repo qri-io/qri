@@ -257,7 +257,11 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 		}
 	}
 
-	return fmt.Errorf("repo doesn't support search")
+	return &Message{
+		Phase:   MpError,
+		Type:    MtSearch,
+		Payload: fmt.Errorf("repo doesn't support search"),
+	}
 }
 
 func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {

@@ -37,10 +37,9 @@ var repoID = 0
 
 func NewTestRepo() (repo.Repo, error) {
 	repoID++
-	ms := memfs.NewMapstore()
 	return repo.NewMemRepo(&profile.Profile{
 		Username: fmt.Sprintf("tes-repo-%d", repoID),
-	}, ms, repo.MemPeers{}, &analytics.Memstore{})
+	}, memfs.NewMapstore(), repo.MemPeers{}, &analytics.Memstore{})
 }
 
 func NewTestNetwork() ([]*QriNode, error) {
@@ -53,7 +52,6 @@ func NewTestNetwork() ([]*QriNode, error) {
 	}
 
 	nodes := make([]*QriNode, 0, len(cfgs))
-	var wg sync.WaitGroup
 	for _, cfg := range cfgs {
 		r, err := NewTestRepo()
 		if err != nil {
@@ -67,36 +65,15 @@ func NewTestNetwork() ([]*QriNode, error) {
 		if err != nil {
 			return nil, fmt.Errorf("error creating test node: %s", err.Error())
 		}
-		// wg.Add(1)
-		// if err := node.StartOnlineServices(func(string) {
-		// 	wg.Done()
-		// }); err != nil {
-		// 	return nil, fmt.Errorf("error starting online services for node: %s", err.Error())
-		// }
 		nodes = append(nodes, node)
 	}
-
-	wg.Wait()
-	// for _, i := range nodes {
-	// 	for _, j := range nodes {
-	// 		if i != j {
-	// 			i.QriPeers.AddAddrs(j.Identity, j.EncapsulatedAddresses(), pstore.ProviderAddrTTL)
-	// 		}
-	// 	}
-	// }
-
 	return nodes, nil
 }
 
 func connectNodes(ctx context.Context, t *testing.T, nodes []*QriNode) {
 	var wg sync.WaitGroup
-	var mu sync.Mutex
 	connect := func(n *QriNode, dst peer.ID, addr ma.Multiaddr) {
-		mu.Lock()
-		defer mu.Unlock()
-		// TODO: make a DialAddr func.
 		n.QriPeers.AddAddr(dst, addr, pstore.PermanentAddrTTL)
-		n.Host.Network().DialPeer(ctx, dst)
 		if _, err := n.Host.Network().DialPeer(ctx, dst); err != nil {
 			t.Fatal("error swarm dialing to peer", err)
 		}
@@ -111,8 +88,4 @@ func connectNodes(ctx context.Context, t *testing.T, nodes []*QriNode) {
 		}
 	}
 	wg.Wait()
-
-	// for _, node := range nodes {
-	// 	log.Infof("%s swarm routing table: %s", node.Host.Network().LocalPeer().Pretty(), node.Host.Network().Peers())
-	// }
 }
