@@ -43,7 +43,7 @@ func (r *MemRepo) Store() cafs.Filestore {
 
 // Graph gives the graph of objects in this repo
 func (r *MemRepo) Graph() (map[string]*dsgraph.Node, error) {
-	return RepoGraph(r)
+	return Graph(r)
 }
 
 // Profile returns the peer profile for this repository

@@ -70,7 +70,7 @@ func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
 		return d.cli.Call("SearchRequests.Reindex", p, done)
 	}
 
-	if fsr, ok := d.repo.(*fs_repo.Repo); ok {
+	if fsr, ok := d.repo.(*fsrepo.Repo); ok {
 		err := fsr.UpdateSearchIndex(d.repo.Store())
 		if err != nil {
 			return fmt.Errorf("error reindexing: %s", err.Error())

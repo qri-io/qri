@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -11,16 +11,19 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// QueryLog is a file-based implementation of the repo.QueryLog interface
 type QueryLog struct {
 	basepath
 	file  File
 	store cafs.Filestore
 }
 
+// NewQueryLog allocates a new file-based QueryLog instance
 func NewQueryLog(base string, file File, store cafs.Filestore) QueryLog {
 	return QueryLog{basepath: basepath(base), file: file, store: store}
 }
 
+// LogQuery adds a QueryLogItem to the store
 func (ql QueryLog) LogQuery(item *repo.QueryLogItem) error {
 	log, err := ql.logs()
 	if err != nil {
@@ -31,6 +34,7 @@ func (ql QueryLog) LogQuery(item *repo.QueryLogItem) error {
 	return ql.saveFile(log, ql.file)
 }
 
+// QueryLogItem fills missing QueryLogItem details with data from the store
 func (ql QueryLog) QueryLogItem(q *repo.QueryLogItem) (*repo.QueryLogItem, error) {
 	log, err := ql.logs()
 	if err != nil {
@@ -48,6 +52,7 @@ func (ql QueryLog) QueryLogItem(q *repo.QueryLogItem) (*repo.QueryLogItem, error
 	return nil, repo.ErrNotFound
 }
 
+// ListQueryLogs fetches a set of QueryLogItems from the store
 func (ql QueryLog) ListQueryLogs(limit, offset int) ([]*repo.QueryLogItem, error) {
 	logs, err := ql.logs()
 	if err != nil {
@@ -65,9 +70,9 @@ func (ql QueryLog) ListQueryLogs(limit, offset int) ([]*repo.QueryLogItem, error
 	return logs[offset:stop], nil
 }
 
-func (r *QueryLog) logs() ([]*repo.QueryLogItem, error) {
+func (ql *QueryLog) logs() ([]*repo.QueryLogItem, error) {
 	ds := []*repo.QueryLogItem{}
-	data, err := ioutil.ReadFile(r.filepath(r.file))
+	data, err := ioutil.ReadFile(ql.filepath(ql.file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ds, nil

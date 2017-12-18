@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -30,7 +30,7 @@ func (bp basepath) saveFile(d interface{}, f File) error {
 type File int
 
 const (
-	// Unknown makes the default file value invalid
+	// FileUnknown makes the default file value invalid
 	FileUnknown File = iota
 	// FileLockfile is the on-disk mutex lock
 	FileLockfile
@@ -43,9 +43,9 @@ const (
 	FileConfig
 	// FileDatasets holds the list of datasets
 	FileDatasets
-	// a log of all queries in order they're run
+	// FileQueryLogs is a log of all queries in order they're run
 	FileQueryLogs
-	// user's local namespace
+	// FileNamestore is a file for the user's local namespace
 	FileNamestore
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
@@ -54,9 +54,9 @@ const (
 	FileCache
 	// FileAnalytics holds analytics data
 	FileAnalytics
-	// SearchIndex
+	// FileSearchIndex is the path to a search index
 	FileSearchIndex
-	// ChangeRequests
+	// FileChangeRequests is a file of change requests
 	FileChangeRequests
 )
 

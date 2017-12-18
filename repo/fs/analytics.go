@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -7,6 +7,8 @@ import (
 	"time"
 )
 
+// Analytics is a file-based implementation of the Analytics interface.
+// TODO - move this to the anyltics package
 type Analytics struct {
 	basepath
 	batchSize int
@@ -14,6 +16,7 @@ type Analytics struct {
 	// TODO - add timer that auto drains batch in a goroutine
 }
 
+// NewAnalytics allocates a new Analytics instance for a given filepath
 func NewAnalytics(base string) Analytics {
 	return Analytics{
 		basepath:  basepath(base),
@@ -22,6 +25,7 @@ func NewAnalytics(base string) Analytics {
 	}
 }
 
+// Track tracks an event
 func (a Analytics) Track(event string, props map[string]interface{}) error {
 	e := &analytics.Event{
 		Name:    event,
@@ -56,6 +60,7 @@ func (a Analytics) Track(event string, props map[string]interface{}) error {
 	return a.saveFile(events, FileAnalytics)
 }
 
+// Query returns a set of tracked events for a given set of query parameters
 func (a Analytics) Query(q query.Query) (query.Results, error) {
 	events, err := a.readAll()
 	if err != nil {

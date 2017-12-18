@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"os"

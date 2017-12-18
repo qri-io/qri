@@ -29,7 +29,7 @@ func getRepo(online bool) repo.Repo {
 		id = fs.Node().PeerHost.ID().Pretty()
 	}
 
-	r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
+	r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
 	ExitIfErr(err)
 	return r
 }
@@ -85,7 +85,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 			id = fs.Node().PeerHost.ID().Pretty()
 		}
 
-		r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
+		r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
