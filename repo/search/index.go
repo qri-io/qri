@@ -48,8 +48,10 @@ var (
 	batchSize = 100
 )
 
+// Index is an index of search data
 type Index bleve.Index
 
+// LoadIndex loads the search index
 func LoadIndex(indexPath string) (Index, error) {
 	// open the index
 	repoIndex, err := bleve.Open(indexPath)
@@ -101,12 +103,13 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 	return indexMapping, nil
 }
 
-func IndexRepo(store cafs.Filestore, r repo.Repo, i bleve.Index) error {
+// IndexRepo calculates an index for a given repository
+func IndexRepo(r repo.Repo, i bleve.Index) error {
 	refs, err := r.Namespace(-1, 0)
 	if err != nil {
 		return err
 	}
-	return indexDatasetRefs(store, i, refs)
+	return indexDatasetRefs(r.Store(), i, refs)
 }
 
 func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []*repo.DatasetRef) error {

@@ -14,13 +14,18 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+// ProfileRequests encapsulates business logic for this node's
+// user profile
 type ProfileRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
 }
 
-func (d ProfileRequests) CoreRequestsName() string { return "profile" }
+// CoreRequestsName implements the Requets interface
+func (ProfileRequests) CoreRequestsName() string { return "profile" }
 
+// NewProfileRequests creates a ProfileRequests pointer from either a repo
+// or an rpc.Client
 func NewProfileRequests(r repo.Repo, cli *rpc.Client) *ProfileRequests {
 	if r != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewProfileRequests"))
@@ -32,8 +37,9 @@ func NewProfileRequests(r repo.Repo, cli *rpc.Client) *ProfileRequests {
 	}
 }
 
+// Profile is a public, gob-encodable version of repo/profile/Profile
 type Profile struct {
-	Id          string           `json:"id"`
+	ID          string           `json:"id"`
 	Created     time.Time        `json:"created,omitempty"`
 	Updated     time.Time        `json:"updated,omitempty"`
 	Username    string           `json:"username"`
@@ -41,7 +47,7 @@ type Profile struct {
 	Email       string           `json:"email"`
 	Name        string           `json:"name"`
 	Description string           `json:"description"`
-	HomeUrl     string           `json:"homeUrl"`
+	HomeURL     string           `json:"homeUrl"`
 	Color       string           `json:"color"`
 	Thumb       string           `json:"thumb"`
 	Profile     string           `json:"profile"`
@@ -49,6 +55,7 @@ type Profile struct {
 	Twitter     string           `json:"twitter"`
 }
 
+// unmarshalProfile gets a profile.Profile from a Profile pointer
 func unmarshalProfile(p *Profile) (*profile.Profile, error) {
 	// silly workaround for gob encoding
 	data, err := json.Marshal(p)
@@ -64,6 +71,7 @@ func unmarshalProfile(p *Profile) (*profile.Profile, error) {
 	return _p, nil
 }
 
+// marshalProfile gets a Profile pointer from a profile.Profile pointer
 func marshalProfile(p *profile.Profile) (*Profile, error) {
 	// silly workaround for gob encoding
 	data, err := json.Marshal(p)
@@ -79,6 +87,7 @@ func marshalProfile(p *profile.Profile) (*Profile, error) {
 	return _p, nil
 }
 
+// GetProfile get's this node's peer profile
 func (r *ProfileRequests) GetProfile(in *bool, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.GetProfile", in, res)
@@ -97,6 +106,7 @@ func (r *ProfileRequests) GetProfile(in *bool, res *Profile) error {
 	return nil
 }
 
+// SaveProfile stores changes to this peer's profile
 func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SaveProfile", p, res)
@@ -128,13 +138,14 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	return nil
 }
 
-// FileParams
+// FileParams defines parameters for Files as arguments to core methods
 type FileParams struct {
 	// Url      string    // url to download data from. either Url or Data is required
 	Filename string    // filename of data file. extension is used for filetype detection
 	Data     io.Reader // reader of structured data. either Url or Data is required
 }
 
+// SetProfilePhoto changes this peer's profile image
 func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetProfilePhoto", p, res)
@@ -185,6 +196,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 	return nil
 }
 
+// SetPosterPhoto changes this peer's poster image
 func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetPosterPhoto", p, res)

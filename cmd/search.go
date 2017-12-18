@@ -24,15 +24,15 @@ var searchCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))
 		}
 
-		req, err := SearchRequests(false)
+		req, err := searchRequests(false)
 		ExitIfErr(err)
 
 		if searchCmdReindex {
-			PrintInfo("building index...")
+			printInfo("building index...")
 			done := false
 			err := req.Reindex(&core.ReindexSearchParams{}, &done)
 			ExitIfErr(err)
-			PrintSuccess("reindex complete")
+			printSuccess("reindex complete")
 			if len(args) == 0 {
 				return
 			}
@@ -53,7 +53,7 @@ var searchCmd = &cobra.Command{
 		switch outformat {
 		case "":
 			for i, ref := range res {
-				PrintDatasetRefInfo(i, ref)
+				printDatasetRefInfo(i, ref)
 			}
 		case dataset.JSONDataFormat.String():
 			data, err := json.MarshalIndent(res, "", "  ")

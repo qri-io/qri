@@ -13,7 +13,7 @@ func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 		// If this server is operating behind a proxy, but we still want to force
 		// users to use https, cfg.ProxyForceHttps == true will listen for the common
 		// X-Forward-Proto & redirect to https
-		if s.cfg.ProxyForceHttps {
+		if s.cfg.ProxyForceHTTPS {
 			if r.Header.Get("X-Forwarded-Proto") == "http" {
 				w.Header().Set("Connection", "close")
 				url := "https://" + r.Host + r.URL.String()

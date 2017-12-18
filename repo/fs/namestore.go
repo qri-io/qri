@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -15,6 +15,8 @@ import (
 	"github.com/qri-io/qri/repo/search"
 )
 
+// Namestore is a file-based implementation of the repo.Namestore
+// interface. It stores names in a json file
 type Namestore struct {
 	basepath
 	// optional search index to add/remove from
@@ -23,10 +25,7 @@ type Namestore struct {
 	store cafs.Filestore
 }
 
-func NewNamestore(base string) Datasets {
-	return Datasets{basepath: basepath(base)}
-}
-
+// PutName adds a name to the store
 func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 	var ds *dataset.Dataset
 
@@ -73,6 +72,7 @@ func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 	return n.save(names)
 }
 
+// GetPath gets a path for a given name
 func (n Namestore) GetPath(name string) (datastore.Key, error) {
 	names, err := n.names()
 	if err != nil {
@@ -86,6 +86,7 @@ func (n Namestore) GetPath(name string) (datastore.Key, error) {
 	return datastore.NewKey(""), repo.ErrNotFound
 }
 
+// GetName gets a name for a given path
 func (n Namestore) GetName(path datastore.Key) (string, error) {
 	names, err := n.names()
 	if err != nil {
@@ -99,6 +100,7 @@ func (n Namestore) GetName(path datastore.Key) (string, error) {
 	return "", repo.ErrNotFound
 }
 
+// DeleteName removes a name from the store
 func (n Namestore) DeleteName(name string) error {
 	names, err := n.names()
 	if err != nil {
@@ -120,6 +122,7 @@ func (n Namestore) DeleteName(name string) error {
 	return n.save(names)
 }
 
+// Namespace gives a set of dataset references from the store
 func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	names, err := n.names()
 	if err != nil {
@@ -138,6 +141,7 @@ func (n Namestore) Namespace(limit, offset int) ([]*repo.DatasetRef, error) {
 	return res[:len(names)-offset], nil
 }
 
+// NameCount returns the size of the Namestore
 func (n Namestore) NameCount() (int, error) {
 	names, err := n.names()
 	if err != nil {
@@ -146,9 +150,9 @@ func (n Namestore) NameCount() (int, error) {
 	return len(names), nil
 }
 
-func (r *Namestore) names() ([]*repo.DatasetRef, error) {
+func (n *Namestore) names() ([]*repo.DatasetRef, error) {
 	ns := []*repo.DatasetRef{}
-	data, err := ioutil.ReadFile(r.filepath(FileNamestore))
+	data, err := ioutil.ReadFile(n.filepath(FileNamestore))
 	if err != nil {
 		if os.IsNotExist(err) {
 			return ns, nil
@@ -176,7 +180,7 @@ func (r *Namestore) names() ([]*repo.DatasetRef, error) {
 	return ns, nil
 }
 
-func (r *Namestore) save(ns []*repo.DatasetRef) error {
+func (n *Namestore) save(ns []*repo.DatasetRef) error {
 	sort.Slice(ns, func(i, j int) bool { return ns[i].Name < ns[j].Name })
-	return r.saveFile(ns, FileNamestore)
+	return n.saveFile(ns, FileNamestore)
 }

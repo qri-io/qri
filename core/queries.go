@@ -13,13 +13,18 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// QueryRequests encapsulates business logic for methods
+// relating to SQL queries of qri datasets
 type QueryRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
 }
 
-func (d QueryRequests) CoreRequestsName() string { return "queries" }
+// CoreRequestsName implements the Requets interface
+func (QueryRequests) CoreRequestsName() string { return "queries" }
 
+// NewQueryRequests creates a QueryRequests pointer from either a
+// Repo or an rpc.Client
 func NewQueryRequests(r repo.Repo, cli *rpc.Client) *QueryRequests {
 	if r != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewQueryRequests"))
@@ -31,12 +36,13 @@ func NewQueryRequests(r repo.Repo, cli *rpc.Client) *QueryRequests {
 	}
 }
 
-func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
-	if d.cli != nil {
-		return d.cli.Call("QueryRequests.List", p, res)
+// List returns the history of user queries
+func (r *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("QueryRequests.List", p, res)
 	}
 
-	items, err := d.repo.ListQueryLogs(p.Limit, p.Offset)
+	items, err := r.repo.ListQueryLogs(p.Limit, p.Offset)
 	if err != nil {
 		return fmt.Errorf("error getting query logs: %s", err.Error())
 	}
@@ -44,7 +50,7 @@ func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	results := make([]*repo.DatasetRef, len(items))
 	for i, item := range items {
 		results[i] = &repo.DatasetRef{Path: item.DatasetPath}
-		if ds, err := dsfs.LoadDataset(d.repo.Store(), item.DatasetPath); err == nil {
+		if ds, err := dsfs.LoadDataset(r.repo.Store(), item.DatasetPath); err == nil {
 			results[i].Name = ds.Transform.Data
 			results[i].Dataset = ds
 		}
@@ -63,6 +69,7 @@ func (d *QueryRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
+// GetQueryParams defines parameters for the Query Get method
 type GetQueryParams struct {
 	Path string
 	Name string
@@ -70,13 +77,14 @@ type GetQueryParams struct {
 	Save string
 }
 
-func (d *QueryRequests) Get(p *GetQueryParams, res *dataset.Dataset) error {
-	if d.cli != nil {
-		return d.cli.Call("QueryRequests.Get", p, res)
+// Get a query
+func (r *QueryRequests) Get(p *GetQueryParams, res *dataset.Dataset) error {
+	if r.cli != nil {
+		return r.cli.Call("QueryRequests.Get", p, res)
 	}
 
 	// TODO - huh? do we even need to load query datasets?
-	q, err := dsfs.LoadDataset(d.repo.Store(), datastore.NewKey(p.Path))
+	q, err := dsfs.LoadDataset(r.repo.Store(), datastore.NewKey(p.Path))
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
 	}
@@ -85,6 +93,7 @@ func (d *QueryRequests) Get(p *GetQueryParams, res *dataset.Dataset) error {
 	return nil
 }
 
+// RunParams defines parameters for the Run command
 type RunParams struct {
 	// embed all execution options
 	sql.ExecOpt
@@ -92,6 +101,7 @@ type RunParams struct {
 	Dataset  *dataset.Dataset
 }
 
+// Run executes an SQL command against one or more existing datasets, returning a new dataset
 func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("QueryRequests.Run", p, res)
@@ -166,10 +176,6 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	// 	}
 	// }
 
-	if q.Structure != nil {
-		fmt.Println("q structure post-queryLogItem:", q.Structure.Schema.FieldNames())
-	}
-
 	// TODO - detect data format from passed-in results structure
 	abst, results, err = sql.Exec(store, q, func(o *sql.ExecOpt) {
 		o.Format = dataset.CSVDataFormat
@@ -177,14 +183,12 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	if err != nil {
 		return fmt.Errorf("error executing query: %s", err.Error())
 	}
-	fmt.Println("q structure post-exec:", q.Structure.Schema.FieldNames())
 
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = q.Structure
 	ds.Length = len(results)
 	ds.Transform = q
 	ds.AbstractTransform = abst
-	// fmt.Printf("abst: %#v\n", abst)
 
 	datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
 	if err != nil {
@@ -228,6 +232,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 	return nil
 }
 
+// DatasetQueriesParams defines params for the DatasetQueries method
 type DatasetQueriesParams struct {
 	Path    string
 	Orderby string
@@ -235,6 +240,7 @@ type DatasetQueriesParams struct {
 	Offset  int
 }
 
+// DatasetQueries lists queries that reference a given dataset
 func (r *QueryRequests) DatasetQueries(p *DatasetQueriesParams, res *[]*repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("QueryRequests.DatasetQueries", p, res)

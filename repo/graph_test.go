@@ -11,13 +11,13 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func TestRepoGraph(t *testing.T) {
+func TestGraph(t *testing.T) {
 	r, err := makeTestRepo()
 	if err != nil {
 		t.Errorf("error making test repo: %s", err.Error())
 		return
 	}
-	nodes, err := RepoGraph(r)
+	nodes, err := Graph(r)
 	if err != nil {
 		t.Errorf("error generating repo graph: %s", err.Error())
 		return
@@ -39,7 +39,7 @@ func TestQueriesMap(t *testing.T) {
 		t.Errorf("error making test repo: %s", err.Error())
 		return
 	}
-	node, err := RepoGraph(r)
+	node, err := Graph(r)
 	if err != nil {
 		t.Errorf("error generating repo graph: %s", err.Error())
 		return
@@ -58,7 +58,7 @@ func TestDatasetQueries(t *testing.T) {
 		t.Errorf("error making test repo: %s", err.Error())
 		return
 	}
-	node, err := RepoGraph(r)
+	node, err := Graph(r)
 	if err != nil {
 		t.Errorf("error generating repo graph: %s", err.Error())
 		return
@@ -77,7 +77,7 @@ func TestDataNodes(t *testing.T) {
 		t.Errorf("error making test repo: %s", err.Error())
 		return
 	}
-	node, err := RepoGraph(r)
+	node, err := Graph(r)
 	if err != nil {
 		t.Errorf("error generating repo graph: %s", err.Error())
 		return

@@ -9,28 +9,35 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// HistoryRequests encapsulates business logic for the log
+// of changes to datasets, think "git log"
 type HistoryRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
 }
 
+// CoreRequestsName implements the Requets interface
 func (d HistoryRequests) CoreRequestsName() string { return "history" }
 
+// NewHistoryRequests creates a HistoryRequests pointer from either a repo
+// or an rpc.Client
 func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
 	if r != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewHistoryRequests"))
 	}
-
 	return &HistoryRequests{
 		repo: r,
 	}
 }
 
+// LogParams defines parameters for the Log method
 type LogParams struct {
-	Path datastore.Key
 	ListParams
+	// Path to the dataset to fetch history for
+	Path datastore.Key
 }
 
+// Log returns the history of changes for a given dataset
 func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err error) {
 	if d.cli != nil {
 		return d.cli.Call("HistoryRequests.Log", params, res)

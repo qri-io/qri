@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qri/repo/search"
 )
 
+// Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
 	store cafs.Filestore
 	basepath
@@ -31,6 +32,7 @@ type Repo struct {
 	index     search.Index
 }
 
+// NewRepo creates a new file-based repository
 func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
@@ -61,19 +63,21 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 
 	// TODO - this is racey.
 	// go func() {
-	// 	r.graph, _ = repo.RepoGraph(r)
+	// 	r.graph, _ = repo.Graph(r)
 	// }()
 
 	return r, nil
 }
 
+// Store returns the underlying cafs.Filestore driving this repo
 func (r Repo) Store() cafs.Filestore {
 	return r.store
 }
 
+// Graph returns the graph of dataset objects for this repo
 func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
 	if r.graph == nil {
-		nodes, err := repo.RepoGraph(r)
+		nodes, err := repo.Graph(r)
 		if err != nil {
 			return nil, err
 		}
@@ -82,6 +86,7 @@ func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
 	return r.graph, nil
 }
 
+// Profile gives this repo's peer profile
 func (r *Repo) Profile() (*profile.Profile, error) {
 	p := &profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FileProfile))
@@ -99,6 +104,7 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 	return p, nil
 }
 
+// SaveProfile updates this repo's peer profile info
 func (r *Repo) SaveProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
 }
@@ -108,31 +114,32 @@ func (r *Repo) SaveProfile(p *profile.Profile) error {
 func ensureProfile(bp basepath, id string) error {
 	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
 		return bp.saveFile(&profile.Profile{
-			Id:       id,
+			ID:       id,
 			Username: doggos.DoggoNick(id),
 		}, FileProfile)
-	} else {
-		p := &profile.Profile{}
-		data, err := ioutil.ReadFile(bp.filepath(FileProfile))
-		if err != nil {
-			if os.IsNotExist(err) {
-				return nil
-			}
-			return fmt.Errorf("error loading profile: %s", err.Error())
-		}
-
-		if err := json.Unmarshal(data, &p); err != nil {
-			return fmt.Errorf("error unmarshaling profile: %s", err.Error())
-		}
-
-		if p.Id != id {
-			p.Id = id
-			if p.Username == "" {
-				p.Username = doggos.DoggoNick(p.Id)
-			}
-			bp.saveFile(p, FileProfile)
-		}
 	}
+
+	p := &profile.Profile{}
+	data, err := ioutil.ReadFile(bp.filepath(FileProfile))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return fmt.Errorf("error loading profile: %s", err.Error())
+	}
+
+	if err := json.Unmarshal(data, &p); err != nil {
+		return fmt.Errorf("error unmarshaling profile: %s", err.Error())
+	}
+
+	if p.ID != id {
+		p.ID = id
+		if p.Username == "" {
+			p.Username = doggos.DoggoNick(p.ID)
+		}
+		bp.saveFile(p, FileProfile)
+	}
+
 	return nil
 }
 
@@ -151,7 +158,7 @@ func ensureProfile(bp basepath, id string) error {
 // 	return p, nil
 // }
 
-// fs implements the search interface
+// Search this repo for dataset references
 func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 	if r.index == nil {
 		return nil, fmt.Errorf("search not supported")
@@ -175,26 +182,32 @@ func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 	return refs, nil
 }
 
+// UpdateSearchIndex refreshes this repos search index
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
-	return search.IndexRepo(store, r, r.index)
+	return search.IndexRepo(r, r.index)
 }
 
+// Peers returns this repo's Peers implementation
 func (r *Repo) Peers() repo.Peers {
 	return r.peers
 }
 
+// Cache gives this repo's ephemeral cache of datasets
 func (r *Repo) Cache() repo.Datasets {
 	return r.cache
 }
 
+// Analytics gets this repo's Analytics store
 func (r *Repo) Analytics() analytics.Analytics {
 	return r.analytics
 }
 
+// SavePeers saves a set of peers to the repo
 func (r *Repo) SavePeers(p map[string]*profile.Profile) error {
 	return r.saveFile(p, FilePeers)
 }
 
+// Destroy destroys this repository
 func (r *Repo) Destroy() error {
 	return os.RemoveAll(string(r.basepath))
 }

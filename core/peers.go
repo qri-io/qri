@@ -13,11 +13,18 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// PeerRequests encapsulates business logic for methods
+// relating to peer-to-peer interaction
 type PeerRequests struct {
 	qriNode *p2p.QriNode
 	cli     *rpc.Client
 }
 
+// CoreRequestsName implements the Requets interface
+func (d PeerRequests) CoreRequestsName() string { return "peers" }
+
+// NewPeerRequests creates a PeerRequests pointer from either a
+// qri Node or an rpc.Client
 func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 	if node != nil && cli != nil {
 		panic(fmt.Errorf("both node and client supplied to NewPeerRequests"))
@@ -29,8 +36,7 @@ func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 	}
 }
 
-func (d PeerRequests) CoreRequestsName() string { return "peers" }
-
+// List lists Peers on the qri network
 func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
@@ -54,7 +60,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 		if i >= p.Limit {
 			break
 		}
-		if peer.Id == user.Id {
+		if peer.ID == user.ID {
 			continue
 		}
 		replies[i] = peer
@@ -65,6 +71,8 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	return nil
 }
 
+// ConnectedPeers lists PeerID's we're currently connected to. If running
+// IPFS this will also return connected IPFS nodes
 func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectedPeers", limit, peers)
@@ -74,6 +82,7 @@ func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
 	return nil
 }
 
+// ConnectToPeer attempts to create a connection with a peer for a given peer.ID
 func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
@@ -92,6 +101,7 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 	return nil
 }
 
+// Get peer profile details
 func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.Get", p, res)
@@ -119,18 +129,20 @@ func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
 	return fmt.Errorf("Not Found")
 }
 
+// NamespaceParams defines params for the GetNamespace method
 type NamespaceParams struct {
-	PeerId string
+	PeerID string
 	Limit  int
 	Offset int
 }
 
+// GetNamespace lists a peer's named datasets
 func (d *PeerRequests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.GetNamespace", p, res)
 	}
 
-	id, err := peer.IDB58Decode(p.PeerId)
+	id, err := peer.IDB58Decode(p.PeerID)
 	if err != nil {
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}

@@ -27,7 +27,7 @@ var runCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("Please provide a query string to execute"))
 		}
 
-		r, cli, err := RepoOrClient(false)
+		r, cli, err := repoOrClient(false)
 		ExitIfErr(err)
 		req := core.NewQueryRequests(r, cli)
 
@@ -64,7 +64,7 @@ var runCmd = &cobra.Command{
 		case "csv", "json":
 			fmt.Printf("%s", string(results))
 		default:
-			PrintResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
+			printResults(res.Dataset.Structure, results, res.Dataset.Structure.Format)
 		}
 
 	},

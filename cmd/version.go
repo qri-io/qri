@@ -2,7 +2,8 @@ package cmd
 
 import "github.com/spf13/cobra"
 
-const VERSION_NUMBER = "0.1.0-alpha"
+// VersionNumber is the current version of this CLI
+const VersionNumber = "0.1.0-alpha"
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
@@ -11,7 +12,7 @@ var versionCmd = &cobra.Command{
 	Long: `qri uses semantic versioning.
 	For updates & further information check https://github.com/qri-io/qri/releases`,
 	Run: func(cmd *cobra.Command, args []string) {
-		PrintInfo(VERSION_NUMBER)
+		printInfo(VersionNumber)
 	},
 }
 

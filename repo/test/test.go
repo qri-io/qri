@@ -7,17 +7,20 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// RepoTestFunc is a function for testing a repo
 type RepoTestFunc func(r repo.Repo) error
 
+// RunRepoTests tests that this repo conforms to
+// expected behaviors
 func RunRepoTests(t *testing.T, r repo.Repo) {
 	tests := []RepoTestFunc{
-		RunTestProfile,
-		RunTestNamespace,
-		// RunTestQueryResults,
-		// RunTestResourceMeta,
-		// RunTestResourceQueries,
-		// RunTestPeers,
-		// RunTestDestroy,
+		runTestProfile,
+		runTestNamespace,
+		// runTestQueryResults,
+		// runTestResourceMeta,
+		// runTestResourceQueries,
+		// runTestPeers,
+		// runTestDestroy,
 	}
 
 	for _, test := range tests {
@@ -27,7 +30,7 @@ func RunRepoTests(t *testing.T, r repo.Repo) {
 	}
 }
 
-func RunTestProfile(r repo.Repo) error {
+func runTestProfile(r repo.Repo) error {
 	p, err := r.Profile()
 	if err != nil {
 		return fmt.Errorf("Unexpected Profile error: %s", err.Error())
@@ -40,22 +43,22 @@ func RunTestProfile(r repo.Repo) error {
 	return nil
 }
 
-func RunTestDatasetStore(r repo.Repo) error {
+func runTestDatasetStore(r repo.Repo) error {
 	// TODO
 	return nil
 }
 
-func RunTestPeers(r repo.Repo) error {
+func runTestPeers(r repo.Repo) error {
 	// TODO
 	return nil
 }
 
-func RunTestAnalytics(r repo.Repo) error {
+func runTestAnalytics(r repo.Repo) error {
 	// TODO
 	return nil
 }
 
-func RunTestCache(r repo.Repo) error {
+func runTestCache(r repo.Repo) error {
 	// TODO
 	return nil
 }

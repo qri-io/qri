@@ -36,7 +36,7 @@ var initCmd = &cobra.Command{
 
 		if QRIRepoInitialized() && !initOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
-			ErrExit(fmt.Errorf("repo already initialized."))
+			ErrExit(fmt.Errorf("repo already initialized"))
 		}
 		fmt.Println("initializing qri repo")
 
@@ -85,9 +85,9 @@ var initCmd = &cobra.Command{
 		}
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
-			ErrExit(fmt.Errorf("error creating home dir: %s\n", err.Error()))
+			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))
 		}
-		err = WriteConfigFile(cfg)
+		err = writeConfigFile(cfg)
 		ExitIfErr(err)
 
 		err = viper.ReadInConfig()
@@ -125,7 +125,7 @@ var initCmd = &cobra.Command{
 			err = json.Unmarshal([]byte(initProfileData), p)
 			ExitIfErr(err)
 
-			pr, err := ProfileRequests(false)
+			pr, err := profileRequests(false)
 			ExitIfErr(err)
 
 			res := &core.Profile{}
@@ -192,7 +192,9 @@ func readAtFile(data *string) error {
 	return nil
 }
 
+// DefaultIPFSConfig returns the standard IPFS configuration
 // TODO - this is a bit of a hack for the moment, will be removed later
+// in favour of using IPFS Config package more directly.
 func DefaultIPFSConfig(identity config.Identity) *config.Config {
 	return &config.Config{
 		Identity: identity,

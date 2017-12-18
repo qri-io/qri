@@ -18,7 +18,7 @@ var datasetRenameCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please provide current & new dataset names"))
 		}
 
-		req, err := DatasetRequests(false)
+		req, err := datasetRequests(false)
 		ExitIfErr(err)
 		p := &core.RenameParams{
 			Current: args[0],
@@ -28,7 +28,7 @@ var datasetRenameCmd = &cobra.Command{
 		err = req.Rename(p, res)
 		ExitIfErr(err)
 
-		PrintSuccess("renamed dataset %s", res.Name)
+		printSuccess("renamed dataset %s", res.Name)
 	},
 }
 

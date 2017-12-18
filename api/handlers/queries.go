@@ -11,23 +11,25 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewQueryHandlers(log logging.Logger, r repo.Repo) *QueryHandlers {
-	req := core.NewQueryRequests(r, nil)
-	return &QueryHandlers{*req, log}
-}
-
 // QueryHandlers wraps a requests struct to interface with http.HandlerFunc
 type QueryHandlers struct {
 	core.QueryRequests
 	log logging.Logger
 }
 
-func (d *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
+// NewQueryHandlers allocates a new QueryHandlers pointer
+func NewQueryHandlers(log logging.Logger, r repo.Repo) *QueryHandlers {
+	req := core.NewQueryRequests(r, nil)
+	return &QueryHandlers{*req, log}
+}
+
+// ListHandler is the endpoint for listing this repo's log of queries
+func (h *QueryHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		d.listQueriesHandler(w, r)
+		h.listQueriesHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -71,6 +73,7 @@ func (h *QueryHandlers) listQueriesHandler(w http.ResponseWriter, r *http.Reques
 	util.WritePageResponse(w, res, r, args.Page())
 }
 
+// RunHandler is the endpoint for executing a query
 func (h *QueryHandlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -115,6 +118,7 @@ func (h *QueryHandlers) runHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
+// DatasetQueriesHandler is the endpoint for getting the queries that reference a dataset
 func (h *QueryHandlers) DatasetQueriesHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "GET":

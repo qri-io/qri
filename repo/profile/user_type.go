@@ -5,13 +5,17 @@ import (
 	"fmt"
 )
 
+// UserType enumerates different types of users
 type UserType int
 
 const (
+	// UserTypeUser is a single person
 	UserTypeUser UserType = iota
+	// UserTypeOrganization represents a group of people
 	UserTypeOrganization
 )
 
+// String implements the Stringer interface for UserType
 func (ut UserType) String() string {
 	switch ut {
 	case UserTypeUser:
@@ -23,6 +27,7 @@ func (ut UserType) String() string {
 	return "unknown"
 }
 
+// MarshalJSON implements the json.Marshaler interface for UserType
 func (ut UserType) MarshalJSON() ([]byte, error) {
 	s, ok := map[UserType]string{UserTypeUser: "user", UserTypeOrganization: "organization"}[ut]
 	if !ok {
@@ -32,6 +37,7 @@ func (ut UserType) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, s)), nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface for UserType
 func (ut *UserType) UnmarshalJSON(data []byte) error {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {

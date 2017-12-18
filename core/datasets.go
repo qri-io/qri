@@ -24,13 +24,18 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// DatasetRequests encapsulates business logic for this node's
+// user profile
 type DatasetRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
 }
 
-func (d DatasetRequests) CoreRequestsName() string { return "datasets" }
+// CoreRequestsName implements the Requets interface
+func (DatasetRequests) CoreRequestsName() string { return "datasets" }
 
+// NewDatasetRequests creates a DatasetRequests pointer from either a repo
+// or an rpc.Client
 func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 	if r != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewDatasetRequests"))
@@ -42,12 +47,13 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 	}
 }
 
-func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
-	if d.cli != nil {
-		return d.cli.Call("DatasetRequests.List", p, res)
+// List returns this repo's datasets
+func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 
-	store := d.repo.Store()
+	store := r.repo.Store()
 	// ensure valid limit value
 	if p.Limit <= 0 {
 		p.Limit = 25
@@ -56,7 +62,7 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	if p.Offset < 0 {
 		p.Offset = 0
 	}
-	replies, err := d.repo.Namespace(p.Limit, p.Offset)
+	replies, err := r.repo.Namespace(p.Limit, p.Offset)
 	if err != nil {
 		return fmt.Errorf("error getting namespace: %s", err.Error())
 	}
@@ -82,18 +88,20 @@ func (d *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
+// GetDatasetParams defines parameters for DatasetRequests.Get
 type GetDatasetParams struct {
 	Path datastore.Key
 	Name string
 	Hash string
 }
 
-func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
-	if d.cli != nil {
-		return d.cli.Call("DatasetRequests.Get", p, res)
+// Get a dataset
+func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
 
-	store := d.repo.Store()
+	store := r.repo.Store()
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset: %s", err.Error())
@@ -101,7 +109,7 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 
 	name := p.Name
 	if p.Path.String() != "" {
-		name, _ = d.repo.GetName(p.Path)
+		name, _ = r.repo.GetName(p.Path)
 	}
 
 	*res = repo.DatasetRef{
@@ -115,7 +123,7 @@ func (d *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 // InitDatasetParams encapsulates arguments to InitDataset
 type InitDatasetParams struct {
 	Name             string    // variable name for referring to this dataset. required.
-	Url              string    // url to download data from. either Url or Data is required
+	URL              string    // url to download data from. either Url or Data is required
 	DataFilename     string    // filename of data file. extension is used for filetype detection
 	Data             io.Reader // reader of structured data. either Url or Data is required
 	MetadataFilename string    // filename of metadata file. optional.
@@ -136,12 +144,12 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		filename = p.DataFilename
 	)
 
-	if p.Url != "" {
-		res, err := http.Get(p.Url)
+	if p.URL != "" {
+		res, err := http.Get(p.URL)
 		if err != nil {
 			return fmt.Errorf("error fetching url: %s", err.Error())
 		}
-		filename = filepath.Base(p.Url)
+		filename = filepath.Base(p.URL)
 		defer res.Body.Close()
 		rdr = res.Body
 	} else if p.Data != nil {
@@ -205,8 +213,8 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	}
 
 	ds := &dataset.Dataset{}
-	if p.Url != "" {
-		ds.DownloadURL = p.Url
+	if p.URL != "" {
+		ds.DownloadURL = p.URL
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
 		// TODO - make this configurable via a param?
@@ -258,6 +266,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	return nil
 }
 
+// UpdateParams defines permeters for Dataset Updates
 type UpdateParams struct {
 	Changes      *dataset.Dataset // all dataset changes. required.
 	DataFilename string           // filename for new data. optional.
@@ -351,10 +360,12 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
+// RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
 	Current, New string
 }
 
+// Rename changes a user's given name for a dataset
 func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Rename", p, res)
@@ -396,11 +407,13 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
+// DeleteParams deines parameters for Deleting a Dataset
 type DeleteParams struct {
 	Path datastore.Key
 	Name string
 }
 
+// Delete a dataset
 func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.List", p, ok)
@@ -437,6 +450,8 @@ func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
 	return nil
 }
 
+// StructuredDataParams defines parameters for retrieving
+// structured data (which is the kind of data datasets contain)
 type StructuredDataParams struct {
 	Format        dataset.DataFormat
 	FormatConfig  dataset.FormatConfig
@@ -445,11 +460,13 @@ type StructuredDataParams struct {
 	All           bool
 }
 
+// StructuredData combines data with it's hashed path
 type StructuredData struct {
 	Path datastore.Key `json:"path"`
 	Data interface{}   `json:"data"`
 }
 
+// StructuredData retrieves dataset data
 func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.StructuredData", p, data)
@@ -511,11 +528,13 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	return nil
 }
 
+// AddParams defines parameters for adding a dataset
 type AddParams struct {
 	Name string
 	Hash string
 }
 
+// AddDataset adds an existing dataset to a peer's repository
 func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.AddDataset", p, res)
@@ -557,15 +576,18 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 	return
 }
 
+// ValidateDatasetParams defines paremeters for dataset
+// data validation
 type ValidateDatasetParams struct {
 	Name         string
-	Url          string
+	URL          string
 	Path         datastore.Key
 	DataFilename string
 	Data         io.Reader
 	Metadata     io.Reader
 }
 
+// Validate gives a dataset of errors and issues for a given dataset
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)

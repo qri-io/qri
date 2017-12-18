@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -14,10 +14,13 @@ import (
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// PeerStore is an on-disk json file implementation of the
+// repo.Peers interface
 type PeerStore struct {
 	basepath
 }
 
+// PutPeer adds a peer to the store
 func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	ps, err := r.peers()
 	if err != nil {
@@ -30,6 +33,7 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	return r.saveFile(ps, FilePeers)
 }
 
+// GetPeer fetches a peer from the store
 func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	ps, err := r.peers()
 	if err != nil {
@@ -46,6 +50,7 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	return nil, datastore.ErrNotFound
 }
 
+// DeletePeer removes a peer from the store
 func (r PeerStore) DeletePeer(id peer.ID) error {
 	ps, err := r.peers()
 	if err != nil {
@@ -55,6 +60,8 @@ func (r PeerStore) DeletePeer(id peer.ID) error {
 	return r.saveFile(ps, FilePeers)
 }
 
+// Query fetches a set of peers from the store according to given query
+// parameters
 func (r PeerStore) Query(q query.Query) (query.Results, error) {
 	ps, err := r.peers()
 	if err != nil {

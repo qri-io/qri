@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -10,16 +10,19 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// ChangeRequests is a file-based implementation of the repo.ChangeRequests
+// interface
 type ChangeRequests struct {
 	basepath
 	file File
 }
 
+// NewChangeRequests creates a new ChangeRequest instance
 func NewChangeRequests(base string, file File) ChangeRequests {
 	return ChangeRequests{basepath: basepath(base), file: file}
 }
 
-// Put a change request into the store
+// PutChangeRequest adds a change request to the store
 func (r ChangeRequests) PutChangeRequest(path datastore.Key, cr *repo.ChangeRequest) error {
 	crs, err := r.changeRequests()
 	if err != nil {
@@ -29,6 +32,7 @@ func (r ChangeRequests) PutChangeRequest(path datastore.Key, cr *repo.ChangeRequ
 	return r.saveFile(cr, r.file)
 }
 
+// DeleteChangeRequest removes a change request from the store
 func (r ChangeRequests) DeleteChangeRequest(path datastore.Key) error {
 	cr, err := r.changeRequests()
 	if err != nil {
@@ -38,7 +42,7 @@ func (r ChangeRequests) DeleteChangeRequest(path datastore.Key) error {
 	return r.saveFile(cr, r.file)
 }
 
-// Get a change request by it's path
+// GetChangeRequest fetches a change request by it's path
 func (r ChangeRequests) GetChangeRequest(path datastore.Key) (*repo.ChangeRequest, error) {
 	crs, err := r.changeRequests()
 	if err != nil {
@@ -52,7 +56,7 @@ func (r ChangeRequests) GetChangeRequest(path datastore.Key) (*repo.ChangeReques
 	return cr, nil
 }
 
-// get change requests for a given target
+// ChangeRequestsForTarget retrieves a set of change requests for a given target
 func (r ChangeRequests) ChangeRequestsForTarget(target datastore.Key, limit, offset int) ([]*repo.ChangeRequest, error) {
 	crs, err := r.changeRequests()
 	if err != nil {
@@ -77,7 +81,7 @@ func (r ChangeRequests) ChangeRequestsForTarget(target datastore.Key, limit, off
 	return results, nil
 }
 
-// list change requests in this store
+// ListChangeRequests grabs a set of change requests from this store
 func (r ChangeRequests) ListChangeRequests(limit, offset int) ([]*repo.ChangeRequest, error) {
 	crs, err := r.changeRequests()
 	if err != nil {

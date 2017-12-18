@@ -18,6 +18,8 @@ type Peers interface {
 	DeletePeer(id peer.ID) error
 }
 
+// QueryPeers wraps a call to Query, transforming responses to a slice of
+// Profile pointers
 func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
 	i := 0
 	peers := []*profile.Profile{}
@@ -53,11 +55,13 @@ func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
 // MemPeers is an in-memory implementation of the Peers interface
 type MemPeers map[peer.ID]*profile.Profile
 
+// PutPeer adds a peer to this store
 func (m MemPeers) PutPeer(id peer.ID, profile *profile.Profile) error {
 	m[id] = profile
 	return nil
 }
 
+// GetPeer give's peer info from the store for a given peer.ID
 func (m MemPeers) GetPeer(id peer.ID) (*profile.Profile, error) {
 	if m[id] == nil {
 		return nil, datastore.ErrNotFound
@@ -65,11 +69,13 @@ func (m MemPeers) GetPeer(id peer.ID) (*profile.Profile, error) {
 	return m[id], nil
 }
 
+// DeletePeer removes a peer from this store
 func (m MemPeers) DeletePeer(id peer.ID) error {
 	delete(m, id)
 	return nil
 }
 
+// Query grabs a set of peers from this store for given query params
 func (m MemPeers) Query(q query.Query) (query.Results, error) {
 	re := make([]query.Entry, 0, len(m))
 	for id, v := range m {

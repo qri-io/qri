@@ -1,4 +1,4 @@
-package fs_repo
+package fsrepo
 
 import (
 	"encoding/json"
@@ -14,16 +14,19 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// Datasets is a file-based implementation of the repo.Datasets interface
 type Datasets struct {
 	basepath
 	file  File
 	store cafs.Filestore
 }
 
+// NewDatasets allocates a new Datasets instance
 func NewDatasets(base string, file File, store cafs.Filestore) Datasets {
 	return Datasets{basepath: basepath(base), file: file, store: store}
 }
 
+// PutDataset adds a dataset to the store
 func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	d, err := r.datasets()
 	if err != nil {
@@ -33,6 +36,7 @@ func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	return r.saveFile(d, r.file)
 }
 
+// PutDatasets adds a number of datasets to the store
 func (r Datasets) PutDatasets(datasets []*repo.DatasetRef) error {
 	ds, err := r.datasets()
 	if err != nil {
@@ -47,6 +51,7 @@ func (r Datasets) PutDatasets(datasets []*repo.DatasetRef) error {
 	return r.saveFile(ds, r.file)
 }
 
+// GetDataset grabs a dataset from the store
 func (r Datasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
 	ds, err := r.datasets()
 	if err != nil {
@@ -65,6 +70,7 @@ func (r Datasets) GetDataset(path datastore.Key) (*dataset.Dataset, error) {
 	return nil, datastore.ErrNotFound
 }
 
+// DeleteDataset removes a dataset from the store
 func (r Datasets) DeleteDataset(path datastore.Key) error {
 	ds, err := r.datasets()
 	if err != nil {
@@ -74,6 +80,7 @@ func (r Datasets) DeleteDataset(path datastore.Key) error {
 	return r.saveFile(ds, r.file)
 }
 
+// Query fetches a set of Dataset References from the store based on a set of query params
 func (r Datasets) Query(q query.Query) (query.Results, error) {
 	ds, err := r.datasets()
 	if err != nil {

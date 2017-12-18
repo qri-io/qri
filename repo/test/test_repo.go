@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+// NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "archive"}
 	p := &profile.Profile{
@@ -72,6 +73,7 @@ func pkgPath(paths ...string) string {
 	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)
 }
 
+// BadDataFile is a bunch of bad CSV data
 var BadDataFile = memfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
@@ -80,16 +82,19 @@ a
 's;f a'
 sdlfj asdf`))
 
+// BadDataFormatFile has weird line lengths
 var BadDataFormatFile = memfs.NewMemfileBytes("abc.csv", []byte(`
 "colA","colB","colC","colD"
 1,2,3,4
 1,2,3`))
 
+// BadStructureFile has double-named columns
 var BadStructureFile = memfs.NewMemfileBytes("badStructure.csv", []byte(`
 colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))
 
+// JobsByAutomationFile is real, valid data
 var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
@@ -123,6 +128,7 @@ var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_prob
 673,"0.98","27-4013","Radio Operators"
 `))
 
+// JobsByAutomationFile2 is a copy of JobsByAutomationFile
 // TODO - refactor to just give the raw data and a convenience method to create files
 // As these stand they can only be used once
 var JobsByAutomationFile2 = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title

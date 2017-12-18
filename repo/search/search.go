@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// Search searches this repo's bleve index
 func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
-
 	query := bleve.NewQueryStringQuery(p.Q)
 	search := bleve.NewSearchRequest(query)
 	//TODO: find better place to set default, and/or expose option
@@ -32,6 +32,7 @@ func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
 	return res, nil
 }
 
+// NewDatasetQuery generates a query for datastes from a query string, limit, and offset
 func NewDatasetQuery(q string, limit, offset int) query.Query {
 	return query.Query{
 		Filters: []query.Filter{
@@ -42,11 +43,13 @@ func NewDatasetQuery(q string, limit, offset int) query.Query {
 	}
 }
 
+// DatasetSearchFilter conforms to the bleve Filter interface
 type DatasetSearchFilter struct {
 	query   string
 	lowered string
 }
 
+// Filter filters entries that don't match
 func (f DatasetSearchFilter) Filter(e query.Entry) bool {
 	ds, ok := e.Value.(*dataset.Dataset)
 	if !ok {

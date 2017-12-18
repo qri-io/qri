@@ -21,11 +21,11 @@ func TestListParamsFromRequest(t *testing.T) {
 		urlStr string
 		res    ListParams
 	}{
-		{"abc.com/123/", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: 0}},
+		{"abc.com/123/", ListParams{Limit: DefaultPageSize, Offset: 0}},
 		{"abc.com/123/?pageSize=44&page=22", ListParams{Limit: 44, Offset: 924}},
-		{"abc.com/123/?pageSize=-44&page=22", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: (22 - 1) * DEFAULT_PAGE_SIZE}},
+		{"abc.com/123/?pageSize=-44&page=22", ListParams{Limit: DefaultPageSize, Offset: (22 - 1) * DefaultPageSize}},
 		{"abc.com/123/?pageSize=44&page=-22", ListParams{Limit: 44, Offset: 0}},
-		{"abc.com/123/?pageSize=pageSize&page=22", ListParams{Limit: DEFAULT_PAGE_SIZE, Offset: (22 - 1) * DEFAULT_PAGE_SIZE}},
+		{"abc.com/123/?pageSize=pageSize&page=22", ListParams{Limit: DefaultPageSize, Offset: (22 - 1) * DefaultPageSize}},
 		{"abc.com/123/?pageSize=44&page=abc", ListParams{Limit: 44, Offset: 0}},
 	}
 

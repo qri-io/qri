@@ -14,7 +14,7 @@ import (
 
 var r repo.Repo
 
-func GetRepo(online bool) repo.Repo {
+func getRepo(online bool) repo.Repo {
 	if r != nil {
 		return r
 	}
@@ -23,18 +23,18 @@ func GetRepo(online bool) repo.Repo {
 		ErrExit(fmt.Errorf("no qri repo found, please run `qri init`"))
 	}
 
-	fs := GetIpfsFilestore(online)
+	fs := getIpfsFilestore(online)
 	id := ""
 	if fs.Node().PeerHost != nil {
 		id = fs.Node().PeerHost.ID().Pretty()
 	}
 
-	r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
+	r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
 	ExitIfErr(err)
 	return r
 }
 
-func GetIpfsFilestore(online bool) *ipfs.Filestore {
+func getIpfsFilestore(online bool) *ipfs.Filestore {
 	fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
@@ -43,40 +43,39 @@ func GetIpfsFilestore(online bool) *ipfs.Filestore {
 	return fs
 }
 
-func DatasetRequests(online bool) (*core.DatasetRequests, error) {
-	r, cli, err := RepoOrClient(online)
+func datasetRequests(online bool) (*core.DatasetRequests, error) {
+	r, cli, err := repoOrClient(online)
 	if err != nil {
 		return nil, err
 	}
 	return core.NewDatasetRequests(r, cli), nil
 }
 
-func QueryRequests(online bool) (*core.QueryRequests, error) {
-	r, cli, err := RepoOrClient(online)
+func queryRequests(online bool) (*core.QueryRequests, error) {
+	r, cli, err := repoOrClient(online)
 	if err != nil {
 		return nil, err
 	}
 	return core.NewQueryRequests(r, cli), nil
 }
 
-func ProfileRequests(online bool) (*core.ProfileRequests, error) {
-	r, cli, err := RepoOrClient(online)
+func profileRequests(online bool) (*core.ProfileRequests, error) {
+	r, cli, err := repoOrClient(online)
 	if err != nil {
 		return nil, err
 	}
 	return core.NewProfileRequests(r, cli), nil
 }
 
-func SearchRequests(online bool) (*core.SearchRequests, error) {
-	r, cli, err := RepoOrClient(online)
+func searchRequests(online bool) (*core.SearchRequests, error) {
+	r, cli, err := repoOrClient(online)
 	if err != nil {
 		return nil, err
 	}
 	return core.NewSearchRequests(r, cli), nil
 }
 
-// RepoOrClient returns either a
-func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
+func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
@@ -86,7 +85,7 @@ func RepoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 			id = fs.Node().PeerHost.ID().Pretty()
 		}
 
-		r, err := fs_repo.NewRepo(fs, QriRepoPath, id)
+		r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {

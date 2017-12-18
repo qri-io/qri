@@ -7,8 +7,9 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// Profile defines peer profile details
 type Profile struct {
-	Id string `json:"id"`
+	ID string `json:"id"`
 	// Created timestamp
 	Created time.Time `json:"created,omitempty"`
 	// Updated timestamp
@@ -24,7 +25,7 @@ type Profile struct {
 	// user-filled description of self
 	Description string `json:"description"`
 	// url this user wants the world to click
-	HomeUrl string `json:"homeUrl"`
+	HomeURL string `json:"homeUrl"`
 	// color this user likes to use as their theme color
 	Color string `json:"color"`
 	// Thumb path for user's thumbnail
@@ -37,6 +38,7 @@ type Profile struct {
 	Twitter string `json:"twitter"`
 }
 
+// PeerID gives a peer.ID for this profile
 func (p *Profile) PeerID() (peer.ID, error) {
-	return peer.IDB58Decode(p.Id)
+	return peer.IDB58Decode(p.ID)
 }

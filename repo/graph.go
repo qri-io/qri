@@ -28,6 +28,7 @@ func HasPath(r Repo, path datastore.Key) (bool, error) {
 	return false, nil
 }
 
+// DatasetForQuery gives a corresponding dataset for a query path if one exists
 func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
 	nodes, err := r.Graph()
 	if err != nil {
@@ -43,10 +44,10 @@ func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
 	return datastore.NewKey(""), ErrNotFound
 }
 
-// RepoGraph generates a map of all paths on this repository pointing
+// Graph generates a map of all paths on this repository pointing
 // to dsgraph.Node structs with all links configured. This is potentially
 // expensive to calculate. Best to do some caching.
-func RepoGraph(r Repo) (map[string]*dsgraph.Node, error) {
+func Graph(r Repo) (map[string]*dsgraph.Node, error) {
 	nodes := NodeList{Nodes: map[string]*dsgraph.Node{}}
 	root := nodes.node(dsgraph.NtNamespace, "root")
 	mu := sync.Mutex{}
@@ -110,6 +111,7 @@ func DataNodes(nodes map[string]*dsgraph.Node) (ds map[string]bool) {
 	return
 }
 
+// NodeList is a collection of nodes
 type NodeList struct {
 	Nodes map[string]*dsgraph.Node
 }
@@ -175,7 +177,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 	return root
 }
 
-// WalkDatasets visits every dataset in the history of a user's namespace
+// WalkRepoDatasets visits every dataset in the history of a user's namespace
 // Yes, this potentially a very expensive function to call, use sparingly.
 func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) (bool, error)) error {
 	pll := walkParallelism

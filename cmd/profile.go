@@ -22,7 +22,7 @@ var profileGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "get profile info",
 	Run: func(cmd *cobra.Command, args []string) {
-		r, err := ProfileRequests(false)
+		r, err := profileRequests(false)
 		ExitIfErr(err)
 
 		in := true
@@ -32,7 +32,7 @@ var profileGetCmd = &cobra.Command{
 
 		data, err := json.MarshalIndent(res, "", "  ")
 		ExitIfErr(err)
-		PrintSuccess(string(data))
+		printSuccess(string(data))
 	},
 }
 
@@ -45,7 +45,7 @@ var profileSetCmd = &cobra.Command{
 			err      error
 		)
 
-		r, err := ProfileRequests(false)
+		r, err := profileRequests(false)
 		ExitIfErr(err)
 
 		dataFile, err = loadFileIfPath(setProfileFilepath)
@@ -61,7 +61,7 @@ var profileSetCmd = &cobra.Command{
 
 		data, err := json.MarshalIndent(res, "", "  ")
 		ExitIfErr(err)
-		PrintSuccess(string(data))
+		printSuccess(string(data))
 	},
 }
 

@@ -16,7 +16,7 @@ var (
 	addDsFilepath     string
 	addDsMetaFilepath string
 	addDsName         string
-	addDsUrl          string
+	addDsURL          string
 	addDsPassive      bool
 )
 
@@ -34,7 +34,7 @@ var datasetAddCmd = &cobra.Command{
 				ErrExit(fmt.Errorf("please provide a --name"))
 			}
 
-			req, err := DatasetRequests(false)
+			req, err := datasetRequests(false)
 			ExitIfErr(err)
 
 			root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
@@ -46,7 +46,7 @@ var datasetAddCmd = &cobra.Command{
 			err = req.AddDataset(p, res)
 			ExitIfErr(err)
 
-			PrintInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
+			printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
 		} else {
 			initDataset()
 		}
@@ -59,7 +59,7 @@ func initDataset() {
 		err                error
 	)
 
-	if addDsFilepath == "" && addDsUrl == "" {
+	if addDsFilepath == "" && addDsURL == "" {
 		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
 	} else if addDsName == "" {
 		ErrExit(fmt.Errorf("please provide a --name"))
@@ -70,12 +70,12 @@ func initDataset() {
 	metaFile, err = loadFileIfPath(addDsMetaFilepath)
 	ExitIfErr(err)
 
-	req, err := DatasetRequests(false)
+	req, err := datasetRequests(false)
 	ExitIfErr(err)
 
 	p := &core.InitDatasetParams{
 		Name:         addDsName,
-		Url:          addDsUrl,
+		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
 	}
 
@@ -92,12 +92,12 @@ func initDataset() {
 	err = req.InitDataset(p, ref)
 	ExitIfErr(err)
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
-	PrintSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
+	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
 }
 
 func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsName, "name", "n", "", "name to give dataset")
-	datasetAddCmd.Flags().StringVarP(&addDsUrl, "url", "u", "", "url to file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url to file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "file", "f", "", "data file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "m", "", "dataset metadata file")
 	datasetAddCmd.Flags().BoolVarP(&addDsPassive, "passive", "p", false, "disable interactive init")

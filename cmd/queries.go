@@ -14,7 +14,7 @@ var queriesCmd = &cobra.Command{
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			req, err := QueryRequests(false)
+			req, err := queryRequests(false)
 			ExitIfErr(err)
 			p := core.NewListParams("-created", pageNum, pageSize)
 
@@ -23,7 +23,7 @@ var queriesCmd = &cobra.Command{
 			ExitIfErr(err)
 
 			for i, q := range res {
-				PrintQuery(i, q)
+				printQuery(i, q)
 			}
 		}
 	},

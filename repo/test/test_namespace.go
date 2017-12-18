@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func RunTestNamespace(r repo.Repo) error {
+func runTestNamespace(r repo.Repo) error {
 	for _, test := range []RepoTestFunc{
 		testBlankName,
 		testNames,
