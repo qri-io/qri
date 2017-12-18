@@ -12,7 +12,7 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/jstemmer/go-junit-report
+      - run: go get github.com/jstemmer/go-junit-report github.com/golang/lint/golint
       - run: 
           name: Run Lint Tests
           command: golint ./...
