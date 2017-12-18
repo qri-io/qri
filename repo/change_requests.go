@@ -25,17 +25,17 @@ type ChangeRequestStore interface {
 }
 
 const (
-	// open change requests haven't been addressed yet
+	// ChangeRequestStatusOpen is a request that hasn't been addressed yet
 	ChangeRequestStatusOpen = "open"
-	// accepted change requests have been merged into
+	// ChangeRequestStatusAccepted have been merged into
 	// the target history
 	ChangeRequestStatusAccepted = "accepted"
-	// declined change requests will not be merged into
+	// ChangeRequestStatusDeclined will not be merged into
 	// the target history
 	ChangeRequestStatusDeclined = "declined"
 )
 
-// ChangeRequests are proposed additions to the history of a given dataset
+// ChangeRequest is one or more proposed additions to the history of a given dataset
 type ChangeRequest struct {
 	// status of this request. one of: open,accepted,declined
 	Status string `json:"status"`
@@ -54,7 +54,7 @@ type ChangeRequest struct {
 	Change *dataset.Dataset `json:"change"`
 }
 
-// accept an open change request, advancing the name of the dataset
+// AcceptChangeRequest accepts an open change request, advancing the name of the dataset
 // that refer to the target path to the newly-added history
 func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
 	cr, err := r.GetChangeRequest(path)
@@ -97,7 +97,7 @@ func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
 	return nil
 }
 
-// decline an open change request
+// DeclineChangeRequest refuses an open change request
 func DeclineChangeRequest(r Repo, path datastore.Key) error {
 	cr, err := r.GetChangeRequest(path)
 	if err != nil {

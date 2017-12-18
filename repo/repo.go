@@ -1,4 +1,4 @@
-// Repo represents a repository of qri information
+// Package repo represents a repository of qri information
 // Analogous to a git repository, repo expects a rigid structure
 // filled with rich types specific to qri.
 // Lots of things in here take inspiration from the ipfs datastore interface:
@@ -19,13 +19,13 @@ import (
 )
 
 var (
-	// implementers should return this variable when stuff isn't found
+	// ErrNotFound is the err implementers should return when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
-	// when a name is missing-but-expected
+	// ErrNameRequired is for when a name is missing-but-expected
 	ErrNameRequired = fmt.Errorf("repo: name is required")
-	// when a Namestore name is already taken
+	// ErrNameTaken is for when a Namestore name is already taken
 	ErrNameTaken = fmt.Errorf("repo: name already in use")
-	// when the repo has no datasets
+	// ErrRepoEmpty is for when the repo has no datasets
 	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
 )
 
@@ -74,8 +74,9 @@ type Repo interface {
 	Analytics() analytics.Analytics
 }
 
-// Namespace is an in-progress solution for aliasing
-// datasets locally
+// Namestore is an in-progress solution for aliasing
+// datasets locally, it's an interface for storing & retrieving
+// datasets by local names
 type Namestore interface {
 	PutName(name string, path datastore.Key) error
 	GetPath(name string) (datastore.Key, error)
@@ -85,7 +86,7 @@ type Namestore interface {
 	NameCount() (int, error)
 }
 
-// Dataset store is the minimum interface to act as a store of datasets.
+// Datasets is the minimum interface to act as a store of datasets.
 // It's intended to look a *lot* like the ipfs datastore interface, but
 // scoped only to datasets to make for easier consumption.
 // Datasets stored here should be reasonably dereferenced to avoid
@@ -106,6 +107,7 @@ type Datasets interface {
 	Query(query.Query) (query.Results, error)
 }
 
+// QueryLogItem is a list of details for logging a query
 type QueryLogItem struct {
 	Query       string
 	Name        string

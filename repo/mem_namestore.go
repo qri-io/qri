@@ -9,6 +9,7 @@ import (
 // MemNamestore is an in-memory implementation of the Namestore interface
 type MemNamestore []*DatasetRef
 
+// PutName adds a name to the namestore
 func (r *MemNamestore) PutName(name string, path datastore.Key) error {
 	for _, ref := range *r {
 		if ref.Name == name {
@@ -26,6 +27,7 @@ func (r *MemNamestore) PutName(name string, path datastore.Key) error {
 	return nil
 }
 
+// GetPath returns the path associated with a given name
 func (r MemNamestore) GetPath(name string) (datastore.Key, error) {
 	for _, ref := range r {
 		if ref.Name == name {
@@ -35,6 +37,7 @@ func (r MemNamestore) GetPath(name string) (datastore.Key, error) {
 	return datastore.NewKey(""), ErrNotFound
 }
 
+// GetName returns the name for a given path in the store
 func (r MemNamestore) GetName(path datastore.Key) (string, error) {
 	for _, ref := range r {
 		if ref.Path.Equal(path) {
@@ -44,6 +47,7 @@ func (r MemNamestore) GetName(path datastore.Key) (string, error) {
 	return "", ErrNotFound
 }
 
+// DeleteName removes a name from the store
 func (r MemNamestore) DeleteName(name string) error {
 	for i, ref := range r {
 		if ref.Name == name {
@@ -54,6 +58,7 @@ func (r MemNamestore) DeleteName(name string) error {
 	return ErrNotFound
 }
 
+// Namespace grabs a set of names from the Store's namespace
 func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
 	res := make([]*DatasetRef, limit)
 	for i, ref := range r {
@@ -71,6 +76,7 @@ func (r MemNamestore) Namespace(limit, offset int) ([]*DatasetRef, error) {
 	return res[:len(r)-offset], nil
 }
 
+// NameCount returns the total number of names in the store
 func (r MemNamestore) NameCount() (int, error) {
 	return len(r), nil
 }
