@@ -16,12 +16,6 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-func NewDatasetHandlers(log logging.Logger, r repo.Repo) *DatasetHandlers {
-	req := core.NewDatasetRequests(r, nil)
-	h := DatasetHandlers{*req, log, r}
-	return &h
-}
-
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	core.DatasetRequests
@@ -29,6 +23,14 @@ type DatasetHandlers struct {
 	repo repo.Repo
 }
 
+// NewDatasetHandlers allocates a DatasetHandlers pointer
+func NewDatasetHandlers(log logging.Logger, r repo.Repo) *DatasetHandlers {
+	req := core.NewDatasetRequests(r, nil)
+	h := DatasetHandlers{*req, log, r}
+	return &h
+}
+
+// DatasetsHandler is a dataset list endpoint
 func (h *DatasetHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -44,6 +46,7 @@ func (h *DatasetHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// DatasetHandler is a dataset single endpoint
 func (h *DatasetHandlers) DatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -59,6 +62,7 @@ func (h *DatasetHandlers) DatasetHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// InitDatasetHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) InitDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -70,6 +74,7 @@ func (h *DatasetHandlers) InitDatasetHandler(w http.ResponseWriter, r *http.Requ
 	}
 }
 
+// StructuredDataHandler is the data endpoint for a dataset
 func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -81,6 +86,7 @@ func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
+// AddDatasetHandler is the endpoint for adding an existing dataset to this repo
 func (h *DatasetHandlers) AddDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -92,6 +98,7 @@ func (h *DatasetHandlers) AddDatasetHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// RenameDatasetHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "POST", "PUT":
@@ -101,6 +108,7 @@ func (h *DatasetHandlers) RenameDatasetHandler(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	args := &core.GetDatasetParams{
@@ -149,18 +157,18 @@ func (h *DatasetHandlers) getDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 func (h *DatasetHandlers) initDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.InitDatasetParams{}
-	if r.Header.Get("Content-Type") == "application/json" {
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
 		json.NewDecoder(r.Body).Decode(p)
-	} else {
+	default:
 		var f cafs.File
 		infile, header, err := r.FormFile("file")
 		if err != nil && err != http.ErrMissingFile {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
-		} else {
-			f = memfs.NewMemfileReader(header.Filename, infile)
 		}
 
+		f = memfs.NewMemfileReader(header.Filename, infile)
 		p = &core.InitDatasetParams{
 			URL:          r.FormValue("url"),
 			Name:         r.FormValue("name"),

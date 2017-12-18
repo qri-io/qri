@@ -16,12 +16,14 @@ type HistoryHandlers struct {
 	log logging.Logger
 }
 
+// NewHistoryHandlers allocates a HistoryHandlers pointer
 func NewHistoryHandlers(log logging.Logger, r repo.Repo) *HistoryHandlers {
 	req := core.NewHistoryRequests(r, nil)
 	h := HistoryHandlers{*req, log}
 	return &h
 }
 
+// LogHandler is the endpoint for dataset logs
 func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":

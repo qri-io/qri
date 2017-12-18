@@ -16,12 +16,14 @@ type ProfileHandlers struct {
 	log logging.Logger
 }
 
+// NewProfileHandlers allocates a ProfileHandlers pointer
 func NewProfileHandlers(log logging.Logger, r repo.Repo) *ProfileHandlers {
 	req := core.NewProfileRequests(r, nil)
 	h := ProfileHandlers{*req, log}
 	return &h
 }
 
+// ProfileHandler is the endpoint for this peer's profile
 func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -61,6 +63,7 @@ func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Requ
 	util.WriteResponse(w, res)
 }
 
+// SetProfilePhotoHandler is the endpoint for uploading this peer's profile photo
 func (h *ProfileHandlers) SetProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -99,6 +102,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 	util.WriteResponse(w, res)
 }
 
+// SetPosterHandler is the endpoint for uploading this peer's poster photo
 func (h *ProfileHandlers) SetPosterHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":

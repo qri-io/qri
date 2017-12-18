@@ -16,11 +16,13 @@ type SearchHandlers struct {
 	log logging.Logger
 }
 
+// NewSearchHandlers allocates a SearchHandlers pointer
 func NewSearchHandlers(log logging.Logger, r repo.Repo) *SearchHandlers {
 	req := core.NewSearchRequests(r, nil)
 	return &SearchHandlers{*req, log}
 }
 
+// SearchHandler is the endpoint for searching qri
 func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":

@@ -13,18 +13,20 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-func NewPeerHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *PeerHandlers {
-	req := core.NewPeerRequests(node, nil)
-	h := PeerHandlers{*req, log}
-	return &h
-}
-
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
 type PeerHandlers struct {
 	core.PeerRequests
 	log logging.Logger
 }
 
+// NewPeerHandlers allocates a PeerHandlers pointer
+func NewPeerHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *PeerHandlers {
+	req := core.NewPeerRequests(node, nil)
+	h := PeerHandlers{*req, log}
+	return &h
+}
+
+// PeersHandler is the endpoint for fetching peers
 func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -36,6 +38,7 @@ func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PeerHandler is the endpoint for fetching a peer
 func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -47,6 +50,7 @@ func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PeerNamespaceHandler is the endpoint for fetching a peer's datasets
 func (h *PeerHandlers) PeerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -58,6 +62,7 @@ func (h *PeerHandlers) PeerNamespaceHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
+// ConnectToPeerHandler is the endpoint for explicitly connecting to a peer
 func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -69,12 +74,13 @@ func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Reque
 	}
 }
 
-func (d *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
+// ConnectionsHandler is the endpoint for listing qri & IPFS connections
+func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		d.listConnectionsHandler(w, r)
+		h.listConnectionsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
