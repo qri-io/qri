@@ -11,13 +11,14 @@ import (
 
 // ErrExit writes an error to stdout & exits
 func ErrExit(err error) {
-	PrintErr(err)
+	printErr(err)
 	os.Exit(1)
 }
 
+// ExitIfErr panics if an error is present
 func ExitIfErr(err error) {
 	if err != nil {
-		// PrintErr(err)
+		// printErr(err)
 		panic(err)
 		os.Exit(1)
 	}

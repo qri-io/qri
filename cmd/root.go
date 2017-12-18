@@ -12,7 +12,10 @@ import (
 var cfgFile string
 
 var (
-	QriRepoPath, IpfsFsPath string
+	// QriRepoPath is the path to the QRI repository
+	QriRepoPath string
+	// IpfsFsPath is the path to the IPFS repo
+	IpfsFsPath string
 )
 
 // global pagination variables
@@ -36,7 +39,7 @@ var RootCmd = &cobra.Command{
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
 	if err := RootCmd.Execute(); err != nil {
-		PrintErr(err)
+		printErr(err)
 		os.Exit(-1)
 	}
 }
@@ -65,7 +68,7 @@ func initializeCLI() {
 	}
 	IpfsFsPath = strings.Replace(IpfsFsPath, "~", home, 1)
 
-	SetNoColor()
+	setNoColor()
 	loadConfig()
 	return
 }

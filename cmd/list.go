@@ -20,7 +20,7 @@ var datasetListCmd = &cobra.Command{
 	Long:    ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO - add limit & offset params
-		r, err := DatasetRequests(false)
+		r, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		p := &core.ListParams{
@@ -35,7 +35,7 @@ var datasetListCmd = &cobra.Command{
 		switch outformat {
 		case "":
 			for _, ref := range refs {
-				PrintInfo("%s\t\t\t: %s", ref.Name, ref.Path)
+				printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
 			}
 		case dataset.JSONDataFormat.String():
 			data, err := json.MarshalIndent(refs, "", "  ")

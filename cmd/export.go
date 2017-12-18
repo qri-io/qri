@@ -29,7 +29,7 @@ var exportCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please specify an output path"))
 		}
 
-		r := GetRepo(false)
+		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
 
 		p := &core.GetDatasetParams{

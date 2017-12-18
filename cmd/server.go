@@ -49,7 +49,7 @@ var serverCmd = &cobra.Command{
 				&analytics.Memstore{})
 			ExitIfErr(err)
 		} else {
-			r = GetRepo(true)
+			r = getRepo(true)
 		}
 
 		s, err := api.New(r, func(cfg *api.Config) {
@@ -71,7 +71,7 @@ var serverCmd = &cobra.Command{
 // by grabbing them from the network.
 // eg.defaultDatasets, user profile photos & posters
 func initializeDistributedAssets(node *p2p.QriNode) {
-	cfg, err := ReadConfigFile()
+	cfg, err := readConfigFile()
 	if err != nil || cfg.Initialized {
 		return
 	}
@@ -122,7 +122,7 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 	}
 
 	cfg.Initialized = true
-	if err = WriteConfigFile(cfg); err != nil {
+	if err = writeConfigFile(cfg); err != nil {
 		fmt.Printf("error writing config file: %s", err.Error())
 	}
 

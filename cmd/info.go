@@ -34,7 +34,7 @@ var infoCmd = &cobra.Command{
 			}
 		}
 
-		req, err := DatasetRequests(false)
+		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		for i, arg := range args {
@@ -50,7 +50,7 @@ var infoCmd = &cobra.Command{
 			err := req.Get(p, res)
 			ExitIfErr(err)
 			if outformat == "" {
-				PrintDatasetRefInfo(i, res)
+				printDatasetRefInfo(i, res)
 			} else {
 				data, err := json.MarshalIndent(res.Dataset, "", "  ")
 				ExitIfErr(err)

@@ -19,7 +19,7 @@ var datasetRemoveCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
 		}
 
-		req, err := DatasetRequests(false)
+		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		for _, arg := range args {
@@ -34,7 +34,7 @@ var datasetRemoveCmd = &cobra.Command{
 			res := false
 			err := req.Delete(p, &res)
 			ExitIfErr(err)
-			PrintSuccess("removed dataset %s", ref)
+			printSuccess("removed dataset %s", ref)
 		}
 	},
 }

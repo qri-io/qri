@@ -20,7 +20,7 @@ var bootstrapListCmd = &cobra.Command{
 	Run: func(cmd *cobra.Command, args []string) {
 		list := viper.GetStringSlice("bootstrap")
 		for _, i := range list {
-			PrintInfo("%s\n", i)
+			printInfo("%s\n", i)
 		}
 	},
 }
@@ -33,7 +33,7 @@ var boostrapAddCmd = &cobra.Command{
 		ExitIfErr(err)
 		addrs := append(viper.GetStringSlice("bootstrap"), args...)
 		// TODO - fix!!!
-		WriteConfigFile(&Config{Bootstrap: addrs})
+		writeConfigFile(&Config{Bootstrap: addrs})
 	},
 }
 
@@ -51,7 +51,7 @@ var boostrapRmCmd = &cobra.Command{
 			}
 		}
 		// TODO - fix!!!
-		WriteConfigFile(&Config{Bootstrap: addrs})
+		writeConfigFile(&Config{Bootstrap: addrs})
 	},
 }
 

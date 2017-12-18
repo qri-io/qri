@@ -16,7 +16,7 @@ var (
 	validateDsFilepath     string
 	validateDsMetaFilepath string
 	validateDsName         string
-	validateDsUrl          string
+	validateDsURL          string
 	validateDsPassive      bool
 )
 
@@ -29,7 +29,7 @@ and check each of it's rows against the constraints listed
 in the dataset's fields.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
-			req, err := DatasetRequests(false)
+			req, err := datasetRequests(false)
 			ExitIfErr(err)
 
 			for _, arg := range args {
@@ -54,7 +54,7 @@ in the dataset's fields.`,
 				// 	PrintSuccess("✔ All good!")
 				// }
 
-				PrintSuccess("✔ All good!")
+				printSuccess("✔ All good!")
 			}
 
 		} else {
@@ -69,7 +69,7 @@ func validateDataset() {
 		err                error
 	)
 
-	if validateDsFilepath == "" && validateDsUrl == "" {
+	if validateDsFilepath == "" && validateDsURL == "" {
 		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
 	} else if validateDsName == "" {
 		ErrExit(fmt.Errorf("please provide a --name"))
@@ -80,12 +80,12 @@ func validateDataset() {
 	metaFile, err = loadFileIfPath(validateDsMetaFilepath)
 	ExitIfErr(err)
 
-	req, err := DatasetRequests(false)
+	req, err := datasetRequests(false)
 	ExitIfErr(err)
 
 	p := &core.ValidateDatasetParams{
 		Name:         validateDsName,
-		URL:          validateDsUrl,
+		URL:          validateDsURL,
 		DataFilename: filepath.Base(validateDsFilepath),
 	}
 
@@ -110,12 +110,12 @@ func validateDataset() {
 	// 	PrintSuccess("✔ All good!")
 	// }
 
-	PrintSuccess("✔ All good!")
+	printSuccess("✔ All good!")
 }
 
 func init() {
 	validateCmd.Flags().StringVarP(&validateDsName, "name", "n", "", "name to give dataset")
-	validateCmd.Flags().StringVarP(&validateDsUrl, "url", "u", "", "url to file to initialize from")
+	validateCmd.Flags().StringVarP(&validateDsURL, "url", "u", "", "url to file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsFilepath, "file", "f", "", "data file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsMetaFilepath, "meta", "m", "", "dataset metadata file")
 	validateCmd.Flags().BoolVarP(&validateDsPassive, "passive", "p", false, "disable interactive init")

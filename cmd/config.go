@@ -71,7 +71,7 @@ var configGetCommand = &cobra.Command{
 	Use:   "get",
 	Short: "Show a configuration setting",
 	Run: func(cmd *cobra.Command, args []string) {
-		PrintNotYetFinished(cmd)
+		printNotYetFinished(cmd)
 	},
 }
 
@@ -79,7 +79,7 @@ var configSetCommand = &cobra.Command{
 	Use:   "set",
 	Short: "Set a configuration option",
 	Run: func(cmd *cobra.Command, args []string) {
-		PrintNotYetFinished(cmd)
+		printNotYetFinished(cmd)
 	},
 }
 
@@ -91,7 +91,7 @@ func configFilepath() string {
 	return filepath.Join(QriRepoPath, "config.yaml")
 }
 
-func ReadConfigFile() (*Config, error) {
+func readConfigFile() (*Config, error) {
 	data, err := ioutil.ReadFile(configFilepath())
 	if err != nil {
 		return nil, err
@@ -101,7 +101,7 @@ func ReadConfigFile() (*Config, error) {
 	return &cfg, err
 }
 
-func WriteConfigFile(cfg *Config) error {
+func writeConfigFile(cfg *Config) error {
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err

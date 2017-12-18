@@ -34,7 +34,7 @@ var updateCmd = &cobra.Command{
 			err      error
 		)
 		if updateMessage == "" {
-			updateMessage = InputText("commit message:", "")
+			updateMessage = inputText("commit message:", "")
 		}
 
 		var datapath string
@@ -46,7 +46,7 @@ var updateCmd = &cobra.Command{
 			ErrExit(fmt.Errorf("either a metadata or data option is required"))
 		}
 
-		req, err := DatasetRequests(false)
+		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		p := &core.GetDatasetParams{
@@ -83,7 +83,7 @@ var updateCmd = &cobra.Command{
 		res := &repo.DatasetRef{}
 		err = req.Update(update, res)
 		ExitIfErr(err)
-		PrintSuccess("dataset updated:", res.Path)
+		printSuccess("dataset updated:", res.Path)
 	},
 }
 
