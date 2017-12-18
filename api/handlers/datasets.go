@@ -162,7 +162,7 @@ func (h *DatasetHandlers) initDatasetHandler(w http.ResponseWriter, r *http.Requ
 		}
 
 		p = &core.InitDatasetParams{
-			Url:          r.FormValue("url"),
+			URL:          r.FormValue("url"),
 			Name:         r.FormValue("name"),
 			DataFilename: header.Filename,
 			Data:         f,

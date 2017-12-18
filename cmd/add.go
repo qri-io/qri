@@ -75,7 +75,7 @@ func initDataset() {
 
 	p := &core.InitDatasetParams{
 		Name:         addDsName,
-		Url:          addDsUrl,
+		URL:          addDsUrl,
 		DataFilename: filepath.Base(addDsFilepath),
 	}
 

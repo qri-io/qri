@@ -6,8 +6,12 @@ import (
 	util "github.com/datatogether/api/apiutil"
 )
 
-const DEFAULT_PAGE_SIZE = 100
+// DefaultPageSize is the max number of items in a page if no
+// Limit param is provided to a paginated method
+const DefaultPageSize = 100
 
+// GetParams defines parameters for User-Oriented Get methods
+// TODO - should be renamed to GetUserParams
 type GetParams struct {
 	Username string
 	Name     string
@@ -30,7 +34,7 @@ func NewListParams(orderBy string, page, pageSize int) ListParams {
 		page = 1
 	}
 	if pageSize <= 0 {
-		pageSize = DEFAULT_PAGE_SIZE
+		pageSize = DefaultPageSize
 	}
 	return ListParams{
 		Limit:  pageSize,
@@ -55,7 +59,7 @@ func (lp ListParams) Page() util.Page {
 	var number, size int
 	size = lp.Limit
 	if size <= 0 {
-		size = DEFAULT_PAGE_SIZE
+		size = DefaultPageSize
 	}
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)

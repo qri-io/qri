@@ -85,7 +85,7 @@ func validateDataset() {
 
 	p := &core.ValidateDatasetParams{
 		Name:         validateDsName,
-		Url:          validateDsUrl,
+		URL:          validateDsUrl,
 		DataFilename: filepath.Base(validateDsFilepath),
 	}
 

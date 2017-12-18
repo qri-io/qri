@@ -19,9 +19,9 @@ type Requests interface {
 
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of core methods
-func Receivers(node *p2p.QriNode) []CoreRequests {
+func Receivers(node *p2p.QriNode) []Requests {
 	r := node.Repo
-	return []CoreRequests{
+	return []Requests{
 		NewDatasetRequests(r, nil),
 		NewHistoryRequests(r, nil),
 		NewPeerRequests(node, nil),

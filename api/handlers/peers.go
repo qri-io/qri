@@ -142,7 +142,7 @@ func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 func (h *PeerHandlers) peerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
 	listParams := core.ListParamsFromRequest(r)
 	args := &core.NamespaceParams{
-		PeerId: r.URL.Path[len("/peernamespace/"):],
+		PeerID: r.URL.Path[len("/peernamespace/"):],
 		Limit:  listParams.Limit,
 		Offset: listParams.Offset,
 	}
