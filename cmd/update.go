@@ -74,7 +74,7 @@ var updateCmd = &cobra.Command{
 		}
 
 		update.Changes.Commit.Assign(&dataset.CommitMsg{
-			Author:  &dataset.User{ID: author.Id, Email: author.Email},
+			Author:  &dataset.User{ID: author.ID, Email: author.Email},
 			Title:   updateTitle,
 			Message: updateMessage,
 		})

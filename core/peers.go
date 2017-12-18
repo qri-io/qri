@@ -60,7 +60,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 		if i >= p.Limit {
 			break
 		}
-		if peer.Id == user.Id {
+		if peer.ID == user.ID {
 			continue
 		}
 		replies[i] = peer

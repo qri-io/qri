@@ -114,7 +114,7 @@ func (r *Repo) SaveProfile(p *profile.Profile) error {
 func ensureProfile(bp basepath, id string) error {
 	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
 		return bp.saveFile(&profile.Profile{
-			Id:       id,
+			ID:       id,
 			Username: doggos.DoggoNick(id),
 		}, FileProfile)
 	}
@@ -132,10 +132,10 @@ func ensureProfile(bp basepath, id string) error {
 		return fmt.Errorf("error unmarshaling profile: %s", err.Error())
 	}
 
-	if p.Id != id {
-		p.Id = id
+	if p.ID != id {
+		p.ID = id
 		if p.Username == "" {
-			p.Username = doggos.DoggoNick(p.Id)
+			p.Username = doggos.DoggoNick(p.ID)
 		}
 		bp.saveFile(p, FileProfile)
 	}
@@ -184,7 +184,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 
 // UpdateSearchIndex refreshes this repos search index
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
-	return search.IndexRepo(store, r, r.index)
+	return search.IndexRepo(r, r.index)
 }
 
 // Peers returns this repo's Peers implementation

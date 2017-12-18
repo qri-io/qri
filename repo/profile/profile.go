@@ -40,5 +40,5 @@ type Profile struct {
 
 // PeerID gives a peer.ID for this profile
 func (p *Profile) PeerID() (peer.ID, error) {
-	return peer.IDB58Decode(p.Id)
+	return peer.IDB58Decode(p.ID)
 }
