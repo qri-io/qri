@@ -13,6 +13,9 @@ jobs:
       - checkout
       - run: mkdir -p $TEST_RESULTS
       - run: go get github.com/jstemmer/go-junit-report
+      - run: 
+          name: Run Lint Tests
+          command: golint ./...
       - run:
           name: Install non-gx deps
           command: make install-deps

@@ -1,3 +1,4 @@
+// Package logging is an interface package for logging stuff
 // put this file in one place for the entire server package & subpackages
 package logging
 
