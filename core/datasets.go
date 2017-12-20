@@ -104,7 +104,7 @@ func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	store := r.repo.Store()
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
-		return fmt.Errorf("error loading dataset: %s", err.Error())
+		return err
 	}
 
 	name := p.Name

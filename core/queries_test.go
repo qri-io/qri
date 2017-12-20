@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/qri-io/dataset/dsfs"
 	"testing"
 
@@ -119,7 +118,6 @@ func TestRun(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		} else if c.err == "" {
-			fmt.Println(got.Dataset.Structure.Schema.FieldNames())
 			if err := dataset.CompareDatasets(c.res.Dataset, got.Dataset); err != nil {
 				t.Errorf("case %d dataset mismatch: %s", i, err.Error())
 			}

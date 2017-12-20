@@ -303,7 +303,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		resCount int
 		err      string
 	}{
-		{&StructuredDataParams{}, 0, "error getting file bytes: datastore: key not found"},
+		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: 5, Offset: 0, All: false}, 5, ""},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, ""},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
