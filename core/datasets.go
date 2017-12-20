@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/varName"
 )
 
 // DatasetRequests encapsulates business logic for this node's
@@ -170,13 +171,14 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
 	// Ensure that dataset is well-formed
-	format, err := detect.ExtensionDataFormat(filename)
-	if err != nil {
-		return fmt.Errorf("error detecting format extension: %s", err.Error())
-	}
-	if err = validate.DataFormat(format, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("invalid data format: %s", err.Error())
-	}
+	// format, err := detect.ExtensionDataFormat(filename)
+	// if err != nil {
+	// 	return fmt.Errorf("error detecting format extension: %s", err.Error())
+	// }
+	// if err = validate.DataFormat(format, bytes.NewReader(data)); err != nil {
+	// 	return fmt.Errorf("invalid data format: %s", err.Error())
+	// }
+
 	st, err := detect.FromReader(filename, bytes.NewReader(data))
 	if err != nil {
 		return fmt.Errorf("error determining dataset schema: %s", err.Error())
@@ -190,9 +192,6 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	}
 
 	// TODO - check for errors in dataset and warn user if errors exist
-	// if _, _, err := validate.DataFor(dsio.NewRowReader(st, bytes.NewReader(data))); err != nil {
-	// 	return fmt.Errorf("data is invalid")
-	// }
 
 	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), false)
 	if err != nil {
@@ -209,7 +208,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 
 	name := p.Name
 	if name == "" && filename != "" {
-		name = detect.Camelize(filename)
+		name = varName.CreateVarNameFromString(filename)
 	}
 
 	ds := &dataset.Dataset{}
@@ -545,7 +544,6 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
 
-	// _, cleaned := dsfs.RefType(p.Hash)
 	key := datastore.NewKey(strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String()))
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
