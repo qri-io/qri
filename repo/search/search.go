@@ -57,8 +57,8 @@ func (f DatasetSearchFilter) Filter(e query.Entry) bool {
 	}
 
 	q := f.lowered
-	if strings.Contains(strings.ToLower(ds.Title), q) ||
-		strings.Contains(strings.ToLower(ds.Description), q) {
+	if strings.Contains(strings.ToLower(ds.Meta.Title), q) ||
+		strings.Contains(strings.ToLower(ds.Meta.Description), q) {
 		return true
 	}
 

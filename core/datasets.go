@@ -10,7 +10,6 @@ import (
 	"net/rpc"
 	"path/filepath"
 	"strings"
-	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -211,13 +210,13 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		name = varName.CreateVarNameFromString(filename)
 	}
 
-	ds := &dataset.Dataset{}
+	ds := &dataset.Dataset{Meta: &dataset.Meta{}}
 	if p.URL != "" {
-		ds.DownloadURL = p.URL
+		ds.Meta.DownloadPath = p.URL
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
 		// TODO - make this configurable via a param?
-		ds.AccrualPeriodicity = "R/P1W"
+		ds.Meta.AccrualPeriodicity = "R/P1W"
 	}
 	if p.Metadata != nil {
 		if err := json.NewDecoder(p.Metadata).Decode(ds); err != nil {
@@ -225,27 +224,10 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		}
 	}
 
-	ds.Timestamp = time.Now().In(time.UTC)
-	if ds.Title == "" {
-		ds.Title = name
-	}
-	ds.Data = datakey.String()
-	if ds.Structure == nil {
-		ds.Structure = &dataset.Structure{}
-	}
-	ds.Structure.Assign(st, ds.Structure)
-
-	if err := validate.Dataset(ds); err != nil {
-		return err
-	}
-
-	dskey, err := dsfs.SaveDataset(store, ds, true)
+	dataf := memfs.NewMemfileBytes("data."+st.Format.String(), data)
+	dskey, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
-		return fmt.Errorf("error saving dataset: %s", err.Error())
-	}
-
-	if err = r.repo.PutDataset(dskey, ds); err != nil {
-		return fmt.Errorf("error putting dataset in repo: %s", err.Error())
+		return err
 	}
 
 	if err = r.repo.PutName(name, dskey); err != nil {
@@ -281,11 +263,12 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	var (
 		name     string
 		prevpath datastore.Key
+		dataf    cafs.File
 	)
-	store := r.repo.Store()
+	// store := r.repo.Store()
 	ds := &dataset.Dataset{}
 
-	rt, ref := dsfs.RefType(p.Changes.Previous.String())
+	rt, ref := dsfs.RefType(p.Changes.PreviousPath)
 	// allows using dataset names as "previous" fields
 	if rt == "name" {
 		name = ref
@@ -308,37 +291,19 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 	// add all previous fields and any changes
 	ds.Assign(prev, p.Changes)
 
-	// store file if one is provided
-	if p.Data != nil {
-		data, err := ioutil.ReadAll(p.Data)
-		if err != nil {
-			return fmt.Errorf("error reading data: %s", err.Error())
-		}
-
-		path, err := store.Put(memfs.NewMemfileReader(p.DataFilename, p.Data), false)
-		if err != nil {
-			return fmt.Errorf("error putting data in store: %s", err.Error())
-		}
-
-		ds.Data = path.String()
-		ds.Length = len(data)
-	}
-
 	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
-		ds.Previous = datastore.NewKey(strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String()))
+		ds.PreviousPath = strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String())
 	} else {
-		ds.Previous = prevpath
+		ds.PreviousPath = prevpath.String()
 	}
 
-	if err := validate.Dataset(ds); err != nil {
-		return err
+	if p.Data != nil {
+		dataf = memfs.NewMemfileReader(p.DataFilename, p.Data)
 	}
 
-	// TODO - should this go into the save method?
-	ds.Timestamp = time.Now().In(time.UTC)
-	dspath, err := dsfs.SaveDataset(store, ds, true)
+	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
-		return fmt.Errorf("error saving dataset: %s", err.Error())
+		return err
 	}
 
 	if name != "" {

@@ -133,13 +133,13 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 
 	root.AddLinks(dsgraph.Link{
 		From: root,
-		To:   nl.node(dsgraph.NtData, ds.Data),
+		To:   nl.node(dsgraph.NtData, ds.DataPath),
 	})
 
-	if ds.Previous.String() != "/" {
+	if ds.PreviousPath != "" {
 		root.AddLinks(dsgraph.Link{
 			From: root,
-			To:   nl.node(dsgraph.NtDataset, ds.Previous.String()),
+			To:   nl.node(dsgraph.NtDataset, ds.PreviousPath),
 		})
 	}
 	if ds.Commit != nil && ds.Commit.Path().String() != "" {
@@ -220,8 +220,8 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			}
 
 			depth := 1
-			for ref.Dataset != nil && ref.Dataset.Previous.String() != "" && ref.Dataset.Previous.String() != "/" {
-				ref.Path = ref.Dataset.Previous
+			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" {
+				ref.Path = datastore.NewKey(ref.Dataset.PreviousPath)
 
 				// TODO - remove this horrible hack.
 				if r.Store().PathPrefix() == "ipfs" {

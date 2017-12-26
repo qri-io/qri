@@ -1,7 +1,16 @@
 {
-  "title": "example city data",
-  "timestamp": "2017-01-01T01:00:00.000Z",
+  "kind": "qri:ds:0",
+  "commit": {
+    "kind": "qri:cm:0",
+    "timestamp": "2017-01-01T01:00:00.000Z",
+    "title": "initial commit"
+  },
+  "meta": {
+    "kind": "qri:md:0",
+    "title": "example city data"
+  },
   "structure": {
+    "kind": "qri:st:0",
     "format": "csv",
     "formatConfig": {
       "headerRow": true

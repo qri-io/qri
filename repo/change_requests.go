@@ -66,21 +66,22 @@ func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
 	if err := r.PutChangeRequest(path, cr); err != nil {
 		return err
 	}
+	target := cr.Target.String()
 
 	// TODO - place all datasets related to this history chain in the store
-	ds := &dataset.Dataset{Previous: path}
+	ds := &dataset.Dataset{PreviousPath: path.String()}
 	for {
-		if ds.Previous.Equal(cr.Target) {
+		if ds.PreviousPath == target {
 			break
 		}
 		// datasets can sometimes resolve over the netowork, so this get / put
 		// combination is required
-		ds, err = r.GetDataset(ds.Previous)
+		ds, err = r.GetDataset(datastore.NewKey(ds.PreviousPath))
 		if err != nil {
 			return
 		}
 
-		if err = r.PutDataset(ds.Previous, ds); err != nil {
+		if err = r.PutDataset(datastore.NewKey(ds.PreviousPath), ds); err != nil {
 			return
 		}
 	}

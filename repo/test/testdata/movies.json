@@ -1,7 +1,16 @@
 {
-  "title": "example movie data",
-  "timestamp": "2017-03-01T01:00:00.000Z",
+  "kind": "qri:ds:0",
+  "meta": {
+    "kind": "qri:md:0",
+    "title": "example movie data"
+  },
+  "commit": {
+    "kind": "qri:cm:0",
+    "timestamp": "2017-03-01T01:00:00.000Z",
+    "title": "initial commit"
+  },
   "structure": {
+    "kind": "qri:st:0",
     "format": "csv",
     "formatConfig": {
       "headerRow": true

@@ -26,6 +26,12 @@ func NewDatasets(base string, file File, store cafs.Filestore) Datasets {
 	return Datasets{basepath: basepath(base), file: file, store: store}
 }
 
+// CreateDataset initializes a dataset from a dataset pointer and data file
+func (r Datasets) CreateDataset(ds *dataset.Dataset, data cafs.File) (path datastore.Key, err error) {
+
+	return
+}
+
 // PutDataset adds a dataset to the store
 func (r Datasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 	d, err := r.datasets()

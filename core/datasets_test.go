@@ -282,6 +282,8 @@ func TestDatasetRequestsDelete(t *testing.T) {
 }
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
+	// t.Skip("needs work")
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
@@ -305,11 +307,11 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 	}{
 		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, ""},
+		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
 		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 

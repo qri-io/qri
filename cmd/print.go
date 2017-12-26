@@ -63,15 +63,17 @@ func printDatasetRefInfo(i int, ref *repo.DatasetRef) {
 
 	fmt.Printf("%s  %s\n", cyan(i), white(ref.Name))
 	fmt.Printf("    %s\n", blue(ref.Path))
-	if ds.Title != "" {
-		fmt.Printf("    %s\n", white(ds.Title))
-	}
+	if ds != nil && ds.Meta != nil {
+		if ds.Meta.Title != "" {
+			fmt.Printf("    %s\n", white(ds.Meta.Title))
+		}
 
-	if ds.Description != "" {
-		if len(ds.Description) > 77 {
-			fmt.Printf("    %s...\n", white(ds.Description[:77]))
-		} else {
-			fmt.Printf("    %s\n", white(ds.Description))
+		if ds.Meta.Description != "" {
+			if len(ds.Meta.Description) > 77 {
+				fmt.Printf("    %s...\n", white(ds.Meta.Description[:77]))
+			} else {
+				fmt.Printf("    %s\n", white(ds.Meta.Description))
+			}
 		}
 	}
 

@@ -117,17 +117,17 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	if ds == nil {
 		return fmt.Errorf("dataset is required")
+	} else if ds.Transform == nil {
+		return fmt.Errorf("transform is required")
 	}
-
-	ds.Timestamp = time.Now()
 
 	q := ds.Transform
-	if q == nil {
-		q = &dataset.Transform{
-			Syntax: "sql",
-			Data:   ds.QueryString,
-		}
-	}
+	// if q == nil {
+	// 	q = &dataset.Transform{
+	// 		Syntax: "sql",
+	// 		Data:   ds.QueryString,
+	// 	}
+	// }
 
 	names, err := sql.StatementTableNames(q.Data)
 	if err != nil {
@@ -186,42 +186,42 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	// TODO - move this into setting on the dataset outparam
 	ds.Structure = q.Structure
-	ds.Length = len(results)
+	// ds.Length = len(results)
 	ds.Transform = q
-	ds.Abstract = dataset.Abstract(ds)
+	// ds.Abstract = dataset.Abstract(ds)
 	ds.AbstractTransform = abst
 
-	// convert abstract transform to abstract references
-	for name, ref := range ds.AbstractTransform.Resources {
-		// data, _ := ref.MarshalJSON()
-		// fmt.Println(string(data))
-		if ref.Abstract != nil {
-			ds.AbstractTransform.Resources[name] = ref.Abstract
-		} else {
+	// // convert abstract transform to abstract references
+	// for name, ref := range ds.AbstractTransform.Resources {
+	// 	// data, _ := ref.MarshalJSON()
+	// 	// fmt.Println(string(data))
+	// 	if ref.Abstract != nil {
+	// 		ds.AbstractTransform.Resources[name] = ref.Abstract
+	// 	} else {
+	// 		absf, err := dsfs.JSONFile(dsfs.PackageFileAbstract.String(), dataset.Abstract(ref))
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		path, err := store.Put(absf, true)
+	// 		if err != nil {
+	// 			return err
+	// 		}
+	// 		ds.AbstractTransform.Resources[name] = dataset.NewDatasetRef(path)
+	// 	}
+	// }
+	// datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
+	// if err != nil {
+	// 	return fmt.Errorf("error putting results in store: %s", err.Error())
+	// }
+	// ds.Data = datakey.String()
+	// dspath, err := dsfs.SaveDataset(store, ds, pin)
 
-			absf, err := dsfs.JSONFile(dsfs.PackageFileAbstract.String(), dataset.Abstract(ref))
-			if err != nil {
-				return err
-			}
-			path, err := store.Put(absf, true)
-			if err != nil {
-				return err
-			}
-			ds.AbstractTransform.Resources[name] = dataset.NewDatasetRef(path)
-		}
-	}
-
-	datakey, err := store.Put(memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results), false)
-	if err != nil {
-		return fmt.Errorf("error putting results in store: %s", err.Error())
-	}
-	ds.Data = datakey.String()
-
+	dataf := memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results)
 	pin := p.SaveName != ""
 
-	dspath, err := dsfs.SaveDataset(store, ds, pin)
+	dspath, err := r.repo.CreateDataset(ds, dataf, pin)
 	if err != nil {
-		return fmt.Errorf("error putting dataset in store: %s", err.Error())
+		return err
 	}
 
 	if p.SaveName != "" {
@@ -239,7 +239,7 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
 	item := &repo.QueryLogItem{
-		Query:       ds.QueryString,
+		Query:       ds.Transform.Data,
 		Name:        p.SaveName,
 		Key:         qrpath,
 		DatasetPath: dspath,
