@@ -7,7 +7,7 @@ import (
 
 func TestPing(t *testing.T) {
 	// t.Parallel()
-	// t.Skip("TestPing currently contains a race condition :/")
+	t.Skip("TestPing currently contains a race condition :/")
 
 	ntwk, err := NewTestNetwork()
 	if err != nil {
