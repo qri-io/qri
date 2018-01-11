@@ -3,6 +3,10 @@ package fsrepo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/ipfs/go-datastore"
+	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 
@@ -17,6 +21,7 @@ import (
 
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
+	pk    crypto.PrivKey
 	store cafs.Filestore
 	basepath
 	graph map[string]*dsgraph.Node
@@ -143,6 +148,12 @@ func ensureProfile(bp basepath, id string) error {
 	return nil
 }
 
+// SetPrivateKey sets an internal reference to the private key for this profile
+func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
+	r.pk = pk
+	return nil
+}
+
 // func (r *Repo) Peers() (map[string]*profile.Profile, error) {
 // 	p := map[string]*profile.Profile{}
 // 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
@@ -205,6 +216,11 @@ func (r *Repo) Analytics() analytics.Analytics {
 // SavePeers saves a set of peers to the repo
 func (r *Repo) SavePeers(p map[string]*profile.Profile) error {
 	return r.saveFile(p, FilePeers)
+}
+
+// CreateDataset initializes a dataset from a dataset pointer and data file
+func (r *Repo) CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
+	return dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
 }
 
 // Destroy destroys this repository

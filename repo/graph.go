@@ -133,13 +133,13 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 
 	root.AddLinks(dsgraph.Link{
 		From: root,
-		To:   nl.node(dsgraph.NtData, ds.Data),
+		To:   nl.node(dsgraph.NtData, ds.DataPath),
 	})
 
-	if ds.Previous.String() != "/" {
+	if ds.PreviousPath != "" {
 		root.AddLinks(dsgraph.Link{
 			From: root,
-			To:   nl.node(dsgraph.NtDataset, ds.Previous.String()),
+			To:   nl.node(dsgraph.NtDataset, ds.PreviousPath),
 		})
 	}
 	if ds.Commit != nil && ds.Commit.Path().String() != "" {
@@ -209,9 +209,13 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			if err != nil {
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
 			}
+			if err != nil {
+				err = fmt.Errorf("error loading dataset: %s", err.Error())
+			}
 
 			kontinue, err := visit(0, ref, err)
 			if err != nil {
+				err = fmt.Errorf("error visiting node: %s", err.Error())
 				done <- err
 				return err
 			}
@@ -220,8 +224,8 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			}
 
 			depth := 1
-			for ref.Dataset != nil && ref.Dataset.Previous.String() != "" && ref.Dataset.Previous.String() != "/" {
-				ref.Path = ref.Dataset.Previous
+			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
+				ref.Path = datastore.NewKey(ref.Dataset.PreviousPath)
 
 				// TODO - remove this horrible hack.
 				if r.Store().PathPrefix() == "ipfs" {
@@ -231,6 +235,10 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 				}
 
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				if err != nil {
+					done <- err
+					return err
+				}
 				kontinue, err = visit(depth, ref, err)
 				if err != nil {
 					done <- err
@@ -275,6 +283,9 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			}
 			if err != nil {
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
+			}
+			if err != nil {
+				err = fmt.Errorf("error loading query log item: %s: %s", item.DatasetPath, err.Error())
 			}
 
 			kontinue, err := visit(0, ref, err)

@@ -11,6 +11,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
+	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
@@ -29,10 +30,14 @@ var (
 	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
 )
 
-// Repo is the interface for working with a qri repository
-// conceptually, it's a more-specific version of a datastore.
+// Repo is the interface for working with a qri repository qri repos are stored
+// graph of resources:datasets, known peers, analytics data, change requests, etc.
+// Repos are connected to a single peer profile.
+// Repos must wrap an underlying cafs.Filestore, which
+// is intended to act as the canonical store of state across all peers
+// that this repo may interact with.
 type Repo interface {
-	// All repositories wrapp a content-addressed filestore as the cannonical
+	// All repositories wraps a content-addressed filestore as the cannonical
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.
 	Store() cafs.Filestore
@@ -45,6 +50,10 @@ type Repo interface {
 	// these aliases are then used in qri SQL statements. Names are *not*
 	// universally unique, but must be unique within the namestore
 	Namestore
+	// CreateDataset initializes a dataset from a dataset pointer and data file
+	// It's not part of the Datasets interface because creating a dataset requires
+	// access to this repos store & private key
+	CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error)
 	// Repos also serve as a store of dataset information.
 	// It's important that this store maintain sync with any underlying filestore.
 	// (which is why we might want to kill this in favor of just having a cache?)
@@ -60,6 +69,10 @@ type Repo interface {
 	Profile() (*profile.Profile, error)
 	// It must be possible to alter profile information.
 	SaveProfile(*profile.Profile) error
+	// SetPrivateKey sets an internal reference to the private key for this profile.
+	// PrivateKey is used to tie user actions to this profile. Repo implementations must
+	// never expose this private key once set.
+	SetPrivateKey(pk crypto.PrivKey) error
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	// TODO - should rename this to "profiles" to separate from the networking
@@ -76,7 +89,7 @@ type Repo interface {
 
 // Namestore is an in-progress solution for aliasing
 // datasets locally, it's an interface for storing & retrieving
-// datasets by local names
+// datasets by names local to the repository
 type Namestore interface {
 	PutName(name string, path datastore.Key) error
 	GetPath(name string) (datastore.Key, error)

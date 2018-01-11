@@ -2,7 +2,6 @@ package core
 
 import (
 	"encoding/json"
-	"fmt"
 	"github.com/qri-io/dataset/dsfs"
 	"testing"
 
@@ -106,10 +105,9 @@ func TestRun(t *testing.T) {
 		err string
 	}{
 		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{QueryString: "select * from movies limit 5"}}, &repo.DatasetRef{Dataset: moviesDs}, ""},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{Transform: &dataset.Transform{Syntax: "sql"}}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{Transform: &dataset.Transform{Syntax: "sql", Data: "select * from movies limit 5"}}}, &repo.DatasetRef{Dataset: moviesDs}, ""},
 		// TODO: add more tests
-
 	}
 	for i, c := range cases {
 		got := c.res
@@ -119,7 +117,6 @@ func TestRun(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		} else if c.err == "" {
-			fmt.Println(got.Dataset.Structure.Schema.FieldNames())
 			if err := dataset.CompareDatasets(c.res.Dataset, got.Dataset); err != nil {
 				t.Errorf("case %d dataset mismatch: %s", i, err.Error())
 			}
@@ -171,7 +168,10 @@ func TestDatasetQueries(t *testing.T) {
 	qres := &repo.DatasetRef{}
 	if err = req.Run(&RunParams{
 		Dataset: &dataset.Dataset{
-			QueryString: "select * from movies",
+			Transform: &dataset.Transform{
+				Syntax: "sql",
+				Data:   "select * from movies",
+			},
 		}}, qres); err != nil {
 		t.Errorf("error running query: %s", err.Error())
 		return

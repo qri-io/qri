@@ -10,6 +10,9 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
+
+	"github.com/libp2p/go-libp2p-crypto"
+	// gxcrypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 var r repo.Repo
@@ -30,6 +33,7 @@ func getRepo(online bool) repo.Repo {
 	}
 
 	r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
+	// r.SetPrivateKey(fs.Node().PrivateKey)
 	ExitIfErr(err)
 	return r
 }
@@ -86,6 +90,20 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		}
 
 		r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
+		if err := fs.Node().LoadPrivateKey(); err != nil {
+			return r, nil, err
+		}
+		pk := fs.Node().PrivateKey
+		data, err := pk.Bytes()
+		if err != nil {
+			return r, nil, err
+		}
+		pk2, err := crypto.UnmarshalPrivateKey(data)
+		if err != nil {
+			return r, nil, err
+		}
+
+		r.SetPrivateKey(pk2)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {

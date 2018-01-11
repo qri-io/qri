@@ -63,10 +63,10 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 		return nil, nil
 	}
 
-	filepath, err := filepath.Abs(path)
+	path, err = filepath.Abs(path)
 	if err != nil {
 		return nil, err
 	}
 
-	return os.Open(filepath)
+	return os.Open(path)
 }

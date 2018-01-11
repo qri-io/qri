@@ -73,12 +73,12 @@ var updateCmd = &cobra.Command{
 			update.Changes = changes
 		}
 
-		update.Changes.Commit.Assign(&dataset.CommitMsg{
+		update.Changes.Commit.Assign(&dataset.Commit{
 			Author:  &dataset.User{ID: author.ID, Email: author.Email},
 			Title:   updateTitle,
 			Message: updateMessage,
 		})
-		update.Changes.Previous = prev.Path
+		update.Changes.PreviousPath = prev.Path.String()
 
 		res := &repo.DatasetRef{}
 		err = req.Update(update, res)

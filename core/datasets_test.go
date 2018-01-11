@@ -16,7 +16,7 @@ import (
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
 	jobsByAutomationFile := testrepo.JobsByAutomationFile
-	jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
+	// jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
 	badDataFormatFile := testrepo.BadDataFormatFile
 	badStructureFile := testrepo.BadStructureFile
 
@@ -26,21 +26,21 @@ func TestDatasetRequestsInit(t *testing.T) {
 		err string
 	}{
 		{&InitDatasetParams{}, nil, "either a file or a url is required to create a dataset"},
-		{&InitDatasetParams{Data: badDataFile}, nil, "error detecting format extension: no file extension provided"},
-		{&InitDatasetParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "invalid data format: error reading first row of csv: EOF"},
+		{&InitDatasetParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
+		{&InitDatasetParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
 		// Ensure that DataFormat validation is being called
 		{&InitDatasetParams{DataFilename: badDataFormatFile.FileName(),
 			Data: badDataFormatFile}, nil, "invalid data format: error: inconsistent column length on line 2 of length 3 (rather than 4). ensure all csv columns same length"},
 		// Ensure that structure validation is being called
 		{&InitDatasetParams{DataFilename: badStructureFile.FileName(),
-			Data: badStructureFile}, nil, "invalid structure: error: cannot use the same name, 'colb' more than once"},
+			Data: badStructureFile}, nil, "invalid structure: schema: fields: error: cannot use the same name, 'col_b' more than once"},
 		// should reject invalid names
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
 			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// this should work
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that we can't double-add data
-		{&InitDatasetParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
+		// {&InitDatasetParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -282,6 +282,8 @@ func TestDatasetRequestsDelete(t *testing.T) {
 }
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
+	// t.Skip("needs work")
+
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
@@ -303,13 +305,10 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		resCount int
 		err      string
 	}{
-		{&StructuredDataParams{}, 0, "error getting file bytes: datastore: key not found"},
+		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
 		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 
