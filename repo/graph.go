@@ -209,9 +209,13 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			if err != nil {
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
 			}
+			if err != nil {
+				err = fmt.Errorf("error loading dataset: %s", err.Error())
+			}
 
 			kontinue, err := visit(0, ref, err)
 			if err != nil {
+				err = fmt.Errorf("error visiting node: %s", err.Error())
 				done <- err
 				return err
 			}
@@ -220,7 +224,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			}
 
 			depth := 1
-			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" {
+			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
 				ref.Path = datastore.NewKey(ref.Dataset.PreviousPath)
 
 				// TODO - remove this horrible hack.
@@ -231,6 +235,10 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 				}
 
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				if err != nil {
+					done <- err
+					return err
+				}
 				kontinue, err = visit(depth, ref, err)
 				if err != nil {
 					done <- err
@@ -275,6 +283,9 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			}
 			if err != nil {
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
+			}
+			if err != nil {
+				err = fmt.Errorf("error loading query log item: %s: %s", item.DatasetPath, err.Error())
 			}
 
 			kontinue, err := visit(0, ref, err)

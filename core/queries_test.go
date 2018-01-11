@@ -105,8 +105,8 @@ func TestRun(t *testing.T) {
 		err string
 	}{
 		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", nil}, &repo.DatasetRef{}, "dataset is required"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
-		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{Transform: &dataset.Transform{Data: "select * from movies limit 5"}}}, &repo.DatasetRef{Dataset: moviesDs}, ""},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{Transform: &dataset.Transform{Syntax: "sql"}}}, &repo.DatasetRef{}, "error getting statement table names: syntax error at position 2"},
+		{&RunParams{sql.ExecOpt{Format: dataset.CSVDataFormat}, "", &dataset.Dataset{Transform: &dataset.Transform{Syntax: "sql", Data: "select * from movies limit 5"}}}, &repo.DatasetRef{Dataset: moviesDs}, ""},
 		// TODO: add more tests
 	}
 	for i, c := range cases {

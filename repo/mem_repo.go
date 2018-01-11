@@ -85,5 +85,11 @@ func (r *MemRepo) Analytics() analytics.Analytics {
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
 func (r *MemRepo) CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
-	return dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
+	path, err = dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
+	if err != nil {
+		return
+	}
+
+	err = r.PutDataset(path, ds)
+	return
 }

@@ -210,7 +210,11 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 		name = varName.CreateVarNameFromString(filename)
 	}
 
-	ds := &dataset.Dataset{Meta: &dataset.Meta{}}
+	ds := &dataset.Dataset{
+		Meta:      &dataset.Meta{},
+		Commit:    &dataset.Commit{Title: "intiial commit"},
+		Structure: st,
+	}
 	if p.URL != "" {
 		ds.Meta.DownloadPath = p.URL
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
@@ -236,7 +240,7 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 
 	ds, err = r.repo.GetDataset(dskey)
 	if err != nil {
-		return fmt.Errorf("error reading dataset: %s", err.Error())
+		return fmt.Errorf("error reading dataset: '%s': %s", dskey.String(), err.Error())
 	}
 
 	*res = repo.DatasetRef{
@@ -441,6 +445,10 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		d     []byte
 		store = r.repo.Store()
 	)
+
+	if p.Limit < 0 || p.Offset < 0 {
+		return fmt.Errorf("invalid limit / offset settings")
+	}
 
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {

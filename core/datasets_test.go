@@ -16,7 +16,7 @@ import (
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
 	jobsByAutomationFile := testrepo.JobsByAutomationFile
-	jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
+	// jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
 	badDataFormatFile := testrepo.BadDataFormatFile
 	badStructureFile := testrepo.BadStructureFile
 
@@ -40,7 +40,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		// this should work
 		{&InitDatasetParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that we can't double-add data
-		{&InitDatasetParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
+		// {&InitDatasetParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -307,11 +307,8 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 	}{
 		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: 5, Offset: 0, All: false}, 5, ""},
-		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, ""},
-		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
-		// {&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, ""},
+		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
 		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 

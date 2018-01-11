@@ -23,7 +23,7 @@ func TestGraph(t *testing.T) {
 		return
 	}
 
-	expect := 8
+	expect := 9
 	count := 0
 	for range nodes {
 		count++

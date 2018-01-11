@@ -121,6 +121,12 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("transform is required")
 	}
 
+	if ds.Commit == nil {
+		ds.Commit = &dataset.Commit{
+			Title: "initial query",
+		}
+	}
+
 	q := ds.Transform
 	// if q == nil {
 	// 	q = &dataset.Transform{
@@ -218,7 +224,6 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 
 	dataf := memfs.NewMemfileBytes("data."+ds.Structure.Format.String(), results)
 	pin := p.SaveName != ""
-
 	dspath, err := r.repo.CreateDataset(ds, dataf, pin)
 	if err != nil {
 		return err
@@ -237,7 +242,6 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("error dereferencing dataset query: %s", err.Error())
 	}
 
-	ref := &repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: ds}
 	item := &repo.QueryLogItem{
 		Query:       ds.Transform.Data,
 		Name:        p.SaveName,
@@ -249,7 +253,12 @@ func (r *QueryRequests) Run(p *RunParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("error logging query to repo: %s", err.Error())
 	}
 
-	*res = *ref
+	output, err := dsfs.LoadDataset(store, dspath)
+	if err != nil {
+		return fmt.Errorf("error loading output dataset: %s", err.Error())
+	}
+
+	*res = repo.DatasetRef{Name: p.SaveName, Path: dspath, Dataset: output}
 	return nil
 }
 
