@@ -1,10 +1,18 @@
 package cmd
 
 import (
+	"bytes"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/libp2p/go-libp2p-crypto"
+	"github.com/mr-tron/base58/base58"
+	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
@@ -20,10 +28,77 @@ type Config struct {
 	// Identity IdentityCfg
 	// List of nodes to boostrap to
 	Bootstrap []string
+	// PeerID lists this current peer ID
+	PeerID string
+	// PrivateKey is a base-64 encoded private key
+	PrivateKey string
+	// IPFSPath is the local path to an IPFS directory
+	IPFSPath string
 	// Datastore configuration details
 	// Datastore       DatastoreCfg
 	// DefaultDatasets is a list of datasets to grab on initially joining the network
 	DefaultDatasets map[string]string
+}
+
+// TODO - Is this is the right place for this?
+// TODO - add tests
+func (cfg *Config) ensurePrivateKey() error {
+	if cfg.PrivateKey == "" {
+		fmt.Println("Generating private key...")
+		priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, rand.Reader)
+		if err != nil {
+			return err
+		}
+
+		buf := &bytes.Buffer{}
+		wc := base64.NewEncoder(base64.StdEncoding, buf)
+
+		privBytes, err := priv.Bytes()
+		if err != nil {
+			return err
+		}
+
+		if _, err = wc.Write(privBytes); err != nil {
+			return err
+		}
+
+		if err = wc.Close(); err != nil {
+			return err
+		}
+
+		cfg.PrivateKey = buf.String()
+
+		pubBytes, err := pub.Bytes()
+		if err != nil {
+			return err
+		}
+
+		sum := sha256.Sum256(pubBytes)
+		mhb, err := multihash.Encode(sum[:], multihash.SHA2_256)
+		if err != nil {
+			return err
+		}
+
+		cfg.PeerID = base58.Encode(mhb)
+		fmt.Printf("peer id: %s\n", cfg.PeerID)
+		if err != nil {
+			return err
+		}
+	}
+	return cfg.validatePrivateKey()
+}
+
+func (cfg *Config) validatePrivateKey() error {
+	return nil
+}
+
+func (cfg *Config) UnmarshalPrivateKey() (crypto.PrivKey, error) {
+	r := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(cfg.PrivateKey))
+	data, err := ioutil.ReadAll(r)
+	if err != nil {
+		return nil, err
+	}
+	return crypto.UnmarshalPrivateKey(data)
 }
 
 // IdentityCfg holds details about user identity & configuration

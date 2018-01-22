@@ -3,12 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/core"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
@@ -36,6 +36,7 @@ var initCmd = &cobra.Command{
 
 		if QRIRepoInitialized() && !initOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
+			// this is usually a terrible idea
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
 		fmt.Println("initializing qri repo")
@@ -62,6 +63,9 @@ var initCmd = &cobra.Command{
 		err := yaml.Unmarshal(cfgData, cfg)
 		ExitIfErr(err)
 
+		err = cfg.ensurePrivateKey()
+		ExitIfErr(err)
+
 		if initDatasetsData != "" {
 			err = readAtFile(&initDatasetsData)
 			ExitIfErr(err)
@@ -77,11 +81,11 @@ var initCmd = &cobra.Command{
 			err = readAtFile(&initBootstrapData)
 			ExitIfErr(err)
 
-			boostrap := []string{}
-			err = json.Unmarshal([]byte(initBootstrapData), &boostrap)
+			bootstrap := []string{}
+			err = json.Unmarshal([]byte(initBootstrapData), &bootstrap)
 			ExitIfErr(err)
 
-			cfg.Bootstrap = boostrap
+			cfg.Bootstrap = bootstrap
 		}
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {

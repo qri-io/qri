@@ -43,7 +43,7 @@ func TestCommandsIntegration(t *testing.T) {
 		return
 	}
 
-	defer os.RemoveAll(path)
+	// defer os.RemoveAll(path)
 
 	moviesFilePath := filepath.Join(path, "/movies.csv")
 	if err := ioutil.WriteFile(moviesFilePath, []byte(moviesCSVData), os.ModePerm); err != nil {
