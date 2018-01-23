@@ -7,7 +7,7 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-datastore"
+	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -30,8 +30,8 @@ var updateCmd = &cobra.Command{
 	Long:  ``,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			metaFile *os.File
-			err      error
+			metaFile, dataFile *os.File
+			err                error
 		)
 		if updateMessage == "" {
 			updateMessage = inputText("commit message:", "")
@@ -50,21 +50,24 @@ var updateCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		p := &core.GetDatasetParams{
-			Name: args[0],
-			Path: datastore.NewKey(args[0]),
+			Name: updateName,
+			// Path: datastore.NewKey(updateName),
 		}
 
 		prev := &repo.DatasetRef{}
 		err = req.Get(p, prev)
 		ExitIfErr(err)
 
-		author, err := r.Profile()
-		ExitIfErr(err)
+		// author, err := r.Profile()
+		// ExitIfErr(err)
 
 		update := &core.UpdateParams{}
 
 		metaFile, err = loadFileIfPath(updateMetaFile)
 		ExitIfErr(err)
+
+		update.Changes = prev.Dataset
+		update.Changes.PreviousPath = prev.Path.String()
 
 		if metaFile != nil {
 			changes := &dataset.Dataset{}
@@ -73,8 +76,16 @@ var updateCmd = &cobra.Command{
 			update.Changes = changes
 		}
 
+		dataFile, err = loadFileIfPath(updateFile)
+		ExitIfErr(err)
+
+		if dataFile != nil {
+			update.DataFilename = filepath.Base(updateFile)
+			update.Data = dataFile
+		}
+
 		update.Changes.Commit.Assign(&dataset.Commit{
-			Author:  &dataset.User{ID: author.ID, Email: author.Email},
+			// Author:  &dataset.User{ID: author.ID, Email: author.Email},
 			Title:   updateTitle,
 			Message: updateMessage,
 		})
@@ -83,7 +94,7 @@ var updateCmd = &cobra.Command{
 		res := &repo.DatasetRef{}
 		err = req.Update(update, res)
 		ExitIfErr(err)
-		printSuccess("dataset updated:", res.Path)
+		printSuccess("dataset updated: %s", res.Path)
 	},
 }
 

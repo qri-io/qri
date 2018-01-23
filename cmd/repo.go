@@ -54,13 +54,13 @@ func datasetRequests(online bool) (*core.DatasetRequests, error) {
 	return core.NewDatasetRequests(r, cli), nil
 }
 
-func queryRequests(online bool) (*core.QueryRequests, error) {
-	r, cli, err := repoOrClient(online)
-	if err != nil {
-		return nil, err
-	}
-	return core.NewQueryRequests(r, cli), nil
-}
+// func queryRequests(online bool) (*core.QueryRequests, error) {
+// 	r, cli, err := repoOrClient(online)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return core.NewQueryRequests(r, cli), nil
+// }
 
 func profileRequests(online bool) (*core.ProfileRequests, error) {
 	r, cli, err := repoOrClient(online)
@@ -76,6 +76,14 @@ func searchRequests(online bool) (*core.SearchRequests, error) {
 		return nil, err
 	}
 	return core.NewSearchRequests(r, cli), nil
+}
+
+func historyRequests(online bool) (*core.HistoryRequests, error) {
+	r, cli, err := repoOrClient(online)
+	if err != nil {
+		return nil, err
+	}
+	return core.NewHistoryRequests(r, cli), nil
 }
 
 func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {

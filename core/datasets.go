@@ -20,6 +20,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/dataset/vals"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
 )
@@ -102,6 +103,15 @@ func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	}
 
 	store := r.repo.Store()
+
+	if p.Path.String() == "" {
+		path, err := r.repo.GetPath(p.Name)
+		if err != nil {
+			return fmt.Errorf("error loading path for name: %s", err.Error())
+		}
+		p.Path = path
+	}
+
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return err
@@ -186,9 +196,11 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	if err = validate.Structure(st); err != nil {
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
-	if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("invalid data format: %s", err.Error())
-	}
+
+	// TODO - restore
+	// if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
+	// 	return fmt.Errorf("invalid data format: %s", err.Error())
+	// }
 
 	// TODO - check for errors in dataset and warn user if errors exist
 
@@ -472,19 +484,19 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		FormatConfig: p.FormatConfig,
 	})
 
-	buf, err := dsio.NewStructuredBuffer(st)
+	buf, err := dsio.NewValueBuffer(st)
 	if err != nil {
 		return fmt.Errorf("error allocating result buffer: %s", err)
 	}
-	rr, err := dsio.NewRowReader(ds.Structure, file)
+	rr, err := dsio.NewValueReader(ds.Structure, file)
 	if err != nil {
 		return fmt.Errorf("error allocating data reader: %s", err)
 	}
-	if err = dsio.EachRow(rr, func(i int, row [][]byte, err error) error {
+	if err = dsio.EachValue(rr, func(i int, val vals.Value, err error) error {
 		if err != nil {
 			return err
 		}
-		return buf.WriteRow(row)
+		return buf.WriteValue(val)
 	}); err != nil {
 		return fmt.Errorf("row iteration error: %s", err.Error())
 	}

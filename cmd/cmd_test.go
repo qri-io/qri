@@ -35,6 +35,19 @@ Spider-Man 3,156
 Tangled,100
 Avengers: Age of Ultron,141`
 
+const moviesCSVData2 = `movie_title,duration
+Avatar,178
+Pirates of the Caribbean: At World's End,169
+Spectre,148
+The Dark Knight Rises ,164
+Star Wars: Episode VII - The Force Awakens,15
+John Carter,132
+Spider-Man 3,156
+Tangled,100
+Avengers: Age of Ultron,141
+A Wild Film Appears!,2000
+Another Film!,121`
+
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
@@ -42,11 +55,16 @@ func TestCommandsIntegration(t *testing.T) {
 		t.Errorf("error creating test path: %s", err.Error())
 		return
 	}
-
-	// defer os.RemoveAll(path)
+	defer os.RemoveAll(path)
 
 	moviesFilePath := filepath.Join(path, "/movies.csv")
 	if err := ioutil.WriteFile(moviesFilePath, []byte(moviesCSVData), os.ModePerm); err != nil {
+		t.Errorf("error writing csv file: %s", err.Error())
+		return
+	}
+
+	movies2FilePath := filepath.Join(path, "/movies2.csv")
+	if err := ioutil.WriteFile(movies2FilePath, []byte(moviesCSVData2), os.ModePerm); err != nil {
 		t.Errorf("error writing csv file: %s", err.Error())
 		return
 	}
@@ -59,14 +77,18 @@ func TestCommandsIntegration(t *testing.T) {
 		{"version"},
 		{"init"},
 		{"add", "-f" + moviesFilePath, "-n" + "movies"},
+		{"list"},
+		{"update", "-f" + movies2FilePath, "-n" + "movies", "-m" + "commit_1"},
+		{"log", "-n" + "movies"},
 		// {"validate"},
 		// {"update"},
-		{"run", "select * from movies limit 5"},
+		// {"run", "select * from movies limit 5"},
 		{"rename", "movies", "movie"},
 		{"remove", "movie"},
 	}
 
 	for i, args := range commands {
+		t.Logf("")
 		_, err := executeCommand(RootCmd, args...)
 		if err != nil {
 			t.Errorf("case %d unexpected error executing command: %s", i, err.Error())

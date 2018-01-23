@@ -92,6 +92,7 @@ func (cfg *Config) validatePrivateKey() error {
 	return nil
 }
 
+// UnmarshalPrivateKey generates a PrivKey instance from base64-encoded config file bytes
 func (cfg *Config) UnmarshalPrivateKey() (crypto.PrivKey, error) {
 	r := base64.NewDecoder(base64.StdEncoding, bytes.NewBufferString(cfg.PrivateKey))
 	data, err := ioutil.ReadAll(r)
