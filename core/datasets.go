@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/jsonschema"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -562,44 +563,108 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 // ValidateDatasetParams defines paremeters for dataset
 // data validation
 type ValidateDatasetParams struct {
-	Name         string
-	URL          string
+	Name string
+	// URL          string
 	Path         datastore.Key
 	DataFilename string
 	Data         io.Reader
-	Metadata     io.Reader
+	Schema       io.Reader
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
+func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
 
-	// store := Store(cmd, args)
-	// errs, err := history.Validate(store)
-	// ExitIfErr(err)
+	var (
+		sch  *jsonschema.RootSchema
+		ref  *repo.DatasetRef
+		data []byte
+	)
 
-	// if cmd.Flag("check-links").Value.String() == "true" {
-	// 	validation, data, count, err := ds.ValidateDeadLinks(Cache())
-	// 	ExitIfErr(err)
-	// 	if count > 0 {
-	// 		PrintResults(validation, data, dataset.CsvDataFormat)
-	// 	} else {
-	// 		PrintSuccess("✔ All good!")
-	// 	}
-	// }
+	// if a dataset is specified, load it
+	if p.Name != "" || p.Path.String() != "" {
+		ref = &repo.DatasetRef{}
+		err = r.Get(&GetDatasetParams{
+			Name: p.Name,
+			Path: p.Path,
+		}, ref)
 
-	// if p.Data != nil {
-	// 	errr, count, err := validate.Data(r)
-	// }
+		if err != nil {
+			return err
+		}
+		sch = ref.Dataset.Structure.Schema
+	}
 
-	// validation, data, count, err := ds.ValidateData(Cache())
-	// ExitIfErr(err)
-	// if count > 0 {
-	// 	PrintResults(validation, data, dataset.CsvDataFormat)
-	// } else {
-	// 	PrintSuccess("✔ All good!")
-	// }
-	return fmt.Errorf("not finished")
+	// if a schema is specified, override with it
+	if p.Schema != nil {
+		stbytes, err := ioutil.ReadAll(p.Schema)
+		if err != nil {
+			return err
+		}
+		sch = &jsonschema.RootSchema{}
+		if e := sch.UnmarshalJSON(stbytes); err != nil {
+			return e
+		}
+	}
+
+	if p.Data != nil {
+		data, err = ioutil.ReadAll(p.Data)
+		if err != nil {
+			return
+		}
+
+		// if no schema, detect one
+		if sch == nil {
+			st, e := detect.FromReader(p.DataFilename, p.Data)
+			if e != nil {
+				return e
+			}
+			sch = st.Schema
+		}
+	}
+
+	if data == nil && ref != nil {
+		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
+		if e != nil {
+			return e
+		}
+
+		if ref.Dataset.Structure.Format != dataset.JSONDataFormat {
+			// convert to JSON bytes if necessary
+			vr, e := dsio.NewValueReader(ref.Dataset.Structure, f)
+			if e != nil {
+				return e
+			}
+
+			buf, err := dsio.NewValueBuffer(&dataset.Structure{
+				Format: dataset.JSONDataFormat,
+				Schema: ref.Dataset.Structure.Schema,
+			})
+
+			err = dsio.EachValue(vr, func(i int, val vals.Value, err error) error {
+				if err != nil {
+					return err
+				}
+				return buf.WriteValue(val)
+			})
+
+			if err != nil {
+				return err
+			}
+			if e := buf.Close(); err != nil {
+				return e
+			}
+			data = buf.Bytes()
+		} else {
+			data, err = ioutil.ReadAll(f)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	*errors = sch.ValidateBytes(data)
+	return
 }

@@ -80,10 +80,10 @@ func TestCommandsIntegration(t *testing.T) {
 		{"list"},
 		{"update", "-f" + movies2FilePath, "-n" + "movies", "-m" + "commit_1"},
 		{"log", "-n" + "movies"},
-		// {"validate"},
 		// {"update"},
 		// {"run", "select * from movies limit 5"},
 		{"rename", "movies", "movie"},
+		{"validate", "-n" + "movie"},
 		{"remove", "movie"},
 	}
 
