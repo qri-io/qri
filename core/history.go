@@ -44,6 +44,9 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 	if d.cli != nil {
 		return d.cli.Call("HistoryRequests.Log", params, res)
 	}
+	if params.Path.String() == "" && params.Name == "" {
+		return fmt.Errorf("either path or name is required")
+	}
 
 	if params.Path.String() == "" {
 		path, err := d.repo.GetPath(params.Name)

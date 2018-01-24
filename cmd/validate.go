@@ -63,10 +63,10 @@ in the dataset's fields.`,
 		if len(res) == 0 {
 			printSuccess("✔ All good!")
 			return
-		} else {
-			for i, err := range res {
-				fmt.Printf("%d: %s\n", i, err.Error())
-			}
+		}
+
+		for i, err := range res {
+			fmt.Printf("%d: %s\n", i, err.Error())
 		}
 	},
 }

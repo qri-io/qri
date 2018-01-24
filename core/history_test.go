@@ -25,7 +25,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		res []*repo.DatasetRef
 		err string
 	}{
-		{&LogParams{}, nil, "path is required"},
+		{&LogParams{}, nil, "either path or name is required"},
 		{&LogParams{Path: datastore.NewKey("/badpath")}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{&LogParams{Path: path}, []*repo.DatasetRef{&repo.DatasetRef{Path: path}}, ""},
 	}
