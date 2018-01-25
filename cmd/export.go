@@ -30,9 +30,6 @@ var exportCmd = &cobra.Command{
 	Use:   "export",
 	Short: "copy datasets to your local filesystem",
 	Long: `
-Usage:
-	qri export [--dataset] [--meta] [--structure] [--data] <dataset ref…>
-
 Export gets datasets out of qri. By default it exports only a dataset’s data to 
 the path [current directory]/[peername]/[dataset name]/[data file]. 
 

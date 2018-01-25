@@ -25,9 +25,6 @@ var datasetAddCmd = &cobra.Command{
 	Short:      "add a dataset to your local repository",
 	SuggestFor: []string{"init"},
 	Long: `
-Usage:
-	qri add [--meta <file>] [--structure <file>] <data file>
-
 Add creates a new dataset from data you supply. You can supply data from a file 
 or a URL. Please note that all data added to qri is made public on the 
 distributed web when you run qri connect.

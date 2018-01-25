@@ -31,9 +31,6 @@ var setupCmd = &cobra.Command{
 	Use:   "setup",
 	Short: "Initialize qri and IPFS repositories, provision a new qri ID",
 	Long: `
-Usage:
-	qri setup [--no-ipfs]
-
 Setup is the first command you run to get a fresh install of qri. If you’ve 
 never run qri before, you’ll need to run setup before you can do anything. 
 

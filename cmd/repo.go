@@ -10,8 +10,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
-	// "github.com/libp2p/go-libp2p-crypto"
-	// gxcrypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
 )
 
 var r repo.Repo

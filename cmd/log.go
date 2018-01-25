@@ -19,9 +19,6 @@ var datasetLogCmd = &cobra.Command{
 	// Aliases: []string{"ls"},
 	Short: "show log of dataset history",
 	Long: `
-Usage:
-	qri log <dataset ref>
-
 log prints a list of changes to a dataset over time. Each entry in the log is a 
 snapshot of a dataset taken at the moment it was saved that keeps exact details 
 about how that dataset looked at at that point in time. 

@@ -14,8 +14,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
-	// "github.com/qri-io/history"
-	// "github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 

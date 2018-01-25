@@ -14,9 +14,6 @@ var datasetRemoveCmd = &cobra.Command{
 	Aliases: []string{"rm"},
 	Short:   "remove a dataset from your local repository",
 	Long: `
-Usage:
-	qri remove <dataset ref…>
-
 remove gets rid of datasets. After running remove, qri will no longer list your 
 dataset as being available locally. By default remove frees up the space taken 
 up by the dataset, but not right away. This is because the IPFS repo that’s 

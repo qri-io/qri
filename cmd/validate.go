@@ -26,9 +26,6 @@ var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "show schema validation errors",
 	Long: `
-Usage:
-	qri validate [--structure <file>] [--data <file>] [<dataset ref>]
-
 validate checks data for errors using a structure, printing a list of issues.
 By default validate checks dataset data against it’s own structure. validate is 
 a flexible command that works with data and structures either inside our outside 

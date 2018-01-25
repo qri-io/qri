@@ -27,9 +27,6 @@ var connectCmd = &cobra.Command{
 	Use:   "connect",
 	Short: "connect to the distributed web, start a local API server",
 	Long: `
-Usage:
-	qri connect
-
 While it’s not totally accurate, connect is like starting a server. running 
 connect will start a process and stay there until you exit the process 
 (ctrl+c from the terminal, or killing the process using tools like activity 

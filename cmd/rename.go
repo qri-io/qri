@@ -13,9 +13,6 @@ var datasetRenameCmd = &cobra.Command{
 	Aliases: []string{"mv"},
 	Short:   "show the history of changes to a dataset",
 	Long: `
-Usage:
-	qri rename <old name> <new name>
-
 Rename changes the name of a dataset. So, uh, it’s worth noting that this can 
 break lots of stuff for other people, especially in these early days of qri. 
 
