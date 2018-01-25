@@ -14,13 +14,13 @@ import (
 )
 
 var (
-	saveFile       string
-	saveMetaFile   string
-	saveTitle      string
-	saveMessage    string
-	saveName       string
-	savePassive    bool
-	saveRescursive bool
+	saveDataFile      string
+	saveMetaFile      string
+	saveStructureFile string
+	saveTitle         string
+	saveMessage       string
+	savePassive       bool
+	saveRescursive    bool
 )
 
 // saveCmd represents the save command
@@ -38,62 +38,74 @@ Currently you can only save changes to datasets that you control. Tools for
 collaboration are in the works. Sit tight sportsfans.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			metaFile, dataFile *os.File
-			err                error
+			metaFile, dataFile, structureFile *os.File
+			err                               error
 		)
-		if saveMessage == "" {
-			saveMessage = inputText("commit message:", "")
-		}
 
-		var datapath string
-		if saveFile != "" {
-			datapath, err = filepath.Abs(saveFile)
-			ExitIfErr(err)
+		if len(args) < 1 {
+			ErrExit(fmt.Errorf("please provide the name of an existing dataset so save updates to"))
 		}
-		if saveMetaFile == "" && datapath == "" {
+		if saveMetaFile == "" && saveDataFile == "" && saveStructureFile == "" {
 			ErrExit(fmt.Errorf("either a metadata or data option is required"))
 		}
+
+		ref, err := repo.ParseDatasetRef(args[0])
+		ExitIfErr(err)
 
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
+		// TODO - need to make sure users aren't forking by referncing commits other than tip
 		p := &core.GetDatasetParams{
-			Name: saveName,
-			// Path: datastore.NewKey(saveName),
+			Name: ref.Name,
+			Path: ref.Path,
 		}
 
 		prev := &repo.DatasetRef{}
 		err = req.Get(p, prev)
 		ExitIfErr(err)
 
-		// author, err := r.Profile()
-		// ExitIfErr(err)
-
 		save := &core.SaveParams{}
-
-		metaFile, err = loadFileIfPath(saveMetaFile)
-		ExitIfErr(err)
-
 		save.Changes = prev.Dataset
 		save.Changes.PreviousPath = prev.Path.String()
 
-		if metaFile != nil {
-			changes := &dataset.Dataset{}
-			err = json.NewDecoder(metaFile).Decode(changes)
+		if saveMetaFile != "" {
+			fmt.Println(saveMetaFile)
+			metaFile, err = loadFileIfPath(saveMetaFile)
 			ExitIfErr(err)
-			save.Changes = changes
+
+			if metaFile != nil {
+				meta := &dataset.Meta{}
+				err = json.NewDecoder(metaFile).Decode(meta)
+				ExitIfErr(err)
+				save.Changes.Meta = meta
+			}
 		}
 
-		dataFile, err = loadFileIfPath(saveFile)
-		ExitIfErr(err)
+		if saveStructureFile != "" {
+			structureFile, err = loadFileIfPath(saveStructureFile)
+			ExitIfErr(err)
+			if structureFile != nil {
+				st := &dataset.Structure{}
+				err = json.NewDecoder(structureFile).Decode(st)
+				ExitIfErr(err)
+				save.Changes.Structure = st
+			}
+		}
 
-		if dataFile != nil {
-			save.DataFilename = filepath.Base(saveFile)
-			save.Data = dataFile
+		if saveDataFile != "" {
+			saveDataFile, err = filepath.Abs(saveDataFile)
+			ExitIfErr(err)
+
+			dataFile, err = loadFileIfPath(saveDataFile)
+			ExitIfErr(err)
+			if dataFile != nil {
+				save.DataFilename = filepath.Base(saveDataFile)
+				save.Data = dataFile
+			}
 		}
 
 		save.Changes.Commit.Assign(&dataset.Commit{
-			// Author:  &dataset.User{ID: author.ID, Email: author.Email},
 			Title:   saveTitle,
 			Message: saveMessage,
 		})
@@ -107,10 +119,19 @@ collaboration are in the works. Sit tight sportsfans.`,
 }
 
 func init() {
-	saveCmd.Flags().StringVarP(&saveFile, "file", "f", "", "data file to saveialize from")
-	saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "dataset metadata saves")
+	saveCmd.Flags().StringVarP(&saveDataFile, "data", "", "", "data file that forms the dataset")
+	saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "metadata.json file")
+	saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
+
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
-	saveCmd.Flags().StringVarP(&saveName, "name", "n", "", "name to give dataset")
+
+	// saveCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export full dataset package")
+	// saveCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
+	// saveCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
+	// saveCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")
+	// saveCmd.Flags().BoolVarP(&exportCmdTransform, "transform", "t", false, "export dataset transform file")
+	// saveCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
+
 	RootCmd.AddCommand(saveCmd)
 }

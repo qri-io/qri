@@ -172,7 +172,7 @@ func init() {
 	exportCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
 	exportCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")
 	// exportCmd.Flags().BoolVarP(&exportCmdTransform, "transform", "t", false, "export dataset transform file")
-	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "z", false, "export viz config file")
+	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	// TODO - get format conversion up & running
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")

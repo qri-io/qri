@@ -96,7 +96,7 @@ func init() {
 	validateCmd.Flags().StringVarP(&validateDsName, "name", "n", "", "name to give dataset")
 	validateCmd.Flags().StringVarP(&validateDsURL, "url", "u", "", "url to file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsFilepath, "file", "f", "", "data file to initialize from")
-	validateCmd.Flags().StringVarP(&validateDsSchemaFilepath, "schema", "s", "", "json schema file to use for validation")
+	validateCmd.Flags().StringVarP(&validateDsSchemaFilepath, "schema", "", "", "json schema file to use for validation")
 	validateCmd.Flags().BoolVarP(&validateDsPassive, "passive", "p", false, "disable interactive init")
 	RootCmd.AddCommand(validateCmd)
 }

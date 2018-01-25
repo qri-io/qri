@@ -114,7 +114,7 @@ func initDataset() {
 
 func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsName, "name", "n", "", "name to give dataset")
-	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url to file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url of file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "file", "f", "", "data file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "m", "", "dataset metadata file")
 	datasetAddCmd.Flags().BoolVarP(&addDsPassive, "passive", "p", false, "disable interactive init")

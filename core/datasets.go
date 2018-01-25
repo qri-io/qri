@@ -282,7 +282,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		prevpath datastore.Key
 		dataf    cafs.File
 	)
-	// store := r.repo.Store()
+
 	ds := &dataset.Dataset{}
 
 	rt, ref := dsfs.RefType(p.Changes.PreviousPath)
