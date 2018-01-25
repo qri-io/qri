@@ -48,6 +48,12 @@ Avengers: Age of Ultron,141
 A Wild Film Appears!,2000
 Another Film!,121`
 
+const profileData = `
+{
+	"description" : "I'm a description!"
+}
+`
+
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
@@ -69,6 +75,12 @@ func TestCommandsIntegration(t *testing.T) {
 		return
 	}
 
+	profileDataFilepath := filepath.Join(path, "/profile")
+	if err := ioutil.WriteFile(profileDataFilepath, []byte(profileData), os.ModePerm); err != nil {
+		t.Errorf("error profile json file: %s", err.Error())
+		return
+	}
+
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
@@ -76,6 +88,9 @@ func TestCommandsIntegration(t *testing.T) {
 		{"help"},
 		{"version"},
 		{"setup"},
+		{"profile", "get"},
+		{"profile", "set", "-f" + profileDataFilepath},
+		{"config", "get"},
 		{"add", "-f" + moviesFilePath, "-n" + "movies"},
 		{"list"},
 		{"save", "-f" + movies2FilePath, "-n" + "movies", "-m" + "commit_1"},
@@ -87,7 +102,6 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	for i, args := range commands {
-		t.Logf("")
 		_, err := executeCommand(RootCmd, args...)
 		if err != nil {
 			t.Errorf("case %d unexpected error executing command: %s", i, err.Error())

@@ -38,8 +38,9 @@ add currently supports two data formats:
 - CSV (Comma Separated Values)
 - JSON (Javascript Object Notation)
 
-Once you’ve added data, you can use export and save to change a dataset’s data, 
-metadata, and structure.`,
+Once you’ve added data, you can use the export command to pull the data out of 
+qri, change the data outside of qri, and use the save command to record those 
+changes to qri`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
 			if !strings.HasSuffix(args[0], dsfs.PackageFileDataset.String()) {
