@@ -21,8 +21,9 @@ var (
 )
 
 var datasetAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "add a dataset to your local repository",
+	Use:        "add",
+	Short:      "add a dataset to your local repository",
+	SuggestFor: []string{"init"},
 	Long: `
 Usage:
 	qri add [--meta <file>] [--structure <file>] <data file>
