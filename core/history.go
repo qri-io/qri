@@ -35,6 +35,8 @@ type LogParams struct {
 	ListParams
 	// Path to the dataset to fetch history for
 	Path datastore.Key
+	// Name of dataset to grab if Path isn't provided
+	Name string
 }
 
 // Log returns the history of changes for a given dataset
@@ -42,14 +44,21 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 	if d.cli != nil {
 		return d.cli.Call("HistoryRequests.Log", params, res)
 	}
+	if params.Path.String() == "" && params.Name == "" {
+		return fmt.Errorf("either path or name is required")
+	}
+
+	if params.Path.String() == "" {
+		path, err := d.repo.GetPath(params.Name)
+		if err != nil {
+			return fmt.Errorf("error loading path for name: %s", err.Error())
+		}
+		params.Path = path
+	}
 
 	log := []*repo.DatasetRef{}
 	limit := params.Limit
 	ref := &repo.DatasetRef{Path: params.Path}
-
-	if params.Path.String() == "" {
-		return fmt.Errorf("path is required")
-	}
 
 	for {
 		ref.Dataset, err = dsfs.LoadDataset(d.repo.Store(), ref.Path)

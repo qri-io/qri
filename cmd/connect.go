@@ -16,28 +16,43 @@ import (
 )
 
 var (
-	serverCmdPort string
-	serverMemOnly bool
-	serverOffline bool
-	serverInit    bool
+	connectCmdPort string
+	connectMemOnly bool
+	connectOffline bool
+	connectInit    bool
 )
 
-// serverCmd represents the run command
-var serverCmd = &cobra.Command{
-	Use:   "server",
-	Short: "start a qri server",
-	Long:  ``,
+// connectCmd represents the run command
+var connectCmd = &cobra.Command{
+	Use:   "connect",
+	Short: "connect to the distributed web, start a local API server",
+	Long: `
+While it’s not totally accurate, connect is like starting a server. running 
+connect will start a process and stay there until you exit the process 
+(ctrl+c from the terminal, or killing the process using tools like activity 
+monitor on the mac, or the aptly-named “kill” command). Connect does three main 
+things:
+- Connect to the qri distributed network
+- Connect to IPFS
+- Start a local API server
+
+When you run connect you are connecting to the distributed web, interacting with
+peers & swapping data.
+
+The default port for the local API server is 2503. We call port 2503,
+“the qri port”. It’s a good port, lots of cool numbers in there. Some might even
+call it a “prime” port number.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			r   repo.Repo
 			err error
 		)
 
-		if serverInit && !QRIRepoInitialized() {
-			initCmd.Run(&cobra.Command{}, []string{})
+		if connectInit && !QRIRepoInitialized() {
+			setupCmd.Run(&cobra.Command{}, []string{})
 		}
 
-		if serverMemOnly {
+		if connectMemOnly {
 			// TODO - refine, adding better identity generation
 			// or options for BYO user profile
 			r, err = repo.NewMemRepo(
@@ -54,9 +69,9 @@ var serverCmd = &cobra.Command{
 
 		s, err := api.New(r, func(cfg *api.Config) {
 			cfg.Logger = log
-			cfg.Port = serverCmdPort
-			cfg.MemOnly = serverMemOnly
-			cfg.Online = !serverOffline
+			cfg.Port = connectCmdPort
+			cfg.MemOnly = connectMemOnly
+			cfg.Online = !connectOffline
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
 			cfg.PostP2POnlineHook = initializeDistributedAssets
 		})
@@ -110,7 +125,7 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 	for name, path := range cfg.DefaultDatasets {
 		fmt.Printf("attempting to add default dataset: %s\n", path)
 		res := &repo.DatasetRef{}
-		err := req.AddDataset(&core.AddParams{
+		err := req.Add(&core.AddParams{
 			Hash: path,
 			Name: name,
 		}, res)
@@ -130,9 +145,9 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 }
 
 func init() {
-	serverCmd.Flags().StringVarP(&serverCmdPort, "port", "p", api.DefaultPort, "port to start server on")
-	serverCmd.Flags().BoolVarP(&serverInit, "init", "", false, "initialize if necessary, reading options from enviornment variables")
-	serverCmd.Flags().BoolVarP(&serverMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
-	serverCmd.Flags().BoolVarP(&serverOffline, "offline", "", false, "disable networking")
-	RootCmd.AddCommand(serverCmd)
+	connectCmd.Flags().StringVarP(&connectCmdPort, "port", "p", api.DefaultPort, "port to start connect on")
+	connectCmd.Flags().BoolVarP(&connectInit, "init", "", false, "initialize if necessary, reading options from enviornment variables")
+	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
+	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")
+	RootCmd.AddCommand(connectCmd)
 }

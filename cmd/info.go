@@ -16,8 +16,12 @@ import (
 var infoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"get", "describe"},
-	Short:   "Show info about a dataset",
-	Long:    ``,
+	Short:   "Show summarized description of a dataset",
+	Long: `
+Usage:
+	qri info <dataset ref…>
+
+Feel free to add multiple dataset names to show more than one summary`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))

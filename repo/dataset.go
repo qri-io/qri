@@ -2,8 +2,12 @@ package repo
 
 import (
 	"fmt"
+	"regexp"
+	"strings"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/mr-tron/base58/base58"
+	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
 )
 
@@ -15,12 +19,107 @@ import (
 // keep in mind that if the information is important at all, it should
 // be stored as metadata within the dataset itself.
 type DatasetRef struct {
-	// The dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset,omitempty"`
+	// Peername of dataset owner
+	Peername string `json:"peername,omitempty"`
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
-	Path datastore.Key `json:"path"`
+	Path datastore.Key `json:"path,omitempty"`
+	// The dataset being referenced
+	Dataset *dataset.Dataset `json:"dataset,omitempty"`
+}
+
+// String implements the Stringer interface for DatasetRef
+func (r DatasetRef) String() (s string) {
+	s = r.Peername
+	if r.Name != "" {
+		s += "/" + r.Name
+	}
+	if r.Path.String() != "" {
+		s += "@" + r.Path.String()
+	}
+	return s
+}
+
+var (
+	// fullDatasetPathRegex looks for dataset references in the forms:
+	// peername/dataset_name@/ipfs/hash
+	// peername/dataset_name@hash
+	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/ipfs/)?(\w+)\b`)
+	//
+	peernameShorthandPathRegex = regexp.MustCompile(`(\w+[^/ipfs/])/(\w+)`)
+)
+
+// ParseDatasetRef decodes a dataset reference from a string value
+// It’s possible to refer to a dataset in a number of ways.
+// The full definition of a dataset reference is as follows:
+//     dataset_reference = peer_name/dataset_name@/network/hash
+//
+// we swap in defaults as follows, all of which are represented as
+// empty strings:
+//     peer_name - defaults to the local peername
+//     network - defaults to /ipfs/
+//     hash - tip of version history (latest known commit)
+//
+// these defaults are currently enforced by convention.
+// TODO - make Dataset Ref parsing the responisiblity of the Repo
+// interface, replacing empty strings with actual defaults
+//
+// through defaults the following should all parse:
+//     peer_name/dataset_name
+//     dataset_name@hash
+//     /network/hash
+//     dataset_name
+//     hash
+//
+// see tests for more exmples
+//
+// dataset names & hashes are disambiguated by checking if the input
+// parses to a valid multihash after base58 decoding
+//
+// TODO - add validation that prevents peernames from being
+// valid base58 multihashes.
+// TODO - figure out how IPFS CID's play into this
+func ParseDatasetRef(ref string) (*DatasetRef, error) {
+	if ref == "" {
+		return nil, fmt.Errorf("cannot parse empty string as dataset reference")
+	} else if fullDatasetPathRegex.MatchString(ref) {
+		matches := fullDatasetPathRegex.FindAllStringSubmatch(ref, 1)
+		if matches[0][3] == "" {
+			matches[0][3] = "/ipfs/"
+		}
+		return &DatasetRef{
+			Peername: matches[0][1],
+			Name:     matches[0][2],
+			Path:     datastore.NewKey(matches[0][3] + matches[0][4]),
+		}, nil
+	} else if peernameShorthandPathRegex.MatchString(ref) {
+		matches := peernameShorthandPathRegex.FindAllStringSubmatch(ref, 1)
+		return &DatasetRef{
+			Peername: matches[0][1],
+			Name:     matches[0][2],
+		}, nil
+	}
+
+	if data, err := base58.Decode(stripProtocol(stripProtocol(ref))); err == nil {
+		if _, err := multihash.Decode(data); err == nil {
+			return &DatasetRef{
+				Path: datastore.NewKey("/ipfs/" + stripProtocol(ref)),
+			}, nil
+		}
+	}
+
+	return &DatasetRef{
+		Name: ref,
+	}, nil
+}
+
+// TODO - this could be more robust?
+func stripProtocol(ref string) string {
+	if strings.HasPrefix(ref, "/ipfs/") {
+		return ref[len("/ipfs/"):]
+	}
+	return ref
 }
 
 // CompareDatasetRef compares two Dataset References, returning an error
@@ -32,7 +131,9 @@ func CompareDatasetRef(a, b *DatasetRef) error {
 	if a == nil && b == nil {
 		return nil
 	}
-
+	if a.Peername != b.Peername {
+		return fmt.Errorf("peername mismatch. %s != %s", a.Name, b.Name)
+	}
 	if a.Name != b.Name {
 		return fmt.Errorf("name mismatch. %s != %s", a.Name, b.Name)
 	}

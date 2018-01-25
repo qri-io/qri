@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/jsonschema"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -20,6 +21,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/dataset/vals"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
 )
@@ -102,6 +104,15 @@ func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	}
 
 	store := r.repo.Store()
+
+	if p.Path.String() == "" {
+		path, err := r.repo.GetPath(p.Name)
+		if err != nil {
+			return fmt.Errorf("error loading path for name: %s", err.Error())
+		}
+		p.Path = path
+	}
+
 	ds, err := dsfs.LoadDataset(store, p.Path)
 	if err != nil {
 		return err
@@ -120,8 +131,8 @@ func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	return nil
 }
 
-// InitDatasetParams encapsulates arguments to InitDataset
-type InitDatasetParams struct {
+// InitParams encapsulates arguments to Init
+type InitParams struct {
 	Name             string    // variable name for referring to this dataset. required.
 	URL              string    // url to download data from. either Url or Data is required
 	DataFilename     string    // filename of data file. extension is used for filetype detection
@@ -132,10 +143,10 @@ type InitDatasetParams struct {
 	// DataPath         datastore.Key // path to structured data
 }
 
-// InitDataset creates a new qri dataset from a source of data
-func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
+// Init creates a new qri dataset from a source of data
+func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.InitDataset", p, res)
+		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
 	var (
@@ -186,9 +197,11 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	if err = validate.Structure(st); err != nil {
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
-	if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
-		return fmt.Errorf("invalid data format: %s", err.Error())
-	}
+
+	// TODO - restore
+	// if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
+	// 	return fmt.Errorf("invalid data format: %s", err.Error())
+	// }
 
 	// TODO - check for errors in dataset and warn user if errors exist
 
@@ -251,17 +264,17 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	return nil
 }
 
-// UpdateParams defines permeters for Dataset Updates
-type UpdateParams struct {
+// SaveParams defines permeters for Dataset Saves
+type SaveParams struct {
 	Changes      *dataset.Dataset // all dataset changes. required.
 	DataFilename string           // filename for new data. optional.
 	Data         io.Reader        // stream of complete dataset update. optional.
 }
 
-// Update adds a history entry, updating a dataset
-func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err error) {
+// Save adds a history entry, updating a dataset
+func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Update", p, res)
+		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
 	var (
@@ -269,7 +282,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err err
 		prevpath datastore.Key
 		dataf    cafs.File
 	)
-	// store := r.repo.Store()
+
 	ds := &dataset.Dataset{}
 
 	rt, ref := dsfs.RefType(p.Changes.PreviousPath)
@@ -375,16 +388,16 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
-// DeleteParams deines parameters for Deleting a Dataset
-type DeleteParams struct {
+// RemoveParams deines parameters for removing a Dataset
+type RemoveParams struct {
 	Path datastore.Key
 	Name string
 }
 
-// Delete a dataset
-func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
+// Remove a dataset
+func (r *DatasetRequests) Remove(p *RemoveParams, ok *bool) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.List", p, ok)
+		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
 	if p.Name == "" && p.Path.String() == "" {
@@ -472,19 +485,19 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		FormatConfig: p.FormatConfig,
 	})
 
-	buf, err := dsio.NewStructuredBuffer(st)
+	buf, err := dsio.NewValueBuffer(st)
 	if err != nil {
 		return fmt.Errorf("error allocating result buffer: %s", err)
 	}
-	rr, err := dsio.NewRowReader(ds.Structure, file)
+	rr, err := dsio.NewValueReader(ds.Structure, file)
 	if err != nil {
 		return fmt.Errorf("error allocating data reader: %s", err)
 	}
-	if err = dsio.EachRow(rr, func(i int, row [][]byte, err error) error {
+	if err = dsio.EachValue(rr, func(i int, val vals.Value, err error) error {
 		if err != nil {
 			return err
 		}
-		return buf.WriteRow(row)
+		return buf.WriteValue(val)
 	}); err != nil {
 		return fmt.Errorf("row iteration error: %s", err.Error())
 	}
@@ -506,10 +519,10 @@ type AddParams struct {
 	Hash string
 }
 
-// AddDataset adds an existing dataset to a peer's repository
-func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+// Add adds an existing dataset to a peer's repository
+func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.AddDataset", p, res)
+		return r.cli.Call("DatasetRequests.Add", p, res)
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)
@@ -550,44 +563,108 @@ func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err er
 // ValidateDatasetParams defines paremeters for dataset
 // data validation
 type ValidateDatasetParams struct {
-	Name         string
-	URL          string
+	Name string
+	// URL          string
 	Path         datastore.Key
 	DataFilename string
 	Data         io.Reader
-	Metadata     io.Reader
+	Schema       io.Reader
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *dataset.Dataset) (err error) {
+func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
 
-	// store := Store(cmd, args)
-	// errs, err := history.Validate(store)
-	// ExitIfErr(err)
+	var (
+		sch  *jsonschema.RootSchema
+		ref  *repo.DatasetRef
+		data []byte
+	)
 
-	// if cmd.Flag("check-links").Value.String() == "true" {
-	// 	validation, data, count, err := ds.ValidateDeadLinks(Cache())
-	// 	ExitIfErr(err)
-	// 	if count > 0 {
-	// 		PrintResults(validation, data, dataset.CsvDataFormat)
-	// 	} else {
-	// 		PrintSuccess("✔ All good!")
-	// 	}
-	// }
+	// if a dataset is specified, load it
+	if p.Name != "" || p.Path.String() != "" {
+		ref = &repo.DatasetRef{}
+		err = r.Get(&GetDatasetParams{
+			Name: p.Name,
+			Path: p.Path,
+		}, ref)
 
-	// if p.Data != nil {
-	// 	errr, count, err := validate.Data(r)
-	// }
+		if err != nil {
+			return err
+		}
+		sch = ref.Dataset.Structure.Schema
+	}
 
-	// validation, data, count, err := ds.ValidateData(Cache())
-	// ExitIfErr(err)
-	// if count > 0 {
-	// 	PrintResults(validation, data, dataset.CsvDataFormat)
-	// } else {
-	// 	PrintSuccess("✔ All good!")
-	// }
-	return fmt.Errorf("not finished")
+	// if a schema is specified, override with it
+	if p.Schema != nil {
+		stbytes, err := ioutil.ReadAll(p.Schema)
+		if err != nil {
+			return err
+		}
+		sch = &jsonschema.RootSchema{}
+		if e := sch.UnmarshalJSON(stbytes); err != nil {
+			return e
+		}
+	}
+
+	if p.Data != nil {
+		data, err = ioutil.ReadAll(p.Data)
+		if err != nil {
+			return
+		}
+
+		// if no schema, detect one
+		if sch == nil {
+			st, e := detect.FromReader(p.DataFilename, p.Data)
+			if e != nil {
+				return e
+			}
+			sch = st.Schema
+		}
+	}
+
+	if data == nil && ref != nil {
+		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
+		if e != nil {
+			return e
+		}
+
+		if ref.Dataset.Structure.Format != dataset.JSONDataFormat {
+			// convert to JSON bytes if necessary
+			vr, e := dsio.NewValueReader(ref.Dataset.Structure, f)
+			if e != nil {
+				return e
+			}
+
+			buf, err := dsio.NewValueBuffer(&dataset.Structure{
+				Format: dataset.JSONDataFormat,
+				Schema: ref.Dataset.Structure.Schema,
+			})
+
+			err = dsio.EachValue(vr, func(i int, val vals.Value, err error) error {
+				if err != nil {
+					return err
+				}
+				return buf.WriteValue(val)
+			})
+
+			if err != nil {
+				return err
+			}
+			if e := buf.Close(); err != nil {
+				return e
+			}
+			data = buf.Bytes()
+		} else {
+			data, err = ioutil.ReadAll(f)
+			if err != nil {
+				return
+			}
+		}
+	}
+
+	*errors = sch.ValidateBytes(data)
+	return
 }

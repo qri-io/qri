@@ -21,9 +21,23 @@ var (
 )
 
 var datasetAddCmd = &cobra.Command{
-	Use:   "add",
-	Short: "add a dataset",
-	Long:  `add a dataset to your local namespace based on a resource hash, local file, or url`,
+	Use:        "add",
+	Short:      "add a dataset to your local repository",
+	SuggestFor: []string{"init"},
+	Long: `
+Add creates a new dataset from data you supply. You can supply data from a file 
+or a URL. Please note that all data added to qri is made public on the 
+distributed web when you run qri connect.
+
+When adding data, you can supply metadata and dataset structure, but it’s not 
+required. qri does what it can to infer the details you don’t provide. 
+add currently supports two data formats:
+- CSV (Comma Separated Values)
+- JSON (Javascript Object Notation)
+
+Once you’ve added data, you can use the export command to pull the data out of 
+qri, change the data outside of qri, and use the save command to record those 
+changes to qri`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
 			if !strings.HasSuffix(args[0], dsfs.PackageFileDataset.String()) {
@@ -43,7 +57,7 @@ var datasetAddCmd = &cobra.Command{
 				Hash: root,
 			}
 			res := &repo.DatasetRef{}
-			err = req.AddDataset(p, res)
+			err = req.Add(p, res)
 			ExitIfErr(err)
 
 			printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
@@ -73,7 +87,7 @@ func initDataset() {
 	req, err := datasetRequests(false)
 	ExitIfErr(err)
 
-	p := &core.InitDatasetParams{
+	p := &core.InitParams{
 		Name:         addDsName,
 		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
@@ -89,7 +103,7 @@ func initDataset() {
 	}
 
 	ref := &repo.DatasetRef{}
-	err = req.InitDataset(p, ref)
+	err = req.Init(p, ref)
 	ExitIfErr(err)
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
 	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
@@ -97,7 +111,7 @@ func initDataset() {
 
 func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsName, "name", "n", "", "name to give dataset")
-	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url to file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url of file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "file", "f", "", "data file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "m", "", "dataset metadata file")
 	datasetAddCmd.Flags().BoolVarP(&addDsPassive, "passive", "p", false, "disable interactive init")

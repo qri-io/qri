@@ -16,8 +16,15 @@ var (
 var datasetListCmd = &cobra.Command{
 	Use:     "list",
 	Aliases: []string{"ls"},
-	Short:   "list your local datasets",
-	Long:    ``,
+	Short:   "show a list of datasets",
+	Long: `
+Usage:
+	qri list
+
+list shows lists of datasets, including names and current hashes. 
+
+The default list is the latest version of all datasets you have on your local 
+qri repository.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO - add limit & offset params
 		r, err := datasetRequests(false)

@@ -91,11 +91,7 @@ func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
 		return err
 	}
 
-	if err := r.PutName(name, cr.Path); err != nil {
-		return err
-	}
-
-	return nil
+	return r.PutName(name, cr.Path)
 }
 
 // DeclineChangeRequest refuses an open change request

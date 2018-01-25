@@ -2,122 +2,98 @@ package cmd
 
 import (
 	"fmt"
+	"github.com/qri-io/jsonschema"
 	"os"
 	"path/filepath"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
+	// "github.com/ipfs/go-datastore"
+	// "github.com/qri-io/dataset"
+	// "github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 )
 
 var (
-	validateDsFilepath     string
-	validateDsMetaFilepath string
-	validateDsName         string
-	validateDsURL          string
-	validateDsPassive      bool
+	validateDsFilepath       string
+	validateDsSchemaFilepath string
+	validateDsName           string
+	validateDsURL            string
+	validateDsPassive        bool
 )
 
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "List errors in a dataset",
-	Long: `Validate will load the dataset in question
-and check each of it's rows against the constraints listed
-in the dataset's fields.`,
+	Short: "show schema validation errors",
+	Long: `
+validate checks data for errors using a structure, printing a list of issues.
+By default validate checks dataset data against it’s own structure. validate is 
+a flexible command that works with data and structures either inside our outside 
+of qri by providing one or both of --data and --structure arguments. 
+
+Providing --structure and --data is an “external validation that uses nothing 
+stored in qri. When only one of structure or data args are provided, the other 
+comes from a dataset reference. For example, to check how a file “data.csv” 
+validates against a dataset "foo”, we would run:
+	qri validate —data data.csv foo
+In this case, qri will will print any validation as if data.csv was foo’s data.
+
+To see how changes to a structure “structure.json” will validate against a 
+dataset in qri, we would run:
+	qri validate —structure structure.json foo
+In this case, qri will print and validation errors as if stucture.json was the
+structure for dataset foo
+
+Using validate this way is a great way to see how changes to data or structure
+will affect a dataset before saving changes to a dataset.`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 0 {
-			req, err := datasetRequests(false)
-			ExitIfErr(err)
+		var (
+			dataFile, schemaFile *os.File
+			err                  error
+		)
 
-			for _, arg := range args {
-				rt, ref := dsfs.RefType(arg)
-				p := &core.ValidateDatasetParams{}
-				switch rt {
-				case "path":
-					p.Path = datastore.NewKey(ref)
-				case "name":
-					p.Name = ref
-				}
+		dataFile, err = loadFileIfPath(validateDsFilepath)
+		ExitIfErr(err)
+		schemaFile, err = loadFileIfPath(validateDsSchemaFilepath)
+		ExitIfErr(err)
 
-				res := &dataset.Dataset{}
-				err := req.Validate(p, res)
-				ExitIfErr(err)
+		req, err := datasetRequests(false)
+		ExitIfErr(err)
 
-				// validation, data, count, err := ds.ValidateData(Cache())
-				// ExitIfErr(err)
-				// if count > 0 {
-				// 	PrintResults(validation, data, dataset.CsvDataFormat)
-				// } else {
-				// 	PrintSuccess("✔ All good!")
-				// }
+		p := &core.ValidateDatasetParams{
+			Name: validateDsName,
+			// URL:          addDsURL,
+			DataFilename: filepath.Base(validateDsSchemaFilepath),
+		}
 
-				printSuccess("✔ All good!")
-			}
+		// this is because passing nil to interfaces is bad
+		// see: https://golang.org/doc/faq#nil_error
+		if dataFile != nil {
+			p.Data = dataFile
+		}
+		if schemaFile != nil {
+			p.Schema = schemaFile
+		}
 
-		} else {
-			initDataset()
+		res := []jsonschema.ValError{}
+		err = req.Validate(p, &res)
+		ExitIfErr(err)
+		if len(res) == 0 {
+			printSuccess("✔ All good!")
+			return
+		}
+
+		for i, err := range res {
+			fmt.Printf("%d: %s\n", i, err.Error())
 		}
 	},
-}
-
-func validateDataset() {
-	var (
-		dataFile, metaFile *os.File
-		err                error
-	)
-
-	if validateDsFilepath == "" && validateDsURL == "" {
-		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
-	} else if validateDsName == "" {
-		ErrExit(fmt.Errorf("please provide a --name"))
-	}
-
-	dataFile, err = loadFileIfPath(validateDsFilepath)
-	ExitIfErr(err)
-	metaFile, err = loadFileIfPath(validateDsMetaFilepath)
-	ExitIfErr(err)
-
-	req, err := datasetRequests(false)
-	ExitIfErr(err)
-
-	p := &core.ValidateDatasetParams{
-		Name:         validateDsName,
-		URL:          validateDsURL,
-		DataFilename: filepath.Base(validateDsFilepath),
-	}
-
-	// this is because passing nil to interfaces is bad
-	// see: https://golang.org/doc/faq#nil_error
-	if dataFile != nil {
-		p.Data = dataFile
-	}
-	if metaFile != nil {
-		p.Metadata = metaFile
-	}
-
-	ref := &dataset.Dataset{}
-	err = req.Validate(p, ref)
-	ExitIfErr(err)
-
-	// validation, data, count, err := ds.ValidateData(Cache())
-	// ExitIfErr(err)
-	// if count > 0 {
-	// 	PrintResults(validation, data, dataset.CsvDataFormat)
-	// } else {
-	// 	PrintSuccess("✔ All good!")
-	// }
-
-	printSuccess("✔ All good!")
 }
 
 func init() {
 	validateCmd.Flags().StringVarP(&validateDsName, "name", "n", "", "name to give dataset")
 	validateCmd.Flags().StringVarP(&validateDsURL, "url", "u", "", "url to file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsFilepath, "file", "f", "", "data file to initialize from")
-	validateCmd.Flags().StringVarP(&validateDsMetaFilepath, "meta", "m", "", "dataset metadata file")
+	validateCmd.Flags().StringVarP(&validateDsSchemaFilepath, "schema", "", "", "json schema file to use for validation")
 	validateCmd.Flags().BoolVarP(&validateDsPassive, "passive", "p", false, "disable interactive init")
 	RootCmd.AddCommand(validateCmd)
 }

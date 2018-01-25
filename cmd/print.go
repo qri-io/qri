@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"encoding/csv"
+	"encoding/json"
 	"fmt"
 	"github.com/qri-io/qri/repo"
 	"os"
@@ -13,8 +14,6 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
-	// "github.com/qri-io/history"
-	// "github.com/qri-io/namespace"
 	"github.com/spf13/cobra"
 )
 
@@ -132,7 +131,10 @@ func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) 
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
 		table.SetCenterSeparator("|")
-		table.SetHeader(r.Schema.FieldNames())
+		hr, err := terribleHackToGetHeaderRow(r)
+		if err == nil {
+			table.SetHeader(hr)
+		}
 		r := csv.NewReader(bytes.NewBuffer(data))
 		for {
 			rec, err := r.Read()
@@ -149,6 +151,32 @@ func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) 
 
 		table.Render()
 	}
+}
+
+// TODO - holy shit dis so bad. fix
+func terribleHackToGetHeaderRow(st *dataset.Structure) ([]string, error) {
+	data, err := st.Schema.MarshalJSON()
+	if err != nil {
+		return nil, err
+	}
+	sch := map[string]interface{}{}
+	if err := json.Unmarshal(data, &sch); err != nil {
+		return nil, err
+	}
+	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
+		if itemArr, ok := itemObj["items"].([]interface{}); ok {
+			titles := make([]string, len(itemArr))
+			for i, f := range itemArr {
+				if field, ok := f.(map[string]interface{}); ok {
+					if title, ok := field["title"].(string); ok {
+						titles[i] = title
+					}
+				}
+			}
+			return titles, nil
+		}
+	}
+	return nil, fmt.Errorf("nope")
 }
 
 // func PrintTree(ds *dataset.Dataset, indent int) {

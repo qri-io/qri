@@ -138,21 +138,16 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
-	m.Handle("/datasets", s.middleware(dsh.DatasetsHandler))
-	m.Handle("/datasets/", s.middleware(dsh.DatasetHandler))
-	m.Handle("/add/", s.middleware(dsh.AddDatasetHandler))
-	m.Handle("/init/", s.middleware(dsh.InitDatasetHandler))
-	m.Handle("/rename", s.middleware(dsh.RenameDatasetHandler))
+	m.Handle("/datasets", s.middleware(dsh.ListHandler))
+	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
+	m.Handle("/add/", s.middleware(dsh.AddHandler))
+	m.Handle("/init/", s.middleware(dsh.InitHandler))
+	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
 	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
 
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
-
-	qh := handlers.NewQueryHandlers(s.log, s.qriNode.Repo)
-	m.Handle("/queries", s.middleware(qh.ListHandler))
-	m.Handle("/queries/", s.middleware(qh.DatasetQueriesHandler))
-	m.Handle("/run", s.middleware(qh.RunHandler))
 
 	return m
 }
