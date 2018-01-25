@@ -139,8 +139,17 @@ func defaultCfgBytes() []byte {
 // configCmd represents commands that read & modify configuration settings
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "Read & Edit settings",
-	Long:  ``,
+	Short: "get and set local configuration information",
+	Long: `
+config is a bit of a cheat right now. we’re going to break profile out into 
+proper parameter-based commands later on, but for now we’re hoping you can edit 
+a YAML file of configuration information. 
+
+For now running qri config get will write a file called config.yaml containing 
+current configuration info. Edit that file and run config set <file> to write 
+configuration details back.
+
+Expect the config command to change in future releases.`,
 }
 
 var configGetCommand = &cobra.Command{

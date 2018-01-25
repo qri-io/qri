@@ -24,10 +24,31 @@ var (
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
-	Short: "List errors in a dataset",
-	Long: `Validate will load the dataset in question
-and check each of it's rows against the constraints listed
-in the dataset's fields.`,
+	Short: "show schema validation errors",
+	Long: `
+Usage:
+	qri validate [--structure <file>] [--data <file>] [<dataset ref>]
+
+validate checks data for errors using a structure, printing a list of issues.
+By default validate checks dataset data against it’s own structure. validate is 
+a flexible command that works with data and structures either inside our outside 
+of qri by providing one or both of --data and --structure arguments. 
+
+Providing --structure and --data is an “external validation that uses nothing 
+stored in qri. When only one of structure or data args are provided, the other 
+comes from a dataset reference. For example, to check how a file “data.csv” 
+validates against a dataset "foo”, we would run:
+	qri validate —data data.csv foo
+In this case, qri will will print any validation as if data.csv was foo’s data.
+
+To see how changes to a structure “structure.json” will validate against a 
+dataset in qri, we would run:
+	qri validate —structure structure.json foo
+In this case, qri will print and validation errors as if stucture.json was the
+structure for dataset foo
+
+Using validate this way is a great way to see how changes to data or structure
+will affect a dataset before saving changes to a dataset.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			dataFile, schemaFile *os.File

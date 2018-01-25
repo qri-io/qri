@@ -75,7 +75,7 @@ func TestCommandsIntegration(t *testing.T) {
 	commands := [][]string{
 		{"help"},
 		{"version"},
-		{"init"},
+		{"setup"},
 		{"add", "-f" + moviesFilePath, "-n" + "movies"},
 		{"list"},
 		{"update", "-f" + movies2FilePath, "-n" + "movies", "-m" + "commit_1"},

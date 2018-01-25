@@ -22,8 +22,23 @@ var (
 
 var datasetAddCmd = &cobra.Command{
 	Use:   "add",
-	Short: "add a dataset",
-	Long:  `add a dataset to your local namespace based on a resource hash, local file, or url`,
+	Short: "add a dataset to your local repository",
+	Long: `
+Usage:
+	qri add [--meta <file>] [--structure <file>] <data file>
+
+Add creates a new dataset from data you supply. You can supply data from a file 
+or a URL. Please note that all data added to qri is made public on the 
+distributed web when you run qri connect.
+
+When adding data, you can supply metadata and dataset structure, but it’s not 
+required. qri does what it can to infer the details you don’t provide. 
+add currently supports two data formats:
+- CSV (Comma Separated Values)
+- JSON (Javascript Object Notation)
+
+Once you’ve added data, you can use export and save to change a dataset’s data, 
+metadata, and structure.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
 			if !strings.HasSuffix(args[0], dsfs.PackageFileDataset.String()) {

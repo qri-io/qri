@@ -15,7 +15,17 @@ var (
 // profileCmd represents the profile command
 var profileCmd = &cobra.Command{
 	Use:   "profile",
-	Short: "show or edit user profile information",
+	Short: "get and set user profile information",
+	Long: `
+profile is a bit of a cheat right now. We’re going to break profile out into 
+proper commands later on, but for now we’re hoping you can edit a JSON file of 
+profile information. 
+
+For now running qri profile get will write a file called profile.json containing 
+current profile info. Edit that file and run qri profile set <file> to write 
+configuration details back.
+
+Expect the profile command to change in future releases.`,
 }
 
 var profileGetCmd = &cobra.Command{

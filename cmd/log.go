@@ -18,7 +18,18 @@ var datasetLogCmd = &cobra.Command{
 	Use: "log",
 	// Aliases: []string{"ls"},
 	Short: "show log of dataset history",
-	Long:  ``,
+	Long: `
+Usage:
+	qri log <dataset ref>
+
+log prints a list of changes to a dataset over time. Each entry in the log is a 
+snapshot of a dataset taken at the moment it was saved that keeps exact details 
+about how that dataset looked at at that point in time. 
+
+We call these snapshots versions. Each version has an author (the peer that 
+created the version) and a message explaining what changed. Log prints these 
+details in order of occurrence, starting with the most recent known version, 
+working backwards in time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		// TODO - add limit & offset params
 		r, err := historyRequests(false)

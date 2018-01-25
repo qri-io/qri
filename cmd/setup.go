@@ -17,35 +17,49 @@ import (
 )
 
 var (
-	initOverwrite      bool
-	initIPFS           bool
-	initIPFSConfigFile string
-	initIdentityData   string
-	initProfileData    string
-	initDatasetsData   string
-	initBootstrapData  string
+	setupOverwrite      bool
+	setupIPFS           bool
+	setupIPFSConfigFile string
+	setupIdentityData   string
+	setupProfileData    string
+	setupDatasetsData   string
+	setupBootstrapData  string
 )
 
-// initCmd represents the init command
-var initCmd = &cobra.Command{
-	Use:   "init",
-	Short: "Initialize a qri repo",
-	Long:  ``,
+// setupCmd represents the setup command
+var setupCmd = &cobra.Command{
+	Use:   "setup",
+	Short: "Initialize qri and IPFS repositories, provision a new qri ID",
+	Long: `
+Usage:
+	qri setup [--no-ipfs]
+
+Setup is the first command you run to get a fresh install of qri. If you’ve 
+never run qri before, you’ll need to run setup before you can do anything. 
+
+Setup does a few things:
+- create a qri repository to keep all of your data
+- provisions a new qri ID
+- create an IPFS repository if one doesn’t exist
+
+This command is automatically run if you invoke any qri command without first 
+running setup. If setup has already been run, by default qri won’t let you 
+overwrite this info.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfgData []byte
 
-		if QRIRepoInitialized() && !initOverwrite {
+		if QRIRepoInitialized() && !setupOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
 			// this is usually a terrible idea
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
-		fmt.Println("initializing qri repo")
+		fmt.Println("setupializing qri repo")
 
 		envVars := map[string]*string{
-			"QRI_INIT_IDENTITY_DATA":  &initIdentityData,
-			"QRI_INIT_PROFILE_DATA":   &initProfileData,
-			"QRI_INIT_DATASETS_DATA":  &initDatasetsData,
-			"QRI_INIT_BOOTSTRAP_DATA": &initBootstrapData,
+			"QRI_INIT_IDENTITY_DATA":  &setupIdentityData,
+			"QRI_INIT_PROFILE_DATA":   &setupProfileData,
+			"QRI_INIT_DATASETS_DATA":  &setupDatasetsData,
+			"QRI_INIT_BOOTSTRAP_DATA": &setupBootstrapData,
 		}
 		mapEnvVars(envVars)
 
@@ -66,23 +80,23 @@ var initCmd = &cobra.Command{
 		err = cfg.ensurePrivateKey()
 		ExitIfErr(err)
 
-		if initDatasetsData != "" {
-			err = readAtFile(&initDatasetsData)
+		if setupDatasetsData != "" {
+			err = readAtFile(&setupDatasetsData)
 			ExitIfErr(err)
 
 			datasets := map[string]string{}
-			err = json.Unmarshal([]byte(initDatasetsData), &datasets)
+			err = json.Unmarshal([]byte(setupDatasetsData), &datasets)
 			ExitIfErr(err)
 
 			cfg.DefaultDatasets = datasets
 		}
 
-		if initBootstrapData != "" {
-			err = readAtFile(&initBootstrapData)
+		if setupBootstrapData != "" {
+			err = readAtFile(&setupBootstrapData)
 			ExitIfErr(err)
 
 			bootstrap := []string{}
-			err = json.Unmarshal([]byte(initBootstrapData), &bootstrap)
+			err = json.Unmarshal([]byte(setupBootstrapData), &bootstrap)
 			ExitIfErr(err)
 
 			cfg.Bootstrap = bootstrap
@@ -97,12 +111,12 @@ var initCmd = &cobra.Command{
 		err = viper.ReadInConfig()
 		ExitIfErr(err)
 
-		if initIdentityData != "" {
-			err = readAtFile(&initIdentityData)
+		if setupIdentityData != "" {
+			err = readAtFile(&setupIdentityData)
 			ExitIfErr(err)
 
 			id := config.Identity{}
-			err = json.Unmarshal([]byte(initIdentityData), &id)
+			err = json.Unmarshal([]byte(setupIdentityData), &id)
 			ExitIfErr(err)
 
 			path := filepath.Join(os.TempDir(), "config")
@@ -112,21 +126,21 @@ var initCmd = &cobra.Command{
 			err = ioutil.WriteFile(path, data, os.ModePerm)
 			ExitIfErr(err)
 
-			initIPFSConfigFile = path
+			setupIPFSConfigFile = path
 			defer os.Remove(path)
 		}
 
-		if initIPFS {
-			err = ipfs.InitRepo(IpfsFsPath, initIPFSConfigFile)
+		if setupIPFS {
+			err = ipfs.InitRepo(IpfsFsPath, setupIPFSConfigFile)
 			ExitIfErr(err)
 		}
 
-		if initProfileData != "" {
-			err = readAtFile(&initProfileData)
+		if setupProfileData != "" {
+			err = readAtFile(&setupProfileData)
 			ExitIfErr(err)
 
 			p := &core.Profile{}
-			err = json.Unmarshal([]byte(initProfileData), p)
+			err = json.Unmarshal([]byte(setupProfileData), p)
 			ExitIfErr(err)
 
 			pr, err := profileRequests(false)
@@ -140,14 +154,14 @@ var initCmd = &cobra.Command{
 }
 
 func init() {
-	RootCmd.AddCommand(initCmd)
-	initCmd.Flags().BoolVarP(&initOverwrite, "overwrite", "", false, "overwrite repo if one exists")
-	initCmd.Flags().BoolVarP(&initIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
-	// initCmd.Flags().StringVarP(&initIPFSConfigFile, "ipfs-config", "", "", "config file for initialization")
-	initCmd.Flags().StringVarP(&initIdentityData, "id", "", "", "json-encoded identity data, specify a filepath with '@' prefix")
-	initCmd.Flags().StringVarP(&initProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
-	initCmd.Flags().StringVarP(&initDatasetsData, "datasets", "", "", "json-encoded object of default datasets")
-	initCmd.Flags().StringVarP(&initBootstrapData, "bootstrap", "", "", "json-encoded array of boostrap multiaddrs")
+	RootCmd.AddCommand(setupCmd)
+	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
+	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
+	// setupCmd.Flags().StringVarP(&setupIPFSConfigFile, "ipfs-config", "", "", "config file for setupialization")
+	setupCmd.Flags().StringVarP(&setupIdentityData, "id", "", "", "json-encoded identity data, specify a filepath with '@' prefix")
+	setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
+	setupCmd.Flags().StringVarP(&setupDatasetsData, "datasets", "", "", "json-encoded object of default datasets")
+	setupCmd.Flags().StringVarP(&setupBootstrapData, "bootstrap", "", "", "json-encoded array of boostrap multiaddrs")
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH
@@ -167,7 +181,7 @@ func mapEnvVars(vars map[string]*string) {
 	}
 }
 
-func initRepoIfEmpty(repoPath, configPath string) error {
+func setupRepoIfEmpty(repoPath, configPath string) error {
 	if repoPath != "" {
 		if _, err := os.Stat(filepath.Join(repoPath, "config")); os.IsNotExist(err) {
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
