@@ -39,7 +39,7 @@ both qri & IPFS. Promise.`,
 
 		for _, arg := range args {
 			rt, ref := dsfs.RefType(arg)
-			p := &core.DeleteParams{}
+			p := &core.RemoveParams{}
 			switch rt {
 			case "path":
 				p.Path = datastore.NewKey(ref)
@@ -47,7 +47,7 @@ both qri & IPFS. Promise.`,
 				p.Name = ref
 			}
 			res := false
-			err := req.Delete(p, &res)
+			err := req.Remove(p, &res)
 			ExitIfErr(err)
 			printSuccess("removed dataset %s", ref)
 		}

@@ -131,8 +131,8 @@ func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
 	return nil
 }
 
-// InitDatasetParams encapsulates arguments to InitDataset
-type InitDatasetParams struct {
+// InitParams encapsulates arguments to Init
+type InitParams struct {
 	Name             string    // variable name for referring to this dataset. required.
 	URL              string    // url to download data from. either Url or Data is required
 	DataFilename     string    // filename of data file. extension is used for filetype detection
@@ -143,10 +143,10 @@ type InitDatasetParams struct {
 	// DataPath         datastore.Key // path to structured data
 }
 
-// InitDataset creates a new qri dataset from a source of data
-func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef) error {
+// Init creates a new qri dataset from a source of data
+func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.InitDataset", p, res)
+		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
 	var (
@@ -264,17 +264,17 @@ func (r *DatasetRequests) InitDataset(p *InitDatasetParams, res *repo.DatasetRef
 	return nil
 }
 
-// UpdateParams defines permeters for Dataset Updates
-type UpdateParams struct {
+// SaveParams defines permeters for Dataset Saves
+type SaveParams struct {
 	Changes      *dataset.Dataset // all dataset changes. required.
 	DataFilename string           // filename for new data. optional.
 	Data         io.Reader        // stream of complete dataset update. optional.
 }
 
-// Update adds a history entry, updating a dataset
-func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) (err error) {
+// Save adds a history entry, updating a dataset
+func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Update", p, res)
+		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
 	var (
@@ -388,16 +388,16 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
-// DeleteParams deines parameters for Deleting a Dataset
-type DeleteParams struct {
+// RemoveParams deines parameters for removing a Dataset
+type RemoveParams struct {
 	Path datastore.Key
 	Name string
 }
 
-// Delete a dataset
-func (r *DatasetRequests) Delete(p *DeleteParams, ok *bool) (err error) {
+// Remove a dataset
+func (r *DatasetRequests) Remove(p *RemoveParams, ok *bool) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.List", p, ok)
+		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
 	if p.Name == "" && p.Path.String() == "" {
@@ -519,10 +519,10 @@ type AddParams struct {
 	Hash string
 }
 
-// AddDataset adds an existing dataset to a peer's repository
-func (r *DatasetRequests) AddDataset(p *AddParams, res *repo.DatasetRef) (err error) {
+// Add adds an existing dataset to a peer's repository
+func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.AddDataset", p, res)
+		return r.cli.Call("DatasetRequests.Add", p, res)
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)

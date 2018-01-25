@@ -60,7 +60,7 @@ changes to qri`,
 				Hash: root,
 			}
 			res := &repo.DatasetRef{}
-			err = req.AddDataset(p, res)
+			err = req.Add(p, res)
 			ExitIfErr(err)
 
 			printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
@@ -90,7 +90,7 @@ func initDataset() {
 	req, err := datasetRequests(false)
 	ExitIfErr(err)
 
-	p := &core.InitDatasetParams{
+	p := &core.InitParams{
 		Name:         addDsName,
 		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
@@ -106,7 +106,7 @@ func initDataset() {
 	}
 
 	ref := &repo.DatasetRef{}
-	err = req.InitDataset(p, ref)
+	err = req.Init(p, ref)
 	ExitIfErr(err)
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
 	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())

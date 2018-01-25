@@ -69,7 +69,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 		// author, err := r.Profile()
 		// ExitIfErr(err)
 
-		save := &core.UpdateParams{}
+		save := &core.SaveParams{}
 
 		metaFile, err = loadFileIfPath(saveMetaFile)
 		ExitIfErr(err)
@@ -100,7 +100,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 		save.Changes.PreviousPath = prev.Path.String()
 
 		res := &repo.DatasetRef{}
-		err = req.Update(save, res)
+		err = req.Save(save, res)
 		ExitIfErr(err)
 		printSuccess("dataset saved: %s", res.Path)
 	},
