@@ -668,3 +668,24 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	*errors = sch.ValidateBytes(data)
 	return
 }
+
+// DiffParams defines parameters for diffing two datasets with Diff
+type DiffParams struct {
+	// The pointers to the datasets to diff
+	DsLeft, DsRight *dataset.Dataset
+	// The output format specified as a string. Currently support "struct", "ascii_full", and "ascii_delta"
+	Format string
+	// whether output should include color text modifiers if applicable
+	Color bool
+	// override flag to diff full dataset without having to specify each component
+	DiffAll bool
+	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
+	// currently supported components include "structure", "data", "meta", "transform", and "visConfig"
+	DiffComponents map[string]bool
+}
+
+// Diff computes teh diff of two datasets
+func (r *DatasetRequests) Diff(p *DiffParams, diffs *datasetDiffer.DiffList) (err error) {
+	// TODO
+	return fmt.Errorf("Not yet implemented")
+}
