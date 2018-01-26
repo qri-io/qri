@@ -86,18 +86,6 @@ func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-// AddHandler is the endpoint for adding an existing dataset to this repo
-func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST":
-		h.addHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -261,35 +249,6 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 	}
 
 	util.WriteResponse(w, data)
-}
-
-func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.AddParams{}
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		// TODO - clean this up
-		p.Hash = r.URL.Path[len("/add/"):]
-		if p.Name == "" && r.FormValue("name") != "" {
-			p.Name = r.FormValue("name")
-		}
-	} else {
-		p = &core.AddParams{
-			Name: r.URL.Query().Get("name"),
-			Hash: r.URL.Path[len("/add/"):],
-		}
-	}
-
-	res := &repo.DatasetRef{}
-	if err := h.Add(p, res); err != nil {
-		h.log.Infof("error adding dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, res)
 }
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {

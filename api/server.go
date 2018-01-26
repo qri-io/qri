@@ -142,7 +142,6 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/datasets", s.middleware(dsh.ListHandler))
 	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
-	m.Handle("/add/", s.middleware(dsh.AddHandler))
 	m.Handle("/init/", s.middleware(dsh.InitHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
