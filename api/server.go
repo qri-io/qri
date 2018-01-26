@@ -132,9 +132,6 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
-	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Repo)
-	m.Handle("/search", s.middleware(sh.SearchHandler))
-
 	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
