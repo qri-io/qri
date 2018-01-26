@@ -74,18 +74,6 @@ func (h *DatasetHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// StructuredDataHandler is the data endpoint for a dataset
-func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		h.getStructuredDataHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -217,38 +205,6 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	util.WriteResponse(w, ref.Dataset)
-}
-
-func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	listParams := core.ListParamsFromRequest(r)
-	all, err := util.ReqParamBool("all", r)
-	if err != nil {
-		all = false
-	}
-
-	objectRows, err := util.ReqParamBool("object_rows", r)
-	if err != nil {
-		objectRows = true
-	}
-
-	p := &core.StructuredDataParams{
-		Format: dataset.JSONDataFormat,
-		FormatConfig: &dataset.JSONOptions{
-			ArrayEntries: !objectRows,
-		},
-		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),
-		Limit:  listParams.Limit,
-		Offset: listParams.Offset,
-		All:    all,
-	}
-	data := &core.StructuredData{}
-	if err := h.StructuredData(p, data); err != nil {
-		h.log.Infof("error reading structured data: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, data)
 }
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
