@@ -129,6 +129,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
+	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 

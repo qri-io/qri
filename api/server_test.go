@@ -32,6 +32,18 @@ func TestServerRoutes(t *testing.T) {
 		// {"POST", "/add/", {badly formed body}, {response body}, 400}
 		// {"PUT", "/add/", {data to add dataset}, {response body}, 200}
 		// {"PUT", "/add/", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/profile", nil, 200},
+		{"GET", "/profile", nil, 200},
+		{"POST", "/profile", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"POST", "/profile", {data to add dataset}, {response body}, 200}
+		// {"POST", "/profile", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/me", nil, 200},
+		{"GET", "/me", nil, 200},
+		{"POST", "/me", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"POST", "/me", {data to add dataset}, {response body}, 200}
+		// {"POST", "/me", {badly formed body}, {response body}, 400}
 	}
 
 	client := &http.Client{}
