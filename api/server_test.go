@@ -49,6 +49,11 @@ func TestServerRoutes(t *testing.T) {
 		// TODO: more tests for /export/ endpoint:
 		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200}
 		// {"GET", "/export/bad hash", {}, {proper response}, 400}
+		{"OPTIONS", "/list", nil, 200},
+		{"GET", "/list", nil, 200},
+		// TODO: more test for /list endpoint:
+		// {"GET", "/list", {}, {proper response}, 200}
+		// also make sure list of empty dataset works
 	}
 
 	client := &http.Client{}

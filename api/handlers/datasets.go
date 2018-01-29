@@ -36,8 +36,6 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.listHandler(w, r)
-	case "PUT":
-		h.updateDatasetHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
