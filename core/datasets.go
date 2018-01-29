@@ -21,10 +21,12 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dataset/vals"
+	"github.com/qri-io/datasetDiffer"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
+	diff "github.com/yudai/gojsondiff"
 )
 
 // DatasetRequests encapsulates business logic for this node's
@@ -721,10 +723,6 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 type DiffParams struct {
 	// The pointers to the datasets to diff
 	DsLeft, DsRight *dataset.Dataset
-	// The output format specified as a string. Currently support "struct", "ascii_full", and "ascii_delta"
-	Format string
-	// whether output should include color text modifiers if applicable
-	Color bool
 	// override flag to diff full dataset without having to specify each component
 	DiffAll bool
 	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
@@ -732,8 +730,70 @@ type DiffParams struct {
 	DiffComponents map[string]bool
 }
 
-// Diff computes teh diff of two datasets
-func (r *DatasetRequests) Diff(p *DiffParams, diffs *datasetDiffer.DiffList) (err error) {
-	// TODO
-	return fmt.Errorf("Not yet implemented")
+// Diff computes the diff of two datasets
+func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]diff.Diff) (err error) {
+	diffMap := map[string]diff.Diff{}
+	if p.DiffAll {
+		diffMap, err := datasetDiffer.DiffDatasets(p.DsLeft, p.DsRight)
+		if err != nil {
+			return fmt.Errorf("error diffing datasets: %s", err.Error())
+		}
+		// TODO: remove this temporary hack
+		if diffMap["data"] == nil || len(diffMap["data"].Deltas()) == 0 {
+			// dereference data paths
+			// marshal json to []byte
+			// call `datasetDiffer.DiffJSON(a, b)`
+		}
+		diffs = &diffMap
+	} else {
+		for k, v := range p.DiffComponents {
+			if v {
+				switch k {
+				case "structure":
+					if p.DsLeft.Structure != nil && p.DsRight.Structure != nil {
+						structureDiffs, err := datasetDiffer.DiffStructure(p.DsLeft.Structure, p.DsRight.Structure)
+						if err != nil {
+							return fmt.Errorf("error diffing structure: %s", err.Error())
+						}
+						diffMap[k] = structureDiffs
+					}
+				case "data":
+					//TODO
+					if p.DsLeft.DataPath != "" && p.DsRight.DataPath != "" {
+						dataDiffs, err := datasetDiffer.DiffData(p.DsLeft, p.DsRight)
+						if err != nil {
+							return fmt.Errorf("error diffing data: %s", err.Error())
+						}
+						diffMap[k] = dataDiffs
+					}
+				case "transform":
+					if p.DsLeft.Transform != nil && p.DsRight.Transform != nil {
+						transformDiffs, err := datasetDiffer.DiffTransform(p.DsLeft.Transform, p.DsRight.Transform)
+						if err != nil {
+							return fmt.Errorf("error diffing transform: %s", err.Error())
+						}
+						diffMap[k] = transformDiffs
+					}
+				case "meta":
+					if p.DsLeft.Meta != nil && p.DsRight.Meta != nil {
+						metaDiffs, err := datasetDiffer.DiffMeta(p.DsLeft.Meta, p.DsRight.Meta)
+						if err != nil {
+							return fmt.Errorf("error diffing meta: %s", err.Error())
+						}
+						diffMap[k] = metaDiffs
+					}
+				case "visConfig":
+					if p.DsLeft.VisConfig != nil && p.DsRight.VisConfig != nil {
+						visConfigDiffs, err := datasetDiffer.DiffVisConfig(p.DsLeft.VisConfig, p.DsRight.VisConfig)
+						if err != nil {
+							return fmt.Errorf("error diffing visConfig: %s", err.Error())
+						}
+						diffMap[k] = visConfigDiffs
+					}
+				}
+			}
+		}
+		diffs = &diffMap
+	}
+	return nil
 }
