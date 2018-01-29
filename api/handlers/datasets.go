@@ -83,9 +83,20 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.zipDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	args := &core.GetDatasetParams{
-		Path: datastore.NewKey(r.URL.Path[len("/download/"):]),
+		Path: datastore.NewKey(r.URL.Path[len("/export/"):]),
 		Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)

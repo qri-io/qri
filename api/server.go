@@ -145,7 +145,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
-	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
+	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))

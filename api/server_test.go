@@ -44,6 +44,11 @@ func TestServerRoutes(t *testing.T) {
 		// TODO: more tests for /profile/ endpoint:
 		// {"POST", "/me", {data to add dataset}, {response body}, 200}
 		// {"POST", "/me", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/export/", nil, 200},
+		{"GET", "/export/", nil, 500},
+		// TODO: more tests for /export/ endpoint:
+		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200}
+		// {"GET", "/export/bad hash", {}, {proper response}, 400}
 	}
 
 	client := &http.Client{}
