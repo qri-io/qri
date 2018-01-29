@@ -12,7 +12,9 @@ import (
 // Peers is a store of peer information
 // It's named peers to disambiguate from the lib-p2p peerstore
 type Peers interface {
+	List() (map[string]*profile.Profile, error)
 	Query(query.Query) (query.Results, error)
+	GetID(peername string) (peer.ID, error)
 	PutPeer(id peer.ID, profile *profile.Profile) error
 	GetPeer(id peer.ID) (*profile.Profile, error)
 	DeletePeer(id peer.ID) error
@@ -59,6 +61,25 @@ type MemPeers map[peer.ID]*profile.Profile
 func (m MemPeers) PutPeer(id peer.ID, profile *profile.Profile) error {
 	m[id] = profile
 	return nil
+}
+
+// GetID gives the peer.ID for a given peername
+func (m MemPeers) GetID(peername string) (peer.ID, error) {
+	for id, profile := range m {
+		if profile.Peername == peername {
+			return id, nil
+		}
+	}
+	return "", ErrNotFound
+}
+
+// List hands the full list of peers back
+func (m MemPeers) List() (map[string]*profile.Profile, error) {
+	res := map[string]*profile.Profile{}
+	for id, p := range m {
+		res[id.Pretty()] = p
+	}
+	return res, nil
 }
 
 // GetPeer give's peer info from the store for a given peer.ID

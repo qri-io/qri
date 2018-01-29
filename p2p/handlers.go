@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 )
 
 func (n *QriNode) handlePingRequest(r *Message) *Message {
@@ -31,13 +32,13 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 			return err
 		}
 
-		pid, err := p.PeerID()
+		pid, err := p.IPFSPeerID()
 		if err != nil {
 			return fmt.Errorf("error decoding base58 peer id: %s", err.Error())
 		}
 
 		p.Updated = time.Now()
-		n.log.Infof("adding peer: %s\n", pid.Pretty())
+		// n.log.Infof("adding peer: %s\n", pid.Pretty())
 		return n.Repo.Peers().PutPeer(pid, p)
 	}(r)
 
@@ -45,6 +46,10 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 	if err != nil {
 		n.log.Infof("error getting repo profile: %s\n", err.Error())
 		return nil
+	}
+
+	if addrs, err := n.IPFSListenAddresses(); err == nil {
+		p.Addresses = addrs
 	}
 
 	return &Message{
@@ -63,15 +68,59 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	if err := json.Unmarshal(data, p); err != nil {
 		return err
 	}
+
 	// pinfo.Profile = p
 	// peers[pi.ID.Pretty()] = pinfo
-
-	// ignore any id property in case peers a lying jerks
-	p.ID = pi.ID.Pretty()
-	p.Updated = time.Now()
+	// ignore any id property in case peers are lying jerks
+	// p.ID = pi.ID.Pretty()
+	// p.Updated = time.Now()
 
 	n.log.Info("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
+}
+
+func (n *QriNode) handleNodesRequest(r *Message) *Message {
+	var addrs []string
+	if ipfs, err := n.IPFSNode(); err == nil {
+		maddrs := ipfs.PeerHost.Addrs()
+		addrs = make([]string, len(maddrs))
+		for i, maddr := range maddrs {
+			addrs[i] = maddr.String()
+		}
+	}
+
+	return &Message{
+		Type:    MtNodes,
+		Phase:   MpResponse,
+		Payload: addrs,
+	}
+}
+
+func (n *QriNode) handleNodesResponse(r *Message) error {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		return err
+	}
+
+	res := []string{}
+	if err := json.Unmarshal(data, &res); err != nil {
+		return err
+	}
+
+	for _, addr := range res {
+		fmt.Println(addr)
+		a, err := ma.NewMultiaddr(addr)
+		if err != nil {
+			return err
+		}
+		ipfsv, err := a.ValueForProtocol(ma.P_IPFS)
+		if err != nil {
+			return err
+		}
+		fmt.Println(ipfsv)
+	}
+
+	return nil
 }
 
 // PeersReqParams outlines params for requesting peers
@@ -119,12 +168,22 @@ func (n *QriNode) handlePeersResponse(r *Message) error {
 		return err
 	}
 
+	// we can ignore this error b/c we might not be running IPFS,
+	ipfsPeerID, _ := n.IPFSPeerID()
+	// qriPeerID := n.Identity
+
 	for _, p := range peers {
-		id, err := p.PeerID()
+		id, err := p.IPFSPeerID()
 		if err != nil {
 			fmt.Printf("error decoding base58 peer id: %s\n", err.Error())
 			continue
 		}
+
+		// skip self
+		if id == ipfsPeerID {
+			continue
+		}
+
 		if profile, err := n.Repo.Peers().GetPeer(id); err != nil || profile != nil && profile.Updated.Before(p.Updated) {
 			if err := n.Repo.Peers().PutPeer(id, p); err != nil {
 				fmt.Errorf("error putting peer: %s", err.Error())
@@ -265,5 +324,33 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 }
 
 func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
+	return fmt.Errorf("not yet finished")
+}
+
+func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
+	data, err := json.Marshal(r.Payload)
+	if err != nil {
+		n.log.Info(err.Error())
+		return nil
+	}
+
+	ref := &repo.DatasetRef{}
+	if err = json.Unmarshal(data, ref); err != nil {
+		n.log.Infof(err.Error())
+		return &Message{
+			Phase:   MpError,
+			Type:    MtDatasetInfo,
+			Payload: ref,
+		}
+	}
+
+	return &Message{
+		Phase:   MpResponse,
+		Type:    MtDatasetInfo,
+		Payload: ref,
+	}
+}
+
+func (n *QriNode) handleDatasetInfoResponse(m *Message) error {
 	return fmt.Errorf("not yet finished")
 }

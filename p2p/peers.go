@@ -3,7 +3,6 @@ package p2p
 import (
 	"context"
 	"fmt"
-	// "time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -33,6 +32,11 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	return nil
 }
 
+// RequestPeername attempts to find profile info for a given peername
+func (n *QriNode) RequestPeername(peername string) error {
+	return nil
+}
+
 // RequestProfileInfo get's qri profile information from a PeerInfo
 func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 	// Get this repo's profile information
@@ -41,6 +45,12 @@ func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 		fmt.Println("error getting node profile info:", err)
 		return err
 	}
+
+	addrs, err := n.IPFSListenAddresses()
+	if err != nil {
+		return err
+	}
+	profile.Addresses = addrs
 
 	res, err := n.SendMessage(pinfo.ID, &Message{
 		Type:    MtPeerInfo,

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/repo"
 	"os"
 	"path/filepath"
 
@@ -16,7 +17,6 @@ import (
 var (
 	validateDsFilepath       string
 	validateDsSchemaFilepath string
-	validateDsName           string
 	validateDsURL            string
 	validateDsPassive        bool
 )
@@ -46,11 +46,23 @@ structure for dataset foo
 
 Using validate this way is a great way to see how changes to data or structure
 will affect a dataset before saving changes to a dataset.`,
+	Example: `  show errors in an existing dataset:
+  $ qri validate b5/comics`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			dataFile, schemaFile *os.File
 			err                  error
+			ref                  *repo.DatasetRef
 		)
+
+		if len(args) == 1 {
+			ref, err = repo.ParseDatasetRef(args[0])
+			ExitIfErr(err)
+		}
+
+		if ref == nil && !(validateDsFilepath != "" && validateDsSchemaFilepath != "") {
+			ErrExit(fmt.Errorf("please provide a dataset name to validate, or both  --file and --schema arguments"))
+		}
 
 		dataFile, err = loadFileIfPath(validateDsFilepath)
 		ExitIfErr(err)
@@ -61,7 +73,7 @@ will affect a dataset before saving changes to a dataset.`,
 		ExitIfErr(err)
 
 		p := &core.ValidateDatasetParams{
-			Name: validateDsName,
+			Name: ref.Name,
 			// URL:          addDsURL,
 			DataFilename: filepath.Base(validateDsSchemaFilepath),
 		}
@@ -90,7 +102,6 @@ will affect a dataset before saving changes to a dataset.`,
 }
 
 func init() {
-	validateCmd.Flags().StringVarP(&validateDsName, "name", "n", "", "name to give dataset")
 	validateCmd.Flags().StringVarP(&validateDsURL, "url", "u", "", "url to file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsFilepath, "file", "f", "", "data file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsSchemaFilepath, "schema", "", "", "json schema file to use for validation")

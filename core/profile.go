@@ -42,7 +42,7 @@ type Profile struct {
 	ID          string           `json:"id"`
 	Created     time.Time        `json:"created,omitempty"`
 	Updated     time.Time        `json:"updated,omitempty"`
-	Username    string           `json:"username"`
+	Peername    string           `json:"peername"`
 	Type        profile.UserType `json:"type"`
 	Email       string           `json:"email"`
 	Name        string           `json:"name"`

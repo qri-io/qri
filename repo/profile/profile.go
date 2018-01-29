@@ -1,9 +1,11 @@
 package profile
 
 import (
+	"fmt"
 	"time"
 
 	"github.com/ipfs/go-datastore"
+	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
@@ -14,8 +16,8 @@ type Profile struct {
 	Created time.Time `json:"created,omitempty"`
 	// Updated timestamp
 	Updated time.Time `json:"updated,omitempty"`
-	// handle for the user. min 1 character, max 80. composed of [_,-,a-z,A-Z,1-9]
-	Username string `json:"username"`
+	// Peername a handle for the user. min 1 character, max 80. composed of [_,-,a-z,A-Z,1-9]
+	Peername string `json:"peername"`
 	// specifies weather this is a user or an organization
 	Type UserType `json:"type"`
 	// user's email address
@@ -34,11 +36,27 @@ type Profile struct {
 	Profile datastore.Key `json:"profile"`
 	// Poster photo for users's profile page
 	Poster datastore.Key `json:"poster"`
-	// users's twitter handle
+	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
+	// Addresses lists any network addresses associated with this peer
+	Addresses []string `json:"addresses"`
 }
 
 // PeerID gives a peer.ID for this profile
 func (p *Profile) PeerID() (peer.ID, error) {
 	return peer.IDB58Decode(p.ID)
+}
+
+// IPFSPeerID sifts through listed multaddrs looking for an IPFS peer ID
+// TODO - this could be a source of issues. Let's find a more dependable method
+// for correlating IPFS peer ID's with qri peer ids
+func (p *Profile) IPFSPeerID() (peer.ID, error) {
+	for _, mstr := range p.Addresses {
+		if a, err := ma.NewMultiaddr(mstr); err == nil {
+			if str, err := a.ValueForProtocol(ma.P_IPFS); err == nil {
+				return peer.IDB58Decode(str)
+			}
+		}
+	}
+	return "", fmt.Errorf("no IPFS Peer ID found")
 }

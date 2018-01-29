@@ -26,11 +26,31 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	if p.Username == "" {
-		p.Username = doggos.DoggoNick(id.Pretty())
+	if p.Peername == "" {
+		p.Peername = doggos.DoggoNick(id.Pretty())
 	}
 	ps[id.Pretty()] = p
 	return r.saveFile(ps, FilePeers)
+}
+
+// List hands back the list of peers
+func (r PeerStore) List() (map[string]*profile.Profile, error) {
+	return r.peers()
+}
+
+// GetID gives the peer.ID for a given peername
+func (r PeerStore) GetID(peername string) (peer.ID, error) {
+	ps, err := r.peers()
+	if err != nil {
+		return "", err
+	}
+
+	for _, profile := range ps {
+		if profile.Peername == peername {
+			return profile.PeerID()
+		}
+	}
+	return "", datastore.ErrNotFound
 }
 
 // GetPeer fetches a peer from the store
@@ -70,8 +90,8 @@ func (r PeerStore) Query(q query.Query) (query.Results, error) {
 
 	re := make([]query.Entry, 0, len(ps))
 	for id, peer := range ps {
-		if peer.Username == "" {
-			peer.Username = doggos.DoggoNick(id)
+		if peer.Peername == "" {
+			peer.Peername = doggos.DoggoNick(id)
 		}
 		re = append(re, query.Entry{Key: id, Value: peer})
 	}

@@ -132,11 +132,11 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 
 func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
 	res := &profile.Profile{}
-	args := &core.GetParams{
-		Hash:     r.URL.Path[len("/peers/"):],
-		Username: r.FormValue("username"),
+	args := &core.PeerInfoParams{
+		PeerID:   r.URL.Path[len("/peers/"):],
+		Peername: r.FormValue("peername"),
 	}
-	err := h.Get(args, res)
+	err := h.Info(args, res)
 	if err != nil {
 		h.log.Infof("error getting peer profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

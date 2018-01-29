@@ -18,40 +18,45 @@ var datasetListCmd = &cobra.Command{
 	Aliases: []string{"ls"},
 	Short:   "show a list of datasets",
 	Long: `
-Usage:
-	qri list
-
 list shows lists of datasets, including names and current hashes. 
 
 The default list is the latest version of all datasets you have on your local 
 qri repository.`,
+	Example: `  show all of your datasets:
+  $ qri list`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// TODO - add limit & offset params
-		r, err := datasetRequests(false)
-		ExitIfErr(err)
-
-		p := &core.ListParams{
-			Limit:  dsListLimit,
-			Offset: dsListOffset,
-		}
-		refs := []*repo.DatasetRef{}
-		err = r.List(p, &refs)
-		ExitIfErr(err)
-
-		outformat := cmd.Flag("format").Value.String()
-		switch outformat {
-		case "":
-			for _, ref := range refs {
-				printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
-			}
-		case dataset.JSONDataFormat.String():
-			data, err := json.MarshalIndent(refs, "", "  ")
+		if len(args) < 1 {
+			// TODO - add limit & offset params
+			r, err := datasetRequests(false)
 			ExitIfErr(err)
-			fmt.Printf("%s\n", string(data))
-		default:
-			ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
-		}
 
+			p := &core.ListParams{
+				Limit:  dsListLimit,
+				Offset: dsListOffset,
+			}
+			refs := []*repo.DatasetRef{}
+			err = r.List(p, &refs)
+			ExitIfErr(err)
+
+			outformat := cmd.Flag("format").Value.String()
+			switch outformat {
+			case "":
+				for _, ref := range refs {
+					printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
+				}
+			case dataset.JSONDataFormat.String():
+				data, err := json.MarshalIndent(refs, "", "  ")
+				ExitIfErr(err)
+				fmt.Printf("%s\n", string(data))
+			default:
+				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
+			}
+		} else {
+			// for _, ref := range args {
+			// ref, err := repo.ParseDatasetRef(ref)
+			// ExitIfErr(err)
+			// }
+		}
 	},
 }
 

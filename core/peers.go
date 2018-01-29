@@ -101,29 +101,39 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 	return nil
 }
 
-// Get peer profile details
-func (d *PeerRequests) Get(p *GetParams, res *profile.Profile) error {
+// PeerInfoParams defines parameters for the Info method
+type PeerInfoParams struct {
+	Peername string
+	PeerID   string
+}
+
+// Info shows peer profile details
+func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.Get", p, res)
+		return d.cli.Call("PeerRequests.Info", p, res)
 	}
 
-	// TODO - restore
-	// peers, err := d.repo.Peers()
-	// if err != nil {
-	// 	fmt.Println(err.Error())
-	// 	return err
-	// }
+	r := d.qriNode.Repo
 
-	// for name, repo := range peers {
-	// 	if p.Hash == name ||
-	// 		p.Username == repo.Profile.Username {
-	// 		*res = *repo.Profile
-	// 	}
-	// }
+	peers, err := r.Peers().List()
+	if err != nil {
+		fmt.Println(err.Error())
+		return err
+	}
 
-	// if res != nil {
-	// 	return nil
-	// }
+	for _, peer := range peers {
+		if peer.ID == p.PeerID || peer.Peername == p.Peername {
+			*res = *peer
+			return nil
+		}
+		// if p.PeerID == name || p.Username == repo.Profile.Username {
+		// 	*res = *repo.Profile
+		// }
+	}
+
+	if res != nil {
+		return nil
+	}
 
 	// TODO - ErrNotFound plz
 	return fmt.Errorf("Not Found")

@@ -41,12 +41,17 @@ func (r DatasetRef) String() (s string) {
 	return s
 }
 
+// IsPeerRef returns true if only Peername is set
+func (r DatasetRef) IsPeerRef() bool {
+	return r.Peername != "" && r.Name == "" && r.Path.String() == "" && r.Dataset == nil
+}
+
 var (
 	// fullDatasetPathRegex looks for dataset references in the forms:
 	// peername/dataset_name@/ipfs/hash
 	// peername/dataset_name@hash
 	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/ipfs/)?(\w+)\b`)
-	//
+
 	peernameShorthandPathRegex = regexp.MustCompile(`(\w+[^/ipfs/])/(\w+)`)
 )
 
@@ -57,7 +62,6 @@ var (
 //
 // we swap in defaults as follows, all of which are represented as
 // empty strings:
-//     peer_name - defaults to the local peername
 //     network - defaults to /ipfs/
 //     hash - tip of version history (latest known commit)
 //
@@ -69,7 +73,7 @@ var (
 //     peer_name/dataset_name
 //     dataset_name@hash
 //     /network/hash
-//     dataset_name
+//     peername
 //     hash
 //
 // see tests for more exmples
@@ -110,7 +114,7 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 	}
 
 	return &DatasetRef{
-		Name: ref,
+		Peername: ref,
 	}, nil
 }
 

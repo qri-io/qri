@@ -23,11 +23,17 @@ with it, especially if you want other people to like your datasets.`,
 			ErrExit(fmt.Errorf("please provide current & new dataset names"))
 		}
 
+		current, err := repo.ParseDatasetRef(args[0])
+		ExitIfErr(err)
+
+		next, err := repo.ParseDatasetRef(args[1])
+		ExitIfErr(err)
+
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 		p := &core.RenameParams{
-			Current: args[0],
-			New:     args[1],
+			Current: current.Name,
+			New:     next.Name,
 		}
 		res := &repo.DatasetRef{}
 		err = req.Rename(p, res)

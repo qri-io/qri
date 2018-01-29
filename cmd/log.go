@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	// "encoding/json"
 	// "fmt"
 	// "github.com/qri-io/dataset"
@@ -27,7 +28,16 @@ We call these snapshots versions. Each version has an author (the peer that
 created the version) and a message explaining what changed. Log prints these 
 details in order of occurrence, starting with the most recent known version, 
 working backwards in time.`,
+	Example: `  show log for the dataset b5/precip:
+	$ qri log b5/precip`,
 	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			ErrExit(fmt.Errorf("please specify a dataset reference to log"))
+		}
+
+		ref, err := repo.ParseDatasetRef(args[0])
+		ExitIfErr(err)
+
 		// TODO - add limit & offset params
 		r, err := historyRequests(false)
 		ExitIfErr(err)
@@ -35,7 +45,7 @@ working backwards in time.`,
 		p := &core.LogParams{
 			// Limit:  dsLogLimit,
 			// Offset: dsLogOffset,
-			Name: dsLogName,
+			Name: ref.Name,
 		}
 		refs := []*repo.DatasetRef{}
 		err = r.Log(p, &refs)

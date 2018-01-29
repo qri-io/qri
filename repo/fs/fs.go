@@ -120,7 +120,7 @@ func ensureProfile(bp basepath, id string) error {
 	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
 		return bp.saveFile(&profile.Profile{
 			ID:       id,
-			Username: doggos.DoggoNick(id),
+			Peername: doggos.DoggoNick(id),
 		}, FileProfile)
 	}
 
@@ -139,8 +139,8 @@ func ensureProfile(bp basepath, id string) error {
 
 	if p.ID != id {
 		p.ID = id
-		if p.Username == "" {
-			p.Username = doggos.DoggoNick(p.ID)
+		if p.Peername == "" {
+			p.Peername = doggos.DoggoNick(p.ID)
 		}
 		bp.saveFile(p, FileProfile)
 	}

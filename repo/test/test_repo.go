@@ -32,7 +32,7 @@ func init() {
 func NewTestRepo() (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "archive"}
 	p := &profile.Profile{
-		Username: "test_user",
+		Peername: "test_user",
 	}
 	ms := memfs.NewMapstore()
 	mr, err = repo.NewMemRepo(p, ms, repo.MemPeers{}, &analytics.Memstore{})
