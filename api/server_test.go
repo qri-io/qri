@@ -58,10 +58,16 @@ func TestServerRoutes(t *testing.T) {
 		{"POST", "/save/", nil, 400},
 		{"PUT", "/save/", nil, 400},
 		// TODO: more tests for /save/ endpoint:
-		// {"POST", "/save/", {well formed body}, {proper response}}
-		// {"POST", "/save/", {poorly formed body}, {proper response}}
-		// {"PUT", "/save/", {well formed body}, {proper response}}
-		// {"PUT", "/save/", {poorly formed body}, {proper response}}
+		// {"POST", "/save/", {well formed body}, {proper response}, 200}
+		// {"POST", "/save/", {poorly formed body}, {proper response}, 400}
+		// {"PUT", "/save/", {well formed body}, {proper response}, 200}
+		// {"PUT", "/save/", {poorly formed body}, {proper response}, 400}
+		{"OPTIONS", "/remove/", nil, 200},
+		{"POST", "/remove/", nil, 400},
+		{"DELETE", "/remove/", nil, 400},
+		// TODO: more tests for /remove/ endpoint:
+		// {"POST", "remove/[hash]", {}, {proper response}, 200}
+		// {"DELETE", "/remove/[hash]", {}, {proper response}, 200}
 	}
 
 	client := &http.Client{}

@@ -42,12 +42,27 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// SaveHandler is a dataset save/update endpoint
 func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "PUT", "POST":
 		h.saveHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// RemoveHandler is a a dataset delete endpoint
+func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "DELETE", "POST":
+		h.removeHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
 	}
 }
 
@@ -58,8 +73,6 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getHandler(w, r)
-	case "DELETE":
-		h.deleteDatasetHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -197,14 +210,15 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.RemoveParams{
 		Name: r.FormValue("name"),
-		Path: datastore.NewKey(r.URL.Path[len("/datasets"):]),
+		Path: datastore.NewKey(r.URL.Path[len("/remove"):]),
 	}
 
 	ref := &repo.DatasetRef{}
 	if err := h.Get(&core.GetDatasetParams{Name: p.Name, Path: p.Path}, ref); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
