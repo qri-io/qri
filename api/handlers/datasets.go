@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"errors"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -41,6 +42,15 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "PUT", "POST":
+		h.saveHandler(w, r)
+	}
+}
+
 // GetHandler is a dataset single endpoint
 func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -48,8 +58,6 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getHandler(w, r)
-	case "PUT":
-		h.updateDatasetHandler(w, r)
 	case "DELETE":
 		h.deleteDatasetHandler(w, r)
 	default:
@@ -168,28 +176,25 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res.Dataset)
 }
 
-func (h *DatasetHandlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		h.updateMetadataHandler(w, r)
-		// default:
-		//  h.initDatasetFileHandler(w, r)
-	}
-}
-
-func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.SaveParams{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		p := &core.SaveParams{}
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		res := &repo.DatasetRef{}
+		if err := h.Save(p, res); err != nil {
+			h.log.Infof("error updating dataset: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		util.WriteResponse(w, res)
+	default:
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("Content-Type of request body must be json."))
 		return
 	}
-	res := &repo.DatasetRef{}
-	if err := h.Save(p, res); err != nil {
-		h.log.Infof("error updating dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
 }
 
 func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {

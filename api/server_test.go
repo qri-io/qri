@@ -51,9 +51,17 @@ func TestServerRoutes(t *testing.T) {
 		// {"GET", "/export/bad hash", {}, {proper response}, 400}
 		{"OPTIONS", "/list", nil, 200},
 		{"GET", "/list", nil, 200},
-		// TODO: more test for /list endpoint:
+		// TODO: more tests for /list endpoint:
 		// {"GET", "/list", {}, {proper response}, 200}
 		// also make sure list of empty dataset works
+		{"OPTIONS", "/save/", nil, 200},
+		{"POST", "/save/", nil, 400},
+		{"PUT", "/save/", nil, 400},
+		// TODO: more tests for /save/ endpoint:
+		// {"POST", "/save/", {well formed body}, {proper response}}
+		// {"POST", "/save/", {poorly formed body}, {proper response}}
+		// {"PUT", "/save/", {well formed body}, {proper response}}
+		// {"PUT", "/save/", {poorly formed body}, {proper response}}
 	}
 
 	client := &http.Client{}
