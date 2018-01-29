@@ -93,6 +93,8 @@ func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
 	case "POST", "PUT":
 		h.renameHandler(w, r)
 	default:

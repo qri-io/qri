@@ -42,32 +42,40 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/me", nil, 200},
 		{"POST", "/me", nil, 400},
 		// TODO: more tests for /profile/ endpoint:
-		// {"POST", "/me", {data to add dataset}, {response body}, 200}
-		// {"POST", "/me", {badly formed body}, {response body}, 400}
+		// {"POST", "/me", {data to add dataset}, {response body}, 200},
+		// {"POST", "/me", {badly formed body}, {response body}, 400},
 		{"OPTIONS", "/export/", nil, 200},
 		{"GET", "/export/", nil, 500},
 		// TODO: more tests for /export/ endpoint:
-		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200}
-		// {"GET", "/export/bad hash", {}, {proper response}, 400}
+		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200},
+		// {"GET", "/export/bad hash", {}, {proper response}, 400},
 		{"OPTIONS", "/list", nil, 200},
 		{"GET", "/list", nil, 200},
 		// TODO: more tests for /list endpoint:
-		// {"GET", "/list", {}, {proper response}, 200}
+		// {"GET", "/list", {}, {proper response}, 200},
 		// also make sure list of empty dataset works
 		{"OPTIONS", "/save/", nil, 200},
 		{"POST", "/save/", nil, 400},
 		{"PUT", "/save/", nil, 400},
 		// TODO: more tests for /save/ endpoint:
-		// {"POST", "/save/", {well formed body}, {proper response}, 200}
-		// {"POST", "/save/", {poorly formed body}, {proper response}, 400}
-		// {"PUT", "/save/", {well formed body}, {proper response}, 200}
-		// {"PUT", "/save/", {poorly formed body}, {proper response}, 400}
+		// {"POST", "/save/", {well formed body}, {proper response}, 200},
+		// {"POST", "/save/", {poorly formed body}, {proper response}, 400},
+		// {"PUT", "/save/", {well formed body}, {proper response}, 200},
+		// {"PUT", "/save/", {poorly formed body}, {proper response}, 400},
 		{"OPTIONS", "/remove/", nil, 200},
 		{"POST", "/remove/", nil, 400},
 		{"DELETE", "/remove/", nil, 400},
 		// TODO: more tests for /remove/ endpoint:
-		// {"POST", "remove/[hash]", {}, {proper response}, 200}
-		// {"DELETE", "/remove/[hash]", {}, {proper response}, 200}
+		// {"POST", "remove/[hash]", {}, {proper response}, 200},
+		// {"DELETE", "/remove/[hash]", {}, {proper response}, 200},
+		{"OPTIONS", "/rename", nil, 200},
+		{"POST", "/rename", nil, 400},
+		{"PUT", "/rename", nil, 400},
+		// TODO: more tests for /rename endpoint:
+		// {"POST", "/rename", {well formed body}, {proper response}, 200},
+		// {"POST", "/rename", {poorly formed body}, {proper response}, 400},	// {"PUT", "/rename", {well formed body}, {proper response}, 200},
+		// {"PUT", "/rename", {poorly formed body}, {proper response}, 400},
+
 	}
 
 	client := &http.Client{}
