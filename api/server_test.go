@@ -2,15 +2,21 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
+	// "encoding/json"
+	"github.com/qri-io/qri/repo/test"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/qri-io/qri/repo/test"
 )
 
 func TestServerRoutes(t *testing.T) {
+	// TODO: refactor cases struct:
+	// cases := []struct{
+	// 	method, endpoint string
+	// 	body string // json? or should this be map[string]interface{}?
+	// 	resBody string // json? or should this be map[string]interface{}?
+	// 	resStatus int
+	// }
 	cases := []struct {
 		method, endpoint string
 		body             []byte
@@ -18,13 +24,14 @@ func TestServerRoutes(t *testing.T) {
 	}{
 		// {"GET", "/", nil, 200},
 		{"GET", "/status", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/ipfs", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/data", nil, 200},
-		// {"GET", "/download", nil, 200},
-		// {"GET", "/run", nil, 200},
+		{"OPTIONS", "/add/", nil, 200},
+		{"POST", "/add/", nil, 400},
+		{"PUT", "/add/", nil, 400},
+		// TODO: more tests for /add/ endpoint:
+		// {"POST", "/add/", {data to add dataset}, {response body}, 200}
+		// {"POST", "/add/", {badly formed body}, {response body}, 400}
+		// {"PUT", "/add/", {data to add dataset}, {response body}, 200}
+		// {"PUT", "/add/", {badly formed body}, {response body}, 400}
 	}
 
 	client := &http.Client{}
@@ -61,26 +68,6 @@ func TestServerRoutes(t *testing.T) {
 
 		if res.StatusCode != c.resStatus {
 			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
-			continue
-		}
-
-		env := &struct {
-			Meta       map[string]interface{}
-			Data       interface{}
-			Pagination map[string]interface{}
-		}{}
-
-		if err := json.NewDecoder(res.Body).Decode(env); err != nil {
-			t.Errorf("case %d: %s - %s error unmarshaling json envelope: %s", i, c.method, c.endpoint, err.Error())
-			continue
-		}
-
-		if env.Meta == nil {
-			t.Errorf("case %d: %s - %s doesn't have a meta field", i, c.method, c.endpoint)
-			continue
-		}
-		if env.Data == nil {
-			t.Errorf("case %d: %s - %s doesn't have a data field", i, c.method, c.endpoint)
 			continue
 		}
 	}

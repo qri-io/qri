@@ -9,7 +9,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -39,8 +38,6 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 		h.listHandler(w, r)
 	case "PUT":
 		h.updateDatasetHandler(w, r)
-	case "POST":
-		h.initHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -62,13 +59,13 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// InitHandler is an endpoint for creating new datasets
-func (h *DatasetHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
+// AddHandler is an endpoint for creating new datasets
+func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
-	case "POST":
-		h.initHandler(w, r)
+	case "POST", "PUT":
+		h.addHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -131,7 +128,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.InitParams{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
