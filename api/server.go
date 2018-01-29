@@ -52,17 +52,6 @@ func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 		return s, err
 	}
 
-	if s.cfg.Online {
-		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
-		s.log.Info("p2p addresses:")
-		for _, a := range s.qriNode.EncapsulatedAddresses() {
-			s.log.Infof("  %s", a.String())
-			// s.log.Infln(a.Protocols())
-		}
-	} else {
-		s.log.Info("running qri in offline mode, no peer-2-peer connections")
-	}
-
 	bootstrapped := false
 	peerBootstrapped := func(peerId string) {
 		if cfg.PostP2POnlineHook != nil && !bootstrapped {
@@ -84,7 +73,23 @@ func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 func (s *Server) Serve() (err error) {
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
-	s.log.Infof("starting api server on port %s", s.cfg.Port)
+	p, err := s.qriNode.Repo.Profile()
+	if err != nil {
+		return err
+	}
+
+	s.log.Infof("connecting to qri:\n\tpeername: %s\n\tID: %s\n\tAPI port: %s", p.Peername, p.ID, s.cfg.Port)
+	if s.cfg.Online {
+		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
+		s.log.Info("p2p addresses:")
+		for _, a := range s.qriNode.EncapsulatedAddresses() {
+			s.log.Infof("  %s", a.String())
+			// s.log.Infln(a.Protocols())
+		}
+	} else {
+		s.log.Info("running qri in offline mode, no peer-2-peer connections")
+	}
+
 	go s.ServeRPC()
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)

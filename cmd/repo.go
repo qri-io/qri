@@ -8,6 +8,7 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 )
@@ -20,18 +21,22 @@ func getRepo(online bool) repo.Repo {
 	}
 
 	if !QRIRepoInitialized() {
-		ErrExit(fmt.Errorf("no qri repo found, please run `qri init`"))
+		ErrExit(fmt.Errorf("no qri repo found, please run `qri setup`"))
 	}
+
+	cfg, err := readConfigFile()
+	ExitIfErr(err)
+
+	pk, err := cfg.UnmarshalPrivateKey()
+	ExitIfErr(err)
 
 	fs := getIpfsFilestore(online)
-	id := ""
-	if fs.Node().PeerHost != nil {
-		id = fs.Node().PeerHost.ID().Pretty()
-	}
 
-	r, err := fsrepo.NewRepo(fs, QriRepoPath, id)
-	// r.SetPrivateKey(fs.Node().PrivateKey)
+	r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.PeerID)
+	r.SetPrivateKey(pk)
+
 	ExitIfErr(err)
+
 	return r
 }
 
@@ -84,16 +89,19 @@ func historyRequests(online bool) (*core.HistoryRequests, error) {
 	return core.NewHistoryRequests(r, cli), nil
 }
 
+func peerRequests(online bool) (*core.PeerRequests, error) {
+	node, err := onlineQriNode()
+	if err != nil {
+		return nil, err
+	}
+	return core.NewPeerRequests(node, nil), nil
+}
+
 func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	}); err == nil {
-		// id := ""
-		// if fs.Node().PeerHost != nil {
-		// 	id = fs.Node().PeerHost.ID().Pretty()
-		// }
-
 		cfg, err := readConfigFile()
 		ExitIfErr(err)
 
@@ -102,19 +110,6 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 
 		pk, err := cfg.UnmarshalPrivateKey()
 		ExitIfErr(err)
-
-		// if err := fs.Node().LoadPrivateKey(); err != nil {
-		// 	return r, nil, err
-		// }
-		// pk := fs.Node().PrivateKey
-		// data, err := pk.Bytes()
-		// if err != nil {
-		// 	return r, nil, err
-		// }
-		// pk2, err := crypto.UnmarshalPrivateKey(data)
-		// if err != nil {
-		// 	return r, nil, err
-		// }
 
 		r.SetPrivateKey(pk)
 		return r, nil, err
@@ -131,4 +126,53 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	}
 
 	return nil, nil, fmt.Errorf("badbadnotgood")
+}
+
+func onlineQriNode() (node *p2p.QriNode, err error) {
+	var (
+		r  repo.Repo
+		fs *ipfs.Filestore
+	)
+
+	fs, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
+		cfg.FsRepoPath = IpfsFsPath
+		cfg.Online = true
+	})
+
+	if err != nil {
+		return
+	}
+
+	cfg, err := readConfigFile()
+	if err != nil {
+		return
+	}
+
+	r, err = fsrepo.NewRepo(fs, QriRepoPath, cfg.PeerID)
+	if err != nil {
+		return
+	}
+
+	pk, err := cfg.UnmarshalPrivateKey()
+	if err != nil {
+		return
+	}
+
+	r.SetPrivateKey(pk)
+
+	node, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
+		ncfg.Logger = log
+		ncfg.Online = true
+		ncfg.QriBootstrapAddrs = cfg.Bootstrap
+	})
+	if err != nil {
+		return
+	}
+
+	log.Info("p2p addresses:")
+	for _, a := range node.EncapsulatedAddresses() {
+		log.Infof("  %s", a.String())
+	}
+
+	return
 }

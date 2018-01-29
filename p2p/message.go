@@ -14,35 +14,32 @@ import (
 // MsgType indicates the type of message being sent
 // TODO - these should be switched out for string representations,
 // as changes to these ints as versions change will break the API real bad.
-type MsgType int
+type MsgType string
 
 const (
 	// MtUnknown is the default, errored message type
-	MtUnknown MsgType = iota
+	MtUnknown = MsgType("UNKNOWN")
 	// MtPeers is a peers list message
-	MtPeers
+	MtPeers = MsgType("PEERS")
 	// MtPeerInfo is a peer info message
-	MtPeerInfo
+	MtPeerInfo = MsgType("PEER_INFO")
 	// MtDatasets is a dataset list message
-	MtDatasets
+	MtDatasets = MsgType("DATASETS")
 	// MtNamespaces is a dataset namespace message
-	MtNamespaces
+	MtNamespaces = MsgType("NAMESPACES")
 	// MtSearch is a search message
-	MtSearch
+	MtSearch = MsgType("SEARCH")
 	// MtPing is a ping/pong message
-	MtPing
+	MtPing = MsgType("PING")
+	// MtNodes is a request for distributed web nodes associated with
+	// this peer
+	MtNodes = MsgType("NODES")
+	// MtDatasetInfo gets info on a dataset
+	MtDatasetInfo = MsgType("DATASET_INFO")
 )
 
 func (mt MsgType) String() string {
-	return map[MsgType]string{
-		MtUnknown:    "UNKNOWN",
-		MtPeerInfo:   "PEER_INFO",
-		MtPeers:      "PEERS",
-		MtDatasets:   "DATASETS",
-		MtNamespaces: "NAMESPACES",
-		MtSearch:     "SEARCH",
-		MtPing:       "PING",
-	}[mt]
+	return string(mt)
 }
 
 // MsgPhase tracks the point in a message lifecycle
@@ -214,7 +211,7 @@ func sendMessage(msg *Message, ws *WrappedStream) error {
 // When Message.HangUp is true, it exits. This will close the stream
 // on one of the sides. The other side's receiveMessage() will error
 // with EOF, thus also breaking out from the loop.
-// TODO - I know this is completely fucking awful. it'll get better in
+// TODO - I know this is completely awful. it'll get better in
 // due time
 func (n *QriNode) handleStream(ws *WrappedStream) {
 	for {
@@ -238,6 +235,10 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 				res = n.handlePeersRequest(r)
 			case MtPing:
 				res = n.handlePingRequest(r)
+			case MtNodes:
+				res = n.handleNodesRequest(r)
+			case MtDatasetInfo:
+				res = n.handleDatasetInfoRequest(r)
 			}
 		}
 

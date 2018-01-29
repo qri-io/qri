@@ -4,9 +4,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -37,30 +35,30 @@ add currently supports two data formats:
 
 Once you’ve added data, you can use the export command to pull the data out of 
 qri, change the data outside of qri, and use the save command to record those 
-changes to qri`,
+changes to qri.`,
+	Example: `  add a new dataset named annual_pop:
+  $ qri add --data data.csv --name annual_pop
+
+  create a dataset with a metadata file:
+  $ qri add --meta meta.json --data data.csv --name comic_characters`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) > 0 {
-			if !strings.HasSuffix(args[0], dsfs.PackageFileDataset.String()) {
-				ErrExit(fmt.Errorf("invalid dataset path. paths should be /ipfs/[hash]/dataset.json"))
+			for _, arg := range args {
+				ref, err := repo.ParseDatasetRef(arg)
+				ExitIfErr(err)
+
+				req, err := datasetRequests(false)
+				ExitIfErr(err)
+
+				p := &core.AddParams{
+					Name: ref.Name,
+					Hash: ref.Path.String(),
+				}
+				res := &repo.DatasetRef{}
+				err = req.Add(p, res)
+				ExitIfErr(err)
+				printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
 			}
-
-			if addDsName == "" {
-				ErrExit(fmt.Errorf("please provide a --name"))
-			}
-
-			req, err := datasetRequests(false)
-			ExitIfErr(err)
-
-			root := strings.TrimSuffix(args[0], "/"+dsfs.PackageFileDataset.String())
-			p := &core.AddParams{
-				Name: addDsName,
-				Hash: root,
-			}
-			res := &repo.DatasetRef{}
-			err = req.Add(p, res)
-			ExitIfErr(err)
-
-			printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
 		} else {
 			initDataset()
 		}
@@ -105,6 +103,7 @@ func initDataset() {
 	ref := &repo.DatasetRef{}
 	err = req.Init(p, ref)
 	ExitIfErr(err)
+
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
 	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
 }

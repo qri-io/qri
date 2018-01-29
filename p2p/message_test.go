@@ -9,7 +9,7 @@ func TestPing(t *testing.T) {
 	// t.Parallel()
 	t.Skip("TestPing currently contains a race condition :/")
 
-	ntwk, err := NewTestNetwork()
+	ntwk, err := NewTestNetwork(context.Background(), t, 2)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return

@@ -85,15 +85,13 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err er
 		// node, it has built-in p2p, overlay the qri protocol
 		// on the ipfs node's p2p connections.
 		if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
-			// TODO - in this situation we should adopt the keypair
-			// if the ipfs node to avoid conflicts.
-
 			ipfsnode := ipfsfs.Node()
 			if ipfsnode.PeerHost != nil {
 				node.Host = ipfsnode.PeerHost
 				// fmt.Println("ipfs host muxer:")
 				// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
 			}
+
 			if ipfsnode.Discovery != nil {
 				node.Discovery = ipfsnode.Discovery
 			}
@@ -155,6 +153,50 @@ func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
+}
+
+// IPFSPeerID is a shorthand for accessing this node's IPFS Peer ID
+func (n *QriNode) IPFSPeerID() (peer.ID, error) {
+	node, err := n.IPFSNode()
+	if err != nil {
+		return "", err
+	}
+	return node.Identity, nil
+}
+
+// IPFSListenAddresses gives the listening addresses of the underlying IPFS node
+func (n *QriNode) IPFSListenAddresses() ([]string, error) {
+	// node, err := n.IPFSNode()
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	maddrs := n.EncapsulatedAddresses()
+	// maddrs := node.PeerHost.Network().ListenAddresses()
+	addrs := make([]string, len(maddrs))
+	for i, maddr := range maddrs {
+		addrs[i] = maddr.String()
+	}
+	return addrs, nil
+}
+
+// Peers returns a list of currently connected peer IDs
+func (n *QriNode) Peers() []peer.ID {
+	conns := n.Host.Network().Conns()
+	seen := make(map[peer.ID]struct{})
+	peers := make([]peer.ID, 0, len(conns))
+
+	for _, c := range conns {
+		p := c.LocalPeer()
+		if _, found := seen[p]; found {
+			continue
+		}
+
+		seen[p] = struct{}{}
+		peers = append(peers, p)
+	}
+
+	return peers
 }
 
 // Context returns this node's context

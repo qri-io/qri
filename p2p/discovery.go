@@ -40,6 +40,7 @@ func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 // HandlePeerFound deals with the discovery of a peer that may or may not support
 // the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
+
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
@@ -50,19 +51,31 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 		}
 
 		if support {
+			fmt.Println("adding qri peer:", pinfo.ID.Pretty())
 			if err := n.AddQriPeer(pinfo); err != nil {
 				fmt.Println(err.Error())
 			}
 		}
-	} else if err != nil {
+	} else if err != nil && err != errNoProtos {
 		fmt.Println("error checking for qri support:", err.Error())
 	}
 }
+
+var errNoProtos = fmt.Errorf("no protocols available for check")
 
 // SupportsQriProtocol checks to see if this peer supports the qri
 // streaming protocol, returns
 func (n *QriNode) SupportsQriProtocol(peer peer.ID) (bool, error) {
 	protos, err := n.Host.Peerstore().GetProtocols(peer)
+
+	// if the list of protocols for this peer is empty, there's a good chance
+	// we've not yet connected to them. Bailing on an empty slice of protos
+	// has the effect of demanding we connect at least once before checking for
+	// qri protocol support
+	if len(protos) == 0 {
+		return false, errNoProtos
+	}
+
 	if err == nil {
 		for _, p := range protos {
 			if p == string(QriProtocolID) {

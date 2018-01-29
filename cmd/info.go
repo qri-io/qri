@@ -3,10 +3,9 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/qri/repo/profile"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -17,14 +16,18 @@ var infoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"get", "describe"},
 	Short:   "Show summarized description of a dataset",
-	Long: `
-Usage:
-	qri info <dataset ref…>
+	Long:    `info describes users and datasets`,
+	Example: `  show b5 user info
+	get info for b5/comics:
+  $ qri info b5/comics
 
-Feel free to add multiple dataset names to show more than one summary`,
+  get info for a dataset at a specific version:
+  $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
-			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
+			// ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
+			profileGetCmd.Run(&cobra.Command{}, []string{})
+			return
 		}
 
 		outformat := cmd.Flag("format").Value.String()
@@ -38,28 +41,50 @@ Feel free to add multiple dataset names to show more than one summary`,
 			}
 		}
 
+		pr, err := peerRequests(true)
+		ExitIfErr(err)
+
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		for i, arg := range args {
-			rt, ref := dsfs.RefType(arg)
-			p := &core.GetDatasetParams{}
-			switch rt {
-			case "path":
-				p.Path = datastore.NewKey(ref)
-			case "name":
-				p.Name = ref
-			}
-			res := &repo.DatasetRef{}
-			err := req.Get(p, res)
+			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
-			if outformat == "" {
-				printDatasetRefInfo(i, res)
-			} else {
-				data, err := json.MarshalIndent(res.Dataset, "", "  ")
+
+			if ref.IsPeerRef() {
+				p := &core.PeerInfoParams{
+					Peername: ref.Peername,
+				}
+				res := &profile.Profile{}
+				err := pr.Info(p, res)
 				ExitIfErr(err)
-				fmt.Printf("%s", string(data))
+
+				if outformat == "" {
+					printPeerInfo(0, res)
+				} else {
+					data, err := json.MarshalIndent(res, "", "  ")
+					ExitIfErr(err)
+					fmt.Printf("%s", string(data))
+				}
+			} else {
+				p := &core.GetDatasetParams{
+					Name: ref.Name,
+					Path: ref.Path,
+				}
+
+				res := &repo.DatasetRef{}
+				err = req.Get(p, res)
+				ExitIfErr(err)
+
+				if outformat == "" {
+					printDatasetRefInfo(i, res)
+				} else {
+					data, err := json.MarshalIndent(res.Dataset, "", "  ")
+					ExitIfErr(err)
+					fmt.Printf("%s", string(data))
+				}
 			}
+
 		}
 	},
 }

@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -84,6 +85,9 @@ func TestCommandsIntegration(t *testing.T) {
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
+	t.Log("PATH:", path)
+	fmt.Println(path)
+
 	commands := [][]string{
 		{"help"},
 		{"version"},
@@ -91,13 +95,14 @@ func TestCommandsIntegration(t *testing.T) {
 		{"profile", "get"},
 		{"profile", "set", "-f" + profileDataFilepath},
 		{"config", "get"},
+		{"info"},
 		{"add", "-f" + moviesFilePath, "-n" + "movies"},
 		{"list"},
-		{"save", "--data=" + movies2FilePath, "-m" + "commit_1", "movies"},
-		{"log", "-n" + "movies"},
-		{"export", "--dataset", "movies", "-o" + path},
-		{"rename", "movies", "movie"},
-		{"validate", "-n" + "movie"},
+		{"save", "--data=" + movies2FilePath, "-m" + "commit_1", "me/movies"},
+		{"log", "me/movies"},
+		{"export", "--dataset", "me/movies", "-o" + path},
+		{"rename", "me/movies", "me/movie"},
+		{"validate", "me/movie"},
 		{"remove", "movie"},
 	}
 

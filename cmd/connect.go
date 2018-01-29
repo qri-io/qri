@@ -19,7 +19,7 @@ var (
 	connectCmdPort string
 	connectMemOnly bool
 	connectOffline bool
-	connectInit    bool
+	connectSetup   bool
 )
 
 // connectCmd represents the run command
@@ -48,7 +48,7 @@ call it a “prime” port number.`,
 			err error
 		)
 
-		if connectInit && !QRIRepoInitialized() {
+		if connectSetup && !QRIRepoInitialized() {
 			setupCmd.Run(&cobra.Command{}, []string{})
 		}
 
@@ -57,7 +57,7 @@ call it a “prime” port number.`,
 			// or options for BYO user profile
 			r, err = repo.NewMemRepo(
 				&profile.Profile{
-					Username: "mem user",
+					Peername: "mem user",
 				},
 				memfs.NewMapstore(),
 				repo.MemPeers{},
@@ -145,8 +145,8 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdPort, "port", "p", api.DefaultPort, "port to start connect on")
-	connectCmd.Flags().BoolVarP(&connectInit, "init", "", false, "initialize if necessary, reading options from enviornment variables")
+	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "p", api.DefaultPort, "port to start api on")
+	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
 	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")
 	RootCmd.AddCommand(connectCmd)

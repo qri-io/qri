@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"os"
 	"strings"
 	"time"
@@ -92,6 +93,14 @@ func printDatasetRefInfo(i int, ref *repo.DatasetRef) {
 	// table.Append(ds.FieldTypeStrings())
 	// table.Render()
 	// fmt.Println()
+}
+
+func printPeerInfo(i int, p *profile.Profile) {
+	white := color.New(color.FgWhite).SprintFunc()
+	// cyan := color.New(color.FgCyan).SprintFunc()
+	// blue := color.New(color.FgBlue).SprintFunc()
+	fmt.Printf("peername: %s\n", white(p.Peername))
+	fmt.Printf("peerID: %s\n", white(p.ID))
 }
 
 // func PrintDatasetDetailedInfo(ds *dataset.Dataset) {

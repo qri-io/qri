@@ -225,7 +225,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 	ds := &dataset.Dataset{
 		Meta:      &dataset.Meta{},
-		Commit:    &dataset.Commit{Title: "intiial commit"},
+		Commit:    &dataset.Commit{Title: "initial commit"},
 		Structure: st,
 	}
 	if p.URL != "" {

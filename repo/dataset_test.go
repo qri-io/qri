@@ -15,9 +15,8 @@ func TestParseDatasetRef(t *testing.T) {
 		{"peer_name/dataset_name", &DatasetRef{Peername: "peer_name", Name: "dataset_name"}, ""},
 		{"peer_name/dataset_name@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{Peername: "peer_name", Name: "dataset_name", Path: datastore.NewKey("/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, ""},
 		{"peer_name/dataset_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{Peername: "peer_name", Name: "dataset_name", Path: datastore.NewKey("/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, ""},
-		{"dataset_name", &DatasetRef{Name: "dataset_name"}, ""},
+		{"peer_name", &DatasetRef{Peername: "peer_name"}, ""},
 		// {"/not_ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{}, ""},
-		{"dataset_name", &DatasetRef{Name: "dataset_name"}, ""},
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{Path: datastore.NewKey("/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, ""},
 	}
 
