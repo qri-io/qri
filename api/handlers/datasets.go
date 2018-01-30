@@ -2,10 +2,10 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
-	"errors"
 	util "github.com/datatogether/api/apiutil"
 	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -148,11 +148,12 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &repo.DatasetRef{
-		Path: r.URL.Path[len("/datasets/"):],
-		// Hash: r.FormValue("hash"),
+	args, err := repo.ParseDatasetRef(r.URL.Path)
+	if args.Path == "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("no dataset name or hash given"))
+		return
 	}
-	err := h.Get(args, res)
+	err = h.Get(args, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

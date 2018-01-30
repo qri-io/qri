@@ -83,6 +83,11 @@ func TestServerRoutes(t *testing.T) {
 		// {"GET", "/connect/[peername], {}, {proper response}, 200"},
 		// {"GET", "/connect/[bad peerhash], {}, {proper response}, 400"},
 		// {"GET", "/connect/[bad peername], {}, {proper response}, 400"},
+		{"OPTIONS", "/me/", nil, 200},
+		{"GET", "/me/", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"GET", "/me/[datasetname]", nil, 200},
+		// {"GET", "/me/[bad datasetname]", nil, 400},
 	}
 
 	client := &http.Client{}
