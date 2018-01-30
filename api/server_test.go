@@ -75,7 +75,14 @@ func TestServerRoutes(t *testing.T) {
 		// {"POST", "/rename", {well formed body}, {proper response}, 200},
 		// {"POST", "/rename", {poorly formed body}, {proper response}, 400},	// {"PUT", "/rename", {well formed body}, {proper response}, 200},
 		// {"PUT", "/rename", {poorly formed body}, {proper response}, 400},
-
+		// TODO: add back /connect/
+		// {"OPTIONS", "/connect/", nil, 200},
+		// {"GET", "/connect/", nil, 400},
+		// TODO: more tests for /connect/ endpoint:
+		// {"GET", "/connect/[peerhash], {}, {proper response}, 200"},
+		// {"GET", "/connect/[peername], {}, {proper response}, 200"},
+		// {"GET", "/connect/[bad peerhash], {}, {proper response}, 400"},
+		// {"GET", "/connect/[bad peername], {}, {proper response}, 400"},
 	}
 
 	client := &http.Client{}

@@ -136,7 +136,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
-	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
+	// TODO: add back connect endpoint
+	// m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
