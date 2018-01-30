@@ -99,7 +99,12 @@ func historyRequests(online bool) (*core.HistoryRequests, error) {
 }
 
 func peerRequests(online bool) (*core.PeerRequests, error) {
-	return nil, nil
+	// return nil, nil
+
+	// TODO - bad bad hardcode
+	if conn, err := net.Dial("tcp", ":2504"); err == nil {
+		return core.NewPeerRequests(nil, rpc.NewClient(conn)), nil
+	}
 
 	node, err := qriNode(online)
 	if err != nil {
