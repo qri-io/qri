@@ -696,7 +696,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]diff.Diff) (err 
 			// marshal json to []byte
 			// call `datasetDiffer.DiffJSON(a, b)`
 		}
-		diffs = &diffMap
+		*diffs = diffMap
 	} else {
 		for k, v := range p.DiffComponents {
 			if v {
@@ -716,6 +716,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]diff.Diff) (err 
 						if err != nil {
 							return fmt.Errorf("error diffing data: %s", err.Error())
 						}
+
 						diffMap[k] = dataDiffs
 					}
 				case "transform":
@@ -745,7 +746,54 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]diff.Diff) (err 
 				}
 			}
 		}
-		diffs = &diffMap
+		*diffs = diffMap
+
+	}
+	// Hack to examine data
+	if p.DiffAll || p.DiffComponents["data"] == true {
+		sd1Params := &StructuredDataParams{
+			Format:       dataset.JSONDataFormat,
+			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
+			Path:         p.DsLeft.Path(),
+		}
+		sd2Params := &StructuredDataParams{
+			Format:       dataset.JSONDataFormat,
+			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
+			Path:         p.DsRight.Path(),
+		}
+		sd1 := &StructuredData{}
+		sd2 := &StructuredData{}
+		err := r.StructuredData(sd1Params, sd1)
+		if err != nil {
+			return fmt.Errorf("error getting structured data: %s", err.Error())
+		}
+		err = r.StructuredData(sd2Params, sd2)
+		if err != nil {
+			return fmt.Errorf("error getting structured data: %s", err.Error())
+		}
+		var jsonRaw1, jsonRaw2 json.RawMessage
+		var ok bool
+		if jsonRaw1, ok = sd1.Data.(json.RawMessage); !ok {
+			return fmt.Errorf("error getting json raw message")
+		}
+		if jsonRaw2, ok = sd2.Data.(json.RawMessage); !ok {
+			return fmt.Errorf("error getting json raw message")
+		}
+		m1 := &map[string]json.RawMessage{"structure": jsonRaw1}
+		m2 := &map[string]json.RawMessage{"structure": jsonRaw2}
+		dataBytes1, err := json.Marshal(m1)
+		if err != nil {
+			return fmt.Errorf("error marshaling json: %s", err.Error())
+		}
+		dataBytes2, err := json.Marshal(m2)
+		if err != nil {
+			return fmt.Errorf("error marshaling json: %s", err.Error())
+		}
+		dataDiffs, err := datasetDiffer.DiffJSON(dataBytes1, dataBytes2)
+		if err != nil {
+			return fmt.Errorf("error comparing structured data: %s", err.Error())
+		}
+		diffMap["data"] = dataDiffs
 	}
 	return nil
 }
