@@ -396,7 +396,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 	}
-	dsBase, err := dsfs.LoadDataset(mr.Store(), dsRef1.Path)
+	dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
 	if err != nil {
 		t.Errorf("error loading dataset 1: %s", err.Error())
 	}
@@ -410,7 +410,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
 	}
-	dsNewStructure, err := dsfs.LoadDataset(mr.Store(), dsRef2.Path)
+	dsNewStructure, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef2.Path))
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 	}
