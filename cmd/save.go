@@ -3,11 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset"
 	"os"
 	"path/filepath"
 
 	// "github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -46,28 +47,27 @@ collaboration are in the works. Sit tight sportsfans.`,
 			ErrExit(fmt.Errorf("please provide the name of an existing dataset so save updates to"))
 		}
 		if saveMetaFile == "" && saveDataFile == "" && saveStructureFile == "" {
-			ErrExit(fmt.Errorf("either a metadata or data option is required"))
+			ErrExit(fmt.Errorf("one of --structure, --meta or --data is required"))
 		}
 
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		req, err := datasetRequests(false)
-		ExitIfErr(err)
+		// req, err := datasetRequests(false)
+		// ExitIfErr(err)
 
-		// TODO - need to make sure users aren't forking by referncing commits other than tip
-		p := &core.GetDatasetParams{
-			Name: ref.Name,
-			Path: ref.Path,
-		}
+		// TODO - this is silly:
+		ref.Peername = ""
+
+		req := core.NewDatasetRequests(getRepo(false), nil)
 
 		prev := &repo.DatasetRef{}
-		err = req.Get(p, prev)
+		err = req.Get(ref, prev)
 		ExitIfErr(err)
 
 		save := &core.SaveParams{}
 		save.Changes = prev.Dataset
-		save.Changes.PreviousPath = prev.Path.String()
+		save.Changes.PreviousPath = prev.Path
 
 		if saveMetaFile != "" {
 			fmt.Println(saveMetaFile)
@@ -103,13 +103,18 @@ collaboration are in the works. Sit tight sportsfans.`,
 				save.DataFilename = filepath.Base(saveDataFile)
 				save.Data = dataFile
 			}
+		} else {
+			r := getRepo(false)
+			df, err := dsfs.LoadData(r.Store(), prev.Dataset)
+			ExitIfErr(err)
+			save.Data = df
 		}
 
 		save.Changes.Commit.Assign(&dataset.Commit{
 			Title:   saveTitle,
 			Message: saveMessage,
 		})
-		save.Changes.PreviousPath = prev.Path.String()
+		save.Changes.PreviousPath = prev.Path
 
 		res := &repo.DatasetRef{}
 		err = req.Save(save, res)

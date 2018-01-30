@@ -30,9 +30,8 @@ func (d MemDatasets) PutDataset(path datastore.Key, ds *dataset.Dataset) error {
 // PutDatasets adds multiple dataset references to the store
 func (d MemDatasets) PutDatasets(datasets []*DatasetRef) error {
 	for _, ds := range datasets {
-		ps := ds.Path.String()
-		if ps != "" {
-			d.datasets[ps] = ds.Dataset
+		if ds.Path != "" {
+			d.datasets[ds.Path] = ds.Dataset
 		}
 	}
 	return nil

@@ -49,9 +49,8 @@ func (r Datasets) PutDatasets(datasets []*repo.DatasetRef) error {
 		return err
 	}
 	for _, dr := range datasets {
-		ps := dr.Path.String()
-		if ps != "" && dr.Dataset != nil {
-			ds[ps] = dr.Dataset
+		if dr.Path != "" && dr.Dataset != nil {
+			ds[dr.Path] = dr.Dataset
 		}
 	}
 	return r.saveFile(ds, r.file)

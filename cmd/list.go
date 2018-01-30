@@ -56,6 +56,31 @@ qri repository.`,
 			// ref, err := repo.ParseDatasetRef(ref)
 			// ExitIfErr(err)
 			// }
+			r, err := datasetRequests(true)
+			ExitIfErr(err)
+
+			p := &core.ListParams{
+				Peername: args[0],
+				Limit:    dsListLimit,
+				Offset:   dsListOffset,
+			}
+			refs := []*repo.DatasetRef{}
+			err = r.List(p, &refs)
+			ExitIfErr(err)
+
+			outformat := cmd.Flag("format").Value.String()
+			switch outformat {
+			case "":
+				for _, ref := range refs {
+					printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
+				}
+			case dataset.JSONDataFormat.String():
+				data, err := json.MarshalIndent(refs, "", "  ")
+				ExitIfErr(err)
+				fmt.Printf("%s\n", string(data))
+			default:
+				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
+			}
 		}
 	},
 }

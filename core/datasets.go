@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/jsonschema"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -22,6 +21,8 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dataset/vals"
+	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
 )
@@ -31,6 +32,14 @@ import (
 type DatasetRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
+	Node *p2p.QriNode
+}
+
+// Repo exposes the DatasetRequest's repo
+// TODO - this is an architectural flaw resulting from not having a clear
+// order of local > network > RPC requests figured out
+func (r *DatasetRequests) Repo() repo.Repo {
+	return r.repo
 }
 
 // CoreRequestsName implements the Requets interface
@@ -55,6 +64,14 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 
+	if p.Peername != "" && r.Node != nil {
+		replies, err := r.Node.RequestDatasetsList(p.Peername)
+		*res = replies
+		return err
+	} else if p.Peername != "" && r.Node == nil {
+		return fmt.Errorf("cannot list datasets of peer without p2p connection")
+	}
+
 	store := r.repo.Store()
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -74,13 +91,13 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 			break
 		}
 
-		ds, err := dsfs.LoadDataset(store, ref.Path)
+		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
 			// try one extra time...
 			// TODO - remove this horrible hack
-			ds, err = dsfs.LoadDataset(store, ref.Path)
+			ds, err = dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 			if err != nil {
-				return fmt.Errorf("error loading path: %s, err: %s", ref.Path.String(), err.Error())
+				return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
 		}
 		replies[i].Dataset = ds
@@ -90,43 +107,71 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
-// GetDatasetParams defines parameters for DatasetRequests.Get
-type GetDatasetParams struct {
-	Path datastore.Key
-	Name string
-	Hash string
-}
-
 // Get a dataset
-func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
+func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
 
-	store := r.repo.Store()
+	getRemote := func(err error) error {
+		if r.Node != nil {
+			ref, err := r.Node.RequestDatasetInfo(p)
+			if ref != nil {
+				ds := ref.Dataset
+				st := ds.Structure
 
-	if p.Path.String() == "" {
-		path, err := r.repo.GetPath(p.Name)
-		if err != nil {
-			return fmt.Errorf("error loading path for name: %s", err.Error())
+				// TODO - it seems that jsonschema.RootSchema and encoding/gob
+				// really don't like each other (no surprise there, thanks to validators being an interface)
+				// Which means that when this response is proxied over the wire bad things happen
+				// So for now we're doing this weirdness with re-creating a gob-friendly version
+				// of a dataset
+				*res = repo.DatasetRef{
+					Peername: p.Peername,
+					Name:     p.Name,
+					Path:     ref.Path,
+					Dataset: &dataset.Dataset{
+						Commit: ds.Commit,
+						Meta:   ds.Meta,
+						Structure: &dataset.Structure{
+							Entries:  st.Entries,
+							ErrCount: st.ErrCount,
+							Length:   st.Length,
+						},
+					},
+				}
+			}
+			fmt.Println("remote err:", err.Error())
+			return err
 		}
-		p.Path = path
-	}
-
-	ds, err := dsfs.LoadDataset(store, p.Path)
-	if err != nil {
 		return err
 	}
 
+	store := r.repo.Store()
+
+	if p.Path == "" {
+		path, err := r.repo.GetPath(p.Name)
+		if err != nil {
+			err = fmt.Errorf("error loading path for name: %s", err.Error())
+			return getRemote(err)
+		}
+		p.Path = path.String()
+	}
+
+	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
+	if err != nil {
+		return getRemote(err)
+	}
+
 	name := p.Name
-	if p.Path.String() != "" {
-		name, _ = r.repo.GetName(p.Path)
+	if p.Path != "" {
+		name, _ = r.repo.GetName(datastore.NewKey(p.Path))
 	}
 
 	*res = repo.DatasetRef{
-		Name:    name,
-		Path:    p.Path,
-		Dataset: ds,
+		Peername: p.Peername,
+		Name:     name,
+		Path:     ds.Path().String(),
+		Dataset:  ds,
 	}
 	return nil
 }
@@ -258,7 +303,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 	*res = repo.DatasetRef{
 		Name:    p.Name,
-		Path:    dskey,
+		Path:    dskey.String(),
 		Dataset: ds,
 	}
 	return nil
@@ -272,6 +317,7 @@ type SaveParams struct {
 }
 
 // Save adds a history entry, updating a dataset
+// TODO - need to make sure users aren't forking by referncing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
@@ -285,28 +331,25 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	ds := &dataset.Dataset{}
 
-	rt, ref := dsfs.RefType(p.Changes.PreviousPath)
-	// allows using dataset names as "previous" fields
-	if rt == "name" {
-		name = ref
-		prevpath, err = r.repo.GetPath(strings.Trim(ref, "/"))
-		if err != nil {
-			return fmt.Errorf("error getting previous dataset path: %s", err.Error())
-		}
-	} else {
-		prevpath = datastore.NewKey(ref)
-		// attempt to grab name for later if path is provided
-		name, _ = r.repo.GetName(prevpath)
-	}
+	// read previous changes
+	// prev, err := r.repo.GetDataset(datastore.NewKey(p.Changes.PreviousPath))
+	// if err != nil {
+	// 	return fmt.Errorf("error getting previous dataset: %s", err.Error())
+	// }
 
 	// read previous changes
-	prev, err := r.repo.GetDataset(prevpath)
+	prev, err := dsfs.LoadDataset(r.repo.Store(), datastore.NewKey(p.Changes.PreviousPath))
 	if err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
 	// add all previous fields and any changes
 	ds.Assign(prev, p.Changes)
+
+	if err := dsfs.DerefDataset(r.repo.Store(), prev); err != nil {
+		return fmt.Errorf("error dereferencing dataset: %s", err.Error())
+	}
+	fmt.Println("huh???", prev.Meta)
 
 	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
 		ds.PreviousPath = strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String())
@@ -334,7 +377,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	*res = repo.DatasetRef{
 		Name:    name,
-		Path:    dspath,
+		Path:    dspath.String(),
 		Dataset: ds,
 	}
 
@@ -382,7 +425,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 	*res = repo.DatasetRef{
 		Name:    p.New,
-		Path:    path,
+		Path:    path.String(),
 		Dataset: ds,
 	}
 	return nil
@@ -390,7 +433,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 // RemoveParams deines parameters for removing a Dataset
 type RemoveParams struct {
-	Path datastore.Key
+	Path string
 	Name string
 }
 
@@ -400,24 +443,25 @@ func (r *DatasetRequests) Remove(p *RemoveParams, ok *bool) (err error) {
 		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
-	if p.Name == "" && p.Path.String() == "" {
+	if p.Name == "" && p.Path == "" {
 		return fmt.Errorf("either name or path is required")
 	}
 
-	if p.Path.String() == "" {
-		p.Path, err = r.repo.GetPath(p.Name)
-		if err != nil {
-			return
+	if p.Path == "" {
+		key, e := r.repo.GetPath(p.Name)
+		if e != nil {
+			return e
 		}
+		p.Path = key.String()
 	}
 
-	p.Name, err = r.repo.GetName(p.Path)
+	p.Name, err = r.repo.GetName(datastore.NewKey(p.Path))
 	if err != nil {
 		return
 	}
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-		path := datastore.NewKey(strings.TrimSuffix(p.Path.String(), "/"+dsfs.PackageFileDataset.String()))
+		path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
 		if err = pinner.Unpin(path, true); err != nil {
 			return
 		}
@@ -513,16 +557,20 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	return nil
 }
 
-// AddParams defines parameters for adding a dataset
-type AddParams struct {
-	Name string
-	Hash string
-}
-
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Add", p, res)
+		return r.cli.Call("DatasetRequests.Add", ref, res)
+	}
+
+	if ref.Path == "" && r.Node != nil {
+		res, err := r.Node.RequestDatasetInfo(ref)
+		if err != nil {
+			return err
+		}
+		fmt.Println(res)
+		ref = res
+		fmt.Println(ref.Path)
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)
@@ -530,7 +578,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
 
-	key := datastore.NewKey(strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String()))
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
@@ -542,7 +590,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	}
 
 	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
-	err = r.repo.PutName(p.Name, path)
+	err = r.repo.PutName(ref.Name, path)
 	if err != nil {
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
@@ -553,8 +601,8 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	}
 
 	*res = repo.DatasetRef{
-		Name:    p.Name,
-		Path:    path,
+		Name:    ref.Name,
+		Path:    path.String(),
 		Dataset: ds,
 	}
 	return
@@ -586,9 +634,9 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	// if a dataset is specified, load it
 	if p.Name != "" || p.Path.String() != "" {
 		ref = &repo.DatasetRef{}
-		err = r.Get(&GetDatasetParams{
+		err = r.Get(&repo.DatasetRef{
 			Name: p.Name,
-			Path: p.Path,
+			Path: p.Path.String(),
 		}, ref)
 
 		if err != nil {

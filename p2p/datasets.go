@@ -1,34 +1,64 @@
 package p2p
 
-// import (
-// 	"fmt"
-// 	"github.com/qri-io/qri/repo"
-// )
+import (
+	"encoding/json"
+	"fmt"
 
-// // RequestDatasetInfo get's qri profile information from a PeerInfo
-// func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) error {
-// 	// Get this repo's profile information
-// 	profile, err := n.Repo.Profile()
-// 	if err != nil {
-// 		fmt.Println("error getting node profile info:", err)
-// 		return err
-// 	}
+	"github.com/qri-io/qri/repo"
+)
 
-// 	res, err := n.SendMessage(pinfo.ID, &Message{
-// 		Type:    MtPeerInfo,
-// 		Payload: profile,
-// 	})
-// 	if err != nil {
-// 		fmt.Println("send profile message error:", err.Error())
-// 		return err
-// 	}
+// RequestDatasetsList gets a list of a peer's datasets
+func (n *QriNode) RequestDatasetsList(peername string) ([]*repo.DatasetRef, error) {
+	id, err := n.Repo.Peers().IPFSPeerID(peername)
+	if err != nil {
+		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
+	}
 
-// 	if res.Phase == MpResponse {
-// 		if err := n.handleProfileResponse(pinfo, res); err != nil {
-// 			fmt.Println("profile response error", err.Error())
-// 			return err
-// 		}
-// 	}
+	res, err := n.SendMessage(id, &Message{
+		Type:    MtDatasets,
+		Phase:   MpRequest,
+		Payload: nil,
+	})
 
-// 	return nil
-// }
+	if err != nil {
+		fmt.Println("send dataset info message error:", err.Error())
+		return nil, err
+	}
+
+	data, err := json.Marshal(res.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	ref := []*repo.DatasetRef{}
+	err = json.Unmarshal(data, &ref)
+	return ref, err
+}
+
+// RequestDatasetInfo get's qri profile information from a PeerInfo
+func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, error) {
+	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
+	if err != nil {
+		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
+	}
+
+	res, err := n.SendMessage(id, &Message{
+		Type:    MtDatasetInfo,
+		Phase:   MpRequest,
+		Payload: ref,
+	})
+
+	if err != nil {
+		fmt.Println("send dataset info message error:", err.Error())
+		return nil, err
+	}
+
+	data, err := json.Marshal(res.Payload)
+	if err != nil {
+		return nil, err
+	}
+	resref := &repo.DatasetRef{}
+	err = json.Unmarshal(data, resref)
+
+	return resref, err
+}

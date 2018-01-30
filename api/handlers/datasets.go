@@ -7,7 +7,7 @@ import (
 
 	"errors"
 	util "github.com/datatogether/api/apiutil"
-	"github.com/ipfs/go-datastore"
+	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset/dsutil"
@@ -116,9 +116,9 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &core.GetDatasetParams{
-		Path: datastore.NewKey(r.URL.Path[len("/export/"):]),
-		Hash: r.FormValue("hash"),
+	args := &repo.DatasetRef{
+		Path: r.URL.Path[len("/export/"):],
+		// Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
 	if err != nil {
@@ -148,9 +148,9 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &core.GetDatasetParams{
-		Path: datastore.NewKey(r.URL.Path[len("/datasets/"):]),
-		Hash: r.FormValue("hash"),
+	args := &repo.DatasetRef{
+		Path: r.URL.Path[len("/datasets/"):],
+		// Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
 	if err != nil {
@@ -215,11 +215,11 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.RemoveParams{
 		Name: r.FormValue("name"),
-		Path: datastore.NewKey(r.URL.Path[len("/remove"):]),
+		Path: r.URL.Path[len("/remove"):],
 	}
 
 	ref := &repo.DatasetRef{}
-	if err := h.Get(&core.GetDatasetParams{Name: p.Name, Path: p.Path}, ref); err != nil {
+	if err := h.Get(&repo.DatasetRef{Name: p.Name, Path: p.Path}, ref); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}

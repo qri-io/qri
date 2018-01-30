@@ -47,7 +47,7 @@ To export everything about a dataset, use the --dataset flag.`,
 		dsr, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		p := &core.GetDatasetParams{
+		p := &repo.DatasetRef{
 			Name: dsr.Name,
 			Path: dsr.Path,
 		}

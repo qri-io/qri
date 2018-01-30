@@ -14,6 +14,7 @@ import (
 type Peers interface {
 	List() (map[string]*profile.Profile, error)
 	Query(query.Query) (query.Results, error)
+	IPFSPeerID(peername string) (peer.ID, error)
 	GetID(peername string) (peer.ID, error)
 	PutPeer(id peer.ID, profile *profile.Profile) error
 	GetPeer(id peer.ID) (*profile.Profile, error)
@@ -70,6 +71,20 @@ func (m MemPeers) GetID(peername string) (peer.ID, error) {
 			return id, nil
 		}
 	}
+	return "", ErrNotFound
+}
+
+// IPFSPeerID gives the IPFS peer.ID for a given peername
+func (m MemPeers) IPFSPeerID(peername string) (peer.ID, error) {
+	for id, profile := range m {
+		if profile.Peername == peername {
+			if ipfspid, err := profile.IPFSPeerID(); err == nil {
+				return ipfspid, nil
+			}
+			return id, nil
+		}
+	}
+
 	return "", ErrNotFound
 }
 

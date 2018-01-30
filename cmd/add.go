@@ -23,9 +23,8 @@ var datasetAddCmd = &cobra.Command{
 	Short:      "add a dataset to your local repository",
 	SuggestFor: []string{"init"},
 	Long: `
-Add creates a new dataset from data you supply. You can supply data from a file 
-or a URL. Please note that all data added to qri is made public on the 
-distributed web when you run qri connect.
+Add creates a new dataset from data you supply. Please note that all data added 
+to qri is made public on the distributed web when you run qri connect.
 
 When adding data, you can supply metadata and dataset structure, but it’s not 
 required. qri does what it can to infer the details you don’t provide. 
@@ -47,17 +46,13 @@ changes to qri.`,
 				ref, err := repo.ParseDatasetRef(arg)
 				ExitIfErr(err)
 
-				req, err := datasetRequests(false)
+				req, err := datasetRequests(true)
 				ExitIfErr(err)
 
-				p := &core.AddParams{
-					Name: ref.Name,
-					Hash: ref.Path.String(),
-				}
 				res := &repo.DatasetRef{}
-				err = req.Add(p, res)
+				err = req.Add(ref, res)
 				ExitIfErr(err)
-				printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
+				printInfo("Successfully added dataset %s: %s", addDsName, res.Path)
 			}
 		} else {
 			initDataset()
@@ -105,7 +100,7 @@ func initDataset() {
 	ExitIfErr(err)
 
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
-	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
+	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path)
 }
 
 func init() {

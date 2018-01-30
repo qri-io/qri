@@ -142,6 +142,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
+	// TODO - stupid hack for now.
+	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))

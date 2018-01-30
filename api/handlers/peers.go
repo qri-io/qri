@@ -103,7 +103,8 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 	// TODO: double check with @b5 on this change
 	listParams := core.ListParamsFromRequest(r)
 	peers := []string{}
-	if err := h.ConnectedPeers(&listParams.Limit, &peers); err != nil {
+
+	if err := h.ConnectedIPFSPeers(&listParams.Limit, &peers); err != nil {
 		h.log.Infof("error showing connected peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
