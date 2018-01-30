@@ -21,8 +21,13 @@ type Requests interface {
 // API of core methods
 func Receivers(node *p2p.QriNode) []Requests {
 	r := node.Repo
+
+	// TODO - horrible hack for meow
+	dsr := NewDatasetRequests(r, nil)
+	dsr.Node = node
+
 	return []Requests{
-		NewDatasetRequests(r, nil),
+		dsr,
 		NewHistoryRequests(r, nil),
 		NewPeerRequests(node, nil),
 		NewProfileRequests(r, nil),

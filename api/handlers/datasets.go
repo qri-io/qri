@@ -111,9 +111,9 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &core.GetDatasetParams{
-		Path: datastore.NewKey(r.URL.Path[len("/download/"):]),
-		Hash: r.FormValue("hash"),
+	args := &repo.DatasetRef{
+		Path: r.URL.Path[len("/download/"):],
+		// Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
 	if err != nil {
@@ -143,9 +143,9 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &core.GetDatasetParams{
-		Path: datastore.NewKey(r.URL.Path[len("/datasets/"):]),
-		Hash: r.FormValue("hash"),
+	args := &repo.DatasetRef{
+		Path: r.URL.Path[len("/datasets/"):],
+		// Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
 	if err != nil {
@@ -213,11 +213,11 @@ func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.R
 func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.RemoveParams{
 		Name: r.FormValue("name"),
-		Path: datastore.NewKey(r.URL.Path[len("/datasets"):]),
+		Path: r.URL.Path[len("/datasets"):],
 	}
 
 	ref := &repo.DatasetRef{}
-	if err := h.Get(&core.GetDatasetParams{Name: p.Name, Path: p.Path}, ref); err != nil {
+	if err := h.Get(&repo.DatasetRef{Name: p.Name, Path: p.Path}, ref); err != nil {
 		return
 	}
 

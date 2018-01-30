@@ -3,9 +3,10 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore/query"
 	"time"
 
+	"github.com/ipfs/go-datastore"
+	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -227,7 +228,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 		if i >= p.Limit {
 			break
 		}
-		ds, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
+		ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
 		if err != nil {
 			n.log.Info("error loading dataset at path:", ref.Path)
 			return nil
@@ -328,6 +329,7 @@ func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
 }
 
 func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
+	fmt.Errorf("DSI req")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		n.log.Info(err.Error())
@@ -344,10 +346,27 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 		}
 	}
 
+	path, err := n.Repo.GetPath(ref.Name)
+	if err != nil {
+		return &Message{
+			Type:    MtDatasetInfo,
+			Phase:   MpError,
+			Payload: err,
+		}
+	}
+	ds, err := n.Repo.GetDataset(path)
+	if err != nil {
+		return &Message{
+			Type:    MtDatasetInfo,
+			Phase:   MpError,
+			Payload: err,
+		}
+	}
+
 	return &Message{
 		Phase:   MpResponse,
 		Type:    MtDatasetInfo,
-		Payload: ref,
+		Payload: ds,
 	}
 }
 

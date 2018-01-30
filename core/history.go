@@ -58,10 +58,10 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 
 	log := []*repo.DatasetRef{}
 	limit := params.Limit
-	ref := &repo.DatasetRef{Path: params.Path}
+	ref := &repo.DatasetRef{Path: params.Path.String()}
 
 	for {
-		ref.Dataset, err = dsfs.LoadDataset(d.repo.Store(), ref.Path)
+		ref.Dataset, err = dsfs.LoadDataset(d.repo.Store(), datastore.NewKey(ref.Path))
 		if err != nil {
 			return err
 		}
@@ -73,7 +73,7 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 		}
 		// TODO - clean this up
 		_, cleaned := dsfs.RefType(ref.Dataset.PreviousPath)
-		ref = &repo.DatasetRef{Path: datastore.NewKey(cleaned)}
+		ref = &repo.DatasetRef{Path: cleaned}
 	}
 
 	*res = log

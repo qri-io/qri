@@ -50,20 +50,29 @@ func getIpfsFilestore(online bool) *ipfs.Filestore {
 }
 
 func datasetRequests(online bool) (*core.DatasetRequests, error) {
-	r, cli, err := repoOrClient(online)
+	// TODO - bad bad hardcode
+	if conn, err := net.Dial("tcp", ":2504"); err == nil {
+		return core.NewDatasetRequests(nil, rpc.NewClient(conn)), nil
+	}
+
+	if !online {
+		// TODO - make this not terrible
+		r, cli, err := repoOrClient(online)
+		if err != nil {
+			return nil, err
+		}
+		return core.NewDatasetRequests(r, cli), nil
+	}
+
+	n, err := qriNode(online)
 	if err != nil {
 		return nil, err
 	}
-	return core.NewDatasetRequests(r, cli), nil
-}
 
-// func queryRequests(online bool) (*core.QueryRequests, error) {
-// 	r, cli, err := repoOrClient(online)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return core.NewQueryRequests(r, cli), nil
-// }
+	req := core.NewDatasetRequests(n.Repo, nil)
+	req.Node = n
+	return req, nil
+}
 
 func profileRequests(online bool) (*core.ProfileRequests, error) {
 	r, cli, err := repoOrClient(online)
@@ -90,7 +99,9 @@ func historyRequests(online bool) (*core.HistoryRequests, error) {
 }
 
 func peerRequests(online bool) (*core.PeerRequests, error) {
-	node, err := onlineQriNode()
+	return nil, nil
+
+	node, err := qriNode(online)
 	if err != nil {
 		return nil, err
 	}
@@ -128,7 +139,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	return nil, nil, fmt.Errorf("badbadnotgood")
 }
 
-func onlineQriNode() (node *p2p.QriNode, err error) {
+func qriNode(online bool) (node *p2p.QriNode, err error) {
 	var (
 		r  repo.Repo
 		fs *ipfs.Filestore
@@ -136,7 +147,7 @@ func onlineQriNode() (node *p2p.QriNode, err error) {
 
 	fs, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = IpfsFsPath
-		cfg.Online = true
+		cfg.Online = online
 	})
 
 	if err != nil {
@@ -162,16 +173,18 @@ func onlineQriNode() (node *p2p.QriNode, err error) {
 
 	node, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
 		ncfg.Logger = log
-		ncfg.Online = true
+		ncfg.Online = online
 		ncfg.QriBootstrapAddrs = cfg.Bootstrap
 	})
 	if err != nil {
 		return
 	}
 
-	log.Info("p2p addresses:")
-	for _, a := range node.EncapsulatedAddresses() {
-		log.Infof("  %s", a.String())
+	if online {
+		log.Info("p2p addresses:")
+		for _, a := range node.EncapsulatedAddresses() {
+			log.Infof("  %s", a.String())
+		}
 	}
 
 	return

@@ -125,7 +125,7 @@ func (nl NodeList) node(t dsgraph.NodeType, path string) *dsgraph.Node {
 }
 
 func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
-	root := nl.node(dsgraph.NtDataset, ref.Path.String())
+	root := nl.node(dsgraph.NtDataset, ref.Path)
 	ds := ref.Dataset
 	if ds == nil {
 		return root
@@ -201,13 +201,13 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 		}
 
 		for _, ref := range refs {
-			ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+			ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 			// TODO - remove this once loading is more consistent.
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 			}
 			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 			}
 			if err != nil {
 				err = fmt.Errorf("error loading dataset: %s", err.Error())
@@ -225,16 +225,16 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 
 			depth := 1
 			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
-				ref.Path = datastore.NewKey(ref.Dataset.PreviousPath)
+				ref.Path = ref.Dataset.PreviousPath
 
 				// TODO - remove this horrible hack.
 				if r.Store().PathPrefix() == "ipfs" {
-					if !strings.HasSuffix(ref.Path.String(), "/dataset.json") {
-						ref.Path = datastore.NewKey(ref.Path.String() + "/dataset.json")
+					if !strings.HasSuffix(ref.Path, "/dataset.json") {
+						ref.Path = ref.Path + "/dataset.json"
 					}
 				}
 
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, ref.Path)
+				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 				if err != nil {
 					done <- err
 					return err
@@ -274,7 +274,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			done <- err
 		}
 		for _, item := range items {
-			ref := &DatasetRef{Path: item.DatasetPath}
+			ref := &DatasetRef{Path: item.DatasetPath.String()}
 
 			ref.Dataset, err = dsfs.LoadDatasetRefs(store, item.DatasetPath)
 			// TODO - remove this once loading is more consistent.

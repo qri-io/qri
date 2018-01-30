@@ -82,8 +82,8 @@ func testNamespace(r repo.Repo) error {
 		if err != nil {
 			return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 		}
-		ref.Path = path
-		if err := r.PutName(ref.Name, ref.Path); err != nil {
+		ref.Path = path.String()
+		if err := r.PutName(ref.Name, path); err != nil {
 			return fmt.Errorf("error putting name in repo for namespace test: %s", err.Error())
 		}
 	}
@@ -123,7 +123,7 @@ func testNamespace(r repo.Repo) error {
 	}
 
 	for _, ref := range refs {
-		if err := r.Store().Delete(ref.Path); err != nil {
+		if err := r.Store().Delete(datastore.NewKey(ref.Path)); err != nil {
 			return fmt.Errorf("error removing path from repo store: %s", err.Error())
 		}
 		if err := r.DeleteName(ref.Name); err != nil {

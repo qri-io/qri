@@ -5,7 +5,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
@@ -24,8 +23,8 @@ type DatasetRef struct {
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
-	Path datastore.Key `json:"path,omitempty"`
-	// The dataset being referenced
+	Path string `json:"path,omitempty"`
+	// Dataset is a pointer to the dataset being referenced
 	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 }
 
@@ -35,15 +34,15 @@ func (r DatasetRef) String() (s string) {
 	if r.Name != "" {
 		s += "/" + r.Name
 	}
-	if r.Path.String() != "" {
-		s += "@" + r.Path.String()
+	if r.Path != "" {
+		s += "@" + r.Path
 	}
 	return s
 }
 
 // IsPeerRef returns true if only Peername is set
 func (r DatasetRef) IsPeerRef() bool {
-	return r.Peername != "" && r.Name == "" && r.Path.String() == "" && r.Dataset == nil
+	return r.Peername != "" && r.Name == "" && r.Path == "" && r.Dataset == nil
 }
 
 var (
@@ -51,8 +50,9 @@ var (
 	// peername/dataset_name@/ipfs/hash
 	// peername/dataset_name@hash
 	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/ipfs/)?(\w+)\b`)
-
-	peernameShorthandPathRegex = regexp.MustCompile(`(\w+[^/ipfs/])/(\w+)`)
+	// peernameShorthandPathRegex looks for dataset references in the form:
+	// peername/dataset_name
+	peernameShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
 )
 
 // ParseDatasetRef decodes a dataset reference from a string value
@@ -95,7 +95,7 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 		return &DatasetRef{
 			Peername: matches[0][1],
 			Name:     matches[0][2],
-			Path:     datastore.NewKey(matches[0][3] + matches[0][4]),
+			Path:     matches[0][3] + matches[0][4],
 		}, nil
 	} else if peernameShorthandPathRegex.MatchString(ref) {
 		matches := peernameShorthandPathRegex.FindAllStringSubmatch(ref, 1)
@@ -108,7 +108,7 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 	if data, err := base58.Decode(stripProtocol(stripProtocol(ref))); err == nil {
 		if _, err := multihash.Decode(data); err == nil {
 			return &DatasetRef{
-				Path: datastore.NewKey("/ipfs/" + stripProtocol(ref)),
+				Path: "/ipfs/" + stripProtocol(ref),
 			}, nil
 		}
 	}
@@ -141,8 +141,8 @@ func CompareDatasetRef(a, b *DatasetRef) error {
 	if a.Name != b.Name {
 		return fmt.Errorf("name mismatch. %s != %s", a.Name, b.Name)
 	}
-	if !a.Path.Equal(b.Path) {
-		return fmt.Errorf("path mismatch. %s != %s", a.Path.String(), b.Path.String())
+	if a.Path != b.Path {
+		return fmt.Errorf("path mismatch. %s != %s", a.Path, b.Path)
 	}
 	return nil
 }

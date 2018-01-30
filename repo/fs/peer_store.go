@@ -70,6 +70,25 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	return nil, datastore.ErrNotFound
 }
 
+// IPFSPeerID gives the IPFS peer.ID for a given peername
+func (r PeerStore) IPFSPeerID(peername string) (peer.ID, error) {
+	ps, err := r.peers()
+	if err != nil {
+		return "", err
+	}
+
+	for id, profile := range ps {
+		if profile.Peername == peername {
+			if ipfspid, err := profile.IPFSPeerID(); err == nil {
+				return ipfspid, nil
+			}
+			return peer.ID(id), nil
+		}
+	}
+
+	return "", datastore.ErrNotFound
+}
+
 // DeletePeer removes a peer from the store
 func (r PeerStore) DeletePeer(id peer.ID) error {
 	ps, err := r.peers()

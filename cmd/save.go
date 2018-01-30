@@ -3,11 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/dataset"
 	"os"
 	"path/filepath"
 
 	// "github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -56,7 +57,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 		ExitIfErr(err)
 
 		// TODO - need to make sure users aren't forking by referncing commits other than tip
-		p := &core.GetDatasetParams{
+		p := &repo.DatasetRef{
 			Name: ref.Name,
 			Path: ref.Path,
 		}
@@ -67,7 +68,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 
 		save := &core.SaveParams{}
 		save.Changes = prev.Dataset
-		save.Changes.PreviousPath = prev.Path.String()
+		save.Changes.PreviousPath = prev.Path
 
 		if saveMetaFile != "" {
 			fmt.Println(saveMetaFile)
@@ -103,13 +104,18 @@ collaboration are in the works. Sit tight sportsfans.`,
 				save.DataFilename = filepath.Base(saveDataFile)
 				save.Data = dataFile
 			}
+		} else {
+			r := getRepo(false)
+			df, err := dsfs.LoadData(r.Store(), prev.Dataset)
+			ExitIfErr(err)
+			save.Data = df
 		}
 
 		save.Changes.Commit.Assign(&dataset.Commit{
 			Title:   saveTitle,
 			Message: saveMessage,
 		})
-		save.Changes.PreviousPath = prev.Path.String()
+		save.Changes.PreviousPath = prev.Path
 
 		res := &repo.DatasetRef{}
 		err = req.Save(save, res)

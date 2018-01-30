@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/ipfs/go-datastore/query"
+	// "github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -51,9 +51,14 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 		return err
 	}
 
-	ps, err := repo.QueryPeers(r.Peers(), query.Query{})
+	// ps, err := repo.QueryPeers(r.Peers(), query.Query{})
+	// if err != nil {
+	// 	return fmt.Errorf("error querying peers: %s", err.Error())
+	// }
+
+	ps, err := r.Peers().List()
 	if err != nil {
-		return fmt.Errorf("error querying peers: %s", err.Error())
+		return fmt.Errorf("error listing peers: %s", err.Error())
 	}
 
 	for _, peer := range ps {

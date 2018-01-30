@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
@@ -39,7 +38,7 @@ both qri & IPFS. Promise.`,
 			p := &core.RemoveParams{}
 			switch rt {
 			case "path":
-				p.Path = datastore.NewKey(ref)
+				p.Path = ref
 			case "name":
 				p.Name = ref
 			}

@@ -46,7 +46,7 @@ func (n Namestore) PutName(name string, path datastore.Key) (err error) {
 
 	r := &repo.DatasetRef{
 		Name: name,
-		Path: path,
+		Path: path.String(),
 	}
 	names = append(names, r)
 
@@ -80,7 +80,7 @@ func (n Namestore) GetPath(name string) (datastore.Key, error) {
 	}
 	for _, ref := range names {
 		if ref.Name == name {
-			return ref.Path, nil
+			return datastore.NewKey(ref.Path), nil
 		}
 	}
 	return datastore.NewKey(""), repo.ErrNotFound
@@ -92,8 +92,9 @@ func (n Namestore) GetName(path datastore.Key) (string, error) {
 	if err != nil {
 		return "", err
 	}
+	p := path.String()
 	for _, ref := range names {
-		if ref.Path.Equal(path) {
+		if ref.Path == p {
 			return ref.Name, nil
 		}
 	}
@@ -109,8 +110,8 @@ func (n Namestore) DeleteName(name string) error {
 
 	for i, ref := range names {
 		if ref.Name == name {
-			if ref.Path.String() != "" && n.index != nil {
-				if err := n.index.Delete(ref.Path.String()); err != nil {
+			if ref.Path != "" && n.index != nil {
+				if err := n.index.Delete(ref.Path); err != nil {
 					return err
 				}
 			}
@@ -170,7 +171,7 @@ func (n *Namestore) names() ([]*repo.DatasetRef, error) {
 		for name, path := range prevns {
 			ns[i] = &repo.DatasetRef{
 				Name: name,
-				Path: path,
+				Path: path.String(),
 			}
 			i++
 		}

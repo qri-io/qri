@@ -2,9 +2,9 @@ package core
 
 import (
 	"bytes"
+	"encoding/gob"
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/jsonschema"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -22,15 +22,27 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dataset/vals"
+	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
 )
+
+func init() {
+	gob.Register(&dataset.Dataset{})
+	// gob.Register(dataset.Dataset{})
+	gob.Register(&repo.DatasetRef{})
+	gob.Register(&jsonschema.RootSchema{})
+	// gob.Register(repo.DatasetRef{})
+
+}
 
 // DatasetRequests encapsulates business logic for this node's
 // user profile
 type DatasetRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
+	Node *p2p.QriNode
 }
 
 // CoreRequestsName implements the Requets interface
@@ -74,13 +86,13 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 			break
 		}
 
-		ds, err := dsfs.LoadDataset(store, ref.Path)
+		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
 			// try one extra time...
 			// TODO - remove this horrible hack
-			ds, err = dsfs.LoadDataset(store, ref.Path)
+			ds, err = dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 			if err != nil {
-				return fmt.Errorf("error loading path: %s, err: %s", ref.Path.String(), err.Error())
+				return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
 		}
 		replies[i].Dataset = ds
@@ -90,37 +102,62 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	return nil
 }
 
-// GetDatasetParams defines parameters for DatasetRequests.Get
-type GetDatasetParams struct {
-	Path datastore.Key
-	Name string
-	Hash string
-}
-
 // Get a dataset
-func (r *DatasetRequests) Get(p *GetDatasetParams, res *repo.DatasetRef) error {
+func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
 
-	store := r.repo.Store()
+	getRemote := func(err error) error {
+		if r.Node != nil {
+			ds, err := r.Node.RequestDatasetInfo(p)
+			if ds != nil {
+				st := ds.Structure
 
-	if p.Path.String() == "" {
-		path, err := r.repo.GetPath(p.Name)
-		if err != nil {
-			return fmt.Errorf("error loading path for name: %s", err.Error())
+				// TODO - it seems that jsonschema.RootSchema and encoding/gob
+				// really don't like each other (no surprise there, thanks to validators being an interface)
+				// Which means that when this response is proxied over the wire bad things happen
+				// So for now we're doing this weirdness with re-creating a gob-friendly version
+				// of a dataset
+				*res = repo.DatasetRef{
+					Peername: p.Peername,
+					Name:     p.Name,
+					Path:     ds.Path().String(),
+					Dataset: &dataset.Dataset{
+						Commit: ds.Commit,
+						Meta:   ds.Meta,
+						Structure: &dataset.Structure{
+							Entries:  st.Entries,
+							ErrCount: st.ErrCount,
+							Length:   st.Length,
+						},
+					},
+				}
+			}
+			return err
 		}
-		p.Path = path
-	}
-
-	ds, err := dsfs.LoadDataset(store, p.Path)
-	if err != nil {
 		return err
 	}
 
+	store := r.repo.Store()
+
+	if p.Path == "" {
+		path, err := r.repo.GetPath(p.Name)
+		if err != nil {
+			err = fmt.Errorf("error loading path for name: %s", err.Error())
+			return getRemote(err)
+		}
+		p.Path = path.String()
+	}
+
+	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
+	if err != nil {
+		return getRemote(err)
+	}
+
 	name := p.Name
-	if p.Path.String() != "" {
-		name, _ = r.repo.GetName(p.Path)
+	if p.Path != "" {
+		name, _ = r.repo.GetName(datastore.NewKey(p.Path))
 	}
 
 	*res = repo.DatasetRef{
@@ -258,7 +295,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 	*res = repo.DatasetRef{
 		Name:    p.Name,
-		Path:    dskey,
+		Path:    dskey.String(),
 		Dataset: ds,
 	}
 	return nil
@@ -334,7 +371,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	*res = repo.DatasetRef{
 		Name:    name,
-		Path:    dspath,
+		Path:    dspath.String(),
 		Dataset: ds,
 	}
 
@@ -382,7 +419,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 	*res = repo.DatasetRef{
 		Name:    p.New,
-		Path:    path,
+		Path:    path.String(),
 		Dataset: ds,
 	}
 	return nil
@@ -390,7 +427,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 // RemoveParams deines parameters for removing a Dataset
 type RemoveParams struct {
-	Path datastore.Key
+	Path string
 	Name string
 }
 
@@ -400,24 +437,25 @@ func (r *DatasetRequests) Remove(p *RemoveParams, ok *bool) (err error) {
 		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
-	if p.Name == "" && p.Path.String() == "" {
+	if p.Name == "" && p.Path == "" {
 		return fmt.Errorf("either name or path is required")
 	}
 
-	if p.Path.String() == "" {
-		p.Path, err = r.repo.GetPath(p.Name)
-		if err != nil {
-			return
+	if p.Path == "" {
+		key, e := r.repo.GetPath(p.Name)
+		if e != nil {
+			return e
 		}
+		p.Path = key.String()
 	}
 
-	p.Name, err = r.repo.GetName(p.Path)
+	p.Name, err = r.repo.GetName(datastore.NewKey(p.Path))
 	if err != nil {
 		return
 	}
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-		path := datastore.NewKey(strings.TrimSuffix(p.Path.String(), "/"+dsfs.PackageFileDataset.String()))
+		path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
 		if err = pinner.Unpin(path, true); err != nil {
 			return
 		}
@@ -554,7 +592,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 
 	*res = repo.DatasetRef{
 		Name:    p.Name,
-		Path:    path,
+		Path:    path.String(),
 		Dataset: ds,
 	}
 	return
@@ -586,9 +624,9 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	// if a dataset is specified, load it
 	if p.Name != "" || p.Path.String() != "" {
 		ref = &repo.DatasetRef{}
-		err = r.Get(&GetDatasetParams{
+		err = r.Get(&repo.DatasetRef{
 			Name: p.Name,
-			Path: p.Path,
+			Path: p.Path.String(),
 		}, ref)
 
 		if err != nil {

@@ -52,12 +52,12 @@ changes to qri.`,
 
 				p := &core.AddParams{
 					Name: ref.Name,
-					Hash: ref.Path.String(),
+					Hash: ref.Path,
 				}
 				res := &repo.DatasetRef{}
 				err = req.Add(p, res)
 				ExitIfErr(err)
-				printInfo("Successfully added dataset %s: %s", addDsName, res.Path.String())
+				printInfo("Successfully added dataset %s: %s", addDsName, res.Path)
 			}
 		} else {
 			initDataset()
@@ -105,7 +105,7 @@ func initDataset() {
 	ExitIfErr(err)
 
 	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
-	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path.String())
+	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path)
 }
 
 func init() {

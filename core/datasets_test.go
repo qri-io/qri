@@ -6,7 +6,6 @@ import (
 	"encoding/json"
 	"testing"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -141,21 +140,22 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Errorf("error getting path: %s", err.Error())
 		return
 	}
+	pathstr := path.String()
 	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 		return
 	}
 	cases := []struct {
-		p   *GetDatasetParams
+		p   *repo.DatasetRef
 		res *dataset.Dataset
 		err string
 	}{
 		//TODO: probably delete some of these
-		{&GetDatasetParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
-		{&GetDatasetParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-		{&GetDatasetParams{Path: path, Name: "movies", Hash: "123"}, moviesDs, ""},
-		{&GetDatasetParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
+		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
+		{&repo.DatasetRef{Path: pathstr, Name: "ABC"}, nil, ""},
+		{&repo.DatasetRef{Path: pathstr, Name: "movies"}, moviesDs, ""},
+		{&repo.DatasetRef{Path: pathstr, Name: "cats"}, moviesDs, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
@@ -267,8 +267,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		err string
 	}{
 		{&RemoveParams{}, nil, "either name or path is required"},
-		{&RemoveParams{Path: datastore.NewKey("abc"), Name: "ABC"}, nil, "repo: not found"},
-		{&RemoveParams{Path: path}, nil, ""},
+		{&RemoveParams{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
+		{&RemoveParams{Path: path.String()}, nil, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)

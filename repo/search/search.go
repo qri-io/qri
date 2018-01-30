@@ -5,7 +5,6 @@ import (
 
 	"github.com/qri-io/bleve"
 	//_ "github.com/qri-io/bleve/config"
-	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
@@ -25,7 +24,7 @@ func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
 
 	res := make([]*repo.DatasetRef, results.Hits.Len())
 	for i, hit := range results.Hits {
-		res[i] = &repo.DatasetRef{Path: datastore.NewKey(hit.ID)}
+		res[i] = &repo.DatasetRef{Path: hit.ID}
 	}
 
 	// fmt.Println(searchResults)

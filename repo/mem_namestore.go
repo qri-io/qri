@@ -13,13 +13,13 @@ type MemNamestore []*DatasetRef
 func (r *MemNamestore) PutName(name string, path datastore.Key) error {
 	for _, ref := range *r {
 		if ref.Name == name {
-			ref.Path = path
+			ref.Path = path.String()
 			return nil
 		}
 	}
 	*r = append(*r, &DatasetRef{
 		Name: name,
-		Path: path,
+		Path: path.String(),
 	})
 	sl := *r
 	sort.Slice(sl, func(i, j int) bool { return sl[i].Name < sl[j].Name })
@@ -31,7 +31,7 @@ func (r *MemNamestore) PutName(name string, path datastore.Key) error {
 func (r MemNamestore) GetPath(name string) (datastore.Key, error) {
 	for _, ref := range r {
 		if ref.Name == name {
-			return ref.Path, nil
+			return datastore.NewKey(ref.Path), nil
 		}
 	}
 	return datastore.NewKey(""), ErrNotFound
@@ -39,8 +39,9 @@ func (r MemNamestore) GetPath(name string) (datastore.Key, error) {
 
 // GetName returns the name for a given path in the store
 func (r MemNamestore) GetName(path datastore.Key) (string, error) {
+	p := path.String()
 	for _, ref := range r {
-		if ref.Path.Equal(path) {
+		if ref.Path == p {
 			return ref.Name, nil
 		}
 	}
