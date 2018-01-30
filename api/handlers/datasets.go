@@ -264,21 +264,21 @@ func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *htt
 }
 
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.AddParams{}
+	p := &repo.DatasetRef{}
 	if r.Header.Get("Content-Type") == "application/json" {
 		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 		// TODO - clean this up
-		p.Hash = r.URL.Path[len("/add/"):]
+		p.Path = r.URL.Path[len("/add/"):]
 		if p.Name == "" && r.FormValue("name") != "" {
 			p.Name = r.FormValue("name")
 		}
 	} else {
-		p = &core.AddParams{
+		p = &repo.DatasetRef{
 			Name: r.URL.Query().Get("name"),
-			Hash: r.URL.Path[len("/add/"):],
+			Path: r.URL.Path[len("/add/"):],
 		}
 	}
 

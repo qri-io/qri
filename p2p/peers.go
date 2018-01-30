@@ -128,7 +128,7 @@ func (n *QriNode) ConnectedPeers() []string {
 	return peers
 }
 
-// ConnectedPeers lists all IPFS connected peers that support the
+// ConnectedQriPeers lists all IPFS connected peers that support the
 // qri protocol
 func (n *QriNode) ConnectedQriPeers() map[peer.ID]*profile.Profile {
 	conns := n.Host.Network().Conns()

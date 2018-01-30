@@ -35,6 +35,13 @@ type DatasetRequests struct {
 	Node *p2p.QriNode
 }
 
+// Repo exposes the DatasetRequest's repo
+// TODO - this is an architectural flaw resulting from not having a clear
+// order of local > network > RPC requests figured out
+func (r *DatasetRequests) Repo() repo.Repo {
+	return r.repo
+}
+
 // CoreRequestsName implements the Requets interface
 func (DatasetRequests) CoreRequestsName() string { return "datasets" }
 
@@ -61,7 +68,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 		replies, err := r.Node.RequestDatasetsList(p.Peername)
 		*res = replies
 		return err
-	} else if r.Node == nil {
+	} else if p.Peername != "" && r.Node == nil {
 		return fmt.Errorf("cannot list datasets of peer without p2p connection")
 	}
 
@@ -108,8 +115,9 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 
 	getRemote := func(err error) error {
 		if r.Node != nil {
-			ds, err := r.Node.RequestDatasetInfo(p)
-			if ds != nil {
+			ref, err := r.Node.RequestDatasetInfo(p)
+			if ref != nil {
+				ds := ref.Dataset
 				st := ds.Structure
 
 				// TODO - it seems that jsonschema.RootSchema and encoding/gob
@@ -120,7 +128,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 				*res = repo.DatasetRef{
 					Peername: p.Peername,
 					Name:     p.Name,
-					Path:     ds.Path().String(),
+					Path:     ref.Path,
 					Dataset: &dataset.Dataset{
 						Commit: ds.Commit,
 						Meta:   ds.Meta,
@@ -132,6 +140,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 					},
 				}
 			}
+			fmt.Println("remote err:", err.Error())
 			return err
 		}
 		return err
@@ -159,9 +168,10 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 	}
 
 	*res = repo.DatasetRef{
-		Name:    name,
-		Path:    p.Path,
-		Dataset: ds,
+		Peername: p.Peername,
+		Name:     name,
+		Path:     ds.Path().String(),
+		Dataset:  ds,
 	}
 	return nil
 }
@@ -307,6 +317,7 @@ type SaveParams struct {
 }
 
 // Save adds a history entry, updating a dataset
+// TODO - need to make sure users aren't forking by referncing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
@@ -320,28 +331,25 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	ds := &dataset.Dataset{}
 
-	rt, ref := dsfs.RefType(p.Changes.PreviousPath)
-	// allows using dataset names as "previous" fields
-	if rt == "name" {
-		name = ref
-		prevpath, err = r.repo.GetPath(strings.Trim(ref, "/"))
-		if err != nil {
-			return fmt.Errorf("error getting previous dataset path: %s", err.Error())
-		}
-	} else {
-		prevpath = datastore.NewKey(ref)
-		// attempt to grab name for later if path is provided
-		name, _ = r.repo.GetName(prevpath)
-	}
+	// read previous changes
+	// prev, err := r.repo.GetDataset(datastore.NewKey(p.Changes.PreviousPath))
+	// if err != nil {
+	// 	return fmt.Errorf("error getting previous dataset: %s", err.Error())
+	// }
 
 	// read previous changes
-	prev, err := r.repo.GetDataset(prevpath)
+	prev, err := dsfs.LoadDataset(r.repo.Store(), datastore.NewKey(p.Changes.PreviousPath))
 	if err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
 	// add all previous fields and any changes
 	ds.Assign(prev, p.Changes)
+
+	if err := dsfs.DerefDataset(r.repo.Store(), prev); err != nil {
+		return fmt.Errorf("error dereferencing dataset: %s", err.Error())
+	}
+	fmt.Println("huh???", prev.Meta)
 
 	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
 		ds.PreviousPath = strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String())
@@ -549,16 +557,20 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	return nil
 }
 
-// AddParams defines parameters for adding a dataset
-type AddParams struct {
-	Name string
-	Hash string
-}
-
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Add", p, res)
+		return r.cli.Call("DatasetRequests.Add", ref, res)
+	}
+
+	if ref.Path == "" && r.Node != nil {
+		res, err := r.Node.RequestDatasetInfo(ref)
+		if err != nil {
+			return err
+		}
+		fmt.Println(res)
+		ref = res
+		fmt.Println(ref.Path)
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)
@@ -566,7 +578,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 		return fmt.Errorf("can only add datasets when running an IPFS filestore")
 	}
 
-	key := datastore.NewKey(strings.TrimSuffix(p.Hash, "/"+dsfs.PackageFileDataset.String()))
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
@@ -578,7 +590,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	}
 
 	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
-	err = r.repo.PutName(p.Name, path)
+	err = r.repo.PutName(ref.Name, path)
 	if err != nil {
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
@@ -589,7 +601,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	}
 
 	*res = repo.DatasetRef{
-		Name:    p.Name,
+		Name:    ref.Name,
 		Path:    path.String(),
 		Dataset: ds,
 	}

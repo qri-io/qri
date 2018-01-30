@@ -349,11 +349,11 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 
 func TestDatasetRequestsAdd(t *testing.T) {
 	cases := []struct {
-		p   *AddParams
+		p   *repo.DatasetRef
 		res *repo.DatasetRef
 		err string
 	}{
-		{&AddParams{Name: "abc", Hash: "hash###"}, nil, "can only add datasets when running an IPFS filestore"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "can only add datasets when running an IPFS filestore"},
 	}
 
 	mr, err := testrepo.NewTestRepo()

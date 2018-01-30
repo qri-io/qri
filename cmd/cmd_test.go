@@ -98,7 +98,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"info"},
 		{"add", "-f" + moviesFilePath, "-n" + "movies"},
 		{"list"},
-		{"save", "--data=" + movies2FilePath, "-m" + "commit_1", "me/movies"},
+		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},
 		{"export", "--dataset", "me/movies", "-o" + path},
 		{"rename", "me/movies", "me/movie"},

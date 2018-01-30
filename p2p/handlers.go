@@ -361,10 +361,12 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 		}
 	}
 
+	ref.Dataset = ds
+
 	return &Message{
 		Phase:   MpResponse,
 		Type:    MtDatasetInfo,
-		Payload: ds,
+		Payload: ref,
 	}
 }
 

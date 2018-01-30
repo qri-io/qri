@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -37,7 +36,7 @@ func (n *QriNode) RequestDatasetsList(peername string) ([]*repo.DatasetRef, erro
 }
 
 // RequestDatasetInfo get's qri profile information from a PeerInfo
-func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*dataset.Dataset, error) {
+func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, error) {
 	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
 	if err != nil {
 		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
@@ -58,8 +57,8 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*dataset.Dataset, er
 	if err != nil {
 		return nil, err
 	}
-	ds := &dataset.Dataset{}
-	err = json.Unmarshal(data, ds)
+	resref := &repo.DatasetRef{}
+	err = json.Unmarshal(data, resref)
 
-	return ds, err
+	return resref, err
 }

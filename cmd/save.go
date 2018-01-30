@@ -47,23 +47,22 @@ collaboration are in the works. Sit tight sportsfans.`,
 			ErrExit(fmt.Errorf("please provide the name of an existing dataset so save updates to"))
 		}
 		if saveMetaFile == "" && saveDataFile == "" && saveStructureFile == "" {
-			ErrExit(fmt.Errorf("either a metadata or data option is required"))
+			ErrExit(fmt.Errorf("one of --structure, --meta or --data is required"))
 		}
 
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		req, err := datasetRequests(false)
-		ExitIfErr(err)
+		// req, err := datasetRequests(false)
+		// ExitIfErr(err)
 
-		// TODO - need to make sure users aren't forking by referncing commits other than tip
-		p := &repo.DatasetRef{
-			Name: ref.Name,
-			Path: ref.Path,
-		}
+		// TODO - this is silly:
+		ref.Peername = ""
+
+		req := core.NewDatasetRequests(getRepo(false), nil)
 
 		prev := &repo.DatasetRef{}
-		err = req.Get(p, prev)
+		err = req.Get(ref, prev)
 		ExitIfErr(err)
 
 		save := &core.SaveParams{}

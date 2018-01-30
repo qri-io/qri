@@ -118,6 +118,24 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 	}, nil
 }
 
+// IsLocalRef checks to see if a given reference needs to be
+// resolved against the network
+func IsLocalRef(r Repo, ref *DatasetRef) (bool, error) {
+	if ref.Peername == "" || ref.Peername == "me" {
+		return true, nil
+	}
+
+	p, err := r.Profile()
+	if err != nil {
+		return false, err
+	}
+
+	// TODO - check to see if repo has local / cached copy
+	// of the reference in question
+
+	return ref.Peername == p.Peername, nil
+}
+
 // TODO - this could be more robust?
 func stripProtocol(ref string) string {
 	if strings.HasPrefix(ref, "/ipfs/") {

@@ -13,11 +13,14 @@ import (
 	"github.com/qri-io/qri/repo/fs"
 )
 
-var r repo.Repo
+var (
+	repository repo.Repo
+	rpcClient  *rpc.Client
+)
 
 func getRepo(online bool) repo.Repo {
-	if r != nil {
-		return r
+	if repository != nil {
+		return repository
 	}
 
 	if !QRIRepoInitialized() {
@@ -114,6 +117,12 @@ func peerRequests(online bool) (*core.PeerRequests, error) {
 }
 
 func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
+	if repository != nil {
+		return repository, nil, nil
+	} else if rpcClient != nil {
+		return nil, rpcClient, nil
+	}
+
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
@@ -185,11 +194,14 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 		return
 	}
 
+	// if online {
+	// 	log.Info("p2p addresses:")
+	// 	for _, a := range node.EncapsulatedAddresses() {
+	// 		log.Infof("  %s", a.String())
+	// 	}
+	// }
 	if online {
-		log.Info("p2p addresses:")
-		for _, a := range node.EncapsulatedAddresses() {
-			log.Infof("  %s", a.String())
-		}
+		log.Infof("connecting to the distributed web...")
 	}
 
 	return
