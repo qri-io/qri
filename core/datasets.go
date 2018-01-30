@@ -21,10 +21,12 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dataset/vals"
+	"github.com/qri-io/datasetDiffer"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
+	diff "github.com/yudai/gojsondiff"
 )
 
 // DatasetRequests encapsulates business logic for this node's
@@ -715,4 +717,131 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 
 	*errors = sch.ValidateBytes(data)
 	return
+}
+
+// DiffParams defines parameters for diffing two datasets with Diff
+type DiffParams struct {
+	// The pointers to the datasets to diff
+	DsLeft, DsRight *dataset.Dataset
+	// override flag to diff full dataset without having to specify each component
+	DiffAll bool
+	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
+	// currently supported components include "structure", "data", "meta", "transform", and "visConfig"
+	DiffComponents map[string]bool
+}
+
+// Diff computes the diff of two datasets
+func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]diff.Diff) (err error) {
+	diffMap := map[string]diff.Diff{}
+	if p.DiffAll {
+		diffMap, err := datasetDiffer.DiffDatasets(p.DsLeft, p.DsRight)
+		if err != nil {
+			return fmt.Errorf("error diffing datasets: %s", err.Error())
+		}
+		// TODO: remove this temporary hack
+		if diffMap["data"] == nil || len(diffMap["data"].Deltas()) == 0 {
+			// dereference data paths
+			// marshal json to []byte
+			// call `datasetDiffer.DiffJSON(a, b)`
+		}
+		*diffs = diffMap
+	} else {
+		for k, v := range p.DiffComponents {
+			if v {
+				switch k {
+				case "structure":
+					if p.DsLeft.Structure != nil && p.DsRight.Structure != nil {
+						structureDiffs, err := datasetDiffer.DiffStructure(p.DsLeft.Structure, p.DsRight.Structure)
+						if err != nil {
+							return fmt.Errorf("error diffing structure: %s", err.Error())
+						}
+						diffMap[k] = structureDiffs
+					}
+				case "data":
+					//TODO
+					if p.DsLeft.DataPath != "" && p.DsRight.DataPath != "" {
+						dataDiffs, err := datasetDiffer.DiffData(p.DsLeft, p.DsRight)
+						if err != nil {
+							return fmt.Errorf("error diffing data: %s", err.Error())
+						}
+
+						diffMap[k] = dataDiffs
+					}
+				case "transform":
+					if p.DsLeft.Transform != nil && p.DsRight.Transform != nil {
+						transformDiffs, err := datasetDiffer.DiffTransform(p.DsLeft.Transform, p.DsRight.Transform)
+						if err != nil {
+							return fmt.Errorf("error diffing transform: %s", err.Error())
+						}
+						diffMap[k] = transformDiffs
+					}
+				case "meta":
+					if p.DsLeft.Meta != nil && p.DsRight.Meta != nil {
+						metaDiffs, err := datasetDiffer.DiffMeta(p.DsLeft.Meta, p.DsRight.Meta)
+						if err != nil {
+							return fmt.Errorf("error diffing meta: %s", err.Error())
+						}
+						diffMap[k] = metaDiffs
+					}
+				case "visConfig":
+					if p.DsLeft.VisConfig != nil && p.DsRight.VisConfig != nil {
+						visConfigDiffs, err := datasetDiffer.DiffVisConfig(p.DsLeft.VisConfig, p.DsRight.VisConfig)
+						if err != nil {
+							return fmt.Errorf("error diffing visConfig: %s", err.Error())
+						}
+						diffMap[k] = visConfigDiffs
+					}
+				}
+			}
+		}
+		*diffs = diffMap
+
+	}
+	// Hack to examine data
+	if p.DiffAll || p.DiffComponents["data"] == true {
+		sd1Params := &StructuredDataParams{
+			Format:       dataset.JSONDataFormat,
+			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
+			Path:         p.DsLeft.Path(),
+		}
+		sd2Params := &StructuredDataParams{
+			Format:       dataset.JSONDataFormat,
+			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
+			Path:         p.DsRight.Path(),
+		}
+		sd1 := &StructuredData{}
+		sd2 := &StructuredData{}
+		err := r.StructuredData(sd1Params, sd1)
+		if err != nil {
+			return fmt.Errorf("error getting structured data: %s", err.Error())
+		}
+		err = r.StructuredData(sd2Params, sd2)
+		if err != nil {
+			return fmt.Errorf("error getting structured data: %s", err.Error())
+		}
+		var jsonRaw1, jsonRaw2 json.RawMessage
+		var ok bool
+		if jsonRaw1, ok = sd1.Data.(json.RawMessage); !ok {
+			return fmt.Errorf("error getting json raw message")
+		}
+		if jsonRaw2, ok = sd2.Data.(json.RawMessage); !ok {
+			return fmt.Errorf("error getting json raw message")
+		}
+		m1 := &map[string]json.RawMessage{"structure": jsonRaw1}
+		m2 := &map[string]json.RawMessage{"structure": jsonRaw2}
+		dataBytes1, err := json.Marshal(m1)
+		if err != nil {
+			return fmt.Errorf("error marshaling json: %s", err.Error())
+		}
+		dataBytes2, err := json.Marshal(m2)
+		if err != nil {
+			return fmt.Errorf("error marshaling json: %s", err.Error())
+		}
+		dataDiffs, err := datasetDiffer.DiffJSON(dataBytes1, dataBytes2)
+		if err != nil {
+			return fmt.Errorf("error comparing structured data: %s", err.Error())
+		}
+		diffMap["data"] = dataDiffs
+	}
+	return nil
 }
