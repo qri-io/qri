@@ -2,6 +2,7 @@ package search
 
 import (
 	"encoding/json"
+	"github.com/ipfs/go-datastore"
 	"log"
 	"time"
 
@@ -71,7 +72,7 @@ func LoadIndex(indexPath string) (Index, error) {
 	} else if err != nil {
 		return nil, err
 	} else {
-		log.Printf("Opening existing index...")
+		// log.Printf("Opening existing index...")
 	}
 
 	return repoIndex, nil
@@ -119,7 +120,7 @@ func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []*repo.DatasetR
 	batch := i.NewBatch()
 	batchCount := 0
 	for _, ref := range refs {
-		ds, err := dsfs.LoadDataset(store, ref.Path)
+		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
 			log.Printf("error loading dataset: %s", err.Error())
 			continue
@@ -134,7 +135,7 @@ func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []*repo.DatasetR
 		leanMetadata := NewIndexableMetadataStruct()
 		json.Unmarshal(data, leanMetadata)
 
-		batch.Index(ref.Path.String(), leanMetadata.MapValues())
+		batch.Index(ref.Path, leanMetadata.MapValues())
 		batchCount++
 
 		if batchCount >= batchSize {

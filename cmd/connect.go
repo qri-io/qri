@@ -16,10 +16,11 @@ import (
 )
 
 var (
-	connectCmdPort string
-	connectMemOnly bool
-	connectOffline bool
-	connectSetup   bool
+	connectCmdPort    string
+	connectCmdRPCPort string
+	connectMemOnly    bool
+	connectOffline    bool
+	connectSetup      bool
 )
 
 // connectCmd represents the run command
@@ -70,6 +71,7 @@ call it a “prime” port number.`,
 		s, err := api.New(r, func(cfg *api.Config) {
 			cfg.Logger = log
 			cfg.Port = connectCmdPort
+			cfg.RPCPort = connectCmdRPCPort
 			cfg.MemOnly = connectMemOnly
 			cfg.Online = !connectOffline
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
@@ -122,18 +124,20 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 
 	req := core.NewDatasetRequests(node.Repo, nil)
 
-	for name, path := range cfg.DefaultDatasets {
-		fmt.Printf("attempting to add default dataset: %s\n", path)
-		res := &repo.DatasetRef{}
-		err := req.Add(&core.AddParams{
-			Hash: path,
-			Name: name,
-		}, res)
+	for _, refstr := range cfg.DefaultDatasets {
+		fmt.Printf("attempting to add default dataset: %s\n", refstr)
+		ref, err := repo.ParseDatasetRef(refstr)
 		if err != nil {
-			fmt.Printf("add dataset %s error: %s\n", path, err.Error())
+			fmt.Println("error parsing dataset reference: '%s': %s", refstr, err.Error())
+			continue
+		}
+		res := &repo.DatasetRef{}
+		err = req.Add(ref, res)
+		if err != nil {
+			fmt.Printf("add dataset %s error: %s\n", refstr, err.Error())
 			return
 		}
-		fmt.Printf("added default dataset: %s\n", path)
+		fmt.Printf("added default dataset: %s\n", refstr)
 	}
 
 	cfg.Initialized = true
@@ -145,7 +149,8 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "p", api.DefaultPort, "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", api.DefaultPort, "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", api.DefaultRPCPort, "port to start rpc listener on")
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
 	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")

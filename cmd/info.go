@@ -41,10 +41,10 @@ var infoCmd = &cobra.Command{
 			}
 		}
 
-		pr, err := peerRequests(true)
+		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		req, err := datasetRequests(false)
+		req, err := datasetRequests(true)
 		ExitIfErr(err)
 
 		for i, arg := range args {
@@ -67,13 +67,8 @@ var infoCmd = &cobra.Command{
 					fmt.Printf("%s", string(data))
 				}
 			} else {
-				p := &core.GetDatasetParams{
-					Name: ref.Name,
-					Path: ref.Path,
-				}
-
 				res := &repo.DatasetRef{}
-				err = req.Get(p, res)
+				err = req.Get(ref, res)
 				ExitIfErr(err)
 
 				if outformat == "" {
@@ -84,7 +79,6 @@ var infoCmd = &cobra.Command{
 					fmt.Printf("%s", string(data))
 				}
 			}
-
 		}
 	},
 }

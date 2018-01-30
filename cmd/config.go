@@ -179,8 +179,8 @@ type Config struct {
 	IPFSPath string
 	// Datastore configuration details
 	// Datastore       DatastoreCfg
-	// DefaultDatasets is a list of datasets to grab on initially joining the network
-	DefaultDatasets map[string]string
+	// DefaultDatasets is a list of dataset references to grab on initially joining the network
+	DefaultDatasets []string
 }
 
 // TODO - Is this is the right place for this?
@@ -268,9 +268,9 @@ func defaultCfgBytes() []byte {
 		Bootstrap:   p2p.DefaultBootstrapAddresses,
 		// defaultDatasets is a hard-coded dataset added when a new qri repo is created
 		// these hashes should always/highly available
-		DefaultDatasets: map[string]string{
+		DefaultDatasets: []string{
 			// fivethirtyeight comic characters
-			"comic_characters": "/ipfs/QmcqkHFA2LujZxY38dYZKmxsUstN4unk95azBjwEhwrnM6/dataset.json",
+			"me/comic_characters@/ipfs/QmcqkHFA2LujZxY38dYZKmxsUstN4unk95azBjwEhwrnM6/dataset.json",
 		},
 	}
 

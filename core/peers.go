@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/ipfs/go-datastore/query"
+	// "github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -51,9 +51,14 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 		return err
 	}
 
-	ps, err := repo.QueryPeers(r.Peers(), query.Query{})
+	// ps, err := repo.QueryPeers(r.Peers(), query.Query{})
+	// if err != nil {
+	// 	return fmt.Errorf("error querying peers: %s", err.Error())
+	// }
+
+	ps, err := r.Peers().List()
 	if err != nil {
-		return fmt.Errorf("error querying peers: %s", err.Error())
+		return fmt.Errorf("error listing peers: %s", err.Error())
 	}
 
 	for _, peer := range ps {
@@ -71,14 +76,45 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	return nil
 }
 
-// ConnectedPeers lists PeerID's we're currently connected to. If running
+// ConnectedIPFSPeers lists PeerID's we're currently connected to. If running
 // IPFS this will also return connected IPFS nodes
-func (d *PeerRequests) ConnectedPeers(limit *int, peers *[]string) error {
+func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.ConnectedPeers", limit, peers)
+		return d.cli.Call("PeerRequests.ConnectedIPFSPeers", limit, peers)
 	}
 
 	*peers = d.qriNode.ConnectedPeers()
+	return nil
+}
+
+// Peer is a quick proxy for profile.Profile that plays
+// nice with encoding/gob
+type Peer struct {
+	ID       string
+	IPFSID   string
+	Peername string
+	Name     string
+}
+
+// ConnectedQriPeers lists IPFS PeerID's we're currently connected to that also
+// support the qri protocol
+func (d *PeerRequests) ConnectedQriPeers(limit *int, peers *[]Peer) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.ConnectedQriPeers", limit, peers)
+	}
+
+	parsed := []Peer{}
+	ps := d.qriNode.ConnectedQriPeers()
+	for id, peer := range ps {
+		// parsed[id.Pretty()] = peer
+		parsed = append(parsed, Peer{ID: peer.ID, IPFSID: id.String(), Peername: peer.Peername, Name: peer.Name})
+	}
+
+	if len(ps) == 0 {
+		return fmt.Errorf("no peers found")
+	}
+
+	*peers = parsed
 	return nil
 }
 

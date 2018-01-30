@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"github.com/qri-io/qri/repo/profile"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -124,5 +125,21 @@ func (n *QriNode) ConnectedPeers() []string {
 		peers[i] = c.RemotePeer().Pretty()
 	}
 
+	return peers
+}
+
+// ConnectedQriPeers lists all IPFS connected peers that support the
+// qri protocol
+func (n *QriNode) ConnectedQriPeers() map[peer.ID]*profile.Profile {
+	conns := n.Host.Network().Conns()
+	peers := map[peer.ID]*profile.Profile{}
+	for _, c := range conns {
+		id := c.RemotePeer()
+		// if support, err := n.SupportsQriProtocol(id); err == nil && support {
+		if p, err := n.Repo.Peers().GetPeer(id); err == nil {
+			peers[id] = p
+		}
+		// }
+	}
 	return peers
 }

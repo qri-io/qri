@@ -180,11 +180,11 @@ func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 		return refs, err
 	}
 	for _, ref := range refs {
-		if name, err := r.GetName(ref.Path); err == nil {
+		if name, err := r.GetName(datastore.NewKey(ref.Path)); err == nil {
 			ref.Name = name
 		}
 
-		if ds, err := r.GetDataset(ref.Path); err == nil {
+		if ds, err := r.GetDataset(datastore.NewKey(ref.Path)); err == nil {
 			ref.Dataset = ds
 		} else {
 			// fmt.Println(err.Error())
