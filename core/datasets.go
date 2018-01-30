@@ -2,7 +2,6 @@ package core
 
 import (
 	"bytes"
-	"encoding/gob"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -27,15 +26,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/varName"
 )
-
-func init() {
-	gob.Register(&dataset.Dataset{})
-	// gob.Register(dataset.Dataset{})
-	gob.Register(&repo.DatasetRef{})
-	gob.Register(&jsonschema.RootSchema{})
-	// gob.Register(repo.DatasetRef{})
-
-}
 
 // DatasetRequests encapsulates business logic for this node's
 // user profile
@@ -65,6 +55,14 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 func (r *DatasetRequests) List(p *ListParams, res *[]*repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.List", p, res)
+	}
+
+	if p.Peername != "" && r.Node != nil {
+		replies, err := r.Node.RequestDatasetsList(p.Peername)
+		*res = replies
+		return err
+	} else if r.Node == nil {
+		return fmt.Errorf("cannot list datasets of peer without p2p connection")
 	}
 
 	store := r.repo.Store()
