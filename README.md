@@ -11,9 +11,9 @@
 Breaking that down:
 
 - **global** so that if *anyone, anywhere* has published work with the same or similar datasets, you can discover it.
-- Specific to **datasets** to ****solve the friction problem.  datasets on qri work with each other by default
+- Specific to **datasets** because data deserves purpose-built tools
 - **version control** to keep data in sync, attributing all changes to authors
-- On the **distributed web** to make *all* of the data published on qri simultaneously available to on the network
+- On the **distributed web** to make *all* of the data published on qri simultaneously available, letting peers work on data together.
  
 If you’re unfamiliar with *version control,* particularly the distributed kind, well you're probably viewing this document on [github](https://github.com/qri-io/qri) — which is a version control system intended for code. Its underlying technology – git – popularized some magic sauce that has inspired a generation of programmers and popularized concepts at the heart of the distributed web. Qri is applying that family of concepts to four common data problems:
 
@@ -27,6 +27,7 @@ Using because qri is *global* and *content-addressed* adding data to qri also ch
 <p align="center">
   <a href="https://asciinema.org/a/160303" target="_blank"><img src="https://asciinema.org/a/160303.png" width="654"/></a>
 </p>
+
 
 ## Getting Involved
 
