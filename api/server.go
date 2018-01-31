@@ -2,11 +2,13 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/rpc"
 
 	"github.com/datatogether/api/apiutil"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/api/handlers"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -119,11 +121,22 @@ func (s *Server) ServeRPC() {
 	return
 }
 
+// HandleIPFSPath responds to IPFS Hash requests with raw data
+func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
+	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
+	if err != nil {
+		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	io.Copy(w, file)
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s *Server) *http.ServeMux {
 	m := http.NewServeMux()
 
-	m.HandleFunc("/", WebappHandler)
+	// m.HandleFunc("/", WebappHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
@@ -154,6 +167,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
+
+	rh := handlers.NewRootHandlers(dsh, ph)
+	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.RootHandler)))
 
 	return m
 }

@@ -1,8 +1,11 @@
 package api
 
 import (
+	"context"
 	"net/http"
 	"time"
+
+	"github.com/qri-io/qri/api/handlers"
 )
 
 // middleware handles request logging
@@ -44,5 +47,17 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 			w.Header().Set("Access-Control-Allow-Credentials", "true")
 			return
 		}
+	}
+}
+
+const datasetRefCtxKey = "datasetRef"
+
+func (s *Server) datasetRefMiddleware(handler http.HandlerFunc) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if ref, _ := handlers.DatasetRefFromReq(r); ref != nil {
+			ctx := context.WithValue(r.Context(), datasetRefCtxKey, ref)
+			r = r.WithContext(ctx)
+		}
+		handler(w, r)
 	}
 }
