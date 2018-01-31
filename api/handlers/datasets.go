@@ -160,12 +160,12 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args, err := repo.ParseDatasetRef(r.URL.Path)
+	args, err := DatasetRefFromPath(r.URL.Path)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if args.Path == "" {
+	if args.Name == "" {
 		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("no dataset name or hash given"))
 		return
 	}

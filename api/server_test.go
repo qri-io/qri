@@ -95,6 +95,11 @@ func TestServerRoutes(t *testing.T) {
 		// {"GET", "/[made up peername]", {}, {proper response}, 404},
 		// {"GET", "/[peername]/[datasetname]", {}, {proper response}, 200},
 		// {"GET", "/[peername]/[made up datasetname]", {}, {proper response}, 404}
+		{"OPTIONS", "/list/", nil, 200},
+		{"GET", "/list/", nil, 400},
+		{"GET", "/list/madeupname", nil, 500},
+		{"GET", "/list/madeupname/datasetname", nil, 400},
+		// {"GET", "/list/[peername]", {}, {proper response}, 200}
 	}
 
 	client := &http.Client{}
