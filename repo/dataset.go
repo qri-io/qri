@@ -87,6 +87,10 @@ var (
 func ParseDatasetRef(ref string) (*DatasetRef, error) {
 	if ref == "" {
 		return nil, fmt.Errorf("cannot parse empty string as dataset reference")
+	} else if strings.HasPrefix(ref, "/ipfs/") {
+		return &DatasetRef{
+			Path: ref,
+		}, nil
 	} else if fullDatasetPathRegex.MatchString(ref) {
 		matches := fullDatasetPathRegex.FindAllStringSubmatch(ref, 1)
 		if matches[0][3] == "" {

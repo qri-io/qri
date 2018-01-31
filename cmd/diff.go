@@ -52,8 +52,6 @@ Diff diffs two datasets`,
 		ExitIfErr(err)
 
 		fmt.Println(datasetDiffer.MapDiffsToString(*diffs))
-
-		// printSuccess("renamed dataset %s", res.Name)
 	},
 }
 

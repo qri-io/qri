@@ -149,6 +149,8 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Errorf("error loading dataset: %s", err.Error())
 		return
 	}
+
+	t.Logf(pathstr)
 	cases := []struct {
 		p   *repo.DatasetRef
 		res *dataset.Dataset
@@ -265,13 +267,13 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   *RemoveParams
+		p   *repo.DatasetRef
 		res *dataset.Dataset
 		err string
 	}{
-		{&RemoveParams{}, nil, "either name or path is required"},
-		{&RemoveParams{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
-		{&RemoveParams{Path: path.String()}, nil, ""},
+		{&repo.DatasetRef{}, nil, "either name or path is required"},
+		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
+		{&repo.DatasetRef{Path: path.String()}, nil, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)

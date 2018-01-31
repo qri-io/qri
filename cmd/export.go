@@ -23,6 +23,7 @@ var (
 	exportCmdData      bool
 	exportCmdTransform bool
 	exportCmdVis       bool
+	exportCmdAll       bool
 )
 
 // exportCmd represents the export command
@@ -66,8 +67,9 @@ To export everything about a dataset, use the --dataset flag.`,
 			err = dst.Close()
 			ExitIfErr(err)
 			return
-		} else if cmd.Flag("dataset").Value.String() == "true" {
+		} else if cmd.Flag("all").Value.String() == "true" {
 			exportCmdData = true
+			exportCmdDataset = true
 			exportCmdMeta = true
 			exportCmdStructure = true
 		}
@@ -155,6 +157,16 @@ To export everything about a dataset, use the --dataset flag.`,
 			printSuccess("exported dataset data to: %s", dataPath)
 		}
 
+		if exportCmdDataset {
+			dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
+			dsbytes, err := json.MarshalIndent(ds, "", "  ")
+			ExitIfErr(err)
+			err = ioutil.WriteFile(dsPath, dsbytes, os.ModePerm)
+			ExitIfErr(err)
+
+			printSuccess("exported dataset dataset to: %s", dsPath)
+		}
+
 		// err = dsutil.WriteDir(r.Store(), ds, path)
 		// ExitIfErr(err)
 	},
@@ -164,7 +176,8 @@ func init() {
 	RootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
-	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export full dataset package")
+	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
+	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export root dataset")
 	exportCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
 	exportCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
 	exportCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")

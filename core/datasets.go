@@ -142,7 +142,6 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 					},
 				}
 			}
-			fmt.Println("remote err:", err.Error())
 			return err
 		}
 		return err
@@ -157,8 +156,10 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 			return getRemote(err)
 		}
 		p.Path = path.String()
+	} else if !strings.HasSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()) && strings.HasPrefix(p.Path, "/ipfs/") {
+		// TODO - this is silly. need the "hasPrefix" to make tests pass (tests use a map store)
+		p.Path = fmt.Sprintf("%s/%s", p.Path, dsfs.PackageFileDataset.String())
 	}
-
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
 		return getRemote(err)
@@ -172,7 +173,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 	*res = repo.DatasetRef{
 		Peername: p.Peername,
 		Name:     name,
-		Path:     ds.Path().String(),
+		Path:     p.Path,
 		Dataset:  ds,
 	}
 	return nil
@@ -321,6 +322,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 // SaveParams defines permeters for Dataset Saves
 type SaveParams struct {
+	Prev         *repo.DatasetRef
 	Changes      *dataset.Dataset // all dataset changes. required.
 	DataFilename string           // filename for new data. optional.
 	Data         io.Reader        // stream of complete dataset update. optional.
@@ -334,36 +336,30 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	var (
-		name     string
-		prevpath datastore.Key
-		dataf    cafs.File
+		ds          = &dataset.Dataset{}
+		dataf       cafs.File
+		commitTitle string
 	)
 
-	ds := &dataset.Dataset{}
-
-	// read previous changes
-	// prev, err := r.repo.GetDataset(datastore.NewKey(p.Changes.PreviousPath))
-	// if err != nil {
-	// 	return fmt.Errorf("error getting previous dataset: %s", err.Error())
-	// }
-
-	// read previous changes
-	prev, err := dsfs.LoadDataset(r.repo.Store(), datastore.NewKey(p.Changes.PreviousPath))
-	if err != nil {
+	prev := &repo.DatasetRef{}
+	fmt.Println(p.Prev)
+	if err := r.Get(p.Prev, prev); err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
-	// add all previous fields and any changes
-	ds.Assign(prev, p.Changes)
-
-	if err := dsfs.DerefDataset(r.repo.Store(), prev); err != nil {
-		return fmt.Errorf("error dereferencing dataset: %s", err.Error())
+	if p.Changes.Commit != nil {
+		commitTitle = p.Changes.Commit.Title
 	}
 
-	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
-		ds.PreviousPath = strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String())
-	} else {
-		ds.PreviousPath = prevpath.String()
+	// add all previous fields and any changes
+	ds.Assign(prev.Dataset, p.Changes)
+	ds.PreviousPath = prev.Path
+
+	// ds.Assign clobbers empty commit messages with the previous
+	// commit message. So if the peer hasn't provided a message at this point
+	// let's maintain that going into CreateDataset
+	if commitTitle == "" {
+		p.Changes.Commit.Title = ""
 	}
 
 	if p.Data != nil {
@@ -372,22 +368,26 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
+		fmt.Println("create ds error: %s", err.Error())
 		return err
 	}
 
-	if name != "" {
-		if err := r.repo.DeleteName(name); err != nil {
+	fmt.Println(ds.PreviousPath)
+
+	if p.Prev.Name != "" {
+		if err := r.repo.DeleteName(p.Prev.Name); err != nil {
 			return err
 		}
-		if err := r.repo.PutName(name, dspath); err != nil {
+		if err := r.repo.PutName(p.Prev.Name, dspath); err != nil {
 			return err
 		}
 	}
 
 	*res = repo.DatasetRef{
-		Name:    name,
-		Path:    dspath.String(),
-		Dataset: ds,
+		Peername: p.Prev.Peername,
+		Name:     p.Prev.Name,
+		Path:     dspath.String(),
+		Dataset:  ds,
 	}
 
 	return nil
@@ -440,19 +440,13 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
-// RemoveParams deines parameters for removing a Dataset
-type RemoveParams struct {
-	Path string
-	Name string
-}
-
 // Remove a dataset
-func (r *DatasetRequests) Remove(p *RemoveParams, ok *bool) (err error) {
+func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
-	if p.Name == "" && p.Path == "" {
+	if p.Path == "" && p.Name == "" {
 		return fmt.Errorf("either name or path is required")
 	}
 

@@ -218,7 +218,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.RemoveParams{
+	// TODO - use new fancy context handler?
+	p := &repo.DatasetRef{
 		Name: r.FormValue("name"),
 		Path: r.URL.Path[len("/remove"):],
 	}

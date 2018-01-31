@@ -105,7 +105,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"export", "--dataset", "me/movies", "-o" + path},
 		{"rename", "me/movies", "me/movie"},
 		{"validate", "me/movie"},
-		{"remove", "movie"},
+		{"remove", "me/movie"},
 	}
 
 	for i, args := range commands {
