@@ -51,7 +51,7 @@ overwrite this info.`,
 			// this is usually a terrible idea
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
-		fmt.Println("setting up qri repo at: %s", QriRepoPath)
+		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
 
 		envVars := map[string]*string{
 			"QRI_SETUP_CONFIG_DATA":  &setupConfigData,

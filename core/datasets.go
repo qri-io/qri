@@ -231,19 +231,6 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	if err != nil {
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
-	// Ensure that dataset is well-formed
-	// format, err := detect.ExtensionDataFormat(filename)
-	// if err != nil {
-	// 	return fmt.Errorf("error detecting format extension: %s", err.Error())
-	// }
-	// if err = validate.DataFormat(format, bytes.NewReader(data)); err != nil {
-	// 	return fmt.Errorf("invalid data format: %s", err.Error())
-	// }
-
-	// TODO - finish
-	// if p.Structure != nil {
-	// 	stData, err := ioutil.ReadAll(p.Structure)
-	// }
 
 	st, err := detect.FromReader(filename, bytes.NewReader(data))
 	if err != nil {
@@ -292,7 +279,10 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		ds.Meta.AccrualPeriodicity = "R/P1W"
 	}
 	if p.Metadata != nil {
-		if err := json.NewDecoder(p.Metadata).Decode(ds); err != nil {
+		if ds.Meta == nil {
+			ds.Meta = &dataset.Meta{}
+		}
+		if err := json.NewDecoder(p.Metadata).Decode(ds.Meta); err != nil {
 			return fmt.Errorf("error parsing metadata json: %s", err.Error())
 		}
 	}
@@ -300,6 +290,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	dataf := memfs.NewMemfileBytes("data."+st.Format.String(), data)
 	dskey, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
+		fmt.Printf("error creating dataset: %s\n", err.Error())
 		return err
 	}
 

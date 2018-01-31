@@ -154,7 +154,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 			err = dst.Close()
 			ExitIfErr(err)
-			printSuccess("exported dataset data to: %s", dataPath)
+			printSuccess("exported data to: %s", dataPath)
 		}
 
 		if exportCmdDataset {
@@ -164,7 +164,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			err = ioutil.WriteFile(dsPath, dsbytes, os.ModePerm)
 			ExitIfErr(err)
 
-			printSuccess("exported dataset dataset to: %s", dsPath)
+			printSuccess("exported dataset.json to: %s", dsPath)
 		}
 
 		// err = dsutil.WriteDir(r.Store(), ds, path)
