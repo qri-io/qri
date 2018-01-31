@@ -27,8 +27,9 @@ func DatasetRefFromReq(r *http.Request) (*repo.DatasetRef, error) {
 	return DatasetRefFromPath(r.URL.Path)
 }
 
+// DatasetRefFromPath parses a path and returns a datasetRef
 func DatasetRefFromPath(path string) (*repo.DatasetRef, error) {
-	refstr := HttpPathToQriPath(path)
+	refstr := HTTPPathToQriPath(path)
 	ref, err := repo.ParseDatasetRef(refstr)
 	if err != nil {
 		ref = nil
@@ -46,9 +47,9 @@ func DatasetRefFromCtx(ctx context.Context) *repo.DatasetRef {
 	return nil
 }
 
-// HttpPathToQriPath converts a http path to a
+// HTTPPathToQriPath converts a http path to a
 // qri path
-func HttpPathToQriPath(path string) string {
+func HTTPPathToQriPath(path string) string {
 	paramIndex := strings.Index(path, "?")
 	if paramIndex != -1 {
 		path = path[:paramIndex]

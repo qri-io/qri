@@ -45,7 +45,7 @@ func TestServerRoutes(t *testing.T) {
 		// {"POST", "/me", {data to add dataset}, {response body}, 200},
 		// {"POST", "/me", {badly formed body}, {response body}, 400},
 		{"OPTIONS", "/export/", nil, 200},
-		{"GET", "/export/", nil, 500},
+		{"GET", "/export/", nil, 400},
 		// TODO: more tests for /export/ endpoint:
 		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200},
 		// {"GET", "/export/bad hash", {}, {proper response}, 400},

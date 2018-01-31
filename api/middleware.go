@@ -50,15 +50,10 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// see comment on context.WithValue
-type qriCtxKey string
-
-const datasetRefCtxKey qriCtxKey = "datasetRef"
-
 func (s *Server) datasetRefMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if ref, _ := handlers.DatasetRefFromReq(r); ref != nil {
-			ctx := context.WithValue(r.Context(), datasetRefCtxKey, ref)
+			ctx := context.WithValue(r.Context(), handlers.DatasetRefCtxKey, ref)
 			r = r.WithContext(ctx)
 		}
 		handler(w, r)

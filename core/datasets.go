@@ -114,14 +114,16 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
-
 	getRemote := func(err error) error {
 		if r.Node != nil {
 			ref, err := r.Node.RequestDatasetInfo(p)
 			if ref != nil {
 				ds := ref.Dataset
+				// TODO - this is really stupid, p2p.RequestDatasetInfo should return an error here
+				if ds.IsEmpty() {
+					return fmt.Errorf("dataset not found")
+				}
 				st := ds.Structure
-
 				// TODO - it seems that jsonschema.RootSchema and encoding/gob
 				// really don't like each other (no surprise there, thanks to validators being an interface)
 				// Which means that when this response is proxied over the wire bad things happen
@@ -135,9 +137,15 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 						Commit: ds.Commit,
 						Meta:   ds.Meta,
 						Structure: &dataset.Structure{
-							Entries:  st.Entries,
-							ErrCount: st.ErrCount,
-							Length:   st.Length,
+							Checksum:     st.Checksum,
+							Compression:  st.Compression,
+							Encoding:     st.Encoding,
+							ErrCount:     st.ErrCount,
+							Entries:      st.Entries,
+							Format:       st.Format,
+							FormatConfig: st.FormatConfig,
+							Length:       st.Length,
+							Qri:          st.Qri,
 						},
 					},
 				}

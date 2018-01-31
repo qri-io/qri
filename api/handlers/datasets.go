@@ -127,12 +127,13 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	res := &repo.DatasetRef{}
-	args := &repo.DatasetRef{
-		Path: r.URL.Path[len("/export/"):],
-		// Hash: r.FormValue("hash"),
+	args, err := DatasetRefFromPath(r.URL.Path[len("/export/"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
-	err := h.Get(args, res)
+	res := &repo.DatasetRef{}
+	err = h.Get(args, res)
 	if err != nil {
 		h.log.Infof("error getting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -254,12 +255,11 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO - use new fancy context handler?
-	p := &repo.DatasetRef{
-		Name: r.FormValue("name"),
-		Path: r.URL.Path[len("/remove"):],
+	p, err := DatasetRefFromPath(r.URL.Path[len("/remove/"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
-
 	ref := &repo.DatasetRef{}
 	if err := h.Get(&repo.DatasetRef{Name: p.Name, Path: p.Path}, ref); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
