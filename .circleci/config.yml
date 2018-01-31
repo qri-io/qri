@@ -15,7 +15,7 @@ jobs:
       - run: go get github.com/jstemmer/go-junit-report github.com/golang/lint/golint github.com/qri-io/datasetDiffer
       - run: 
           name: Run Lint Tests
-          command: golint ./...
+          command: golint -set_exit_status ./...
       - run:
           name: Install non-gx deps
           command: make install-deps

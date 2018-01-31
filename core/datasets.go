@@ -186,6 +186,9 @@ type InitParams struct {
 	Data             io.Reader // reader of structured data. either Url or Data is required
 	MetadataFilename string    // filename of metadata file. optional.
 	Metadata         io.Reader // reader of json-formatted metadata
+	// TODO
+	// StructureFilename string    // filename of metadata file. optional.
+	// Structure         io.Reader // reader of json-formatted metadata
 	// TODO - add support for adding via path/hash
 	// DataPath         datastore.Key // path to structured data
 }
@@ -234,6 +237,11 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	// }
 	// if err = validate.DataFormat(format, bytes.NewReader(data)); err != nil {
 	// 	return fmt.Errorf("invalid data format: %s", err.Error())
+	// }
+
+	// TODO - finish
+	// if p.Structure != nil {
+	// 	stData, err := ioutil.ReadAll(p.Structure)
 	// }
 
 	st, err := detect.FromReader(filename, bytes.NewReader(data))
@@ -351,7 +359,6 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if err := dsfs.DerefDataset(r.repo.Store(), prev); err != nil {
 		return fmt.Errorf("error dereferencing dataset: %s", err.Error())
 	}
-	fmt.Println("huh???", prev.Meta)
 
 	if strings.HasSuffix(prevpath.String(), dsfs.PackageFileDataset.String()) {
 		ds.PreviousPath = strings.TrimSuffix(prevpath.String(), "/"+dsfs.PackageFileDataset.String())

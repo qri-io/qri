@@ -91,13 +91,13 @@ func TestCommandsIntegration(t *testing.T) {
 	commands := [][]string{
 		{"help"},
 		{"version"},
-		{"setup"},
+		{"setup", "--peername=" + "alan"},
 		{"profile", "get"},
 		{"profile", "set", "-f" + profileDataFilepath},
 		{"config", "get"},
 		{"info"},
-		{"add", "-f" + moviesFilePath, "-n" + "movies"},
-		{"add", "-f" + movies2FilePath, "-n" + "movies2"}, //New
+		{"add", "--data=" + moviesFilePath, "me/movies"},
+		{"add", "--data=" + movies2FilePath, "me/movies2"},
 		{"list"},
 		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},

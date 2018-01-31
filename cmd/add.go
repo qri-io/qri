@@ -11,11 +11,12 @@ import (
 )
 
 var (
-	addDsFilepath     string
-	addDsMetaFilepath string
-	addDsName         string
-	addDsURL          string
-	addDsPassive      bool
+	addDsFilepath          string
+	addDsMetaFilepath      string
+	addDsStructureFilepath string
+	addDsName              string
+	addDsURL               string
+	addDsPassive           bool
 )
 
 var datasetAddCmd = &cobra.Command{
@@ -36,52 +37,61 @@ Once you’ve added data, you can use the export command to pull the data out of
 qri, change the data outside of qri, and use the save command to record those 
 changes to qri.`,
 	Example: `  add a new dataset named annual_pop:
-  $ qri add --data data.csv --name annual_pop
+  $ qri add --data data.csv me/annual_pop
 
-  create a dataset with a metadata file:
-  $ qri add --meta meta.json --data data.csv --name comic_characters`,
+  create a dataset with a metadata and data file:
+  $ qri add --meta meta.json --data comics.csv me/comic_characters`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) > 0 {
-			for _, arg := range args {
-				ref, err := repo.ParseDatasetRef(arg)
-				ExitIfErr(err)
+		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
 
-				req, err := datasetRequests(true)
-				ExitIfErr(err)
+		if len(args) == 0 {
+			ErrExit(fmt.Errorf("speficy the location of a dataset to add"))
+		} else if ingest && len(args) != 1 {
+			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
+		}
 
-				res := &repo.DatasetRef{}
-				err = req.Add(ref, res)
-				ExitIfErr(err)
-				printInfo("Successfully added dataset %s: %s", addDsName, res.Path)
-			}
-		} else {
-			initDataset()
+		if ingest {
+			ref, err := repo.ParseDatasetRef(args[0])
+			ExitIfErr(err)
+
+			initDataset(ref)
+			return
+		}
+
+		for _, arg := range args {
+			ref, err := repo.ParseDatasetRef(arg)
+			ExitIfErr(err)
+
+			req, err := datasetRequests(true)
+			ExitIfErr(err)
+
+			res := &repo.DatasetRef{}
+			err = req.Add(ref, res)
+			ExitIfErr(err)
+			printInfo("Successfully added dataset %s", ref)
 		}
 	},
 }
 
-func initDataset() {
+func initDataset(name *repo.DatasetRef) {
 	var (
-		dataFile, metaFile *os.File
-		err                error
+		dataFile, metaFile, structureFile *os.File
+		err                               error
 	)
 
 	if addDsFilepath == "" && addDsURL == "" {
 		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
-	} else if addDsName == "" {
-		ErrExit(fmt.Errorf("please provide a --name"))
 	}
 
 	dataFile, err = loadFileIfPath(addDsFilepath)
 	ExitIfErr(err)
 	metaFile, err = loadFileIfPath(addDsMetaFilepath)
 	ExitIfErr(err)
-
-	req, err := datasetRequests(false)
+	structureFile, err = loadFileIfPath(addDsStructureFilepath)
 	ExitIfErr(err)
 
 	p := &core.InitParams{
-		Name:         addDsName,
+		Name:         name.Name,
 		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
 	}
@@ -94,20 +104,26 @@ func initDataset() {
 	if metaFile != nil {
 		p.Metadata = metaFile
 	}
+	if structureFile != nil {
+		// TODO - not yet finished in core
+		// p.Structure = structureFile
+	}
+
+	req, err := datasetRequests(false)
+	ExitIfErr(err)
 
 	ref := &repo.DatasetRef{}
 	err = req.Init(p, ref)
 	ExitIfErr(err)
 
-	// req.Get(&core.GetDatasetParams{ Name: p.Name }, res)
-	printSuccess("initialized dataset %s: %s", ref.Name, ref.Path)
+	ref.Peername = "me"
+	printSuccess("added new dataset %s", ref)
 }
 
 func init() {
-	datasetAddCmd.Flags().StringVarP(&addDsName, "name", "n", "", "name to give dataset")
-	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "u", "", "url of file to initialize from")
-	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "file", "f", "", "data file to initialize from")
-	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "m", "", "dataset metadata file")
-	datasetAddCmd.Flags().BoolVarP(&addDsPassive, "passive", "p", false, "disable interactive init")
+	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "", "", "url of file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "data", "", "", "data file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
+	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
 	RootCmd.AddCommand(datasetAddCmd)
 }

@@ -168,8 +168,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
-	rh := handlers.NewRootHandlers(dsh, ph)
-	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.RootHandler)))
+	rh := handlers.NewRootHandler(dsh, ph)
+	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m
 }
