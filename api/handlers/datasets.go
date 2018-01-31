@@ -78,6 +78,18 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// PeerListHandler is a dataset list endpoint
+func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.peerListHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // AddHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -163,6 +175,30 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteResponse(w, res)
+}
+
+func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
+	p := core.ListParamsFromRequest(r)
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if !ref.IsPeerRef() {
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
+		return
+	}
+	p.Peername = ref.Peername
+	p.OrderBy = "created"
+	res := []*repo.DatasetRef{}
+	if err := h.List(&p, &res); err != nil {
+		h.log.Infof("error listing peer's datasets: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := util.WritePageResponse(w, res, r, p.Page()); err != nil {
+		h.log.Infof("error list datasests response: %s", err.Error())
+	}
 }
 
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
