@@ -37,30 +37,6 @@ func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// PeerHandler is the endpoint for fetching a peer
-func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		h.getPeerHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
-// PeerNamespaceHandler is the endpoint for fetching a peer's datasets
-func (h *PeerHandlers) PeerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		h.peerNamespaceHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // TODO: add back connect endpoint
 // ConnectToPeerHandler is the endpoint for explicitly connecting to a peer
 // func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
@@ -131,34 +107,3 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 
 // 	util.WriteResponse(w, res)
 // }
-
-func (h *PeerHandlers) getPeerHandler(w http.ResponseWriter, r *http.Request) {
-	res := &profile.Profile{}
-	args := &core.PeerInfoParams{
-		PeerID:   r.URL.Path[len("/peers/"):],
-		Peername: r.FormValue("peername"),
-	}
-	err := h.Info(args, res)
-	if err != nil {
-		h.log.Infof("error getting peer profile: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
-}
-
-func (h *PeerHandlers) peerNamespaceHandler(w http.ResponseWriter, r *http.Request) {
-	listParams := core.ListParamsFromRequest(r)
-	args := &core.NamespaceParams{
-		PeerID: r.URL.Path[len("/peernamespace/"):],
-		Limit:  listParams.Limit,
-		Offset: listParams.Offset,
-	}
-	res := []*repo.DatasetRef{}
-	if err := h.GetNamespace(args, &res); err != nil {
-		h.log.Infof("error getting peer namespace: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
-}
