@@ -416,13 +416,14 @@ func TestDataRequestsDiff(t *testing.T) {
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 	}
+
 	//test cases
 	cases := []struct {
 		dsLeft, dsRight *dataset.Dataset
 		expected        string
 		err             string
 	}{
-		{dsBase, dsNewStructure, "Structure Changed. (3 changes)", ""},
+		{dsBase, dsNewStructure, "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
 	}
 	// execute
 	for i, c := range cases {
