@@ -75,6 +75,10 @@ func printDatasetRefInfo(i int, ref *repo.DatasetRef) {
 				fmt.Printf("    %s\n", white(ds.Meta.Description))
 			}
 		}
+
+		if ds.Structure != nil {
+			fmt.Printf("    %d bytes, %d entries, %d errors", ds.Structure.Length, ds.Structure.Entries, ds.Structure.ErrCount)
+		}
 	}
 
 	fmt.Println()

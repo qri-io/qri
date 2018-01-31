@@ -44,31 +44,31 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 
 	r := d.qriNode.Repo
 	replies := make([]*profile.Profile, p.Limit)
-	i := 0
 
 	user, err := r.Profile()
 	if err != nil {
 		return err
 	}
 
-	// ps, err := repo.QueryPeers(r.Peers(), query.Query{})
-	// if err != nil {
-	// 	return fmt.Errorf("error querying peers: %s", err.Error())
-	// }
-
 	ps, err := r.Peers().List()
 	if err != nil {
 		return fmt.Errorf("error listing peers: %s", err.Error())
 	}
 
+	if len(ps) == 0 {
+		*res = []*profile.Profile{}
+		return nil
+	}
+
+	i := 0
 	for _, peer := range ps {
 		if i >= p.Limit {
 			break
 		}
-		if peer.ID == user.ID {
+		if peer == nil || peer.ID == user.ID {
 			continue
 		}
-		replies[i] = peer
+		replies[i] = &profile.Profile{Peername: peer.Peername, ID: peer.ID}
 		i++
 	}
 

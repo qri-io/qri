@@ -51,7 +51,6 @@ func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
 		}
 
 		if support {
-			fmt.Println("adding qri peer:", pinfo.ID.Pretty())
 			if err := n.AddQriPeer(pinfo); err != nil {
 				fmt.Println(err.Error())
 			}
