@@ -1,4 +1,4 @@
-package api
+package handlers
 
 import (
 	"html/template"

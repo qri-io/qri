@@ -2,14 +2,14 @@ package handlers
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/ipfs/go-datastore"
+	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -37,10 +37,30 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.listHandler(w, r)
-	case "PUT":
-		h.updateDatasetHandler(w, r)
-	case "POST":
-		h.initHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// SaveHandler is a dataset save/update endpoint
+func (h *DatasetHandlers) SaveHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "PUT", "POST":
+		h.saveHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// RemoveHandler is a a dataset delete endpoint
+func (h *DatasetHandlers) RemoveHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "DELETE", "POST":
+		h.removeHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -53,45 +73,17 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getHandler(w, r)
-	case "PUT":
-		h.updateDatasetHandler(w, r)
-	case "DELETE":
-		h.deleteDatasetHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
 }
 
-// InitHandler is an endpoint for creating new datasets
-func (h *DatasetHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST":
-		h.initHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
-// StructuredDataHandler is the data endpoint for a dataset
-func (h *DatasetHandlers) StructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		h.getStructuredDataHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
-// AddHandler is the endpoint for adding an existing dataset to this repo
+// AddHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
-	case "POST":
+	case "POST", "PUT":
 		h.addHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -101,6 +93,8 @@ func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 // RenameHandler is the endpoint for renaming datasets
 func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
 	case "POST", "PUT":
 		h.renameHandler(w, r)
 	default:
@@ -110,9 +104,20 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.zipDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	args := &repo.DatasetRef{
-		Path: r.URL.Path[len("/download/"):],
+		Path: r.URL.Path[len("/export/"):],
 		// Hash: r.FormValue("hash"),
 	}
 	err := h.Get(args, res)
@@ -143,11 +148,16 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args := &repo.DatasetRef{
-		Path: r.URL.Path[len("/datasets/"):],
-		// Hash: r.FormValue("hash"),
+	args, err := repo.ParseDatasetRef(r.URL.Path)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
 	}
-	err := h.Get(args, res)
+	if args.Path == "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("no dataset name or hash given"))
+		return
+	}
+	err = h.Get(args, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -155,7 +165,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.InitParams{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
@@ -186,38 +196,36 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res.Dataset)
 }
 
-func (h *DatasetHandlers) updateDatasetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		h.updateMetadataHandler(w, r)
-		// default:
-		//  h.initDatasetFileHandler(w, r)
+		p := &core.SaveParams{}
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		res := &repo.DatasetRef{}
+		if err := h.Save(p, res); err != nil {
+			h.log.Infof("error updating dataset: %s", err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		util.WriteResponse(w, res)
+	default:
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("Content-Type of request body must be json."))
+		return
 	}
 }
 
-func (h *DatasetHandlers) updateMetadataHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.SaveParams{}
-	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	res := &repo.DatasetRef{}
-	if err := h.Save(p, res); err != nil {
-		h.log.Infof("error updating dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
-}
-
-func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.RemoveParams{
 		Name: r.FormValue("name"),
-		Path: r.URL.Path[len("/datasets"):],
+		Path: r.URL.Path[len("/remove"):],
 	}
 
 	ref := &repo.DatasetRef{}
 	if err := h.Get(&repo.DatasetRef{Name: p.Name, Path: p.Path}, ref); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
@@ -229,67 +237,6 @@ func (h *DatasetHandlers) deleteDatasetHandler(w http.ResponseWriter, r *http.Re
 	}
 
 	util.WriteResponse(w, ref.Dataset)
-}
-
-func (h *DatasetHandlers) getStructuredDataHandler(w http.ResponseWriter, r *http.Request) {
-	listParams := core.ListParamsFromRequest(r)
-	all, err := util.ReqParamBool("all", r)
-	if err != nil {
-		all = false
-	}
-
-	objectRows, err := util.ReqParamBool("object_rows", r)
-	if err != nil {
-		objectRows = true
-	}
-
-	p := &core.StructuredDataParams{
-		Format: dataset.JSONDataFormat,
-		FormatConfig: &dataset.JSONOptions{
-			ArrayEntries: !objectRows,
-		},
-		Path:   datastore.NewKey(r.URL.Path[len("/data"):]),
-		Limit:  listParams.Limit,
-		Offset: listParams.Offset,
-		All:    all,
-	}
-	data := &core.StructuredData{}
-	if err := h.StructuredData(p, data); err != nil {
-		h.log.Infof("error reading structured data: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, data)
-}
-
-func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	p := &repo.DatasetRef{}
-	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		// TODO - clean this up
-		p.Path = r.URL.Path[len("/add/"):]
-		if p.Name == "" && r.FormValue("name") != "" {
-			p.Name = r.FormValue("name")
-		}
-	} else {
-		p = &repo.DatasetRef{
-			Name: r.URL.Query().Get("name"),
-			Path: r.URL.Path[len("/add/"):],
-		}
-	}
-
-	res := &repo.DatasetRef{}
-	if err := h.Add(p, res); err != nil {
-		h.log.Infof("error adding dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	util.WriteResponse(w, res)
 }
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {

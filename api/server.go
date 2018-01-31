@@ -2,11 +2,13 @@ package api
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/http"
 	"net/rpc"
 
 	"github.com/datatogether/api/apiutil"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/api/handlers"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -119,42 +121,55 @@ func (s *Server) ServeRPC() {
 	return
 }
 
+// HandleIPFSPath responds to IPFS Hash requests with raw data
+func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
+	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
+	if err != nil {
+		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	io.Copy(w, file)
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s *Server) *http.ServeMux {
 	m := http.NewServeMux()
 
-	m.HandleFunc("/", WebappHandler)
+	// m.HandleFunc("/", WebappHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
 	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
+	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
-
-	sh := handlers.NewSearchHandlers(s.log, s.qriNode.Repo)
-	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
-	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
+	// TODO: add back connect endpoint
+	// m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
-	m.Handle("/datasets", s.middleware(dsh.ListHandler))
-	m.Handle("/datasets/", s.middleware(dsh.GetHandler))
+	m.Handle("/list", s.middleware(dsh.ListHandler))
+	m.Handle("/save/", s.middleware(dsh.SaveHandler))
+	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
+	m.Handle("/me/", s.middleware(dsh.GetHandler))
 	m.Handle("/add/", s.middleware(dsh.AddHandler))
-	m.Handle("/init/", s.middleware(dsh.InitHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
-	m.Handle("/data/ipfs/", s.middleware(dsh.StructuredDataHandler))
-	m.Handle("/download/", s.middleware(dsh.ZipDatasetHandler))
+	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
+
+	rh := handlers.NewRootHandlers(dsh, ph)
+	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.RootHandler)))
 
 	return m
 }

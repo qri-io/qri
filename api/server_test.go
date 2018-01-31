@@ -2,15 +2,21 @@ package api
 
 import (
 	"bytes"
-	"encoding/json"
+	// "encoding/json"
+	"github.com/qri-io/qri/repo/test"
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/qri-io/qri/repo/test"
 )
 
 func TestServerRoutes(t *testing.T) {
+	// TODO: refactor cases struct:
+	// cases := []struct{
+	// 	method, endpoint string
+	// 	body string // json? or should this be map[string]interface{}?
+	// 	resBody string // json? or should this be map[string]interface{}?
+	// 	resStatus int
+	// }
 	cases := []struct {
 		method, endpoint string
 		body             []byte
@@ -18,13 +24,77 @@ func TestServerRoutes(t *testing.T) {
 	}{
 		// {"GET", "/", nil, 200},
 		{"GET", "/status", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/ipfs", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/datasets", nil, 200},
-		// {"GET", "/data", nil, 200},
-		// {"GET", "/download", nil, 200},
-		// {"GET", "/run", nil, 200},
+		{"OPTIONS", "/add/", nil, 200},
+		{"POST", "/add/", nil, 400},
+		{"PUT", "/add/", nil, 400},
+		// TODO: more tests for /add/ endpoint:
+		// {"POST", "/add/", {data to add dataset}, {response body}, 200}
+		// {"POST", "/add/", {badly formed body}, {response body}, 400}
+		// {"PUT", "/add/", {data to add dataset}, {response body}, 200}
+		// {"PUT", "/add/", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/profile", nil, 200},
+		{"GET", "/profile", nil, 200},
+		{"POST", "/profile", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"POST", "/profile", {data to add dataset}, {response body}, 200}
+		// {"POST", "/profile", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/me", nil, 200},
+		{"GET", "/me", nil, 200},
+		{"POST", "/me", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"POST", "/me", {data to add dataset}, {response body}, 200},
+		// {"POST", "/me", {badly formed body}, {response body}, 400},
+		{"OPTIONS", "/export/", nil, 200},
+		{"GET", "/export/", nil, 500},
+		// TODO: more tests for /export/ endpoint:
+		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200},
+		// {"GET", "/export/bad hash", {}, {proper response}, 400},
+		{"OPTIONS", "/list", nil, 200},
+		{"GET", "/list", nil, 200},
+		// TODO: more tests for /list endpoint:
+		// {"GET", "/list", {}, {proper response}, 200},
+		// also make sure list of empty dataset works
+		{"OPTIONS", "/save/", nil, 200},
+		{"POST", "/save/", nil, 400},
+		{"PUT", "/save/", nil, 400},
+		// TODO: more tests for /save/ endpoint:
+		// {"POST", "/save/", {well formed body}, {proper response}, 200},
+		// {"POST", "/save/", {poorly formed body}, {proper response}, 400},
+		// {"PUT", "/save/", {well formed body}, {proper response}, 200},
+		// {"PUT", "/save/", {poorly formed body}, {proper response}, 400},
+		{"OPTIONS", "/remove/", nil, 200},
+		{"POST", "/remove/", nil, 400},
+		{"DELETE", "/remove/", nil, 400},
+		// TODO: more tests for /remove/ endpoint:
+		// {"POST", "remove/[hash]", {}, {proper response}, 200},
+		// {"DELETE", "/remove/[hash]", {}, {proper response}, 200},
+		{"OPTIONS", "/rename", nil, 200},
+		{"POST", "/rename", nil, 400},
+		{"PUT", "/rename", nil, 400},
+		// TODO: more tests for /rename endpoint:
+		// {"POST", "/rename", {well formed body}, {proper response}, 200},
+		// {"POST", "/rename", {poorly formed body}, {proper response}, 400},	// {"PUT", "/rename", {well formed body}, {proper response}, 200},
+		// {"PUT", "/rename", {poorly formed body}, {proper response}, 400},
+		// TODO: add back /connect/
+		// {"OPTIONS", "/connect/", nil, 200},
+		// {"GET", "/connect/", nil, 400},
+		// TODO: more tests for /connect/ endpoint:
+		// {"GET", "/connect/[peerhash], {}, {proper response}, 200"},
+		// {"GET", "/connect/[peername], {}, {proper response}, 200"},
+		// {"GET", "/connect/[bad peerhash], {}, {proper response}, 400"},
+		// {"GET", "/connect/[bad peername], {}, {proper response}, 400"},
+		{"OPTIONS", "/me/", nil, 200},
+		{"GET", "/me/", nil, 400},
+		// TODO: more tests for /profile/ endpoint:
+		// {"GET", "/me/[datasetname]", nil, 200},
+		// {"GET", "/me/[bad datasetname]", nil, 400},
+		{"OPTIONS", "/", nil, 200},
+		{"GET", "/", nil, 200},
+		// TODO: more tests for root:
+		// {"GET", "/[peername]", {}, {proper response}, 200},
+		// {"GET", "/[made up peername]", {}, {proper response}, 404},
+		// {"GET", "/[peername]/[datasetname]", {}, {proper response}, 200},
+		// {"GET", "/[peername]/[made up datasetname]", {}, {proper response}, 404}
 	}
 
 	client := &http.Client{}
@@ -61,26 +131,6 @@ func TestServerRoutes(t *testing.T) {
 
 		if res.StatusCode != c.resStatus {
 			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
-			continue
-		}
-
-		env := &struct {
-			Meta       map[string]interface{}
-			Data       interface{}
-			Pagination map[string]interface{}
-		}{}
-
-		if err := json.NewDecoder(res.Body).Decode(env); err != nil {
-			t.Errorf("case %d: %s - %s error unmarshaling json envelope: %s", i, c.method, c.endpoint, err.Error())
-			continue
-		}
-
-		if env.Meta == nil {
-			t.Errorf("case %d: %s - %s doesn't have a meta field", i, c.method, c.endpoint)
-			continue
-		}
-		if env.Data == nil {
-			t.Errorf("case %d: %s - %s doesn't have a data field", i, c.method, c.endpoint)
 			continue
 		}
 	}
