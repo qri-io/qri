@@ -22,10 +22,10 @@ If you’re unfamiliar with *version control,* particularly the distributed kind
 3. **Friction** _Can I make this work with my other stuff?_
 4. **Sync** _How do I handle changes in data?_
 
-Using because qri is *global* and *content-addressed* adding data to qri also checks the entire network if someone has added it before. Because qri is focused solely on datasets, it can provide meaningful search results. Every change on qri is associated with a peer, creating a audit-able trail you can use to quickly see what has changed and who has changed it. All datasets on qri are automatically described at the time of ingest using a flexible schema that makes data naturally inter-operate. Qri comes with tools to turn *all* datasets on the network into a JSON API with a single command. Finally, all changes in qri are tracked & synced.
+Because qri is *global* and *content-addressed*, adding data to qri also checks the entire network to see if someone has added it before. Since qri is focused solely on datasets, it can provide meaningful search results. Every change on qri is associated with a peer, creating a audit-able trail you can use to quickly see what has changed and who has changed it. All datasets on qri are automatically described at the time of ingest using a flexible schema that makes data naturally inter-operate. Qri comes with tools to turn *all* datasets on the network into a JSON API with a single command. Finally, all changes in qri are tracked & synced.
 
 <p align="center">
-  <a href="https://asciinema.org/a/160303" target="_blank"><img src="https://asciinema.org/a/160303.png" width="654"/></a>
+  <a href="https://asciinema.org/a/160357" target="_blank"><img src="https://asciinema.org/a/160357.png" width="654"/></a>
 </p>
 
 
@@ -37,16 +37,41 @@ like to submit changes, please see our
 
 ## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org) on your machine. then run:
+To build qri you'll need the [go programming language](https://golang.org) on your machine.
+
+You will also need to have go binaries on your path. By this, we mean the folder `$GOPATH/bin` should be in a place that your computer checks for binary executables. There are a few ways to set up your GOPATH, but we recommend checking out the [goLang wiki](https://github.com/golang/go/wiki/SettingGOPATH).
+
+Once your GOPATH is set, run:
+
 ```shell
 $ go get github.com/qri-io/qri
-$ cd $GOPATH/src/github.com/qri-io/qri
-$ make build
 ```
 
-It'll take a minute, but once everything's finished a new binary `qri` will appear in this directory. you should be able to run:
+Note - if you run into this error:
+
 ```shell
-$ ./qri help
+$ xcrun: error: invalid active developer path (/Library/Developer/CommandLineTools)
+$ missing xcrun at: /Library/Developer/CommandLineTools/usr/bin/xcrun
+```
+
+You need to install XCode by running:
+```shell
+$ xcode-select --install
+```
+
+Once `go get` has finished, run:
+
+```shell
+$ cd $GOPATH/src/github.com/qri-io/qri
+$ make build
+$ go install
+```
+
+The `make build` command will have a lot of output. That's good! Its means it's working :)
+
+It'll take a minute, but once everything's finished a new binary `qri` will appear in the `$GOPATH/bin` directory. You should be able to run:
+```shell
+$ qri help
 ```
 and see help output.
 
