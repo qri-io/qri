@@ -24,10 +24,12 @@ func DatasetRefFromReq(r *http.Request) (*repo.DatasetRef, error) {
 	if r.URL.String() == "" || r.URL.Path == "" {
 		return nil, nil
 	}
-	refstr := strings.Replace(r.URL.Path, "/at/ipfs/", "@", 1)
-	refstr = strings.Replace(refstr, "/at/", "@", 1)
-	refstr = strings.TrimPrefix(refstr, "/")
-	refstr = strings.TrimSuffix(refstr, "/")
+	return DatasetRefFromPath(r.URL.Path)
+}
+
+// DatasetRefFromPath parses a path and returns a datasetRef
+func DatasetRefFromPath(path string) (*repo.DatasetRef, error) {
+	refstr := HTTPPathToQriPath(path)
 	ref, err := repo.ParseDatasetRef(refstr)
 	if err != nil {
 		ref = nil
@@ -43,4 +45,18 @@ func DatasetRefFromCtx(ctx context.Context) *repo.DatasetRef {
 		return ref
 	}
 	return nil
+}
+
+// HTTPPathToQriPath converts a http path to a
+// qri path
+func HTTPPathToQriPath(path string) string {
+	paramIndex := strings.Index(path, "?")
+	if paramIndex != -1 {
+		path = path[:paramIndex]
+	}
+	path = strings.Replace(path, "/at/ipfs/", "@", 1)
+	path = strings.Replace(path, "/at/", "@", 1)
+	path = strings.TrimPrefix(path, "/")
+	path = strings.TrimSuffix(path, "/")
+	return path
 }

@@ -45,7 +45,7 @@ func TestServerRoutes(t *testing.T) {
 		// {"POST", "/me", {data to add dataset}, {response body}, 200},
 		// {"POST", "/me", {badly formed body}, {response body}, 400},
 		{"OPTIONS", "/export/", nil, 200},
-		{"GET", "/export/", nil, 500},
+		{"GET", "/export/", nil, 400},
 		// TODO: more tests for /export/ endpoint:
 		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200},
 		// {"GET", "/export/bad hash", {}, {proper response}, 400},
@@ -95,6 +95,11 @@ func TestServerRoutes(t *testing.T) {
 		// {"GET", "/[made up peername]", {}, {proper response}, 404},
 		// {"GET", "/[peername]/[datasetname]", {}, {proper response}, 200},
 		// {"GET", "/[peername]/[made up datasetname]", {}, {proper response}, 404}
+		{"OPTIONS", "/list/", nil, 200},
+		{"GET", "/list/", nil, 400},
+		{"GET", "/list/madeupname", nil, 500},
+		{"GET", "/list/madeupname/datasetname", nil, 400},
+		// {"GET", "/list/[peername]", {}, {proper response}, 200}
 	}
 
 	client := &http.Client{}

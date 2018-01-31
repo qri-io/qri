@@ -157,6 +157,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))
+	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
 	m.Handle("/me/", s.middleware(dsh.GetHandler))
