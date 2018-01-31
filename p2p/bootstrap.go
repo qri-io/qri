@@ -20,7 +20,7 @@ import (
 // One day it would be super nice to bootstrap from a stored history & only
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
-	"/ip4/35.224.133.67/tcp/4001/ipfs/QmamJUR83rGtDMEvugcC2gtLDx2nhZUTzpzhH6MA2Pb3Md", // EDGI
+	"/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb", // mojo
 }
 
 // Bootstrap samples a subset of peers & requests their peers list
