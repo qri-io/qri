@@ -212,13 +212,14 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		util.WriteResponse(w, res)
 	default:
-		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("Content-Type of request body must be json."))
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("Content-Type of request body must be json"))
 		return
 	}
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.RemoveParams{
+	// TODO - use new fancy context handler?
+	p := &repo.DatasetRef{
 		Name: r.FormValue("name"),
 		Path: r.URL.Path[len("/remove"):],
 	}

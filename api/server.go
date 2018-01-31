@@ -80,14 +80,13 @@ func (s *Server) Serve() (err error) {
 		return err
 	}
 
-	s.log.Infof("connecting to qri:\n\tpeername: %s\n\tID: %s\n\tAPI port: %s", p.Peername, p.ID, s.cfg.Port)
 	if s.cfg.Online {
 		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
-		s.log.Info("p2p addresses:")
+		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.Port)
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
-			s.log.Infof("  %s", a.String())
-			// s.log.Infln(a.Protocols())
+			info = fmt.Sprintf("%s\n  %s", info, a.String())
 		}
+		s.log.Info(info)
 	} else {
 		s.log.Info("running qri in offline mode, no peer-2-peer connections")
 	}
@@ -168,8 +167,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
-	rh := handlers.NewRootHandlers(dsh, ph)
-	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.RootHandler)))
+	rh := handlers.NewRootHandler(dsh, ph)
+	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m
 }

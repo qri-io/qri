@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 
-	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
@@ -53,27 +52,23 @@ collaboration are in the works. Sit tight sportsfans.`,
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		// req, err := datasetRequests(false)
-		// ExitIfErr(err)
-
 		// TODO - this is silly:
-		ref.Peername = ""
+		ref.Peername = "me"
 
 		req := core.NewDatasetRequests(getRepo(false), nil)
-
-		prev := &repo.DatasetRef{}
-		err = req.Get(ref, prev)
-		ExitIfErr(err)
-
-		save := &core.SaveParams{}
-		save.Changes = prev.Dataset
-		save.Changes.PreviousPath = prev.Path
+		save := &core.SaveParams{
+			Prev: ref,
+			Changes: &dataset.Dataset{
+				Commit: &dataset.Commit{
+					Title:   saveTitle,
+					Message: saveMessage,
+				},
+			},
+		}
 
 		if saveMetaFile != "" {
-			fmt.Println(saveMetaFile)
 			metaFile, err = loadFileIfPath(saveMetaFile)
 			ExitIfErr(err)
-
 			if metaFile != nil {
 				meta := &dataset.Meta{}
 				err = json.NewDecoder(metaFile).Decode(meta)
@@ -96,7 +91,6 @@ collaboration are in the works. Sit tight sportsfans.`,
 		if saveDataFile != "" {
 			saveDataFile, err = filepath.Abs(saveDataFile)
 			ExitIfErr(err)
-
 			dataFile, err = loadFileIfPath(saveDataFile)
 			ExitIfErr(err)
 			if dataFile != nil {
@@ -104,22 +98,23 @@ collaboration are in the works. Sit tight sportsfans.`,
 				save.Data = dataFile
 			}
 		} else {
+			// TODO - this is silly. dsfs.CreateDataset needs to
+			// support being called with a set DataPath and no
+			// dataFile
 			r := getRepo(false)
-			df, err := dsfs.LoadData(r.Store(), prev.Dataset)
+			res := &repo.DatasetRef{}
+			err = req.Get(ref, res)
+			ExitIfErr(err)
+
+			df, err := dsfs.LoadData(r.Store(), res.Dataset)
 			ExitIfErr(err)
 			save.Data = df
 		}
 
-		save.Changes.Commit.Assign(&dataset.Commit{
-			Title:   saveTitle,
-			Message: saveMessage,
-		})
-		save.Changes.PreviousPath = prev.Path
-
 		res := &repo.DatasetRef{}
 		err = req.Save(save, res)
 		ExitIfErr(err)
-		printSuccess("dataset saved: %s", res.Path)
+		printSuccess("dataset saved: %s", res)
 	},
 }
 
@@ -127,16 +122,8 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveDataFile, "data", "", "", "data file that forms the dataset")
 	saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "metadata.json file")
 	saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
-
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
-
-	// saveCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export full dataset package")
-	// saveCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
-	// saveCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
-	// saveCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")
-	// saveCmd.Flags().BoolVarP(&exportCmdTransform, "transform", "t", false, "export dataset transform file")
-	// saveCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	RootCmd.AddCommand(saveCmd)
 }

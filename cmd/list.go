@@ -71,8 +71,11 @@ qri repository.`,
 			outformat := cmd.Flag("format").Value.String()
 			switch outformat {
 			case "":
+				if len(refs) == 0 {
+					printInfo("%s has no datasets", args[0])
+				}
 				for _, ref := range refs {
-					printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
+					printInfo("%s\t\t: %s", ref.Name, ref.Path)
 				}
 			case dataset.JSONDataFormat.String():
 				data, err := json.MarshalIndent(refs, "", "  ")

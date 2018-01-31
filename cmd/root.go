@@ -27,12 +27,15 @@ var (
 // RootCmd represents the base command when called without any subcommands
 var RootCmd = &cobra.Command{
 	Use:   "qri",
-	Short: "qri.io command line client",
-	Long: `this is a very early tool for working with datasets on the distributed web.
-	At the moment it's a bit of an experiment.
+	Short: "qri GDVCS CLI",
+	Long: `
+qri (pronounced "query") is a global dataset version control system 
+on the distributed web.
 
-	Email brendan with any questions:
-	sparkle_pony_2000@qri.io`,
+https://qri.io
+
+Feedback, questions, bug reports, and contributions are welcome!
+https://github.com/qri-io/qri/issues`,
 }
 
 // Execute adds all child commands to the root command sets flags appropriately.

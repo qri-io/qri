@@ -96,26 +96,25 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 	if p, err := node.Repo.Profile(); err == nil {
 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
 			go func() {
-				fmt.Println("pinning profile data")
-				if p.Thumb.String() != "" {
+				if len(p.Thumb.String()) > 1 {
 					if err := pinner.Pin(p.Thumb, false); err != nil {
-						fmt.Printf("error pinning thumb path: %s\n", err.Error())
+						log.Infof("error pinning thumb path: %s\n", err.Error())
 					} else {
-						fmt.Println("pinned thumb photo")
+						log.Infof("pinned thumb photo: %s", p.Thumb.String())
 					}
 				}
-				if p.Profile.String() != "" {
+				if len(p.Profile.String()) > 1 {
 					if err := pinner.Pin(p.Profile, false); err != nil {
-						fmt.Printf("error pinning profile path: %s\n", err.Error())
+						log.Infof("error pinning profile path: %s\n", err.Error())
 					} else {
-						fmt.Println("pinned profile photo photo")
+						log.Infof("pinned profile photo photo: %s", p.Profile.String())
 					}
 				}
-				if p.Poster.String() != "" {
+				if len(p.Poster.String()) > 1 {
 					if err := pinner.Pin(p.Poster, false); err != nil {
-						fmt.Printf("error pinning poster path: %s\n", err.Error())
+						log.Infof("error pinning poster path: %s\n", err.Error())
 					} else {
-						fmt.Println("pinned poster photo")
+						log.Infof("pinned poster photo: %s", p.Poster.String())
 					}
 				}
 			}()

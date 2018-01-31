@@ -35,7 +35,11 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 
 // List hands back the list of peers
 func (r PeerStore) List() (map[string]*profile.Profile, error) {
-	return r.peers()
+	ps, err := r.peers()
+	if err != nil && err.Error() == "EOF" {
+		return map[string]*profile.Profile{}, nil
+	}
+	return ps, err
 }
 
 // GetID gives the peer.ID for a given peername

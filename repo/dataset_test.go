@@ -21,6 +21,7 @@ func TestParseDatasetRef(t *testing.T) {
 		{"tangelo_saluki/dog_names", &DatasetRef{Peername: "tangelo_saluki", Name: "dog_names"}, ""},
 		// {"/not_ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{}, ""},
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", &DatasetRef{Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, ""},
+		{"/ipfs/Qmd3y5VuSLtEyfWk3Hud7BxgSxB6LxrBV16fcXXTPG7zDe", &DatasetRef{Path: "/ipfs/Qmd3y5VuSLtEyfWk3Hud7BxgSxB6LxrBV16fcXXTPG7zDe"}, ""},
 	}
 
 	for i, c := range cases {

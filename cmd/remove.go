@@ -3,8 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -34,16 +33,11 @@ both qri & IPFS. Promise.`,
 		ExitIfErr(err)
 
 		for _, arg := range args {
-			rt, ref := dsfs.RefType(arg)
-			p := &core.RemoveParams{}
-			switch rt {
-			case "path":
-				p.Path = ref
-			case "name":
-				p.Name = ref
-			}
+			ref, err := repo.ParseDatasetRef(arg)
+			ExitIfErr(err)
+
 			res := false
-			err := req.Remove(p, &res)
+			err = req.Remove(ref, &res)
 			ExitIfErr(err)
 			printSuccess("removed dataset %s", ref)
 		}

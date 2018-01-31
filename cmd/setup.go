@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/doggos"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -13,12 +14,12 @@ import (
 	"github.com/spf13/cobra"
 	"github.com/spf13/viper"
 	"gopkg.in/yaml.v2"
-	// config "gx/ipfs/QmViBzgruNUoLNBnXcx8YWbDNwV8MNGEGKkLo6JGetygdw/go-ipfs/repo/config"
 )
 
 var (
 	setupOverwrite      bool
 	setupIPFS           bool
+	setupPeername       string
 	setupIPFSConfigFile string
 	setupConfigData     string
 	setupProfileData    string
@@ -40,6 +41,8 @@ Setup does a few things:
 This command is automatically run if you invoke any qri command without first 
 running setup. If setup has already been run, by default qri won’t let you 
 overwrite this info.`,
+	Example: `  run setup with a peername of your choosing:
+	$ qri setup --peername=your_great_peername`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var cfgData []byte
 
@@ -48,7 +51,7 @@ overwrite this info.`,
 			// this is usually a terrible idea
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
-		fmt.Println("initializing qri repo")
+		fmt.Println("setting up qri repo at: %s", QriRepoPath)
 
 		envVars := map[string]*string{
 			"QRI_SETUP_CONFIG_DATA":  &setupConfigData,
@@ -95,30 +98,40 @@ overwrite this info.`,
 				err = nil
 			}
 			ExitIfErr(err)
+		} else if _, err := os.Stat(IpfsFsPath); os.IsNotExist(err) {
+			printWarning("no IPFS repo exists at %s, things aren't going to work properly", IpfsFsPath)
 		}
 
+		p := &core.Profile{}
 		if setupProfileData != "" {
 			err = readAtFile(&setupProfileData)
 			ExitIfErr(err)
-
-			p := &core.Profile{}
 			err = json.Unmarshal([]byte(setupProfileData), p)
 			ExitIfErr(err)
-
-			pr, err := profileRequests(false)
+		} else {
+			anon, err := cmd.Flags().GetBool("anonymous")
 			ExitIfErr(err)
-
-			res := &core.Profile{}
-			err = pr.SaveProfile(p, res)
-			ExitIfErr(err)
+			if setupPeername == "" && !anon {
+				setupPeername = inputText("choose a peername:", doggos.DoggoNick(cfg.PeerID))
+			}
+			p.Peername = setupPeername
 		}
+
+		pr, err := profileRequests(false)
+		ExitIfErr(err)
+
+		res := &core.Profile{}
+		err = pr.SaveProfile(p, res)
+		ExitIfErr(err)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(setupCmd)
+	setupCmd.Flags().BoolP("anonymous", "a", false, "use an auto-generated peername")
 	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
+	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
 	setupCmd.Flags().StringVarP(&setupIPFSConfigFile, "ipfs-config", "", "", "config file for initialization")
 	setupCmd.Flags().StringVarP(&setupConfigData, "id", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")

@@ -33,8 +33,13 @@ var peersCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		res := []*profile.Profile{}
-		err = pr.List(&core.ListParams{Limit: 1000}, &res)
+		err = pr.List(&core.ListParams{Limit: 200}, &res)
 		ExitIfErr(err)
+
+		if len(res) == 0 {
+			printWarning("no peers connected")
+			return
+		}
 
 		if outformat == "" {
 			for i, p := range res {

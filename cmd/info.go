@@ -41,10 +41,23 @@ var infoCmd = &cobra.Command{
 			}
 		}
 
-		pr, err := peerRequests(false)
+		online := false
+		// check to see if we're all local
+		r := getRepo(false)
+		for _, arg := range args {
+			ref, err := repo.ParseDatasetRef(arg)
+			ExitIfErr(err)
+			local, err := repo.IsLocalRef(r, ref)
+			ExitIfErr(err)
+			if !local {
+				online = true
+			}
+		}
+
+		pr, err := peerRequests(online)
 		ExitIfErr(err)
 
-		req, err := datasetRequests(true)
+		req, err := datasetRequests(online)
 		ExitIfErr(err)
 
 		for i, arg := range args {
