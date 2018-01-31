@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 
 	util "github.com/datatogether/api/apiutil"
 	// "github.com/ipfs/go-datastore"
@@ -207,6 +209,22 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
 		json.NewDecoder(r.Body).Decode(p)
+		if p.DataFilename == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have `datafilename` field"))
+			return
+		}
+		if p.Data == nil {
+			if !filepath.IsAbs(p.DataFilename) {
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath"))
+				return
+			}
+			data, err := os.Open(p.DataFilename)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			p.Data = data
+		}
 	default:
 		var f cafs.File
 		infile, header, err := r.FormFile("file")

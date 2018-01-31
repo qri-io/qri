@@ -147,11 +147,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
-	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 	// TODO: add back connect endpoint
 	// m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
-	m.Handle("/peernamespace/", s.middleware(ph.PeerNamespaceHandler))
 
 	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
 	// TODO - stupid hack for now.
@@ -161,7 +159,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
 	m.Handle("/me/", s.middleware(dsh.GetHandler))
-	m.Handle("/add/", s.middleware(dsh.AddHandler))
+	m.Handle("/add", s.middleware(dsh.AddHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 

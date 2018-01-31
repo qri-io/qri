@@ -24,9 +24,9 @@ func TestServerRoutes(t *testing.T) {
 	}{
 		// {"GET", "/", nil, 200},
 		{"GET", "/status", nil, 200},
-		{"OPTIONS", "/add/", nil, 200},
-		{"POST", "/add/", nil, 400},
-		{"PUT", "/add/", nil, 400},
+		{"OPTIONS", "/add", nil, 200},
+		{"POST", "/add", nil, 400},
+		{"PUT", "/add", nil, 400},
 		// TODO: more tests for /add/ endpoint:
 		// {"POST", "/add/", {data to add dataset}, {response body}, 200}
 		// {"POST", "/add/", {badly formed body}, {response body}, 400}

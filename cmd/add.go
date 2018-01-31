@@ -45,7 +45,7 @@ changes to qri.`,
 		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
 
 		if len(args) == 0 {
-			ErrExit(fmt.Errorf("speficy the location of a dataset to add"))
+			ErrExit(fmt.Errorf("specify the location of a dataset to add"))
 		} else if ingest && len(args) != 1 {
 			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
 		}
