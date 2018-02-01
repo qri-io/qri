@@ -11,7 +11,7 @@ import (
 // connectionsCmd lists
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
-	Short: `List open connections with qri & IPFS peers`,
+	Short: `list open connections with qri & IPFS peers`,
 	Example: `  show open qri connections:
   $ qri connections
 
