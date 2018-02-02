@@ -13,7 +13,7 @@ import (
 // peersCmd represents the info command
 var peersCmd = &cobra.Command{
 	Use:   "peers",
-	Short: "List known qri peers",
+	Short: "list known qri peers",
 	Long:  `peers lists the peers your qri node has seen before`,
 	Example: `  list qri peers:
   $ qri peers`,

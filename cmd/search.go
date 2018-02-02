@@ -17,7 +17,7 @@ var (
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "Search for datasets",
+	Short: "search for datasets",
 	Long:  `Search looks through all of your namespaces for terms that match your query`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 && !searchCmdReindex {

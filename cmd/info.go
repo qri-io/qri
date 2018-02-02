@@ -15,7 +15,7 @@ import (
 var infoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"get", "describe"},
-	Short:   "Show summarized description of a dataset",
+	Short:   "show summarized description of a dataset",
 	Long:    `info describes users and datasets`,
 	Example: `  show b5 user info
 	get info for b5/comics:
