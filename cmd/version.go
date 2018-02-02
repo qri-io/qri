@@ -3,7 +3,7 @@ package cmd
 import "github.com/spf13/cobra"
 
 // VersionNumber is the current version of this CLI
-const VersionNumber = "0.1.0-rc1"
+const VersionNumber = "0.1.0"
 
 // versionCmd represents the version command
 var versionCmd = &cobra.Command{
