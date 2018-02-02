@@ -22,7 +22,7 @@ If you’re unfamiliar with *version control,* particularly the distributed kind
 3. **Friction** _Can I make this work with my other stuff?_
 4. **Sync** _How do I handle changes in data?_
 
-Because qri is *global* and *content-addressed*, adding data to qri also checks the entire network to see if someone has added it before. Since qri is focused solely on datasets, it can provide meaningful search results. Every change on qri is associated with a peer, creating a audit-able trail you can use to quickly see what has changed and who has changed it. All datasets on qri are automatically described at the time of ingest using a flexible schema that makes data naturally inter-operate. Qri comes with tools to turn *all* datasets on the network into a JSON API with a single command. Finally, all changes in qri are tracked & synced.
+Because qri is *global* and *content-addressed*, adding data to qri also checks the entire network to see if someone has added it before. Since qri is focused solely on datasets, it can provide meaningful search results. Every change on qri is associated with a peer, creating an audit-able trail you can use to quickly see what has changed and who has changed it. All datasets on qri are automatically described at the time of ingest using a flexible schema that makes data naturally inter-operate. Qri comes with tools to turn *all* datasets on the network into a JSON API with a single command. Finally, all changes in qri are tracked & synced.
 
 <p align="center">
   <a href="https://asciinema.org/a/160357" target="_blank"><img src="https://asciinema.org/a/160357.png" width="654"/></a>
