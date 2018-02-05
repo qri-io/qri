@@ -54,9 +54,9 @@ func TestServerRoutes(t *testing.T) {
 		// TODO: more tests for /list endpoint:
 		// {"GET", "/list", {}, {proper response}, 200},
 		// also make sure list of empty dataset works
-		{"OPTIONS", "/save/", nil, 200},
-		{"POST", "/save/", nil, 400},
-		{"PUT", "/save/", nil, 400},
+		{"OPTIONS", "/save", nil, 200},
+		{"POST", "/save", nil, 400},
+		{"PUT", "/save", nil, 400},
 		// TODO: more tests for /save/ endpoint:
 		// {"POST", "/save/", {well formed body}, {proper response}, 200},
 		// {"POST", "/save/", {poorly formed body}, {proper response}, 400},

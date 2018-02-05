@@ -12,6 +12,7 @@ import (
 	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -208,7 +209,10 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.InitParams{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		json.NewDecoder(r.Body).Decode(p)
+		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
 		if p.DataFilename == "" {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have `datafilename` field"))
 			return
@@ -224,6 +228,7 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			p.Data = data
+			p.DataFilename = filepath.Base(p.DataFilename)
 		}
 	default:
 		var f cafs.File
@@ -251,17 +256,91 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res.Dataset)
 }
 
+type saveReqParams struct {
+	Name              string
+	SaveTitle         string
+	SaveMessage       string
+	DataFilename      string
+	StructureFilename string
+	MetaFileName      string
+}
+
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		p := &core.SaveParams{}
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		s := &saveReqParams{}
+		if err := json.NewDecoder(r.Body).Decode(s); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
+		if s.Name == "" || s.SaveTitle == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("'name' and 'savetitle' required"))
+			return
+		}
+		if s.DataFilename == "" && s.StructureFilename == "" && s.MetaFileName == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("'datafilename' or 'structurefilename' or 'metafilename' required"))
+			return
+		}
+		prevReq := &repo.DatasetRef{
+			Name: s.Name,
+		}
+		prev := &repo.DatasetRef{}
+		if err := h.Get(prevReq, prev); err != nil {
+			util.WriteErrResponse(w, http.StatusNotFound, fmt.Errorf("error finding dataset to update: %s", err.Error()))
+			return
+		}
+		save := &core.SaveParams{
+			Prev: prev,
+			Changes: &dataset.Dataset{
+				Commit: &dataset.Commit{
+					Title:   s.SaveTitle,
+					Message: s.SaveMessage,
+				},
+			},
+		}
+
+		if s.MetaFileName != "" {
+			metaFile, err := loadFileIfPath(s.MetaFileName)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			meta := &dataset.Meta{}
+			err = json.NewDecoder(metaFile).Decode(meta)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusInternalServerError, err)
+				return
+			}
+			save.Changes.Meta = meta
+		}
+		if s.StructureFilename != "" {
+			stFile, err := loadFileIfPath(s.StructureFilename)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			st := &dataset.Structure{}
+			err = json.NewDecoder(stFile).Decode(st)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusInternalServerError, err)
+				return
+			}
+			save.Changes.Structure = st
+		}
+		if s.DataFilename != "" {
+			dataFile, err := loadFileIfPath(s.DataFilename)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			if dataFile != nil {
+				save.DataFilename = filepath.Base(s.DataFilename)
+				save.Data = dataFile
+			}
+		}
 		res := &repo.DatasetRef{}
-		if err := h.Save(p, res); err != nil {
-			h.log.Infof("error updating dataset: %s", err.Error())
+		err := h.Save(save, res)
+		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
@@ -316,4 +395,16 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteResponse(w, res)
+}
+
+func loadFileIfPath(path string) (file *os.File, err error) {
+	if path == "" {
+		return nil, nil
+	}
+
+	if !filepath.IsAbs(path) {
+		return nil, fmt.Errorf("filepath must be absolute")
+	}
+
+	return os.Open(path)
 }
