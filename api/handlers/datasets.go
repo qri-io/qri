@@ -256,19 +256,24 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res.Dataset)
 }
 
-type saveReqParams struct {
-	Name              string
-	SaveTitle         string
-	SaveMessage       string
-	DataFilename      string
-	StructureFilename string
-	MetaFileName      string
+// SaveReqParams is an encoding struct
+// its intent is to be a more user-friendly structure for the api endpoint
+// that will map to and from the core.SaveParams struct
+type SaveReqParams struct {
+	Name        string // the name of the dataset. required.
+	SaveTitle   string // title of save message. required.
+	SaveMessage string // details about changes made. optional.
+
+	// At least one of DataFilename, StructureFilename, and/or MetaFilename required
+	DataFilename      string // filename for new data.
+	StructureFilename string // filename for new structure.
+	MetaFileName      string // filename for new metadata
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		s := &saveReqParams{}
+		s := &SaveReqParams{}
 		if err := json.NewDecoder(r.Body).Decode(s); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
