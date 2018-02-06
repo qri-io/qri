@@ -8,17 +8,22 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
-	diff "github.com/yudai/gojsondiff"
+	// diff "github.com/yudai/gojsondiff"
 )
 
 var datasetDiffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "diff two datasets",
 	Long: `
-Diff diffs two datasets`,
+Diff compares two datasets from your repo and prints a represntation 
+of the differences between them.  You can specifify the datasets
+either by name or by their hash`,
 	Example: `todo`,
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) != 2 {
+		for i, arg := range args {
+			fmt.Printf("%d: %s\n", i, arg)
+		}
+		if len(args) < 2 {
 			ErrExit(fmt.Errorf("please provide names for two datsets"))
 		}
 
@@ -40,7 +45,7 @@ Diff diffs two datasets`,
 		err = req.Get(rightRef, right)
 		ExitIfErr(err)
 
-		diffs := &map[string]diff.Diff{}
+		diffs := make(map[string]*datasetDiffer.SubDiff)
 
 		p := &core.DiffParams{
 			DsLeft:  left.Dataset,
@@ -48,13 +53,30 @@ Diff diffs two datasets`,
 			DiffAll: true,
 		}
 
-		err = req.Diff(p, diffs)
+		err = req.Diff(p, &diffs)
 		ExitIfErr(err)
-
-		fmt.Println(datasetDiffer.MapDiffsToString(*diffs))
+		displayFormat := "listKeys"
+		displayFlag := cmd.Flag("display").Value.String()
+		if displayFlag != "" {
+			switch displayFlag {
+			case "reg", "regular":
+				displayFormat = "listKeys"
+			case "short", "s":
+				displayFormat = "simple"
+			case "delta":
+				displayFormat = "delta"
+			case "detail":
+				displayFormat = "plusMinus"
+			}
+		}
+		result, err := datasetDiffer.MapDiffsToString(diffs, displayFormat)
+		ExitIfErr(err)
+		fmt.Println(result)
 	},
 }
 
 func init() {
 	RootCmd.AddCommand(datasetDiffCmd)
+	datasetDiffCmd.Flags().StringP("display", "d", "", "set display format [reg|short|delta|detail]")
+	// datasetDiffCmd.Flags().BoolP("color", "c", false, "set ")
 }

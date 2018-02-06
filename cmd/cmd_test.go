@@ -58,6 +58,10 @@ const profileData = `
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
+	//clean up if previous cleanup failed
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.RemoveAll(path)
+	}
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		t.Errorf("error creating test path: %s", err.Error())
 		return
@@ -101,7 +105,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"list"},
 		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},
-		{"diff", "me/movies", "me/movies2"},
+		{"diff", "me/movies", "me/movies2", "-d", "detail"},
 		{"export", "--dataset", "me/movies", "-o" + path},
 		{"rename", "me/movies", "me/movie"},
 		{"validate", "me/movie"},
