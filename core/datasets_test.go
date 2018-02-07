@@ -420,14 +420,15 @@ func TestDataRequestsDiff(t *testing.T) {
 	//test cases
 	cases := []struct {
 		dsLeft, dsRight *dataset.Dataset
+		displayFormat   string
 		expected        string
 		err             string
 	}{
-		{dsBase, dsNewStructure, "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
+		{dsBase, dsNewStructure, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
 	}
 	// execute
 	for i, c := range cases {
-		got, err := datasetDiffer.DiffDatasets(c.dsLeft, c.dsRight)
+		got, err := datasetDiffer.DiffDatasets(c.dsLeft, c.dsRight, nil)
 		if err != nil {
 			if err.Error() == c.err {
 				continue
@@ -436,7 +437,10 @@ func TestDataRequestsDiff(t *testing.T) {
 				return
 			}
 		}
-		stringDiffs := datasetDiffer.MapDiffsToString(got)
+		stringDiffs, err := datasetDiffer.MapDiffsToString(got, c.displayFormat)
+		if err != nil {
+			t.Errorf("case %d error mapping to string: %s", err.Error())
+		}
 		if stringDiffs != c.expected {
 			t.Errorf("case %d response mistmatch: expected '%s', got '%s'", i, c.expected, stringDiffs)
 		}
