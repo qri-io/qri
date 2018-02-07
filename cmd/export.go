@@ -58,6 +58,20 @@ To export everything about a dataset, use the --dataset flag.`,
 
 		ds := res.Dataset
 
+		path = filepath.Join(path, dsr.Name)
+		usePeerNameSpace := cmd.Flag("namespaced").Value.String() == "true"
+		if usePeerNameSpace {
+			peerName := dsr.Peername
+			if peerName == "me" {
+				myProfile, err := r.Profile()
+				if err != nil {
+					ExitIfErr(err)
+				}
+				peerName = myProfile.Peername
+			}
+			path = filepath.Join(peerName, path)
+		}
+
 		if cmd.Flag("zip").Value.String() == "true" {
 			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 			ExitIfErr(err)
@@ -177,6 +191,7 @@ func init() {
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
+	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
 	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export root dataset")
 	exportCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
 	exportCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
