@@ -5,7 +5,7 @@ import (
 	"net/rpc"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -14,6 +14,7 @@ import (
 type HistoryRequests struct {
 	repo repo.Repo
 	cli  *rpc.Client
+	Node *p2p.QriNode
 }
 
 // CoreRequestsName implements the Requets interface
@@ -27,6 +28,7 @@ func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
 	}
 	return &HistoryRequests{
 		repo: r,
+		cli:  cli,
 	}
 }
 
@@ -48,22 +50,36 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 		return fmt.Errorf("either path or name is required")
 	}
 
-	if params.Path.String() == "" {
+	ref := &repo.DatasetRef{Peername: params.ListParams.Peername, Name: params.Name, Path: params.Path.String()}
+
+	getRemote := func(err error) error {
+		if d.Node != nil {
+			log, err := d.Node.RequestDatasetLog(ref)
+			if err != nil {
+				return err
+			}
+
+			*res = *log
+			return nil
+		}
+		return err
+	}
+	if ref.Path == "" {
 		path, err := d.repo.GetPath(params.Name)
 		if err != nil {
-			return fmt.Errorf("error loading path for name: %s", err.Error())
+			err = fmt.Errorf("error loading path from name: %s", err.Error())
+			return getRemote(err)
 		}
-		params.Path = path
+		ref.Path = path.String()
 	}
 
 	log := []*repo.DatasetRef{}
 	limit := params.Limit
-	ref := &repo.DatasetRef{Path: params.Path.String()}
 
 	for {
-		ref.Dataset, err = dsfs.LoadDataset(d.repo.Store(), datastore.NewKey(ref.Path))
+		ref.Dataset, err = d.repo.GetDataset(datastore.NewKey(ref.Path))
 		if err != nil {
-			return err
+			return fmt.Errorf("error adding datasets to log: %s", err.Error())
 		}
 		log = append(log, ref)
 
@@ -71,9 +87,11 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 		if limit == 0 || ref.Dataset.PreviousPath == "" {
 			break
 		}
-		// TODO - clean this up
-		_, cleaned := dsfs.RefType(ref.Dataset.PreviousPath)
-		ref = &repo.DatasetRef{Path: cleaned}
+
+		ref, err = repo.ParseDatasetRef(ref.Dataset.PreviousPath)
+		if err != nil {
+			return fmt.Errorf("error adding datasets to log: %s", err.Error())
+		}
 	}
 
 	*res = log

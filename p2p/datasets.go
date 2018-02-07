@@ -63,8 +63,6 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, er
 	return resref, err
 }
 
-// DatasetLogParams encapsulates options for requesting datasets
-
 // RequestDatasetLog gets the log information of Peer's dataset
 func (n *QriNode) RequestDatasetLog(ref *repo.DatasetRef) (*[]*repo.DatasetRef, error) {
 	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
