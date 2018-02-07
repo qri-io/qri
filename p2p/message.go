@@ -36,6 +36,8 @@ const (
 	MtNodes = MsgType("NODES")
 	// MtDatasetInfo gets info on a dataset
 	MtDatasetInfo = MsgType("DATASET_INFO")
+	// MtDatasetLog gets log of a dataset
+	MtDatasetLog = MsgType("DATASET_LOG")
 )
 
 func (mt MsgType) String() string {
@@ -239,6 +241,8 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 				res = n.handleNodesRequest(r)
 			case MtDatasetInfo:
 				res = n.handleDatasetInfoRequest(r)
+			case MtDatasetLog:
+				res = n.handleDatasetLogRequest(r)
 			}
 		}
 
