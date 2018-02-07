@@ -33,22 +33,35 @@ working backwards in time.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			ErrExit(fmt.Errorf("please specify a dataset reference to log"))
+		} else if len(args) != 1 {
+			ErrExit(fmt.Errorf("only one argument ([peername]/[datasetname]) allowed"))
 		}
 
+		online := false
+
+		r := getRepo(false)
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
+		local, err := repo.IsLocalRef(r, ref)
+		if !local {
+			online = true
+		}
 
 		// TODO - add limit & offset params
-		r, err := historyRequests(false)
+		hr, err := historyRequests(online)
 		ExitIfErr(err)
 
 		p := &core.LogParams{
 			// Limit:  dsLogLimit,
 			// Offset: dsLogOffset,
 			Name: ref.Name,
+			ListParams: core.ListParams{
+				Peername: ref.Peername,
+			},
 		}
+
 		refs := []*repo.DatasetRef{}
-		err = r.Log(p, &refs)
+		err = hr.Log(p, &refs)
 		ExitIfErr(err)
 
 		for _, ref := range refs {

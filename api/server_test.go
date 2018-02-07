@@ -100,6 +100,10 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/list/madeupname", nil, 500},
 		{"GET", "/list/madeupname/datasetname", nil, 400},
 		// {"GET", "/list/[peername]", {}, {proper response}, 200}
+		{"OPTIONS", "/history/", nil, 200},
+		{"GET", "/history/", nil, 400},
+		// {"GET", "/history/me/[datasetname]", {}, {proper response},  200},
+		// {"GET", "/history/me/[bad datasetname]", nil, 200},
 	}
 
 	client := &http.Client{}

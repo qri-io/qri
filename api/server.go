@@ -164,6 +164,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 
 	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
+	// TODO - stupid hack for now.
+	hh.HistoryRequests.Node = s.qriNode
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
 	rh := handlers.NewRootHandler(dsh, ph)

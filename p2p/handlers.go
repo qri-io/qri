@@ -3,11 +3,11 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	"time"
-
+	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"time"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
 	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
@@ -338,9 +338,9 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 	if err = json.Unmarshal(data, ref); err != nil {
 		n.log.Infof(err.Error())
 		return &Message{
-			Phase:   MpError,
 			Type:    MtDatasetInfo,
-			Payload: ref,
+			Phase:   MpError,
+			Payload: err,
 		}
 	}
 
@@ -364,12 +364,79 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 	ref.Dataset = ds
 
 	return &Message{
-		Phase:   MpResponse,
 		Type:    MtDatasetInfo,
+		Phase:   MpResponse,
 		Payload: ref,
 	}
 }
 
 func (n *QriNode) handleDatasetInfoResponse(m *Message) error {
 	return fmt.Errorf("not yet finished")
+}
+
+func (n *QriNode) handleDatasetLogRequest(r *Message) *Message {
+	data, err := json.Marshal(r.Payload)
+
+	if err != nil {
+		n.log.Info(err.Error())
+		return nil
+	}
+
+	ref := &repo.DatasetRef{}
+	if err = json.Unmarshal(data, ref); err != nil {
+		n.log.Infof(err.Error())
+		return &Message{
+			Type:    MtDatasetLog,
+			Phase:   MpError,
+			Payload: err,
+		}
+	}
+
+	path, err := n.Repo.GetPath(ref.Name)
+	if err != nil {
+		return &Message{
+			Type:    MtDatasetLog,
+			Phase:   MpError,
+			Payload: err,
+		}
+	}
+	// TODO: probably shouldn't write over ref.Path if ref.Path is set, but
+	// until we make the changes to the way we use hashes to make them
+	// more consistent, this feels safer.
+	ref.Path = path.String()
+
+	log := []*repo.DatasetRef{}
+	limit := 50
+
+	for {
+		ref.Dataset, err = n.Repo.GetDataset(datastore.NewKey(ref.Path))
+		if err != nil {
+			return &Message{
+				Type:    MtDatasetLog,
+				Phase:   MpError,
+				Payload: err,
+			}
+		}
+		log = append(log, ref)
+
+		limit--
+		if limit == 0 || ref.Dataset.PreviousPath == "" {
+			break
+		}
+
+		ref, err = repo.ParseDatasetRef(ref.Dataset.PreviousPath)
+
+		if err != nil {
+			return &Message{
+				Type:    MtDatasetLog,
+				Phase:   MpError,
+				Payload: err,
+			}
+		}
+	}
+	return &Message{
+		Type:    MtDatasetLog,
+		Phase:   MpResponse,
+		Payload: &log,
+	}
 }

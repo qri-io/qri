@@ -94,11 +94,28 @@ func searchRequests(online bool) (*core.SearchRequests, error) {
 }
 
 func historyRequests(online bool) (*core.HistoryRequests, error) {
-	r, cli, err := repoOrClient(online)
+	// TODO - bad bad hardcode
+	if conn, err := net.Dial("tcp", ":2504"); err == nil {
+		return core.NewHistoryRequests(nil, rpc.NewClient(conn)), nil
+	}
+
+	if !online {
+		// TODO - make this not terrible
+		r, cli, err := repoOrClient(online)
+		if err != nil {
+			return nil, err
+		}
+		return core.NewHistoryRequests(r, cli), nil
+	}
+
+	n, err := qriNode(online)
 	if err != nil {
 		return nil, err
 	}
-	return core.NewHistoryRequests(r, cli), nil
+
+	req := core.NewHistoryRequests(n.Repo, nil)
+	req.Node = n
+	return req, nil
 }
 
 func peerRequests(online bool) (*core.PeerRequests, error) {

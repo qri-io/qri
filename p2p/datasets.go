@@ -62,3 +62,33 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, er
 
 	return resref, err
 }
+
+// RequestDatasetLog gets the log information of Peer's dataset
+func (n *QriNode) RequestDatasetLog(ref *repo.DatasetRef) (*[]*repo.DatasetRef, error) {
+	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
+	if err != nil {
+		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
+	}
+	res, err := n.SendMessage(id, &Message{
+		Type:    MtDatasetLog,
+		Phase:   MpRequest,
+		Payload: ref,
+	})
+	if err != nil {
+		fmt.Println("send dataset log message error:", err.Error())
+		return nil, err
+	}
+
+	data, err := json.Marshal(res.Payload)
+	if err != nil {
+		return nil, err
+	}
+
+	resref := []*repo.DatasetRef{}
+	err = json.Unmarshal(data, &resref)
+	if len(resref) == 0 && err != nil {
+		err = fmt.Errorf("no log found")
+	}
+
+	return &resref, err
+}
