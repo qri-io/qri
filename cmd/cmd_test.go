@@ -100,7 +100,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"profile", "set", "-f" + profileDataFilepath},
 		{"config", "get"},
 		{"info"},
-		{"add", "--data=" + moviesFilePath, "me/movies"},
+		{"add", "-v", "--data=" + moviesFilePath, "me/movies"},
 		{"add", "--data=" + movies2FilePath, "me/movies2"},
 		{"list"},
 		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
