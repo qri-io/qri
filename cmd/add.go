@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 )
 
 var (
@@ -17,6 +18,7 @@ var (
 	addDsName              string
 	addDsURL               string
 	addDsPassive           bool
+	addDsShowValidation    bool
 )
 
 var datasetAddCmd = &cobra.Command{
@@ -115,6 +117,18 @@ func initDataset(name *repo.DatasetRef) {
 	ref := &repo.DatasetRef{}
 	err = req.Init(p, ref)
 	ExitIfErr(err)
+	if ref.Dataset.Structure.ErrCount > 0 {
+		printWarning(fmt.Sprintf("this dataset has %d validation errors", ref.Dataset.Structure.ErrCount))
+		if addDsShowValidation {
+			printWarning("Validation Error Detail:")
+			data, err := ioutil.ReadAll(dataFile)
+			ExitIfErr(err)
+			errorList := ref.Dataset.Structure.Schema.ValidateBytes(data)
+			for i, validationErr := range errorList {
+				printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
+			}
+		}
+	}
 
 	ref.Peername = "me"
 	printSuccess("added new dataset %s", ref)
@@ -125,5 +139,6 @@ func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "data", "", "", "data file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
 	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
+	datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }

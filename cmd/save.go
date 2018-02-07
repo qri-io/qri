@@ -11,16 +11,18 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
+	"io/ioutil"
 )
 
 var (
-	saveDataFile      string
-	saveMetaFile      string
-	saveStructureFile string
-	saveTitle         string
-	saveMessage       string
-	savePassive       bool
-	saveRescursive    bool
+	saveDataFile       string
+	saveMetaFile       string
+	saveStructureFile  string
+	saveTitle          string
+	saveMessage        string
+	savePassive        bool
+	saveRescursive     bool
+	saveShowValidation bool
 )
 
 // saveCmd represents the save command
@@ -115,6 +117,18 @@ collaboration are in the works. Sit tight sportsfans.`,
 		err = req.Save(save, res)
 		ExitIfErr(err)
 		printSuccess("dataset saved: %s", res)
+		if res.Dataset.Structure.ErrCount > 0 {
+			printWarning(fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
+			if saveShowValidation {
+				printWarning("Validation Error Detail:")
+				data, err := ioutil.ReadAll(dataFile)
+				ExitIfErr(err)
+				errorList := res.Dataset.Structure.Schema.ValidateBytes(data)
+				for i, validationErr := range errorList {
+					printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
+				}
+			}
+		}
 	},
 }
 
@@ -124,6 +138,6 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
-
+	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(saveCmd)
 }
