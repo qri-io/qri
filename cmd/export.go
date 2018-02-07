@@ -58,6 +58,8 @@ To export everything about a dataset, use the --dataset flag.`,
 
 		ds := res.Dataset
 
+		path = filepath.Join(path, dsr.Name)
+
 		if cmd.Flag("zip").Value.String() == "true" {
 			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 			ExitIfErr(err)
