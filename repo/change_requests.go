@@ -54,52 +54,53 @@ type ChangeRequest struct {
 	Change *dataset.Dataset `json:"change"`
 }
 
-// AcceptChangeRequest accepts an open change request, advancing the name of the dataset
-// that refer to the target path to the newly-added history
-func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
-	cr, err := r.GetChangeRequest(path)
-	if err != nil {
-		return err
-	}
+// TODO - lol dis so old. Restore in like 0.5.0 or something
+// // AcceptChangeRequest accepts an open change request, advancing the name of the dataset
+// // that refer to the target path to the newly-added history
+// func AcceptChangeRequest(r Repo, path datastore.Key) (err error) {
+// 	cr, err := r.GetChangeRequest(path)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	cr.Status = ChangeRequestStatusAccepted
-	if err := r.PutChangeRequest(path, cr); err != nil {
-		return err
-	}
-	target := cr.Target.String()
+// 	cr.Status = ChangeRequestStatusAccepted
+// 	if err := r.PutChangeRequest(path, cr); err != nil {
+// 		return err
+// 	}
+// 	target := cr.Target.String()
 
-	// TODO - place all datasets related to this history chain in the store
-	ds := &dataset.Dataset{PreviousPath: path.String()}
-	for {
-		if ds.PreviousPath == target {
-			break
-		}
-		// datasets can sometimes resolve over the netowork, so this get / put
-		// combination is required
-		ds, err = r.GetDataset(datastore.NewKey(ds.PreviousPath))
-		if err != nil {
-			return
-		}
+// 	// TODO - place all datasets related to this history chain in the store
+// 	ds := &dataset.Dataset{PreviousPath: path.String()}
+// 	for {
+// 		if ds.PreviousPath == target {
+// 			break
+// 		}
+// 		// datasets can sometimes resolve over the netowork, so this get / put
+// 		// combination is required
+// 		ds, err = r.GetDataset(datastore.NewKey(ds.PreviousPath))
+// 		if err != nil {
+// 			return
+// 		}
 
-		if err = r.PutDataset(datastore.NewKey(ds.PreviousPath), ds); err != nil {
-			return
-		}
-	}
+// 		if err = r.PutDataset(datastore.NewKey(ds.PreviousPath), ds); err != nil {
+// 			return
+// 		}
+// 	}
 
-	name, err := r.GetName(cr.Target)
-	if err != nil {
-		return err
-	}
+// 	name, err := r.GetRef(cr.Target)
+// 	if err != nil {
+// 		return err
+// 	}
 
-	return r.PutName(name, cr.Path)
-}
+// 	return r.PutName(name, cr.Path)
+// }
 
-// DeclineChangeRequest refuses an open change request
-func DeclineChangeRequest(r Repo, path datastore.Key) error {
-	cr, err := r.GetChangeRequest(path)
-	if err != nil {
-		return err
-	}
-	cr.Status = ChangeRequestStatusDeclined
-	return r.PutChangeRequest(path, cr)
-}
+// // DeclineChangeRequest refuses an open change request
+// func DeclineChangeRequest(r Repo, path datastore.Key) error {
+// 	cr, err := r.GetChangeRequest(path)
+// 	if err != nil {
+// 		return err
+// 	}
+// 	cr.Status = ChangeRequestStatusDeclined
+// 	return r.PutChangeRequest(path, cr)
+// }

@@ -39,10 +39,10 @@ func TestDatasetRequestsInit(t *testing.T) {
 		// {&InitParams{DataFilename: badStructureFile.FileName(),
 		// 	Data: badStructureFile}, nil, "invalid structure: schema: fields: error: cannot use the same name, 'col_b' more than once"},
 		// should reject invalid names
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
+		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
 			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// this should work
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},
+		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Data: jobsByAutomationFile}, nil, ""},
 		// Ensure that we can't double-add data
 		// {&InitParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
 	}
@@ -67,7 +67,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, archive *repo.DatasetRef
+		movies, counter, cities, archive repo.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -76,7 +76,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		return
 	}
 
-	refs, err := mr.Namespace(30, 0)
+	refs, err := mr.References(30, 0)
 	if err != nil {
 		t.Errorf("error getting namespace: %s", err.Error())
 		return
@@ -97,19 +97,19 @@ func TestDatasetRequestsList(t *testing.T) {
 
 	cases := []struct {
 		p   *ListParams
-		res []*repo.DatasetRef
+		res []repo.DatasetRef
 		err string
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []*repo.DatasetRef{archive, cities, counter, movies}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []*repo.DatasetRef{archive, cities, counter, movies}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
-		got := []*repo.DatasetRef{}
+		got := []repo.DatasetRef{}
 		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -122,6 +122,7 @@ func TestDatasetRequestsList(t *testing.T) {
 				t.Errorf("case %d response length mismatch. expected %d, got: %d", i, len(c.res), len(got))
 				continue
 			}
+
 			for j, expect := range c.res {
 				if err := repo.CompareDatasetRef(expect, got[j]); err != nil {
 					t.Errorf("case %d expected dataset error. index %d mismatch: %s", i, j, err.Error())
@@ -138,35 +139,34 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	path, err := mr.GetPath("movies")
+	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
 		t.Errorf("error getting path: %s", err.Error())
 		return
 	}
-	pathstr := path.String()
-	moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
+
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(ref.Path))
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
 		return
 	}
 
-	t.Logf(pathstr)
 	cases := []struct {
-		p   *repo.DatasetRef
+		p   repo.DatasetRef
 		res *dataset.Dataset
 		err string
 	}{
 		//TODO: probably delete some of these
-		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
-		{&repo.DatasetRef{Path: pathstr, Name: "ABC"}, nil, ""},
-		{&repo.DatasetRef{Path: pathstr, Name: "movies"}, moviesDs, ""},
-		{&repo.DatasetRef{Path: pathstr, Name: "cats"}, moviesDs, ""},
+		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "error loading path for name: repo: not found"},
+		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
+		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
+		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Get(c.p, got)
+		err := req.Get(&c.p, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
@@ -232,15 +232,16 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "", "current name is required to rename a dataset"},
-		{&RenameParams{Current: "movies", New: "new movies"}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&RenameParams{Current: "movies", New: "new_movies"}, "new_movies", ""},
-		{&RenameParams{Current: "new_movies", New: "new_movies"}, "", "name 'new_movies' already exists"},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new movies"}}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new_movies"}}, "new_movies", ""},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "new_movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new_movies"}}, "", "dataset 'peer/new_movies' already exists"},
 	}
 
 	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
+		t.Log(mr.References(30, 0))
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -260,9 +261,9 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	path, err := mr.GetPath("movies")
+	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
+		t.Errorf("error getting movies ref: %s", err.Error())
 		return
 	}
 
@@ -271,9 +272,9 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		res *dataset.Dataset
 		err string
 	}{
-		{&repo.DatasetRef{}, nil, "either name or path is required"},
+		{&repo.DatasetRef{}, nil, "either peername/name or path is required"},
 		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
-		{&repo.DatasetRef{Path: path.String()}, nil, ""},
+		{&ref, nil, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
@@ -289,21 +290,20 @@ func TestDatasetRequestsRemove(t *testing.T) {
 }
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
-	// t.Skip("needs work")
 
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	moviesPath, err := mr.GetPath("movies")
+	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting movies path: %s", err.Error())
+		t.Errorf("error getting movies ref: %s", err.Error())
 		return
 	}
-	archivePath, err := mr.GetPath("archive")
+	archiveRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "archive"})
 	if err != nil {
-		t.Errorf("error getting archive path: %s", err.Error())
+		t.Errorf("error getting archive ref: %s", err.Error())
 		return
 	}
 	var df1 = dataset.JSONDataFormat
@@ -313,10 +313,10 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		err      string
 	}{
 		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&StructuredDataParams{Format: df1, Path: moviesPath, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: archivePath, Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: 5, Offset: 0, All: false}, 5, ""},
+		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
+		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: datastore.NewKey(archiveRef.Path), Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
@@ -389,6 +389,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	// File 1
 	dsRef1 := &repo.DatasetRef{}
 	initParams := &InitParams{
+		Peername:     "peer",
 		DataFilename: jobsByAutomationFile.FileName(),
 		Data:         jobsByAutomationFile,
 		// MetadataFilename: jobsMeta.FileName(),
@@ -397,24 +398,29 @@ func TestDataRequestsDiff(t *testing.T) {
 	err = req.Init(initParams, dsRef1)
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
+		return
 	}
 	dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
 	if err != nil {
 		t.Errorf("error loading dataset 1: %s", err.Error())
+		return
 	}
 	// File 2
 	dsRef2 := &repo.DatasetRef{}
 	initParams = &InitParams{
+		Peername:     "peer",
 		DataFilename: jobsByAutomationFile2.FileName(),
 		Data:         jobsByAutomationFile2,
 	}
 	err = req.Init(initParams, dsRef2)
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
+		return
 	}
 	dsNewStructure, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef2.Path))
 	if err != nil {
 		t.Errorf("error loading dataset: %s", err.Error())
+		return
 	}
 
 	//test cases

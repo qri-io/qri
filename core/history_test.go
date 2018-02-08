@@ -3,7 +3,6 @@ package core
 import (
 	"testing"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -14,7 +13,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	path, err := mr.GetPath("movies")
+	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
 		t.Errorf("error getting path: %s", err.Error())
 		return
@@ -22,17 +21,17 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	cases := []struct {
 		p   *LogParams
-		res []*repo.DatasetRef
+		res []repo.DatasetRef
 		err string
 	}{
-		{&LogParams{}, nil, "either path or name is required"},
-		{&LogParams{Path: datastore.NewKey("/badpath")}, nil, "error adding datasets to log: datastore: key not found"},
-		{&LogParams{Path: path}, []*repo.DatasetRef{{Path: path.String()}}, ""},
+		{&LogParams{}, nil, "either path or peername/name is required"},
+		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "error getting reference '@/badpath': repo: not found"},
+		{&LogParams{Ref: ref}, []repo.DatasetRef{ref}, ""},
 	}
 
 	req := NewHistoryRequests(mr, nil)
 	for i, c := range cases {
-		got := []*repo.DatasetRef{}
+		got := []repo.DatasetRef{}
 		err := req.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {

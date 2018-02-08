@@ -17,7 +17,7 @@ type MemRepo struct {
 	store cafs.Filestore
 	graph map[string]*dsgraph.Node
 	MemDatasets
-	*MemNamestore
+	*MemRefstore
 	*MemQueryLog
 	MemChangeRequests
 	profile   *profile.Profile
@@ -31,7 +31,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.
 	return &MemRepo{
 		store:             store,
 		MemDatasets:       NewMemDatasets(store),
-		MemNamestore:      &MemNamestore{},
+		MemRefstore:       &MemRefstore{},
 		MemQueryLog:       &MemQueryLog{},
 		MemChangeRequests: MemChangeRequests{},
 		profile:           p,

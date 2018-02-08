@@ -10,6 +10,17 @@ import (
 	"github.com/qri-io/dataset"
 )
 
+// Refstore keeps a collection of dataset references
+type Refstore interface {
+	// PutRef adds a reference to the store. References must be complete with
+	// Peername, Name, and Path specified
+	PutRef(ref DatasetRef) error
+	GetRef(ref DatasetRef) (DatasetRef, error)
+	DeleteRef(ref DatasetRef) error
+	References(limit, offset int) ([]DatasetRef, error)
+	RefCount() (int, error)
+}
+
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
 // ways of referring to a dataset to a dataset itself, as datasets can't easily
 // contain their own hash information, and names are unique on a per-repository
@@ -40,6 +51,17 @@ func (r DatasetRef) String() (s string) {
 	return s
 }
 
+// Match checks returns true if Peername and Name are equal,
+// and/or path is equal
+func (r DatasetRef) Match(b DatasetRef) bool {
+	return r.Peername == b.Peername && r.Name == b.Name || r.Path == b.Path
+}
+
+// Equal returns true only if Peername Name and Path are equal
+func (r DatasetRef) Equal(b DatasetRef) bool {
+	return r.Peername == b.Peername && r.Name == b.Name && r.Path == b.Path
+}
+
 // IsPeerRef returns true if only Peername is set
 func (r DatasetRef) IsPeerRef() bool {
 	return r.Peername != "" && r.Name == "" && r.Path == "" && r.Dataset == nil
@@ -49,7 +71,7 @@ var (
 	// fullDatasetPathRegex looks for dataset references in the forms:
 	// peername/dataset_name@/ipfs/hash
 	// peername/dataset_name@hash
-	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/ipfs/)?(\w+)\b`)
+	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/\w+/)?(\w+)\b`)
 	// peernameShorthandPathRegex looks for dataset references in the form:
 	// peername/dataset_name
 	peernameShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
@@ -84,11 +106,11 @@ var (
 // TODO - add validation that prevents peernames from being
 // valid base58 multihashes.
 // TODO - figure out how IPFS CID's play into this
-func ParseDatasetRef(ref string) (*DatasetRef, error) {
+func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if ref == "" {
-		return nil, fmt.Errorf("cannot parse empty string as dataset reference")
+		return DatasetRef{}, fmt.Errorf("cannot parse empty string as dataset reference")
 	} else if strings.HasPrefix(ref, "/ipfs/") {
-		return &DatasetRef{
+		return DatasetRef{
 			Path: ref,
 		}, nil
 	} else if fullDatasetPathRegex.MatchString(ref) {
@@ -96,14 +118,14 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 		if matches[0][3] == "" {
 			matches[0][3] = "/ipfs/"
 		}
-		return &DatasetRef{
+		return DatasetRef{
 			Peername: matches[0][1],
 			Name:     matches[0][2],
 			Path:     matches[0][3] + matches[0][4],
 		}, nil
 	} else if peernameShorthandPathRegex.MatchString(ref) {
 		matches := peernameShorthandPathRegex.FindAllStringSubmatch(ref, 1)
-		return &DatasetRef{
+		return DatasetRef{
 			Peername: matches[0][1],
 			Name:     matches[0][2],
 		}, nil
@@ -111,20 +133,20 @@ func ParseDatasetRef(ref string) (*DatasetRef, error) {
 
 	if data, err := base58.Decode(stripProtocol(stripProtocol(ref))); err == nil {
 		if _, err := multihash.Decode(data); err == nil {
-			return &DatasetRef{
+			return DatasetRef{
 				Path: "/ipfs/" + stripProtocol(ref),
 			}, nil
 		}
 	}
 
-	return &DatasetRef{
+	return DatasetRef{
 		Peername: ref,
 	}, nil
 }
 
 // IsLocalRef checks to see if a given reference needs to be
 // resolved against the network
-func IsLocalRef(r Repo, ref *DatasetRef) (bool, error) {
+func IsLocalRef(r Repo, ref DatasetRef) (bool, error) {
 	if ref.Peername == "" || ref.Peername == "me" {
 		return true, nil
 	}
@@ -150,15 +172,9 @@ func stripProtocol(ref string) string {
 
 // CompareDatasetRef compares two Dataset References, returning an error
 // describing any difference between the two references
-func CompareDatasetRef(a, b *DatasetRef) error {
-	if a == nil && b != nil || a != nil && b == nil {
-		return fmt.Errorf("nil mismatch: %v != %v", a, b)
-	}
-	if a == nil && b == nil {
-		return nil
-	}
+func CompareDatasetRef(a, b DatasetRef) error {
 	if a.Peername != b.Peername {
-		return fmt.Errorf("peername mismatch. %s != %s", a.Name, b.Name)
+		return fmt.Errorf("peername mismatch. %s != %s", a.Peername, b.Peername)
 	}
 	if a.Name != b.Name {
 		return fmt.Errorf("name mismatch. %s != %s", a.Name, b.Name)

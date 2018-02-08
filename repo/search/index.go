@@ -57,7 +57,6 @@ func LoadIndex(indexPath string) (Index, error) {
 	// open the index
 	repoIndex, err := bleve.Open(indexPath)
 	if err == bleve.ErrorIndexPathDoesNotExist {
-		log.Printf("Creating new index...")
 		//create a mapping
 		indexMapping, err := buildIndexMapping()
 		if err != nil {
@@ -106,14 +105,14 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 
 // IndexRepo calculates an index for a given repository
 func IndexRepo(r repo.Repo, i bleve.Index) error {
-	refs, err := r.Namespace(-1, 0)
+	refs, err := r.References(-1, 0)
 	if err != nil {
 		return err
 	}
 	return indexDatasetRefs(r.Store(), i, refs)
 }
 
-func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []*repo.DatasetRef) error {
+func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []repo.DatasetRef) error {
 	log.Printf("Indexing...")
 	count := 0
 	startTime := time.Now()
