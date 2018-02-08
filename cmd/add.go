@@ -44,6 +44,7 @@ changes to qri.`,
   create a dataset with a metadata and data file:
   $ qri add --meta meta.json --data comics.csv me/comic_characters`,
 	Run: func(cmd *cobra.Command, args []string) {
+
 		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
 
 		if len(args) == 0 {
@@ -81,7 +82,7 @@ func initDataset(name *repo.DatasetRef) {
 		err                               error
 	)
 
-	if addDsFilepath == "" && addDsURL == "" {
+	if addDsFilepath == "" && addDsURL == "" || addDsFilepath != "" && addDsURL != "" {
 		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
 	}
 
@@ -107,8 +108,7 @@ func initDataset(name *repo.DatasetRef) {
 		p.Metadata = metaFile
 	}
 	if structureFile != nil {
-		// TODO - not yet finished in core
-		// p.Structure = structureFile
+		p.Structure = structureFile
 	}
 
 	req, err := datasetRequests(false)
