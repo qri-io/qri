@@ -45,7 +45,7 @@ To export everything about a dataset, use the --dataset flag.`,
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
 
-		dsr, err := repo.ParseDatasetRef(args[0])
+		dsr, err := r.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
 		p := &repo.DatasetRef{

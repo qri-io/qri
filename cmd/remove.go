@@ -3,7 +3,6 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -32,8 +31,9 @@ both qri & IPFS. Promise.`,
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
+		r := getRepo(false)
 		for _, arg := range args {
-			ref, err := repo.ParseDatasetRef(arg)
+			ref, err := r.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
 			res := false

@@ -154,6 +154,18 @@ func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
 	return nil
 }
 
+// ParseDatasetRef decodes a dataset reference from a string value in the context
+// of this repo, so names like me/dataset are returned as [peername]/dataset
+func (r *Repo) ParseDatasetRef(refstr string) (ref repo.DatasetRef, err error) {
+	ref, err = repo.ParseDatasetRef(refstr)
+	if err != nil {
+		return
+	}
+
+	err = repo.CanonicalizeRef(r, &ref)
+	return
+}
+
 // func (r *Repo) Peers() (map[string]*profile.Profile, error) {
 // 	p := map[string]*profile.Profile{}
 // 	data, err := ioutil.ReadFile(r.filepath(FilePeers))

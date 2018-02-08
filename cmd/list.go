@@ -42,7 +42,7 @@ qri repository.`,
 			switch outformat {
 			case "":
 				for _, ref := range refs {
-					printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
+					printInfo(ref.String())
 				}
 			case dataset.JSONDataFormat.String():
 				data, err := json.MarshalIndent(refs, "", "  ")
@@ -75,7 +75,7 @@ qri repository.`,
 					printInfo("%s has no datasets", args[0])
 				}
 				for _, ref := range refs {
-					printInfo("%s\t\t: %s", ref.Name, ref.Path)
+					printInfo(ref.String())
 				}
 			case dataset.JSONDataFormat.String():
 				data, err := json.MarshalIndent(refs, "", "  ")

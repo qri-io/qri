@@ -149,30 +149,48 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 	}, nil
 }
 
-// IsLocalRef checks to see if a given reference needs to be
-// resolved against the network
-func IsLocalRef(r Repo, ref DatasetRef) (bool, error) {
-	if ref.Peername == "" || ref.Peername == "me" {
-		return true, nil
-	}
-
-	p, err := r.Profile()
-	if err != nil {
-		return false, err
-	}
-
-	// TODO - check to see if repo has local / cached copy
-	// of the reference in question
-
-	return ref.Peername == p.Peername, nil
-}
-
 // TODO - this could be more robust?
 func stripProtocol(ref string) string {
 	if strings.HasPrefix(ref, "/ipfs/") {
 		return ref[len("/ipfs/"):]
 	}
 	return ref
+}
+
+// CanonicalizeRef uses a repo to turn any local aliases into known
+// canonical names for a dataset. Basically, this thing replaces "me"
+// with the proper peername, but if we provide any other shortcuts for dataset
+// naming in the future, it should be handled here.
+func CanonicalizeRef(r Repo, ref *DatasetRef) error {
+	// when operating over RPC there's a good chance we won't have a repo, in that
+	// case we're going to have to rely on the other end of the wire to do canonicalization
+	// TODO - think carefully about placement of reference parsing, possibly moving
+	// this into core functions.
+	if r == nil {
+		return nil
+	}
+
+	if ref.Peername == "" || ref.Peername == "me" {
+		p, err := r.Profile()
+		if err != nil {
+			return err
+		}
+		*ref = DatasetRef{
+			Peername: p.Peername,
+			Name:     ref.Name,
+			Path:     ref.Path,
+			Dataset:  ref.Dataset,
+		}
+	}
+
+	// Proactively attempt to find dataset path
+	if ref.Path == "" {
+		if got, err := r.GetRef(*ref); err == nil {
+			*ref = got
+			return nil
+		}
+	}
+	return nil
 }
 
 // CompareDatasetRef compares two Dataset References, returning an error

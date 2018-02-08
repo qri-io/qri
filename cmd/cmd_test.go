@@ -2,10 +2,10 @@ package cmd
 
 import (
 	"bytes"
-	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"testing"
 
 	"github.com/spf13/cobra"
@@ -90,7 +90,6 @@ func TestCommandsIntegration(t *testing.T) {
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
 	t.Log("PATH:", path)
-	fmt.Println(path)
 
 	commands := [][]string{
 		{"help"},
@@ -100,10 +99,10 @@ func TestCommandsIntegration(t *testing.T) {
 		{"profile", "set", "-f" + profileDataFilepath},
 		{"config", "get"},
 		{"info"},
-		{"add", "-s", "--data=" + moviesFilePath, "me/movies"},
+		{"add", "--data=" + moviesFilePath, "me/movies"},
 		{"add", "--data=" + movies2FilePath, "me/movies2"},
 		{"list"},
-		{"save", "-s", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
+		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},
 		{"diff", "me/movies", "me/movies2", "-d", "detail"},
 		{"export", "--dataset", "me/movies", "-o" + path},
@@ -116,13 +115,13 @@ func TestCommandsIntegration(t *testing.T) {
 		func() {
 			defer func() {
 				if e := recover(); e != nil {
-					t.Errorf("case %d unexpected panic executing command: %s", i, e)
+					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
 					return
 				}
 			}()
 			_, err := executeCommand(RootCmd, args...)
 			if err != nil {
-				t.Errorf("case %d unexpected error executing command: %s", i, err.Error())
+				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, strings.Join(args, " "), err.Error())
 				return
 			}
 		}()

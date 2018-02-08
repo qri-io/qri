@@ -186,8 +186,6 @@ type InitParams struct {
 	Metadata          io.Reader // reader of json-formatted metadata
 	StructureFilename string    // filename of metadata file. optional.
 	Structure         io.Reader // reader of json-formatted metadata
-	// TODO - add support for adding via path/hash
-	// DataPath         datastore.Key // path to structured data
 }
 
 // Init creates a new qri dataset from a source of data
@@ -610,9 +608,8 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 // ValidateDatasetParams defines paremeters for dataset
 // data validation
 type ValidateDatasetParams struct {
-	Name string
+	Ref repo.DatasetRef
 	// URL          string
-	Path         datastore.Key
 	DataFilename string
 	Data         io.Reader
 	Schema       io.Reader
@@ -631,12 +628,9 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	)
 
 	// if a dataset is specified, load it
-	if p.Name != "" || p.Path.String() != "" {
-		ref = &repo.DatasetRef{}
-		err = r.Get(&repo.DatasetRef{
-			Name: p.Name,
-			Path: p.Path.String(),
-		}, ref)
+	if p.Ref.Name != "" || p.Ref.Path != "" {
+		ref := repo.DatasetRef{}
+		err = r.Get(&p.Ref, &ref)
 
 		if err != nil {
 			return err

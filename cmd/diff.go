@@ -27,10 +27,11 @@ either by name or by their hash`,
 			ErrExit(fmt.Errorf("please provide names for two datsets"))
 		}
 
-		leftRef, err := repo.ParseDatasetRef(args[0])
+		r := getRepo(false)
+		leftRef, err := r.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		rightRef, err := repo.ParseDatasetRef(args[1])
+		rightRef, err := r.ParseDatasetRef(args[1])
 		ExitIfErr(err)
 
 		req, err := datasetRequests(false)

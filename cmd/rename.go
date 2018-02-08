@@ -23,10 +23,11 @@ with it, especially if you want other people to like your datasets.`,
 			ErrExit(fmt.Errorf("please provide current & new dataset names"))
 		}
 
-		current, err := repo.ParseDatasetRef(args[0])
+		r := getRepo(false)
+		current, err := r.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		next, err := repo.ParseDatasetRef(args[1])
+		next, err := r.ParseDatasetRef(args[1])
 		ExitIfErr(err)
 
 		req, err := datasetRequests(false)

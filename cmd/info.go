@@ -45,11 +45,9 @@ var infoCmd = &cobra.Command{
 		// check to see if we're all local
 		r := getRepo(false)
 		for _, arg := range args {
-			ref, err := repo.ParseDatasetRef(arg)
+			ref, err := r.ParseDatasetRef(arg)
 			ExitIfErr(err)
-			local, err := repo.IsLocalRef(r, ref)
-			ExitIfErr(err)
-			if !local {
+			if ref.Path == "" {
 				online = true
 			}
 		}

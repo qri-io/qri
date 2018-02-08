@@ -154,7 +154,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 	}
 }
 
-func TestIsLocalRef(t *testing.T) {
+func TestCanonicalizeRef(t *testing.T) {
 	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, memfs.NewMapstore(), MemPeers{}, &analytics.Memstore{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
@@ -163,16 +163,13 @@ func TestIsLocalRef(t *testing.T) {
 
 	cases := []struct {
 		input  string
-		expect bool
+		expect string
 		err    string
 	}{
-		{"me", true, ""},
-		{"you", false, ""},
-		{"them", false, ""},
-		{"you/foo", false, ""},
-		{"me/foo", true, ""},
-		{"lucille/foo", true, ""},
-		// TODO - add local datasets to memrepo, have them return true
+		{"me/foo", "lucille/foo", ""},
+		{"you/foo", "you/foo", ""},
+		{"me/ball@/ipfs/QmHash", "lucille/ball@/ipfs/QmHash", ""},
+		// TODO - add tests that show path fulfillment
 	}
 
 	for i, c := range cases {
@@ -181,15 +178,16 @@ func TestIsLocalRef(t *testing.T) {
 			t.Errorf("case %d unexpected dataset ref parse error: %s", i, err.Error())
 			continue
 		}
+		got := &ref
 
-		got, err := IsLocalRef(repo, ref)
+		err = CanonicalizeRef(repo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
 		}
 
-		if got != c.expect {
-			t.Errorf("case %d expected: %t", i, c.expect)
+		if got.String() != c.expect {
+			t.Errorf("case %d expected: %s, got: %s", i, c.expect, got)
 			continue
 		}
 	}

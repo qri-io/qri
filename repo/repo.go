@@ -53,6 +53,9 @@ type Repo interface {
 	// It's not part of the Datasets interface because creating a dataset requires
 	// access to this repos store & private key
 	CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error)
+	// ParseDatasetRef decodes a dataset reference from a string value in the context
+	// of this repo, so names like me/dataset are returned as [peername]/dataset
+	ParseDatasetRef(ref string) (DatasetRef, error)
 	// Repos also serve as a store of dataset information.
 	// It's important that this store maintain sync with any underlying filestore.
 	// (which is why we might want to kill this in favor of just having a cache?)

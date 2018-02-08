@@ -40,10 +40,10 @@ working backwards in time.`,
 		online := false
 
 		r := getRepo(false)
-		ref, err := repo.ParseDatasetRef(args[0])
+		ref, err := r.ParseDatasetRef(args[0])
 		ExitIfErr(err)
-		local, err := repo.IsLocalRef(r, ref)
-		if !local {
+
+		if ref.Path == "" {
 			online = true
 		}
 

@@ -52,7 +52,7 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) datasetRefMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if ref, _ := handlers.DatasetRefFromReq(r); !ref.IsEmpty() {
+		if ref, _ := handlers.DatasetRefFromReq(s.qriNode.Repo, r); !ref.IsEmpty() {
 			ctx := context.WithValue(r.Context(), handlers.DatasetRefCtxKey, ref)
 			r = r.WithContext(ctx)
 		}

@@ -41,7 +41,7 @@ func (r MemRefstore) GetRef(get DatasetRef) (ref DatasetRef, err error) {
 	return
 }
 
-// DeleteName removes a name from the store
+// DeleteRef removes a name from the store
 func (r *MemRefstore) DeleteRef(del DatasetRef) error {
 	refs := *r
 	for i, ref := range refs {

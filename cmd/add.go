@@ -53,8 +53,9 @@ changes to qri.`,
 			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
 		}
 
+		r := getRepo(false)
 		if ingest {
-			ref, err := repo.ParseDatasetRef(args[0])
+			ref, err := r.ParseDatasetRef(args[0])
 			ExitIfErr(err)
 
 			initDataset(ref)
@@ -62,7 +63,7 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
-			ref, err := repo.ParseDatasetRef(arg)
+			ref, err := r.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
 			req, err := datasetRequests(true)
@@ -94,6 +95,7 @@ func initDataset(name repo.DatasetRef) {
 	ExitIfErr(err)
 
 	p := &core.InitParams{
+		Peername:     name.Peername,
 		Name:         name.Name,
 		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
