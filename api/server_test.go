@@ -22,16 +22,27 @@ func TestServerRoutes(t *testing.T) {
 		body             []byte
 		resStatus        int
 	}{
+		// All tests that can be run using a local qri node
+		// will be filled out later this week
 		// {"GET", "/", nil, 200},
 		{"GET", "/status", nil, 200},
 		{"OPTIONS", "/add", nil, 200},
 		{"POST", "/add", nil, 400},
 		{"PUT", "/add", nil, 400},
 		// TODO: more tests for /add/ endpoint:
-		// {"POST", "/add/", {data to add dataset}, {response body}, 200}
-		// {"POST", "/add/", {badly formed body}, {response body}, 400}
-		// {"PUT", "/add/", {data to add dataset}, {response body}, 200}
-		// {"PUT", "/add/", {badly formed body}, {response body}, 400}
+		// {"POST", "/add", {data to add dataset}, {response body}, 200}
+		// {"POST", "/add", {badly formed body}, {response body}, 400}
+		// {"PUT", "/add", {data to add dataset}, {response body}, 200}
+		// {"PUT", "/add", {badly formed body}, {response body}, 400}
+		{"OPTIONS", "/add/", nil, 200},
+		{"POST", "/add/", nil, 400},
+		{"PUT", "/add/", nil, 400},
+		// {"POST", "/add/[peername]/[datasetname]", {badly formed body}, {response body}, 200}
+		// {"PUT", "/add/[peername]/[datasetname]", {badly formed body}, {response body}, 200}
+		// {"POST", "/add/[badpeername]/[datasetname]", {badly formed body}, {response body}, 400}
+		// {"PUT", "/add/[badpeername]/[datasetname]", {badly formed body}, {response body}, 400}
+		// {"POST", "/add/[peername]/[baddatasetname]", {badly formed body}, {response body}, 400}
+		// {"PUT", "/add/[peername]/[baddatasetname]", {badly formed body}, {response body}, 400}
 		{"OPTIONS", "/profile", nil, 200},
 		{"GET", "/profile", nil, 200},
 		{"POST", "/profile", nil, 400},
