@@ -67,6 +67,11 @@ func (r DatasetRef) IsPeerRef() bool {
 	return r.Peername != "" && r.Name == "" && r.Path == "" && r.Dataset == nil
 }
 
+// IsEmpty returns true if none of it's fields are set
+func (r DatasetRef) IsEmpty() bool {
+	return r.Equal(DatasetRef{})
+}
+
 var (
 	// fullDatasetPathRegex looks for dataset references in the forms:
 	// peername/dataset_name@/ipfs/hash

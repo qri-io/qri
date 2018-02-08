@@ -80,8 +80,8 @@ var infoCmd = &cobra.Command{
 					fmt.Printf("%s", string(data))
 				}
 			} else {
-				res := &repo.DatasetRef{}
-				err = req.Get(ref, res)
+				res := repo.DatasetRef{}
+				err = req.Get(&ref, &res)
 				ExitIfErr(err)
 
 				if outformat == "" {

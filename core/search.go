@@ -36,7 +36,7 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 }
 
 // Search queries for items on qri related to given parameters
-func (d *SearchRequests) Search(p *repo.SearchParams, res *[]*repo.DatasetRef) error {
+func (d *SearchRequests) Search(p *repo.SearchParams, res *[]repo.DatasetRef) error {
 	if d.cli != nil {
 		return d.cli.Call("SearchRequests.Search", p, res)
 	}

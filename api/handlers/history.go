@@ -53,10 +53,10 @@ func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 
 	params := &core.LogParams{
 		ListParams: lp,
-		Name:       args.Name,
+		Ref:        args,
 	}
 
-	res := []*repo.DatasetRef{}
+	res := []repo.DatasetRef{}
 	if err := h.Log(params, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

@@ -68,15 +68,15 @@ changes to qri.`,
 			req, err := datasetRequests(true)
 			ExitIfErr(err)
 
-			res := &repo.DatasetRef{}
-			err = req.Add(ref, res)
+			res := repo.DatasetRef{}
+			err = req.Add(&ref, &res)
 			ExitIfErr(err)
 			printInfo("Successfully added dataset %s", ref)
 		}
 	},
 }
 
-func initDataset(name *repo.DatasetRef) {
+func initDataset(name repo.DatasetRef) {
 	var (
 		dataFile, metaFile, structureFile *os.File
 		err                               error
@@ -114,8 +114,8 @@ func initDataset(name *repo.DatasetRef) {
 	req, err := datasetRequests(false)
 	ExitIfErr(err)
 
-	ref := &repo.DatasetRef{}
-	err = req.Init(p, ref)
+	ref := repo.DatasetRef{}
+	err = req.Init(p, &ref)
 	ExitIfErr(err)
 	if ref.Dataset.Structure.ErrCount > 0 {
 		printWarning(fmt.Sprintf("this dataset has %d validation errors", ref.Dataset.Structure.ErrCount))

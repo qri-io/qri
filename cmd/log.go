@@ -54,13 +54,13 @@ working backwards in time.`,
 		p := &core.LogParams{
 			// Limit:  dsLogLimit,
 			// Offset: dsLogOffset,
-			Name: ref.Name,
+			Ref: ref,
 			ListParams: core.ListParams{
 				Peername: ref.Peername,
 			},
 		}
 
-		refs := []*repo.DatasetRef{}
+		refs := []repo.DatasetRef{}
 		err = hr.Log(p, &refs)
 		ExitIfErr(err)
 

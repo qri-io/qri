@@ -52,7 +52,7 @@ will affect a dataset before saving changes to a dataset.`,
 		var (
 			dataFile, schemaFile *os.File
 			err                  error
-			ref                  *repo.DatasetRef
+			ref                  repo.DatasetRef
 		)
 
 		if len(args) == 1 {
@@ -60,7 +60,7 @@ will affect a dataset before saving changes to a dataset.`,
 			ExitIfErr(err)
 		}
 
-		if ref == nil && !(validateDsFilepath != "" && validateDsSchemaFilepath != "") {
+		if ref.IsEmpty() && !(validateDsFilepath != "" && validateDsSchemaFilepath != "") {
 			ErrExit(fmt.Errorf("please provide a dataset name to validate, or both  --file and --schema arguments"))
 		}
 

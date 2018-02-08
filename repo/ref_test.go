@@ -114,6 +114,26 @@ func TestEqual(t *testing.T) {
 	}
 }
 
+func TestIsEmpty(t *testing.T) {
+	cases := []struct {
+		ref   DatasetRef
+		empty bool
+	}{
+		{DatasetRef{}, true},
+		{DatasetRef{Peername: "a"}, false},
+		{DatasetRef{Name: "a"}, false},
+		{DatasetRef{Path: "a"}, false},
+	}
+
+	for i, c := range cases {
+		got := c.ref.IsEmpty()
+		if got != c.empty {
+			t.Errorf("case %d: %s", i, c.ref)
+			continue
+		}
+	}
+}
+
 func TestCompareDatasetRefs(t *testing.T) {
 	cases := []struct {
 		a, b DatasetRef

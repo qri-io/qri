@@ -55,7 +55,7 @@ func printNotYetFinished(cmd *cobra.Command) {
 // 	}
 // }
 
-func printDatasetRefInfo(i int, ref *repo.DatasetRef) {
+func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()

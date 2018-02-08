@@ -104,8 +104,8 @@ collaboration are in the works. Sit tight sportsfans.`,
 			// support being called with a set DataPath and no
 			// dataFile
 			r := getRepo(false)
-			res := &repo.DatasetRef{}
-			err = req.Get(ref, res)
+			res := repo.DatasetRef{}
+			err = req.Get(&ref, &res)
 			ExitIfErr(err)
 
 			df, err := dsfs.LoadData(r.Store(), res.Dataset)

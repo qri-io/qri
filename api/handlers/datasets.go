@@ -148,7 +148,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 	res := &repo.DatasetRef{}
-	err = h.Get(args, res)
+	err = h.Get(&args, res)
 	if err != nil {
 		h.log.Infof("error getting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -163,7 +163,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	res := []*repo.DatasetRef{}
+	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -185,7 +185,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("no dataset name or hash given"))
 		return
 	}
-	err = h.Get(args, res)
+	err = h.Get(&args, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -206,7 +206,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	}
 	p.Peername = ref.Peername
 	p.OrderBy = "created"
-	res := []*repo.DatasetRef{}
+	res := []repo.DatasetRef{}
 	if err := h.List(&p, &res); err != nil {
 		h.log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -367,8 +367,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		prevReq := &repo.DatasetRef{
 			Name: s.Name,
 		}
-		prev := &repo.DatasetRef{}
-		if err := h.Get(prevReq, prev); err != nil {
+		prev := repo.DatasetRef{}
+		if err := h.Get(prevReq, &prev); err != nil {
 			util.WriteErrResponse(w, http.StatusNotFound, fmt.Errorf("error finding dataset to update: %s", err.Error()))
 			return
 		}
@@ -447,7 +447,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 	}
 
 	res := false
-	if err := h.Remove(p, &res); err != nil {
+	if err := h.Remove(&p, &res); err != nil {
 		h.log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -464,9 +464,19 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	} else {
+		current, err := repo.ParseDatasetRef(r.URL.Query().Get("current"))
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing current param: %s", err.Error()))
+			return
+		}
+		n, err := repo.ParseDatasetRef(r.URL.Query().Get("new"))
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
+			return
+		}
 		p = &core.RenameParams{
-			Current: r.URL.Query().Get("current"),
-			New:     r.URL.Query().Get("new"),
+			Current: current,
+			New:     n,
 		}
 	}
 

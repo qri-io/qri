@@ -113,10 +113,18 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	for i, args := range commands {
-		_, err := executeCommand(RootCmd, args...)
-		if err != nil {
-			t.Errorf("case %d unexpected error executing command: %s", i, err.Error())
-			return
-		}
+		func() {
+			defer func() {
+				if e := recover(); e != nil {
+					t.Errorf("case %d unexpected panic executing command: %s", i, e)
+					return
+				}
+			}()
+			_, err := executeCommand(RootCmd, args...)
+			if err != nil {
+				t.Errorf("case %d unexpected error executing command: %s", i, err.Error())
+				return
+			}
+		}()
 	}
 }

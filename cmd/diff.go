@@ -36,13 +36,13 @@ either by name or by their hash`,
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
-		left := &repo.DatasetRef{}
-		right := &repo.DatasetRef{}
+		left := repo.DatasetRef{}
+		right := repo.DatasetRef{}
 
-		err = req.Get(leftRef, left)
+		err = req.Get(&leftRef, &left)
 		ExitIfErr(err)
 
-		err = req.Get(rightRef, right)
+		err = req.Get(&rightRef, &right)
 		ExitIfErr(err)
 
 		diffs := make(map[string]*datasetDiffer.SubDiff)

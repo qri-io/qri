@@ -11,7 +11,7 @@ import (
 )
 
 // Search searches this repo's bleve index
-func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
+func Search(i Index, p repo.SearchParams) ([]repo.DatasetRef, error) {
 	query := bleve.NewQueryStringQuery(p.Q)
 	search := bleve.NewSearchRequest(query)
 	//TODO: find better place to set default, and/or expose option
@@ -22,9 +22,9 @@ func Search(i Index, p repo.SearchParams) ([]*repo.DatasetRef, error) {
 		return nil, err
 	}
 
-	res := make([]*repo.DatasetRef, results.Hits.Len())
+	res := make([]repo.DatasetRef, results.Hits.Len())
 	for i, hit := range results.Hits {
-		res[i] = &repo.DatasetRef{Path: hit.ID}
+		res[i] = repo.DatasetRef{Path: hit.ID}
 	}
 
 	// fmt.Println(searchResults)

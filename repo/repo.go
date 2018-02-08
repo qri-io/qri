@@ -131,7 +131,7 @@ type SearchParams struct {
 
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
-	Search(p SearchParams) ([]*DatasetRef, error)
+	Search(p SearchParams) ([]DatasetRef, error)
 }
 
 // DatasetsQuery is a convenience function to read all query results & parse into a

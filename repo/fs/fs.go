@@ -170,7 +170,7 @@ func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
 // }
 
 // Search this repo for dataset references
-func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
+func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 	if r.index == nil {
 		return nil, fmt.Errorf("search not supported")
 	}
@@ -181,7 +181,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 	}
 	for _, ref := range refs {
 		if ref.Path == "" {
-			if got, err := r.GetRef(*ref); err == nil {
+			if got, err := r.GetRef(ref); err == nil {
 				ref.Path = got.Path
 			}
 		}

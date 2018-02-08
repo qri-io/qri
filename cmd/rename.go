@@ -32,11 +32,11 @@ with it, especially if you want other people to like your datasets.`,
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 		p := &core.RenameParams{
-			Current: current.Name,
-			New:     next.Name,
+			Current: current,
+			New:     next,
 		}
-		res := &repo.DatasetRef{}
-		err = req.Rename(p, res)
+		res := repo.DatasetRef{}
+		err = req.Rename(p, &res)
 		ExitIfErr(err)
 
 		printSuccess("renamed dataset %s", res.Name)

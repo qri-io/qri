@@ -34,7 +34,7 @@ qri repository.`,
 				Limit:  dsListLimit,
 				Offset: dsListOffset,
 			}
-			refs := []*repo.DatasetRef{}
+			refs := []repo.DatasetRef{}
 			err = r.List(p, &refs)
 			ExitIfErr(err)
 
@@ -64,7 +64,7 @@ qri repository.`,
 				Limit:    dsListLimit,
 				Offset:   dsListOffset,
 			}
-			refs := []*repo.DatasetRef{}
+			refs := []repo.DatasetRef{}
 			err = r.List(p, &refs)
 			ExitIfErr(err)
 
