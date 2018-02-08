@@ -352,6 +352,9 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 			Payload: err,
 		}
 	}
+
+	ref.Path = path.String()
+
 	ds, err := n.Repo.GetDataset(path)
 	if err != nil {
 		return &Message{

@@ -93,6 +93,18 @@ func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
+// InitHandler is an endpoint for creating new datasets
+func (h *DatasetHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST", "PUT":
+		h.initHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // AddHandler is an endpoint for creating new datasets
 func (h *DatasetHandlers) AddHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -205,7 +217,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
+func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.InitParams{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
@@ -213,8 +225,9 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
+
 		if p.DataFilename == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have `datafilename` field"))
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have 'datafilename' field"))
 			return
 		}
 		if p.Data == nil {
@@ -230,20 +243,63 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 			p.Data = data
 			p.DataFilename = filepath.Base(p.DataFilename)
 		}
+
+		if p.Metadata == nil && p.MetadataFilename != "" {
+			if !filepath.IsAbs(p.MetadataFilename) {
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath for metadata"))
+				return
+			}
+			metadata, err := os.Open(p.MetadataFilename)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			p.Metadata = metadata
+			p.MetadataFilename = filepath.Base(p.MetadataFilename)
+		}
+
+		if p.Structure == nil && p.StructureFilename != "" {
+			if !filepath.IsAbs(p.StructureFilename) {
+				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath for structure"))
+				return
+			}
+			structure, err := os.Open(p.StructureFilename)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			p.Structure = structure
+			p.StructureFilename = filepath.Base(p.StructureFilename)
+		}
 	default:
-		var f cafs.File
-		infile, header, err := r.FormFile("file")
+		var f, m, s cafs.File
+		infile, fileHeader, err := r.FormFile("file")
 		if err != nil && err != http.ErrMissingFile {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-
-		f = memfs.NewMemfileReader(header.Filename, infile)
+		metafile, metaHeader, err := r.FormFile("meta")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		structurefile, structureHeader, err := r.FormFile("structure")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		f = memfs.NewMemfileReader(fileHeader.Filename, infile)
+		m = memfs.NewMemfileReader(metaHeader.Filename, metafile)
+		s = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
 		p = &core.InitParams{
-			URL:          r.FormValue("url"),
-			Name:         r.FormValue("name"),
-			DataFilename: header.Filename,
-			Data:         f,
+			URL:               r.FormValue("url"),
+			Name:              r.FormValue("name"),
+			DataFilename:      fileHeader.Filename,
+			Data:              f,
+			MetadataFilename:  metaHeader.Filename,
+			Metadata:          m,
+			StructureFilename: structureHeader.Filename,
+			Structure:         s,
 		}
 	}
 
@@ -254,6 +310,28 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteResponse(w, res.Dataset)
+}
+
+func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/add/"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	if ref.Peername == "" || ref.Name == "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need peername and dataset name: '/add/[peername]/[datasetname]'"))
+		return
+	}
+
+	res := &repo.DatasetRef{}
+	err = h.Add(ref, res)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }
 
 // SaveReqParams is an encoding struct

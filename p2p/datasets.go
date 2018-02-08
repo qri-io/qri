@@ -57,6 +57,7 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, er
 	if err != nil {
 		return nil, err
 	}
+
 	resref := &repo.DatasetRef{}
 	err = json.Unmarshal(data, resref)
 

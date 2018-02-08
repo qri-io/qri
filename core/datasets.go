@@ -188,15 +188,14 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) error {
 
 // InitParams encapsulates arguments to Init
 type InitParams struct {
-	Name             string    // variable name for referring to this dataset. required.
-	URL              string    // url to download data from. either Url or Data is required
-	DataFilename     string    // filename of data file. extension is used for filetype detection
-	Data             io.Reader // reader of structured data. either Url or Data is required
-	MetadataFilename string    // filename of metadata file. optional.
-	Metadata         io.Reader // reader of json-formatted metadata
-	// TODO
-	// StructureFilename string    // filename of metadata file. optional.
-	// Structure         io.Reader // reader of json-formatted metadata
+	Name              string    // variable name for referring to this dataset. required.
+	URL               string    // url to download data from. either Url or Data is required
+	DataFilename      string    // filename of data file. extension is used for filetype detection
+	Data              io.Reader // reader of structured data. either Url or Data is required
+	MetadataFilename  string    // filename of metadata file. optional.
+	Metadata          io.Reader // reader of json-formatted metadata
+	StructureFilename string    // filename of metadata file. optional.
+	Structure         io.Reader // reader of json-formatted metadata
 	// TODO - add support for adding via path/hash
 	// DataPath         datastore.Key // path to structured data
 }
@@ -239,10 +238,19 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
 
-	st, err := detect.FromReader(filename, bytes.NewReader(data))
-	if err != nil {
-		return fmt.Errorf("error determining dataset schema: %s", err.Error())
+	// read structure from InitParams, or detect from data
+	st := &dataset.Structure{}
+	if p.Structure != nil {
+		if err := json.NewDecoder(p.Structure).Decode(st); err != nil {
+			return fmt.Errorf("error parsing structure json: %s", err.Error())
+		}
+	} else {
+		st, err = detect.FromReader(filename, bytes.NewReader(data))
+		if err != nil {
+			return fmt.Errorf("error determining dataset schema: %s", err.Error())
+		}
 	}
+
 	// Ensure that dataset contains valid field names
 	if err = validate.Structure(st); err != nil {
 		return fmt.Errorf("invalid structure: %s", err.Error())
@@ -278,20 +286,17 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		Commit:    &dataset.Commit{Title: "initial commit"},
 		Structure: st,
 	}
+	if p.Metadata != nil {
+		if err := json.NewDecoder(p.Metadata).Decode(ds.Meta); err != nil {
+			return fmt.Errorf("error parsing metadata json: %s", err.Error())
+		}
+	}
 	if p.URL != "" {
 		ds.Meta.DownloadPath = p.URL
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
 		// TODO - make this configurable via a param?
 		ds.Meta.AccrualPeriodicity = "R/P1W"
-	}
-	if p.Metadata != nil {
-		if ds.Meta == nil {
-			ds.Meta = &dataset.Meta{}
-		}
-		if err := json.NewDecoder(p.Metadata).Decode(ds.Meta); err != nil {
-			return fmt.Errorf("error parsing metadata json: %s", err.Error())
-		}
 	}
 
 	dataf := memfs.NewMemfileBytes("data."+st.Format.String(), data)
@@ -569,9 +574,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		if err != nil {
 			return err
 		}
-		fmt.Println(res)
 		ref = res
-		fmt.Println(ref.Path)
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)
@@ -580,6 +583,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
+
 	_, err = fs.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
