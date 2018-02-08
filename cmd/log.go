@@ -40,7 +40,10 @@ working backwards in time.`,
 		online := false
 
 		r := getRepo(false)
-		ref, err := r.ParseDatasetRef(args[0])
+		ref, err := repo.ParseDatasetRef(args[0])
+		ExitIfErr(err)
+
+		err = repo.CanonicalizeDatasetRef(r, &ref)
 		ExitIfErr(err)
 
 		if ref.Path == "" {

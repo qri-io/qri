@@ -142,7 +142,7 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(h.repo, r.URL.Path[len("/export/"):])
+	args, err := DatasetRefFromPath(r.URL.Path[len("/export/"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -176,7 +176,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
-	args, err := DatasetRefFromPath(h.repo, r.URL.Path)
+	args, err := DatasetRefFromPath(r.URL.Path)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -195,7 +195,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
 	p := core.ListParamsFromRequest(r)
-	ref, err := DatasetRefFromPath(h.repo, r.URL.Path[len("/list/"):])
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -313,7 +313,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(h.repo, r.URL.Path[len("/add/"):])
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/add/"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -435,7 +435,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := DatasetRefFromPath(h.repo, r.URL.Path[len("/remove/"):])
+	p, err := DatasetRefFromPath(r.URL.Path[len("/remove/"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

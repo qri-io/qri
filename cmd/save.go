@@ -51,8 +51,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 			ErrExit(fmt.Errorf("one of --structure, --meta or --data is required"))
 		}
 
-		r := getRepo(false)
-		ref, err := r.ParseDatasetRef(args[0])
+		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
 		req := core.NewDatasetRequests(getRepo(false), nil)

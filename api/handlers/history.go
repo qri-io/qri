@@ -37,7 +37,7 @@ func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(h.repo, r.URL.Path[len("/history/"):])
+	args, err := DatasetRefFromPath(r.URL.Path[len("/history/"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

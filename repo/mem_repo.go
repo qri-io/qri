@@ -68,17 +68,6 @@ func (r *MemRepo) SaveProfile(p *profile.Profile) error {
 	return nil
 }
 
-// ParseDatasetRef decodes a dataset reference from a string value in the context
-// of this repo, so names like me/dataset are returned as [peername]/dataset
-func (r *MemRepo) ParseDatasetRef(refstr string) (ref DatasetRef, err error) {
-	ref, err = ParseDatasetRef(refstr)
-	if err != nil {
-		return
-	}
-	err = CanonicalizeRef(r, &ref)
-	return
-}
-
 // Peers gives this repo's Peer interface implementation
 func (r *MemRepo) Peers() Peers {
 	return r.peers

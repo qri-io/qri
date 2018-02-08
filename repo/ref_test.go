@@ -154,7 +154,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 	}
 }
 
-func TestCanonicalizeRef(t *testing.T) {
+func TestCanonicalize(t *testing.T) {
 	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, memfs.NewMapstore(), MemPeers{}, &analytics.Memstore{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
@@ -180,7 +180,7 @@ func TestCanonicalizeRef(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeRef(repo, got)
+		err = CanonicalizeDatasetRef(repo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

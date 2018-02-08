@@ -45,17 +45,14 @@ To export everything about a dataset, use the --dataset flag.`,
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
 
-		dsr, err := r.ParseDatasetRef(args[0])
+		dsr, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		p := &repo.DatasetRef{
-			Name: dsr.Name,
-			Path: dsr.Path,
-		}
 		res := &repo.DatasetRef{}
-		err = req.Get(p, res)
+		err = req.Get(&dsr, res)
 		ExitIfErr(err)
 
+		fmt.Println(res)
 		ds := res.Dataset
 
 		path = filepath.Join(path, dsr.Name)

@@ -6,16 +6,9 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/test"
 )
 
 func TestDatasetRefFromReq(t *testing.T) {
-	mr, err := test.NewTestRepo()
-	if err != nil {
-		t.Errorf("error creating test repo: %s", err.Error())
-		return
-	}
-
 	cases := []struct {
 		url      string
 		expected repo.DatasetRef
@@ -42,7 +35,7 @@ func TestDatasetRefFromReq(t *testing.T) {
 		if err != nil {
 			t.Error("case %d, error making request: %s", i, err)
 		}
-		got, err := DatasetRefFromReq(mr, r)
+		got, err := DatasetRefFromReq(r)
 		if (c.err != "" && err == nil) || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, error mismatch: expected '%s' but got '%s'", i, c.err, err)
 			continue

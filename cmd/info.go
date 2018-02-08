@@ -45,7 +45,9 @@ var infoCmd = &cobra.Command{
 		// check to see if we're all local
 		r := getRepo(false)
 		for _, arg := range args {
-			ref, err := r.ParseDatasetRef(arg)
+			ref, err := repo.ParseDatasetRef(arg)
+			ExitIfErr(err)
+			err = repo.CanonicalizeDatasetRef(r, &ref)
 			ExitIfErr(err)
 			if ref.Path == "" {
 				online = true

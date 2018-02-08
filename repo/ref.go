@@ -157,11 +157,12 @@ func stripProtocol(ref string) string {
 	return ref
 }
 
-// CanonicalizeRef uses a repo to turn any local aliases into known
-// canonical names for a dataset. Basically, this thing replaces "me"
-// with the proper peername, but if we provide any other shortcuts for dataset
-// naming in the future, it should be handled here.
-func CanonicalizeRef(r Repo, ref *DatasetRef) error {
+// CanonicalizeDatasetRef uses a repo to turn any local aliases into known
+// canonical peername for a dataset and populates a missing path
+// if the repo has path information for a peername/name combo
+// if we provide any other shortcuts for names other than "me"
+// in the future, it should be handled here.
+func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	// when operating over RPC there's a good chance we won't have a repo, in that
 	// case we're going to have to rely on the other end of the wire to do canonicalization
 	// TODO - think carefully about placement of reference parsing, possibly moving
@@ -170,17 +171,8 @@ func CanonicalizeRef(r Repo, ref *DatasetRef) error {
 		return nil
 	}
 
-	if ref.Peername == "" || ref.Peername == "me" {
-		p, err := r.Profile()
-		if err != nil {
-			return err
-		}
-		*ref = DatasetRef{
-			Peername: p.Peername,
-			Name:     ref.Name,
-			Path:     ref.Path,
-			Dataset:  ref.Dataset,
-		}
+	if err := CanonicalizePeername(r, &ref.Peername); err != nil {
+		return err
 	}
 
 	// Proactively attempt to find dataset path
@@ -189,6 +181,19 @@ func CanonicalizeRef(r Repo, ref *DatasetRef) error {
 			*ref = got
 			return nil
 		}
+	}
+	return nil
+}
+
+// CanonicalizePeername uses a repo to replace aliases with
+// canonical peernames. basically, this thing replaces "me" with the proper peername.
+func CanonicalizePeername(r Repo, peername *string) error {
+	if *peername == "me" {
+		p, err := r.Profile()
+		if err != nil {
+			return err
+		}
+		*peername = p.Peername
 	}
 	return nil
 }

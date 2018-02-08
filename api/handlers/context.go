@@ -20,17 +20,17 @@ const DatasetRefCtxKey QriCtxKey = "datasetRef"
 
 // DatasetRefFromReq examines the path element of a request URL
 // to
-func DatasetRefFromReq(rp repo.Repo, r *http.Request) (repo.DatasetRef, error) {
+func DatasetRefFromReq(r *http.Request) (repo.DatasetRef, error) {
 	if r.URL.String() == "" || r.URL.Path == "" {
 		return repo.DatasetRef{}, nil
 	}
-	return DatasetRefFromPath(rp, r.URL.Path)
+	return DatasetRefFromPath(r.URL.Path)
 }
 
 // DatasetRefFromPath parses a path and returns a datasetRef
-func DatasetRefFromPath(r repo.Repo, path string) (repo.DatasetRef, error) {
+func DatasetRefFromPath(path string) (repo.DatasetRef, error) {
 	refstr := HTTPPathToQriPath(path)
-	return r.ParseDatasetRef(refstr)
+	return repo.ParseDatasetRef(refstr)
 }
 
 // DatasetRefFromCtx extracts a Dataset reference from a given

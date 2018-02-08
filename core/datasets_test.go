@@ -104,6 +104,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
 		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
 		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
+		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
@@ -157,7 +158,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		err string
 	}{
 		//TODO: probably delete some of these
-		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "error loading path for name: repo: not found"},
+		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},

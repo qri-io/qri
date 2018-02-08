@@ -56,8 +56,7 @@ will affect a dataset before saving changes to a dataset.`,
 		)
 
 		if len(args) == 1 {
-			r := getRepo(false)
-			ref, err = r.ParseDatasetRef(args[0])
+			ref, err = repo.ParseDatasetRef(args[0])
 			ExitIfErr(err)
 		}
 

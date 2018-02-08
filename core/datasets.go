@@ -65,12 +65,22 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 
+	if err := repo.CanonicalizePeername(r.repo, &p.Peername); err != nil {
+		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
+	}
+
 	if p.Peername != "" && r.Node != nil {
 		replies, err := r.Node.RequestDatasetsList(p.Peername)
 		*res = replies
 		return err
-	} else if p.Peername != "" && r.Node == nil {
-		return fmt.Errorf("cannot list datasets of peer without p2p connection")
+	} else if p.Peername != "" {
+		pro, err := r.repo.Profile()
+		if err != nil {
+			return err
+		}
+		if pro.Peername != p.Peername && r.Node == nil {
+			return fmt.Errorf("cannot list remote datasets without p2p connection")
+		}
 	}
 
 	store := r.repo.Store()
@@ -113,6 +123,12 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
+
+	err = repo.CanonicalizeDatasetRef(r.repo, p)
+	if err != nil {
+		return err
+	}
+
 	getRemote := func(err error) error {
 		if r.Node != nil {
 			ref, err := r.Node.RequestDatasetInfo(p)
@@ -154,12 +170,6 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 		return err
 	}
 
-	*p, err = r.repo.GetRef(*p)
-	if err != nil {
-		err = fmt.Errorf("error loading path for name: %s", err.Error())
-		return getRemote(err)
-	}
-
 	store := r.repo.Store()
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
@@ -199,6 +209,10 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		store    = r.repo.Store()
 		filename = p.DataFilename
 	)
+
+	if err := repo.CanonicalizePeername(r.repo, &p.Peername); err != nil {
+		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
+	}
 
 	if p.URL != "" {
 		res, err := http.Get(p.URL)
@@ -331,6 +345,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	prev := &repo.DatasetRef{}
 
+	if err = repo.CanonicalizeDatasetRef(r.repo, &p.Prev); err != nil {
+		return fmt.Errorf("error canonicalizing previous dataset reference: %s", err.Error())
+	}
+
 	if err := r.Get(&p.Prev, prev); err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
@@ -391,7 +409,14 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return r.cli.Call("DatasetRequests.Rename", p, res)
 	}
 
-	if p.Current.Equal(repo.DatasetRef{}) {
+	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Current); err != nil {
+		return fmt.Errorf("error canonicalizing existing reference: %s", err.Error())
+	}
+	if err := repo.CanonicalizeDatasetRef(r.repo, &p.New); err != nil {
+		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
+	}
+
+	if p.Current.IsEmpty() {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
@@ -436,6 +461,10 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
+	if err := repo.CanonicalizeDatasetRef(r.repo, p); err != nil {
+		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
+	}
+
 	if p.Path == "" && (p.Peername == "" && p.Name == "") {
 		return fmt.Errorf("either peername/name or path is required")
 	}
@@ -444,19 +473,6 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	if err != nil {
 		return
 	}
-
-	// if p.Path == "" {
-	// 	key, e := r.repo.GetRef(*p)
-	// 	if e != nil {
-	// 		return e
-	// 	}
-	// 	p.Path = key.String()
-	// }
-
-	// p.Name, err = r.repo.GetName(datastore.NewKey(p.Path))
-	// if err != nil {
-	// 	return
-	// }
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
 		// path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
@@ -561,6 +577,10 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		return r.cli.Call("DatasetRequests.Add", ref, res)
 	}
 
+	if err := repo.CanonicalizeDatasetRef(r.repo, ref); err != nil {
+		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
+	}
+
 	if ref.Path == "" && r.Node != nil {
 		res, err := r.Node.RequestDatasetInfo(ref)
 		if err != nil {
@@ -619,6 +639,10 @@ type ValidateDatasetParams struct {
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
+	}
+
+	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref); err != nil {
+		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
 	}
 
 	var (

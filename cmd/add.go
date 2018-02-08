@@ -53,9 +53,8 @@ changes to qri.`,
 			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
 		}
 
-		r := getRepo(false)
 		if ingest {
-			ref, err := r.ParseDatasetRef(args[0])
+			ref, err := repo.ParseDatasetRef(args[0])
 			ExitIfErr(err)
 
 			initDataset(ref)
@@ -63,7 +62,7 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
-			ref, err := r.ParseDatasetRef(arg)
+			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
 			req, err := datasetRequests(true)
