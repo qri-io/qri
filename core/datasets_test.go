@@ -185,26 +185,22 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	// path, err := mr.GetPath("movies")
-	// if err != nil {
-	// 	t.Errorf("error getting path: %s", err.Error())
-	// 	return
-	// }
-	// moviesDs, err := dsfs.LoadDataset(mr.Store(), path)
-	// if err != nil {
-	// 	t.Errorf("error loading dataset: %s", err.Error())
-	// 	return
-	// }
+	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
+	if err != nil {
+		t.Errorf("error getting path: %s", err.Error())
+		return
+	}
 	cases := []struct {
 		p   *SaveParams
-		res *repo.DatasetRef
+		res repo.DatasetRef
 		err string
 	}{
-	//TODO: probably delete some of these
-	// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
-	// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-	// {&SaveParams{Path: path, Name: "movies", Hash: "123"}, moviesDs, ""},
-	// {&SaveParams{Path: path, Name: "cats", Hash: "123"}, moviesDs, ""},
+		//TODO: probably delete some of these
+		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
+		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
+		{&SaveParams{Prev: ref, Changes: &dataset.Dataset{Commit: &dataset.Commit{}, Meta: &dataset.Meta{Title: "movies!"}}}, repo.DatasetRef{}, ""},
+		{&SaveParams{Prev: repo.DatasetRef{Peername: "peer", Name: "not_a_known_dataset"}, Changes: &dataset.Dataset{}}, repo.DatasetRef{}, "error getting previous dataset: error loading dataset: error getting file bytes: datastore: key not found"},
+		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
