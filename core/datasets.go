@@ -345,19 +345,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	)
 
 	prev := &repo.DatasetRef{}
-	// <<<<<<< HEAD
 
 	if err = repo.CanonicalizeDatasetRef(r.repo, &p.Prev); err != nil {
 		return fmt.Errorf("error canonicalizing previous dataset reference: %s", err.Error())
 	}
 
 	if err := r.Get(&p.Prev, prev); err != nil {
-		// ||||||| merged common ancestors
-		// 	fmt.Println(p.Prev)
-		// 	if err := r.Get(p.Prev, prev); err != nil {
-		// =======
-		// 	if err := r.Get(p.Prev, prev); err != nil {
-		// >>>>>>> refactor(cmd.Save): udpated to preserve value of commit message (in addition to title)
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
