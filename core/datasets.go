@@ -338,9 +338,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	var (
-		ds          = &dataset.Dataset{}
-		dataf       cafs.File
-		commitTitle string
+		ds            = &dataset.Dataset{}
+		dataf         cafs.File
+		commitTitle   string
+		commitMessage string
 	)
 
 	prev := &repo.DatasetRef{}
@@ -355,6 +356,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if p.Changes.Commit != nil {
 		commitTitle = p.Changes.Commit.Title
+		commitMessage = p.Changes.Commit.Message
 	}
 
 	// add all previous fields and any changes
@@ -367,6 +369,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if commitTitle == "" {
 		p.Changes.Commit.Title = ""
 	}
+	if commitMessage == "" {
+		p.Changes.Commit.Message = ""
+	}
+
+	ds.Commit.Title = commitTitle
+	ds.Commit.Message = commitMessage
 
 	if p.Data != nil {
 		dataf = memfs.NewMemfileReader(p.DataFilename, p.Data)
