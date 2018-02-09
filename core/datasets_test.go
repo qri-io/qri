@@ -198,7 +198,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		//TODO: probably delete some of these
 		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
 		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-		{&SaveParams{Prev: ref, Changes: &dataset.Dataset{Commit: &dataset.Commit{}, Meta: &dataset.Meta{Title: "movies!"}}}, repo.DatasetRef{}, ""},
+		{&SaveParams{Prev: ref, Changes: &dataset.Dataset{Commit: &dataset.Commit{}, Meta: &dataset.Meta{Title: "movies!"}}}, repo.DatasetRef{}, "error saving: no changes detected"},
 		{&SaveParams{Prev: repo.DatasetRef{Peername: "peer", Name: "not_a_known_dataset"}, Changes: &dataset.Dataset{}}, repo.DatasetRef{}, "error getting previous dataset: error loading dataset: error getting file bytes: datastore: key not found"},
 		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
 	}
