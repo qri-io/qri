@@ -119,6 +119,9 @@ func (n *QriNode) ConnectToPeer(pid peer.ID) error {
 
 // ConnectedPeers lists all IPFS connected peers
 func (n *QriNode) ConnectedPeers() []string {
+	if n.Host == nil {
+		return []string{}
+	}
 	conns := n.Host.Network().Conns()
 	peers := make([]string, len(conns))
 	for i, c := range conns {
@@ -131,6 +134,9 @@ func (n *QriNode) ConnectedPeers() []string {
 // ConnectedQriPeers lists all IPFS connected peers that support the
 // qri protocol
 func (n *QriNode) ConnectedQriPeers() map[peer.ID]*profile.Profile {
+	if n.Host == nil {
+		return map[peer.ID]*profile.Profile{}
+	}
 	conns := n.Host.Network().Conns()
 	peers := map[peer.ID]*profile.Profile{}
 	for _, c := range conns {

@@ -35,22 +35,22 @@ func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
 // LogParams defines parameters for the Log method
 type LogParams struct {
 	ListParams
-	// Path to the dataset to fetch history for
-	Path datastore.Key
-	// Name of dataset to grab if Path isn't provided
-	Name string
+	// Reference to data to fetch history for
+	Ref repo.DatasetRef
 }
 
 // Log returns the history of changes for a given dataset
-func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err error) {
+func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error) {
 	if d.cli != nil {
 		return d.cli.Call("HistoryRequests.Log", params, res)
 	}
-	if params.Path.String() == "" && params.Name == "" {
-		return fmt.Errorf("either path or name is required")
+
+	ref := params.Ref
+	if ref.Path == "" && (ref.Name == "" && ref.Peername == "") {
+		return fmt.Errorf("either path or peername/name is required")
 	}
 
-	ref := &repo.DatasetRef{Peername: params.ListParams.Peername, Name: params.Name, Path: params.Path.String()}
+	// ref := &repo.DatasetRef{Peername: params.ListParams.Peername, Name: params.Name, Path: params.Path.String()}
 
 	getRemote := func(err error) error {
 		if d.Node != nil {
@@ -64,16 +64,15 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]*repo.DatasetRef) (err e
 		}
 		return err
 	}
-	if ref.Path == "" {
-		path, err := d.repo.GetPath(params.Name)
-		if err != nil {
-			err = fmt.Errorf("error loading path from name: %s", err.Error())
-			return getRemote(err)
-		}
-		ref.Path = path.String()
-	}
 
-	log := []*repo.DatasetRef{}
+	got, err := d.repo.GetRef(ref)
+	if err != nil {
+		err = fmt.Errorf("error getting reference '%s': %s", ref, err.Error())
+		return getRemote(err)
+	}
+	ref = got
+
+	log := []repo.DatasetRef{}
 	limit := params.Limit
 
 	for {

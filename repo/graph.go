@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"strings"
 	"sync"
 
 	"github.com/ipfs/go-datastore"
@@ -182,7 +181,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) (bool, error)) error {
 	pll := walkParallelism
 	store := r.Store()
-	count, err := r.NameCount()
+	count, err := r.RefCount()
 	if err != nil {
 		return err
 	} else if count == 0 {
@@ -194,7 +193,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 	}
 
 	doSection := func(idx, pageSize int, done chan error) error {
-		refs, err := r.Namespace(pageSize, idx*pageSize)
+		refs, err := r.References(pageSize, idx*pageSize)
 		if err != nil {
 			done <- err
 			return err
@@ -213,7 +212,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 				err = fmt.Errorf("error loading dataset: %s", err.Error())
 			}
 
-			kontinue, err := visit(0, ref, err)
+			kontinue, err := visit(0, &ref, err)
 			if err != nil {
 				err = fmt.Errorf("error visiting node: %s", err.Error())
 				done <- err
@@ -227,19 +226,12 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
 				ref.Path = ref.Dataset.PreviousPath
 
-				// TODO - remove this horrible hack.
-				if r.Store().PathPrefix() == "ipfs" {
-					if !strings.HasSuffix(ref.Path, "/dataset.json") {
-						ref.Path = ref.Path + "/dataset.json"
-					}
-				}
-
 				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 				if err != nil {
 					done <- err
 					return err
 				}
-				kontinue, err = visit(depth, ref, err)
+				kontinue, err = visit(depth, &ref, err)
 				if err != nil {
 					done <- err
 					return err

@@ -45,8 +45,8 @@ const (
 	FileDatasets
 	// FileQueryLogs is a log of all queries in order they're run
 	FileQueryLogs
-	// FileNamestore is a file for the user's local namespace
-	FileNamestore
+	// FileRefstore is a file for the user's local namespace
+	FileRefstore
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
 	FilePeers
@@ -68,7 +68,7 @@ var paths = map[File]string{
 	FileConfig:         "/config.json",
 	FileDatasets:       "/datasets.json",
 	FileQueryLogs:      "/queries.json",
-	FileNamestore:      "/namespace.json",
+	FileRefstore:       "/namespace.json",
 	FilePeers:          "/peers.json",
 	FileCache:          "/cache.json",
 	FileAnalytics:      "/analytics.json",

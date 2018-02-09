@@ -47,9 +47,9 @@ var infoCmd = &cobra.Command{
 		for _, arg := range args {
 			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
-			local, err := repo.IsLocalRef(r, ref)
+			err = repo.CanonicalizeDatasetRef(r, &ref)
 			ExitIfErr(err)
-			if !local {
+			if ref.Path == "" {
 				online = true
 			}
 		}
@@ -80,8 +80,8 @@ var infoCmd = &cobra.Command{
 					fmt.Printf("%s", string(data))
 				}
 			} else {
-				res := &repo.DatasetRef{}
-				err = req.Get(ref, res)
+				res := repo.DatasetRef{}
+				err = req.Get(&ref, &res)
 				ExitIfErr(err)
 
 				if outformat == "" {

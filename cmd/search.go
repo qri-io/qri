@@ -43,7 +43,7 @@ var searchCmd = &cobra.Command{
 			Limit:  30,
 			Offset: 0,
 		}
-		res := []*repo.DatasetRef{}
+		res := []repo.DatasetRef{}
 
 		err = req.Search(p, &res)
 		ExitIfErr(err)

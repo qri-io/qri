@@ -37,7 +37,7 @@ both qri & IPFS. Promise.`,
 			ExitIfErr(err)
 
 			res := false
-			err = req.Remove(ref, &res)
+			err = req.Remove(&ref, &res)
 			ExitIfErr(err)
 			printSuccess("removed dataset %s", ref)
 		}

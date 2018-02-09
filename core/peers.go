@@ -110,9 +110,9 @@ func (d *PeerRequests) ConnectedQriPeers(limit *int, peers *[]Peer) error {
 		parsed = append(parsed, Peer{ID: peer.ID, IPFSID: id.String(), Peername: peer.Peername, Name: peer.Name})
 	}
 
-	if len(ps) == 0 {
-		return fmt.Errorf("no peers found")
-	}
+	// if len(ps) == 0 {
+	// 	return fmt.Errorf("no peers found")
+	// }
 
 	*peers = parsed
 	return nil
@@ -162,28 +162,20 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 			*res = *peer
 			return nil
 		}
-		// if p.PeerID == name || p.Username == repo.Profile.Username {
-		// 	*res = *repo.Profile
-		// }
 	}
 
-	if res != nil {
-		return nil
-	}
-
-	// TODO - ErrNotFound plz
-	return fmt.Errorf("Not Found")
+	return repo.ErrNotFound
 }
 
-// NamespaceParams defines params for the GetNamespace method
-type NamespaceParams struct {
+// PeerRefsParams defines params for the GetNamespace method
+type PeerRefsParams struct {
 	PeerID string
 	Limit  int
 	Offset int
 }
 
-// GetNamespace lists a peer's named datasets
-func (d *PeerRequests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef) error {
+// GetReferences lists a peer's named datasets
+func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.GetNamespace", p, res)
 	}
@@ -214,7 +206,7 @@ func (d *PeerRequests) GetNamespace(p *NamespaceParams, res *[]*repo.DatasetRef)
 	if err != nil {
 		return fmt.Errorf("error encoding peer response: %s", err.Error())
 	}
-	refs := []*repo.DatasetRef{}
+	refs := []repo.DatasetRef{}
 	if err := json.Unmarshal(data, &refs); err != nil {
 		return fmt.Errorf("error parsing peer response: %s", err.Error())
 	}

@@ -22,9 +22,13 @@ import (
 var (
 	// ErrNotFound is the err implementers should return when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
+	// ErrPeernameRequired is for when a peername is missing-but-expected
+	ErrPeernameRequired = fmt.Errorf("repo: peername is required")
 	// ErrNameRequired is for when a name is missing-but-expected
 	ErrNameRequired = fmt.Errorf("repo: name is required")
-	// ErrNameTaken is for when a Namestore name is already taken
+	// ErrPathRequired is for when a path is missing-but-expected
+	ErrPathRequired = fmt.Errorf("repo: path is required")
+	// ErrNameTaken is for when a name name is already taken
 	ErrNameTaken = fmt.Errorf("repo: name already in use")
 	// ErrRepoEmpty is for when the repo has no datasets
 	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
@@ -43,13 +47,8 @@ type Repo interface {
 	Store() cafs.Filestore
 	// Graph returns a graph of this repositories data resources
 	Graph() (map[string]*dsgraph.Node, error)
-	// At the heart of all repositories is a namestore, which maps user-defined
-	// aliases for datasets to their underlying content-addressed hash
-	// as an example:
-	// 		my_dataset : /ipfs/Qmeiuzejjs....
-	// these aliases are then used in qri SQL statements. Names are *not*
-	// universally unique, but must be unique within the namestore
-	Namestore
+	// All Repos must keep a Refstore, defining a given peer's datasets
+	Refstore
 	// CreateDataset initializes a dataset from a dataset pointer and data file
 	// It's not part of the Datasets interface because creating a dataset requires
 	// access to this repos store & private key
@@ -65,12 +64,12 @@ type Repo interface {
 	// ChangeRequets gives this repo's change request store
 	ChangeRequestStore
 	// A repository must maintain profile information about the owner of this dataset.
-	// The value returned by Profile() should represent the user.
+	// The value returned by Profile() should represent the peer.
 	Profile() (*profile.Profile, error)
 	// It must be possible to alter profile information.
 	SaveProfile(*profile.Profile) error
 	// SetPrivateKey sets an internal reference to the private key for this profile.
-	// PrivateKey is used to tie user actions to this profile. Repo implementations must
+	// PrivateKey is used to tie peer actions to this profile. Repo implementations must
 	// never expose this private key once set.
 	SetPrivateKey(pk crypto.PrivKey) error
 	// A repository must maintain profile information about encountered peers.
@@ -80,23 +79,11 @@ type Repo interface {
 	Peers() Peers
 	// Cache keeps an ephemeral store of dataset information
 	// that may be purged at any moment. Results of searching for datasets,
-	// dataset references other users have, etc, should all be stored here.
+	// dataset references other peers have, etc, should all be stored here.
 	Cache() Datasets
 	// All repositories provide their own analytics information.
 	// Our analytics implementation is under super-active development.
 	Analytics() analytics.Analytics
-}
-
-// Namestore is an in-progress solution for aliasing
-// datasets locally, it's an interface for storing & retrieving
-// datasets by names local to the repository
-type Namestore interface {
-	PutName(name string, path datastore.Key) error
-	GetPath(name string) (datastore.Key, error)
-	GetName(path datastore.Key) (string, error)
-	DeleteName(name string) error
-	Namespace(limit, offset int) ([]*DatasetRef, error)
-	NameCount() (int, error)
 }
 
 // Datasets is the minimum interface to act as a store of datasets.
@@ -105,7 +92,7 @@ type Namestore interface {
 // Datasets stored here should be reasonably dereferenced to avoid
 // additional lookups.
 // All fields here work only with paths (which are datastore.Key's)
-// to dereference a name, you'll need a Namestore interface
+// to dereference a name, you'll need a Refstore interface
 // oh golang, can we haz generics plz?
 type Datasets interface {
 	// Put a dataset in the store
@@ -144,7 +131,7 @@ type SearchParams struct {
 
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
-	Search(p SearchParams) ([]*DatasetRef, error)
+	Search(p SearchParams) ([]DatasetRef, error)
 }
 
 // DatasetsQuery is a convenience function to read all query results & parse into a

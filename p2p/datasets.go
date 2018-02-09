@@ -8,7 +8,7 @@ import (
 )
 
 // RequestDatasetsList gets a list of a peer's datasets
-func (n *QriNode) RequestDatasetsList(peername string) ([]*repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetsList(peername string) ([]repo.DatasetRef, error) {
 	id, err := n.Repo.Peers().IPFSPeerID(peername)
 	if err != nil {
 		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
@@ -30,7 +30,7 @@ func (n *QriNode) RequestDatasetsList(peername string) ([]*repo.DatasetRef, erro
 		return nil, err
 	}
 
-	ref := []*repo.DatasetRef{}
+	ref := []repo.DatasetRef{}
 	err = json.Unmarshal(data, &ref)
 	return ref, err
 }
@@ -65,7 +65,7 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, er
 }
 
 // RequestDatasetLog gets the log information of Peer's dataset
-func (n *QriNode) RequestDatasetLog(ref *repo.DatasetRef) (*[]*repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef) (*[]repo.DatasetRef, error) {
 	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
 	if err != nil {
 		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
@@ -85,7 +85,7 @@ func (n *QriNode) RequestDatasetLog(ref *repo.DatasetRef) (*[]*repo.DatasetRef, 
 		return nil, err
 	}
 
-	resref := []*repo.DatasetRef{}
+	resref := []repo.DatasetRef{}
 	err = json.Unmarshal(data, &resref)
 	if len(resref) == 0 && err != nil {
 		err = fmt.Errorf("no log found")

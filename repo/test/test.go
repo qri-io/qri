@@ -15,7 +15,7 @@ type RepoTestFunc func(r repo.Repo) error
 func RunRepoTests(t *testing.T, r repo.Repo) {
 	tests := []RepoTestFunc{
 		runTestProfile,
-		runTestNamespace,
+		runTestRefstore,
 		// runTestQueryResults,
 		// runTestResourceMeta,
 		// runTestResourceQueries,

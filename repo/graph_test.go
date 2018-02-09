@@ -125,7 +125,7 @@ func makeTestRepo() (Repo, error) {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
 	r.PutDataset(ds1p, ds1)
-	r.PutName("ds1", ds1p)
+	r.PutRef(DatasetRef{Peername: "peer", Name: "ds1", Path: ds1p.String()})
 
 	data2f := memfs.NewMemfileBytes("data2", []byte("dataset_2"))
 	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
@@ -133,7 +133,7 @@ func makeTestRepo() (Repo, error) {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
 	r.PutDataset(ds2p, ds2)
-	r.PutName("ds2", ds2p)
+	r.PutRef(DatasetRef{Peername: "peer", Name: "ds2", Path: ds2p.String()})
 
 	return r, nil
 }

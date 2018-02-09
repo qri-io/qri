@@ -214,7 +214,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	if p.Limit == 0 {
 		p.Limit = 50
 	}
-	refs, err := n.Repo.Namespace(p.Limit, p.Offset)
+	refs, err := n.Repo.References(p.Limit, p.Offset)
 	if err != nil {
 		n.log.Info("repo names error:", err)
 		return nil
@@ -327,15 +327,14 @@ func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
 }
 
 func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
-	fmt.Errorf("DSI req")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
 		n.log.Info(err.Error())
 		return nil
 	}
 
-	ref := &repo.DatasetRef{}
-	if err = json.Unmarshal(data, ref); err != nil {
+	ref := repo.DatasetRef{}
+	if err = json.Unmarshal(data, &ref); err != nil {
 		n.log.Infof(err.Error())
 		return &Message{
 			Type:    MtDatasetInfo,
@@ -344,7 +343,7 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 		}
 	}
 
-	path, err := n.Repo.GetPath(ref.Name)
+	ref, err = n.Repo.GetRef(ref)
 	if err != nil {
 		return &Message{
 			Type:    MtDatasetInfo,
@@ -353,9 +352,7 @@ func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 		}
 	}
 
-	ref.Path = path.String()
-
-	ds, err := n.Repo.GetDataset(path)
+	ds, err := n.Repo.GetDataset(datastore.NewKey(ref.Path))
 	if err != nil {
 		return &Message{
 			Type:    MtDatasetInfo,
@@ -385,8 +382,8 @@ func (n *QriNode) handleDatasetLogRequest(r *Message) *Message {
 		return nil
 	}
 
-	ref := &repo.DatasetRef{}
-	if err = json.Unmarshal(data, ref); err != nil {
+	ref := repo.DatasetRef{}
+	if err = json.Unmarshal(data, &ref); err != nil {
 		n.log.Infof(err.Error())
 		return &Message{
 			Type:    MtDatasetLog,
@@ -395,7 +392,7 @@ func (n *QriNode) handleDatasetLogRequest(r *Message) *Message {
 		}
 	}
 
-	path, err := n.Repo.GetPath(ref.Name)
+	ref, err = n.Repo.GetRef(ref)
 	if err != nil {
 		return &Message{
 			Type:    MtDatasetLog,
@@ -406,9 +403,9 @@ func (n *QriNode) handleDatasetLogRequest(r *Message) *Message {
 	// TODO: probably shouldn't write over ref.Path if ref.Path is set, but
 	// until we make the changes to the way we use hashes to make them
 	// more consistent, this feels safer.
-	ref.Path = path.String()
+	// ref.Path = path.String()
 
-	log := []*repo.DatasetRef{}
+	log := []repo.DatasetRef{}
 	limit := 50
 
 	for {

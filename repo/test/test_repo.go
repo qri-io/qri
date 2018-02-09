@@ -32,7 +32,7 @@ func init() {
 func NewTestRepo() (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "archive"}
 	p := &profile.Profile{
-		Peername: "test_user",
+		Peername: "peer",
 	}
 	ms := memfs.NewMapstore()
 	mr, err = repo.NewMemRepo(p, ms, repo.MemPeers{}, &analytics.Memstore{})
@@ -76,7 +76,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 		if err != nil {
 			return
 		}
-		if err = mr.PutName(k, dskey); err != nil {
+		if err = mr.PutRef(repo.DatasetRef{Peername: "peer", Name: k, Path: dskey.String()}); err != nil {
 			return
 		}
 	}

@@ -42,8 +42,11 @@ working backwards in time.`,
 		r := getRepo(false)
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
-		local, err := repo.IsLocalRef(r, ref)
-		if !local {
+
+		err = repo.CanonicalizeDatasetRef(r, &ref)
+		ExitIfErr(err)
+
+		if ref.Path == "" {
 			online = true
 		}
 
@@ -54,13 +57,13 @@ working backwards in time.`,
 		p := &core.LogParams{
 			// Limit:  dsLogLimit,
 			// Offset: dsLogOffset,
-			Name: ref.Name,
+			Ref: ref,
 			ListParams: core.ListParams{
 				Peername: ref.Peername,
 			},
 		}
 
-		refs := []*repo.DatasetRef{}
+		refs := []repo.DatasetRef{}
 		err = hr.Log(p, &refs)
 		ExitIfErr(err)
 

@@ -27,7 +27,7 @@ type Repo struct {
 	graph map[string]*dsgraph.Node
 
 	Datasets
-	Namestore
+	Refstore
 	QueryLog
 	ChangeRequests
 
@@ -52,7 +52,7 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		basepath: bp,
 
 		Datasets:       NewDatasets(base, FileDatasets, store),
-		Namestore:      Namestore{basepath: bp, store: store},
+		Refstore:       Refstore{basepath: bp, store: store},
 		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
 		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
 
@@ -63,7 +63,7 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
 		r.index = index
-		r.Namestore.index = index
+		r.Refstore.index = index
 	}
 
 	// TODO - this is racey.
@@ -170,7 +170,7 @@ func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
 // }
 
 // Search this repo for dataset references
-func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
+func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 	if r.index == nil {
 		return nil, fmt.Errorf("search not supported")
 	}
@@ -180,8 +180,10 @@ func (r *Repo) Search(p repo.SearchParams) ([]*repo.DatasetRef, error) {
 		return refs, err
 	}
 	for _, ref := range refs {
-		if name, err := r.GetName(datastore.NewKey(ref.Path)); err == nil {
-			ref.Name = name
+		if ref.Path == "" {
+			if got, err := r.GetRef(ref); err == nil {
+				ref.Path = got.Path
+			}
 		}
 
 		if ds, err := r.GetDataset(datastore.NewKey(ref.Path)); err == nil {
