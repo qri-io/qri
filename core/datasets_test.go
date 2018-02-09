@@ -382,6 +382,32 @@ func TestDatasetRequestsAdd(t *testing.T) {
 }
 
 func TestDatasetRequestsValidate(t *testing.T) {
+	movieb := []byte(`movie_title,duration
+Avatar ,178
+Pirates of the Caribbean: At World's End ,169
+`)
+	schemaB := []byte(`{
+  "type": "array",
+  "items": {
+    "type": "array",
+    "items": [
+      {
+        "title": "title",
+        "type": "string"
+      },
+      {
+        "title": "duration",
+        "type": "string"
+      }
+    ]
+  }
+}`)
+
+	dataf := memfs.NewMemfileBytes("data.csv", movieb)
+	dataf2 := memfs.NewMemfileBytes("data.csv", movieb)
+	schemaf := memfs.NewMemfileBytes("schema.json", schemaB)
+	schemaf2 := memfs.NewMemfileBytes("schema.json", schemaB)
+
 	cases := []struct {
 		p         ValidateDatasetParams
 		numErrors int
@@ -390,6 +416,9 @@ func TestDatasetRequestsValidate(t *testing.T) {
 		{ValidateDatasetParams{Ref: repo.DatasetRef{}}, 0, "either data or a dataset reference is required"},
 		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me"}}, 0, "cannot find dataset: peer"},
 		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}}, 1, ""},
+		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Data: dataf, DataFilename: "data.csv"}, 1, ""},
+		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Schema: schemaf}, 0, ""},
+		{ValidateDatasetParams{Schema: schemaf2, DataFilename: "data.csv", Data: dataf2}, 0, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()

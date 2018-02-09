@@ -650,7 +650,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	}
 
 	var (
-		sch  *jsonschema.RootSchema
+		st   = &dataset.Structure{}
 		ref  repo.DatasetRef
 		data []byte
 	)
@@ -662,9 +662,25 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 			return err
 		}
 
-		sch = ref.Dataset.Structure.Schema
+		st = ref.Dataset.Structure
 	} else if p.Data == nil {
 		return fmt.Errorf("cannot find dataset: %s", p.Ref)
+	}
+
+	if p.Data != nil {
+		data, err = ioutil.ReadAll(p.Data)
+		if err != nil {
+			return fmt.Errorf("error reading data: %s", err.Error())
+		}
+
+		// if no schema, detect one
+		if st.Schema == nil {
+			str, e := detect.FromReader(p.DataFilename, bytes.NewBuffer(data))
+			if e != nil {
+				return e
+			}
+			st = str
+		}
 	}
 
 	// if a schema is specified, override with it
@@ -673,66 +689,53 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		if err != nil {
 			return err
 		}
-		sch = &jsonschema.RootSchema{}
-		if e := sch.UnmarshalJSON(stbytes); err != nil {
-			return e
+		sch := &jsonschema.RootSchema{}
+		if e := sch.UnmarshalJSON(stbytes); e != nil {
+			return fmt.Errorf("error reading schema: %s", e.Error())
 		}
-	}
-
-	if p.Data != nil {
-		data, err = ioutil.ReadAll(p.Data)
-		if err != nil {
-			return
-		}
-
-		// if no schema, detect one
-		if sch == nil {
-			st, e := detect.FromReader(p.DataFilename, p.Data)
-			if e != nil {
-				return e
-			}
-			sch = st.Schema
-		}
+		st.Schema = sch
 	}
 
 	if data == nil && ref.Dataset != nil {
 		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
 		if e != nil {
-			return e
+			return fmt.Errorf("error loading dataset data: %s", e.Error())
+		}
+		data, err = ioutil.ReadAll(f)
+		if err != nil {
+			return fmt.Errorf("error loading dataset data: %s", err.Error())
+		}
+	}
+
+	if st.Format != dataset.JSONDataFormat {
+		// convert to JSON bytes if necessary
+		vr, e := dsio.NewValueReader(st, bytes.NewBuffer(data))
+		if e != nil {
+			return fmt.Errorf("error creating value reader: %s", err.Error())
 		}
 
-		if ref.Dataset.Structure.Format != dataset.JSONDataFormat {
-			// convert to JSON bytes if necessary
-			vr, e := dsio.NewValueReader(ref.Dataset.Structure, f)
-			if e != nil {
-				return e
-			}
-
-			buf, err := dsio.NewValueBuffer(&dataset.Structure{
-				Format: dataset.JSONDataFormat,
-				Schema: ref.Dataset.Structure.Schema,
-			})
-
-			err = dsio.EachValue(vr, func(i int, val vals.Value, err error) error {
-				if err != nil {
-					return err
-				}
-				return buf.WriteValue(val)
-			})
-
-			if err != nil {
-				return err
-			}
-			if e := buf.Close(); err != nil {
-				return e
-			}
-			data = buf.Bytes()
-		} else {
-			data, err = ioutil.ReadAll(f)
-			if err != nil {
-				return
-			}
+		buf, err := dsio.NewValueBuffer(&dataset.Structure{
+			Format: dataset.JSONDataFormat,
+			Schema: st.Schema,
+		})
+		if err != nil {
+			return fmt.Errorf("error allocating data buffer: %s", err.Error())
 		}
+
+		err = dsio.EachValue(vr, func(i int, val vals.Value, err error) error {
+			if err != nil {
+				return fmt.Errorf("error reading row %d: %s", i, err.Error())
+			}
+			return buf.WriteValue(val)
+		})
+		if err != nil {
+			return fmt.Errorf("error reading values: %s", err.Error())
+		}
+
+		if e := buf.Close(); e != nil {
+			return fmt.Errorf("error closing buffer: %s", e.Error())
+		}
+		data = buf.Bytes()
 	}
 
 	if len(data) == 0 {
@@ -740,7 +743,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return fmt.Errorf("err reading data")
 	}
 
-	*errors = sch.ValidateBytes(data)
+	*errors = st.Schema.ValidateBytes(data)
 	return
 }
 
