@@ -182,6 +182,9 @@ func (n *QriNode) IPFSListenAddresses() ([]string, error) {
 
 // Peers returns a list of currently connected peer IDs
 func (n *QriNode) Peers() []peer.ID {
+	if n.Host == nil {
+		return []peer.ID{}
+	}
 	conns := n.Host.Network().Conns()
 	seen := make(map[peer.ID]struct{})
 	peers := make([]peer.ID, 0, len(conns))
