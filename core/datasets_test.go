@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
+	"github.com/qri-io/jsonschema"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
@@ -375,6 +376,40 @@ func TestDatasetRequestsAdd(t *testing.T) {
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+	}
+}
+
+func TestDatasetRequestsValidate(t *testing.T) {
+	cases := []struct {
+		p         ValidateDatasetParams
+		numErrors int
+		err       string
+	}{
+		{ValidateDatasetParams{Ref: repo.DatasetRef{}}, 0, "either data or a dataset reference is required"},
+		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me"}}, 0, "cannot find dataset: peer"},
+		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}}, 1, ""},
+	}
+
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	req := NewDatasetRequests(mr, nil)
+	for i, c := range cases {
+		got := []jsonschema.ValError{}
+		err := req.Validate(&c.p, &got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err.Error())
+			continue
+		}
+
+		if len(got) != c.numErrors {
+			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(got))
+			t.Log(got)
 			continue
 		}
 	}

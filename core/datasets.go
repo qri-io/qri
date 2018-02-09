@@ -641,25 +641,30 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
 
+	if p.Ref.IsEmpty() && p.Data == nil {
+		return fmt.Errorf("either data or a dataset reference is required")
+	}
+
 	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref); err != nil {
 		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
 	}
 
 	var (
 		sch  *jsonschema.RootSchema
-		ref  *repo.DatasetRef
+		ref  repo.DatasetRef
 		data []byte
 	)
 
 	// if a dataset is specified, load it
-	if p.Ref.Name != "" || p.Ref.Path != "" {
-		ref := repo.DatasetRef{}
+	if p.Ref.Path != "" {
 		err = r.Get(&p.Ref, &ref)
-
 		if err != nil {
 			return err
 		}
+
 		sch = ref.Dataset.Structure.Schema
+	} else if p.Data == nil {
+		return fmt.Errorf("cannot find dataset: %s", p.Ref)
 	}
 
 	// if a schema is specified, override with it
@@ -690,7 +695,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	if data == nil && ref != nil {
+	if data == nil && ref.Dataset != nil {
 		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
 		if e != nil {
 			return e
@@ -728,6 +733,11 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 				return
 			}
 		}
+	}
+
+	if len(data) == 0 {
+		// TODO - wut?
+		return fmt.Errorf("err reading data")
 	}
 
 	*errors = sch.ValidateBytes(data)
