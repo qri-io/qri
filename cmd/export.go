@@ -17,13 +17,15 @@ import (
 )
 
 var (
-	exportCmdDataset   bool
-	exportCmdMeta      bool
-	exportCmdStructure bool
-	exportCmdData      bool
-	exportCmdTransform bool
-	exportCmdVis       bool
-	exportCmdAll       bool
+	exportCmdDataset    bool
+	exportCmdMeta       bool
+	exportCmdStructure  bool
+	exportCmdData       bool
+	exportCmdTransform  bool
+	exportCmdVis        bool
+	exportCmdAll        bool
+	exportCmdNameSpaced bool
+	exportCmdZipped     bool
 )
 
 // exportCmd represents the export command
@@ -55,9 +57,7 @@ To export everything about a dataset, use the --dataset flag.`,
 		fmt.Println(res)
 		ds := res.Dataset
 
-		path = filepath.Join(path, dsr.Name)
-		usePeerNameSpace := cmd.Flag("namespaced").Value.String() == "true"
-		if usePeerNameSpace {
+		if exportCmdNameSpaced {
 			peerName := dsr.Peername
 			if peerName == "me" {
 				myProfile, err := r.Profile()
@@ -66,8 +66,9 @@ To export everything about a dataset, use the --dataset flag.`,
 				}
 				peerName = myProfile.Peername
 			}
-			path = filepath.Join(peerName, path)
+			path = filepath.Join(path, peerName)
 		}
+		path = filepath.Join(path, dsr.Name)
 
 		if cmd.Flag("zip").Value.String() == "true" {
 			dst, err := os.Create(fmt.Sprintf("%s.zip", path))
@@ -186,7 +187,7 @@ To export everything about a dataset, use the --dataset flag.`,
 func init() {
 	RootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
-	exportCmd.Flags().BoolP("zip", "z", false, "compress export as zip archive")
+	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
 	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export root dataset")
