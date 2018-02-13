@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"flag"
 	"os"
 	"path/filepath"
 	"strings"
@@ -48,7 +47,6 @@ func Execute() {
 }
 
 func init() {
-	flag.Parse()
 	cobra.OnInitialize(initializeCLI)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")
 	RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
