@@ -50,8 +50,7 @@ func HTTPPathToQriPath(path string) string {
 	if paramIndex != -1 {
 		path = path[:paramIndex]
 	}
-	path = strings.Replace(path, "/at/ipfs/", "@", 1)
-	path = strings.Replace(path, "/at/", "@", 1)
+	path = strings.Replace(path, "/at", "@", 1)
 	path = strings.TrimPrefix(path, "/")
 	path = strings.TrimSuffix(path, "/")
 	return path
