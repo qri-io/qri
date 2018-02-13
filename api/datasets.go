@@ -222,15 +222,15 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
 		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
 			return
 		}
 
-		if p.DataFilename == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have 'datafilename' field"))
+		if p.DataFilename == "" && p.URL == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have 'datafilename' or 'url' field"))
 			return
 		}
-		if p.Data == nil {
+		if p.Data == nil && p.URL == "" {
 			if !filepath.IsAbs(p.DataFilename) {
 				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath"))
 				return
@@ -441,13 +441,13 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 	ref := &repo.DatasetRef{}
-	if err := h.Get(&repo.DatasetRef{Name: p.Name, Path: p.Path}, ref); err != nil {
+	if err := h.Get(&p, ref); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	res := false
-	if err := h.Remove(&p, &res); err != nil {
+	if err := h.Remove(ref, &res); err != nil {
 		h.log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -456,28 +456,39 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 	util.WriteResponse(w, ref.Dataset)
 }
 
+// RenameReqParams is an encoding struct
+// its intent is to be a more user-friendly structure for the api endpoint
+// that will map to and from the core.RenameParams struct
+type RenameReqParams struct {
+	Current string
+	New     string
+}
+
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
+	reqParams := &RenameReqParams{}
 	p := &core.RenameParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(reqParams); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
 	} else {
-		current, err := repo.ParseDatasetRef(r.URL.Query().Get("current"))
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing current param: %s", err.Error()))
-			return
-		}
-		n, err := repo.ParseDatasetRef(r.URL.Query().Get("new"))
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
-			return
-		}
-		p = &core.RenameParams{
-			Current: current,
-			New:     n,
-		}
+		reqParams.Current = r.URL.Query().Get("current")
+		reqParams.New = r.URL.Query().Get("new")
+	}
+	current, err := repo.ParseDatasetRef(reqParams.Current)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing current param: %s", err.Error()))
+		return
+	}
+	n, err := repo.ParseDatasetRef(reqParams.New)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
+		return
+	}
+	p = &core.RenameParams{
+		Current: current,
+		New:     n,
 	}
 
 	res := &repo.DatasetRef{}
