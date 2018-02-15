@@ -1,0 +1,53 @@
+{
+  "data": {
+    "peername": "peer",
+    "name": "family_relationships",
+    "path": "/map/QmQjiQmkS5NfzjJrTqRtK1joB9it5gjZ62tXuirtJ1tZvY",
+    "dataset": {
+      "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
+      "commit": {
+        "qri": "cm:0",
+        "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+        "timestamp": "2001-01-01T01:01:01.000000001Z",
+        "title": "initial commit"
+      },
+      "dataPath": "/map/QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
+      "meta": {
+        "accrualPeriodicity": "R/P1W",
+        "downloadPath": "http://insight.dev.schoolwires.com/HelpAssets/C2Assets/C2Files/C2ImportFamRelSample.csv",
+        "qri": "md:0"
+      },
+      "qri": "ds:0",
+      "structure": {
+        "checksum": "QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
+        "entries": 3,
+        "errCount": 1,
+        "format": "csv",
+        "formatConfig": {
+          "headerRow": true
+        },
+        "length": 60,
+        "qri": "st:0",
+        "schema": {
+          "items": {
+            "items": [
+              {
+                "title": "parent_identifier",
+                "type": "integer"
+              },
+              {
+                "title": "student_identifier",
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        }
+      }
+    }
+  },
+  "meta": {
+    "code": 200
+  }
+}

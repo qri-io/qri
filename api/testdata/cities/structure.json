@@ -1,0 +1,35 @@
+{
+  "checksum": "Qma9TG3f7EjDHRD9MUePpj1YmDynr4UbppeghShqFti5hn",
+  "entries": 6,
+  "errCount": 1,
+  "format": "csv",
+  "formatConfig": {
+    "headerRow": true
+  },
+  "length": 154,
+  "qri": "st:0",
+  "schema": {
+    "items": {
+      "items": [
+        {
+          "title": "city",
+          "type": "string"
+        },
+        {
+          "title": "pop",
+          "type": "integer"
+        },
+        {
+          "title": "avg_age",
+          "type": "number"
+        },
+        {
+          "title": "in_usa",
+          "type": "boolean"
+        }
+      ],
+      "type": "array"
+    },
+    "type": "array"
+  }
+}

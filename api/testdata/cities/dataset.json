@@ -1,0 +1,47 @@
+{
+  "abstract": "/ipfs/QmNwYRTAN3jfRK5LaBsvxmh99TcG4n9N8BvdWkN2ApJYx1",
+  "commit": {
+    "qri": "cm:0",
+    "signature": "7hfqgzDEhAZmpzimwGUNPpsLgwDJcuoJLRH4uHMgF5gxX7DbH7uMEiTzY9DznHWeBKCxdg1AYfYynp2Q6tp9LQSKwbSTxGHim3Mq3rnwqUTUTHSaUN9igD5EErsvCEwNerFSBP9RWGRLMchbBxBKRA6Fwpq1gvFSQYt8Zdwtnhtvzd79kUAum7gqtr1PtQsFoSbunrAgoCKiFPNZYeoF2H7s585tomGQikj2F7o798SSWK3NPG3soHyDgENk5Yzgnys8dxBn5BEDGmQyYZoKw33E4Drc5tfzcAxhkFTLe48uJtxN7gFkg4yk2DdCo6gtajFy9Ts8tAZaiLFx8ww1DjB5jnP2aB",
+    "timestamp": "2018-02-07T18:02:11.871575669-05:00",
+    "title": "initial commit"
+  },
+  "dataPath": "/ipfs/QmUvWgmVTyPGYwWD3psGhEULrEXvemcnnVQpXm5MinrcMx",
+  "meta": "/ipfs/QmNc2RXhzsPFUezLqEC3q8ZuEh2BNMJMnkhaW96A5viXM5",
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "Qma9TG3f7EjDHRD9MUePpj1YmDynr4UbppeghShqFti5hn",
+    "entries": 6,
+    "errCount": 1,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 154,
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "city",
+            "type": "string"
+          },
+          {
+            "title": "pop",
+            "type": "integer"
+          },
+          {
+            "title": "avg_age",
+            "type": "number"
+          },
+          {
+            "title": "in_usa",
+            "type": "boolean"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  }
+}

@@ -1,0 +1,77 @@
+{
+  "data": {
+    "peername": "peer",
+    "name": "cities",
+    "path": "/map/QmUBXDPCM7WbDqYDicxB8N5NSBxFY6ctWNAKxGYoJJ6TtS",
+    "dataset": {
+      "abstract": {
+        "qri": "ds:0",
+        "structure": {
+          "errCount": 0,
+          "format": "csv",
+          "formatConfig": {
+            "headerRow": true
+          },
+          "qri": "st:0"
+        }
+      },
+      "commit": {
+        "message": "want to expand this list to include more cities",
+        "qri": "cm:0",
+        "signature": "7Ce431PnyjauzqkCNBDZwaUbvm1vKz5ZzZH43BnkJ86pS9aiseHzP4sCprHg9t3yn3di19a1GSeVkyHLPYz6xEGEJDpGJbCSWiC18vmbMxJV8q1SnnspXu2nLi3iJZ1gpX5R2Jiv4QgeASBN25vsvAx3cxzE1pwyqvJMtQC1vqykwqheVqheeGLsdqTa8H7ybWrmyzVQ3LtSDjGayaKtLKAEwixDjEodzTVPyJXSfQcb6E1MCtzvByLdsnbEjqo5PRpvFbbAapwjmudVjDdFgzianSJ8CnG9TrtFzp8YsBPKirxNhzbYuNhKFq6h8JDonb36g441Hwh2t11nyPRg6J24Khpqbe",
+        "timestamp": "2001-01-01T01:01:01.000000001Z",
+        "title": "added row to include Seoul, Korea"
+      },
+      "dataPath": "/map/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+      "meta": {
+        "description": "test description",
+        "keywords": null,
+        "license": {
+          "type": "",
+          "url": ""
+        },
+        "qri": "md:0"
+      },
+      "previousPath": "/map/QmRaQRfJSBpPotc8XntvD5HcWKSjW3yhW4pe9YMjBJcT27",
+      "qri": "ds:0",
+      "structure": {
+        "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
+        "entries": 7,
+        "errCount": 1,
+        "format": "csv",
+        "formatConfig": {
+          "headerRow": true
+        },
+        "length": 186,
+        "qri": "st:0",
+        "schema": {
+          "items": {
+            "items": [
+              {
+                "title": "city",
+                "type": "string"
+              },
+              {
+                "title": "pop",
+                "type": "integer"
+              },
+              {
+                "title": "avg_age",
+                "type": "number"
+              },
+              {
+                "title": "in_usa",
+                "type": "boolean"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        }
+      }
+    }
+  },
+  "meta": {
+    "code": 200
+  }
+}

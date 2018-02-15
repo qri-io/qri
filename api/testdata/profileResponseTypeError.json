@@ -1,0 +1,6 @@
+{
+  "meta": {
+    "code": 400,
+    "error": "error decoding request body: invalid UserType \"test\""
+  }
+}

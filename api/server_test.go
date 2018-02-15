@@ -2,120 +2,29 @@ package api
 
 import (
 	"bytes"
-	// "encoding/json"
-	"github.com/qri-io/qri/repo/test"
+	"fmt"
+	"io"
+	"io/ioutil"
+	"mime/multipart"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
+
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo/test"
 )
 
 func TestServerRoutes(t *testing.T) {
-	// TODO: refactor cases struct:
-	// cases := []struct{
-	// 	method, endpoint string
-	// 	body string // json? or should this be map[string]interface{}?
-	// 	resBody string // json? or should this be map[string]interface{}?
-	// 	resStatus int
-	// }
-	cases := []struct {
-		method, endpoint string
-		body             []byte
-		resStatus        int
-	}{
-		// All tests that can be run using a local qri node
-		// will be filled out later this week
-		// {"GET", "/", nil, 200},
-		{"GET", "/status", nil, 200},
-		{"OPTIONS", "/add", nil, 200},
-		{"POST", "/add", nil, 400},
-		{"PUT", "/add", nil, 400},
-		// TODO: more tests for /add/ endpoint:
-		// {"POST", "/add", {data to add dataset}, {response body}, 200}
-		// {"POST", "/add", {badly formed body}, {response body}, 400}
-		// {"PUT", "/add", {data to add dataset}, {response body}, 200}
-		// {"PUT", "/add", {badly formed body}, {response body}, 400}
-		{"OPTIONS", "/add/", nil, 200},
-		{"POST", "/add/", nil, 400},
-		{"PUT", "/add/", nil, 400},
-		// {"POST", "/add/[peername]/[datasetname]", {badly formed body}, {response body}, 200}
-		// {"PUT", "/add/[peername]/[datasetname]", {badly formed body}, {response body}, 200}
-		// {"POST", "/add/[badpeername]/[datasetname]", {badly formed body}, {response body}, 400}
-		// {"PUT", "/add/[badpeername]/[datasetname]", {badly formed body}, {response body}, 400}
-		// {"POST", "/add/[peername]/[baddatasetname]", {badly formed body}, {response body}, 400}
-		// {"PUT", "/add/[peername]/[baddatasetname]", {badly formed body}, {response body}, 400}
-		{"OPTIONS", "/profile", nil, 200},
-		{"GET", "/profile", nil, 200},
-		{"POST", "/profile", nil, 400},
-		// TODO: more tests for /profile/ endpoint:
-		// {"POST", "/profile", {data to add dataset}, {response body}, 200}
-		// {"POST", "/profile", {badly formed body}, {response body}, 400}
-		{"OPTIONS", "/me", nil, 200},
-		{"GET", "/me", nil, 200},
-		{"POST", "/me", nil, 400},
-		// TODO: more tests for /profile/ endpoint:
-		// {"POST", "/me", {data to add dataset}, {response body}, 200},
-		// {"POST", "/me", {badly formed body}, {response body}, 400},
-		{"OPTIONS", "/export/", nil, 200},
-		{"GET", "/export/", nil, 400},
-		// TODO: more tests for /export/ endpoint:
-		// {"GET", "/export/hash_of_dataset", {}, {proper response}, 200},
-		// {"GET", "/export/bad hash", {}, {proper response}, 400},
-		{"OPTIONS", "/list", nil, 200},
-		{"GET", "/list", nil, 200},
-		// TODO: more tests for /list endpoint:
-		// {"GET", "/list", {}, {proper response}, 200},
-		// also make sure list of empty dataset works
-		{"OPTIONS", "/save", nil, 200},
-		{"POST", "/save", nil, 400},
-		{"PUT", "/save", nil, 400},
-		// TODO: more tests for /save/ endpoint:
-		// {"POST", "/save/", {well formed body}, {proper response}, 200},
-		// {"POST", "/save/", {poorly formed body}, {proper response}, 400},
-		// {"PUT", "/save/", {well formed body}, {proper response}, 200},
-		// {"PUT", "/save/", {poorly formed body}, {proper response}, 400},
-		{"OPTIONS", "/remove/", nil, 200},
-		{"POST", "/remove/", nil, 400},
-		{"DELETE", "/remove/", nil, 400},
-		// TODO: more tests for /remove/ endpoint:
-		// {"POST", "remove/[hash]", {}, {proper response}, 200},
-		// {"DELETE", "/remove/[hash]", {}, {proper response}, 200},
-		{"OPTIONS", "/rename", nil, 200},
-		{"POST", "/rename", nil, 400},
-		{"PUT", "/rename", nil, 400},
-		// TODO: more tests for /rename endpoint:
-		// {"POST", "/rename", {well formed body}, {proper response}, 200},
-		// {"POST", "/rename", {poorly formed body}, {proper response}, 400},	// {"PUT", "/rename", {well formed body}, {proper response}, 200},
-		// {"PUT", "/rename", {poorly formed body}, {proper response}, 400},
-		// TODO: add back /connect/
-		// {"OPTIONS", "/connect/", nil, 200},
-		// {"GET", "/connect/", nil, 400},
-		// TODO: more tests for /connect/ endpoint:
-		// {"GET", "/connect/[peerhash], {}, {proper response}, 200"},
-		// {"GET", "/connect/[peername], {}, {proper response}, 200"},
-		// {"GET", "/connect/[bad peerhash], {}, {proper response}, 400"},
-		// {"GET", "/connect/[bad peername], {}, {proper response}, 400"},
-		{"OPTIONS", "/me/", nil, 200},
-		{"GET", "/me/", nil, 400},
-		// TODO: more tests for /profile/ endpoint:
-		// {"GET", "/me/[datasetname]", nil, 200},
-		// {"GET", "/me/[bad datasetname]", nil, 400},
-		{"OPTIONS", "/", nil, 200},
-		{"GET", "/", nil, 200},
-		// TODO: more tests for root:
-		// {"GET", "/[peername]", {}, {proper response}, 200},
-		// {"GET", "/[made up peername]", {}, {proper response}, 404},
-		// {"GET", "/[peername]/[datasetname]", {}, {proper response}, 200},
-		// {"GET", "/[peername]/[made up datasetname]", {}, {proper response}, 404}
-		{"OPTIONS", "/list/", nil, 200},
-		{"GET", "/list/", nil, 400},
-		{"GET", "/list/madeupname", nil, 500},
-		{"GET", "/list/madeupname/datasetname", nil, 400},
-		// {"GET", "/list/[peername]", {}, {proper response}, 200}
-		{"OPTIONS", "/history/", nil, 200},
-		{"GET", "/history/", nil, 400},
-		// {"GET", "/history/me/[datasetname]", {}, {proper response},  200},
-		// {"GET", "/history/me/[bad datasetname]", nil, 200},
-	}
+	// in order to have consistent responses
+	// we need to artificially specify the timestamp
+	// we use the dsfs.Timestamp func variable to override
+	// the actual time
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
 	client := &http.Client{}
 
@@ -136,12 +45,67 @@ func TestServerRoutes(t *testing.T) {
 
 	server := httptest.NewServer(NewServerRoutes(s))
 
+	// test endpoints that take mime/multipart files first
+	testMimeMultipart(t, server, client)
+
+	cases := []struct {
+		method      string
+		endpoint    string
+		reqBodyPath string
+		resBodyPath string
+		resStatus   int
+	}{
+		{"GET", "/status", "", "statusResponse.json", 200},
+		{"GET", "/list", "", "listResponse.json", 200},
+		{"GET", "/profile", "", "profileResponseInitial.json", 200},
+		{"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
+		{"GET", "/me", "", "profileResponse.json", 200},
+		{"POST", "/add", "addRequestFromURL.json", "addResponseFromURL.json", 200},
+		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmQjiQmkS5NfzjJrTqRtK1joB9it5gjZ62tXuirtJ1tZvY", "", "getResponseFamilyRelationships.json", 200},
+		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
+		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
+		{"GET", "/export/me/archive", "", "", 200},
+		// blatently checking all options for easy test coverage bump
+		{"OPTIONS", "/add", "", "", 200},
+		{"OPTIONS", "/add/", "", "", 200},
+		{"OPTIONS", "/profile", "", "", 200},
+		{"OPTIONS", "/me", "", "", 200},
+		{"OPTIONS", "/export/", "", "", 200},
+		{"OPTIONS", "/list", "", "", 200},
+		{"OPTIONS", "/save", "", "", 200},
+		{"OPTIONS", "/remove/", "", "", 200},
+		{"OPTIONS", "/rename", "", "", 200},
+		{"OPTIONS", "/me/", "", "", 200},
+		{"OPTIONS", "/list/", "", "", 200},
+		{"OPTIONS", "/history/", "", "", 200},
+	}
+
 	for i, c := range cases {
-		req, err := http.NewRequest(c.method, server.URL+c.endpoint, bytes.NewReader(c.body))
+		var (
+			reqBody []byte
+			resBody []byte
+			gotBody []byte
+			err     error
+		)
+
+		if c.reqBodyPath == "" {
+			reqBody = nil
+		} else {
+			reqBody, err = ioutil.ReadFile("testdata/" + c.reqBodyPath)
+			if err != nil {
+				t.Errorf("case %d error reading file: %s", i, err.Error())
+				continue
+			}
+		}
+
+		req, err := http.NewRequest(c.method, server.URL+c.endpoint, bytes.NewReader(reqBody))
 		if err != nil {
 			t.Errorf("case %d error creating request: %s", i, err.Error())
 			continue
 		}
+
+		req.Header.Add("Content-Type", "application/json")
 
 		res, err := client.Do(req)
 		if err != nil {
@@ -149,9 +113,171 @@ func TestServerRoutes(t *testing.T) {
 			continue
 		}
 
+		if c.resBodyPath == "" {
+			resBody = nil
+		} else {
+			resBody, err = ioutil.ReadFile("testdata/" + c.resBodyPath)
+			if err != nil {
+				t.Errorf("case %d error reading file: %s", i, err.Error())
+				continue
+			}
+
+			gotBody, err = ioutil.ReadAll(res.Body)
+			if err != nil {
+				t.Errorf("case %d, error reading response body: %s", i, err.Error())
+				continue
+			}
+
+			if string(gotBody) != string(resBody) {
+				t.Errorf("case %d: %s - %s response body mismatch. expected: %s, got %s", i, c.method, c.endpoint, string(resBody), string(gotBody))
+				continue
+			}
+		}
+
 		if res.StatusCode != c.resStatus {
 			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
 			continue
 		}
 	}
+}
+
+func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Client) {
+	cases := []struct {
+		method         string
+		endpoint       string
+		expectBodyPath string
+		resStatus      int
+		filePaths      map[string]string
+		params         map[string]string
+	}{
+		{"POST", "/remove/me/cities", "testdata/removeResponse.json", 200,
+			map[string]string{},
+			map[string]string{},
+		},
+		{"POST", "/add", "testdata/addResponseFromFile.json", 200,
+			map[string]string{
+				"file":      "testdata/cities/data.csv",
+				"structure": "testdata/cities/structure.json",
+				"metadata":  "testdata/cities/meta.json",
+			},
+			map[string]string{
+				"peername": "peer",
+				"name":     "cities",
+			},
+		},
+		{"POST", "/save", "testdata/saveResponse.json", 200,
+			map[string]string{
+				"file": "testdata/cities/data_update.csv",
+			},
+			map[string]string{
+				"peername": "peer",
+				"name":     "cities",
+				"title":    "added row to include Seoul, Korea",
+				"message":  "want to expand this list to include more cities",
+			},
+		},
+		{"POST", "/save", "testdata/saveResponseMeta.json", 200,
+			map[string]string{
+				"metadata": "testdata/cities/meta_update.json",
+			},
+			map[string]string{
+				"peername": "peer",
+				"name":     "cities",
+				"title":    "Adding more specific metadata",
+				"message":  "added title and keywords",
+			},
+		},
+		{"POST", "/profile/photo", "testdata/photoResponse.json", 200,
+			map[string]string{
+				"file": "testdata/rico_400x400.jpg",
+			},
+			map[string]string{
+				"peername": "peer",
+			},
+		},
+		{"POST", "/profile/poster", "testdata/posterResponse.json", 200,
+			map[string]string{
+				"file": "testdata/rico_poster_1500x500.jpg",
+			},
+			map[string]string{
+				"peername": "peer",
+			},
+		},
+	}
+
+	for i, c := range cases {
+
+		expectBody, err := ioutil.ReadFile(c.expectBodyPath)
+		if err != nil {
+			t.Errorf("case add dataset from file, error reading expected response from file: %s", err)
+		}
+
+		req, err := MakeMimeMultipartReq(c.method, c.endpoint, server.URL+c.endpoint, c.filePaths, c.params)
+		if err != nil {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nerror making mime/multipart request: %s", i, c.method, c.endpoint, err)
+			continue
+		}
+
+		res, err := client.Do(req)
+		if err != nil {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nerror performing request: %s", i, c.method, c.endpoint, err)
+			continue
+		}
+
+		gotBody, err := ioutil.ReadAll(res.Body)
+		if err != nil {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nerror reading response body request: %s", i, c.method, c.endpoint, err)
+			continue
+		}
+
+		if string(gotBody) != string(expectBody) {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nresponse body mismatch. expected: %s, got %s", i, c.method, c.endpoint, string(expectBody), string(gotBody))
+			continue
+		}
+
+		if res.StatusCode != 200 {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nstatus code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, 200, res.StatusCode)
+			continue
+		}
+	}
+}
+
+// MakeMimeMultipartBody takes a map of filepaths and params and add thems to a writer
+// adds that writer to *bytes.Buffer that can then be used as the body for a request
+func MakeMimeMultipartReq(method, endpoint, url string, filePaths, params map[string]string) (*http.Request, error) {
+	body := &bytes.Buffer{}
+	writer := multipart.NewWriter(body)
+
+	for name, path := range filePaths {
+		data, err := os.Open(path)
+		if err != nil {
+			return nil, fmt.Errorf("error opening datafile: %s", method, endpoint, err)
+		}
+		dataPart, err := writer.CreateFormFile(name, filepath.Base(path))
+		if err != nil {
+			return nil, fmt.Errorf("error adding data file to form: %s", method, endpoint, err)
+		}
+
+		if _, err := io.Copy(dataPart, data); err != nil {
+			return nil, fmt.Errorf("error copying data: %s", method, endpoint, err)
+		}
+	}
+	for key, val := range params {
+		if err := writer.WriteField(key, val); err != nil {
+			return nil, fmt.Errorf("error adding field to writer: %s", method, endpoint, err)
+		}
+	}
+
+	if err := writer.Close(); err != nil {
+		return nil, fmt.Errorf("error closing writer: %s", err)
+	}
+
+	req, err := http.NewRequest(method, url, body)
+	if err != nil {
+		return nil, fmt.Errorf("error creating request: %s", method, endpoint, err)
+	}
+
+	req.Header.Add("Content-Type", writer.FormDataContentType())
+
+	return req, nil
 }

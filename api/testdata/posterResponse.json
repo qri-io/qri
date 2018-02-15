@@ -1,0 +1,21 @@
+{
+  "data": {
+    "id": "",
+    "created": "0001-01-01T00:00:00Z",
+    "updated": "0001-01-01T00:00:00Z",
+    "peername": "peer",
+    "type": "user",
+    "email": "",
+    "name": "",
+    "description": "",
+    "homeUrl": "",
+    "color": "",
+    "thumb": "/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+    "profile": "/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+    "poster": "/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL",
+    "twitter": ""
+  },
+  "meta": {
+    "code": 200
+  }
+}
