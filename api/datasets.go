@@ -10,9 +10,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	// "github.com/ipfs/go-datastore"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -226,80 +224,46 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if p.DataFilename == "" && p.URL == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("body of request must have 'datafilename' or 'url' field"))
+		if p.URL == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'url' field"))
 			return
 		}
-		if p.Data == nil && p.URL == "" {
-			if !filepath.IsAbs(p.DataFilename) {
-				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath"))
-				return
-			}
-			data, err := os.Open(p.DataFilename)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			p.Data = data
-			p.DataFilename = filepath.Base(p.DataFilename)
-		}
 
-		if p.Metadata == nil && p.MetadataFilename != "" {
-			if !filepath.IsAbs(p.MetadataFilename) {
-				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath for metadata"))
-				return
-			}
-			metadata, err := os.Open(p.MetadataFilename)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			p.Metadata = metadata
-			p.MetadataFilename = filepath.Base(p.MetadataFilename)
-		}
-
-		if p.Structure == nil && p.StructureFilename != "" {
-			if !filepath.IsAbs(p.StructureFilename) {
-				util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need absolute filepath for structure"))
-				return
-			}
-			structure, err := os.Open(p.StructureFilename)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			p.Structure = structure
-			p.StructureFilename = filepath.Base(p.StructureFilename)
-		}
 	default:
-		var f, m, s cafs.File
+		p = &core.InitParams{
+			Peername: r.FormValue("peername"),
+			URL:      r.FormValue("url"),
+			Name:     r.FormValue("name"),
+		}
+
 		infile, fileHeader, err := r.FormFile("file")
 		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
 			return
 		}
-		metafile, metaHeader, err := r.FormFile("meta")
+		if infile != nil {
+			p.Data = memfs.NewMemfileReader(fileHeader.Filename, infile)
+			p.DataFilename = fileHeader.Filename
+		}
+
+		metadatafile, metadataHeader, err := r.FormFile("metadata")
 		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
 			return
 		}
+		if metadatafile != nil {
+			p.Metadata = memfs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+			p.MetadataFilename = metadataHeader.Filename
+		}
+
 		structurefile, structureHeader, err := r.FormFile("structure")
 		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
 			return
 		}
-		f = memfs.NewMemfileReader(fileHeader.Filename, infile)
-		m = memfs.NewMemfileReader(metaHeader.Filename, metafile)
-		s = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
-		p = &core.InitParams{
-			URL:               r.FormValue("url"),
-			Name:              r.FormValue("name"),
-			DataFilename:      fileHeader.Filename,
-			Data:              f,
-			MetadataFilename:  metaHeader.Filename,
-			Metadata:          m,
-			StructureFilename: structureHeader.Filename,
-			Structure:         s,
+		if structurefile != nil {
+			p.Structure = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
+			p.StructureFilename = structureHeader.Filename
 		}
 	}
 
@@ -334,104 +298,56 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-// SaveReqParams is an encoding struct
-// its intent is to be a more user-friendly structure for the api endpoint
-// that will map to and from the core.SaveParams struct
-type SaveReqParams struct {
-	Name        string // the name of the dataset. required.
-	SaveTitle   string // title of save message. required.
-	SaveMessage string // details about changes made. optional.
-
-	// At least one of DataFilename, StructureFilename, and/or MetaFilename required
-	DataFilename      string // filename for new data.
-	StructureFilename string // filename for new structure.
-	MetaFileName      string // filename for new metadata
-}
-
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		s := &SaveReqParams{}
-		if err := json.NewDecoder(r.Body).Decode(s); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		if s.Name == "" || s.SaveTitle == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("'name' and 'savetitle' required"))
-			return
-		}
-		if s.DataFilename == "" && s.StructureFilename == "" && s.MetaFileName == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("'datafilename' or 'structurefilename' or 'metafilename' required"))
-			return
-		}
-		prevReq := &repo.DatasetRef{
-			Name: s.Name,
-		}
-		prev := repo.DatasetRef{}
-		if err := h.Get(prevReq, &prev); err != nil {
-			util.WriteErrResponse(w, http.StatusNotFound, fmt.Errorf("error finding dataset to update: %s", err.Error()))
-			return
-		}
-		save := &core.SaveParams{
-			Prev: prev,
-			Changes: &dataset.Dataset{
-				Commit: &dataset.Commit{
-					Title:   s.SaveTitle,
-					Message: s.SaveMessage,
-				},
-			},
+	save := &core.SaveParams{}
+	if r.Header.Get("Content-Type") == "application/json" {
+		json.NewDecoder(r.Body).Decode(save)
+	} else {
+		save = &core.SaveParams{
+			Peername: r.FormValue("peername"),
+			URL:      r.FormValue("url"),
+			Name:     r.FormValue("name"),
+			Title:    r.FormValue("title"),
+			Message:  r.FormValue("message"),
 		}
 
-		if s.MetaFileName != "" {
-			metaFile, err := loadFileIfPath(s.MetaFileName)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			meta := &dataset.Meta{}
-			err = json.NewDecoder(metaFile).Decode(meta)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusInternalServerError, err)
-				return
-			}
-			save.Changes.Meta = meta
-		}
-		if s.StructureFilename != "" {
-			stFile, err := loadFileIfPath(s.StructureFilename)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			st := &dataset.Structure{}
-			err = json.NewDecoder(stFile).Decode(st)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusInternalServerError, err)
-				return
-			}
-			save.Changes.Structure = st
-		}
-		if s.DataFilename != "" {
-			dataFile, err := loadFileIfPath(s.DataFilename)
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
-			}
-			if dataFile != nil {
-				save.DataFilename = filepath.Base(s.DataFilename)
-				save.Data = dataFile
-			}
-		}
-		res := &repo.DatasetRef{}
-		err := h.Save(save, res)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		infile, fileHeader, err := r.FormFile("file")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
 			return
 		}
-		util.WriteResponse(w, res)
-	default:
-		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("Content-Type of request body must be json"))
+		if infile != nil {
+			save.Data = memfs.NewMemfileReader(fileHeader.Filename, infile)
+			save.DataFilename = fileHeader.Filename
+		}
+
+		metadatafile, metadataHeader, err := r.FormFile("metadata")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
+			return
+		}
+		if metadatafile != nil {
+			save.Metadata = memfs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+			save.MetadataFilename = metadataHeader.Filename
+		}
+
+		structurefile, structureHeader, err := r.FormFile("structure")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
+			return
+		}
+		if structurefile != nil {
+			save.Structure = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
+			save.StructureFilename = structureHeader.Filename
+		}
+	}
+
+	res := &repo.DatasetRef{}
+	if err := h.Save(save, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+	util.WriteResponse(w, res)
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {

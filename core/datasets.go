@@ -324,81 +324,162 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 // SaveParams defines permeters for Dataset Saves
 type SaveParams struct {
-	Prev         repo.DatasetRef
-	Changes      *dataset.Dataset // all dataset changes. required.
-	DataFilename string           // filename for new data. optional.
-	Data         io.Reader        // stream of complete dataset update. optional.
+	Name              string    // dataset name
+	Peername          string    // peername
+	URL               string    // string of url to get new data. optional.
+	DataFilename      string    // filename for new data. optional.
+	Data              io.Reader // stream of complete dataset update.
+	MetadataFilename  string    // filename for new data. optional.
+	Metadata          io.Reader // stream of complete dataset update. optional.
+	StructureFilename string    // filename for new data. optional.
+	Structure         io.Reader // stream of complete dataset update.
+	Title             string    // save message title. required.
+	Message           string    // save message. optional.
 }
 
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referncing commits other than tip
+// TODO - currently, if a user adds metadata or structure, but does not add
+// data, we load the data from the previous commit
+// this means that the SAME data is getting saved to the store
+// this bad!
+// should amend dsfs.CreateDataset to compare the data being added,
+// and not add if the hash already exists
+// but still use the hash to add to dataset.DataPath
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
 	var (
-		ds            = &dataset.Dataset{}
-		dataf         cafs.File
-		commitTitle   string
-		commitMessage string
+		data     []byte
+		dataf    cafs.File
+		ds       = &dataset.Dataset{}
+		store    = r.repo.Store()
+		filename = p.DataFilename
 	)
 
-	prev := &repo.DatasetRef{}
+	prevReq := &repo.DatasetRef{Name: p.Name, Peername: p.Peername}
 
-	if err = repo.CanonicalizeDatasetRef(r.repo, &p.Prev); err != nil {
+	if err = repo.CanonicalizeDatasetRef(r.repo, prevReq); err != nil {
 		return fmt.Errorf("error canonicalizing previous dataset reference: %s", err.Error())
 	}
 
-	if err := r.Get(&p.Prev, prev); err != nil {
+	prev := &repo.DatasetRef{}
+
+	if err := r.Get(prevReq, prev); err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
-	if p.Changes.Commit != nil {
-		commitTitle = p.Changes.Commit.Title
-		commitMessage = p.Changes.Commit.Message
+	if p.URL == "" && p.Data == nil && p.Metadata == nil && p.Structure == nil {
+		return fmt.Errorf("to save update, need a URL or data file, metadata file, or structure file")
+	}
+
+	if p.URL != "" && p.Data != nil {
+		return fmt.Errorf("to save update, need either a URL or data file")
+	}
+
+	if p.URL != "" {
+		res, err := http.Get(p.URL)
+		if err != nil {
+			return fmt.Errorf("error fetching url: %s", err.Error())
+		}
+		filename = filepath.Base(p.URL)
+		defer res.Body.Close()
+		p.Data = res.Body
+	}
+
+	if p.Data != nil {
+		// TODO - need a better strategy for huge files
+		data, err = ioutil.ReadAll(p.Data)
+		if err != nil {
+			return fmt.Errorf("error reading file: %s", err.Error())
+		}
+	} else {
+		// load data cause we need something to compare the structure to
+		datafile, err := dsfs.LoadData(store, prev.Dataset)
+		if err != nil {
+			return fmt.Errorf("error loading previous data from filestore: %s", err)
+		}
+		// TODO - need a better strategy for huge files
+		data, err = ioutil.ReadAll(datafile)
+		if err != nil {
+			return fmt.Errorf("error reading file after file was loaded from filestore: %s", err)
+		}
+		filename = datafile.FileName()
+	}
+
+	// read structure from SaveParams, or detect from data
+	st := &dataset.Structure{}
+	if p.Structure != nil {
+		if err := json.NewDecoder(p.Structure).Decode(st); err != nil {
+			return fmt.Errorf("error parsing structure json: %s", err.Error())
+		}
+	} else {
+		st, err = detect.FromReader(filename, bytes.NewReader(data))
+		if err != nil {
+			return fmt.Errorf("error determining dataset schema: %s", err.Error())
+		}
+	}
+
+	// read meta from SaveParams, edit to include URL download Path if needed
+	mt := &dataset.Meta{}
+	if p.Metadata != nil {
+		if err := json.NewDecoder(p.Metadata).Decode(mt); err != nil {
+			return fmt.Errorf("error parsing metadata json: %s", err.Error())
+		}
+	}
+	if p.URL != "" {
+		mt.DownloadPath = p.URL
+		// if we're adding from a dataset url, set a default accrual periodicity of once a week
+		// this'll set us up to re-check urls over time
+		// TODO - make this configurable via a param?
+		mt.AccrualPeriodicity = "R/P1W"
+	}
+	changes := &dataset.Dataset{
+		Commit:    &dataset.Commit{Title: p.Title, Message: p.Message},
+		Structure: st,
+		Meta:      mt,
 	}
 
 	// add all previous fields and any changes
-	ds.Assign(prev.Dataset, p.Changes)
+	ds.Assign(prev.Dataset, changes)
 	ds.PreviousPath = prev.Path
 
 	// ds.Assign clobbers empty commit messages with the previous
 	// commit message. So if the peer hasn't provided a message at this point
 	// let's maintain that going into CreateDataset
-	if commitTitle == "" {
-		p.Changes.Commit.Title = ""
+	if p.Title == "" {
+		ds.Commit.Title = ""
 	}
-	if commitMessage == "" {
-		p.Changes.Commit.Message = ""
-	}
-
-	ds.Commit.Title = commitTitle
-	ds.Commit.Message = commitMessage
-
-	if p.Data != nil {
-		dataf = memfs.NewMemfileReader(p.DataFilename, p.Data)
+	if p.Message == "" {
+		ds.Commit.Message = ""
 	}
 
+	// TODO - error here, since Meta and Structure don't have paths
+	// When we use the Assign() function, we clobber their paths
+	// with the old paths
+
+	dataf = memfs.NewMemfileBytes("data."+st.Format.String(), data)
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
 		fmt.Println("create ds error: %s", err.Error())
 		return err
 	}
 
-	if p.Prev.Name != "" {
-		if err := r.repo.DeleteRef(p.Prev); err != nil {
+	if prev.Name != "" {
+		if err := r.repo.DeleteRef(*prev); err != nil {
 			return err
 		}
-		p.Prev.Path = dspath.String()
-		if err := r.repo.PutRef(p.Prev); err != nil {
+		prev.Path = dspath.String()
+		if err := r.repo.PutRef(*prev); err != nil {
 			return err
 		}
 	}
 
 	*res = repo.DatasetRef{
-		Peername: p.Prev.Peername,
-		Name:     p.Prev.Name,
+		Peername: p.Peername,
+		Name:     p.Name,
 		Path:     dspath.String(),
 		Dataset:  ds,
 	}

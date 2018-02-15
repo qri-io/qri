@@ -1,13 +1,10 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -16,6 +13,7 @@ import (
 
 var (
 	saveDataFile       string
+	saveURL            string
 	saveMetaFile       string
 	saveStructureFile  string
 	saveTitle          string
@@ -31,7 +29,7 @@ var saveCmd = &cobra.Command{
 	Short: "save changes to a dataset",
 	Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and 
-structure. Every time you run save, an entry is added to your dataset’s log 
+structure. You can also update your data via url. Every time you run save, an entry is added to your dataset’s log 
 (which you can see by running “qri log [ref]”). Every time you save, you can 
 provide a message about what you changed and why. If you don’t provide a message 
 we’ll automatically generate one for you.
@@ -40,7 +38,7 @@ Currently you can only save changes to datasets that you control. Tools for
 collaboration are in the works. Sit tight sportsfans.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			metaFile, dataFile, structureFile *os.File
+			dataFile, metaFile, structureFile *os.File
 			err                               error
 		)
 
@@ -48,71 +46,47 @@ collaboration are in the works. Sit tight sportsfans.`,
 			ErrExit(fmt.Errorf("please provide the name of an existing dataset so save updates to"))
 		}
 		if saveMetaFile == "" && saveDataFile == "" && saveStructureFile == "" {
-			ErrExit(fmt.Errorf("one of --structure, --meta or --data is required"))
+			ErrExit(fmt.Errorf("one of --structure, --meta or --data or --url is required"))
 		}
 
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
-		req := core.NewDatasetRequests(getRepo(false), nil)
+		dataFile, err = loadFileIfPath(saveDataFile)
+		ExitIfErr(err)
+		metaFile, err = loadFileIfPath(saveMetaFile)
+		ExitIfErr(err)
+		structureFile, err = loadFileIfPath(saveStructureFile)
+		ExitIfErr(err)
+
 		save := &core.SaveParams{
-			Prev: ref,
-			Changes: &dataset.Dataset{
-				Commit: &dataset.Commit{
-					Title:   saveTitle,
-					Message: saveMessage,
-				},
-			},
+			Name:              ref.Name,
+			Peername:          ref.Peername,
+			URL:               saveURL,
+			Title:             saveTitle,
+			Message:           saveMessage,
+			DataFilename:      filepath.Base(saveDataFile),
+			MetadataFilename:  filepath.Base(saveMetaFile),
+			StructureFilename: filepath.Base(saveStructureFile),
 		}
 
-		if saveMetaFile != "" {
-			metaFile, err = loadFileIfPath(saveMetaFile)
-			ExitIfErr(err)
-			if metaFile != nil {
-				meta := &dataset.Meta{}
-				err = json.NewDecoder(metaFile).Decode(meta)
-				ExitIfErr(err)
-				save.Changes.Meta = meta
-			}
+		if dataFile != nil {
+			save.Data = dataFile
+		}
+		if metaFile != nil {
+			save.Metadata = metaFile
+		}
+		if structureFile != nil {
+			save.Structure = structureFile
 		}
 
-		if saveStructureFile != "" {
-			structureFile, err = loadFileIfPath(saveStructureFile)
-			ExitIfErr(err)
-			if structureFile != nil {
-				st := &dataset.Structure{}
-				err = json.NewDecoder(structureFile).Decode(st)
-				ExitIfErr(err)
-				save.Changes.Structure = st
-			}
-		}
-
-		if saveDataFile != "" {
-			saveDataFile, err = filepath.Abs(saveDataFile)
-			ExitIfErr(err)
-			dataFile, err = loadFileIfPath(saveDataFile)
-			ExitIfErr(err)
-			if dataFile != nil {
-				save.DataFilename = filepath.Base(saveDataFile)
-				save.Data = dataFile
-			}
-		} else {
-			// TODO - this is silly. dsfs.CreateDataset needs to
-			// support being called with a set DataPath and no
-			// dataFile
-			r := getRepo(false)
-			res := repo.DatasetRef{}
-			err = req.Get(&ref, &res)
-			ExitIfErr(err)
-
-			df, err := dsfs.LoadData(r.Store(), res.Dataset)
-			ExitIfErr(err)
-			save.Data = df
-		}
+		req, err := datasetRequests(false)
+		ExitIfErr(err)
 
 		res := &repo.DatasetRef{}
 		err = req.Save(save, res)
 		ExitIfErr(err)
+
 		printSuccess("dataset saved: %s", res)
 		if res.Dataset.Structure.ErrCount > 0 {
 			printWarning(fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
@@ -131,6 +105,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 
 func init() {
 	saveCmd.Flags().StringVarP(&saveDataFile, "data", "", "", "data file that forms the dataset")
+	saveCmd.Flags().StringVarP(&saveURL, "url", "", "", "url that data file can be updated from")
 	saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "metadata.json file")
 	saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
