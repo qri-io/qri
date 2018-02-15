@@ -9,7 +9,7 @@ import (
 // middleware handles request logging
 func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
+		s.log.Infof("%s %s %s\n", r.Method, r.URL.Path, time.Now())
 
 		// If this server is operating behind a proxy, but we still want to force
 		// users to use https, cfg.ProxyForceHttps == true will listen for the common

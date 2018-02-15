@@ -456,9 +456,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds.Commit.Message = ""
 	}
 
-	// TODO - error here, since Meta and Structure don't have paths
-	// When we use the Assign() function, we clobber their paths
-	// with the old paths
+	// Assign will assign any previous paths to the current paths
+	// the datasetDiffer (called in dsfs.CreateDataset), will compare the paths
+	// see that they are the same, and claim there are no differences
+	// since we will potentially have changes in the Meta and Structure
+	// we want the differ to have to compare each field
+	// so we reset the paths
+	ds.Meta.SetPath("")
+	ds.Structure.SetPath("")
 
 	dataf = memfs.NewMemfileBytes("data."+st.Format.String(), data)
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
