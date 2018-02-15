@@ -4,14 +4,12 @@ import (
 	"context"
 	"net/http"
 	"time"
-
-	"github.com/qri-io/qri/api/handlers"
 )
 
 // middleware handles request logging
 func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		s.log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
+		s.log.Infof("%s %s %s\n", r.Method, r.URL.Path, time.Now())
 
 		// If this server is operating behind a proxy, but we still want to force
 		// users to use https, cfg.ProxyForceHttps == true will listen for the common
@@ -52,8 +50,8 @@ func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 
 func (s *Server) datasetRefMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if ref, _ := handlers.DatasetRefFromReq(r); !ref.IsEmpty() {
-			ctx := context.WithValue(r.Context(), handlers.DatasetRefCtxKey, ref)
+		if ref, _ := DatasetRefFromReq(r); !ref.IsEmpty() {
+			ctx := context.WithValue(r.Context(), DatasetRefCtxKey, ref)
 			r = r.WithContext(ctx)
 		}
 		handler(w, r)

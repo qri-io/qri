@@ -1,0 +1,69 @@
+{
+  "data": {
+    "abstract": {
+      "qri": "ds:0",
+      "structure": {
+        "errCount": 0,
+        "format": "csv",
+        "formatConfig": {
+          "headerRow": true
+        },
+        "qri": "st:0"
+      }
+    },
+    "commit": {
+      "qri": "cm:0",
+      "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+      "timestamp": "2001-01-01T01:01:01.000000001Z",
+      "title": "initial commit"
+    },
+    "meta": {
+      "description": "test description",
+      "keywords": null,
+      "license": {
+        "type": "",
+        "url": ""
+      },
+      "qri": "md:0"
+    },
+    "qri": "ds:0",
+    "structure": {
+      "checksum": "QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+      "entries": 6,
+      "errCount": 1,
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "length": 154,
+      "qri": "st:0",
+      "schema": {
+        "items": {
+          "items": [
+            {
+              "title": "city",
+              "type": "string"
+            },
+            {
+              "title": "pop",
+              "type": "integer"
+            },
+            {
+              "title": "avg_age",
+              "type": "number"
+            },
+            {
+              "title": "in_usa",
+              "type": "boolean"
+            }
+          ],
+          "type": "array"
+        },
+        "type": "array"
+      }
+    }
+  },
+  "meta": {
+    "code": 200
+  }
+}

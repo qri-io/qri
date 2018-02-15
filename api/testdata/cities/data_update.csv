@@ -1,0 +1,7 @@
+city,pop,avg_age,in_usa
+toronto,40000000,55.5,FALSE
+new york,8500000,44.4,TRUE
+chicago,300000,44.4,TRUE
+chatham,35000,65.25,TRUE
+raleigh,250000,50.65,TRUE
+seoul,10000000,40.2,FALSE

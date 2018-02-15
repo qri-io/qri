@@ -9,7 +9,6 @@ import (
 
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/qri/api/handlers"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
@@ -139,19 +138,19 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 
-	proh := handlers.NewProfileHandlers(s.log, s.qriNode.Repo)
+	proh := NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
-	ph := handlers.NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
+	ph := NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	// TODO - add back connect endpoint
 	// m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := handlers.NewDatasetHandlers(s.log, s.qriNode.Repo)
+	dsh := NewDatasetHandlers(s.log, s.qriNode.Repo)
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))
@@ -164,12 +163,12 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 
-	hh := handlers.NewHistoryHandlers(s.log, s.qriNode.Repo)
+	hh := NewHistoryHandlers(s.log, s.qriNode.Repo)
 	// TODO - stupid hack for now.
 	hh.HistoryRequests.Node = s.qriNode
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
-	rh := handlers.NewRootHandler(dsh, ph)
+	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m

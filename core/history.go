@@ -46,6 +46,10 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	}
 
 	ref := params.Ref
+	err = repo.CanonicalizeDatasetRef(d.repo, &ref)
+	if err != nil {
+		return err
+	}
 	if ref.Path == "" && (ref.Name == "" && ref.Peername == "") {
 		return fmt.Errorf("either path or peername/name is required")
 	}
@@ -86,11 +90,7 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 		if limit == 0 || ref.Dataset.PreviousPath == "" {
 			break
 		}
-
-		ref, err = repo.ParseDatasetRef(ref.Dataset.PreviousPath)
-		if err != nil {
-			return fmt.Errorf("error adding datasets to log: %s", err.Error())
-		}
+		ref.Path = ref.Dataset.PreviousPath
 	}
 
 	*res = log

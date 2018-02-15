@@ -1,4 +1,4 @@
-package handlers
+package api
 
 import (
 	"bytes"
@@ -19,9 +19,9 @@ func TestDatasetRefFromReq(t *testing.T) {
 		{"http://localhost:2503/peername/datasetname", repo.DatasetRef{Peername: "peername", Name: "datasetname"}, ""},
 		{"http://localhost:2503/peername/datasetname/at/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
 		{"http://localhost:2503/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
-		{"http://localhost:2503/peername/datasetname/at/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD/dataset.json", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
-		{"http://localhost:2503/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD/dataset.json", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
-		{"http://google.com:8000/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD/dataset.json", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
+		{"http://localhost:2503/peername/datasetname/at/map/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD/dataset.json", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/map/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
+		{"http://localhost:2503/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
+		{"http://google.com:8000/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
 		{"http://google.com:8000/peername", repo.DatasetRef{Peername: "peername"}, ""},
 		{"http://google.com/peername", repo.DatasetRef{Peername: "peername"}, ""},
 		{"/peername", repo.DatasetRef{Peername: "peername"}, ""},

@@ -54,6 +54,8 @@ func (r DatasetRef) String() (s string) {
 // Match checks returns true if Peername and Name are equal,
 // and/or path is equal
 func (r DatasetRef) Match(b DatasetRef) bool {
+	// fmt.Printf("\nr.Peername: %s b.Peername: %s\n", r.Peername, b.Peername)
+	// fmt.Printf("\nr.Name: %s b.Name: %s\n", r.Name, b.Name)
 	return r.Peername == b.Peername && r.Name == b.Name || r.Path == b.Path
 }
 
@@ -73,10 +75,14 @@ func (r DatasetRef) IsEmpty() bool {
 }
 
 var (
-	// fullDatasetPathRegex looks for dataset references in the forms:
+	// fullDatasetPathRegex looks for dataset references in the forms
 	// peername/dataset_name@/ipfs/hash
+	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/\w+/)(\w+)\b`)
+	// hashShorthandPathRegex looks for dataset references in the forms:
 	// peername/dataset_name@hash
-	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/\w+/)?(\w+)\b`)
+	// peername/dataset_name@/hash
+	hashShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)@/?(\w+)\b`)
+
 	// peernameShorthandPathRegex looks for dataset references in the form:
 	// peername/dataset_name
 	peernameShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
@@ -109,7 +115,7 @@ var (
 // parses to a valid multihash after base58 decoding
 //
 // TODO - add validation that prevents peernames from being
-// valid base58 multihashes.
+// valid base58 multihashes and makes sure hashes are actually valid base58 multihashes
 // TODO - figure out how IPFS CID's play into this
 func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if ref == "" {
@@ -127,6 +133,13 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 			Peername: matches[0][1],
 			Name:     matches[0][2],
 			Path:     matches[0][3] + matches[0][4],
+		}, nil
+	} else if hashShorthandPathRegex.MatchString(ref) {
+		matches := hashShorthandPathRegex.FindAllStringSubmatch(ref, 1)
+		return DatasetRef{
+			Peername: matches[0][1],
+			Name:     matches[0][2],
+			Path:     "/ipfs/" + matches[0][3],
 		}, nil
 	} else if peernameShorthandPathRegex.MatchString(ref) {
 		matches := peernameShorthandPathRegex.FindAllStringSubmatch(ref, 1)

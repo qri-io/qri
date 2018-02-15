@@ -1,9 +1,10 @@
-package handlers
+package api
 
 import (
 	"encoding/json"
 	"net/http"
 
+	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
@@ -52,12 +53,12 @@ func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Reque
 func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.Profile{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding request body: %s", err.Error()))
 		return
 	}
 	res := &core.Profile{}
 	if err := h.SaveProfile(p, res); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error saving profile: %s", err.Error()))
 		return
 	}
 	util.WriteResponse(w, res)

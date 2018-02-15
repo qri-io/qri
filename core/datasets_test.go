@@ -185,21 +185,15 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
-	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
-		return
-	}
 	cases := []struct {
 		p   *SaveParams
-		res repo.DatasetRef
 		err string
 	}{
 		//TODO: probably delete some of these
 		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
 		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-		{&SaveParams{Prev: ref, Changes: &dataset.Dataset{Commit: &dataset.Commit{}, Meta: &dataset.Meta{Title: "movies!"}}}, repo.DatasetRef{}, "error saving: no changes detected"},
-		{&SaveParams{Prev: repo.DatasetRef{Peername: "peer", Name: "not_a_known_dataset"}, Changes: &dataset.Dataset{}}, repo.DatasetRef{}, "error getting previous dataset: error loading dataset: error getting file bytes: datastore: key not found"},
+		{&SaveParams{Name: "movies", Peername: "peer", MetadataFilename: "meta.json", Metadata: bytes.NewReader([]byte(`{"title":"movies!"}`))}, ""},
+		{&SaveParams{Name: "unknown_dataset", Peername: "peer"}, "error getting previous dataset: error loading dataset: error getting file bytes: datastore: key not found"},
 		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
 	}
 

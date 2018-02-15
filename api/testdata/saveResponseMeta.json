@@ -1,0 +1,81 @@
+{
+  "data": {
+    "peername": "peer",
+    "name": "cities",
+    "path": "/map/QmeoqjFPsLkTLJnfr9vfnnRfFX9dzUwY2VizMVcztrFGE6",
+    "dataset": {
+      "abstract": {
+        "qri": "ds:0",
+        "structure": {
+          "errCount": 0,
+          "format": "csv",
+          "formatConfig": {
+            "headerRow": true
+          },
+          "qri": "st:0"
+        }
+      },
+      "commit": {
+        "message": "added title and keywords",
+        "qri": "cm:0",
+        "signature": "2U9YKX4PcYihB53A2s6Uzhp6jGzsPjRY6fSdXxDobu7yUKMgHW5hTKusoVjEpqXE8XF91FYWFckhE19TVKaSGFhFxz4PgL9GuyqK93uemUvfExoaA3tGyEjeX9Nt4wCQV5jtJccYuhArhk6hxhchFTQBEfPb7wyz7sGwMgMcyhi13jzgYSG9AG1jtEc4uigUsASi5pE3Bo1JzBkMaY82ixvr2sirMiLL9bsZVuMho3ocE5FF1X6K5tqUMPizbraxKP4UhFdfDwoNRXgbmh1Akh1A1978hX3KBv5ugMRFRQ3MbHtJ35V6pmn21FXgRyn3TcYnnT3CuSyRUPqYV8pNqtNDguxYCw",
+        "timestamp": "2001-01-01T01:01:01.000000001Z",
+        "title": "Adding more specific metadata"
+      },
+      "dataPath": "/map/QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
+      "meta": {
+        "description": "test description",
+        "keywords": [
+          "keyword1",
+          "keyword2"
+        ],
+        "license": {
+          "type": "",
+          "url": ""
+        },
+        "qri": "md:0",
+        "title": "test title"
+      },
+      "previousPath": "/map/QmUBXDPCM7WbDqYDicxB8N5NSBxFY6ctWNAKxGYoJJ6TtS",
+      "qri": "ds:0",
+      "structure": {
+        "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
+        "entries": 7,
+        "errCount": 1,
+        "format": "csv",
+        "formatConfig": {
+          "headerRow": true
+        },
+        "length": 186,
+        "qri": "st:0",
+        "schema": {
+          "items": {
+            "items": [
+              {
+                "title": "city",
+                "type": "string"
+              },
+              {
+                "title": "pop",
+                "type": "integer"
+              },
+              {
+                "title": "avg_age",
+                "type": "number"
+              },
+              {
+                "title": "in_usa",
+                "type": "boolean"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        }
+      }
+    }
+  },
+  "meta": {
+    "code": 200
+  }
+}
