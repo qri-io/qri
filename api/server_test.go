@@ -212,7 +212,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 			t.Errorf("case add dataset from file, error reading expected response from file: %s", err)
 		}
 
-		req, err := MakeMimeMultipartReq(c.method, c.endpoint, server.URL+c.endpoint, c.filePaths, c.params)
+		req, err := NewFilesRequest(c.method, c.endpoint, server.URL+c.endpoint, c.filePaths, c.params)
 		if err != nil {
 			t.Errorf("testMimeMultipart case %d, %s - %s:\nerror making mime/multipart request: %s", i, c.method, c.endpoint, err)
 			continue
@@ -242,9 +242,9 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 	}
 }
 
-// MakeMimeMultipartBody takes a map of filepaths and params and add thems to a writer
-// adds that writer to *bytes.Buffer that can then be used as the body for a request
-func MakeMimeMultipartReq(method, endpoint, url string, filePaths, params map[string]string) (*http.Request, error) {
+// NewFilesRequest creates a mime/multipart http.Request with files specified by a map of param : filepath,
+// and form values specified by a map, params
+func NewFilesRequest(method, endpoint, url string, filePaths, params map[string]string) (*http.Request, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 

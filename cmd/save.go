@@ -29,7 +29,8 @@ var saveCmd = &cobra.Command{
 	Short: "save changes to a dataset",
 	Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and 
-structure. You can also update your data via url. Every time you run save, an entry is added to your dataset’s log 
+structure. You can also update your data via url. Every time you run save, 
+an entry is added to your dataset’s log 
 (which you can see by running “qri log [ref]”). Every time you save, you can 
 provide a message about what you changed and why. If you don’t provide a message 
 we’ll automatically generate one for you.
