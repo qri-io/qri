@@ -49,6 +49,29 @@ Avengers: Age of Ultron,141
 A Wild Film Appears!,2000
 Another Film!,121`
 
+const linksJSONData = `[
+  "http://datatogether.org",
+  "https://datatogether.org/css/style.css",
+  "https://datatogether.org/img/favicon.ico",
+  "https://datatogether.org",
+  "https://datatogether.org/public-record",
+  "https://datatogether.org/activities",
+  "https://datatogether.org/activities/harvesting",
+  "https://datatogether.org/activities/monitoring",
+  "https://datatogether.org/activities/storing",
+  "https://datatogether.org/activities/rescuing",
+  "http://2017.code4lib.org",
+  "https://datatogether.org/presentations/Code4Lib%202017%20-%20Golden%20Age%20for%20Libraries%20-%20Storing%20Data%20Together.pdf",
+  "https://datatogether.org/presentations/Code4Lib%202017%20-%20Golden%20Age%20for%20Libraries%20-%20Storing%20Data%20Together.key",
+  "http://www.esipfed.org/meetings/upcoming-meetings/esip-summer-meeting-2017",
+  "https://datatogether.org/presentations/Data%20Together%20-%20ESIP%20Summer%20Meeting%20July%202017.pdf",
+  "https://datatogether.org/presentations/Data%20Together%20-%20ESIP%20Summer%20Meeting%20July%202017.key",
+  "https://archive.org/details/ndsr-dc-2017",
+  "https://datatogether.org/presentations/Data%20Together%20-%20NDSR%20-%20swadeshi.pdf",
+  "https://datatogether.org/presentations/Data%20Together%20-%20NDSR%20-%20swadeshi.key",
+  "https://github.com/datatogether"
+]`
+
 const profileData = `
 {
 	"description" : "I'm a description!"
@@ -80,6 +103,12 @@ func TestCommandsIntegration(t *testing.T) {
 		return
 	}
 
+	linksFilepath := filepath.Join(path, "/links.json")
+	if err := ioutil.WriteFile(linksFilepath, []byte(linksJSONData), os.ModePerm); err != nil {
+		t.Errorf("error writing json file: %s", err.Error())
+		return
+	}
+
 	profileDataFilepath := filepath.Join(path, "/profile")
 	if err := ioutil.WriteFile(profileDataFilepath, []byte(profileData), os.ModePerm); err != nil {
 		t.Errorf("error profile json file: %s", err.Error())
@@ -101,6 +130,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"info"},
 		{"add", "--data=" + moviesFilePath, "me/movies"},
 		{"add", "--data=" + movies2FilePath, "me/movies2"},
+		{"add", "--data=" + linksFilepath, "me/links"},
 		{"list"},
 		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},
