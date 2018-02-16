@@ -7,7 +7,7 @@
   "email": "test@email.com",
   "name": "test name",
   "description": "test description",
-  "homeUrl": "test url",
+  "homeUrl": "http://test.url",
   "color": "test",
   "thumb": "/",
   "profile": "/",

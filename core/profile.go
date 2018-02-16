@@ -106,16 +106,132 @@ func (r *ProfileRequests) GetProfile(in *bool, res *Profile) error {
 	return nil
 }
 
-// SaveProfile stores changes to this peer's profile
-func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
-	if r.cli != nil {
-		return r.cli.Call("ProfileRequests.SaveProfile", p, res)
+// AssignEditable - help with this name plz
+// don't really want to call it assign cause that implies it would change every field
+// AssignEditable collapses all the editable properties of a Profile onto one.
+// this is directly inspired by Javascript's Object.assign
+// Editable Fields:
+// Peername
+// Email
+// Name
+// Description
+// HomeURL
+// Color
+// Thumb
+// Profile
+// Poster
+// Twitter
+func (p *Profile) AssignEditable(profiles ...*Profile) {
+	for _, pf := range profiles {
+		if pf == nil {
+			continue
+		}
+		if pf.Peername != "" {
+			p.Peername = pf.Peername
+		}
+		if pf.Email != "" {
+			p.Email = pf.Email
+		}
+		if pf.Name != "" {
+			p.Name = pf.Name
+		}
+		if pf.Description != "" {
+			p.Description = pf.Description
+		}
+		if pf.HomeURL != "" {
+			p.HomeURL = pf.HomeURL
+		}
+		if pf.Color != "" {
+			p.Color = pf.Color
+		}
+		if pf.Thumb != "" {
+			p.Thumb = pf.Thumb
+		}
+		if pf.Profile != "" {
+			p.Profile = pf.Profile
+		}
+		if pf.Poster != "" {
+			p.Poster = pf.Poster
+		}
+		if pf.Twitter != "" {
+			p.Twitter = pf.Twitter
+		}
 	}
+}
+
+// ValidatePeername validates that the peername is not one of the
+// reserved words
+func (p *Profile) ValidatePeername() error {
+	reservedWords := []string{
+		"me",
+		"status",
+		"at",
+		"add",
+		"history",
+		"remove",
+		"export",
+		"profile",
+		"list",
+		"peers",
+		"connections",
+		"save",
+		"connect",
+	}
+	for _, w := range reservedWords {
+		if p.Peername == w {
+			return fmt.Errorf("peername cannot be reserved word '%s'", w)
+		}
+	}
+	return nil
+}
+
+// ValidateProfile validates all editable fields of profile
+// returning any errors found
+func (p *Profile) ValidateProfile() error {
+	// TODO - use jsonschema to validate profile fields
+	return nil
+}
+
+// SavePeername updates the profile to include the peername
+// warning! SHOULD ONLY BE CALLED ONCE: WHEN INITIALIZING/SETTING UP THE REPO
+func (r *ProfileRequests) SavePeername(p *Profile, res *Profile) error {
+	if p == nil {
+		return fmt.Errorf("profile required to save peername")
+	}
+	if p.Peername == "" {
+		return fmt.Errorf("peername required")
+	}
+
+	if err := p.ValidatePeername(); err != nil {
+		return fmt.Errorf("error validating peername: %s", err)
+	}
+
+	// ensure only fields we want to save are being passed to saveProfile:
+	pro := &Profile{
+		Peername: p.Peername,
+	}
+
+	if err := r.saveProfile(pro, res); err != nil {
+		return fmt.Errorf("error saving profile: %s", err)
+	}
+
+	return nil
+}
+
+// saveProfile stores changes to this peer's profile
+// does not check to see if inputs are valid
+func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
 	if p == nil {
 		return fmt.Errorf("profile required for update")
 	}
+	pro := &Profile{}
+	if err := r.GetProfile(nil, pro); err != nil {
+		return fmt.Errorf("error getting previous profile: %s", err)
+	}
 
-	_p, err := unmarshalProfile(p)
+	pro.AssignEditable(p)
+
+	_p, err := unmarshalProfile(pro)
 	if err != nil {
 		return err
 	}
@@ -128,13 +244,44 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	if err != nil {
 		return err
 	}
-
 	p2, err := marshalProfile(profile)
 	if err != nil {
 		return err
 	}
 
 	*res = *p2
+	return nil
+
+}
+
+// SaveProfile stores changes to this peer's editable profile profile
+func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
+	if r.cli != nil {
+		return r.cli.Call("ProfileRequests.SaveProfile", p, res)
+	}
+	if p == nil {
+		return fmt.Errorf("profile required for update")
+	}
+
+	// validate new Profile inputs
+	if err := p.ValidateProfile(); err != nil {
+		return fmt.Errorf("error validating profile: %s", err)
+	}
+
+	// to ensure only the fields we want to be editable are passed to saveProfile:
+	pro := &Profile{
+		Name:        p.Name,
+		Email:       p.Email,
+		Description: p.Description,
+		HomeURL:     p.HomeURL,
+		Color:       p.Color,
+		Twitter:     p.Twitter,
+	}
+
+	if err := r.saveProfile(pro, res); err != nil {
+		return fmt.Errorf("error saving profile: %s", err)
+	}
+
 	return nil
 }
 
@@ -169,30 +316,20 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("file size too large. max size is 250kb")
 	}
 
-	pro, err := r.repo.Profile()
-	if err != nil {
-		return fmt.Errorf("error loading profile: %s", err.Error())
-	}
-
 	path, err := r.repo.Store().Put(memfs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	pro.Profile = path
-	// TODO - resize photo
-	pro.Thumb = path
-
-	if err := r.repo.SaveProfile(pro); err != nil {
-		return fmt.Errorf("error saving profile: %s", err.Error())
+	pro := &Profile{
+		Profile: path.String(),
+		// TODO - resize photo
+		Thumb: path.String(),
+	}
+	if err := r.saveProfile(pro, res); err != nil {
+		return fmt.Errorf("error saving profile: %s", err)
 	}
 
-	_p, err := marshalProfile(pro)
-	if err != nil {
-		return err
-	}
-
-	*res = *_p
 	return nil
 }
 
@@ -220,27 +357,18 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("file size too large. max size is 2Mb")
 	}
 
-	pro, err := r.repo.Profile()
-	if err != nil {
-		return fmt.Errorf("error loading profile: %s", err.Error())
-	}
-
 	path, err := r.repo.Store().Put(memfs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	pro.Poster = path
-
-	if err := r.repo.SaveProfile(pro); err != nil {
-		return fmt.Errorf("error saving profile: %s", err.Error())
+	pro := &Profile{
+		Poster: path.String(),
 	}
 
-	_p, err := marshalProfile(pro)
-	if err != nil {
-		return err
+	if err := r.saveProfile(pro, res); err != nil {
+		return fmt.Errorf("error saving profile: %s", err)
 	}
 
-	*res = *_p
 	return nil
 }

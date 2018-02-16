@@ -57,8 +57,8 @@ func TestServerRoutes(t *testing.T) {
 	}{
 		{"GET", "/status", "", "statusResponse.json", 200},
 		{"GET", "/list", "", "listResponse.json", 200},
-		{"GET", "/profile", "", "profileResponseInitial.json", 200},
 		{"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
+		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
 		{"POST", "/add", "addRequestFromURL.json", "addResponseFromURL.json", 200},
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
@@ -175,6 +175,10 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 				"title":    "added row to include Seoul, Korea",
 				"message":  "want to expand this list to include more cities",
 			},
+		},
+		{"GET", "/profile", "testdata/profileResponseInitial.json", 200,
+			map[string]string{},
+			map[string]string{},
 		},
 		{"POST", "/save", "testdata/saveResponseMeta.json", 200,
 			map[string]string{
