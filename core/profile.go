@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -159,36 +160,20 @@ func (p *Profile) AssignEditable(profiles ...*Profile) {
 	}
 }
 
-// ValidatePeername validates that the peername is not one of the
-// reserved words
-func (p *Profile) ValidatePeername() error {
-	reservedWords := []string{
-		"me",
-		"status",
-		"at",
-		"add",
-		"history",
-		"remove",
-		"export",
-		"profile",
-		"list",
-		"peers",
-		"connections",
-		"save",
-		"connect",
-	}
-	for _, w := range reservedWords {
-		if p.Peername == w {
-			return fmt.Errorf("peername cannot be reserved word '%s'", w)
-		}
-	}
-	return nil
-}
-
-// ValidateProfile validates all editable fields of profile
-// returning any errors found
+// ValidateProfile validates all fields of profile
+// returning first error found
 func (p *Profile) ValidateProfile() error {
-	// TODO - use jsonschema to validate profile fields
+	rs := &jsonschema.RootSchema{}
+	if err := json.Unmarshal(ProfileSchema, rs); err != nil {
+		return fmt.Errorf("error unmarshaling ProfileSchema to RootSchema: %s", err)
+	}
+	profile, err := json.Marshal(p)
+	if err != nil {
+		return fmt.Errorf("error marshaling profile to json: %s", err)
+	}
+	if errors := rs.ValidateBytes(profile); len(errors) > 0 {
+		return fmt.Errorf("%s", errors)
+	}
 	return nil
 }
 
@@ -200,10 +185,6 @@ func (r *ProfileRequests) SavePeername(p *Profile, res *Profile) error {
 	}
 	if p.Peername == "" {
 		return fmt.Errorf("peername required")
-	}
-
-	if err := p.ValidatePeername(); err != nil {
-		return fmt.Errorf("error validating peername: %s", err)
 	}
 
 	// ensure only fields we want to save are being passed to saveProfile:
@@ -218,42 +199,6 @@ func (r *ProfileRequests) SavePeername(p *Profile, res *Profile) error {
 	return nil
 }
 
-// saveProfile stores changes to this peer's profile
-// does not check to see if inputs are valid
-func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
-	if p == nil {
-		return fmt.Errorf("profile required for update")
-	}
-	pro := &Profile{}
-	if err := r.GetProfile(nil, pro); err != nil {
-		return fmt.Errorf("error getting previous profile: %s", err)
-	}
-
-	pro.AssignEditable(p)
-
-	_p, err := unmarshalProfile(pro)
-	if err != nil {
-		return err
-	}
-
-	if err := r.repo.SaveProfile(_p); err != nil {
-		return err
-	}
-
-	profile, err := r.repo.Profile()
-	if err != nil {
-		return err
-	}
-	p2, err := marshalProfile(profile)
-	if err != nil {
-		return err
-	}
-
-	*res = *p2
-	return nil
-
-}
-
 // SaveProfile stores changes to this peer's editable profile profile
 func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	if r.cli != nil {
@@ -261,11 +206,6 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	}
 	if p == nil {
 		return fmt.Errorf("profile required for update")
-	}
-
-	// validate new Profile inputs
-	if err := p.ValidateProfile(); err != nil {
-		return fmt.Errorf("error validating profile: %s", err)
 	}
 
 	// to ensure only the fields we want to be editable are passed to saveProfile:
@@ -372,3 +312,172 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 
 	return nil
 }
+
+// saveProfile stores changes to this peer's profile
+// does not check to see if inputs are valid
+func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
+	if p == nil {
+		return fmt.Errorf("profile required for update")
+	}
+	pro := &Profile{}
+	if err := r.GetProfile(nil, pro); err != nil {
+		return fmt.Errorf("error getting previous profile: %s", err)
+	}
+
+	pro.AssignEditable(p)
+
+	// validate new Profile inputs
+	if err := p.ValidateProfile(); err != nil {
+		return fmt.Errorf("error validating profile: %s", err)
+	}
+
+	_p, err := unmarshalProfile(pro)
+	if err != nil {
+		return err
+	}
+
+	if err := r.repo.SaveProfile(_p); err != nil {
+		return err
+	}
+
+	profile, err := r.repo.Profile()
+	if err != nil {
+		return err
+	}
+	p2, err := marshalProfile(profile)
+	if err != nil {
+		return err
+	}
+
+	*res = *p2
+	return nil
+
+}
+
+// ProfileSchema uses json schema specified in
+// http://json-schema.org/
+var ProfileSchema = []byte(
+	`{
+  "$schema": "http://json-schema.org/draft-06/schema#",
+  "title": "Profile",
+  "description": "Profile of a qri peer",
+  "type": "object",
+  "properties": {
+    "id": {
+      "description": "Unique identifier for a peername",
+      "type": "string"
+    },
+    "created": {
+      "description": "Datetime the profile was created",
+      "type": "string",
+      "format": "date-time"
+    },
+    "updated": {
+      "description": "Datetime the profile was last updated",
+      "type": "string",
+      "format": "date-time"
+    },
+    "peername": {
+      "description": "Handle name for this peer on qri",
+      "type": "string",
+      "not": {
+        "enum": [
+          "me",
+          "status",
+          "at",
+          "add",
+          "history",
+          "remove",
+          "export",
+          "profile",
+          "list",
+          "peers",
+          "connections",
+          "save",
+          "connect"
+        ]
+      }
+    },
+    "type": {
+      "description": "The type of peer this profile represents",
+      "type": "string",
+      "enum": [
+        "user"
+      ]
+    },
+    "email": {
+      "description": "Email associated with this peer",
+      "type": "string",
+      "anyOf": [
+        {
+          "maxLength": 255,
+          "format": "email"
+        },
+        {
+          "maxLength": 0
+        }
+      ]
+    },
+    "name": {
+      "description": "Name of peer",
+      "type": "string",
+      "maxLength": 255
+    },
+    "description": {
+      "description": "Description or bio of peer",
+      "type": "string",
+      "maxLength": 255
+    },
+    "homeUrl": {
+      "description": "URL associated with this peer",
+      "type": "string",
+      "anyOf": [
+        {
+          "maxLength": 255,
+          "format": "uri"
+        },
+        {
+          "maxLength": 0
+        }
+      ]
+    },
+    "color": {
+      "description": "Color scheme peer prefers viewing qri on webapp",
+      "type": "string",
+      "anyOf": [
+        {
+          "enum": [
+            "default"
+          ]
+        },
+        {
+          "maxLength": 0
+        }
+      ]
+    },
+    "thumb": {
+      "description": "Location of thumbnail of peer's profile picture, an ipfs hash",
+      "type": "string"
+    },
+    "profile": {
+      "description": "Location of peer's profile picture, an ipfs hash",
+      "type": "string"
+    },
+    "poster": {
+      "description": "Location of a peer's profile poster, an ipfs hash",
+      "type": "string"
+    },
+    "twitter": {
+      "description": "Twitter handle associated with peer",
+      "type": "string",
+      "maxLength": 15
+    }
+  },
+  "required": [
+    "id",
+    "created",
+    "updated",
+    "type",
+    "peername"
+  ]
+}`)

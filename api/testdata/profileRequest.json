@@ -8,7 +8,7 @@
   "name": "test name",
   "description": "test description",
   "homeUrl": "http://test.url",
-  "color": "test",
+  "color": "default",
   "thumb": "/",
   "profile": "/",
   "poster": "/",
