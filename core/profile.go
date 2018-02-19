@@ -176,7 +176,7 @@ func (p *Profile) ValidateProfile() error {
 
 	profileSchema, err := ioutil.ReadAll(f)
 	if err != nil {
-		return fmt.Errorf("error reading profileSchema", err)
+		return fmt.Errorf("error reading profileSchema: %s", err)
 	}
 
 	// unmarshal to rootSchema

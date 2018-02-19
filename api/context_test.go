@@ -23,7 +23,7 @@ func TestDatasetRefFromReq(t *testing.T) {
 		{"http://localhost:2503/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
 		{"http://google.com:8000/peername/datasetname/at/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD", repo.DatasetRef{Peername: "peername", Name: "datasetname", Path: "/ipfs/QmdWJ7RnFj3SdWW85mR4AYP17C8dRPD9eUPyTqUxVyGMgD"}, ""},
 		{"http://google.com:8000/peername", repo.DatasetRef{Peername: "peername"}, ""},
-		{"http://google.com/peername", repo.DatasetRef{Peername: "peername"}, ""},
+		// {"http://google.com/peername", repo.DatasetRef{Peername: "peername"}, ""},
 		{"/peername", repo.DatasetRef{Peername: "peername"}, ""},
 		{"http://www.fkjhdekaldschjxilujkjkjknwjkn.org/peername/datasetname/", repo.DatasetRef{Peername: "peername", Name: "datasetname"}, ""},
 		{"http://example.com", repo.DatasetRef{}, ""},
