@@ -468,7 +468,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	dataf = memfs.NewMemfileBytes("data."+st.Format.String(), data)
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
-		fmt.Println("create ds error: %s", err.Error())
+		fmt.Printf("create ds error: %s\n", err.Error())
 		return err
 	}
 

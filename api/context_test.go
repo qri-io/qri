@@ -33,7 +33,7 @@ func TestDatasetRefFromReq(t *testing.T) {
 	for i, c := range cases {
 		r, err := http.NewRequest("GET", c.url, bytes.NewReader(nil))
 		if err != nil {
-			t.Error("case %d, error making request: %s", i, err)
+			t.Errorf("case %d, error making request: %s", i, err)
 		}
 		got, err := DatasetRefFromReq(r)
 		if (c.err != "" && err == nil) || (err != nil && c.err != err.Error()) {

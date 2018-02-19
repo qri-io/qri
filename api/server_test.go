@@ -255,20 +255,20 @@ func NewFilesRequest(method, endpoint, url string, filePaths, params map[string]
 	for name, path := range filePaths {
 		data, err := os.Open(path)
 		if err != nil {
-			return nil, fmt.Errorf("error opening datafile: %s", method, endpoint, err)
+			return nil, fmt.Errorf("error opening datafile: %s %s %s", method, endpoint, err)
 		}
 		dataPart, err := writer.CreateFormFile(name, filepath.Base(path))
 		if err != nil {
-			return nil, fmt.Errorf("error adding data file to form: %s", method, endpoint, err)
+			return nil, fmt.Errorf("error adding data file to form: %s %s %s", method, endpoint, err)
 		}
 
 		if _, err := io.Copy(dataPart, data); err != nil {
-			return nil, fmt.Errorf("error copying data: %s", method, endpoint, err)
+			return nil, fmt.Errorf("error copying data: %s %s %s", method, endpoint, err)
 		}
 	}
 	for key, val := range params {
 		if err := writer.WriteField(key, val); err != nil {
-			return nil, fmt.Errorf("error adding field to writer: %s", method, endpoint, err)
+			return nil, fmt.Errorf("error adding field to writer: %s %s %s", method, endpoint, err)
 		}
 	}
 
@@ -278,7 +278,7 @@ func NewFilesRequest(method, endpoint, url string, filePaths, params map[string]
 
 	req, err := http.NewRequest(method, url, body)
 	if err != nil {
-		return nil, fmt.Errorf("error creating request: %s", method, endpoint, err)
+		return nil, fmt.Errorf("error creating request: %s %s %s", method, endpoint, err)
 	}
 
 	req.Header.Add("Content-Type", writer.FormDataContentType())
