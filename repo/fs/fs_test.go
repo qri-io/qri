@@ -20,6 +20,6 @@ func TestRepo(t *testing.T) {
 	test.RunRepoTests(t, r)
 
 	if err := os.RemoveAll(path); err != nil {
-		t.Errorf("error cleaning up after test", err.Error())
+		t.Errorf("error cleaning up after test: %s", err.Error())
 	}
 }

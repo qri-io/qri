@@ -2,7 +2,7 @@
   "data": {
     "peername": "peer",
     "name": "cities",
-    "path": "/map/QmUBXDPCM7WbDqYDicxB8N5NSBxFY6ctWNAKxGYoJJ6TtS",
+    "path": "/map/QmY6SW7675BX5juerMFF7sozfMHFVMs8XKuDuWKqLgSVPE",
     "dataset": {
       "abstract": {
         "qri": "ds:0",
@@ -61,7 +61,7 @@
               },
               {
                 "title": "in_usa",
-                "type": "boolean"
+                "type": "string"
               }
             ],
             "type": "array"

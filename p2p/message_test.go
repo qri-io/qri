@@ -29,7 +29,7 @@ func TestPing(t *testing.T) {
 			return
 		}
 		if pong.Phase != MpResponse {
-			t.Errorf("ping %d repsonse should have phase type response, got: %s", i, pong.Phase)
+			t.Errorf("ping %d repsonse should have phase type response, got: %d", i, pong.Phase)
 		}
 		if pong.Type != MtPing {
 			t.Errorf("ping %d response should have message type ping. got: %s", i, pong.Type.String())

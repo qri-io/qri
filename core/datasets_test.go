@@ -337,7 +337,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 			r := csv.NewReader(bytes.NewBuffer(got.Data.([]byte)))
 			_, err := r.ReadAll()
 			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", err.Error())
+				t.Errorf("case %d error parsing response data: %s", i, err.Error())
 				continue
 			}
 		}
@@ -500,7 +500,7 @@ func TestDataRequestsDiff(t *testing.T) {
 		}
 		stringDiffs, err := datasetDiffer.MapDiffsToString(got, c.displayFormat)
 		if err != nil {
-			t.Errorf("case %d error mapping to string: %s", err.Error())
+			t.Errorf("case %d error mapping to string: %s", i, err.Error())
 		}
 		if stringDiffs != c.expected {
 			t.Errorf("case %d response mistmatch: expected '%s', got '%s'", i, c.expected, stringDiffs)

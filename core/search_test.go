@@ -33,7 +33,7 @@ func TestSearch(t *testing.T) {
 		}
 
 		if len(c.res) != len(got) {
-			t.Errorf("case %d log count mismatch. expected: %d, got: %d", len(c.res), len(got))
+			t.Errorf("case %d log count mismatch. expected: %d, got: %d", i, len(c.res), len(got))
 			continue
 		}
 	}
@@ -64,7 +64,7 @@ func TestReindex(t *testing.T) {
 			continue
 		}
 		if got != c.expect {
-			t.Errorf("case %d expected got:", i, c.expect, got)
+			t.Errorf("case %d expected: %t got: %t", i, c.expect, got)
 			continue
 		}
 	}

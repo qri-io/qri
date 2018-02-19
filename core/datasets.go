@@ -468,7 +468,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	dataf = memfs.NewMemfileBytes("data."+st.Format.String(), data)
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
-		fmt.Println("create ds error: %s", err.Error())
+		fmt.Printf("create ds error: %s\n", err.Error())
 		return err
 	}
 
@@ -921,14 +921,12 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 	// Hack to examine data
 	if p.DiffAll || p.DiffComponents["data"] == true {
 		sd1Params := &StructuredDataParams{
-			Format:       dataset.JSONDataFormat,
-			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
-			Path:         p.DsLeft.Path(),
+			Format: dataset.JSONDataFormat,
+			Path:   p.DsLeft.Path(),
 		}
 		sd2Params := &StructuredDataParams{
-			Format:       dataset.JSONDataFormat,
-			FormatConfig: &dataset.JSONOptions{ArrayEntries: true},
-			Path:         p.DsRight.Path(),
+			Format: dataset.JSONDataFormat,
+			Path:   p.DsRight.Path(),
 		}
 		sd1 := &StructuredData{}
 		sd2 := &StructuredData{}

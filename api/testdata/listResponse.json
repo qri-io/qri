@@ -55,7 +55,7 @@
     {
       "peername": "peer",
       "name": "cities",
-      "path": "/map/QmeoqjFPsLkTLJnfr9vfnnRfFX9dzUwY2VizMVcztrFGE6",
+      "path": "/map/QmVmprKBsUrNZQR4VdqaNRyNgpTYdkjp65sbvx75FNPL1o",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
@@ -79,7 +79,7 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmUBXDPCM7WbDqYDicxB8N5NSBxFY6ctWNAKxGYoJJ6TtS",
+        "previousPath": "/map/QmY6SW7675BX5juerMFF7sozfMHFVMs8XKuDuWKqLgSVPE",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -108,7 +108,7 @@
                 },
                 {
                   "title": "in_usa",
-                  "type": "boolean"
+                  "type": "string"
                 }
               ],
               "type": "array"

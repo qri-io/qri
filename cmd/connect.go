@@ -127,7 +127,7 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 		fmt.Printf("attempting to add default dataset: %s\n", refstr)
 		ref, err := repo.ParseDatasetRef(refstr)
 		if err != nil {
-			fmt.Println("error parsing dataset reference: '%s': %s", refstr, err.Error())
+			fmt.Printf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
 			continue
 		}
 		res := repo.DatasetRef{}
