@@ -89,9 +89,6 @@ var profileSetCmd = &cobra.Command{
 		err = json.NewDecoder(dataFile).Decode(set)
 		ExitIfErr(err)
 
-		if set.Peername != "" {
-			p.Peername = set.Peername
-		}
 		if set.Name != "" {
 			p.Name = set.Name
 		}
@@ -133,7 +130,6 @@ func init() {
 
 func editableProfileJSONBytes(res *core.Profile) ([]byte, error) {
 	mapr := map[string]interface{}{
-		"peername":    res.Peername,
 		"name":        res.Name,
 		"description": res.Description,
 		"homeUrl":     res.HomeURL,

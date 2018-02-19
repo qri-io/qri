@@ -121,6 +121,7 @@ overwrite this info.`,
 		ExitIfErr(err)
 
 		res := &core.Profile{}
+		err = pr.SavePeername(p, res)
 		err = pr.SaveProfile(p, res)
 		ExitIfErr(err)
 	},
