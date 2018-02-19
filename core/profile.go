@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/rpc"
+	"os"
 	"time"
 
 	"github.com/qri-io/cafs/memfs"
@@ -163,9 +164,25 @@ func (p *Profile) AssignEditable(profiles ...*Profile) {
 // ValidateProfile validates all fields of profile
 // returning first error found
 func (p *Profile) ValidateProfile() error {
+	// read profileSchema from testdata/profileSchema.json
+	// marshal to json?
+	gp := os.Getenv("GOPATH")
+	filepath := gp + "/src/github.com/qri-io/qri/core/schemas/profileSchema.json"
+	f, err := os.Open(filepath)
+	if err != nil {
+		return fmt.Errorf("error opening schemas/profileSchema.json: %s", err)
+	}
+	defer f.Close()
+
+	profileSchema, err := ioutil.ReadAll(f)
+	if err != nil {
+		return fmt.Errorf("error reading profileSchema", err)
+	}
+
+	// unmarshal to rootSchema
 	rs := &jsonschema.RootSchema{}
-	if err := json.Unmarshal(ProfileSchema, rs); err != nil {
-		return fmt.Errorf("error unmarshaling ProfileSchema to RootSchema: %s", err)
+	if err := json.Unmarshal(profileSchema, rs); err != nil {
+		return fmt.Errorf("error unmarshaling profileSchema to RootSchema: %s", err)
 	}
 	profile, err := json.Marshal(p)
 	if err != nil {
@@ -353,131 +370,3 @@ func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
 	return nil
 
 }
-
-// ProfileSchema uses json schema specified in
-// http://json-schema.org/
-var ProfileSchema = []byte(
-	`{
-  "$schema": "http://json-schema.org/draft-06/schema#",
-  "title": "Profile",
-  "description": "Profile of a qri peer",
-  "type": "object",
-  "properties": {
-    "id": {
-      "description": "Unique identifier for a peername",
-      "type": "string"
-    },
-    "created": {
-      "description": "Datetime the profile was created",
-      "type": "string",
-      "format": "date-time"
-    },
-    "updated": {
-      "description": "Datetime the profile was last updated",
-      "type": "string",
-      "format": "date-time"
-    },
-    "peername": {
-      "description": "Handle name for this peer on qri",
-      "type": "string",
-      "not": {
-        "enum": [
-          "me",
-          "status",
-          "at",
-          "add",
-          "history",
-          "remove",
-          "export",
-          "profile",
-          "list",
-          "peers",
-          "connections",
-          "save",
-          "connect"
-        ]
-      }
-    },
-    "type": {
-      "description": "The type of peer this profile represents",
-      "type": "string",
-      "enum": [
-        "user"
-      ]
-    },
-    "email": {
-      "description": "Email associated with this peer",
-      "type": "string",
-      "anyOf": [
-        {
-          "maxLength": 255,
-          "format": "email"
-        },
-        {
-          "maxLength": 0
-        }
-      ]
-    },
-    "name": {
-      "description": "Name of peer",
-      "type": "string",
-      "maxLength": 255
-    },
-    "description": {
-      "description": "Description or bio of peer",
-      "type": "string",
-      "maxLength": 255
-    },
-    "homeUrl": {
-      "description": "URL associated with this peer",
-      "type": "string",
-      "anyOf": [
-        {
-          "maxLength": 255,
-          "format": "uri"
-        },
-        {
-          "maxLength": 0
-        }
-      ]
-    },
-    "color": {
-      "description": "Color scheme peer prefers viewing qri on webapp",
-      "type": "string",
-      "anyOf": [
-        {
-          "enum": [
-            "default"
-          ]
-        },
-        {
-          "maxLength": 0
-        }
-      ]
-    },
-    "thumb": {
-      "description": "Location of thumbnail of peer's profile picture, an ipfs hash",
-      "type": "string"
-    },
-    "profile": {
-      "description": "Location of peer's profile picture, an ipfs hash",
-      "type": "string"
-    },
-    "poster": {
-      "description": "Location of a peer's profile poster, an ipfs hash",
-      "type": "string"
-    },
-    "twitter": {
-      "description": "Twitter handle associated with peer",
-      "type": "string",
-      "maxLength": 15
-    }
-  },
-  "required": [
-    "id",
-    "created",
-    "updated",
-    "type",
-    "peername"
-  ]
-}`)
