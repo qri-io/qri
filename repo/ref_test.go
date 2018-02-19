@@ -8,22 +8,78 @@ import (
 )
 
 func TestParseDatasetRef(t *testing.T) {
+	peernameDatasetRef := DatasetRef{
+		Peername: "peername",
+	}
+
+	nameDatasetRef := DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+	}
+
+	fullDatasetRef := DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+		Path:     "/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}
+
+	fullIPFSDatasetRef := DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+		Path:     "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}
+
+	pathOnlyDatasetRef := DatasetRef{
+		Path: "/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}
+
+	ipfsOnlyDatasetRef := DatasetRef{
+		Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}
+
 	cases := []struct {
 		input  string
 		expect DatasetRef
 		err    string
 	}{
 		{"", DatasetRef{}, "cannot parse empty string as dataset reference"},
-		{"peer_name/dataset_name", DatasetRef{Peername: "peer_name", Name: "dataset_name"}, ""},
-		{"peer_name/dataset_name@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{Peername: "peer_name", Name: "dataset_name", Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, ""},
-		{"peer_name/dataset_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{Peername: "peer_name", Name: "dataset_name", Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, ""},
-		{"peer_name/dataset_name@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{Peername: "peer_name", Name: "dataset_name", Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, ""},
-		{"peer_name", DatasetRef{Peername: "peer_name"}, ""},
-		{"tangelo_saluki/dog_names", DatasetRef{Peername: "tangelo_saluki", Name: "dog_names"}, ""},
-		// {"/not_ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, ""},
-		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{Path: "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, ""},
-		{"/ipfs/Qmd3y5VuSLtEyfWk3Hud7BxgSxB6LxrBV16fcXXTPG7zDe", DatasetRef{Path: "/ipfs/Qmd3y5VuSLtEyfWk3Hud7BxgSxB6LxrBV16fcXXTPG7zDe"}, ""},
-		{"peer/test@/map/QmbFrEXU5RTKcoMVoeDqpFxZyYqcYAXLoWgsYJuRtJg1Ht", DatasetRef{Peername: "peer", Name: "test", Path: "/map/QmbFrEXU5RTKcoMVoeDqpFxZyYqcYAXLoWgsYJuRtJg1Ht"}, ""},
+		{"/peername/", peernameDatasetRef, ""},
+		{"/peername", peernameDatasetRef, ""},
+		{"/peername/datasetname/", nameDatasetRef, ""},
+		{"/peername/datasetname", nameDatasetRef, ""},
+		{"/peername/datasetname/@", nameDatasetRef, ""},
+		{"/peername/datasetname@", nameDatasetRef, ""},
+		{"/peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+		{"/peername/datasetname/@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+		{"/peername/datasetname/@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+		{"/peername/datasetname@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+		{"/peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
+		{"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", pathOnlyDatasetRef, ""},
+		{"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", pathOnlyDatasetRef, ""},
+		{"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ipfsOnlyDatasetRef, ""},
+		{"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ipfsOnlyDatasetRef, ""},
+		{"/peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
+		{"/peername/datasetname/@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
+		{"/peername/datasetname/@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
+		{"/peername/datasetname@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
+		{"/peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		{"/peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		{"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
+		{"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
+		{"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
+		{"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
+		{"/peername/datasetname@network/bad_hash", DatasetRef{}, "'network/bad_hash' is not a base58 multihash"},
+		{"/peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "'bad_hash/junk/junk..' is not a base58 multihash"},
+		{"/peername/datasetname@bad_hash", DatasetRef{}, "'bad_hash' is not a base58 multihash"},
+		{"@///*(*)/", DatasetRef{}, "malformed DatasetRef string: @///*(*)/"},
+		{"///*(*)/", DatasetRef{}, "malformed DatasetRef string: ///*(*)/"},
+		{"@", DatasetRef{}, ""},
+		{"///@////", DatasetRef{}, ""},
 	}
 
 	for i, c := range cases {
@@ -44,11 +100,11 @@ func TestMatch(t *testing.T) {
 		a, b  string
 		match bool
 	}{
-		{"a/b@/b/foo", "a/b@/b/foo", true},
-		{"a/b@/b/foo", "a/b@/b/bar", true},
+		{"a/b@/b/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/b/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", true},
+		{"a/b@/b/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/b/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", true},
 
-		{"a/different_name@/b/bar", "a/b@/b/bar", true},
-		{"different_peername/b@/b/bar", "a/b@/b/bar", true},
+		{"a/different_name@/b/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", "a/b@/b/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", true},
+		{"different_peername/b@/b/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", "a/b@/b/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", true},
 	}
 
 	for i, c := range cases {
@@ -82,11 +138,11 @@ func TestEqual(t *testing.T) {
 		a, b  string
 		equal bool
 	}{
-		{"a/b@/b/foo", "a/b@/b/foo", true},
-		{"a/b@/ipfs/foo", "a/b@/ipfs/bar", false},
+		{"a/b@/b/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/b/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", true},
+		{"a/b@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/ipfs/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", false},
 
-		{"a/different_name@/ipfs/foo", "a/b@/ipfs/bar", false},
-		{"different_peername/b@/ipfs/foo", "a/b@/ipfs/bar", false},
+		{"a/different_name@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/ipfs/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", false},
+		{"different_peername/b@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "a/b@/ipfs/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", false},
 	}
 
 	for i, c := range cases {
@@ -169,7 +225,7 @@ func TestCanonicalize(t *testing.T) {
 	}{
 		{"me/foo", "lucille/foo", ""},
 		{"you/foo", "you/foo", ""},
-		{"me/ball@/ipfs/QmHash", "lucille/ball@/ipfs/QmHash", ""},
+		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 		// TODO - add tests that show path fulfillment
 	}
 

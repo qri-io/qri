@@ -46,7 +46,7 @@ func (r DatasetRef) String() (s string) {
 		s += "/" + r.Name
 	}
 	if r.Path != "" {
-		s += "@" + r.Path
+		s += "@" + strings.TrimLeft(r.Path, "/")
 	}
 	return s
 }
@@ -86,12 +86,23 @@ var (
 	// peernameShorthandPathRegex looks for dataset references in the form:
 	// peername/dataset_name
 	peernameShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
+
+	// fullnameRegex looks for dataset references in the form:
+	// peername/dataset_name
+	fullnameRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
+
+	// simpleRegex looks for the first word in a string
+	simpleRegex = regexp.MustCompile(`(\w+)$`)
+
+	// pathRegex looks for dataset references in the form:
+	// network/hash/etc
+	pathRegex = regexp.MustCompile(`(\w+)/(\w+)`)
 )
 
 // ParseDatasetRef decodes a dataset reference from a string value
 // It’s possible to refer to a dataset in a number of ways.
 // The full definition of a dataset reference is as follows:
-//     dataset_reference = peer_name/dataset_name@/network/hash
+//     dataset_reference = peer_name/dataset_name@network/hash
 //
 // we swap in defaults as follows, all of which are represented as
 // empty strings:
@@ -120,46 +131,72 @@ var (
 func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if ref == "" {
 		return DatasetRef{}, fmt.Errorf("cannot parse empty string as dataset reference")
-	} else if strings.HasPrefix(ref, "/ipfs/") {
-		return DatasetRef{
-			Path: ref,
-		}, nil
-	} else if fullDatasetPathRegex.MatchString(ref) {
-		matches := fullDatasetPathRegex.FindAllStringSubmatch(ref, 1)
-		if matches[0][3] == "" {
-			matches[0][3] = "/ipfs/"
-		}
-		return DatasetRef{
-			Peername: matches[0][1],
-			Name:     matches[0][2],
-			Path:     matches[0][3] + matches[0][4],
-		}, nil
-	} else if hashShorthandPathRegex.MatchString(ref) {
-		matches := hashShorthandPathRegex.FindAllStringSubmatch(ref, 1)
-		return DatasetRef{
-			Peername: matches[0][1],
-			Name:     matches[0][2],
-			Path:     "/ipfs/" + matches[0][3],
-		}, nil
-	} else if peernameShorthandPathRegex.MatchString(ref) {
-		matches := peernameShorthandPathRegex.FindAllStringSubmatch(ref, 1)
-		return DatasetRef{
-			Peername: matches[0][1],
-			Name:     matches[0][2],
-		}, nil
 	}
-
-	if data, err := base58.Decode(stripProtocol(stripProtocol(ref))); err == nil {
-		if _, err := multihash.Decode(data); err == nil {
-			return DatasetRef{
-				Path: "/ipfs/" + stripProtocol(ref),
-			}, nil
+	var (
+		nameRefString string
+		pathRefString string
+		path          string
+		peername      string
+		datasetname   string
+	)
+	// if there is an @ symbol, we are dealing with a DatasetRef
+	// with a specific path
+	atIndex := strings.Index(ref, "@")
+	if atIndex != -1 {
+		nameRefString = strings.Trim(ref[:atIndex], "/")
+		pathRefString = strings.Trim(ref[atIndex+1:], "/")
+	} else {
+		nameRefString = strings.Trim(ref, "/")
+		if nameRefString == "" {
+			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
+		}
+	}
+	if pathRefString != "" {
+		network := ""
+		hash := ""
+		if pathRegex.MatchString(pathRefString) {
+			matches := pathRegex.FindStringSubmatch(pathRefString)
+			network = matches[1]
+			hash = matches[2]
+			if !isBase58Multihash(hash) {
+				if isBase58Multihash(network) {
+					hash = network
+					network = "ipfs"
+				} else {
+					return DatasetRef{}, fmt.Errorf("'%s' is not a base58 multihash", pathRefString)
+				}
+			}
+		} else if simpleRegex.MatchString(pathRefString) {
+			matches := simpleRegex.FindStringSubmatch(pathRefString)
+			hash = matches[1]
+			network = "ipfs"
+			if !isBase58Multihash(hash) {
+				return DatasetRef{}, fmt.Errorf("'%s' is not a base58 multihash", pathRefString)
+			}
+		} else {
+			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
+		}
+		path = "/" + network + "/" + hash
+	}
+	if nameRefString != "" {
+		if fullnameRegex.MatchString(nameRefString) {
+			matches := fullnameRegex.FindStringSubmatch(nameRefString)
+			peername = matches[1]
+			datasetname = matches[2]
+		} else if simpleRegex.MatchString(nameRefString) {
+			matches := simpleRegex.FindStringSubmatch(nameRefString)
+			peername = matches[1]
+		} else {
+			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
 		}
 	}
 
 	return DatasetRef{
-		Peername: ref,
+		Peername: peername,
+		Name:     datasetname,
+		Path:     path,
 	}, nil
+
 }
 
 // TODO - this could be more robust?
@@ -168,6 +205,18 @@ func stripProtocol(ref string) string {
 		return ref[len("/ipfs/"):]
 	}
 	return ref
+}
+
+func isBase58Multihash(hash string) bool {
+	data, err := base58.Decode(hash)
+	if err != nil {
+		return false
+	}
+	if _, err := multihash.Decode(data); err != nil {
+		return false
+	}
+
+	return true
 }
 
 // CanonicalizeDatasetRef uses a repo to turn any local aliases into known
