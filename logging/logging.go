@@ -29,6 +29,6 @@ var DefaultLogger Logger = fmtLogger(0)
 type fmtLogger int
 
 func (fmtLogger) Info(args ...interface{})                  { fmt.Println(append([]interface{}{"INFO"}, args...)...) }
-func (fmtLogger) Infof(format string, args ...interface{})  { fmt.Printf("INFO "+format, args...) }
+func (fmtLogger) Infof(format string, args ...interface{})  { fmt.Printf("INFO "+format+"\n", args...) }
 func (fmtLogger) Debug(args ...interface{})                 {}
 func (fmtLogger) Debugf(format string, args ...interface{}) {}

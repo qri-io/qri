@@ -9,21 +9,23 @@ import (
 
 // server modes
 const (
-	ModeDevelop    = "develop"
-	ModeProduction = "production"
-	ModeTest       = "test"
-	DefaultPort    = "2503"
-	DefaultRPCPort = "2504"
+	ModeDevelop       = "develop"
+	ModeProduction    = "production"
+	ModeTest          = "test"
+	DefaultPort       = "2503"
+	DefaultRPCPort    = "2504"
+	DefaultWebappPort = "2505"
 )
 
 // DefaultConfig returns the default configuration details
 func DefaultConfig() *Config {
 	return &Config{
-		Logger:  logging.DefaultLogger,
-		Mode:    "develop",
-		Port:    DefaultPort,
-		RPCPort: DefaultRPCPort,
-		Online:  true,
+		Logger:         logging.DefaultLogger,
+		Mode:           "develop",
+		Port:           DefaultPort,
+		RPCPort:        DefaultRPCPort,
+		AllowedOrigins: []string{"http://localhost:2505", "https://localhost:2505"},
+		Online:         true,
 	}
 }
 
