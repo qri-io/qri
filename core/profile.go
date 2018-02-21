@@ -108,8 +108,6 @@ func (r *ProfileRequests) GetProfile(in *bool, res *Profile) error {
 	return nil
 }
 
-// AssignEditable - help with this name plz
-// don't really want to call it assign cause that implies it would change every field
 // AssignEditable collapses all the editable properties of a Profile onto one.
 // this is directly inspired by Javascript's Object.assign
 // Editable Fields:
