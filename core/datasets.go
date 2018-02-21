@@ -588,15 +588,15 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 type StructuredDataParams struct {
 	Format        dataset.DataFormat
 	FormatConfig  dataset.FormatConfig
-	Path          datastore.Key
+	Path          string
 	Limit, Offset int
 	All           bool
 }
 
 // StructuredData combines data with it's hashed path
 type StructuredData struct {
-	Path datastore.Key `json:"path"`
-	Data interface{}   `json:"data"`
+	Path string      `json:"path"`
+	Data interface{} `json:"data"`
 }
 
 // StructuredData retrieves dataset data
@@ -607,26 +607,20 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 
 	var (
 		file  cafs.File
-		d     []byte
 		store = r.repo.Store()
+		read  = 0
 	)
 
 	if p.Limit < 0 || p.Offset < 0 {
 		return fmt.Errorf("invalid limit / offset settings")
 	}
 
-	ds, err := dsfs.LoadDataset(store, p.Path)
+	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
 		return err
 	}
 
-	if p.All {
-		file, err = dsfs.LoadData(store, ds)
-	} else {
-		d, err = dsfs.LoadRows(store, ds, p.Limit, p.Offset)
-		file = memfs.NewMemfileBytes("data", d)
-	}
-
+	file, err = dsfs.LoadData(store, ds)
 	if err != nil {
 		return err
 	}
@@ -635,6 +629,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	st.Assign(ds.Structure, &dataset.Structure{
 		Format:       p.Format,
 		FormatConfig: p.FormatConfig,
+		Schema:       detect.BaseSchemaJSONArray,
 	})
 
 	buf, err := dsio.NewValueBuffer(st)
@@ -645,13 +640,25 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	if err != nil {
 		return fmt.Errorf("error allocating data reader: %s", err)
 	}
-	if err = dsio.EachValue(rr, func(i int, val vals.Value, err error) error {
+
+	for i := 0; i >= 0; i++ {
+		val, err := rr.ReadValue()
 		if err != nil {
-			return err
+			if err.Error() == "EOF" {
+				break
+			}
+			return fmt.Errorf("row iteration error: %s", err.Error())
 		}
-		return buf.WriteValue(val)
-	}); err != nil {
-		return fmt.Errorf("row iteration error: %s", err.Error())
+		if !p.All && i < p.Offset {
+			continue
+		}
+		if err := buf.WriteValue(val); err != nil {
+			return fmt.Errorf("error writing value to buffer: %s", err.Error())
+		}
+		read++
+		if read == p.Limit {
+			break
+		}
 	}
 
 	if err := buf.Close(); err != nil {
@@ -922,11 +929,11 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	if p.DiffAll || p.DiffComponents["data"] == true {
 		sd1Params := &StructuredDataParams{
 			Format: dataset.JSONDataFormat,
-			Path:   p.DsLeft.Path(),
+			Path:   p.DsLeft.Path().String(),
 		}
 		sd2Params := &StructuredDataParams{
 			Format: dataset.JSONDataFormat,
-			Path:   p.DsRight.Path(),
+			Path:   p.DsRight.Path().String(),
 		}
 		sd1 := &StructuredData{}
 		sd2 := &StructuredData{}

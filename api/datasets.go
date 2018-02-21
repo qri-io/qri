@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qri-io/dataset"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -122,6 +123,18 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 		util.EmptyOkHandler(w, r)
 	case "POST", "PUT":
 		h.renameHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// DataHandler gets a dataset's data
+func (h *DatasetHandlers) DataHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.dataHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -427,4 +440,41 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 	}
 
 	return os.Open(path)
+}
+
+// default number of entries to limit to when reading
+// TODO - should move this into core
+const defaultDataLimit = 100
+
+func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
+
+	limit, err := util.ReqParamInt("limit", r)
+	if err != nil {
+		limit = defaultDataLimit
+		err = nil
+	}
+	offset, err := util.ReqParamInt("offset", r)
+	if err != nil {
+		offset = 0
+		err = nil
+	}
+
+	p := &core.StructuredDataParams{
+		Path:   r.URL.Path[len("/data"):],
+		Format: dataset.JSONDataFormat,
+		Limit:  limit,
+		Offset: offset,
+		All:    r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
+	}
+
+	data := &core.StructuredData{}
+	if err := h.StructuredData(p, data); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	page := util.PageFromRequest(r)
+	if err := util.WritePageResponse(w, data.Data, r, page); err != nil {
+		h.log.Infof("error writing repsonse: %s", err.Error())
+	}
 }

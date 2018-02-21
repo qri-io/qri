@@ -24,7 +24,7 @@ func DefaultConfig() *Config {
 		Mode:           "develop",
 		Port:           DefaultPort,
 		RPCPort:        DefaultRPCPort,
-		AllowedOrigins: []string{"http://localhost:2505", "https://localhost:2505"},
+		AllowedOrigins: []string{"http://localhost:2505"},
 		Online:         true,
 	}
 }
