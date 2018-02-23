@@ -1,0 +1,81 @@
+{
+  "data": {
+    "peername": "me",
+    "name": "cities",
+    "path": "/map/Qmf6uoManT1yF8kCtLiw6KVPK7iejNq5kmYhGjAGDivLck",
+    "dataset": {
+      "abstract": {
+        "qri": "ds:0",
+        "structure": {
+          "errCount": 0,
+          "format": "csv",
+          "formatConfig": {
+            "headerRow": true
+          },
+          "qri": "st:0"
+        }
+      },
+      "commit": {
+        "message": "\t- modified title\n",
+        "qri": "cm:0",
+        "signature": "7Q7oxwcSqkgRyUL91i7x6eoLjp9JKodFeqxU13Wkhan2h3jQt9mJAUVaJv2Dr1FNLFjA4u6FGAnejHbLDCoEteMYWNbEAvB7BJdCZ7dtPbMePY8C7yskuSN94fZknHLHiHZPMiCeeEDsNytyK4xwKqUcwQWVwV7zfLdB91g1NrFgC2aiRCZcpRiurYYo58ZSeP589qFh3fGqxF7vttf7z59E68sN7n6Cnmwx7RxY3rnDz9K6t4fLEpHma13k6foMd7Vus8HwPLi8b9fUVy4UjG6vmsGkLcJ1kHaGTwWx6K42frhAwLA69BeSFtuHHnvxNSzmg75Hg9BDpejpg8a8RwyPkLJWev",
+        "timestamp": "2001-01-01T01:01:01.000000001Z",
+        "title": "Meta: 1 change"
+      },
+      "dataPath": "/map/QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
+      "meta": {
+        "description": "test description",
+        "keywords": [
+          "keyword1",
+          "keyword2"
+        ],
+        "license": {
+          "type": "",
+          "url": ""
+        },
+        "qri": "md:0",
+        "title": "Updated Title"
+      },
+      "previousPath": "/map/QmVmprKBsUrNZQR4VdqaNRyNgpTYdkjp65sbvx75FNPL1o",
+      "qri": "ds:0",
+      "structure": {
+        "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
+        "entries": 7,
+        "errCount": 1,
+        "format": "csv",
+        "formatConfig": {
+          "headerRow": true
+        },
+        "length": 186,
+        "qri": "st:0",
+        "schema": {
+          "items": {
+            "items": [
+              {
+                "title": "city",
+                "type": "string"
+              },
+              {
+                "title": "pop",
+                "type": "integer"
+              },
+              {
+                "title": "avg_age",
+                "type": "number"
+              },
+              {
+                "title": "in_usa",
+                "type": "string"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        }
+      }
+    }
+  },
+  "meta": {
+    "code": 200
+  }
+}

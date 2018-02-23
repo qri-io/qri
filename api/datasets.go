@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -8,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	util "github.com/datatogether/api/apiutil"
 	// "github.com/ipfs/go-datastore"
@@ -311,10 +313,61 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
+type saveParamsJSON struct {
+	Peername  string          `json:"peername,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	Title     string          `json:"title,omitempty"`
+	Message   string          `json:"message,omitempty"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Meta      json.RawMessage `json:"meta,omitempty"`
+	Structure json.RawMessage `json:"structure,omitempty"`
+}
+
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	save := &core.SaveParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
-		json.NewDecoder(r.Body).Decode(save)
+		saveParams := &saveParamsJSON{}
+		err := json.NewDecoder(r.Body).Decode(saveParams)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if strings.Contains(r.URL.Path, "/save/") {
+			args, err := DatasetRefFromPath(r.URL.Path[len("/save/"):])
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			if args.Peername != "" {
+				saveParams.Peername = args.Peername
+				saveParams.Name = args.Name
+			}
+		}
+
+		save = &core.SaveParams{
+			Peername: saveParams.Peername,
+			Name:     saveParams.Name,
+			Title:    saveParams.Title,
+			Message:  saveParams.Message,
+		}
+		if len(saveParams.Data) != 0 {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
+			return
+		}
+		//  TODO - restore when we are sure we can accept json data with no errors
+		// if len(saveParams.Data) != 0 {
+		// 	save.Data = memfs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
+		// 	save.DataFilename = "data.json"
+		// }
+		if len(saveParams.Meta) != 0 {
+			save.Metadata = memfs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
+			save.MetadataFilename = "meta.json"
+		}
+		if len(saveParams.Structure) != 0 {
+			save.Structure = memfs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
+			save.StructureFilename = "structure.json"
+		}
 	} else {
 		save = &core.SaveParams{
 			Peername: r.FormValue("peername"),

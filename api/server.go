@@ -156,6 +156,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
+	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
 	m.Handle("/me/", s.middleware(dsh.GetHandler))
 	m.Handle("/add", s.middleware(dsh.InitHandler))

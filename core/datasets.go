@@ -406,7 +406,13 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		if err != nil {
 			return fmt.Errorf("error reading file after file was loaded from filestore: %s", err)
 		}
-		filename = datafile.FileName()
+		// TODO - need a filename with an extension because that is how
+		// we determine the schema in line 421 in detect.FromReader
+		// however, when reading from IPFS, the datafile.Filename
+		// is an ipfs hash, with no extention
+		// using this janky way of constructing a fake filename
+		// for us to use later when we detect the schema
+		filename = "data." + prev.Dataset.Structure.Format.String()
 	}
 
 	// read structure from SaveParams, or detect from data
