@@ -219,3 +219,39 @@ func inputText(message, defaultText string) string {
 
 	return input
 }
+
+/*
+	white := color.New(color.FgWhite).SprintFunc()
+	cyan := color.New(color.FgCyan).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.Transform.Data), blue(r.Path))
+*/
+func printDiffs(diffText string) {
+	green := color.New(color.FgGreen).SprintFunc()
+	red := color.New(color.FgRed).SprintFunc()
+	lines := strings.Split(diffText, "\n")
+	for _, line := range lines {
+		if len(line) >= 3 {
+			if line[:2] == "+ " || line[:2] == "++" {
+				fmt.Printf("%s\n", green(line))
+			} else if line[:2] == "- " || line[:2] == "--" {
+				fmt.Printf("%s\n", red(line))
+			} else {
+				fmt.Printf("%s\n", line)
+			}
+		} else {
+			fmt.Printf("%s\n", line)
+		}
+	}
+	// output := ""
+	// for _, line := range lines {
+	// 	if len(line) >= 3 && (line[:2] == "+ " || line[:2] == "++") {
+	// 		output += fmt.Sprintf("🎾%s\n", green(line))
+	// 	} else if len(line) >= 3 && (line[:2] == "- " || line[:2] == "--") {
+	// 		output += fmt.Sprintf("🏓%s\n", red(line))
+	// 	} else {
+	// 		output += fmt.Sprintf("%s\n", line)
+	// 	}
+	// }
+	// fmt.Printf("%s", output)
+}

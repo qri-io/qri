@@ -66,12 +66,13 @@ either by name or by their hash`,
 			case "delta":
 				displayFormat = "delta"
 			case "detail":
-				displayFormat = "plusMinusColor"
+				displayFormat = "plusMinus"
 			}
 		}
 		result, err := datasetDiffer.MapDiffsToString(diffs, displayFormat)
 		ExitIfErr(err)
-		fmt.Println(result)
+
+		printDiffs(result)
 	},
 }
 
