@@ -30,7 +30,7 @@ func init() {
 
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr repo.Repo, err error) {
-	datasets := []string{"movies", "cities", "counter", "archive"}
+	datasets := []string{"movies", "cities", "counter"}
 	p := &profile.Profile{
 		Peername: "peer",
 	}
