@@ -21,7 +21,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dataset/vals"
-	"github.com/qri-io/datasetDiffer"
+	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -457,7 +457,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	// Assign will assign any previous paths to the current paths
-	// the datasetDiffer (called in dsfs.CreateDataset), will compare the paths
+	// the dsdiff (called in dsfs.CreateDataset), will compare the paths
 	// see that they are the same, and claim there are no differences
 	// since we will potentially have changes in the Meta and Structure
 	// we want the differ to have to compare each field
@@ -853,10 +853,10 @@ type DiffParams struct {
 }
 
 // Diff computes the diff of two datasets
-func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.SubDiff) (err error) {
-	diffMap := make(map[string]*datasetDiffer.SubDiff)
+func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff) (err error) {
+	diffMap := make(map[string]*dsdiff.SubDiff)
 	if p.DiffAll {
-		diffMap, err := datasetDiffer.DiffDatasets(p.DsLeft, p.DsRight, nil)
+		diffMap, err := dsdiff.DiffDatasets(p.DsLeft, p.DsRight, nil)
 		if err != nil {
 			return fmt.Errorf("error diffing datasets: %s", err.Error())
 		}
@@ -864,7 +864,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 		if diffMap["data"] == nil || len(diffMap["data"].Deltas()) == 0 {
 			// dereference data paths
 			// marshal json to []byte
-			// call `datasetDiffer.DiffJSON(a, b)`
+			// call `dsdiff.DiffJSON(a, b)`
 		}
 		*diffs = diffMap
 	} else {
@@ -873,7 +873,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 				switch k {
 				case "structure":
 					if p.DsLeft.Structure != nil && p.DsRight.Structure != nil {
-						structureDiffs, err := datasetDiffer.DiffStructure(p.DsLeft.Structure, p.DsRight.Structure)
+						structureDiffs, err := dsdiff.DiffStructure(p.DsLeft.Structure, p.DsRight.Structure)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -882,7 +882,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 				case "data":
 					//TODO
 					if p.DsLeft.DataPath != "" && p.DsRight.DataPath != "" {
-						dataDiffs, err := datasetDiffer.DiffData(p.DsLeft, p.DsRight)
+						dataDiffs, err := dsdiff.DiffData(p.DsLeft, p.DsRight)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -890,7 +890,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 					}
 				case "transform":
 					if p.DsLeft.Transform != nil && p.DsRight.Transform != nil {
-						transformDiffs, err := datasetDiffer.DiffTransform(p.DsLeft.Transform, p.DsRight.Transform)
+						transformDiffs, err := dsdiff.DiffTransform(p.DsLeft.Transform, p.DsRight.Transform)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -898,7 +898,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 					}
 				case "meta":
 					if p.DsLeft.Meta != nil && p.DsRight.Meta != nil {
-						metaDiffs, err := datasetDiffer.DiffMeta(p.DsLeft.Meta, p.DsRight.Meta)
+						metaDiffs, err := dsdiff.DiffMeta(p.DsLeft.Meta, p.DsRight.Meta)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -906,7 +906,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 					}
 				case "visConfig":
 					if p.DsLeft.VisConfig != nil && p.DsRight.VisConfig != nil {
-						visConfigDiffs, err := datasetDiffer.DiffVisConfig(p.DsLeft.VisConfig, p.DsRight.VisConfig)
+						visConfigDiffs, err := dsdiff.DiffVisConfig(p.DsLeft.VisConfig, p.DsRight.VisConfig)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -956,7 +956,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*datasetDiffer.S
 		if err != nil {
 			return fmt.Errorf("error marshaling json: %s", err.Error())
 		}
-		dataDiffs, err := datasetDiffer.DiffJSON(dataBytes1, dataBytes2, "data")
+		dataDiffs, err := dsdiff.DiffJSON(dataBytes1, dataBytes2, "data")
 		if err != nil {
 			return fmt.Errorf("error comparing structured data: %s", err.Error())
 		}

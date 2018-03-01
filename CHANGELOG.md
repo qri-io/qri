@@ -30,8 +30,8 @@
 ### Bug Fixes
 
 * **api, save:** fix bugs to allow save API endpoint to work ([39d9be5](https://github.com/qri-io/qri/commit/39d9be5))
-* updated cmd.diff to be compatible with updates to datasetDiffer ([201bdda](https://github.com/qri-io/qri/commit/201bdda))
-* updated output param of core.Diff to `*map[string]*datasetDiffer.SubDiff` ([8e1aa39](https://github.com/qri-io/qri/commit/8e1aa39))
+* updated cmd.diff to be compatible with updates to dsdiff ([201bdda](https://github.com/qri-io/qri/commit/201bdda))
+* updated output param of core.Diff to `*map[string]*dsdiff.SubDiff` ([8e1aa39](https://github.com/qri-io/qri/commit/8e1aa39))
 * **handleDatasetInfoResponse:** fix bug that did not keep path ([5c6d372](https://github.com/qri-io/qri/commit/5c6d372))
 
 
