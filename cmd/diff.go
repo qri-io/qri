@@ -71,7 +71,8 @@ either by name or by their hash`,
 		}
 		result, err := datasetDiffer.MapDiffsToString(diffs, displayFormat)
 		ExitIfErr(err)
-		fmt.Println(result)
+
+		printDiffs(result)
 	},
 }
 

@@ -62,10 +62,10 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/me", "", "profileResponse.json", 200},
 		{"POST", "/add", "addRequestFromURL.json", "addResponseFromURL.json", 200},
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmQjiQmkS5NfzjJrTqRtK1joB9it5gjZ62tXuirtJ1tZvY", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmfMTGQKjCcy5nEJwMCQNaqNHVGFTyMdhvWk9pQUXSBD3Z", "", "getResponseFamilyRelationships.json", 200},
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/export/me/archive", "", "", 200},
+		{"GET", "/export/me/cities", "", "", 200},
 		// blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},
@@ -130,8 +130,20 @@ func TestServerRoutes(t *testing.T) {
 
 			if string(gotBody) != string(resBody) {
 				// t.Errorf("case %d: %s - %s response body mismatch.", i, c.method, c.endpoint)
-				// TODO - this is spitting out _very_ large reponses on faile
-				t.Errorf("case %d: %s - %s response body mismatch. expected: %s, got %s", i, c.method, c.endpoint, string(resBody), string(gotBody))
+				// TODO - this is spitting out _very_ large reponses on fail
+				t.Errorf("case %d: %s - %s response body mismatch.", i, c.method, c.endpoint)
+
+				dirpath := filepath.Join(os.TempDir(), "qri-io/qri/api", "TestServerRoutes")
+				if err := os.MkdirAll(dirpath, os.ModePerm); err != nil {
+					t.Logf("error creating test dirpath: %s", err.Error())
+					continue
+				}
+				path := filepath.Join(dirpath, fmt.Sprintf("case_%d.json", i))
+				if err := ioutil.WriteFile(path, gotBody, os.ModePerm); err != nil {
+					t.Logf("erorr writing test file: %s", err.Error())
+					continue
+				}
+				t.Logf("error written to: %s", path)
 				continue
 			}
 		}

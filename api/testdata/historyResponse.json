@@ -3,7 +3,7 @@
     {
       "peername": "peer",
       "name": "cities",
-      "path": "/map/QmVmprKBsUrNZQR4VdqaNRyNgpTYdkjp65sbvx75FNPL1o",
+      "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -37,11 +37,11 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmY6SW7675BX5juerMFF7sozfMHFVMs8XKuDuWKqLgSVPE",
+        "previousPath": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
-          "entries": 7,
+          "entries": 6,
           "errCount": 1,
           "format": "csv",
           "formatConfig": {
@@ -79,7 +79,7 @@
     {
       "peername": "peer",
       "name": "cities",
-      "path": "/map/QmY6SW7675BX5juerMFF7sozfMHFVMs8XKuDuWKqLgSVPE",
+      "path": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -109,11 +109,11 @@
           },
           "qri": "md:0"
         },
-        "previousPath": "/map/QmRaQRfJSBpPotc8XntvD5HcWKSjW3yhW4pe9YMjBJcT27",
+        "previousPath": "/map/QmbnworAqqiMBGRoQGfnseRJmsK31UGSAFtWD3Doh4b6xq",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
-          "entries": 7,
+          "entries": 6,
           "errCount": 1,
           "format": "csv",
           "formatConfig": {
@@ -151,7 +151,7 @@
     {
       "peername": "peer",
       "name": "cities",
-      "path": "/map/QmRaQRfJSBpPotc8XntvD5HcWKSjW3yhW4pe9YMjBJcT27",
+      "path": "/map/QmbnworAqqiMBGRoQGfnseRJmsK31UGSAFtWD3Doh4b6xq",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -182,7 +182,7 @@
         "qri": "ds:0",
         "structure": {
           "checksum": "QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
-          "entries": 6,
+          "entries": 5,
           "errCount": 1,
           "format": "csv",
           "formatConfig": {

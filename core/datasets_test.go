@@ -68,7 +68,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, archive repo.DatasetRef
+		movies, counter, cities repo.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -91,8 +91,6 @@ func TestDatasetRequestsList(t *testing.T) {
 			counter = ref
 		case "cities":
 			cities = ref
-		case "archive":
-			archive = ref
 		}
 	}
 
@@ -103,9 +101,9 @@ func TestDatasetRequestsList(t *testing.T) {
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
-		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{archive, cities, counter, movies}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, movies}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, movies}, ""},
+		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
@@ -293,7 +291,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		t.Errorf("error getting movies ref: %s", err.Error())
 		return
 	}
-	archiveRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "archive"})
+	counterRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "counter"})
 	if err != nil {
 		t.Errorf("error getting archive ref: %s", err.Error())
 		return
@@ -308,7 +306,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: 5, Offset: 0, All: false}, 5, ""},
 		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
 		{&StructuredDataParams{Format: df1, Path: datastore.NewKey(moviesRef.Path), Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: datastore.NewKey(archiveRef.Path), Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&StructuredDataParams{Format: dataset.JSONDataFormat, Path: datastore.NewKey(counterRef.Path), Limit: 0, Offset: 0, All: true}, 0, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
