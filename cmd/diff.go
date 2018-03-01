@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	// "github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/datasetDiffer"
+	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -45,7 +45,7 @@ either by name or by their hash`,
 		err = req.Get(&rightRef, &right)
 		ExitIfErr(err)
 
-		diffs := make(map[string]*datasetDiffer.SubDiff)
+		diffs := make(map[string]*dsdiff.SubDiff)
 
 		p := &core.DiffParams{
 			DsLeft:  left.Dataset,
@@ -69,7 +69,7 @@ either by name or by their hash`,
 				displayFormat = "plusMinus"
 			}
 		}
-		result, err := datasetDiffer.MapDiffsToString(diffs, displayFormat)
+		result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
 		ExitIfErr(err)
 
 		printDiffs(result)

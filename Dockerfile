@@ -5,7 +5,7 @@ ADD . /go/src/github.com/qri-io/qri
 RUN cd /go/src/github.com/qri-io/qri
 
 # RUN make install-deps
-RUN go get -v github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/analytics github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/doggos github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/viper github.com/qri-io/varName github.com/qri-io/datasetDiffer github.com/datatogether/cdxj github.com/qri-io/cafs
+RUN go get -v github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/analytics github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/doggos github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/viper github.com/qri-io/varName github.com/qri-io/dsdiff github.com/datatogether/cdxj github.com/qri-io/cafs
 
 RUN go get -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
 RUN cd /go/src/github.com/qri-io/qri && pwd && gx install

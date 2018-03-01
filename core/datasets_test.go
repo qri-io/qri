@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/datasetDiffer"
+	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -487,7 +487,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	}
 	// execute
 	for i, c := range cases {
-		got, err := datasetDiffer.DiffDatasets(c.dsLeft, c.dsRight, nil)
+		got, err := dsdiff.DiffDatasets(c.dsLeft, c.dsRight, nil)
 		if err != nil {
 			if err.Error() == c.err {
 				continue
@@ -496,7 +496,7 @@ func TestDataRequestsDiff(t *testing.T) {
 				return
 			}
 		}
-		stringDiffs, err := datasetDiffer.MapDiffsToString(got, c.displayFormat)
+		stringDiffs, err := dsdiff.MapDiffsToString(got, c.displayFormat)
 		if err != nil {
 			t.Errorf("case %d error mapping to string: %s", i, err.Error())
 		}
