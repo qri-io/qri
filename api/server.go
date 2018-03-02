@@ -81,7 +81,7 @@ func (s *Server) Serve() (err error) {
 
 	if s.cfg.Online {
 		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
-		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.Port)
+		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.APIPort)
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			info = fmt.Sprintf("%s\n  %s", info, a.String())
 		}
@@ -91,6 +91,8 @@ func (s *Server) Serve() (err error) {
 	}
 
 	go s.ServeRPC()
+	go s.ServeWebapp()
+
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
 }
@@ -119,6 +121,27 @@ func (s *Server) ServeRPC() {
 	return
 }
 
+// ServeWebapp launches a webapp server on s.cfg.WebappPort
+func (s *Server) ServeWebapp() {
+	if s.cfg.WebappPort == "" {
+		return
+	}
+
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.WebappPort))
+	if err != nil {
+		s.log.Infof("Webapp listen on port %s error: %s", s.cfg.WebappPort, err)
+		return
+	}
+
+	m := http.NewServeMux()
+	m.Handle("/", s.middleware(s.WebappHandler))
+	webappserver := &http.Server{Handler: m}
+
+	s.log.Infof("webapp available on port %s", s.cfg.WebappPort)
+	webappserver.Serve(listener)
+	return
+}
+
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
@@ -134,7 +157,6 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 func NewServerRoutes(s *Server) *http.ServeMux {
 	m := http.NewServeMux()
 
-	// m.HandleFunc("/", WebappHandler)
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 

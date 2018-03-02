@@ -15,7 +15,7 @@ import (
 // that should work just fine on the raw internet (ie not behind a proxy like nginx etc)
 // it'll also redirect http traffic to it's https route counterpart if port 80 is open
 func StartServer(c *Config, s *http.Server) error {
-	s.Addr = fmt.Sprintf(fmt.Sprintf(":%s", c.Port))
+	s.Addr = fmt.Sprintf(fmt.Sprintf(":%s", c.APIPort))
 
 	if !c.TLS {
 		return s.ListenAndServe()

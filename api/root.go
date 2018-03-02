@@ -19,8 +19,8 @@ type RootHandler struct {
 }
 
 // WebappHandler renders the home page
-func WebappHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(w, "webapp")
+func (s *Server) WebappHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(s.cfg, w, "webapp")
 }
 
 // NewRootHandler creates a new RootHandler
@@ -32,9 +32,10 @@ func NewRootHandler(dsh *DatasetHandlers, ph *PeerHandlers) *RootHandler {
 func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ref := DatasetRefFromCtx(r.Context())
 	if ref.IsEmpty() {
-		WebappHandler(w, r)
+		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("invalid endpoint"))
 		return
 	}
+
 	if ref.IsPeerRef() {
 		p := &core.PeerInfoParams{
 			Peername: ref.Peername,
@@ -52,6 +53,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		util.WriteResponse(w, res)
 		return
 	}
+
 	res := repo.DatasetRef{}
 	err := mh.dsh.Get(&ref, &res)
 	if err != nil {

@@ -16,11 +16,12 @@ import (
 )
 
 var (
-	connectCmdPort    string
-	connectCmdRPCPort string
-	connectMemOnly    bool
-	connectOffline    bool
-	connectSetup      bool
+	connectCmdPort       string
+	connectCmdRPCPort    string
+	connectCmdWebappPort string
+	connectMemOnly       bool
+	connectOffline       bool
+	connectSetup         bool
 )
 
 // connectCmd represents the run command
@@ -70,8 +71,9 @@ call it a “prime” port number.`,
 
 		s, err := api.New(r, func(cfg *api.Config) {
 			cfg.Logger = log
-			cfg.Port = connectCmdPort
+			cfg.APIPort = connectCmdPort
 			cfg.RPCPort = connectCmdRPCPort
+			cfg.WebappPort = connectCmdWebappPort
 			cfg.MemOnly = connectMemOnly
 			cfg.Online = !connectOffline
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
@@ -148,8 +150,9 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", api.DefaultPort, "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", api.DefaultAPIPort, "port to start api on")
 	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", api.DefaultRPCPort, "port to start rpc listener on")
+	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", api.DefaultWebappPort, "port to serve webapp on")
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
 	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")
