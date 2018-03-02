@@ -3,10 +3,7 @@
     {
       "peername": "peer",
       "name": "cities",
-<<<<<<< HEAD
-      "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
-=======
-      "path": "/map/Qmf6uoManT1yF8kCtLiw6KVPK7iejNq5kmYhGjAGDivLck",
+      "path": "/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -40,11 +37,11 @@
           "qri": "md:0",
           "title": "Updated Title"
         },
-        "previousPath": "/map/QmVmprKBsUrNZQR4VdqaNRyNgpTYdkjp65sbvx75FNPL1o",
+        "previousPath": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
-          "entries": 7,
+          "entries": 6,
           "errCount": 1,
           "format": "csv",
           "formatConfig": {
@@ -82,8 +79,7 @@
     {
       "peername": "peer",
       "name": "cities",
-      "path": "/map/QmVmprKBsUrNZQR4VdqaNRyNgpTYdkjp65sbvx75FNPL1o",
->>>>>>> feat(save): add `/save/` endpoint
+      "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
