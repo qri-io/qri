@@ -68,6 +68,8 @@ func TestServerRoutes(t *testing.T) {
 		{"POST", "/save/me/cities", "saveMetaRequest.json", "saveMetaResponse.json", 200},
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
 		{"GET", "/export/me/cities", "", "", 200},
+		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
+		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 		// blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},

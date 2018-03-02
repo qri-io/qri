@@ -15,6 +15,7 @@ import (
 	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
@@ -77,6 +78,18 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.getHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// DiffHandler is a dataset single endpoint
+func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST", "GET":
+		h.diffHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -204,6 +217,72 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteResponse(w, res)
+}
+
+type diffAPIParams struct {
+	Left, Right string
+	Format      string
+}
+
+func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
+	d := &diffAPIParams{}
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		if err := json.NewDecoder(r.Body).Decode(d); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
+			return
+		}
+	default:
+		d.Left = r.FormValue("left")
+		d.Right = r.FormValue("right")
+		d.Format = r.FormValue("format")
+	}
+
+	leftReq, err := DatasetRefFromPath(d.Left)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from left path: %s", err.Error()))
+		return
+	}
+
+	rightReq, err := DatasetRefFromPath(d.Right)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from right path: %s", err.Error()))
+		return
+	}
+
+	left := &repo.DatasetRef{}
+	if err = h.Get(&leftReq, left); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting left dataset from repo: %s", err))
+		return
+	}
+	right := &repo.DatasetRef{}
+	if err = h.Get(&rightReq, right); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting right dataset from repo: %s", err))
+		return
+	}
+
+	diffs := make(map[string]*dsdiff.SubDiff)
+
+	p := &core.DiffParams{
+		DsLeft:  left.Dataset,
+		DsRight: right.Dataset,
+		DiffAll: true,
+	}
+
+	if err = h.Diff(p, &diffs); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error diffing datasets: %s", err))
+	}
+
+	if d.Format != "" {
+		formattedDiffs, err := dsdiff.MapDiffsToString(diffs, d.Format)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error formating diffs: %s", err))
+		}
+		util.WriteResponse(w, formattedDiffs)
+		return
+	}
+
+	util.WriteResponse(w, diffs)
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {

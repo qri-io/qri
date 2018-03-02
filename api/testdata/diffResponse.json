@@ -1,0 +1,22 @@
+{
+  "data": {
+    "meta": [
+      {
+        "Position": "keywords",
+        "OldValue": null,
+        "NewValue": [
+          "keyword1",
+          "keyword2"
+        ]
+      },
+      {
+        "Position": "title",
+        "Value": "Updated Title"
+      }
+    ],
+    "structure": []
+  },
+  "meta": {
+    "code": 200
+  }
+}
