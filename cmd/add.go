@@ -19,6 +19,7 @@ var (
 	addDsURL               string
 	addDsPassive           bool
 	addDsShowValidation    bool
+	addDsPrivate           bool
 )
 
 var datasetAddCmd = &cobra.Command{
@@ -62,6 +63,11 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
+
+			if addDsPrivate {
+				ErrExit(fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"))
+			}
+
 			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
@@ -98,6 +104,7 @@ func initDataset(name repo.DatasetRef) {
 		Name:         name.Name,
 		URL:          addDsURL,
 		DataFilename: filepath.Base(addDsFilepath),
+		Private:      addDsPrivate,
 	}
 
 	// this is because passing nil to interfaces is bad
@@ -140,6 +147,7 @@ func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "data", "", "", "data file to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
 	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
+	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
 	datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }

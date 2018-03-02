@@ -196,10 +196,15 @@ type InitParams struct {
 	Metadata          io.Reader // reader of json-formatted metadata
 	StructureFilename string    // filename of metadata file. optional.
 	Structure         io.Reader // reader of json-formatted metadata
+	Private           bool      // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
 }
 
 // Init creates a new qri dataset from a source of data
 func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
+	if p.Private {
+		return fmt.Errorf("option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates")
+	}
+
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
