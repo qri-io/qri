@@ -1,17 +1,21 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qri-io/dataset"
 	"net/http"
 	"os"
 	"path/filepath"
+	"strings"
 
 	util "github.com/datatogether/api/apiutil"
 	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
@@ -79,6 +83,18 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DiffHandler is a dataset single endpoint
+func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST", "GET":
+		h.diffHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -122,6 +138,18 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 		util.EmptyOkHandler(w, r)
 	case "POST", "PUT":
 		h.renameHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// DataHandler gets a dataset's data
+func (h *DatasetHandlers) DataHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.dataHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -189,6 +217,72 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	util.WriteResponse(w, res)
+}
+
+type diffAPIParams struct {
+	Left, Right string
+	Format      string
+}
+
+func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
+	d := &diffAPIParams{}
+	switch r.Header.Get("Content-Type") {
+	case "application/json":
+		if err := json.NewDecoder(r.Body).Decode(d); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
+			return
+		}
+	default:
+		d.Left = r.FormValue("left")
+		d.Right = r.FormValue("right")
+		d.Format = r.FormValue("format")
+	}
+
+	leftReq, err := DatasetRefFromPath(d.Left)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from left path: %s", err.Error()))
+		return
+	}
+
+	rightReq, err := DatasetRefFromPath(d.Right)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from right path: %s", err.Error()))
+		return
+	}
+
+	left := &repo.DatasetRef{}
+	if err = h.Get(&leftReq, left); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting left dataset from repo: %s", err))
+		return
+	}
+	right := &repo.DatasetRef{}
+	if err = h.Get(&rightReq, right); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting right dataset from repo: %s", err))
+		return
+	}
+
+	diffs := make(map[string]*dsdiff.SubDiff)
+
+	p := &core.DiffParams{
+		DsLeft:  left.Dataset,
+		DsRight: right.Dataset,
+		DiffAll: true,
+	}
+
+	if err = h.Diff(p, &diffs); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error diffing datasets: %s", err))
+	}
+
+	if d.Format != "" {
+		formattedDiffs, err := dsdiff.MapDiffsToString(diffs, d.Format)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error formating diffs: %s", err))
+		}
+		util.WriteResponse(w, formattedDiffs)
+		return
+	}
+
+	util.WriteResponse(w, diffs)
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
@@ -298,10 +392,61 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
+type saveParamsJSON struct {
+	Peername  string          `json:"peername,omitempty"`
+	Name      string          `json:"name,omitempty"`
+	Title     string          `json:"title,omitempty"`
+	Message   string          `json:"message,omitempty"`
+	Data      json.RawMessage `json:"data,omitempty"`
+	Meta      json.RawMessage `json:"meta,omitempty"`
+	Structure json.RawMessage `json:"structure,omitempty"`
+}
+
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	save := &core.SaveParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
-		json.NewDecoder(r.Body).Decode(save)
+		saveParams := &saveParamsJSON{}
+		err := json.NewDecoder(r.Body).Decode(saveParams)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		if strings.Contains(r.URL.Path, "/save/") {
+			args, err := DatasetRefFromPath(r.URL.Path[len("/save/"):])
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			if args.Peername != "" {
+				saveParams.Peername = args.Peername
+				saveParams.Name = args.Name
+			}
+		}
+
+		save = &core.SaveParams{
+			Peername: saveParams.Peername,
+			Name:     saveParams.Name,
+			Title:    saveParams.Title,
+			Message:  saveParams.Message,
+		}
+		if len(saveParams.Data) != 0 {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
+			return
+		}
+		//  TODO - restore when we are sure we can accept json data with no errors
+		// if len(saveParams.Data) != 0 {
+		// 	save.Data = memfs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
+		// 	save.DataFilename = "data.json"
+		// }
+		if len(saveParams.Meta) != 0 {
+			save.Metadata = memfs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
+			save.MetadataFilename = "meta.json"
+		}
+		if len(saveParams.Structure) != 0 {
+			save.Structure = memfs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
+			save.StructureFilename = "structure.json"
+		}
 	} else {
 		save = &core.SaveParams{
 			Peername: r.FormValue("peername"),
@@ -427,4 +572,41 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 	}
 
 	return os.Open(path)
+}
+
+// default number of entries to limit to when reading
+// TODO - should move this into core
+const defaultDataLimit = 100
+
+func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
+
+	limit, err := util.ReqParamInt("limit", r)
+	if err != nil {
+		limit = defaultDataLimit
+		err = nil
+	}
+	offset, err := util.ReqParamInt("offset", r)
+	if err != nil {
+		offset = 0
+		err = nil
+	}
+
+	p := &core.StructuredDataParams{
+		Path:   r.URL.Path[len("/data"):],
+		Format: dataset.JSONDataFormat,
+		Limit:  limit,
+		Offset: offset,
+		All:    r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
+	}
+
+	data := &core.StructuredData{}
+	if err := h.StructuredData(p, data); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	page := util.PageFromRequest(r)
+	if err := util.WritePageResponse(w, data.Data, r, page); err != nil {
+		h.log.Infof("error writing repsonse: %s", err.Error())
+	}
 }

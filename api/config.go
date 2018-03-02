@@ -9,21 +9,27 @@ import (
 
 // server modes
 const (
-	ModeDevelop    = "develop"
-	ModeProduction = "production"
-	ModeTest       = "test"
-	DefaultPort    = "2503"
-	DefaultRPCPort = "2504"
+	ModeDevelop       = "develop"
+	ModeProduction    = "production"
+	ModeTest          = "test"
+	DefaultAPIPort    = "2503"
+	DefaultRPCPort    = "2504"
+	DefaultWebappPort = "2505"
 )
 
 // DefaultConfig returns the default configuration details
 func DefaultConfig() *Config {
 	return &Config{
-		Logger:  logging.DefaultLogger,
-		Mode:    "develop",
-		Port:    DefaultPort,
-		RPCPort: DefaultRPCPort,
-		Online:  true,
+		Logger:         logging.DefaultLogger,
+		Mode:           "develop",
+		APIPort:        DefaultAPIPort,
+		RPCPort:        DefaultRPCPort,
+		WebappPort:     DefaultWebappPort,
+		AllowedOrigins: []string{"http://localhost:2505"},
+		Online:         true,
+		WebappScripts: []string{
+			"http://localhost:2503/ipfs/QmPvTLU9G6aiGLTACwH3e5QhizFjJd5SKrYT15Xaa1D4wY",
+		},
 	}
 }
 
@@ -41,12 +47,8 @@ type Config struct {
 	Logger logging.Logger
 	// operation mode
 	Mode string
-	// port to listen on, will be read from PORT env variable if present.
-	Port string
 	// URLRoot is the base url for this server
 	URLRoot string
-	// port to listen for RPC calls on, if empty server will not register a RPC listener
-	RPCPort string
 	// DNS service discovery. Should be either "env" or "dns", default is env
 	GetHostsFrom string
 	// Public Key to use for signing metablocks. required.
@@ -65,23 +67,33 @@ type Config struct {
 	MemOnly bool
 	// disable networking
 	Online bool
+	// APIPort specifies the port to listen for JSON API calls
+	APIPort string
+	// RPCPort specifies the port to listen for RPC calls on, if empty server will not register a RPC listener
+	RPCPort string
+	// set to to disable webapp
+	WebappPort string
 	// list of addresses to bootsrap qri peers on
 	BoostrapAddrs []string
+	// WebappScripts is a list of script tags to include the webapp page, useful for using alternative / beta
+	// versions of the qri frontend
+	WebappScripts []string
 	// PostP2POnlineHook is a chance to call a function after starting P2P services
 	PostP2POnlineHook func(*p2p.QriNode)
 }
 
 // Validate returns nil if this configuration is valid,
 // a descriptive error otherwise
+// TODO - this func has been reduced to a noop, let's make it work again
 func (cfg *Config) Validate() (err error) {
 	// make sure port is set
-	if cfg.Port == "" {
-		cfg.Port = DefaultPort
-	}
+	// if cfg.APIPort == "" {
+	// 	cfg.APIPort = "2503"
+	// }
 
-	err = requireConfigStrings(map[string]string{
-		"PORT": cfg.Port,
-	})
+	// err = requireConfigStrings(map[string]string{
+	// 	"PORT": cfg.APIPort,
+	// })
 
 	return
 }

@@ -2,9 +2,7 @@ package test
 
 import (
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
@@ -12,7 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs/memfs"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -30,10 +28,11 @@ func init() {
 
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr repo.Repo, err error) {
-	datasets := []string{"movies", "cities", "counter"}
+	datasets := []string{"movies", "cities", "counter", "craigslist"}
 	p := &profile.Profile{
 		Peername: "peer",
 	}
+
 	ms := memfs.NewMapstore()
 	mr, err = repo.NewMemRepo(p, ms, repo.MemPeers{}, &analytics.Memstore{})
 	if err != nil {
@@ -49,35 +48,24 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	mr.SetPrivateKey(privKey)
 
 	var (
-		rawdata, dsdata []byte
-		dskey           datastore.Key
+		dskey datastore.Key
 	)
+	gopath := os.Getenv("GOPATH")
 	for _, k := range datasets {
 
-		dsdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s.json", k)))
+		tc, err := dstest.NewTestCaseFromDir(fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, k), nil)
 		if err != nil {
-			return
+			return nil, err
 		}
 
-		ds := &dataset.Dataset{}
-		if err = json.Unmarshal(dsdata, ds); err != nil {
-			return
-		}
+		datafile := memfs.NewMemfileBytes(tc.DataFilename, tc.Data)
 
-		filename := fmt.Sprintf("%s.%s", k, ds.Structure.Format.String())
-		rawdata, err = ioutil.ReadFile(pkgPath(fmt.Sprintf("testdata/%s", filename)))
+		dskey, err = mr.CreateDataset(tc.Input, datafile, true)
 		if err != nil {
-			return
-		}
-
-		datafile := memfs.NewMemfileBytes(filename, rawdata)
-
-		dskey, err = mr.CreateDataset(ds, datafile, true)
-		if err != nil {
-			return
+			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
 		if err = mr.PutRef(repo.DatasetRef{Peername: "peer", Name: k, Path: dskey.String()}); err != nil {
-			return
+			return nil, err
 		}
 	}
 

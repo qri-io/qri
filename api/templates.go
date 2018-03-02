@@ -13,13 +13,10 @@ func init() {
 	templates = template.Must(template.New("webapp").Parse(webapptmpl))
 }
 
-// renderTemplate renders a template with the values of cfg.TemplateData
-func renderTemplate(w http.ResponseWriter, tmpl string) {
+// templateRenderer returns a func "renderTemplate" that renders a template, using the values of a Config
+func renderTemplate(c *Config, w http.ResponseWriter, tmpl string) {
 	err := templates.ExecuteTemplate(w, tmpl, map[string]interface{}{
-		// "webappScripts": cfg.WebappScripts,
-		"webappScripts": []string{
-			"http://localhost:4000/static/bundle.js",
-		},
+		"webappScripts": c.WebappScripts,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

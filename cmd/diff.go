@@ -69,6 +69,7 @@ either by name or by their hash`,
 				displayFormat = "plusMinus"
 			}
 		}
+
 		result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
 		ExitIfErr(err)
 

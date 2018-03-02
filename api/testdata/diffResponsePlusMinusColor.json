@@ -1,0 +1,6 @@
+{
+  "data": " {\n   \"description\": \"test description\",\n\u001b[30;41m-  \"keywords\": null,\u001b[0m\n\u001b[30;42m+  \"keywords\": [\u001b[0m\n\u001b[30;42m+    : \"keyword1\",\u001b[0m\n\u001b[30;42m+    : \"keyword2\"\u001b[0m\n\u001b[30;42m+  ],\u001b[0m\n   \"license\": {\n     \"type\": \"\",\n     \"url\": \"\"\n   },\n   \"qri\": \"md:0\"\n\u001b[30;42m+  \"title\": \"Updated Title\"\u001b[0m\n }\n",
+  "meta": {
+    "code": 200
+  }
+}
