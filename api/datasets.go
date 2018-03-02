@@ -328,6 +328,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			Peername: r.FormValue("peername"),
 			URL:      r.FormValue("url"),
 			Name:     r.FormValue("name"),
+			Private:  r.FormValue("private") == "true",
 		}
 
 		infile, fileHeader, err := r.FormFile("file")

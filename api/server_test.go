@@ -172,6 +172,18 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 			map[string]string{},
 			map[string]string{},
 		},
+		{"POST", "/add", "testdata/addResponsePrivate.json", 500,
+			map[string]string{
+				"file":      "testdata/cities/data.csv",
+				"structure": "testdata/cities/structure.json",
+				"metadata":  "testdata/cities/meta.json",
+			},
+			map[string]string{
+				"peername": "peer",
+				"name":     "cities",
+				"private":  "true",
+			},
+		},
 		{"POST", "/add", "testdata/addResponseFromFile.json", 200,
 			map[string]string{
 				"file":      "testdata/cities/data.csv",
@@ -258,8 +270,8 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 			continue
 		}
 
-		if res.StatusCode != 200 {
-			t.Errorf("testMimeMultipart case %d, %s - %s:\nstatus code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, 200, res.StatusCode)
+		if res.StatusCode != c.resStatus {
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nstatus code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
 			continue
 		}
 	}
