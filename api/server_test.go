@@ -142,9 +142,9 @@ func TestServerRoutes(t *testing.T) {
 					t.Logf("error creating test dirpath: %s", err.Error())
 					continue
 				}
-				path := filepath.Join(dirpath, fmt.Sprintf("case_%d.json", i))
+				path := filepath.Join(dirpath, c.resBodyPath)
 				if err := ioutil.WriteFile(path, gotBody, os.ModePerm); err != nil {
-					t.Logf("erorr writing test file: %s", err.Error())
+					t.Logf("error writing test file: %s", err.Error())
 					continue
 				}
 				t.Logf("error written to: %s", path)

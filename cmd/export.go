@@ -198,5 +198,5 @@ func init() {
 	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	// TODO - get format conversion up & running
-	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json]")
+	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json,cbor]")
 }
