@@ -81,6 +81,7 @@ const profileData = `
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
+	t.Logf("temp path: %s", path)
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.RemoveAll(path)
@@ -118,8 +119,6 @@ func TestCommandsIntegration(t *testing.T) {
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
-	t.Log("PATH:", path)
-
 	commands := [][]string{
 		{"help"},
 		{"version"},
@@ -137,6 +136,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"diff", "me/movies", "me/movies2", "-d", "detail"},
 		{"export", "--dataset", "-o" + path, "me/movies"},
 		{"rename", "me/movies", "me/movie"},
+		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},
 		{"remove", "me/movie"},
 	}

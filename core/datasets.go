@@ -606,8 +606,8 @@ type StructuredDataParams struct {
 
 // StructuredData combines data with it's hashed path
 type StructuredData struct {
-	Path string      `json:"path"`
-	Data interface{} `json:"data"`
+	Path string `json:"path"`
+	Data []byte `json:"data"`
 }
 
 // StructuredData retrieves dataset data
@@ -678,7 +678,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 
 	*data = StructuredData{
 		Path: p.Path,
-		Data: json.RawMessage(buf.Bytes()),
+		Data: buf.Bytes(),
 	}
 	return nil
 }
@@ -956,16 +956,9 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 		if err != nil {
 			return fmt.Errorf("error getting structured data: %s", err.Error())
 		}
-		var jsonRaw1, jsonRaw2 json.RawMessage
-		var ok bool
-		if jsonRaw1, ok = sd1.Data.(json.RawMessage); !ok {
-			return fmt.Errorf("error getting json raw message")
-		}
-		if jsonRaw2, ok = sd2.Data.(json.RawMessage); !ok {
-			return fmt.Errorf("error getting json raw message")
-		}
-		m1 := &map[string]json.RawMessage{"structure": jsonRaw1}
-		m2 := &map[string]json.RawMessage{"structure": jsonRaw2}
+
+		m1 := &map[string]json.RawMessage{"data": sd1.Data}
+		m2 := &map[string]json.RawMessage{"data": sd2.Data}
 		dataBytes1, err := json.Marshal(m1)
 		if err != nil {
 			return fmt.Errorf("error marshaling json: %s", err.Error())

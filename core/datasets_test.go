@@ -336,7 +336,7 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 				continue
 			}
 		case dataset.CSVDataFormat:
-			r := csv.NewReader(bytes.NewBuffer(got.Data.([]byte)))
+			r := csv.NewReader(bytes.NewBuffer(got.Data))
 			_, err := r.ReadAll()
 			if err != nil {
 				t.Errorf("case %d error parsing response data: %s", i, err.Error())

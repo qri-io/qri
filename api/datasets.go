@@ -607,7 +607,7 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := util.PageFromRequest(r)
-	if err := util.WritePageResponse(w, data.Data, r, page); err != nil {
+	if err := util.WritePageResponse(w, json.RawMessage(data.Data), r, page); err != nil {
 		h.log.Infof("error writing repsonse: %s", err.Error())
 	}
 }
