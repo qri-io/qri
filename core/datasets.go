@@ -25,6 +25,7 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
@@ -67,6 +68,14 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 
 	if err := repo.CanonicalizePeername(r.repo, &p.Peername); err != nil {
 		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
+	}
+
+	if p.PeerID != "" {
+		if pid, err := profile.NewB58PeerID(p.PeerID); err == nil {
+			if peer, err := r.repo.Peers().GetPeer(pid); err == nil {
+				p.Peername = peer.Peername
+			}
+		}
 	}
 
 	if p.Peername != "" && r.Node != nil {

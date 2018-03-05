@@ -168,11 +168,13 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	ph := NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
+	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 	// TODO - add back connect endpoint
 	// m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
 	dsh := NewDatasetHandlers(s.log, s.qriNode.Repo)
+
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))

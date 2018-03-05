@@ -12,7 +12,6 @@ import (
 	"strings"
 
 	util "github.com/datatogether/api/apiutil"
-	// "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
@@ -97,6 +96,7 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
+	h.log.Infof("%s %s", r.Method, r.URL.Path)
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
@@ -189,6 +189,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
+
 	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
 		h.log.Infof("error listing datasets: %s", err.Error())
@@ -286,18 +287,27 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
+	h.log.Info(r.URL.Path)
 	p := core.ListParamsFromRequest(r)
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	if !ref.IsPeerRef() {
-		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
-		return
-	}
-	p.Peername = ref.Peername
 	p.OrderBy = "created"
+
+	// TODO - cheap peerId detection
+	peerID := r.URL.Path[len("/list/"):]
+	if len(peerID) > 0 && peerID[:2] == "Qm" {
+		p.PeerID = peerID
+	} else {
+		ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		if !ref.IsPeerRef() {
+			util.WriteErrResponse(w, http.StatusBadRequest, errors.New("request needs to be in the form '/list/[peername]'"))
+			return
+		}
+		p.Peername = ref.Peername
+	}
+
 	res := []repo.DatasetRef{}
 	if err := h.List(&p, &res); err != nil {
 		h.log.Infof("error listing peer's datasets: %s", err.Error())
