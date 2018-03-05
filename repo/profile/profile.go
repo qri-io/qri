@@ -60,3 +60,8 @@ func (p *Profile) IPFSPeerID() (peer.ID, error) {
 	}
 	return "", fmt.Errorf("no IPFS Peer ID found")
 }
+
+// NewB58PeerID creates a peer.ID from a base58-encoded string
+func NewB58PeerID(pid string) (peer.ID, error) {
+	return peer.IDB58Decode(pid)
+}

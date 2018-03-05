@@ -27,9 +27,9 @@ build: require-gopath
 	@echo ""
 	go get github.com/qri-io/cafs
 	@echo ""
-	@echo "5/5 build qri:"
+	@echo "5/5 build & install qri:"
 	@echo ""
-	go build
+	go install
 	@echo "done!"
 
 install-deps:

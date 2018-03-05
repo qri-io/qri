@@ -33,8 +33,9 @@ to qri is made public on the distributed web when you run qri connect.
 When adding data, you can supply metadata and dataset structure, but it’s not 
 required. qri does what it can to infer the details you don’t provide. 
 add currently supports two data formats:
-- CSV (Comma Separated Values)
+- CSV  (Comma Separated Values)
 - JSON (Javascript Object Notation)
+- CBOR (Concise Binary Object Representation)
 
 Once you’ve added data, you can use the export command to pull the data out of 
 qri, change the data outside of qri, and use the save command to record those 

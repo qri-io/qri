@@ -20,7 +20,7 @@ var (
 	setupOverwrite      bool
 	setupIPFS           bool
 	setupPeername       string
-	setupIPFSConfigFile string
+	setupIPFSConfigData string
 	setupConfigData     string
 	setupProfileData    string
 )
@@ -54,8 +54,9 @@ overwrite this info.`,
 		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
 
 		envVars := map[string]*string{
-			"QRI_SETUP_CONFIG_DATA":  &setupConfigData,
-			"QRI_SETUP_PROFILE_DATA": &setupProfileData,
+			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
+			"QRI_SETUP_PROFILE_DATA":     &setupProfileData,
+			"QRI_SETUP_IPFS_CONFIG_DATA": &setupIPFSConfigData,
 		}
 		mapEnvVars(envVars)
 
@@ -93,7 +94,24 @@ overwrite this info.`,
 		ExitIfErr(err)
 
 		if setupIPFS {
-			err = ipfs.InitRepo(IpfsFsPath, setupIPFSConfigFile)
+
+			tmpIPFSConfigPath := ""
+			if setupIPFSConfigData != "" {
+				err = readAtFile(&setupIPFSConfigData)
+				ExitIfErr(err)
+
+				// TODO - remove this temp file & instead adjust ipfs.InitRepo to accept an io.Reader
+				tmpIPFSConfigPath = filepath.Join(os.TempDir(), "ipfs_init_config")
+
+				err = ioutil.WriteFile(tmpIPFSConfigPath, []byte(setupIPFSConfigData), os.ModePerm)
+				ExitIfErr(err)
+
+				defer func() {
+					os.Remove(tmpIPFSConfigPath)
+				}()
+			}
+
+			err = ipfs.InitRepo(IpfsFsPath, tmpIPFSConfigPath)
 			if err != nil && strings.Contains(err.Error(), "already") {
 				err = nil
 			}
@@ -133,7 +151,7 @@ func init() {
 	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
-	setupCmd.Flags().StringVarP(&setupIPFSConfigFile, "ipfs-config", "", "", "config file for initialization")
+	setupCmd.Flags().StringVarP(&setupIPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	setupCmd.Flags().StringVarP(&setupConfigData, "id", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
 }

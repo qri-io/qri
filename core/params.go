@@ -22,6 +22,7 @@ type GetParams struct {
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
 type ListParams struct {
+	PeerID   string
 	Peername string
 	OrderBy  string
 	Limit    int

@@ -15,13 +15,14 @@ import (
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
 type PeerHandlers struct {
 	core.PeerRequests
-	log logging.Logger
+	repo repo.Repo
+	log  logging.Logger
 }
 
 // NewPeerHandlers allocates a PeerHandlers pointer
 func NewPeerHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *PeerHandlers {
 	req := core.NewPeerRequests(node, nil)
-	h := PeerHandlers{*req, log}
+	h := PeerHandlers{*req, r, log}
 	return &h
 }
 
@@ -32,6 +33,18 @@ func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.listPeersHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// PeerHandler gets info on a single peer
+func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.peerHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -87,6 +100,24 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 	}
 
 	util.WriteResponse(w, peers)
+}
+
+func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
+	p := &core.PeerInfoParams{
+		PeerID: r.URL.Path[len("/peers/"):],
+	}
+	res := &profile.Profile{}
+	if err := h.Info(p, res); err != nil {
+		h.log.Infof("error getting peer info: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}
+
+func (h *PeerHandlers) namespaceHandler(w http.ResponseWriter, r *http.Request) {
+
 }
 
 // TODO: add back connect endpoint
