@@ -28,7 +28,10 @@ func DefaultConfig() *Config {
 		AllowedOrigins: []string{"http://localhost:2505"},
 		Online:         true,
 		WebappScripts: []string{
-			"http://localhost:2503/ipfs/QmPvTLU9G6aiGLTACwH3e5QhizFjJd5SKrYT15Xaa1D4wY",
+			// this is fetched and replaced via dnslink when the webapp server starts
+			// the value provided here is just a sensible fallback for when dnslink lookup fails,
+			// pointing to a known prior version of the the webapp
+			"http://localhost:2503/ipfs/QmZryqs5RwMwTHuD3AeBWStDfYJWGFbziEwot2aSYoeJFd",
 		},
 	}
 }

@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"net"
@@ -93,6 +94,16 @@ func (s *Server) Serve() (err error) {
 	go s.ServeRPC()
 	go s.ServeWebapp()
 
+	if node, err := s.qriNode.IPFSNode(); err == nil {
+		go func() {
+			if err := core.CheckVersion(context.Background(), node.Namesys); err == core.ErrUpdateRequired {
+				s.log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
+			} else if err != nil {
+				s.log.Infof("error checking for software update: %s", err.Error())
+			}
+		}()
+	}
+
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg, server)
 }
@@ -127,6 +138,8 @@ func (s *Server) ServeWebapp() {
 		return
 	}
 
+	go s.resolveWebappPath()
+
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.WebappPort))
 	if err != nil {
 		s.log.Infof("Webapp listen on port %s error: %s", s.cfg.WebappPort, err)
@@ -142,9 +155,50 @@ func (s *Server) ServeWebapp() {
 	return
 }
 
+func (s *Server) resolveWebappPath() {
+	node, err := s.qriNode.IPFSNode()
+	if err != nil {
+		s.log.Infof("no IPFS node present to resolve webapp address: %s", err.Error())
+		return
+	}
+
+	p, err := node.Namesys.Resolve(context.Background(), "/ipns/webapp.qri.io")
+	if err != nil {
+		s.log.Infof("error resolving IPNS Name: %s", err.Error())
+		return
+	}
+	s.log.Debugf("webapp path: %s", p.String())
+	s.cfg.WebappScripts = []string{
+		fmt.Sprintf("http://localhost:2503%s", p.String()),
+	}
+}
+
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
+	if err != nil {
+		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	io.Copy(w, file)
+}
+
+// HandleIPNSPath resolves an IPNS entry
+func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
+	node, err := s.qriNode.IPFSNode()
+	if err != nil {
+		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no IPFS node present: %s", err.Error()))
+		return
+	}
+
+	p, err := node.Namesys.Resolve(r.Context(), r.URL.Path[len("/ipns/"):])
+	if err != nil {
+		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error resolving IPNS Name: %s", err.Error()))
+		return
+	}
+
+	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(p.String()))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -159,6 +213,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
+	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
 	proh := NewProfileHandlers(s.log, s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
