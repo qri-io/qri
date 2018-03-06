@@ -28,9 +28,10 @@ func init() {
 
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr repo.Repo, err error) {
-	datasets := []string{"movies", "cities", "counter", "craigslist", "flourinated_compounds_in_fast_food_packaging"}
+	datasets := []string{"movies", "cities", "counter", "craigslist"}
 	p := &profile.Profile{
 		Peername: "peer",
+		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 	}
 
 	ms := memfs.NewMapstore()

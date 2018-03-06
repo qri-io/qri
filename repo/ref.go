@@ -8,6 +8,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // Refstore keeps a collection of dataset references
@@ -29,6 +30,8 @@ type Refstore interface {
 // keep in mind that if the information is important at all, it should
 // be stored as metadata within the dataset itself.
 type DatasetRef struct {
+	// PeerID of dataset owner
+	PeerID string `json:"peerID,omitempty"`
 	// Peername of dataset owner
 	Peername string `json:"peername,omitempty"`
 	// Unique name reference for this dataset
@@ -42,6 +45,9 @@ type DatasetRef struct {
 // String implements the Stringer interface for DatasetRef
 func (r DatasetRef) String() (s string) {
 	s = r.Peername
+	if s == "" {
+		s = r.PeerID
+	}
 	if r.Name != "" {
 		s += "/" + r.Name
 	}
@@ -56,17 +62,17 @@ func (r DatasetRef) String() (s string) {
 func (r DatasetRef) Match(b DatasetRef) bool {
 	// fmt.Printf("\nr.Peername: %s b.Peername: %s\n", r.Peername, b.Peername)
 	// fmt.Printf("\nr.Name: %s b.Name: %s\n", r.Name, b.Name)
-	return r.Peername == b.Peername && r.Name == b.Name || r.Path == b.Path
+	return (r.PeerID == b.PeerID || r.Peername == b.Peername) && r.Name == b.Name || r.Path == b.Path
 }
 
 // Equal returns true only if Peername Name and Path are equal
 func (r DatasetRef) Equal(b DatasetRef) bool {
-	return r.Peername == b.Peername && r.Name == b.Name && r.Path == b.Path
+	return r.Peername == b.Peername && r.PeerID == b.PeerID && r.Name == b.Name && r.Path == b.Path
 }
 
 // IsPeerRef returns true if only Peername is set
 func (r DatasetRef) IsPeerRef() bool {
-	return r.Peername != "" && r.Name == "" && r.Path == "" && r.Dataset == nil
+	return (r.Peername != "" || r.PeerID != "") && r.Name == "" && r.Path == "" && r.Dataset == nil
 }
 
 // IsEmpty returns true if none of it's fields are set
@@ -137,6 +143,7 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 		pathRefString string
 		path          string
 		peername      string
+		peerID        string
 		datasetname   string
 	)
 	// if there is an @ symbol, we are dealing with a DatasetRef
@@ -181,17 +188,26 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if nameRefString != "" {
 		if fullnameRegex.MatchString(nameRefString) {
 			matches := fullnameRegex.FindStringSubmatch(nameRefString)
-			peername = matches[1]
+			if isBase58Multihash(matches[1]) {
+				peerID = matches[1]
+			} else {
+				peername = matches[1]
+			}
 			datasetname = matches[2]
 		} else if simpleRegex.MatchString(nameRefString) {
 			matches := simpleRegex.FindStringSubmatch(nameRefString)
-			peername = matches[1]
+			if isBase58Multihash(matches[1]) {
+				peerID = matches[1]
+			} else {
+				peername = matches[1]
+			}
 		} else {
 			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
 		}
 	}
 
 	return DatasetRef{
+		PeerID:   peerID,
 		Peername: peername,
 		Name:     datasetname,
 		Path:     path,
@@ -233,7 +249,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return nil
 	}
 
-	if err := CanonicalizePeername(r, &ref.Peername); err != nil {
+	if err := CanonicalizePeer(r, ref); err != nil {
 		return err
 	}
 
@@ -247,15 +263,82 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	return nil
 }
 
-// CanonicalizePeername uses a repo to replace aliases with
+// CanonicalizePeer uses a repo to replace aliases with
 // canonical peernames. basically, this thing replaces "me" with the proper peername.
-func CanonicalizePeername(r Repo, peername *string) error {
-	if *peername == "me" {
-		p, err := r.Profile()
-		if err != nil {
-			return err
+func CanonicalizePeer(r Repo, ref *DatasetRef) error {
+	if ref.Peername == "" && ref.PeerID == "" {
+		return nil
+	}
+
+	p, err := r.Profile()
+	if err != nil {
+		return err
+	}
+
+	if ref.Peername == "me" || ref.Peername == p.Peername || ref.PeerID == p.ID {
+		if ref.Peername == "me" {
+			ref.Peername = p.Peername
 		}
-		*peername = p.Peername
+
+		if ref.Peername != "" && ref.PeerID != "" {
+			if ref.Peername == p.Peername && ref.PeerID != p.ID {
+				return fmt.Errorf("Peername and PeerID combination not valid: Peername = %s, PeerID = %s, but was given PeerID = %s", p.Peername, p.ID, ref.PeerID)
+			}
+			if ref.PeerID == p.ID && ref.Peername != p.Peername {
+				return fmt.Errorf("Peername and PeerID combination not valid: PeerID = %s, Peername = %s, but was given Peername = %s", p.ID, p.Peername, ref.Peername)
+			}
+			if ref.Peername == p.Peername && ref.PeerID == p.ID {
+				return nil
+			}
+		}
+
+		if ref.Peername != "" {
+			if ref.Peername != p.Peername {
+				return nil
+			}
+		}
+
+		if ref.PeerID != "" {
+			if ref.PeerID != p.ID {
+				return nil
+			}
+		}
+
+		ref.Peername = p.Peername
+		ref.PeerID = p.ID
+		return nil
+	}
+	if ref.PeerID != "" {
+		pid, err := profile.NewB58PeerID(ref.PeerID)
+		if err != nil {
+			return fmt.Errorf("error converting PeerID to base58 hash: %s", err)
+		}
+
+		peer, err := r.Peers().GetPeer(pid)
+		if err != nil {
+			return fmt.Errorf("error fetching peers from store: %s", err)
+		}
+
+		if ref.Peername == "" {
+			ref.Peername = peer.Peername
+			return nil
+		}
+		if ref.Peername != peer.Peername {
+			return fmt.Errorf("Peername and PeerID combination not valid: PeerID = %s, Peername = %s, but was given Peername = %s", peer.ID, peer.Peername, ref.Peername)
+		}
+	}
+	if ref.Peername != "" {
+		id, err := r.Peers().GetID(ref.Peername)
+		if err != nil {
+			return fmt.Errorf("error fetching peers from store: %s", err)
+		}
+		if ref.PeerID == "" {
+			ref.PeerID = id.String()
+			return nil
+		}
+		if ref.PeerID != id.String() {
+			return fmt.Errorf("Peername and PeerID combination not valid: Peername = %s, PeerID = %s, but was given PeerID = %s", ref.Peername, id.String(), ref.PeerID)
+		}
 	}
 	return nil
 }
@@ -263,6 +346,9 @@ func CanonicalizePeername(r Repo, peername *string) error {
 // CompareDatasetRef compares two Dataset References, returning an error
 // describing any difference between the two references
 func CompareDatasetRef(a, b DatasetRef) error {
+	if a.PeerID != b.PeerID {
+		return fmt.Errorf("peerID mismatch. %s != %s", a.PeerID, b.PeerID)
+	}
 	if a.Peername != b.Peername {
 		return fmt.Errorf("peername mismatch. %s != %s", a.Peername, b.Peername)
 	}

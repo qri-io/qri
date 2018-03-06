@@ -68,7 +68,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, craigslist, flourinated repo.DatasetRef
+		movies, counter, cities, craigslist repo.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -93,8 +93,6 @@ func TestDatasetRequestsList(t *testing.T) {
 			cities = ref
 		case "craigslist":
 			craigslist = ref
-		case "flourinated_compounds_in_fast_food_packaging":
-			flourinated = ref
 		}
 	}
 
@@ -105,9 +103,9 @@ func TestDatasetRequestsList(t *testing.T) {
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
-		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
+		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
