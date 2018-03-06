@@ -98,6 +98,8 @@ func (s *Server) Serve() (err error) {
 		go func() {
 			if err := core.CheckVersion(context.Background(), node.Namesys); err == core.ErrUpdateRequired {
 				s.log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
+			} else if err != nil {
+				s.log.Infof("error checking for software update: %s", err.Error())
 			}
 		}()
 	}
@@ -165,7 +167,7 @@ func (s *Server) resolveWebappPath() {
 		s.log.Infof("error resolving IPNS Name: %s", err.Error())
 		return
 	}
-	s.log.Infof("webapp path: %s", p.String())
+	s.log.Debugf("webapp path: %s", p.String())
 	s.cfg.WebappScripts = []string{
 		fmt.Sprintf("http://localhost:2503%s", p.String()),
 	}

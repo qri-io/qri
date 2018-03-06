@@ -27,9 +27,11 @@ func DefaultConfig() *Config {
 		WebappPort:     DefaultWebappPort,
 		AllowedOrigins: []string{"http://localhost:2505"},
 		Online:         true,
-		WebappScripts:  []string{
-			// this is fetched via dnslink when the webapp server starts
-			// TODO - should have a sensible fallback for when dnslink lookup fails
+		WebappScripts: []string{
+			// this is fetched and replaced via dnslink when the webapp server starts
+			// the value provided here is just a sensible fallback for when dnslink lookup fails,
+			// pointing to a known prior version of the the webapp
+			"http://localhost:2503/ipfs/QmZryqs5RwMwTHuD3AeBWStDfYJWGFbziEwot2aSYoeJFd",
 		},
 	}
 }
