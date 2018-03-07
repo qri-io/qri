@@ -22,6 +22,8 @@ import (
 var (
 	// ErrNotFound is the err implementers should return when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
+	// ErrPeerIDRequired is for when a peerID is missing-but-expected
+	ErrPeerIDRequired = fmt.Errorf("repo: peerID is required")
 	// ErrPeernameRequired is for when a peername is missing-but-expected
 	ErrPeernameRequired = fmt.Errorf("repo: peername is required")
 	// ErrNameRequired is for when a name is missing-but-expected

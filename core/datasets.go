@@ -25,7 +25,6 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
@@ -66,28 +65,25 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 
-	if err := repo.CanonicalizePeername(r.repo, &p.Peername); err != nil {
-		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
+	ds := &repo.DatasetRef{
+		Peername: p.Peername,
+		PeerID:   p.PeerID,
 	}
 
-	if p.PeerID != "" {
-		if pid, err := profile.NewB58PeerID(p.PeerID); err == nil {
-			if peer, err := r.repo.Peers().GetPeer(pid); err == nil {
-				p.Peername = peer.Peername
-			}
-		}
+	if err := repo.CanonicalizePeer(r.repo, ds); err != nil {
+		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
-	if p.Peername != "" && r.Node != nil {
-		replies, err := r.Node.RequestDatasetsList(p.Peername)
+	if ds.Peername != "" && r.Node != nil {
+		replies, err := r.Node.RequestDatasetsList(ds.Peername)
 		*res = replies
 		return err
-	} else if p.Peername != "" {
+	} else if ds.Peername != "" {
 		pro, err := r.repo.Profile()
 		if err != nil {
 			return err
 		}
-		if pro.Peername != p.Peername && r.Node == nil {
+		if pro.Peername != ds.Peername && r.Node == nil {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
 	}
@@ -109,6 +105,10 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	for i, ref := range replies {
 		if i >= p.Limit {
 			break
+		}
+
+		if err := repo.CanonicalizePeer(r.repo, &replies[i]); err != nil {
+			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
 		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
@@ -186,6 +186,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	}
 
 	*res = repo.DatasetRef{
+		PeerID:   p.PeerID,
 		Peername: p.Peername,
 		Name:     p.Name,
 		Path:     p.Path,
@@ -223,10 +224,6 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		store    = r.repo.Store()
 		filename = p.DataFilename
 	)
-
-	if err := repo.CanonicalizePeername(r.repo, &p.Peername); err != nil {
-		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
-	}
 
 	if p.URL != "" {
 		res, err := http.Get(p.URL)
@@ -323,6 +320,11 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	}
 
 	ref := repo.DatasetRef{Peername: p.Peername, Name: name, Path: dskey.String(), Dataset: ds}
+
+	if err := repo.CanonicalizePeer(r.repo, &ref); err != nil {
+		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
+	}
+
 	if err = r.repo.PutRef(ref); err != nil {
 		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
 	}

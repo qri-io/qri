@@ -68,7 +68,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, craigslist, flourinated repo.DatasetRef
+		movies, counter, cities, craigslist repo.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -93,8 +93,6 @@ func TestDatasetRequestsList(t *testing.T) {
 			cities = ref
 		case "craigslist":
 			craigslist = ref
-		case "flourinated_compounds_in_fast_food_packaging":
-			flourinated = ref
 		}
 	}
 
@@ -105,9 +103,9 @@ func TestDatasetRequestsList(t *testing.T) {
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
-		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, flourinated, movies}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
+		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
@@ -406,7 +404,7 @@ Pirates of the Caribbean: At World's End ,169
 		err       string
 	}{
 		{ValidateDatasetParams{Ref: repo.DatasetRef{}}, 0, "either data or a dataset reference is required"},
-		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me"}}, 0, "cannot find dataset: peer"},
+		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me"}}, 0, "cannot find dataset: peer@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},
 		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}}, 1, ""},
 		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Data: dataf, DataFilename: "data.csv"}, 1, ""},
 		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Schema: schemaf}, 0, ""},

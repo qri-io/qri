@@ -3,6 +3,7 @@
     {
       "peername": "peer",
       "name": "cities",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
@@ -69,6 +70,7 @@
     {
       "peername": "peer",
       "name": "counter",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/Qmd4RtQrDGVaF1aArH8j74VGwU4q5ebiytnGYmBbNRLZjp",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
@@ -112,6 +114,7 @@
     {
       "peername": "peer",
       "name": "craigslist",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmRLpDXcrccTzNCwWXyyHRZCmSzDxPoMX91KtLW3szmmkX",
       "dataset": {
         "abstract": "/map/QmW4cDbQYgie835Ro5uGfAeRU4PWPGcbuS5yn5uFRP4ddZ",
@@ -24022,82 +24025,8 @@
     },
     {
       "peername": "peer",
-      "name": "flourinated_compounds_in_fast_food_packaging",
-      "path": "/map/QmU9YD3gLZjBLHhe9MEftyBtMEW6tky2XczTbCVq2q84cY",
-      "dataset": {
-        "abstract": "/map/QmPUAqhiqdGDZUourgARtmMqNKWmuTPcy5JSxasvRPdvor",
-        "commit": {
-          "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
-          "timestamp": "2001-01-01T01:01:01.000000001Z",
-          "title": "initial commit"
-        },
-        "dataPath": "/map/QmcN7FHgCbP9MfUmurGuNh3X1DNU4B9LbjXg3r2b3VBrQZ",
-        "meta": {
-          "description": "Paper samples, paper extracts (known), paper extracts (unknown). \n\nThis dataset is associated with the following publication:\nSchaider, L., S. Balan, A. Blum, D. Andrews, M. Strynar, M. Dickinson, D. Lunderberg, J. Lang, and G. Peaslee. Fluorinated Compounds in U.S. Fast Food Packaging.   Environmental Science \u0026amp; Technology Letters. American Chemical Society, Washington, DC, USA, 4(3): 105\u0026ndash;111, (2017).",
-          "qri": "md:0",
-          "title": "Fluorinated Compounds in U.S. Fast Food Packaging"
-        },
-        "qri": "ds:0",
-        "structure": {
-          "checksum": "QmcN7FHgCbP9MfUmurGuNh3X1DNU4B9LbjXg3r2b3VBrQZ",
-          "entries": 25,
-          "errCount": 1,
-          "format": "cbor",
-          "length": 1785,
-          "qri": "st:0",
-          "schema": {
-            "items": {
-              "items": [
-                {
-                  "title": "sample",
-                  "type": "string"
-                },
-                {
-                  "title": "comments",
-                  "type": "string"
-                },
-                {
-                  "description": "length of sample in cm",
-                  "title": "length_cm",
-                  "type": "integer"
-                },
-                {
-                  "description": "width of sample in cm",
-                  "title": "width_cm",
-                  "type": "integer"
-                },
-                {
-                  "description": "area of sample in cm2",
-                  "title": "area_cm",
-                  "type": "integer"
-                },
-                {
-                  "description": "vial tare in grams",
-                  "title": "vial_tare_g",
-                  "type": "number"
-                },
-                {
-                  "description": "mass of vial tare with paper in grams",
-                  "title": "vial_with_paper_g",
-                  "type": "number"
-                },
-                {
-                  "description": "mass of paper in grams",
-                  "title": "mass_g",
-                  "type": "number"
-                }
-              ],
-              "type": "array"
-            },
-            "type": "array"
-          }
-        }
-      }
-    },
-    {
-      "peername": "peer",
       "name": "movies",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmRkFb9FJeq8PUxnPY8UP5esveeCygDnx34suFv6BiG3Wr",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",

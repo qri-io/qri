@@ -25,7 +25,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err string
 	}{
 		{&LogParams{}, nil, "either path or peername/name is required"},
-		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "error getting reference '@badpath': repo: not found"},
+		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "error getting reference '@/badpath': repo: not found"},
 		{&LogParams{Ref: ref}, []repo.DatasetRef{ref}, ""},
 	}
 
