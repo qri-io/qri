@@ -70,22 +70,27 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		PeerID:   p.PeerID,
 	}
 
+	if ds.Peername == "" && ds.PeerID == "" {
+		ds.Peername = "me"
+	}
+
+	pro, err := r.repo.Profile()
+	if err != nil {
+		return fmt.Errorf("error getting profile: %s", err.Error())
+	}
+
 	if err := repo.CanonicalizePeer(r.repo, ds); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
-	if ds.Peername != "" && r.Node != nil {
+	if ds.Peername != pro.Peername {
+		if r.Node == nil {
+			return fmt.Errorf("cannot list remote datasets without p2p connection")
+		}
+
 		replies, err := r.Node.RequestDatasetsList(ds.Peername)
 		*res = replies
 		return err
-	} else if ds.Peername != "" {
-		pro, err := r.repo.Profile()
-		if err != nil {
-			return err
-		}
-		if pro.Peername != ds.Peername && r.Node == nil {
-			return fmt.Errorf("cannot list remote datasets without p2p connection")
-		}
 	}
 
 	store := r.repo.Store()
