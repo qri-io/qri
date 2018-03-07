@@ -1,9 +1,9 @@
 {
   "data": [
     {
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "cities",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
@@ -68,9 +68,9 @@
       }
     },
     {
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "counter",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/Qmd4RtQrDGVaF1aArH8j74VGwU4q5ebiytnGYmBbNRLZjp",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
@@ -112,9 +112,9 @@
       }
     },
     {
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "craigslist",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmRLpDXcrccTzNCwWXyyHRZCmSzDxPoMX91KtLW3szmmkX",
       "dataset": {
         "abstract": "/map/QmW4cDbQYgie835Ro5uGfAeRU4PWPGcbuS5yn5uFRP4ddZ",
@@ -24024,9 +24024,9 @@
       }
     },
     {
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "movies",
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "path": "/map/QmRkFb9FJeq8PUxnPY8UP5esveeCygDnx34suFv6BiG3Wr",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",

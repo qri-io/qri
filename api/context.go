@@ -52,6 +52,5 @@ func HTTPPathToQriPath(path string) string {
 	}
 	path = strings.Replace(path, "/at", "@", 1)
 	path = strings.TrimPrefix(path, "/")
-	path = strings.TrimSuffix(path, "/")
 	return path
 }

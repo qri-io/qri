@@ -2,7 +2,6 @@ package repo
 
 import (
 	"fmt"
-	"regexp"
 	"strings"
 
 	"github.com/mr-tron/base58/base58"
@@ -30,12 +29,12 @@ type Refstore interface {
 // keep in mind that if the information is important at all, it should
 // be stored as metadata within the dataset itself.
 type DatasetRef struct {
-	// PeerID of dataset owner
-	PeerID string `json:"peerID,omitempty"`
 	// Peername of dataset owner
 	Peername string `json:"peername,omitempty"`
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
+	// PeerID of dataset owner
+	PeerID string `json:"peerID,omitempty"`
 	// Content-addressed path for this dataset
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
@@ -44,17 +43,26 @@ type DatasetRef struct {
 
 // String implements the Stringer interface for DatasetRef
 func (r DatasetRef) String() (s string) {
-	s = r.Peername
-	if s == "" {
-		s = r.PeerID
+	s = r.AliasString()
+	if r.PeerID != "" || r.Path != "" {
+		s += "@"
 	}
+	if r.PeerID != "" {
+		s += r.PeerID
+	}
+	if r.Path != "" {
+		s += r.Path
+	}
+	return
+}
+
+// AliasString returns the alias components of a DatasetRef as a string
+func (r DatasetRef) AliasString() (s string) {
+	s = r.Peername
 	if r.Name != "" {
 		s += "/" + r.Name
 	}
-	if r.Path != "" {
-		s += "@" + strings.TrimLeft(r.Path, "/")
-	}
-	return s
+	return
 }
 
 // Match checks returns true if Peername and Name are equal,
@@ -80,35 +88,10 @@ func (r DatasetRef) IsEmpty() bool {
 	return r.Equal(DatasetRef{})
 }
 
-var (
-	// fullDatasetPathRegex looks for dataset references in the forms
-	// peername/dataset_name@/ipfs/hash
-	fullDatasetPathRegex = regexp.MustCompile(`(\w+)/(\w+)@(/\w+/)(\w+)\b`)
-	// hashShorthandPathRegex looks for dataset references in the forms:
-	// peername/dataset_name@hash
-	// peername/dataset_name@/hash
-	hashShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)@/?(\w+)\b`)
-
-	// peernameShorthandPathRegex looks for dataset references in the form:
-	// peername/dataset_name
-	peernameShorthandPathRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
-
-	// fullnameRegex looks for dataset references in the form:
-	// peername/dataset_name
-	fullnameRegex = regexp.MustCompile(`(\w+)/(\w+)$`)
-
-	// simpleRegex looks for the first word in a string
-	simpleRegex = regexp.MustCompile(`(\w+)$`)
-
-	// pathRegex looks for dataset references in the form:
-	// network/hash/etc
-	pathRegex = regexp.MustCompile(`(\w+)/(\w+)`)
-)
-
 // ParseDatasetRef decodes a dataset reference from a string value
 // It’s possible to refer to a dataset in a number of ways.
 // The full definition of a dataset reference is as follows:
-//     dataset_reference = peer_name/dataset_name@network/hash
+//     dataset_reference = peer_name/dataset_name@peer_id/network/hash
 //
 // we swap in defaults as follows, all of which are represented as
 // empty strings:
@@ -119,17 +102,17 @@ var (
 // TODO - make Dataset Ref parsing the responisiblity of the Repo
 // interface, replacing empty strings with actual defaults
 //
-// through defaults the following should all parse:
+// dataset names & hashes are disambiguated by checking if the input
+// parses to a valid multihash after base58 decoding.
+// through defaults & base58 checking the following should all parse:
 //     peer_name/dataset_name
-//     dataset_name@hash
 //     /network/hash
 //     peername
-//     hash
+//     peer_id
+//     @peer_id
+//     @peer_id/network/hash
 //
 // see tests for more exmples
-//
-// dataset names & hashes are disambiguated by checking if the input
-// parses to a valid multihash after base58 decoding
 //
 // TODO - add validation that prevents peernames from being
 // valid base58 multihashes and makes sure hashes are actually valid base58 multihashes
@@ -138,81 +121,117 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if ref == "" {
 		return DatasetRef{}, fmt.Errorf("cannot parse empty string as dataset reference")
 	}
+
 	var (
-		nameRefString string
-		pathRefString string
-		path          string
-		peername      string
-		peerID        string
-		datasetname   string
+		// nameRefString string
+		dsr = DatasetRef{}
+		err error
 	)
+
 	// if there is an @ symbol, we are dealing with a DatasetRef
-	// with a specific path
+	// with an identifier
 	atIndex := strings.Index(ref, "@")
+
 	if atIndex != -1 {
-		nameRefString = strings.Trim(ref[:atIndex], "/")
-		pathRefString = strings.Trim(ref[atIndex+1:], "/")
+
+		dsr.Peername, dsr.Name = parseAlias(ref[:atIndex])
+		dsr.PeerID, dsr.Path, err = parseIdentifiers(ref[atIndex+1:])
+
 	} else {
-		nameRefString = strings.Trim(ref, "/")
-		if nameRefString == "" {
-			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
-		}
-	}
-	if pathRefString != "" {
-		network := ""
-		hash := ""
-		if pathRegex.MatchString(pathRefString) {
-			matches := pathRegex.FindStringSubmatch(pathRefString)
-			network = matches[1]
-			hash = matches[2]
-			if !isBase58Multihash(hash) {
-				if isBase58Multihash(network) {
-					hash = network
-					network = "ipfs"
-				} else {
-					return DatasetRef{}, fmt.Errorf("'%s' is not a base58 multihash", pathRefString)
+
+		var peername, datasetname, pid bool
+		toks := strings.Split(ref, "/")
+
+		for i, tok := range toks {
+			if isBase58Multihash(tok) {
+				// first hash we encounter is a peerID
+				if !pid {
+					dsr.PeerID = tok
+					pid = true
+					continue
 				}
+
+				if !isBase58Multihash(toks[i-1]) {
+					dsr.Path = fmt.Sprintf("/%s/%s", toks[i-1], strings.Join(toks[i:], "/"))
+				} else {
+					dsr.Path = fmt.Sprintf("/ipfs/%s", strings.Join(toks[i:], "/"))
+				}
+				break
 			}
-		} else if simpleRegex.MatchString(pathRefString) {
-			matches := simpleRegex.FindStringSubmatch(pathRefString)
-			hash = matches[1]
-			network = "ipfs"
-			if !isBase58Multihash(hash) {
-				return DatasetRef{}, fmt.Errorf("'%s' is not a base58 multihash", pathRefString)
+
+			if !peername {
+				dsr.Peername = tok
+				peername = true
+				continue
 			}
-		} else {
-			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
-		}
-		path = "/" + network + "/" + hash
-	}
-	if nameRefString != "" {
-		if fullnameRegex.MatchString(nameRefString) {
-			matches := fullnameRegex.FindStringSubmatch(nameRefString)
-			if isBase58Multihash(matches[1]) {
-				peerID = matches[1]
-			} else {
-				peername = matches[1]
+
+			if !datasetname {
+				dsr.Name = tok
+				datasetname = true
+				continue
 			}
-			datasetname = matches[2]
-		} else if simpleRegex.MatchString(nameRefString) {
-			matches := simpleRegex.FindStringSubmatch(nameRefString)
-			if isBase58Multihash(matches[1]) {
-				peerID = matches[1]
-			} else {
-				peername = matches[1]
-			}
-		} else {
-			return DatasetRef{}, fmt.Errorf("malformed DatasetRef string: %s", ref)
+
+			dsr.Path = strings.Join(toks[i:], "/")
+			break
 		}
 	}
 
-	return DatasetRef{
-		PeerID:   peerID,
-		Peername: peername,
-		Name:     datasetname,
-		Path:     path,
-	}, nil
+	if dsr.PeerID == "" && dsr.Peername == "" && dsr.Name == "" && dsr.Path == "" {
+		err = fmt.Errorf("malformed DatasetRef string: %s", ref)
+		return dsr, err
+	}
 
+	if dsr.PeerID != "" {
+		if !isBase58Multihash(dsr.PeerID) {
+			err = fmt.Errorf("invalid PeerID: '%s'", dsr.PeerID)
+			return dsr, err
+		}
+	}
+
+	return dsr, err
+}
+
+func parseAlias(alias string) (peer, dataset string) {
+	for i, tok := range strings.Split(alias, "/") {
+		switch i {
+		case 0:
+			peer = tok
+		case 1:
+			dataset = tok
+		}
+	}
+	return
+}
+
+func parseIdentifiers(ids string) (peerID, path string, err error) {
+
+	toks := strings.Split(ids, "/")
+	switch len(toks) {
+	case 0:
+		err = fmt.Errorf("malformed DatasetRef identifier: %s", ids)
+	case 1:
+		if toks[0] != "" {
+			peerID = toks[0]
+			if !isBase58Multihash(toks[0]) {
+				err = fmt.Errorf("'%s' is not a base58 multihash", ids)
+			}
+			return
+		}
+	case 2:
+		peerID = toks[0]
+		if isBase58Multihash(toks[0]) && isBase58Multihash(toks[1]) {
+			toks[1] = fmt.Sprintf("/ipfs/%s", toks[1])
+		}
+
+		path = toks[1]
+	default:
+		peerID = toks[0]
+		path = fmt.Sprintf("/%s/%s", toks[1], toks[2])
+		// path = fmt.Sprintf("/%s", strings.Join(toks[1:], "/"))
+		return
+	}
+
+	return
 }
 
 // TODO - this could be more robust?
@@ -263,8 +282,8 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	return nil
 }
 
-// CanonicalizePeer uses a repo to replace aliases with
-// canonical peernames. basically, this thing replaces "me" with the proper peername.
+// CanonicalizePeer populates dataset DatasetRef PeerID and Peername properties,
+// changing aliases to known names, and adding PeerID from a peerstore
 func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 	if ref.Peername == "" && ref.PeerID == "" {
 		return nil
@@ -328,10 +347,11 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 			return fmt.Errorf("Peername and PeerID combination not valid: PeerID = %s, Peername = %s, but was given Peername = %s", peer.ID, peer.Peername, ref.Peername)
 		}
 	}
+
 	if ref.Peername != "" {
 		id, err := r.Peers().GetID(ref.Peername)
 		if err != nil {
-			return fmt.Errorf("error fetching peers from store: %s", err)
+			return fmt.Errorf("error fetching peer from store: %s", err)
 		}
 		if ref.PeerID == "" {
 			ref.PeerID = id.String()

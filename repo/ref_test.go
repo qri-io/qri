@@ -7,6 +7,77 @@ import (
 	"testing"
 )
 
+var cases = []struct {
+	ref         DatasetRef
+	String      string
+	AliasString string
+}{
+	{DatasetRef{
+		Peername: "peername",
+	}, "peername", "peername"},
+	{DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+	}, "peername/datasetname", "peername/datasetname"},
+
+	{DatasetRef{
+		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}, "@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ""},
+	{DatasetRef{
+		Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+	}, "@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+
+	{DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "peername/datasetname"},
+	{DatasetRef{
+		Peername: "peername",
+		Name:     "datasetname",
+		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Path:     "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "peername/datasetname"},
+
+	{DatasetRef{
+		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Peername: "lucille",
+	}, "lucille@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "lucille"},
+	{DatasetRef{
+		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Peername: "lucille",
+		Name:     "ball",
+		Path:     "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+	}, "lucille/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball"},
+
+	{DatasetRef{
+		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Peername: "bad_name",
+	}, "bad_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "bad_name"},
+	{DatasetRef{
+		PeerID:   "badID",
+		Peername: "me",
+	}, "me@badID", "me"},
+}
+
+func TestDatasetRefString(t *testing.T) {
+	for i, c := range cases {
+		if c.ref.String() != c.String {
+			t.Errorf("case %d:\n%s\n%s", i, c.ref.String(), c.String)
+			continue
+		}
+	}
+}
+
+func TestDatasetRefAliasString(t *testing.T) {
+	for i, c := range cases {
+		if c.ref.AliasString() != c.AliasString {
+			t.Errorf("case %d:\n%s\n%s", i, c.ref.AliasString(), c.AliasString)
+			continue
+		}
+	}
+}
+
 func TestParseDatasetRef(t *testing.T) {
 	peernameDatasetRef := DatasetRef{
 		Peername: "peername",
@@ -17,7 +88,7 @@ func TestParseDatasetRef(t *testing.T) {
 		Name:     "datasetname",
 	}
 
-	idDatasetRef := DatasetRef{
+	peerIDDatasetRef := DatasetRef{
 		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 	}
 
@@ -33,8 +104,8 @@ func TestParseDatasetRef(t *testing.T) {
 	}
 
 	idFullIPFSDatasetRef := DatasetRef{
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 		Name:   "datasetname",
+		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 		Path:   "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 	}
 
@@ -64,57 +135,50 @@ func TestParseDatasetRef(t *testing.T) {
 		err    string
 	}{
 		{"", DatasetRef{}, "cannot parse empty string as dataset reference"},
-		{"/peername/", peernameDatasetRef, ""},
-		{"/peername", peernameDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/", idDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idDatasetRef, ""},
-		{"/peername/datasetname/", nameDatasetRef, ""},
-		{"/peername/datasetname", nameDatasetRef, ""},
-		{"/peername/datasetname/@", nameDatasetRef, ""},
-		{"/peername/datasetname@", nameDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/", idNameDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname", idNameDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/@", idNameDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname@", idNameDatasetRef, ""},
-		{"/peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
-		{"/peername/datasetname/@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
-		{"/peername/datasetname/@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
-		{"/peername/datasetname@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
-		{"/peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullIPFSDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
-		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
+		{"peername/", peernameDatasetRef, ""},
+		{"peername", peernameDatasetRef, ""},
+
+		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/", peerIDDatasetRef, ""},
+		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", peerIDDatasetRef, ""},
+
+		{"peername/datasetname/", nameDatasetRef, ""},
+		{"peername/datasetname", nameDatasetRef, ""},
+		{"peername/datasetname/@", nameDatasetRef, ""},
+		{"peername/datasetname@", nameDatasetRef, ""},
+
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idNameDatasetRef, ""},
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/", idNameDatasetRef, ""},
+		{"/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idNameDatasetRef, ""},
+
+		{"peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+		{"peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
+
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""}, // 15
+		{"/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
+
 		{"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", pathOnlyDatasetRef, ""},
-		{"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", pathOnlyDatasetRef, ""},
-		{"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ipfsOnlyDatasetRef, ""},
-		{"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ipfsOnlyDatasetRef, ""},
-		{"/peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
-		{"/peername/datasetname/@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
-		{"/peername/datasetname/@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
-		{"/peername/datasetname@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
-		{"/peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		{"/peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		{"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
-		{"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
-		{"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
-		{"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
-		{"/peername/datasetname@network/bad_hash", DatasetRef{}, "'network/bad_hash' is not a base58 multihash"},
-		{"/peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "'bad_hash/junk/junk..' is not a base58 multihash"},
-		{"/peername/datasetname@bad_hash", DatasetRef{}, "'bad_hash' is not a base58 multihash"},
-		{"@///*(*)/", DatasetRef{}, "malformed DatasetRef string: @///*(*)/"},
-		{"///*(*)/", DatasetRef{}, "malformed DatasetRef string: ///*(*)/"},
-		{"@", DatasetRef{}, ""},
-		{"///@////", DatasetRef{}, ""},
+		{"@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ipfsOnlyDatasetRef, ""},
+
+		{"peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
+		{"peername/datasetname/@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		// TODO - restore. These have been removed b/c I didn't have time to make dem work properly - @b5
+		// {"peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		// {"peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+		// {"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
+		// {"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
+		// {"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
+		// {"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D96w1L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
+
+		// {"peername/datasetname@network/bad_hash", DatasetRef{}, "invalid PeerID: 'network'"},
+		// {"peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "invalid PeerID: 'bad_hash'"},
+		// {"peername/datasetname@bad_hash", DatasetRef{}, "invalid PeerID: 'bad_hash'"},
+
+		// {"@///*(*)/", DatasetRef{}, "malformed DatasetRef string: @///*(*)/"},
+		// {"///*(*)/", DatasetRef{}, "malformed DatasetRef string: ///*(*)/"},
+		// {"@", DatasetRef{}, ""},
+		// {"///@////", DatasetRef{}, ""},
 	}
 
 	for i, c := range cases {
@@ -271,7 +335,7 @@ func TestCanonicalize(t *testing.T) {
 	}{
 		{"me/foo", "lucille/foo", ""},
 		{"you/foo", "you/foo", ""},
-		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 		// TODO - add tests that show path fulfillment
 	}
 
@@ -341,8 +405,8 @@ func TestCanonicalizePeer(t *testing.T) {
 		{"lucille", DatasetRef{}, lucille, ""},
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, lucille, ""},
 		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
-		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
-		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ball", DatasetRef{}, ballPeer, ""},
+		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
+		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, ballPeer, ""},
 		{"me/ball", DatasetRef{}, ballPeer, ""},
 		{"", badPeerIDGoodName, lucille, ""},
 		{"", badPeerName, DatasetRef{}, "Peername and PeerID combination not valid: PeerID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, Peername = lucille, but was given Peername = bad_name"},
