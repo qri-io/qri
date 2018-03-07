@@ -9,7 +9,8 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	// peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -50,18 +51,17 @@ func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// TODO: add back connect endpoint
 // ConnectToPeerHandler is the endpoint for explicitly connecting to a peer
-// func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
-// 	switch r.Method {
-// 	case "OPTIONS":
-// 		util.EmptyOkHandler(w, r)
-// 	case "GET":
-// 		h.connectToPeerHandler(w, r)
-// 	default:
-// 		util.NotFoundHandler(w, r)
-// 	}
-// }
+func (h *PeerHandlers) ConnectToPeerHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.connectToPeerHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
 
 // ConnectionsHandler is the endpoint for listing qri & IPFS connections
 func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request) {
@@ -120,21 +120,21 @@ func (h *PeerHandlers) namespaceHandler(w http.ResponseWriter, r *http.Request) 
 
 }
 
-// TODO: add back connect endpoint
-// func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
-// 	b58pid := r.URL.Path[len("/connect/"):]
-// 	pid, err := peer.IDB58Decode(b58pid)
-// 	if err != nil {
-// 		util.WriteErrResponse(w, http.StatusBadRequest, err)
-// 		return
-// 	}
+func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
+	b58pid := r.URL.Path[len("/connect/"):]
 
-// 	res := &profile.Profile{}
-// 	if err := h.ConnectToPeer(&pid, res); err != nil {
-// 		h.log.Infof("error connecting to peer: %s", err.Error())
-// 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-// 		return
-// 	}
+	pid, err := peer.IDB58Decode(b58pid)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
-// 	util.WriteResponse(w, res)
-// }
+	res := &profile.Profile{}
+	if err := h.ConnectToPeer(&pid, res); err != nil {
+		h.log.Infof("error connecting to peer: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}

@@ -162,6 +162,14 @@ func (n *Refstore) names() ([]repo.DatasetRef, error) {
 	for i, rs := range refs {
 		ref, err := repo.ParseDatasetRef(rs)
 		if err != nil {
+			// hold over for
+			// TODO - remove by 0.3.0
+			if err.Error() == "invalid PeerID: 'ipfs'" {
+				ref.PeerID = ""
+				ref.Path = fmt.Sprintf("/ipfs/%s", ref.Path)
+				ns[i] = ref
+				continue
+			}
 			return nil, err
 		}
 		ns[i] = ref

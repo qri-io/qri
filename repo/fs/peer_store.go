@@ -66,7 +66,7 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 
 	ids := id.Pretty()
 	for p, d := range ps {
-		if ids == p {
+		if ids == p || d.ID == ids {
 			return d, nil
 		}
 	}

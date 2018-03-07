@@ -124,6 +124,16 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
 	}
 
+	if profile, err := d.qriNode.Repo.Peers().GetPeer(*pid); err == nil {
+		*pid, err = profile.IPFSPeerID()
+		if err != nil {
+			return fmt.Errorf("error getting IPFS peer ID: %s", err.Error())
+		}
+	}
+	// if err != nil {
+	// 	return fmt.Errorf("error getting peer profile: %s", err.Error())
+	// }
+
 	if err := d.qriNode.ConnectToPeer(*pid); err != nil {
 		return fmt.Errorf("error connecting to peer: %s", err.Error())
 	}
