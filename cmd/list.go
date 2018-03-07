@@ -68,6 +68,11 @@ qri repository.`,
 			err = r.List(p, &refs)
 			ExitIfErr(err)
 
+			for _, ref := range refs {
+				// remove peerID so names print pretty
+				ref.PeerID = ""
+			}
+
 			outformat := cmd.Flag("format").Value.String()
 			switch outformat {
 			case "":

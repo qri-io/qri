@@ -277,6 +277,7 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 
 	if ref.Peername == "me" || ref.Peername == p.Peername || ref.PeerID == p.ID {
 		if ref.Peername == "me" {
+			ref.PeerID = p.ID
 			ref.Peername = p.Peername
 		}
 

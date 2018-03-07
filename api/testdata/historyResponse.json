@@ -1,6 +1,7 @@
 {
   "data": [
     {
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "cities",
       "path": "/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk",
@@ -77,6 +78,7 @@
       }
     },
     {
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "cities",
       "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
@@ -153,6 +155,7 @@
       }
     },
     {
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "cities",
       "path": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
@@ -225,6 +228,7 @@
       }
     },
     {
+      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "peername": "peer",
       "name": "cities",
       "path": "/map/QmbnworAqqiMBGRoQGfnseRJmsK31UGSAFtWD3Doh4b6xq",

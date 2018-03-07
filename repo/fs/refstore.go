@@ -29,13 +29,15 @@ type Refstore struct {
 func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 	var ds *dataset.Dataset
 
-	if put.Peername == "" {
-		return repo.ErrPeernameRequired
+	if put.PeerID == "" {
+		return repo.ErrPeerIDRequired
 	} else if put.Name == "" {
 		return repo.ErrNameRequired
 	} else if put.Path == "" {
 		return repo.ErrPathRequired
 	}
+
+	p := repo.DatasetRef{PeerID: put.PeerID, Name: put.Name, Path: put.Path}
 
 	names, err := n.names()
 	if err != nil {
@@ -43,16 +45,16 @@ func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 	}
 
 	for _, ref := range names {
-		if ref.Equal(put) {
+		if ref.Equal(p) {
 			return nil
-		} else if ref.Match(put) {
+		} else if ref.Match(p) {
 			return repo.ErrNameTaken
 		}
 	}
 
-	names = append(names, put)
+	names = append(names, p)
 	if n.store != nil {
-		ds, err = dsfs.LoadDataset(n.store, datastore.NewKey(put.Path))
+		ds, err = dsfs.LoadDataset(n.store, datastore.NewKey(p.Path))
 		if err != nil {
 			return err
 		}
@@ -60,7 +62,7 @@ func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 
 	if n.index != nil {
 		batch := n.index.NewBatch()
-		err = batch.Index(put.Path, ds)
+		err = batch.Index(p.Path, ds)
 		if err != nil {
 			return err
 		}
@@ -95,7 +97,7 @@ func (n Refstore) DeleteRef(del repo.DatasetRef) error {
 	}
 
 	for i, ref := range names {
-		if ref.Equal(del) {
+		if ref.Match(del) {
 			if ref.Path != "" && n.index != nil {
 				if err := n.index.Delete(ref.Path); err != nil {
 					return err

@@ -326,7 +326,7 @@ func TestCanonicalizePeer(t *testing.T) {
 		Peername: "bad_name",
 	}
 
-	badPeerID := DatasetRef{
+	badPeerIDGoodName := DatasetRef{
 		PeerID:   "badID",
 		Peername: "me",
 	}
@@ -344,7 +344,7 @@ func TestCanonicalizePeer(t *testing.T) {
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ball", DatasetRef{}, ballPeer, ""},
 		{"me/ball", DatasetRef{}, ballPeer, ""},
-		{"", badPeerID, DatasetRef{}, "Peername and PeerID combination not valid: Peername = lucille, PeerID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, but was given PeerID = badID"},
+		{"", badPeerIDGoodName, lucille, ""},
 		{"", badPeerName, DatasetRef{}, "Peername and PeerID combination not valid: PeerID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, Peername = lucille, but was given Peername = bad_name"},
 		{"", DatasetRef{}, DatasetRef{}, ""},
 		// TODO - test CanonicalizePeer works with canonicalizing peer's datasetRefs as well

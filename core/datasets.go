@@ -107,6 +107,10 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			break
 		}
 
+		if err := repo.CanonicalizePeer(r.repo, &replies[i]); err != nil {
+			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
+		}
+
 		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
 			// try one extra time...
@@ -182,6 +186,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	}
 
 	*res = repo.DatasetRef{
+		PeerID:   p.PeerID,
 		Peername: p.Peername,
 		Name:     p.Name,
 		Path:     p.Path,

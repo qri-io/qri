@@ -65,7 +65,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 		if err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
-		if err = mr.PutRef(repo.DatasetRef{Peername: "peer", Name: k, Path: dskey.String()}); err != nil {
+		if err = mr.PutRef(repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: k, Path: dskey.String()}); err != nil {
 			return nil, err
 		}
 	}

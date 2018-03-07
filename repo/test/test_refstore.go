@@ -24,16 +24,16 @@ func runTestRefstore(r repo.Repo) error {
 
 func testInvalidRefs(r repo.Repo) error {
 	err := r.PutRef(repo.DatasetRef{Name: "a", Path: "/path/to/a/thing"})
-	if err != repo.ErrPeernameRequired {
-		return fmt.Errorf("attempting to put empty peername in refstore should return repo.ErrPeernameRequired")
+	if err != repo.ErrPeerIDRequired {
+		return fmt.Errorf("attempting to put empty peerID in refstore should return repo.ErrPeerIDRequired, got: %s", err)
 	}
 
-	err = r.PutRef(repo.DatasetRef{Peername: "peer", Path: "/path/to/a/thing"})
+	err = r.PutRef(repo.DatasetRef{PeerID: "peer", Path: "/path/to/a/thing"})
 	if err != repo.ErrNameRequired {
-		return fmt.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired")
+		return fmt.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired, got: %s", err)
 	}
 
-	err = r.PutRef(repo.DatasetRef{Peername: "peer", Name: "a", Path: ""})
+	err = r.PutRef(repo.DatasetRef{PeerID: "peer", Name: "a", Path: ""})
 	if err != repo.ErrPathRequired {
 		return fmt.Errorf("attempting to put empty path in refstore should return repo.ErrPathRequired, got: %s", err)
 	}
@@ -47,18 +47,18 @@ func testRefs(r repo.Repo) error {
 		return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 	}
 
-	ref := repo.DatasetRef{Peername: "peer", Name: "test", Path: path.String()}
+	ref := repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Name: "test", Path: path.String()}
 
 	if err := r.PutRef(ref); err != nil {
 		return fmt.Errorf("repo.PutName: %s", err.Error())
 	}
 
-	res, err := r.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	res, err := r.GetRef(repo.DatasetRef{PeerID: ref.PeerID, Name: ref.Name})
 	if err != nil {
-		return fmt.Errorf("repo.GetRef with peername/name: %s, ref: %s", err.Error(), repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+		return fmt.Errorf("repo.GetRef with peerID/name: %s, ref: %s", err.Error(), repo.DatasetRef{PeerID: ref.PeerID, Name: ref.Name})
 	}
 	if !ref.Equal(res) {
-		return fmt.Errorf("repo.GetRef with peername/name response mistmatch. expected: %s, got: %s", ref, res)
+		return fmt.Errorf("repo.GetRef with peerID/name response mistmatch. expected: %s, got: %s", ref, res)
 	}
 
 	res, err = r.GetRef(repo.DatasetRef{Path: ref.Path})
@@ -89,11 +89,11 @@ func testRefstore(r repo.Repo) error {
 	aname := "test_namespace_a"
 	bname := "test_namespace_b"
 	refs := []repo.DatasetRef{
-		repo.DatasetRef{Peername: "peer", Name: aname},
-		repo.DatasetRef{Peername: "peer", Name: bname},
-		repo.DatasetRef{Peername: "peer", Name: "test_namespace_c"},
-		repo.DatasetRef{Peername: "peer", Name: "test_namespace_d"},
-		repo.DatasetRef{Peername: "peer", Name: "test_namespace_e"},
+		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: aname},
+		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: bname},
+		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_c"},
+		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_d"},
+		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_e"},
 	}
 	for _, ref := range refs {
 		path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
