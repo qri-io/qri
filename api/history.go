@@ -37,14 +37,14 @@ func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path[len("/history/"):])
+	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
-	if args.Name == "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("name of dataset needed"))
+	if args.Name == "" && args.Path == "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("name of dataset or path needed"))
 		return
 	}
 
