@@ -69,12 +69,11 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 		return err
 	}
 
-	got, err := d.repo.GetRef(ref)
+	_, err = d.repo.GetRef(ref)
 	if err != nil {
 		err = fmt.Errorf("error getting reference '%s': %s", ref, err.Error())
 		return getRemote(err)
 	}
-	ref = got
 
 	log := []repo.DatasetRef{}
 	limit := params.Limit

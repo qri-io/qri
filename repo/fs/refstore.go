@@ -35,9 +35,11 @@ func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 		return repo.ErrNameRequired
 	} else if put.Path == "" {
 		return repo.ErrPathRequired
+	} else if put.Peername == "" {
+		return repo.ErrPeernameRequired
 	}
 
-	p := repo.DatasetRef{PeerID: put.PeerID, Name: put.Name, Path: put.Path}
+	p := repo.DatasetRef{Peername: put.Peername, PeerID: put.PeerID, Name: put.Name, Path: put.Path}
 
 	names, err := n.names()
 	if err != nil {

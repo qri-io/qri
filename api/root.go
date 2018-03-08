@@ -55,15 +55,13 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := repo.DatasetRef{}
+
 	err := mh.dsh.Get(&ref, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	if res.Name == "" {
-		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
-		return
-	}
+
 	if res.IsEmpty() {
 		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
 		return

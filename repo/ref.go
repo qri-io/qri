@@ -70,7 +70,7 @@ func (r DatasetRef) AliasString() (s string) {
 func (r DatasetRef) Match(b DatasetRef) bool {
 	// fmt.Printf("\nr.Peername: %s b.Peername: %s\n", r.Peername, b.Peername)
 	// fmt.Printf("\nr.Name: %s b.Name: %s\n", r.Name, b.Name)
-	return (r.PeerID == b.PeerID || r.Peername == b.Peername) && r.Name == b.Name || r.Path == b.Path
+	return (r.Path != "" && b.Path != "" && r.Path == b.Path) || (r.PeerID == b.PeerID || r.Peername == b.Peername) && r.Name == b.Name
 }
 
 // Equal returns true only if Peername Name and Path are equal
@@ -272,13 +272,29 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return err
 	}
 
-	// Proactively attempt to find dataset path
-	if ref.Path == "" {
-		if got, err := r.GetRef(*ref); err == nil {
-			*ref = got
-			return nil
+	if ref.Path != "" && ref.PeerID != "" && ref.Name != "" && ref.Peername != "" {
+		return nil
+	}
+
+	got, err := r.GetRef(*ref)
+	if err == nil {
+		if ref.Path == "" {
+			ref.Path = got.Path
+		}
+		if ref.PeerID == "" {
+			ref.PeerID = got.PeerID
+		}
+		if ref.Name == "" {
+			ref.Name = got.Name
+		}
+		if ref.Peername == "" {
+			ref.Peername = got.Peername
+		}
+		if ref.Path != got.Path || ref.PeerID != got.PeerID || ref.Name != got.Name || ref.Peername != got.Peername {
+			return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 		}
 	}
+
 	return nil
 }
 

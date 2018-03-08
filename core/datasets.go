@@ -590,9 +590,13 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 		return fmt.Errorf("either peername/name or path is required")
 	}
 
-	*p, err = r.repo.GetRef(*p)
+	ref, err := r.repo.GetRef(*p)
 	if err != nil {
 		return
+	}
+
+	if ref.Path != p.Path {
+		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
 	}
 
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
@@ -735,6 +739,15 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+
+	profile, err := r.repo.Profile()
+	if err != nil {
+		return fmt.Errorf("error getting profile: %s", err)
+	}
+
+	ref.Peername = profile.Peername
+	ref.PeerID = profile.ID
+
 	err = r.repo.PutRef(*ref)
 	if err != nil {
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
@@ -745,11 +758,9 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
 	}
 
-	*res = repo.DatasetRef{
-		Name:    ref.Name,
-		Path:    path.String(),
-		Dataset: ds,
-	}
+	ref.Dataset = ds
+
+	*res = *ref
 	return
 }
 

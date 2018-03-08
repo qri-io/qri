@@ -168,7 +168,7 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path[len("/export/"):])
+	args, err := DatasetRefFromPath(r.URL.Path[len("/export"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -208,10 +208,12 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	if args.Name == "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, errors.New("no dataset name or hash given"))
+
+	if err = repo.CanonicalizeDatasetRef(h.repo, &args); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	err = h.Get(&args, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -382,7 +384,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/add/"):])
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/add"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -507,7 +509,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := DatasetRefFromPath(r.URL.Path[len("/remove/"):])
+	p, err := DatasetRefFromPath(r.URL.Path[len("/remove"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -525,7 +527,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	util.WriteResponse(w, ref.Dataset)
+	util.WriteResponse(w, ref)
 }
 
 // RenameReqParams is an encoding struct

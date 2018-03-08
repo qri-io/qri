@@ -28,12 +28,12 @@ func testInvalidRefs(r repo.Repo) error {
 		return fmt.Errorf("attempting to put empty peerID in refstore should return repo.ErrPeerIDRequired, got: %s", err)
 	}
 
-	err = r.PutRef(repo.DatasetRef{PeerID: "peer", Path: "/path/to/a/thing"})
+	err = r.PutRef(repo.DatasetRef{PeerID: "peerID", Peername: "peer", Path: "/path/to/a/thing"})
 	if err != repo.ErrNameRequired {
 		return fmt.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired, got: %s", err)
 	}
 
-	err = r.PutRef(repo.DatasetRef{PeerID: "peer", Name: "a", Path: ""})
+	err = r.PutRef(repo.DatasetRef{PeerID: "peerID", Peername: "peer", Name: "a", Path: ""})
 	if err != repo.ErrPathRequired {
 		return fmt.Errorf("attempting to put empty path in refstore should return repo.ErrPathRequired, got: %s", err)
 	}
@@ -47,7 +47,7 @@ func testRefs(r repo.Repo) error {
 		return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 	}
 
-	ref := repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Name: "test", Path: path.String()}
+	ref := repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Name: "test", Path: path.String(), Peername: "peer"}
 
 	if err := r.PutRef(ref); err != nil {
 		return fmt.Errorf("repo.PutName: %s", err.Error())
@@ -89,11 +89,11 @@ func testRefstore(r repo.Repo) error {
 	aname := "test_namespace_a"
 	bname := "test_namespace_b"
 	refs := []repo.DatasetRef{
-		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: aname},
-		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: bname},
-		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_c"},
-		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_d"},
-		repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_e"},
+		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: aname},
+		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: bname},
+		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_c"},
+		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_d"},
+		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_e"},
 	}
 	for _, ref := range refs {
 		path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
