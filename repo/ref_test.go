@@ -321,7 +321,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 	}
 }
 
-func TestCanonicalize(t *testing.T) {
+func TestCanonicalizeDatasetRef(t *testing.T) {
 	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, memfs.NewMapstore(), MemPeers{}, &analytics.Memstore{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
@@ -337,6 +337,7 @@ func TestCanonicalize(t *testing.T) {
 		{"you/foo", "you/foo", ""},
 		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 		// TODO - add tests that show path fulfillment
+		// {"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	for i, c := range cases {
