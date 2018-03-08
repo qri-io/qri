@@ -57,20 +57,44 @@ func TestServerRoutes(t *testing.T) {
 	}{
 		{"GET", "/status", "", "statusResponse.json", 200},
 		{"GET", "/list", "", "listResponse.json", 200},
+
+		// profile
 		{"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
 		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
+
 		{"POST", "/add", "addRequestFromURL.json", "addResponseFromURL.json", 200},
+
+		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
 		{"GET", "/me/family_relationships/at/map/QmfMTGQKjCcy5nEJwMCQNaqNHVGFTyMdhvWk9pQUXSBD3Z", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmfMTGQKjCcy5nEJwMCQNaqNHVGFTyMdhvWk9pQUXSBD3Z", "", "getResponseFamilyRelationships.json", 200},
+
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
+
 		{"GET", "/export/me/cities", "", "", 200},
+
 		{"POST", "/save/me/cities", "saveMetaRequest.json", "saveMetaResponse.json", 200},
+
+		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
+		{"GET", "/history/me/cities/at/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk", "", "historyResponseAt.json", 200},
+
 		{"GET", "/export/me/cities", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa", "", "", 200},
+		{"GET", "/export/at/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa", "", "", 200},
+
+		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
+
+		// remove
+		{"POST", "/remove/me/cities/at/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/at/map/QmRLpDXcrccTzNCwWXyyHRZCmSzDxPoMX91KtLW3szmmkX", "", "removeResponseByPath.json", 200},
+
 		{"GET", "/connect/", "", "", 400},
+
 		// blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},
