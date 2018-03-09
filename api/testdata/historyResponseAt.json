@@ -4,7 +4,7 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk",
+      "path": "/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -38,12 +38,12 @@
           "qri": "md:0",
           "title": "Updated Title"
         },
-        "previousPath": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
+        "previousPath": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
           "entries": 6,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -81,7 +81,7 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
+      "path": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -115,12 +115,12 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
+        "previousPath": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
           "entries": 6,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -158,7 +158,7 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
+      "path": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -188,12 +188,12 @@
           },
           "qri": "md:0"
         },
-        "previousPath": "/map/QmbnworAqqiMBGRoQGfnseRJmsK31UGSAFtWD3Doh4b6xq",
+        "previousPath": "/map/QmdDXJjs6rBQGFUCgT3aGTv3ScXSKR5RrupmfLLch8uXPj",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
           "entries": 6,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -231,7 +231,7 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmbnworAqqiMBGRoQGfnseRJmsK31UGSAFtWD3Doh4b6xq",
+      "path": "/map/QmdDXJjs6rBQGFUCgT3aGTv3ScXSKR5RrupmfLLch8uXPj",
       "dataset": {
         "abstract": {
           "qri": "ds:0",
@@ -263,7 +263,7 @@
         "structure": {
           "checksum": "QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
           "entries": 5,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -302,6 +302,6 @@
     "code": 200
   },
   "pagination": {
-    "nextUrl": "/history/at/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk"
+    "nextUrl": "/history/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV"
   }
 }

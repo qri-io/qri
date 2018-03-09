@@ -3,7 +3,7 @@
     "peername": "peer",
     "name": "family_relationships",
     "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-    "path": "/map/QmfMTGQKjCcy5nEJwMCQNaqNHVGFTyMdhvWk9pQUXSBD3Z",
+    "path": "/map/QmY5Rm6HjXd2buGVbA5LLj7EPuMcbTiXoh9KRBRGEHxwvA",
     "dataset": {
       "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
       "commit": {
@@ -22,7 +22,7 @@
       "structure": {
         "checksum": "QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
         "entries": 2,
-        "errCount": 1,
+        "errCount": 0,
         "format": "csv",
         "formatConfig": {
           "headerRow": true

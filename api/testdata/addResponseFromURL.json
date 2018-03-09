@@ -26,7 +26,7 @@
     "structure": {
       "checksum": "QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
       "entries": 2,
-      "errCount": 1,
+      "errCount": 0,
       "format": "csv",
       "formatConfig": {
         "headerRow": true

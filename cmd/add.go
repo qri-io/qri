@@ -132,7 +132,8 @@ func initDataset(name repo.DatasetRef) {
 			printWarning("Validation Error Detail:")
 			data, err := ioutil.ReadAll(dataFile)
 			ExitIfErr(err)
-			errorList := ref.Dataset.Structure.Schema.ValidateBytes(data)
+			errorList, err := ref.Dataset.Structure.Schema.ValidateBytes(data)
+			ExitIfErr(err)
 			for i, validationErr := range errorList {
 				printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
 			}

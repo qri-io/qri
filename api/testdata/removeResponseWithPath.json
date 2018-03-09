@@ -3,7 +3,7 @@
     "peername": "peer",
     "name": "cities",
     "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-    "path": "/map/QmY6DkbrhHEBSMb1DqqPSUhuVo3BoNadAEGDxSveBZKDrk",
+    "path": "/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV",
     "dataset": {
       "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
       "commit": {
@@ -27,12 +27,12 @@
         "qri": "md:0",
         "title": "Updated Title"
       },
-      "previousPath": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
+      "previousPath": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
       "qri": "ds:0",
       "structure": {
         "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
         "entries": 6,
-        "errCount": 1,
+        "errCount": 0,
         "format": "csv",
         "formatConfig": {
           "headerRow": true
