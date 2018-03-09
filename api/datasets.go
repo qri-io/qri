@@ -591,7 +591,19 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 // TODO - should move this into core
 const defaultDataLimit = 100
 
+// DataResponse is the struct used to respond to api requests made to the /data endpoint
+// It is necessary because we need to include the 'path' field in the response
+type DataResponse struct {
+	Path string          `json:"path"`
+	Data json.RawMessage `json:"data"`
+}
+
 func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
+	d, err := DatasetRefFromPath(r.URL.Path[len("/data"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
 
 	limit, err := util.ReqParamInt("limit", r)
 	if err != nil {
@@ -605,7 +617,7 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := &core.StructuredDataParams{
-		Path:   r.URL.Path[len("/data"):],
+		Path:   d.Path,
 		Format: dataset.JSONDataFormat,
 		Limit:  limit,
 		Offset: offset,
@@ -619,7 +631,11 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := util.PageFromRequest(r)
-	if err := util.WritePageResponse(w, json.RawMessage(data.Data), r, page); err != nil {
+	dataResponse := DataResponse{
+		Path: p.Path,
+		Data: json.RawMessage(data.Data),
+	}
+	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		h.log.Infof("error writing repsonse: %s", err.Error())
 	}
 }
