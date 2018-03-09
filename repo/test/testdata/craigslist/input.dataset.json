@@ -23897,7 +23897,7 @@
         }
       },
       "title": "Apartment",
-      "type": "object"
+      "type": "array"
     }
   }
 }

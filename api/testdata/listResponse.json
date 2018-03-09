@@ -4,7 +4,7 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmVZJTaRsiSc5UkpBSzH4yFQXvKKWGkjvGh5rNzueWDNQa",
+      "path": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
@@ -28,12 +28,12 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmQyHfc5iro93F5caS9XhkzEf5o6uq1Zz2jxc3Qu2cWNP2",
+        "previousPath": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
           "entries": 6,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -71,7 +71,7 @@
       "peername": "peer",
       "name": "counter",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/Qmd4RtQrDGVaF1aArH8j74VGwU4q5ebiytnGYmBbNRLZjp",
+      "path": "/map/QmctxMHe5oLVNCrUhybMFyDkAx43rHzCgDYtw6DNqSg3j8",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
@@ -89,7 +89,7 @@
         "structure": {
           "checksum": "QmNYbRM9431h93FsPBhtYPz4yhw44kyJBDD2tvjF6eo9KA",
           "entries": 20,
-          "errCount": 1,
+          "errCount": 0,
           "format": "csv",
           "formatConfig": {
             "headerRow": true
@@ -115,7 +115,7 @@
       "peername": "peer",
       "name": "craigslist",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmRLpDXcrccTzNCwWXyyHRZCmSzDxPoMX91KtLW3szmmkX",
+      "path": "/map/QmU5Tx7ZA3WUB4Yd3nMnUgAjCb1NVp323uLYi9q5AQYFg8",
       "dataset": {
         "abstract": "/map/QmW4cDbQYgie835Ro5uGfAeRU4PWPGcbuS5yn5uFRP4ddZ",
         "commit": {
@@ -129,7 +129,7 @@
         "structure": {
           "checksum": "QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
           "entries": 1200,
-          "errCount": 1,
+          "errCount": 0,
           "format": "json",
           "length": 520254,
           "qri": "st:0",
@@ -24018,7 +24018,7 @@
               }
             },
             "title": "Apartment",
-            "type": "object"
+            "type": "array"
           }
         }
       }
@@ -24027,7 +24027,7 @@
       "peername": "peer",
       "name": "movies",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmRkFb9FJeq8PUxnPY8UP5esveeCygDnx34suFv6BiG3Wr",
+      "path": "/map/QmayR8kf12wtGP4VTQr7fyKiCSZunjGLgriXxuPfUZf9h5",
       "dataset": {
         "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
@@ -24045,7 +24045,7 @@
         "structure": {
           "checksum": "QmTQCPinsdBy9FiT8iuxz45XFA19K6rUbAkjAtBVszQ7Ke",
           "entries": 5043,
-          "errCount": 1,
+          "errCount": 15,
           "format": "csv",
           "formatConfig": {
             "headerRow": true

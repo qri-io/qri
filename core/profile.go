@@ -186,7 +186,7 @@ func (p *Profile) ValidateProfile() error {
 	if err != nil {
 		return fmt.Errorf("error marshaling profile to json: %s", err)
 	}
-	if errors := rs.ValidateBytes(profile); len(errors) > 0 {
+	if errors, _ := rs.ValidateBytes(profile); len(errors) > 0 {
 		return fmt.Errorf("%s", errors)
 	}
 	return nil

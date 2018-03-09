@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
-	"github.com/qri-io/dataset/vals"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
@@ -663,17 +662,17 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		Schema:       dataset.BaseSchemaArray,
 	})
 
-	buf, err := dsio.NewValueBuffer(st)
+	buf, err := dsio.NewEntryBuffer(st)
 	if err != nil {
 		return fmt.Errorf("error allocating result buffer: %s", err)
 	}
-	rr, err := dsio.NewValueReader(ds.Structure, file)
+	rr, err := dsio.NewEntryReader(ds.Structure, file)
 	if err != nil {
 		return fmt.Errorf("error allocating data reader: %s", err)
 	}
 
 	for i := 0; i >= 0; i++ {
-		val, err := rr.ReadValue()
+		val, err := rr.ReadEntry()
 		if err != nil {
 			if err.Error() == "EOF" {
 				break
@@ -683,7 +682,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		if !p.All && i < p.Offset {
 			continue
 		}
-		if err := buf.WriteValue(val); err != nil {
+		if err := buf.WriteEntry(val); err != nil {
 			return fmt.Errorf("error writing value to buffer: %s", err.Error())
 		}
 		read++
@@ -846,43 +845,13 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	if st.Format != dataset.JSONDataFormat {
-		// convert to JSON bytes if necessary
-		vr, e := dsio.NewValueReader(st, bytes.NewBuffer(data))
-		if e != nil {
-			return fmt.Errorf("error creating value reader: %s", err.Error())
-		}
-
-		buf, err := dsio.NewValueBuffer(&dataset.Structure{
-			Format: dataset.JSONDataFormat,
-			Schema: st.Schema,
-		})
-		if err != nil {
-			return fmt.Errorf("error allocating data buffer: %s", err.Error())
-		}
-
-		err = dsio.EachValue(vr, func(i int, val vals.Value, err error) error {
-			if err != nil {
-				return fmt.Errorf("error reading row %d: %s", i, err.Error())
-			}
-			return buf.WriteValue(val)
-		})
-		if err != nil {
-			return fmt.Errorf("error reading values: %s", err.Error())
-		}
-
-		if e := buf.Close(); e != nil {
-			return fmt.Errorf("error closing buffer: %s", e.Error())
-		}
-		data = buf.Bytes()
+	er, err := dsio.NewEntryReader(st, bytes.NewBuffer(data))
+	if err != nil {
+		return fmt.Errorf("error reading data: %s", err.Error())
 	}
 
-	if len(data) == 0 {
-		// TODO - wut?
-		return fmt.Errorf("err reading data")
-	}
+	*errors, err = validate.EntryReader(er)
 
-	*errors = st.Schema.ValidateBytes(data)
 	return
 }
 

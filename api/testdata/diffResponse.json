@@ -2,63 +2,12 @@
   "data": {
     "meta": [
       {
-        "Position": "keywords",
-        "OldValue": null,
-        "NewValue": [
-          "keyword1",
-          "keyword2"
-        ]
-      },
-      {
         "Position": "title",
-        "Value": "test title"
+        "OldValue": "test title",
+        "NewValue": "Updated Title"
       }
     ],
-    "structure": [
-      {
-        "Position": "checksum",
-        "OldValue": "QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
-        "NewValue": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
-        "Diff": [
-          {}
-        ]
-      },
-      {
-        "Position": "entries",
-        "OldValue": 5,
-        "NewValue": 6
-      },
-      {
-        "Position": "length",
-        "OldValue": 154,
-        "NewValue": 186
-      },
-      {
-        "Position": "schema",
-        "Deltas": [
-          {
-            "Position": "items",
-            "Deltas": [
-              {
-                "Position": "items",
-                "Deltas": [
-                  {
-                    "Position": 3,
-                    "Deltas": [
-                      {
-                        "Position": "type",
-                        "OldValue": "boolean",
-                        "NewValue": "string"
-                      }
-                    ]
-                  }
-                ]
-              }
-            ]
-          }
-        ]
-      }
-    ]
+    "structure": []
   },
   "meta": {
     "code": 200
