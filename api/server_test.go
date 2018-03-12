@@ -67,31 +67,29 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmY5Rm6HjXd2buGVbA5LLj7EPuMcbTiXoh9KRBRGEHxwvA", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmY5Rm6HjXd2buGVbA5LLj7EPuMcbTiXoh9KRBRGEHxwvA", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
-
-		// {"GET", "/export/me/cities", "", "", 200},
 
 		{"POST", "/save/me/cities", "saveMetaRequest.json", "saveMetaResponse.json", 200},
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "historyResponseAt.json", 200},
 
-		/*14*/ {"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV", "", "", 200},
-		{"GET", "/export/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV", "", "", 200},
+		{"GET", "/export/me/cities", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "", 200},
+		{"GET", "/export/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV", "", "removeResponseWithPath.json", 200},
-		{"POST", "/remove/at/map/QmY5Rm6HjXd2buGVbA5LLj7EPuMcbTiXoh9KRBRGEHxwvA", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "removeResponseByPath.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 
@@ -142,6 +140,11 @@ func TestServerRoutes(t *testing.T) {
 			continue
 		}
 
+		if res.StatusCode != c.resStatus {
+			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
+			continue
+		}
+
 		if c.resBodyPath == "" {
 			resBody = nil
 		} else {
@@ -175,11 +178,6 @@ func TestServerRoutes(t *testing.T) {
 				t.Logf("error written to: %s", path)
 				continue
 			}
-		}
-
-		if res.StatusCode != c.resStatus {
-			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
-			continue
 		}
 	}
 }

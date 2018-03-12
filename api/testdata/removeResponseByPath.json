@@ -3,9 +3,8 @@
     "peername": "peer",
     "name": "family_relationships",
     "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-    "path": "/map/QmY5Rm6HjXd2buGVbA5LLj7EPuMcbTiXoh9KRBRGEHxwvA",
+    "path": "/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N",
     "dataset": {
-      "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
       "commit": {
         "qri": "cm:0",
         "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",

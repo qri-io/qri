@@ -2,19 +2,8 @@
   "data": {
     "peername": "me",
     "name": "cities",
-    "path": "/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV",
+    "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
     "dataset": {
-      "abstract": {
-        "qri": "ds:0",
-        "structure": {
-          "errCount": 0,
-          "format": "csv",
-          "formatConfig": {
-            "headerRow": true
-          },
-          "qri": "st:0"
-        }
-      },
       "commit": {
         "message": "\t- modified title\n",
         "qri": "cm:0",
@@ -36,7 +25,7 @@
         "qri": "md:0",
         "title": "Updated Title"
       },
-      "previousPath": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
+      "previousPath": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "qri": "ds:0",
       "structure": {
         "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",

@@ -4,19 +4,8 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmUC8bnchH1TjWTxzvPzLkksdH7cX4EpvNkXmeK1GSqStV",
+      "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
       "dataset": {
-        "abstract": {
-          "qri": "ds:0",
-          "structure": {
-            "errCount": 0,
-            "format": "csv",
-            "formatConfig": {
-              "headerRow": true
-            },
-            "qri": "st:0"
-          }
-        },
         "commit": {
           "message": "\t- modified title\n",
           "qri": "cm:0",
@@ -38,7 +27,7 @@
           "qri": "md:0",
           "title": "Updated Title"
         },
-        "previousPath": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
+        "previousPath": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -81,19 +70,8 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
+      "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "dataset": {
-        "abstract": {
-          "qri": "ds:0",
-          "structure": {
-            "errCount": 0,
-            "format": "csv",
-            "formatConfig": {
-              "headerRow": true
-            },
-            "qri": "st:0"
-          }
-        },
         "commit": {
           "message": "added title and keywords",
           "qri": "cm:0",
@@ -115,7 +93,7 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
+        "previousPath": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -158,19 +136,8 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
+      "path": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
       "dataset": {
-        "abstract": {
-          "qri": "ds:0",
-          "structure": {
-            "errCount": 0,
-            "format": "csv",
-            "formatConfig": {
-              "headerRow": true
-            },
-            "qri": "st:0"
-          }
-        },
         "commit": {
           "message": "want to expand this list to include more cities",
           "qri": "cm:0",
@@ -188,7 +155,7 @@
           },
           "qri": "md:0"
         },
-        "previousPath": "/map/QmdDXJjs6rBQGFUCgT3aGTv3ScXSKR5RrupmfLLch8uXPj",
+        "previousPath": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -231,19 +198,8 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmdDXJjs6rBQGFUCgT3aGTv3ScXSKR5RrupmfLLch8uXPj",
+      "path": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
       "dataset": {
-        "abstract": {
-          "qri": "ds:0",
-          "structure": {
-            "errCount": 0,
-            "format": "csv",
-            "formatConfig": {
-              "headerRow": true
-            },
-            "qri": "st:0"
-          }
-        },
         "commit": {
           "qri": "cm:0",
           "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
