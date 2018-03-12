@@ -5,11 +5,12 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/qri-io/dataset"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/qri-io/dataset"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs/memfs"
@@ -605,6 +606,10 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := repo.CanonicalizeDatasetRef(h.repo, &d); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	}
+
 	limit, err := util.ReqParamInt("limit", r)
 	if err != nil {
 		limit = defaultDataLimit
@@ -632,7 +637,7 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 
 	page := util.PageFromRequest(r)
 	dataResponse := DataResponse{
-		Path: p.Path,
+		Path: data.Path,
 		Data: json.RawMessage(data.Data),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {

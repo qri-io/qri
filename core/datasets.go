@@ -696,7 +696,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	}
 
 	*data = StructuredData{
-		Path: p.Path,
+		Path: ds.DataPath,
 		Data: buf.Bytes(),
 	}
 	return nil
