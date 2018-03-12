@@ -21,6 +21,7 @@ import (
 // use these for first-round bootstrapping.
 var DefaultBootstrapAddresses = []string{
 	"/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb", // mojo
+	"/ip4/35.193.162.149/tcp/4001/ipfs/QmTZxETL4YCCzB1yFx4GT1te68henVHD1XPQMkHZ1N22mm", // epa
 }
 
 // Bootstrap samples a subset of peers & requests their peers list

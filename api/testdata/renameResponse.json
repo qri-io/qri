@@ -2,9 +2,8 @@
   "data": {
     "peername": "peer",
     "name": "movies_new",
-    "path": "/map/QmayR8kf12wtGP4VTQr7fyKiCSZunjGLgriXxuPfUZf9h5",
+    "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
     "dataset": {
-      "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
       "commit": {
         "qri": "cm:0",
         "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",

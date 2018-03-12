@@ -270,7 +270,7 @@ func defaultCfgBytes() []byte {
 		// these hashes should always/highly available
 		DefaultDatasets: []string{
 			// fivethirtyeight comic characters
-			"me/comic_characters@/ipfs/QmcqkHFA2LujZxY38dYZKmxsUstN4unk95azBjwEhwrnM6/dataset.json",
+			// "me/comic_characters@/ipfs/QmcqkHFA2LujZxY38dYZKmxsUstN4unk95azBjwEhwrnM6/dataset.json",
 		},
 	}
 

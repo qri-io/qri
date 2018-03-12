@@ -4,9 +4,8 @@
       "peername": "peer",
       "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmYeLPcKPZEyvQzhVgCDcJ8kWjAipwbuw5bB4kFAkrCnmA",
+      "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "dataset": {
-        "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
           "message": "added title and keywords",
           "qri": "cm:0",
@@ -28,7 +27,7 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "previousPath": "/map/QmbvCThNst2f2JqG9VLorbqaDpH2fXo6AawFHAoZgqd1iX",
+        "previousPath": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -71,9 +70,8 @@
       "peername": "peer",
       "name": "counter",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmctxMHe5oLVNCrUhybMFyDkAx43rHzCgDYtw6DNqSg3j8",
+      "path": "/map/Qmdg3KMzTT7UwxBZu8BGqBdF4YXM17rN51hn3hbQkJWT9v",
       "dataset": {
-        "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
           "qri": "cm:0",
           "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
@@ -115,9 +113,8 @@
       "peername": "peer",
       "name": "craigslist",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmU5Tx7ZA3WUB4Yd3nMnUgAjCb1NVp323uLYi9q5AQYFg8",
+      "path": "/map/QmdV6TqbjvwDqZrqPDyXeMYujEZaiaG18YjXVRhD66VFfZ",
       "dataset": {
-        "abstract": "/map/QmW4cDbQYgie835Ro5uGfAeRU4PWPGcbuS5yn5uFRP4ddZ",
         "commit": {
           "qri": "cm:0",
           "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
@@ -24027,9 +24024,8 @@
       "peername": "peer",
       "name": "movies",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-      "path": "/map/QmayR8kf12wtGP4VTQr7fyKiCSZunjGLgriXxuPfUZf9h5",
+      "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
       "dataset": {
-        "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
         "commit": {
           "qri": "cm:0",
           "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
