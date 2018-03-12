@@ -1,3 +1,35 @@
+<a name="0.2.0"></a>
+# [0.2.0](https://github.com/qri-io/qri/compare/v0.1.2...v0.2.0) (2018-03-12)
+
+
+### Bug Fixes
+
+* **api*:** update history, add, remove, info to work with hashes ([60f79fd](https://github.com/qri-io/qri/commit/60f79fd)), closes [#222](https://github.com/qri-io/qri/issues/222)
+* **CanonicalizeDatatsetRef:** should hydrate datasetRef if given path ([bf12ac4](https://github.com/qri-io/qri/commit/bf12ac4))
+* **cmd.Setup:** added back env var to supply IPFS config on setup ([fb19615](https://github.com/qri-io/qri/commit/fb19615))
+* **data api endpoint:** need path in response to be able to normalize data on frontend ([dc0d1f0](https://github.com/qri-io/qri/commit/dc0d1f0))
+* **DatasetRef:** fixes to datasetRef handling ([134e0f9](https://github.com/qri-io/qri/commit/134e0f9))
+* **refstore:** fix bug that allowed ref to save without peername ([4698dab](https://github.com/qri-io/qri/commit/4698dab))
+* **Validate:** completely overhaul validation to make it work properly ([8af5653](https://github.com/qri-io/qri/commit/8af5653)), closes [#290](https://github.com/qri-io/qri/issues/290) [#290](https://github.com/qri-io/qri/issues/290)
+
+
+### Features
+
+* added color diff output that works with global color flags ([d46afac](https://github.com/qri-io/qri/commit/d46afac))
+* **private flag:** add private flag to cli and api add ([6ffee3d](https://github.com/qri-io/qri/commit/6ffee3d))
+* color diff output ([7f38363](https://github.com/qri-io/qri/commit/7f38363))
+* **api.List:** allow /list/[peer_id] ([a2771f9](https://github.com/qri-io/qri/commit/a2771f9))
+* **CBOR:** added experimental support for CBOR data format ([6ac1c0e](https://github.com/qri-io/qri/commit/6ac1c0e))
+* **cmd.data:** added a 'data' command to the CLI to match /data API endpoint ([51d36d2](https://github.com/qri-io/qri/commit/51d36d2))
+* **diff:** add `/diff` api endpoint ([91c3d22](https://github.com/qri-io/qri/commit/91c3d22))
+* **PeerID:** add PeerID to datasetRef ([005814e](https://github.com/qri-io/qri/commit/005814e))
+* **save:** add `/save/` endpoint ([8563835](https://github.com/qri-io/qri/commit/8563835))
+* **SelfUpdate:** added check for version being out of date ([0d87261](https://github.com/qri-io/qri/commit/0d87261))
+* **webapp:** add local webapp server on port 2505 ([e38951d](https://github.com/qri-io/qri/commit/e38951d))
+* **webapp:** fetch webapp hash via dnslink ([101809d](https://github.com/qri-io/qri/commit/101809d))
+
+
+
 <a name="0.1.2"></a>
 # [0.1.2](https://github.com/qri-io/qri/compare/v0.1.1...v0.1.2) (2018-02-19)
 
