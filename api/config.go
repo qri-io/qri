@@ -31,7 +31,7 @@ func DefaultConfig() *Config {
 			// this is fetched and replaced via dnslink when the webapp server starts
 			// the value provided here is just a sensible fallback for when dnslink lookup fails,
 			// pointing to a known prior version of the the webapp
-			"http://localhost:2503/ipfs/QmZryqs5RwMwTHuD3AeBWStDfYJWGFbziEwot2aSYoeJFd",
+			"http://localhost:2503/ipfs/QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS",
 		},
 	}
 }
