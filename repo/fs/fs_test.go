@@ -5,13 +5,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo/test"
 )
 
 func TestRepo(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_repo_test")
-	r, err := NewRepo(memfs.NewMapstore(), path, "test_repo_id")
+	r, err := NewRepo(cafs.NewMapstore(), path, "test_repo_id")
 	if err != nil {
 		t.Errorf("error creating repo: %s", err.Error())
 		return

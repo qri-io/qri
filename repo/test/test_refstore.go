@@ -2,9 +2,9 @@ package test
 
 import (
 	"fmt"
-	"github.com/ipfs/go-datastore"
 
-	"github.com/qri-io/cafs/memfs"
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -42,7 +42,7 @@ func testInvalidRefs(r repo.Repo) error {
 }
 
 func testRefs(r repo.Repo) error {
-	path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
+	path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
 	if err != nil {
 		return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 	}
@@ -96,7 +96,7 @@ func testRefstore(r repo.Repo) error {
 		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_e"},
 	}
 	for _, ref := range refs {
-		path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
+		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
 		if err != nil {
 			return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 		}

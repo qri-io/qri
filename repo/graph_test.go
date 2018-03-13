@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo/profile"
@@ -111,7 +111,7 @@ func makeTestRepo() (Repo, error) {
 		},
 		PreviousPath: "/",
 	}
-	store := memfs.NewMapstore()
+	store := cafs.NewMapstore()
 	p := &profile.Profile{}
 
 	r, err := NewMemRepo(p, store, nil, nil)
@@ -119,7 +119,7 @@ func makeTestRepo() (Repo, error) {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}
 
-	data1f := memfs.NewMemfileBytes("data1", []byte("dataset_1"))
+	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))
 	ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
@@ -127,7 +127,7 @@ func makeTestRepo() (Repo, error) {
 	r.PutDataset(ds1p, ds1)
 	r.PutRef(DatasetRef{Peername: "peer", Name: "ds1", Path: ds1p.String()})
 
-	data2f := memfs.NewMemfileBytes("data2", []byte("dataset_2"))
+	data2f := cafs.NewMemfileBytes("data2", []byte("dataset_2"))
 	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())

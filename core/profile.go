@@ -10,7 +10,7 @@ import (
 	"os"
 	"time"
 
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -271,7 +271,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("file size too large. max size is 250kb")
 	}
 
-	path, err := r.repo.Store().Put(memfs.NewMemfileBytes(p.Filename, data), true)
+	path, err := r.repo.Store().Put(cafs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
@@ -312,7 +312,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("file size too large. max size is 2Mb")
 	}
 
-	path, err := r.repo.Store().Put(memfs.NewMemfileBytes(p.Filename, data), true)
+	path, err := r.repo.Store().Put(cafs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}

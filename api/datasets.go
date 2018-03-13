@@ -13,7 +13,8 @@ import (
 	"github.com/qri-io/dataset"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
@@ -350,7 +351,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if infile != nil {
-			p.Data = memfs.NewMemfileReader(fileHeader.Filename, infile)
+			p.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
 			p.DataFilename = fileHeader.Filename
 		}
 
@@ -360,7 +361,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if metadatafile != nil {
-			p.Metadata = memfs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+			p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
 			p.MetadataFilename = metadataHeader.Filename
 		}
 
@@ -370,7 +371,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if structurefile != nil {
-			p.Structure = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
+			p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
 			p.StructureFilename = structureHeader.Filename
 		}
 	}
@@ -450,15 +451,15 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 		//  TODO - restore when we are sure we can accept json data with no errors
 		// if len(saveParams.Data) != 0 {
-		// 	save.Data = memfs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
+		// 	save.Data = cafs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
 		// 	save.DataFilename = "data.json"
 		// }
 		if len(saveParams.Meta) != 0 {
-			save.Metadata = memfs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
+			save.Metadata = cafs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
 			save.MetadataFilename = "meta.json"
 		}
 		if len(saveParams.Structure) != 0 {
-			save.Structure = memfs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
+			save.Structure = cafs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
 			save.StructureFilename = "structure.json"
 		}
 	} else {
@@ -476,7 +477,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if infile != nil {
-			save.Data = memfs.NewMemfileReader(fileHeader.Filename, infile)
+			save.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
 			save.DataFilename = fileHeader.Filename
 		}
 
@@ -486,7 +487,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if metadatafile != nil {
-			save.Metadata = memfs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+			save.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
 			save.MetadataFilename = metadataHeader.Filename
 		}
 
@@ -496,7 +497,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if structurefile != nil {
-			save.Structure = memfs.NewMemfileReader(structureHeader.Filename, structurefile)
+			save.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
 			save.StructureFilename = structureHeader.Filename
 		}
 	}

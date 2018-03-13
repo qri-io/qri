@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/analytics"
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 
@@ -41,7 +41,7 @@ func NewTestRepo() (repo.Repo, error) {
 	repoID++
 	return repo.NewMemRepo(&profile.Profile{
 		Peername: fmt.Sprintf("tes-repo-%d", repoID),
-	}, memfs.NewMapstore(), repo.MemPeers{}, &analytics.Memstore{})
+	}, cafs.NewMapstore(), repo.MemPeers{}, &analytics.Memstore{})
 }
 
 func NewTestNetwork(ctx context.Context, t *testing.T, num int) ([]*QriNode, error) {

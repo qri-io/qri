@@ -4,7 +4,7 @@ package test
 // 	"fmt"
 // 	"github.com/ipfs/go-datastore"
 
-// 	"github.com/qri-io/cafs/memfs"
+// 	"github.com/qri-io/cafs"
 // 	"github.com/qri-io/qri/repo"
 // )
 
@@ -32,7 +32,7 @@ package test
 
 // func testNames(r repo.Repo) error {
 // 	name := "test"
-// 	path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
+// 	path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
 // 	if err != nil {
 // 		return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 // 	}
@@ -78,7 +78,7 @@ package test
 // 		&repo.DatasetRef{Name: "test_namespace_e"},
 // 	}
 // 	for _, ref := range refs {
-// 		path, err := r.Store().Put(memfs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
+// 		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
 // 		if err != nil {
 // 			return fmt.Errorf("error putting test file in datastore: %s", err.Error())
 // 		}

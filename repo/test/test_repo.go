@@ -9,7 +9,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/analytics"
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -34,7 +34,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 	}
 
-	ms := memfs.NewMapstore()
+	ms := cafs.NewMapstore()
 	mr, err = repo.NewMemRepo(p, ms, repo.MemPeers{}, &analytics.Memstore{})
 	if err != nil {
 		return
@@ -59,7 +59,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 			return nil, err
 		}
 
-		datafile := memfs.NewMemfileBytes(tc.DataFilename, tc.Data)
+		datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
 
 		dskey, err = mr.CreateDataset(tc.Input, datafile, true)
 		if err != nil {
@@ -79,7 +79,7 @@ func pkgPath(paths ...string) string {
 }
 
 // BadDataFile is a bunch of bad CSV data
-var BadDataFile = memfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
+var BadDataFile = cafs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
 f;lajsmf 
@@ -88,19 +88,19 @@ a
 sdlfj asdf`))
 
 // BadDataFormatFile has weird line lengths
-var BadDataFormatFile = memfs.NewMemfileBytes("abc.csv", []byte(`
+var BadDataFormatFile = cafs.NewMemfileBytes("abc.csv", []byte(`
 "colA","colB","colC","colD"
 1,2,3,4
 1,2,3`))
 
 // BadStructureFile has double-named columns
-var BadStructureFile = memfs.NewMemfileBytes("badStructure.csv", []byte(`
+var BadStructureFile = cafs.NewMemfileBytes("badStructure.csv", []byte(`
 colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))
 
 // JobsByAutomationFile is real, valid data
-var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
+var JobsByAutomationFile = cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"
@@ -136,7 +136,7 @@ var JobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_prob
 // JobsByAutomationFile2 is a copy of JobsByAutomationFile
 // TODO - refactor to just give the raw data and a convenience method to create files
 // As these stand they can only be used once
-var JobsByAutomationFile2 = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
+var JobsByAutomationFile2 = cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"

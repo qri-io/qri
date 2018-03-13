@@ -4,14 +4,14 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"github.com/qri-io/jsonschema"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/cafs/memfs"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
+	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -394,10 +394,10 @@ Pirates of the Caribbean: At World's End ,foo
 	  }
 	}`)
 
-	dataf := memfs.NewMemfileBytes("data.csv", movieb)
-	dataf2 := memfs.NewMemfileBytes("data.csv", movieb)
-	schemaf := memfs.NewMemfileBytes("schema.json", schemaB)
-	schemaf2 := memfs.NewMemfileBytes("schema.json", schemaB)
+	dataf := cafs.NewMemfileBytes("data.csv", movieb)
+	dataf2 := cafs.NewMemfileBytes("data.csv", movieb)
+	schemaf := cafs.NewMemfileBytes("schema.json", schemaB)
+	schemaf2 := cafs.NewMemfileBytes("schema.json", schemaB)
 
 	cases := []struct {
 		p         ValidateDatasetParams
@@ -509,7 +509,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	}
 }
 
-var jobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
+var jobsByAutomationFile = cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"
@@ -542,7 +542,7 @@ var jobsByAutomationFile = memfs.NewMemfileBytes("jobs_ranked_by_automation_prob
 673,"0.98","27-4013","Radio Operators"
 `))
 
-var jobsByAutomationFile2 = memfs.NewMemfileBytes("jobs_ranked_by_automation_prob.csv", []byte(`rank,probability_of_automation,industry_code,job_name
+var jobsByAutomationFile2 = cafs.NewMemfileBytes("jobs_ranked_by_automation_prob.csv", []byte(`rank,probability_of_automation,industry_code,job_name
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"

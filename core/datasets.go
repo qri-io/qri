@@ -14,7 +14,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	ipfs "github.com/qri-io/cafs/ipfs"
-	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
@@ -280,7 +279,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 	// TODO - check for errors in dataset and warn user if errors exist
 
-	datakey, err := store.Put(memfs.NewMemfileBytes("data."+st.Format.String(), data), false)
+	datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
 	if err != nil {
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
 	}
@@ -316,7 +315,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		ds.Meta.AccrualPeriodicity = "R/P1W"
 	}
 
-	dataf := memfs.NewMemfileBytes("data."+st.Format.String(), data)
+	dataf := cafs.NewMemfileBytes("data."+st.Format.String(), data)
 	dskey, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
 		fmt.Printf("error creating dataset: %s\n", err.Error())
@@ -491,7 +490,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ds.Meta.SetPath("")
 	ds.Structure.SetPath("")
 
-	dataf = memfs.NewMemfileBytes("data."+st.Format.String(), data)
+	dataf = cafs.NewMemfileBytes("data."+st.Format.String(), data)
 	dspath, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
 		fmt.Printf("create ds error: %s\n", err.Error())
