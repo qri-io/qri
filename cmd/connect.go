@@ -5,7 +5,6 @@ import (
 
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/cafs/memfs"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
@@ -61,7 +60,7 @@ call it a “prime” port number.`,
 				&profile.Profile{
 					Peername: "mem user",
 				},
-				memfs.NewMapstore(),
+				cafs.NewMapstore(),
 				repo.MemPeers{},
 				&analytics.Memstore{})
 			ExitIfErr(err)
