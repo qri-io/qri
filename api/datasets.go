@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/qri-io/dataset"
-
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
