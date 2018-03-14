@@ -203,7 +203,6 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	r.SetPrivateKey(pk)
 
 	node, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
-		ncfg.Logger = log
 		ncfg.Online = online
 		ncfg.QriBootstrapAddrs = cfg.Bootstrap
 	})

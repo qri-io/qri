@@ -49,6 +49,7 @@ func (d *SearchRequests) Search(p *repo.SearchParams, res *[]repo.DatasetRef) er
 	if searchable, ok := d.repo.(repo.Searchable); ok {
 		results, err := searchable.Search(*p)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error searching: %s", err.Error())
 		}
 		*res = results
@@ -73,6 +74,7 @@ func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
 	if fsr, ok := d.repo.(*fsrepo.Repo); ok {
 		err := fsr.UpdateSearchIndex(d.repo.Store())
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error reindexing: %s", err.Error())
 		}
 		*done = true

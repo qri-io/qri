@@ -10,18 +10,23 @@ import (
 
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
+
+var log = golog.Logger("qriapi")
+
+func init() {
+	golog.SetLogLevel("qriapi", "info")
+}
 
 // Server wraps a qri p2p node, providing traditional access via http
 // Create one with New, start it up with Serve
 type Server struct {
 	// configuration options
 	cfg     *Config
-	log     logging.Logger
 	qriNode *p2p.QriNode
 }
 
@@ -39,12 +44,10 @@ func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
 
 	s = &Server{
 		cfg: cfg,
-		log: cfg.Logger,
 	}
 
 	// allocate a new node
 	s.qriNode, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
-		ncfg.Logger = s.log
 		ncfg.Online = s.cfg.Online
 		if cfg.BoostrapAddrs != nil {
 			ncfg.QriBootstrapAddrs = cfg.BoostrapAddrs
@@ -81,14 +84,14 @@ func (s *Server) Serve() (err error) {
 	}
 
 	if s.cfg.Online {
-		// s.log.Info("qri profile id:", s.qriNode.Identity.Pretty())
+		// log.Info("qri profile id:", s.qriNode.Identity.Pretty())
 		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.APIPort)
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			info = fmt.Sprintf("%s\n  %s", info, a.String())
 		}
-		s.log.Info(info)
+		log.Info(info)
 	} else {
-		s.log.Info("running qri in offline mode, no peer-2-peer connections")
+		log.Info("running qri in offline mode, no peer-2-peer connections")
 	}
 
 	go s.ServeRPC()
@@ -97,9 +100,9 @@ func (s *Server) Serve() (err error) {
 	if node, err := s.qriNode.IPFSNode(); err == nil {
 		go func() {
 			if err := core.CheckVersion(context.Background(), node.Namesys); err == core.ErrUpdateRequired {
-				s.log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
+				log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
 			} else if err != nil {
-				s.log.Infof("error checking for software update: %s", err.Error())
+				log.Infof("error checking for software update: %s", err.Error())
 			}
 		}()
 	}
@@ -116,18 +119,18 @@ func (s *Server) ServeRPC() {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.RPCPort))
 	if err != nil {
-		s.log.Infof("RPC listen on port %s error: %s", s.cfg.RPCPort, err)
+		log.Infof("RPC listen on port %s error: %s", s.cfg.RPCPort, err)
 		return
 	}
 
 	for _, rcvr := range core.Receivers(s.qriNode) {
 		if err := rpc.Register(rcvr); err != nil {
-			s.log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
+			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return
 		}
 	}
 
-	s.log.Infof("accepting RPC requests on port %s", s.cfg.RPCPort)
+	log.Infof("accepting RPC requests on port %s", s.cfg.RPCPort)
 	rpc.Accept(listener)
 	return
 }
@@ -142,7 +145,7 @@ func (s *Server) ServeWebapp() {
 
 	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.WebappPort))
 	if err != nil {
-		s.log.Infof("Webapp listen on port %s error: %s", s.cfg.WebappPort, err)
+		log.Infof("Webapp listen on port %s error: %s", s.cfg.WebappPort, err)
 		return
 	}
 
@@ -150,7 +153,7 @@ func (s *Server) ServeWebapp() {
 	m.Handle("/", s.middleware(s.WebappHandler))
 	webappserver := &http.Server{Handler: m}
 
-	s.log.Infof("webapp available on port %s", s.cfg.WebappPort)
+	log.Infof("webapp available on port %s", s.cfg.WebappPort)
 	webappserver.Serve(listener)
 	return
 }
@@ -158,16 +161,16 @@ func (s *Server) ServeWebapp() {
 func (s *Server) resolveWebappPath() {
 	node, err := s.qriNode.IPFSNode()
 	if err != nil {
-		s.log.Infof("no IPFS node present to resolve webapp address: %s", err.Error())
+		log.Infof("no IPFS node present to resolve webapp address: %s", err.Error())
 		return
 	}
 
 	p, err := node.Namesys.Resolve(context.Background(), "/ipns/webapp.qri.io")
 	if err != nil {
-		s.log.Infof("error resolving IPNS Name: %s", err.Error())
+		log.Infof("error resolving IPNS Name: %s", err.Error())
 		return
 	}
-	s.log.Debugf("webapp path: %s", p.String())
+	log.Debugf("webapp path: %s", p.String())
 	s.cfg.WebappScripts = []string{
 		fmt.Sprintf("http://localhost:2503%s", p.String()),
 	}
@@ -215,20 +218,20 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.log, s.qriNode.Repo)
+	proh := NewProfileHandlers(s.qriNode.Repo)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
-	ph := NewPeerHandlers(s.log, s.qriNode.Repo, s.qriNode)
+	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.log, s.qriNode.Repo)
+	dsh := NewDatasetHandlers(s.qriNode.Repo)
 
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
@@ -245,7 +248,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/data/", s.middleware(dsh.DataHandler))
 
-	hh := NewHistoryHandlers(s.log, s.qriNode.Repo)
+	hh := NewHistoryHandlers(s.qriNode.Repo)
 	// TODO - stupid hack for now.
 	hh.HistoryRequests.Node = s.qriNode
 	m.Handle("/history/", s.middleware(hh.LogHandler))

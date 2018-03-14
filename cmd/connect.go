@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/api"
@@ -69,7 +67,6 @@ call it a “prime” port number.`,
 		}
 
 		s, err := api.New(r, func(cfg *api.Config) {
-			cfg.Logger = log
 			cfg.APIPort = connectCmdPort
 			cfg.RPCPort = connectCmdRPCPort
 			cfg.WebappPort = connectCmdWebappPort
@@ -125,24 +122,24 @@ func initializeDistributedAssets(node *p2p.QriNode) {
 	req := core.NewDatasetRequests(node.Repo, nil)
 
 	for _, refstr := range cfg.DefaultDatasets {
-		fmt.Printf("attempting to add default dataset: %s\n", refstr)
+		log.Infof("adding default dataset: %s\n", refstr)
 		ref, err := repo.ParseDatasetRef(refstr)
 		if err != nil {
-			fmt.Printf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
+			log.Debugf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
 			continue
 		}
 		res := repo.DatasetRef{}
 		err = req.Add(&ref, &res)
 		if err != nil {
-			fmt.Printf("add dataset %s error: %s\n", refstr, err.Error())
+			log.Debugf("add dataset %s error: %s\n", refstr, err.Error())
 			return
 		}
-		fmt.Printf("added default dataset: %s\n", refstr)
+		log.Infof("added default dataset: %s\n", refstr)
 	}
 
 	cfg.Initialized = true
 	if err = writeConfigFile(cfg); err != nil {
-		fmt.Printf("error writing config file: %s", err.Error())
+		log.Debugf("error writing config file: %s", err.Error())
 	}
 
 	return

@@ -21,6 +21,7 @@ func (bp basepath) readBytes(f File) ([]byte, error) {
 func (bp basepath) saveFile(d interface{}, f File) error {
 	data, err := json.Marshal(d)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 	return ioutil.WriteFile(bp.filepath(f), data, os.ModePerm)

@@ -122,10 +122,12 @@ func (r ChangeRequests) changeRequests() (map[string]*repo.ChangeRequest, error)
 		if os.IsNotExist(err) {
 			return ds, nil
 		}
+		log.Debug(err.Error())
 		return ds, fmt.Errorf("error loading changeRequests: %s", err.Error())
 	}
 
 	if err := json.Unmarshal(data, &ds); err != nil {
+		log.Debug(err.Error())
 		return ds, fmt.Errorf("error unmarshaling changeRequests: %s", err.Error())
 	}
 	return ds, nil

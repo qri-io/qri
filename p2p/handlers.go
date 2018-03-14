@@ -37,13 +37,13 @@ func (n *QriNode) handlePeerInfoRequest(r *Message) *Message {
 		}
 
 		p.Updated = time.Now()
-		// n.log.Infof("adding peer: %s\n", pid.Pretty())
+		log.Debugf("adding peer: %s\n", pid.Pretty())
 		return n.Repo.Peers().PutPeer(pid, p)
 	}(r)
 
 	p, err := n.Repo.Profile()
 	if err != nil {
-		n.log.Infof("error getting repo profile: %s\n", err.Error())
+		log.Debugf("error getting repo profile: %s\n", err.Error())
 		return nil
 	}
 
@@ -74,7 +74,7 @@ func (n *QriNode) handleProfileResponse(pi pstore.PeerInfo, r *Message) error {
 	// p.ID = pi.ID.Pretty()
 	// p.Updated = time.Now()
 
-	n.log.Info("adding peer:", pi.ID.Pretty())
+	log.Infof("adding peer:", pi.ID.Pretty())
 	return n.Repo.Peers().PutPeer(pi.ID, p)
 }
 
@@ -131,12 +131,12 @@ type PeersReqParams struct {
 func (n *QriNode) handlePeersRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		n.log.Info(err.Error())
+		log.Info(err.Error())
 		return nil
 	}
 	p := &PeersReqParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		n.log.Info("unmarshal peers request error:", err.Error())
+		log.Info("unmarshal peers request error:", err.Error())
 		return nil
 	}
 
@@ -146,7 +146,7 @@ func (n *QriNode) handlePeersRequest(r *Message) *Message {
 	})
 
 	if err != nil {
-		n.log.Info("error getting peer profiles:", err.Error())
+		log.Info("error getting peer profiles:", err.Error())
 		return nil
 	}
 
@@ -202,12 +202,12 @@ type DatasetsReqParams struct {
 func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		n.log.Info(err.Error())
+		log.Debugf(err.Error())
 		return nil
 	}
 	p := &DatasetsReqParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		n.log.Info("unmarshal dataset request error:", err.Error())
+		log.Debugf("unmarshal dataset request error:", err.Error())
 		return nil
 	}
 
@@ -216,7 +216,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	}
 	refs, err := n.Repo.References(p.Limit, p.Offset)
 	if err != nil {
-		n.log.Info("repo names error:", err)
+		log.Debugf("repo names error:", err)
 		return nil
 	}
 
@@ -228,7 +228,7 @@ func (n *QriNode) handleDatasetsRequest(r *Message) *Message {
 	// 	}
 	// 	ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
 	// 	if err != nil {
-	// 		n.log.Info("error loading dataset at path:", ref.Path)
+	// 		log.Info("error loading dataset at path:", ref.Path)
 	// 		return nil
 	// 	}
 	// 	refs[i].Dataset = ds
@@ -289,15 +289,15 @@ func (n *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRe
 }
 
 func (n *QriNode) handleSearchRequest(r *Message) *Message {
-	n.log.Info("handling search request")
+	log.Info("handling search request")
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		n.log.Info(err.Error())
+		log.Info(err.Error())
 		return nil
 	}
 	p := &repo.SearchParams{}
 	if err := json.Unmarshal(data, p); err != nil {
-		n.log.Info("unmarshal search request error:", err.Error())
+		log.Info("unmarshal search request error:", err.Error())
 		return nil
 	}
 
@@ -305,7 +305,7 @@ func (n *QriNode) handleSearchRequest(r *Message) *Message {
 	if s, ok := n.Repo.(repo.Searchable); ok {
 		results, err := s.Search(*p)
 		if err != nil {
-			n.log.Info("search error:", err.Error())
+			log.Info("search error:", err.Error())
 			return nil
 		}
 		return &Message{
@@ -329,13 +329,13 @@ func (n *QriNode) handleSearchResponse(pi pstore.PeerInfo, m *Message) error {
 func (n *QriNode) handleDatasetInfoRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 	if err != nil {
-		n.log.Info(err.Error())
+		log.Info(err.Error())
 		return nil
 	}
 
 	ref := repo.DatasetRef{}
 	if err = json.Unmarshal(data, &ref); err != nil {
-		n.log.Infof(err.Error())
+		log.Infof(err.Error())
 		return &Message{
 			Type:    MtDatasetInfo,
 			Phase:   MpError,
@@ -378,13 +378,13 @@ func (n *QriNode) handleDatasetLogRequest(r *Message) *Message {
 	data, err := json.Marshal(r.Payload)
 
 	if err != nil {
-		n.log.Info(err.Error())
+		log.Info(err.Error())
 		return nil
 	}
 
 	ref := repo.DatasetRef{}
 	if err = json.Unmarshal(data, &ref); err != nil {
-		n.log.Infof(err.Error())
+		log.Infof(err.Error())
 		return &Message{
 			Type:    MtDatasetLog,
 			Phase:   MpError,

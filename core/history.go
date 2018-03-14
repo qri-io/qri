@@ -48,6 +48,7 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	ref := params.Ref
 	err = repo.CanonicalizeDatasetRef(d.repo, &ref)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 	if ref.Path == "" && (ref.Name == "" && ref.Peername == "") {
@@ -58,12 +59,13 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 
 	getRemote := func(err error) error {
 		if d.Node != nil {
-			log, err := d.Node.RequestDatasetLog(ref)
+			rlog, err := d.Node.RequestDatasetLog(ref)
 			if err != nil {
+				log.Debug(err.Error())
 				return err
 			}
 
-			*res = *log
+			*res = *rlog
 			return nil
 		}
 		return err
@@ -75,15 +77,16 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 		return getRemote(err)
 	}
 
-	log := []repo.DatasetRef{}
+	rlog := []repo.DatasetRef{}
 	limit := params.Limit
 
 	for {
 		ref.Dataset, err = d.repo.GetDataset(datastore.NewKey(ref.Path))
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error adding datasets to log: %s", err.Error())
 		}
-		log = append(log, ref)
+		rlog = append(rlog, ref)
 
 		limit--
 		if limit == 0 || ref.Dataset.PreviousPath == "" {
@@ -92,6 +95,6 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 		ref.Path = ref.Dataset.PreviousPath
 	}
 
-	*res = log
+	*res = rlog
 	return nil
 }

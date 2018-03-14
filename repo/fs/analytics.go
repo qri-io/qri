@@ -2,9 +2,10 @@ package fsrepo
 
 import (
 	"encoding/json"
+	"time"
+
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/analytics"
-	"time"
 )
 
 // Analytics is a file-based implementation of the Analytics interface.
@@ -41,11 +42,13 @@ func (a Analytics) Track(event string, props map[string]interface{}) error {
 
 		events, err := a.readAll()
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 		events = append(events, a.batch...)
 		err = a.saveFile(events, FileAnalytics)
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 		a.batch = []*analytics.Event{}
@@ -54,6 +57,7 @@ func (a Analytics) Track(event string, props map[string]interface{}) error {
 
 	events, err := a.readAll()
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 	events = append(events, e)
@@ -64,6 +68,7 @@ func (a Analytics) Track(event string, props map[string]interface{}) error {
 func (a Analytics) Query(q query.Query) (query.Results, error) {
 	events, err := a.readAll()
 	if err != nil {
+		log.Debug(err.Error())
 		return nil, err
 	}
 	if a.batch != nil {
@@ -82,6 +87,7 @@ func (a Analytics) Query(q query.Query) (query.Results, error) {
 func (a Analytics) readAll() ([]*analytics.Event, error) {
 	data, err := a.readBytes(FileAnalytics)
 	if err != nil {
+		log.Debug(err.Error())
 		return nil, err
 	}
 	events := []*analytics.Event{}

@@ -66,10 +66,12 @@ func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 		batch := n.index.NewBatch()
 		err = batch.Index(p.Path, ds)
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 		err = n.index.Batch(batch)
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 	}
@@ -102,6 +104,7 @@ func (n Refstore) DeleteRef(del repo.DatasetRef) error {
 		if ref.Match(del) {
 			if ref.Path != "" && n.index != nil {
 				if err := n.index.Delete(ref.Path); err != nil {
+					log.Debug(err.Error())
 					return err
 				}
 			}
@@ -136,6 +139,7 @@ func (n Refstore) References(limit, offset int) ([]repo.DatasetRef, error) {
 func (n Refstore) RefCount() (int, error) {
 	names, err := n.names()
 	if err != nil {
+		log.Debug(err.Error())
 		return 0, err
 	}
 	return len(names), nil
@@ -148,6 +152,7 @@ func (n *Refstore) names() ([]repo.DatasetRef, error) {
 			// empty is ok
 			return []repo.DatasetRef{}, nil
 		}
+		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading names: %s", err.Error())
 	}
 
@@ -155,6 +160,7 @@ func (n *Refstore) names() ([]repo.DatasetRef, error) {
 	if err := json.Unmarshal(data, &refs); err != nil {
 		prevns := []repo.DatasetRef{}
 		if err := json.Unmarshal(data, &prevns); err != nil {
+			log.Debug(err.Error())
 			return nil, fmt.Errorf("error unmarshaling names: %s", err.Error())
 		}
 		return prevns, nil

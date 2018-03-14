@@ -3,21 +3,24 @@ package fsrepo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/ipfs/go-datastore"
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"io/ioutil"
 	"os"
 
+	"github.com/ipfs/go-datastore"
+	golog "github.com/ipfs/go-log"
+	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
 )
+
+var log = golog.Logger("fsrepo")
 
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
@@ -84,6 +87,7 @@ func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
 	if r.graph == nil {
 		nodes, err := repo.Graph(r)
 		if err != nil {
+			log.Debug(err.Error())
 			return nil, err
 		}
 		r.graph = nodes
@@ -99,10 +103,12 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 		if os.IsNotExist(err) {
 			return p, nil
 		}
+		log.Debug(err.Error())
 		return p, fmt.Errorf("error loading profile: %s", err.Error())
 	}
 
 	if err := json.Unmarshal(data, &p); err != nil {
+		log.Debug(err.Error())
 		return p, fmt.Errorf("error unmarshaling profile: %s", err.Error())
 	}
 
@@ -130,10 +136,12 @@ func ensureProfile(bp basepath, id string) error {
 		if os.IsNotExist(err) {
 			return nil
 		}
+		log.Debug(err.Error())
 		return fmt.Errorf("error loading profile: %s", err.Error())
 	}
 
 	if err := json.Unmarshal(data, &p); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error unmarshaling profile: %s", err.Error())
 	}
 
@@ -177,6 +185,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 
 	refs, err := search.Search(r.index, p)
 	if err != nil {
+		log.Debug(err.Error())
 		return refs, err
 	}
 	for _, ref := range refs {
@@ -189,7 +198,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 		if ds, err := r.GetDataset(datastore.NewKey(ref.Path)); err == nil {
 			ref.Dataset = ds
 		} else {
-			// fmt.Println(err.Error())
+			log.Debug(err.Error())
 		}
 	}
 	return refs, nil

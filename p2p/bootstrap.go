@@ -30,7 +30,7 @@ var DefaultBootstrapAddresses = []string{
 func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.PeerInfo) {
 	peers, err := ParseMultiaddrs(boostrapAddrs)
 	if err != nil {
-		n.log.Info("error parsing bootstrap addresses:", err.Error())
+		log.Info("error parsing bootstrap addresses:", err.Error())
 		return
 	}
 
@@ -38,15 +38,15 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 
 	for _, p := range randomSubsetOfPeers(pinfos, 4) {
 		go func(p pstore.PeerInfo) {
-			n.log.Infof("boostrapping to: %s", p.ID.Pretty())
+			log.Infof("boostrapping to: %s", p.ID.Pretty())
 			if err := n.Host.Connect(context.Background(), p); err == nil {
 				if err = n.AddQriPeer(p); err != nil {
-					n.log.Infof("error adding peer: %s", err.Error())
+					log.Infof("error adding peer: %s", err.Error())
 				} else {
 					boostrapPeers <- p
 				}
 			} else {
-				n.log.Infof("error connecting to host: %s", err.Error())
+				log.Infof("error connecting to host: %s", err.Error())
 			}
 		}(p)
 	}

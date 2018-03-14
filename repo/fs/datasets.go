@@ -108,10 +108,12 @@ func (r *Datasets) datasets() (map[string]*dataset.Dataset, error) {
 		if os.IsNotExist(err) {
 			return ds, nil
 		}
+		log.Debug(err.Error())
 		return ds, fmt.Errorf("error loading datasets: %s", err.Error())
 	}
 
 	if err := json.Unmarshal(data, &ds); err != nil {
+		log.Debug(err.Error())
 		return ds, fmt.Errorf("error unmarshaling datasets: %s", err.Error())
 	}
 	return ds, nil

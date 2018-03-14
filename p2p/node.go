@@ -23,8 +23,6 @@ import (
 
 // QriNode encapsulates a qri peer-to-peer node
 type QriNode struct {
-	// internal logger
-	log Logger
 	// Identity is the node's identifier both locally & on the network
 	// Identity has a relationship to privateKey (hash of PublicKey)
 	Identity peer.ID
@@ -71,7 +69,6 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err er
 	ps := pstore.NewPeerstore()
 
 	node = &QriNode{
-		log:            cfg.Logger,
 		Identity:       cfg.PeerID,
 		Online:         cfg.Online,
 		QriPeers:       ps,

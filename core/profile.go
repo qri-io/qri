@@ -62,11 +62,13 @@ func unmarshalProfile(p *Profile) (*profile.Profile, error) {
 	// silly workaround for gob encoding
 	data, err := json.Marshal(p)
 	if err != nil {
+		log.Debug(err.Error())
 		return nil, fmt.Errorf("err re-encoding json: %s", err.Error())
 	}
 
 	_p := &profile.Profile{}
 	if err := json.Unmarshal(data, _p); err != nil {
+		log.Debug(err.Error())
 		return nil, fmt.Errorf("error unmarshaling json: %s", err.Error())
 	}
 
@@ -78,11 +80,13 @@ func marshalProfile(p *profile.Profile) (*Profile, error) {
 	// silly workaround for gob encoding
 	data, err := json.Marshal(p)
 	if err != nil {
+		log.Debug(err.Error())
 		return nil, fmt.Errorf("err re-encoding json: %s", err.Error())
 	}
 
 	_p := &Profile{}
 	if err := json.Unmarshal(data, _p); err != nil {
+		log.Debug(err.Error())
 		return nil, fmt.Errorf("error unmarshaling json: %s", err.Error())
 	}
 
@@ -97,11 +101,13 @@ func (r *ProfileRequests) GetProfile(in *bool, res *Profile) error {
 
 	profile, err := r.repo.Profile()
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	_p, err := marshalProfile(profile)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 	*res = *_p
@@ -168,12 +174,14 @@ func (p *Profile) ValidateProfile() error {
 	filepath := gp + "/src/github.com/qri-io/qri/core/schemas/profileSchema.json"
 	f, err := os.Open(filepath)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error opening schemas/profileSchema.json: %s", err)
 	}
 	defer f.Close()
 
 	profileSchema, err := ioutil.ReadAll(f)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error reading profileSchema: %s", err)
 	}
 
@@ -184,10 +192,14 @@ func (p *Profile) ValidateProfile() error {
 	}
 	profile, err := json.Marshal(p)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error marshaling profile to json: %s", err)
 	}
-	if errors, _ := rs.ValidateBytes(profile); len(errors) > 0 {
+	if errors, err := rs.ValidateBytes(profile); len(errors) > 0 {
 		return fmt.Errorf("%s", errors)
+	} else if err != nil {
+		log.Debug(err.Error())
+		return err
 	}
 	return nil
 }
@@ -208,6 +220,7 @@ func (r *ProfileRequests) SavePeername(p *Profile, res *Profile) error {
 	}
 
 	if err := r.saveProfile(pro, res); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving profile: %s", err)
 	}
 
@@ -234,6 +247,7 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 	}
 
 	if err := r.saveProfile(pro, res); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving profile: %s", err)
 	}
 
@@ -259,6 +273,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error reading file data: %s", err.Error())
 	}
 
@@ -273,6 +288,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 
 	path, err := r.repo.Store().Put(cafs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
@@ -282,6 +298,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 		Thumb: path.String(),
 	}
 	if err := r.saveProfile(pro, res); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving profile: %s", err)
 	}
 
@@ -300,6 +317,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error reading file data: %s", err.Error())
 	}
 
@@ -314,6 +332,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 
 	path, err := r.repo.Store().Put(cafs.NewMemfileBytes(p.Filename, data), true)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
@@ -322,6 +341,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 	}
 
 	if err := r.saveProfile(pro, res); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error saving profile: %s", err)
 	}
 
@@ -348,19 +368,23 @@ func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
 
 	_p, err := unmarshalProfile(pro)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	if err := r.repo.SaveProfile(_p); err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	profile, err := r.repo.Profile()
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 	p2, err := marshalProfile(profile)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 

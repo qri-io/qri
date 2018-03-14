@@ -3,7 +3,6 @@ package api
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 )
 
@@ -20,7 +19,6 @@ const (
 // DefaultConfig returns the default configuration details
 func DefaultConfig() *Config {
 	return &Config{
-		Logger:         logging.DefaultLogger,
 		Mode:           "develop",
 		APIPort:        DefaultAPIPort,
 		RPCPort:        DefaultRPCPort,
@@ -47,7 +45,6 @@ func DefaultConfig() *Config {
 //
 // configuration is read at startup and cannot be alterd without restarting the server.
 type Config struct {
-	Logger logging.Logger
 	// operation mode
 	Mode string
 	// URLRoot is the base url for this server
