@@ -5,7 +5,6 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -17,13 +16,12 @@ import (
 type PeerHandlers struct {
 	core.PeerRequests
 	repo repo.Repo
-	log  logging.Logger
 }
 
 // NewPeerHandlers allocates a PeerHandlers pointer
-func NewPeerHandlers(log logging.Logger, r repo.Repo, node *p2p.QriNode) *PeerHandlers {
+func NewPeerHandlers(r repo.Repo, node *p2p.QriNode) *PeerHandlers {
 	req := core.NewPeerRequests(node, nil)
-	h := PeerHandlers{*req, r, log}
+	h := PeerHandlers{*req, r}
 	return &h
 }
 
@@ -80,7 +78,7 @@ func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) 
 	args.OrderBy = "created"
 	res := []*profile.Profile{}
 	if err := h.List(&args, &res); err != nil {
-		h.log.Infof("list peers: %s", err.Error())
+		log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -94,7 +92,7 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 	peers := []string{}
 
 	if err := h.ConnectedIPFSPeers(&listParams.Limit, &peers); err != nil {
-		h.log.Infof("error showing connected peers: %s", err.Error())
+		log.Infof("error showing connected peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -108,7 +106,7 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	res := &profile.Profile{}
 	if err := h.Info(p, res); err != nil {
-		h.log.Infof("error getting peer info: %s", err.Error())
+		log.Infof("error getting peer info: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -131,7 +129,7 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 
 	res := &profile.Profile{}
 	if err := h.ConnectToPeer(&pid, res); err != nil {
-		h.log.Infof("error connecting to peer: %s", err.Error())
+		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

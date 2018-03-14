@@ -7,20 +7,18 @@ import (
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
 type ProfileHandlers struct {
 	core.ProfileRequests
-	log logging.Logger
 }
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
-func NewProfileHandlers(log logging.Logger, r repo.Repo) *ProfileHandlers {
+func NewProfileHandlers(r repo.Repo) *ProfileHandlers {
 	req := core.NewProfileRequests(r, nil)
-	h := ProfileHandlers{*req, log}
+	h := ProfileHandlers{*req}
 	return &h
 }
 
@@ -42,7 +40,7 @@ func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Reque
 	args := true
 	res := &core.Profile{}
 	if err := h.GetProfile(&args, res); err != nil {
-		h.log.Infof("error getting profile: %s", err.Error())
+		log.Infof("error getting profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -96,7 +94,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 
 	res := &core.Profile{}
 	if err := h.SetProfilePhoto(p, res); err != nil {
-		h.log.Infof("error initializing dataset: %s", err.Error())
+		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -134,7 +132,7 @@ func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Reques
 
 	res := &core.Profile{}
 	if err := h.SetPosterPhoto(p, res); err != nil {
-		h.log.Infof("error initializing dataset: %s", err.Error())
+		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

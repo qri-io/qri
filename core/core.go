@@ -7,8 +7,11 @@
 package core
 
 import (
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/p2p"
 )
+
+var log = golog.Logger("core")
 
 // Requests defines a set of core methods
 type Requests interface {

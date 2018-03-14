@@ -163,7 +163,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 
 	peers, err := r.Peers().List()
 	if err != nil {
-		fmt.Println(err.Error())
+		log.Debug(err.Error())
 		return err
 	}
 

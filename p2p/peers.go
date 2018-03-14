@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 	"github.com/qri-io/qri/repo/profile"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -21,6 +20,7 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// }
 
 	if err := n.RequestProfileInfo(pinfo); err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
@@ -43,7 +43,7 @@ func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 	// Get this repo's profile information
 	profile, err := n.Repo.Profile()
 	if err != nil {
-		fmt.Println("error getting node profile info:", err)
+		log.Debugf("error getting node profile info: %s", err)
 		return err
 	}
 
@@ -58,13 +58,13 @@ func (n *QriNode) RequestProfileInfo(pinfo pstore.PeerInfo) error {
 		Payload: profile,
 	})
 	if err != nil {
-		fmt.Println("send profile message error:", err.Error())
+		log.Debugf("send profile message error: %s", err.Error())
 		return err
 	}
 
 	if res.Phase == MpResponse {
 		if err := n.handleProfileResponse(pinfo, res); err != nil {
-			fmt.Println("profile response error", err.Error())
+			log.Debugf("profile response error: %s", err.Error())
 			return err
 		}
 	}
@@ -83,13 +83,13 @@ func (n *QriNode) RequestPeersList(id peer.ID) {
 	})
 
 	if err != nil {
-		fmt.Println("send peers message error:", err.Error())
+		log.Debugf("send peers message error: %s", err.Error())
 		return
 	}
 
 	if res.Phase == MpResponse {
 		if err := n.handlePeersResponse(res); err != nil {
-			fmt.Println("peers response error", err.Error())
+			log.Debugf("peers response error: %s", err.Error())
 			return
 		}
 	}
@@ -106,11 +106,13 @@ func (n *QriNode) ConnectToPeer(pid peer.ID) error {
 	// attempt to use ipfs routing table to discover peer
 	ipfsnode, err := n.IPFSNode()
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	pinfo, err := ipfsnode.Routing.FindPeer(context.Background(), pid)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 

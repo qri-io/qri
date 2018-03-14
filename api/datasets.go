@@ -16,21 +16,19 @@ import (
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/logging"
 	"github.com/qri-io/qri/repo"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	core.DatasetRequests
-	log  logging.Logger
 	repo repo.Repo
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
-func NewDatasetHandlers(log logging.Logger, r repo.Repo) *DatasetHandlers {
+func NewDatasetHandlers(r repo.Repo) *DatasetHandlers {
 	req := core.NewDatasetRequests(r, nil)
-	h := DatasetHandlers{*req, log, r}
+	h := DatasetHandlers{*req, r}
 	return &h
 }
 
@@ -96,7 +94,6 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 
 // PeerListHandler is a dataset list endpoint
 func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request) {
-	h.log.Infof("%s %s", r.Method, r.URL.Path)
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
@@ -176,7 +173,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 	res := &repo.DatasetRef{}
 	err = h.Get(&args, res)
 	if err != nil {
-		h.log.Infof("error getting dataset: %s", err.Error())
+		log.Infof("error getting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -192,12 +189,12 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
-		h.log.Infof("error listing datasets: %s", err.Error())
+		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
-		h.log.Infof("error list datasests response: %s", err.Error())
+		log.Infof("error list datasests response: %s", err.Error())
 	}
 }
 
@@ -289,7 +286,7 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
-	h.log.Info(r.URL.Path)
+	log.Info(r.URL.Path)
 	p := core.ListParamsFromRequest(r)
 	p.OrderBy = "created"
 
@@ -312,12 +309,12 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 
 	res := []repo.DatasetRef{}
 	if err := h.List(&p, &res); err != nil {
-		h.log.Infof("error listing peer's datasets: %s", err.Error())
+		log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 	if err := util.WritePageResponse(w, res, r, p.Page()); err != nil {
-		h.log.Infof("error list datasests response: %s", err.Error())
+		log.Infof("error list datasests response: %s", err.Error())
 	}
 }
 
@@ -376,7 +373,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := &repo.DatasetRef{}
 	if err := h.Init(p, res); err != nil {
-		h.log.Infof("error initializing dataset: %s", err.Error())
+		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -522,7 +519,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 
 	res := false
 	if err := h.Remove(ref, &res); err != nil {
-		h.log.Infof("error deleting dataset: %s", err.Error())
+		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -567,7 +564,7 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := &repo.DatasetRef{}
 	if err := h.Rename(p, res); err != nil {
-		h.log.Infof("error renaming dataset: %s", err.Error())
+		log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
@@ -640,6 +637,6 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 		Data: json.RawMessage(data.Data),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
-		h.log.Infof("error writing repsonse: %s", err.Error())
+		log.Infof("error writing repsonse: %s", err.Error())
 	}
 }

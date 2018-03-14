@@ -130,10 +130,12 @@ func (r *PeerStore) peers() (map[string]*profile.Profile, error) {
 		if os.IsNotExist(err) {
 			return ps, nil
 		}
+		log.Debug(err.Error())
 		return ps, fmt.Errorf("error loading peers: %s", err.Error())
 	}
 
 	if err := json.Unmarshal(data, &ps); err != nil {
+		log.Debug(err.Error())
 		return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
 	}
 	return ps, nil

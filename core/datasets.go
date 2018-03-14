@@ -74,6 +74,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 
 	pro, err := r.repo.Profile()
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error getting profile: %s", err.Error())
 	}
 
@@ -102,6 +103,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	}
 	replies, err := r.repo.References(p.Limit, p.Offset)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error getting namespace: %s", err.Error())
 	}
 
@@ -111,6 +113,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		}
 
 		if err := repo.CanonicalizePeer(r.repo, &replies[i]); err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
@@ -120,6 +123,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			// TODO - remove this horrible hack
 			ds, err = dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 			if err != nil {
+				log.Debug(err.Error())
 				return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
 		}
@@ -138,6 +142,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 
 	err = repo.CanonicalizeDatasetRef(r.repo, p)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
@@ -251,6 +256,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	// TODO - need a better strategy for huge files
 	data, err := ioutil.ReadAll(rdr)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error reading file: %s", err.Error())
 	}
 
@@ -258,17 +264,20 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	st := &dataset.Structure{}
 	if p.Structure != nil {
 		if err := json.NewDecoder(p.Structure).Decode(st); err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error parsing structure json: %s", err.Error())
 		}
 	} else {
 		st, err = detect.FromReader(filename, bytes.NewReader(data))
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error determining dataset schema: %s", err.Error())
 		}
 	}
 
 	// Ensure that dataset contains valid field names
 	if err = validate.Structure(st); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
 
@@ -318,7 +327,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	dataf := cafs.NewMemfileBytes("data."+st.Format.String(), data)
 	dskey, err := r.repo.CreateDataset(ds, dataf, true)
 	if err != nil {
-		fmt.Printf("error creating dataset: %s\n", err.Error())
+		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
 	}
 
@@ -499,10 +508,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if prev.Name != "" {
 		if err := r.repo.DeleteRef(*prev); err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 		prev.Path = dspath.String()
 		if err := r.repo.PutRef(*prev); err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 	}
@@ -529,9 +540,11 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	}
 
 	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Current); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error canonicalizing existing reference: %s", err.Error())
 	}
 	if err := repo.CanonicalizeDatasetRef(r.repo, &p.New); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
 	}
 
@@ -549,19 +562,23 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 	p.Current, err = r.repo.GetRef(p.Current)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error getting dataset: %s", err.Error())
 	}
 	p.New.Path = p.Current.Path
 	if err := r.repo.DeleteRef(p.Current); err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	if err := r.repo.PutRef(p.New); err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	ds, err := dsfs.LoadDataset(r.repo.Store(), datastore.NewKey(p.Current.Path))
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
@@ -581,6 +598,7 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	}
 
 	if err := repo.CanonicalizeDatasetRef(r.repo, p); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
 	}
 
@@ -590,6 +608,7 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 
 	ref, err := r.repo.GetRef(*p)
 	if err != nil {
+		log.Debug(err.Error())
 		return
 	}
 
@@ -600,11 +619,13 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
 		// path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
 		if err = pinner.Unpin(datastore.NewKey(p.Path), true); err != nil {
+			log.Debug(err.Error())
 			return
 		}
 	}
 
 	if err = r.repo.DeleteRef(*p); err != nil {
+		log.Debug(err.Error())
 		return
 	}
 
@@ -646,11 +667,13 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
 	file, err = dsfs.LoadData(store, ds)
 	if err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
@@ -733,6 +756,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 
 	err = fs.Pin(key, true)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error pinning root key: %s", err.Error())
 	}
 
@@ -740,6 +764,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 
 	profile, err := r.repo.Profile()
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error getting profile: %s", err)
 	}
 
@@ -748,11 +773,13 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 
 	err = r.repo.PutRef(*ref)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
 
 	ds, err := dsfs.LoadDataset(fs, path)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
 	}
 
@@ -783,6 +810,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	}
 
 	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref); err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
 	}
 
@@ -796,6 +824,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	if p.Ref.Path != "" {
 		err = r.Get(&p.Ref, &ref)
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 
@@ -807,6 +836,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	if p.Data != nil {
 		data, err = ioutil.ReadAll(p.Data)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error reading data: %s", err.Error())
 		}
 
@@ -824,6 +854,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	if p.Schema != nil {
 		stbytes, err := ioutil.ReadAll(p.Schema)
 		if err != nil {
+			log.Debug(err.Error())
 			return err
 		}
 		sch := &jsonschema.RootSchema{}
@@ -836,16 +867,19 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	if data == nil && ref.Dataset != nil {
 		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
 		if e != nil {
+			log.Debug(e.Error())
 			return fmt.Errorf("error loading dataset data: %s", e.Error())
 		}
 		data, err = ioutil.ReadAll(f)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error loading dataset data: %s", err.Error())
 		}
 	}
 
 	er, err := dsio.NewEntryReader(st, bytes.NewBuffer(data))
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error reading data: %s", err.Error())
 	}
 
@@ -871,6 +905,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	if p.DiffAll {
 		diffMap, err := dsdiff.DiffDatasets(p.DsLeft, p.DsRight, nil)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error diffing datasets: %s", err.Error())
 		}
 		// TODO: remove this temporary hack
@@ -945,10 +980,12 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 		sd2 := &StructuredData{}
 		err := r.StructuredData(sd1Params, sd1)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error getting structured data: %s", err.Error())
 		}
 		err = r.StructuredData(sd2Params, sd2)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error getting structured data: %s", err.Error())
 		}
 
@@ -956,14 +993,17 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 		m2 := &map[string]json.RawMessage{"data": sd2.Data}
 		dataBytes1, err := json.Marshal(m1)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error marshaling json: %s", err.Error())
 		}
 		dataBytes2, err := json.Marshal(m2)
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error marshaling json: %s", err.Error())
 		}
 		dataDiffs, err := dsdiff.DiffJSON(dataBytes1, dataBytes2, "data")
 		if err != nil {
+			log.Debug(err.Error())
 			return fmt.Errorf("error comparing structured data: %s", err.Error())
 		}
 		diffMap["data"] = dataDiffs

@@ -27,6 +27,7 @@ func (n *QriNode) RequestDatasetsList(peername string) ([]repo.DatasetRef, error
 
 	data, err := json.Marshal(res.Payload)
 	if err != nil {
+		log.Debugf(err.Error())
 		return nil, err
 	}
 
@@ -39,7 +40,8 @@ func (n *QriNode) RequestDatasetsList(peername string) ([]repo.DatasetRef, error
 func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, error) {
 	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
 	if err != nil {
-		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
+		log.Debugf("error getting peer IPFS id: %s", err.Error())
+		return nil, err
 	}
 
 	res, err := n.SendMessage(id, &Message{
@@ -49,7 +51,7 @@ func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, er
 	})
 
 	if err != nil {
-		fmt.Println("send dataset info message error:", err.Error())
+		log.Debugf("send dataset info message error:", err.Error())
 		return nil, err
 	}
 
@@ -76,12 +78,13 @@ func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef) (*[]repo.DatasetRef, er
 		Payload: ref,
 	})
 	if err != nil {
-		fmt.Println("send dataset log message error:", err.Error())
+		log.Debugf("send dataset log message error: %s", err.Error())
 		return nil, err
 	}
 
 	data, err := json.Marshal(res.Payload)
 	if err != nil {
+		log.Debug(err.Error())
 		return nil, err
 	}
 

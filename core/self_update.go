@@ -31,6 +31,7 @@ var (
 func CheckVersion(ctx context.Context, res namesys.Resolver) error {
 	p, err := res.Resolve(ctx, prevIPNSName)
 	if err != nil {
+		log.Debug(err.Error())
 		return fmt.Errorf("error resolving name: %s", err.Error())
 	}
 

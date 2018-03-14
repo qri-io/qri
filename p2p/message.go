@@ -222,7 +222,7 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		if err != nil {
 			break
 		}
-		n.log.Infof("received message: %s", r.Type.String())
+		log.Debugf("received message: %s", r.Type.String())
 
 		var res *Message
 		if r.Phase == MpRequest {
@@ -247,9 +247,9 @@ func (n *QriNode) handleStream(ws *WrappedStream) {
 		}
 
 		if res != nil {
-			n.log.Infof("sending response: %s", res.Type.String())
+			log.Debugf("sending response: %s", res.Type.String())
 			if err := sendMessage(res, ws); err != nil {
-				n.log.Infof("send message error: %s", err.Error())
+				log.Debugf("send message error: %s", err.Error())
 			}
 		}
 
