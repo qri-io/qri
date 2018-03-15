@@ -230,7 +230,7 @@ func (r *Repo) SavePeers(p map[string]*profile.Profile) error {
 }
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
-func (r *Repo) CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
+func (r *Repo) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
 	return dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
 }
 

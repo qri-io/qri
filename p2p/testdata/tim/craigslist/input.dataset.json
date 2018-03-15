@@ -1,0 +1,20 @@
+{
+  "qri": "ds:0",
+  "commit" : {
+    "qri" : "cm:0",
+    "title" : "initial commit",
+    "timestamp": "2017-04-01T01:00:00.000Z"
+  },
+  "meta": {
+    "qri": "md:0",
+    "title" : "example craigslist data"
+  },
+  "structure": {
+    "entries": 30,
+    "errCount": 1,
+    "format": "json",
+    "length": 512676,
+    "qri": "st:0",
+    "schema": { "type" : "array" }
+  }
+}

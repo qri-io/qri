@@ -19,7 +19,6 @@ import (
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
 	jobsByAutomationFile := testrepo.JobsByAutomationFile
-	// jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
 	// badDataFormatFile := testrepo.BadDataFormatFile
 	// badStructureFile := testrepo.BadStructureFile
 

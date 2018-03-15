@@ -5,94 +5,116 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/repo"
+
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// MtDatasets is a dataset list message
+const MtDatasets = MsgType("list_datasets")
+
+// listMax is the highest number of entries a list request should return
+const listMax = 30
+
+// DatasetsListParams encapsulates options for requesting datasets
+type DatasetsListParams struct {
+	Limit  int
+	Offset int
+}
+
 // RequestDatasetsList gets a list of a peer's datasets
-func (n *QriNode) RequestDatasetsList(peername string) ([]repo.DatasetRef, error) {
-	id, err := n.Repo.Peers().IPFSPeerID(peername)
-	if err != nil {
-		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
+func (n *QriNode) RequestDatasetsList(pid peer.ID, p DatasetsListParams) ([]repo.DatasetRef, error) {
+	log.Debugf("%s RequestDatasetList: %s", n.ID, pid)
+
+	if pid == n.ID {
+		// requesting self isn't a network operation
+		return n.Repo.References(p.Limit, p.Offset)
 	}
 
-	res, err := n.SendMessage(id, &Message{
-		Type:    MtDatasets,
-		Phase:   MpRequest,
-		Payload: nil,
-	})
-
-	if err != nil {
-		fmt.Println("send dataset info message error:", err.Error())
-		return nil, err
-	}
-
-	data, err := json.Marshal(res.Payload)
-	if err != nil {
-		log.Debugf(err.Error())
-		return nil, err
-	}
-
-	ref := []repo.DatasetRef{}
-	err = json.Unmarshal(data, &ref)
-	return ref, err
-}
-
-// RequestDatasetInfo get's qri profile information from a PeerInfo
-func (n *QriNode) RequestDatasetInfo(ref *repo.DatasetRef) (*repo.DatasetRef, error) {
-	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
-	if err != nil {
-		log.Debugf("error getting peer IPFS id: %s", err.Error())
-		return nil, err
-	}
-
-	res, err := n.SendMessage(id, &Message{
-		Type:    MtDatasetInfo,
-		Phase:   MpRequest,
-		Payload: ref,
-	})
-
-	if err != nil {
-		log.Debugf("send dataset info message error:", err.Error())
-		return nil, err
-	}
-
-	data, err := json.Marshal(res.Payload)
-	if err != nil {
-		return nil, err
-	}
-
-	resref := &repo.DatasetRef{}
-	err = json.Unmarshal(data, resref)
-
-	return resref, err
-}
-
-// RequestDatasetLog gets the log information of Peer's dataset
-func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef) (*[]repo.DatasetRef, error) {
-	id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
-	if err != nil {
-		return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
-	}
-	res, err := n.SendMessage(id, &Message{
-		Type:    MtDatasetLog,
-		Phase:   MpRequest,
-		Payload: ref,
-	})
-	if err != nil {
-		log.Debugf("send dataset log message error: %s", err.Error())
-		return nil, err
-	}
-
-	data, err := json.Marshal(res.Payload)
+	req, err := NewJSONBodyMessage(n.ID, MtDatasets, p)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
 
-	resref := []repo.DatasetRef{}
-	err = json.Unmarshal(data, &resref)
-	if len(resref) == 0 && err != nil {
-		err = fmt.Errorf("no log found")
+	req = req.WithHeaders("phase", "request")
+
+	replies := make(chan Message)
+	err = n.SendMessage(req, replies, pid)
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, fmt.Errorf("send dataset info message error: %s", err.Error())
 	}
 
-	return &resref, err
+	res := <-replies
+	ref := []repo.DatasetRef{}
+	err = json.Unmarshal(res.Body, &ref)
+	return ref, err
 }
+
+func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup bool) {
+	hangup = true
+	switch msg.Header("phase") {
+	case "request":
+		dlp := DatasetsListParams{}
+		if err := json.Unmarshal(msg.Body, &dlp); err != nil {
+			log.Debugf("%s %s", n.ID, err.Error())
+			return
+		}
+
+		if dlp.Limit == 0 || dlp.Limit > listMax {
+			dlp.Limit = listMax
+		}
+
+		refs, err := n.Repo.References(dlp.Limit, dlp.Offset)
+		if err != nil {
+			log.Debug(err.Error())
+			return
+		}
+
+		// replies := make([]*repo.DatasetRef, p.Limit)
+		// i := 0
+		// for i, ref := range refs {
+		// 	if i >= p.Limit {
+		// 		break
+		// 	}
+		// 	ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+		// 	if err != nil {
+		// 		log.Info("error loading dataset at path:", ref.Path)
+		// 		return nil
+		// 	}
+		// 	refs[i].Dataset = ds
+		// 	// i++
+		// }
+
+		reply, err := msg.UpdateJSON(refs)
+		reply = reply.WithHeaders("phase", "response")
+		if err := ws.sendMessage(reply); err != nil {
+			log.Debug(err.Error())
+			return
+		}
+	}
+
+	return
+}
+
+// MtDatasetsCreated announces the creation of one or more datasets
+// const MtDatasetsCreated = MsgType("datasets_created")
+
+// func (n *QriNode) AnnounceDatasetsCreated(ds ...repo.DatasetRef) error {
+
+// }
+
+// func (n QriNode) handleDatasestsCreated(ws *WrappedStream, msg Message) error {
+
+// }
+
+// // MtDatasetInfo gets info on a dataset
+// const MtDatasetsDeleted = MsgType("datasets_deleted")
+
+// func (n *QriNode) AnnounceDatasetsCreated(ds ...repo.DatasetRef) error {
+
+// }
+
+// func (n QriNode) handleDatasestsCreated(ws *WrappedStream, msg Message) error {
+
+// }

@@ -1,38 +1,22 @@
 package p2p
 
 import (
-	"context"
+	"bytes"
 	"testing"
+	"time"
 )
 
-func TestPing(t *testing.T) {
-	// t.Parallel()
-	// t.Skip("TestPing currently contains a race condition :/")
-
-	ntwk, err := NewTestNetwork(context.Background(), t, 2)
-	if err != nil {
-		t.Errorf("error creating network: %s", err.Error())
-		return
+func TestMessageUpdate(t *testing.T) {
+	a := Message{
+		ID:       "a",
+		Created:  time.Now(),
+		Deadline: time.Now().Add(time.Minute),
+		Body:     []byte("foo"),
 	}
 
-	a, b := ntwk[0], ntwk[1]
-	connectNodes(context.Background(), t, ntwk)
+	b := a.Update([]byte("bar"))
 
-	for i := 1; i <= 10; i++ {
-		ping := &Message{
-			Phase: MpRequest,
-			Type:  MtPing,
-		}
-		pong, err := a.SendMessage(b.Identity, ping)
-		if err != nil {
-			t.Errorf("ping %d response error: %s", i, err.Error())
-			return
-		}
-		if pong.Phase != MpResponse {
-			t.Errorf("ping %d repsonse should have phase type response, got: %d", i, pong.Phase)
-		}
-		if pong.Type != MtPing {
-			t.Errorf("ping %d response should have message type ping. got: %s", i, pong.Type.String())
-		}
+	if !bytes.Equal(b.Body, []byte("bar")) {
+		t.Errorf("payload mismatch. expected %s, got: %s", "bar", string(b.Body))
 	}
 }

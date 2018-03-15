@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
@@ -87,7 +88,14 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
 
-		replies, err := r.Node.RequestDatasetsList(ds.Peername)
+		id, err := profile.IDB58Decode(ds.PeerID)
+		if err != nil {
+			return fmt.Errorf("error %s", err.Error())
+		}
+		replies, err := r.Node.RequestDatasetsList(id, p2p.DatasetsListParams{
+			Limit:  p.Limit,
+			Offset: p.Offset,
+		})
 		*res = replies
 		return err
 	}
@@ -148,7 +156,8 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 
 	getRemote := func(err error) error {
 		if r.Node != nil {
-			ref, err := r.Node.RequestDatasetInfo(p)
+			ref := p
+			err := r.Node.RequestDataset(ref)
 			if ref != nil {
 				ds := ref.Dataset
 				// TODO - this is really stupid, p2p.RequestDatasetInfo should return an error here
@@ -325,7 +334,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	}
 
 	dataf := cafs.NewMemfileBytes("data."+st.Format.String(), data)
-	dskey, err := r.repo.CreateDataset(ds, dataf, true)
+	dskey, err := r.repo.CreateDataset(name, ds, dataf, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
@@ -500,7 +509,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ds.Structure.SetPath("")
 
 	dataf = cafs.NewMemfileBytes("data."+st.Format.String(), data)
-	dspath, err := r.repo.CreateDataset(ds, dataf, true)
+	dspath, err := r.repo.CreateDataset(p.Name, ds, dataf, true)
 	if err != nil {
 		fmt.Printf("create ds error: %s\n", err.Error())
 		return err
@@ -735,11 +744,9 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	if ref.Path == "" && r.Node != nil {
-		res, err := r.Node.RequestDatasetInfo(ref)
-		if err != nil {
+		if err := r.Node.RequestDataset(ref); err != nil {
 			return err
 		}
-		ref = res
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)

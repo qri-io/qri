@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/repo/profile"

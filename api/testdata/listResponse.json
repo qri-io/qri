@@ -2,8 +2,8 @@
   "data": [
     {
       "peername": "peer",
-      "name": "cities",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "name": "cities",
       "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "dataset": {
         "commit": {
@@ -68,8 +68,8 @@
     },
     {
       "peername": "peer",
-      "name": "counter",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "name": "counter",
       "path": "/map/Qmdg3KMzTT7UwxBZu8BGqBdF4YXM17rN51hn3hbQkJWT9v",
       "dataset": {
         "commit": {
@@ -111,8 +111,8 @@
     },
     {
       "peername": "peer",
-      "name": "craigslist",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "name": "craigslist",
       "path": "/map/QmdV6TqbjvwDqZrqPDyXeMYujEZaiaG18YjXVRhD66VFfZ",
       "dataset": {
         "commit": {
@@ -24022,8 +24022,8 @@
     },
     {
       "peername": "peer",
-      "name": "movies",
       "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "name": "movies",
       "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
       "dataset": {
         "commit": {

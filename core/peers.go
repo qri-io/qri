@@ -1,11 +1,9 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/rpc"
 
-	// "github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -200,27 +198,11 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 		return err
 	}
 
-	r, err := d.qriNode.SendMessage(id, &p2p.Message{
-		Phase: p2p.MpRequest,
-		Type:  p2p.MtDatasets,
-		Payload: &p2p.DatasetsReqParams{
-			Limit:  p.Limit,
-			Offset: p.Offset,
-		},
+	refs, err := d.qriNode.RequestDatasetsList(id, p2p.DatasetsListParams{
+		Limit:  p.Limit,
+		Offset: p.Offset,
 	})
-	if err != nil {
-		return fmt.Errorf("error sending message to peer: %s", err.Error())
-	}
-
-	data, err := json.Marshal(r.Payload)
-	if err != nil {
-		return fmt.Errorf("error encoding peer response: %s", err.Error())
-	}
-	refs := []repo.DatasetRef{}
-	if err := json.Unmarshal(data, &refs); err != nil {
-		return fmt.Errorf("error parsing peer response: %s", err.Error())
-	}
 
 	*res = refs
-	return nil
+	return err
 }
