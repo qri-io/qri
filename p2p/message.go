@@ -61,6 +61,8 @@ func NewMessage(initiator peer.ID, t MsgType, body []byte) Message {
 	return Message{
 		ID:        NewMessageID(),
 		Initiator: initiator,
+		Created:   time.Now(),
+		Deadline:  time.Now().Add(time.Minute * 2),
 		Type:      t,
 		Headers:   map[string]string{},
 		Body:      body,

@@ -19,6 +19,7 @@ import (
 // interface. It stores names in a json file
 type Refstore struct {
 	basepath
+	file File
 	// optional search index to add/remove from
 	index search.Index
 	// filestore for checking dataset integrity
@@ -146,7 +147,7 @@ func (n Refstore) RefCount() (int, error) {
 }
 
 func (n *Refstore) names() ([]repo.DatasetRef, error) {
-	data, err := ioutil.ReadFile(n.filepath(FileRefstore))
+	data, err := ioutil.ReadFile(n.filepath(n.file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			// empty is ok

@@ -6,7 +6,7 @@ import (
 )
 
 // MtSearch is a search message
-const MtSearch = MsgType("SEARCH")
+const MtSearch = MsgType("search")
 
 // Search broadcasts a search request to all connected peers, aggregating results
 func (n *QriNode) Search(terms string, limit, offset int) (res []*repo.DatasetRef, err error) {

@@ -13,9 +13,10 @@ import (
 
 // MemRepo is an in-memory implementation of the Repo interface
 type MemRepo struct {
-	pk    crypto.PrivKey
-	store cafs.Filestore
-	graph map[string]*dsgraph.Node
+	pk       crypto.PrivKey
+	store    cafs.Filestore
+	graph    map[string]*dsgraph.Node
+	refCache *MemRefstore
 	MemDatasets
 	*MemRefstore
 	*MemQueryLog
@@ -33,6 +34,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.
 		MemDatasets:       NewMemDatasets(store),
 		MemRefstore:       &MemRefstore{},
 		MemQueryLog:       &MemQueryLog{},
+		refCache:          &MemRefstore{},
 		MemChangeRequests: MemChangeRequests{},
 		profile:           p,
 		peers:             ps,
@@ -50,6 +52,11 @@ func (r *MemRepo) Store() cafs.Filestore {
 func (r *MemRepo) SetPrivateKey(pk crypto.PrivKey) error {
 	r.pk = pk
 	return nil
+}
+
+// RefCache gives access to the ephemeral Refstore
+func (r *MemRepo) RefCache() Refstore {
+	return r.refCache
 }
 
 // Graph gives the graph of objects in this repo

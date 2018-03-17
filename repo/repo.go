@@ -51,6 +51,8 @@ type Repo interface {
 	Graph() (map[string]*dsgraph.Node, error)
 	// All Repos must keep a Refstore, defining a given peer's datasets
 	Refstore
+	// Caches of dataset references
+	RefCache() Refstore
 	// CreateDataset initializes a dataset from a dataset pointer and data file
 	// It's not part of the Datasets interface because creating a dataset requires
 	// access to this repos store & private key

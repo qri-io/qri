@@ -33,6 +33,12 @@ type NodeCfg struct {
 	// Online is a flag for weather this node should connect
 	// to the distributed network
 	Online bool
+
+	// SelfReplication determines what to do when this peer sees messages
+	// broadcast by it's own profile (from another peer instance). setting
+	// SelfReplication == "full" will cause this peer to automatically pin
+	// any data that is verifyably posted by the same peer
+	SelfReplication string
 }
 
 // DefaultNodeCfg generates sensible settings for a Qri Node
@@ -59,6 +65,7 @@ func DefaultNodeCfg() *NodeCfg {
 		PubKey:            pub,
 		QriBootstrapAddrs: DefaultBootstrapAddresses,
 		Secure:            true,
+		SelfReplication:   "full",
 	}
 }
 

@@ -96,25 +96,3 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 
 	return
 }
-
-// MtDatasetsCreated announces the creation of one or more datasets
-// const MtDatasetsCreated = MsgType("datasets_created")
-
-// func (n *QriNode) AnnounceDatasetsCreated(ds ...repo.DatasetRef) error {
-
-// }
-
-// func (n QriNode) handleDatasestsCreated(ws *WrappedStream, msg Message) error {
-
-// }
-
-// // MtDatasetInfo gets info on a dataset
-// const MtDatasetsDeleted = MsgType("datasets_deleted")
-
-// func (n *QriNode) AnnounceDatasetsCreated(ds ...repo.DatasetRef) error {
-
-// }
-
-// func (n QriNode) handleDatasestsCreated(ws *WrappedStream, msg Message) error {
-
-// }

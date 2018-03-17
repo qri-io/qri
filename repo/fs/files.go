@@ -48,6 +48,8 @@ const (
 	FileQueryLogs
 	// FileRefstore is a file for the user's local namespace
 	FileRefstore
+	// FileRefCache stores known references to datasets
+	FileRefCache
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
 	FilePeers
@@ -70,6 +72,7 @@ var paths = map[File]string{
 	FileDatasets:       "/datasets.json",
 	FileQueryLogs:      "/queries.json",
 	FileRefstore:       "/namespace.json",
+	FileRefCache:       "/ref_cache.json",
 	FilePeers:          "/peers.json",
 	FileCache:          "/cache.json",
 	FileAnalytics:      "/analytics.json",

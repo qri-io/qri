@@ -31,6 +31,7 @@ type Repo struct {
 
 	Datasets
 	Refstore
+	refCache repo.Refstore
 	QueryLog
 	ChangeRequests
 
@@ -55,7 +56,8 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		basepath: bp,
 
 		Datasets:       NewDatasets(base, FileDatasets, store),
-		Refstore:       Refstore{basepath: bp, store: store},
+		Refstore:       Refstore{basepath: bp, store: store, file: FileRefstore},
+		refCache:       Refstore{basepath: bp, store: store, file: FileRefCache},
 		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
 		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
 
@@ -118,6 +120,11 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 // SaveProfile updates this repo's peer profile info
 func (r *Repo) SaveProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
+}
+
+// RefCache give access to the emphemeral Refstore
+func (r *Repo) RefCache() repo.Refstore {
+	return r.refCache
 }
 
 // ensureProfile makes sure a profile file is saved locally

@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"sync"
 	// "sort"
 
 	"github.com/qri-io/cafs/ipfs"
@@ -57,6 +58,15 @@ type QriNode struct {
 	// in traditional client/server models, but messages are flying around all over the place
 	// instead of a request/response pattern
 	handlers map[MsgType]HandlerFunc
+
+	// msgState keeps a "scratch pad" of message IDS & timeouts
+	msgState *sync.Map
+	// msgChan provides a channel of received messages for others to tune into
+	msgChan chan Message
+	// receivers is a list of anyone who wants to be notifed on new message arrival
+	receivers []chan Message
+	// selfReplication sets what to do when this node sees it's own profile
+	selfReplication string
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -76,12 +86,15 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err er
 	ps := pstore.NewPeerstore()
 
 	node = &QriNode{
-		ID:             cfg.PeerID,
-		Online:         cfg.Online,
-		QriPeers:       ps,
-		Repo:           r,
-		ctx:            context.Background(),
-		BootstrapAddrs: cfg.QriBootstrapAddrs,
+		ID:              cfg.PeerID,
+		Online:          cfg.Online,
+		QriPeers:        ps,
+		Repo:            r,
+		ctx:             context.Background(),
+		BootstrapAddrs:  cfg.QriBootstrapAddrs,
+		msgState:        &sync.Map{},
+		msgChan:         make(chan Message, 10),
+		selfReplication: cfg.SelfReplication,
 	}
 	node.handlers = MakeHandlers(node)
 
@@ -112,6 +125,8 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err er
 		node.Host.SetStreamHandler(QriProtocolID, node.QriStreamHandler)
 	}
 
+	go node.echoMessages()
+
 	return node, nil
 }
 
@@ -133,6 +148,21 @@ func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	// to start a node with *no* qri peers specified.
 	defer bootstrapped("")
 	return n.StartDiscovery(bsPeers)
+}
+
+// ReceiveMessages adds a listener for newly received messages
+func (n *QriNode) ReceiveMessages(r chan Message) {
+	n.receivers = append(n.receivers, r)
+	return
+}
+
+func (n *QriNode) echoMessages() {
+	for {
+		msg := <-n.msgChan
+		for _, r := range n.receivers {
+			go func() { r <- msg }()
+		}
+	}
 }
 
 // EncapsulatedAddresses returns a slice of full multaddrs for this node
@@ -382,6 +412,9 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 		if replies != nil {
 			go func() { replies <- msg }()
 		}
+		go func() {
+			n.msgChan <- msg
+		}()
 
 		handler, ok := n.handlers[msg.Type]
 		if !ok {
@@ -398,11 +431,12 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:        n.handlePing,
-		MtProfile:     n.handleProfile,
-		MtProfiles:    n.handleProfiles,
-		MtDatasetInfo: n.handleDataset,
-		MtDatasets:    n.handleDatasetsList,
+		MtPing:           n.handlePing,
+		MtProfile:        n.handleProfile,
+		MtProfiles:       n.handleProfiles,
+		MtDatasetInfo:    n.handleDataset,
+		MtDatasets:       n.handleDatasetsList,
+		MtDatasetChanges: n.handleDatasetChanges,
 		// MtSearch:
 		// MtPeers:
 		// MtNodes:
