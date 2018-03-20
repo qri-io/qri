@@ -431,12 +431,12 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:           n.handlePing,
-		MtProfile:        n.handleProfile,
-		MtProfiles:       n.handleProfiles,
-		MtDatasetInfo:    n.handleDataset,
-		MtDatasets:       n.handleDatasetsList,
-		MtDatasetChanges: n.handleDatasetChanges,
+		MtPing:        n.handlePing,
+		MtProfile:     n.handleProfile,
+		MtProfiles:    n.handleProfiles,
+		MtDatasetInfo: n.handleDataset,
+		MtDatasets:    n.handleDatasetsList,
+		MtEvents:      n.handleEvents,
 		// MtSearch:
 		// MtPeers:
 		// MtNodes:

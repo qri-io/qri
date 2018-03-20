@@ -32,7 +32,7 @@ type Repo struct {
 	Datasets
 	Refstore
 	refCache repo.Refstore
-	QueryLog
+	EventLog
 	ChangeRequests
 
 	analytics Analytics
@@ -58,7 +58,7 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		Datasets:       NewDatasets(base, FileDatasets, store),
 		Refstore:       Refstore{basepath: bp, store: store, file: FileRefstore},
 		refCache:       Refstore{basepath: bp, store: store, file: FileRefCache},
-		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
+		EventLog:       NewEventLog(base, FileEventLogs, store),
 		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
 
 		analytics: NewAnalytics(base),

@@ -19,7 +19,7 @@ type MemRepo struct {
 	refCache *MemRefstore
 	MemDatasets
 	*MemRefstore
-	*MemQueryLog
+	*MemEventLog
 	MemChangeRequests
 	profile   *profile.Profile
 	peers     Peers
@@ -33,7 +33,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.
 		store:             store,
 		MemDatasets:       NewMemDatasets(store),
 		MemRefstore:       &MemRefstore{},
-		MemQueryLog:       &MemQueryLog{},
+		MemEventLog:       &MemEventLog{},
 		refCache:          &MemRefstore{},
 		MemChangeRequests: MemChangeRequests{},
 		profile:           p,
@@ -97,15 +97,26 @@ func (r *MemRepo) CreateDataset(name string, ds *dataset.Dataset, data cafs.File
 		return
 	}
 
-	if err = r.PutRef(DatasetRef{
+	ref := DatasetRef{
 		Peername: r.profile.Peername,
 		Name:     name,
 		PeerID:   r.profile.ID,
 		Path:     path.String(),
-	}); err != nil {
+	}
+
+	if pin {
+		if err = r.LogEvent(ETDsPinned, ref); err != nil {
+			return path, err
+		}
+	}
+
+	if err = r.PutRef(ref); err != nil {
 		return path, err
 	}
 
 	err = r.PutDataset(path, ds)
-	return
+	if err != nil {
+		return path, err
+	}
+	return path, r.LogEvent(ETDsCreated, ref)
 }

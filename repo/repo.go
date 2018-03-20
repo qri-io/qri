@@ -7,7 +7,6 @@ package repo
 
 import (
 	"fmt"
-	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
@@ -63,8 +62,8 @@ type Repo interface {
 	// The behaviour of the embedded DatasetStore will typically differ from the cache,
 	// by only returning saved/pinned/permanent datasets.
 	Datasets
-	// QueryLog keeps a log of queries that have been run
-	QueryLog
+	// EventLog keeps a log of Profile activity for this repo
+	EventLog
 	// ChangeRequets gives this repo's change request store
 	ChangeRequestStore
 	// A repository must maintain profile information about the owner of this dataset.
@@ -96,8 +95,6 @@ type Repo interface {
 // Datasets stored here should be reasonably dereferenced to avoid
 // additional lookups.
 // All fields here work only with paths (which are datastore.Key's)
-// to dereference a name, you'll need a Refstore interface
-// oh golang, can we haz generics plz?
 type Datasets interface {
 	// Put a dataset in the store
 	PutDataset(path datastore.Key, ds *dataset.Dataset) error
@@ -109,22 +106,6 @@ type Datasets interface {
 	DeleteDataset(path datastore.Key) error
 	// Query is extracted from the ipfs datastore interface:
 	Query(query.Query) (query.Results, error)
-}
-
-// QueryLogItem is a list of details for logging a query
-type QueryLogItem struct {
-	Query       string
-	Name        string
-	Key         datastore.Key
-	DatasetPath datastore.Key
-	Time        time.Time
-}
-
-// QueryLog keeps logs
-type QueryLog interface {
-	LogQuery(*QueryLogItem) error
-	ListQueryLogs(limit, offset int) ([]*QueryLogItem, error)
-	QueryLogItem(q *QueryLogItem) (*QueryLogItem, error)
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search
