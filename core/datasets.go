@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
@@ -30,7 +31,7 @@ import (
 // DatasetRequests encapsulates business logic for this node's
 // user profile
 type DatasetRequests struct {
-	repo repo.Repo
+	repo actions.Dataset
 	cli  *rpc.Client
 	Node *p2p.QriNode
 }
@@ -53,7 +54,7 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 	}
 
 	return &DatasetRequests{
-		repo: r,
+		repo: actions.Dataset{r},
 		cli:  cli,
 	}
 }

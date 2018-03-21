@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
@@ -23,12 +24,14 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("path is required")
 	}
 
+	act := actions.Dataset{n.Repo}
+
 	// if peer ID is *our* peer.ID check for local dataset
 	// note that data may be on another machine, so this can still fail back to a
 	// network request
 	if ref.PeerID != "" {
 		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.PeerID {
-			if err := n.Repo.ReadDataset(ref); err == nil {
+			if err := act.ReadDataset(ref); err == nil {
 				return nil
 			}
 		}
@@ -88,11 +91,12 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 			return
 		}
 		res := msg
+		act := actions.Dataset{n.Repo}
 
 		if err := repo.CanonicalizeDatasetRef(n.Repo, &dsr); err == nil {
 			if ref, err := n.Repo.GetRef(dsr); err == nil {
 
-				if err := n.Repo.ReadDataset(&ref); err != nil {
+				if err := act.ReadDataset(&ref); err != nil {
 					log.Debug(err.Error())
 				}
 

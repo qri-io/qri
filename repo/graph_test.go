@@ -3,6 +3,7 @@ package repo
 import (
 	"encoding/base64"
 	"fmt"
+	"github.com/qri-io/dataset/dsfs"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
@@ -159,26 +160,19 @@ func makeTestRepo() (Repo, error) {
 	})
 
 	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))
-	// ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error putting dataset: %s", err.Error())
-	// }
-	// r.PutDataset(ds1p, ds1)
-	// r.PutRef(DatasetRef{Peername: "peer", Name: "ds1", Path: ds1p.String()})
-	if _, err := r.CreateDataset("ds1", ds1, data1f, true); err != nil {
-		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
+
+	ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
+	if err != nil {
+		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
+	r.PutRef(DatasetRef{Peername: "peer", Name: "ds1", Path: ds1p.String()})
 
 	data2f := cafs.NewMemfileBytes("data2", []byte("dataset_2"))
-	// ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
-	// if err != nil {
-	// 	return nil, fmt.Errorf("error putting dataset: %s", err.Error())
-	// }
-	// r.PutDataset(ds2p, ds2)
-	// r.PutRef(DatasetRef{Peername: "peer", Name: "ds2", Path: ds2p.String()})
-	if _, err := r.CreateDataset("ds2", ds2, data2f, true); err != nil {
-		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
+	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
+	if err != nil {
+		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
+	r.PutRef(DatasetRef{Peername: "peer", Name: "ds2", Path: ds2p.String()})
 
 	return r, nil
 }

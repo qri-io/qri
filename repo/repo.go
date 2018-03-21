@@ -10,7 +10,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -51,18 +50,8 @@ type Repo interface {
 	// to work properly, but the whole notion of transforms needs a rethink first.
 	Graph() (map[string]*dsgraph.Node, error)
 
-	// All Repos must keep a Refstore, defining a given peer's datasets
+	// All Repos must keep a Refstore, defining a store of known datasets
 	Refstore
-	// Caches of dataset references
-	RefCache() Refstore
-
-	// Repos also serve as a store of dataset information.
-	// It's important that this store maintain sync with any underlying filestore.
-	// (which is why we might want to kill this in favor of just having a cache?)
-	// The behaviour of the embedded DatasetStore will typically differ from the cache,
-	// by only returning saved/pinned/permanent datasets.
-	Datasets
-
 	// EventLog keeps a log of Profile activity for this repo
 	EventLog
 
@@ -75,27 +64,15 @@ type Repo interface {
 	// PrivateKey is used to tie peer actions to this profile. Repo implementations must
 	// never expose this private key once set.
 	SetPrivateKey(pk crypto.PrivKey) error
+	// PrivateKey hands over this repo's private key
+	// TODO - this is needed to create action structs, any way we can make this
+	// privately-negotiated or created at init?
+	PrivateKey() crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	// TODO - should rename this to "profiles" to separate from the networking
 	// concept of a peer
 	Profiles() Profiles
-}
-
-// Datasets is the minimum interface to act as a store of datasets.
-// Datasets stored here should be reasonably dereferenced to avoid
-// additional lookups.
-// All fields here work only with paths (which are datastore.Key's)
-type Datasets interface {
-	// CreateDataset initializes a dataset from a dataset pointer and data file
-	// It's not part of the Datasets interface because creating a dataset requires
-	// access to this repos store & private key
-	CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (ref DatasetRef, err error)
-	ReadDataset(ref *DatasetRef) error
-	RenameDataset(a, b DatasetRef) error
-	DeleteDataset(ref DatasetRef) (err error)
-	PinDataset(ref DatasetRef) error
-	UnpinDataset(ref DatasetRef) error
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search

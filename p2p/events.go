@@ -2,12 +2,8 @@ package p2p
 
 import (
 	"encoding/json"
-	// "strings"
 	"time"
-	// "github.com/ipfs/go-datastore"
-	// "github.com/qri-io/cafs"
-	// ipfs "github.com/qri-io/cafs/ipfs"
-	// "github.com/qri-io/dataset/dsfs"
+
 	"github.com/qri-io/qri/repo"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"

@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -456,17 +457,14 @@ func TestDataRequestsDiff(t *testing.T) {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 		return
 	}
-	if err := mr.ReadDataset(dsRef1); err != nil {
+	act := actions.Dataset{mr}
+	if err := act.ReadDataset(dsRef1); err != nil {
 		t.Errorf("error reading dataset 1: %s", err.Error())
 		return
 	}
 
 	dsBase := dsRef1.Dataset
 
-	// dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
-	// if err != nil {
-	// 	return
-	// }
 	// File 2
 	dsRef2 := &repo.DatasetRef{}
 	initParams = &InitParams{

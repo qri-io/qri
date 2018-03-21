@@ -6,12 +6,13 @@ import (
 
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 )
 
 // HistoryRequests encapsulates business logic for the log
 // of changes to datasets, think "git log"
 type HistoryRequests struct {
-	repo repo.Repo
+	repo actions.Dataset
 	cli  *rpc.Client
 	Node *p2p.QriNode
 }
@@ -26,7 +27,7 @@ func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
 		panic(fmt.Errorf("both repo and client supplied to NewHistoryRequests"))
 	}
 	return &HistoryRequests{
-		repo: r,
+		repo: actions.Dataset{r},
 		cli:  cli,
 	}
 }

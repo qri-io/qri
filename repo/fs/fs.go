@@ -3,6 +3,7 @@ package fsrepo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/qri/repo/actions"
 	"io/ioutil"
 	"os"
 
@@ -161,6 +162,11 @@ func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
 	return nil
 }
 
+// PrivateKey returns this repo's private key
+func (r *Repo) PrivateKey() crypto.PrivKey {
+	return r.pk
+}
+
 // Search this repo for dataset references
 func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 	if r.index == nil {
@@ -179,7 +185,8 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 			}
 		}
 
-		if err := r.ReadDataset(&ref); err != nil {
+		act := actions.Dataset{r}
+		if err := act.ReadDataset(&ref); err != nil {
 			log.Debug(err.Error())
 		}
 	}

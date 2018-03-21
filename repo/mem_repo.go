@@ -42,6 +42,11 @@ func (r *MemRepo) SetPrivateKey(pk crypto.PrivKey) error {
 	return nil
 }
 
+// PrivateKey returns this repo's private key
+func (r *MemRepo) PrivateKey() crypto.PrivKey {
+	return r.pk
+}
+
 // RefCache gives access to the ephemeral Refstore
 func (r *MemRepo) RefCache() Refstore {
 	return r.refCache

@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -52,10 +53,8 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	}
 
 	mr.SetPrivateKey(privKey)
+	act := actions.Dataset{mr}
 
-	// var (
-	// 	dskey datastore.Key
-	// )
 	gopath := os.Getenv("GOPATH")
 	for _, k := range datasets {
 
@@ -66,13 +65,9 @@ func NewTestRepo() (mr repo.Repo, err error) {
 
 		datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
 
-		if _, err = mr.CreateDataset(tc.Name, tc.Input, datafile, true); err != nil {
+		if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, true); err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
-
-		// if err = mr.PutRef(repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: k, Path: dskey.String()}); err != nil {
-		// 	return nil, err
-		// }
 	}
 
 	return
@@ -98,6 +93,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 		return mr, pk, err
 	}
 	mr.SetPrivateKey(pk)
+	act := actions.Dataset{mr}
 
 	tc, err := dstest.LoadTestCases(path)
 	if err != nil {
@@ -105,7 +101,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	for _, c := range tc {
-		if _, err := mr.CreateDataset(c.Name, c.Input, c.DataFile(), true); err != nil {
+		if _, err := act.CreateDataset(c.Name, c.Input, c.DataFile(), true); err != nil {
 			return mr, pk, err
 		}
 	}
