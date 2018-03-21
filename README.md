@@ -78,3 +78,7 @@ and see help output.
 ## Developing
 
 We've set up a separate document for [developer guidelines](https://github.com/qri-io/qri/blob/master/DEVELOPERS.md)!
+
+## Troubleshooting
+
+Please see our [troubleshooting document](https://github.com/qri-io/qri/blob/master/troubleshooting.md) for fixes to common issues setting up and running qri.
