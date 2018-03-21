@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -81,8 +80,7 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	limit := params.Limit
 
 	for {
-		ref.Dataset, err = d.repo.GetDataset(datastore.NewKey(ref.Path))
-		if err != nil {
+		if err = d.repo.ReadDataset(&ref); err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error adding datasets to log: %s", err.Error())
 		}

@@ -368,7 +368,7 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 			return fmt.Errorf("error converting PeerID to base58 hash: %s", err)
 		}
 
-		peer, err := r.Peers().GetPeer(pid)
+		peer, err := r.Profiles().GetPeer(pid)
 		if err != nil {
 			return fmt.Errorf("error fetching peers from store: %s", err)
 		}
@@ -383,7 +383,7 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 	}
 
 	if ref.Peername != "" {
-		id, err := r.Peers().GetID(ref.Peername)
+		id, err := r.Profiles().GetID(ref.Peername)
 		if err != nil {
 			return fmt.Errorf("error fetching peer from store: %s", err)
 		}

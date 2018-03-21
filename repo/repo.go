@@ -8,10 +8,7 @@ package repo
 import (
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsgraph"
@@ -33,6 +30,8 @@ var (
 	ErrNameTaken = fmt.Errorf("repo: name already in use")
 	// ErrRepoEmpty is for when the repo has no datasets
 	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
+	// ErrNotPinner is for when the repo doesn't have the concept of pinning as a feature
+	ErrNotPinner = fmt.Errorf("repo: backing store doesn't support pinning")
 )
 
 // Repo is the interface for working with a qri repository qri repos are stored
@@ -46,26 +45,27 @@ type Repo interface {
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.
 	Store() cafs.Filestore
+
 	// Graph returns a graph of this repositories data resources
+	// TODO - either depricate or refactor this. We need graph support for dataset transforms
+	// to work properly, but the whole notion of transforms needs a rethink first.
 	Graph() (map[string]*dsgraph.Node, error)
+
 	// All Repos must keep a Refstore, defining a given peer's datasets
 	Refstore
 	// Caches of dataset references
 	RefCache() Refstore
-	// CreateDataset initializes a dataset from a dataset pointer and data file
-	// It's not part of the Datasets interface because creating a dataset requires
-	// access to this repos store & private key
-	CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error)
+
 	// Repos also serve as a store of dataset information.
 	// It's important that this store maintain sync with any underlying filestore.
 	// (which is why we might want to kill this in favor of just having a cache?)
 	// The behaviour of the embedded DatasetStore will typically differ from the cache,
 	// by only returning saved/pinned/permanent datasets.
 	Datasets
+
 	// EventLog keeps a log of Profile activity for this repo
 	EventLog
-	// ChangeRequets gives this repo's change request store
-	ChangeRequestStore
+
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the peer.
 	Profile() (*profile.Profile, error)
@@ -79,33 +79,23 @@ type Repo interface {
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	// TODO - should rename this to "profiles" to separate from the networking
 	// concept of a peer
-	Peers() Peers
-	// Cache keeps an ephemeral store of dataset information
-	// that may be purged at any moment. Results of searching for datasets,
-	// dataset references other peers have, etc, should all be stored here.
-	Cache() Datasets
-	// All repositories provide their own analytics information.
-	// Our analytics implementation is under super-active development.
-	Analytics() analytics.Analytics
+	Profiles() Profiles
 }
 
 // Datasets is the minimum interface to act as a store of datasets.
-// It's intended to look a *lot* like the ipfs datastore interface, but
-// scoped only to datasets to make for easier consumption.
 // Datasets stored here should be reasonably dereferenced to avoid
 // additional lookups.
 // All fields here work only with paths (which are datastore.Key's)
 type Datasets interface {
-	// Put a dataset in the store
-	PutDataset(path datastore.Key, ds *dataset.Dataset) error
-	// Put multiple datasets in the store
-	PutDatasets([]*DatasetRef) error
-	// Get a dataset from the store
-	GetDataset(path datastore.Key) (*dataset.Dataset, error)
-	// Remove a dataset from the store
-	DeleteDataset(path datastore.Key) error
-	// Query is extracted from the ipfs datastore interface:
-	Query(query.Query) (query.Results, error)
+	// CreateDataset initializes a dataset from a dataset pointer and data file
+	// It's not part of the Datasets interface because creating a dataset requires
+	// access to this repos store & private key
+	CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (ref DatasetRef, err error)
+	ReadDataset(ref *DatasetRef) error
+	RenameDataset(a, b DatasetRef) error
+	DeleteDataset(ref DatasetRef) (err error)
+	PinDataset(ref DatasetRef) error
+	UnpinDataset(ref DatasetRef) error
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search
@@ -117,24 +107,4 @@ type SearchParams struct {
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
 	Search(p SearchParams) ([]DatasetRef, error)
-}
-
-// DatasetsQuery is a convenience function to read all query results & parse into a
-// map[string]*dataset.Dataset.
-func DatasetsQuery(dss Datasets, q query.Query) (map[string]*dataset.Dataset, error) {
-	ds := map[string]*dataset.Dataset{}
-	results, err := dss.Query(q)
-	if err != nil {
-		return nil, err
-	}
-
-	for res := range results.Next() {
-		d, ok := res.Value.(*dataset.Dataset)
-		if !ok {
-			return nil, fmt.Errorf("query returned the wrong type, expected a profile pointer")
-		}
-		ds[res.Key] = d
-	}
-
-	return ds, nil
 }

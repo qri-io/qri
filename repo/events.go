@@ -54,19 +54,6 @@ func (log *MemEventLog) LogEvent(t EventType, ref DatasetRef) error {
 	return nil
 }
 
-// Event fills a partial Event with all details from the store
-// func (log *MemEventLog) Event(q *Event) (*Event, error) {
-// 	for _, item := range *log {
-// 		if item.DatasetPath.Equal(q.DatasetPath) ||
-// 			item.Event == q.Event ||
-// 			item.Time.Equal(q.Time) ||
-// 			item.Key.Equal(q.Key) {
-// 			return item, nil
-// 		}
-// 	}
-// 	return nil, ErrNotFound
-// }
-
 // Events grabs a set of Events from the store
 func (log MemEventLog) Events(limit, offset int) ([]*Event, error) {
 	if offset > len(log) {

@@ -45,7 +45,7 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
-	if err := n.Repo.Peers().PutPeer(pid, pro); err != nil {
+	if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
@@ -69,7 +69,7 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 	pro.Updated = time.Now()
 
 	log.Debugf("adding peer: %s", pid.Pretty())
-	if err := n.Repo.Peers().PutPeer(pid, pro); err != nil {
+	if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
 		log.Debug(err.Error())
 		return
 	}

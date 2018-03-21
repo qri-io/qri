@@ -1,12 +1,8 @@
 package repo
 
 import (
-	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -17,29 +13,21 @@ type MemRepo struct {
 	store    cafs.Filestore
 	graph    map[string]*dsgraph.Node
 	refCache *MemRefstore
-	MemDatasets
 	*MemRefstore
 	*MemEventLog
-	MemChangeRequests
-	profile   *profile.Profile
-	peers     Peers
-	cache     MemDatasets
-	analytics analytics.Analytics
+	profile  *profile.Profile
+	profiles Profiles
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Peers, a analytics.Analytics) (Repo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Profiles) (Repo, error) {
 	return &MemRepo{
-		store:             store,
-		MemDatasets:       NewMemDatasets(store),
-		MemRefstore:       &MemRefstore{},
-		MemEventLog:       &MemEventLog{},
-		refCache:          &MemRefstore{},
-		MemChangeRequests: MemChangeRequests{},
-		profile:           p,
-		peers:             ps,
-		analytics:         a,
-		cache:             NewMemDatasets(store),
+		store:       store,
+		MemRefstore: &MemRefstore{},
+		MemEventLog: &MemEventLog{},
+		refCache:    &MemRefstore{},
+		profile:     p,
+		profiles:    ps,
 	}, nil
 }
 
@@ -75,48 +63,7 @@ func (r *MemRepo) SaveProfile(p *profile.Profile) error {
 	return nil
 }
 
-// Peers gives this repo's Peer interface implementation
-func (r *MemRepo) Peers() Peers {
-	return r.peers
-}
-
-// Cache gives this repo's ephemeral cache of Datasets
-func (r *MemRepo) Cache() Datasets {
-	return r.cache
-}
-
-// Analytics returns this repo's analytics store
-func (r *MemRepo) Analytics() analytics.Analytics {
-	return r.analytics
-}
-
-// CreateDataset initializes a dataset from a dataset pointer and data file
-func (r *MemRepo) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
-	path, err = dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
-	if err != nil {
-		return
-	}
-
-	ref := DatasetRef{
-		Peername: r.profile.Peername,
-		Name:     name,
-		PeerID:   r.profile.ID,
-		Path:     path.String(),
-	}
-
-	if pin {
-		if err = r.LogEvent(ETDsPinned, ref); err != nil {
-			return path, err
-		}
-	}
-
-	if err = r.PutRef(ref); err != nil {
-		return path, err
-	}
-
-	err = r.PutDataset(path, ds)
-	if err != nil {
-		return path, err
-	}
-	return path, r.LogEvent(ETDsCreated, ref)
+// Profiles gives this repo's Peer interface implementation
+func (r *MemRepo) Profiles() Profiles {
+	return r.profiles
 }

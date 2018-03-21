@@ -37,27 +37,9 @@ func (ql EventLog) LogEvent(t repo.EventType, ref repo.DatasetRef) error {
 		Ref:  ref,
 	}
 	log = append([]*repo.Event{e}, log...)
-	sort.Slice(log, func(i, j int) bool { return log[i].Time.Before(log[j].Time) })
+	sort.Slice(log, func(i, j int) bool { return log[i].Time.After(log[j].Time) })
 	return ql.saveFile(log, ql.file)
 }
-
-// // Event fills missing Event details with data from the store
-// func (ql EventLog) Event(q *repo.Event) (*repo.Event, error) {
-// 	log, err := ql.logs()
-// 	if err != nil {
-// 		return nil, err
-// 	}
-
-// 	for _, item := range log {
-// 		if item.DatasetPath.Equal(q.DatasetPath) ||
-// 			item.Query == q.Query ||
-// 			item.Time.Equal(q.Time) ||
-// 			item.Key.Equal(q.Key) {
-// 			return item, nil
-// 		}
-// 	}
-// 	return nil, repo.ErrNotFound
-// }
 
 // Events fetches a set of Events from the store
 func (ql EventLog) Events(limit, offset int) ([]*repo.Event, error) {

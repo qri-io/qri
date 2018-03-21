@@ -81,7 +81,8 @@ const profileData = `
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	t.Logf("temp path: %s", path)
+	// t.Logf("temp path: %s", path)
+	log.Info(path)
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.RemoveAll(path)

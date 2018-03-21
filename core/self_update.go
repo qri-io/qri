@@ -8,6 +8,7 @@ import (
 )
 
 /*
+* TODO - work in progress
 * self-updating checks IPNS entry that represents the desired hash of the previous version of
 * this program, which is the result of adding the complied binary of this program to IPFS.
 * If the returned value of a lookup differs, we have a version mismatch, and need to perform

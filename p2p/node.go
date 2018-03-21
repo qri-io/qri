@@ -281,7 +281,7 @@ func (n *QriNode) ConnectedQriPeers() map[peer.ID]*profile.Profile {
 	for _, c := range conns {
 		id := c.RemotePeer()
 		// if support, err := n.SupportsQriProtocol(id); err == nil && support {
-		if p, err := n.Repo.Peers().GetPeer(id); err == nil {
+		if p, err := n.Repo.Profiles().GetPeer(id); err == nil {
 			peers[id] = p
 		}
 		// }

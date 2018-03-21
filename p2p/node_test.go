@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -36,5 +35,5 @@ func NewTestRepo(id peer.ID) (repo.Repo, error) {
 	return repo.NewMemRepo(&profile.Profile{
 		ID:       id.Pretty(),
 		Peername: fmt.Sprintf("test-repo-%d", repoID),
-	}, cafs.NewMapstore(), repo.MemPeers{}, &analytics.Memstore{})
+	}, cafs.NewMapstore(), repo.MemProfiles{})
 }

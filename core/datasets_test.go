@@ -451,15 +451,22 @@ func TestDataRequestsDiff(t *testing.T) {
 		// Metadata:         jobsMeta,
 	}
 	err = req.Init(initParams, dsRef1)
+	t.Log(dsRef1.String())
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 		return
 	}
-	dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
-	if err != nil {
-		t.Errorf("error loading dataset 1: %s", err.Error())
+	if err := mr.ReadDataset(dsRef1); err != nil {
+		t.Errorf("error reading dataset 1: %s", err.Error())
 		return
 	}
+
+	dsBase := dsRef1.Dataset
+
+	// dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
+	// if err != nil {
+	// 	return
+	// }
 	// File 2
 	dsRef2 := &repo.DatasetRef{}
 	initParams = &InitParams{

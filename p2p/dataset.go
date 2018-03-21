@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/repo"
 
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
@@ -29,8 +28,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	// network request
 	if ref.PeerID != "" {
 		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.PeerID {
-			if ds, err := n.Repo.GetDataset(datastore.NewKey(ref.Path)); err == nil {
-				ref.Dataset = ds
+			if err := n.Repo.ReadDataset(ref); err == nil {
 				return nil
 			}
 		}
@@ -45,8 +43,6 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 
 	pids := n.ClosestConnectedPeers(pid, 15)
 	if len(pids) == 0 {
-		log.Debug(err.Error())
-
 		// TODO - start checking peerstore peers?
 		// something else should probably be trying to establish
 		// rolling connections
@@ -96,8 +92,8 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 		if err := repo.CanonicalizeDatasetRef(n.Repo, &dsr); err == nil {
 			if ref, err := n.Repo.GetRef(dsr); err == nil {
 
-				if ds, err := n.Repo.GetDataset(datastore.NewKey(ref.Path)); err == nil {
-					ref.Dataset = ds
+				if err := n.Repo.ReadDataset(&ref); err != nil {
+					log.Debug(err.Error())
 				}
 
 				res, err = msg.UpdateJSON(ref)

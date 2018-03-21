@@ -10,6 +10,9 @@ import (
 // at a bare minimum we should grab a randomized set of peers
 func (n *QriNode) ClosestConnectedPeers(id peer.ID, max int) (pid []peer.ID) {
 	added := 0
+	if !n.Online {
+		return []peer.ID{}
+	}
 
 	if len(n.Host.Network().ConnsToPeer(id)) > 0 {
 		added++

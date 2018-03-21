@@ -145,7 +145,7 @@
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "added row to include Seoul, Korea"
         },
-        "dataPath": "/map/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
+        "dataPath": "/map/QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
         "meta": {
           "description": "test description",
           "keywords": null,
@@ -206,6 +206,7 @@
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
+        "dataPath": "/map/QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",
         "meta": {
           "description": "test description",
           "keywords": null,
