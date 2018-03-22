@@ -5,14 +5,14 @@ import (
 	"testing"
 )
 
-func TestUserTypeMarshalJSON(t *testing.T) {
+func TestTypeMarshalJSON(t *testing.T) {
 	cases := []struct {
-		dt     UserType
+		dt     Type
 		expect string
 		err    error
 	}{
-		{UserTypeUser, "\"user\"", nil},
-		{UserTypeOrganization, "\"organization\"", nil},
+		{TypePeer, "\"peer\"", nil},
+		{TypeOrganization, "\"organization\"", nil},
 	}
 
 	for i, c := range cases {
@@ -26,18 +26,19 @@ func TestUserTypeMarshalJSON(t *testing.T) {
 	}
 }
 
-func TestUserTypeUnmarshalJSON(t *testing.T) {
+func TestTypeUnmarshalJSON(t *testing.T) {
 	cases := []struct {
 		data []byte
-		dt   UserType
+		dt   Type
 		err  error
 	}{
-		{[]byte("[\"user\"]"), UserTypeUser, nil},
-		{[]byte("[\"organization\"]"), UserTypeOrganization, nil},
+		{[]byte("[\"peer\"]"), TypePeer, nil},
+		{[]byte("[\"user\"]"), TypePeer, nil},
+		{[]byte("[\"organization\"]"), TypeOrganization, nil},
 	}
 
 	for i, c := range cases {
-		var dt []UserType
+		var dt []Type
 		err := json.Unmarshal(c.data, &dt)
 		if err != c.err {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)

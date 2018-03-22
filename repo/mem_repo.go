@@ -16,11 +16,11 @@ type MemRepo struct {
 	*MemRefstore
 	*MemEventLog
 	profile  *profile.Profile
-	profiles Profiles
+	profiles profile.Store
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps Profiles) (Repo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store) (Repo, error) {
 	return &MemRepo{
 		store:       store,
 		MemRefstore: &MemRefstore{},
@@ -69,6 +69,6 @@ func (r *MemRepo) SaveProfile(p *profile.Profile) error {
 }
 
 // Profiles gives this repo's Peer interface implementation
-func (r *MemRepo) Profiles() Profiles {
+func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles
 }

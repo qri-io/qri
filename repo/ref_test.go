@@ -21,43 +21,45 @@ var cases = []struct {
 	}, "peername/datasetname", "peername/datasetname"},
 
 	{DatasetRef{
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 	}, "@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ""},
 	{DatasetRef{
 		Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}, "@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 
 	{DatasetRef{
-		Peername: "peername",
-		Name:     "datasetname",
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Peername:  "peername",
+		Name:      "datasetname",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "peername/datasetname"},
 	{DatasetRef{
-		Peername: "peername",
-		Name:     "datasetname",
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Path:     "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+		Peername:  "peername",
+		Name:      "datasetname",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "peername/datasetname"},
 
 	{DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "lucille",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "lucille",
 	}, "lucille@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "lucille"},
 	{DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "lucille",
-		Name:     "ball",
-		Path:     "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "lucille",
+		Name:      "ball",
+		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}, "lucille/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball"},
 
 	{DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "bad_name",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "bad_name",
 	}, "bad_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "bad_name"},
+	// TODO - this used to be me@badId, which isn't very useful, but at least provided coding parity
+	// might be worth revisiting
 	{DatasetRef{
-		PeerID:   "badID",
-		Peername: "me",
-	}, "me@badID", "me"},
+		ProfileID: profile.ID("badID"),
+		Peername:  "me",
+	}, "me@C6mUq3y", "me"},
 }
 
 func TestDatasetRefString(t *testing.T) {
@@ -89,24 +91,24 @@ func TestParseDatasetRef(t *testing.T) {
 	}
 
 	peerIDDatasetRef := DatasetRef{
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 	}
 
 	idNameDatasetRef := DatasetRef{
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Name:   "datasetname",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Name:      "datasetname",
 	}
 
 	idFullDatasetRef := DatasetRef{
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Name:   "datasetname",
-		Path:   "/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Name:      "datasetname",
+		Path:      "/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 	}
 
 	idFullIPFSDatasetRef := DatasetRef{
-		Name:   "datasetname",
-		PeerID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Path:   "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
+		Name:      "datasetname",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Path:      "/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 	}
 
 	fullDatasetRef := DatasetRef{
@@ -163,6 +165,7 @@ func TestParseDatasetRef(t *testing.T) {
 
 		{"peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
 		{"peername/datasetname/@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
+
 		// TODO - restore. These have been removed b/c I didn't have time to make dem work properly - @b5
 		// {"peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
 		// {"peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
@@ -171,9 +174,9 @@ func TestParseDatasetRef(t *testing.T) {
 		// {"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
 		// {"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D96w1L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
 
-		// {"peername/datasetname@network/bad_hash", DatasetRef{}, "invalid PeerID: 'network'"},
-		// {"peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "invalid PeerID: 'bad_hash'"},
-		// {"peername/datasetname@bad_hash", DatasetRef{}, "invalid PeerID: 'bad_hash'"},
+		// {"peername/datasetname@network/bad_hash", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('network'"}),
+		// {"peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
+		// {"peername/datasetname@bad_hash", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
 
 		// {"@///*(*)/", DatasetRef{}, "malformed DatasetRef string: @///*(*)/"},
 		// {"///*(*)/", DatasetRef{}, "malformed DatasetRef string: ///*(*)/"},
@@ -288,7 +291,7 @@ func TestIsEmpty(t *testing.T) {
 		{DatasetRef{Peername: "a"}, false},
 		{DatasetRef{Name: "a"}, false},
 		{DatasetRef{Path: "a"}, false},
-		{DatasetRef{PeerID: "a"}, false},
+		{DatasetRef{ProfileID: profile.ID("a")}, false},
 	}
 
 	for i, c := range cases {
@@ -309,7 +312,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 		{DatasetRef{Name: "a"}, DatasetRef{}, "name mismatch. a != "},
 		{DatasetRef{Peername: "a"}, DatasetRef{}, "peername mismatch. a != "},
 		{DatasetRef{Path: "a"}, DatasetRef{}, "path mismatch. a != "},
-		{DatasetRef{PeerID: "QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"}, DatasetRef{}, "peerID mismatch. QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1 != "},
+		{DatasetRef{ProfileID: profile.IDB58MustDecode("QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1")}, DatasetRef{}, "peerID mismatch. QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1 != "},
 	}
 
 	for i, c := range cases {
@@ -322,7 +325,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), MemProfiles{})
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), profile.MemStore{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -361,39 +364,39 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	}
 }
 
-func TestCanonicalizePeer(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, cafs.NewMapstore(), MemProfiles{})
+func TestCanonicalizeProfile(t *testing.T) {
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, cafs.NewMapstore(), profile.MemStore{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
 	}
 
 	lucille := DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "lucille",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "lucille",
 	}
 
 	ball := DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "lucille",
-		Name:     "ball",
-		Path:     "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "lucille",
+		Name:      "ball",
+		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}
 
 	ballPeer := DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "lucille",
-		Name:     "ball",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "lucille",
+		Name:      "ball",
 	}
 
 	badPeerName := DatasetRef{
-		PeerID:   "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-		Peername: "bad_name",
+		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
+		Peername:  "bad_name",
 	}
 
-	badPeerIDGoodName := DatasetRef{
-		PeerID:   "badID",
-		Peername: "me",
+	badProfileIDGoodName := DatasetRef{
+		ProfileID: profile.ID("badID"),
+		Peername:  "me",
 	}
 
 	cases := []struct {
@@ -409,10 +412,10 @@ func TestCanonicalizePeer(t *testing.T) {
 		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
 		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, ballPeer, ""},
 		{"me/ball", DatasetRef{}, ballPeer, ""},
-		{"", badPeerIDGoodName, lucille, ""},
-		{"", badPeerName, DatasetRef{}, "Peername and PeerID combination not valid: PeerID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, Peername = lucille, but was given Peername = bad_name"},
+		{"", badProfileIDGoodName, lucille, ""},
+		{"", badPeerName, DatasetRef{}, "Peername and ProfileID combination not valid: ProfileID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, Peername = lucille, but was given Peername = bad_name"},
 		{"", DatasetRef{}, DatasetRef{}, ""},
-		// TODO - test CanonicalizePeer works with canonicalizing peer's datasetRefs as well
+		// TODO - test CanonicalizeProfile works with canonicalizing peer's datasetRefs as well
 	}
 
 	for i, c := range cases {
@@ -431,15 +434,15 @@ func TestCanonicalizePeer(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizePeer(repo, got)
+		err = CanonicalizeProfile(repo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
 		}
 
 		if c.err == "" {
-			if got.PeerID != c.expect.PeerID {
-				t.Errorf("case %d PeerID mismatch. expected: '%s', got: '%s'", i, c.expect.PeerID, got.PeerID)
+			if got.ProfileID != c.expect.ProfileID {
+				t.Errorf("case %d ProfileID mismatch. expected: '%s', got: '%s'", i, c.expect.ProfileID, got.ProfileID)
 			}
 			if got.Peername != c.expect.Peername {
 				t.Errorf("case %d Peername mismatch. expected: '%s', got: '%s'", i, c.expect.Peername, got.Peername)

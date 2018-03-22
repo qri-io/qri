@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
 )
 
@@ -30,7 +31,7 @@ type Refstore struct {
 func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 	var ds *dataset.Dataset
 
-	if put.PeerID == "" {
+	if put.ProfileID == "" {
 		return repo.ErrPeerIDRequired
 	} else if put.Name == "" {
 		return repo.ErrNameRequired
@@ -40,7 +41,7 @@ func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
 		return repo.ErrPeernameRequired
 	}
 
-	p := repo.DatasetRef{Peername: put.Peername, PeerID: put.PeerID, Name: put.Name, Path: put.Path}
+	p := repo.DatasetRef{Peername: put.Peername, ProfileID: put.ProfileID, Name: put.Name, Path: put.Path}
 
 	names, err := n.names()
 	if err != nil {
@@ -174,7 +175,7 @@ func (n *Refstore) names() ([]repo.DatasetRef, error) {
 			// hold over for
 			// TODO - remove by 0.3.0
 			if err.Error() == "invalid PeerID: 'ipfs'" {
-				ref.PeerID = ""
+				ref.ProfileID = profile.ID("")
 				ref.Path = fmt.Sprintf("/ipfs/%s", ref.Path)
 				ns[i] = ref
 				continue

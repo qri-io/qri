@@ -24,7 +24,7 @@ var (
 
 	testPeerProfile = &profile.Profile{
 		Peername: "peer",
-		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		ID:       profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
 	}
 )
 
@@ -47,7 +47,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist"}
 
 	ms := cafs.NewMapstore()
-	mr, err = repo.NewMemRepo(testPeerProfile, ms, repo.MemProfiles{})
+	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.MemStore{})
 	if err != nil {
 		return
 	}
@@ -88,7 +88,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, repo.MemProfiles{})
+	mr, err := repo.NewMemRepo(pro, ms, profile.MemStore{})
 	if err != nil {
 		return mr, pk, err
 	}

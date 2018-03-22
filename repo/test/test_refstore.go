@@ -7,6 +7,7 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 func testRefstore(t *testing.T, rmf RepoMakerFunc) {
@@ -27,13 +28,13 @@ func testInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	err = r.PutRef(repo.DatasetRef{PeerID: "peerID", Peername: "peer", Path: "/path/to/a/thing"})
+	err = r.PutRef(repo.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Path: "/path/to/a/thing"})
 	if err != repo.ErrNameRequired {
 		t.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired, got: %s", err)
 		return
 	}
 
-	err = r.PutRef(repo.DatasetRef{PeerID: "peerID", Peername: "peer", Name: "a", Path: ""})
+	err = r.PutRef(repo.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Name: "a", Path: ""})
 	if err != repo.ErrPathRequired {
 		t.Errorf("attempting to put empty path in refstore should return repo.ErrPathRequired, got: %s", err)
 		return
@@ -50,16 +51,16 @@ func testRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref := repo.DatasetRef{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Name: "test", Path: path.String(), Peername: "peer"}
+	ref := repo.DatasetRef{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Name: "test", Path: path.String(), Peername: "peer"}
 
 	if err := r.PutRef(ref); err != nil {
 		t.Errorf("repo.PutName: %s", err.Error())
 		return
 	}
 
-	res, err := r.GetRef(repo.DatasetRef{PeerID: ref.PeerID, Name: ref.Name})
+	res, err := r.GetRef(repo.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
 	if err != nil {
-		t.Errorf("repo.GetRef with peerID/name: %s, ref: %s", err.Error(), repo.DatasetRef{PeerID: ref.PeerID, Name: ref.Name})
+		t.Errorf("repo.GetRef with peerID/name: %s, ref: %s", err.Error(), repo.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
 		return
 	}
 	if !ref.Equal(res) {
@@ -101,11 +102,11 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	aname := "test_namespace_a"
 	bname := "test_namespace_b"
 	refs := []repo.DatasetRef{
-		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: aname},
-		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: bname},
-		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_c"},
-		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_d"},
-		{PeerID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Peername: "peer", Name: "test_namespace_e"},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: aname},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: bname},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_c"},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_d"},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e"},
 	}
 	for _, ref := range refs {
 		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)

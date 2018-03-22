@@ -72,7 +72,7 @@ type Repo interface {
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	// TODO - should rename this to "profiles" to separate from the networking
 	// concept of a peer
-	Profiles() Profiles
+	Profiles() profile.Store
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search
