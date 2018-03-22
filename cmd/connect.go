@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/core"
@@ -59,8 +58,7 @@ call it a “prime” port number.`,
 					Peername: "mem user",
 				},
 				cafs.NewMapstore(),
-				repo.MemPeers{},
-				&analytics.Memstore{})
+				repo.MemProfiles{})
 			ExitIfErr(err)
 		} else {
 			r = getRepo(true)

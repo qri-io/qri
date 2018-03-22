@@ -4,15 +4,15 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 )
 
 // HistoryRequests encapsulates business logic for the log
 // of changes to datasets, think "git log"
 type HistoryRequests struct {
-	repo repo.Repo
+	repo actions.Dataset
 	cli  *rpc.Client
 	Node *p2p.QriNode
 }
@@ -27,7 +27,7 @@ func NewHistoryRequests(r repo.Repo, cli *rpc.Client) *HistoryRequests {
 		panic(fmt.Errorf("both repo and client supplied to NewHistoryRequests"))
 	}
 	return &HistoryRequests{
-		repo: r,
+		repo: actions.Dataset{r},
 		cli:  cli,
 	}
 }
@@ -81,8 +81,7 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	limit := params.Limit
 
 	for {
-		ref.Dataset, err = d.repo.GetDataset(datastore.NewKey(ref.Path))
-		if err != nil {
+		if err = d.repo.ReadDataset(&ref); err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error adding datasets to log: %s", err.Error())
 		}

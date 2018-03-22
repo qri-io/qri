@@ -19,7 +19,6 @@ type NodeCfg struct {
 	PeerID  peer.ID
 	PubKey  crypto.PubKey
 	PrivKey crypto.PrivKey
-
 	// Port default port to bind a tcp listener to
 	// ignored if Addrs is supplied
 	Port int
@@ -34,6 +33,12 @@ type NodeCfg struct {
 	// Online is a flag for weather this node should connect
 	// to the distributed network
 	Online bool
+
+	// SelfReplication determines what to do when this peer sees messages
+	// broadcast by it's own profile (from another peer instance). setting
+	// SelfReplication == "full" will cause this peer to automatically pin
+	// any data that is verifyably posted by the same peer
+	SelfReplication string
 }
 
 // DefaultNodeCfg generates sensible settings for a Qri Node
@@ -54,16 +59,13 @@ func DefaultNodeCfg() *NodeCfg {
 	}
 
 	return &NodeCfg{
-		Online:  true,
-		PeerID:  pid,
-		PrivKey: priv,
-		PubKey:  pub,
-		// RepoPath: "~/qri",
-		// TODO - enabling this causes all nodes to broadcast
-		// on the same address, which isn't good. figure out why
-		// Port:     4444,
+		Online:            true,
+		PeerID:            pid,
+		PrivKey:           priv,
+		PubKey:            pub,
 		QriBootstrapAddrs: DefaultBootstrapAddresses,
 		Secure:            true,
+		SelfReplication:   "full",
 	}
 }
 
@@ -83,14 +85,8 @@ func (cfg *NodeCfg) Validate(r repo.Repo) error {
 	// If no listening addresses are set, allocate
 	// a tcp multiaddress on local host bound to the default port
 	if cfg.Addrs == nil {
-		// find an open tcp port
-		port, err := LocalOpenPort("tcp", cfg.Port)
-		if err != nil {
-			return err
-		}
-
 		// Create a multiaddress
-		addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", port))
+		addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", cfg.Port))
 		if err != nil {
 			return err
 		}

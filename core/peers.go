@@ -1,11 +1,9 @@
 package core
 
 import (
-	"encoding/json"
 	"fmt"
 	"net/rpc"
 
-	// "github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -50,7 +48,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 		return err
 	}
 
-	ps, err := r.Peers().List()
+	ps, err := r.Profiles().List()
 	if err != nil {
 		return fmt.Errorf("error listing peers: %s", err.Error())
 	}
@@ -124,7 +122,7 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
 	}
 
-	if profile, err := d.qriNode.Repo.Peers().GetPeer(*pid); err == nil {
+	if profile, err := d.qriNode.Repo.Profiles().GetPeer(*pid); err == nil {
 		*pid, err = profile.IPFSPeerID()
 		if err != nil {
 			return fmt.Errorf("error getting IPFS peer ID: %s", err.Error())
@@ -138,7 +136,7 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 		return fmt.Errorf("error connecting to peer: %s", err.Error())
 	}
 
-	profile, err := d.qriNode.Repo.Peers().GetPeer(*pid)
+	profile, err := d.qriNode.Repo.Profiles().GetPeer(*pid)
 	if err != nil {
 		return fmt.Errorf("error getting peer profile: %s", err.Error())
 	}
@@ -161,7 +159,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 
 	r := d.qriNode.Repo
 
-	peers, err := r.Peers().List()
+	peers, err := r.Profiles().List()
 	if err != nil {
 		log.Debug(err.Error())
 		return err
@@ -195,32 +193,16 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}
 
-	profile, err := d.qriNode.Repo.Peers().GetPeer(id)
+	profile, err := d.qriNode.Repo.Profiles().GetPeer(id)
 	if err != nil || profile == nil {
 		return err
 	}
 
-	r, err := d.qriNode.SendMessage(id, &p2p.Message{
-		Phase: p2p.MpRequest,
-		Type:  p2p.MtDatasets,
-		Payload: &p2p.DatasetsReqParams{
-			Limit:  p.Limit,
-			Offset: p.Offset,
-		},
+	refs, err := d.qriNode.RequestDatasetsList(id, p2p.DatasetsListParams{
+		Limit:  p.Limit,
+		Offset: p.Offset,
 	})
-	if err != nil {
-		return fmt.Errorf("error sending message to peer: %s", err.Error())
-	}
-
-	data, err := json.Marshal(r.Payload)
-	if err != nil {
-		return fmt.Errorf("error encoding peer response: %s", err.Error())
-	}
-	refs := []repo.DatasetRef{}
-	if err := json.Unmarshal(data, &refs); err != nil {
-		return fmt.Errorf("error parsing peer response: %s", err.Error())
-	}
 
 	*res = refs
-	return nil
+	return err
 }

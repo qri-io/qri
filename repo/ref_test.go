@@ -3,7 +3,6 @@ package repo
 import (
 	"testing"
 
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -323,7 +322,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), MemPeers{}, &analytics.Memstore{})
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), MemProfiles{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -363,7 +362,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 }
 
 func TestCanonicalizePeer(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, cafs.NewMapstore(), MemPeers{}, &analytics.Memstore{})
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"}, cafs.NewMapstore(), MemProfiles{})
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

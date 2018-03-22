@@ -6,6 +6,7 @@
       "timestamp": "2001-01-01T01:01:01.000000001Z",
       "title": "initial commit"
     },
+    "dataPath": "/map/QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
     "meta": {
       "accrualPeriodicity": "R/P1W",
       "downloadPath": "http://insight.dev.schoolwires.com/HelpAssets/C2Assets/C2Files/C2ImportFamRelSample.csv",

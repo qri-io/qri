@@ -44,7 +44,13 @@ type Profile struct {
 
 // PeerID gives a peer.ID for this profile
 func (p *Profile) PeerID() (peer.ID, error) {
-	return peer.IDB58Decode(p.ID)
+	return IDB58Decode(p.ID)
+}
+
+// IDB58Decode proxies a lower level API b/c I'm lazy & don't like
+// extra imports in higher level packages
+func IDB58Decode(pid string) (peer.ID, error) {
+	return peer.IDB58Decode(pid)
 }
 
 // IPFSPeerID sifts through listed multaddrs looking for an IPFS peer ID

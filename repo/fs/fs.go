@@ -3,16 +3,13 @@ package fsrepo
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/qri/repo/actions"
 	"io/ioutil"
 	"os"
 
-	"github.com/ipfs/go-datastore"
 	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo"
@@ -22,6 +19,10 @@ import (
 
 var log = golog.Logger("fsrepo")
 
+func init() {
+	golog.SetLogLevel("fsrepo", "info")
+}
+
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
 	pk    crypto.PrivKey
@@ -29,15 +30,12 @@ type Repo struct {
 	basepath
 	graph map[string]*dsgraph.Node
 
-	Datasets
 	Refstore
-	QueryLog
-	ChangeRequests
+	refCache repo.Refstore
+	EventLog
 
-	analytics Analytics
-	peers     PeerStore
-	cache     Datasets
-	index     search.Index
+	profiles ProfileStore
+	index    search.Index
 }
 
 // NewRepo creates a new file-based repository
@@ -54,14 +52,11 @@ func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
 		store:    store,
 		basepath: bp,
 
-		Datasets:       NewDatasets(base, FileDatasets, store),
-		Refstore:       Refstore{basepath: bp, store: store},
-		QueryLog:       NewQueryLog(base, FileQueryLogs, store),
-		ChangeRequests: NewChangeRequests(base, FileChangeRequests),
+		Refstore: Refstore{basepath: bp, store: store, file: FileRefstore},
+		refCache: Refstore{basepath: bp, store: store, file: FileRefCache},
+		EventLog: NewEventLog(base, FileEventLogs, store),
 
-		analytics: NewAnalytics(base),
-		peers:     PeerStore{bp},
-		cache:     NewDatasets(base, FileCache, nil),
+		profiles: ProfileStore{bp},
 	}
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
@@ -120,6 +115,11 @@ func (r *Repo) SaveProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
 }
 
+// RefCache give access to the emphemeral Refstore
+func (r *Repo) RefCache() repo.Refstore {
+	return r.refCache
+}
+
 // ensureProfile makes sure a profile file is saved locally
 // makes it easier to edit that file to change user data
 func ensureProfile(bp basepath, id string) error {
@@ -162,20 +162,10 @@ func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
 	return nil
 }
 
-// func (r *Repo) Peers() (map[string]*profile.Profile, error) {
-// 	p := map[string]*profile.Profile{}
-// 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
-// 	if err != nil {
-// 		if os.IsNotExist(err) {
-// 			return p, nil
-// 		}
-// 		return p, fmt.Errorf("error loading peers: %s", err.Error())
-// 	}
-// 	if err := json.Unmarshal(data, &p); err != nil {
-// 		return p, fmt.Errorf("error unmarshaling peers: %s", err.Error())
-// 	}
-// 	return p, nil
-// }
+// PrivateKey returns this repo's private key
+func (r *Repo) PrivateKey() crypto.PrivKey {
+	return r.pk
+}
 
 // Search this repo for dataset references
 func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
@@ -195,9 +185,8 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 			}
 		}
 
-		if ds, err := r.GetDataset(datastore.NewKey(ref.Path)); err == nil {
-			ref.Dataset = ds
-		} else {
+		act := actions.Dataset{r}
+		if err := act.ReadDataset(&ref); err != nil {
 			log.Debug(err.Error())
 		}
 	}
@@ -209,29 +198,9 @@ func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 	return search.IndexRepo(r, r.index)
 }
 
-// Peers returns this repo's Peers implementation
-func (r *Repo) Peers() repo.Peers {
-	return r.peers
-}
-
-// Cache gives this repo's ephemeral cache of datasets
-func (r *Repo) Cache() repo.Datasets {
-	return r.cache
-}
-
-// Analytics gets this repo's Analytics store
-func (r *Repo) Analytics() analytics.Analytics {
-	return r.analytics
-}
-
-// SavePeers saves a set of peers to the repo
-func (r *Repo) SavePeers(p map[string]*profile.Profile) error {
-	return r.saveFile(p, FilePeers)
-}
-
-// CreateDataset initializes a dataset from a dataset pointer and data file
-func (r *Repo) CreateDataset(ds *dataset.Dataset, data cafs.File, pin bool) (path datastore.Key, err error) {
-	return dsfs.CreateDataset(r.store, ds, data, r.pk, pin)
+// Profiles returns this repo's Peers implementation
+func (r *Repo) Profiles() repo.Profiles {
+	return r.profiles
 }
 
 // Destroy destroys this repository

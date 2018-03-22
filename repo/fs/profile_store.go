@@ -14,14 +14,14 @@ import (
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-// PeerStore is an on-disk json file implementation of the
+// ProfileStore is an on-disk json file implementation of the
 // repo.Peers interface
-type PeerStore struct {
+type ProfileStore struct {
 	basepath
 }
 
 // PutPeer adds a peer to the store
-func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
+func (r ProfileStore) PutPeer(id peer.ID, p *profile.Profile) error {
 	ps, err := r.peers()
 	if err != nil {
 		return err
@@ -34,7 +34,7 @@ func (r PeerStore) PutPeer(id peer.ID, p *profile.Profile) error {
 }
 
 // List hands back the list of peers
-func (r PeerStore) List() (map[string]*profile.Profile, error) {
+func (r ProfileStore) List() (map[string]*profile.Profile, error) {
 	ps, err := r.peers()
 	if err != nil && err.Error() == "EOF" {
 		return map[string]*profile.Profile{}, nil
@@ -43,7 +43,7 @@ func (r PeerStore) List() (map[string]*profile.Profile, error) {
 }
 
 // GetID gives the peer.ID for a given peername
-func (r PeerStore) GetID(peername string) (peer.ID, error) {
+func (r ProfileStore) GetID(peername string) (peer.ID, error) {
 	ps, err := r.peers()
 	if err != nil {
 		return "", err
@@ -58,7 +58,7 @@ func (r PeerStore) GetID(peername string) (peer.ID, error) {
 }
 
 // GetPeer fetches a peer from the store
-func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
+func (r ProfileStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	ps, err := r.peers()
 	if err != nil {
 		return nil, err
@@ -75,7 +75,7 @@ func (r PeerStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 }
 
 // IPFSPeerID gives the IPFS peer.ID for a given peername
-func (r PeerStore) IPFSPeerID(peername string) (peer.ID, error) {
+func (r ProfileStore) IPFSPeerID(peername string) (peer.ID, error) {
 	ps, err := r.peers()
 	if err != nil {
 		return "", err
@@ -94,7 +94,7 @@ func (r PeerStore) IPFSPeerID(peername string) (peer.ID, error) {
 }
 
 // DeletePeer removes a peer from the store
-func (r PeerStore) DeletePeer(id peer.ID) error {
+func (r ProfileStore) DeletePeer(id peer.ID) error {
 	ps, err := r.peers()
 	if err != nil {
 		return err
@@ -105,7 +105,7 @@ func (r PeerStore) DeletePeer(id peer.ID) error {
 
 // Query fetches a set of peers from the store according to given query
 // parameters
-func (r PeerStore) Query(q query.Query) (query.Results, error) {
+func (r ProfileStore) Query(q query.Query) (query.Results, error) {
 	ps, err := r.peers()
 	if err != nil {
 		return nil, err
@@ -123,7 +123,7 @@ func (r PeerStore) Query(q query.Query) (query.Results, error) {
 	return res, nil
 }
 
-func (r *PeerStore) peers() (map[string]*profile.Profile, error) {
+func (r *ProfileStore) peers() (map[string]*profile.Profile, error) {
 	ps := map[string]*profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {

@@ -13,13 +13,13 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
 	jobsByAutomationFile := testrepo.JobsByAutomationFile
-	// jobsByAutomationFile2 := testrepo.JobsByAutomationFile2
 	// badDataFormatFile := testrepo.BadDataFormatFile
 	// badStructureFile := testrepo.BadStructureFile
 
@@ -452,15 +452,19 @@ func TestDataRequestsDiff(t *testing.T) {
 		// Metadata:         jobsMeta,
 	}
 	err = req.Init(initParams, dsRef1)
+	t.Log(dsRef1.String())
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 		return
 	}
-	dsBase, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef1.Path))
-	if err != nil {
-		t.Errorf("error loading dataset 1: %s", err.Error())
+	act := actions.Dataset{mr}
+	if err := act.ReadDataset(dsRef1); err != nil {
+		t.Errorf("error reading dataset 1: %s", err.Error())
 		return
 	}
+
+	dsBase := dsRef1.Dataset
+
 	// File 2
 	dsRef2 := &repo.DatasetRef{}
 	initParams = &InitParams{

@@ -23,13 +23,15 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
 // DatasetRequests encapsulates business logic for this node's
 // user profile
 type DatasetRequests struct {
-	repo repo.Repo
+	repo actions.Dataset
 	cli  *rpc.Client
 	Node *p2p.QriNode
 }
@@ -52,7 +54,7 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 	}
 
 	return &DatasetRequests{
-		repo: r,
+		repo: actions.Dataset{r},
 		cli:  cli,
 	}
 }
@@ -87,7 +89,14 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
 
-		replies, err := r.Node.RequestDatasetsList(ds.Peername)
+		id, err := profile.IDB58Decode(ds.PeerID)
+		if err != nil {
+			return fmt.Errorf("error %s", err.Error())
+		}
+		replies, err := r.Node.RequestDatasetsList(id, p2p.DatasetsListParams{
+			Limit:  p.Limit,
+			Offset: p.Offset,
+		})
 		*res = replies
 		return err
 	}
@@ -148,8 +157,9 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 
 	getRemote := func(err error) error {
 		if r.Node != nil {
-			ref, err := r.Node.RequestDatasetInfo(p)
-			if ref != nil {
+			ref := p
+			err := r.Node.RequestDataset(ref)
+			if ref != nil && ref.Dataset != nil {
 				ds := ref.Dataset
 				// TODO - this is really stupid, p2p.RequestDatasetInfo should return an error here
 				if ds.IsEmpty() {
@@ -281,13 +291,6 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
 
-	// TODO - restore
-	// if err := validate.DataFormat(st.Format, bytes.NewReader(data)); err != nil {
-	// 	return fmt.Errorf("invalid data format: %s", err.Error())
-	// }
-
-	// TODO - check for errors in dataset and warn user if errors exist
-
 	datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
 	if err != nil {
 		return fmt.Errorf("error putting data file in store: %s", err.Error())
@@ -325,29 +328,13 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	}
 
 	dataf := cafs.NewMemfileBytes("data."+st.Format.String(), data)
-	dskey, err := r.repo.CreateDataset(ds, dataf, true)
+	*res, err = r.repo.CreateDataset(name, ds, dataf, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
 	}
 
-	ref := repo.DatasetRef{Peername: p.Peername, Name: name, Path: dskey.String(), Dataset: ds}
-
-	if err := repo.CanonicalizePeer(r.repo, &ref); err != nil {
-		return fmt.Errorf("error canonicalizing peername: %s", err.Error())
-	}
-
-	if err = r.repo.PutRef(ref); err != nil {
-		return fmt.Errorf("error adding dataset name to repo: %s", err.Error())
-	}
-
-	// ds, err = r.repo.GetDataset(dskey)
-	// if err != nil {
-	// 	return fmt.Errorf("error reading dataset: '%s': %s", dskey.String(), err.Error())
-	// }
-
-	*res = ref
-	return nil
+	return r.repo.ReadDataset(res)
 }
 
 // SaveParams defines permeters for Dataset Saves
@@ -500,30 +487,20 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ds.Structure.SetPath("")
 
 	dataf = cafs.NewMemfileBytes("data."+st.Format.String(), data)
-	dspath, err := r.repo.CreateDataset(ds, dataf, true)
+	ref, err := r.repo.CreateDataset(p.Name, ds, dataf, true)
 	if err != nil {
 		fmt.Printf("create ds error: %s\n", err.Error())
 		return err
 	}
+	ref.Dataset = ds
 
-	if prev.Name != "" {
-		if err := r.repo.DeleteRef(*prev); err != nil {
-			log.Debug(err.Error())
-			return err
-		}
-		prev.Path = dspath.String()
-		if err := r.repo.PutRef(*prev); err != nil {
-			log.Debug(err.Error())
-			return err
-		}
-	}
-
-	*res = repo.DatasetRef{
-		Peername: p.Peername,
-		Name:     p.Name,
-		Path:     dspath.String(),
-		Dataset:  ds,
-	}
+	// *res = repo.DatasetRef{
+	// 	Peername: p.Peername,
+	// 	Name:     p.Name,
+	// 	Path:     dspath.String(),
+	// 	Dataset:  ds,
+	// }
+	*res = ref
 
 	return nil
 }
@@ -735,11 +712,9 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	if ref.Path == "" && r.Node != nil {
-		res, err := r.Node.RequestDatasetInfo(ref)
-		if err != nil {
+		if err := r.Node.RequestDataset(ref); err != nil {
 			return err
 		}
-		ref = res
 	}
 
 	fs, ok := r.repo.Store().(*ipfs.Filestore)

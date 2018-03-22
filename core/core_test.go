@@ -3,7 +3,6 @@ package core
 import (
 	"testing"
 
-	"github.com/qri-io/analytics"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -25,7 +24,7 @@ func TestReceivers(t *testing.T) {
 }
 
 func testQriNode(cfgs ...func(c *p2p.NodeCfg)) (*p2p.QriNode, error) {
-	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), repo.MemPeers{}, &analytics.Memstore{})
+	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), repo.MemProfiles{})
 	if err != nil {
 		return nil, err
 	}

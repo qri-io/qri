@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/qri/repo/profile"
@@ -9,9 +10,9 @@ import (
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-// Peers is a store of peer information
+// Profiles is a store of peer information
 // It's named peers to disambiguate from the lib-p2p peerstore
-type Peers interface {
+type Profiles interface {
 	List() (map[string]*profile.Profile, error)
 	Query(query.Query) (query.Results, error)
 	IPFSPeerID(peername string) (peer.ID, error)
@@ -21,9 +22,9 @@ type Peers interface {
 	DeletePeer(id peer.ID) error
 }
 
-// QueryPeers wraps a call to Query, transforming responses to a slice of
+// QueryProfiles wraps a call to Query, transforming responses to a slice of
 // Profile pointers
-func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
+func QueryProfiles(ps Profiles, q query.Query) ([]*profile.Profile, error) {
 	i := 0
 	peers := []*profile.Profile{}
 	results, err := ps.Query(q)
@@ -55,17 +56,17 @@ func QueryPeers(ps Peers, q query.Query) ([]*profile.Profile, error) {
 	return peers, nil
 }
 
-// MemPeers is an in-memory implementation of the Peers interface
-type MemPeers map[peer.ID]*profile.Profile
+// MemProfiles is an in-memory implementation of the Profiles interface
+type MemProfiles map[peer.ID]*profile.Profile
 
 // PutPeer adds a peer to this store
-func (m MemPeers) PutPeer(id peer.ID, profile *profile.Profile) error {
+func (m MemProfiles) PutPeer(id peer.ID, profile *profile.Profile) error {
 	m[id] = profile
 	return nil
 }
 
 // GetID gives the peer.ID for a given peername
-func (m MemPeers) GetID(peername string) (peer.ID, error) {
+func (m MemProfiles) GetID(peername string) (peer.ID, error) {
 	for id, profile := range m {
 		if profile.Peername == peername {
 			return id, nil
@@ -75,7 +76,7 @@ func (m MemPeers) GetID(peername string) (peer.ID, error) {
 }
 
 // IPFSPeerID gives the IPFS peer.ID for a given peername
-func (m MemPeers) IPFSPeerID(peername string) (peer.ID, error) {
+func (m MemProfiles) IPFSPeerID(peername string) (peer.ID, error) {
 	for id, profile := range m {
 		if profile.Peername == peername {
 			if ipfspid, err := profile.IPFSPeerID(); err == nil {
@@ -89,7 +90,7 @@ func (m MemPeers) IPFSPeerID(peername string) (peer.ID, error) {
 }
 
 // List hands the full list of peers back
-func (m MemPeers) List() (map[string]*profile.Profile, error) {
+func (m MemProfiles) List() (map[string]*profile.Profile, error) {
 	res := map[string]*profile.Profile{}
 	for id, p := range m {
 		res[id.Pretty()] = p
@@ -98,7 +99,7 @@ func (m MemPeers) List() (map[string]*profile.Profile, error) {
 }
 
 // GetPeer give's peer info from the store for a given peer.ID
-func (m MemPeers) GetPeer(id peer.ID) (*profile.Profile, error) {
+func (m MemProfiles) GetPeer(id peer.ID) (*profile.Profile, error) {
 	if m[id] == nil {
 		return nil, datastore.ErrNotFound
 	}
@@ -106,13 +107,13 @@ func (m MemPeers) GetPeer(id peer.ID) (*profile.Profile, error) {
 }
 
 // DeletePeer removes a peer from this store
-func (m MemPeers) DeletePeer(id peer.ID) error {
+func (m MemProfiles) DeletePeer(id peer.ID) error {
 	delete(m, id)
 	return nil
 }
 
 // Query grabs a set of peers from this store for given query params
-func (m MemPeers) Query(q query.Query) (query.Results, error) {
+func (m MemProfiles) Query(q query.Query) (query.Results, error) {
 	re := make([]query.Entry, 0, len(m))
 	for id, v := range m {
 		re = append(re, query.Entry{Key: id.String(), Value: v})

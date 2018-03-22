@@ -21,6 +21,24 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
+// ProfileRef encapsulates a reference to a peer profile
+// It's main job is to connect peernames / profile ID's to profiles
+type ProfileRef struct {
+	Peername  string `json:"peername,omitempty"`
+	ProfileID string `json:"profileID,omitempty"`
+	// Profile data
+	Profile *profile.Profile
+}
+
+// String implements the Stringer interface for PeerRef
+func (r ProfileRef) String() (s string) {
+	s = r.Peername
+	if r.ProfileID != "" {
+		s += "@" + r.ProfileID
+	}
+	return
+}
+
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
 // ways of referring to a dataset to a dataset itself, as datasets can't easily
 // contain their own hash information, and names are unique on a per-repository
@@ -31,10 +49,10 @@ type Refstore interface {
 type DatasetRef struct {
 	// Peername of dataset owner
 	Peername string `json:"peername,omitempty"`
-	// Unique name reference for this dataset
-	Name string `json:"name,omitempty"`
 	// PeerID of dataset owner
 	PeerID string `json:"peerID,omitempty"`
+	// Unique name reference for this dataset
+	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
@@ -350,7 +368,7 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 			return fmt.Errorf("error converting PeerID to base58 hash: %s", err)
 		}
 
-		peer, err := r.Peers().GetPeer(pid)
+		peer, err := r.Profiles().GetPeer(pid)
 		if err != nil {
 			return fmt.Errorf("error fetching peers from store: %s", err)
 		}
@@ -365,7 +383,7 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 	}
 
 	if ref.Peername != "" {
-		id, err := r.Peers().GetID(ref.Peername)
+		id, err := r.Profiles().GetID(ref.Peername)
 		if err != nil {
 			return fmt.Errorf("error fetching peer from store: %s", err)
 		}

@@ -1,8 +1,8 @@
 {
   "data": {
     "peername": "peer",
-    "name": "family_relationships",
     "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+    "name": "family_relationships",
     "path": "/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N",
     "dataset": {
       "commit": {

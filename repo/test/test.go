@@ -1,64 +1,49 @@
 package test
 
 import (
-	"fmt"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
 )
 
-// RepoTestFunc is a function for testing a repo
-type RepoTestFunc func(r repo.Repo) error
+// RepoMakerFunc produces a new instance of a repository when called
+type RepoMakerFunc func(t *testing.T) repo.Repo
+
+// repoTestFunc is a function for testing a repo
+type repoTestFunc func(t *testing.T, rm RepoMakerFunc)
+
+func testdataPath(path string) string {
+	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
+}
 
 // RunRepoTests tests that this repo conforms to
 // expected behaviors
-func RunRepoTests(t *testing.T, r repo.Repo) {
-	tests := []RepoTestFunc{
-		runTestProfile,
-		runTestRefstore,
-		// runTestQueryResults,
-		// runTestResourceMeta,
-		// runTestResourceQueries,
-		// runTestPeers,
-		// runTestDestroy,
+func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
+	tests := []repoTestFunc{
+		testProfile,
+		testRefstore,
+		DatasetActions,
 	}
 
 	for _, test := range tests {
-		if err := test(r); err != nil {
-			t.Errorf(err.Error())
-		}
+		test(t, rmf)
 	}
 }
 
-func runTestProfile(r repo.Repo) error {
+func testProfile(t *testing.T, rmf RepoMakerFunc) {
+	r := rmf(t)
 	p, err := r.Profile()
 	if err != nil {
-		return fmt.Errorf("Unexpected Profile error: %s", err.Error())
+		t.Errorf("Unexpected Profile error: %s", err.Error())
+		return
 	}
 
 	err = r.SaveProfile(p)
 	if err != nil {
-		return fmt.Errorf("Unexpected SaveProfile error: %s", err.Error())
+		t.Errorf("Unexpected SaveProfile error: %s", err.Error())
+		return
 	}
-	return nil
-}
 
-func runTestDatasetStore(r repo.Repo) error {
-	// TODO
-	return nil
-}
-
-func runTestPeers(r repo.Repo) error {
-	// TODO
-	return nil
-}
-
-func runTestAnalytics(r repo.Repo) error {
-	// TODO
-	return nil
-}
-
-func runTestCache(r repo.Repo) error {
-	// TODO
-	return nil
 }

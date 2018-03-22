@@ -13,11 +13,16 @@ import (
 	"testing"
 	"time"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo/test"
 )
 
 func TestServerRoutes(t *testing.T) {
+	// bump up log level to keep test output clean
+	golog.SetLogLevel("qriapi", "error")
+	defer golog.SetLogLevel("qriapi", "info")
+
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
 	// we use the dsfs.Timestamp func variable to override
