@@ -178,6 +178,10 @@ func (s *Server) resolveWebappPath() {
 
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.ReadOnly {
+		readOnlyResponse(w, "/ipfs/")
+	}
+
 	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -189,6 +193,10 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 
 // HandleIPNSPath resolves an IPNS entry
 func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
+	if s.cfg.ReadOnly {
+		readOnlyResponse(w, "/ipns/")
+	}
+
 	node, err := s.qriNode.IPFSNode()
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no IPFS node present: %s", err.Error()))
@@ -210,6 +218,11 @@ func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 	io.Copy(w, file)
 }
 
+// helper function
+func readOnlyResponse(w http.ResponseWriter, endpoint string) {
+	apiutil.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, access to '%s' endpoint is forbidden", endpoint))
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s *Server) *http.ServeMux {
 	m := http.NewServeMux()
@@ -218,20 +231,20 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode.Repo)
+	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.ReadOnly)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
-	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode)
+	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode, s.cfg.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.qriNode.Repo)
+	dsh := NewDatasetHandlers(s.qriNode.Repo, s.cfg.ReadOnly)
 
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode

@@ -22,13 +22,14 @@ import (
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	core.DatasetRequests
-	repo repo.Repo
+	repo     repo.Repo
+	ReadOnly bool
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
-func NewDatasetHandlers(r repo.Repo) *DatasetHandlers {
+func NewDatasetHandlers(r repo.Repo, readOnly bool) *DatasetHandlers {
 	req := core.NewDatasetRequests(r, nil)
-	h := DatasetHandlers{*req, r}
+	h := DatasetHandlers{*req, r, readOnly}
 	return &h
 }
 
@@ -38,6 +39,10 @@ func (h *DatasetHandlers) ListHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/list")
+			return
+		}
 		h.listHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -74,6 +79,10 @@ func (h *DatasetHandlers) GetHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/me/")
+			return
+		}
 		h.getHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -86,6 +95,10 @@ func (h *DatasetHandlers) DiffHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "POST", "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/diff")
+			return
+		}
 		h.diffHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -146,6 +159,10 @@ func (h *DatasetHandlers) DataHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/data/")
+			return
+		}
 		h.dataHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -158,6 +175,10 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/export/")
+			return
+		}
 		h.zipDatasetHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

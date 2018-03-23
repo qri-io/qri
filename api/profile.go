@@ -13,12 +13,13 @@ import (
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
 type ProfileHandlers struct {
 	core.ProfileRequests
+	ReadOnly bool
 }
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
-func NewProfileHandlers(r repo.Repo) *ProfileHandlers {
+func NewProfileHandlers(r repo.Repo, readOnly bool) *ProfileHandlers {
 	req := core.NewProfileRequests(r, nil)
-	h := ProfileHandlers{*req}
+	h := ProfileHandlers{*req, readOnly}
 	return &h
 }
 
@@ -28,6 +29,10 @@ func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request)
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/profile' or '/me")
+			return
+		}
 		h.getProfileHandler(w, r)
 	case "POST":
 		h.saveProfileHandler(w, r)

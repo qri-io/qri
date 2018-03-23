@@ -15,13 +15,14 @@ import (
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
 type PeerHandlers struct {
 	core.PeerRequests
-	repo repo.Repo
+	repo     repo.Repo
+	ReadOnly bool
 }
 
 // NewPeerHandlers allocates a PeerHandlers pointer
-func NewPeerHandlers(r repo.Repo, node *p2p.QriNode) *PeerHandlers {
+func NewPeerHandlers(r repo.Repo, node *p2p.QriNode, readOnly bool) *PeerHandlers {
 	req := core.NewPeerRequests(node, nil)
-	h := PeerHandlers{*req, r}
+	h := PeerHandlers{*req, r, readOnly}
 	return &h
 }
 
@@ -31,7 +32,11 @@ func (h *PeerHandlers) PeersHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		h.listPeersHandler(w, r)
+		if h.ReadOnly {
+			readOnlyResponse(w, "/peers")
+		} else {
+			h.listPeersHandler(w, r)
+		}
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -43,6 +48,10 @@ func (h *PeerHandlers) PeerHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/peers/")
+			return
+		}
 		h.peerHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -67,6 +76,10 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/connections")
+			return
+		}
 		h.listConnectionsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
