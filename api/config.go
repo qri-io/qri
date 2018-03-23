@@ -73,6 +73,8 @@ type Config struct {
 	RPCPort string
 	// set to to disable webapp
 	WebappPort string
+	// read-only mode
+	ReadOnly bool
 	// list of addresses to bootsrap qri peers on
 	BoostrapAddrs []string
 	// WebappScripts is a list of script tags to include the webapp page, useful for using alternative / beta

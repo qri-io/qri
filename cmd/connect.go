@@ -18,6 +18,7 @@ var (
 	connectMemOnly       bool
 	connectOffline       bool
 	connectSetup         bool
+	connectReadOnly      bool
 )
 
 // connectCmd represents the run command
@@ -70,6 +71,7 @@ call it a “prime” port number.`,
 			cfg.WebappPort = connectCmdWebappPort
 			cfg.MemOnly = connectMemOnly
 			cfg.Online = !connectOffline
+			cfg.ReadOnly = connectReadOnly
 			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
 			cfg.PostP2POnlineHook = initializeDistributedAssets
 		})
@@ -150,5 +152,6 @@ func init() {
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
 	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
 	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")
+	connectCmd.Flags().BoolVarP(&connectReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	RootCmd.AddCommand(connectCmd)
 }
