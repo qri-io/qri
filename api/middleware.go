@@ -42,8 +42,7 @@ func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) readOnlyCheck(r *http.Request) bool {
-	// return !s.cfg.ReadOnly || r.Method == "GET"
-	return true
+	return !s.cfg.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // addCORSHeaders adds CORS header info for whitelisted servers

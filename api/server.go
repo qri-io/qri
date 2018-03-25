@@ -180,6 +180,7 @@ func (s *Server) resolveWebappPath() {
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.ReadOnly {
 		readOnlyResponse(w, "/ipfs/")
+		return
 	}
 
 	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
@@ -195,6 +196,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.ReadOnly {
 		readOnlyResponse(w, "/ipns/")
+		return
 	}
 
 	node, err := s.qriNode.IPFSNode()
