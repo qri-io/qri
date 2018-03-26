@@ -187,6 +187,123 @@ func TestServerRoutes(t *testing.T) {
 	}
 }
 
+func TestServerReadOnlyRoutes(t *testing.T) {
+	// bump up log level to keep test output clean
+	golog.SetLogLevel("qriapi", "error")
+	defer golog.SetLogLevel("qriapi", "info")
+
+	// in order to have consistent responses
+	// we need to artificially specify the timestamp
+	// we use the dsfs.Timestamp func variable to override
+	// the actual time
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	client := &http.Client{}
+
+	r, err := test.NewTestRepo()
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	s, err := New(r, func(opt *Config) {
+		opt.Online = false
+		opt.MemOnly = true
+		opt.ReadOnly = true
+	})
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	server := httptest.NewServer(NewServerRoutes(s))
+
+	cases := []struct {
+		method    string
+		endpoint  string
+		resStatus int
+	}{
+		// forbidden endpoints
+		{"GET", "/ipfs/", 403},
+		{"GET", "/ipns/", 403},
+		{"GET", "/profile", 403},
+		{"POST", "/profile", 403},
+		{"GET", "/me", 403},
+		{"POST", "/me", 403},
+		{"POST", "/profile/photo", 403},
+		{"PUT", "/profile/photo", 403},
+		{"POST", "/profile/poster", 403},
+		{"PUT", "/profile/poster", 403},
+		{"GET", "/peers", 403},
+		{"GET", "/peers/", 403},
+		{"GET", "/connections", 403},
+		{"GET", "/list", 403},
+		{"POST", "/save", 403},
+		{"PUT", "/save", 403},
+		{"POST", "/save/", 403},
+		{"PUT", "/save/", 403},
+		{"POST", "/remove/", 403},
+		{"DELETE", "/remove/", 403},
+		{"GET", "/me/", 403},
+		{"POST", "/add", 403},
+		{"PUT", "/add", 403},
+		{"POST", "/add/", 403},
+		{"PUT", "/add/", 403},
+		{"POST", "/rename", 403},
+		{"PUT", "/rename", 403},
+		{"GET", "/export/", 403},
+		{"POST", "/diff", 403},
+		{"GET", "/diff", 403},
+		{"GET", "/data/", 403},
+
+		// active endpoints:
+		{"GET", "/status", 200},
+		{"GET", "/list/peer", 200},
+		// Cannot test connect endpoint until we have peers in this test suite
+		// {"GET", "/connect/QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", 200},
+		// Cannot test endpoint until we have peers in this test suite
+		// {"GET", "/peer", 200},
+		{"GET", "/peer/movies", 200},
+		{"GET", "/history/peer/movies", 200},
+
+		// blatently checking all options for easy test coverage bump
+		{"OPTIONS", "/add", 200},
+		{"OPTIONS", "/add/", 200},
+		{"OPTIONS", "/profile", 200},
+		{"OPTIONS", "/me", 200},
+		{"OPTIONS", "/export/", 200},
+		{"OPTIONS", "/list", 200},
+		{"OPTIONS", "/save", 200},
+		{"OPTIONS", "/remove/", 200},
+		{"OPTIONS", "/rename", 200},
+		{"OPTIONS", "/me/", 200},
+		{"OPTIONS", "/list/", 200},
+		{"OPTIONS", "/history/", 200},
+	}
+
+	for i, c := range cases {
+
+		req, err := http.NewRequest(c.method, server.URL+c.endpoint, nil)
+		if err != nil {
+			t.Errorf("case %d error creating request: %s", i, err.Error())
+			continue
+		}
+
+		res, err := client.Do(req)
+		if err != nil {
+			t.Errorf("case %d error performing request: %s", i, err.Error())
+			continue
+		}
+
+		if res.StatusCode != c.resStatus {
+			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
+			continue
+		}
+	}
+}
+
 func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Client) {
 	cases := []struct {
 		method         string

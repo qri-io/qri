@@ -2,8 +2,11 @@ package api
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 	"time"
+
+	util "github.com/datatogether/api/apiutil"
 )
 
 // middleware handles request logging
@@ -30,8 +33,16 @@ func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 		// }
 		s.addCORSHeaders(w, r)
 
-		handler(w, r)
+		if ok := s.readOnlyCheck(r); ok {
+			handler(w, r)
+		} else {
+			util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, only certain GET requests are allowed"))
+		}
 	}
+}
+
+func (s *Server) readOnlyCheck(r *http.Request) bool {
+	return !s.cfg.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // addCORSHeaders adds CORS header info for whitelisted servers
