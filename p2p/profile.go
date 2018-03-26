@@ -45,7 +45,7 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
-	if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
+	if err := n.Repo.Profiles().PutProfile(pro); err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
@@ -61,18 +61,21 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 		log.Debug(err.Error())
 		return
 	}
-	pid, err := pro.IPFSPeerID()
-	if err != nil {
-		log.Debug(err.Error())
-		return
-	}
-	pro.Updated = time.Now()
 
-	log.Debugf("adding peer: %s", pid.Pretty())
-	if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
-		log.Debug(err.Error())
-		return
-	}
+	// pids, err := pro.PeerIDs()
+	// if err != nil {
+	// 	log.Debug(err.Error())
+	// 	return
+	// }
+
+	pro.Updated = time.Now()
+	n.Repo.Profiles().PutProfile(pro)
+
+	// log.Debugf("adding peer: %s", pid.Pretty())
+	// if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
+	// 	log.Debug(err.Error())
+	// 	return
+	// }
 
 	data, err := n.profileBytes()
 	if err != nil {
@@ -94,8 +97,11 @@ func (n *QriNode) profileBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	if addrs, err := n.IPFSListenAddresses(); err == nil {
-		p.Addresses = addrs
+	if addrs, err := n.ListenAddresses(); err == nil {
+		if p.Addresses == nil {
+			p.Addresses = map[string][]string{}
+		}
+		p.Addresses[n.ID.Pretty()] = addrs
 	}
 
 	return json.Marshal(p)

@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 
 	pstore "gx/ipfs/QmPgDWmTmuzvP7QE5zwo1TmjbJme9pmZHNujB2453jkCTr/go-libp2p-peerstore"
@@ -26,7 +27,7 @@ func NewTestNetwork(ctx context.Context, t *testing.T, num int) ([]*QriNode, err
 			return nil, fmt.Errorf("error creating peer ID: %s", err.Error())
 		}
 
-		r, err := NewTestRepo(rid)
+		r, err := NewTestRepo(profile.ID(rid))
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}
@@ -69,12 +70,12 @@ func newTestQriNode(r repo.Repo, t *testing.T) (*QriNode, error) {
 	localnp := testutil.RandPeerNetParamsOrFatal(t)
 
 	node, err := NewQriNode(r, func(o *NodeCfg) {
-		o.QriBootstrapAddrs = []string{}
+		o.PeerID = localnp.ID
+		o.PrivKey = localnp.PrivKey
 		o.Addrs = []ma.Multiaddr{
 			localnp.Addr,
 		}
-		o.PrivKey = localnp.PrivKey
-		o.PeerID = localnp.ID
+		o.QriBootstrapAddrs = []string{}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())

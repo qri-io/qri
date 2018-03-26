@@ -2,7 +2,7 @@
   "data": [
     {
       "peername": "peer",
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
       "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
       "dataset": {
@@ -68,7 +68,7 @@
     },
     {
       "peername": "peer",
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
       "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "dataset": {
@@ -134,7 +134,7 @@
     },
     {
       "peername": "peer",
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
       "path": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
       "dataset": {
@@ -196,7 +196,7 @@
     },
     {
       "peername": "peer",
-      "peerID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+      "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
       "path": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
       "dataset": {

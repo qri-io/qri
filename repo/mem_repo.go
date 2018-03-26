@@ -62,8 +62,8 @@ func (r *MemRepo) Profile() (*profile.Profile, error) {
 	return r.profile, nil
 }
 
-// SaveProfile updates this repo's profile
-func (r *MemRepo) SaveProfile(p *profile.Profile) error {
+// SetProfile updates this repo's profile
+func (r *MemRepo) SetProfile(p *profile.Profile) error {
 	r.profile = p
 	return nil
 }

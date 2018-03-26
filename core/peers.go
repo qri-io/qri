@@ -94,18 +94,15 @@ type Peer struct {
 	Name     string
 }
 
-// ConnectedQriPeers lists IPFS PeerID's we're currently connected to that also
-// support the qri protocol
-func (d *PeerRequests) ConnectedQriPeers(limit *int, peers *[]Peer) error {
+// ConnectedQriProfiles lists profiles we're currently connected to
+func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*profile.Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectedQriPeers", limit, peers)
 	}
 
-	parsed := []Peer{}
-	ps := d.qriNode.ConnectedQriPeers()
-	for id, peer := range ps {
-		// parsed[id.Pretty()] = peer
-		parsed = append(parsed, Peer{ID: peer.ID, IPFSID: id.String(), Peername: peer.Peername, Name: peer.Name})
+	parsed := []*profile.Profile{}
+	for _, pro := range d.qriNode.ConnectedQriProfiles() {
+		parsed = append(parsed, pro)
 	}
 
 	// if len(ps) == 0 {
@@ -122,33 +119,35 @@ func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
 		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
 	}
 
-	if profile, err := d.qriNode.Repo.Profiles().GetPeer(*pid); err == nil {
-		*pid, err = profile.IPFSPeerID()
-		if err != nil {
-			return fmt.Errorf("error getting IPFS peer ID: %s", err.Error())
-		}
-	}
+	// TODO - restore
+	// if profile, err := d.qriNode.Repo.Profiles().GetProfile(*pid); err == nil {
+	// 	*pid, err = profile.IPFSPeerID()
+	// 	if err != nil {
+	// 		return fmt.Errorf("error getting IPFS peer ID: %s", err.Error())
+	// 	}
+	// }
+
 	// if err != nil {
 	// 	return fmt.Errorf("error getting peer profile: %s", err.Error())
 	// }
 
-	if err := d.qriNode.ConnectToPeer(*pid); err != nil {
-		return fmt.Errorf("error connecting to peer: %s", err.Error())
-	}
+	// if err := d.qriNode.ConnectToPeer(*pid); err != nil {
+	// 	return fmt.Errorf("error connecting to peer: %s", err.Error())
+	// }
 
-	profile, err := d.qriNode.Repo.Profiles().GetPeer(*pid)
-	if err != nil {
-		return fmt.Errorf("error getting peer profile: %s", err.Error())
-	}
+	// profile, err := d.qriNode.Repo.Profiles().GetProfile(*pid)
+	// if err != nil {
+	// 	return fmt.Errorf("error getting peer profile: %s", err.Error())
+	// }
 
-	*res = *profile
+	// *res = *profile
 	return nil
 }
 
 // PeerInfoParams defines parameters for the Info method
 type PeerInfoParams struct {
-	Peername string
-	PeerID   string
+	Peername  string
+	ProfileID profile.ID
 }
 
 // Info shows peer profile details
@@ -159,15 +158,15 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 
 	r := d.qriNode.Repo
 
-	peers, err := r.Profiles().List()
+	profiles, err := r.Profiles().List()
 	if err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
-	for _, peer := range peers {
-		if peer.ID == p.PeerID || peer.Peername == p.Peername {
-			*res = *peer
+	for _, pro := range profiles {
+		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
+			*res = *pro
 			return nil
 		}
 	}
@@ -193,10 +192,10 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 		return fmt.Errorf("error decoding peer Id: %s", err.Error())
 	}
 
-	profile, err := d.qriNode.Repo.Profiles().GetPeer(id)
-	if err != nil || profile == nil {
-		return err
-	}
+	// profile, err := d.qriNode.Repo.Profiles().GetProfile(id)
+	// if err != nil || profile == nil {
+	// 	return err
+	// }
 
 	refs, err := d.qriNode.RequestDatasetsList(id, p2p.DatasetsListParams{
 		Limit:  p.Limit,

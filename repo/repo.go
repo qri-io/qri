@@ -59,7 +59,7 @@ type Repo interface {
 	// The value returned by Profile() should represent the peer.
 	Profile() (*profile.Profile, error)
 	// It must be possible to alter profile information.
-	SaveProfile(*profile.Profile) error
+	SetProfile(*profile.Profile) error
 	// SetPrivateKey sets an internal reference to the private key for this profile.
 	// PrivateKey is used to tie peer actions to this profile. Repo implementations must
 	// never expose this private key once set.
@@ -84,4 +84,13 @@ type SearchParams struct {
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
 	Search(p SearchParams) ([]DatasetRef, error)
+}
+
+// MustProfile loads a repo's profile data, panicing if any error is encountered
+func MustProfile(r Repo) *profile.Profile {
+	p, err := r.Profile()
+	if err != nil {
+		panic(err)
+	}
+	return p
 }

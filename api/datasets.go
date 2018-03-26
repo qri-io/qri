@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"github.com/qri-io/qri/repo/profile"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -312,9 +313,10 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	p.OrderBy = "created"
 
 	// TODO - cheap peerId detection
-	peerID := r.URL.Path[len("/list/"):]
-	if len(peerID) > 0 && peerID[:2] == "Qm" {
-		p.PeerID = peerID
+	profileID := r.URL.Path[len("/list/"):]
+	if len(profileID) > 0 && profileID[:2] == "Qm" {
+		// TODO - let's not ignore this error
+		p.ProfileID, _ = profile.IDB58Decode(profileID)
 	} else {
 		ref, err := DatasetRefFromPath(r.URL.Path[len("/list/"):])
 		if err != nil {

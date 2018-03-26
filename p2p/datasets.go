@@ -30,6 +30,10 @@ func (n *QriNode) RequestDatasetsList(pid peer.ID, p DatasetsListParams) ([]repo
 		return n.Repo.References(p.Limit, p.Offset)
 	}
 
+	if !n.Online {
+		return nil, fmt.Errorf("not connected to p2p network")
+	}
+
 	req, err := NewJSONBodyMessage(n.ID, MtDatasets, p)
 	if err != nil {
 		log.Debug(err.Error())

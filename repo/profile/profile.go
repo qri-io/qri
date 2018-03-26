@@ -37,19 +37,19 @@ type Profile struct {
 	Poster datastore.Key `json:"poster"`
 	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
-	// Addresses lists any network addresses associated with this peer
-	Addresses map[peer.ID][]string `json:"addresses"`
+	// Addresses lists any network addresses associated with this profile
+	// in the form of peer.ID.Pretty() : []multiaddr strings
+	// both peer.IDs and multiaddresses are converted to strings for
+	// clean en/decoding
+	Addresses map[string][]string `json:"addresses"`
 }
-
-// PeerID gives a peer.ID for this profile
-// func (p *Profile) PeerID() (peer.ID, error) {
-// 	return IDB58Decode(p.ID)
-// }
 
 // PeerIDs sifts through listed multaddrs looking for an IPFS peer ID
 func (p *Profile) PeerIDs() (ids []peer.ID) {
-	for id, _ := range p.Addresses {
-		ids = append(ids, id)
+	for idstr := range p.Addresses {
+		if id, err := peer.IDB58Decode(idstr); err == nil {
+			ids = append(ids, id)
+		}
 	}
 	return
 }

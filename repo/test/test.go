@@ -41,9 +41,9 @@ func testProfile(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	err = r.SaveProfile(p)
+	err = r.SetProfile(p)
 	if err != nil {
-		t.Errorf("Unexpected SaveProfile error: %s", err.Error())
+		t.Errorf("Unexpected SetProfile error: %s", err.Error())
 		return
 	}
 

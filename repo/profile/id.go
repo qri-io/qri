@@ -16,20 +16,27 @@ func (id ID) String() string {
 	return peer.ID(id).Pretty()
 }
 
+// MarshalJSON implements the json.Marshaler interface for ID
 func (id ID) MarshalJSON() ([]byte, error) {
 	return []byte(fmt.Sprintf(`"%s"`, id.String())), nil
 }
 
+// UnmarshalJSON implements the json.Unmarshaler interface for ID
 func (id *ID) UnmarshalJSON(data []byte) (err error) {
 	var str string
 	if err := json.Unmarshal(data, &str); err != nil {
 		return err
 	}
-	fmt.Println(str)
 	*id, err = IDB58Decode(str)
 	return
 }
 
+// MarshalYAML implements the yaml.Marshaler interface for ID
+func (id *ID) MarshalYAML() (interface{}, error) {
+	return id.String(), nil
+}
+
+// UnmarshalYAML implements the yaml.Unmarshaler interface for ID
 func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	var str string
 	if err := unmarshal(&str); err != nil {
@@ -39,17 +46,13 @@ func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	return
 }
 
-func (id *ID) MarshalYAML() (interface{}, error) {
-	return id.String(), nil
-}
-
 // IDB58Decode proxies a lower level API b/c I'm lazy & don't like
 func IDB58Decode(proid string) (ID, error) {
 	pid, err := peer.IDB58Decode(proid)
 	return ID(pid), err
 }
 
-// IDB58Decode proxies a lower level API b/c I'm lazy & don't like
+// IDB58MustDecode panics if an ID doesn't decode. useful for testing
 func IDB58MustDecode(proid string) ID {
 	pid, err := peer.IDB58Decode(proid)
 	if err != nil {
@@ -58,7 +61,7 @@ func IDB58MustDecode(proid string) ID {
 	return ID(pid)
 }
 
-// NewB58PeerID creates a peer.ID from a base58-encoded string
+// NewB58ID creates a peer.ID from a base58-encoded string
 func NewB58ID(pid string) (ID, error) {
 	id, err := peer.IDB58Decode(pid)
 	return ID(id), err

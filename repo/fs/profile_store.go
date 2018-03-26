@@ -13,6 +13,7 @@ import (
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// ErrNotFound is for when a qri profile isn't found
 var ErrNotFound = fmt.Errorf("Not Found")
 
 // ProfileStore is an on-disk json file implementation of the
@@ -37,20 +38,6 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 	ps[p.ID] = p
 	return r.saveFile(ps, FilePeers)
 }
-
-// PeernameID gives the ID for a given peername
-// func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
-// 	ps, err := r.profiles()
-// 	if err != nil {
-// 		return profile.ID(""), err
-// 	}
-// 	for id, profile := range ps {
-// 		if profile.Peername == peername {
-// 			return id, nil
-// 		}
-// 	}
-// 	return "", ErrNotFound
-// }
 
 // PeerIDs gives the peer.IDs list for a given peername
 func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
@@ -77,7 +64,7 @@ func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 	return ps, err
 }
 
-// GetID gives the peer.ID for a given peername
+// PeernameID gives the profile.ID for a given peername
 func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 	ps, err := r.profiles()
 	if err != nil {
@@ -92,7 +79,7 @@ func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 	return "", datastore.ErrNotFound
 }
 
-// GetPeer fetches a peer from the store
+// GetProfile fetches a profile from the store
 func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 	ps, err := r.profiles()
 	if err != nil {
@@ -108,23 +95,23 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 	return nil, datastore.ErrNotFound
 }
 
-// // PeerIDs gives the IPFS peer.ID for a given peername
-// func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
-// 	ps, err := r.profiles()
-// 	if err != nil {
-// 		return "", err
-// 	}
+// PeerProfile gives the profile that corresponds with a given peer.ID
+func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
+	ps, err := r.profiles()
+	if err != nil {
+		return nil, err
+	}
 
-// 	for proid, profile := range ps {
-// 		if id == proid {
-// 			return profile.PeerIDs(), nil
-// 		}
-// 	}
+	for _, profile := range ps {
+		if _, ok := profile.Addresses[id.Pretty()]; ok {
+			return profile, nil
+		}
+	}
 
-// 	return nil, datastore.ErrNotFound
-// }
+	return nil, datastore.ErrNotFound
+}
 
-// DeletePeer removes a peer from the store
+// DeleteProfile removes a profile from the store
 func (r ProfileStore) DeleteProfile(id profile.ID) error {
 	ps, err := r.profiles()
 	if err != nil {

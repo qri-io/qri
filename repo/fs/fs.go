@@ -116,8 +116,8 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 	return p, nil
 }
 
-// SaveProfile updates this repo's peer profile info
-func (r *Repo) SaveProfile(p *profile.Profile) error {
+// SetProfile updates this repo's peer profile info
+func (r *Repo) SetProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
 }
 

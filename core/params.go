@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // DefaultPageSize is the max number of items in a page if no
@@ -22,11 +23,11 @@ type GetParams struct {
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
 type ListParams struct {
-	PeerID   string
-	Peername string
-	OrderBy  string
-	Limit    int
-	Offset   int
+	ProfileID profile.ID
+	Peername  string
+	OrderBy   string
+	Limit     int
+	Offset    int
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

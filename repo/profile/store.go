@@ -6,6 +6,7 @@ import (
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
+// ErrNotFound is the not found err for the profile package
 var ErrNotFound = fmt.Errorf("profile: not found")
 
 // Store is a store of profile information
@@ -15,6 +16,7 @@ type Store interface {
 	PeernameID(peername string) (ID, error)
 	PutProfile(profile *Profile) error
 	GetProfile(id ID) (*Profile, error)
+	PeerProfile(id peer.ID) (*Profile, error)
 	DeleteProfile(id ID) error
 }
 
@@ -39,6 +41,19 @@ func (m MemStore) PeernameID(peername string) (ID, error) {
 		}
 	}
 	return "", ErrNotFound
+}
+
+// PeerProfile returns profile data for a given peer.ID
+// TODO - this func implies that peer.ID's are only ever connected to the same
+// profile. That could cause trouble.
+func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
+	for _, profile := range m {
+		if _, ok := profile.Addresses[id.Pretty()]; ok {
+			return profile, nil
+		}
+	}
+
+	return nil, ErrNotFound
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
@@ -74,14 +89,3 @@ func (m MemStore) DeleteProfile(id ID) error {
 	delete(m, id)
 	return nil
 }
-
-// Query grabs a set of peers from this store for given query params
-// func (m MemStore) Query(q query.Query) (query.Results, error) {
-// 	re := make([]query.Entry, 0, len(m))
-// 	for id, v := range m {
-// 		re = append(re, query.Entry{Key: id.String(), Value: v})
-// 	}
-// 	r := query.ResultsWithEntries(q, re)
-// 	r = query.NaiveQueryApply(q, r)
-// 	return r, nil
-// }

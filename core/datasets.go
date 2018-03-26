@@ -24,7 +24,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
@@ -66,11 +65,11 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	}
 
 	ds := &repo.DatasetRef{
-		Peername: p.Peername,
-		PeerID:   p.PeerID,
+		Peername:  p.Peername,
+		ProfileID: p.ProfileID,
 	}
 
-	if ds.Peername == "" && ds.PeerID == "" {
+	if ds.Peername == "" && ds.ProfileID == "" {
 		ds.Peername = "me"
 	}
 
@@ -80,7 +79,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return fmt.Errorf("error getting profile: %s", err.Error())
 	}
 
-	if err := repo.CanonicalizePeer(r.repo, ds); err != nil {
+	if err := repo.CanonicalizeProfile(r.repo, ds); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
@@ -89,11 +88,17 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
 
-		id, err := profile.IDB58Decode(ds.PeerID)
+		pro, err := r.repo.Profiles().GetProfile(ds.ProfileID)
 		if err != nil {
 			return fmt.Errorf("error %s", err.Error())
 		}
-		replies, err := r.Node.RequestDatasetsList(id, p2p.DatasetsListParams{
+
+		ids := pro.PeerIDs()
+		if len(ids) == 0 {
+			return fmt.Errorf("couldn't find a peer address for profile: %s", pro.ID)
+		}
+
+		replies, err := r.Node.RequestDatasetsList(ids[0], p2p.DatasetsListParams{
 			Limit:  p.Limit,
 			Offset: p.Offset,
 		})
@@ -121,7 +126,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			break
 		}
 
-		if err := repo.CanonicalizePeer(r.repo, &replies[i]); err != nil {
+		if err := repo.CanonicalizeProfile(r.repo, &replies[i]); err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
@@ -204,11 +209,11 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	}
 
 	*res = repo.DatasetRef{
-		PeerID:   p.PeerID,
-		Peername: p.Peername,
-		Name:     p.Name,
-		Path:     p.Path,
-		Dataset:  ds,
+		ProfileID: p.ProfileID,
+		Peername:  p.Peername,
+		Name:      p.Name,
+		Path:      p.Path,
+		Dataset:   ds,
 	}
 	return nil
 }
@@ -744,7 +749,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	ref.Peername = profile.Peername
-	ref.PeerID = profile.ID
+	ref.ProfileID = profile.ID
 
 	err = r.repo.PutRef(*ref)
 	if err != nil {

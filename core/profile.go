@@ -41,20 +41,20 @@ func NewProfileRequests(r repo.Repo, cli *rpc.Client) *ProfileRequests {
 
 // Profile is a public, gob-encodable version of repo/profile/Profile
 type Profile struct {
-	ID          string           `json:"id"`
-	Created     time.Time        `json:"created,omitempty"`
-	Updated     time.Time        `json:"updated,omitempty"`
-	Peername    string           `json:"peername"`
-	Type        profile.UserType `json:"type"`
-	Email       string           `json:"email"`
-	Name        string           `json:"name"`
-	Description string           `json:"description"`
-	HomeURL     string           `json:"homeUrl"`
-	Color       string           `json:"color"`
-	Thumb       string           `json:"thumb"`
-	Profile     string           `json:"profile"`
-	Poster      string           `json:"poster"`
-	Twitter     string           `json:"twitter"`
+	ID          string       `json:"id"`
+	Created     time.Time    `json:"created,omitempty"`
+	Updated     time.Time    `json:"updated,omitempty"`
+	Peername    string       `json:"peername"`
+	Type        profile.Type `json:"type"`
+	Email       string       `json:"email"`
+	Name        string       `json:"name"`
+	Description string       `json:"description"`
+	HomeURL     string       `json:"homeUrl"`
+	Color       string       `json:"color"`
+	Thumb       string       `json:"thumb"`
+	Profile     string       `json:"profile"`
+	Poster      string       `json:"poster"`
+	Twitter     string       `json:"twitter"`
 }
 
 // unmarshalProfile gets a profile.Profile from a Profile pointer
@@ -372,7 +372,7 @@ func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
 		return err
 	}
 
-	if err := r.repo.SaveProfile(_p); err != nil {
+	if err := r.repo.SetProfile(_p); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
