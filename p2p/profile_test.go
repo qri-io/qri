@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 func TestRequestProfile(t *testing.T) {
@@ -34,15 +36,19 @@ func TestRequestProfile(t *testing.T) {
 					t.Error("profile shouldn't be nil")
 					return
 				}
-				pid, err := pro.IPFSPeerID()
+
+				pid := pro.PeerIDs()[0]
 				if err != nil {
 					t.Error(err.Error())
 					return
 				}
+
 				if pid != p2.ID {
-					t.Errorf("profile id mismatch. expected: %s, got: %s", p2.ID.Pretty(), pro.ID)
+					p2pro, _ := p2.Repo.Profile()
+					t.Logf("p2 profile ID: %s peerID: %s, host peerID: %s", peer.ID(p2pro.ID), p2.ID, p2.Host.ID())
+					t.Errorf("%s request profile peerID mismatch. expected: %s, got: %s", p1.ID, p2.ID, pid)
 				}
-				t.Log(pro)
+
 			}(p1, p2)
 		}
 	}

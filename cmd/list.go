@@ -69,8 +69,8 @@ qri repository.`,
 			ExitIfErr(err)
 
 			for _, ref := range refs {
-				// remove peerID so names print pretty
-				ref.PeerID = ""
+				// remove profileID so names print pretty
+				ref.ProfileID = ""
 			}
 
 			outformat := cmd.Flag("format").Value.String()

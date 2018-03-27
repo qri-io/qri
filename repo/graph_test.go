@@ -154,7 +154,7 @@ func makeTestRepo() (Repo, error) {
 	}
 
 	r.SetPrivateKey(privKey)
-	r.SaveProfile(&profile.Profile{
+	r.SetProfile(&profile.Profile{
 		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 		Peername: "peer",
 	})

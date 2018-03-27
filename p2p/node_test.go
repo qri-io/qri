@@ -8,11 +8,18 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
+	// peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 func TestNewNode(t *testing.T) {
-	r, err := NewTestRepo("foo")
+	pid, err := testutil.RandPeerID()
+	if err != nil {
+		t.Errorf("error generating peer id: %s", err.Error())
+		return
+	}
+
+	r, err := NewTestRepo(profile.ID(pid))
 	if err != nil {
 		t.Errorf("error creating test repo: %s", err.Error())
 		return
@@ -30,10 +37,10 @@ func TestNewNode(t *testing.T) {
 
 var repoID = 0
 
-func NewTestRepo(id peer.ID) (repo.Repo, error) {
+func NewTestRepo(id profile.ID) (repo.Repo, error) {
 	repoID++
 	return repo.NewMemRepo(&profile.Profile{
-		ID:       id.Pretty(),
+		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", repoID),
-	}, cafs.NewMapstore(), repo.MemProfiles{})
+	}, cafs.NewMapstore(), profile.MemStore{})
 }

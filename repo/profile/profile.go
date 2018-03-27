@@ -1,17 +1,16 @@
 package profile
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/ipfs/go-datastore"
-	ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+	// ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // Profile defines peer profile details
 type Profile struct {
-	ID string `json:"id"`
+	ID ID `json:"id"`
 	// Created timestamp
 	Created time.Time `json:"created,omitempty"`
 	// Updated timestamp
@@ -19,7 +18,7 @@ type Profile struct {
 	// Peername a handle for the user. min 1 character, max 80. composed of [_,-,a-z,A-Z,1-9]
 	Peername string `json:"peername"`
 	// specifies weather this is a user or an organization
-	Type UserType `json:"type"`
+	Type Type `json:"type"`
 	// user's email address
 	Email string `json:"email"`
 	// user name field. could be first[space]last, but not strictly enforced
@@ -38,36 +37,19 @@ type Profile struct {
 	Poster datastore.Key `json:"poster"`
 	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
-	// Addresses lists any network addresses associated with this peer
-	Addresses []string `json:"addresses"`
+	// Addresses lists any network addresses associated with this profile
+	// in the form of peer.ID.Pretty() : []multiaddr strings
+	// both peer.IDs and multiaddresses are converted to strings for
+	// clean en/decoding
+	Addresses map[string][]string `json:"addresses"`
 }
 
-// PeerID gives a peer.ID for this profile
-func (p *Profile) PeerID() (peer.ID, error) {
-	return IDB58Decode(p.ID)
-}
-
-// IDB58Decode proxies a lower level API b/c I'm lazy & don't like
-// extra imports in higher level packages
-func IDB58Decode(pid string) (peer.ID, error) {
-	return peer.IDB58Decode(pid)
-}
-
-// IPFSPeerID sifts through listed multaddrs looking for an IPFS peer ID
-// TODO - this could be a source of issues. Let's find a more dependable method
-// for correlating IPFS peer ID's with qri peer ids
-func (p *Profile) IPFSPeerID() (peer.ID, error) {
-	for _, mstr := range p.Addresses {
-		if a, err := ma.NewMultiaddr(mstr); err == nil {
-			if str, err := a.ValueForProtocol(ma.P_IPFS); err == nil {
-				return peer.IDB58Decode(str)
-			}
+// PeerIDs sifts through listed multaddrs looking for an IPFS peer ID
+func (p *Profile) PeerIDs() (ids []peer.ID) {
+	for idstr := range p.Addresses {
+		if id, err := peer.IDB58Decode(idstr); err == nil {
+			ids = append(ids, id)
 		}
 	}
-	return "", fmt.Errorf("no IPFS Peer ID found")
-}
-
-// NewB58PeerID creates a peer.ID from a base58-encoded string
-func NewB58PeerID(pid string) (peer.ID, error) {
-	return peer.IDB58Decode(pid)
+	return
 }

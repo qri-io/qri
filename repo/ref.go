@@ -24,8 +24,8 @@ type Refstore interface {
 // ProfileRef encapsulates a reference to a peer profile
 // It's main job is to connect peernames / profile ID's to profiles
 type ProfileRef struct {
-	Peername  string `json:"peername,omitempty"`
-	ProfileID string `json:"profileID,omitempty"`
+	Peername  string     `json:"peername,omitempty"`
+	ProfileID profile.ID `json:"profileID,omitempty"`
 	// Profile data
 	Profile *profile.Profile
 }
@@ -33,8 +33,8 @@ type ProfileRef struct {
 // String implements the Stringer interface for PeerRef
 func (r ProfileRef) String() (s string) {
 	s = r.Peername
-	if r.ProfileID != "" {
-		s += "@" + r.ProfileID
+	if r.ProfileID.String() != "" {
+		s += "@" + r.ProfileID.String()
 	}
 	return
 }
@@ -49,8 +49,8 @@ func (r ProfileRef) String() (s string) {
 type DatasetRef struct {
 	// Peername of dataset owner
 	Peername string `json:"peername,omitempty"`
-	// PeerID of dataset owner
-	PeerID string `json:"peerID,omitempty"`
+	// ProfileID of dataset owner
+	ProfileID profile.ID `json:"profileID,omitempty"`
 	// Unique name reference for this dataset
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
@@ -62,11 +62,11 @@ type DatasetRef struct {
 // String implements the Stringer interface for DatasetRef
 func (r DatasetRef) String() (s string) {
 	s = r.AliasString()
-	if r.PeerID != "" || r.Path != "" {
+	if r.ProfileID.String() != "" || r.Path != "" {
 		s += "@"
 	}
-	if r.PeerID != "" {
-		s += r.PeerID
+	if r.ProfileID.String() != "" {
+		s += r.ProfileID.String()
 	}
 	if r.Path != "" {
 		s += r.Path
@@ -88,17 +88,17 @@ func (r DatasetRef) AliasString() (s string) {
 func (r DatasetRef) Match(b DatasetRef) bool {
 	// fmt.Printf("\nr.Peername: %s b.Peername: %s\n", r.Peername, b.Peername)
 	// fmt.Printf("\nr.Name: %s b.Name: %s\n", r.Name, b.Name)
-	return (r.Path != "" && b.Path != "" && r.Path == b.Path) || (r.PeerID == b.PeerID || r.Peername == b.Peername) && r.Name == b.Name
+	return (r.Path != "" && b.Path != "" && r.Path == b.Path) || (r.ProfileID == b.ProfileID || r.Peername == b.Peername) && r.Name == b.Name
 }
 
 // Equal returns true only if Peername Name and Path are equal
 func (r DatasetRef) Equal(b DatasetRef) bool {
-	return r.Peername == b.Peername && r.PeerID == b.PeerID && r.Name == b.Name && r.Path == b.Path
+	return r.Peername == b.Peername && r.ProfileID == b.ProfileID && r.Name == b.Name && r.Path == b.Path
 }
 
 // IsPeerRef returns true if only Peername is set
 func (r DatasetRef) IsPeerRef() bool {
-	return (r.Peername != "" || r.PeerID != "") && r.Name == "" && r.Path == "" && r.Dataset == nil
+	return (r.Peername != "" || r.ProfileID != "") && r.Name == "" && r.Path == "" && r.Dataset == nil
 }
 
 // IsEmpty returns true if none of it's fields are set
@@ -153,7 +153,7 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if atIndex != -1 {
 
 		dsr.Peername, dsr.Name = parseAlias(ref[:atIndex])
-		dsr.PeerID, dsr.Path, err = parseIdentifiers(ref[atIndex+1:])
+		dsr.ProfileID, dsr.Path, err = parseIdentifiers(ref[atIndex+1:])
 
 	} else {
 
@@ -164,7 +164,7 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 			if isBase58Multihash(tok) {
 				// first hash we encounter is a peerID
 				if !pid {
-					dsr.PeerID = tok
+					dsr.ProfileID, _ = profile.IDB58Decode(tok)
 					pid = true
 					continue
 				}
@@ -194,17 +194,17 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 		}
 	}
 
-	if dsr.PeerID == "" && dsr.Peername == "" && dsr.Name == "" && dsr.Path == "" {
+	if dsr.ProfileID == "" && dsr.Peername == "" && dsr.Name == "" && dsr.Path == "" {
 		err = fmt.Errorf("malformed DatasetRef string: %s", ref)
 		return dsr, err
 	}
 
-	if dsr.PeerID != "" {
-		if !isBase58Multihash(dsr.PeerID) {
-			err = fmt.Errorf("invalid PeerID: '%s'", dsr.PeerID)
-			return dsr, err
-		}
-	}
+	// if dsr.ProfileID != "" {
+	// 	if !isBase58Multihash(dsr.ProfileID) {
+	// 		err = fmt.Errorf("invalid ProfileID: '%s'", dsr.ProfileID)
+	// 		return dsr, err
+	// 	}
+	// }
 
 	return dsr, err
 }
@@ -221,7 +221,7 @@ func parseAlias(alias string) (peer, dataset string) {
 	return
 }
 
-func parseIdentifiers(ids string) (peerID, path string, err error) {
+func parseIdentifiers(ids string) (profileID profile.ID, path string, err error) {
 
 	toks := strings.Split(ids, "/")
 	switch len(toks) {
@@ -229,23 +229,29 @@ func parseIdentifiers(ids string) (peerID, path string, err error) {
 		err = fmt.Errorf("malformed DatasetRef identifier: %s", ids)
 	case 1:
 		if toks[0] != "" {
-			peerID = toks[0]
-			if !isBase58Multihash(toks[0]) {
-				err = fmt.Errorf("'%s' is not a base58 multihash", ids)
-			}
+			profileID, err = profile.IDB58Decode(toks[0])
+			// if !isBase58Multihash(toks[0]) {
+			// 	err = fmt.Errorf("'%s' is not a base58 multihash", ids)
+			// }
+
 			return
 		}
 	case 2:
-		peerID = toks[0]
+		if pid, e := profile.IDB58Decode(toks[0]); e == nil {
+			profileID = pid
+		}
+
 		if isBase58Multihash(toks[0]) && isBase58Multihash(toks[1]) {
 			toks[1] = fmt.Sprintf("/ipfs/%s", toks[1])
 		}
 
 		path = toks[1]
 	default:
-		peerID = toks[0]
+		if pid, e := profile.IDB58Decode(toks[0]); e == nil {
+			profileID = pid
+		}
+
 		path = fmt.Sprintf("/%s/%s", toks[1], toks[2])
-		// path = fmt.Sprintf("/%s", strings.Join(toks[1:], "/"))
 		return
 	}
 
@@ -286,11 +292,11 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return nil
 	}
 
-	if err := CanonicalizePeer(r, ref); err != nil {
+	if err := CanonicalizeProfile(r, ref); err != nil {
 		return err
 	}
 
-	if ref.Path != "" && ref.PeerID != "" && ref.Name != "" && ref.Peername != "" {
+	if ref.Path != "" && ref.ProfileID != "" && ref.Name != "" && ref.Peername != "" {
 		return nil
 	}
 
@@ -299,8 +305,8 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		if ref.Path == "" {
 			ref.Path = got.Path
 		}
-		if ref.PeerID == "" {
-			ref.PeerID = got.PeerID
+		if ref.ProfileID == "" {
+			ref.ProfileID = got.ProfileID
 		}
 		if ref.Name == "" {
 			ref.Name = got.Name
@@ -308,7 +314,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		if ref.Peername == "" {
 			ref.Peername = got.Peername
 		}
-		if ref.Path != got.Path || ref.PeerID != got.PeerID || ref.Name != got.Name || ref.Peername != got.Peername {
+		if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name || ref.Peername != got.Peername {
 			return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 		}
 	}
@@ -316,10 +322,10 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	return nil
 }
 
-// CanonicalizePeer populates dataset DatasetRef PeerID and Peername properties,
-// changing aliases to known names, and adding PeerID from a peerstore
-func CanonicalizePeer(r Repo, ref *DatasetRef) error {
-	if ref.Peername == "" && ref.PeerID == "" {
+// CanonicalizeProfile populates dataset DatasetRef ProfileID and Peername properties,
+// changing aliases to known names, and adding ProfileID from a peerstore
+func CanonicalizeProfile(r Repo, ref *DatasetRef) error {
+	if ref.Peername == "" && ref.ProfileID == "" {
 		return nil
 	}
 
@@ -328,20 +334,20 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 		return err
 	}
 
-	if ref.Peername == "me" || ref.Peername == p.Peername || ref.PeerID == p.ID {
+	if ref.Peername == "me" || ref.Peername == p.Peername || ref.ProfileID == p.ID {
 		if ref.Peername == "me" {
-			ref.PeerID = p.ID
+			ref.ProfileID = p.ID
 			ref.Peername = p.Peername
 		}
 
-		if ref.Peername != "" && ref.PeerID != "" {
-			if ref.Peername == p.Peername && ref.PeerID != p.ID {
-				return fmt.Errorf("Peername and PeerID combination not valid: Peername = %s, PeerID = %s, but was given PeerID = %s", p.Peername, p.ID, ref.PeerID)
+		if ref.Peername != "" && ref.ProfileID != "" {
+			if ref.Peername == p.Peername && ref.ProfileID != p.ID {
+				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", p.Peername, p.ID, ref.ProfileID)
 			}
-			if ref.PeerID == p.ID && ref.Peername != p.Peername {
-				return fmt.Errorf("Peername and PeerID combination not valid: PeerID = %s, Peername = %s, but was given Peername = %s", p.ID, p.Peername, ref.Peername)
+			if ref.ProfileID == p.ID && ref.Peername != p.Peername {
+				return fmt.Errorf("Peername and ProfileID combination not valid: ProfileID = %s, Peername = %s, but was given Peername = %s", p.ID, p.Peername, ref.Peername)
 			}
-			if ref.Peername == p.Peername && ref.PeerID == p.ID {
+			if ref.Peername == p.Peername && ref.ProfileID == p.ID {
 				return nil
 			}
 		}
@@ -352,47 +358,47 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 			}
 		}
 
-		if ref.PeerID != "" {
-			if ref.PeerID != p.ID {
+		if ref.ProfileID != "" {
+			if ref.ProfileID != p.ID {
 				return nil
 			}
 		}
 
 		ref.Peername = p.Peername
-		ref.PeerID = p.ID
+		ref.ProfileID = p.ID
 		return nil
 	}
-	if ref.PeerID != "" {
-		pid, err := profile.NewB58PeerID(ref.PeerID)
-		if err != nil {
-			return fmt.Errorf("error converting PeerID to base58 hash: %s", err)
-		}
+	if ref.ProfileID != "" {
+		// pid, err := profile.NewB58ID(ref.ProfileID)
+		// if err != nil {
+		// 	return fmt.Errorf("error converting ProfileID to base58 hash: %s", err)
+		// }
 
-		peer, err := r.Profiles().GetPeer(pid)
+		profile, err := r.Profiles().GetProfile(ref.ProfileID)
 		if err != nil {
 			return fmt.Errorf("error fetching peers from store: %s", err)
 		}
 
 		if ref.Peername == "" {
-			ref.Peername = peer.Peername
+			ref.Peername = profile.Peername
 			return nil
 		}
-		if ref.Peername != peer.Peername {
-			return fmt.Errorf("Peername and PeerID combination not valid: PeerID = %s, Peername = %s, but was given Peername = %s", peer.ID, peer.Peername, ref.Peername)
+		if ref.Peername != profile.Peername {
+			return fmt.Errorf("Peername and ProfileID combination not valid: ProfileID = %s, Peername = %s, but was given Peername = %s", profile.ID, profile.Peername, ref.Peername)
 		}
 	}
 
 	if ref.Peername != "" {
-		id, err := r.Profiles().GetID(ref.Peername)
+		id, err := r.Profiles().PeernameID(ref.Peername)
 		if err != nil {
 			return fmt.Errorf("error fetching peer from store: %s", err)
 		}
-		if ref.PeerID == "" {
-			ref.PeerID = id.String()
+		if ref.ProfileID == "" {
+			ref.ProfileID = id
 			return nil
 		}
-		if ref.PeerID != id.String() {
-			return fmt.Errorf("Peername and PeerID combination not valid: Peername = %s, PeerID = %s, but was given PeerID = %s", ref.Peername, id.String(), ref.PeerID)
+		if ref.ProfileID != id {
+			return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
 		}
 	}
 	return nil
@@ -401,8 +407,8 @@ func CanonicalizePeer(r Repo, ref *DatasetRef) error {
 // CompareDatasetRef compares two Dataset References, returning an error
 // describing any difference between the two references
 func CompareDatasetRef(a, b DatasetRef) error {
-	if a.PeerID != b.PeerID {
-		return fmt.Errorf("peerID mismatch. %s != %s", a.PeerID, b.PeerID)
+	if a.ProfileID != b.ProfileID {
+		return fmt.Errorf("peerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
 	}
 	if a.Peername != b.Peername {
 		return fmt.Errorf("peername mismatch. %s != %s", a.Peername, b.Peername)

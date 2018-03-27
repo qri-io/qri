@@ -7,12 +7,14 @@ import (
 	"os"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/ipfs/go-datastore/query"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo/profile"
 
 	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
+
+// ErrNotFound is for when a qri profile isn't found
+var ErrNotFound = fmt.Errorf("Not Found")
 
 // ProfileStore is an on-disk json file implementation of the
 // repo.Peers interface
@@ -20,53 +22,72 @@ type ProfileStore struct {
 	basepath
 }
 
-// PutPeer adds a peer to the store
-func (r ProfileStore) PutPeer(id peer.ID, p *profile.Profile) error {
-	ps, err := r.peers()
+// PutProfile adds a peer to the store
+func (r ProfileStore) PutProfile(p *profile.Profile) error {
+	if p.ID.String() == "" {
+		return fmt.Errorf("profile ID is required")
+	}
+
+	ps, err := r.profiles()
 	if err != nil {
 		return err
 	}
 	if p.Peername == "" {
-		p.Peername = doggos.DoggoNick(id.Pretty())
+		p.Peername = doggos.DoggoNick(p.ID.String())
 	}
-	ps[id.Pretty()] = p
+	ps[p.ID] = p
 	return r.saveFile(ps, FilePeers)
 }
 
+// PeerIDs gives the peer.IDs list for a given peername
+func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
+	ps, err := r.profiles()
+	if err != nil {
+		return nil, err
+	}
+
+	for proid, profile := range ps {
+		if id == proid {
+			return profile.PeerIDs(), nil
+		}
+	}
+
+	return nil, ErrNotFound
+}
+
 // List hands back the list of peers
-func (r ProfileStore) List() (map[string]*profile.Profile, error) {
-	ps, err := r.peers()
+func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
+	ps, err := r.profiles()
 	if err != nil && err.Error() == "EOF" {
-		return map[string]*profile.Profile{}, nil
+		return map[profile.ID]*profile.Profile{}, nil
 	}
 	return ps, err
 }
 
-// GetID gives the peer.ID for a given peername
-func (r ProfileStore) GetID(peername string) (peer.ID, error) {
-	ps, err := r.peers()
+// PeernameID gives the profile.ID for a given peername
+func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
+	ps, err := r.profiles()
 	if err != nil {
 		return "", err
 	}
 
 	for _, profile := range ps {
 		if profile.Peername == peername {
-			return profile.PeerID()
+			return profile.ID, nil
 		}
 	}
 	return "", datastore.ErrNotFound
 }
 
-// GetPeer fetches a peer from the store
-func (r ProfileStore) GetPeer(id peer.ID) (*profile.Profile, error) {
-	ps, err := r.peers()
+// GetProfile fetches a profile from the store
+func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
+	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
 	}
 
-	ids := id.Pretty()
-	for p, d := range ps {
-		if ids == p || d.ID == ids {
+	for proid, d := range ps {
+		if id == proid {
 			return d, nil
 		}
 	}
@@ -74,57 +95,34 @@ func (r ProfileStore) GetPeer(id peer.ID) (*profile.Profile, error) {
 	return nil, datastore.ErrNotFound
 }
 
-// IPFSPeerID gives the IPFS peer.ID for a given peername
-func (r ProfileStore) IPFSPeerID(peername string) (peer.ID, error) {
-	ps, err := r.peers()
-	if err != nil {
-		return "", err
-	}
-
-	for id, profile := range ps {
-		if profile.Peername == peername {
-			if ipfspid, err := profile.IPFSPeerID(); err == nil {
-				return ipfspid, nil
-			}
-			return peer.ID(id), nil
-		}
-	}
-
-	return "", datastore.ErrNotFound
-}
-
-// DeletePeer removes a peer from the store
-func (r ProfileStore) DeletePeer(id peer.ID) error {
-	ps, err := r.peers()
-	if err != nil {
-		return err
-	}
-	delete(ps, id.Pretty())
-	return r.saveFile(ps, FilePeers)
-}
-
-// Query fetches a set of peers from the store according to given query
-// parameters
-func (r ProfileStore) Query(q query.Query) (query.Results, error) {
-	ps, err := r.peers()
+// PeerProfile gives the profile that corresponds with a given peer.ID
+func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
+	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
 	}
 
-	re := make([]query.Entry, 0, len(ps))
-	for id, peer := range ps {
-		if peer.Peername == "" {
-			peer.Peername = doggos.DoggoNick(id)
+	for _, profile := range ps {
+		if _, ok := profile.Addresses[id.Pretty()]; ok {
+			return profile, nil
 		}
-		re = append(re, query.Entry{Key: id, Value: peer})
 	}
-	res := query.ResultsWithEntries(q, re)
-	res = query.NaiveQueryApply(q, res)
-	return res, nil
+
+	return nil, datastore.ErrNotFound
 }
 
-func (r *ProfileStore) peers() (map[string]*profile.Profile, error) {
-	ps := map[string]*profile.Profile{}
+// DeleteProfile removes a profile from the store
+func (r ProfileStore) DeleteProfile(id profile.ID) error {
+	ps, err := r.profiles()
+	if err != nil {
+		return err
+	}
+	delete(ps, id)
+	return r.saveFile(ps, FilePeers)
+}
+
+func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
+	ps := map[profile.ID]*profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
 		if os.IsNotExist(err) {

@@ -3,7 +3,6 @@ package fsrepo
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/repo/actions"
 	"io/ioutil"
 	"os"
 
@@ -13,6 +12,7 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
 )
@@ -39,11 +39,17 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, base, id string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, base, profileidstr string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
 	bp := basepath(base)
+
+	id, err := profile.IDB58Decode(profileidstr)
+	if err != nil {
+		return nil, err
+	}
+
 	if err := ensureProfile(bp, id); err != nil {
 		return nil, err
 	}
@@ -110,23 +116,18 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 	return p, nil
 }
 
-// SaveProfile updates this repo's peer profile info
-func (r *Repo) SaveProfile(p *profile.Profile) error {
+// SetProfile updates this repo's peer profile info
+func (r *Repo) SetProfile(p *profile.Profile) error {
 	return r.saveFile(p, FileProfile)
-}
-
-// RefCache give access to the emphemeral Refstore
-func (r *Repo) RefCache() repo.Refstore {
-	return r.refCache
 }
 
 // ensureProfile makes sure a profile file is saved locally
 // makes it easier to edit that file to change user data
-func ensureProfile(bp basepath, id string) error {
+func ensureProfile(bp basepath, id profile.ID) error {
 	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
 		return bp.saveFile(&profile.Profile{
 			ID:       id,
-			Peername: doggos.DoggoNick(id),
+			Peername: doggos.DoggoNick(id.String()),
 		}, FileProfile)
 	}
 
@@ -148,7 +149,7 @@ func ensureProfile(bp basepath, id string) error {
 	if p.ID != id {
 		p.ID = id
 		if p.Peername == "" {
-			p.Peername = doggos.DoggoNick(p.ID)
+			p.Peername = doggos.DoggoNick(p.ID.String())
 		}
 		bp.saveFile(p, FileProfile)
 	}
@@ -199,7 +200,7 @@ func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 }
 
 // Profiles returns this repo's Peers implementation
-func (r *Repo) Profiles() repo.Profiles {
+func (r *Repo) Profiles() profile.Store {
 	return r.profiles
 }
 

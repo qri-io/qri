@@ -59,7 +59,7 @@ call it a “prime” port number.`,
 					Peername: "mem user",
 				},
 				cafs.NewMapstore(),
-				repo.MemProfiles{})
+				profile.MemStore{})
 			ExitIfErr(err)
 		} else {
 			r = getRepo(true)

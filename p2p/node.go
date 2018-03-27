@@ -165,6 +165,25 @@ func (n *QriNode) echoMessages() {
 	}
 }
 
+// IPFSNode returns the underlying IPFS node if this Qri Node is running on IPFS
+func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
+	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+		return ipfsfs.Node(), nil
+	}
+	return nil, fmt.Errorf("not using IPFS")
+}
+
+// ListenAddresses gives the listening addresses of this node on the p2p network as
+// a slice of strings
+func (n *QriNode) ListenAddresses() ([]string, error) {
+	maddrs := n.EncapsulatedAddresses()
+	addrs := make([]string, len(maddrs))
+	for i, maddr := range maddrs {
+		addrs[i] = maddr.String()
+	}
+	return addrs, nil
+}
+
 // EncapsulatedAddresses returns a slice of full multaddrs for this node
 func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	// Build host multiaddress
@@ -180,33 +199,6 @@ func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	}
 
 	return res
-}
-
-// IPFSNode returns the underlying IPFS node if this Qri Node is running on IPFS
-func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
-	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
-		return ipfsfs.Node(), nil
-	}
-	return nil, fmt.Errorf("not using IPFS")
-}
-
-// IPFSPeerID is a shorthand for accessing this node's IPFS Peer ID
-func (n *QriNode) IPFSPeerID() (peer.ID, error) {
-	node, err := n.IPFSNode()
-	if err != nil {
-		return "", err
-	}
-	return node.Identity, nil
-}
-
-// IPFSListenAddresses gives the listening addresses of the underlying IPFS node
-func (n *QriNode) IPFSListenAddresses() ([]string, error) {
-	maddrs := n.EncapsulatedAddresses()
-	addrs := make([]string, len(maddrs))
-	for i, maddr := range maddrs {
-		addrs[i] = maddr.String()
-	}
-	return addrs, nil
 }
 
 // Peers returns a list of currently connected peer IDs
@@ -247,12 +239,6 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 		return err
 	}
 
-	// some time later ask for a list of their peers, you know, "for a friend"
-	// go func() {
-	// time.Sleep(time.Second * 2)
-	// n.RequestPeersList(pinfo.ID)
-	// }()
-
 	return nil
 }
 
@@ -270,21 +256,18 @@ func (n *QriNode) ConnectedPeers() []string {
 	return peers
 }
 
-// ConnectedQriPeers lists all IPFS connected peers that support the
-// qri protocol
-func (n *QriNode) ConnectedQriPeers() map[peer.ID]*profile.Profile {
+// ConnectedQriProfiles lists all connected peers that support the qri protocol
+func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*profile.Profile {
 	if n.Host == nil {
-		return map[peer.ID]*profile.Profile{}
+		return map[profile.ID]*profile.Profile{}
 	}
 	conns := n.Host.Network().Conns()
-	peers := map[peer.ID]*profile.Profile{}
+	peers := map[profile.ID]*profile.Profile{}
 	for _, c := range conns {
 		id := c.RemotePeer()
-		// if support, err := n.SupportsQriProtocol(id); err == nil && support {
-		if p, err := n.Repo.Profiles().GetPeer(id); err == nil {
-			peers[id] = p
+		if p, err := n.Repo.Profiles().PeerProfile(id); err == nil {
+			peers[p.ID] = p
 		}
-		// }
 	}
 	return peers
 }

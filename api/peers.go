@@ -114,8 +114,15 @@ func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Req
 }
 
 func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
+	proid := r.URL.Path[len("/peers/"):]
+	id, err := profile.IDB58Decode(proid)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
 	p := &core.PeerInfoParams{
-		PeerID: r.URL.Path[len("/peers/"):],
+		ProfileID: id,
 	}
 	res := &profile.Profile{}
 	if err := h.Info(p, res); err != nil {

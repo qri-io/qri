@@ -6,8 +6,6 @@ import (
 
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
-
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
 // MtDatasetInfo gets info on a dataset
@@ -29,22 +27,15 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	// if peer ID is *our* peer.ID check for local dataset
 	// note that data may be on another machine, so this can still fail back to a
 	// network request
-	if ref.PeerID != "" {
-		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.PeerID {
+	if ref.ProfileID != "" {
+		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.ProfileID {
 			if err := act.ReadDataset(ref); err == nil {
 				return nil
 			}
 		}
 	}
 
-	var pid peer.ID
-	if ref.PeerID != "" {
-		if id, err := peer.IDB58Decode(ref.PeerID); err == nil {
-			pid = id
-		}
-	}
-
-	pids := n.ClosestConnectedPeers(pid, 15)
+	pids := n.ClosestConnectedPeers(ref.ProfileID, 15)
 	if len(pids) == 0 {
 		// TODO - start checking peerstore peers?
 		// something else should probably be trying to establish

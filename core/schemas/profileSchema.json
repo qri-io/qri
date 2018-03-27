@@ -43,7 +43,8 @@
       "description": "The type of peer this profile represents",
       "type": "string",
       "enum": [
-        "user"
+        "peer",
+        "organization"
       ]
     },
     "email": {

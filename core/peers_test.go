@@ -41,7 +41,7 @@ func TestPeerRequestsList(t *testing.T) {
 	}
 }
 
-func TestConnectedQriPeers(t *testing.T) {
+func TestConnectedQriProfiles(t *testing.T) {
 	// TODO - we're going to need network simulation to test this properly
 	cases := []struct {
 		limit     int
@@ -59,8 +59,8 @@ func TestConnectedQriPeers(t *testing.T) {
 
 	req := NewPeerRequests(node, nil)
 	for i, c := range cases {
-		got := []Peer{}
-		err := req.ConnectedQriPeers(&c.limit, &got)
+		got := []*profile.Profile{}
+		err := req.ConnectedQriProfiles(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -111,7 +111,7 @@ func TestInfo(t *testing.T) {
 		err      string
 	}{
 		{PeerInfoParams{}, 0, "repo: not found"},
-		{PeerInfoParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "repo: not found"},
+		{PeerInfoParams{ProfileID: profile.IDB58MustDecode("QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa")}, 0, "repo: not found"},
 	}
 
 	node, err := testQriNode()
@@ -144,7 +144,7 @@ func TestGetReferences(t *testing.T) {
 		err      string
 	}{
 		{PeerRefsParams{}, 0, "error decoding peer Id: input isn't valid multihash"},
-		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "datastore: key not found"},
+		{PeerRefsParams{PeerID: "QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa"}, 0, "not connected to p2p network"},
 	}
 
 	node, err := testQriNode()

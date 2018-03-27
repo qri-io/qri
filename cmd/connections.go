@@ -3,8 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/core"
-	// "github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -34,8 +33,8 @@ var connectionsCmd = &cobra.Command{
 			}
 		} else {
 			limit := 200
-			res := []core.Peer{}
-			err := req.ConnectedQriPeers(&limit, &res)
+			res := []*profile.Profile{}
+			err := req.ConnectedQriProfiles(&limit, &res)
 			ExitIfErr(err)
 
 			i := 0

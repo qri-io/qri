@@ -33,10 +33,10 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
 		prev := repo.DatasetRef{
-			PeerID:   pro.ID,
-			Peername: pro.Peername,
-			Name:     name,
-			Path:     ds.PreviousPath,
+			ProfileID: pro.ID,
+			Peername:  pro.Peername,
+			Name:      name,
+			Path:      ds.PreviousPath,
 		}
 		if err = act.DeleteRef(prev); err != nil {
 			log.Error(err.Error())
@@ -45,10 +45,10 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 	}
 
 	ref = repo.DatasetRef{
-		PeerID:   pro.ID,
-		Peername: pro.Peername,
-		Name:     name,
-		Path:     path.String(),
+		ProfileID: pro.ID,
+		Peername:  pro.Peername,
+		Name:      name,
+		Path:      path.String(),
 	}
 
 	if err = act.PutRef(ref); err != nil {

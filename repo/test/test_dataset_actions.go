@@ -30,7 +30,7 @@ func testCreateDataset(t *testing.T, rmf RepoMakerFunc) {
 
 func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef) {
 	r := rmf(t)
-	r.SaveProfile(testPeerProfile)
+	r.SetProfile(testPeerProfile)
 	r.SetPrivateKey(privKey)
 	act := actions.Dataset{r}
 
@@ -68,10 +68,10 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 	act := actions.Dataset{r}
 
 	b := repo.DatasetRef{
-		Name:     "cities2",
-		Path:     ref.Path,
-		Peername: ref.Peername,
-		PeerID:   ref.PeerID,
+		Name:      "cities2",
+		Path:      ref.Path,
+		Peername:  ref.Peername,
+		ProfileID: ref.ProfileID,
 	}
 
 	if err := act.RenameDataset(ref, b); err != nil {
@@ -147,10 +147,10 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 	pinner := true
 
 	b := repo.DatasetRef{
-		Name:     "cities2",
-		Path:     ref.Path,
-		Peername: ref.Peername,
-		PeerID:   ref.PeerID,
+		Name:      "cities2",
+		Path:      ref.Path,
+		Peername:  ref.Peername,
+		ProfileID: ref.ProfileID,
 	}
 
 	if err := act.RenameDataset(ref, b); err != nil {
