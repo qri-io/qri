@@ -97,6 +97,10 @@ func (cfg *P2P) DecodePeerID() (peer.ID, error) {
 }
 
 // // Validate confirms that the given settings will work, returning an error if not.
+// TODO - this validate method is a carry over from a previous incarnation that I'd like to
+// ressurrect as a method of conforming overrides to a steady-state while also validating
+// the configuration itself. So, for example, p2p.Enabled = false should override the port
+// to be an empty string. It might make sense to rename this while we're at it
 // func (cfg *NodeCfg) Validate(r repo.Repo) error {
 // 	if r == nil {
 // 		return fmt.Errorf("need a qri Repo to create a qri node")

@@ -140,32 +140,3 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 
 	return elem, nil
 }
-
-// // Config configures the behavior of qri
-// // TODO - move all Config related stuff that isn't a command into a different package.
-// type Config struct {
-// 	// Initialized is a flag for when this repo has been properly initialized at least once.
-// 	// used to check weather default datasets should be added or not
-// 	Initialized bool
-// 	// Identity Configuration details
-// 	// Identity IdentityCfg
-// 	// List of nodes to boostrap to
-// 	Bootstrap []string
-// 	// PeerID lists this current peer ID
-// 	PeerID string
-// 	// PrivateKey is a base-64 encoded private key
-// 	PrivateKey string
-// 	// IPFSPath is the local path to an IPFS directory
-// 	IPFSPath string
-// 	// Datastore configuration details
-// 	// Datastore       DatastoreCfg
-// 	// DefaultDatasets is a list of dataset references to grab on initially joining the network
-// 	DefaultDatasets []string
-// }
-
-// func defaultCfgBytes() []byte {
-// 	cfg := config.Config{}.Default()
-// 	data, err := yaml.Marshal(cfg)
-// 	ExitIfErr(err)
-// 	return data
-// }
