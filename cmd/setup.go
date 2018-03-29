@@ -3,17 +3,15 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/doggos"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/doggos"
+	"github.com/qri-io/qri/config"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
-	"gopkg.in/yaml.v2"
 )
 
 var (
@@ -22,7 +20,7 @@ var (
 	setupPeername       string
 	setupIPFSConfigData string
 	setupConfigData     string
-	setupProfileData    string
+	// setupProfileData    string
 )
 
 // setupCmd represents the setup command
@@ -44,7 +42,7 @@ overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var cfgData []byte
+		// var cfgData []byte
 
 		if QRIRepoInitialized() && !setupOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
@@ -53,45 +51,49 @@ overwrite this info.`,
 		}
 		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
 
+		cfg = config.Config{}.Default()
+
 		envVars := map[string]*string{
-			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
-			"QRI_SETUP_PROFILE_DATA":     &setupProfileData,
+			"QRI_SETUP_CONFIG_DATA": &setupConfigData,
+			// "QRI_SETUP_PROFILE_DATA":     &setupProfileData,
 			"QRI_SETUP_IPFS_CONFIG_DATA": &setupIPFSConfigData,
 		}
 		mapEnvVars(envVars)
 
-		// if cfgFile is specified, override
-		if cfgFile != "" {
-			f, err := os.Open(cfgFile)
-			ExitIfErr(err)
-			cfgData, err = ioutil.ReadAll(f)
-			ExitIfErr(err)
-		} else {
-			cfgData = defaultCfgBytes()
-		}
-
-		cfg := &Config{}
-		err := yaml.Unmarshal(cfgData, cfg)
-		ExitIfErr(err)
+		// // if cfgFile is specified, override
+		// if cfgFile != "" {
+		// 	f, err := os.Open(cfgFile)
+		// 	ExitIfErr(err)
+		// 	cfgData, err = ioutil.ReadAll(f)
+		// 	ExitIfErr(err)
+		// } else {
+		// 	cfgData, _ = yaml.Marshal(config.Config{}.Default())
+		// }
 
 		if setupConfigData != "" {
-			err = readAtFile(&setupConfigData)
+			err := readAtFile(&setupConfigData)
 			ExitIfErr(err)
 			err = json.Unmarshal([]byte(setupConfigData), cfg)
 			ExitIfErr(err)
 		}
 
-		err = cfg.ensurePrivateKey()
-		ExitIfErr(err)
+		// cfg = &config.Config{}
+		// err := yaml.Unmarshal(cfgData, cfg)
+		// ExitIfErr(err)
+		// loadConfig()
+
+		// TODO - re-enable
+		// err = cfg.ensurePrivateKey()
+		// ExitIfErr(err)
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
 			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))
 		}
-		err = writeConfigFile(cfg)
+		err := cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
 
-		err = viper.ReadInConfig()
-		ExitIfErr(err)
+		// err = viper.ReadInConfig()
+		// ExitIfErr(err)
 
 		if setupIPFS {
 
@@ -120,27 +122,32 @@ overwrite this info.`,
 			printWarning("no IPFS repo exists at %s, things aren't going to work properly", IpfsFsPath)
 		}
 
-		p := &core.Profile{}
-		if setupProfileData != "" {
-			err = readAtFile(&setupProfileData)
-			ExitIfErr(err)
-			err = json.Unmarshal([]byte(setupProfileData), p)
-			ExitIfErr(err)
-		} else {
-			anon, err := cmd.Flags().GetBool("anonymous")
-			ExitIfErr(err)
-			if setupPeername == "" && !anon {
-				setupPeername = inputText("choose a peername:", doggos.DoggoNick(cfg.PeerID))
-			}
-			p.Peername = setupPeername
-		}
+		// p := &core.Profile{}
+		// if setupProfileData != "" {
+		// 	err = readAtFile(&setupProfileData)
+		// 	ExitIfErr(err)
+		// 	err = json.Unmarshal([]byte(setupProfileData), p)
+		// 	ExitIfErr(err)
+		// } else {
+		// }
 
-		pr, err := profileRequests(false)
+		anon, err := cmd.Flags().GetBool("anonymous")
+		ExitIfErr(err)
+		if setupPeername == "" && !anon {
+			setupPeername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+		}
+		cfg.Profile.Peername = setupPeername
+
+		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
 
-		res := &core.Profile{}
-		err = pr.SavePeername(p, res)
-		err = pr.SaveProfile(p, res)
+		// loadConfig()
+		// pr, err := profileRequests(false)
+		// ExitIfErr(err)
+		// res := &core.Profile{}
+		// err = pr.SavePeername(p, res)
+		// err = pr.SaveProfile(p, res)
+
 		ExitIfErr(err)
 	},
 }
@@ -152,8 +159,8 @@ func init() {
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
 	setupCmd.Flags().StringVarP(&setupIPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
-	setupCmd.Flags().StringVarP(&setupConfigData, "id", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
-	setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
+	setupCmd.Flags().StringVarP(&setupConfigData, "conifg-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
+	// setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH

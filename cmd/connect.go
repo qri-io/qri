@@ -1,24 +1,20 @@
 package cmd
 
 import (
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/api"
-	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
-	"github.com/spf13/viper"
 )
 
 var (
 	connectCmdPort       string
 	connectCmdRPCPort    string
 	connectCmdWebappPort string
-	connectMemOnly       bool
-	connectOffline       bool
-	connectSetup         bool
-	connectReadOnly      bool
+
+	disableP2P      bool
+	connectSetup    bool
+	connectReadOnly bool
 )
 
 // connectCmd represents the run command
@@ -51,30 +47,27 @@ call it a “prime” port number.`,
 			setupCmd.Run(&cobra.Command{}, []string{})
 		}
 
-		if connectMemOnly {
-			// TODO - refine, adding better identity generation
-			// or options for BYO user profile
-			r, err = repo.NewMemRepo(
-				&profile.Profile{
-					Peername: "mem user",
-				},
-				cafs.NewMapstore(),
-				profile.MemStore{})
-			ExitIfErr(err)
-		} else {
-			r = getRepo(true)
-		}
+		r = getRepo(true)
 
-		s, err := api.New(r, func(cfg *api.Config) {
-			cfg.APIPort = connectCmdPort
-			cfg.RPCPort = connectCmdRPCPort
-			cfg.WebappPort = connectCmdWebappPort
-			cfg.MemOnly = connectMemOnly
-			cfg.Online = !connectOffline
-			cfg.ReadOnly = connectReadOnly
-			cfg.BoostrapAddrs = viper.GetStringSlice("bootstrap")
-			cfg.PostP2POnlineHook = initializeDistributedAssets
+		s, err := api.New(r, func(c *config.Config) {
+			*c = *cfg
+
+			if connectCmdPort != config.DefaultAPIPort {
+				c.API.Enabled = connectCmdPort != ""
+				c.API.Port = connectCmdPort
+			}
+
+			if connectCmdRPCPort != config.DefaultRPCPort {
+				c.RPC.Enabled = connectCmdPort != ""
+				c.RPC.Port = connectCmdRPCPort
+			}
+
+			if connectCmdWebappPort != config.DefaultWebappPort {
+				c.Webapp.Enabled = connectCmdWebappPort != ""
+				c.RPC.Port = connectCmdWebappPort
+			}
 		})
+
 		ExitIfErr(err)
 
 		err = s.Serve()
@@ -82,76 +75,12 @@ call it a “prime” port number.`,
 	},
 }
 
-// initializeDistributedAssets adds all distributed assets to the dataset
-// by grabbing them from the network.
-// eg.defaultDatasets, user profile photos & posters
-func initializeDistributedAssets(node *p2p.QriNode) {
-	cfg, err := readConfigFile()
-	if err != nil || cfg.Initialized {
-		return
-	}
-
-	if p, err := node.Repo.Profile(); err == nil {
-		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-			go func() {
-				if len(p.Thumb.String()) > 1 {
-					if err := pinner.Pin(p.Thumb, false); err != nil {
-						log.Infof("error pinning thumb path: %s\n", err.Error())
-					} else {
-						log.Infof("pinned thumb photo: %s", p.Thumb.String())
-					}
-				}
-				if len(p.Profile.String()) > 1 {
-					if err := pinner.Pin(p.Profile, false); err != nil {
-						log.Infof("error pinning profile path: %s\n", err.Error())
-					} else {
-						log.Infof("pinned profile photo photo: %s", p.Profile.String())
-					}
-				}
-				if len(p.Poster.String()) > 1 {
-					if err := pinner.Pin(p.Poster, false); err != nil {
-						log.Infof("error pinning poster path: %s\n", err.Error())
-					} else {
-						log.Infof("pinned poster photo: %s", p.Poster.String())
-					}
-				}
-			}()
-		}
-	}
-
-	req := core.NewDatasetRequests(node.Repo, nil)
-
-	for _, refstr := range cfg.DefaultDatasets {
-		log.Infof("adding default dataset: %s\n", refstr)
-		ref, err := repo.ParseDatasetRef(refstr)
-		if err != nil {
-			log.Debugf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
-			continue
-		}
-		res := repo.DatasetRef{}
-		err = req.Add(&ref, &res)
-		if err != nil {
-			log.Debugf("add dataset %s error: %s\n", refstr, err.Error())
-			return
-		}
-		log.Infof("added default dataset: %s\n", refstr)
-	}
-
-	cfg.Initialized = true
-	if err = writeConfigFile(cfg); err != nil {
-		log.Debugf("error writing config file: %s", err.Error())
-	}
-
-	return
-}
-
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", api.DefaultAPIPort, "port to start api on")
-	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", api.DefaultRPCPort, "port to start rpc listener on")
-	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", api.DefaultWebappPort, "port to serve webapp on")
+	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", config.DefaultAPIPort, "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", config.DefaultRPCPort, "port to start rpc listener on")
+	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", config.DefaultWebappPort, "port to serve webapp on")
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
-	connectCmd.Flags().BoolVarP(&connectMemOnly, "mem-only", "", false, "run qri entirely in-memory, persisting nothing")
-	connectCmd.Flags().BoolVarP(&connectOffline, "offline", "", false, "disable networking")
+	connectCmd.Flags().BoolVarP(&disableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
 	connectCmd.Flags().BoolVarP(&connectReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	RootCmd.AddCommand(connectCmd)
 }

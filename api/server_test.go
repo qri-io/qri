@@ -15,6 +15,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/test"
 )
 
@@ -39,9 +40,9 @@ func TestServerRoutes(t *testing.T) {
 		return
 	}
 
-	s, err := New(r, func(opt *Config) {
-		opt.Online = false
-		opt.MemOnly = true
+	s, err := New(r, func(c *config.Config) {
+		c.P2P.Enabled = false
+		// c.RE.MemOnly = true
 	})
 	if err != nil {
 		t.Error(err.Error())
@@ -208,10 +209,10 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		return
 	}
 
-	s, err := New(r, func(opt *Config) {
-		opt.Online = false
-		opt.MemOnly = true
-		opt.ReadOnly = true
+	s, err := New(r, func(opt *config.Config) {
+		opt.P2P.Enabled = false
+		// opt.MemOnly = true
+		opt.API.ReadOnly = true
 	})
 	if err != nil {
 		t.Error(err.Error())

@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/qri-io/qri/config"
 	"golang.org/x/crypto/acme/autocert"
 )
 
@@ -14,8 +15,8 @@ import (
 // if config.TLS == true it'll spin up an https server using LetsEncrypt
 // that should work just fine on the raw internet (ie not behind a proxy like nginx etc)
 // it'll also redirect http traffic to it's https route counterpart if port 80 is open
-func StartServer(c *Config, s *http.Server) error {
-	s.Addr = fmt.Sprintf(fmt.Sprintf(":%s", c.APIPort))
+func StartServer(c *config.API, s *http.Server) error {
+	s.Addr = fmt.Sprintf(fmt.Sprintf(":%s", c.Port))
 
 	if !c.TLS {
 		return s.ListenAndServe()

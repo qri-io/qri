@@ -6,7 +6,6 @@ import (
 	"path/filepath"
 
 	"github.com/mitchellh/go-homedir"
-	"github.com/spf13/viper"
 )
 
 // ErrExit writes an error to stdout & exits
@@ -34,11 +33,6 @@ func GetWd() string {
 	}
 
 	return dir
-}
-
-// cachePath returns the configurable place to keep data
-func cachePath() string {
-	return viper.GetString("cache")
 }
 
 func userHomeDir() string {

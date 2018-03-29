@@ -1,0 +1,41 @@
+profile:
+  peername: foobar
+repo:
+  middleware: []
+  type: fs
+store:
+  type: ipfs
+cli:
+  colorizeoutput: true
+api:
+  enabled: true
+  port: "2503"
+  readonly: false
+  urlroot: ""
+  proxyforcehttps: false
+  allowedorigins:
+  - http://localhost:2505
+p2p:
+  enabled: false
+  peerid: !!binary EiCW5d0LrUQ3UfOXkfmuQW2zvl7yAq+7GwSLrD33Bgq6Og==
+  pubkey: ""
+  privkey: ""
+  port: 0
+  addrs: []
+  qribootstrapaddrs:
+  - /ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb
+  - /ip4/35.193.162.149/tcp/4001/ipfs/QmTZxETL4YCCzB1yFx4GT1te68henVHD1XPQMkHZ1N22mm
+  online: true
+  selfreplication: full
+  boostrapaddrs: []
+webapp:
+  enabled: true
+  port: "2505"
+  analyticstoken: ""
+  scripts:
+  - http://localhost:2503/ipfs/QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
+rpc:
+  enabled: true
+  port: "2504"
+logging:
+  levels: {}

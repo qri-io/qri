@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -27,15 +28,15 @@ func getRepo(online bool) repo.Repo {
 		ErrExit(fmt.Errorf("no qri repo found, please run `qri setup`"))
 	}
 
-	cfg, err := readConfigFile()
-	ExitIfErr(err)
+	// cfg, err := readConfigFile()
+	// ExitIfErr(err)
 
-	pk, err := cfg.UnmarshalPrivateKey()
+	pk, err := cfg.Profile.DecodePrivateKey()
 	ExitIfErr(err)
 
 	fs := getIpfsFilestore(online)
 
-	r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.PeerID)
+	r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
 	r.SetPrivateKey(pk)
 
 	ExitIfErr(err)
@@ -144,13 +145,15 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	}); err == nil {
-		cfg, err := readConfigFile()
+		// cfg, err := readConfigFile()
+		// ExitIfErr(err)
+
+		r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
 		ExitIfErr(err)
 
-		r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.PeerID)
-		ExitIfErr(err)
-
-		pk, err := cfg.UnmarshalPrivateKey()
+		// c, _ := json.MarshalIndent(cfg, "", "  ")
+		// printSuccess("%s", c)
+		pk, err := cfg.Profile.DecodePrivateKey()
 		ExitIfErr(err)
 
 		r.SetPrivateKey(pk)
@@ -185,26 +188,26 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 		return
 	}
 
-	cfg, err := readConfigFile()
+	// cfg, err := readConfigFile()
+	// if err != nil {
+	// 	return
+	// }
+
+	r, err = fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
 	if err != nil {
 		return
 	}
 
-	r, err = fsrepo.NewRepo(fs, QriRepoPath, cfg.PeerID)
-	if err != nil {
-		return
-	}
-
-	pk, err := cfg.UnmarshalPrivateKey()
+	pk, err := cfg.Profile.DecodePrivateKey()
 	if err != nil {
 		return
 	}
 
 	r.SetPrivateKey(pk)
 
-	node, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
-		ncfg.Online = online
-		ncfg.QriBootstrapAddrs = cfg.Bootstrap
+	node, err = p2p.NewQriNode(r, func(c *config.P2P) {
+		c.Enabled = online
+		c.QriBootstrapAddrs = cfg.P2P.QriBootstrapAddrs
 	})
 	if err != nil {
 		return

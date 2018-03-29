@@ -2,12 +2,14 @@ package p2p
 
 import (
 	"context"
+	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"sync"
 	"testing"
 
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
@@ -68,14 +70,20 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T) ([]*QriNode, error) {
 
 func newTestQriNode(r repo.Repo, t *testing.T) (*QriNode, error) {
 	localnp := testutil.RandPeerNetParamsOrFatal(t)
+	data, err := localnp.PrivKey.Bytes()
+	if err != nil {
+		return nil, err
+	}
 
-	node, err := NewQriNode(r, func(o *NodeCfg) {
-		o.PeerID = localnp.ID
-		o.PrivKey = localnp.PrivKey
-		o.Addrs = []ma.Multiaddr{
+	privKey := base64.StdEncoding.EncodeToString(data)
+
+	node, err := NewQriNode(r, func(c *config.P2P) {
+		c.PeerID = localnp.ID.Pretty()
+		c.PrivKey = privKey
+		c.Addrs = []ma.Multiaddr{
 			localnp.Addr,
 		}
-		o.QriBootstrapAddrs = []string{}
+		c.QriBootstrapAddrs = []string{}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())

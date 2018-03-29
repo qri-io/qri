@@ -11,6 +11,7 @@ import (
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -26,50 +27,53 @@ func init() {
 // Create one with New, start it up with Serve
 type Server struct {
 	// configuration options
-	cfg     *Config
+	cfg     *config.Config
 	qriNode *p2p.QriNode
 }
 
 // New creates a new qri server with optional configuration
 // calling New() with no options will return the default configuration
 // as specified in DefaultConfig
-func New(r repo.Repo, options ...func(*Config)) (s *Server, err error) {
-	cfg := DefaultConfig()
+func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
+	cfg := config.Config{}.Default()
 	for _, opt := range options {
 		opt(cfg)
 	}
-	if err := cfg.Validate(); err != nil {
-		return nil, fmt.Errorf("server configuration error: %s", err.Error())
-	}
+	// if err := cfg.Validate(); err != nil {
+	// 	return nil, fmt.Errorf("server configuration error: %s", err.Error())
+	// }
 
 	s = &Server{
 		cfg: cfg,
 	}
 
 	// allocate a new node
-	s.qriNode, err = p2p.NewQriNode(r, func(ncfg *p2p.NodeCfg) {
-		ncfg.Online = s.cfg.Online
-		if cfg.BoostrapAddrs != nil {
-			ncfg.QriBootstrapAddrs = cfg.BoostrapAddrs
-		}
+	s.qriNode, err = p2p.NewQriNode(r, func(c *config.P2P) {
+		*c = *cfg.P2P
 	})
+	// func(p2pcfg *config.P2P) {
+	// p2pcfg.Online = s.cfg.Online
+	// if cfg.BoostrapAddrs != nil {
+	// 	p2pcfg.QriBootstrapAddrs = cfg.BoostrapAddrs
+	// }
+	// })
 	if err != nil {
 		return s, err
 	}
 
-	bootstrapped := false
+	// bootstrapped := false
 	peerBootstrapped := func(peerId string) {
-		if cfg.PostP2POnlineHook != nil && !bootstrapped {
-			go cfg.PostP2POnlineHook(s.qriNode)
-			bootstrapped = true
-		}
+		// if cfg.PostP2POnlineHook != nil && !bootstrapped {
+		// go cfg.PostP2POnlineHook(s.qriNode)
+		// bootstrapped = true
+		// }
 	}
 
 	err = s.qriNode.StartOnlineServices(peerBootstrapped)
 	if err != nil {
 		return nil, fmt.Errorf("error starting P2P service: %s", err.Error())
 	}
-	// p2p.PrintSwarmAddrs(qriNode)
+
 	return s, nil
 }
 
@@ -83,9 +87,9 @@ func (s *Server) Serve() (err error) {
 		return err
 	}
 
-	if s.cfg.Online {
+	if s.cfg.API.Enabled {
 		// log.Info("qri profile id:", s.qriNode.Identity.Pretty())
-		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.APIPort)
+		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.API.Port)
 		for _, a := range s.qriNode.EncapsulatedAddresses() {
 			info = fmt.Sprintf("%s\n  %s", info, a.String())
 		}
@@ -108,18 +112,18 @@ func (s *Server) Serve() (err error) {
 	}
 
 	// http.ListenAndServe will not return unless there's an error
-	return StartServer(s.cfg, server)
+	return StartServer(s.cfg.API, server)
 }
 
 // ServeRPC checks for a configured RPC port, and registers a listner if so
 func (s *Server) ServeRPC() {
-	if s.cfg.RPCPort == "" {
+	if !s.cfg.RPC.Enabled || s.cfg.RPC.Port == "" {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.RPCPort))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.RPC.Port))
 	if err != nil {
-		log.Infof("RPC listen on port %s error: %s", s.cfg.RPCPort, err)
+		log.Infof("RPC listen on port %s error: %s", s.cfg.RPC.Port, err)
 		return
 	}
 
@@ -130,22 +134,22 @@ func (s *Server) ServeRPC() {
 		}
 	}
 
-	log.Infof("accepting RPC requests on port %s", s.cfg.RPCPort)
+	log.Infof("accepting RPC requests on port %s", s.cfg.RPC.Port)
 	rpc.Accept(listener)
 	return
 }
 
-// ServeWebapp launches a webapp server on s.cfg.WebappPort
+// ServeWebapp launches a webapp server on s.cfg.Webapp.Port
 func (s *Server) ServeWebapp() {
-	if s.cfg.WebappPort == "" {
+	if !s.cfg.Webapp.Enabled || s.cfg.Webapp.Port == "" {
 		return
 	}
 
 	go s.resolveWebappPath()
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.WebappPort))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.Webapp.Port))
 	if err != nil {
-		log.Infof("Webapp listen on port %s error: %s", s.cfg.WebappPort, err)
+		log.Infof("Webapp listen on port %s error: %s", s.cfg.Webapp.Port, err)
 		return
 	}
 
@@ -153,7 +157,7 @@ func (s *Server) ServeWebapp() {
 	m.Handle("/", s.middleware(s.WebappHandler))
 	webappserver := &http.Server{Handler: m}
 
-	log.Infof("webapp available on port %s", s.cfg.WebappPort)
+	log.Infof("webapp available on port %s", s.cfg.Webapp.Port)
 	webappserver.Serve(listener)
 	return
 }
@@ -171,14 +175,14 @@ func (s *Server) resolveWebappPath() {
 		return
 	}
 	log.Debugf("webapp path: %s", p.String())
-	s.cfg.WebappScripts = []string{
+	s.cfg.Webapp.Scripts = []string{
 		fmt.Sprintf("http://localhost:2503%s", p.String()),
 	}
 }
 
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.ReadOnly {
+	if s.cfg.API.ReadOnly {
 		readOnlyResponse(w, "/ipfs/")
 		return
 	}
@@ -194,7 +198,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 
 // HandleIPNSPath resolves an IPNS entry
 func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.ReadOnly {
+	if s.cfg.API.ReadOnly {
 		readOnlyResponse(w, "/ipns/")
 		return
 	}
@@ -233,20 +237,20 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.ReadOnly)
+	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
 
-	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode, s.cfg.ReadOnly)
+	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode, s.cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.qriNode.Repo, s.cfg.ReadOnly)
+	dsh := NewDatasetHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
 
 	// TODO - stupid hack for now.
 	dsh.DatasetRequests.Node = s.qriNode
