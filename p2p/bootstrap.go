@@ -12,18 +12,6 @@ import (
 	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
 )
 
-// DefaultBootstrapAddresses follows the pattern of IPFS boostrapping off known "gateways".
-// This boostrapping is specific to finding qri peers, which are IPFS peers that also
-// support the qri protocol.
-// (we also perform standard IPFS boostrapping when IPFS networking is enabled, and it's almost always enabled).
-// These are addresses to public qri nodes hosted by qri, inc.
-// One day it would be super nice to bootstrap from a stored history & only
-// use these for first-round bootstrapping.
-var DefaultBootstrapAddresses = []string{
-	"/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb", // mojo
-	"/ip4/35.193.162.149/tcp/4001/ipfs/QmTZxETL4YCCzB1yFx4GT1te68henVHD1XPQMkHZ1N22mm", // epa
-}
-
 // Bootstrap samples a subset of peers & requests their peers list
 // This is a naive version of IPFS bootstrapping, which we'll add in once
 // qri's settled on a shared-state implementation

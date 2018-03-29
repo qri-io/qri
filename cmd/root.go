@@ -49,7 +49,7 @@ func Execute() {
 func init() {
 	cobra.OnInitialize(initializeCLI)
 	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")
-	RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
+	// RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 }
 
 // initializeCLI sets up the CLI, reading in config file and ENV variables if set.
@@ -69,7 +69,6 @@ func initializeCLI() {
 	}
 	IpfsFsPath = strings.Replace(IpfsFsPath, "~", home, 1)
 
-	setNoColor()
 	loadConfig()
 	return
 }

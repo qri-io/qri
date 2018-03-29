@@ -4,6 +4,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -23,15 +24,14 @@ func TestReceivers(t *testing.T) {
 	}
 }
 
-func testQriNode(cfgs ...func(c *p2p.NodeCfg)) (*p2p.QriNode, error) {
+func testQriNode(cfgs ...func(c *config.P2P)) (*p2p.QriNode, error) {
 	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), profile.MemStore{})
 	if err != nil {
 		return nil, err
 	}
 
-	return p2p.NewQriNode(r, func(c *p2p.NodeCfg) {
-		c.Online = false
-
+	return p2p.NewQriNode(r, func(c *config.P2P) {
+		c.Enabled = false
 		for _, cfg := range cfgs {
 			cfg(c)
 		}

@@ -20,7 +20,7 @@ type RootHandler struct {
 
 // WebappHandler renders the home page
 func (s *Server) WebappHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(s.cfg, w, "webapp")
+	renderTemplate(s.cfg.Webapp, w, "webapp")
 }
 
 // NewRootHandler creates a new RootHandler

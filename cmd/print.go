@@ -18,12 +18,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var noColor bool
 var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
 func setNoColor() {
-	color.NoColor = noColor
+	color.NoColor = cfg.CLI.ColorizeOutput
 }
 
 func printSuccess(msg string, params ...interface{}) {

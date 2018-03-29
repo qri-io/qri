@@ -3,6 +3,8 @@ package api
 import (
 	"html/template"
 	"net/http"
+
+	"github.com/qri-io/qri/config"
 )
 
 // templates is a collection of views for rendering with the renderTemplate function
@@ -14,9 +16,9 @@ func init() {
 }
 
 // templateRenderer returns a func "renderTemplate" that renders a template, using the values of a Config
-func renderTemplate(c *Config, w http.ResponseWriter, tmpl string) {
+func renderTemplate(c *config.Webapp, w http.ResponseWriter, tmpl string) {
 	err := templates.ExecuteTemplate(w, tmpl, map[string]interface{}{
-		"webappScripts": c.WebappScripts,
+		"webappScripts": c.Scripts,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

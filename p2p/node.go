@@ -4,9 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
-	// "sort"
 
 	"github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 
@@ -65,40 +65,45 @@ type QriNode struct {
 	msgChan chan Message
 	// receivers is a list of anyone who wants to be notifed on new message arrival
 	receivers []chan Message
-	// selfReplication sets what to do when this node sees it's own profile
-	selfReplication string
+	// profileReplication sets what to do when this node sees it's own profile
+	profileReplication string
 }
 
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
-func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err error) {
-	cfg := DefaultNodeCfg()
+func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err error) {
+	cfg := config.P2P{}.Default()
 	for _, opt := range options {
 		opt(cfg)
 	}
-	if err := cfg.Validate(r); err != nil {
-		return nil, err
-	}
+	// if err := cfg.Validate(r); err != nil {
+	// 	return nil, err
+	// }
 
 	// hoist store from repo
 	store := r.Store()
 	// Create a peerstore
 	ps := pstore.NewPeerstore()
 
+	pid, err := cfg.DecodePeerID()
+	if err != nil {
+		return nil, fmt.Errorf("error decoding peer id: %s", err.Error())
+	}
+
 	node = &QriNode{
-		ID:              cfg.PeerID,
-		Online:          cfg.Online,
-		QriPeers:        ps,
-		Repo:            r,
-		ctx:             context.Background(),
-		BootstrapAddrs:  cfg.QriBootstrapAddrs,
-		msgState:        &sync.Map{},
-		msgChan:         make(chan Message, 10),
-		selfReplication: cfg.SelfReplication,
+		ID:                 pid,
+		Online:             cfg.Enabled,
+		QriPeers:           ps,
+		Repo:               r,
+		ctx:                context.Background(),
+		BootstrapAddrs:     cfg.QriBootstrapAddrs,
+		msgState:           &sync.Map{},
+		msgChan:            make(chan Message, 10),
+		profileReplication: cfg.ProfileReplication,
 	}
 	node.handlers = MakeHandlers(node)
 
-	if cfg.Online {
+	if node.Online {
 		// If the underlying content-addressed-filestore is an ipfs
 		// node, it has built-in p2p, overlay the qri protocol
 		// on the ipfs node's p2p connections.
@@ -116,7 +121,7 @@ func NewQriNode(r repo.Repo, options ...func(o *NodeCfg)) (node *QriNode, err er
 		} else if node.Host == nil {
 			node.Host, err = makeBasicHost(node.ctx, ps, cfg)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error creating host: %s", err.Error())
 			}
 		}
 
@@ -229,11 +234,6 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// add this peer to our store
 	n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
-	// if profile, _ := n.Repo.Peers().GetPeer(pinfo.ID); profile != nil {
-	// 	// we've already seen this peer
-	// 	return nil
-	// }
-
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
 		log.Debug(err.Error())
 		return err
@@ -314,13 +314,19 @@ func (n *QriNode) Context() context.Context {
 // }
 
 // makeBasicHost creates a LibP2P host from a NodeCfg
-func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host.Host, error) {
-	// If using secio, we add the keys to the peerstore
-	// for this peer ID.
-	if cfg.Secure {
-		ps.AddPrivKey(cfg.PeerID, cfg.PrivKey)
-		ps.AddPubKey(cfg.PeerID, cfg.PubKey)
+func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *config.P2P) (host.Host, error) {
+	pk, err := cfg.DecodePrivateKey()
+	if err != nil {
+		return nil, err
 	}
+
+	pid, err := cfg.DecodePeerID()
+	if err != nil {
+		return nil, err
+	}
+
+	ps.AddPrivKey(pid, pk)
+	ps.AddPubKey(pid, pk.GetPublic())
 
 	// Set up stream multiplexer
 	tpt := msmux.NewBlankTransport()
@@ -330,7 +336,7 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, cfg *NodeCfg) (host
 	swrm, err := swarm.NewSwarmWithProtector(
 		ctx,
 		cfg.Addrs,
-		cfg.PeerID,
+		pid,
 		ps,
 		nil,
 		tpt,
@@ -426,3 +432,65 @@ func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 		// MtDatasetLog:
 	}
 }
+
+// initializeDistributedAssets adds all distributed assets to the dataset
+// by grabbing them from the network.
+// eg.defaultDatasets, user profile photos & posters
+// TODO - restore
+// func initializeDistributedAssets(node *p2p.QriNode) {
+// 	cfg, err := readConfigFile()
+// 	if err != nil || cfg.Initialized {
+// 		return
+// 	}
+
+// 	if p, err := node.Repo.Profile(); err == nil {
+// 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
+// 			go func() {
+// 				if len(p.Thumb.String()) > 1 {
+// 					if err := pinner.Pin(p.Thumb, false); err != nil {
+// 						log.Infof("error pinning thumb path: %s\n", err.Error())
+// 					} else {
+// 						log.Infof("pinned thumb photo: %s", p.Thumb.String())
+// 					}
+// 				}
+// 				if len(p.Profile.String()) > 1 {
+// 					if err := pinner.Pin(p.Profile, false); err != nil {
+// 						log.Infof("error pinning profile path: %s\n", err.Error())
+// 					} else {
+// 						log.Infof("pinned profile photo photo: %s", p.Profile.String())
+// 					}
+// 				}
+// 				if len(p.Poster.String()) > 1 {
+// 					if err := pinner.Pin(p.Poster, false); err != nil {
+// 						log.Infof("error pinning poster path: %s\n", err.Error())
+// 					} else {
+// 						log.Infof("pinned poster photo: %s", p.Poster.String())
+// 					}
+// 				}
+// 			}()
+// 		}
+// 	}
+
+// 	req := core.NewDatasetRequests(node.Repo, nil)\
+// 	for _, refstr := range cfg.DefaultDatasets {
+// 		log.Infof("adding default dataset: %s\n", refstr)
+// 		ref, err := repo.ParseDatasetRef(refstr)
+// 		if err != nil {
+// 			log.Debugf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
+// 			continue
+// 		}
+// 		res := repo.DatasetRef{}
+// 		err = req.Add(&ref, &res)
+// 		if err != nil {
+// 			log.Debugf("add dataset %s error: %s\n", refstr, err.Error())
+// 			return
+// 		}
+// 		log.Infof("added default dataset: %s\n", refstr)
+// 	}
+
+// 	cfg.Initialized = true
+// 	if err = writeConfigFile(cfg); err != nil {
+// 		log.Debugf("error writing config file: %s", err.Error())
+// 	}
+// 	return
+// }
