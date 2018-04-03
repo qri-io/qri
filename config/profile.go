@@ -4,7 +4,9 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"time"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/doggos"
@@ -16,6 +18,10 @@ type Profile struct {
 	ID       string
 	PrivKey  string
 	Peername string
+	// Created timestamp
+	Created time.Time
+	// Updated timestamp
+	Updated time.Time
 	// specifies weather this is a user or an organization
 	Type string
 	// user's email address
@@ -59,6 +65,47 @@ func (Profile) Default() *Profile {
 	}
 
 	return p
+}
+
+// DecodeProfile turns a cfg.Profile into a profile.Profile
+func (cfg *Profile) DecodeProfile() (*profile.Profile, error) {
+	id, err := profile.IDB58Decode(cfg.ID)
+	if err != nil {
+		return nil, err
+	}
+
+	t, err := profile.ParseType(cfg.Type)
+	if err != nil {
+		return nil, err
+	}
+
+	p := &profile.Profile{
+		ID:          id,
+		Type:        t,
+		Peername:    cfg.Peername,
+		Created:     cfg.Created,
+		Updated:     cfg.Updated,
+		Email:       cfg.Email,
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		HomeURL:     cfg.HomeURL,
+		Color:       cfg.Color,
+		Twitter:     cfg.Twitter,
+	}
+
+	if cfg.Thumb != "" {
+		p.Thumb = datastore.NewKey(cfg.Thumb)
+	}
+
+	if cfg.Poster != "" {
+		p.Poster = datastore.NewKey(cfg.Poster)
+	}
+
+	if cfg.Profile != "" {
+		p.Profile = datastore.NewKey(cfg.Profile)
+	}
+
+	return p, nil
 }
 
 // DecodePrivateKey generates a PrivKey instance from base64-encoded config file bytes

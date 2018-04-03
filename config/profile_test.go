@@ -4,6 +4,46 @@ import (
 	"testing"
 )
 
+func TestProfileDecodeProfile(t *testing.T) {
+	p := &Profile{}
+	_, err := p.DecodeProfile()
+	if err == nil {
+		t.Errorf("expected missing ID to error")
+	}
+
+	p = &Profile{
+		ID:   "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F",
+		Type: "dinosaur",
+	}
+
+	_, err = p.DecodeProfile()
+	if err == nil {
+		t.Errorf("expected invalid type to error")
+	}
+
+	p = &Profile{
+		ID:      "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F",
+		Poster:  "foo",
+		Profile: "bar",
+		Thumb:   "baz",
+	}
+
+	pro, err := p.DecodeProfile()
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
+	}
+
+	if pro.Poster.String() != "/foo" {
+		t.Error("poster mismatch")
+	}
+	if pro.Profile.String() != "/bar" {
+		t.Error("profile mismatch")
+	}
+	if pro.Thumb.String() != "/baz" {
+		t.Error("thumb mismatch")
+	}
+}
+
 func TestProfileDecodePrivateKey(t *testing.T) {
 	missingErr := "missing private key"
 	p := &Profile{}

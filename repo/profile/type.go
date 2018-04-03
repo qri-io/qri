@@ -27,6 +27,16 @@ func (t Type) String() string {
 	return "unknown"
 }
 
+// ParseType decodes a peer type from a string
+func ParseType(t string) (Type, error) {
+	got, ok := map[string]Type{"": TypePeer, "user": TypePeer, "peer": TypePeer, "organization": TypeOrganization}[t]
+	if !ok {
+		return TypePeer, fmt.Errorf("invalid Type %q", t)
+	}
+
+	return got, nil
+}
+
 // MarshalJSON implements the json.Marshaler interface for Type
 func (t Type) MarshalJSON() ([]byte, error) {
 	s, ok := map[Type]string{TypePeer: "peer", TypeOrganization: "organization"}[t]
@@ -38,17 +48,11 @@ func (t Type) MarshalJSON() ([]byte, error) {
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for Type
-func (t *Type) UnmarshalJSON(data []byte) error {
+func (t *Type) UnmarshalJSON(data []byte) (err error) {
 	var s string
 	if err := json.Unmarshal(data, &s); err != nil {
 		return fmt.Errorf("Peer type should be a string, got %s", data)
 	}
-
-	got, ok := map[string]Type{"user": TypePeer, "peer": TypePeer, "organization": TypeOrganization}[s]
-	if !ok {
-		return fmt.Errorf("invalid Type %q", s)
-	}
-
-	*t = got
-	return nil
+	*t, err = ParseType(s)
+	return err
 }

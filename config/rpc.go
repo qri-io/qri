@@ -7,7 +7,7 @@ type RPC struct {
 }
 
 // DefaultRPCPort is local the port RPC serves on by default
-var DefaultRPCPort = "2505"
+var DefaultRPCPort = "2504"
 
 // Default creates a new default RPC configuration
 func (RPC) Default() *RPC {

@@ -4,6 +4,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"strings"
 	"testing"
 )
 
@@ -33,6 +34,14 @@ func TestWriteToFile(t *testing.T) {
 	if err := cfg.WriteToFile("/not/a/path/foo"); err == nil {
 		t.Error("expected write bad path to error")
 		return
+	}
+}
+
+func TestConfigSummaryString(t *testing.T) {
+	summary := Config{}.Default().SummaryString()
+	t.Log(summary)
+	if !strings.Contains(summary, "API") {
+		t.Errorf("expected summary to list API port")
 	}
 }
 
