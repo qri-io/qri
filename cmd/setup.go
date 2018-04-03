@@ -41,6 +41,9 @@ running setup. If setup has already been run, by default qri won’t let you
 overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		ignoreCfg = true
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// var cfgData []byte
 
@@ -60,7 +63,7 @@ overwrite this info.`,
 		}
 		mapEnvVars(envVars)
 
-		// // if cfgFile is specified, override
+		// if cfgFile is specified, override
 		// if cfgFile != "" {
 		// 	f, err := os.Open(cfgFile)
 		// 	ExitIfErr(err)
@@ -77,11 +80,6 @@ overwrite this info.`,
 			ExitIfErr(err)
 		}
 
-		// cfg = &config.Config{}
-		// err := yaml.Unmarshal(cfgData, cfg)
-		// ExitIfErr(err)
-		// loadConfig()
-
 		// TODO - re-enable
 		// err = cfg.ensurePrivateKey()
 		// ExitIfErr(err)
@@ -91,9 +89,6 @@ overwrite this info.`,
 		}
 		err := cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
-
-		// err = viper.ReadInConfig()
-		// ExitIfErr(err)
 
 		if setupIPFS {
 
@@ -122,15 +117,6 @@ overwrite this info.`,
 			printWarning("no IPFS repo exists at %s, things aren't going to work properly", IpfsFsPath)
 		}
 
-		// p := &core.Profile{}
-		// if setupProfileData != "" {
-		// 	err = readAtFile(&setupProfileData)
-		// 	ExitIfErr(err)
-		// 	err = json.Unmarshal([]byte(setupProfileData), p)
-		// 	ExitIfErr(err)
-		// } else {
-		// }
-
 		anon, err := cmd.Flags().GetBool("anonymous")
 		ExitIfErr(err)
 		if setupPeername == "" && !anon {
@@ -141,12 +127,10 @@ overwrite this info.`,
 		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
 
-		// loadConfig()
-		// pr, err := profileRequests(false)
-		// ExitIfErr(err)
-		// res := &core.Profile{}
-		// err = pr.SavePeername(p, res)
-		// err = pr.SaveProfile(p, res)
+		// call SetProfile to give repo a chance to save updated profile data
+		pro, err := cfg.Profile.DecodeProfile()
+		ExitIfErr(err)
+		getRepo(false).SetProfile(pro)
 
 		ExitIfErr(err)
 	},

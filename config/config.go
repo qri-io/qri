@@ -42,6 +42,29 @@ func (Config) Default() *Config {
 	}
 }
 
+// SummaryString creates a pretty string summarizing the
+// configuration, useful for log output
+func (cfg Config) SummaryString() (summary string) {
+	summary = "\n"
+	if cfg.Profile != nil {
+		summary += fmt.Sprintf("peername:\t%s\nprofileID:\t%s\n", cfg.Profile.Peername, cfg.Profile.ID)
+	}
+
+	if cfg.API != nil && cfg.API.Enabled {
+		summary += fmt.Sprintf("API port:\t%s\n", cfg.API.Port)
+	}
+
+	if cfg.RPC != nil && cfg.RPC.Enabled {
+		summary += fmt.Sprintf("RPC port:\t%s\n", cfg.RPC.Port)
+	}
+
+	if cfg.Webapp != nil && cfg.Webapp.Enabled {
+		summary += fmt.Sprintf("Webapp port:\t%s\n", cfg.Webapp.Port)
+	}
+
+	return summary
+}
+
 // ReadFromFile reads a YAML configuration file from path
 func ReadFromFile(path string) (cfg *Config, err error) {
 	var data []byte

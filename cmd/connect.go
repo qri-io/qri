@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	connectCmdPort       string
+	connectCmdAPIPort    string
 	connectCmdRPCPort    string
 	connectCmdWebappPort string
 
@@ -32,11 +32,7 @@ things:
 - Start a local API server
 
 When you run connect you are connecting to the distributed web, interacting with
-peers & swapping data.
-
-The default port for the local API server is 2503. We call port 2503,
-“the qri port”. It’s a good port, lots of cool numbers in there. Some might even
-call it a “prime” port number.`,
+peers & swapping data.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			r   repo.Repo
@@ -52,13 +48,13 @@ call it a “prime” port number.`,
 		s, err := api.New(r, func(c *config.Config) {
 			*c = *cfg
 
-			if connectCmdPort != config.DefaultAPIPort {
-				c.API.Enabled = connectCmdPort != ""
-				c.API.Port = connectCmdPort
+			if connectCmdAPIPort != config.DefaultAPIPort {
+				c.API.Enabled = connectCmdAPIPort != ""
+				c.API.Port = connectCmdAPIPort
 			}
 
 			if connectCmdRPCPort != config.DefaultRPCPort {
-				c.RPC.Enabled = connectCmdPort != ""
+				c.RPC.Enabled = connectCmdRPCPort != ""
 				c.RPC.Port = connectCmdRPCPort
 			}
 
@@ -67,7 +63,6 @@ call it a “prime” port number.`,
 				c.RPC.Port = connectCmdWebappPort
 			}
 		})
-
 		ExitIfErr(err)
 
 		err = s.Serve()
@@ -76,7 +71,7 @@ call it a “prime” port number.`,
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdPort, "api-port", "", config.DefaultAPIPort, "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdAPIPort, "api-port", "", config.DefaultAPIPort, "port to start api on")
 	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", config.DefaultRPCPort, "port to start rpc listener on")
 	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", config.DefaultWebappPort, "port to serve webapp on")
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")

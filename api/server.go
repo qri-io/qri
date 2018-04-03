@@ -77,26 +77,10 @@ func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
 	return s, nil
 }
 
-// Serve starts the server. It will block while the server
-// is running
+// Serve starts the server. It will block while the server is running
 func (s *Server) Serve() (err error) {
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
-	p, err := s.qriNode.Repo.Profile()
-	if err != nil {
-		return err
-	}
-
-	if s.cfg.API.Enabled {
-		// log.Info("qri profile id:", s.qriNode.Identity.Pretty())
-		info := fmt.Sprintf("connecting to qri:\n  peername: %s\n  QRI ID: %s\n  API port: %s\n  IPFS Addreses:", p.Peername, p.ID, s.cfg.API.Port)
-		for _, a := range s.qriNode.EncapsulatedAddresses() {
-			info = fmt.Sprintf("%s\n  %s", info, a.String())
-		}
-		log.Info(info)
-	} else {
-		log.Info("running qri in offline mode, no peer-2-peer connections")
-	}
 
 	go s.ServeRPC()
 	go s.ServeWebapp()
@@ -110,6 +94,13 @@ func (s *Server) Serve() (err error) {
 			}
 		}()
 	}
+
+	info := s.cfg.SummaryString()
+	info += "IPFS Addresses:"
+	for _, a := range s.qriNode.EncapsulatedAddresses() {
+		info = fmt.Sprintf("%s\n  %s", info, a.String())
+	}
+	log.Info(info)
 
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg.API, server)
@@ -134,7 +125,6 @@ func (s *Server) ServeRPC() {
 		}
 	}
 
-	log.Infof("accepting RPC requests on port %s", s.cfg.RPC.Port)
 	rpc.Accept(listener)
 	return
 }
@@ -156,8 +146,6 @@ func (s *Server) ServeWebapp() {
 	m := http.NewServeMux()
 	m.Handle("/", s.middleware(s.WebappHandler))
 	webappserver := &http.Server{Handler: m}
-
-	log.Infof("webapp available on port %s", s.cfg.Webapp.Port)
 	webappserver.Serve(listener)
 	return
 }
@@ -176,7 +164,7 @@ func (s *Server) resolveWebappPath() {
 	}
 	log.Debugf("webapp path: %s", p.String())
 	s.cfg.Webapp.Scripts = []string{
-		fmt.Sprintf("http://localhost:2503%s", p.String()),
+		fmt.Sprintf("http://localhost:%s%s", s.cfg.API.Port, p.String()),
 	}
 }
 
