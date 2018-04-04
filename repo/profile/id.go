@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 // ID is a distinct thing form a peer.ID. They are *NOT* meant to be interchangable

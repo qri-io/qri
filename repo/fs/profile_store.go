@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo/profile"
 
-	"gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 // ErrNotFound is for when a qri profile isn't found

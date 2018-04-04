@@ -3,7 +3,7 @@ package p2p
 import (
 	"github.com/qri-io/qri/repo/profile"
 
-	peer "gx/ipfs/QmXYjuNuxVzXKJCfWasQk1RqkhVLDM9jtUKhqc2WPQmFSB/go-libp2p-peer"
+	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 // ClosestConnectedPeers checks if a peer is connected, and if so adds it to the top
