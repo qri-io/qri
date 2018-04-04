@@ -12,8 +12,12 @@ var (
 	connectCmdRPCPort    string
 	connectCmdWebappPort string
 
-	disableP2P      bool
+	disableAPI    bool
+	disableRPC    bool
+	disableWebapp bool
+
 	connectSetup    bool
+	disableP2P      bool
 	connectReadOnly bool
 )
 
@@ -48,19 +52,36 @@ peers & swapping data.`,
 		s, err := api.New(r, func(c *config.Config) {
 			*c = *cfg
 
-			if connectCmdAPIPort != config.DefaultAPIPort {
-				c.API.Enabled = connectCmdAPIPort != ""
+			if connectCmdAPIPort != "" {
 				c.API.Port = connectCmdAPIPort
 			}
 
-			if connectCmdRPCPort != config.DefaultRPCPort {
-				c.RPC.Enabled = connectCmdRPCPort != ""
+			if connectCmdRPCPort != "" {
 				c.RPC.Port = connectCmdRPCPort
 			}
 
-			if connectCmdWebappPort != config.DefaultWebappPort {
-				c.Webapp.Enabled = connectCmdWebappPort != ""
-				c.RPC.Port = connectCmdWebappPort
+			if connectCmdWebappPort != "" {
+				c.Webapp.Port = connectCmdWebappPort
+			}
+
+			if connectReadOnly {
+				c.API.ReadOnly = true
+			}
+
+			if disableP2P {
+				c.P2P.Enabled = false
+			}
+
+			if disableAPI {
+				c.API.Enabled = false
+			}
+
+			if disableRPC {
+				c.RPC.Enabled = false
+			}
+
+			if disableWebapp {
+				c.Webapp.Enabled = false
 			}
 		})
 		ExitIfErr(err)
@@ -75,6 +96,9 @@ func init() {
 	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", config.DefaultRPCPort, "port to start rpc listener on")
 	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", config.DefaultWebappPort, "port to serve webapp on")
 	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
+	connectCmd.Flags().BoolVarP(&disableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
+	connectCmd.Flags().BoolVarP(&disableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
+	connectCmd.Flags().BoolVarP(&disableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
 	connectCmd.Flags().BoolVarP(&disableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
 	connectCmd.Flags().BoolVarP(&connectReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	RootCmd.AddCommand(connectCmd)
