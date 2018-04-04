@@ -23,7 +23,7 @@ func (Webapp) Default() *Webapp {
 			// this is fetched and replaced via dnslink when the webapp server starts
 			// the value provided here is just a sensible fallback for when dnslink lookup fails,
 			// pointing to a known prior version of the the webapp
-			"http://localhost:2503/ipfs/QmUnnihBehFsCRGNjAEiMtYL3p8diBXNhM3DCZwhSq98UJ",
+			"http://localhost:2503/ipfs/QmewSfmnridhYdwLc9nGVwFNhMofAjPf4vxMMUYC6QDEjm",
 		},
 	}
 }
