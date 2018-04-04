@@ -14,7 +14,7 @@ EXPOSE 4001 4002/udp 5001 8080 8081
 
 # create directories for IPFS & QRI, setting proper owners
 RUN mkdir -p $IPFS_PATH && mkdir -p $QRI_PATH \
-  && adduser -D -h $IPFS_PATH -u 1000 -g 100 ipfs \
+  && adduser --disabled-password --home $IPFS_PATH --uid 1000 --gid 100 ipfs \
   && chown 1000:100 $IPFS_PATH \
   && chown 1000:100 $QRI_PATH
 
