@@ -146,13 +146,6 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 		root.AddLinks(dsgraph.Link{From: root, To: commit})
 	}
 
-	if ds.Abstract != nil && ds.Abstract.Path().String() != "" {
-		root.AddLinks(dsgraph.Link{
-			From: root,
-			To:   nl.node(dsgraph.NtAbstDataset, ds.Abstract.Path().String()),
-		})
-	}
-
 	if ds.Transform != nil && ds.Transform.Path().String() != "" {
 		if q, err := dsfs.LoadTransform(r.Store(), ds.Transform.Path()); err == nil {
 			trans := nl.node(dsgraph.NtTransform, ds.Transform.Path().String())
@@ -164,13 +157,6 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 			}
 			root.AddLinks(dsgraph.Link{From: root, To: trans})
 		}
-	}
-
-	if ds.AbstractTransform != nil && ds.AbstractTransform.Path().String() != "" {
-		root.AddLinks(dsgraph.Link{
-			From: root,
-			To:   nl.node(dsgraph.NtAbstTransform, ds.AbstractTransform.Path().String()),
-		})
 	}
 
 	return root
