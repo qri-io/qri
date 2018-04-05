@@ -215,6 +215,9 @@ func inputText(message, defaultText string) string {
 		message = "enter text:"
 	}
 	input := prompt(fmt.Sprintf("%s [%s]: ", message, defaultText))
+	if input == "" {
+		input = defaultText
+	}
 
 	return input
 }

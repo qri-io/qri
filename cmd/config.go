@@ -56,7 +56,6 @@ var configSetCommand = &cobra.Command{
 	Short: "Set a configuration option",
 	Run: func(cmd *cobra.Command, args []string) {
 		// var err error
-
 		if len(args)%2 != 0 {
 			ErrExit(fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]"))
 		}
