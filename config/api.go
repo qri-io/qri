@@ -28,7 +28,7 @@ func (API) Default() *API {
 		Port:    DefaultAPIPort,
 		TLS:     false,
 		AllowedOrigins: []string{
-			"http://localhost:2505",
+			"http://localhost:" + DefaultWebappPort,
 		},
 	}
 }

@@ -11,6 +11,7 @@ func (Logging) Default() *Logging {
 	return &Logging{
 		Levels: map[string]string{
 			"qriapi": "info",
+			"qrip2p": "info",
 		},
 	}
 }

@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
 )
@@ -19,7 +20,7 @@ func TestRepo(t *testing.T) {
 			t.Errorf("error removing files: %s", err.Error())
 		}
 
-		r, err := NewRepo(cafs.NewMapstore(), path, "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt")
+		r, err := NewRepo(cafs.NewMapstore(), config.Profile{}.Default(), path)
 		if err != nil {
 			t.Errorf("error creating repo: %s", err.Error())
 		}

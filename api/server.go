@@ -51,27 +51,8 @@ func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
 	s.qriNode, err = p2p.NewQriNode(r, func(c *config.P2P) {
 		*c = *cfg.P2P
 	})
-	// func(p2pcfg *config.P2P) {
-	// p2pcfg.Online = s.cfg.Online
-	// if cfg.BoostrapAddrs != nil {
-	// 	p2pcfg.QriBootstrapAddrs = cfg.BoostrapAddrs
-	// }
-	// })
 	if err != nil {
 		return s, err
-	}
-
-	// bootstrapped := false
-	peerBootstrapped := func(peerId string) {
-		// if cfg.PostP2POnlineHook != nil && !bootstrapped {
-		// go cfg.PostP2POnlineHook(s.qriNode)
-		// bootstrapped = true
-		// }
-	}
-
-	err = s.qriNode.StartOnlineServices(peerBootstrapped)
-	if err != nil {
-		return nil, fmt.Errorf("error starting P2P service: %s", err.Error())
 	}
 
 	return s, nil
@@ -84,6 +65,26 @@ func (s *Server) Serve() (err error) {
 
 	go s.ServeRPC()
 	go s.ServeWebapp()
+
+	// func(p2pcfg *config.P2P) {
+	// p2pcfg.Online = s.cfg.Online
+	// if cfg.BoostrapAddrs != nil {
+	// 	p2pcfg.QriBootstrapAddrs = cfg.BoostrapAddrs
+	// }
+	// })
+
+	// bootstrapped := false
+	peerBootstrapped := func(peerId string) {
+		// if cfg.PostP2POnlineHook != nil && !bootstrapped {
+		// go cfg.PostP2POnlineHook(s.qriNode)
+		// bootstrapped = true
+		// }
+	}
+
+	err = s.qriNode.StartOnlineServices(peerBootstrapped)
+	if err != nil {
+		return fmt.Errorf("error starting P2P service: %s", err.Error())
+	}
 
 	if node, err := s.qriNode.IPFSNode(); err == nil {
 		go func() {

@@ -126,6 +126,7 @@ func initDataset(name repo.DatasetRef) {
 	ref := repo.DatasetRef{}
 	err = req.Init(p, &ref)
 	ExitIfErr(err)
+
 	if ref.Dataset.Structure.ErrCount > 0 {
 		printWarning(fmt.Sprintf("this dataset has %d validation errors", ref.Dataset.Structure.ErrCount))
 		if addDsShowValidation {

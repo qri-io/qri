@@ -92,14 +92,16 @@ peers & swapping data.`,
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdAPIPort, "api-port", "", config.DefaultAPIPort, "port to start api on")
-	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", config.DefaultRPCPort, "port to start rpc listener on")
-	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", config.DefaultWebappPort, "port to serve webapp on")
-	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
+	connectCmd.Flags().StringVarP(&connectCmdAPIPort, "api-port", "", "", "port to start api on")
+	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", "", "port to start rpc listener on")
+	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", "", "port to serve webapp on")
+
 	connectCmd.Flags().BoolVarP(&disableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
 	connectCmd.Flags().BoolVarP(&disableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
 	connectCmd.Flags().BoolVarP(&disableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
 	connectCmd.Flags().BoolVarP(&disableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
+
+	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
 	connectCmd.Flags().BoolVarP(&connectReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	RootCmd.AddCommand(connectCmd)
 }

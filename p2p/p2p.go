@@ -1,6 +1,4 @@
 // Package p2p implements qri peer-to-peer communication.
-// This is very, very early days, with message passing sorely in need of a
-// rewrite, but hey it's a start.
 package p2p
 
 import (
@@ -12,7 +10,7 @@ import (
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
 
-var log = golog.Logger("p2p")
+var log = golog.Logger("qrip2p")
 
 // QriProtocolID is the top level Protocol Identifier
 const QriProtocolID = protocol.ID("/qri")
@@ -21,7 +19,7 @@ const QriProtocolID = protocol.ID("/qri")
 const QriServiceTag = "qri/0.2.1"
 
 func init() {
-	// golog.SetLogLevel("p2p", "debug")
+	// golog.SetLogLevel("qrip2p", "debug")
 
 	// ipfs core includes a client version. seems like a good idea.
 	// TODO - understand where & how client versions are used

@@ -105,13 +105,6 @@ func (cfg *P2P) DecodePeerID() (peer.ID, error) {
 // 	if r == nil {
 // 		return fmt.Errorf("need a qri Repo to create a qri node")
 // 	}
-// 	// if r == nil && cfg.RepoPath != "" {
-// 	//  repo, err := fs_repo.NewRepo(store, cfg.RepoPath, cfg.canonicalPeerId(store))
-// 	//  if err != nil {
-// 	//    return err
-// 	//  }
-// 	//  cfg.Repo = repo
-// 	// }
 
 // 	// If no listening addresses are set, allocate
 // 	// a tcp multiaddress on local host bound to the default port
