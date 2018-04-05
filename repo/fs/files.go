@@ -38,8 +38,6 @@ const (
 	// FileInfo stores information about this repository
 	// like version number, size of repo, etc.
 	FileInfo
-	// FileProfile is this node's user profile
-	FileProfile
 	// FileConfig holds configuration specific to this repo
 	FileConfig
 	// FileDatasets holds the list of datasets
@@ -67,7 +65,6 @@ var paths = map[File]string{
 	FileUnknown:        "",
 	FileLockfile:       "/repo.lock",
 	FileInfo:           "/info.json",
-	FileProfile:        "/profile.json",
 	FileConfig:         "/config.json",
 	FileDatasets:       "/datasets.json",
 	FileEventLogs:      "/events.json",

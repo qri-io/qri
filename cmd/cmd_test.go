@@ -2,14 +2,27 @@ package cmd
 
 import (
 	"bytes"
+	"fmt"
 	"io/ioutil"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
+	"github.com/qri-io/qri/config"
 	"github.com/spf13/cobra"
 )
+
+func confirmQriNotRunning() error {
+	l, err := net.Listen("tcp", ":"+config.DefaultAPIPort)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri server is already running on port %s, please close before running tests", config.DefaultAPIPort)
+	}
+
+	l.Close()
+	return nil
+}
 
 func executeCommand(root *cobra.Command, args ...string) (output string, err error) {
 	_, output, err = executeCommandC(root, args...)
@@ -80,6 +93,10 @@ const profileData = `
 
 // This is a basic integration test that makes sure basic happy paths work on the CLI
 func TestCommandsIntegration(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
 	// t.Logf("temp path: %s", path)
 	log.Info(path)

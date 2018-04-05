@@ -40,23 +40,24 @@ func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 // HandlePeerFound deals with the discovery of a peer that may or may not support
 // the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
-
 	// first check to see if we've seen this peer before
 	if _, err := n.Host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
 	} else if support, err := n.SupportsQriProtocol(pinfo.ID); err == nil {
 		if err := n.Host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
-			fmt.Println("error setting qri support flag", err.Error())
+			log.Errorf("error setting qri support flag", err.Error())
 			return
 		}
 
 		if support {
 			if err := n.AddQriPeer(pinfo); err != nil {
-				fmt.Println(err.Error())
+				log.Errorf("error adding qri peer: %s", err.Error())
+			} else {
+				log.Infof("discovered qri peer: %s", pinfo.ID)
 			}
 		}
 	} else if err != nil && err != errNoProtos {
-		fmt.Println("error checking for qri support:", err.Error())
+		log.Errorf("error checking for qri support:", err.Error())
 	}
 }
 

@@ -8,7 +8,7 @@ import (
 )
 
 // ID is a distinct thing form a peer.ID. They are *NOT* meant to be interchangable
-// but the mechanics of peer.ID & profile.ID are exactly the same (for now).
+// but the mechanics of peer.ID & profile.ID are exactly the same
 type ID peer.ID
 
 // String implements the stringer interface for ID

@@ -35,7 +35,7 @@ func getRepo(online bool) repo.Repo {
 	ExitIfErr(err)
 
 	fs := getIpfsFilestore(online)
-	r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
+	r, err := fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
 	r.SetPrivateKey(pk)
 	r.SetProfile(pro)
 
@@ -148,7 +148,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		// cfg, err := readConfigFile()
 		// ExitIfErr(err)
 
-		r, err := fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
+		r, err := fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
 		ExitIfErr(err)
 
 		// c, _ := json.MarshalIndent(cfg, "", "  ")
@@ -193,7 +193,7 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	// 	return
 	// }
 
-	r, err = fsrepo.NewRepo(fs, QriRepoPath, cfg.Profile.ID)
+	r, err = fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
 	if err != nil {
 		return
 	}

@@ -121,7 +121,22 @@ func (r ProfileStore) DeleteProfile(id profile.ID) error {
 	return r.saveFile(ps, FilePeers)
 }
 
+func (r ProfileStore) saveFile(ps map[profile.ID]*profile.Profile, f File) error {
+	pss := map[string]*profile.Profile{}
+	for _, p := range ps {
+		pss[p.ID.String()] = p
+	}
+
+	data, err := json.Marshal(pss)
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+	return ioutil.WriteFile(r.filepath(f), data, os.ModePerm)
+}
+
 func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
+	pss := map[string]*profile.Profile{}
 	ps := map[profile.ID]*profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
@@ -132,9 +147,12 @@ func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
 		return ps, fmt.Errorf("error loading peers: %s", err.Error())
 	}
 
-	if err := json.Unmarshal(data, &ps); err != nil {
+	if err := json.Unmarshal(data, &pss); err != nil {
 		log.Debug(err.Error())
 		return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
+	}
+	for _, p := range pss {
+		ps[p.ID] = p
 	}
 	return ps, nil
 }

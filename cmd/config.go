@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -111,6 +112,13 @@ Sorry, we know this is not exactly a great experience, from this point forward
 we won't be shipping changes that require starting over.
 `
 		err = fmt.Errorf(str, err.Error(), QriRepoPath)
+	}
+
+	// configure logging straight away
+	if cfg != nil && cfg.Logging != nil {
+		for name, level := range cfg.Logging.Levels {
+			golog.SetLogLevel(name, level)
+		}
 	}
 
 	return err

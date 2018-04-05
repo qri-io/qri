@@ -1,16 +1,14 @@
 package fsrepo
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
-	"github.com/qri-io/doggos"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
@@ -25,7 +23,9 @@ func init() {
 
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
-	pk    crypto.PrivKey
+	profile *profile.Profile
+	pk      crypto.PrivKey
+
 	store cafs.Filestore
 	basepath
 	graph map[string]*dsgraph.Node
@@ -39,22 +39,25 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, base, profileidstr string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, cfg *config.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
 	bp := basepath(base)
 
-	id, err := profile.IDB58Decode(profileidstr)
+	p, err := cfg.DecodeProfile()
+	if err != nil {
+		return nil, err
+	}
+	pk, err := cfg.DecodePrivateKey()
 	if err != nil {
 		return nil, err
 	}
 
-	if err := ensureProfile(bp, id); err != nil {
-		return nil, err
-	}
-
 	r := &Repo{
+		profile: p,
+		pk:      pk,
+
 		store:    store,
 		basepath: bp,
 
@@ -98,62 +101,12 @@ func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
 
 // Profile gives this repo's peer profile
 func (r *Repo) Profile() (*profile.Profile, error) {
-	p := &profile.Profile{}
-	data, err := ioutil.ReadFile(r.filepath(FileProfile))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return p, nil
-		}
-		log.Debug(err.Error())
-		return p, fmt.Errorf("error loading profile: %s", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &p); err != nil {
-		log.Debug(err.Error())
-		return p, fmt.Errorf("error unmarshaling profile: %s", err.Error())
-	}
-
-	return p, nil
+	return r.profile, nil
 }
 
 // SetProfile updates this repo's peer profile info
 func (r *Repo) SetProfile(p *profile.Profile) error {
-	return r.saveFile(p, FileProfile)
-}
-
-// ensureProfile makes sure a profile file is saved locally
-// makes it easier to edit that file to change user data
-func ensureProfile(bp basepath, id profile.ID) error {
-	if _, err := os.Stat(bp.filepath(FileProfile)); os.IsNotExist(err) {
-		return bp.saveFile(&profile.Profile{
-			ID:       id,
-			Peername: doggos.DoggoNick(id.String()),
-		}, FileProfile)
-	}
-
-	p := &profile.Profile{}
-	data, err := ioutil.ReadFile(bp.filepath(FileProfile))
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		log.Debug(err.Error())
-		return fmt.Errorf("error loading profile: %s", err.Error())
-	}
-
-	if err := json.Unmarshal(data, &p); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error unmarshaling profile: %s", err.Error())
-	}
-
-	if p.ID != id {
-		p.ID = id
-		if p.Peername == "" {
-			p.Peername = doggos.DoggoNick(p.ID.String())
-		}
-		bp.saveFile(p, FileProfile)
-	}
-
+	r.profile = p
 	return nil
 }
 

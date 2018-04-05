@@ -126,13 +126,6 @@ overwrite this info.`,
 
 		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
-
-		// call SetProfile to give repo a chance to save updated profile data
-		pro, err := cfg.Profile.DecodeProfile()
-		ExitIfErr(err)
-		getRepo(false).SetProfile(pro)
-
-		ExitIfErr(err)
 	},
 }
 

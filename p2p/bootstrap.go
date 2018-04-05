@@ -29,7 +29,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 			log.Infof("boostrapping to: %s", p.ID.Pretty())
 			if err := n.Host.Connect(context.Background(), p); err == nil {
 				if err = n.AddQriPeer(p); err != nil {
-					log.Infof("error adding peer: %s", err.Error())
+					log.Errorf("error adding peer: %s", err.Error())
 				} else {
 					boostrapPeers <- p
 				}

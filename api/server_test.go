@@ -6,6 +6,7 @@ import (
 	"io"
 	"io/ioutil"
 	"mime/multipart"
+	"net"
 	"net/http"
 	"net/http/httptest"
 	"os"
@@ -19,7 +20,21 @@ import (
 	"github.com/qri-io/qri/repo/test"
 )
 
+func confirmQriNotRunning() error {
+	l, err := net.Listen("tcp", ":"+config.DefaultAPIPort)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri server is already running on port %s, please close before running tests", config.DefaultAPIPort)
+	}
+
+	l.Close()
+	return nil
+}
+
 func TestServerRoutes(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
@@ -189,6 +204,10 @@ func TestServerRoutes(t *testing.T) {
 }
 
 func TestServerReadOnlyRoutes(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
