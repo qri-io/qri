@@ -18,62 +18,62 @@ To get the first element (which is at index 0) in the p2p.qribootstrapaddrs arra
 `qri config get p2p.qribootstrapaddrs.0`
 
 Here is a quick reference of all configurable fields:
-[profile](#profile) *object*
-  [id](#id) *string*
-  [privkey](#privkey) *string*
-  [peername](#peername) *string*
-  [created](#created) *string*
-  [updated](#updated) *string*
-  [type](#type) *string*
-  [email](#email) *string*
-  [name](#name) *string*
-  [description](#description) *string*
-  [homeurl](#homeurl) *string*
-  [color](#color) *string*
-  [thumb](#color) *string*
-  [profile](#profile-photo) *ipfs hash*
-  [poster](#poster-photo) *ipfs hash*
-  [twitter](#twitter) *string*
-[repo](#repo)
-  [middleware](#middleware) *array*
-  [type](#repo-type) *string*
-[store](#store) *object*
-  [type](#store-type) *string*
-[p2p](#p2p) *object*
-  [enabled](#p2p-enabled) *bool*
-  [peerid](#peerid) *base58 hash*
-  [pubkey](#pubkey) *string* 
-  [privkey](#p2p-privkey) *string*
-  [port](#p2p-port) *string*
-  [addrs](#addrs) *array*
-  [qribootstrapaddrs](#qribootstrapaddrs) *array*
-  [profilereplication](#profilereplication) *bool*
-  [boostrapaddrs](#bootstrapaddrs) *array*
-[cli](#cli) *object*
-  [colorizeoutput](#colorizeoutput) *bool*
-[api](#api) *object*
-  [enabled](#api-enabled) *bool*
-  [port](#api-port) *string*
-  [readonly](#readonly) *bool*
-  [urlroot](#urlroot) *string*
-  [tls](#tls) *string*
-  [proxyforcehttps](#proxyforcehttps) *string*
-  [allowedorigins](#allowedorigins) *array*
-[webapp](#webapp) *object*
-  [enabled](#webapp-enabled) *bool*
-  [port](#webapp-port) *string*
-  [analyticstoken](#analyticstoken) *string*
-  [scripts](#scripts) *array*
-[rpc](#rpc) *object*
-  [enabled](#rpc-enabled) *bool*
-  [port](#rpc-port) *string*
-[logging](#logging) *object*
-  [levels](#levels) *object*
-    [qriapi](#qriapi) *string*
+* [profile](#profile) *object*
+    * [id](#id) *string*
+    * [privkey](#privkey) *string*
+    * [peername](#peername) *string*
+    * [created](#created) *string*
+    * [updated](#updated) *string*
+    * [type](#type) *string*
+    * [email](#email) *string*
+    * [name](#name) *string*
+    * [description](#description) *string*
+    * [homeurl](#homeurl) *string*
+    * [color](#color) *string*
+    * [thumb](#color) *string*
+    * [profile](#profile-photo) *ipfs hash*
+    * [poster](#poster-photo) *ipfs hash*
+    * [twitter](#twitter) *string*
+* [repo](#repo)
+    * [middleware](#middleware) *array*
+    * [type](#repo-type) *string*
+* [store](#store) *object*
+    * [type](#store-type) *string*
+* [p2p](#p2p) *object*
+    * [enabled](#p2p-enabled) *bool*
+    * [peerid](#peerid) *base58 hash*
+    * [pubkey](#pubkey) *string* 
+    * [privkey](#p2p-privkey) *string*
+    * [port](#p2p-port) *string*
+    * [addrs](#addrs) *array*
+    * [qribootstrapaddrs](#qribootstrapaddrs) *array*
+    * [profilereplication](#profilereplication) *bool*
+    * [boostrapaddrs](#bootstrapaddrs) *array*
+* [cli](#cli) *object*
+    * [colorizeoutput](#colorizeoutput) *bool*
+* [api](#api) *object*
+    * [enabled](#api-enabled) *bool*
+    * [port](#api-port) *string*
+    * [readonly](#readonly) *bool*
+    * [urlroot](#urlroot) *string*
+    * [tls](#tls) *string*
+    * [proxyforcehttps](#proxyforcehttps) *string*
+    * [allowedorigins](#allowedorigins) *array*
+* [webapp](#webapp) *object*
+    * [enabled](#webapp-enabled) *bool*
+    * [port](#webapp-port) *string*
+    * [analyticstoken](#analyticstoken) *string*
+    * [scripts](#scripts) *array*
+* [rpc](#rpc) *object*
+    * [enabled](#rpc-enabled) *bool*
+    * [port](#rpc-port) *string*
+* [logging](#logging) *object*
+    * [levels](#levels) *object*
+        * [qriapi](#qriapi) *string*
 
 -----
-## Profile
------
+# Profile
+
 Your profile contains some hairy stuff you shouldn't change once it is set initially. 
 
 **We strongly recommend you don't change your privkey, ID, and peername.**
@@ -83,14 +83,14 @@ Created and cpdated are the timestamps that your profile was created and updated
 Type, email, name, description, homeurl, color, twitter, and profile and poster photo we strongly encourage you to update!
 
 -----
-### ID
+## ID
 *Profile ID*
 Your id is your identity on Qri and it is set when you first run `qri setup` or `qri connect --setup`. Your datasets, your qri nodes, your profile, your identity to your peers are all tied to this profile id. Changing this is bad news bears and will break everything. 
 
 **DO NOT CHANGE**
 
 -----
-### privkey
+## privkey
 *private key*
 Your private key is generated when you first run `qri setup` or `qri connect --setup`. 
 
@@ -99,7 +99,7 @@ Your private key is generated when you first run `qri setup` or `qri connect --s
 Your private key is a form of security. If anyone else has your private key, they can pretend to be you. Also bad news bears to change this.
 
 -----
-### peername
+## peername
 Your moniker on qri. The name that is associated with your profile and datasets. 
 
 Let's say your peername is lunalovegood7 (for some reason), and a dataset of yours called best_harry_potter_quotes_ranked.
@@ -118,15 +118,15 @@ The peername will be mutable in the future, but for now changing your peername i
 **Do not change your peername after setup**
 
 -----
-### created
+## created
 Date and time timestamp when the qri profile was created on setup. We recommend you do not change this field.
 
 -----
-### updated
+## updated
 Date and time timestamp when the qri profile was last updated. We recommend you do not change this field as it should auto update on any profile change. (this auto update feature might not be set yet)
 
 -----
-### type
+## type
 *peer or organization*
 Qri profiles can be associated with a single person or an organization. 
 
@@ -140,7 +140,7 @@ $ qri config set profile.type peer
 ```
 
 -----
-### email
+## email
 An email address to reach you. If other qri folks can reach you, it will greatly strengthen their trust in yoru datasets.
 
 **Input options** (*string*): valid email address
@@ -153,7 +153,7 @@ $ qri config set profile.email example@example.com
 ```
 
 -----
-### name
+## name
 Your name or organizations name.
 
 **Input options** (*string*): max 255 character length
@@ -166,7 +166,7 @@ $ qri config set profile.name Jane Doe
 ```
 
 -----
-### description
+## description
 A little bio about you or your organization. Can help other users understand the types of data you are interested in.
 
 **Input options** (*string*): max 255 character length
@@ -179,7 +179,7 @@ $ qri config set profile.description "Hi my name is Jane Doe and I am a research
 ```
 
 -----
-### homeurl
+## homeurl
 You or your organization's website. 
 
 **Input options** (*string*): valid url
@@ -192,7 +192,7 @@ $ qri config set profile.homeurl https://harrypotterlover.com
 ```
 
 -----
-### color
+## color
 The theme color your prefer when viewing Qri using the webapp. This will expand, but for now the only option is 'default'
 
 **Input options** (*string*): `default`
@@ -205,12 +205,12 @@ $ qri config set profile.color default
 ```
 
 -----
-### thumb
+## thumb
 *thumbnail photo*
 Your thumbnail photo is auto generated using the profile photo uploaded. We recommend not setting this yourself.
 
 -----
-### profile photo
+## profile photo
 Upload a profile photo using a filepath, url, or ipfs hash. This photo is used on the Qri webapp.
 
 **Input options** (*string*): valid url, valid filepath, or valid ipfs hash
@@ -223,7 +223,7 @@ $ qri config set profile.profile ~/Documents/pictures/headshot.jpeg
 ```
 
 -----
-### poster photo
+## poster photo
 Upload a poster photo (the backdrop to your profile). This photo is used on the Qri webapp.
 
 **Input options** (*string*): valid url, valid filepath, or valid ipfs hash
@@ -236,7 +236,7 @@ $ qri config set profile.poster http://www.imgur.com/pic_of_sunset_i_took_one_ti
 ```
 
 -----
-### twitter
+## twitter
 *twitter handle*
 You or your organization's twitter handle. No need to include the `@` symbol. 
 
