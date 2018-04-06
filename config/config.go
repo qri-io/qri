@@ -3,12 +3,14 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/qri-io/jsonschema"
 	"gopkg.in/yaml.v2"
 )
 
@@ -34,7 +36,7 @@ func (Config) Default() *Config {
 		Store:   Store{}.Default(),
 
 		CLI:     CLI{}.Default(),
-		API:     API{}.Default(),
+		API:     DefaultAPI(),
 		P2P:     P2P{}.Default(),
 		Webapp:  Webapp{}.Default(),
 		RPC:     RPC{}.Default(),
@@ -162,4 +164,19 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 	}
 
 	return elem, nil
+}
+
+// valiate is a helper function that wraps json.Marshal an ValidateBytes
+// it is used by each struct that is in a Config field (eg API, Profile, etc)
+func validate(rs *jsonschema.RootSchema, s interface{}) error {
+	strct, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("error marshaling profile to json: %s", err)
+	}
+	if errors, err := rs.ValidateBytes(strct); len(errors) > 0 {
+		return fmt.Errorf("%s", errors[0])
+	} else if err != nil {
+		return err
+	}
+	return nil
 }
