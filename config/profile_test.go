@@ -66,10 +66,17 @@ func TestProfileDecodePrivateKey(t *testing.T) {
 	// run this test a few times to ensure default profile consistently generates
 	// a valid PrivateKey
 	for i := 0; i < 10; i++ {
-		p = Profile{}.Default()
+		p = DefaultProfile()
 		_, err = p.DecodePrivateKey()
 		if err != nil {
 			t.Errorf("iter %d unexpected error: %s", i, err.Error())
 		}
+	}
+}
+
+func TestProfileValidate(t *testing.T) {
+	err := DefaultProfile().Validate()
+	if err != nil {
+		t.Errorf("error validating default profile: %s", err)
 	}
 }

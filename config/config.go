@@ -31,7 +31,7 @@ type Config struct {
 // Default gives a new default qri configuration
 func (Config) Default() *Config {
 	return &Config{
-		Profile: Profile{}.Default(),
+		Profile: DefaultProfile(),
 		Repo:    Repo{}.Default(),
 		Store:   Store{}.Default(),
 
