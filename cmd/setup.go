@@ -52,7 +52,7 @@ overwrite this info.`,
 		}
 		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
 
-		cfg = config.Config{}.Default()
+		cfg = config.DefaultConfig()
 
 		envVars := map[string]*string{
 			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,

@@ -35,7 +35,7 @@ type Server struct {
 // calling New() with no options will return the default configuration
 // as specified in DefaultConfig
 func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
-	cfg := config.Config{}.Default()
+	cfg := config.DefaultConfig()
 	for _, opt := range options {
 		opt(cfg)
 	}

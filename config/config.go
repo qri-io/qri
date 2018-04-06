@@ -29,7 +29,7 @@ type Config struct {
 }
 
 // Default gives a new default qri configuration
-func (Config) Default() *Config {
+func DefaultConfig() *Config {
 	return &Config{
 		Profile: DefaultProfile(),
 		Repo:    DefaultRepo(),
@@ -176,6 +176,39 @@ func validate(rs *jsonschema.RootSchema, s interface{}) error {
 	if errors, err := rs.ValidateBytes(strct); len(errors) > 0 {
 		return fmt.Errorf("%s", errors[0])
 	} else if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validate validates each section of the config struct,
+// returning the first error
+func (cfg Config) Validate() error {
+	if err := cfg.Profile.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Repo.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Store.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.P2P.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.CLI.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.API.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Webapp.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.RPC.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Logging.Validate(); err != nil {
 		return err
 	}
 	return nil
