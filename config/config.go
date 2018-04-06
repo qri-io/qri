@@ -35,7 +35,7 @@ func (Config) Default() *Config {
 		Repo:    Repo{}.Default(),
 		Store:   Store{}.Default(),
 
-		CLI:     CLI{}.Default(),
+		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
 		P2P:     P2P{}.Default(),
 		Webapp:  Webapp{}.Default(),
