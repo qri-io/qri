@@ -33,7 +33,7 @@ func (Config) Default() *Config {
 	return &Config{
 		Profile: DefaultProfile(),
 		Repo:    DefaultRepo(),
-		Store:   Store{}.Default(),
+		Store:   DefaultStore(),
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
