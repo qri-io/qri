@@ -72,7 +72,7 @@ type QriNode struct {
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
 func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err error) {
-	cfg := config.P2P{}.Default()
+	cfg := config.DefaultP2P()
 	for _, opt := range options {
 		opt(cfg)
 	}
