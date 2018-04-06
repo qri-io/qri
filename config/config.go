@@ -32,7 +32,7 @@ type Config struct {
 func (Config) Default() *Config {
 	return &Config{
 		Profile: DefaultProfile(),
-		Repo:    Repo{}.Default(),
+		Repo:    DefaultRepo(),
 		Store:   Store{}.Default(),
 
 		CLI:     DefaultCLI(),
