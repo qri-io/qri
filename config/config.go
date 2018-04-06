@@ -38,7 +38,7 @@ func (Config) Default() *Config {
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
 		P2P:     DefaultP2P(),
-		Webapp:  Webapp{}.Default(),
+		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
 	}
