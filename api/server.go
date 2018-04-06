@@ -130,45 +130,6 @@ func (s *Server) ServeRPC() {
 	return
 }
 
-// ServeWebapp launches a webapp server on s.cfg.Webapp.Port
-func (s *Server) ServeWebapp() {
-	if !s.cfg.Webapp.Enabled || s.cfg.Webapp.Port == "" {
-		return
-	}
-
-	go s.resolveWebappPath()
-
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.Webapp.Port))
-	if err != nil {
-		log.Infof("Webapp listen on port %s error: %s", s.cfg.Webapp.Port, err)
-		return
-	}
-
-	m := http.NewServeMux()
-	m.Handle("/", s.middleware(s.WebappHandler))
-	webappserver := &http.Server{Handler: m}
-	webappserver.Serve(listener)
-	return
-}
-
-func (s *Server) resolveWebappPath() {
-	node, err := s.qriNode.IPFSNode()
-	if err != nil {
-		log.Infof("no IPFS node present to resolve webapp address: %s", err.Error())
-		return
-	}
-
-	p, err := node.Namesys.Resolve(context.Background(), "/ipns/webapp.qri.io")
-	if err != nil {
-		log.Infof("error resolving IPNS Name: %s", err.Error())
-		return
-	}
-	log.Debugf("webapp path: %s", p.String())
-	s.cfg.Webapp.Scripts = []string{
-		fmt.Sprintf("http://localhost:%s%s", s.cfg.API.Port, p.String()),
-	}
-}
-
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 	if s.cfg.API.ReadOnly {
@@ -176,7 +137,11 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(r.URL.Path))
+	s.fetchIPFSPath(r.URL.Path, w, r)
+}
+
+func (s *Server) fetchIPFSPath(path string, w http.ResponseWriter, r *http.Request) {
+	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(path))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

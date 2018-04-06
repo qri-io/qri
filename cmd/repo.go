@@ -153,15 +153,13 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 
 		// c, _ := json.MarshalIndent(cfg, "", "  ")
 		// printSuccess("%s", c)
-		pk, err := cfg.Profile.DecodePrivateKey()
-		ExitIfErr(err)
-
-		r.SetPrivateKey(pk)
+		// pk, err := cfg.Profile.DecodePrivateKey()
+		// ExitIfErr(err)
+		// r.SetPrivateKey(pk)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
-		// TODO - bad bad hardcode
-		conn, err := net.Dial("tcp", ":2504")
+		conn, err := net.Dial("tcp", ":"+cfg.RPC.Port)
 		if err != nil {
 			return nil, nil, err
 		}
