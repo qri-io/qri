@@ -5,11 +5,8 @@ import (
 )
 
 func TestCLIValidate(t *testing.T) {
-	cliDefault := CLI{
-		ColorizeOutput: true,
-	}
-	err := cliDefault.Validate()
+	err := DefaultCLI().Validate()
 	if err != nil {
-		t.Errorf("error validating cliDefault: %s", err)
+		t.Errorf("error validating default cli: %s", err)
 	}
 }
