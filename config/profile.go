@@ -48,7 +48,11 @@ type Profile struct {
 // private key, peer.ID, and nickname
 func (Profile) Default() *Profile {
 	r := rand.Reader
-	p := &Profile{}
+	now := time.Now()
+	p := &Profile{
+		Created: now,
+		Updated: now,
+	}
 
 	// Generate a key pair for this host. We will use it at least
 	// to obtain a valid host ID.

@@ -57,8 +57,7 @@ overwrite this info.`,
 		cfg = config.Config{}.Default()
 
 		envVars := map[string]*string{
-			"QRI_SETUP_CONFIG_DATA": &setupConfigData,
-			// "QRI_SETUP_PROFILE_DATA":     &setupProfileData,
+			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
 			"QRI_SETUP_IPFS_CONFIG_DATA": &setupIPFSConfigData,
 		}
 		mapEnvVars(envVars)
@@ -77,17 +76,32 @@ overwrite this info.`,
 			err := readAtFile(&setupConfigData)
 			ExitIfErr(err)
 			err = json.Unmarshal([]byte(setupConfigData), cfg)
+			if cfg.Profile != nil {
+				setupPeername = cfg.Profile.Peername
+			}
 			ExitIfErr(err)
 		}
 
-		// TODO - re-enable
-		// err = cfg.ensurePrivateKey()
-		// ExitIfErr(err)
+		if cfg.Profile == nil {
+			cfg.Profile = config.Profile{}.Default()
+		}
+		anon, err := cmd.Flags().GetBool("anonymous")
+		ExitIfErr(err)
+
+		if setupPeername != "" {
+			cfg.Profile.Peername = setupPeername
+		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
+			cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+			printSuccess(cfg.Profile.Peername)
+		}
+
+		// TODO - should include a call to config.Validate here once config has a validate function
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
 			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))
 		}
-		err := cfg.WriteToFile(configFilepath())
+
+		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
 
 		if setupIPFS {
@@ -116,13 +130,6 @@ overwrite this info.`,
 		} else if _, err := os.Stat(IpfsFsPath); os.IsNotExist(err) {
 			printWarning("no IPFS repo exists at %s, things aren't going to work properly", IpfsFsPath)
 		}
-
-		anon, err := cmd.Flags().GetBool("anonymous")
-		ExitIfErr(err)
-		if setupPeername == "" && !anon {
-			setupPeername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-		}
-		cfg.Profile.Peername = setupPeername
 
 		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
