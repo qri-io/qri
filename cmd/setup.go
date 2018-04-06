@@ -76,6 +76,9 @@ overwrite this info.`,
 			err := readAtFile(&setupConfigData)
 			ExitIfErr(err)
 			err = json.Unmarshal([]byte(setupConfigData), cfg)
+			if cfg.Profile != nil {
+				setupPeername = cfg.Profile.Peername
+			}
 			ExitIfErr(err)
 		}
 
@@ -87,9 +90,7 @@ overwrite this info.`,
 
 		if setupPeername != "" {
 			cfg.Profile.Peername = setupPeername
-		}
-
-		if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
+		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
 			cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
 			printSuccess(cfg.Profile.Peername)
 		}
