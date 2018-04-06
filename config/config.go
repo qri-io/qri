@@ -40,7 +40,7 @@ func (Config) Default() *Config {
 		P2P:     P2P{}.Default(),
 		Webapp:  Webapp{}.Default(),
 		RPC:     RPC{}.Default(),
-		Logging: Logging{}.Default(),
+		Logging: DefaultLogging(),
 	}
 }
 
