@@ -77,6 +77,10 @@ func NewRepo(store cafs.Filestore, cfg *config.Profile, base string) (repo.Repo,
 	// 	r.graph, _ = repo.Graph(r)
 	// }()
 
+	if err = r.Profiles().PutProfile(p); err != nil {
+		return nil, err
+	}
+
 	return r, nil
 }
 
@@ -106,7 +110,7 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 // SetProfile updates this repo's peer profile info
 func (r *Repo) SetProfile(p *profile.Profile) error {
 	r.profile = p
-	return nil
+	return r.Profiles().PutProfile(p)
 }
 
 // SetPrivateKey sets an internal reference to the private key for this profile

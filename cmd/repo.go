@@ -28,17 +28,8 @@ func getRepo(online bool) repo.Repo {
 		ErrExit(fmt.Errorf("no qri repo found, please run `qri setup`"))
 	}
 
-	// pk, err := cfg.Profile.DecodePrivateKey()
-	// ExitIfErr(err)
-
-	// pro, err := cfg.Profile.DecodeProfile()
-	// ExitIfErr(err)
-
 	fs := getIpfsFilestore(online)
 	r, err := fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
-	// r.SetPrivateKey(pk)
-	// r.SetProfile(pro)
-
 	ExitIfErr(err)
 
 	return r

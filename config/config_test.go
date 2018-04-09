@@ -111,6 +111,15 @@ func TestConfigSet(t *testing.T) {
 	}
 }
 
+func TestImmutablePaths(t *testing.T) {
+	dc := DefaultConfig()
+	for path := range ImmutablePaths() {
+		if _, err := dc.Get(path); err != nil {
+			t.Errorf("path %s default configuration error: %s", path, err.Error())
+		}
+	}
+}
+
 func TestConfigValidate(t *testing.T) {
 	if err := DefaultConfig().Validate(); err != nil {
 		t.Errorf("error validating config: %s", err)

@@ -214,17 +214,8 @@ func (r *ProfileRequests) SavePeername(p *Profile, res *Profile) error {
 		return fmt.Errorf("peername required")
 	}
 
-	// ensure only fields we want to save are being passed to saveProfile:
-	pro := &Profile{
-		Peername: p.Peername,
-	}
-
-	if err := r.saveProfile(pro, res); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error saving profile: %s", err)
-	}
-
-	return nil
+	Config.Set("profile.peername", p.Peername)
+	return SaveConfig()
 }
 
 // SaveProfile stores changes to this peer's editable profile profile
@@ -236,22 +227,26 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 		return fmt.Errorf("profile required for update")
 	}
 
-	// to ensure only the fields we want to be editable are passed to saveProfile:
-	pro := &Profile{
-		Name:        p.Name,
-		Email:       p.Email,
-		Description: p.Description,
-		HomeURL:     p.HomeURL,
-		Color:       p.Color,
-		Twitter:     p.Twitter,
+	if p.Name != "" {
+		Config.Set("profile.name", p.Name)
+	}
+	if p.Email != "" {
+		Config.Set("profile.email", p.Email)
+	}
+	if p.Description != "" {
+		Config.Set("profile.description", p.Description)
+	}
+	if p.HomeURL != "" {
+		Config.Set("profile.homeurl", p.HomeURL)
+	}
+	if p.Color != "" {
+		Config.Set("profile.color", p.Color)
+	}
+	if p.Twitter != "" {
+		Config.Set("profile.twitter", p.Twitter)
 	}
 
-	if err := r.saveProfile(pro, res); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error saving profile: %s", err)
-	}
-
-	return nil
+	return SaveConfig()
 }
 
 // FileParams defines parameters for Files as arguments to core methods
@@ -292,17 +287,12 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	pro := &Profile{
-		Profile: path.String(),
-		// TODO - resize photo
-		Thumb: path.String(),
-	}
-	if err := r.saveProfile(pro, res); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error saving profile: %s", err)
-	}
-
-	return nil
+	res.Profile = path.String()
+	res.Thumb = path.String()
+	Config.Set("profile.photo", path.String())
+	// TODO - resize photo for thumb
+	Config.Set("profile.thumb", path.String())
+	return SaveConfig()
 }
 
 // SetPosterPhoto changes this peer's poster image
@@ -336,59 +326,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *Profile) error {
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	pro := &Profile{
-		Poster: path.String(),
-	}
-
-	if err := r.saveProfile(pro, res); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error saving profile: %s", err)
-	}
-
-	return nil
-}
-
-// saveProfile stores changes to this peer's profile
-// does not check to see if inputs are valid
-func (r *ProfileRequests) saveProfile(p *Profile, res *Profile) error {
-	if p == nil {
-		return fmt.Errorf("profile required for update")
-	}
-	pro := &Profile{}
-	if err := r.GetProfile(nil, pro); err != nil {
-		return fmt.Errorf("error getting previous profile: %s", err)
-	}
-
-	pro.AssignEditable(p)
-
-	// validate new Profile inputs
-	if err := p.ValidateProfile(); err != nil {
-		return fmt.Errorf("error validating profile: %s", err)
-	}
-
-	_p, err := unmarshalProfile(pro)
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	if err := r.repo.SetProfile(_p); err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	profile, err := r.repo.Profile()
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-	p2, err := marshalProfile(profile)
-	if err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	*res = *p2
-	return nil
-
+	res.Poster = path.String()
+	Config.Set("profile.poster", path.String())
+	return SaveConfig()
 }

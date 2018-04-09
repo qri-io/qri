@@ -6,7 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
@@ -48,33 +50,6 @@ runtime via command a line argument.`,
   $ qri config set rpc.enabled false`,
 }
 
-var configSetCommand = &cobra.Command{
-	Use:   "set",
-	Short: "Set a configuration option",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		// var err error
-		if len(args)%2 != 0 {
-			ErrExit(fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]"))
-		}
-
-		for i := 0; i < len(args)-1; i = i + 2 {
-			var value interface{}
-			err := yaml.Unmarshal([]byte(args[i+1]), &value)
-			ExitIfErr(err)
-
-			err = core.Config.Set(args[i], value)
-			ExitIfErr(err)
-		}
-
-		err := core.Config.WriteToFile(core.ConfigFilepath)
-		ExitIfErr(err)
-		printSuccess("config updated")
-	},
-}
-
 var configGetCommand = &cobra.Command{
 	Use:   "get",
 	Short: "get configuration settings",
@@ -92,9 +67,11 @@ Anyone with your private keys can impersonate you on qri.`,
 		var (
 			data   []byte
 			err    error
-			cfg    = core.Config
+			cfg    = &config.Config{}
 			encode interface{}
 		)
+
+		*cfg = *core.Config
 
 		wpk, err := cmd.Flags().GetBool("with-private-keys")
 		ExitIfErr(err)
@@ -144,15 +121,89 @@ Anyone with your private keys can impersonate you on qri.`,
 	},
 }
 
-func init() {
-	configCmd.AddCommand(configGetCommand)
-	configCmd.AddCommand(configSetCommand)
+var configSetCommand = &cobra.Command{
+	Use:   "set",
+	Short: "Set a configuration option",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args)%2 != 0 {
+			ErrExit(fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]"))
+		}
+		ip := config.ImmutablePaths()
+		photoPaths := map[string]bool{
+			"profile.photo":  true,
+			"profile.poster": true,
+			"profile.thumb":  true,
+		}
+		req, err := profileRequests(false)
+		ExitIfErr(err)
 
+		for i := 0; i < len(args)-1; i = i + 2 {
+			var value interface{}
+			path := strings.ToLower(args[i])
+			if ip[path] {
+				ErrExit(fmt.Errorf("cannot set path %s", path))
+			}
+
+			if photoPaths[path] {
+				err = setPhotoPath(req, path, args[i+1])
+				ExitIfErr(err)
+			} else {
+				err = yaml.Unmarshal([]byte(args[i+1]), &value)
+				ExitIfErr(err)
+
+				err = core.Config.Set(path, value)
+				ExitIfErr(err)
+			}
+		}
+
+		err = core.Config.Validate()
+		ExitIfErr(err)
+
+		err = core.Config.WriteToFile(core.ConfigFilepath)
+		ExitIfErr(err)
+		printSuccess("config updated")
+	},
+}
+
+func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
+	f, err := loadFileIfPath(filepath)
+	if err != nil {
+		return err
+	}
+
+	p := &core.FileParams{
+		Filename: f.Name(),
+		Data:     f,
+	}
+	res := &core.Profile{}
+
+	switch proppath {
+	case "profile.photo", "profile.thumb":
+		if err := req.SetProfilePhoto(p, res); err != nil {
+			return err
+		}
+	case "profile.poster":
+		if err := req.SetPosterPhoto(p, res); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unrecognized path to set photo: %s", proppath)
+	}
+
+	return nil
+}
+
+func init() {
 	configGetCommand.Flags().Bool("with-private-keys", false, "include private keys in export")
 	configGetCommand.Flags().BoolP("concise", "c", false, "print output without indentation, only applies to json format")
 	configGetCommand.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
 	configGetCommand.Flags().StringP("output", "o", "", "path to export to")
 	configCmd.AddCommand(configGetCommand)
+
+	configCmd.AddCommand(configSetCommand)
 
 	RootCmd.AddCommand(configCmd)
 }

@@ -14,6 +14,14 @@ var (
 	ConfigFilepath string
 )
 
+// SaveConfig is a function that updates the configuration file
+var SaveConfig = func() error {
+	if err := Config.WriteToFile(ConfigFilepath); err != nil {
+		return fmt.Errorf("error saving profile: %s", err)
+	}
+	return nil
+}
+
 // LoadConfig loads the global default configuration
 func LoadConfig(path string) (err error) {
 	var cfg *config.Config

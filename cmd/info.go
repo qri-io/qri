@@ -23,16 +23,11 @@ var infoCmd = &cobra.Command{
 
   get info for a dataset at a specific version:
   $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+	Args: cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			// ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))
-			profileGetCmd.Run(&cobra.Command{}, []string{})
-			return
-		}
-
 		outformat := cmd.Flag("format").Value.String()
 		if outformat != "" {
 			format, err := dataset.ParseDataFormatString(outformat)
@@ -68,11 +63,16 @@ var infoCmd = &cobra.Command{
 			ExitIfErr(err)
 
 			if ref.IsPeerRef() {
+				err = repo.CanonicalizeProfile(r, &ref)
+				ExitIfErr(err)
 				p := &core.PeerInfoParams{
 					Peername: ref.Peername,
 				}
 				res := &profile.Profile{}
 				err := pr.Info(p, res)
+				if err != nil {
+					printSuccess(err.Error())
+				}
 				ExitIfErr(err)
 
 				if outformat == "" {
