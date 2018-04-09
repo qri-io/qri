@@ -15,9 +15,9 @@ import (
 )
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", ":"+config.DefaultAPIPort)
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %s, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
 	}
 
 	l.Close()
@@ -140,13 +140,15 @@ func TestCommandsIntegration(t *testing.T) {
 		{"help"},
 		{"version"},
 		{"setup", "--peername=" + "alan"},
-		{"profile", "get"},
-		{"profile", "set", "-f" + profileDataFilepath},
 		{"config", "get"},
-		{"info"},
+		{"config", "get", "profile"},
+		// TODO - add setting whole config via a file
+		// {"config", "set", "-i" + profileDataFilepath},
+		{"info", "me"},
 		{"add", "--data=" + moviesFilePath, "me/movies"},
 		{"add", "--data=" + movies2FilePath, "me/movies2"},
 		{"add", "--data=" + linksFilepath, "me/links"},
+		{"info", "me/movies"},
 		{"list"},
 		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
 		{"log", "me/movies"},

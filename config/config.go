@@ -53,15 +53,15 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	if cfg.API != nil && cfg.API.Enabled {
-		summary += fmt.Sprintf("API port:\t%s\n", cfg.API.Port)
+		summary += fmt.Sprintf("API port:\t%d\n", cfg.API.Port)
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {
-		summary += fmt.Sprintf("RPC port:\t%s\n", cfg.RPC.Port)
+		summary += fmt.Sprintf("RPC port:\t%d\n", cfg.RPC.Port)
 	}
 
 	if cfg.Webapp != nil && cfg.Webapp.Enabled {
-		summary += fmt.Sprintf("Webapp port:\t%s\n", cfg.Webapp.Port)
+		summary += fmt.Sprintf("Webapp port:\t%d\n", cfg.Webapp.Port)
 	}
 
 	return summary
@@ -164,6 +164,20 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 	}
 
 	return elem, nil
+}
+
+// ImmutablePaths returns a map of paths that should never be modified
+func ImmutablePaths() map[string]bool {
+	return map[string]bool{
+		"p2p.peerid":       true,
+		"p2p.pubkey":       true,
+		"p2p.privkey":      true,
+		"profile.id":       true,
+		"profile.privkey":  true,
+		"profile.peername": true,
+		"profile.created":  true,
+		"profile.updated":  true,
+	}
 }
 
 // valiate is a helper function that wraps json.Marshal an ValidateBytes

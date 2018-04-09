@@ -4,12 +4,12 @@ import "github.com/qri-io/jsonschema"
 
 // RPC configures a Remote Procedure Call (RPC) listener
 type RPC struct {
-	Enabled bool   `json:"enabled"`
-	Port    string `json:"port"`
+	Enabled bool `json:"enabled"`
+	Port    int  `json:"port"`
 }
 
 // DefaultRPCPort is local the port RPC serves on by default
-var DefaultRPCPort = "2504"
+var DefaultRPCPort = 2504
 
 // DefaultRPC creates a new default RPC configuration
 func DefaultRPC() *RPC {
@@ -35,7 +35,7 @@ func (cfg RPC) Validate() error {
       },
       "port": {
         "description": "The port on which to listen for rpc calls",
-        "type": "string"
+        "type": "integer"
       }
     }
   }`)

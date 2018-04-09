@@ -39,6 +39,12 @@ func TestProfileRequestsGet(t *testing.T) {
 }
 
 func TestProfileRequestsSave(t *testing.T) {
+	prev := SaveConfig
+	SaveConfig = func() error {
+		return nil
+	}
+	defer func() { SaveConfig = prev }()
+
 	cases := []struct {
 		p   *Profile
 		res *Profile
@@ -68,6 +74,12 @@ func TestProfileRequestsSave(t *testing.T) {
 }
 
 func TestProfileRequestsSetProfilePhoto(t *testing.T) {
+	prev := SaveConfig
+	SaveConfig = func() error {
+		return nil
+	}
+	defer func() { SaveConfig = prev }()
+
 	cases := []struct {
 		infile  string
 		respath datastore.Key
@@ -113,6 +125,12 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 }
 
 func TestProfileRequestsSetPosterPhoto(t *testing.T) {
+	prev := SaveConfig
+	SaveConfig = func() error {
+		return nil
+	}
+	defer func() { SaveConfig = prev }()
+
 	cases := []struct {
 		infile  string
 		respath datastore.Key

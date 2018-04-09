@@ -9,7 +9,7 @@ cli:
   colorizeoutput: true
 api:
   enabled: true
-  port: "2503"
+  port: 2503
   readonly: false
   urlroot: ""
   proxyforcehttps: false
@@ -30,12 +30,12 @@ p2p:
   boostrapaddrs: []
 webapp:
   enabled: true
-  port: "2505"
+  port: 2505
   analyticstoken: ""
   scripts:
   - http://localhost:2503/ipfs/QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
 rpc:
   enabled: true
-  port: "2504"
+  port: 2504
 logging:
   levels: {}

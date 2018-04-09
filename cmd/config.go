@@ -3,11 +3,13 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/core"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -50,73 +52,32 @@ runtime via command a line argument.`,
 
 var configGetCommand = &cobra.Command{
 	Use:   "get",
-	Short: "Show a configuration setting",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		for _, path := range args {
-			value, err := core.Config.Get(path)
-			ExitIfErr(err)
-			data, err := yaml.Marshal(value)
-			ExitIfErr(err)
-			printSuccess(string(data))
-		}
-	},
-}
+	Short: "get configuration settings",
+	Long: `get outputs your current configuration file with private keys 
+removed by default, making it easier to share your qri configuration settings.
 
-var configSetCommand = &cobra.Command{
-	Use:   "set",
-	Short: "Set a configuration option",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		// var err error
-		if len(args)%2 != 0 {
-			ErrExit(fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]"))
-		}
-
-		for i := 0; i < len(args)-1; i = i + 2 {
-			var value interface{}
-			err := yaml.Unmarshal([]byte(args[i+1]), &value)
-			ExitIfErr(err)
-
-			err = core.Config.Set(args[i], value)
-			ExitIfErr(err)
-		}
-
-		err := core.Config.WriteToFile(core.ConfigFilepath)
-		ExitIfErr(err)
-		printSuccess("config updated")
-	},
-}
-
-var configExportCmd = &cobra.Command{
-	Use:   "export",
-	Short: "export configuration settings",
-	Long: `export outputs your current configuration file with private keys 
-removed by default.
-export makes it easier to share your qri configuration settings.
-
-We've added the --with-private-keys option to include private keys in the export
+The --with-private-keys option will show private keys.
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
+	Args: cobra.MaximumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			data []byte
-			err  error
-			cfg  = core.Config
+			data   []byte
+			err    error
+			cfg    = &config.Config{}
+			encode interface{}
 		)
+
+		*cfg = *core.Config
 
 		wpk, err := cmd.Flags().GetBool("with-private-keys")
 		ExitIfErr(err)
 		format, err := cmd.Flags().GetString("format")
 		ExitIfErr(err)
-		pretty, err := cmd.Flags().GetBool("pretty")
+		concise, err := cmd.Flags().GetBool("concise")
 		ExitIfErr(err)
 		output, err := cmd.Flags().GetString("output")
 		ExitIfErr(err)
@@ -130,15 +91,22 @@ Anyone with your private keys can impersonate you on qri.`,
 			}
 		}
 
+		if len(args) == 1 {
+			encode, err = cfg.Get(args[0])
+			ExitIfErr(err)
+		} else {
+			encode = cfg
+		}
+
 		switch format {
 		case "json":
-			if pretty {
-				data, err = json.MarshalIndent(cfg, "", "  ")
+			if concise {
+				data, err = json.Marshal(encode)
 			} else {
-				data, err = json.Marshal(cfg)
+				data, err = json.MarshalIndent(encode, "", "  ")
 			}
 		case "yaml":
-			data, err = yaml.Marshal(cfg)
+			data, err = yaml.Marshal(encode)
 		}
 		ExitIfErr(err)
 
@@ -153,15 +121,89 @@ Anyone with your private keys can impersonate you on qri.`,
 	},
 }
 
-func init() {
-	configCmd.AddCommand(configGetCommand)
-	configCmd.AddCommand(configSetCommand)
+var configSetCommand = &cobra.Command{
+	Use:   "set",
+	Short: "Set a configuration option",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args)%2 != 0 {
+			ErrExit(fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]"))
+		}
+		ip := config.ImmutablePaths()
+		photoPaths := map[string]bool{
+			"profile.photo":  true,
+			"profile.poster": true,
+			"profile.thumb":  true,
+		}
+		req, err := profileRequests(false)
+		ExitIfErr(err)
 
-	configExportCmd.Flags().Bool("with-private-keys", false, "include private keys in export")
-	configExportCmd.Flags().BoolP("pretty", "p", false, "pretty-print output")
-	configExportCmd.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
-	configExportCmd.Flags().StringP("output", "o", "", "path to export to")
-	configCmd.AddCommand(configExportCmd)
+		for i := 0; i < len(args)-1; i = i + 2 {
+			var value interface{}
+			path := strings.ToLower(args[i])
+			if ip[path] {
+				ErrExit(fmt.Errorf("cannot set path %s", path))
+			}
+
+			if photoPaths[path] {
+				err = setPhotoPath(req, path, args[i+1])
+				ExitIfErr(err)
+			} else {
+				err = yaml.Unmarshal([]byte(args[i+1]), &value)
+				ExitIfErr(err)
+
+				err = core.Config.Set(path, value)
+				ExitIfErr(err)
+			}
+		}
+
+		err = core.Config.Validate()
+		ExitIfErr(err)
+
+		err = core.Config.WriteToFile(core.ConfigFilepath)
+		ExitIfErr(err)
+		printSuccess("config updated")
+	},
+}
+
+func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
+	f, err := loadFileIfPath(filepath)
+	if err != nil {
+		return err
+	}
+
+	p := &core.FileParams{
+		Filename: f.Name(),
+		Data:     f,
+	}
+	res := &core.Profile{}
+
+	switch proppath {
+	case "profile.photo", "profile.thumb":
+		if err := req.SetProfilePhoto(p, res); err != nil {
+			return err
+		}
+	case "profile.poster":
+		if err := req.SetPosterPhoto(p, res); err != nil {
+			return err
+		}
+	default:
+		return fmt.Errorf("unrecognized path to set photo: %s", proppath)
+	}
+
+	return nil
+}
+
+func init() {
+	configGetCommand.Flags().Bool("with-private-keys", false, "include private keys in export")
+	configGetCommand.Flags().BoolP("concise", "c", false, "print output without indentation, only applies to json format")
+	configGetCommand.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
+	configGetCommand.Flags().StringP("output", "o", "", "path to export to")
+	configCmd.AddCommand(configGetCommand)
+
+	configCmd.AddCommand(configSetCommand)
 
 	RootCmd.AddCommand(configCmd)
 }

@@ -109,13 +109,13 @@ func (s *Server) Serve() (err error) {
 
 // ServeRPC checks for a configured RPC port, and registers a listner if so
 func (s *Server) ServeRPC() {
-	if !s.cfg.RPC.Enabled || s.cfg.RPC.Port == "" {
+	if !s.cfg.RPC.Enabled || s.cfg.RPC.Port == 0 {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.RPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.RPC.Port))
 	if err != nil {
-		log.Infof("RPC listen on port %s error: %s", s.cfg.RPC.Port, err)
+		log.Infof("RPC listen on port %d error: %s", s.cfg.RPC.Port, err)
 		return
 	}
 

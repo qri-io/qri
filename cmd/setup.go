@@ -93,7 +93,8 @@ overwrite this info.`,
 			printSuccess(cfg.Profile.Peername)
 		}
 
-		// TODO - should include a call to config.Validate here once config has a validate function
+		err = cfg.Validate()
+		ExitIfErr(err)
 
 		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
 			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))

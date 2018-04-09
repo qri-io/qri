@@ -3,12 +3,12 @@ package config
 import "github.com/qri-io/jsonschema"
 
 // DefaultWebappPort is local the port webapp serves on by default
-var DefaultWebappPort = "2505"
+var DefaultWebappPort = 2505
 
 // Webapp configures the qri webapp service
 type Webapp struct {
-	Enabled bool   `json:"enabled"`
-	Port    string `json:"port"`
+	Enabled bool `json:"enabled"`
+	Port    int  `json:"port"`
 	// token for analytics tracking
 	AnalyticsToken string `json:"analyticstoken"`
 	// EntrypointHash is a hash of the compiled webapp (the output of running webpack https://github.com/qri-io/frontend)
@@ -23,7 +23,7 @@ func DefaultWebapp() *Webapp {
 	return &Webapp{
 		Enabled:        true,
 		Port:           DefaultWebappPort,
-		EntrypointHash: "QmewSfmnridhYdwLc9nGVwFNhMofAjPf4vxMMUYC6QDEjm",
+		EntrypointHash: "QmP99mprLUGhMqrh5gyqt4McrgfTJCKCSh5eGJaZw2LycF",
 	}
 }
 
@@ -42,7 +42,7 @@ func (cfg Webapp) Validate() error {
       },
       "port": {
         "description": "The port on which the webapp can be accessed",
-        "type": "string"
+        "type": "integer"
       },
       "analyticstoken": {
         "description": "Token for analytics tracking",

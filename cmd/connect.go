@@ -9,9 +9,9 @@ import (
 )
 
 var (
-	connectCmdAPIPort    string
-	connectCmdRPCPort    string
-	connectCmdWebappPort string
+	connectCmdAPIPort    int
+	connectCmdRPCPort    int
+	connectCmdWebappPort int
 
 	disableAPI    bool
 	disableRPC    bool
@@ -56,15 +56,15 @@ peers & swapping data.`,
 		s, err := api.New(r, func(c *config.Config) {
 			*c = *core.Config
 
-			if connectCmdAPIPort != "" {
+			if connectCmdAPIPort != 0 {
 				c.API.Port = connectCmdAPIPort
 			}
 
-			if connectCmdRPCPort != "" {
+			if connectCmdRPCPort != 0 {
 				c.RPC.Port = connectCmdRPCPort
 			}
 
-			if connectCmdWebappPort != "" {
+			if connectCmdWebappPort != 0 {
 				c.Webapp.Port = connectCmdWebappPort
 			}
 
@@ -96,9 +96,9 @@ peers & swapping data.`,
 }
 
 func init() {
-	connectCmd.Flags().StringVarP(&connectCmdAPIPort, "api-port", "", "", "port to start api on")
-	connectCmd.Flags().StringVarP(&connectCmdRPCPort, "rpc-port", "", "", "port to start rpc listener on")
-	connectCmd.Flags().StringVarP(&connectCmdWebappPort, "webapp-port", "", "", "port to serve webapp on")
+	connectCmd.Flags().IntVarP(&connectCmdAPIPort, "api-port", "", 0, "port to start api on")
+	connectCmd.Flags().IntVarP(&connectCmdRPCPort, "rpc-port", "", 0, "port to start rpc listener on")
+	connectCmd.Flags().IntVarP(&connectCmdWebappPort, "webapp-port", "", 0, "port to serve webapp on")
 
 	connectCmd.Flags().BoolVarP(&disableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
 	connectCmd.Flags().BoolVarP(&disableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
