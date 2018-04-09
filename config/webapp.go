@@ -34,7 +34,7 @@ func (cfg Webapp) Validate() error {
     "title": "Webapp",
     "description": "Config for the webapp",
     "type": "object",
-    "required": ["enabled", "port", "analyticstoken", "scripts"],
+    "required": ["enabled", "port", "analyticstoken", "entrypointhash"],
     "properties": {
       "enabled": {
         "description": "When true, the webapp is accessable from your browser",
@@ -51,7 +51,6 @@ func (cfg Webapp) Validate() error {
       "entrypointhash": {
         "description": "A hash of the compiled webapp. This is fetched and replaced via dsnlink when the webapp server starts. The value provided here is just a sensible fallback for when dnslink lookup fails.",
         "type": "string"
-        }
       }
     }
   }`)

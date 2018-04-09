@@ -112,15 +112,35 @@ func TestConfigSet(t *testing.T) {
 }
 
 func TestConfigValidate(t *testing.T) {
-	err := DefaultConfig().Validate()
-	if err != nil {
+	if err := DefaultConfig().Validate(); err != nil {
 		t.Errorf("error validating config: %s", err)
 	}
 
-	newConfig := Config{}
+	//  cases that should fail:
+	// Profile:
+	p := DefaultConfig()
+	p.Profile.Type = "badType"
+	if err := p.Validate(); err == nil {
+		t.Error("When given bad input in Profile, config.Validate did not catch the error.")
+	}
+	// Repo:
+	r := DefaultConfig()
+	r.Repo.Type = "badType"
+	if err := r.Validate(); err == nil {
+		t.Error("When given bad input in Repo, config.Validate did not catch the error.")
+	}
 
-	err = newConfig.Validate()
-	if err != nil {
-		t.Errorf("error validating config literal: %s", err)
+	// Store:
+	s := DefaultConfig()
+	s.Store.Type = "badType"
+	if err := s.Validate(); err == nil {
+		t.Error("When given bad input in Store, config.Validate did not catch the error.")
+	}
+
+	// Logging:
+	l := DefaultConfig()
+	l.Logging.Levels["qriapi"] = "badType"
+	if err := l.Validate(); err == nil {
+		t.Error("When given bad input in Logging, config.Validate did not catch the error.")
 	}
 }

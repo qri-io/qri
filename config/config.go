@@ -28,7 +28,7 @@ type Config struct {
 	Logging *Logging
 }
 
-// Default gives a new default qri configuration
+// DefaultConfig gives a new default qri configuration
 func DefaultConfig() *Config {
 	return &Config{
 		Profile: DefaultProfile(),
@@ -208,8 +208,5 @@ func (cfg Config) Validate() error {
 	if err := cfg.RPC.Validate(); err != nil {
 		return err
 	}
-	if err := cfg.Logging.Validate(); err != nil {
-		return err
-	}
-	return nil
+	return cfg.Logging.Validate()
 }

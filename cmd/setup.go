@@ -81,7 +81,7 @@ overwrite this info.`,
 		}
 
 		if cfg.Profile == nil {
-			cfg.Profile = config.Profile{}.Default()
+			cfg.Profile = config.DefaultProfile()
 		}
 		anon, err := cmd.Flags().GetBool("anonymous")
 		ExitIfErr(err)
