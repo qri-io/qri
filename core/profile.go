@@ -246,6 +246,28 @@ func (r *ProfileRequests) SaveProfile(p *Profile, res *Profile) error {
 		Config.Set("profile.twitter", p.Twitter)
 	}
 
+	resp, err := Config.Profile.DecodeProfile()
+	if err != nil {
+		return err
+	}
+
+	*res = Profile{
+		ID:          resp.ID.String(),
+		Created:     resp.Created,
+		Updated:     resp.Updated,
+		Peername:    resp.Peername,
+		Type:        resp.Type,
+		Email:       resp.Email,
+		Name:        resp.Name,
+		Description: resp.Description,
+		HomeURL:     resp.HomeURL,
+		Color:       resp.Color,
+		Thumb:       resp.Thumb.String(),
+		Profile:     resp.Profile.String(),
+		Poster:      resp.Poster.String(),
+		Twitter:     resp.Twitter,
+	}
+
 	return SaveConfig()
 }
 

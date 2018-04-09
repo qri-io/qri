@@ -17,13 +17,14 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo/test"
 )
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", ":"+config.DefaultAPIPort)
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %s, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
 	}
 
 	l.Close()
@@ -55,10 +56,24 @@ func TestServerRoutes(t *testing.T) {
 		return
 	}
 
+	core.Config = config.DefaultConfig()
+	core.Config.Profile = test.ProfileConfig()
+	prevSaveConfig := core.SaveConfig
+	core.SaveConfig = func() error {
+		p, err := core.Config.Profile.DecodeProfile()
+		if err != nil {
+			return err
+		}
+
+		r.SetProfile(p)
+		return err
+	}
+	defer func() { core.SaveConfig = prevSaveConfig }()
+
 	s, err := New(r, func(c *config.Config) {
 		c.P2P.Enabled = false
-		// c.RE.MemOnly = true
 	})
+
 	if err != nil {
 		t.Error(err.Error())
 		return

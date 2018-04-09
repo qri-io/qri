@@ -53,15 +53,15 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	if cfg.API != nil && cfg.API.Enabled {
-		summary += fmt.Sprintf("API port:\t%s\n", cfg.API.Port)
+		summary += fmt.Sprintf("API port:\t%d\n", cfg.API.Port)
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {
-		summary += fmt.Sprintf("RPC port:\t%s\n", cfg.RPC.Port)
+		summary += fmt.Sprintf("RPC port:\t%d\n", cfg.RPC.Port)
 	}
 
 	if cfg.Webapp != nil && cfg.Webapp.Enabled {
-		summary += fmt.Sprintf("Webapp port:\t%s\n", cfg.Webapp.Port)
+		summary += fmt.Sprintf("Webapp port:\t%d\n", cfg.Webapp.Port)
 	}
 
 	return summary

@@ -9,13 +9,13 @@ import (
 
 // ServeWebapp launches a webapp server on s.cfg.Webapp.Port
 func (s *Server) ServeWebapp() {
-	if !s.cfg.Webapp.Enabled || s.cfg.Webapp.Port == "" {
+	if !s.cfg.Webapp.Enabled || s.cfg.Webapp.Port == 0 {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%s", s.cfg.Webapp.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Webapp.Port))
 	if err != nil {
-		log.Infof("Webapp listen on port %s error: %s", s.cfg.Webapp.Port, err)
+		log.Infof("Webapp listen on port %d error: %s", s.cfg.Webapp.Port, err)
 		return
 	}
 

@@ -142,7 +142,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
-		conn, err := net.Dial("tcp", ":"+core.Config.RPC.Port)
+		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", core.Config.RPC.Port))
 		if err != nil {
 			return nil, nil, err
 		}

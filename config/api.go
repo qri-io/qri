@@ -1,17 +1,18 @@
 package config
 
 import (
+	"fmt"
 	"github.com/qri-io/jsonschema"
 )
 
 // DefaultAPIPort is local the port webapp serves on by default
-var DefaultAPIPort = "2503"
+var DefaultAPIPort = 2503
 
 // API holds configuration for the qri JSON api
 type API struct {
 	Enabled bool `json:"enabled"`
 	// APIPort specifies the port to listen for JSON API calls
-	Port string `json:"port"`
+	Port int `json:"port"`
 	// read-only mode
 	ReadOnly bool `json:"readonly"`
 	// URLRoot is the base url for this server
@@ -40,7 +41,7 @@ func (a API) Validate() error {
       },
       "port": {
         "description": "The port that listens for JSON API calls",
-        "type": "string"
+        "type": "integer"
       },
       "readonly": {
         "description": "When true, api port limits the accepted calls to certain GET requests",
@@ -77,7 +78,7 @@ func DefaultAPI() *API {
 		Port:    DefaultAPIPort,
 		TLS:     false,
 		AllowedOrigins: []string{
-			"http://localhost:" + DefaultWebappPort,
+			fmt.Sprintf("http://localhost:%d", DefaultWebappPort),
 		},
 	}
 }

@@ -15,9 +15,9 @@ import (
 )
 
 func confirmQriNotRunning() error {
-	l, err := net.Listen("tcp", ":"+config.DefaultAPIPort)
+	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
 	if err != nil {
-		return fmt.Errorf("it looks like a qri server is already running on port %s, please close before running tests", config.DefaultAPIPort)
+		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
 	}
 
 	l.Close()
