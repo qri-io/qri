@@ -8,43 +8,45 @@ import (
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
+
+	"github.com/qri-io/jsonschema"
 )
 
 // P2P encapsulates configuration options for qri peer-2-peer communication
 type P2P struct {
 	// Enabled is a flag for weather this node should connect
 	// to the distributed network
-	Enabled bool
+	Enabled bool `json:"enabled"`
 
 	// PeerID is this nodes peer identifier
-	PeerID string
+	PeerID string `json:"peerid"`
 
-	PubKey  string
-	PrivKey string
+	PubKey  string `json:"pubkey"`
+	PrivKey string `json:"privkey"`
 
 	// Port default port to bind a tcp listener to
 	// ignored if Addrs is supplied
-	Port int
+	Port int `json:"port"`
 
 	// List of multiaddresses to listen on
-	Addrs []ma.Multiaddr
+	Addrs []ma.Multiaddr `json:"addrs"`
 
 	// QriBootstrapAddrs lists addresses to bootstrap qri node from
-	QriBootstrapAddrs []string
+	QriBootstrapAddrs []string `json:"qribootstrapaddrs"`
 
 	// ProfileReplication determines what to do when this peer sees messages
 	// broadcast by it's own profile (from another peer instance). setting
 	// ProfileReplication == "full" will cause this peer to automatically pin
 	// any data that is verifyably posted by the same peer
-	ProfileReplication string
+	ProfileReplication string `json:"profilereplication"`
 
 	// list of addresses to bootsrap qri peers on
-	BoostrapAddrs []string
+	BoostrapAddrs []string `json:"bootstrapaddrs"`
 }
 
-// Default generates sensible settings for p2p, generating a new randomized
+// DefaultP2P generates sensible settings for p2p, generating a new randomized
 // private key & peer id
-func (P2P) Default() *P2P {
+func DefaultP2P() *P2P {
 	r := rand.Reader
 	p2p := &P2P{
 		Enabled: true,
@@ -94,6 +96,74 @@ func (cfg *P2P) DecodePrivateKey() (crypto.PrivKey, error) {
 // DecodePeerID takes P2P.ID (a string), and decodes it into a peer.ID
 func (cfg *P2P) DecodePeerID() (peer.ID, error) {
 	return peer.IDB58Decode(cfg.PeerID)
+}
+
+// Validate validates all fields of p2p returning all errors found.
+func (cfg P2P) Validate() error {
+	schema := jsonschema.Must(`{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "P2P",
+    "description": "Config for the p2p",
+    "type": "object",
+    "required": ["enabled", "peerid", "pubkey", "privkey", "port", "addrs", "qribootstrapaddrs", "profilereplication", "bootstrapaddrs"],
+    "properties": {
+      "enabled": {
+        "description": "When true, peer to peer communication is allowed",
+        "type": "boolean"
+      },
+      "peerid": {
+        "description": "The peerid is this nodes peer identifier",
+        "type": "string"
+      },
+      "pubkey": {
+        "description": "",
+        "type": "string"
+      },
+      "privkey": {
+        "description": "",
+        "type": "string"
+      },
+      "port": {
+        "description": "Port to bind a tcp lister to. Field is ignored if addrs is supplied",
+        "type": "integer"
+      },
+      "addrs": {
+        "description": "List of multiaddresses to listen on",
+        "anyOf": [
+          {"type": "array"},
+          {"type": "null"}
+        ],
+        "items": {
+          "type": "string"
+        }
+      },
+      "qribootstrapaddrs": {
+        "description": "List of addresses to bootstrap the qri node from",
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "profilereplication": {
+        "description": "Determings what to do when this peer sees messages broadcast by it's own profile (from another peer instance). Setting profilereplication to 'full' will cause this peer to automatically pin any data that is verifiably posted by the same peer",
+        "type": "string",
+        "enum": [
+          "full"
+        ]
+      },
+      "bootstrapaddrs": {
+        "description": "List of addresses to bootstrap qri peers on",
+        "anyOf": [
+          {"type": "array"},
+          {"type": "null"}
+        ],
+        "items": {
+          "type": "string"
+        }
+      }
+    }
+  }`)
+	return validate(schema, &cfg)
 }
 
 // // Validate confirms that the given settings will work, returning an error if not.

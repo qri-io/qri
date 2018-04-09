@@ -26,10 +26,17 @@ func TestP2PDecodePrivateKey(t *testing.T) {
 	// run this test a few times to ensure default profile consistently generates
 	// a valid PrivateKey
 	for i := 0; i < 10; i++ {
-		p = P2P{}.Default()
+		p = DefaultP2P()
 		_, err = p.DecodePrivateKey()
 		if err != nil {
 			t.Errorf("iter %d unexpected error: %s", i, err.Error())
 		}
+	}
+}
+
+func TestP2PValidate(t *testing.T) {
+	err := DefaultP2P().Validate()
+	if err != nil {
+		t.Errorf("error validating default p2p: %s", err)
 	}
 }

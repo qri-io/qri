@@ -3,12 +3,14 @@
 package config
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"reflect"
 	"strconv"
 	"strings"
 
+	"github.com/qri-io/jsonschema"
 	"gopkg.in/yaml.v2"
 )
 
@@ -26,19 +28,19 @@ type Config struct {
 	Logging *Logging
 }
 
-// Default gives a new default qri configuration
-func (Config) Default() *Config {
+// DefaultConfig gives a new default qri configuration
+func DefaultConfig() *Config {
 	return &Config{
-		Profile: Profile{}.Default(),
-		Repo:    Repo{}.Default(),
-		Store:   Store{}.Default(),
+		Profile: DefaultProfile(),
+		Repo:    DefaultRepo(),
+		Store:   DefaultStore(),
 
-		CLI:     CLI{}.Default(),
-		API:     API{}.Default(),
-		P2P:     P2P{}.Default(),
-		Webapp:  Webapp{}.Default(),
-		RPC:     RPC{}.Default(),
-		Logging: Logging{}.Default(),
+		CLI:     DefaultCLI(),
+		API:     DefaultAPI(),
+		P2P:     DefaultP2P(),
+		Webapp:  DefaultWebapp(),
+		RPC:     DefaultRPC(),
+		Logging: DefaultLogging(),
 	}
 }
 
@@ -162,4 +164,49 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 	}
 
 	return elem, nil
+}
+
+// valiate is a helper function that wraps json.Marshal an ValidateBytes
+// it is used by each struct that is in a Config field (eg API, Profile, etc)
+func validate(rs *jsonschema.RootSchema, s interface{}) error {
+	strct, err := json.Marshal(s)
+	if err != nil {
+		return fmt.Errorf("error marshaling profile to json: %s", err)
+	}
+	if errors, err := rs.ValidateBytes(strct); len(errors) > 0 {
+		return fmt.Errorf("%s", errors[0])
+	} else if err != nil {
+		return err
+	}
+	return nil
+}
+
+// Validate validates each section of the config struct,
+// returning the first error
+func (cfg Config) Validate() error {
+	if err := cfg.Profile.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Repo.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Store.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.P2P.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.CLI.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.API.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.Webapp.Validate(); err != nil {
+		return err
+	}
+	if err := cfg.RPC.Validate(); err != nil {
+		return err
+	}
+	return cfg.Logging.Validate()
 }

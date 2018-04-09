@@ -20,7 +20,7 @@ func TestRepo(t *testing.T) {
 			t.Errorf("error removing files: %s", err.Error())
 		}
 
-		r, err := NewRepo(cafs.NewMapstore(), config.Profile{}.Default(), path)
+		r, err := NewRepo(cafs.NewMapstore(), config.DefaultProfile(), path)
 		if err != nil {
 			t.Errorf("error creating repo: %s", err.Error())
 		}

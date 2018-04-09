@@ -52,7 +52,7 @@ overwrite this info.`,
 		}
 		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
 
-		cfg = config.Config{}.Default()
+		cfg = config.DefaultConfig()
 
 		envVars := map[string]*string{
 			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
@@ -81,7 +81,7 @@ overwrite this info.`,
 		}
 
 		if cfg.Profile == nil {
-			cfg.Profile = config.Profile{}.Default()
+			cfg.Profile = config.DefaultProfile()
 		}
 		anon, err := cmd.Flags().GetBool("anonymous")
 		ExitIfErr(err)

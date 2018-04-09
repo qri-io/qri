@@ -25,7 +25,7 @@ func TestReadFromFile(t *testing.T) {
 func TestWriteToFile(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)
-	cfg := Config{}.Default()
+	cfg := DefaultConfig()
 	if err := cfg.WriteToFile(path); err != nil {
 		t.Errorf("error writing config: %s", err.Error())
 		return
@@ -38,7 +38,7 @@ func TestWriteToFile(t *testing.T) {
 }
 
 func TestConfigSummaryString(t *testing.T) {
-	summary := Config{}.Default().SummaryString()
+	summary := DefaultConfig().SummaryString()
 	t.Log(summary)
 	if !strings.Contains(summary, "API") {
 		t.Errorf("expected summary to list API port")
@@ -46,7 +46,7 @@ func TestConfigSummaryString(t *testing.T) {
 }
 
 func TestConfigGet(t *testing.T) {
-	cfg := Config{}.Default()
+	cfg := DefaultConfig()
 	cases := []struct {
 		path   string
 		expect interface{}
@@ -87,7 +87,7 @@ func TestConfigSet(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		cfg := Config{}.Default()
+		cfg := DefaultConfig()
 		err := cfg.Set(c.path, c.value)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
@@ -108,5 +108,39 @@ func TestConfigSet(t *testing.T) {
 			t.Errorf("case %d result mismatch. expected: %v, got: %v", i, c.value, got)
 			continue
 		}
+	}
+}
+
+func TestConfigValidate(t *testing.T) {
+	if err := DefaultConfig().Validate(); err != nil {
+		t.Errorf("error validating config: %s", err)
+	}
+
+	//  cases that should fail:
+	// Profile:
+	p := DefaultConfig()
+	p.Profile.Type = "badType"
+	if err := p.Validate(); err == nil {
+		t.Error("When given bad input in Profile, config.Validate did not catch the error.")
+	}
+	// Repo:
+	r := DefaultConfig()
+	r.Repo.Type = "badType"
+	if err := r.Validate(); err == nil {
+		t.Error("When given bad input in Repo, config.Validate did not catch the error.")
+	}
+
+	// Store:
+	s := DefaultConfig()
+	s.Store.Type = "badType"
+	if err := s.Validate(); err == nil {
+		t.Error("When given bad input in Store, config.Validate did not catch the error.")
+	}
+
+	// Logging:
+	l := DefaultConfig()
+	l.Logging.Levels["qriapi"] = "badType"
+	if err := l.Validate(); err == nil {
+		t.Error("When given bad input in Logging, config.Validate did not catch the error.")
 	}
 }
