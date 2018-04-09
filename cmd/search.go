@@ -19,6 +19,9 @@ var searchCmd = &cobra.Command{
 	Use:   "search",
 	Short: "search for datasets",
 	Long:  `Search looks through all of your namespaces for terms that match your query`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 1 && !searchCmdReindex {
 			ErrExit(fmt.Errorf("wrong number of arguments. expected qri search [query]"))

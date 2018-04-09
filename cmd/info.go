@@ -23,6 +23,9 @@ var infoCmd = &cobra.Command{
 
   get info for a dataset at a specific version:
   $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			// ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))

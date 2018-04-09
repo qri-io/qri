@@ -21,6 +21,9 @@ var peerInfoCmd = &cobra.Command{
 	Short: `Get info on a qri peer`,
 	Example: `  show info on a user named "mr0grog":
   $ qri peer info mr0grog`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			ErrExit(fmt.Errorf("peer name is required"))

@@ -46,13 +46,9 @@ const (
 	FileEventLogs
 	// FileRefstore is a file for the user's local namespace
 	FileRefstore
-	// FileRefCache stores known references to datasets
-	FileRefCache
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
 	FilePeers
-	// FileCache is the cache of datasets
-	FileCache
 	// FileAnalytics holds analytics data
 	FileAnalytics
 	// FileSearchIndex is the path to a search index
@@ -68,10 +64,8 @@ var paths = map[File]string{
 	FileConfig:         "/config.json",
 	FileDatasets:       "/datasets.json",
 	FileEventLogs:      "/events.json",
-	FileRefstore:       "/namespace.json",
-	FileRefCache:       "/ref_cache.json",
+	FileRefstore:       "/ds_refs.json",
 	FilePeers:          "/peers.json",
-	FileCache:          "/cache.json",
 	FileAnalytics:      "/analytics.json",
 	FileSearchIndex:    "/index.bleve",
 	FileChangeRequests: "/change_requests.json",

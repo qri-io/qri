@@ -19,6 +19,9 @@ Diff compares two datasets from your repo and prints a represntation
 of the differences between them.  You can specifify the datasets
 either by name or by their hash`,
 	Example: `todo`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		for i, arg := range args {
 			fmt.Printf("%d: %s\n", i, arg)

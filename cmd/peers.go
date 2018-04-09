@@ -17,6 +17,9 @@ var peersCmd = &cobra.Command{
 	Long:  `peers lists the peers your qri node has seen before`,
 	Example: `  list qri peers:
   $ qri peers`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		outformat := cmd.Flag("format").Value.String()
 		if outformat != "" {

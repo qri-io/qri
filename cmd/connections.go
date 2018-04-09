@@ -16,6 +16,9 @@ var connectionsCmd = &cobra.Command{
 
   show all IPFS connections:
   $ qri connections --ipfs`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 0 {
 			ErrExit(fmt.Errorf("connections accepts no arguments"))

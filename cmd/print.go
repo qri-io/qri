@@ -5,8 +5,6 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"os"
 	"strings"
 	"time"
@@ -15,6 +13,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -22,7 +23,7 @@ var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
 func setNoColor() {
-	color.NoColor = cfg.CLI.ColorizeOutput
+	color.NoColor = core.Config.CLI.ColorizeOutput
 }
 
 func printSuccess(msg string, params ...interface{}) {

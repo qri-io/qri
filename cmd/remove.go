@@ -24,6 +24,9 @@ adjust this cap using IPFS, qri will respect it.
 
 In the future we’ll add a flag that’ll force immediate removal of a dataset from
 both qri & IPFS. Promise.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			ErrExit(fmt.Errorf("please specify a dataset path or name to get the info of"))

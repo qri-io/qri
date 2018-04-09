@@ -37,6 +37,9 @@ we’ll automatically generate one for you.
 
 Currently you can only save changes to datasets that you control. Tools for 
 collaboration are in the works. Sit tight sportsfans.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			dataFile, metaFile, structureFile *os.File

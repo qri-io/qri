@@ -32,7 +32,6 @@ type Repo struct {
 	graph map[string]*dsgraph.Node
 
 	Refstore
-	refCache repo.Refstore
 	EventLog
 
 	profiles ProfileStore
@@ -63,7 +62,6 @@ func NewRepo(store cafs.Filestore, cfg *config.Profile, base string) (repo.Repo,
 		basepath: bp,
 
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefstore},
-		refCache: Refstore{basepath: bp, store: store, file: FileRefCache},
 		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: ProfileStore{bp},

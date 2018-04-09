@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -37,6 +38,9 @@ things:
 
 When you run connect you are connecting to the distributed web, interacting with
 peers & swapping data.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			r   repo.Repo
@@ -50,7 +54,7 @@ peers & swapping data.`,
 		r = getRepo(true)
 
 		s, err := api.New(r, func(c *config.Config) {
-			*c = *cfg
+			*c = *core.Config
 
 			if connectCmdAPIPort != "" {
 				c.API.Port = connectCmdAPIPort
