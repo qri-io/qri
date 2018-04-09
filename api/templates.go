@@ -18,7 +18,7 @@ func init() {
 // templateRenderer returns a func "renderTemplate" that renders a template, using the values of a Config
 func renderTemplate(c *config.Webapp, w http.ResponseWriter, tmpl string) {
 	err := templates.ExecuteTemplate(w, tmpl, map[string]interface{}{
-		"webappScripts": c.Scripts,
+		"port": c.Port,
 	})
 	if err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
@@ -33,8 +33,6 @@ const webapptmpl = `
 </head>
 <body>
   <div id="root"></div>
-  {{ range .webappScripts }}
-    <script type="text/javascript" src="{{ . }}"></script>
-  {{ end }}
+  <script type="text/javascript" src="/webapp.js"></script>
 </body>
 </html>`

@@ -18,11 +18,6 @@ type RootHandler struct {
 	ph  *PeerHandlers
 }
 
-// WebappHandler renders the home page
-func (s *Server) WebappHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(s.cfg.Webapp, w, "webapp")
-}
-
 // NewRootHandler creates a new RootHandler
 func NewRootHandler(dsh *DatasetHandlers, ph *PeerHandlers) *RootHandler {
 	return &RootHandler{dsh, ph}

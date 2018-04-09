@@ -23,11 +23,12 @@ func init() {
 
 // Repo is a filesystem-based implementation of the Repo interface
 type Repo struct {
+	basepath
+
 	profile *profile.Profile
 	pk      crypto.PrivKey
 
 	store cafs.Filestore
-	basepath
 	graph map[string]*dsgraph.Node
 
 	Refstore
