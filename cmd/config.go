@@ -3,24 +3,28 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"github.com/qri-io/qri/core"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/qri/config"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
 
-var (
-	// cfg is the global configuration object for the CLI
-	cfg *config.Config
-	// setting ignoreCfg to true will prevent loadConfig from doing anything
-	ignoreCfg bool
+func configFilepath() string {
+	if cfgFile == "" {
+		return filepath.Join(QriRepoPath, "config.yaml")
+	}
+	return cfgFile
+}
 
-	getConfigFilepath, setConfigFilepath string
-)
+func loadConfig() {
+	core.ConfigFilepath = configFilepath()
+	if err := core.LoadConfig(core.ConfigFilepath); err != nil {
+		ErrExit(err)
+	}
+}
 
 // configCmd represents commands that read & modify configuration settings
 var configCmd = &cobra.Command{
@@ -47,9 +51,12 @@ runtime via command a line argument.`,
 var configGetCommand = &cobra.Command{
 	Use:   "get",
 	Short: "Show a configuration setting",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		for _, path := range args {
-			value, err := cfg.Get(path)
+			value, err := core.Config.Get(path)
 			ExitIfErr(err)
 			data, err := yaml.Marshal(value)
 			ExitIfErr(err)
@@ -61,6 +68,9 @@ var configGetCommand = &cobra.Command{
 var configSetCommand = &cobra.Command{
 	Use:   "set",
 	Short: "Set a configuration option",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// var err error
 		if len(args)%2 != 0 {
@@ -72,11 +82,11 @@ var configSetCommand = &cobra.Command{
 			err := yaml.Unmarshal([]byte(args[i+1]), &value)
 			ExitIfErr(err)
 
-			err = cfg.Set(args[i], value)
+			err = core.Config.Set(args[i], value)
 			ExitIfErr(err)
 		}
 
-		err := cfg.WriteToFile(configFilepath())
+		err := core.Config.WriteToFile(core.ConfigFilepath)
 		ExitIfErr(err)
 		printSuccess("config updated")
 	},
@@ -92,10 +102,14 @@ export makes it easier to share your qri configuration settings.
 We've added the --with-private-keys option to include private keys in the export
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			data []byte
 			err  error
+			cfg  = core.Config
 		)
 
 		wpk, err := cmd.Flags().GetBool("with-private-keys")
@@ -139,49 +153,8 @@ Anyone with your private keys can impersonate you on qri.`,
 	},
 }
 
-func configFilepath() string {
-	return filepath.Join(QriRepoPath, "config.yaml")
-}
-
-func loadConfig() (err error) {
-	if ignoreCfg {
-		return nil
-	}
-
-	cfg, err = config.ReadFromFile(configFilepath())
-
-	if err == nil && cfg.Profile == nil {
-		err = fmt.Errorf("missing profile")
-	}
-
-	if err != nil {
-		str := `couldn't read config file. error
-	%s
-if you've recently updated qri your config file may no longer be valid.
-The easiest way to fix this is to delete your repository at:
-	%s
-and start with a fresh qri install by running 'qri setup' again.
-Sorry, we know this is not exactly a great experience, from this point forward
-we won't be shipping changes that require starting over.
-`
-		err = fmt.Errorf(str, err.Error(), QriRepoPath)
-	}
-
-	// configure logging straight away
-	if cfg != nil && cfg.Logging != nil {
-		for name, level := range cfg.Logging.Levels {
-			golog.SetLogLevel(name, level)
-		}
-	}
-
-	return err
-}
-
 func init() {
-	configGetCommand.Flags().StringVarP(&getConfigFilepath, "file", "f", "", "file to save YAML config info to")
 	configCmd.AddCommand(configGetCommand)
-
-	configSetCommand.Flags().StringVarP(&setConfigFilepath, "file", "f", "", "filepath to *complete* yaml config info file")
 	configCmd.AddCommand(configSetCommand)
 
 	configExportCmd.Flags().Bool("with-private-keys", false, "include private keys in export")

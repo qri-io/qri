@@ -35,6 +35,9 @@ Expect the profile command to change in future releases.`,
 var profileGetCmd = &cobra.Command{
 	Use:   "get",
 	Short: "get profile info",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		r, err := profileRequests(false)
 		ExitIfErr(err)
@@ -63,6 +66,9 @@ var profileGetCmd = &cobra.Command{
 var profileSetCmd = &cobra.Command{
 	Use:   "set",
 	Short: "set profile details",
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
 			dataFile *os.File

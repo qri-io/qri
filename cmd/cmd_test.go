@@ -98,8 +98,7 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	// t.Logf("temp path: %s", path)
-	log.Info(path)
+	t.Logf("temp path: %s", path)
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.RemoveAll(path)
@@ -161,12 +160,12 @@ func TestCommandsIntegration(t *testing.T) {
 
 	for i, args := range commands {
 		func() {
-			// defer func() {
-			// 	if e := recover(); e != nil {
-			// 		t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
-			// 		return
-			// 	}
-			// }()
+			defer func() {
+				if e := recover(); e != nil {
+					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
+					return
+				}
+			}()
 			_, err := executeCommand(RootCmd, args...)
 			if err != nil {
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, strings.Join(args, " "), err.Error())

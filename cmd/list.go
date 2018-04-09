@@ -24,6 +24,9 @@ The default list is the latest version of all datasets you have on your local
 qri repository.`,
 	Example: `  show all of your datasets:
   $ qri list`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 {
 			// TODO - add limit & offset params

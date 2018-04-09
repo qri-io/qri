@@ -45,6 +45,9 @@ changes to qri.`,
 
   create a dataset with a metadata and data file:
   $ qri add --meta meta.json --data comics.csv me/comic_characters`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")

@@ -11,6 +11,7 @@ import (
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 )
 
@@ -20,7 +21,6 @@ var (
 	setupPeername       string
 	setupIPFSConfigData string
 	setupConfigData     string
-	// setupProfileData    string
 )
 
 // setupCmd represents the setup command
@@ -41,11 +41,9 @@ running setup. If setup has already been run, by default qri won’t let you
 overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
-	PreRun: func(cmd *cobra.Command, args []string) {
-		ignoreCfg = true
-	},
 	Run: func(cmd *cobra.Command, args []string) {
 		// var cfgData []byte
+		var cfg *config.Config
 
 		if QRIRepoInitialized() && !setupOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
@@ -101,9 +99,6 @@ overwrite this info.`,
 			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))
 		}
 
-		err = cfg.WriteToFile(configFilepath())
-		ExitIfErr(err)
-
 		if setupIPFS {
 
 			tmpIPFSConfigPath := ""
@@ -133,6 +128,8 @@ overwrite this info.`,
 
 		err = cfg.WriteToFile(configFilepath())
 		ExitIfErr(err)
+
+		core.Config = cfg
 	},
 }
 

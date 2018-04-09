@@ -1,24 +1,24 @@
 package cmd
 
 import (
+	// "fmt"
 	"os"
 	"path/filepath"
-	"strings"
 
+	"github.com/mitchellh/go-homedir"
 	"github.com/spf13/cobra"
 )
-
-var cfgFile string
 
 var (
 	// QriRepoPath is the path to the QRI repository
 	QriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	IpfsFsPath string
-)
-
-// global pagination variables
-var (
+	// cfgFile overrides default configuration file with a custom filepath
+	cfgFile string
+	// setting noLoadConfig to true will skip the the default call to LoadConfig
+	noLoadConfig bool
+	// global pagination variables
 	pageNum  int
 	pageSize int
 )
@@ -28,7 +28,7 @@ var RootCmd = &cobra.Command{
 	Use:   "qri",
 	Short: "qri GDVCS CLI",
 	Long: `
-qri (pronounced "query") is a global dataset version control system 
+qri ("query") is a global dataset version control system 
 on the distributed web.
 
 https://qri.io
@@ -40,6 +40,18 @@ https://github.com/qri-io/qri/issues`,
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
+	// Catch errors & pretty-print.
+	// comment this out to get stack traces back.
+	// defer func() {
+	// 	if r := recover(); r != nil {
+	// 		if err, ok := r.(error); ok {
+	// 			fmt.Println(err.Error())
+	// 		} else {
+	// 			fmt.Println(r)
+	// 		}
+	// 	}
+	// }()
+
 	if err := RootCmd.Execute(); err != nil {
 		printErr(err)
 		os.Exit(-1)
@@ -48,27 +60,26 @@ func Execute() {
 
 func init() {
 	cobra.OnInitialize(initializeCLI)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.json)")
+	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
 	// RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 }
 
 // initializeCLI sets up the CLI, reading in config file and ENV variables if set.
 func initializeCLI() {
-	home := userHomeDir()
+	home, err := homedir.Dir()
+	if err != nil {
+		panic(err)
+	}
 
 	QriRepoPath = os.Getenv("QRI_PATH")
 	if QriRepoPath == "" {
 		QriRepoPath = filepath.Join(home, ".qri")
 	}
-	// TODO - this is stupid
-	QriRepoPath = strings.Replace(QriRepoPath, "~", home, 1)
 
 	IpfsFsPath = os.Getenv("IPFS_PATH")
 	if IpfsFsPath == "" {
 		IpfsFsPath = filepath.Join(home, ".ipfs")
 	}
-	IpfsFsPath = strings.Replace(IpfsFsPath, "~", home, 1)
 
-	loadConfig()
 	return
 }

@@ -27,6 +27,9 @@ var dataCmd = &cobra.Command{
 Data reads records from a dataset`,
 	Example: `  show the first 50 rows of a dataset:
   $ qri data me/dataset_name`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) == 0 {
 			fmt.Println("please specify a dataset name to retrieve data")

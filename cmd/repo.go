@@ -28,16 +28,16 @@ func getRepo(online bool) repo.Repo {
 		ErrExit(fmt.Errorf("no qri repo found, please run `qri setup`"))
 	}
 
-	pk, err := cfg.Profile.DecodePrivateKey()
-	ExitIfErr(err)
+	// pk, err := cfg.Profile.DecodePrivateKey()
+	// ExitIfErr(err)
 
-	pro, err := cfg.Profile.DecodeProfile()
-	ExitIfErr(err)
+	// pro, err := cfg.Profile.DecodeProfile()
+	// ExitIfErr(err)
 
 	fs := getIpfsFilestore(online)
-	r, err := fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
-	r.SetPrivateKey(pk)
-	r.SetProfile(pro)
+	r, err := fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
+	// r.SetPrivateKey(pk)
+	// r.SetProfile(pro)
 
 	ExitIfErr(err)
 
@@ -145,21 +145,13 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	}); err == nil {
-		// cfg, err := readConfigFile()
-		// ExitIfErr(err)
-
-		r, err := fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
+		r, err := fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
 		ExitIfErr(err)
 
-		// c, _ := json.MarshalIndent(cfg, "", "  ")
-		// printSuccess("%s", c)
-		// pk, err := cfg.Profile.DecodePrivateKey()
-		// ExitIfErr(err)
-		// r.SetPrivateKey(pk)
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
-		conn, err := net.Dial("tcp", ":"+cfg.RPC.Port)
+		conn, err := net.Dial("tcp", ":"+core.Config.RPC.Port)
 		if err != nil {
 			return nil, nil, err
 		}
@@ -186,26 +178,14 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 		return
 	}
 
-	// cfg, err := readConfigFile()
-	// if err != nil {
-	// 	return
-	// }
-
-	r, err = fsrepo.NewRepo(fs, cfg.Profile, QriRepoPath)
+	r, err = fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
 	if err != nil {
 		return
 	}
-
-	pk, err := cfg.Profile.DecodePrivateKey()
-	if err != nil {
-		return
-	}
-
-	r.SetPrivateKey(pk)
 
 	node, err = p2p.NewQriNode(r, func(c *config.P2P) {
 		c.Enabled = online
-		c.QriBootstrapAddrs = cfg.P2P.QriBootstrapAddrs
+		c.QriBootstrapAddrs = core.Config.P2P.QriBootstrapAddrs
 	})
 	if err != nil {
 		return
@@ -217,9 +197,6 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	// 		log.Infof("  %s", a.String())
 	// 	}
 	// }
-	if online {
-		log.Infof("connecting to the distributed web...")
-	}
 
 	return
 }

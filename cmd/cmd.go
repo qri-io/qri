@@ -4,8 +4,6 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
-
-	"github.com/mitchellh/go-homedir"
 )
 
 // ErrExit writes an error to stdout & exits
@@ -33,23 +31,6 @@ func GetWd() string {
 	}
 
 	return dir
-}
-
-func userHomeDir() string {
-	dir, err := homedir.Dir()
-	if err != nil {
-		panic(err)
-	}
-	return dir
-
-	// if runtime.GOOS == "windows" {
-	// 	home := os.Getenv("HOMEDRIVE") + os.Getenv("HOMEPATH")
-	// 	if home == "" {
-	// 		home = os.Getenv("USERPROFILE")
-	// 	}
-	// 	return home
-	// }
-	// return os.Getenv("HOME")
 }
 
 func loadFileIfPath(path string) (file *os.File, err error) {
