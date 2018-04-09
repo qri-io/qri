@@ -1,10 +1,50 @@
+<a name="0.3.0"></a>
+# [0.3.0](https://github.com/qri-io/qri/compare/v0.2.0...v0.3.0) (2018-04-09)
+
+
+### Bug Fixes
+
+* **api:** fix double api import caused by rebase ([b590776](https://github.com/qri-io/qri/commit/b590776))
+* **config:** fix issues created by config overhaul ([501cf9a](https://github.com/qri-io/qri/commit/501cf9a)), closes [#328](https://github.com/qri-io/qri/issues/328) [#329](https://github.com/qri-io/qri/issues/329)
+* **dockerfile:** Use unambiguous adduser arguments ([#331](https://github.com/qri-io/qri/issues/331)) ([2061d93](https://github.com/qri-io/qri/commit/2061d93))
+* **fsrepo.Peerstore:** fix peerstore writing invalid json ([b76c52b](https://github.com/qri-io/qri/commit/b76c52b))
+* **structuredData:** data should return DataPath not dataset Path ([7bae799](https://github.com/qri-io/qri/commit/7bae799))
+* **webapp:** hide webapp hash behind vanity url ([64a5a76](https://github.com/qri-io/qri/commit/64a5a76))
+
+
+### Features
+
+* **actions:** added new repo actions package to encapsulate repo biz logic ([20322e1](https://github.com/qri-io/qri/commit/20322e1))
+* **cmd.Config:** added qri config export command ([87fc395](https://github.com/qri-io/qri/commit/87fc395))
+* **config:** add basic validation for api config ([c353200](https://github.com/qri-io/qri/commit/c353200))
+* **config:** add basic validation for cli config ([0bea261](https://github.com/qri-io/qri/commit/0bea261))
+* **config:** add basic validation for logging config ([2e6ccbb](https://github.com/qri-io/qri/commit/2e6ccbb))
+* **config:** add basic validation for p2p config ([57b740c](https://github.com/qri-io/qri/commit/57b740c))
+* **config:** add basic validation for profile config ([77fe3eb](https://github.com/qri-io/qri/commit/77fe3eb))
+* **config:** add basic validation for repo config ([6fb0cda](https://github.com/qri-io/qri/commit/6fb0cda))
+* **config:** add basic validation for rpc config ([4ddc2e6](https://github.com/qri-io/qri/commit/4ddc2e6))
+* **config:** add basic validation for store config ([a9c341f](https://github.com/qri-io/qri/commit/a9c341f))
+* **config:** add basic validation for webapp config ([6d64eb3](https://github.com/qri-io/qri/commit/6d64eb3))
+* **config:** add more tests for config validation ([cd8aa2f](https://github.com/qri-io/qri/commit/cd8aa2f))
+* **config:** add tests for config validation ([2175e03](https://github.com/qri-io/qri/commit/2175e03))
+* **config:** unify qri configuration into single package ([6969ec5](https://github.com/qri-io/qri/commit/6969ec5))
+* **p2p:** shiny new peer-2-peer communication library ([7a4e292](https://github.com/qri-io/qri/commit/7a4e292))
+* **p2p.AnnounceDatasetChanges:** new message for announcing datasets ([29016e6](https://github.com/qri-io/qri/commit/29016e6))
+* **readonly:** add check for readonly & GET in middleware ([92a2e84](https://github.com/qri-io/qri/commit/92a2e84))
+* **readonly:** add fields for ReadOnly option ([832f7e3](https://github.com/qri-io/qri/commit/832f7e3))
+* **readonly:** add ReadOnly to handlers ([e04f9c1](https://github.com/qri-io/qri/commit/e04f9c1))
+* **readonly:** add tests for read-only server ([d7c8732](https://github.com/qri-io/qri/commit/d7c8732))
+* **repo.Event:** removed DatasetAnnounce in favor of event logs ([35686fd](https://github.com/qri-io/qri/commit/35686fd))
+
+
+
 <a name="0.2.0"></a>
 # [0.2.0](https://github.com/qri-io/qri/compare/v0.1.2...v0.2.0) (2018-03-12)
 
 
 ### Bug Fixes
 
-* **api*:** update history, add, remove, info to work with hashes ([60f79fd](https://github.com/qri-io/qri/commit/60f79fd)), closes [#222](https://github.com/qri-io/qri/issues/222)
+* **api:** update history, add, remove, info to work with hashes ([60f79fd](https://github.com/qri-io/qri/commit/60f79fd)), closes [#222](https://github.com/qri-io/qri/issues/222)
 * **CanonicalizeDatatsetRef:** should hydrate datasetRef if given path ([bf12ac4](https://github.com/qri-io/qri/commit/bf12ac4))
 * **cmd.Setup:** added back env var to supply IPFS config on setup ([fb19615](https://github.com/qri-io/qri/commit/fb19615))
 * **data api endpoint:** need path in response to be able to normalize data on frontend ([dc0d1f0](https://github.com/qri-io/qri/commit/dc0d1f0))
@@ -16,7 +56,7 @@
 ### Features
 
 * added color diff output that works with global color flags ([d46afac](https://github.com/qri-io/qri/commit/d46afac))
-* **private flag:** add private flag to cli and api add ([6ffee3d](https://github.com/qri-io/qri/commit/6ffee3d))
+* **private flag** add private flag to cli and api add ([6ffee3d](https://github.com/qri-io/qri/commit/6ffee3d))
 * color diff output ([7f38363](https://github.com/qri-io/qri/commit/7f38363))
 * **api.List:** allow /list/[peer_id] ([a2771f9](https://github.com/qri-io/qri/commit/a2771f9))
 * **CBOR:** added experimental support for CBOR data format ([6ac1c0e](https://github.com/qri-io/qri/commit/6ac1c0e))

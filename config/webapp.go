@@ -23,7 +23,7 @@ func DefaultWebapp() *Webapp {
 	return &Webapp{
 		Enabled:        true,
 		Port:           DefaultWebappPort,
-		EntrypointHash: "QmewSfmnridhYdwLc9nGVwFNhMofAjPf4vxMMUYC6QDEjm",
+		EntrypointHash: "QmP99mprLUGhMqrh5gyqt4McrgfTJCKCSh5eGJaZw2LycF",
 	}
 }
 

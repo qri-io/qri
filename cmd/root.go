@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	// "fmt"
+	"fmt"
 	"os"
 	"path/filepath"
 
@@ -42,15 +42,15 @@ https://github.com/qri-io/qri/issues`,
 func Execute() {
 	// Catch errors & pretty-print.
 	// comment this out to get stack traces back.
-	// defer func() {
-	// 	if r := recover(); r != nil {
-	// 		if err, ok := r.(error); ok {
-	// 			fmt.Println(err.Error())
-	// 		} else {
-	// 			fmt.Println(r)
-	// 		}
-	// 	}
-	// }()
+	defer func() {
+		if r := recover(); r != nil {
+			if err, ok := r.(error); ok {
+				fmt.Println(err.Error())
+			} else {
+				fmt.Println(r)
+			}
+		}
+	}()
 
 	if err := RootCmd.Execute(); err != nil {
 		printErr(err)
