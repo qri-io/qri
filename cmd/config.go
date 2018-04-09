@@ -3,11 +3,11 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/core"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -48,23 +48,6 @@ runtime via command a line argument.`,
   $ qri config set rpc.enabled false`,
 }
 
-var configGetCommand = &cobra.Command{
-	Use:   "get",
-	Short: "Show a configuration setting",
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		for _, path := range args {
-			value, err := core.Config.Get(path)
-			ExitIfErr(err)
-			data, err := yaml.Marshal(value)
-			ExitIfErr(err)
-			printSuccess(string(data))
-		}
-	},
-}
-
 var configSetCommand = &cobra.Command{
 	Use:   "set",
 	Short: "Set a configuration option",
@@ -92,31 +75,32 @@ var configSetCommand = &cobra.Command{
 	},
 }
 
-var configExportCmd = &cobra.Command{
-	Use:   "export",
-	Short: "export configuration settings",
-	Long: `export outputs your current configuration file with private keys 
-removed by default.
-export makes it easier to share your qri configuration settings.
+var configGetCommand = &cobra.Command{
+	Use:   "get",
+	Short: "get configuration settings",
+	Long: `get outputs your current configuration file with private keys 
+removed by default, making it easier to share your qri configuration settings.
 
-We've added the --with-private-keys option to include private keys in the export
+The --with-private-keys option will show private keys.
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
+	Args: cobra.MaximumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			data []byte
-			err  error
-			cfg  = core.Config
+			data   []byte
+			err    error
+			cfg    = core.Config
+			encode interface{}
 		)
 
 		wpk, err := cmd.Flags().GetBool("with-private-keys")
 		ExitIfErr(err)
 		format, err := cmd.Flags().GetString("format")
 		ExitIfErr(err)
-		pretty, err := cmd.Flags().GetBool("pretty")
+		concise, err := cmd.Flags().GetBool("concise")
 		ExitIfErr(err)
 		output, err := cmd.Flags().GetString("output")
 		ExitIfErr(err)
@@ -130,15 +114,22 @@ Anyone with your private keys can impersonate you on qri.`,
 			}
 		}
 
+		if len(args) == 1 {
+			encode, err = cfg.Get(args[0])
+			ExitIfErr(err)
+		} else {
+			encode = cfg
+		}
+
 		switch format {
 		case "json":
-			if pretty {
-				data, err = json.MarshalIndent(cfg, "", "  ")
+			if concise {
+				data, err = json.Marshal(encode)
 			} else {
-				data, err = json.Marshal(cfg)
+				data, err = json.MarshalIndent(encode, "", "  ")
 			}
 		case "yaml":
-			data, err = yaml.Marshal(cfg)
+			data, err = yaml.Marshal(encode)
 		}
 		ExitIfErr(err)
 
@@ -157,11 +148,11 @@ func init() {
 	configCmd.AddCommand(configGetCommand)
 	configCmd.AddCommand(configSetCommand)
 
-	configExportCmd.Flags().Bool("with-private-keys", false, "include private keys in export")
-	configExportCmd.Flags().BoolP("pretty", "p", false, "pretty-print output")
-	configExportCmd.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
-	configExportCmd.Flags().StringP("output", "o", "", "path to export to")
-	configCmd.AddCommand(configExportCmd)
+	configGetCommand.Flags().Bool("with-private-keys", false, "include private keys in export")
+	configGetCommand.Flags().BoolP("concise", "c", false, "print output without indentation, only applies to json format")
+	configGetCommand.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
+	configGetCommand.Flags().StringP("output", "o", "", "path to export to")
+	configCmd.AddCommand(configGetCommand)
 
 	RootCmd.AddCommand(configCmd)
 }
