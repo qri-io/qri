@@ -16,7 +16,7 @@ var log = golog.Logger("qrip2p")
 const QriProtocolID = protocol.ID("/qri")
 
 // QriServiceTag tags the type & version of the qri service
-const QriServiceTag = "qri/0.2.1"
+const QriServiceTag = "qri/0.3.1-dev"
 
 func init() {
 	// golog.SetLogLevel("qrip2p", "debug")
