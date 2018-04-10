@@ -19,6 +19,9 @@ type API struct {
 	URLRoot string `json:"urlroot"`
 	// TLS enables https via letsEyncrypt
 	TLS bool `json:"tls"`
+	// Time in seconds to stop the server after,
+	// default 0 means keep alive indefinitely
+	DisconnectAfter int `json:"disconnectafter,omitempty"`
 	// if true, requests that have X-Forwarded-Proto: http will be redirected
 	// to their https variant
 	ProxyForceHTTPS bool `json:"proxyforcehttps"`
@@ -54,6 +57,10 @@ func (a API) Validate() error {
       "tls": {
         "description": "Enables https via letsEncrypt",
         "type": "boolean"
+      },
+      "disconnectafter": {
+        "description": "time in seconds to stop the server after",
+        "type": "integer"
       },
       "proxyforcehttps": {
         "description": "When true, requests that have X-Forwarded-Proto: http will be redirected to their https variant",

@@ -98,7 +98,11 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
+
 	t.Logf("temp path: %s", path)
+	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
+	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
+
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
 		os.RemoveAll(path)
@@ -132,9 +136,6 @@ func TestCommandsIntegration(t *testing.T) {
 		t.Errorf("error profile json file: %s", err.Error())
 		return
 	}
-
-	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
-	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
 	commands := [][]string{
 		{"help"},
