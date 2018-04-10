@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
@@ -9,9 +10,10 @@ import (
 )
 
 var (
-	connectCmdAPIPort    int
-	connectCmdRPCPort    int
-	connectCmdWebappPort int
+	connectCmdAPIPort         int
+	connectCmdRPCPort         int
+	connectCmdWebappPort      int
+	connectCmdDisconnectAfter int
 
 	disableAPI    bool
 	disableRPC    bool
@@ -39,7 +41,9 @@ things:
 When you run connect you are connecting to the distributed web, interacting with
 peers & swapping data.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
+		if !connectSetup {
+			loadConfig()
+		}
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
@@ -49,6 +53,8 @@ peers & swapping data.`,
 
 		if connectSetup && !QRIRepoInitialized() {
 			setupCmd.Run(&cobra.Command{}, []string{})
+		} else if !QRIRepoInitialized() {
+			ErrExit(fmt.Errorf("no qri repo exists"))
 		}
 
 		r = getRepo(true)
@@ -66,6 +72,10 @@ peers & swapping data.`,
 
 			if connectCmdWebappPort != 0 {
 				c.Webapp.Port = connectCmdWebappPort
+			}
+
+			if connectCmdDisconnectAfter != 0 {
+				c.API.DisconnectAfter = connectCmdDisconnectAfter
 			}
 
 			if connectReadOnly {
@@ -91,6 +101,9 @@ peers & swapping data.`,
 		ExitIfErr(err)
 
 		err = s.Serve()
+		if err != nil && err.Error() == "http: Server closed" {
+			return
+		}
 		ExitIfErr(err)
 	},
 }
@@ -99,6 +112,7 @@ func init() {
 	connectCmd.Flags().IntVarP(&connectCmdAPIPort, "api-port", "", 0, "port to start api on")
 	connectCmd.Flags().IntVarP(&connectCmdRPCPort, "rpc-port", "", 0, "port to start rpc listener on")
 	connectCmd.Flags().IntVarP(&connectCmdWebappPort, "webapp-port", "", 0, "port to serve webapp on")
+	connectCmd.Flags().IntVarP(&connectCmdDisconnectAfter, "disconnect-after", "", 0, "duration to keep connected in seconds, 0 means run indefinitely")
 
 	connectCmd.Flags().BoolVarP(&disableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
 	connectCmd.Flags().BoolVarP(&disableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")

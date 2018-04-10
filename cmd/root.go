@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"os"
 	"path/filepath"
 
@@ -35,27 +34,6 @@ https://qri.io
 
 Feedback, questions, bug reports, and contributions are welcome!
 https://github.com/qri-io/qri/issues`,
-}
-
-// Execute adds all child commands to the root command sets flags appropriately.
-// This is called by main.main(). It only needs to happen once to the rootCmd.
-func Execute() {
-	// Catch errors & pretty-print.
-	// comment this out to get stack traces back.
-	defer func() {
-		if r := recover(); r != nil {
-			if err, ok := r.(error); ok {
-				fmt.Println(err.Error())
-			} else {
-				fmt.Println(r)
-			}
-		}
-	}()
-
-	if err := RootCmd.Execute(); err != nil {
-		printErr(err)
-		os.Exit(-1)
-	}
 }
 
 func init() {

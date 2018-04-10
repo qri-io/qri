@@ -16,6 +16,7 @@ import (
 )
 
 var (
+	setupAnonymous      bool
 	setupOverwrite      bool
 	setupIPFS           bool
 	setupPeername       string
@@ -42,8 +43,10 @@ overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
 	Run: func(cmd *cobra.Command, args []string) {
-		// var cfgData []byte
-		var cfg *config.Config
+		var (
+			cfg *config.Config
+			err error
+		)
 
 		if QRIRepoInitialized() && !setupOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
@@ -83,12 +86,10 @@ overwrite this info.`,
 		if cfg.Profile == nil {
 			cfg.Profile = config.DefaultProfile()
 		}
-		anon, err := cmd.Flags().GetBool("anonymous")
-		ExitIfErr(err)
 
 		if setupPeername != "" {
 			cfg.Profile.Peername = setupPeername
-		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
+		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !setupAnonymous {
 			cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
 			printSuccess(cfg.Profile.Peername)
 		}
@@ -101,7 +102,6 @@ overwrite this info.`,
 		}
 
 		if setupIPFS {
-
 			tmpIPFSConfigPath := ""
 			if setupIPFSConfigData != "" {
 				err = readAtFile(&setupIPFSConfigData)
@@ -136,7 +136,7 @@ overwrite this info.`,
 
 func init() {
 	RootCmd.AddCommand(setupCmd)
-	setupCmd.Flags().BoolP("anonymous", "a", false, "use an auto-generated peername")
+	setupCmd.Flags().BoolVarP(&setupAnonymous, "anonymous", "a", false, "use an auto-generated peername")
 	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")

@@ -7,6 +7,7 @@ import (
 	"net"
 	"net/http"
 	"net/rpc"
+	"time"
 
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
@@ -102,6 +103,15 @@ func (s *Server) Serve() (err error) {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
 	log.Info(info)
+
+	if s.cfg.API.DisconnectAfter != 0 {
+		log.Infof("disconnecting after %d seconds", s.cfg.API.DisconnectAfter)
+		go func(s *http.Server, t int) {
+			<-time.After(time.Second * time.Duration(t))
+			log.Infof("disconnecting")
+			s.Close()
+		}(server, s.cfg.API.DisconnectAfter)
+	}
 
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(s.cfg.API, server)
