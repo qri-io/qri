@@ -32,8 +32,8 @@ webapp:
   enabled: true
   port: 2505
   analyticstoken: ""
-  scripts:
-  - http://localhost:2503/ipfs/QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
+  entrypointupdateaddress: /ipns/webapp.qri.io
+  entrypointhash: QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
 rpc:
   enabled: true
   port: 2504

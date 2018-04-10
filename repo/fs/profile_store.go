@@ -148,8 +148,11 @@ func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
 	}
 
 	if err := json.Unmarshal(data, &pss); err != nil {
-		log.Debug(err.Error())
-		return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
+		log.Error(err.Error())
+		// TODO - this is totally screwed for some reason, so for now when things fail,
+		// let's just return an empty list of peers
+		return ps, nil
+		// return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
 	}
 	for _, p := range pss {
 		ps[p.ID] = p

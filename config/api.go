@@ -86,6 +86,8 @@ func DefaultAPI() *API {
 		TLS:     false,
 		AllowedOrigins: []string{
 			fmt.Sprintf("http://localhost:%d", DefaultWebappPort),
+			"http://app.qri.io",
+			"https://app.qri.io",
 		},
 	}
 }
