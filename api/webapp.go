@@ -38,17 +38,26 @@ func (s *Server) WebappJSHandler() http.Handler {
 }
 
 func (s *Server) resolveWebappPath(path *string) {
-	node, err := s.qriNode.IPFSNode()
-	if err != nil {
-		log.Infof("no IPFS node present to resolve webapp address: %s", err.Error())
+	if s.cfg.Webapp.EntrypointUpdateAddress == "" {
+		log.Debug("no entrypoint update address specified for update checking")
 		return
 	}
 
-	p, err := node.Namesys.Resolve(context.Background(), "/ipns/webapp.qri.io")
+	node, err := s.qriNode.IPFSNode()
+	if err != nil {
+		log.Debugf("no IPFS node present to resolve webapp address: %s", err.Error())
+		return
+	}
+
+	p, err := node.Namesys.Resolve(context.Background(), s.cfg.Webapp.EntrypointUpdateAddress)
 	if err != nil {
 		log.Infof("error resolving IPNS Name: %s", err.Error())
 		return
 	}
+	if *path != p.String() {
+		log.Infof("updating webapp to version: %s", p.String())
+	}
+
 	*path = p.String()
 }
 
