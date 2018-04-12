@@ -78,7 +78,7 @@ Your profile contains some hairy stuff you shouldn't change once it is set initi
 
 **We strongly recommend you don't change your privkey, ID, and peername.**
 
-Created and cpdated are the timestamps that your profile was created and updated. These will be set automatically, we suggest you don't change these either.
+Created and updated are the timestamps that your profile was created and updated. These will be set automatically, we suggest you don't change these either.
 
 Type, email, name, description, homeurl, color, twitter, and profile and poster photo we strongly encourage you to update!
 
@@ -248,3 +248,359 @@ $ qri config get profile.twitter
 
 $ qri config set profile.twitter lunalovegood7
 ```
+
+-----
+
+.
+
+-----
+# repo
+
+The repo config controls how references to your datasets are stored and (in the future) what additional middleware you want to use when you store it. We don't recommend messing with these, as improper changes can break Qri.
+
+
+-----
+## middleware
+Middleware is a list of packages that can be used to supliment the process of saving data to Qri. Currently not implemented, but in the future could potentially add encryption middleware, or back up middleware.
+
+**Input options** (*array of strings*): not currently implemented
+
+-----
+## repo type
+The type of filestore used to store the references to your data and profile.
+
+**Input options** (*string*): `fs` (currently, any string other string will not work)
+
+**Commands:**
+```
+$ qri config get repo.type
+
+$ qri config set repo.type fs
+```
+
+-----
+
+.
+
+-----
+# Store
+
+Where and how the datasets are stored.
+
+
+-----
+## store type
+Where your datasets are stored.
+
+**Input options** (*string*): `ipfs` (currently, any string other string will not work)
+
+**Commands:**
+```
+$ qri config get store.type
+
+$ qri config set store.type ipfs
+```
+
+-----
+
+.
+
+-----
+# p2p
+
+The p2p config should go unchanged. This config section gives you options to change the way your qri node communicates with other qri nodes.
+
+**We strongly recommend you don't change any of these fields but especially not your privkey, pubkey, and peerid.**
+
+
+-----
+## p2p enabled
+Is p2p communication enabled? Probs keep this on if you want any of the benefits of being on the distributed web.
+
+**Input options** (*boolean*): `true` or `false`
+
+**Commands:**
+```
+$ qri config get p2p.enabled
+
+$ qri config set p2p.enabled true
+```
+
+-----
+## p2p peerid
+The id of this specific node on the network. This will eventually be different from your profile.ID, which is meant to be the identity of all the nodes associated with your profile on the network (eg, if you have qri on two different computers, or on your phone, or tablet)
+
+This is set when you run `qri setup`
+
+It is associated with your private key and public key, so changes any of them will mess up your p2p communication.
+
+**DO NOT CHANGE**
+
+-----
+## p2p privkey
+*private key*
+Your private key is generated when you first run `qri setup` or `qri connect --setup`. 
+
+**DO NOT PUBLISH THIS ANYWHERE**. 
+
+Your private key is a form of security. If anyone else has your private key, they can pretend to be you.
+
+It is associated with your public key and peerid, so changes any of them will mess up your p2p communication.
+
+**DO NOT CHANGE**
+
+-----
+## pubkey
+*public key*
+Your public key is what you exchange with peers in order to encrypt your messages and prove your identity.  
+
+It is associated with your private key and peerid, so changes any of them will mess up your p2p communication.
+
+**DO NOT CHANGE**
+
+-----
+## p2p port
+The port to bind a tcp listener. Ignored if Addrs is supplied
+
+**Input options** (*integer*): integer
+
+**Commands:**
+```
+$ qri config get p2p.port
+
+$ qri config set p2p.port 0
+```
+
+-----
+## addrs
+List of multiaddresses to listen on 
+
+**Input options** (*list of addresses*): list of multiadders
+
+**Commands:**
+```
+$ qri config get p2p.addrs
+
+$ qri config set p2p.addrs /ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb
+```
+
+-----
+## qribootstrapaddrs
+QriBootstrapAddrs lists the addresses to bootstrap you Qri node from. If you change this list, it will take your node a longer time to connect to the Qri network.
+
+**Input options** (*list of addresses*): list of multiaddrs
+
+**Commands:**
+```
+$ qri config get p2p.qribootstrapaddrs
+
+$ qri config set p2p.qribootstrapaddrs /ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb
+```
+
+-----
+## profilereplication
+Profilereplication determines waht to do when this peer sees messages broadcast by it's own profile (from another peer instance). Setting profilereplication to `full` will cause this peer to automatically pin any data that is verifyably posted the same peer
+
+**Input options** (*string*): `full`
+
+**Commands:**
+```
+$ qri config get p2p.profilereplication
+
+$ qri config set p2p.profilereplication full
+```
+
+-----
+## bootstrapaddrs
+List of addresses to bootstrap qri peers on.
+
+**Input options** (*list of addresses*): list of multiaddrs
+
+**Commands:**
+```
+$ qri config get p2p.bootstrapaddrs
+
+$ qri config set p2p.bootstrapaddrs /ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb
+```
+
+-----
+
+.
+
+-----
+# cli
+
+cli is the config for the command line interface
+
+
+-----
+## colorizeoutput
+When true, the output to your terminal will be colorized.
+
+**Input options** (*boolean*): `true` or `false`
+
+**Commands:**
+```
+$ qri config get cli.colorizeoutput
+
+$ qri config set p2p.colorizeoutput true
+```
+
+-----
+
+.
+
+-----
+# api
+
+Config for the API server. 
+
+
+-----
+## api enabled
+When true, the api server is enabled when you run `qri connect`
+
+The api must be enabled and set to port 2503 in order to work locally with the frontend webapp
+
+**Input options** (*boolean*): `true` or `false`
+
+**Commands:**
+```
+$ qri config get api.enabled
+
+$ qri config set api.enabled true
+```
+
+-----
+## api port
+The api will listen for calls at this port.
+
+The api must be enabled and set to port 2503 in order to work locally with the frontend webapp.
+
+**Input options** (*integer*):
+
+**Commands:**
+```
+$ qri config get api.port
+
+$ qri config set api.port 2503
+```
+
+-----
+## readonly
+When true, the api will only respond to certain GET requests. Doesn't allow any calls that will amend, save, add, or delete datasets or profile information.
+
+**Input options** (*boolean*): `true` and `false`
+
+**Commands:**
+```
+$ qri config get api.readonly
+
+$ qri config set api.readonly false
+```
+
+-----
+
+.
+
+-----
+# webapp
+
+Config for the API server. 
+
+
+-----
+## webapp enabled
+When true, if your node is connected (`qri connect`) you can go to `localhost:2505` in your browser to view the webapp.
+
+The api must be enabled and set to port 2503 in order to work locally with the frontend webapp
+
+**Input options** (*boolean*): `true` or `false`
+
+**Commands:**
+```
+$ qri config get api.enabled
+
+$ qri config set api.enabled true
+```
+
+-----
+## webapp port
+The api will listen for calls at this port.
+
+The api must be enabled and set to port 2503 in order to work locally with the frontend webapp.
+
+**Input options** (*integer*):
+
+**Commands:**
+```
+$ qri config get api.port
+
+$ qri config set api.port 2503
+```
+
+-----
+
+.
+
+-----
+# rpc
+
+Config for the RPC listener. 
+
+
+-----
+## rpc enabled
+When true, rpc connections are enabled.
+
+**Input options** (*boolean*): `true` or `false`
+
+**Commands:**
+```
+$ qri config get rpc.enabled
+
+$ qri config set rpc.enabled true
+```
+
+-----
+## rpc port
+The rpc will listen for calls at this port. Qri standard is 2504.
+
+**Input options** (*integer*):
+
+**Commands:**
+```
+$ qri config get rpc.port
+
+$ qri config set rpc.port 2504
+```
+
+-----
+
+.
+
+-----
+# logging
+
+Config for the logger. 
+
+
+-----
+## levels
+
+The different log levels can be set in this object
+
+### - qriapi
+
+Log levels for the api
+
+**Input options** (*string*):  `info`, `error`, `debug`, `warn`
+
+**Commands:**
+```
+$ qri config get logging.levels.qriapi
+
+$ qri config set logging.levels.qriapi info
+```
+
+-----
