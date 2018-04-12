@@ -91,6 +91,7 @@ func TestServerRoutes(t *testing.T) {
 		resBodyPath string
 		resStatus   int
 	}{
+		{"GET", "/", "", "statusResponse.json", 200},
 		{"GET", "/status", "", "statusResponse.json", 200},
 		{"GET", "/list", "", "listResponse.json", 200},
 
