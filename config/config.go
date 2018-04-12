@@ -113,6 +113,8 @@ func (cfg *Config) Set(path string, value interface{}) error {
 	}
 
 	switch v.Kind() {
+	case reflect.Int:
+		v.SetInt(rv.Int())
 	case reflect.String:
 		v.SetString(rv.String())
 	case reflect.Bool:

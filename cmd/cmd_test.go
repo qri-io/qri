@@ -143,6 +143,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"setup", "--peername=" + "alan"},
 		{"config", "get"},
 		{"config", "get", "profile"},
+		{"config", "set", "webapp.port", "3505"},
 		// TODO - add setting whole config via a file
 		// {"config", "set", "-i" + profileDataFilepath},
 		{"info", "me"},
