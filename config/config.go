@@ -16,10 +16,11 @@ import (
 
 // Config encapsulates all configuration details for qri
 type Config struct {
-	Profile *Profile
-	Repo    *Repo
-	Store   *Store
-	P2P     *P2P
+	Profile  *Profile
+	Repo     *Repo
+	Store    *Store
+	P2P      *P2P
+	Registry *Registry
 
 	CLI     *CLI
 	API     *API
@@ -31,9 +32,10 @@ type Config struct {
 // DefaultConfig gives a new default qri configuration
 func DefaultConfig() *Config {
 	return &Config{
-		Profile: DefaultProfile(),
-		Repo:    DefaultRepo(),
-		Store:   DefaultStore(),
+		Profile:  DefaultProfile(),
+		Repo:     DefaultRepo(),
+		Store:    DefaultStore(),
+		Registry: DefaultRegistry(),
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
