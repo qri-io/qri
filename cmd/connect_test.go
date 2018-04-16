@@ -1,13 +1,19 @@
 package cmd
 
 import (
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
+
+	"github.com/qri-io/registry"
+	"github.com/qri-io/registry/regserver/handlers"
 )
 
 func TestConnect(t *testing.T) {
+
+	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
 
 	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())
@@ -28,7 +34,7 @@ func TestConnect(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	args := []string{"connect", "--setup", "--disconnect-after=3"}
+	args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
 
 	// defer func() {
 	// 	if e := recover(); e != nil {

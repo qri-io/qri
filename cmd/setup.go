@@ -18,6 +18,7 @@ var (
 	setupAnonymous      bool
 	setupOverwrite      bool
 	setupIPFS           bool
+	setupRemove         bool
 	setupPeername       string
 	setupRegistry       string
 	setupIPFSConfigData string
@@ -43,10 +44,18 @@ overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
 	Run: func(cmd *cobra.Command, args []string) {
-		var (
-			cfg = config.DefaultConfig()
-			err error
-		)
+
+		if setupRemove {
+			loadConfig()
+			// TODO - add a big warning here that requires user input
+			err := core.Teardown(core.TeardownParams{
+				Config:      core.Config,
+				QriRepoPath: QriRepoPath,
+			})
+			ExitIfErr(err)
+			printSuccess("repo removed")
+			return
+		}
 
 		if QRIRepoInitialized() && !setupOverwrite {
 			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
@@ -54,63 +63,8 @@ overwrite this info.`,
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
 
-		envVars := map[string]*string{
-			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
-			"QRI_SETUP_IPFS_CONFIG_DATA": &setupIPFSConfigData,
-		}
-		mapEnvVars(envVars)
-
-		if setupConfigData != "" {
-			err := readAtFile(&setupConfigData)
-			ExitIfErr(err)
-			err = json.Unmarshal([]byte(setupConfigData), cfg)
-			if cfg.Profile != nil {
-				setupPeername = cfg.Profile.Peername
-			}
-			ExitIfErr(err)
-		}
-
-		if cfg.Profile == nil {
-			cfg.Profile = config.DefaultProfile()
-		}
-
-		if setupPeername != "" {
-			cfg.Profile.Peername = setupPeername
-		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !setupAnonymous {
-			cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-		}
-
-		if setupRegistry != "" {
-			cfg.Registry.Location = setupRegistry
-		}
-
-		p := core.SetupParams{
-			Config:         cfg,
-			QriRepoPath:    QriRepoPath,
-			ConfigFilepath: configFilepath(),
-			SetupIPFS:      setupIPFS,
-			IPFSFsPath:     IpfsFsPath,
-		}
-
-		if setupIPFSConfigData != "" {
-			err = readAtFile(&setupIPFSConfigData)
-			ExitIfErr(err)
-			p.SetupIPFSConfigData = []byte(setupIPFSConfigData)
-		}
-
-		for {
-			err := core.Setup(p)
-			if err != nil {
-				if err == core.ErrHandleTaken {
-					printWarning("peername '%s' already taken", cfg.Profile.Peername)
-					cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-					continue
-				} else {
-					ErrExit(err)
-				}
-			}
-			break
-		}
+		err := doSetup(setupConfigData, setupIPFSConfigData, setupRegistry, setupAnonymous)
+		ExitIfErr(err)
 
 		printSuccess("set up qri repo at: %s\n", QriRepoPath)
 	},
@@ -121,6 +75,7 @@ func init() {
 	setupCmd.Flags().BoolVarP(&setupAnonymous, "anonymous", "a", false, "use an auto-generated peername")
 	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
+	setupCmd.Flags().BoolVarP(&setupRemove, "remove", "", false, "permanently remove qri, overrides all setup options")
 	setupCmd.Flags().StringVarP(&setupRegistry, "registry", "", "", "override default registry URL")
 	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
 	setupCmd.Flags().StringVarP(&setupIPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
@@ -171,5 +126,73 @@ func readAtFile(data *string) error {
 		}
 		*data = string(fileData)
 	}
+	return nil
+}
+
+func doSetup(configData, IPFSConfigData, registry string, anon bool) (err error) {
+	cfg := config.DefaultConfig()
+
+	envVars := map[string]*string{
+		"QRI_SETUP_CONFIG_DATA":      &configData,
+		"QRI_SETUP_IPFS_CONFIG_DATA": &IPFSConfigData,
+	}
+	mapEnvVars(envVars)
+
+	if configData != "" {
+		if err = readAtFile(&configData); err != nil {
+			return err
+		}
+
+		err = json.Unmarshal([]byte(configData), cfg)
+		if cfg.Profile != nil {
+			setupPeername = cfg.Profile.Peername
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	if cfg.Profile == nil {
+		cfg.Profile = config.DefaultProfile()
+	}
+
+	if setupPeername != "" {
+		cfg.Profile.Peername = setupPeername
+	} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
+		cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+	}
+
+	if registry != "" {
+		cfg.Registry.Location = registry
+	}
+
+	p := core.SetupParams{
+		Config:         cfg,
+		QriRepoPath:    QriRepoPath,
+		ConfigFilepath: configFilepath(),
+		SetupIPFS:      setupIPFS,
+		IPFSFsPath:     IpfsFsPath,
+	}
+
+	if IPFSConfigData != "" {
+		err = readAtFile(&IPFSConfigData)
+		ExitIfErr(err)
+		p.SetupIPFSConfigData = []byte(IPFSConfigData)
+	}
+
+	for {
+		err := core.Setup(p)
+		if err != nil {
+			if err == core.ErrHandleTaken {
+				printWarning("peername '%s' already taken", cfg.Profile.Peername)
+				cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+				continue
+			} else {
+				ErrExit(err)
+			}
+		}
+		break
+	}
+
 	return nil
 }

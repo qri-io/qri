@@ -94,8 +94,33 @@ func Setup(p SetupParams) error {
 	return nil
 }
 
+// TeardownParams encapsulates arguments for Setup
+type TeardownParams struct {
+	Config         *config.Config
+	QriRepoPath    string
+	ConfigFilepath string
+	// IPFSFsPath          string
+}
+
 // Teardown reverses the setup process, destroying a user's privateKey
 // and removing local qri data
-func Teardown() error {
-	return nil
+func Teardown(p TeardownParams) error {
+	cfg := p.Config
+
+	if cfg.Registry != nil {
+		privkey, err := cfg.Profile.DecodePrivateKey()
+		if err != nil {
+			return err
+		}
+
+		reg := regclient.NewClient(&regclient.Config{
+			Location: cfg.Registry.Location,
+		})
+
+		if err := reg.DeleteProfile(cfg.Profile.Peername, privkey); err != nil {
+			return err
+		}
+	}
+
+	return os.RemoveAll(p.QriRepoPath)
 }

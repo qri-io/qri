@@ -106,7 +106,6 @@ func TestCommandsIntegration(t *testing.T) {
 	t.Logf("test filepath: %s", path)
 
 	// fmt.Printf("temp path: %s", path)
-	t.Logf("temp path: %s", path)
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
@@ -167,6 +166,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},
 		{"remove", "me/movie"},
+		{"setup", "--remove"},
 	}
 
 	for i, args := range commands {
