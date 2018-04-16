@@ -68,15 +68,32 @@ func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Requ
 }
 
 // SetProfilePhotoHandler is the endpoint for uploading this peer's profile photo
-func (h *ProfileHandlers) SetProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandlers) ProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.getProfilePhotoHandler(w, r)
 	case "PUT", "POST":
 		h.setProfilePhotoHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
+}
+
+func (h *ProfileHandlers) getProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
+	data := []byte{}
+	req := &core.Profile{
+		Peername: r.FormValue("peername"),
+		ID:       r.FormValue("id"),
+	}
+	if err := h.ProfilePhoto(req, &data); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Header().Set("Content-Type", "image/jpeg")
+	w.Write(data)
 }
 
 func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
@@ -107,15 +124,31 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 }
 
 // SetPosterHandler is the endpoint for uploading this peer's poster photo
-func (h *ProfileHandlers) SetPosterHandler(w http.ResponseWriter, r *http.Request) {
+func (h *ProfileHandlers) PosterHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.getPosterHandler(w, r)
 	case "PUT", "POST":
 		h.setPosterHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
+}
+
+func (h *ProfileHandlers) getPosterHandler(w http.ResponseWriter, r *http.Request) {
+	data := []byte{}
+	req := &core.Profile{
+		Peername: r.FormValue("peername"),
+		ID:       r.FormValue("ID"),
+	}
+	if err := h.PosterPhoto(req, &data); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.Write(data)
 }
 
 func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Request) {
