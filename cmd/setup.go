@@ -6,7 +6,6 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
@@ -20,6 +19,7 @@ var (
 	setupOverwrite      bool
 	setupIPFS           bool
 	setupPeername       string
+	setupRegistry       string
 	setupIPFSConfigData string
 	setupConfigData     string
 )
@@ -44,7 +44,7 @@ overwrite this info.`,
 	$ qri setup --peername=your_great_peername`,
 	Run: func(cmd *cobra.Command, args []string) {
 		var (
-			cfg *config.Config
+			cfg = config.DefaultConfig()
 			err error
 		)
 
@@ -53,25 +53,12 @@ overwrite this info.`,
 			// this is usually a terrible idea
 			ErrExit(fmt.Errorf("repo already initialized"))
 		}
-		fmt.Printf("setting up qri repo at: %s\n", QriRepoPath)
-
-		cfg = config.DefaultConfig()
 
 		envVars := map[string]*string{
 			"QRI_SETUP_CONFIG_DATA":      &setupConfigData,
 			"QRI_SETUP_IPFS_CONFIG_DATA": &setupIPFSConfigData,
 		}
 		mapEnvVars(envVars)
-
-		// if cfgFile is specified, override
-		// if cfgFile != "" {
-		// 	f, err := os.Open(cfgFile)
-		// 	ExitIfErr(err)
-		// 	cfgData, err = ioutil.ReadAll(f)
-		// 	ExitIfErr(err)
-		// } else {
-		// 	cfgData, _ = yaml.Marshal(config.Config{}.Default())
-		// }
 
 		if setupConfigData != "" {
 			err := readAtFile(&setupConfigData)
@@ -91,46 +78,41 @@ overwrite this info.`,
 			cfg.Profile.Peername = setupPeername
 		} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !setupAnonymous {
 			cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-			printSuccess(cfg.Profile.Peername)
 		}
 
-		err = cfg.Validate()
-		ExitIfErr(err)
-
-		if err := os.MkdirAll(QriRepoPath, os.ModePerm); err != nil {
-			ErrExit(fmt.Errorf("error creating home dir: %s", err.Error()))
+		if setupRegistry != "" {
+			cfg.Registry.Location = setupRegistry
 		}
 
-		if setupIPFS {
-			tmpIPFSConfigPath := ""
-			if setupIPFSConfigData != "" {
-				err = readAtFile(&setupIPFSConfigData)
-				ExitIfErr(err)
+		p := core.SetupParams{
+			Config:         cfg,
+			QriRepoPath:    QriRepoPath,
+			ConfigFilepath: configFilepath(),
+			SetupIPFS:      setupIPFS,
+			IPFSFsPath:     IpfsFsPath,
+		}
 
-				// TODO - remove this temp file & instead adjust ipfs.InitRepo to accept an io.Reader
-				tmpIPFSConfigPath = filepath.Join(os.TempDir(), "ipfs_init_config")
-
-				err = ioutil.WriteFile(tmpIPFSConfigPath, []byte(setupIPFSConfigData), os.ModePerm)
-				ExitIfErr(err)
-
-				defer func() {
-					os.Remove(tmpIPFSConfigPath)
-				}()
-			}
-
-			err = ipfs.InitRepo(IpfsFsPath, tmpIPFSConfigPath)
-			if err != nil && strings.Contains(err.Error(), "already") {
-				err = nil
-			}
+		if setupIPFSConfigData != "" {
+			err = readAtFile(&setupIPFSConfigData)
 			ExitIfErr(err)
-		} else if _, err := os.Stat(IpfsFsPath); os.IsNotExist(err) {
-			printWarning("no IPFS repo exists at %s, things aren't going to work properly", IpfsFsPath)
+			p.SetupIPFSConfigData = []byte(setupIPFSConfigData)
 		}
 
-		err = cfg.WriteToFile(configFilepath())
-		ExitIfErr(err)
+		for {
+			err := core.Setup(p)
+			if err != nil {
+				if err == core.ErrHandleTaken {
+					printWarning("peername '%s' already taken", cfg.Profile.Peername)
+					cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+					continue
+				} else {
+					ErrExit(err)
+				}
+			}
+			break
+		}
 
-		core.Config = cfg
+		printSuccess("set up qri repo at: %s\n", QriRepoPath)
 	},
 }
 
@@ -139,6 +121,7 @@ func init() {
 	setupCmd.Flags().BoolVarP(&setupAnonymous, "anonymous", "a", false, "use an auto-generated peername")
 	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
 	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
+	setupCmd.Flags().StringVarP(&setupRegistry, "registry", "", "", "override default registry URL")
 	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
 	setupCmd.Flags().StringVarP(&setupIPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	setupCmd.Flags().StringVarP(&setupConfigData, "conifg-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
