@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"sync"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/doggos"
@@ -19,7 +20,15 @@ var ErrNotFound = fmt.Errorf("Not Found")
 // ProfileStore is an on-disk json file implementation of the
 // repo.Peers interface
 type ProfileStore struct {
+	sync.RWMutex
 	basepath
+}
+
+// NewProfileStore allocates a ProfileStore
+func NewProfileStore(bp basepath) ProfileStore {
+	return ProfileStore{
+		basepath: bp,
+	}
 }
 
 // PutProfile adds a peer to the store
@@ -27,6 +36,9 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 	if p.ID.String() == "" {
 		return fmt.Errorf("profile ID is required")
 	}
+
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil {
@@ -41,6 +53,9 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 
 // PeerIDs gives the peer.IDs list for a given peername
 func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
@@ -57,6 +72,9 @@ func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 
 // List hands back the list of peers
 func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	ps, err := r.profiles()
 	if err != nil && err.Error() == "EOF" {
 		return map[profile.ID]*profile.Profile{}, nil
@@ -66,6 +84,9 @@ func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 
 // PeernameID gives the profile.ID for a given peername
 func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	ps, err := r.profiles()
 	if err != nil {
 		return "", err
@@ -81,6 +102,9 @@ func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 
 // GetProfile fetches a profile from the store
 func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
@@ -97,6 +121,9 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
 func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
+	r.RLock()
+	defer r.RUnlock()
+
 	ps, err := r.profiles()
 	if err != nil {
 		return nil, err
@@ -113,6 +140,9 @@ func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 
 // DeleteProfile removes a profile from the store
 func (r ProfileStore) DeleteProfile(id profile.ID) error {
+	r.Lock()
+	defer r.Unlock()
+
 	ps, err := r.profiles()
 	if err != nil {
 		return err

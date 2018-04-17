@@ -97,12 +97,5 @@ func (n *QriNode) profileBytes() ([]byte, error) {
 		return nil, err
 	}
 
-	if addrs, err := n.ListenAddresses(); err == nil {
-		if p.Addresses == nil {
-			p.Addresses = map[string][]string{}
-		}
-		p.Addresses[n.ID.Pretty()] = addrs
-	}
-
 	return json.Marshal(p)
 }
