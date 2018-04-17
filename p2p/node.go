@@ -128,6 +128,24 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 		// add multistream handler for qri protocol to the host
 		// for more info on multistreams check github.com/multformats/go-multistream
 		node.Host.SetStreamHandler(QriProtocolID, node.QriStreamHandler)
+
+		p, err := node.Repo.Profile()
+		if err != nil {
+			log.Errorf("error getting repo profile: %s\n", err.Error())
+			return node, err
+		}
+
+		// add listen addresses to profile store
+		if addrs, err := node.ListenAddresses(); err == nil {
+			if p.Addresses == nil {
+				p.Addresses = map[string][]string{}
+			}
+			p.Addresses[node.ID.Pretty()] = addrs
+		}
+
+		if err := node.Repo.SetProfile(p); err != nil {
+			return node, err
+		}
 	}
 
 	go node.echoMessages()
@@ -143,15 +161,16 @@ func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	}
 
 	bsPeers := make(chan pstore.PeerInfo, len(n.BootstrapAddrs))
+	// need a call here to ensure boostrapped is called at least once
+	// TODO - this is an "original node" problem probably solved by being able
+	// to start a node with *no* qri peers specified.
+	defer bootstrapped("")
+
 	go func() {
 		pInfo := <-bsPeers
 		bootstrapped(pInfo.ID.Pretty())
 	}()
 
-	// need a call here to ensure boostrapped is called at least once
-	// TODO - this is an "original node" problem probably solved by being able
-	// to start a node with *no* qri peers specified.
-	defer bootstrapped("")
 	return n.StartDiscovery(bsPeers)
 }
 

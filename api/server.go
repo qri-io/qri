@@ -202,10 +202,10 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
 	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
-	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
-	m.Handle("/profile/photo", s.middleware(proh.SetProfilePhotoHandler))
-	m.Handle("/profile/poster", s.middleware(proh.SetPosterHandler))
+	m.Handle("/profile", s.middleware(proh.ProfileHandler))
+	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
+	m.Handle("/profile/poster", s.middleware(proh.PosterHandler))
 
 	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode, s.cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))

@@ -64,6 +64,13 @@ The `yarn dev` command will launch a development version of the Qri electron app
 
 To get access to Chrome Developer Tools, use the keyboard shortcut Command-Shift-C.
 
+## <a name="Updating"></a> Updating Builds
+From time to time versions of packages we depend on may fall out of sync, causing `make build` to fail. In that case, the following should get you back up to speed:
+
+```shell
+make update-qri-deps
+make install-deps
+```
 
 
 ## <a name="rules"></a> Coding Rules

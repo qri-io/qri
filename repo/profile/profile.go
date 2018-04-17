@@ -32,7 +32,7 @@ type Profile struct {
 	// Thumb path for user's thumbnail
 	Thumb datastore.Key `json:"thumb"`
 	// Profile photo
-	Profile datastore.Key `json:"profile"`
+	Photo datastore.Key `json:"photo"`
 	// Poster photo for users's profile page
 	Poster datastore.Key `json:"poster"`
 	// Twitter is a  peer's twitter handle

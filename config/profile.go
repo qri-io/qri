@@ -38,7 +38,7 @@ type Profile struct {
 	// Thumb path for user's thumbnail
 	Thumb string `json:"thumb"`
 	// Profile photo
-	Profile string `json:"profile"`
+	Photo string `json:"photo"`
 	// Poster photo for users's profile page
 	Poster string `json:"poster"`
 	// Twitter is a  peer's twitter handle
@@ -107,8 +107,8 @@ func (cfg *Profile) DecodeProfile() (*profile.Profile, error) {
 		p.Poster = datastore.NewKey(cfg.Poster)
 	}
 
-	if cfg.Profile != "" {
-		p.Profile = datastore.NewKey(cfg.Profile)
+	if cfg.Photo != "" {
+		p.Photo = datastore.NewKey(cfg.Photo)
 	}
 
 	return p, nil
@@ -292,7 +292,7 @@ func (cfg Profile) Validate() error {
         "description": "Location of thumbnail of peer's profile picture, an ipfs hash",
         "type": "string"
       },
-      "profile": {
+      "photo": {
         "description": "Location of peer's profile picture, an ipfs hash",
         "type": "string"
       },

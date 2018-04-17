@@ -22,10 +22,10 @@ func TestProfileDecodeProfile(t *testing.T) {
 	}
 
 	p = &Profile{
-		ID:      "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F",
-		Poster:  "foo",
-		Profile: "bar",
-		Thumb:   "baz",
+		ID:     "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F",
+		Poster: "foo",
+		Photo:  "bar",
+		Thumb:  "baz",
 	}
 
 	pro, err := p.DecodeProfile()
@@ -36,8 +36,8 @@ func TestProfileDecodeProfile(t *testing.T) {
 	if pro.Poster.String() != "/foo" {
 		t.Error("poster mismatch")
 	}
-	if pro.Profile.String() != "/bar" {
-		t.Error("profile mismatch")
+	if pro.Photo.String() != "/bar" {
+		t.Error("photo mismatch")
 	}
 	if pro.Thumb.String() != "/baz" {
 		t.Error("thumb mismatch")
