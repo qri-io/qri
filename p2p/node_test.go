@@ -42,5 +42,5 @@ func NewTestRepo(id profile.ID) (repo.Repo, error) {
 	return repo.NewMemRepo(&profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", repoID),
-	}, cafs.NewMapstore(), profile.MemStore{})
+	}, cafs.NewMapstore(), profile.NewMemStore())
 }

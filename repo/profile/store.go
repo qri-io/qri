@@ -2,6 +2,7 @@ package profile
 
 import (
 	"fmt"
+	"sync"
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -21,7 +22,17 @@ type Store interface {
 }
 
 // MemStore is an in-memory implementation of the profile Store interface
-type MemStore map[ID]*Profile
+type MemStore struct {
+	sync.RWMutex
+	store map[ID]*Profile
+}
+
+// NewMemStore allocates a MemStore
+func NewMemStore() Store {
+	return &MemStore{
+		store: map[ID]*Profile{},
+	}
+}
 
 // PutProfile adds a peer to this store
 func (m MemStore) PutProfile(profile *Profile) error {
@@ -29,13 +40,18 @@ func (m MemStore) PutProfile(profile *Profile) error {
 		return fmt.Errorf("profile.ID is required")
 	}
 
-	m[profile.ID] = profile
+	m.Lock()
+	m.store[profile.ID] = profile
+	m.Unlock()
 	return nil
 }
 
 // PeernameID gives the ID for a given peername
 func (m MemStore) PeernameID(peername string) (ID, error) {
-	for id, profile := range m {
+	m.RLock()
+	defer m.RUnlock()
+
+	for id, profile := range m.store {
 		if profile.Peername == peername {
 			return id, nil
 		}
@@ -47,7 +63,10 @@ func (m MemStore) PeernameID(peername string) (ID, error) {
 // TODO - this func implies that peer.ID's are only ever connected to the same
 // profile. That could cause trouble.
 func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
-	for _, profile := range m {
+	m.RLock()
+	defer m.RUnlock()
+
+	for _, profile := range m.store {
 		if _, ok := profile.Addresses[id.Pretty()]; ok {
 			return profile, nil
 		}
@@ -58,7 +77,10 @@ func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 
 // PeerIDs gives the peer.IDs list for a given peername
 func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
-	for proid, profile := range m {
+	m.RLock()
+	defer m.RUnlock()
+
+	for proid, profile := range m.store {
 		if id == proid {
 			return profile.PeerIDs(), nil
 		}
@@ -69,8 +91,11 @@ func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
 
 // List hands the full list of peers back
 func (m MemStore) List() (map[ID]*Profile, error) {
+	m.RLock()
+	defer m.RUnlock()
+
 	res := map[ID]*Profile{}
-	for id, p := range m {
+	for id, p := range m.store {
 		res[id] = p
 	}
 	return res, nil
@@ -78,14 +103,20 @@ func (m MemStore) List() (map[ID]*Profile, error) {
 
 // GetProfile give's peer info from the store for a given peer.ID
 func (m MemStore) GetProfile(id ID) (*Profile, error) {
-	if m[id] == nil {
+	m.RLock()
+	defer m.RUnlock()
+
+	if m.store[id] == nil {
 		return nil, ErrNotFound
 	}
-	return m[id], nil
+	return m.store[id], nil
 }
 
 // DeleteProfile removes a peer from this store
 func (m MemStore) DeleteProfile(id ID) error {
-	delete(m, id)
+	m.Lock()
+	delete(m.store, id)
+	m.Unlock()
+
 	return nil
 }

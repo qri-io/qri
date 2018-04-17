@@ -67,7 +67,7 @@ func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Requ
 	util.WriteResponse(w, res)
 }
 
-// SetProfilePhotoHandler is the endpoint for uploading this peer's profile photo
+// ProfilePhotoHandler is the endpoint for uploading this peer's profile photo
 func (h *ProfileHandlers) ProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
@@ -123,7 +123,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 	util.WriteResponse(w, res)
 }
 
-// SetPosterHandler is the endpoint for uploading this peer's poster photo
+// PosterHandler is the endpoint for uploading this peer's poster photo
 func (h *ProfileHandlers) PosterHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":

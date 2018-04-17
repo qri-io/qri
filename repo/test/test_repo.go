@@ -58,7 +58,7 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist"}
 
 	ms := cafs.NewMapstore()
-	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.MemStore{})
+	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.NewMemStore())
 	if err != nil {
 		return
 	}
@@ -99,7 +99,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, profile.MemStore{})
+	mr, err := repo.NewMemRepo(pro, ms, profile.NewMemStore())
 	if err != nil {
 		return mr, pk, err
 	}
