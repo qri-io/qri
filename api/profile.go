@@ -141,13 +141,14 @@ func (h *ProfileHandlers) getPosterHandler(w http.ResponseWriter, r *http.Reques
 	data := []byte{}
 	req := &core.Profile{
 		Peername: r.FormValue("peername"),
-		ID:       r.FormValue("ID"),
+		ID:       r.FormValue("id"),
 	}
 	if err := h.PosterPhoto(req, &data); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
+	w.Header().Set("Content-Type", "image/jpeg")
 	w.Write(data)
 }
 
