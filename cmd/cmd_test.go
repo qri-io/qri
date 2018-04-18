@@ -5,12 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/registry"
+	"github.com/qri-io/registry/regserver/handlers"
 	"github.com/spf13/cobra"
 )
 
@@ -97,10 +100,12 @@ func TestCommandsIntegration(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
+	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
+
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
+	t.Logf("test filepath: %s", path)
 
 	// fmt.Printf("temp path: %s", path)
-	t.Logf("temp path: %s", path)
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
 	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
@@ -141,7 +146,7 @@ func TestCommandsIntegration(t *testing.T) {
 	commands := [][]string{
 		{"help"},
 		{"version"},
-		{"setup", "--peername=" + "alan"},
+		{"setup", "--peername=" + "alan", "--registry=" + registryServer.URL},
 		{"config", "get"},
 		{"config", "get", "profile"},
 		{"config", "set", "webapp.port", "3505"},
@@ -161,6 +166,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},
 		{"remove", "me/movie"},
+		{"setup", "--remove"},
 	}
 
 	for i, args := range commands {
