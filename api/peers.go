@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
@@ -8,8 +9,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -89,7 +88,7 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	res := []*profile.Profile{}
+	res := []*core.Profile{}
 	if err := h.List(&args, &res); err != nil {
 		log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -124,7 +123,7 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.PeerInfoParams{
 		ProfileID: id,
 	}
-	res := &profile.Profile{}
+	res := &core.Profile{}
 	if err := h.Info(p, res); err != nil {
 		log.Infof("error getting peer info: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -141,14 +140,13 @@ func (h *PeerHandlers) namespaceHandler(w http.ResponseWriter, r *http.Request) 
 func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
 	b58pid := r.URL.Path[len("/connect/"):]
 
-	pid, err := peer.IDB58Decode(b58pid)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
+	if b58pid == "" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("peer id is required"))
 		return
 	}
 
-	res := &profile.Profile{}
-	if err := h.ConnectToPeer(&pid, res); err != nil {
+	res := &core.Profile{}
+	if err := h.ConnectToPeer(&b58pid, res); err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

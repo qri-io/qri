@@ -35,13 +35,13 @@ func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 }
 
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
+func (d *PeerRequests) List(p *ListParams, res *[]*Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
 
 	r := d.qriNode.Repo
-	replies := make([]*profile.Profile, p.Limit)
+	replies := make([]*Profile, p.Limit)
 
 	user, err := r.Profile()
 	if err != nil {
@@ -54,19 +54,24 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.Profile) error {
 	}
 
 	if len(ps) == 0 {
-		*res = []*profile.Profile{}
+		*res = []*Profile{}
 		return nil
 	}
 
 	i := 0
-	for _, peer := range ps {
+	for _, pro := range ps {
 		if i >= p.Limit {
 			break
 		}
-		if peer == nil || peer.ID == user.ID {
+		if pro == nil || pro.ID == user.ID {
 			continue
 		}
-		replies[i] = &profile.Profile{Peername: peer.Peername, ID: peer.ID}
+		replies[i], err = marshalProfile(pro)
+		if err != nil {
+			return err
+		}
+
+		// = &profile.Profile{Peername: peer.Peername, ID: peer.ID}
 		i++
 	}
 
@@ -95,52 +100,49 @@ type Peer struct {
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*profile.Profile) error {
+func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*Profile) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.ConnectedQriPeers", limit, peers)
+		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	parsed := []*profile.Profile{}
-	for _, pro := range d.qriNode.ConnectedQriProfiles() {
+	parsed := []*Profile{}
+	for _, p := range d.qriNode.ConnectedQriProfiles() {
+		pro, err := marshalProfile(p)
+		if err != nil {
+			return err
+		}
 		parsed = append(parsed, pro)
 	}
-
-	// if len(ps) == 0 {
-	// 	return fmt.Errorf("no peers found")
-	// }
 
 	*peers = parsed
 	return nil
 }
 
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (d *PeerRequests) ConnectToPeer(pid *peer.ID, res *profile.Profile) error {
+func (d *PeerRequests) ConnectToPeer(b58pid *string, res *Profile) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.ConnectToPeer", pid, res)
+		return d.cli.Call("PeerRequests.ConnectToPeer", b58pid, res)
 	}
 
-	// TODO - restore
-	// if profile, err := d.qriNode.Repo.Profiles().GetProfile(*pid); err == nil {
-	// 	*pid, err = profile.IPFSPeerID()
-	// 	if err != nil {
-	// 		return fmt.Errorf("error getting IPFS peer ID: %s", err.Error())
-	// 	}
-	// }
+	pid, err := peer.IDB58Decode(*b58pid)
+	if err != nil {
+		return err
+	}
 
-	// if err != nil {
-	// 	return fmt.Errorf("error getting peer profile: %s", err.Error())
-	// }
+	if err := d.qriNode.ConnectToPeer(pid); err != nil {
+		return nil
+	}
 
-	// if err := d.qriNode.ConnectToPeer(*pid); err != nil {
-	// 	return fmt.Errorf("error connecting to peer: %s", err.Error())
-	// }
+	prof, err := d.qriNode.Repo.Profiles().PeerProfile(pid)
+	if err != nil {
+		return err
+	}
+	pro, err := marshalProfile(prof)
+	if err != nil {
+		return err
+	}
 
-	// profile, err := d.qriNode.Repo.Profiles().GetProfile(*pid)
-	// if err != nil {
-	// 	return fmt.Errorf("error getting peer profile: %s", err.Error())
-	// }
-
-	// *res = *profile
+	*res = *pro
 	return nil
 }
 
@@ -151,7 +153,7 @@ type PeerInfoParams struct {
 }
 
 // Info shows peer profile details
-func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
+func (d *PeerRequests) Info(p *PeerInfoParams, res *Profile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.Info", p, res)
 	}
@@ -166,15 +168,16 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.Profile) error {
 
 	for _, pro := range profiles {
 		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
-			*res = *pro
-			return nil
+			prof, err := marshalProfile(pro)
+			*res = *prof
+			return err
 		}
 	}
 
 	return repo.ErrNotFound
 }
 
-// PeerRefsParams defines params for the GetNamespace method
+// PeerRefsParams defines params for the GetReferences method
 type PeerRefsParams struct {
 	PeerID string
 	Limit  int
@@ -184,7 +187,7 @@ type PeerRefsParams struct {
 // GetReferences lists a peer's named datasets
 func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.GetNamespace", p, res)
+		return d.cli.Call("PeerRequests.GetReferences", p, res)
 	}
 
 	id, err := peer.IDB58Decode(p.PeerID)

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/repo/profile"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
@@ -68,7 +67,7 @@ var infoCmd = &cobra.Command{
 				p := &core.PeerInfoParams{
 					Peername: ref.Peername,
 				}
-				res := &profile.Profile{}
+				res := &core.Profile{}
 				err := pr.Info(p, res)
 				if err != nil {
 					printSuccess(err.Error())

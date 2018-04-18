@@ -260,34 +260,22 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 		d.Format = r.FormValue("format")
 	}
 
-	leftReq, err := DatasetRefFromPath(d.Left)
+	left, err := DatasetRefFromPath(d.Left)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from left path: %s", err.Error()))
 		return
 	}
 
-	rightReq, err := DatasetRefFromPath(d.Right)
+	right, err := DatasetRefFromPath(d.Right)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from right path: %s", err.Error()))
 		return
 	}
 
-	left := &repo.DatasetRef{}
-	if err = h.Get(&leftReq, left); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting left dataset from repo: %s", err))
-		return
-	}
-	right := &repo.DatasetRef{}
-	if err = h.Get(&rightReq, right); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting right dataset from repo: %s", err))
-		return
-	}
-
 	diffs := make(map[string]*dsdiff.SubDiff)
-
 	p := &core.DiffParams{
-		DsLeft:  left.Dataset,
-		DsRight: right.Dataset,
+		Left:    left,
+		Right:   right,
 		DiffAll: true,
 	}
 

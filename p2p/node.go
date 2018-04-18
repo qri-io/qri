@@ -140,7 +140,7 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 			if p.Addresses == nil {
 				p.Addresses = map[string][]string{}
 			}
-			p.Addresses[node.ID.Pretty()] = addrs
+			p.Addresses[node.Host.ID().Pretty()] = addrs
 		}
 
 		if err := node.Repo.SetProfile(p); err != nil {
@@ -236,6 +236,7 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*profile.Profile {
 		id := c.RemotePeer()
 		if p, err := n.Repo.Profiles().PeerProfile(id); err == nil {
 			peers[p.ID] = p
+		} else {
 		}
 	}
 	return peers

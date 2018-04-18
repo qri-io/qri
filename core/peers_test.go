@@ -31,7 +31,7 @@ func TestPeerRequestsList(t *testing.T) {
 	// TODO - need to upgrade this to include a mock node
 	req := NewPeerRequests(&p2p.QriNode{Repo: mr}, nil)
 	for i, c := range cases {
-		got := []*profile.Profile{}
+		got := []*Profile{}
 		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -59,7 +59,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 
 	req := NewPeerRequests(node, nil)
 	for i, c := range cases {
-		got := []*profile.Profile{}
+		got := []*Profile{}
 		err := req.ConnectedQriProfiles(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
@@ -122,7 +122,7 @@ func TestInfo(t *testing.T) {
 
 	req := NewPeerRequests(node, nil)
 	for i, c := range cases {
-		got := profile.Profile{}
+		got := Profile{}
 		err := req.Info(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)

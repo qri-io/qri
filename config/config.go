@@ -202,6 +202,27 @@ func validate(rs *jsonschema.RootSchema, s interface{}) error {
 // Validate validates each section of the config struct,
 // returning the first error
 func (cfg Config) Validate() error {
+	schema := jsonschema.Must(`{
+    "$schema": "http://json-schema.org/draft-06/schema#",
+    "title": "config",
+    "description": "qri configuration",
+    "type": "object",
+    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC"],
+    "properties" : {
+    	"Profile" : { "type":"object" },
+    	"Repo" : { "type":"object" },
+    	"Store" : { "type":"object" },
+    	"P2P" : { "type":"object" },
+    	"CLI" : { "type":"object" },
+    	"API" : { "type":"object" },
+    	"Webapp" : { "type":"object" },
+    	"RPC" : { "type":"object" }
+    }
+  }`)
+	if err := validate(schema, &cfg); err != nil {
+		return err
+	}
+
 	if err := cfg.Profile.Validate(); err != nil {
 		return err
 	}

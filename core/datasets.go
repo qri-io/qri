@@ -663,7 +663,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	st.Assign(ds.Structure, &dataset.Structure{
 		Format:       p.Format,
 		FormatConfig: p.FormatConfig,
-		Schema:       dataset.BaseSchemaArray,
+		Schema:       ds.Structure.Schema,
 	})
 
 	buf, err := dsio.NewEntryBuffer(st)
@@ -871,7 +871,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 // DiffParams defines parameters for diffing two datasets with Diff
 type DiffParams struct {
 	// The pointers to the datasets to diff
-	DsLeft, DsRight *dataset.Dataset
+	Left, Right repo.DatasetRef
 	// override flag to diff full dataset without having to specify each component
 	DiffAll bool
 	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
@@ -881,9 +881,22 @@ type DiffParams struct {
 
 // Diff computes the diff of two datasets
 func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff) (err error) {
+	left := &repo.DatasetRef{}
+	if e := r.Get(&p.Left, left); e != nil {
+		return e
+	}
+
+	right := &repo.DatasetRef{}
+	if e := r.Get(&p.Right, right); e != nil {
+		return e
+	}
+
+	dsLeft := left.Dataset
+	dsRight := right.Dataset
+
 	diffMap := make(map[string]*dsdiff.SubDiff)
 	if p.DiffAll {
-		diffMap, err := dsdiff.DiffDatasets(p.DsLeft, p.DsRight, nil)
+		diffMap, err := dsdiff.DiffDatasets(left.Dataset, right.Dataset, nil)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error diffing datasets: %s", err.Error())
@@ -900,8 +913,8 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 			if v {
 				switch k {
 				case "structure":
-					if p.DsLeft.Structure != nil && p.DsRight.Structure != nil {
-						structureDiffs, err := dsdiff.DiffStructure(p.DsLeft.Structure, p.DsRight.Structure)
+					if dsLeft.Structure != nil && dsRight.Structure != nil {
+						structureDiffs, err := dsdiff.DiffStructure(dsLeft.Structure, dsRight.Structure)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -909,32 +922,32 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 					}
 				case "data":
 					//TODO
-					if p.DsLeft.DataPath != "" && p.DsRight.DataPath != "" {
-						dataDiffs, err := dsdiff.DiffData(p.DsLeft, p.DsRight)
+					if dsLeft.DataPath != "" && dsRight.DataPath != "" {
+						dataDiffs, err := dsdiff.DiffData(dsLeft, dsRight)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
 						diffMap[k] = dataDiffs
 					}
 				case "transform":
-					if p.DsLeft.Transform != nil && p.DsRight.Transform != nil {
-						transformDiffs, err := dsdiff.DiffTransform(p.DsLeft.Transform, p.DsRight.Transform)
+					if dsLeft.Transform != nil && dsRight.Transform != nil {
+						transformDiffs, err := dsdiff.DiffTransform(dsLeft.Transform, dsRight.Transform)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
 						diffMap[k] = transformDiffs
 					}
 				case "meta":
-					if p.DsLeft.Meta != nil && p.DsRight.Meta != nil {
-						metaDiffs, err := dsdiff.DiffMeta(p.DsLeft.Meta, p.DsRight.Meta)
+					if dsLeft.Meta != nil && dsRight.Meta != nil {
+						metaDiffs, err := dsdiff.DiffMeta(dsLeft.Meta, dsRight.Meta)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
 						diffMap[k] = metaDiffs
 					}
 				case "visConfig":
-					if p.DsLeft.VisConfig != nil && p.DsRight.VisConfig != nil {
-						visConfigDiffs, err := dsdiff.DiffVisConfig(p.DsLeft.VisConfig, p.DsRight.VisConfig)
+					if dsLeft.VisConfig != nil && dsRight.VisConfig != nil {
+						visConfigDiffs, err := dsdiff.DiffVisConfig(dsLeft.VisConfig, dsRight.VisConfig)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
@@ -950,11 +963,11 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	if p.DiffAll || p.DiffComponents["data"] == true {
 		sd1Params := &StructuredDataParams{
 			Format: dataset.JSONDataFormat,
-			Path:   p.DsLeft.Path().String(),
+			Path:   dsLeft.Path().String(),
 		}
 		sd2Params := &StructuredDataParams{
 			Format: dataset.JSONDataFormat,
-			Path:   p.DsRight.Path().String(),
+			Path:   dsRight.Path().String(),
 		}
 		sd1 := &StructuredData{}
 		sd2 := &StructuredData{}
@@ -988,5 +1001,6 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 		}
 		diffMap["data"] = dataDiffs
 	}
+
 	return nil
 }

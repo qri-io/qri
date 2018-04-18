@@ -13,13 +13,12 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
 	badDataFile := testrepo.BadDataFile
-	jobsByAutomationFile := testrepo.JobsByAutomationFile
+	jobsByAutomationFile := testrepo.NewJobsByAutomationFile()
 	// badDataFormatFile := testrepo.BadDataFormatFile
 	// badStructureFile := testrepo.BadStructureFile
 
@@ -44,8 +43,6 @@ func TestDatasetRequestsInit(t *testing.T) {
 			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// this should work
 		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Data: jobsByAutomationFile}, nil, ""},
-		// Ensure that we can't double-add data
-		// {&InitParams{DataFilename: jobsByAutomationFile2.FileName(), Data: jobsByAutomationFile2}, nil, "this data already exists"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -68,7 +65,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, craigslist repo.DatasetRef
+		movies, counter, cities, craigslist, sitemap repo.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -93,6 +90,8 @@ func TestDatasetRequestsList(t *testing.T) {
 			cities = ref
 		case "craigslist":
 			craigslist = ref
+		case "sitemap":
+			sitemap = ref
 		}
 	}
 
@@ -103,9 +102,9 @@ func TestDatasetRequestsList(t *testing.T) {
 	}{
 		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
 		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
-		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies}, ""},
+		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
@@ -233,7 +232,6 @@ func TestDatasetRequestsRename(t *testing.T) {
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
-		t.Log(mr.References(30, 0))
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -298,6 +296,12 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		t.Errorf("error getting craigslist ref: %s", err.Error())
 		return
 	}
+	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
+	if err != nil {
+		t.Errorf("error getting sitemap ref: %s", err.Error())
+		return
+	}
+
 	var df1 = dataset.JSONDataFormat
 	cases := []struct {
 		p        *StructuredDataParams
@@ -309,6 +313,8 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 		{&StructuredDataParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
 		{&StructuredDataParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
 		{&StructuredDataParams{Format: df1, Path: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&StructuredDataParams{Format: df1, Path: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
+		{&StructuredDataParams{Format: df1, Path: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
@@ -443,67 +449,66 @@ func TestDataRequestsDiff(t *testing.T) {
 	}
 	req := NewDatasetRequests(mr, nil)
 	// File 1
-	dsRef1 := &repo.DatasetRef{}
+	dsFile1 := testrepo.NewJobsByAutomationFile()
+	dsRef1 := repo.DatasetRef{}
 	initParams := &InitParams{
 		Peername:     "peer",
-		DataFilename: jobsByAutomationFile.FileName(),
-		Data:         jobsByAutomationFile,
+		DataFilename: dsFile1.FileName(),
+		Data:         dsFile1,
 		// MetadataFilename: jobsMeta.FileName(),
 		// Metadata:         jobsMeta,
 	}
-	err = req.Init(initParams, dsRef1)
-	t.Log(dsRef1.String())
+	err = req.Init(initParams, &dsRef1)
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 		return
 	}
-	act := actions.Dataset{mr}
-	if err := act.ReadDataset(dsRef1); err != nil {
-		t.Errorf("error reading dataset 1: %s", err.Error())
-		return
-	}
-
-	dsBase := dsRef1.Dataset
 
 	// File 2
-	dsRef2 := &repo.DatasetRef{}
+	// dsFile2 := testrepo.NewJobsByAutomationFile()
+	dsRef2 := repo.DatasetRef{}
 	initParams = &InitParams{
 		Peername:     "peer",
 		DataFilename: jobsByAutomationFile2.FileName(),
 		Data:         jobsByAutomationFile2,
 	}
-	err = req.Init(initParams, dsRef2)
+	err = req.Init(initParams, &dsRef2)
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
-		return
-	}
-	dsNewStructure, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef2.Path))
-	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
 		return
 	}
 
 	//test cases
 	cases := []struct {
-		dsLeft, dsRight *dataset.Dataset
-		displayFormat   string
-		expected        string
-		err             string
+		Left, Right   repo.DatasetRef
+		All           bool
+		Components    map[string]bool
+		displayFormat string
+		expected      string
+		err           string
 	}{
-		{dsBase, dsNewStructure, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
+		{dsRef1, dsRef2, false, map[string]bool{"structure": true}, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
+		{dsRef1, dsRef2, true, nil, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
 	}
 	// execute
 	for i, c := range cases {
-		got, err := dsdiff.DiffDatasets(c.dsLeft, c.dsRight, nil)
-		if err != nil {
-			if err.Error() == c.err {
-				continue
-			} else {
-				t.Errorf("case %d error mismatch: expected '%s', got '%s'", i, c.err, err.Error())
-				return
-			}
+		p := &DiffParams{
+			Left:           c.Left,
+			Right:          c.Right,
+			DiffAll:        c.All,
+			DiffComponents: c.Components,
 		}
-		stringDiffs, err := dsdiff.MapDiffsToString(got, c.displayFormat)
+		res := map[string]*dsdiff.SubDiff{}
+		err := req.Diff(p, &res)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected '%s', got '%s'", i, c.err, err.Error())
+		}
+
+		if c.err != "" {
+			continue
+		}
+
+		stringDiffs, err := dsdiff.MapDiffsToString(res, c.displayFormat)
 		if err != nil {
 			t.Errorf("case %d error mapping to string: %s", i, err.Error())
 		}
@@ -512,39 +517,6 @@ func TestDataRequestsDiff(t *testing.T) {
 		}
 	}
 }
-
-var jobsByAutomationFile = cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
-702,"0.99","41-9041","Telemarketers"
-701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
-700,"0.99","51-6051","Sewers, Hand"
-699,"0.99","15-2091","Mathematical Technicians"
-698,"0.99","13-2053","Insurance Underwriters"
-697,"0.99","49-9064","Watch Repairers"
-696,"0.99","43-5011","Cargo and Freight Agents"
-695,"0.99","13-2082","Tax Preparers"
-694,"0.99","51-9151","Photographic Process Workers and Processing Machine Operators"
-693,"0.99","43-4141","New Accounts Clerks"
-692,"0.99","25-4031","Library Technicians"
-691,"0.99","43-9021","Data Entry Keyers"
-690,"0.98","51-2093","Timing Device Assemblers and Adjusters"
-689,"0.98","43-9041","Insurance Claims and Policy Processing Clerks"
-688,"0.98","43-4011","Brokerage Clerks"
-687,"0.98","43-4151","Order Clerks"
-686,"0.98","13-2072","Loan Officers"
-685,"0.98","13-1032","Insurance Appraisers, Auto Damage"
-684,"0.98","27-2023","Umpires, Referees, and Other Sports Officials"
-683,"0.98","43-3071","Tellers"
-682,"0.98","51-9194","Etchers and Engravers"
-681,"0.98","51-9111","Packaging and Filling Machine Operators and Tenders"
-680,"0.98","43-3061","Procurement Clerks"
-679,"0.98","43-5071","Shipping, Receiving, and Traffic Clerks"
-678,"0.98","51-4035","Milling and Planing Machine Setters, Operators, and Tenders, Metal and Plastic"
-677,"0.98","13-2041","Credit Analysts"
-676,"0.98","41-2022","Parts Salespersons"
-675,"0.98","13-1031","Claims Adjusters, Examiners, and Investigators"
-674,"0.98","53-3031","Driver/Sales Workers"
-673,"0.98","27-4013","Radio Operators"
-`))
 
 var jobsByAutomationFile2 = cafs.NewMemfileBytes("jobs_ranked_by_automation_prob.csv", []byte(`rank,probability_of_automation,industry_code,job_name
 702,"0.99","41-9041","Telemarketers"

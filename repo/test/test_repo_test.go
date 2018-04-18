@@ -19,7 +19,7 @@ func TestNewMemRepoFromDir(t *testing.T) {
 
 	// this should match count of valid testcases
 	// in testdata
-	expectRefCount := 5
+	expectRefCount := 6
 
 	if c != expectRefCount {
 		t.Errorf("expected %d datasets. got %d", expectRefCount, c)
