@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -37,7 +36,7 @@ var peerInfoCmd = &cobra.Command{
 			Peername: args[0],
 		}
 
-		res := &profile.Profile{}
+		res := &core.Profile{}
 		err = req.Info(p, res)
 		ExitIfErr(err)
 

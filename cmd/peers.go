@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"github.com/qri-io/qri/repo/profile"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
@@ -13,8 +12,13 @@ import (
 // peersCmd represents the info command
 var peersCmd = &cobra.Command{
 	Use:   "peers",
+	Short: "commands for working with peers",
+}
+
+var peersListCmd = &cobra.Command{
+	Use:   "list",
 	Short: "list known qri peers",
-	Long:  `peers lists the peers your qri node has seen before`,
+	Long:  `lists the peers your qri node has seen before`,
 	Example: `  list qri peers:
   $ qri peers`,
 	PreRun: func(cmd *cobra.Command, args []string) {
@@ -35,7 +39,7 @@ var peersCmd = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := []*profile.Profile{}
+		res := []*core.Profile{}
 		err = pr.List(&core.ListParams{Limit: 200}, &res)
 		ExitIfErr(err)
 
@@ -56,7 +60,28 @@ var peersCmd = &cobra.Command{
 	},
 }
 
+var peersConnectCommand = &cobra.Command{
+	Use:   "connect",
+	Short: "connect directly to a peer ID",
+	Args:  cobra.MinimumNArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		pr, err := peerRequests(false)
+		ExitIfErr(err)
+
+		res := &core.Profile{}
+		err = pr.ConnectToPeer(&args[0], res)
+		ExitIfErr(err)
+
+		printPeerInfo(0, res)
+	},
+}
+
 func init() {
+	peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
+
+	peersCmd.AddCommand(peersListCmd, peersConnectCommand)
 	RootCmd.AddCommand(peersCmd)
-	peersCmd.Flags().StringP("format", "f", "", "set output format [json]")
 }

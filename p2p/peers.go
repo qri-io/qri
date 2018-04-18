@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/qri/repo/profile"
 
@@ -111,6 +112,11 @@ func (n *QriNode) ConnectToPeer(pid peer.ID) error {
 		return err
 	}
 
-	_, err = n.RequestProfile(pinfo.ID)
-	return err
+	s, err := n.Host.NewStream(n.Context(), pinfo.ID, QriProtocolID)
+	if err != nil {
+		return fmt.Errorf("error opening stream: %s", err.Error())
+	}
+	s.Close()
+
+	return nil
 }

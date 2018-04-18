@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
 )
 
@@ -23,10 +23,13 @@ var connectionsCmd = &cobra.Command{
 		if len(args) != 0 {
 			ErrExit(fmt.Errorf("connections accepts no arguments"))
 		}
+		ipfsPeers, err := cmd.Flags().GetBool("ipfs")
+		ExitIfErr(err)
+
 		req, err := peerRequests(true)
 		ExitIfErr(err)
 
-		if cmd.Flag("ipfs").Value.String() == "true" {
+		if ipfsPeers {
 			limit := 200
 			res := []string{}
 			err := req.ConnectedIPFSPeers(&limit, &res)
@@ -36,7 +39,7 @@ var connectionsCmd = &cobra.Command{
 			}
 		} else {
 			limit := 200
-			res := []*profile.Profile{}
+			res := []*core.Profile{}
 			err := req.ConnectedQriProfiles(&limit, &res)
 			ExitIfErr(err)
 

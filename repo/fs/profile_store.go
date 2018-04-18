@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/doggos"
 	"github.com/qri-io/qri/repo/profile"
 
 	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -20,7 +19,7 @@ var ErrNotFound = fmt.Errorf("Not Found")
 // ProfileStore is an on-disk json file implementation of the
 // repo.Peers interface
 type ProfileStore struct {
-	sync.RWMutex
+	sync.Mutex
 	basepath
 }
 
@@ -44,17 +43,14 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	if p.Peername == "" {
-		p.Peername = doggos.DoggoNick(p.ID.String())
-	}
 	ps[p.ID] = p
 	return r.saveFile(ps, FilePeers)
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
 func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil {
@@ -72,8 +68,8 @@ func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 
 // List hands back the list of peers
 func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil && err.Error() == "EOF" {
@@ -84,8 +80,8 @@ func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 
 // PeernameID gives the profile.ID for a given peername
 func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil {
@@ -102,8 +98,8 @@ func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 
 // GetProfile fetches a profile from the store
 func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil {
@@ -121,8 +117,8 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
 func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
-	r.RLock()
-	defer r.RUnlock()
+	r.Lock()
+	defer r.Unlock()
 
 	ps, err := r.profiles()
 	if err != nil {
@@ -166,7 +162,7 @@ func (r ProfileStore) saveFile(ps map[profile.ID]*profile.Profile, f File) error
 }
 
 func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
-	pss := map[string]*profile.Profile{}
+	// pss := map[string]*profile.Profile{}
 	ps := map[profile.ID]*profile.Profile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
@@ -177,15 +173,15 @@ func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
 		return ps, fmt.Errorf("error loading peers: %s", err.Error())
 	}
 
-	if err := json.Unmarshal(data, &pss); err != nil {
+	if err := json.Unmarshal(data, &ps); err != nil {
 		log.Error(err.Error())
 		// TODO - this is totally screwed for some reason, so for now when things fail,
 		// let's just return an empty list of peers
 		return ps, nil
 		// return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
 	}
-	for _, p := range pss {
-		ps[p.ID] = p
-	}
+	// for _, p := range pss {
+	// 	ps[p.ID] = p
+	// }
 	return ps, nil
 }

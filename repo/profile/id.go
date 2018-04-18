@@ -2,7 +2,6 @@ package profile
 
 import (
 	"encoding/json"
-	"fmt"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
@@ -18,7 +17,7 @@ func (id ID) String() string {
 
 // MarshalJSON implements the json.Marshaler interface for ID
 func (id ID) MarshalJSON() ([]byte, error) {
-	return []byte(fmt.Sprintf(`"%s"`, id.String())), nil
+	return json.Marshal(id.String())
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface for ID
