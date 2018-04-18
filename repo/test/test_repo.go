@@ -55,7 +55,7 @@ func ProfileConfig() *config.Profile {
 
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo() (mr repo.Repo, err error) {
-	datasets := []string{"movies", "cities", "counter", "craigslist"}
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	ms := cafs.NewMapstore()
 	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.NewMemStore())
@@ -175,8 +175,9 @@ colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))
 
-// JobsByAutomationFile is real, valid data
-var JobsByAutomationFile = cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
+// NewJobsByAutomationFile returns a new file of valid csv data
+func NewJobsByAutomationFile() cafs.File {
+	return cafs.NewMemfileBytes("jobs_ranked_by_automation_probability.csv", []byte(`rank,probability_of_automation,soc_code,job_title
 702,"0.99","41-9041","Telemarketers"
 701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
 700,"0.99","51-6051","Sewers, Hand"
@@ -208,3 +209,4 @@ var JobsByAutomationFile = cafs.NewMemfileBytes("jobs_ranked_by_automation_proba
 674,"0.98","53-3031","Driver/Sales Workers"
 673,"0.98","27-4013","Radio Operators"
 `))
+}

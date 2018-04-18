@@ -1,0 +1,23 @@
+{
+  "qri": "ds:0",
+  "meta": {
+    "qri": "md:0",
+    "title": "epa.gov sitemap entry sample",
+    "description" : "this a bunch of test data adapted from a crawl of epa.gov"
+  },
+  "commit": {
+    "qri": "cm:0",
+    "timestamp": "2017-06-01T01:00:00.000Z",
+    "title": "initial commit"
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "json",
+    "schema": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object"
+      }
+    }
+  }
+}

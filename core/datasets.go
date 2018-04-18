@@ -663,7 +663,7 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	st.Assign(ds.Structure, &dataset.Structure{
 		Format:       p.Format,
 		FormatConfig: p.FormatConfig,
-		Schema:       dataset.BaseSchemaArray,
+		Schema:       ds.Structure.Schema,
 	})
 
 	buf, err := dsio.NewEntryBuffer(st)
