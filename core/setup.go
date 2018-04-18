@@ -29,9 +29,6 @@ type SetupParams struct {
 // because remotely invoking setup doesn't make much sense
 func Setup(p SetupParams) error {
 	cfg := p.Config
-	if cfg.Profile == nil {
-		cfg.Profile = config.DefaultProfile()
-	}
 
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %s", err.Error())

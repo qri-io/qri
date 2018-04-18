@@ -126,8 +126,14 @@ func TestConfigValidate(t *testing.T) {
 	}
 
 	//  cases that should fail:
-	// Profile:
 	p := DefaultConfig()
+
+	// Profile:
+	p.Profile = nil
+	if err := p.Validate(); err == nil {
+		t.Error("When given no Profile, config.Validate did not catch the error.")
+	}
+	p.Profile = DefaultProfile()
 	p.Profile.Type = "badType"
 	if err := p.Validate(); err == nil {
 		t.Error("When given bad input in Profile, config.Validate did not catch the error.")
