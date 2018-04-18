@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -451,7 +450,7 @@ func TestDataRequestsDiff(t *testing.T) {
 	req := NewDatasetRequests(mr, nil)
 	// File 1
 	dsFile1 := testrepo.NewJobsByAutomationFile()
-	dsRef1 := &repo.DatasetRef{}
+	dsRef1 := repo.DatasetRef{}
 	initParams := &InitParams{
 		Peername:     "peer",
 		DataFilename: dsFile1.FileName(),
@@ -459,59 +458,57 @@ func TestDataRequestsDiff(t *testing.T) {
 		// MetadataFilename: jobsMeta.FileName(),
 		// Metadata:         jobsMeta,
 	}
-	err = req.Init(initParams, dsRef1)
+	err = req.Init(initParams, &dsRef1)
 	if err != nil {
 		t.Errorf("couldn't load file 1: %s", err.Error())
 		return
 	}
-	act := actions.Dataset{mr}
-	if err := act.ReadDataset(dsRef1); err != nil {
-		t.Errorf("error reading dataset 1: %s", err.Error())
-		return
-	}
-
-	dsBase := dsRef1.Dataset
 
 	// File 2
 	// dsFile2 := testrepo.NewJobsByAutomationFile()
-	dsRef2 := &repo.DatasetRef{}
+	dsRef2 := repo.DatasetRef{}
 	initParams = &InitParams{
 		Peername:     "peer",
 		DataFilename: jobsByAutomationFile2.FileName(),
 		Data:         jobsByAutomationFile2,
 	}
-	err = req.Init(initParams, dsRef2)
+	err = req.Init(initParams, &dsRef2)
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
-		return
-	}
-	dsNewStructure, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(dsRef2.Path))
-	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
 		return
 	}
 
 	//test cases
 	cases := []struct {
-		dsLeft, dsRight *dataset.Dataset
-		displayFormat   string
-		expected        string
-		err             string
+		Left, Right   repo.DatasetRef
+		All           bool
+		Components    map[string]bool
+		displayFormat string
+		expected      string
+		err           string
 	}{
-		{dsBase, dsNewStructure, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
+		{dsRef1, dsRef2, false, map[string]bool{"structure": true}, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
+		{dsRef1, dsRef2, true, nil, "listKeys", "Structure: 3 changes\n\t- modified checksum\n\t- modified length\n\t- modified schema", ""},
 	}
 	// execute
 	for i, c := range cases {
-		got, err := dsdiff.DiffDatasets(c.dsLeft, c.dsRight, nil)
-		if err != nil {
-			if err.Error() == c.err {
-				continue
-			} else {
-				t.Errorf("case %d error mismatch: expected '%s', got '%s'", i, c.err, err.Error())
-				return
-			}
+		p := &DiffParams{
+			Left:           c.Left,
+			Right:          c.Right,
+			DiffAll:        c.All,
+			DiffComponents: c.Components,
 		}
-		stringDiffs, err := dsdiff.MapDiffsToString(got, c.displayFormat)
+		res := map[string]*dsdiff.SubDiff{}
+		err := req.Diff(p, &res)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected '%s', got '%s'", i, c.err, err.Error())
+		}
+
+		if c.err != "" {
+			continue
+		}
+
+		stringDiffs, err := dsdiff.MapDiffsToString(res, c.displayFormat)
 		if err != nil {
 			t.Errorf("case %d error mapping to string: %s", i, err.Error())
 		}

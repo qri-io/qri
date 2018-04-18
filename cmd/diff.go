@@ -3,12 +3,10 @@ package cmd
 import (
 	"fmt"
 
-	// "github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
-	// diff "github.com/yudai/gojsondiff"
 )
 
 var datasetDiffCmd = &cobra.Command{
@@ -22,37 +20,25 @@ either by name or by their hash`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
+	Args: cobra.MinimumNArgs(2),
 	Run: func(cmd *cobra.Command, args []string) {
 		for i, arg := range args {
 			fmt.Printf("%d: %s\n", i, arg)
 		}
-		if len(args) < 2 {
-			ErrExit(fmt.Errorf("please provide names for two datsets"))
-		}
-
-		leftRef, err := repo.ParseDatasetRef(args[0])
-		ExitIfErr(err)
-
-		rightRef, err := repo.ParseDatasetRef(args[1])
-		ExitIfErr(err)
 
 		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
-		left := repo.DatasetRef{}
-		right := repo.DatasetRef{}
-
-		err = req.Get(&leftRef, &left)
+		left, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
-
-		err = req.Get(&rightRef, &right)
+		right, err := repo.ParseDatasetRef(args[1])
 		ExitIfErr(err)
 
 		diffs := make(map[string]*dsdiff.SubDiff)
 
 		p := &core.DiffParams{
-			DsLeft:  left.Dataset,
-			DsRight: right.Dataset,
+			Left:    left,
+			Right:   right,
 			DiffAll: true,
 		}
 
