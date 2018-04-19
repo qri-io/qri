@@ -48,6 +48,9 @@ Using validate this way is a great way to see how changes to data or structure
 will affect a dataset before saving changes to a dataset.`,
 	Example: `  show errors in an existing dataset:
   $ qri validate b5/comics`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

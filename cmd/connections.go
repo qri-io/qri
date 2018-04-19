@@ -10,12 +10,15 @@ import (
 // connectionsCmd lists
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
-	Short: `list open connections with qri & IPFS peers`,
+	Short: `List open connections with qri/IPFS peers`,
 	Example: `  show open qri connections:
   $ qri connections
 
   show all IPFS connections:
   $ qri connections --ipfs`,
+	Annotations: map[string]string{
+		"group": "network",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

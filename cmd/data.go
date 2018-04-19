@@ -27,6 +27,9 @@ var dataCmd = &cobra.Command{
 Data reads records from a dataset`,
 	Example: `  show the first 50 rows of a dataset:
   $ qri data me/dataset_name`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

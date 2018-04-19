@@ -22,6 +22,9 @@ var infoCmd = &cobra.Command{
 
   get info for a dataset at a specific version:
   $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	Args: cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()

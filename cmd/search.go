@@ -17,8 +17,11 @@ var (
 // searchCmd represents the search command
 var searchCmd = &cobra.Command{
 	Use:   "search",
-	Short: "search for datasets",
-	Long:  `Search looks through all of your namespaces for terms that match your query`,
+	Short: "Search qri",
+	Long:  `Search datasets & peers that match your query`,
+	Annotations: map[string]string{
+		"group": "other",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

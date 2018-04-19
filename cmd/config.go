@@ -32,6 +32,9 @@ func loadConfig() {
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "get and set local configuration information",
+	Annotations: map[string]string{
+		"group": "other",
+	},
 	Long: `
 config encapsulates all settings that control the behaviour of qri.
 This includes all kinds of stuff: your profile details; enabling & disabling 

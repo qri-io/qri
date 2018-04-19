@@ -33,10 +33,13 @@ structure. You can also update your data via url. Every time you run save,
 an entry is added to your dataset’s log 
 (which you can see by running “qri log [ref]”). Every time you save, you can 
 provide a message about what you changed and why. If you don’t provide a message 
-we’ll automatically generate one for you.
+qri will automatically generate one for you.
 
 Currently you can only save changes to datasets that you control. Tools for 
 collaboration are in the works. Sit tight sportsfans.`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

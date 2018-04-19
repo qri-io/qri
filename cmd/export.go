@@ -37,6 +37,9 @@ Export gets datasets out of qri. By default it exports only a dataset’s data t
 the path [current directory]/[peername]/[dataset name]/[data file]. 
 
 To export everything about a dataset, use the --dataset flag.`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

@@ -43,6 +43,9 @@ running setup. If setup has already been run, by default qri won’t let you
 overwrite this info.`,
 	Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
+	Annotations: map[string]string{
+		"group": "other",
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 
 		if setupRemove {

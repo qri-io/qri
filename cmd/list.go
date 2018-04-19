@@ -24,6 +24,9 @@ The default list is the latest version of all datasets you have on your local
 qri repository.`,
 	Example: `  show all of your datasets:
   $ qri list`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
@@ -44,8 +47,8 @@ qri repository.`,
 			outformat := cmd.Flag("format").Value.String()
 			switch outformat {
 			case "":
-				for _, ref := range refs {
-					printInfo(ref.String())
+				for i, ref := range refs {
+					printDatasetRefInfo(i+1, ref)
 				}
 			case dataset.JSONDataFormat.String():
 				data, err := json.MarshalIndent(refs, "", "  ")
@@ -81,9 +84,10 @@ qri repository.`,
 			case "":
 				if len(refs) == 0 {
 					printInfo("%s has no datasets", args[0])
-				}
-				for _, ref := range refs {
-					printInfo(ref.String())
+				} else {
+					for i, ref := range refs {
+						printDatasetRefInfo(i+1, ref)
+					}
 				}
 			case dataset.JSONDataFormat.String():
 				data, err := json.MarshalIndent(refs, "", "  ")
