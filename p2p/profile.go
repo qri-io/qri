@@ -37,7 +37,7 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 	}
 
 	res := <-replies
-	log.Debug(res)
+	log.Debugf("profile response for message: %s", res.ID)
 
 	cp := &profile.CodingProfile{}
 	if err := json.Unmarshal(res.Body, cp); err != nil {
@@ -68,20 +68,7 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 		return
 	}
 
-	// pids, err := pro.PeerIDs()
-	// if err != nil {
-	// 	log.Debug(err.Error())
-	// 	return
-	// }
-
 	pro.Updated = time.Now()
-	n.Repo.Profiles().PutProfile(pro)
-
-	// log.Debugf("adding peer: %s", pid.Pretty())
-	// if err := n.Repo.Profiles().PutPeer(pid, pro); err != nil {
-	// 	log.Debug(err.Error())
-	// 	return
-	// }
 
 	data, err := n.profileBytes()
 	if err != nil {
