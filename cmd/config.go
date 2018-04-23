@@ -10,6 +10,7 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -32,6 +33,9 @@ func loadConfig() {
 var configCmd = &cobra.Command{
 	Use:   "config",
 	Short: "get and set local configuration information",
+	Annotations: map[string]string{
+		"group": "other",
+	},
 	Long: `
 config encapsulates all settings that control the behaviour of qri.
 This includes all kinds of stuff: your profile details; enabling & disabling 
@@ -178,7 +182,7 @@ func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
 		Filename: f.Name(),
 		Data:     f,
 	}
-	res := &core.Profile{}
+	res := &profile.CodingProfile{}
 
 	switch proppath {
 	case "profile.photo", "profile.thumb":

@@ -9,6 +9,7 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
 
@@ -35,7 +36,7 @@ func Setup(p SetupParams) error {
 	}
 
 	if cfg.Registry != nil {
-		privkey, err := cfg.Profile.DecodePrivateKey()
+		pro, err := profile.NewProfile(cfg.Profile)
 		if err != nil {
 			return err
 		}
@@ -44,7 +45,7 @@ func Setup(p SetupParams) error {
 			Location: cfg.Registry.Location,
 		})
 
-		if err := reg.PutProfile(cfg.Profile.Peername, privkey); err != nil {
+		if err := reg.PutProfile(pro.Peername, pro.PrivKey); err != nil {
 			if strings.Contains(err.Error(), "taken") {
 				return ErrHandleTaken
 			}
@@ -105,7 +106,7 @@ func Teardown(p TeardownParams) error {
 	cfg := p.Config
 
 	if cfg.Registry != nil {
-		privkey, err := cfg.Profile.DecodePrivateKey()
+		pro, err := profile.NewProfile(cfg.Profile)
 		if err != nil {
 			return err
 		}
@@ -114,7 +115,7 @@ func Teardown(p TeardownParams) error {
 			Location: cfg.Registry.Location,
 		})
 
-		if err := reg.DeleteProfile(cfg.Profile.Peername, privkey); err != nil {
+		if err := reg.DeleteProfile(pro.Peername, pro.PrivKey); err != nil {
 			return err
 		}
 	}

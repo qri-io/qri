@@ -2,6 +2,7 @@ package api
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -18,7 +19,10 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/registry"
+	"github.com/qri-io/registry/regserver/handlers"
 )
 
 func confirmQriNotRunning() error {
@@ -40,6 +44,9 @@ func TestServerRoutes(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
+	// use a test registry server
+	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
+
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
 	// we use the dsfs.Timestamp func variable to override
@@ -58,9 +65,10 @@ func TestServerRoutes(t *testing.T) {
 
 	core.Config = config.DefaultConfig()
 	core.Config.Profile = test.ProfileConfig()
+	core.Config.Registry.Location = registryServer.URL
 	prevSaveConfig := core.SaveConfig
 	core.SaveConfig = func() error {
-		p, err := core.Config.Profile.DecodeProfile()
+		p, err := profile.NewProfile(core.Config.Profile)
 		if err != nil {
 			return err
 		}
@@ -179,6 +187,14 @@ func TestServerRoutes(t *testing.T) {
 
 		if res.StatusCode != c.resStatus {
 			t.Errorf("case %d: %s - %s status code mismatch. expected: %d, got: %d", i, c.method, c.endpoint, c.resStatus, res.StatusCode)
+			env := struct {
+				Meta struct {
+					Error string
+				}
+			}{}
+			if err := json.NewDecoder(res.Body).Decode(&env); err == nil {
+				t.Errorf("\terror message: %s", env.Meta.Error)
+			}
 			continue
 		}
 

@@ -8,7 +8,6 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
@@ -39,24 +38,19 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, cfg *config.Profile, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
 	bp := basepath(base)
 
-	p, err := cfg.DecodeProfile()
-	if err != nil {
-		return nil, err
-	}
-	pk, err := cfg.DecodePrivateKey()
-	if err != nil {
-		return nil, err
+	if pro.PrivKey == nil {
+		return nil, fmt.Errorf("Expected: PrivateKey")
 	}
 
 	r := &Repo{
-		profile: p,
-		pk:      pk,
+		profile: pro,
+		pk:      pro.PrivKey,
 
 		store:    store,
 		basepath: bp,
@@ -77,7 +71,7 @@ func NewRepo(store cafs.Filestore, cfg *config.Profile, base string) (repo.Repo,
 	// 	r.graph, _ = repo.Graph(r)
 	// }()
 
-	if err = r.Profiles().PutProfile(p); err != nil {
+	if err := r.Profiles().PutProfile(pro); err != nil {
 		return nil, err
 	}
 

@@ -35,13 +35,13 @@ func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 }
 
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *ListParams, res *[]*Profile) error {
+func (d *PeerRequests) List(p *ListParams, res *[]*profile.CodingProfile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
 
 	r := d.qriNode.Repo
-	replies := make([]*Profile, p.Limit)
+	replies := make([]*profile.CodingProfile, p.Limit)
 
 	user, err := r.Profile()
 	if err != nil {
@@ -54,7 +54,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*Profile) error {
 	}
 
 	if len(ps) == 0 {
-		*res = []*Profile{}
+		*res = []*profile.CodingProfile{}
 		return nil
 	}
 
@@ -66,12 +66,11 @@ func (d *PeerRequests) List(p *ListParams, res *[]*Profile) error {
 		if pro == nil || pro.ID == user.ID {
 			continue
 		}
-		replies[i], err = marshalProfile(pro)
+		replies[i], err = pro.Encode()
 		if err != nil {
 			return err
 		}
 
-		// = &profile.Profile{Peername: peer.Peername, ID: peer.ID}
 		i++
 	}
 
@@ -90,24 +89,24 @@ func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 	return nil
 }
 
-// Peer is a quick proxy for profile.Profile that plays
-// nice with encoding/gob
-type Peer struct {
-	ID       string
-	IPFSID   string
-	Peername string
-	Name     string
-}
+// // Peer is a quick proxy for profile.Profile that plays
+// // nice with encoding/gob
+// type Peer struct {
+// 	ID       string
+// 	IPFSID   string
+// 	Peername string
+// 	Name     string
+// }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*Profile) error {
+func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*profile.CodingProfile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	parsed := []*Profile{}
+	parsed := []*profile.CodingProfile{}
 	for _, p := range d.qriNode.ConnectedQriProfiles() {
-		pro, err := marshalProfile(p)
+		pro, err := p.Encode()
 		if err != nil {
 			return err
 		}
@@ -119,7 +118,7 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*Profile) error
 }
 
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (d *PeerRequests) ConnectToPeer(b58pid *string, res *Profile) error {
+func (d *PeerRequests) ConnectToPeer(b58pid *string, res *profile.CodingProfile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectToPeer", b58pid, res)
 	}
@@ -137,7 +136,7 @@ func (d *PeerRequests) ConnectToPeer(b58pid *string, res *Profile) error {
 	if err != nil {
 		return err
 	}
-	pro, err := marshalProfile(prof)
+	pro, err := prof.Encode()
 	if err != nil {
 		return err
 	}
@@ -153,7 +152,7 @@ type PeerInfoParams struct {
 }
 
 // Info shows peer profile details
-func (d *PeerRequests) Info(p *PeerInfoParams, res *Profile) error {
+func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.CodingProfile) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.Info", p, res)
 	}
@@ -168,7 +167,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *Profile) error {
 
 	for _, pro := range profiles {
 		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
-			prof, err := marshalProfile(pro)
+			prof, err := pro.Encode()
 			*res = *prof
 			return err
 		}

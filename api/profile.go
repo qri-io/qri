@@ -8,6 +8,7 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -43,7 +44,7 @@ func (h *ProfileHandlers) ProfileHandler(w http.ResponseWriter, r *http.Request)
 
 func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Request) {
 	args := true
-	res := &core.Profile{}
+	res := &profile.CodingProfile{}
 	if err := h.GetProfile(&args, res); err != nil {
 		log.Infof("error getting profile: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -54,12 +55,12 @@ func (h *ProfileHandlers) getProfileHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *ProfileHandlers) saveProfileHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.Profile{}
+	p := &profile.CodingProfile{}
 	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding request body: %s", err.Error()))
 		return
 	}
-	res := &core.Profile{}
+	res := &profile.CodingProfile{}
 	if err := h.SaveProfile(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error saving profile: %s", err.Error()))
 		return
@@ -83,10 +84,10 @@ func (h *ProfileHandlers) ProfilePhotoHandler(w http.ResponseWriter, r *http.Req
 
 func (h *ProfileHandlers) getProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
 	data := []byte{}
-	req := &core.Profile{
-		Peername: r.FormValue("peername"),
-		ID:       r.FormValue("id"),
-	}
+	req := &profile.CodingProfile{}
+	req.Peername = r.FormValue("peername")
+	req.ID = r.FormValue("id")
+
 	if err := h.ProfilePhoto(req, &data); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -114,7 +115,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 		}
 	}
 
-	res := &core.Profile{}
+	res := &profile.CodingProfile{}
 	if err := h.SetProfilePhoto(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -139,10 +140,10 @@ func (h *ProfileHandlers) PosterHandler(w http.ResponseWriter, r *http.Request) 
 
 func (h *ProfileHandlers) getPosterHandler(w http.ResponseWriter, r *http.Request) {
 	data := []byte{}
-	req := &core.Profile{
-		Peername: r.FormValue("peername"),
-		ID:       r.FormValue("id"),
-	}
+	req := &profile.CodingProfile{}
+	req.Peername = r.FormValue("peername")
+	req.ID = r.FormValue("id")
+
 	if err := h.PosterPhoto(req, &data); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -169,7 +170,7 @@ func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Reques
 		}
 	}
 
-	res := &core.Profile{}
+	res := &profile.CodingProfile{}
 	if err := h.SetPosterPhoto(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

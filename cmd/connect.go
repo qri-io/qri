@@ -29,6 +29,9 @@ var (
 var connectCmd = &cobra.Command{
 	Use:   "connect",
 	Short: "connect to the distributed web, start a local API server",
+	Annotations: map[string]string{
+		"group": "network",
+	},
 	Long: `
 While it’s not totally accurate, connect is like starting a server. running 
 connect will start a process and stay there until you exit the process 

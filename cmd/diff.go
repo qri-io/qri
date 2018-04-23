@@ -16,7 +16,10 @@ var datasetDiffCmd = &cobra.Command{
 Diff compares two datasets from your repo and prints a represntation 
 of the differences between them.  You can specifify the datasets
 either by name or by their hash`,
-	Example: `todo`,
+	// Example: `todo`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

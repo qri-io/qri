@@ -3,19 +3,22 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
 // connectionsCmd lists
 var connectionsCmd = &cobra.Command{
 	Use:   "connections",
-	Short: `list open connections with qri & IPFS peers`,
+	Short: `List open connections with qri/IPFS peers`,
 	Example: `  show open qri connections:
   $ qri connections
 
   show all IPFS connections:
   $ qri connections --ipfs`,
+	Annotations: map[string]string{
+		"group": "network",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
@@ -39,7 +42,7 @@ var connectionsCmd = &cobra.Command{
 			}
 		} else {
 			limit := 200
-			res := []*core.Profile{}
+			res := []*profile.CodingProfile{}
 			err := req.ConnectedQriProfiles(&limit, &res)
 			ExitIfErr(err)
 

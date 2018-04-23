@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -98,7 +99,7 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	// fmt.Println()
 }
 
-func printPeerInfo(i int, p *core.Profile) {
+func printPeerInfo(i int, p *profile.CodingProfile) {
 	white := color.New(color.FgWhite).SprintFunc()
 	// cyan := color.New(color.FgCyan).SprintFunc()
 	// blue := color.New(color.FgBlue).SprintFunc()

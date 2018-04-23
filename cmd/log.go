@@ -30,6 +30,9 @@ details in order of occurrence, starting with the most recent known version,
 working backwards in time.`,
 	Example: `  show log for the dataset b5/precip:
 	$ qri log b5/precip`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},

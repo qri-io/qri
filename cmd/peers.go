@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -13,6 +14,41 @@ import (
 var peersCmd = &cobra.Command{
 	Use:   "peers",
 	Short: "commands for working with peers",
+	Annotations: map[string]string{
+		"group": "network",
+	},
+}
+
+var peersInfoCmd = &cobra.Command{
+	Use:   "info",
+	Short: `Get info on a qri peer`,
+	Example: `  show info on a peer named "b5":
+  $ qri peers info b5`,
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
+		if len(args) < 1 {
+			ErrExit(fmt.Errorf("peer name is required"))
+		}
+
+		printInfo("searching for peer %s...", args[0])
+		req, err := peerRequests(true)
+		ExitIfErr(err)
+
+		p := &core.PeerInfoParams{
+			Peername: args[0],
+		}
+
+		res := &profile.CodingProfile{}
+		err = req.Info(p, res)
+		ExitIfErr(err)
+
+		data, err := json.MarshalIndent(res, "", "  ")
+		ExitIfErr(err)
+
+		printSuccess(string(data))
+	},
 }
 
 var peersListCmd = &cobra.Command{
@@ -20,7 +56,7 @@ var peersListCmd = &cobra.Command{
 	Short: "list known qri peers",
 	Long:  `lists the peers your qri node has seen before`,
 	Example: `  list qri peers:
-  $ qri peers`,
+  $ qri peers list`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
@@ -39,7 +75,7 @@ var peersListCmd = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := []*core.Profile{}
+		res := []*profile.CodingProfile{}
 		err = pr.List(&core.ListParams{Limit: 200}, &res)
 		ExitIfErr(err)
 
@@ -71,7 +107,7 @@ var peersConnectCommand = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := &core.Profile{}
+		res := &profile.CodingProfile{}
 		err = pr.ConnectToPeer(&args[0], res)
 		ExitIfErr(err)
 
@@ -82,6 +118,6 @@ var peersConnectCommand = &cobra.Command{
 func init() {
 	peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
 
-	peersCmd.AddCommand(peersListCmd, peersConnectCommand)
+	peersCmd.AddCommand(peersInfoCmd, peersListCmd, peersConnectCommand)
 	RootCmd.AddCommand(peersCmd)
 }

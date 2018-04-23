@@ -3,7 +3,7 @@
   "created": "0001-01-01T00:00:00Z",
   "updated": "0001-01-01T00:00:00Z",
   "peername": "peer",
-  "type": "user",
+  "type": "peer",
   "email": "test@email.com",
   "name": "test name",
   "description": "test description",

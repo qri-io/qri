@@ -11,6 +11,9 @@ var versionCmd = &cobra.Command{
 	Short: "print the version number",
 	Long: `qri uses semantic versioning.
 	For updates & further information check https://github.com/qri-io/qri/releases`,
+	Annotations: map[string]string{
+		"group": "other",
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		printInfo(VersionNumber)
 	},

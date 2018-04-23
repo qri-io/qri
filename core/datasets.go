@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
 
@@ -60,6 +61,7 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 
 // List returns this repo's datasets
 func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
+
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
@@ -88,9 +90,20 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
 
-		pro, err := r.repo.Profiles().GetProfile(ds.ProfileID)
+		profiles, err := r.Repo().Profiles().List()
 		if err != nil {
-			return fmt.Errorf("error %s", err.Error())
+			log.Debug(err.Error())
+			return fmt.Errorf("error fetching profile: %s", err.Error())
+		}
+
+		var pro *profile.Profile
+		for _, p := range profiles {
+			if ds.ProfileID.String() == p.ID.String() || ds.Peername == p.Peername {
+				pro = p
+			}
+		}
+		if pro == nil {
+			return fmt.Errorf("couldn't find profile: %s", err.Error())
 		}
 
 		ids := pro.PeerIDs()
@@ -103,6 +116,9 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			Offset: p.Offset,
 		})
 		*res = replies
+		if err != nil {
+			err = fmt.Errorf("error requesting dataset list: %s", err.Error())
+		}
 		return err
 	}
 
@@ -718,7 +734,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 
 	if ref.Path == "" && r.Node != nil {
 		if err := r.Node.RequestDataset(ref); err != nil {
-			return err
+			return fmt.Errorf("error requesting dataset: %s", err.Error())
 		}
 	}
 

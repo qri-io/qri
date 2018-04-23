@@ -24,8 +24,11 @@ var (
 
 var datasetAddCmd = &cobra.Command{
 	Use:        "add",
-	Short:      "add a dataset to your local repository",
+	Short:      "Add a dataset",
 	SuggestFor: []string{"init"},
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	Long: `
 Add creates a new dataset from data you supply. Please note that all data added 
 to qri is made public on the distributed web when you run qri connect.
@@ -67,7 +70,6 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
-
 			if addDsPrivate {
 				ErrExit(fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"))
 			}

@@ -21,6 +21,9 @@ with it, especially if you want other people to like your datasets.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) != 2 {
 			ErrExit(fmt.Errorf("please provide current & new dataset names"))

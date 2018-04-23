@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -22,6 +23,9 @@ var infoCmd = &cobra.Command{
 
   get info for a dataset at a specific version:
   $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+	Annotations: map[string]string{
+		"group": "dataset",
+	},
 	Args: cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
@@ -67,7 +71,7 @@ var infoCmd = &cobra.Command{
 				p := &core.PeerInfoParams{
 					Peername: ref.Peername,
 				}
-				res := &core.Profile{}
+				res := &profile.CodingProfile{}
 				err := pr.Info(p, res)
 				if err != nil {
 					printSuccess(err.Error())

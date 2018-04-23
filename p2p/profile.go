@@ -39,8 +39,14 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 	res := <-replies
 	log.Debug(res)
 
+	cp := &profile.CodingProfile{}
+	if err := json.Unmarshal(res.Body, cp); err != nil {
+		log.Debug(err.Error())
+		return nil, err
+	}
+
 	pro := &profile.Profile{}
-	if err := json.Unmarshal(res.Body, pro); err != nil {
+	if err := pro.Decode(cp); err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
@@ -96,6 +102,11 @@ func (n *QriNode) profileBytes() ([]byte, error) {
 		log.Debugf("error getting repo profile: %s\n", err.Error())
 		return nil, err
 	}
+	cp, err := p.Encode()
+	if err != nil {
+		log.Debugf("error encoding repo profile: %s\n", err.Error())
+		return nil, err
+	}
 
-	return json.Marshal(p)
+	return json.Marshal(cp)
 }
