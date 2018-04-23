@@ -36,6 +36,11 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 		return fmt.Errorf("profile ID is required")
 	}
 
+	enc, err := p.Encode()
+	if err != nil {
+		return fmt.Errorf("error encoding profile: %s", err.Error())
+	}
+
 	r.Lock()
 	defer r.Unlock()
 
@@ -43,7 +48,7 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 	if err != nil {
 		return err
 	}
-	ps[p.ID] = p
+	ps[p.ID] = enc
 	return r.saveFile(ps, FilePeers)
 }
 
@@ -57,9 +62,13 @@ func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 		return nil, err
 	}
 
-	for proid, profile := range ps {
+	for proid, cp := range ps {
 		if id == proid {
-			return profile.PeerIDs(), nil
+			pro := &profile.Profile{}
+			if err := pro.Decode(cp); err != nil {
+				return nil, err
+			}
+			return pro.PeerIDs(), err
 		}
 	}
 
@@ -74,8 +83,20 @@ func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 	ps, err := r.profiles()
 	if err != nil && err.Error() == "EOF" {
 		return map[profile.ID]*profile.Profile{}, nil
+	} else if err != nil {
+		return nil, err
 	}
-	return ps, err
+
+	profiles := map[profile.ID]*profile.Profile{}
+	for id, cp := range ps {
+		pro := &profile.Profile{}
+		if err := pro.Decode(cp); err != nil {
+			return nil, err
+		}
+		profiles[id] = pro
+	}
+
+	return profiles, nil
 }
 
 // PeernameID gives the profile.ID for a given peername
@@ -88,9 +109,9 @@ func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 		return "", err
 	}
 
-	for _, profile := range ps {
-		if profile.Peername == peername {
-			return profile.ID, nil
+	for id, cp := range ps {
+		if cp.Peername == peername {
+			return id, nil
 		}
 	}
 	return "", datastore.ErrNotFound
@@ -106,9 +127,11 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
-	for proid, d := range ps {
+	for proid, p := range ps {
 		if id == proid {
-			return d, nil
+			pro := &profile.Profile{}
+			err := pro.Decode(p)
+			return pro, err
 		}
 	}
 
@@ -125,9 +148,11 @@ func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
-	for _, profile := range ps {
-		if _, ok := profile.Addresses[id.Pretty()]; ok {
-			return profile, nil
+	for _, p := range ps {
+		if _, ok := p.Addresses[id.Pretty()]; ok {
+			pro := &profile.Profile{}
+			err := pro.Decode(p)
+			return pro, err
 		}
 	}
 
@@ -147,13 +172,14 @@ func (r ProfileStore) DeleteProfile(id profile.ID) error {
 	return r.saveFile(ps, FilePeers)
 }
 
-func (r ProfileStore) saveFile(ps map[profile.ID]*profile.Profile, f File) error {
-	pss := map[string]*profile.Profile{}
-	for _, p := range ps {
-		pss[p.ID.String()] = p
-	}
+func (r ProfileStore) saveFile(ps map[profile.ID]*profile.CodingProfile, f File) error {
+	log.Debugf("writing profiles: %s", r.filepath(f))
+	// pss := map[string]*profile.Profile{}
+	// for _, p := range ps {
+	// 	pss[p.ID.String()] = p
+	// }
 
-	data, err := json.Marshal(pss)
+	data, err := json.Marshal(ps)
 	if err != nil {
 		log.Debug(err.Error())
 		return err
@@ -161,9 +187,9 @@ func (r ProfileStore) saveFile(ps map[profile.ID]*profile.Profile, f File) error
 	return ioutil.WriteFile(r.filepath(f), data, os.ModePerm)
 }
 
-func (r *ProfileStore) profiles() (map[profile.ID]*profile.Profile, error) {
-	// pss := map[string]*profile.Profile{}
-	ps := map[profile.ID]*profile.Profile{}
+func (r *ProfileStore) profiles() (map[profile.ID]*profile.CodingProfile, error) {
+	log.Debug("reading profiles")
+	ps := map[profile.ID]*profile.CodingProfile{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
 		if os.IsNotExist(err) {

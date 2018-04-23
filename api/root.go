@@ -7,6 +7,7 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // RootHandler bundles handlers that may need to be called
@@ -34,7 +35,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		p := &core.PeerInfoParams{
 			Peername: ref.Peername,
 		}
-		res := &core.Profile{}
+		res := &profile.CodingProfile{}
 		err := mh.ph.Info(p, res)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)

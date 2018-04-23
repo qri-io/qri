@@ -70,7 +70,6 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
-
 			if addDsPrivate {
 				ErrExit(fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"))
 			}

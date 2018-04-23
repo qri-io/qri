@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -21,8 +22,8 @@ var peersCmd = &cobra.Command{
 var peersInfoCmd = &cobra.Command{
 	Use:   "info",
 	Short: `Get info on a qri peer`,
-	Example: `  show info on a user named "mr0grog":
-  $ qri peers info mr0grog`,
+	Example: `  show info on a peer named "b5":
+  $ qri peers info b5`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
@@ -39,7 +40,7 @@ var peersInfoCmd = &cobra.Command{
 			Peername: args[0],
 		}
 
-		res := &core.Profile{}
+		res := &profile.CodingProfile{}
 		err = req.Info(p, res)
 		ExitIfErr(err)
 
@@ -74,7 +75,7 @@ var peersListCmd = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := []*core.Profile{}
+		res := []*profile.CodingProfile{}
 		err = pr.List(&core.ListParams{Limit: 200}, &res)
 		ExitIfErr(err)
 
@@ -106,7 +107,7 @@ var peersConnectCommand = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := &core.Profile{}
+		res := &profile.CodingProfile{}
 		err = pr.ConnectToPeer(&args[0], res)
 		ExitIfErr(err)
 

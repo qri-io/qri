@@ -28,7 +28,7 @@ func TestProfileRequestsGet(t *testing.T) {
 
 	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &Profile{}
+		got := &profile.CodingProfile{}
 		err := req.GetProfile(&c.in, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -46,12 +46,12 @@ func TestProfileRequestsSave(t *testing.T) {
 	defer func() { SaveConfig = prev }()
 
 	cases := []struct {
-		p   *Profile
-		res *Profile
+		p   *profile.CodingProfile
+		res *profile.CodingProfile
 		err string
 	}{
 		{nil, nil, "profile required for update"},
-		{&Profile{}, nil, ""},
+		{&profile.CodingProfile{}, nil, ""},
 		// TODO - moar tests
 	}
 
@@ -63,7 +63,7 @@ func TestProfileRequestsSave(t *testing.T) {
 
 	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &Profile{}
+		got := &profile.CodingProfile{}
 		err := req.SaveProfile(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -110,7 +110,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &Profile{}
+		res := &profile.CodingProfile{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
@@ -161,7 +161,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &Profile{}
+		res := &profile.CodingProfile{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())

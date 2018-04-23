@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 var (
@@ -29,7 +30,10 @@ func getRepo(online bool) repo.Repo {
 	}
 
 	fs := getIpfsFilestore(online)
-	r, err := fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
+	pro, err := profile.NewProfile(core.Config.Profile)
+	ExitIfErr(err)
+
+	r, err := fsrepo.NewRepo(fs, pro, QriRepoPath)
 	ExitIfErr(err)
 
 	return r
@@ -136,7 +140,10 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		cfg.FsRepoPath = IpfsFsPath
 		cfg.Online = online
 	}); err == nil {
-		r, err := fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
+		pro, err := profile.NewProfile(core.Config.Profile)
+		ExitIfErr(err)
+
+		r, err := fsrepo.NewRepo(fs, pro, QriRepoPath)
 		ExitIfErr(err)
 
 		return r, nil, err
@@ -169,7 +176,10 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 		return
 	}
 
-	r, err = fsrepo.NewRepo(fs, core.Config.Profile, QriRepoPath)
+	pro, err := profile.NewProfile(core.Config.Profile)
+	ExitIfErr(err)
+
+	r, err = fsrepo.NewRepo(fs, pro, QriRepoPath)
 	if err != nil {
 		return
 	}
