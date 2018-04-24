@@ -5,7 +5,7 @@ default: build
 
 require-gopath:
 ifndef GOPATH
-	$(error $GOPATH must be set. plz check: https://github.com/golang/go/wiki/SettingGOPATH)
+	$(error $$GOPATH must be set. plz check: https://github.com/golang/go/wiki/SettingGOPATH)
 endif
 
 build: require-gopath
