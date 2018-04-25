@@ -356,7 +356,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "can only add datasets when running an IPFS filestore"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "this store cannot fetch from remote sources"},
 	}
 
 	mr, err := testrepo.NewTestRepo()

@@ -1,12 +1,14 @@
 package actions
 
 import (
+	"fmt"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"strings"
 )
 
 // Dataset wraps a repo.Repo, adding actions related to working
@@ -17,6 +19,7 @@ type Dataset struct {
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
 func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (ref repo.DatasetRef, err error) {
+	log.Debug("CreateDataset: %s", name)
 	var (
 		path datastore.Key
 		pro  *profile.Profile
@@ -67,10 +70,51 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 	return
 }
 
+// AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
+// TODO - this needs tests, first we need an implementation of the fetcher interface that isn't cafs/ipfs
+func (act Dataset) AddDataset(ref *repo.DatasetRef) (err error) {
+	log.Debugf("AddDataset: %s", ref)
+	fetcher, ok := act.Store().(cafs.Fetcher)
+	if !ok {
+		err = fmt.Errorf("this store cannot fetch from remote sources")
+		return
+	}
+
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
+	_, err = fetcher.Fetch(cafs.SourceAny, key)
+	if err != nil {
+		return fmt.Errorf("error fetching file: %s", err.Error())
+	}
+
+	if err = act.PinDataset(*ref); err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error pinning root key: %s", err.Error())
+	}
+
+	if err = act.PutRef(*ref); err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
+	}
+
+	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+	ds, err := dsfs.LoadDataset(act.Store(), path)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
+	}
+
+	ref.Dataset = ds.Encode()
+	return
+}
+
 // ReadDataset grabs a dataset from the store
 func (act Dataset) ReadDataset(ref *repo.DatasetRef) (err error) {
 	if act.Repo.Store() != nil {
-		ref.Dataset, err = dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+		ds, e := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+		if err != nil {
+			return e
+		}
+		ref.Dataset = ds.Encode()
 		return
 	}
 

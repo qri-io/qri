@@ -28,6 +28,7 @@ either by name or by their hash`,
 		for i, arg := range args {
 			fmt.Printf("%d: %s\n", i, arg)
 		}
+		requireNotRPC(cmd.Name())
 
 		req, err := datasetRequests(false)
 		ExitIfErr(err)

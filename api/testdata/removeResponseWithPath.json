@@ -7,6 +7,7 @@
     "dataset": {
       "commit": {
         "message": "\t- modified title\n",
+        "path": "/map/QmRH82qw8YeDyJjgF9D8oAouT2fv8xNQ4j6k4T9DQSEYTd",
         "qri": "cm:0",
         "signature": "7Q7oxwcSqkgRyUL91i7x6eoLjp9JKodFeqxU13Wkhan2h3jQt9mJAUVaJv2Dr1FNLFjA4u6FGAnejHbLDCoEteMYWNbEAvB7BJdCZ7dtPbMePY8C7yskuSN94fZknHLHiHZPMiCeeEDsNytyK4xwKqUcwQWVwV7zfLdB91g1NrFgC2aiRCZcpRiurYYo58ZSeP589qFh3fGqxF7vttf7z59E68sN7n6Cnmwx7RxY3rnDz9K6t4fLEpHma13k6foMd7Vus8HwPLi8b9fUVy4UjG6vmsGkLcJ1kHaGTwWx6K42frhAwLA69BeSFtuHHnvxNSzmg75Hg9BDpejpg8a8RwyPkLJWev",
         "timestamp": "2001-01-01T01:01:01.000000001Z",
@@ -26,42 +27,21 @@
         "qri": "md:0",
         "title": "Updated Title"
       },
+      "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
       "previousPath": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
       "qri": "ds:0",
       "structure": {
         "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
-        "entries": 6,
         "errCount": 0,
+        "entries": 6,
         "format": "csv",
         "formatConfig": {
           "headerRow": true
         },
         "length": 186,
+        "path": "/map/QmepW2zjR3FcJrM9Q26xzx3ai7FFnPzwQUtAB98pFVGVzj",
         "qri": "st:0",
-        "schema": {
-          "items": {
-            "items": [
-              {
-                "title": "city",
-                "type": "string"
-              },
-              {
-                "title": "pop",
-                "type": "integer"
-              },
-              {
-                "title": "avg_age",
-                "type": "number"
-              },
-              {
-                "title": "in_usa",
-                "type": "string"
-              }
-            ],
-            "type": "array"
-          },
-          "type": "array"
-        }
+        "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJjaXR5IiwidHlwZSI6InN0cmluZyJ9LHsidGl0bGUiOiJwb3AiLCJ0eXBlIjoiaW50ZWdlciJ9LHsidGl0bGUiOiJhdmdfYWdlIiwidHlwZSI6Im51bWJlciJ9LHsidGl0bGUiOiJpbl91c2EiLCJ0eXBlIjoic3RyaW5nIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
       }
     }
   },

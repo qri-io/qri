@@ -48,6 +48,18 @@ func getIpfsFilestore(online bool) *ipfs.Filestore {
 	return fs
 }
 
+func requireNotRPC(cmdName string) {
+	if core.Config.RPC.Enabled {
+		if conn, err := net.Dial("tcp", fmt.Sprintf(":%d", core.Config.RPC.Port)); err == nil {
+			conn.Close()
+			err = fmt.Errorf(`sorry, we can't run the '%s' command while 'qri connect' is running
+we know this is super irritating, and it'll be fixed in the future. 
+In the meantime please close qri and re-run this command`, cmdName)
+			ErrExit(err)
+		}
+	}
+}
+
 func datasetRequests(online bool) (*core.DatasetRequests, error) {
 	// TODO - bad bad hardcode
 	if conn, err := net.Dial("tcp", ":2504"); err == nil {

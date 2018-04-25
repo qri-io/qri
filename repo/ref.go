@@ -56,7 +56,16 @@ type DatasetRef struct {
 	// Content-addressed path for this dataset
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset,omitempty"`
+	Dataset *dataset.CodingDataset `json:"dataset,omitempty"`
+}
+
+// DecodeDataset returns a dataset.Dataset from the stored CodingDataset field
+func (r DatasetRef) DecodeDataset() (*dataset.Dataset, error) {
+	if r.Dataset == nil {
+		return nil, nil
+	}
+	ds := &dataset.Dataset{}
+	return ds, ds.Decode(r.Dataset)
 }
 
 // String implements the Stringer interface for DatasetRef

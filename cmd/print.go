@@ -61,7 +61,7 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	blue := color.New(color.FgBlue).SprintFunc()
 	ds := ref.Dataset
 
-	fmt.Printf("%s  %s\n", cyan(i), white(ref.Name))
+	fmt.Printf("%s  %s\n", cyan(i), white(ref.AliasString()))
 	fmt.Printf("    %s\n", blue(ref.Path))
 	if ds != nil && ds.Meta != nil {
 		if ds.Meta.Title != "" {

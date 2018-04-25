@@ -1,6 +1,7 @@
 {
   "data": {
     "commit": {
+      "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
       "qri": "cm:0",
       "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
       "timestamp": "2001-01-01T01:01:01.000000001Z",
@@ -12,33 +13,20 @@
       "downloadPath": "http://insight.dev.schoolwires.com/HelpAssets/C2Assets/C2Files/C2ImportFamRelSample.csv",
       "qri": "md:0"
     },
+    "path": "/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N",
     "qri": "ds:0",
     "structure": {
       "checksum": "QmXGZq5E3HmHzNHuoF9bHuCNaBSxpVtazPbCAQMcMnQqAG",
-      "entries": 2,
       "errCount": 0,
+      "entries": 2,
       "format": "csv",
       "formatConfig": {
         "headerRow": true
       },
       "length": 60,
+      "path": "/map/QmeZTVqjXK4ypanPMKd5F84yFKBhMtcqCBhFWkyS8VjUD7",
       "qri": "st:0",
-      "schema": {
-        "items": {
-          "items": [
-            {
-              "title": "parent_identifier",
-              "type": "integer"
-            },
-            {
-              "title": "student_identifier",
-              "type": "integer"
-            }
-          ],
-          "type": "array"
-        },
-        "type": "array"
-      }
+      "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJwYXJlbnRfaWRlbnRpZmllciIsInR5cGUiOiJpbnRlZ2VyIn0seyJ0aXRsZSI6InN0dWRlbnRfaWRlbnRpZmllciIsInR5cGUiOiJpbnRlZ2VyIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
     }
   },
   "meta": {

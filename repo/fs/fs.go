@@ -71,8 +71,11 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, base string) (repo.Repo
 	// 	r.graph, _ = repo.Graph(r)
 	// }()
 
-	if err := r.Profiles().PutProfile(pro); err != nil {
-		return nil, err
+	// add our own profile to the store if it doesn't already exist.
+	if _, e := r.Profiles().GetProfile(pro.ID); e != nil {
+		if err := r.Profiles().PutProfile(pro); err != nil {
+			return nil, err
+		}
 	}
 
 	return r, nil

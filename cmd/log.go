@@ -42,6 +42,7 @@ working backwards in time.`,
 		} else if len(args) != 1 {
 			ErrExit(fmt.Errorf("only one argument ([peername]/[datasetname]) allowed"))
 		}
+		requireNotRPC(cmd.Name())
 
 		online := false
 

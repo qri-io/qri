@@ -48,6 +48,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			fmt.Println("please specify a dataset name to export")
 			return
 		}
+		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 
 		r := getRepo(false)
@@ -61,7 +62,8 @@ To export everything about a dataset, use the --dataset flag.`,
 		ExitIfErr(err)
 
 		fmt.Println(res)
-		ds := res.Dataset
+		ds, err := res.DecodeDataset()
+		ExitIfErr(err)
 
 		if exportCmdNameSpaced {
 			peerName := dsr.Peername
@@ -163,7 +165,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			src, err := dsfs.LoadData(r.Store(), ds)
 			ExitIfErr(err)
 
-			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format.String()))
+			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format))
 			dst, err := os.Create(dataPath)
 			ExitIfErr(err)
 

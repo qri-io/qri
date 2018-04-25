@@ -22,7 +22,7 @@ var (
 // dataCmd represents the export command
 var dataCmd = &cobra.Command{
 	Use:   "data",
-	Short: "read dataset data",
+	Short: "Read dataset data",
 	Long: `
 Data reads records from a dataset`,
 	Example: `  show the first 50 rows of a dataset:
@@ -38,6 +38,7 @@ Data reads records from a dataset`,
 			fmt.Println("please specify a dataset name to retrieve data")
 			return
 		}
+		requireNotRPC(cmd.Name())
 
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
@@ -56,7 +57,7 @@ Data reads records from a dataset`,
 
 		p := &core.StructuredDataParams{
 			Format: df,
-			Path:   ds.Path().String(),
+			Path:   ds.Path,
 			Limit:  dataCmdLimit,
 			Offset: dataCmdOffset,
 			All:    dataCmdAll,

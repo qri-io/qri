@@ -150,6 +150,14 @@ func (r *ProfileRequests) SaveProfile(p *profile.CodingProfile, res *profile.Cod
 		Config.Profile.Type = "peer"
 	}
 
+	pro, err := profile.NewProfile(Config.Profile)
+	if err != nil {
+		return err
+	}
+	if err := r.repo.Profiles().PutProfile(pro); err != nil {
+		return err
+	}
+
 	_res := profile.NewCodingProfile(Config.Profile)
 	_res.PrivKey = ""
 	*res = *_res
