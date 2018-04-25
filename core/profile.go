@@ -21,7 +21,7 @@ type ProfileRequests struct {
 	cli  *rpc.Client
 }
 
-// CoreRequestsName implements the Requets interface
+// CoreRequestsName implements the Request interface
 func (ProfileRequests) CoreRequestsName() string { return "profile" }
 
 // NewProfileRequests creates a ProfileRequests pointer from either a repo
@@ -93,7 +93,7 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 	return r.repo.Profiles().GetProfile(id)
 }
 
-// SaveProfile stores changes to this peer's editable profile profile
+// SaveProfile stores changes to this peer's editable profile
 func (r *ProfileRequests) SaveProfile(p *profile.CodingProfile, res *profile.CodingProfile) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SaveProfile", p, res)
