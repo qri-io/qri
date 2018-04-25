@@ -29,7 +29,22 @@
         "length": 106771,
         "path": "/map/QmdCCWCA7k33RqACBCsjLQUMzF8oSLsc1yxUZ218Hh7WBj",
         "qri": "st:0",
-        "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJ0aXRsZSIsInR5cGUiOiJzdHJpbmcifSx7InRpdGxlIjoiZHVyYXRpb24iLCJ0eXBlIjoiaW50ZWdlciJ9XSwidHlwZSI6ImFycmF5In0sInR5cGUiOiJhcnJheSJ9"
+        "schema": {
+          "items": {
+            "items": [
+              {
+                "title": "title",
+                "type": "string"
+              },
+              {
+                "title": "duration",
+                "type": "integer"
+              }
+            ],
+            "type": "array"
+          },
+          "type": "array"
+        }
       }
     }
   },

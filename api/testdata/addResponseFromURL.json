@@ -26,7 +26,22 @@
       "length": 60,
       "path": "/map/QmeZTVqjXK4ypanPMKd5F84yFKBhMtcqCBhFWkyS8VjUD7",
       "qri": "st:0",
-      "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJwYXJlbnRfaWRlbnRpZmllciIsInR5cGUiOiJpbnRlZ2VyIn0seyJ0aXRsZSI6InN0dWRlbnRfaWRlbnRpZmllciIsInR5cGUiOiJpbnRlZ2VyIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
+      "schema": {
+        "items": {
+          "items": [
+            {
+              "title": "parent_identifier",
+              "type": "integer"
+            },
+            {
+              "title": "student_identifier",
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "type": "array"
+      }
     }
   },
   "meta": {

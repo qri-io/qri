@@ -42,7 +42,30 @@
           "length": 186,
           "path": "/map/QmepW2zjR3FcJrM9Q26xzx3ai7FFnPzwQUtAB98pFVGVzj",
           "qri": "st:0",
-          "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJjaXR5IiwidHlwZSI6InN0cmluZyJ9LHsidGl0bGUiOiJwb3AiLCJ0eXBlIjoiaW50ZWdlciJ9LHsidGl0bGUiOiJhdmdfYWdlIiwidHlwZSI6Im51bWJlciJ9LHsidGl0bGUiOiJpbl91c2EiLCJ0eXBlIjoic3RyaW5nIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
+          "schema": {
+            "items": {
+              "items": [
+                {
+                  "title": "city",
+                  "type": "string"
+                },
+                {
+                  "title": "pop",
+                  "type": "integer"
+                },
+                {
+                  "title": "avg_age",
+                  "type": "number"
+                },
+                {
+                  "title": "in_usa",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          }
         }
       }
     },
@@ -88,7 +111,30 @@
           "length": 186,
           "path": "/map/QmepW2zjR3FcJrM9Q26xzx3ai7FFnPzwQUtAB98pFVGVzj",
           "qri": "st:0",
-          "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJjaXR5IiwidHlwZSI6InN0cmluZyJ9LHsidGl0bGUiOiJwb3AiLCJ0eXBlIjoiaW50ZWdlciJ9LHsidGl0bGUiOiJhdmdfYWdlIiwidHlwZSI6Im51bWJlciJ9LHsidGl0bGUiOiJpbl91c2EiLCJ0eXBlIjoic3RyaW5nIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
+          "schema": {
+            "items": {
+              "items": [
+                {
+                  "title": "city",
+                  "type": "string"
+                },
+                {
+                  "title": "pop",
+                  "type": "integer"
+                },
+                {
+                  "title": "avg_age",
+                  "type": "number"
+                },
+                {
+                  "title": "in_usa",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          }
         }
       }
     },
@@ -130,7 +176,30 @@
           "length": 186,
           "path": "/map/QmepW2zjR3FcJrM9Q26xzx3ai7FFnPzwQUtAB98pFVGVzj",
           "qri": "st:0",
-          "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJjaXR5IiwidHlwZSI6InN0cmluZyJ9LHsidGl0bGUiOiJwb3AiLCJ0eXBlIjoiaW50ZWdlciJ9LHsidGl0bGUiOiJhdmdfYWdlIiwidHlwZSI6Im51bWJlciJ9LHsidGl0bGUiOiJpbl91c2EiLCJ0eXBlIjoic3RyaW5nIn1dLCJ0eXBlIjoiYXJyYXkifSwidHlwZSI6ImFycmF5In0="
+          "schema": {
+            "items": {
+              "items": [
+                {
+                  "title": "city",
+                  "type": "string"
+                },
+                {
+                  "title": "pop",
+                  "type": "integer"
+                },
+                {
+                  "title": "avg_age",
+                  "type": "number"
+                },
+                {
+                  "title": "in_usa",
+                  "type": "string"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          }
         }
       }
     },
@@ -170,7 +239,30 @@
           "length": 154,
           "path": "/map/QmaCMEbqnBhnFZmf5ftAtf1ZVvtsMjCWgeJeuFbJKfa5jZ",
           "qri": "st:0",
-          "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJjaXR5IiwidHlwZSI6InN0cmluZyJ9LHsidGl0bGUiOiJwb3AiLCJ0eXBlIjoiaW50ZWdlciJ9LHsidGl0bGUiOiJhdmdfYWdlIiwidHlwZSI6Im51bWJlciJ9LHsidGl0bGUiOiJpbl91c2EiLCJ0eXBlIjoiYm9vbGVhbiJ9XSwidHlwZSI6ImFycmF5In0sInR5cGUiOiJhcnJheSJ9"
+          "schema": {
+            "items": {
+              "items": [
+                {
+                  "title": "city",
+                  "type": "string"
+                },
+                {
+                  "title": "pop",
+                  "type": "integer"
+                },
+                {
+                  "title": "avg_age",
+                  "type": "number"
+                },
+                {
+                  "title": "in_usa",
+                  "type": "boolean"
+                }
+              ],
+              "type": "array"
+            },
+            "type": "array"
+          }
         }
       }
     }
