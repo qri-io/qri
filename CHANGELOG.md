@@ -1,3 +1,31 @@
+<a name="0.3.1"></a>
+# [0.3.1](https://github.com/qri-io/qri/compare/v0.3.0...v0.3.1) (2018-04-25)
+
+
+### Bug Fixes
+
+* **api:** add image/jpeg content type to PosterHandler ([b0e2495](https://github.com/qri-io/qri/commit/b0e2495))
+* **config:** `qri config set` on an int field does not actually update ([435c634](https://github.com/qri-io/qri/commit/435c634))
+* **connect:** fix errors caused by running connect with setup ([e522925](https://github.com/qri-io/qri/commit/e522925))
+* **core.Add:** major cleanup to make add work properly ([e7951d4](https://github.com/qri-io/qri/commit/e7951d4))
+* **core.StructuredData:** make StructuredData handle object datasets ([ffd8dd3](https://github.com/qri-io/qri/commit/ffd8dd3))
+* **fsrepo.Profiles:** add file lock for peers.json ([f692d55](https://github.com/qri-io/qri/commit/f692d55)), closes [#357](https://github.com/qri-io/qri/issues/357)
+* **fsrepo.ProfileStore:** add mutex lock ([2d4d9ee](https://github.com/qri-io/qri/commit/2d4d9ee))
+* **p2p:** restore RPC peer-oriented calls, add CLI qri peers connect ([6b07712](https://github.com/qri-io/qri/commit/6b07712))
+* **RPC:** bail on commands that currently don't work over RPC ([cefcebd](https://github.com/qri-io/qri/commit/cefcebd))
+* **webapp:** replaced hardcoded entryupintupdateaddress ([c221d7d](https://github.com/qri-io/qri/commit/c221d7d))
+
+
+### Features
+
+* **cmd:** organize commands into groups. ([1059277](https://github.com/qri-io/qri/commit/1059277))
+* **config:** add registry config ([1c72892](https://github.com/qri-io/qri/commit/1c72892))
+* **config:** made webapp updates lookup configurable ([8999021](https://github.com/qri-io/qri/commit/8999021))
+* **registry:** use registry at setup to claim peername ([5b3c2ee](https://github.com/qri-io/qri/commit/5b3c2ee))
+* **teardown:** added 'uninstall' option from the CLI & core Teardown method ([428eeb7](https://github.com/qri-io/qri/commit/428eeb7)), closes [#175](https://github.com/qri-io/qri/issues/175)
+
+
+
 <a name="0.3.0"></a>
 # [0.3.0](https://github.com/qri-io/qri/compare/v0.2.0...v0.3.0) (2018-04-09)
 
