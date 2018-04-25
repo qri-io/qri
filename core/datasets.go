@@ -71,21 +71,22 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		ProfileID: p.ProfileID,
 	}
 
-	if ds.Peername == "" && ds.ProfileID == "" {
-		ds.Peername = "me"
-	}
-
 	pro, err := r.repo.Profile()
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error getting profile: %s", err.Error())
 	}
 
+	if ds.Peername == "me" {
+		ds.Peername = pro.Peername
+		ds.ProfileID = pro.ID
+	}
+
 	if err := repo.CanonicalizeProfile(r.repo, ds); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
-	if ds.Peername != pro.Peername {
+	if ds.Peername != "" && ds.Peername != pro.Peername {
 		if r.Node == nil {
 			return fmt.Errorf("cannot list remote datasets without p2p connection")
 		}
@@ -157,7 +158,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 				return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
 		}
-		replies[i].Dataset = ds
+		replies[i].Dataset = ds.Encode()
 	}
 
 	*res = replies
@@ -176,52 +177,13 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 		return err
 	}
 
-	getRemote := func(err error) error {
-		if r.Node != nil {
-			ref := p
-			err := r.Node.RequestDataset(ref)
-			if ref != nil && ref.Dataset != nil {
-				ds := ref.Dataset
-				// TODO - this is really stupid, p2p.RequestDatasetInfo should return an error here
-				if ds.IsEmpty() {
-					return fmt.Errorf("dataset not found")
-				}
-				st := ds.Structure
-				// TODO - it seems that jsonschema.RootSchema and encoding/gob
-				// really don't like each other (no surprise there, thanks to validators being an interface)
-				// Which means that when this response is proxied over the wire bad things happen
-				// So for now we're doing this weirdness with re-creating a gob-friendly version
-				// of a dataset
-				*res = repo.DatasetRef{
-					Peername: p.Peername,
-					Name:     p.Name,
-					Path:     ref.Path,
-					Dataset: &dataset.Dataset{
-						Commit: ds.Commit,
-						Meta:   ds.Meta,
-						Structure: &dataset.Structure{
-							Checksum:     st.Checksum,
-							Compression:  st.Compression,
-							Encoding:     st.Encoding,
-							ErrCount:     st.ErrCount,
-							Entries:      st.Entries,
-							Format:       st.Format,
-							FormatConfig: st.FormatConfig,
-							Length:       st.Length,
-							Qri:          st.Qri,
-						},
-					},
-				}
-			}
-			return err
-		}
-		return err
-	}
-
 	store := r.repo.Store()
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
-		return getRemote(err)
+		if r.Node != nil {
+			return r.Node.RequestDataset(p)
+		}
+		return err
 	}
 
 	*res = repo.DatasetRef{
@@ -229,7 +191,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 		Peername:  p.Peername,
 		Name:      p.Name,
 		Path:      p.Path,
-		Dataset:   ds,
+		Dataset:   ds.Encode(),
 	}
 	return nil
 }
@@ -433,7 +395,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 	} else {
 		// load data cause we need something to compare the structure to
-		datafile, err := dsfs.LoadData(store, prev.Dataset)
+		ds := &dataset.Dataset{}
+		if err := ds.Decode(prev.Dataset); err != nil {
+			return fmt.Errorf("error decoding dataset: %s", err)
+		}
+		datafile, err := dsfs.LoadData(store, ds)
 		if err != nil {
 			return fmt.Errorf("error loading previous data from filestore: %s", err)
 		}
@@ -448,7 +414,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		// is an ipfs hash, with no extention
 		// using this janky way of constructing a fake filename
 		// for us to use later when we detect the schema
-		filename = "data." + prev.Dataset.Structure.Format.String()
+		filename = "data." + ds.Structure.Format.String()
 	}
 
 	// read structure from SaveParams, or detect from data
@@ -484,8 +450,13 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		Meta:      mt,
 	}
 
+	prevds, err := prev.DecodeDataset()
+	if err != nil {
+		return fmt.Errorf("error decoding dataset: %s", err.Error())
+	}
+
 	// add all previous fields and any changes
-	ds.Assign(prev.Dataset, changes)
+	ds.Assign(prevds, changes)
 	ds.PreviousPath = prev.Path
 
 	// ds.Assign clobbers empty commit messages with the previous
@@ -513,7 +484,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		fmt.Printf("create ds error: %s\n", err.Error())
 		return err
 	}
-	ref.Dataset = ds
+	ref.Dataset = ds.Encode()
 
 	// *res = repo.DatasetRef{
 	// 	Peername: p.Peername,
@@ -584,7 +555,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		Peername: p.New.Peername,
 		Name:     p.New.Name,
 		Path:     p.Current.Path,
-		Dataset:  ds,
+		Dataset:  ds.Encode(),
 	}
 	return nil
 }
@@ -779,7 +750,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
 	}
 
-	ref.Dataset = ds
+	ref.Dataset = ds.Encode()
 
 	*res = *ref
 	return
@@ -824,7 +795,13 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 			return err
 		}
 
-		st = ref.Dataset.Structure
+		ds, err := ref.DecodeDataset()
+		if err != nil {
+			log.Debug(err.Error())
+			return err
+		}
+
+		st = ds.Structure
 	} else if p.Data == nil {
 		return fmt.Errorf("cannot find dataset: %s", p.Ref)
 	}
@@ -861,7 +838,13 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	}
 
 	if data == nil && ref.Dataset != nil {
-		f, e := dsfs.LoadData(r.repo.Store(), ref.Dataset)
+		ds, e := ref.DecodeDataset()
+		if e != nil {
+			log.Debug(e.Error())
+			return fmt.Errorf("error loading dataset data: %s", e.Error())
+		}
+
+		f, e := dsfs.LoadData(r.repo.Store(), ds)
 		if e != nil {
 			log.Debug(e.Error())
 			return fmt.Errorf("error loading dataset data: %s", e.Error())
@@ -901,18 +884,23 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	if e := r.Get(&p.Left, left); e != nil {
 		return e
 	}
+	dsLeft, e := left.DecodeDataset()
+	if e != nil {
+		return e
+	}
 
 	right := &repo.DatasetRef{}
 	if e := r.Get(&p.Right, right); e != nil {
 		return e
 	}
-
-	dsLeft := left.Dataset
-	dsRight := right.Dataset
+	dsRight, e := right.DecodeDataset()
+	if e != nil {
+		return e
+	}
 
 	diffMap := make(map[string]*dsdiff.SubDiff)
 	if p.DiffAll {
-		diffMap, err := dsdiff.DiffDatasets(left.Dataset, right.Dataset, nil)
+		diffMap, err := dsdiff.DiffDatasets(dsLeft, dsRight, nil)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error diffing datasets: %s", err.Error())

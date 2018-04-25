@@ -70,7 +70,11 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 // ReadDataset grabs a dataset from the store
 func (act Dataset) ReadDataset(ref *repo.DatasetRef) (err error) {
 	if act.Repo.Store() != nil {
-		ref.Dataset, err = dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+		ds, e := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+		if err != nil {
+			return e
+		}
+		ref.Dataset = ds.Encode()
 		return
 	}
 

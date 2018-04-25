@@ -141,14 +141,14 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 			To:   nl.node(dsgraph.NtDataset, ds.PreviousPath),
 		})
 	}
-	if ds.Commit != nil && ds.Commit.Path().String() != "" {
-		commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path().String()}
+	if ds.Commit != nil && ds.Commit.Path != "" {
+		commit := &dsgraph.Node{Type: dsgraph.NtCommit, Path: ds.Commit.Path}
 		root.AddLinks(dsgraph.Link{From: root, To: commit})
 	}
 
-	if ds.Transform != nil && ds.Transform.Path().String() != "" {
-		if q, err := dsfs.LoadTransform(r.Store(), ds.Transform.Path()); err == nil {
-			trans := nl.node(dsgraph.NtTransform, ds.Transform.Path().String())
+	if ds.Transform != nil && ds.Transform.Path != "" {
+		if q, err := dsfs.LoadTransform(r.Store(), datastore.NewKey(ds.Transform.Path)); err == nil {
+			trans := nl.node(dsgraph.NtTransform, ds.Transform.Path)
 			for _, ref := range q.Resources {
 				trans.AddLinks(dsgraph.Link{
 					From: trans,
@@ -186,17 +186,11 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 		}
 
 		for _, ref := range refs {
-			ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
-			// TODO - remove this once loading is more consistent.
-			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
-			}
-			if err != nil {
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
-			}
+			ds, err := dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 			if err != nil {
 				err = fmt.Errorf("error loading dataset: %s", err.Error())
 			}
+			ref.Dataset = ds.Encode()
 
 			kontinue, err := visit(0, &ref, err)
 			if err != nil {
@@ -212,11 +206,12 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
 				ref.Path = ref.Dataset.PreviousPath
 
-				ref.Dataset, err = dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
+				ds, err := dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
 				if err != nil {
 					done <- err
 					return err
 				}
+				ref.Dataset = ds.Encode()
 				kontinue, err = visit(depth, &ref, err)
 				if err != nil {
 					done <- err

@@ -5,6 +5,7 @@
     "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
     "dataset": {
       "commit": {
+        "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
         "qri": "cm:0",
         "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
         "timestamp": "2001-01-01T01:01:01.000000001Z",
@@ -15,33 +16,20 @@
         "qri": "md:0",
         "title": "example movie data"
       },
+      "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
       "qri": "ds:0",
       "structure": {
         "checksum": "QmTQCPinsdBy9FiT8iuxz45XFA19K6rUbAkjAtBVszQ7Ke",
-        "entries": 5043,
         "errCount": 15,
+        "entries": 5043,
         "format": "csv",
         "formatConfig": {
           "headerRow": true
         },
         "length": 106771,
+        "path": "/map/QmdCCWCA7k33RqACBCsjLQUMzF8oSLsc1yxUZ218Hh7WBj",
         "qri": "st:0",
-        "schema": {
-          "items": {
-            "items": [
-              {
-                "title": "title",
-                "type": "string"
-              },
-              {
-                "title": "duration",
-                "type": "integer"
-              }
-            ],
-            "type": "array"
-          },
-          "type": "array"
-        }
+        "schema": "eyJpdGVtcyI6eyJpdGVtcyI6W3sidGl0bGUiOiJ0aXRsZSIsInR5cGUiOiJzdHJpbmcifSx7InRpdGxlIjoiZHVyYXRpb24iLCJ0eXBlIjoiaW50ZWdlciJ9XSwidHlwZSI6ImFycmF5In0sInR5cGUiOiJhcnJheSJ9"
       }
     }
   },

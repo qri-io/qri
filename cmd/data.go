@@ -56,7 +56,7 @@ Data reads records from a dataset`,
 
 		p := &core.StructuredDataParams{
 			Format: df,
-			Path:   ds.Path().String(),
+			Path:   ds.Path,
 			Limit:  dataCmdLimit,
 			Offset: dataCmdOffset,
 			All:    dataCmdAll,

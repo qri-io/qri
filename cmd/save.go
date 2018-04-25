@@ -101,7 +101,9 @@ collaboration are in the works. Sit tight sportsfans.`,
 				printWarning("Validation Error Detail:")
 				data, err := ioutil.ReadAll(dataFile)
 				ExitIfErr(err)
-				errorList, err := res.Dataset.Structure.Schema.ValidateBytes(data)
+				ds, err := res.DecodeDataset()
+				ExitIfErr(err)
+				errorList, err := ds.Structure.Schema.ValidateBytes(data)
 				ExitIfErr(err)
 				for i, validationErr := range errorList {
 					printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
