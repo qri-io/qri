@@ -29,11 +29,13 @@ func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) 
 		}
 	}
 
-	for _, conn := range n.Host.Network().Conns() {
-		pid = append(pid, conn.RemotePeer())
-		added++
-		if added == max {
-			break
+	if len(pid) == 0 {
+		for _, conn := range n.Host.Network().Conns() {
+			pid = append(pid, conn.RemotePeer())
+			added++
+			if added == max {
+				break
+			}
 		}
 	}
 

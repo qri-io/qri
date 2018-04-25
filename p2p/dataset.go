@@ -18,9 +18,9 @@ const MtDatasetInfo = MsgType("dataset_info")
 func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s RequestDataset %s", n.ID, ref)
 
-	if ref.Path == "" {
-		return fmt.Errorf("path is required")
-	}
+	// if ref.Path == "" {
+	// 	return fmt.Errorf("path is required")
+	// }
 
 	act := actions.Dataset{n.Repo}
 
@@ -54,8 +54,9 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	for _, pid := range pids {
 
 		if err := n.SendMessage(req, replies, pid); err != nil {
-			log.Debug(err.Error())
-			return err
+			log.Debugf("%s err: %s", pid, err.Error())
+			continue
+			// return err
 		}
 
 		res := <-replies

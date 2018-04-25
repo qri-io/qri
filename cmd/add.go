@@ -51,13 +51,12 @@ changes to qri.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
 		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
 
-		if len(args) == 0 {
-			ErrExit(fmt.Errorf("specify the location of a dataset to add"))
-		} else if ingest && len(args) != 1 {
+		if ingest && len(args) != 1 {
 			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
 		}
 
@@ -83,6 +82,7 @@ changes to qri.`,
 			res := repo.DatasetRef{}
 			err = req.Add(&ref, &res)
 			ExitIfErr(err)
+			printDatasetRefInfo(1, res)
 			printInfo("Successfully added dataset %s", ref)
 		}
 	},

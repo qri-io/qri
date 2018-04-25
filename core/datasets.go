@@ -13,7 +13,6 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
-	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
@@ -709,49 +708,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		}
 	}
 
-	fs, ok := r.repo.Store().(*ipfs.Filestore)
-	if !ok {
-		return fmt.Errorf("can only add datasets when running an IPFS filestore")
-	}
-
-	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
-
-	_, err = fs.Fetch(cafs.SourceAny, key)
-	if err != nil {
-		return fmt.Errorf("error fetching file: %s", err.Error())
-	}
-
-	err = fs.Pin(key, true)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error pinning root key: %s", err.Error())
-	}
-
-	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
-
-	profile, err := r.repo.Profile()
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error getting profile: %s", err)
-	}
-
-	ref.Peername = profile.Peername
-	ref.ProfileID = profile.ID
-
-	err = r.repo.PutRef(*ref)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
-	}
-
-	ds, err := dsfs.LoadDataset(fs, path)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
-	}
-
-	ref.Dataset = ds.Encode()
-
+	err = r.repo.AddDataset(ref)
 	*res = *ref
 	return
 }

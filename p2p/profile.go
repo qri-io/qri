@@ -37,7 +37,6 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 	}
 
 	res := <-replies
-	log.Debugf("profile response for message: %s", res.ID)
 
 	cp := &profile.CodingProfile{}
 	if err := json.Unmarshal(res.Body, cp); err != nil {
