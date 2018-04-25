@@ -60,6 +60,7 @@ will affect a dataset before saving changes to a dataset.`,
 			err                  error
 			ref                  repo.DatasetRef
 		)
+		requireNotRPC(cmd.Name())
 
 		if len(args) == 1 {
 			ref, err = repo.ParseDatasetRef(args[0])

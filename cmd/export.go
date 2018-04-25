@@ -48,6 +48,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			fmt.Println("please specify a dataset name to export")
 			return
 		}
+		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 
 		r := getRepo(false)
