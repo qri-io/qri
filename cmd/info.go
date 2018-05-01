@@ -5,9 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -42,23 +40,7 @@ var infoCmd = &cobra.Command{
 			}
 		}
 
-		online := false
-		// check to see if we're all local
-		r := getRepo(false)
-		for _, arg := range args {
-			ref, err := repo.ParseDatasetRef(arg)
-			ExitIfErr(err)
-			err = repo.CanonicalizeDatasetRef(r, &ref)
-			ExitIfErr(err)
-			if ref.Path == "" {
-				online = true
-			}
-		}
-
-		pr, err := peerRequests(online)
-		ExitIfErr(err)
-
-		req, err := datasetRequests(online)
+		req, err := datasetRequests(false)
 		ExitIfErr(err)
 
 		for i, arg := range args {
@@ -66,25 +48,7 @@ var infoCmd = &cobra.Command{
 			ExitIfErr(err)
 
 			if ref.IsPeerRef() {
-				err = repo.CanonicalizeProfile(r, &ref)
-				ExitIfErr(err)
-				p := &core.PeerInfoParams{
-					Peername: ref.Peername,
-				}
-				res := &profile.CodingProfile{}
-				err := pr.Info(p, res)
-				if err != nil {
-					printSuccess(err.Error())
-				}
-				ExitIfErr(err)
-
-				if outformat == "" {
-					printPeerInfo(0, res)
-				} else {
-					data, err := json.MarshalIndent(res, "", "  ")
-					ExitIfErr(err)
-					fmt.Printf("%s", string(data))
-				}
+				printWarning("please specify a dataset for peer %s", ref.Peername)
 			} else {
 				res := repo.DatasetRef{}
 				err = req.Get(&ref, &res)
