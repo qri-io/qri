@@ -85,6 +85,7 @@ func DefaultAPI() *API {
 		Port:    DefaultAPIPort,
 		TLS:     false,
 		AllowedOrigins: []string{
+			"electron://local.qri.io",
 			fmt.Sprintf("http://localhost:%d", DefaultWebappPort),
 			"http://app.qri.io",
 			"https://app.qri.io",
