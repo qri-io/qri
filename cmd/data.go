@@ -33,11 +33,8 @@ Data reads records from a dataset`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Println("please specify a dataset name to retrieve data")
-			return
-		}
 		requireNotRPC(cmd.Name())
 
 		r := getRepo(false)
