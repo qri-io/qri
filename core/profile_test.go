@@ -31,7 +31,7 @@ func TestProfileRequestsGet(t *testing.T) {
 
 	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &profile.CodingProfile{}
+		got := &config.ProfilePod{}
 		err := req.GetProfile(&c.in, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -49,12 +49,12 @@ func TestProfileRequestsSave(t *testing.T) {
 	defer func() { SaveConfig = prev }()
 
 	cases := []struct {
-		p   *profile.CodingProfile
-		res *profile.CodingProfile
+		p   *config.ProfilePod
+		res *config.ProfilePod
 		err string
 	}{
 		{nil, nil, "profile required for update"},
-		{&profile.CodingProfile{}, nil, ""},
+		{&config.ProfilePod{}, nil, ""},
 		// TODO - moar tests
 	}
 
@@ -66,7 +66,7 @@ func TestProfileRequestsSave(t *testing.T) {
 
 	req := NewProfileRequests(mr, nil)
 	for i, c := range cases {
-		got := &profile.CodingProfile{}
+		got := &config.ProfilePod{}
 		err := req.SaveProfile(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -96,7 +96,7 @@ func TestSaveProfile(t *testing.T) {
 	defer func() { SaveConfig = prevSaver }()
 
 	// CodingProfile filled with test data.
-	pro := profile.CodingProfile{}
+	pro := config.ProfilePod{}
 	pro.Name = "test_name"
 	pro.Email = "test_email@example.com"
 	pro.Description = "This is only a test profile"
@@ -111,7 +111,7 @@ func TestSaveProfile(t *testing.T) {
 		return
 	}
 	req := NewProfileRequests(mr, nil)
-	got := profile.CodingProfile{}
+	got := config.ProfilePod{}
 	err = req.SaveProfile(&pro, &got)
 	if err != nil {
 		log.Fatal(err)
@@ -124,9 +124,9 @@ func TestSaveProfile(t *testing.T) {
 	got.PrivKey = savedConf.Profile.PrivKey
 
 	// Verify that the saved config matches the returned config (after private key is copied).
-	if !reflect.DeepEqual(*savedConf.Profile, config.Profile(got.Profile)) {
+	if !reflect.DeepEqual(*savedConf.Profile, got) {
 		log.Errorf("Saved Profile does not match returned Profile: %v <> %v",
-			*savedConf.Profile, config.Profile(got.Profile))
+			*savedConf.Profile, got)
 	}
 
 	// Validate that the returned Profile has all the proper individual fields.
@@ -212,7 +212,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &profile.CodingProfile{}
+		res := &config.ProfilePod{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
@@ -263,7 +263,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			p.Data = r
 		}
 
-		res := &profile.CodingProfile{}
+		res := &config.ProfilePod{}
 		err := req.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())

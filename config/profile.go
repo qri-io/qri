@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/jsonschema"
 )
 
-// Profile configures a qri profile
-type Profile struct {
+// ProfilePod is serializable plain-old-data that configures a qri profile
+type ProfilePod struct {
 	ID       string `json:"id"`
 	PrivKey  string `json:"privkey,omitempty"`
 	Peername string `json:"peername"`
@@ -38,16 +38,18 @@ type Profile struct {
 	Photo string `json:"photo"`
 	// Poster photo for users's profile page
 	Poster string `json:"poster"`
-	// Twitter is a  peer's twitter handle
+	// Twitter is a peer's twitter handle
 	Twitter string `json:"twitter"`
+	// Addresses maps peerIDs to IP addresses. Should not serialize to config.yaml
+	Addresses map[string][]string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 }
 
 // DefaultProfile gives a new default profile configuration, generating a new random
 // private key, peer.ID, and nickname
-func DefaultProfile() *Profile {
+func DefaultProfile() *ProfilePod {
 	r := rand.Reader
 	now := time.Now()
-	p := &Profile{
+	p := &ProfilePod{
 		Created: now,
 		Updated: now,
 		Type:    "peer",
@@ -71,7 +73,7 @@ func DefaultProfile() *Profile {
 }
 
 // Validate validates all fields of profile returning all errors found.
-func (cfg Profile) Validate() error {
+func (cfg ProfilePod) Validate() error {
 	schema := jsonschema.Must(`{
     "$schema": "http://json-schema.org/draft-06/schema#",
     "title": "Profile",

@@ -9,6 +9,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
@@ -38,7 +39,7 @@ func NewProfileRequests(r repo.Repo, cli *rpc.Client) *ProfileRequests {
 }
 
 // GetProfile get's this node's peer profile
-func (r *ProfileRequests) GetProfile(in *bool, res *profile.CodingProfile) (err error) {
+func (r *ProfileRequests) GetProfile(in *bool, res *config.ProfilePod) (err error) {
 	var pro *profile.Profile
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.GetProfile", in, res)
@@ -94,7 +95,7 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 }
 
 // SaveProfile stores changes to this peer's editable profile
-func (r *ProfileRequests) SaveProfile(p *profile.CodingProfile, res *profile.CodingProfile) error {
+func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfilePod) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SaveProfile", p, res)
 	}
@@ -158,15 +159,15 @@ func (r *ProfileRequests) SaveProfile(p *profile.CodingProfile, res *profile.Cod
 		return err
 	}
 
-	_res := profile.NewCodingProfile(Config.Profile)
-	_res.PrivKey = ""
-	*res = *_res
+	// Copy the global config, except without the private key.
+	*res = *Config.Profile
+	res.PrivKey = ""
 
 	return SaveConfig()
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
-func (r *ProfileRequests) ProfilePhoto(req *profile.CodingProfile, res *[]byte) (err error) {
+func (r *ProfileRequests) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err error) {
 	pro, e := r.getProfile(req.ID, req.Peername)
 	if e != nil {
 		return e
@@ -193,7 +194,7 @@ type FileParams struct {
 }
 
 // SetProfilePhoto changes this peer's profile image
-func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *profile.CodingProfile) error {
+func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetProfilePhoto", p, res)
 	}
@@ -235,7 +236,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *profile.CodingProf
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
-func (r *ProfileRequests) PosterPhoto(req *profile.CodingProfile, res *[]byte) (err error) {
+func (r *ProfileRequests) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
 	pro, e := r.getProfile(req.ID, req.Peername)
 	if e != nil {
 		return e
@@ -255,7 +256,7 @@ func (r *ProfileRequests) PosterPhoto(req *profile.CodingProfile, res *[]byte) (
 }
 
 // SetPosterPhoto changes this peer's poster image
-func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *profile.CodingProfile) error {
+func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
 	if r.cli != nil {
 		return r.cli.Call("ProfileRequests.SetPosterPhoto", p, res)
 	}

@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -88,7 +89,7 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
 	args.OrderBy = "created"
-	res := []*profile.CodingProfile{}
+	res := []*config.ProfilePod{}
 	if err := h.List(&args, &res); err != nil {
 		log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -123,7 +124,7 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 	p := &core.PeerInfoParams{
 		ProfileID: id,
 	}
-	res := &profile.CodingProfile{}
+	res := &config.ProfilePod{}
 	if err := h.Info(p, res); err != nil {
 		log.Infof("error getting peer info: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -145,7 +146,7 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	res := &profile.CodingProfile{}
+	res := &config.ProfilePod{}
 	if err := h.ConnectToPeer(&b58pid, res); err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

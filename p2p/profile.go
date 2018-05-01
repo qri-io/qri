@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"time"
 
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -38,14 +39,14 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 
 	res := <-replies
 
-	cp := &profile.CodingProfile{}
-	if err := json.Unmarshal(res.Body, cp); err != nil {
+	pp := &config.ProfilePod{}
+	if err := json.Unmarshal(res.Body, pp); err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
 
 	pro := &profile.Profile{}
-	if err := pro.Decode(cp); err != nil {
+	if err := pro.Decode(pp); err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
@@ -88,11 +89,11 @@ func (n *QriNode) profileBytes() ([]byte, error) {
 		log.Debugf("error getting repo profile: %s\n", err.Error())
 		return nil, err
 	}
-	cp, err := p.Encode()
+	pp, err := p.Encode()
 	if err != nil {
 		log.Debugf("error encoding repo profile: %s\n", err.Error())
 		return nil, err
 	}
 
-	return json.Marshal(cp)
+	return json.Marshal(pp)
 }

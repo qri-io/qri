@@ -1,11 +1,15 @@
 package config
 
 import (
+	"fmt"
+	"github.com/sergi/go-diff/diffmatchpatch"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"reflect"
 	"strings"
 	"testing"
+	"time"
 )
 
 func TestReadFromFile(t *testing.T) {
@@ -34,6 +38,43 @@ func TestWriteToFile(t *testing.T) {
 	if err := cfg.WriteToFile("/not/a/path/foo"); err == nil {
 		t.Error("expected write bad path to error")
 		return
+	}
+}
+
+func TestWriteToFileWithAddresses(t *testing.T) {
+	path := filepath.Join(os.TempDir(), "config.yaml")
+	t.Log(path)
+	cfg := Config{
+		Profile: &ProfilePod{
+			ID:       "QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs",
+			Peername: "test_peername",
+			Created:  time.Unix(1234567890, 0).In(time.UTC),
+			Updated:  time.Unix(1234567890, 0).In(time.UTC),
+		},
+	}
+	cfg.Profile.Addresses = make(map[string][]string)
+	cfg.Profile.Addresses["QmTest"] = []string{"/ip/test"}
+
+	if err := cfg.WriteToFile(path); err != nil {
+		t.Errorf("error writing config: %s", err.Error())
+		return
+	}
+
+	golden := "testdata/simple.yaml"
+	f1, err := ioutil.ReadFile(golden)
+	if err != nil {
+		t.Errorf("error reading golden file: %s", err.Error())
+	}
+	f2, err := ioutil.ReadFile(path)
+	if err != nil {
+		t.Errorf("error reading written file: %s", err.Error())
+	}
+
+	dmp := diffmatchpatch.New()
+	diffs := dmp.DiffMain(string(f1), string(f2), false)
+	if len(diffs) > 1 {
+		fmt.Println(dmp.DiffPrettyText(diffs))
+		t.Errorf("failed to match: %s <> %s", golden, path)
 	}
 }
 

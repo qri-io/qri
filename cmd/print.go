@@ -13,9 +13,9 @@ import (
 	"github.com/fatih/color"
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -99,7 +99,7 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	// fmt.Println()
 }
 
-func printPeerInfo(i int, p *profile.CodingProfile) {
+func printPeerInfo(i int, p *config.ProfilePod) {
 	white := color.New(color.FgWhite).SprintFunc()
 	// cyan := color.New(color.FgCyan).SprintFunc()
 	// blue := color.New(color.FgBlue).SprintFunc()

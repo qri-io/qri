@@ -46,8 +46,8 @@ func init() {
 }
 
 // ProfileConfig returns the test profile as a config.Profile
-func ProfileConfig() *config.Profile {
-	return &config.Profile{
+func ProfileConfig() *config.ProfilePod {
+	return &config.ProfilePod{
 		Peername: "peer",
 		ID:       profileID,
 		PrivKey:  string(_testPk),

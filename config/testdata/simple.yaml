@@ -1,0 +1,25 @@
+profile:
+  id: QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs
+  privkey: ""
+  peername: test_peername
+  created: 2009-02-13T23:31:30Z
+  updated: 2009-02-13T23:31:30Z
+  type: ""
+  email: ""
+  name: ""
+  description: ""
+  homeurl: ""
+  color: ""
+  thumb: ""
+  photo: ""
+  poster: ""
+  twitter: ""
+repo: null
+store: null
+p2p: null
+registry: null
+cli: null
+api: null
+webapp: null
+rpc: null
+logging: null
