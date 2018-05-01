@@ -60,6 +60,8 @@ peers & swapping data.`,
 			ExitIfErr(err)
 		} else if !QRIRepoInitialized() {
 			ErrExit(fmt.Errorf("no qri repo exists"))
+		} else {
+			loadConfig()
 		}
 
 		r = getRepo(true)
