@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -67,14 +66,6 @@ Anyone with your private keys can impersonate you on qri.`,
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		var (
-			data   []byte
-			err    error
-			cfg    = &config.Config{}
-			encode interface{}
-		)
-
-		*cfg = *core.Config
 
 		wpk, err := cmd.Flags().GetBool("with-private-keys")
 		ExitIfErr(err)
@@ -85,32 +76,19 @@ Anyone with your private keys can impersonate you on qri.`,
 		output, err := cmd.Flags().GetString("output")
 		ExitIfErr(err)
 
-		if !wpk {
-			if cfg.Profile != nil {
-				cfg.Profile.PrivKey = ""
-			}
-			if cfg.P2P != nil {
-				cfg.P2P.PrivKey = ""
-			}
+		params := &core.GetConfigParams{
+			WithPrivateKey: wpk,
+			Format:         format,
+			Concise:        concise,
 		}
 
 		if len(args) == 1 {
-			encode, err = cfg.Get(args[0])
-			ExitIfErr(err)
-		} else {
-			encode = cfg
+			params.Field = args[0]
 		}
 
-		switch format {
-		case "json":
-			if concise {
-				data, err = json.Marshal(encode)
-			} else {
-				data, err = json.MarshalIndent(encode, "", "  ")
-			}
-		case "yaml":
-			data, err = yaml.Marshal(encode)
-		}
+		var data []byte
+
+		err = core.GetConfig(params, &data)
 		ExitIfErr(err)
 
 		if output != "" {
