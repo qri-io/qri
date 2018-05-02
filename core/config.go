@@ -68,7 +68,7 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config, as a slice of bytes
 // the bytes can be formatted as json, concise json, or yaml
-func GetConfig(params *GetConfigParams, data *[]byte) error {
+func GetConfig(p *GetConfigParams, res *[]byte) error {
 	var (
 		err    error
 		cfg    = &config.Config{}
@@ -77,7 +77,7 @@ func GetConfig(params *GetConfigParams, data *[]byte) error {
 
 	*cfg = *Config
 
-	if !params.WithPrivateKey {
+	if !p.WithPrivateKey {
 		if cfg.Profile != nil {
 			cfg.Profile.PrivKey = ""
 		}
@@ -88,26 +88,40 @@ func GetConfig(params *GetConfigParams, data *[]byte) error {
 
 	encode = cfg
 
-	if params.Field != "" {
-		encode, err = cfg.Get(params.Field)
+	if p.Field != "" {
+		encode, err = cfg.Get(p.Field)
 		if err != nil {
-			return fmt.Errorf("error getting %s from config: %s", params.Field, err)
+			return fmt.Errorf("error getting %s from config: %s", p.Field, err)
 		}
 	}
 
-	switch params.Format {
+	switch p.Format {
 	case "json":
-		if params.Concise {
-			*data, err = json.Marshal(encode)
+		if p.Concise {
+			*res, err = json.Marshal(encode)
 		} else {
-			*data, err = json.MarshalIndent(encode, "", " ")
+			*res, err = json.MarshalIndent(encode, "", " ")
 		}
 	case "yaml":
-		*data, err = yaml.Marshal(encode)
+		*res, err = yaml.Marshal(encode)
 	}
 	if err != nil {
 		return fmt.Errorf("error getting config: %s", err)
 	}
+
+	return nil
+}
+
+// SetConfig validates and saves the config (passed in as `res`)
+func SetConfig(res *config.Config) error {
+	if err := res.Validate(); err != nil {
+		return fmt.Errorf("error validating config: %s", err)
+	}
+	if err := SaveConfig(); err != nil {
+		return fmt.Errorf("error saving config: &s", err)
+	}
+
+	// Config = Config.WithPrivateValues(res)
 
 	return nil
 }

@@ -140,11 +140,9 @@ var configSetCommand = &cobra.Command{
 			}
 		}
 
-		err = core.Config.Validate()
+		err = core.SetConfig(core.Config)
 		ExitIfErr(err)
 
-		err = core.Config.WriteToFile(core.ConfigFilepath)
-		ExitIfErr(err)
 		printSuccess("config updated")
 	},
 }

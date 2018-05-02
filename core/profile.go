@@ -8,6 +8,7 @@ import (
 	"net/rpc"
 	"strings"
 
+	commonLog "github.com/prometheus/common/log"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -58,7 +59,7 @@ func (r *ProfileRequests) GetProfile(in *bool, res *config.ProfilePod) (err erro
 
 	enc, err := pro.Encode()
 	if err != nil {
-		log.Debug(err.Error())
+		commonLog.Debug(err.Error())
 		return err
 	}
 
@@ -73,14 +74,14 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 			Peername: peername,
 		}
 		if err = repo.CanonicalizeProfile(r.repo, ref); err != nil {
-			log.Error("error canonicalizing profile", err.Error())
+			commonLog.Error("error canonicalizing profile", err.Error())
 			return nil, err
 		}
 		id = ref.ProfileID
 	} else {
 		id, err = profile.IDB58Decode(idStr)
 		if err != nil {
-			log.Error("err decoding multihash", err.Error())
+			commonLog.Error("err decoding multihash", err.Error())
 			return nil, err
 		}
 	}
@@ -206,7 +207,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	// TODO - make the reader be a sizefile to avoid this double-read
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
-		log.Debug(err.Error())
+		commonLog.Debug(err.Error())
 		return fmt.Errorf("error reading file data: %s", err.Error())
 	}
 	if len(data) > 250000 {
@@ -223,7 +224,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
-		log.Debug(err.Error())
+		commonLog.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
@@ -232,7 +233,8 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	Config.Set("profile.photo", path.String())
 	// TODO - resize photo for thumb
 	Config.Set("profile.thumb", path.String())
-	return SaveConfig()
+
+	return SetConfig(Config)
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
@@ -268,7 +270,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	// TODO - make the reader be a sizefile to avoid this double-read
 	data, err := ioutil.ReadAll(p.Data)
 	if err != nil {
-		log.Debug(err.Error())
+		commonLog.Debug(err.Error())
 		return fmt.Errorf("error reading file data: %s", err.Error())
 	}
 
@@ -286,11 +288,11 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
 	path, err := r.repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
-		log.Debug(err.Error())
+		commonLog.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
 	res.Poster = path.String()
 	Config.Set("profile.poster", path.String())
-	return SaveConfig()
+	return SetConfig(Config)
 }
