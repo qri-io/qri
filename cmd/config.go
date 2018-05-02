@@ -10,7 +10,6 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 	"gopkg.in/yaml.v2"
 )
@@ -182,7 +181,7 @@ func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
 		Filename: f.Name(),
 		Data:     f,
 	}
-	res := &profile.CodingProfile{}
+	res := &config.ProfilePod{}
 
 	switch proppath {
 	case "profile.photo", "profile.thumb":

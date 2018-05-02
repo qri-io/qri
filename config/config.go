@@ -16,7 +16,7 @@ import (
 
 // Config encapsulates all configuration details for qri
 type Config struct {
-	Profile  *Profile
+	Profile  *ProfilePod
 	Repo     *Repo
 	Store    *Store
 	P2P      *P2P
@@ -85,6 +85,11 @@ func ReadFromFile(path string) (cfg *Config, err error) {
 
 // WriteToFile encodes a configration to YAML and writes it to path
 func (cfg Config) WriteToFile(path string) error {
+	// Never serialize the address mapping to the configuration file.
+	prev := cfg.Profile.Addresses
+	cfg.Profile.Addresses = nil
+	defer func() { cfg.Profile.Addresses = prev }()
+
 	data, err := yaml.Marshal(cfg)
 	if err != nil {
 		return err

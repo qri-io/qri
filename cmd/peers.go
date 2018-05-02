@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -40,7 +40,7 @@ var peersInfoCmd = &cobra.Command{
 			Peername: args[0],
 		}
 
-		res := &profile.CodingProfile{}
+		res := &config.ProfilePod{}
 		err = req.Info(p, res)
 		ExitIfErr(err)
 
@@ -75,7 +75,7 @@ var peersListCmd = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := []*profile.CodingProfile{}
+		res := []*config.ProfilePod{}
 		err = pr.List(&core.ListParams{Limit: 200}, &res)
 		ExitIfErr(err)
 
@@ -107,7 +107,7 @@ var peersConnectCommand = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := &profile.CodingProfile{}
+		res := &config.ProfilePod{}
 		err = pr.ConnectToPeer(&args[0], res)
 		ExitIfErr(err)
 

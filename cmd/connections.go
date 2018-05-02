@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/config"
 	"github.com/spf13/cobra"
 )
 
@@ -42,7 +42,7 @@ var connectionsCmd = &cobra.Command{
 			}
 		} else {
 			limit := 200
-			res := []*profile.CodingProfile{}
+			res := []*config.ProfilePod{}
 			err := req.ConnectedQriProfiles(&limit, &res)
 			ExitIfErr(err)
 

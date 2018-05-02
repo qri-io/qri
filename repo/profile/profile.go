@@ -12,21 +12,6 @@ import (
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
-// CodingProfile is a version of Profile that's specifically intended for
-// serialization (encoding & decoding)
-type CodingProfile struct {
-	config.Profile
-	Addresses map[string][]string `json:"addresses,omitempty"`
-}
-
-// NewCodingProfile creates a serializeprofile from a config.Profile
-func NewCodingProfile(pro *config.Profile) *CodingProfile {
-	return &CodingProfile{
-		Profile:   *pro,
-		Addresses: map[string][]string{},
-	}
-}
-
 // Profile defines peer profile details
 type Profile struct {
 	ID ID `json:"id"`
@@ -66,9 +51,9 @@ type Profile struct {
 }
 
 // NewProfile allocates a profile from a CodingProfile
-func NewProfile(p *config.Profile) (pro *Profile, err error) {
+func NewProfile(p *config.ProfilePod) (pro *Profile, err error) {
 	pro = &Profile{}
-	err = pro.Decode(NewCodingProfile(p))
+	err = pro.Decode(p)
 	return
 }
 
@@ -82,8 +67,8 @@ func (p *Profile) PeerIDs() (ids []peer.ID) {
 	return
 }
 
-// Decode turns a CodingProfile into a profile.Profile
-func (p *Profile) Decode(sp *CodingProfile) error {
+// Decode turns a ProfilePod into a profile.Profile
+func (p *Profile) Decode(sp *config.ProfilePod) error {
 	id, err := IDB58Decode(sp.ID)
 	if err != nil {
 		return err
@@ -138,26 +123,24 @@ func (p *Profile) Decode(sp *CodingProfile) error {
 	return nil
 }
 
-// Encode returns a CodingProfile for a given profile
-func (p Profile) Encode() (*CodingProfile, error) {
-	sp := &CodingProfile{
-		Profile: config.Profile{
-			ID:          p.ID.String(),
-			Type:        p.Type.String(),
-			Peername:    p.Peername,
-			Created:     p.Created,
-			Updated:     p.Updated,
-			Email:       p.Email,
-			Name:        p.Name,
-			Description: p.Description,
-			HomeURL:     p.HomeURL,
-			Color:       p.Color,
-			Twitter:     p.Twitter,
-			Poster:      p.Poster.String(),
-			Photo:       p.Photo.String(),
-			Thumb:       p.Thumb.String(),
-		},
-		Addresses: p.Addresses,
+// Encode returns a ProfilePod for a given profile
+func (p Profile) Encode() (*config.ProfilePod, error) {
+	pp := &config.ProfilePod{
+		ID:          p.ID.String(),
+		Type:        p.Type.String(),
+		Peername:    p.Peername,
+		Created:     p.Created,
+		Updated:     p.Updated,
+		Email:       p.Email,
+		Name:        p.Name,
+		Description: p.Description,
+		HomeURL:     p.HomeURL,
+		Color:       p.Color,
+		Twitter:     p.Twitter,
+		Poster:      p.Poster.String(),
+		Photo:       p.Photo.String(),
+		Thumb:       p.Thumb.String(),
+		Addresses:   p.Addresses,
 	}
-	return sp, nil
+	return pp, nil
 }

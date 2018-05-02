@@ -8,6 +8,7 @@ import (
 	"sync"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/theckman/go-flock"
 
@@ -184,7 +185,7 @@ func (r ProfileStore) DeleteProfile(id profile.ID) error {
 	return r.saveFile(ps, FilePeers)
 }
 
-func (r ProfileStore) saveFile(ps map[string]*profile.CodingProfile, f File) error {
+func (r ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error {
 
 	data, err := json.Marshal(ps)
 	if err != nil {
@@ -203,7 +204,7 @@ func (r ProfileStore) saveFile(ps map[string]*profile.CodingProfile, f File) err
 	return ioutil.WriteFile(r.filepath(f), data, os.ModePerm)
 }
 
-func (r *ProfileStore) profiles() (map[string]*profile.CodingProfile, error) {
+func (r *ProfileStore) profiles() (map[string]*config.ProfilePod, error) {
 	log.Debug("reading profiles")
 
 	if err := r.flock.Lock(); err != nil {
@@ -214,22 +215,21 @@ func (r *ProfileStore) profiles() (map[string]*profile.CodingProfile, error) {
 		r.flock.Unlock()
 	}()
 
-	ps := map[string]*profile.CodingProfile{}
+	pp := map[string]*config.ProfilePod{}
 	data, err := ioutil.ReadFile(r.filepath(FilePeers))
 	if err != nil {
 		if os.IsNotExist(err) {
-			return ps, nil
+			return pp, nil
 		}
 		log.Debug(err.Error())
-		return ps, fmt.Errorf("error loading peers: %s", err.Error())
+		return pp, fmt.Errorf("error loading peers: %s", err.Error())
 	}
 
-	if err := json.Unmarshal(data, &ps); err != nil {
+	if err := json.Unmarshal(data, &pp); err != nil {
 		log.Error(err.Error())
 		// TODO - this is totally screwed for some reason, so for now when things fail,
 		// let's just return an empty list of peers
-		return ps, nil
-		// return ps, fmt.Errorf("error unmarshaling peers: %s", err.Error())
+		return pp, nil
 	}
-	return ps, nil
+	return pp, nil
 }

@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -35,13 +36,13 @@ func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 }
 
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *ListParams, res *[]*profile.CodingProfile) error {
+func (d *PeerRequests) List(p *ListParams, res *[]*config.ProfilePod) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
 
 	r := d.qriNode.Repo
-	replies := make([]*profile.CodingProfile, p.Limit)
+	replies := make([]*config.ProfilePod, p.Limit)
 
 	user, err := r.Profile()
 	if err != nil {
@@ -54,7 +55,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*profile.CodingProfile) error 
 	}
 
 	if len(ps) == 0 {
-		*res = []*profile.CodingProfile{}
+		*res = []*config.ProfilePod{}
 		return nil
 	}
 
@@ -99,12 +100,12 @@ func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 // }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*profile.CodingProfile) error {
+func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	parsed := []*profile.CodingProfile{}
+	parsed := []*config.ProfilePod{}
 	for _, p := range d.qriNode.ConnectedQriProfiles() {
 		pro, err := p.Encode()
 		if err != nil {
@@ -118,7 +119,7 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*profile.Coding
 }
 
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (d *PeerRequests) ConnectToPeer(b58pid *string, res *profile.CodingProfile) error {
+func (d *PeerRequests) ConnectToPeer(b58pid *string, res *config.ProfilePod) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectToPeer", b58pid, res)
 	}
@@ -152,7 +153,7 @@ type PeerInfoParams struct {
 }
 
 // Info shows peer profile details
-func (d *PeerRequests) Info(p *PeerInfoParams, res *profile.CodingProfile) error {
+func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.Info", p, res)
 	}

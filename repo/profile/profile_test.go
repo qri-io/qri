@@ -8,29 +8,29 @@ import (
 func TestProfileDecode(t *testing.T) {
 	var (
 		p   = &Profile{}
-		sp  = &CodingProfile{}
+		cp  = &config.ProfilePod{}
 		err error
 	)
 
-	if err = p.Decode(sp); err == nil {
+	if err = p.Decode(cp); err == nil {
 		t.Errorf("expected missing ID to error")
 	}
 
-	sp = &CodingProfile{}
-	sp.ID = "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"
-	sp.Type = "dinosaur"
+	cp = &config.ProfilePod{}
+	cp.ID = "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"
+	cp.Type = "dinosaur"
 
-	if err = p.Decode(sp); err == nil {
+	if err = p.Decode(cp); err == nil {
 		t.Errorf("expected invalid type to error")
 	}
 
-	sp = &CodingProfile{}
-	sp.ID = "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"
-	sp.Poster = "foo"
-	sp.Photo = "bar"
-	sp.Thumb = "baz"
+	cp = &config.ProfilePod{}
+	cp.ID = "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F"
+	cp.Poster = "foo"
+	cp.Photo = "bar"
+	cp.Thumb = "baz"
 
-	if err := p.Decode(sp); err != nil {
+	if err := p.Decode(cp); err != nil {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 
@@ -46,13 +46,13 @@ func TestProfileDecode(t *testing.T) {
 }
 
 func TestProfileEncode(t *testing.T) {
-	sp := NewCodingProfile(&config.Profile{
+	cp := &config.ProfilePod{
 		ID:       "QmTwtwLMKHHKCrugNxyAaZ31nhBqRUQVysT2xK911n4m6F",
 		Peername: "test_profile",
-	})
+	}
 
 	pro := &Profile{}
-	if err := pro.Decode(sp); err != nil {
+	if err := pro.Decode(cp); err != nil {
 		t.Error(err.Error())
 		return
 	}
