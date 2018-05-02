@@ -46,3 +46,15 @@ func (l Logging) Validate() error {
   }`)
 	return validate(schema, &l)
 }
+
+// Copy returns a deep copy of a Logging struct
+func (l *Logging) Copy() *Logging {
+	res := &Logging{}
+	if l.Levels != nil {
+		res.Levels = map[string]string{}
+		for key, value := range l.Levels {
+			res.Levels[key] = value
+		}
+	}
+	return res
+}

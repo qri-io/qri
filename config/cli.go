@@ -31,3 +31,21 @@ func (c CLI) Validate() error {
   }`)
 	return validate(schema, &c)
 }
+
+// Copy returns a deep copy of a CLI struct
+func (c *CLI) Copy() *CLI {
+	res := &CLI{
+		ColorizeOutput: c.ColorizeOutput,
+	}
+	return res
+}
+
+// WithPrivateValues returns a deep copy of CLI struct all the privates values of the receiver added to the *CLI param
+func (c *CLI) WithPrivateValues(p *CLI) *CLI {
+	return p.Copy()
+}
+
+// WithoutPrivateValues returns a deep copy of an CLI struct with all the private values removed
+func (c *CLI) WithoutPrivateValues() *CLI {
+	return c.Copy()
+}

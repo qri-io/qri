@@ -64,3 +64,15 @@ func (cfg Webapp) Validate() error {
   }`)
 	return validate(schema, &cfg)
 }
+
+// Copy returns a deep copy of the Webapp struct
+func (cfg *Webapp) Copy() *Webapp {
+	res := &Webapp{
+		Enabled:                 cfg.Enabled,
+		Port:                    cfg.Port,
+		AnalyticsToken:          cfg.AnalyticsToken,
+		EntrypointUpdateAddress: cfg.EntrypointUpdateAddress,
+		EntrypointHash:          cfg.EntrypointHash,
+	}
+	return res
+}

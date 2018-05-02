@@ -1,6 +1,7 @@
 package config
 
 import (
+	"reflect"
 	"testing"
 )
 
@@ -38,5 +39,25 @@ func TestP2PValidate(t *testing.T) {
 	err := DefaultP2P().Validate()
 	if err != nil {
 		t.Errorf("error validating default p2p: %s", err)
+	}
+}
+
+func TestP2PCopy(t *testing.T) {
+	cases := []struct {
+		p2p *P2P
+	}{
+		{DefaultP2P()},
+	}
+	for i, c := range cases {
+		cpy := c.p2p.Copy()
+		if !reflect.DeepEqual(cpy, c.p2p) {
+			t.Errorf("P2P Copy test case %v, p2p structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.p2p)
+			continue
+		}
+		cpy.QriBootstrapAddrs[0] = ""
+		if reflect.DeepEqual(cpy, c.p2p) {
+			t.Errorf("P2P Copy test case %v, editing one p2p struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.p2p)
+			continue
+		}
 	}
 }

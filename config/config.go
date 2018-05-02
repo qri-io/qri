@@ -254,3 +254,62 @@ func (cfg Config) Validate() error {
 	}
 	return cfg.Logging.Validate()
 }
+
+// Copy returns a deep copy of the Config struct
+func (cfg *Config) Copy() *Config {
+	res := &Config{}
+
+	if cfg.Profile != nil {
+		res.Profile = cfg.Profile.Copy()
+	}
+	if cfg.Repo != nil {
+		res.Repo = cfg.Repo.Copy()
+	}
+	if cfg.Store != nil {
+		res.Store = cfg.Store.Copy()
+	}
+	if cfg.P2P != nil {
+		res.P2P = cfg.P2P.Copy()
+	}
+	if cfg.Registry != nil {
+		res.Registry = cfg.Registry.Copy()
+	}
+	if cfg.CLI != nil {
+		res.CLI = cfg.CLI.Copy()
+	}
+	if cfg.API != nil {
+		res.API = cfg.API.Copy()
+	}
+	if cfg.Webapp != nil {
+		res.Webapp = cfg.Webapp.Copy()
+	}
+	if cfg.RPC != nil {
+		res.RPC = cfg.RPC.Copy()
+	}
+	if cfg.Logging != nil {
+		res.Logging = cfg.Logging.Copy()
+	}
+
+	return res
+}
+
+// WithoutPrivateValues returns a deep copy of the receiver with the private values removed
+func (cfg *Config) WithoutPrivateValues() *Config {
+	res := cfg.Copy()
+
+	res.Profile.PrivKey = ""
+	res.P2P.PrivKey = ""
+
+	return res
+}
+
+// WithPrivateValues returns a deep copy of the receiver with the private values from
+// the *Config passed in from the params
+func (cfg *Config) WithPrivateValues(p *Config) *Config {
+	res := cfg.Copy()
+
+	res.Profile.PrivKey = p.Profile.PrivKey
+	res.P2P.PrivKey = p.P2P.PrivKey
+
+	return res
+}

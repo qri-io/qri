@@ -41,3 +41,13 @@ func (cfg RPC) Validate() error {
   }`)
 	return validate(schema, &cfg)
 }
+
+// Copy makes a deep copy of the RPC struct
+func (cfg *RPC) Copy() *RPC {
+	res := &RPC{
+		Enabled: cfg.Enabled,
+		Port:    cfg.Port,
+	}
+
+	return res
+}
