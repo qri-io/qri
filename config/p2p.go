@@ -42,7 +42,7 @@ type P2P struct {
 	ProfileReplication string `json:"profilereplication"`
 
 	// list of addresses to bootsrap qri peers on
-	BoostrapAddrs []string `json:"bootstrapaddrs"`
+	BootstrapAddrs []string `json:"bootstrapaddrs"`
 }
 
 // DefaultP2P generates sensible settings for p2p, generating a new randomized

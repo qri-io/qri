@@ -75,15 +75,10 @@ func GetConfig(p *GetConfigParams, res *[]byte) error {
 		encode interface{}
 	)
 
-	*cfg = *Config
-
 	if !p.WithPrivateKey {
-		if cfg.Profile != nil {
-			cfg.Profile.PrivKey = ""
-		}
-		if cfg.P2P != nil {
-			cfg.P2P.PrivKey = ""
-		}
+		cfg = Config.WithoutPrivateValues()
+	} else {
+		cfg = Config.Copy()
 	}
 
 	encode = cfg
@@ -118,10 +113,10 @@ func SetConfig(res *config.Config) error {
 		return fmt.Errorf("error validating config: %s", err)
 	}
 	if err := SaveConfig(); err != nil {
-		return fmt.Errorf("error saving config: &s", err)
+		return fmt.Errorf("error saving config: %s", err)
 	}
 
-	// Config = Config.WithPrivateValues(res)
+	Config = res.WithPrivateValues(Config)
 
 	return nil
 }

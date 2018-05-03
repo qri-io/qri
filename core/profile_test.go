@@ -101,7 +101,7 @@ func TestSaveProfile(t *testing.T) {
 	pro.Email = "test_email@example.com"
 	pro.Description = "This is only a test profile"
 	pro.HomeURL = "http://example.com"
-	pro.Color = "test_color"
+	pro.Color = "default"
 	pro.Twitter = "test_twitter"
 
 	// Save the CodingProfile.
@@ -167,7 +167,7 @@ func TestSaveProfile(t *testing.T) {
 	if got.HomeURL != "http://example.com" {
 		log.Errorf("Got Type %v", got.HomeURL)
 	}
-	if got.Color != "test_color" {
+	if got.Color != "default" {
 		log.Errorf("Got Type %v", got.Color)
 	}
 	if got.Twitter != "test_twitter" {
