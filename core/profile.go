@@ -127,25 +127,15 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 		Config.Set("profile.peername", p.Peername)
 	}
 
-	if p.Name != "" {
-		Config.Set("profile.name", p.Name)
-	}
-	if p.Email != "" {
-		Config.Set("profile.email", p.Email)
-	}
-	if p.Description != "" {
-		Config.Set("profile.description", p.Description)
-	}
-	if p.HomeURL != "" {
-		Config.Set("profile.homeurl", p.HomeURL)
-	}
+	Config.Set("profile.name", p.Name)
+	Config.Set("profile.email", p.Email)
+	Config.Set("profile.description", p.Description)
+	Config.Set("profile.homeurl", p.HomeURL)
+	Config.Set("profile.twitter", p.Twitter)
+
 	if p.Color != "" {
 		Config.Set("profile.color", p.Color)
 	}
-	if p.Twitter != "" {
-		Config.Set("profile.twitter", p.Twitter)
-	}
-
 	// TODO - strange bug:
 	if Config.Profile.Type == "" {
 		Config.Profile.Type = "peer"
