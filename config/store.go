@@ -34,3 +34,12 @@ func (cfg Store) Validate() error {
   }`)
 	return validate(schema, &cfg)
 }
+
+// Copy returns a deep copy of the Store struct
+func (cfg *Store) Copy() *Store {
+	res := &Store{
+		Type: cfg.Type,
+	}
+
+	return res
+}

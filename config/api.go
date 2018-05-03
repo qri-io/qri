@@ -2,6 +2,8 @@ package config
 
 import (
 	"fmt"
+	"reflect"
+
 	"github.com/qri-io/jsonschema"
 )
 
@@ -91,4 +93,22 @@ func DefaultAPI() *API {
 			"https://app.qri.io",
 		},
 	}
+}
+
+// Copy returns a deep copy of an API struct
+func (a *API) Copy() *API {
+	res := &API{
+		Enabled:         a.Enabled,
+		Port:            a.Port,
+		ReadOnly:        a.ReadOnly,
+		URLRoot:         a.URLRoot,
+		TLS:             a.TLS,
+		DisconnectAfter: a.DisconnectAfter,
+		ProxyForceHTTPS: a.ProxyForceHTTPS,
+	}
+	if a.AllowedOrigins != nil {
+		res.AllowedOrigins = make([]string, len(a.AllowedOrigins))
+		reflect.Copy(reflect.ValueOf(res.AllowedOrigins), reflect.ValueOf(a.AllowedOrigins))
+	}
+	return res
 }

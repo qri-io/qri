@@ -103,7 +103,7 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 		return fmt.Errorf("profile required for update")
 	}
 
-	if p.Peername != "" {
+	if p.Peername != Config.Profile.Peername && p.Peername != "" {
 		// TODO - should ProfileRequests be allocated with a configuration? How should this work in relation to
 		// RPC requests?
 		if Config.Registry != nil {
@@ -155,7 +155,7 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	if err != nil {
 		return err
 	}
-	if err := r.repo.Profiles().PutProfile(pro); err != nil {
+	if err := r.repo.SetProfile(pro); err != nil {
 		return err
 	}
 
@@ -163,7 +163,7 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	*res = *Config.Profile
 	res.PrivKey = ""
 
-	return SaveConfig()
+	return SetConfig(Config)
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
@@ -232,7 +232,16 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	Config.Set("profile.photo", path.String())
 	// TODO - resize photo for thumb
 	Config.Set("profile.thumb", path.String())
-	return SaveConfig()
+
+	pro, err := profile.NewProfile(Config.Profile)
+	if err != nil {
+		return err
+	}
+	if err := r.repo.SetProfile(pro); err != nil {
+		return err
+	}
+
+	return SetConfig(Config)
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
@@ -287,10 +296,20 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	path, err := r.repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
+
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
 	res.Poster = path.String()
 	Config.Set("profile.poster", path.String())
-	return SaveConfig()
+
+	pro, err := profile.NewProfile(Config.Profile)
+	if err != nil {
+		return err
+	}
+	if err := r.repo.SetProfile(pro); err != nil {
+		return err
+	}
+
+	return SetConfig(Config)
 }

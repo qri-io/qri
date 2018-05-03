@@ -1,6 +1,10 @@
 package config
 
-import "github.com/qri-io/jsonschema"
+import (
+	"reflect"
+
+	"github.com/qri-io/jsonschema"
+)
 
 // Repo configures a qri repo
 type Repo struct {
@@ -42,4 +46,17 @@ func (cfg Repo) Validate() error {
     }
   }`)
 	return validate(schema, &cfg)
+}
+
+// Copy returns a deep copy of the Repo struct
+func (cfg *Repo) Copy() *Repo {
+	res := &Repo{
+		Type: cfg.Type,
+	}
+	if cfg.Middleware != nil {
+		res.Middleware = make([]string, len(cfg.Middleware))
+		reflect.Copy(reflect.ValueOf(res.Middleware), reflect.ValueOf(cfg.Middleware))
+	}
+
+	return res
 }

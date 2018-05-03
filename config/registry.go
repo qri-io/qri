@@ -34,3 +34,11 @@ func (cfg Registry) Validate() error {
   }`)
 	return validate(schema, &cfg)
 }
+
+// Copy makes a deep copy of the Registry struct
+func (cfg *Registry) Copy() *Registry {
+	res := &Registry{
+		Location: cfg.Location,
+	}
+	return res
+}

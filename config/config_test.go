@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -10,6 +9,8 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestReadFromFile(t *testing.T) {
@@ -198,5 +199,25 @@ func TestConfigValidate(t *testing.T) {
 	l.Logging.Levels["qriapi"] = "badType"
 	if err := l.Validate(); err == nil {
 		t.Error("When given bad input in Logging, config.Validate did not catch the error.")
+	}
+}
+
+func TestConfigCopy(t *testing.T) {
+	cases := []struct {
+		config *Config
+	}{
+		{DefaultConfig()},
+	}
+	for i, c := range cases {
+		cpy := c.config.Copy()
+		if !reflect.DeepEqual(cpy, c.config) {
+			t.Errorf("Config Copy test case %v, config structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.config)
+			continue
+		}
+		cpy.API.AllowedOrigins[0] = ""
+		if reflect.DeepEqual(cpy, c.config) {
+			t.Errorf("Config Copy test case %v, editing one config struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.config)
+			continue
+		}
 	}
 }

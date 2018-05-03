@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"reflect"
 	"time"
 
 	"github.com/libp2p/go-libp2p-crypto"
@@ -205,4 +206,34 @@ func (cfg ProfilePod) Validate() error {
     ]
   }`)
 	return validate(schema, &cfg)
+}
+
+// Copy makes a deep copy of the ProfilePod struct
+func (cfg *ProfilePod) Copy() *ProfilePod {
+	res := &ProfilePod{
+		ID:          cfg.ID,
+		PrivKey:     cfg.PrivKey,
+		Peername:    cfg.Peername,
+		Created:     cfg.Created,
+		Updated:     cfg.Updated,
+		Type:        cfg.Type,
+		Email:       cfg.Email,
+		Name:        cfg.Name,
+		Description: cfg.Description,
+		HomeURL:     cfg.HomeURL,
+		Color:       cfg.Color,
+		Thumb:       cfg.Thumb,
+		Photo:       cfg.Photo,
+		Poster:      cfg.Poster,
+		Twitter:     cfg.Twitter,
+	}
+	if cfg.Addresses != nil {
+		res.Addresses = map[string][]string{}
+		for key, value := range cfg.Addresses {
+			res.Addresses[key] = make([]string, len(value))
+			reflect.Copy(reflect.ValueOf(res.Addresses[key]), reflect.ValueOf(value))
+		}
+	}
+
+	return res
 }

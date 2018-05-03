@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
+	"reflect"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -41,7 +42,7 @@ type P2P struct {
 	ProfileReplication string `json:"profilereplication"`
 
 	// list of addresses to bootsrap qri peers on
-	BoostrapAddrs []string `json:"bootstrapaddrs"`
+	BootstrapAddrs []string `json:"bootstrapaddrs"`
 }
 
 // DefaultP2P generates sensible settings for p2p, generating a new randomized
@@ -164,6 +165,30 @@ func (cfg P2P) Validate() error {
     }
   }`)
 	return validate(schema, &cfg)
+}
+
+// Copy returns a deep copy of a p2p struct
+func (cfg *P2P) Copy() *P2P {
+	res := &P2P{
+		Enabled:            cfg.Enabled,
+		PeerID:             cfg.PeerID,
+		PubKey:             cfg.PubKey,
+		PrivKey:            cfg.PrivKey,
+		Port:               cfg.Port,
+		ProfileReplication: cfg.ProfileReplication,
+	}
+
+	if cfg.QriBootstrapAddrs != nil {
+		res.QriBootstrapAddrs = make([]string, len(cfg.QriBootstrapAddrs))
+		reflect.Copy(reflect.ValueOf(res.QriBootstrapAddrs), reflect.ValueOf(cfg.QriBootstrapAddrs))
+	}
+
+	if cfg.BootstrapAddrs != nil {
+		res.BootstrapAddrs = make([]string, len(cfg.BootstrapAddrs))
+		reflect.Copy(reflect.ValueOf(res.BootstrapAddrs), reflect.ValueOf(cfg.BootstrapAddrs))
+	}
+
+	return res
 }
 
 // // Validate confirms that the given settings will work, returning an error if not.
