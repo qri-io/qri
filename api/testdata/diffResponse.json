@@ -3,8 +3,8 @@
     "meta": [
       {
         "Position": "title",
-        "OldValue": "test title",
-        "NewValue": "Updated Title"
+        "OldValue": "Updated Title",
+        "NewValue": "test title"
       }
     ],
     "structure": []
