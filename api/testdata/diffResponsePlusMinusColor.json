@@ -1,5 +1,5 @@
 {
-  "data": " {\n   \"description\": \"test description\",\n   \"keywords\": [\n     : \"keyword1\",\n     : \"keyword2\"\n   ],\n   \"license\": {\n     \"type\": \"\",\n     \"url\": \"\"\n   },\n   \"qri\": \"md:0\",\n\u001b[30;41m-  \"title\": \"test title\"\u001b[0m\n\u001b[30;42m+  \"title\": \"Updated Title\"\u001b[0m\n }\n",
+  "data": " {\n   \"description\": \"test description\",\n   \"keywords\": [\n     : \"keyword1\",\n     : \"keyword2\"\n   ],\n   \"license\": {\n     \"type\": \"\",\n     \"url\": \"\"\n   },\n   \"qri\": \"md:0\",\n\u001b[30;41m-  \"title\": \"Updated Title\"\u001b[0m\n\u001b[30;42m+  \"title\": \"test title\"\u001b[0m\n }\n",
   "meta": {
     "code": 200
   }

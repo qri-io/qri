@@ -4,13 +4,13 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
-      "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
+      "path": "/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe",
       "dataset": {
         "commit": {
           "message": "\t- modified title\n",
-          "path": "/map/QmRH82qw8YeDyJjgF9D8oAouT2fv8xNQ4j6k4T9DQSEYTd",
+          "path": "/map/QmRgdaMcWnZW5mk2JvwSB5RxubD8PjcyE9e3tHiKUCVrvs",
           "qri": "cm:0",
-          "signature": "7Q7oxwcSqkgRyUL91i7x6eoLjp9JKodFeqxU13Wkhan2h3jQt9mJAUVaJv2Dr1FNLFjA4u6FGAnejHbLDCoEteMYWNbEAvB7BJdCZ7dtPbMePY8C7yskuSN94fZknHLHiHZPMiCeeEDsNytyK4xwKqUcwQWVwV7zfLdB91g1NrFgC2aiRCZcpRiurYYo58ZSeP589qFh3fGqxF7vttf7z59E68sN7n6Cnmwx7RxY3rnDz9K6t4fLEpHma13k6foMd7Vus8HwPLi8b9fUVy4UjG6vmsGkLcJ1kHaGTwWx6K42frhAwLA69BeSFtuHHnvxNSzmg75Hg9BDpejpg8a8RwyPkLJWev",
+          "signature": "m/UcXCxse+ETajCywfBpkAjzgjDSj3HmSo+fgDhPMoVWpPE91onQ6D3wRNYYry+DifcCkWXENJ93jqVfeGlDX+FgrySoEIrBky2wDA6aupkuOaTtJnhDfdeKsUShElFy3vYja5rG2S44FcarFpeFkLxL4RUY+DZRY7L+lFsS4ZDU+fEKbEqZ6M1GvmkHdT+0mTqK5ROEA2ihBhKdIK1q08hmolCSDpfVECrxguuuze7NspDXFqqmHcoSN/HOqMtfR/olgraEFD6hev8NULYZ9WkUUKvv7oHftpyHIx/Vj9vGwwoBZdjRog0typFmCdP/JnBzHG8GqE36DOc7WNLZmw==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "Meta: 1 change"
         },
@@ -28,8 +28,8 @@
           "qri": "md:0",
           "title": "Updated Title"
         },
-        "path": "/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC",
-        "previousPath": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
+        "path": "/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe",
+        "previousPath": "/map/QmVASsypYq7zuHvvY4pCufVRnPgJJYo2Ewj5JnDm6FMv56",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -73,13 +73,13 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
-      "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
+      "path": "/map/QmVASsypYq7zuHvvY4pCufVRnPgJJYo2Ewj5JnDm6FMv56",
       "dataset": {
         "commit": {
           "message": "added title and keywords",
-          "path": "/map/QmeeLFZHDixw4ToxhrnuwEqzzxLbjXFM3GGYWawaYw7ooM",
+          "path": "/map/QmVoosEeXXxZrPzjx3hpgnRDBTyhZJnuK2FvKb3HkY29SR",
           "qri": "cm:0",
-          "signature": "2U9YKX4PcYihB53A2s6Uzhp6jGzsPjRY6fSdXxDobu7yUKMgHW5hTKusoVjEpqXE8XF91FYWFckhE19TVKaSGFhFxz4PgL9GuyqK93uemUvfExoaA3tGyEjeX9Nt4wCQV5jtJccYuhArhk6hxhchFTQBEfPb7wyz7sGwMgMcyhi13jzgYSG9AG1jtEc4uigUsASi5pE3Bo1JzBkMaY82ixvr2sirMiLL9bsZVuMho3ocE5FF1X6K5tqUMPizbraxKP4UhFdfDwoNRXgbmh1Akh1A1978hX3KBv5ugMRFRQ3MbHtJ35V6pmn21FXgRyn3TcYnnT3CuSyRUPqYV8pNqtNDguxYCw",
+          "signature": "m/UcXCxse+ETajCywfBpkAjzgjDSj3HmSo+fgDhPMoVWpPE91onQ6D3wRNYYry+DifcCkWXENJ93jqVfeGlDX+FgrySoEIrBky2wDA6aupkuOaTtJnhDfdeKsUShElFy3vYja5rG2S44FcarFpeFkLxL4RUY+DZRY7L+lFsS4ZDU+fEKbEqZ6M1GvmkHdT+0mTqK5ROEA2ihBhKdIK1q08hmolCSDpfVECrxguuuze7NspDXFqqmHcoSN/HOqMtfR/olgraEFD6hev8NULYZ9WkUUKvv7oHftpyHIx/Vj9vGwwoBZdjRog0typFmCdP/JnBzHG8GqE36DOc7WNLZmw==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "Adding more specific metadata"
         },
@@ -97,8 +97,8 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
-        "previousPath": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
+        "path": "/map/QmVASsypYq7zuHvvY4pCufVRnPgJJYo2Ewj5JnDm6FMv56",
+        "previousPath": "/map/QmSk8uTSoEsyv33hcw4g9VNM3HMzzq4gFdDH2kJVrPLToT",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -142,13 +142,13 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
-      "path": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
+      "path": "/map/QmSk8uTSoEsyv33hcw4g9VNM3HMzzq4gFdDH2kJVrPLToT",
       "dataset": {
         "commit": {
           "message": "want to expand this list to include more cities",
-          "path": "/map/QmbZrzXYH3k5LoUM57ZBwvaetfNjFYedWqwPQntUvKDC8X",
+          "path": "/map/QmYGGnwNjdeVHJzN7yapJBh2upkxUa9LTg1GbHDNRFfwUv",
           "qri": "cm:0",
-          "signature": "7Ce431PnyjauzqkCNBDZwaUbvm1vKz5ZzZH43BnkJ86pS9aiseHzP4sCprHg9t3yn3di19a1GSeVkyHLPYz6xEGEJDpGJbCSWiC18vmbMxJV8q1SnnspXu2nLi3iJZ1gpX5R2Jiv4QgeASBN25vsvAx3cxzE1pwyqvJMtQC1vqykwqheVqheeGLsdqTa8H7ybWrmyzVQ3LtSDjGayaKtLKAEwixDjEodzTVPyJXSfQcb6E1MCtzvByLdsnbEjqo5PRpvFbbAapwjmudVjDdFgzianSJ8CnG9TrtFzp8YsBPKirxNhzbYuNhKFq6h8JDonb36g441Hwh2t11nyPRg6J24Khpqbe",
+          "signature": "m/UcXCxse+ETajCywfBpkAjzgjDSj3HmSo+fgDhPMoVWpPE91onQ6D3wRNYYry+DifcCkWXENJ93jqVfeGlDX+FgrySoEIrBky2wDA6aupkuOaTtJnhDfdeKsUShElFy3vYja5rG2S44FcarFpeFkLxL4RUY+DZRY7L+lFsS4ZDU+fEKbEqZ6M1GvmkHdT+0mTqK5ROEA2ihBhKdIK1q08hmolCSDpfVECrxguuuze7NspDXFqqmHcoSN/HOqMtfR/olgraEFD6hev8NULYZ9WkUUKvv7oHftpyHIx/Vj9vGwwoBZdjRog0typFmCdP/JnBzHG8GqE36DOc7WNLZmw==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "added row to include Seoul, Korea"
         },
@@ -162,8 +162,8 @@
           },
           "qri": "md:0"
         },
-        "path": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
-        "previousPath": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
+        "path": "/map/QmSk8uTSoEsyv33hcw4g9VNM3HMzzq4gFdDH2kJVrPLToT",
+        "previousPath": "/map/QmX3Z7pk6ZkeoFifQ34rT5ajPDFu6phVaSfwEgxeT1Ppgo",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -207,12 +207,12 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
-      "path": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
+      "path": "/map/QmX3Z7pk6ZkeoFifQ34rT5ajPDFu6phVaSfwEgxeT1Ppgo",
       "dataset": {
         "commit": {
-          "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
+          "path": "/map/Qmf7cjWGbDgdD6CUL4tmNGzyB3tJe9b8VZC34JZ28G1W4f",
           "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+          "signature": "TzHbqw7oRcqoGYhTraiJ9fSGzUUoHA653jNYGsBgbkUbBUkTh/ymTHZSfhwIKQlAqfwiOqB2rbmA4hu2MAYVxNRLfPlUYAr38juyTosI6cljYdzLfNk2L788iFSQcYnJ9CgiHYQlhmpUjh3irFY1nDIuaiPL1vDxH5yGsuI3qiD9DVvu2P6f6GSGMkQzpSv3jDWQbqo5LyyU7gaJBIaJW6Q9vKSB/mRRjDfHtOP2pMH/pf17q35+HaGHd+XEg/6a6X3IWwjsRros029lH6SDCbUaPXB6H3Cy5gRLoZp7K3mU026JucogrVHqRsZmVCx+vaVJ/MCpQhfYg6F8m8z2fA==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
@@ -226,7 +226,7 @@
           },
           "qri": "md:0"
         },
-        "path": "/map/QmaR2c8PFeUWPpbE6rxpD3WbhtSTuACbFBa7JMSZLAHRFX",
+        "path": "/map/QmX3Z7pk6ZkeoFifQ34rT5ajPDFu6phVaSfwEgxeT1Ppgo",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmVYgdpvgnq3FABZFVWUgxr7UCwNSRJz97vBU9YX5g5pQ4",

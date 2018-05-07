@@ -112,8 +112,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/Qmcgic3dQnLPw6CyKhVtwEGng9DVdmY3GxKg2d337HinQA", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/Qmcgic3dQnLPw6CyKhVtwEGng9DVdmY3GxKg2d337HinQA", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -121,20 +121,20 @@ func TestServerRoutes(t *testing.T) {
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe", "", "historyResponseAt.json", 200},
 
 		{"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "", 200},
-		{"GET", "/export/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe", "", "", 200},
+		{"GET", "/export/at/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/QmcQsi93yUryyWvw6mPyDNoKRb7FcBx8QGBAeJ25kXQjnC", "", "removeResponseWithPath.json", 200},
-		{"POST", "/remove/at/map/QmdbJGpmZKsbKpBGQbWS7PjodGtrXX3hAHvxdgUsuf9a3N", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmRjqW7kJHhg9e8zooqqcvTSLJ3eyWkBTm6DBDtKeCPwhe", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/at/map/Qmcgic3dQnLPw6CyKhVtwEGng9DVdmY3GxKg2d337HinQA", "", "removeResponseByPath.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 

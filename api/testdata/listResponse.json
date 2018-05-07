@@ -4,13 +4,13 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "cities",
-      "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
+      "path": "/map/QmVASsypYq7zuHvvY4pCufVRnPgJJYo2Ewj5JnDm6FMv56",
       "dataset": {
         "commit": {
           "message": "added title and keywords",
-          "path": "/map/QmeeLFZHDixw4ToxhrnuwEqzzxLbjXFM3GGYWawaYw7ooM",
+          "path": "/map/QmVoosEeXXxZrPzjx3hpgnRDBTyhZJnuK2FvKb3HkY29SR",
           "qri": "cm:0",
-          "signature": "2U9YKX4PcYihB53A2s6Uzhp6jGzsPjRY6fSdXxDobu7yUKMgHW5hTKusoVjEpqXE8XF91FYWFckhE19TVKaSGFhFxz4PgL9GuyqK93uemUvfExoaA3tGyEjeX9Nt4wCQV5jtJccYuhArhk6hxhchFTQBEfPb7wyz7sGwMgMcyhi13jzgYSG9AG1jtEc4uigUsASi5pE3Bo1JzBkMaY82ixvr2sirMiLL9bsZVuMho3ocE5FF1X6K5tqUMPizbraxKP4UhFdfDwoNRXgbmh1Akh1A1978hX3KBv5ugMRFRQ3MbHtJ35V6pmn21FXgRyn3TcYnnT3CuSyRUPqYV8pNqtNDguxYCw",
+          "signature": "m/UcXCxse+ETajCywfBpkAjzgjDSj3HmSo+fgDhPMoVWpPE91onQ6D3wRNYYry+DifcCkWXENJ93jqVfeGlDX+FgrySoEIrBky2wDA6aupkuOaTtJnhDfdeKsUShElFy3vYja5rG2S44FcarFpeFkLxL4RUY+DZRY7L+lFsS4ZDU+fEKbEqZ6M1GvmkHdT+0mTqK5ROEA2ihBhKdIK1q08hmolCSDpfVECrxguuuze7NspDXFqqmHcoSN/HOqMtfR/olgraEFD6hev8NULYZ9WkUUKvv7oHftpyHIx/Vj9vGwwoBZdjRog0typFmCdP/JnBzHG8GqE36DOc7WNLZmw==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "Adding more specific metadata"
         },
@@ -28,8 +28,8 @@
           "qri": "md:0",
           "title": "test title"
         },
-        "path": "/map/QmdvEDH2hNqasqWtWwJn6Jwdvi56jGoxT5u5DsSHbtSPYM",
-        "previousPath": "/map/Qme1fYAJWVfcdJtqsiTcLNWFF8b4Dq7jy7knjUYUTuVmZS",
+        "path": "/map/QmVASsypYq7zuHvvY4pCufVRnPgJJYo2Ewj5JnDm6FMv56",
+        "previousPath": "/map/QmSk8uTSoEsyv33hcw4g9VNM3HMzzq4gFdDH2kJVrPLToT",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmY3dTEQLQFe3VTMi646N5NK2TRijPtCS2fi85z72owHPD",
@@ -73,12 +73,12 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "counter",
-      "path": "/map/Qmdg3KMzTT7UwxBZu8BGqBdF4YXM17rN51hn3hbQkJWT9v",
+      "path": "/map/QmRb3EinFgGo2bVNDzinpaoe37mfjwZ5EirgPF8Zktmh7u",
       "dataset": {
         "commit": {
-          "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
+          "path": "/map/QmU5vkVbrEHGiVZrgjXPi9TJSMTMiKukj1HvpCdg4KtGTm",
           "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+          "signature": "FjA0jAX4UBu53mYEJivVdLInTlhrinwjjuHUMHsEx61yn3zcxQtcp6vNo93IcP/Gn8IXurp6FV68dp/V3zBn+01yuLI/USVONcuQBGiQV7Z7j0xu7P6n68NLlA04fWEmUzl7Wd697YOAPyDVd3HEmVufE1/29T5a43ncuFLLIGLmt38DiblPBYIXUeor7C6HPcFG1MLrVAxAH+1jgV/vLHGRNT+JpnzRZehBcMkulWbDGvrzyrxuLoJc5+pk1oBjBUZqRQ21huTOupvJJJtKfZwFJ3fmrkYIQxgn6iWkVex1Sd20Oj0aAT9794kshrw+xH5hFSmqz3eBc+KO6+x4Ww==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
@@ -87,7 +87,7 @@
           "qri": "md:0",
           "title": "it's a counter"
         },
-        "path": "/map/Qmdg3KMzTT7UwxBZu8BGqBdF4YXM17rN51hn3hbQkJWT9v",
+        "path": "/map/QmRb3EinFgGo2bVNDzinpaoe37mfjwZ5EirgPF8Zktmh7u",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmNYbRM9431h93FsPBhtYPz4yhw44kyJBDD2tvjF6eo9KA",
@@ -119,17 +119,17 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "craigslist",
-      "path": "/map/QmdV6TqbjvwDqZrqPDyXeMYujEZaiaG18YjXVRhD66VFfZ",
+      "path": "/map/QmayiyvRGkS8R6ifLRmHBKGd8ro9UWgXigrwsQU8vYFemg",
       "dataset": {
         "commit": {
-          "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
+          "path": "/map/QmYtVeSpZxVvZUWQv4eEwBdZsan6cBsSgkP8BciFPUdWYm",
           "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+          "signature": "QDA/hZm6buL6oBMdWAZnLi3mg5GMa10odfedy98hx8Alavbgn1c5WkZqd1dejqhkiKKjuok8fMdv5VLKGp12FVRXw3JpFa5fK8o5sQGNIVXe3TK/qmVHWKslNE7HhOkzb/ok8idTBHu3HPkXqDmHioZE0JeLkd6F41BIOkCcVBv+w3SviR3UqMSXtzeBqznUD4XfWUFe5PO08GkQ4qSOZKXj1aqxq/oSGQJHt4vN+891hn/fJDx0inLPRT4Dn4Hm8LL0tJ+o4OJ4q7gC+t9QrPaNK69aO6hgAXxJQbLGReh291Fdk+DWe7McGVJsp0YU0hdDC8kafotUHZosVVESWQ==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
         "dataPath": "/map/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
-        "path": "/map/QmdV6TqbjvwDqZrqPDyXeMYujEZaiaG18YjXVRhD66VFfZ",
+        "path": "/map/QmayiyvRGkS8R6ifLRmHBKGd8ro9UWgXigrwsQU8vYFemg",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
@@ -24033,12 +24033,12 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "movies",
-      "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
+      "path": "/map/QmTyUB4xaLkVTdbAvsP9UFVPE6Qib3qaYsttGBgeEzAo22",
       "dataset": {
         "commit": {
-          "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
+          "path": "/map/QmarjtafbJx7kTM8C6o9xPwnH56g9xy182PPj8tSLiVLb1",
           "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+          "signature": "tH8RcOEjyev68eY4SewmDDUnwVqqJX5ckoUzHVGHGn93YW5TQz51EoslLP6ovrOUKx+MaOGqE05bDpD943SDo10eU023R+wEci+V2Z/WFffN0u39tz1a3KObql5kkC+DynXx7UJo/xpfa7KzH/BLvZDtEnwavu3HqL/CoiPEN6bipjlNG7qu47tifAaOQGgCQ2/3Cufm2ejJ90RPUi+kV1/jdPYU3vPu7ijfIAULM+7ZqZ44b4t+B15UUnCaP/Tk8I+/v855v4syZ2iW3UTR0hSyHwdSW2PkxyuRAU0hLSgHS0iw8vwudnjQuFPTd3Cyh+VWf5FDSd7YbO3Oj24JXg==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
@@ -24047,7 +24047,7 @@
           "qri": "md:0",
           "title": "example movie data"
         },
-        "path": "/map/QmV8H7KjK3u3tVfJEeUqTR42Tbia7oQo1hMfeZjmkBQZQn",
+        "path": "/map/QmTyUB4xaLkVTdbAvsP9UFVPE6Qib3qaYsttGBgeEzAo22",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmTQCPinsdBy9FiT8iuxz45XFA19K6rUbAkjAtBVszQ7Ke",
@@ -24083,12 +24083,12 @@
       "peername": "peer",
       "profileID": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
       "name": "sitemap",
-      "path": "/map/QmPM3bsVu2jGQy11raqrqtmrDoF6CGpAfJnwoJytDSdPh2",
+      "path": "/map/QmYgq32jAojJeg7BwynSN7yWc3PyFE9i8Tdq3aa87CqfdP",
       "dataset": {
         "commit": {
-          "path": "/map/QmQ7V8vyBuBxA8SNRSNbKx931VGYb6pEjYdFnCrNKatRup",
+          "path": "/map/QmV37ELQyj8XMGJjuMtwEdYgi3SCaTEGC6agNz1n3y2gL3",
           "qri": "cm:0",
-          "signature": "5LB6oyPr5VjMbTcwGRTqxmBkULqoJf3uYFM7ovoHkSLdfA94hPGa8uMveXE6YAxZYAB5kaKNWcEXg1oSwCKuXqVzvmjkPJPZs6J3LBYP1GdogZNMUxz9btrYAaS6qEcu4WwnTrhfr77wKc6mTDEzgnTR6tai78AjceXeEFpBppQ1xKXX3vn5ofmeRpoFVAKUN52FZra5x6swzncPaD8TzpFb4u59kHhVy9iKZ9xUKBmAAYPvSwJBJafYgSF5fR5sEYfjCbs6GXSDgpsRhdpGgqFpezUJL4u6ghCH5HbFtjEVGCiHFq5WRATDQMQSv1YNogKo9fhLPLkvKRqipRwsswSwTdEVXS",
+          "signature": "OPKCG1OzkUHYyljF3oiHALMppKNfbSZYq13qgRRl/4onaYIhGsp9zLU1jimjbjhwEjLq91Vnpjh2YtFd7rdqJudsOG3TZsAemI8kuEwW7m/faaDdSxNSJ9xVTwOvR1gs6ake+cxmLE4od0QJmwsJt1xEbLJ+nckZjHi0XcqHpqJJJ3D4Rovx2RRHTmcmeItFmmeKLcmP2F5gWE7jY9mtdAC8NKD2mjbFqsCAT1Anlzr1THs7tXrOoWbg4ONO2S8BS5aaF1tTeQkjP6Q1plPmAh+W4LB9FiND5OSJ6M+S45n5+D2A6ZrnCvaRonb+8R966ml3gb+8QozL4o6YIzoIJQ==",
           "timestamp": "2001-01-01T01:01:01.000000001Z",
           "title": "initial commit"
         },
@@ -24098,7 +24098,7 @@
           "qri": "md:0",
           "title": "epa.gov sitemap entry sample"
         },
-        "path": "/map/QmPM3bsVu2jGQy11raqrqtmrDoF6CGpAfJnwoJytDSdPh2",
+        "path": "/map/QmYgq32jAojJeg7BwynSN7yWc3PyFE9i8Tdq3aa87CqfdP",
         "qri": "ds:0",
         "structure": {
           "checksum": "QmPsEQ9nZ3fTgj2FSZA4JndYcZFgGMd5bdbxmkuBzagWmU",
