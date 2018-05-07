@@ -39,8 +39,6 @@ type QriNode struct {
 	Host host.Host
 	// Discovery service, can be provided by an ipfs node
 	Discovery discovery.Service
-	// QriPeers is a peerstore of only qri instances
-	QriPeers pstore.Peerstore
 
 	// base context for this node
 	ctx context.Context
@@ -92,8 +90,6 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 
 	// hoist store from repo
 	store := r.Store()
-	// Create a peerstore
-	ps := pstore.NewPeerstore()
 
 	pid, err := cfg.DecodePeerID()
 	if err != nil {
@@ -103,7 +99,6 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 	node = &QriNode{
 		ID:                 pid,
 		Online:             cfg.Enabled,
-		QriPeers:           ps,
 		Repo:               r,
 		ctx:                context.Background(),
 		BootstrapAddrs:     cfg.QriBootstrapAddrs,
@@ -129,6 +124,7 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 				node.Discovery = ipfsnode.Discovery
 			}
 		} else if node.Host == nil {
+			ps := pstore.NewPeerstore()
 			node.Host, err = makeBasicHost(node.ctx, ps, cfg)
 			if err != nil {
 				return nil, fmt.Errorf("error creating host: %s", err.Error())

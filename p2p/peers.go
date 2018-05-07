@@ -45,8 +45,9 @@ func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) 
 // AddQriPeer negotiates a connection with a peer to get their profile details
 // and peer list.
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store
-	n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	// // add this peer to our store
+	// n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
 		log.Debug(err.Error())
