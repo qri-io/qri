@@ -51,6 +51,7 @@ func ProfileConfig() *config.ProfilePod {
 		Peername: "peer",
 		ID:       profileID,
 		PrivKey:  string(_testPk),
+		Type:     "peer",
 	}
 }
 
