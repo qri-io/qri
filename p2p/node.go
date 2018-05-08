@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 
@@ -67,6 +68,15 @@ type QriNode struct {
 	receivers []chan Message
 	// profileReplication sets what to do when this node sees it's own profile
 	profileReplication string
+}
+
+// Assert that conversions needed by the tests are valid.
+var _ p2ptest.TestablePeerNode = (*QriNode)(nil)
+var _ p2ptest.NodeMakerFunc = NewTestQriNode
+
+// NewTestQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
+func NewTestQriNode(r repo.Repo, options ...func(o *config.P2P)) (p2ptest.TestablePeerNode, error) {
+	return NewQriNode(r, options...)
 }
 
 // NewQriNode creates a new node, providing no arguments will use
@@ -359,6 +369,11 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 			break
 		}
 	}
+}
+
+// Keys returns the KeyBook for the node.
+func (n *QriNode) Keys() pstore.KeyBook {
+	return n.QriPeers
 }
 
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions

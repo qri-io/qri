@@ -58,6 +58,20 @@ func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
 	}
 }
 
+// NewDatasetRequestsWithNode creates a DatasetRequests pointer from either a repo
+// or an rpc.Client
+func NewDatasetRequestsWithNode(r repo.Repo, cli *rpc.Client, node *p2p.QriNode) *DatasetRequests {
+	if r != nil && cli != nil {
+		panic(fmt.Errorf("both repo and client supplied to NewDatasetRequestsWithNode"))
+	}
+
+	return &DatasetRequests{
+		repo: actions.Dataset{r},
+		cli:  cli,
+		Node: node,
+	}
+}
+
 // List returns this repo's datasets
 func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 
