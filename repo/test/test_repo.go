@@ -85,6 +85,17 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	return
 }
 
+var repoID = 0
+
+// NewTestRepoFromProfileID constructs a repo from a profileID, usable for tests
+func NewTestRepoFromProfileID(id profile.ID) (repo.Repo, error) {
+	repoID++
+	return repo.NewMemRepo(&profile.Profile{
+		ID:       id,
+		Peername: fmt.Sprintf("test-repo-%d", repoID),
+	}, cafs.NewMapstore(), profile.NewMemStore())
+}
+
 func pkgPath(paths ...string) string {
 	gp := os.Getenv("GOPATH")
 	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)

@@ -5,15 +5,21 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
 
 func TestRequestEventsList(t *testing.T) {
 	ctx := context.Background()
-	peers, err := NewTestNetwork(ctx, t, 5)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, NewTestQriNode)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return
+	}
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*QriNode)
 	}
 
 	for _, p := range peers {

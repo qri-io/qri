@@ -1,15 +1,12 @@
 package p2p
 
 import (
-	"fmt"
 	"testing"
 
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/repo/test"
 
 	testutil "gx/ipfs/QmWRCn8vruNAzHx8i6SAXinuheRitKEGu8c7m26stKvsYx/go-testutil"
-	// peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 func TestNewNode(t *testing.T) {
@@ -19,7 +16,7 @@ func TestNewNode(t *testing.T) {
 		return
 	}
 
-	r, err := NewTestRepo(profile.ID(pid))
+	r, err := test.NewTestRepoFromProfileID(profile.ID(pid))
 	if err != nil {
 		t.Errorf("error creating test repo: %s", err.Error())
 		return
@@ -33,14 +30,4 @@ func TestNewNode(t *testing.T) {
 	if node.Online != true {
 		t.Errorf("default node online flag should be true")
 	}
-}
-
-var repoID = 0
-
-func NewTestRepo(id profile.ID) (repo.Repo, error) {
-	repoID++
-	return repo.NewMemRepo(&profile.Profile{
-		ID:       id,
-		Peername: fmt.Sprintf("test-repo-%d", repoID),
-	}, cafs.NewMapstore(), profile.NewMemStore())
 }

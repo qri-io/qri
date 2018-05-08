@@ -25,12 +25,8 @@ type Requests interface {
 func Receivers(node *p2p.QriNode) []Requests {
 	r := node.Repo
 
-	// TODO - horrible hack for meow
-	dsr := NewDatasetRequests(r, nil)
-	dsr.Node = node
-
 	return []Requests{
-		dsr,
+		NewDatasetRequestsWithNode(r, nil, node),
 		NewHistoryRequests(r, nil),
 		NewPeerRequests(node, nil),
 		NewProfileRequests(r, nil),
