@@ -28,6 +28,9 @@ type ListParams struct {
 	OrderBy   string
 	Limit     int
 	Offset    int
+	// RPC is a horrible hack while we work to replace the net/rpc package
+	// TODO - remove this
+	RPC bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

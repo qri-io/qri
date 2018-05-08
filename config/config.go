@@ -86,9 +86,9 @@ func ReadFromFile(path string) (cfg *Config, err error) {
 // WriteToFile encodes a configration to YAML and writes it to path
 func (cfg Config) WriteToFile(path string) error {
 	// Never serialize the address mapping to the configuration file.
-	prev := cfg.Profile.Addresses
-	cfg.Profile.Addresses = nil
-	defer func() { cfg.Profile.Addresses = prev }()
+	prev := cfg.Profile.PeerIDs
+	cfg.Profile.PeerIDs = nil
+	defer func() { cfg.Profile.PeerIDs = prev }()
 
 	data, err := yaml.Marshal(cfg)
 	if err != nil {

@@ -4,11 +4,47 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
+
+// ConnectedQriProfiles lists all connected peers that support the qri protocol
+func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
+	peers := map[profile.ID]*config.ProfilePod{}
+	if n.Host == nil {
+		return peers
+	}
+	conns := n.Host.Network().Conns()
+	for _, c := range conns {
+		id := c.RemotePeer()
+		if p, err := n.Repo.Profiles().PeerProfile(id); err == nil {
+			if pe, err := p.Encode(); err == nil {
+				pe.Online = true
+				peers[p.ID] = pe
+			}
+		}
+	}
+	return peers
+}
+
+// ConnectedQriPeerIDs returns a slice of peer.IDs this peer is currently connected to
+func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
+	peers := []peer.ID{}
+	if n.Host == nil {
+		return peers
+	}
+	conns := n.Host.Network().Conns()
+	for _, c := range conns {
+		id := c.RemotePeer()
+		if _, err := n.Repo.Profiles().PeerProfile(id); err == nil {
+			peers = append(peers, id)
+		}
+	}
+	return peers
+}
 
 // ClosestConnectedPeers checks if a peer is connected, and if so adds it to the top
 // of a slice cap(max) of peers to try to connect to
@@ -42,11 +78,37 @@ func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) 
 	return
 }
 
+// peerDifference returns a slice of peer IDs that are present in a but not b
+func peerDifference(a, b []peer.ID) (diff []peer.ID) {
+	m := make(map[peer.ID]bool)
+	for _, bid := range b {
+		m[bid] = true
+	}
+
+	for _, aid := range a {
+		if _, ok := m[aid]; !ok {
+			diff = append(diff, aid)
+		}
+	}
+	return
+}
+
+// PeerInfo returns this peer's ID & Addresses as a peerstore.PeerInfo
+func (n *QriNode) PeerInfo() pstore.PeerInfo {
+	if !n.Online {
+		return pstore.PeerInfo{}
+	}
+
+	return pstore.PeerInfo{
+		ID:    n.Host.ID(),
+		Addrs: n.Host.Addrs(),
+	}
+}
+
 // AddQriPeer negotiates a connection with a peer to get their profile details
 // and peer list.
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// // add this peer to our store
-	// n.QriPeers.AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	// add this peer to our store
 	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {

@@ -190,34 +190,3 @@ func (cfg *P2P) Copy() *P2P {
 
 	return res
 }
-
-// // Validate confirms that the given settings will work, returning an error if not.
-// TODO - this validate method is a carry over from a previous incarnation that I'd like to
-// ressurrect as a method of conforming overrides to a steady-state while also validating
-// the configuration itself. So, for example, p2p.Enabled = false should override the port
-// to be an empty string. It might make sense to rename this while we're at it
-// func (cfg *NodeCfg) Validate(r repo.Repo) error {
-// 	if r == nil {
-// 		return fmt.Errorf("need a qri Repo to create a qri node")
-// 	}
-
-// 	// If no listening addresses are set, allocate
-// 	// a tcp multiaddress on local host bound to the default port
-// 	if cfg.Addrs == nil {
-// 		// Create a multiaddress
-// 		addr, err := ma.NewMultiaddr(fmt.Sprintf("/ip4/127.0.0.1/tcp/%d", cfg.Port))
-// 		if err != nil {
-// 			return err
-// 		}
-// 		cfg.Addrs = []ma.Multiaddr{addr}
-// 	}
-
-// 	if cfg.Secure && cfg.PubKey == nil {
-// 		return fmt.Errorf("NodeCfg error: PubKey is required for Secure communication")
-// 	} else if cfg.Secure && cfg.PrivKey == nil {
-// 		return fmt.Errorf("NodeCfg error: PrivKey is required for Secure communication")
-// 	}
-
-// 	// TODO - more checks
-// 	return nil
-// }

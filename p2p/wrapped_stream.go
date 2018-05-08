@@ -49,7 +49,7 @@ func WrapStream(s net.Stream) *WrappedStream {
 func (ws *WrappedStream) receiveMessage() (msg Message, err error) {
 	err = ws.dec.Decode(&msg)
 	msg.provider = ws.stream.Conn().RemotePeer()
-	log.Debugf("%s: '%s' <- %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
+	log.Debugf("%s '%s' <- %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
 	return
 }
 
@@ -58,6 +58,6 @@ func (ws *WrappedStream) sendMessage(msg Message) error {
 	err := ws.enc.Encode(&msg)
 	// Because output is buffered with bufio, we need to flush!
 	ws.w.Flush()
-	log.Debugf("%s: '%s' -> %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
+	log.Debugf("%s '%s' -> %s", ws.stream.Conn().LocalPeer(), msg.Type, ws.stream.Conn().RemotePeer())
 	return err
 }

@@ -107,11 +107,11 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.Profile
 
 	parsed := []*config.ProfilePod{}
 	for _, p := range d.qriNode.ConnectedQriProfiles() {
-		pro, err := p.Encode()
-		if err != nil {
-			return err
-		}
-		parsed = append(parsed, pro)
+		// pro, err := p.Encode()
+		// if err != nil {
+		// 	return err
+		// }
+		parsed = append(parsed, p)
 	}
 
 	*peers = parsed

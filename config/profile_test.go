@@ -16,7 +16,7 @@ func TestProfileCopy(t *testing.T) {
 	// build off DefaultProfile so we can test that the profile Copy
 	// actually copies over correctly (ie, deeply)
 	p := DefaultProfile()
-	p.Addresses = []string{"1", "2", "3"}
+	p.PeerIDs = []string{"1", "2", "3"}
 
 	cases := []struct {
 		profile *ProfilePod
@@ -29,7 +29,7 @@ func TestProfileCopy(t *testing.T) {
 			t.Errorf("ProfilePod Copy test case %v, profile structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.profile)
 			continue
 		}
-		cpy.Addresses[0] = ""
+		cpy.PeerIDs[0] = ""
 		if reflect.DeepEqual(cpy, c.profile) {
 			t.Errorf("ProfilePod Copy test case %v, editing one profile struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.profile)
 			continue

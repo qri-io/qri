@@ -2,7 +2,6 @@ package fsrepo
 
 import (
 	"fmt"
-	"github.com/sergi/go-diff/diffmatchpatch"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -11,6 +10,9 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/sergi/go-diff/diffmatchpatch"
+
+	"gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {
@@ -24,8 +26,10 @@ func TestPutProfileWithAddresses(t *testing.T) {
 	if err != nil {
 		t.Errorf("error creating new profile: %s", err.Error())
 	}
-	pro.Addresses = make(map[string][]string)
-	pro.Addresses["QmTest"] = []string{"/ip/test"}
+	pid, _ := peer.IDB58Decode("Qmb9Gy14GuCjrhRSjGJQpf5JkgdEdbZrV81Tz4x3ZDreY3")
+	pro.PeerIDs = []peer.ID{
+		pid,
+	}
 
 	path := filepath.Join(os.TempDir(), "profile")
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {

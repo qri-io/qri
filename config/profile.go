@@ -40,11 +40,14 @@ type ProfilePod struct {
 	Poster string `json:"poster"`
 	// Twitter is a peer's twitter handle
 	Twitter string `json:"twitter"`
-	// Addresses maps this profile to peer Identifiers in the form /[network]/peerID example:
+	// Online indicates if the user is currently connected to the qri network
+	// Should not serialize to config.yaml
+	Online bool `json:"online,omitempty" yaml:"online,omitempty"`
+	// PeerIDs maps this profile to peer Identifiers in the form /[network]/peerID example:
 	// /ipfs/QmSyDX5LYTiwQi861F5NAwdHrrnd1iRGsoEvCyzQMUyZ4W
 	// where QmSy... is a peer identifier on the IPFS peer-to-peer network
 	// Should not serialize to config.yaml
-	Addresses []string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	PeerIDs []string `json:"peerIDs,omitempty" yaml:"peerIDs,omitempty"`
 }
 
 // DefaultProfile gives a new default profile configuration, generating a new random
@@ -229,9 +232,9 @@ func (cfg *ProfilePod) Copy() *ProfilePod {
 		Poster:      cfg.Poster,
 		Twitter:     cfg.Twitter,
 	}
-	if cfg.Addresses != nil {
-		res.Addresses = make([]string, len(cfg.Addresses))
-		copy(res.Addresses, cfg.Addresses)
+	if cfg.PeerIDs != nil {
+		res.PeerIDs = make([]string, len(cfg.PeerIDs))
+		copy(res.PeerIDs, cfg.PeerIDs)
 	}
 
 	return res

@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/qri-io/qri/config"
@@ -44,6 +45,9 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 		log.Debug(err.Error())
 		return nil, err
 	}
+	pp.PeerIDs = []string{
+		fmt.Sprintf("/ipfs/%s", pid.Pretty()),
+	}
 
 	pro := &profile.Profile{}
 	if err := pro.Decode(pp); err != nil {
@@ -68,7 +72,7 @@ func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 		return
 	}
 
-	pro.Updated = time.Now()
+	pro.Updated = time.Now().UTC()
 
 	data, err := n.profileBytes()
 	if err != nil {
@@ -89,11 +93,11 @@ func (n *QriNode) profileBytes() ([]byte, error) {
 		log.Debugf("error getting repo profile: %s\n", err.Error())
 		return nil, err
 	}
-	pp, err := p.Encode()
+	pod, err := p.Encode()
 	if err != nil {
 		log.Debugf("error encoding repo profile: %s\n", err.Error())
 		return nil, err
 	}
 
-	return json.Marshal(pp)
+	return json.Marshal(pod)
 }

@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
+	// "github.com/qri-io/qri/repo/profile"
 
 	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
 	discovery "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/discovery"
@@ -103,7 +103,7 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 		ctx:                context.Background(),
 		BootstrapAddrs:     cfg.QriBootstrapAddrs,
 		msgState:           &sync.Map{},
-		msgChan:            make(chan Message, 10),
+		msgChan:            make(chan Message),
 		profileReplication: cfg.ProfileReplication,
 	}
 	node.handlers = MakeHandlers(node)
@@ -140,14 +140,15 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 			log.Errorf("error getting repo profile: %s\n", err.Error())
 			return node, err
 		}
-
-		// add listen addresses to profile store
-		if addrs, err := node.ListenAddresses(); err == nil {
-			if p.Addresses == nil {
-				p.Addresses = map[string][]string{}
-			}
-			p.Addresses[node.Host.ID().Pretty()] = addrs
+		p.PeerIDs = []peer.ID{
+			node.Host.ID(),
 		}
+		// add listen addresses to profile store
+		// if addrs, err := node.ListenAddresses(); err == nil {
+		// 	if p.Addresses == nil {
+		// 		p.Addresses = []string{fmt.Sprintf("/ipfs/%s", node.Host.ID().Pretty())}
+		// 	}
+		// }
 
 		if err := node.Repo.SetProfile(p); err != nil {
 			return node, err
@@ -175,22 +176,27 @@ func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 	go func() {
 		pInfo := <-bsPeers
 		bootstrapped(pInfo.ID.Pretty())
+
+		if err := n.AnnounceConnected(); err != nil {
+			log.Infof("error announcing connected: %s", err.Error())
+		}
 	}()
 
 	return n.StartDiscovery(bsPeers)
 }
 
 // ReceiveMessages adds a listener for newly received messages
-func (n *QriNode) ReceiveMessages(r chan Message) {
+func (n *QriNode) ReceiveMessages() chan Message {
+	r := make(chan Message)
 	n.receivers = append(n.receivers, r)
-	return
+	return r
 }
 
 func (n *QriNode) echoMessages() {
 	for {
 		msg := <-n.msgChan
 		for _, r := range n.receivers {
-			go func() { r <- msg }()
+			r <- msg
 		}
 	}
 }
@@ -229,23 +235,6 @@ func (n *QriNode) EncapsulatedAddresses() []ma.Multiaddr {
 	}
 
 	return res
-}
-
-// ConnectedQriProfiles lists all connected peers that support the qri protocol
-func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*profile.Profile {
-	if n.Host == nil {
-		return map[profile.ID]*profile.Profile{}
-	}
-	conns := n.Host.Network().Conns()
-	peers := map[profile.ID]*profile.Profile{}
-	for _, c := range conns {
-		id := c.RemotePeer()
-		if p, err := n.Repo.Profiles().PeerProfile(id); err == nil {
-			peers[p.ID] = p
-		} else {
-		}
-	}
-	return peers
 }
 
 // Context returns this node's context
@@ -391,71 +380,10 @@ func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 		MtDatasetInfo: n.handleDataset,
 		MtDatasets:    n.handleDatasetsList,
 		MtEvents:      n.handleEvents,
+		MtConnected:   n.handleConnected,
 		// MtSearch:
 		// MtPeers:
 		// MtNodes:
 		// MtDatasetLog:
 	}
 }
-
-// initializeDistributedAssets adds all distributed assets to the dataset
-// by grabbing them from the network.
-// eg.defaultDatasets, user profile photos & posters
-// TODO - restore
-// func initializeDistributedAssets(node *p2p.QriNode) {
-// 	cfg, err := readConfigFile()
-// 	if err != nil || cfg.Initialized {
-// 		return
-// 	}
-
-// 	if p, err := node.Repo.Profile(); err == nil {
-// 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-// 			go func() {
-// 				if len(p.Thumb.String()) > 1 {
-// 					if err := pinner.Pin(p.Thumb, false); err != nil {
-// 						log.Infof("error pinning thumb path: %s\n", err.Error())
-// 					} else {
-// 						log.Infof("pinned thumb photo: %s", p.Thumb.String())
-// 					}
-// 				}
-// 				if len(p.Profile.String()) > 1 {
-// 					if err := pinner.Pin(p.Profile, false); err != nil {
-// 						log.Infof("error pinning profile path: %s\n", err.Error())
-// 					} else {
-// 						log.Infof("pinned profile photo photo: %s", p.Profile.String())
-// 					}
-// 				}
-// 				if len(p.Poster.String()) > 1 {
-// 					if err := pinner.Pin(p.Poster, false); err != nil {
-// 						log.Infof("error pinning poster path: %s\n", err.Error())
-// 					} else {
-// 						log.Infof("pinned poster photo: %s", p.Poster.String())
-// 					}
-// 				}
-// 			}()
-// 		}
-// 	}
-
-// 	req := core.NewDatasetRequests(node.Repo, nil)\
-// 	for _, refstr := range cfg.DefaultDatasets {
-// 		log.Infof("adding default dataset: %s\n", refstr)
-// 		ref, err := repo.ParseDatasetRef(refstr)
-// 		if err != nil {
-// 			log.Debugf("error parsing dataset reference: '%s': %s\n", refstr, err.Error())
-// 			continue
-// 		}
-// 		res := repo.DatasetRef{}
-// 		err = req.Add(&ref, &res)
-// 		if err != nil {
-// 			log.Debugf("add dataset %s error: %s\n", refstr, err.Error())
-// 			return
-// 		}
-// 		log.Infof("added default dataset: %s\n", refstr)
-// 	}
-
-// 	cfg.Initialized = true
-// 	if err = writeConfigFile(cfg); err != nil {
-// 		log.Debugf("error writing config file: %s", err.Error())
-// 	}
-// 	return
-// }

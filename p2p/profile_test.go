@@ -42,12 +42,12 @@ func TestRequestProfile(t *testing.T) {
 					t.Error("profile shouldn't be nil")
 					return
 				}
-				if len(pro.PeerIDs()) == 0 {
+				if len(pro.PeerIDs) == 0 {
 					t.Error("profile should have peer IDs")
 					return
 				}
 
-				pid := pro.PeerIDs()[0]
+				pid := pro.PeerIDs[0]
 				if err != nil {
 					t.Error(err.Error())
 					return

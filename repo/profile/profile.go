@@ -44,28 +44,15 @@ type Profile struct {
 	Poster datastore.Key `json:"poster"`
 	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
-	// Addresses lists any network addresses associated with this profile
-	// in the form of peer.ID.Pretty() : []multiaddr strings
-	// both peer.IDs and multiaddresses are converted to strings for
-	// clean en/decoding
-	Addresses []string `json:"addresses"`
+	// PeerIDs lists any network PeerIDs associated with this profile
+	// in the form /network/peerID
+	PeerIDs []peer.ID `json:"peerIDs"`
 }
 
 // NewProfile allocates a profile from a CodingProfile
 func NewProfile(p *config.ProfilePod) (pro *Profile, err error) {
 	pro = &Profile{}
 	err = pro.Decode(p)
-	return
-}
-
-// PeerIDs sifts through listed multaddrs looking for an IPFS peer ID
-func (p *Profile) PeerIDs() (ids []peer.ID) {
-	for _, idstr := range p.Addresses {
-		idstr = strings.TrimPrefix(idstr, "/ipfs/")
-		if id, err := peer.IDB58Decode(idstr); err == nil {
-			ids = append(ids, id)
-		}
-	}
 	return
 }
 
@@ -81,6 +68,14 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 		return err
 	}
 
+	pids := make([]peer.ID, len(sp.PeerIDs))
+	for i, idstr := range sp.PeerIDs {
+		idstr = strings.TrimPrefix(idstr, "/ipfs/")
+		if id, err := peer.IDB58Decode(idstr); err == nil {
+			pids[i] = id
+		}
+	}
+
 	pro := Profile{
 		ID:          id,
 		Type:        t,
@@ -93,7 +88,7 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 		HomeURL:     sp.HomeURL,
 		Color:       sp.Color,
 		Twitter:     sp.Twitter,
-		Addresses:   sp.Addresses,
+		PeerIDs:     pids,
 	}
 
 	if sp.PrivKey != "" {
@@ -127,6 +122,10 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 
 // Encode returns a ProfilePod for a given profile
 func (p Profile) Encode() (*config.ProfilePod, error) {
+	pids := make([]string, len(p.PeerIDs))
+	for i, pid := range p.PeerIDs {
+		pids[i] = fmt.Sprintf("/ipfs/%s", pid.Pretty())
+	}
 	pp := &config.ProfilePod{
 		ID:          p.ID.String(),
 		Type:        p.Type.String(),
@@ -142,7 +141,7 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		Poster:      p.Poster.String(),
 		Photo:       p.Photo.String(),
 		Thumb:       p.Thumb.String(),
-		Addresses:   p.Addresses,
+		PeerIDs:     pids,
 	}
 	return pp, nil
 }
