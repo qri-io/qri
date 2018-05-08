@@ -376,6 +376,16 @@ func (n *QriNode) Keys() pstore.KeyBook {
 	return n.QriPeers
 }
 
+// Addrs returns the AddrBook for the node.
+func (n *QriNode) Addrs() pstore.AddrBook {
+	return n.QriPeers
+}
+
+// HostNetwork returns the Host's Network for the node.
+func (n *QriNode) HostNetwork() net.Network {
+	return n.Host.Network()
+}
+
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{

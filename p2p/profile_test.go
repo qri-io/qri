@@ -22,7 +22,7 @@ func TestRequestProfile(t *testing.T) {
 		peers[i] = node.(*QriNode)
 	}
 
-	if err := connectNodes(ctx, peers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 

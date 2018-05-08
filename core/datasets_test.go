@@ -2,8 +2,11 @@ package core
 
 import (
 	"bytes"
+	"context"
 	"encoding/csv"
 	"encoding/json"
+	"strconv"
+	"sync"
 	"testing"
 
 	"github.com/ipfs/go-datastore"
@@ -12,6 +15,8 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -132,6 +137,55 @@ func TestDatasetRequestsList(t *testing.T) {
 			}
 		}
 	}
+}
+
+func TestDatasetRequestsListP2p(t *testing.T) {
+	// Matches what is used to generated test peers.
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+
+	ctx := context.Background()
+	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, p2p.NewTestQriNode)
+	if err != nil {
+		t.Errorf("error creating network: %s", err.Error())
+		return
+	}
+
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
+		t.Errorf("error connecting peers: %s", err.Error())
+	}
+
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*p2p.QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*p2p.QriNode)
+	}
+
+	var wg sync.WaitGroup
+	for _, p1 := range peers {
+		wg.Add(1)
+		go func(node *p2p.QriNode) {
+			defer wg.Done()
+
+			dsr := NewDatasetRequestsWithNode(node.Repo, nil, node)
+			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
+			var res []repo.DatasetRef
+			err := dsr.List(p, &res)
+			if err != nil {
+				t.Errorf("error listing dataset: %s", err.Error())
+			}
+			// Get number from end of peername, use that to find dataset name.
+			profile, _ := node.Repo.Profile()
+			num := profile.Peername[len(profile.Peername)-1:]
+			index, _ := strconv.ParseInt(num, 10, 32)
+			expect := datasets[index-1]
+
+			if res[0].Name != expect {
+				t.Errorf("dataset %s mismatch: %s", res[0].Name, expect)
+			}
+		}(p1)
+	}
+
+	wg.Wait()
 }
 
 func TestDatasetRequestsGet(t *testing.T) {

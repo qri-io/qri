@@ -4,18 +4,26 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	"github.com/qri-io/qri/p2p/test"
 )
 
 func TestRequestDatasetsList(t *testing.T) {
 	ctx := context.Background()
-	peers, err := NewTestDirNetwork(ctx, t)
+	testPeers, err := p2ptest.NewTestDirNetwork(ctx, t, NewTestQriNode)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return
 	}
 
-	if err := connectNodes(ctx, peers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
+	}
+
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*QriNode)
 	}
 
 	t.Logf("testing RequestDatasetList message with %d peers", len(peers))
