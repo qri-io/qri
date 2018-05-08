@@ -3,7 +3,6 @@ package config
 import (
 	"crypto/rand"
 	"encoding/base64"
-	"reflect"
 	"time"
 
 	"github.com/libp2p/go-libp2p-crypto"
@@ -41,8 +40,11 @@ type ProfilePod struct {
 	Poster string `json:"poster"`
 	// Twitter is a peer's twitter handle
 	Twitter string `json:"twitter"`
-	// Addresses maps peerIDs to IP addresses. Should not serialize to config.yaml
-	Addresses map[string][]string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
+	// Addresses maps this profile to peer Identifiers in the form /[network]/peerID example:
+	// /ipfs/QmSyDX5LYTiwQi861F5NAwdHrrnd1iRGsoEvCyzQMUyZ4W
+	// where QmSy... is a peer identifier on the IPFS peer-to-peer network
+	// Should not serialize to config.yaml
+	Addresses []string `json:"addresses,omitempty" yaml:"addresses,omitempty"`
 }
 
 // DefaultProfile gives a new default profile configuration, generating a new random
@@ -228,11 +230,8 @@ func (cfg *ProfilePod) Copy() *ProfilePod {
 		Twitter:     cfg.Twitter,
 	}
 	if cfg.Addresses != nil {
-		res.Addresses = map[string][]string{}
-		for key, value := range cfg.Addresses {
-			res.Addresses[key] = make([]string, len(value))
-			reflect.Copy(reflect.ValueOf(res.Addresses[key]), reflect.ValueOf(value))
-		}
+		res.Addresses = make([]string, len(cfg.Addresses))
+		copy(res.Addresses, cfg.Addresses)
 	}
 
 	return res

@@ -3,6 +3,7 @@ package profile
 import (
 	"encoding/base64"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -47,7 +48,7 @@ type Profile struct {
 	// in the form of peer.ID.Pretty() : []multiaddr strings
 	// both peer.IDs and multiaddresses are converted to strings for
 	// clean en/decoding
-	Addresses map[string][]string `json:"addresses"`
+	Addresses []string `json:"addresses"`
 }
 
 // NewProfile allocates a profile from a CodingProfile
@@ -59,7 +60,8 @@ func NewProfile(p *config.ProfilePod) (pro *Profile, err error) {
 
 // PeerIDs sifts through listed multaddrs looking for an IPFS peer ID
 func (p *Profile) PeerIDs() (ids []peer.ID) {
-	for idstr := range p.Addresses {
+	for _, idstr := range p.Addresses {
+		idstr = strings.TrimPrefix(idstr, "/ipfs/")
 		if id, err := peer.IDB58Decode(idstr); err == nil {
 			ids = append(ids, id)
 		}

@@ -66,9 +66,13 @@ func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 	m.RLock()
 	defer m.RUnlock()
 
+	str := fmt.Sprintf("/ipfs/%s", id.Pretty())
+
 	for _, profile := range m.store {
-		if _, ok := profile.Addresses[id.Pretty()]; ok {
-			return profile, nil
+		for _, idstr := range profile.Addresses {
+			if idstr == str {
+				return profile, nil
+			}
 		}
 	}
 
