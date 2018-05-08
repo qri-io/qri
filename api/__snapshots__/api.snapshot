@@ -1,0 +1,63 @@
+/* snapshot: profile-delete-/ */
+HTTP/1.1 404 Not Found
+Connection: close
+
+{ "meta": { "code": 404, "status": "not found" }, "data": null }
+
+/* snapshot: profile-get-/ */
+HTTP/1.1 200 OK
+Connection: close
+Content-Type: application/json
+
+{
+  "data": {
+    "color": "",
+    "created": "0001-01-01T00:00:00Z",
+    "description": "",
+    "email": "",
+    "homeurl": "",
+    "id": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+    "name": "",
+    "peername": "peer",
+    "photo": "",
+    "poster": "",
+    "thumb": "",
+    "twitter": "",
+    "type": "peer",
+    "updated": "0001-01-01T00:00:00Z"
+  },
+  "meta": {
+    "code": 200
+  }
+}
+
+/* snapshot: profile-options-/ */
+HTTP/1.1 200 OK
+Connection: close
+
+/* snapshot: profile-post-/ */
+HTTP/1.1 200 OK
+Connection: close
+Content-Type: application/json
+
+{
+  "data": {
+    "color": "default",
+    "created": "0001-01-01T00:00:00Z",
+    "description": "test description",
+    "email": "test@email.com",
+    "homeurl": "http://test.url",
+    "id": "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+    "name": "test name",
+    "peername": "peer",
+    "photo": "",
+    "poster": "",
+    "thumb": "",
+    "twitter": "test",
+    "type": "peer",
+    "updated": "0001-01-01T00:00:00Z"
+  },
+  "meta": {
+    "code": 200
+  }
+}
