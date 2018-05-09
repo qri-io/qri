@@ -67,7 +67,7 @@ func (n *QriNode) AnnounceConnected() error {
 }
 
 func (n *QriNode) handleConnected(ws *WrappedStream, msg Message) (hangup bool) {
-	hangup = true
+	// hangup = true
 
 	// bail early if we've seen this message before
 	if _, ok := n.msgState.Load(msg.ID); ok {

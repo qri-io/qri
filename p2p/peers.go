@@ -17,10 +17,8 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 	if n.Host == nil {
 		return peers
 	}
-	conns := n.Host.Network().Conns()
-	for _, c := range conns {
-		id := c.RemotePeer()
-		if p, err := n.Repo.Profiles().PeerProfile(id); err == nil {
+	for _, conn := range n.Host.Network().Conns() {
+		if p, err := n.Repo.Profiles().PeerProfile(conn.RemotePeer()); err == nil {
 			if pe, err := p.Encode(); err == nil {
 				pe.Online = true
 				peers[p.ID] = pe
@@ -110,6 +108,7 @@ func (n *QriNode) PeerInfo() pstore.PeerInfo {
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// add this peer to our store
 	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	n.Host.ConnManager().TagPeer(pinfo.ID, qriConnManagerTag, qriConnManagerValue)
 
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
 		log.Debug(err.Error())
@@ -150,6 +149,9 @@ func (n *QriNode) ConnectedPeers() []string {
 	peers := make([]string, len(conns))
 	for i, c := range conns {
 		peers[i] = c.RemotePeer().Pretty()
+		if ti := n.Host.ConnManager().GetTagInfo(c.RemotePeer()); ti != nil {
+			peers[i] = fmt.Sprintf("%s, %d, %v", c.RemotePeer().Pretty(), ti.Value, ti.Tags)
+		}
 	}
 
 	return peers

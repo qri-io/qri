@@ -154,7 +154,7 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
 func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
-	log.Debugf("peerProfile: %s", id.String())
+	log.Debugf("peerProfile: %s", id.Pretty())
 
 	r.Lock()
 	defer r.Unlock()
@@ -164,7 +164,7 @@ func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
-	str := fmt.Sprintf("/ipfs/%s", id.String())
+	str := fmt.Sprintf("/ipfs/%s", id.Pretty())
 	for _, p := range ps {
 		for _, id := range p.PeerIDs {
 			if id == str {

@@ -64,7 +64,7 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 }
 
 func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
-	hangup = true
+	// hangup = false
 
 	pro := &profile.Profile{}
 	if err := json.Unmarshal(msg.Body, pro); err != nil {

@@ -316,7 +316,7 @@ func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID
 
 // QriStreamHandler is the handler we register with the multistream muxer
 func (n *QriNode) QriStreamHandler(s net.Stream) {
-	defer s.Close()
+	// defer s.Close()
 	n.handleStream(WrapStream(s), nil)
 }
 
@@ -354,11 +354,14 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 			break
 		}
 	}
+
+	log.Debugf("%s -> %s closed stream", n.ID, ws.stream.Conn().RemotePeer())
+	// ws.stream.Close()
 }
 
 // Keys returns the KeyBook for the node.
 func (n *QriNode) Keys() pstore.KeyBook {
-	return n.QriPeers
+	return n.Host.Peerstore()
 }
 
 // Addrs returns the AddrBook for the node.

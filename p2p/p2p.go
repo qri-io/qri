@@ -12,11 +12,16 @@ import (
 
 var log = golog.Logger("qrip2p")
 
-// QriProtocolID is the top level Protocol Identifier
-const QriProtocolID = protocol.ID("/qri")
-
-// QriServiceTag tags the type & version of the qri service
-const QriServiceTag = "qri/0.3.1-dev"
+const (
+	// QriProtocolID is the top level Protocol Identifier
+	QriProtocolID = protocol.ID("/qri")
+	// QriServiceTag tags the type & version of the qri service
+	QriServiceTag = "qri/0.3.3-dev"
+	// tag qri service uses in host connection Manager
+	qriConnManagerTag = "qri"
+	// default value to give qri peer connections in connmanager
+	qriConnManagerValue = 6
+)
 
 func init() {
 	// golog.SetLogLevel("qrip2p", "debug")

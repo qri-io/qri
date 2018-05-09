@@ -40,32 +40,32 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T) ([]*QriNode, error) {
 	return nodes, nil
 }
 
-func newTestQriNode(r repo.Repo, t *testing.T) (*QriNode, error) {
-	localnp := testutil.RandPeerNetParamsOrFatal(t)
-	data, err := localnp.PrivKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
+// func newTestQriNode(r repo.Repo, t *testing.T) (*QriNode, error) {
+// 	localnp := testutil.RandPeerNetParamsOrFatal(t)
+// 	data, err := localnp.PrivKey.Bytes()
+// 	if err != nil {
+// 		return nil, err
+// 	}
 
-	privKey := base64.StdEncoding.EncodeToString(data)
+// 	privKey := base64.StdEncoding.EncodeToString(data)
 
-	node, err := NewQriNode(r, func(c *config.P2P) {
-		c.PeerID = localnp.ID.Pretty()
-		c.PrivKey = privKey
-		c.Addrs = []ma.Multiaddr{
-			localnp.Addr,
-		}
-		c.QriBootstrapAddrs = []string{}
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating test node: %s", err.Error())
-	}
-	ps := node.Host.Peerstore()
-	ps.AddPubKey(localnp.ID, localnp.PubKey)
-	ps.AddPrivKey(localnp.ID, localnp.PrivKey)
+// 	node, err := NewQriNode(r, func(c *config.P2P) {
+// 		c.PeerID = localnp.ID.Pretty()
+// 		c.PrivKey = privKey
+// 		c.Addrs = []ma.Multiaddr{
+// 			localnp.Addr,
+// 		}
+// 		c.QriBootstrapAddrs = []string{}
+// 	})
+// 	if err != nil {
+// 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
+// 	}
+// 	ps := node.Host.Peerstore()
+// 	ps.AddPubKey(localnp.ID, localnp.PubKey)
+// 	ps.AddPrivKey(localnp.ID, localnp.PrivKey)
 
-	return node, err
-}
+// 	return node, err
+// }
 
 func connectNodes(ctx context.Context, nodes []*QriNode) error {
 	var wg sync.WaitGroup

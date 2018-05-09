@@ -4,6 +4,8 @@ import (
 	"context"
 	"sync"
 	"testing"
+
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestAnnounceConnected(t *testing.T) {
@@ -20,7 +22,7 @@ func TestAnnounceConnected(t *testing.T) {
 	}
 
 	// create a new, disconnected node
-	nds, err := NewTestNetwork(context.Background(), t, 1)
+	nds, err := p2ptest.NewTestNetwork(context.Background(), t, 1, NewTestQriNode)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -36,6 +38,7 @@ func TestAnnounceConnected(t *testing.T) {
 	remaining := len(nodes)
 
 	go func(node *QriNode) {
+
 		r := node.ReceiveMessages()
 		for {
 			msg := <-r
@@ -46,16 +49,16 @@ func TestAnnounceConnected(t *testing.T) {
 				break
 			}
 		}
-	}(node)
+	}(node.(*QriNode))
 
 	// connected that node to only one member of the network
-	if err := connectQriPeerNodes(context.Background(), []*QriNode{node, nodes[0]}); err != nil {
+	if err := connectQriPeerNodes(context.Background(), []*QriNode{node.(*QriNode), nodes[0]}); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
 	// have that node announce connection
-	if err := node.AnnounceConnected(); err != nil {
+	if err := node.(*QriNode).AnnounceConnected(); err != nil {
 		t.Error(err.Error())
 		return
 	}
