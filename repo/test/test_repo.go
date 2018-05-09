@@ -86,15 +86,41 @@ func NewTestRepo() (mr repo.Repo, err error) {
 	return
 }
 
-var repoID = 0
+var globalRepoID = 0
 
 // NewTestRepoFromProfileID constructs a repo from a profileID, usable for tests
-func NewTestRepoFromProfileID(id profile.ID) (repo.Repo, error) {
-	repoID++
-	return repo.NewMemRepo(&profile.Profile{
+func NewTestRepoFromProfileID(id profile.ID, dataIndex int) (repo.Repo, error) {
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+
+	globalRepoID++
+	r, err := repo.NewMemRepo(&profile.Profile{
 		ID:       id,
-		Peername: fmt.Sprintf("test-repo-%d", repoID),
+		Peername: fmt.Sprintf("test-repo-%d", globalRepoID),
 	}, cafs.NewMapstore(), profile.NewMemStore())
+	if err != nil {
+		return r, err
+	}
+
+	if dataIndex == -1 || dataIndex >= len(datasets) {
+		return r, nil
+	}
+
+	r.SetPrivateKey(privKey)
+	act := actions.Dataset{r}
+
+	gopath := os.Getenv("GOPATH")
+	filepath := fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, datasets[dataIndex])
+	tc, err := dstest.NewTestCaseFromDir(filepath)
+	if err != nil {
+		return r, err
+	}
+
+	datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
+	if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, true); err != nil {
+		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
+	}
+
+	return r, nil
 }
 
 func pkgPath(paths ...string) string {

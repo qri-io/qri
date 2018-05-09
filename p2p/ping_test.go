@@ -13,12 +13,14 @@ func TestPing(t *testing.T) {
 		t.Errorf("error creating network: %s", err.Error())
 		return
 	}
+
+	// Convert from test nodes to non-test nodes.
 	peers := make([]*QriNode, len(testPeers))
 	for i, arg := range testPeers {
 		peers[i] = arg.(*QriNode)
 	}
 
-	if err := connectNodes(ctx, peers); err != nil {
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
