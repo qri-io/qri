@@ -56,7 +56,7 @@ type DatasetRef struct {
 	// Content-addressed path for this dataset
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
-	Dataset *dataset.CodingDataset `json:"dataset,omitempty"`
+	Dataset *dataset.DatasetPod `json:"dataset,omitempty"`
 }
 
 // DecodeDataset returns a dataset.Dataset from the stored CodingDataset field
