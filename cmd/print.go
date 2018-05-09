@@ -231,12 +231,6 @@ func inputText(message, defaultText string) string {
 	return input
 }
 
-/*
-	white := color.New(color.FgWhite).SprintFunc()
-	cyan := color.New(color.FgCyan).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.Transform.Data), blue(r.Path))
-*/
 func printDiffs(diffText string) {
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()

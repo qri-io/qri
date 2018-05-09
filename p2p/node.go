@@ -355,8 +355,7 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 		}
 	}
 
-	log.Debugf("%s -> %s closed stream", n.ID, ws.stream.Conn().RemotePeer())
-	// ws.stream.Close()
+	ws.stream.Close()
 }
 
 // Keys returns the KeyBook for the node.

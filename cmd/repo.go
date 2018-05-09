@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/rpc"
 	"strings"
+	"sync"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
@@ -16,9 +17,27 @@ import (
 )
 
 var (
-	repository repo.Repo
-	rpcClient  *rpc.Client
+	repository  repo.Repo
+	rpcClient   *rpc.Client
+	rpcConnOnce sync.Once
 )
+
+func rpcConn() *rpc.Client {
+	onceBody := func() {
+		// TODO - replace by forcing a default core.Config to exist
+		addr := ":2504"
+		if core.Config != nil {
+			addr = fmt.Sprintf(":%d", core.Config.RPC.Port)
+		}
+		conn, err := net.Dial("tcp", addr)
+		if err != nil {
+			return
+		}
+		rpcClient = rpc.NewClient(conn)
+	}
+	rpcConnOnce.Do(onceBody)
+	return rpcClient
+}
 
 func getRepo(online bool) repo.Repo {
 	if repository != nil {
@@ -50,9 +69,8 @@ func getIpfsFilestore(online bool) *ipfs.Filestore {
 
 func requireNotRPC(cmdName string) {
 	if core.Config.RPC.Enabled {
-		if conn, err := net.Dial("tcp", fmt.Sprintf(":%d", core.Config.RPC.Port)); err == nil {
-			conn.Close()
-			err = fmt.Errorf(`sorry, we can't run the '%s' command while 'qri connect' is running
+		if cli := rpcConn(); cli != nil {
+			err := fmt.Errorf(`sorry, we can't run the '%s' command while 'qri connect' is running
 we know this is super irritating, and it'll be fixed in the future. 
 In the meantime please close qri and re-run this command`, cmdName)
 			ErrExit(err)
@@ -61,9 +79,8 @@ In the meantime please close qri and re-run this command`, cmdName)
 }
 
 func datasetRequests(online bool) (*core.DatasetRequests, error) {
-	// TODO - bad bad hardcode
-	if conn, err := net.Dial("tcp", ":2504"); err == nil {
-		return core.NewDatasetRequests(nil, rpc.NewClient(conn)), nil
+	if cli := rpcConn(); cli != nil {
+		return core.NewDatasetRequests(nil, cli), nil
 	}
 
 	if !online {
@@ -102,9 +119,8 @@ func searchRequests(online bool) (*core.SearchRequests, error) {
 }
 
 func historyRequests(online bool) (*core.HistoryRequests, error) {
-	// TODO - bad bad hardcode
-	if conn, err := net.Dial("tcp", ":2504"); err == nil {
-		return core.NewHistoryRequests(nil, rpc.NewClient(conn)), nil
+	if cli := rpcConn(); cli != nil {
+		return core.NewHistoryRequests(nil, cli), nil
 	}
 
 	if !online {
@@ -127,12 +143,8 @@ func historyRequests(online bool) (*core.HistoryRequests, error) {
 }
 
 func peerRequests(online bool) (*core.PeerRequests, error) {
-	// return nil, nil
-
-	// TODO - bad bad hardcode
-	if conn, err := net.Dial("tcp", ":2504"); err == nil {
-		rpcClient = rpc.NewClient(conn)
-		return core.NewPeerRequests(nil, rpcClient), nil
+	if cli := rpcConn(); cli != nil {
+		return core.NewPeerRequests(nil, cli), nil
 	}
 
 	node, err := qriNode(online)
@@ -145,8 +157,8 @@ func peerRequests(online bool) (*core.PeerRequests, error) {
 func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 	if repository != nil {
 		return repository, nil, nil
-	} else if rpcClient != nil {
-		return nil, rpcClient, nil
+	} else if cli := rpcConn(); cli != nil {
+		return nil, cli, nil
 	}
 
 	if fs, err := ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
@@ -162,12 +174,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
-		conn, err := net.Dial("tcp", fmt.Sprintf(":%d", core.Config.RPC.Port))
-		if err != nil {
-			return nil, nil, err
-		}
-		rpcClient = rpc.NewClient(conn)
-		return nil, rpcClient, nil
+		return nil, rpcConn(), nil
 	} else {
 		return nil, nil, err
 	}

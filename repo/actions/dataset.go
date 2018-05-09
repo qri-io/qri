@@ -111,7 +111,7 @@ func (act Dataset) AddDataset(ref *repo.DatasetRef) (err error) {
 func (act Dataset) ReadDataset(ref *repo.DatasetRef) (err error) {
 	if act.Repo.Store() != nil {
 		ds, e := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
-		if err != nil {
+		if e != nil {
 			return e
 		}
 		ref.Dataset = ds.Encode()

@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	// "github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"

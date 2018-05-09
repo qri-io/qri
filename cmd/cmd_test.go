@@ -104,6 +104,7 @@ func TestCommandsIntegration(t *testing.T) {
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
 	t.Logf("test filepath: %s", path)
+	fmt.Println(path)
 
 	// fmt.Printf("temp path: %s", path)
 	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
