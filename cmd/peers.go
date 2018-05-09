@@ -65,6 +65,7 @@ var peersListCmd = &cobra.Command{
 		ExitIfErr(err)
 		showCached, err := cmd.Flags().GetBool("cached")
 		ExitIfErr(err)
+		limit := 200
 
 		// TODO - resurrect
 		// outformat := cmd.Flag("format").Value.String()
@@ -82,49 +83,36 @@ var peersListCmd = &cobra.Command{
 		ExitIfErr(err)
 
 		if ntwk == "ipfs" {
-			limit := 200
 			res := []string{}
 			err := req.ConnectedIPFSPeers(&limit, &res)
 			ExitIfErr(err)
 
-			fmt.Println("")
 			for i, p := range res {
 				printSuccess("%d.\t%s", i+1, p)
 			}
 		} else {
-			limit := 200
-			online := []*config.ProfilePod{}
-			err := req.ConnectedQriProfiles(&limit, &online)
-			ExitIfErr(err)
 
 			// if we don't have an RPC client, assume we're not connected
-			if rpcClient == nil && !showCached {
+			if rpcConn() == nil && !showCached {
 				printInfo("qri not connected, listing cached peers")
 				showCached = true
 			}
 
-			peers := []*config.ProfilePod{}
-			if showCached {
-				err = req.List(&core.ListParams{Limit: limit, Offset: 0}, &peers)
-				ExitIfErr(err)
-
-				// TODO - this is dumb us a map
-				for _, peer := range peers {
-					for _, olp := range online {
-						if peer.ID == olp.ID {
-							peer.Online = true
-						}
-					}
-				}
-			} else {
-				peers = online
+			p := &core.PeerListParams{
+				Limit:  200,
+				Offset: 0,
+				Cached: showCached,
 			}
+			res := []*config.ProfilePod{}
+			err = req.List(p, &res)
+			ExitIfErr(err)
 
 			fmt.Println("")
-			for i, peer := range peers {
+			for i, peer := range res {
 				printPeerInfo(i, peer)
 			}
 		}
+
 	},
 }
 

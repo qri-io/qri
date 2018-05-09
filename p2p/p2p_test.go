@@ -7,7 +7,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo/test"
 
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
@@ -29,7 +29,7 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T) ([]*QriNode, error) {
 				return nil, err
 			}
 
-			alloc, err := p2ptest.NewTestQriNode(repo, t, NewTestQriNode)
+			alloc, err := p2ptest.NewTestNode(repo, t, NewTestQriNode)
 			if err != nil {
 				return nil, err
 			}

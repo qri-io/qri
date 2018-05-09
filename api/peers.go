@@ -88,9 +88,18 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
 	args := core.ListParamsFromRequest(r)
-	args.OrderBy = "created"
+	// args.OrderBy = "created"
+	cached, err := util.ReqParamBool("cached", r)
+	if err != nil {
+		cached = false
+	}
+	p := &core.PeerListParams{
+		Limit:  args.Limit,
+		Offset: args.Offset,
+		Cached: cached,
+	}
 	res := []*config.ProfilePod{}
-	if err := h.List(&args, &res); err != nil {
+	if err := h.List(p, &res); err != nil {
 		log.Infof("list peers: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

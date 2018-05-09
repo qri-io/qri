@@ -44,6 +44,8 @@ type Profile struct {
 	Poster datastore.Key `json:"poster"`
 	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
+	// Online indicates if this peer is currently connected to the network
+	Online bool `json:"online,omitempty"`
 	// PeerIDs lists any network PeerIDs associated with this profile
 	// in the form /network/peerID
 	PeerIDs []peer.ID `json:"peerIDs"`

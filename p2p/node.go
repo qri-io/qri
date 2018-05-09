@@ -365,7 +365,7 @@ func (n *QriNode) Keys() pstore.KeyBook {
 
 // Addrs returns the AddrBook for the node.
 func (n *QriNode) Addrs() pstore.AddrBook {
-	return n.QriPeers
+	return n.Host.Peerstore()
 }
 
 // HostNetwork returns the Host's Network for the node.
