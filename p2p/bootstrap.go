@@ -23,7 +23,6 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 	}
 
 	pinfos := toPeerInfos(peers)
-
 	for _, p := range randomSubsetOfPeers(pinfos, 4) {
 		go func(p pstore.PeerInfo) {
 			log.Infof("boostrapping to: %s", p.ID.Pretty())

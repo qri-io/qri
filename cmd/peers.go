@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
@@ -57,46 +56,67 @@ var peersListCmd = &cobra.Command{
 	Long:  `lists the peers your qri node has seen before`,
 	Example: `  list qri peers:
   $ qri peers list`,
+	Aliases: []string{"ls"},
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		outformat := cmd.Flag("format").Value.String()
-		if outformat != "" {
-			format, err := dataset.ParseDataFormatString(outformat)
-			if err != nil {
-				ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
-			}
-			if format != dataset.JSONDataFormat {
-				ErrExit(fmt.Errorf("invalid data format. currently only json or plaintext are supported"))
-			}
-		}
+		ntwk, err := cmd.Flags().GetString("network")
+		ExitIfErr(err)
+		showCached, err := cmd.Flags().GetBool("cached")
+		ExitIfErr(err)
+		limit := 200
 
-		pr, err := peerRequests(false)
+		// TODO - resurrect
+		// outformat := cmd.Flag("format").Value.String()
+		// if outformat != "" {
+		// 	format, err := dataset.ParseDataFormatString(outformat)
+		// 	if err != nil {
+		// 		ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
+		// 	}
+		// 	if format != dataset.JSONDataFormat {
+		// 		ErrExit(fmt.Errorf("invalid data format. currently only json or plaintext are supported"))
+		// 	}
+		// }
+
+		req, err := peerRequests(false)
 		ExitIfErr(err)
 
-		res := []*config.ProfilePod{}
-		err = pr.List(&core.ListParams{Limit: 200}, &res)
-		ExitIfErr(err)
+		if ntwk == "ipfs" {
+			res := []string{}
+			err := req.ConnectedIPFSPeers(&limit, &res)
+			ExitIfErr(err)
 
-		if len(res) == 0 {
-			printWarning("no peers connected")
-			return
-		}
-
-		if outformat == "" {
 			for i, p := range res {
-				printPeerInfo(i, p)
+				printSuccess("%d.\t%s", i+1, p)
 			}
 		} else {
-			data, err := json.MarshalIndent(res, "", "  ")
+
+			// if we don't have an RPC client, assume we're not connected
+			if rpcConn() == nil && !showCached {
+				printInfo("qri not connected, listing cached peers")
+				showCached = true
+			}
+
+			p := &core.PeerListParams{
+				Limit:  200,
+				Offset: 0,
+				Cached: showCached,
+			}
+			res := []*config.ProfilePod{}
+			err = req.List(p, &res)
 			ExitIfErr(err)
-			fmt.Printf("%s", string(data))
+
+			fmt.Println("")
+			for i, peer := range res {
+				printPeerInfo(i, peer)
+			}
 		}
+
 	},
 }
 
-var peersConnectCommand = &cobra.Command{
+var peersConnectCmd = &cobra.Command{
 	Use:   "connect",
 	Short: "connect directly to a peer ID",
 	Args:  cobra.MinimumNArgs(1),
@@ -115,9 +135,23 @@ var peersConnectCommand = &cobra.Command{
 	},
 }
 
-func init() {
-	peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
+var peersDisconnectCmd = &cobra.Command{
+	Use:   "disconnect",
+	Short: "explicitly close a connection to a peer",
+	Args:  cobra.MinimumNArgs(1),
+	PreRun: func(cmd *cobra.Command, args []string) {
+		loadConfig()
+	},
+	Run: func(cmd *cobra.Command, args []string) {
 
-	peersCmd.AddCommand(peersInfoCmd, peersListCmd, peersConnectCommand)
+	},
+}
+
+func init() {
+	// peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
+	peersListCmd.Flags().StringP("network", "n", "", "list peers from connected networks. currently only accepts \"ipfs\"")
+	peersListCmd.Flags().BoolP("cached", "c", false, "show peers that aren't online, but previously seen")
+
+	peersCmd.AddCommand(peersInfoCmd, peersListCmd, peersConnectCmd, peersDisconnectCmd)
 	RootCmd.AddCommand(peersCmd)
 }

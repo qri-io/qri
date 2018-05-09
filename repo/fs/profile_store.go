@@ -46,6 +46,9 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 		return fmt.Errorf("error encoding profile: %s", err.Error())
 	}
 
+	// explicitly remove Online flag
+	enc.Online = false
+
 	r.Lock()
 	defer r.Unlock()
 
@@ -75,7 +78,7 @@ func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 			if err := pro.Decode(cp); err != nil {
 				return nil, err
 			}
-			return pro.PeerIDs(), err
+			return pro.PeerIDs, err
 		}
 	}
 
@@ -151,7 +154,7 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
 func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
-	log.Debugf("peerProfile: %s", id.String())
+	log.Debugf("peerProfile: %s", id.Pretty())
 
 	r.Lock()
 	defer r.Unlock()
@@ -161,11 +164,14 @@ func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 		return nil, err
 	}
 
+	str := fmt.Sprintf("/ipfs/%s", id.Pretty())
 	for _, p := range ps {
-		if _, ok := p.Addresses[id.String()]; ok {
-			pro := &profile.Profile{}
-			err := pro.Decode(p)
-			return pro, err
+		for _, id := range p.PeerIDs {
+			if id == str {
+				pro := &profile.Profile{}
+				err := pro.Decode(p)
+				return pro, err
+			}
 		}
 	}
 

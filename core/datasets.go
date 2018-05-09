@@ -74,8 +74,8 @@ func NewDatasetRequestsWithNode(r repo.Repo, cli *rpc.Client, node *p2p.QriNode)
 
 // List returns this repo's datasets
 func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
-
 	if r.cli != nil {
+		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 
@@ -120,12 +120,11 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("couldn't find profile: %s", err.Error())
 		}
 
-		ids := pro.PeerIDs()
-		if len(ids) == 0 {
+		if len(pro.PeerIDs) == 0 {
 			return fmt.Errorf("couldn't find a peer address for profile: %s", pro.ID)
 		}
 
-		replies, err := r.Node.RequestDatasetsList(ids[0], p2p.DatasetsListParams{
+		replies, err := r.Node.RequestDatasetsList(pro.PeerIDs[0], p2p.DatasetsListParams{
 			Limit:  p.Limit,
 			Offset: p.Offset,
 		})
@@ -172,6 +171,9 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			}
 		}
 		replies[i].Dataset = ds.Encode()
+		if p.RPC {
+			replies[i].Dataset.Structure.Schema = nil
+		}
 	}
 
 	*res = replies

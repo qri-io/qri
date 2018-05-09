@@ -35,18 +35,35 @@ func NewPeerRequests(node *p2p.QriNode, cli *rpc.Client) *PeerRequests {
 	}
 }
 
+// PeerListParams defines parameters for the List method
+type PeerListParams struct {
+	Limit, Offset int
+	// Cached == true will return offline peers from the repo
+	// as well as online peers, default is to list connected peers only
+	Cached bool
+}
+
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *ListParams, res *[]*config.ProfilePod) error {
+func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
 
 	r := d.qriNode.Repo
-	replies := make([]*config.ProfilePod, p.Limit)
-
 	user, err := r.Profile()
 	if err != nil {
 		return err
+	}
+
+	peers := make([]*config.ProfilePod, p.Limit)
+	online := []*config.ProfilePod{}
+	if err := d.ConnectedQriProfiles(&p.Limit, &online); err != nil {
+		return err
+	}
+
+	if !p.Cached {
+		*res = online
+		return nil
 	}
 
 	ps, err := r.Profiles().List()
@@ -67,7 +84,15 @@ func (d *PeerRequests) List(p *ListParams, res *[]*config.ProfilePod) error {
 		if pro == nil || pro.ID == user.ID {
 			continue
 		}
-		replies[i], err = pro.Encode()
+
+		// TODO - this is dumb use a map
+		for _, olp := range online {
+			if pro.ID.String() == olp.ID {
+				pro.Online = true
+			}
+		}
+
+		peers[i], err = pro.Encode()
 		if err != nil {
 			return err
 		}
@@ -75,7 +100,7 @@ func (d *PeerRequests) List(p *ListParams, res *[]*config.ProfilePod) error {
 		i++
 	}
 
-	*res = replies[:i]
+	*res = peers
 	return nil
 }
 
@@ -90,15 +115,6 @@ func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 	return nil
 }
 
-// // Peer is a quick proxy for profile.Profile that plays
-// // nice with encoding/gob
-// type Peer struct {
-// 	ID       string
-// 	IPFSID   string
-// 	Peername string
-// 	Name     string
-// }
-
 // ConnectedQriProfiles lists profiles we're currently connected to
 func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) error {
 	if d.cli != nil {
@@ -107,11 +123,11 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.Profile
 
 	parsed := []*config.ProfilePod{}
 	for _, p := range d.qriNode.ConnectedQriProfiles() {
-		pro, err := p.Encode()
-		if err != nil {
-			return err
-		}
-		parsed = append(parsed, pro)
+		// pro, err := p.Encode()
+		// if err != nil {
+		// 	return err
+		// }
+		parsed = append(parsed, p)
 	}
 
 	*peers = parsed

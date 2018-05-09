@@ -12,11 +12,11 @@ import (
 
 func TestPeerRequestsList(t *testing.T) {
 	cases := []struct {
-		p   *ListParams
+		p   *PeerListParams
 		res []*profile.Profile
 		err string
 	}{
-		{&ListParams{}, nil, ""},
+		{&PeerListParams{}, nil, ""},
 		// {&ListParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
 		// {&ListParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
 		// {&ListParams{DataFilename: jobsByAutomationFile.FileName(), Data: jobsByAutomationFile}, nil, ""},

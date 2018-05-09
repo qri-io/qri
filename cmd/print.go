@@ -101,10 +101,18 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 
 func printPeerInfo(i int, p *config.ProfilePod) {
 	white := color.New(color.FgWhite).SprintFunc()
-	// cyan := color.New(color.FgCyan).SprintFunc()
+	grey := color.New(color.FgBlack).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
 	// blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Printf("peername: %s\n", white(p.Peername))
-	fmt.Printf("peerID: %s\n", white(p.ID))
+	if p.Online {
+		fmt.Printf("%s | %s\n", white(p.Peername), yellow("online"))
+	} else {
+		fmt.Printf("%s\n", white(p.Peername))
+	}
+	fmt.Printf("%s\n", grey(p.ID))
+	fmt.Printf("%s\n", p.Twitter)
+	fmt.Printf("%s\n", p.Description)
+	fmt.Println("")
 }
 
 // func PrintDatasetDetailedInfo(ds *dataset.Dataset) {
@@ -223,12 +231,6 @@ func inputText(message, defaultText string) string {
 	return input
 }
 
-/*
-	white := color.New(color.FgWhite).SprintFunc()
-	cyan := color.New(color.FgCyan).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.Transform.Data), blue(r.Path))
-*/
 func printDiffs(diffText string) {
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()

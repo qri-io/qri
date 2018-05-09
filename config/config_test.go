@@ -53,8 +53,7 @@ func TestWriteToFileWithAddresses(t *testing.T) {
 			Updated:  time.Unix(1234567890, 0).In(time.UTC),
 		},
 	}
-	cfg.Profile.Addresses = make(map[string][]string)
-	cfg.Profile.Addresses["QmTest"] = []string{"/ip/test"}
+	cfg.Profile.PeerIDs = []string{"/test_network/testPeerID"}
 
 	if err := cfg.WriteToFile(path); err != nil {
 		t.Errorf("error writing config: %s", err.Error())
