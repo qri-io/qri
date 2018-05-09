@@ -56,6 +56,10 @@ func (r *ProfileRequests) GetProfile(in *bool, res *config.ProfilePod) (err erro
 		return err
 	}
 
+	if Config != nil && Config.P2P != nil {
+		pro.Online = Config.P2P.Enabled
+	}
+
 	enc, err := pro.Encode()
 	if err != nil {
 		log.Debug(err.Error())

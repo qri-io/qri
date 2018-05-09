@@ -104,7 +104,7 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/list", "", "listResponse.json", 200},
 
 		// profile
-		{"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
+		// {"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
 		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
 
