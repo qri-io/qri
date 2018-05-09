@@ -1,15 +1,1 @@
-{
-  "data": {
-    "meta": [
-      {
-        "Position": "title",
-        "OldValue": "Updated Title",
-        "NewValue": "test title"
-      }
-    ],
-    "structure": []
-  },
-  "meta": {
-    "code": 200
-  }
-}
+{"data":{"meta":[{"Position":"title","OldValue":"Updated Title","NewValue":"test title"}],"structure":[]},"meta":{"code":200}}

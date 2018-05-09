@@ -231,6 +231,17 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 		return err
 	}
 
+	newPro, err := r.repo.Profile()
+	if err != nil {
+		return fmt.Errorf("error getting newly set profile: %s", err)
+	}
+	pp, err := newPro.Encode()
+	if err != nil {
+		return fmt.Errorf("error encoding new profile: %s", err)
+	}
+
+	*res = *pp
+
 	return SetConfig(Config)
 }
 
@@ -300,6 +311,17 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	if err := r.repo.SetProfile(pro); err != nil {
 		return err
 	}
+
+	newPro, err := r.repo.Profile()
+	if err != nil {
+		return fmt.Errorf("error getting newly set profile: %s", err)
+	}
+	pp, err := newPro.Encode()
+	if err != nil {
+		return fmt.Errorf("error encoding new profile: %s", err)
+	}
+
+	*res = *pp
 
 	return SetConfig(Config)
 }
