@@ -143,6 +143,7 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		Poster:      p.Poster.String(),
 		Photo:       p.Photo.String(),
 		Thumb:       p.Thumb.String(),
+		Online:      p.Online,
 		PeerIDs:     pids,
 	}
 	return pp, nil
