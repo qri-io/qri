@@ -131,7 +131,8 @@ func peerRequests(online bool) (*core.PeerRequests, error) {
 
 	// TODO - bad bad hardcode
 	if conn, err := net.Dial("tcp", ":2504"); err == nil {
-		return core.NewPeerRequests(nil, rpc.NewClient(conn)), nil
+		rpcClient = rpc.NewClient(conn)
+		return core.NewPeerRequests(nil, rpcClient), nil
 	}
 
 	node, err := qriNode(online)
@@ -165,7 +166,8 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-		return nil, rpc.NewClient(conn), nil
+		rpcClient = rpc.NewClient(conn)
+		return nil, rpcClient, nil
 	} else {
 		return nil, nil, err
 	}
@@ -203,13 +205,6 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	if err != nil {
 		return
 	}
-
-	// if online {
-	// 	log.Info("p2p addresses:")
-	// 	for _, a := range node.EncapsulatedAddresses() {
-	// 		log.Infof("  %s", a.String())
-	// 	}
-	// }
 
 	return
 }
