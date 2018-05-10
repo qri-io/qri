@@ -75,5 +75,5 @@ var searchCmd = &cobra.Command{
 func init() {
 	searchCmd.Flags().BoolVarP(&searchCmdReindex, "reindex", "r", false, "re-generate search index from scratch. might take a while.")
 	searchCmd.Flags().StringP("format", "f", "", "set output format [json]")
-	RootCmd.AddCommand(searchCmd)
+	// RootCmd.AddCommand(searchCmd)
 }
