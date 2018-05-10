@@ -143,20 +143,15 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-func (h *PeerHandlers) namespaceHandler(w http.ResponseWriter, r *http.Request) {
-
-}
-
 func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Request) {
-	b58pid := r.URL.Path[len("/connect/"):]
-
-	if b58pid == "" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("peer id is required"))
-		return
+	arg := r.URL.Path[len("/connect/"):]
+	if len(arg) == 0 {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid connect argument"))
 	}
+	pcpod := core.NewPeerConnectionParamsPod(arg)
 
 	res := &config.ProfilePod{}
-	if err := h.ConnectToPeer(&b58pid, res); err != nil {
+	if err := h.ConnectToPeer(pcpod, res); err != nil {
 		log.Infof("error connecting to peer: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

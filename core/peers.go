@@ -1,14 +1,17 @@
 package core
 
 import (
+	"context"
 	"fmt"
 	"net/rpc"
+	"strings"
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
@@ -134,31 +137,105 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.Profile
 	return nil
 }
 
+// PeerConnectionParamsPod defines parameters for defining a connection
+// to a peer as plain-old-data
+type PeerConnectionParamsPod struct {
+	Peername  string
+	ProfileID string
+	NetworkID string
+	Multiaddr string
+}
+
+// NewPeerConnectionParamsPod attempts to turn a string into peer connection parameters
+func NewPeerConnectionParamsPod(s string) *PeerConnectionParamsPod {
+	pcpod := &PeerConnectionParamsPod{}
+
+	if maddr, err := ma.NewMultiaddr(s); err == nil {
+		pcpod.Multiaddr = maddr.String()
+	} else if strings.HasPrefix(s, "/ipfs/") {
+		pcpod.NetworkID = s
+	} else if len(s) == 46 && strings.HasPrefix(s, "Qm") {
+		pcpod.ProfileID = s
+	} else {
+		pcpod.Peername = s
+	}
+
+	return pcpod
+}
+
+// Decode turns plain-old-data into it's rich types
+func (p PeerConnectionParamsPod) Decode() (cp p2p.PeerConnectionParams, err error) {
+	cp.Peername = p.Peername
+
+	if p.NetworkID != "" {
+		id := strings.TrimPrefix(p.NetworkID, "/ipfs/")
+		if len(id) == len(p.NetworkID) {
+			err = fmt.Errorf("network IDs must have a network prefix (eg. /ipfs/)")
+			return
+		}
+		if cp.PeerID, err = peer.IDB58Decode(id); err != nil {
+			err = fmt.Errorf("invalid networkID: %s", err.Error())
+			return
+		}
+	}
+
+	if p.ProfileID != "" {
+		if cp.ProfileID, err = profile.IDB58Decode(p.ProfileID); err != nil {
+			err = fmt.Errorf("invalid profileID: %s", err.Error())
+			return
+		}
+	}
+
+	if p.Multiaddr != "" {
+		if cp.Multiaddr, err = ma.NewMultiaddr(p.Multiaddr); err != nil {
+			err = fmt.Errorf("invalid multiaddr: %s", err.Error())
+		}
+	}
+
+	return
+}
+
 // ConnectToPeer attempts to create a connection with a peer for a given peer.ID
-func (d *PeerRequests) ConnectToPeer(b58pid *string, res *config.ProfilePod) error {
+func (d *PeerRequests) ConnectToPeer(p *PeerConnectionParamsPod, res *config.ProfilePod) error {
 	if d.cli != nil {
-		return d.cli.Call("PeerRequests.ConnectToPeer", b58pid, res)
+		return d.cli.Call("PeerRequests.ConnectToPeer", p, res)
 	}
 
-	pid, err := peer.IDB58Decode(*b58pid)
+	pcp, err := p.Decode()
 	if err != nil {
 		return err
 	}
 
-	if err := d.qriNode.ConnectToPeer(pid); err != nil {
-		return nil
-	}
-
-	prof, err := d.qriNode.Repo.Profiles().PeerProfile(pid)
+	prof, err := d.qriNode.ConnectToPeer(context.Background(), pcp)
 	if err != nil {
 		return err
 	}
+
 	pro, err := prof.Encode()
 	if err != nil {
 		return err
 	}
 
 	*res = *pro
+	return nil
+}
+
+// DisconnectFromPeer explicitly closes a peer connection
+func (d *PeerRequests) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool) error {
+	if d.cli != nil {
+		return d.cli.Call("PeerRequests.DisconnectFromPeer", p, res)
+	}
+
+	pcp, err := p.Decode()
+	if err != nil {
+		return err
+	}
+
+	if err := d.qriNode.DisconnectFromPeer(context.Background(), pcp); err != nil {
+		return err
+	}
+
+	*res = true
 	return nil
 }
 
