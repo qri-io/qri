@@ -48,8 +48,8 @@ func (m MemStore) PutProfile(profile *Profile) error {
 
 // PeernameID gives the ID for a given peername
 func (m MemStore) PeernameID(peername string) (ID, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 
 	for id, profile := range m.store {
 		if profile.Peername == peername {
@@ -63,8 +63,8 @@ func (m MemStore) PeernameID(peername string) (ID, error) {
 // TODO - this func implies that peer.ID's are only ever connected to the same
 // profile. That could cause trouble.
 func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 
 	// str := fmt.Sprintf("/ipfs/%s", id.Pretty())
 
@@ -81,8 +81,8 @@ func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 
 // PeerIDs gives the peer.IDs list for a given peername
 func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 
 	for proid, profile := range m.store {
 		if id == proid {
@@ -95,8 +95,8 @@ func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
 
 // List hands the full list of peers back
 func (m MemStore) List() (map[ID]*Profile, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 
 	res := map[ID]*Profile{}
 	for id, p := range m.store {
@@ -107,8 +107,8 @@ func (m MemStore) List() (map[ID]*Profile, error) {
 
 // GetProfile give's peer info from the store for a given peer.ID
 func (m MemStore) GetProfile(id ID) (*Profile, error) {
-	m.RLock()
-	defer m.RUnlock()
+	m.Lock()
+	defer m.Unlock()
 
 	if m.store[id] == nil {
 		return nil, ErrNotFound
