@@ -11,7 +11,7 @@ import (
 
 var datasetDiffCmd = &cobra.Command{
 	Use:   "diff",
-	Short: "diff two datasets",
+	Short: "compare differences between two datasets",
 	Long: `
 Diff compares two datasets from your repo and prints a represntation 
 of the differences between them.  You can specifify the datasets

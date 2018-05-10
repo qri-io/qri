@@ -118,7 +118,7 @@ var peersListCmd = &cobra.Command{
 
 var peersConnectCmd = &cobra.Command{
 	Use:   "connect",
-	Short: "connect directly to a peer ID",
+	Short: "connect to a peer",
 	Args:  cobra.MinimumNArgs(1),
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
@@ -127,10 +127,12 @@ var peersConnectCmd = &cobra.Command{
 		pr, err := peerRequests(false)
 		ExitIfErr(err)
 
+		pcpod := core.NewPeerConnectionParamsPod(args[0])
 		res := &config.ProfilePod{}
-		err = pr.ConnectToPeer(&args[0], res)
+		err = pr.ConnectToPeer(pcpod, res)
 		ExitIfErr(err)
 
+		printSuccess("successfully connected to %s", res.Peername)
 		printPeerInfo(0, res)
 	},
 }
@@ -143,7 +145,15 @@ var peersDisconnectCmd = &cobra.Command{
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
+		pr, err := peerRequests(false)
+		ExitIfErr(err)
 
+		pcpod := core.NewPeerConnectionParamsPod(args[0])
+		res := false
+		err = pr.DisconnectFromPeer(pcpod, &res)
+		ExitIfErr(err)
+
+		printSuccess("disconnected")
 	},
 }
 
