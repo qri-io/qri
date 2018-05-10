@@ -42,7 +42,7 @@ func TestWriteToFile(t *testing.T) {
 	}
 }
 
-func TestWriteToFileWithAddresses(t *testing.T) {
+func TestWriteToFileWithExtraData(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)
 	cfg := Config{
@@ -54,6 +54,7 @@ func TestWriteToFileWithAddresses(t *testing.T) {
 		},
 	}
 	cfg.Profile.PeerIDs = []string{"/test_network/testPeerID"}
+	cfg.Profile.NetworkAddrs = []string{"foo", "bar", "baz"}
 
 	if err := cfg.WriteToFile(path); err != nil {
 		t.Errorf("error writing config: %s", err.Error())
