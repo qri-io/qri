@@ -26,17 +26,17 @@ var peersInfoCmd = &cobra.Command{
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
+	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			ErrExit(fmt.Errorf("peer name is required"))
-		}
+		req, err := peerRequests(false)
+		ExitIfErr(err)
 
-		printInfo("searching for peer %s...", args[0])
-		req, err := peerRequests(true)
+		v, err := cmd.Flags().GetBool("verbose")
 		ExitIfErr(err)
 
 		p := &core.PeerInfoParams{
 			Peername: args[0],
+			Verbose:  v,
 		}
 
 		res := &config.ProfilePod{}
@@ -132,7 +132,7 @@ var peersConnectCmd = &cobra.Command{
 		err = pr.ConnectToPeer(pcpod, res)
 		ExitIfErr(err)
 
-		printSuccess("successfully connected to %s", res.Peername)
+		printSuccess("successfully connected to %s:\n", res.Peername)
 		printPeerInfo(0, res)
 	},
 }
@@ -158,6 +158,8 @@ var peersDisconnectCmd = &cobra.Command{
 }
 
 func init() {
+	peersInfoCmd.Flags().BoolP("verbose", "v", false, "show verbose profile info")
+
 	// peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
 	peersListCmd.Flags().StringP("network", "n", "", "list peers from connected networks. currently only accepts \"ipfs\"")
 	peersListCmd.Flags().BoolP("cached", "c", false, "show peers that aren't online, but previously seen")

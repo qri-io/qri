@@ -16,9 +16,9 @@ var (
 )
 
 var datasetLogCmd = &cobra.Command{
-	Use: "log",
-	// Aliases: []string{"ls"},
-	Short: "show log of dataset history",
+	Use:     "log",
+	Aliases: []string{"history"},
+	Short:   "show log of dataset history",
 	Long: `
 log prints a list of changes to a dataset over time. Each entry in the log is a 
 snapshot of a dataset taken at the moment it was saved that keeps exact details 

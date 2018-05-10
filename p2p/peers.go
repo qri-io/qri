@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 
+	swarm "gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -92,16 +93,13 @@ func peerDifference(a, b []peer.ID) (diff []peer.ID) {
 	return
 }
 
-// PeerInfo returns this peer's ID & Addresses as a peerstore.PeerInfo
-func (n *QriNode) PeerInfo() pstore.PeerInfo {
+// PeerInfo returns peer peer ID & network multiaddrs from the Host Peerstore
+func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 	if !n.Online {
 		return pstore.PeerInfo{}
 	}
 
-	return pstore.PeerInfo{
-		ID:    n.Host.ID(),
-		Addrs: n.Host.Addrs(),
-	}
+	return n.Host.Peerstore().PeerInfo(pid)
 }
 
 // AddQriPeer negotiates a connection with a peer to get their profile details
@@ -175,8 +173,16 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, err
 	}
 
+	snet, ok := n.Host.Network().(*swarm.Network)
+	if !ok {
+		return nil, fmt.Errorf("peerhost network was not swarm")
+	}
+
+	// clear backoff b/c we're explicitly dialing this peer
+	snet.Swarm().Backoff().Clear(pinfo.ID)
+
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
 	if err := n.AddQriPeer(pinfo); err != nil {
@@ -193,9 +199,17 @@ func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams
 		return err
 	}
 
-	return n.Host.Network().ClosePeer(pinfo.ID)
+	conns := n.Host.Network().ConnsToPeer(pinfo.ID)
+	for _, conn := range conns {
+		if err := conn.Close(); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
+// peerConnectionParamsToPeerInfo turns connection parameters into something p2p can dial
 func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pstore.PeerInfo, err error) {
 	if p.Multiaddr != nil {
 		return toPeerInfos([]ma.Multiaddr{p.Multiaddr})[0], nil
@@ -227,6 +241,8 @@ func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pst
 	return n.getPeerInfo(ids[0])
 }
 
+// getPeerInfo first looks for local peer info, then tries to fall back to using IPFS
+// to do routing lookups
 func (n *QriNode) getPeerInfo(pid peer.ID) (pstore.PeerInfo, error) {
 	// first check for local peer info
 	if pinfo := n.Host.Peerstore().PeerInfo(pid); len(pinfo.ID) > 0 {

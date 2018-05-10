@@ -87,6 +87,8 @@ func ReadFromFile(path string) (cfg *Config, err error) {
 func (cfg Config) WriteToFile(path string) error {
 	// Never serialize the address mapping to the configuration file.
 	prev := cfg.Profile.PeerIDs
+	cfg.Profile.NetworkAddrs = nil
+	cfg.Profile.Online = false
 	cfg.Profile.PeerIDs = nil
 	defer func() { cfg.Profile.PeerIDs = prev }()
 
