@@ -97,7 +97,11 @@ func connectNodes(ctx context.Context, nodes []*QriNode) error {
 func connectQriPeerNodes(ctx context.Context, nodes []*QriNode) error {
 	var wg sync.WaitGroup
 	connect := func(a, b *QriNode) error {
-		if err := a.AddQriPeer(b.PeerInfo()); err != nil {
+		bpi := pstore.PeerInfo{
+			ID:    b.Host.ID(),
+			Addrs: b.Host.Addrs(),
+		}
+		if err := a.AddQriPeer(bpi); err != nil {
 			return err
 		}
 		wg.Done()

@@ -48,6 +48,9 @@ type ProfilePod struct {
 	// where QmSy... is a peer identifier on the IPFS peer-to-peer network
 	// Should not serialize to config.yaml
 	PeerIDs []string `json:"peerIDs,omitempty" yaml:"peerIDs,omitempty"`
+	// NetworkAddrs keeps a list of locations for this profile on the network as multiaddr strings
+	// Should not serialize to config.yaml
+	NetworkAddrs []string `json:"networkAddrs,omitempty" yaml:"networkAddrs,omitempty"`
 }
 
 // DefaultProfile gives a new default profile configuration, generating a new random

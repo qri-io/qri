@@ -9,7 +9,8 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/config"
-	// ma "gx/ipfs/QmXY77cVe7rVRQXZZQRioukUM7aRW3BTcAgJe12MCtb3Ji/go-multiaddr"
+
+	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
 )
 
@@ -49,6 +50,8 @@ type Profile struct {
 	// PeerIDs lists any network PeerIDs associated with this profile
 	// in the form /network/peerID
 	PeerIDs []peer.ID `json:"peerIDs"`
+	// NetworkAddrs keeps a list of locations for this profile on the network as multiaddr strings
+	NetworkAddrs []ma.Multiaddr `json:"networkAddrs,omitempty"`
 }
 
 // NewProfile allocates a profile from a CodingProfile
@@ -118,6 +121,12 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 		pro.Photo = datastore.NewKey(sp.Photo)
 	}
 
+	for _, addrStr := range sp.NetworkAddrs {
+		if maddr, err := ma.NewMultiaddr(addrStr); err == nil {
+			pro.NetworkAddrs = append(pro.NetworkAddrs, maddr)
+		}
+	}
+
 	*p = pro
 	return nil
 }
@@ -128,23 +137,28 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 	for i, pid := range p.PeerIDs {
 		pids[i] = fmt.Sprintf("/ipfs/%s", pid.Pretty())
 	}
+	var addrs []string
+	for _, maddr := range p.NetworkAddrs {
+		addrs = append(addrs, maddr.String())
+	}
 	pp := &config.ProfilePod{
-		ID:          p.ID.String(),
-		Type:        p.Type.String(),
-		Peername:    p.Peername,
-		Created:     p.Created,
-		Updated:     p.Updated,
-		Email:       p.Email,
-		Name:        p.Name,
-		Description: p.Description,
-		HomeURL:     p.HomeURL,
-		Color:       p.Color,
-		Twitter:     p.Twitter,
-		Poster:      p.Poster.String(),
-		Photo:       p.Photo.String(),
-		Thumb:       p.Thumb.String(),
-		Online:      p.Online,
-		PeerIDs:     pids,
+		ID:           p.ID.String(),
+		Type:         p.Type.String(),
+		Peername:     p.Peername,
+		Created:      p.Created,
+		Updated:      p.Updated,
+		Email:        p.Email,
+		Name:         p.Name,
+		Description:  p.Description,
+		HomeURL:      p.HomeURL,
+		Color:        p.Color,
+		Twitter:      p.Twitter,
+		Poster:       p.Poster.String(),
+		Photo:        p.Photo.String(),
+		Thumb:        p.Thumb.String(),
+		Online:       p.Online,
+		PeerIDs:      pids,
+		NetworkAddrs: addrs,
 	}
 	return pp, nil
 }

@@ -150,10 +150,10 @@ type PeerConnectionParamsPod struct {
 func NewPeerConnectionParamsPod(s string) *PeerConnectionParamsPod {
 	pcpod := &PeerConnectionParamsPod{}
 
-	if maddr, err := ma.NewMultiaddr(s); err == nil {
-		pcpod.Multiaddr = maddr.String()
-	} else if strings.HasPrefix(s, "/ipfs/") {
+	if strings.HasPrefix(s, "/ipfs/") {
 		pcpod.NetworkID = s
+	} else if maddr, err := ma.NewMultiaddr(s); err == nil {
+		pcpod.Multiaddr = maddr.String()
 	} else if len(s) == 46 && strings.HasPrefix(s, "Qm") {
 		pcpod.ProfileID = s
 	} else {
@@ -243,6 +243,8 @@ func (d *PeerRequests) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool)
 type PeerInfoParams struct {
 	Peername  string
 	ProfileID profile.ID
+	// Verbose adds network details from the p2p Peerstore
+	Verbose bool
 }
 
 // Info shows peer profile details
@@ -261,6 +263,12 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 
 	for _, pro := range profiles {
 		if pro.ID == p.ProfileID || pro.Peername == p.Peername {
+			if p.Verbose && len(pro.PeerIDs) > 0 {
+				// TODO - grab more than just the first peerID
+				pinfo := d.qriNode.PeerInfo(pro.PeerIDs[0])
+				pro.NetworkAddrs = pinfo.Addrs
+			}
+
 			prof, err := pro.Encode()
 			*res = *prof
 			return err
