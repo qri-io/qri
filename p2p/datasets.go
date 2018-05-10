@@ -4,6 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
@@ -75,20 +77,17 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 			return
 		}
 
-		// replies := make([]*repo.DatasetRef, p.Limit)
-		// i := 0
-		// for i, ref := range refs {
-		// 	if i >= p.Limit {
-		// 		break
-		// 	}
-		// 	ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
-		// 	if err != nil {
-		// 		log.Info("error loading dataset at path:", ref.Path)
-		// 		return nil
-		// 	}
-		// 	refs[i].Dataset = ds
-		// 	// i++
-		// }
+		for i, ref := range refs {
+			if i >= dlp.Limit {
+				break
+			}
+			ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+			if err != nil {
+				log.Info("error loading dataset at path:", ref.Path)
+				return
+			}
+			refs[i].Dataset = ds.Encode()
+		}
 
 		reply, err := msg.UpdateJSON(refs)
 		reply = reply.WithHeaders("phase", "response")
