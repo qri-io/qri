@@ -1,19 +1,17 @@
 package cmd
 
 import (
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
 	"testing"
 
-	"github.com/qri-io/registry"
-	"github.com/qri-io/registry/regserver/handlers"
+	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestConnect(t *testing.T) {
 
-	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
+	registryServer := regmock.NewMockServer()
 
 	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())

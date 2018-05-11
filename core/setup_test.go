@@ -1,18 +1,16 @@
 package core
 
 import (
-	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/registry"
-	"github.com/qri-io/registry/regserver/handlers"
+	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestSetupTeardown(t *testing.T) {
-	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
+	registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "test_core_setup_teardown")
 	cfg1 := config.DefaultConfig()
