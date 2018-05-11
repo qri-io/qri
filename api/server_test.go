@@ -21,8 +21,7 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry"
-	"github.com/qri-io/registry/regserver/handlers"
+	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func confirmQriNotRunning() error {
@@ -45,7 +44,7 @@ func TestServerRoutes(t *testing.T) {
 	defer golog.SetLogLevel("qriapi", "info")
 
 	// use a test registry server
-	registryServer := httptest.NewServer(handlers.NewRoutes(registry.NewProfiles()))
+	registryServer := regmock.NewMockServer()
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
