@@ -35,6 +35,10 @@ type P2P struct {
 	// QriBootstrapAddrs lists addresses to bootstrap qri node from
 	QriBootstrapAddrs []string `json:"qribootstrapaddrs"`
 
+	// HTTPGatewayAddr is an address that qri can use to resolve p2p assets
+	// over HTTP, represented as a url. eg: https://ipfs.io
+	HTTPGatewayAddr string `json:"httpgatewayaddr"`
+
 	// ProfileReplication determines what to do when this peer sees messages
 	// broadcast by it's own profile (from another peer instance). setting
 	// ProfileReplication == "full" will cause this peer to automatically pin
@@ -50,7 +54,8 @@ type P2P struct {
 func DefaultP2P() *P2P {
 	r := rand.Reader
 	p2p := &P2P{
-		Enabled: true,
+		Enabled:         true,
+		HTTPGatewayAddr: "https://ipfs.io",
 		// DefaultBootstrapAddresses follows the pattern of IPFS boostrapping off known "gateways".
 		// This boostrapping is specific to finding qri peers, which are IPFS peers that also
 		// support the qri protocol.
@@ -106,7 +111,7 @@ func (cfg P2P) Validate() error {
     "title": "P2P",
     "description": "Config for the p2p",
     "type": "object",
-    "required": ["enabled", "peerid", "pubkey", "privkey", "port", "addrs", "qribootstrapaddrs", "profilereplication", "bootstrapaddrs"],
+    "required": ["enabled", "peerid", "pubkey", "privkey", "port", "addrs", "httpgatewayaddr", "qribootstrapaddrs", "profilereplication", "bootstrapaddrs"],
     "properties": {
       "enabled": {
         "description": "When true, peer to peer communication is allowed",
@@ -137,6 +142,10 @@ func (cfg P2P) Validate() error {
         "items": {
           "type": "string"
         }
+      },
+      "httpgatewayaddr": {
+        "description" : "address that qri can use to resolve p2p assets over HTTP",
+        "type" : "string"
       },
       "qribootstrapaddrs": {
         "description": "List of addresses to bootstrap the qri node from",
@@ -176,6 +185,7 @@ func (cfg *P2P) Copy() *P2P {
 		PrivKey:            cfg.PrivKey,
 		Port:               cfg.Port,
 		ProfileReplication: cfg.ProfileReplication,
+		HTTPGatewayAddr:    cfg.HTTPGatewayAddr,
 	}
 
 	if cfg.QriBootstrapAddrs != nil {

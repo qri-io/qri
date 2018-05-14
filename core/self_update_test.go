@@ -8,18 +8,18 @@ import (
 )
 
 func TestCheckVersion(t *testing.T) {
-	name := prevIPNSName
-	ver := lastPubVerHash
+	name := PrevIPNSName
+	ver := LastPubVerHash
 	defer func() {
-		prevIPNSName = name
-		lastPubVerHash = ver
+		PrevIPNSName = name
+		LastPubVerHash = ver
 	}()
 
 	res := namesys.NewDNSResolver()
 
-	prevIPNSName = "foo"
+	PrevIPNSName = "foo"
 	expect := "error resolving name: not a valid domain name"
-	if err := CheckVersion(context.Background(), res); err != nil && err.Error() != expect {
+	if _, err := CheckVersion(context.Background(), res, name, ver); err != nil && err.Error() != expect {
 		t.Errorf("error mismatch. epxected: '%s', got: '%s'", expect, err.Error())
 		return
 	}
