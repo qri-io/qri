@@ -27,6 +27,8 @@ type Config struct {
 	Webapp  *Webapp
 	RPC     *RPC
 	Logging *Logging
+
+	Render *Render
 }
 
 // DefaultConfig gives a new default qri configuration
@@ -43,6 +45,8 @@ func DefaultConfig() *Config {
 		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
+
+		Render: DefaultRender(),
 	}
 }
 
@@ -214,16 +218,17 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC"],
+    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC", "Render"],
     "properties" : {
-    	"Profile" : { "type":"object" },
-    	"Repo" : { "type":"object" },
-    	"Store" : { "type":"object" },
-    	"P2P" : { "type":"object" },
-    	"CLI" : { "type":"object" },
-    	"API" : { "type":"object" },
-    	"Webapp" : { "type":"object" },
-    	"RPC" : { "type":"object" }
+			"Profile" : { "type":"object" },
+			"Repo" : { "type":"object" },
+			"Store" : { "type":"object" },
+			"P2P" : { "type":"object" },
+			"CLI" : { "type":"object" },
+			"API" : { "type":"object" },
+			"Webapp" : { "type":"object" },
+			"RPC" : { "type":"object" },
+			"Render" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
@@ -290,6 +295,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()
+	}
+	if cfg.Render != nil {
+		res.Render = cfg.Render.Copy()
 	}
 
 	return res

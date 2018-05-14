@@ -102,6 +102,29 @@ func datasetRequests(online bool) (*core.DatasetRequests, error) {
 	return req, nil
 }
 
+func renderRequests(online bool) (*core.RenderRequests, error) {
+  if cli := rpcConn(); cli != nil {
+    return core.NewRenderRequests(nil, cli), nil
+  }
+
+  if !online {
+    // TODO - make this not terrible
+    r, cli, err := repoOrClient(online)
+    if err != nil {
+      return nil, err
+    }
+    return core.NewRenderRequests(r, cli), nil
+  }
+
+  n, err := qriNode(online)
+  if err != nil {
+    return nil, err
+  }
+
+  req := core.NewRenderRequests(n.Repo, nil)
+  return req, nil
+}
+
 func profileRequests(online bool) (*core.ProfileRequests, error) {
 	r, cli, err := repoOrClient(online)
 	if err != nil {

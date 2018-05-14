@@ -19,25 +19,25 @@ import (
  */
 
 var (
-	// lastPubVerHash is a hard-coded reference the gx "lastpubver" file of the previous release
-	lastPubVerHash = "/ipfs/QmcXZCLAgUdvXpt1fszjNGVGn6WnhsrJahkQXY3JJqxUWJ"
-	// prevIPNSName is the dnslink address to check for version agreement
-	prevIPNSName = "/ipns/cli.previous.qri.io"
+	// LastPubVerHash is a hard-coded reference the gx "lastpubver" file of the previous release
+	LastPubVerHash = "/ipfs/QmcXZCLAgUdvXpt1fszjNGVGn6WnhsrJahkQXY3JJqxUWJ"
+	// PrevIPNSName is the dnslink address to check for version agreement
+	PrevIPNSName = "/ipns/cli.previous.qri.io"
 	// ErrUpdateRequired means this version of qri is out of date
 	ErrUpdateRequired = fmt.Errorf("update required")
 )
 
 // CheckVersion uses a name resolver to lookup prevIPNSName, checking if the hard-coded lastPubVerHash
 // and the returned lookup match. If they don't, CheckVersion returns ErrUpdateRequired
-func CheckVersion(ctx context.Context, res namesys.Resolver) error {
-	p, err := res.Resolve(ctx, prevIPNSName)
+func CheckVersion(ctx context.Context, res namesys.Resolver, lookupAddr, localHash string) (latest string, err error) {
+	p, err := res.Resolve(ctx, lookupAddr)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error resolving name: %s", err.Error())
+		return "", fmt.Errorf("error resolving name: %s", err.Error())
 	}
 
-	if p.String() != lastPubVerHash {
-		return ErrUpdateRequired
+	if p.String() != localHash {
+		return p.String(), ErrUpdateRequired
 	}
-	return nil
+	return "", nil
 }

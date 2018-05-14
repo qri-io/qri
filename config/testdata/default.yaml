@@ -28,6 +28,7 @@ p2p:
   online: true
   selfreplication: full
   boostrapaddrs: []
+  httpgatewayaddr: https://ipfs.io
 webapp:
   enabled: true
   port: 2505
@@ -39,3 +40,6 @@ rpc:
   port: 2504
 logging:
   levels: {}
+render:
+  templateupdateaddress: /ipns/defaulttmpl.qri.io
+  defaulttemplatehash:   /ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw

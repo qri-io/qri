@@ -2,13 +2,14 @@ package actions
 
 import (
 	"fmt"
+	"strings"
+
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"strings"
 )
 
 // Dataset wraps a repo.Repo, adding actions related to working

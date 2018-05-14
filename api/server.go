@@ -12,6 +12,7 @@ import (
 	"github.com/datatogether/api/apiutil"
 	"github.com/ipfs/go-datastore"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/p2p"
@@ -40,9 +41,6 @@ func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
 	for _, opt := range options {
 		opt(cfg)
 	}
-	// if err := cfg.Validate(); err != nil {
-	// 	return nil, fmt.Errorf("server configuration error: %s", err.Error())
-	// }
 
 	s = &Server{
 		cfg: cfg,
@@ -88,13 +86,39 @@ func (s *Server) Serve() (err error) {
 	}
 
 	if node, err := s.qriNode.IPFSNode(); err == nil {
-		go func() {
-			if err := core.CheckVersion(context.Background(), node.Namesys); err == core.ErrUpdateRequired {
-				log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
-			} else if err != nil {
-				log.Infof("error checking for software update: %s", err.Error())
-			}
-		}()
+		if pinner, ok := s.qriNode.Repo.Store().(cafs.Pinner); ok {
+
+			go func() {
+				if _, err := core.CheckVersion(context.Background(), node.Namesys, core.PrevIPNSName, core.LastPubVerHash); err == core.ErrUpdateRequired {
+					log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
+				} else if err != nil {
+					log.Infof("error checking for software update: %s", err.Error())
+				}
+			}()
+
+			go func() {
+				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into core
+				if core.Config != nil && core.Config.Render != nil && core.Config.Render.TemplateUpdateAddress != "" {
+					if latest, err := core.CheckVersion(context.Background(), node.Namesys, core.Config.Render.TemplateUpdateAddress, core.Config.Render.DefaultTemplateHash); err == core.ErrUpdateRequired {
+						err := pinner.Pin(datastore.NewKey(latest), true)
+						if err != nil {
+							log.Debug("error pinning template hash: %s", err.Error())
+							return
+						}
+						if err := core.Config.Set("Render.DefaultTemplateHash", latest); err != nil {
+							log.Debug("error setting latest hash: %s", err.Error())
+							return
+						}
+						if err := core.SaveConfig(); err != nil {
+							log.Debug("error saving config hash: %s", err.Error())
+							return
+						}
+						log.Info("auto-updated template hash: %s", latest)
+					}
+				}
+			}()
+
+		}
 	}
 
 	info := s.cfg.SummaryString()
