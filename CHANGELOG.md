@@ -1,3 +1,33 @@
+<a name="0.3.2"></a>
+# [0.3.2](https://github.com/qri-io/qri/compare/v0.3.1...v0.3.2) (2018-05-15)
+
+
+### Bug Fixes
+
+* **core.profile:** fixing bug in SetPosterPhoto and SetProfilePhoto ([8cbed3a](https://github.com/qri-io/qri/commit/8cbed3a))
+* **handleDatasetsList:** peer's datasets not returning fully hydrated ([b755554](https://github.com/qri-io/qri/commit/b755554))
+* **profile.MemStore:** address race condition ([58ece89](https://github.com/qri-io/qri/commit/58ece89))
+* **registry:** make registry post & deletes actually work ([f71eec6](https://github.com/qri-io/qri/commit/f71eec6))
+* **SetProfile:** peer should be able to remove name, email, description, homeurl, and twitter ([6f4cc1e](https://github.com/qri-io/qri/commit/6f4cc1e))
+* **setup:** fix config not loading if already found ([190f2c7](https://github.com/qri-io/qri/commit/190f2c7))
+* **test_repo:** added field `Type: "peer"` to test repo profile ([8478462](https://github.com/qri-io/qri/commit/8478462))
+
+
+### Features
+
+* **cmd.peers:** merge connections command into peers list command ([a3fe649](https://github.com/qri-io/qri/commit/a3fe649))
+* **core.GetProfile:** add naive online indicator if P2P is enabled ([84ccc24](https://github.com/qri-io/qri/commit/84ccc24))
+* **p2p:** Tag qri peers in connManager ([2f4b1fd](https://github.com/qri-io/qri/commit/2f4b1fd))
+* **peer connections:** single peer connection control ([ab7e035](https://github.com/qri-io/qri/commit/ab7e035))
+* **Profile Info, Connections:** verbose profile info, better explicit conn mgmt ([eb01247](https://github.com/qri-io/qri/commit/eb01247))
+* **profiles:** transition to online-first display, announce ntwk joins ([f712080](https://github.com/qri-io/qri/commit/f712080))
+* **registry.Datasets:** initial dataset registry integration ([58d64c2](https://github.com/qri-io/qri/commit/58d64c2)), closes [#397](https://github.com/qri-io/qri/issues/397)
+* **render:** add render command for executing templates against datasets ([607104d](https://github.com/qri-io/qri/commit/607104d))
+* **repo:** merge repos' EventLogs using a simple first attempt ([e5997bb](https://github.com/qri-io/qri/commit/e5997bb))
+* **repo.Registry:** add registry to repo interface ([9bcb303](https://github.com/qri-io/qri/commit/9bcb303))
+
+
+
 <a name="0.3.1"></a>
 # [0.3.1](https://github.com/qri-io/qri/compare/v0.3.0...v0.3.1) (2018-04-25)
 
