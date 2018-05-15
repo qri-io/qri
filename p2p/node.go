@@ -368,6 +368,19 @@ func (n *QriNode) Addrs() pstore.AddrBook {
 	return n.Host.Peerstore()
 }
 
+// SimplePeerInfo returns a PeerInfo with just the ID and Addresses.
+func (n *QriNode) SimplePeerInfo() pstore.PeerInfo {
+	return pstore.PeerInfo{
+		n.Host.ID(),
+		n.Host.Addrs(),
+	}
+}
+
+// AddPeer adds a Qri peer to this node.
+func (n *QriNode) AddPeer(peer pstore.PeerInfo) error {
+	return n.AddQriPeer(peer)
+}
+
 // HostNetwork returns the Host's Network for the node.
 func (n *QriNode) HostNetwork() net.Network {
 	return n.Host.Network()

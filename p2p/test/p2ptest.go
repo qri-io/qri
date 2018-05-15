@@ -26,6 +26,8 @@ type TestablePeerNode interface {
 	Keys() pstore.KeyBook
 	Addrs() pstore.AddrBook
 	HostNetwork() net.Network
+	SimplePeerInfo() pstore.PeerInfo
+	AddPeer(pstore.PeerInfo) error
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
@@ -124,6 +126,31 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		for _, s2 := range nodes[i+1:] {
 			wg.Add(1)
 			if err := connect(s1, s2.HostNetwork().LocalPeer(), s2.HostNetwork().ListenAddresses()[0]); err != nil {
+				return err
+			}
+		}
+	}
+	wg.Wait()
+
+	return nil
+}
+
+// ConnectQriPeers connects the nodes as Qri peers using PeerInfo
+func ConnectQriPeers(ctx context.Context, nodes []TestablePeerNode) error {
+	var wg sync.WaitGroup
+	connect := func(a, b TestablePeerNode) error {
+		bpi := b.SimplePeerInfo()
+		if err := a.AddPeer(bpi); err != nil {
+			return err
+		}
+		wg.Done()
+		return nil
+	}
+
+	for i, s1 := range nodes {
+		for _, s2 := range nodes[i+1:] {
+			wg.Add(1)
+			if err := connect(s1, s2); err != nil {
 				return err
 			}
 		}

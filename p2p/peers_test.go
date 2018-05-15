@@ -3,18 +3,27 @@ package p2p
 import (
 	"context"
 	"testing"
+
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestConnectedQriProfiles(t *testing.T) {
-	nodes, err := NewTestDirNetwork(context.Background(), t)
+	ctx := context.Background()
+	testPeers, err := p2ptest.NewTestDirNetwork(ctx, t, NewTestQriNode)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := connectQriPeerNodes(context.Background(), nodes); err != nil {
+	if err := p2ptest.ConnectQriPeers(ctx, testPeers); err != nil {
 		t.Error(err.Error())
 		return
+	}
+
+	// Convert from test nodes to non-test nodes.
+	nodes := make([]*QriNode, len(testPeers))
+	for i, node := range testPeers {
+		nodes[i] = node.(*QriNode)
 	}
 
 	pros := nodes[0].ConnectedQriProfiles()
