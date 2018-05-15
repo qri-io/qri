@@ -309,7 +309,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 
 	ds := &dataset.Dataset{
 		Meta:      &dataset.Meta{},
-		Commit:    &dataset.Commit{Title: "initial commit"},
+		Commit:    &dataset.Commit{Title: "created dataset"},
 		Structure: st,
 	}
 	if p.Metadata != nil {
