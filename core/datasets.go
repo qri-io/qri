@@ -411,7 +411,7 @@ type SaveParams struct {
 }
 
 // Save adds a history entry, updating a dataset
-// TODO - need to make sure users aren't forking by referncing commits other than tip
+// TODO - need to make sure users aren't forking by referencing commits other than tip
 // TODO - currently, if a user adds metadata or structure, but does not add
 // data, we load the data from the previous commit
 // this means that the SAME data is getting saved to the store
