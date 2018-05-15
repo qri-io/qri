@@ -9,7 +9,7 @@ import (
 
 var datasetRemoveCmd = &cobra.Command{
 	Use:     "remove",
-	Aliases: []string{"rm"},
+	Aliases: []string{"rm", "delete"},
 	Short:   "remove a dataset from your local repository",
 	Long: `
 remove gets rid of datasets. After running remove, qri will no longer list your 

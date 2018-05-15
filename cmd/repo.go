@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"net"
+	"net/http"
 	"net/rpc"
 	"strings"
 	"sync"
+	"time"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
@@ -22,6 +24,14 @@ var (
 	rpcClient   *rpc.Client
 	rpcConnOnce sync.Once
 )
+
+func init() {
+	// use a short timeout for registry clients to keep cli working
+	// if registry interaction fails it's not the end of the world
+	regclient.HTTPClient = &http.Client{
+		Timeout: time.Second * 4,
+	}
+}
 
 func rpcConn() *rpc.Client {
 	onceBody := func() {
@@ -199,7 +209,12 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		pro, err := profile.NewProfile(core.Config.Profile)
 		ExitIfErr(err)
 
-		r, err := fsrepo.NewRepo(fs, pro, nil, QriRepoPath)
+		var rc *regclient.Client
+		if core.Config.Registry != nil && core.Config.Registry.Location != "" {
+			rc = regclient.NewClient(&regclient.Config{Location: core.Config.Registry.Location})
+		}
+
+		r, err := fsrepo.NewRepo(fs, pro, rc, QriRepoPath)
 		ExitIfErr(err)
 
 		return r, nil, err
@@ -217,6 +232,7 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	var (
 		r  repo.Repo
 		fs *ipfs.Filestore
+		rc *regclient.Client
 	)
 
 	fs, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
@@ -231,7 +247,12 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	pro, err := profile.NewProfile(core.Config.Profile)
 	ExitIfErr(err)
 
-	r, err = fsrepo.NewRepo(fs, pro, nil, QriRepoPath)
+	if core.Config.Registry != nil && core.Config.Registry.Location != "" {
+		rc = regclient.NewClient(&regclient.Config{Location: core.Config.Registry.Location})
+	}
+	printInfo("%v", rc)
+
+	r, err = fsrepo.NewRepo(fs, pro, rc, QriRepoPath)
 	if err != nil {
 		return
 	}
