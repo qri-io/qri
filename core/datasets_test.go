@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
+	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
@@ -189,7 +190,8 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -211,8 +213,8 @@ func TestDatasetRequestsGet(t *testing.T) {
 		res *dataset.Dataset
 		err string
 	}{
-		//TODO: probably delete some of these
-		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
+		// TODO: probably delete some of these
+		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "repo: not found"},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
@@ -233,7 +235,8 @@ func TestDatasetRequestsGet(t *testing.T) {
 }
 
 func TestDatasetRequestsSave(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -246,7 +249,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
 		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
 		{&SaveParams{Name: "movies", Peername: "peer", MetadataFilename: "meta.json", Metadata: bytes.NewReader([]byte(`{"title":"movies!"}`))}, ""},
-		{&SaveParams{Name: "unknown_dataset", Peername: "peer"}, "error getting previous dataset: error loading dataset: error getting file bytes: datastore: key not found"},
+		{&SaveParams{Name: "unknown_dataset", Peername: "peer"}, "error getting previous dataset: repo: not found"},
 		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
 	}
 
@@ -265,7 +268,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 }
 
 func TestDatasetRequestsRename(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -300,7 +304,8 @@ func TestDatasetRequestsRename(t *testing.T) {
 }
 
 func TestDatasetRequestsRemove(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -334,8 +339,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 }
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
-
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -496,7 +501,8 @@ Pirates of the Caribbean: At World's End ,foo
 }
 
 func TestDataRequestsDiff(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

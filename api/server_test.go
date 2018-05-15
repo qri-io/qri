@@ -21,7 +21,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry/regclient"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -44,10 +43,8 @@ func TestServerRoutes(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// use a test registry server
-	registryServer := regmock.NewMockServer()
-	// and test registry client
-	rc := regclient.NewClient(&regclient.Config{Location: registryServer.URL})
+	// use a test registry server & client
+	rc, registryServer := regmock.NewMockServer()
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp

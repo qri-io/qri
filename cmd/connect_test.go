@@ -11,7 +11,7 @@ import (
 
 func TestConnect(t *testing.T) {
 
-	registryServer := regmock.NewMockServer()
+	_, registryServer := regmock.NewMockServer()
 
 	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())
