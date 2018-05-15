@@ -660,18 +660,22 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
 	}
 
-	if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-		// path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
-		if err = pinner.Unpin(datastore.NewKey(p.Path), true); err != nil {
-			log.Debug(err.Error())
-			return
-		}
-	}
-
-	if err = r.repo.DeleteRef(*p); err != nil {
-		log.Debug(err.Error())
+	if err = r.repo.DeleteDataset(ref); err != nil {
 		return
 	}
+
+	// if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
+	// 	// path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
+	// 	if err = pinner.Unpin(datastore.NewKey(p.Path), true); err != nil {
+	// 		log.Debug(err.Error())
+	// 		return
+	// 	}
+	// }
+
+	// if err = r.repo.DeleteRef(*p); err != nil {
+	// 	log.Debug(err.Error())
+	// 	return
+	// }
 
 	*ok = true
 	return nil

@@ -20,7 +20,7 @@ type Dataset struct {
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
 func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (ref repo.DatasetRef, err error) {
-	log.Debug("CreateDataset: %s", name)
+	log.Debugf("CreateDataset: %s", name)
 	var (
 		path datastore.Key
 		pro  *profile.Profile
@@ -61,12 +61,15 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 	}
 
 	if rc := act.Registry(); rc != nil {
-		go func() {
-			if err := rc.PutDataset(pro.Peername, name, ds.Encode(), pro.PrivKey.GetPublic()); err != nil {
-				log.Errorf("registering dataset: %s", err.Error())
-				return
-			}
-		}()
+		log.Debugf("posting dataset to registry: %s/%s", pro.Peername, name)
+		dse := ds.Encode()
+		// TODO - this should be set be dsfs.CreateDataset:
+		dse.Path = path.String()
+
+		if e := rc.PutDataset(pro.Peername, name, dse, pro.PrivKey.GetPublic()); e != nil {
+			// ignore registry errors
+			log.Errorf("registering dataset: %s", e.Error())
+		}
 	}
 
 	if err = act.LogEvent(repo.ETDsCreated, ref); err != nil {
@@ -176,17 +179,19 @@ func (act Dataset) DeleteDataset(ref repo.DatasetRef) error {
 	if err = act.DeleteRef(ref); err != nil {
 		return err
 	}
-	if err = act.UnpinDataset(ref); err != nil && err != repo.ErrNotPinner {
-		return err
-	}
 
 	if rc := act.Registry(); rc != nil {
-		go func() {
-			if err := rc.DeleteDataset(ref.Peername, ref.Name, ds.Encode(), pro.PrivKey.GetPublic()); err != nil {
-				log.Errorf("deleting dataset: %s", err.Error())
-				return
-			}
-		}()
+		dse := ds.Encode()
+		// TODO - this should be set by LoadDataset
+		dse.Path = ref.Path
+		if e := rc.DeleteDataset(ref.Peername, ref.Name, dse, pro.PrivKey.GetPublic()); e != nil {
+			// ignore registry errors
+			log.Errorf("deleting dataset: %s", e.Error())
+		}
+	}
+
+	if err = act.UnpinDataset(ref); err != nil && err != repo.ErrNotPinner {
+		return err
 	}
 
 	return act.LogEvent(repo.ETDsDeleted, ref)

@@ -62,6 +62,8 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, b
 		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: NewProfileStore(bp),
+
+		registry: rc,
 	}
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
