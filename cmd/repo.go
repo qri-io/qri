@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/registry/regclient"
 )
 
 var (
@@ -52,7 +53,14 @@ func getRepo(online bool) repo.Repo {
 	pro, err := profile.NewProfile(core.Config.Profile)
 	ExitIfErr(err)
 
-	r, err := fsrepo.NewRepo(fs, pro, QriRepoPath)
+	var rc *regclient.Client
+	if core.Config.Registry != nil && core.Config.Registry.Location != "" {
+		rc = regclient.NewClient(&regclient.Config{
+			Location: core.Config.Registry.Location,
+		})
+	}
+
+	r, err := fsrepo.NewRepo(fs, pro, rc, QriRepoPath)
 	ExitIfErr(err)
 
 	return r
@@ -103,26 +111,26 @@ func datasetRequests(online bool) (*core.DatasetRequests, error) {
 }
 
 func renderRequests(online bool) (*core.RenderRequests, error) {
-  if cli := rpcConn(); cli != nil {
-    return core.NewRenderRequests(nil, cli), nil
-  }
+	if cli := rpcConn(); cli != nil {
+		return core.NewRenderRequests(nil, cli), nil
+	}
 
-  if !online {
-    // TODO - make this not terrible
-    r, cli, err := repoOrClient(online)
-    if err != nil {
-      return nil, err
-    }
-    return core.NewRenderRequests(r, cli), nil
-  }
+	if !online {
+		// TODO - make this not terrible
+		r, cli, err := repoOrClient(online)
+		if err != nil {
+			return nil, err
+		}
+		return core.NewRenderRequests(r, cli), nil
+	}
 
-  n, err := qriNode(online)
-  if err != nil {
-    return nil, err
-  }
+	n, err := qriNode(online)
+	if err != nil {
+		return nil, err
+	}
 
-  req := core.NewRenderRequests(n.Repo, nil)
-  return req, nil
+	req := core.NewRenderRequests(n.Repo, nil)
+	return req, nil
 }
 
 func profileRequests(online bool) (*core.ProfileRequests, error) {
@@ -191,7 +199,7 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		pro, err := profile.NewProfile(core.Config.Profile)
 		ExitIfErr(err)
 
-		r, err := fsrepo.NewRepo(fs, pro, QriRepoPath)
+		r, err := fsrepo.NewRepo(fs, pro, nil, QriRepoPath)
 		ExitIfErr(err)
 
 		return r, nil, err
@@ -223,7 +231,7 @@ func qriNode(online bool) (node *p2p.QriNode, err error) {
 	pro, err := profile.NewProfile(core.Config.Profile)
 	ExitIfErr(err)
 
-	r, err = fsrepo.NewRepo(fs, pro, QriRepoPath)
+	r, err = fsrepo.NewRepo(fs, pro, nil, QriRepoPath)
 	if err != nil {
 		return
 	}

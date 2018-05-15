@@ -2,6 +2,7 @@ package fsrepo
 
 import (
 	"fmt"
+	"github.com/qri-io/registry/regclient"
 	"os"
 
 	golog "github.com/ipfs/go-log"
@@ -35,10 +36,12 @@ type Repo struct {
 
 	profiles ProfileStore
 	index    search.Index
+
+	registry *regclient.Client
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, pro *profile.Profile, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -155,6 +158,11 @@ func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 // Profiles returns this repo's Peers implementation
 func (r *Repo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Registry returns a client for interacting with a federated registry if one exists, otherwise nil
+func (r *Repo) Registry() *regclient.Client {
+	return r.registry
 }
 
 // Destroy destroys this repository

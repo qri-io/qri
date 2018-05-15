@@ -26,7 +26,7 @@ func TestRepo(t *testing.T) {
 			t.Error(err.Error())
 		}
 
-		r, err := NewRepo(cafs.NewMapstore(), pro, path)
+		r, err := NewRepo(cafs.NewMapstore(), pro, nil, path)
 		if err != nil {
 			t.Errorf("error creating repo: %s", err.Error())
 		}

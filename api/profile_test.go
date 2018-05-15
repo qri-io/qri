@@ -31,10 +31,8 @@ func TestProfileHandler(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// use a test registry server
-	registryServer := regmock.NewMockServer()
-
-	// in order to have consistent responses
+	// use a test registry server & client & client
+	rc, registryServer := regmock.NewMockServer()
 	// we need to artificially specify the timestamp
 	// we use the dsfs.Timestamp func variable to override
 	// the actual time
@@ -42,7 +40,7 @@ func TestProfileHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -106,8 +104,8 @@ func TestProfilePhotoHandler(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// use a test registry server
-	registryServer := regmock.NewMockServer()
+	// use a test registry server & client
+	rc, registryServer := regmock.NewMockServer()
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -117,7 +115,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -197,8 +195,8 @@ func TestProfilePosterHandler(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// use a test registry server
-	registryServer := regmock.NewMockServer()
+	// use a test registry server & client
+	rc, registryServer := regmock.NewMockServer()
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -208,7 +206,7 @@ func TestProfilePosterHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

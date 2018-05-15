@@ -5,6 +5,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/registry/regclient"
 )
 
 // MemRepo is an in-memory implementation of the Repo interface
@@ -17,10 +18,11 @@ type MemRepo struct {
 	*MemEventLog
 	profile  *profile.Profile
 	profiles profile.Store
+	registry *regclient.Client
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store) (Repo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *regclient.Client) (Repo, error) {
 	return &MemRepo{
 		store:       store,
 		MemRefstore: &MemRefstore{},
@@ -71,4 +73,9 @@ func (r *MemRepo) SetProfile(p *profile.Profile) error {
 // Profiles gives this repo's Peer interface implementation
 func (r *MemRepo) Profiles() profile.Store {
 	return r.profiles
+}
+
+// Registry returns a client for interacting with a federated registry if one exists, otherwise nil
+func (r *MemRepo) Registry() *regclient.Client {
+	return r.registry
 }

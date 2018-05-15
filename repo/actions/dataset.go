@@ -60,6 +60,15 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		return
 	}
 
+	if rc := act.Registry(); rc != nil {
+		go func() {
+			if err := rc.PutDataset(pro.Peername, name, ds.Encode(), pro.PrivKey.GetPublic()); err != nil {
+				log.Errorf("registering dataset: %s", err.Error())
+				return
+			}
+		}()
+	}
+
 	if err = act.LogEvent(repo.ETDsCreated, ref); err != nil {
 		return
 	}
@@ -154,11 +163,30 @@ func (act Dataset) UnpinDataset(ref repo.DatasetRef) error {
 
 // DeleteDataset removes a dataset from the store
 func (act Dataset) DeleteDataset(ref repo.DatasetRef) error {
-	if err := act.DeleteRef(ref); err != nil {
+	pro, err := act.Profile()
+	if err != nil {
 		return err
 	}
-	if err := act.UnpinDataset(ref); err != nil && err != repo.ErrNotPinner {
+
+	ds, err := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+	if err != nil {
 		return err
+	}
+
+	if err = act.DeleteRef(ref); err != nil {
+		return err
+	}
+	if err = act.UnpinDataset(ref); err != nil && err != repo.ErrNotPinner {
+		return err
+	}
+
+	if rc := act.Registry(); rc != nil {
+		go func() {
+			if err := rc.DeleteDataset(ref.Peername, ref.Name, ds.Encode(), pro.PrivKey.GetPublic()); err != nil {
+				log.Errorf("deleting dataset: %s", err.Error())
+				return
+			}
+		}()
 	}
 
 	return act.LogEvent(repo.ETDsDeleted, ref)

@@ -8,7 +8,7 @@ import (
 )
 
 func TestHistoryRequestsLog(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

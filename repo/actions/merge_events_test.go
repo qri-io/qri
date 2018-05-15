@@ -23,11 +23,11 @@ func createReposAndLogs() (repo.Repo, repo.Repo, *repo.MemEventLog, *repo.MemEve
 	aRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileAID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), profile.MemStore{})
+	}, cafs.NewMapstore(), profile.MemStore{}, nil)
 	bRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileBID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), profile.MemStore{})
+	}, cafs.NewMapstore(), profile.MemStore{}, nil)
 	aLog := aRepo.(*repo.MemRepo).MemEventLog
 	bLog := bRepo.(*repo.MemRepo).MemEventLog
 	return aRepo, bRepo, aLog, bLog

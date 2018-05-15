@@ -25,7 +25,7 @@ func TestReceivers(t *testing.T) {
 }
 
 func testQriNode(cfgs ...func(c *config.P2P)) (*p2p.QriNode, error) {
-	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), profile.NewMemStore())
+	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		return nil, err
 	}

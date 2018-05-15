@@ -4,6 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/registry/regclient"
 	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
@@ -56,11 +57,11 @@ func ProfileConfig() *config.ProfilePod {
 }
 
 // NewTestRepo generates a repository usable for testing purposes
-func NewTestRepo() (mr repo.Repo, err error) {
+func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	ms := cafs.NewMapstore()
-	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.NewMemStore())
+	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.NewMemStore(), rc)
 	if err != nil {
 		return
 	}
@@ -96,7 +97,7 @@ func NewTestRepoFromProfileID(id profile.ID, dataIndex int) (repo.Repo, error) {
 	r, err := repo.NewMemRepo(&profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", globalRepoID),
-	}, cafs.NewMapstore(), profile.NewMemStore())
+	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		return r, err
 	}
@@ -138,7 +139,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, profile.NewMemStore())
+	mr, err := repo.NewMemRepo(pro, ms, profile.NewMemStore(), nil)
 	if err != nil {
 		return mr, pk, err
 	}

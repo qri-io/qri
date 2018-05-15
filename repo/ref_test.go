@@ -330,7 +330,7 @@ func TestCompareDatasetRefs(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), profile.NewMemStore())
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -370,7 +370,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 }
 
 func TestCanonicalizeProfile(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, cafs.NewMapstore(), profile.NewMemStore())
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

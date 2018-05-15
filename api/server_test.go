@@ -43,8 +43,8 @@ func TestServerRoutes(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// use a test registry server
-	registryServer := regmock.NewMockServer()
+	// use a test registry server & client
+	rc, registryServer := regmock.NewMockServer()
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -56,7 +56,7 @@ func TestServerRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -253,7 +253,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

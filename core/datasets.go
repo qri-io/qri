@@ -10,6 +10,7 @@ import (
 	"net/rpc"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -193,12 +194,71 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	}
 
 	store := r.repo.Store()
+
+	// try to load dataset locally
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
 	if err != nil {
+		var (
+			refs         = make(chan repo.DatasetRef)
+			errs         = make(chan error)
+			tries, fails int
+		)
+
+		// if we have a p2p node, check p2p network for deets
 		if r.Node != nil {
-			return r.Node.RequestDataset(p)
+			tries++
+			go func() {
+				ref := repo.DatasetRef{}
+				// TODO - should add a context to this call with a timeout
+				if err := r.Node.RequestDataset(&ref); err == nil {
+					refs <- ref
+				} else {
+					errs <- err
+				}
+			}()
 		}
-		return err
+
+		// if we have a registry check it for details
+		if rc := r.repo.Registry(); rc != nil {
+			go func() {
+				tries++
+				if dsp, err := rc.GetDataset(p.Peername, p.Name, p.ProfileID.String(), p.Path); err == nil {
+					ref := repo.DatasetRef{
+						Path:     dsp.Path,
+						Peername: dsp.Peername,
+						Name:     dsp.Name,
+						Dataset:  dsp,
+					}
+
+					if pid, err := profile.IDB58Decode(dsp.ProfileID); err == nil {
+						ref.ProfileID = pid
+					}
+
+					refs <- ref
+				} else {
+					errs <- err
+				}
+			}()
+		}
+
+		for {
+			select {
+			case ref := <-refs:
+				*res = ref
+				return nil
+			case err := <-errs:
+				fails++
+				log.Debugf("error getting dataset: %s", err.Error())
+				if fails == tries {
+					return repo.ErrNotFound
+				}
+			case <-time.After(time.Second * 5):
+				// TODO- replace this with context.WithTimeout funcs on all network calls
+				return repo.ErrNotFound
+			}
+		}
+
+		return nil
 	}
 
 	*res = repo.DatasetRef{

@@ -23,7 +23,7 @@ func TestProfileRequestsGet(t *testing.T) {
 		// {false, nil, ""},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -58,7 +58,7 @@ func TestProfileRequestsSave(t *testing.T) {
 		// TODO - moar tests
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -105,7 +105,7 @@ func TestSaveProfile(t *testing.T) {
 	pro.Twitter = "test_twitter"
 
 	// Save the CodingProfile.
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -193,7 +193,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		{"testdata/rico_400x400.jpg", datastore.NewKey("/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"), ""},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -244,7 +244,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		{"testdata/rico_poster_1500x500.jpg", datastore.NewKey("/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL"), ""},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

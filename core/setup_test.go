@@ -10,7 +10,7 @@ import (
 )
 
 func TestSetupTeardown(t *testing.T) {
-	registryServer := regmock.NewMockServer()
+	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "test_core_setup_teardown")
 	cfg1 := config.DefaultConfig()

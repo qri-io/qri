@@ -98,7 +98,7 @@ func TestCommandsIntegration(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	registryServer := regmock.NewMockServer()
+	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
 	t.Logf("test filepath: %s", path)
