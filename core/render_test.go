@@ -18,7 +18,7 @@ func TestNewRenderRequests(t *testing.T) {
 		}
 	}()
 
-	tr, err := testrepo.NewTestRepo()
+	tr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -63,7 +63,7 @@ func TestRenderRequestsRender(t *testing.T) {
 		{&RenderParams{Ref: "me/sitemap", Limit: 4, Offset: 4}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
 	}
 
-	tr, err := testrepo.NewTestRepo()
+	tr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

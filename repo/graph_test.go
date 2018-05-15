@@ -142,7 +142,7 @@ func makeTestRepo() (Repo, error) {
 	store := cafs.NewMapstore()
 	p := &profile.Profile{}
 
-	r, err := NewMemRepo(p, store, nil)
+	r, err := NewMemRepo(p, store, nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}

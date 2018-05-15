@@ -23,7 +23,7 @@ func TestPeerRequestsList(t *testing.T) {
 		// TODO - need a test that confirms that this node's identity is never present in peers list
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

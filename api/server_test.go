@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/registry/regclient"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -45,6 +46,8 @@ func TestServerRoutes(t *testing.T) {
 
 	// use a test registry server
 	registryServer := regmock.NewMockServer()
+	// and test registry client
+	rc := regclient.NewClient(&regclient.Config{Location: registryServer.URL})
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -56,7 +59,7 @@ func TestServerRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -253,7 +256,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

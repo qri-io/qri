@@ -16,7 +16,7 @@ func TestSearch(t *testing.T) {
 		{&repo.SearchParams{}, nil, "this repo doesn't support search"},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -48,7 +48,7 @@ func TestReindex(t *testing.T) {
 		{&ReindexSearchParams{}, false, "search reindexing is currently only supported on file-system repos"},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

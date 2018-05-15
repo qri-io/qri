@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/registry/regclient"
 )
 
 var (
@@ -73,6 +74,9 @@ type Repo interface {
 	// TODO - should rename this to "profiles" to separate from the networking
 	// concept of a peer
 	Profiles() profile.Store
+	// Registry returns a client for interacting with a federated registry
+	// if one exists, otherwise nil
+	Registry() *regclient.Client
 }
 
 // SearchParams encapsulates parameters provided to Searchable.Search

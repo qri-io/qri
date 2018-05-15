@@ -46,7 +46,7 @@ func init() {
 
 func TestDataset(t *testing.T) {
 	rmf := func(t *testing.T) repo.Repo {
-		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore())
+		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			panic(err)
 		}

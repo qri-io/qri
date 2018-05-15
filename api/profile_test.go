@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/registry/regclient"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -33,6 +34,8 @@ func TestProfileHandler(t *testing.T) {
 
 	// use a test registry server
 	registryServer := regmock.NewMockServer()
+	// and test registry client
+	rc := regclient.NewClient(&regclient.Config{Location: registryServer.URL})
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -42,7 +45,7 @@ func TestProfileHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -108,6 +111,8 @@ func TestProfilePhotoHandler(t *testing.T) {
 
 	// use a test registry server
 	registryServer := regmock.NewMockServer()
+	// and test registry client
+	rc := regclient.NewClient(&regclient.Config{Location: registryServer.URL})
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -117,7 +122,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -199,6 +204,8 @@ func TestProfilePosterHandler(t *testing.T) {
 
 	// use a test registry server
 	registryServer := regmock.NewMockServer()
+	// and test registry client
+	rc := regclient.NewClient(&regclient.Config{Location: registryServer.URL})
 
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
@@ -208,7 +215,7 @@ func TestProfilePosterHandler(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r, err := test.NewTestRepo()
+	r, err := test.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return

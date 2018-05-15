@@ -50,7 +50,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Data: jobsByAutomationFile}, nil, ""},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -73,7 +73,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		movies, counter, cities, craigslist, sitemap repo.DatasetRef
 	)
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -189,7 +189,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -233,7 +233,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 }
 
 func TestDatasetRequestsSave(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -265,7 +265,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 }
 
 func TestDatasetRequestsRename(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -300,7 +300,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 }
 
 func TestDatasetRequestsRemove(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -335,7 +335,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 func TestDatasetRequestsStructuredData(t *testing.T) {
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -413,7 +413,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "this store cannot fetch from remote sources"},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -472,7 +472,7 @@ Pirates of the Caribbean: At World's End ,foo
 		{ValidateDatasetParams{Schema: schemaf2, DataFilename: "data.csv", Data: dataf2}, 1, ""},
 	}
 
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -496,7 +496,7 @@ Pirates of the Caribbean: At World's End ,foo
 }
 
 func TestDataRequestsDiff(t *testing.T) {
-	mr, err := testrepo.NewTestRepo()
+	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
