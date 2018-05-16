@@ -178,7 +178,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 			profile, _ := node.Repo.Profile()
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
-			expect := datasets[index-1]
+			expect := datasets[index]
 
 			if res[0].Name != expect {
 				t.Errorf("dataset %s mismatch: %s", res[0].Name, expect)
@@ -232,6 +232,56 @@ func TestDatasetRequestsGet(t *testing.T) {
 		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
 		// }
 	}
+}
+
+func TestDatasetRequestsGetP2p(t *testing.T) {
+	// Matches what is used to generated test peers.
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+
+	ctx := context.Background()
+	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, p2p.NewTestQriNode)
+	if err != nil {
+		t.Errorf("error creating network: %s", err.Error())
+		return
+	}
+
+	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
+		t.Errorf("error connecting peers: %s", err.Error())
+	}
+
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*p2p.QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*p2p.QriNode)
+	}
+
+	var wg sync.WaitGroup
+	for _, p1 := range peers {
+		wg.Add(1)
+		go func(node *p2p.QriNode) {
+			defer wg.Done()
+			// Get number from end of peername, use that to create dataset name.
+			profile, _ := node.Repo.Profile()
+			num := profile.Peername[len(profile.Peername)-1:]
+			index, _ := strconv.ParseInt(num, 10, 32)
+			name := datasets[index]
+			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
+
+			dsr := NewDatasetRequestsWithNode(node.Repo, nil, node)
+			got := &repo.DatasetRef{}
+			err = dsr.Get(&ref, got)
+			if err != nil {
+				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
+			}
+
+			if got.Dataset == nil {
+				t.Errorf("failed to get dataset for %s", ref.Name)
+			}
+			// TODO: Test contents of Dataset.
+		}(p1)
+	}
+
+	wg.Wait()
 }
 
 func TestDatasetRequestsSave(t *testing.T) {

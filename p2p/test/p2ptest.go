@@ -43,7 +43,7 @@ func NewTestNetwork(ctx context.Context, t *testing.T, num int, maker NodeMakerF
 			return nil, fmt.Errorf("error creating peer ID: %s", err.Error())
 		}
 
-		r, err := test.NewTestRepoFromProfileID(profile.ID(rid), i)
+		r, err := test.NewTestRepoFromProfileID(profile.ID(rid), i, i)
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}

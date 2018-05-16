@@ -16,7 +16,7 @@ func TestNewNode(t *testing.T) {
 		return
 	}
 
-	r, err := test.NewTestRepoFromProfileID(profile.ID(pid), -1)
+	r, err := test.NewTestRepoFromProfileID(profile.ID(pid), 0, -1)
 	if err != nil {
 		t.Errorf("error creating test repo: %s", err.Error())
 		return

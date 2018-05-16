@@ -87,16 +87,13 @@ func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 	return
 }
 
-var globalRepoID = 0
-
 // NewTestRepoFromProfileID constructs a repo from a profileID, usable for tests
-func NewTestRepoFromProfileID(id profile.ID, dataIndex int) (repo.Repo, error) {
+func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.Repo, error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	globalRepoID++
 	r, err := repo.NewMemRepo(&profile.Profile{
 		ID:       id,
-		Peername: fmt.Sprintf("test-repo-%d", globalRepoID),
+		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		return r, err
