@@ -71,11 +71,6 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, b
 		r.Refstore.index = index
 	}
 
-	// TODO - this is racey.
-	// go func() {
-	// 	r.graph, _ = repo.Graph(r)
-	// }()
-
 	// add our own profile to the store if it doesn't already exist.
 	if _, e := r.Profiles().GetProfile(pro.ID); e != nil {
 		if err := r.Profiles().PutProfile(pro); err != nil {

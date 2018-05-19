@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"net/rpc"
 	"path/filepath"
-	"strings"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -79,6 +78,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
+	log.Debugf("list datasets: %s %d/%d", p.Peername, p.Limit, p.Offset)
 
 	ds := &repo.DatasetRef{
 		Peername:  p.Peername,
@@ -145,31 +145,24 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	if p.Offset < 0 {
 		p.Offset = 0
 	}
+
 	replies, err := r.repo.References(p.Limit, p.Offset)
 	if err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error getting namespace: %s", err.Error())
+		return fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
+	log.Debugf("found %d references", len(replies))
 
 	for i, ref := range replies {
-		if i >= p.Limit {
-			break
-		}
-
 		if err := repo.CanonicalizeProfile(r.repo, &replies[i]); err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
+		log.Debugf("loading %s", ref.Path)
 		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
-			// try one extra time...
-			// TODO - remove this horrible hack
-			ds, err = dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
-			if err != nil {
-				log.Debug(err.Error())
-				return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
-			}
+			return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 		}
 		replies[i].Dataset = ds.Encode()
 		if p.RPC {
@@ -296,8 +289,8 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	}
 
 	var (
-		rdr      io.Reader
-		store    = r.repo.Store()
+		rdr io.Reader
+		// store    = r.repo.Store()
 		filename = p.DataFilename
 	)
 
@@ -349,18 +342,20 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 		return fmt.Errorf("invalid structure: %s", err.Error())
 	}
 
-	datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
-	if err != nil {
-		return fmt.Errorf("error putting data file in store: %s", err.Error())
-	}
-
-	dataexists, err := repo.HasPath(r.repo, datakey)
-	if err != nil && !strings.Contains(err.Error(), repo.ErrRepoEmpty.Error()) {
-		return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
-	}
-	if dataexists {
-		return fmt.Errorf("this data already exists")
-	}
+	// TODO - this code relies on repo graph calculations, which I've temporarily disabled b/c bugs.
+	// the idea here was to check the datastore for existence before proceeding. This whole process
+	// needs a rethink if we're going to convert to CBOR at ingest.
+	// datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
+	// if err != nil {
+	// 	return fmt.Errorf("error putting data file in store: %s", err.Error())
+	// }
+	// dataexists, err := repo.HasPath(r.repo, datakey)
+	// if err != nil && !strings.Contains(err.Error(), repo.ErrRepoEmpty.Error()) {
+	// 	return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
+	// }
+	// if dataexists {
+	// 	return fmt.Errorf("this data already exists")
+	// }
 
 	name := p.Name
 	if name == "" && filename != "" {
