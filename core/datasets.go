@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/rpc"
+	"os"
 	"path/filepath"
 	"time"
 
@@ -266,83 +267,116 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 
 // InitParams encapsulates arguments to Init
 type InitParams struct {
-	Peername          string    // name of peer creating this dataset. required.
-	Name              string    // variable name for referring to this dataset. required.
-	URL               string    // url to download data from. either Url or Data is required
-	DataFilename      string    // filename of data file. extension is used for filetype detection
-	Data              io.Reader // reader of structured data. either Url or Data is required
-	MetadataFilename  string    // filename of metadata file. optional.
-	Metadata          io.Reader // reader of json-formatted metadata
-	StructureFilename string    // filename of metadata file. optional.
-	Structure         io.Reader // reader of json-formatted metadata
-	Private           bool      // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
+	Peername string              // name of peer creating this dataset. required.
+	Name     string              // variable name for referring to this dataset. required.
+	Dataset  *dataset.DatasetPod // dataset to create
+	DataURL  string              // url to download data from. either Url or Data is required
+	DataPath string              // absolute path to data on local filesystem
+	Private  bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
 }
 
 // Init creates a new qri dataset from a source of data
-func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
-	if p.Private {
-		return fmt.Errorf("option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates")
-	}
-
+func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
+	if p.Private {
+		return fmt.Errorf("option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates")
+	}
+
 	var (
-		rdr io.Reader
-		// store    = r.repo.Store()
-		filename = p.DataFilename
+		rdr      io.Reader
+		filename string
+		ds       = &dataset.Dataset{}
 	)
 
-	if p.URL != "" {
-		res, err := http.Get(p.URL)
-		if err != nil {
-			return fmt.Errorf("error fetching url: %s", err.Error())
+	if p.Dataset != nil {
+		if err = ds.Decode(p.Dataset); err != nil {
+			return fmt.Errorf("decoding dataset: %s", err.Error())
 		}
-		filename = filepath.Base(p.URL)
+	}
+
+	if ds.Commit == nil {
+		ds.Commit = &dataset.Commit{
+			Title: "created dataset",
+		}
+	} else if ds.Commit.Title == "" {
+		ds.Commit.Title = "created dataset"
+	}
+
+	if p.DataURL != "" {
+		var res *http.Response
+		res, err = http.Get(p.DataURL)
+		if err != nil {
+			return fmt.Errorf("fetching data url: %s", err.Error())
+		}
+		filename = filepath.Base(p.DataURL)
 		defer res.Body.Close()
 		rdr = res.Body
-	} else if p.Data != nil {
-		rdr = p.Data
+
+		if ds.Meta == nil {
+			ds.Meta = &dataset.Meta{}
+		}
+		if ds.Meta.DownloadPath == "" {
+			ds.Meta.DownloadPath = p.DataURL
+		}
+		// if we're adding from a dataset url, set a default accrual periodicity of once a week
+		// this'll set us up to re-check urls over time
+		// TODO - make this configurable via a param?
+		if ds.Meta.AccrualPeriodicity == "" {
+			ds.Meta.AccrualPeriodicity = "R/P1W"
+		}
+
+	} else if p.DataPath != "" {
+		var file *os.File
+		file, err = os.Open(p.DataPath)
+		if err != nil {
+			return fmt.Errorf("opening file: %s", err.Error())
+		}
+		filename = filepath.Base(p.DataPath)
+		rdr = file
 	} else {
 		return fmt.Errorf("either a file or a url is required to create a dataset")
 	}
 
-	if p.Name != "" {
-		if err := validate.ValidName(p.Name); err != nil {
-			return fmt.Errorf("invalid name: %s", err.Error())
-		}
+	// validate / generate dataset name
+	if p.Name == "" {
+		p.Name = varName.CreateVarNameFromString(filename)
 	}
-
-	// TODO - need a better strategy for huge files
-	data, err := ioutil.ReadAll(rdr)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error reading file: %s", err.Error())
+	if err := validate.ValidName(p.Name); err != nil {
+		return fmt.Errorf("invalid name: %s", err.Error())
 	}
 
 	// read structure from InitParams, or detect from data
-	st := &dataset.Structure{}
-	if p.Structure != nil {
-		if err := json.NewDecoder(p.Structure).Decode(st); err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error parsing structure json: %s", err.Error())
-		}
-	} else {
-		st, err = detect.FromReader(filename, bytes.NewReader(data))
+	if ds.Structure == nil {
+		// use a TeeReader that writes to a buffer to preserve data
+		buf := &bytes.Buffer{}
+		tr := io.TeeReader(rdr, buf)
+		var df dataset.DataFormat
+
+		df, err = detect.ExtensionDataFormat(filename)
 		if err != nil {
 			log.Debug(err.Error())
-			return fmt.Errorf("error determining dataset schema: %s", err.Error())
+			return fmt.Errorf("invalid data format: %s", err.Error())
 		}
+
+		ds.Structure, _, err = detect.FromReader(df, tr)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("determining dataset schema: %s", err.Error())
+		}
+		// glue whatever we just read back onto the reader
+		rdr = io.MultiReader(buf, rdr)
 	}
 
-	// Ensure that dataset contains valid field names
-	if err = validate.Structure(st); err != nil {
+	// Ensure that dataset structure is valid
+	if err = validate.Dataset(ds); err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("invalid structure: %s", err.Error())
+		return fmt.Errorf("invalid dataset: %s", err.Error())
 	}
 
-	// TODO - this code relies on repo graph calculations, which I've temporarily disabled b/c bugs.
+	// TODO - this relies on repo graph calculations, which are temporarily disabled b/c bugs.
 	// the idea here was to check the datastore for existence before proceeding. This whole process
 	// needs a rethink if we're going to convert to CBOR at ingest.
 	// datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
@@ -357,31 +391,8 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) error {
 	// 	return fmt.Errorf("this data already exists")
 	// }
 
-	name := p.Name
-	if name == "" && filename != "" {
-		name = varName.CreateVarNameFromString(filename)
-	}
-
-	ds := &dataset.Dataset{
-		Meta:      &dataset.Meta{},
-		Commit:    &dataset.Commit{Title: "created dataset"},
-		Structure: st,
-	}
-	if p.Metadata != nil {
-		if err := json.NewDecoder(p.Metadata).Decode(ds.Meta); err != nil {
-			return fmt.Errorf("error parsing metadata json: %s", err.Error())
-		}
-	}
-	if p.URL != "" {
-		ds.Meta.DownloadPath = p.URL
-		// if we're adding from a dataset url, set a default accrual periodicity of once a week
-		// this'll set us up to re-check urls over time
-		// TODO - make this configurable via a param?
-		ds.Meta.AccrualPeriodicity = "R/P1W"
-	}
-
-	dataf := cafs.NewMemfileBytes("data."+st.Format.String(), data)
-	*res, err = r.repo.CreateDataset(name, ds, dataf, true)
+	dataf := cafs.NewMemfileReader("data."+ds.Structure.Format.String(), rdr)
+	*res, err = r.repo.CreateDataset(p.Name, ds, dataf, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
@@ -494,7 +505,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			return fmt.Errorf("error parsing structure json: %s", err.Error())
 		}
 	} else {
-		st, err = detect.FromReader(filename, bytes.NewReader(data))
+		var df dataset.DataFormat
+
+		df, err = detect.ExtensionDataFormat(filename)
+		if err != nil {
+			return fmt.Errorf("determing data format: %s", err.Error())
+		}
+
+		st, _, err = detect.FromReader(df, bytes.NewReader(data))
 		if err != nil {
 			return fmt.Errorf("error determining dataset schema: %s", err.Error())
 		}
@@ -847,7 +865,12 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 
 		// if no schema, detect one
 		if st.Schema == nil {
-			str, e := detect.FromReader(p.DataFilename, bytes.NewBuffer(data))
+			var df dataset.DataFormat
+			df, err = detect.ExtensionDataFormat(p.DataFilename)
+			if err != nil {
+				return fmt.Errorf("detecting data format: %s", err.Error())
+			}
+			str, _, e := detect.FromReader(df, bytes.NewBuffer(data))
 			if e != nil {
 				return e
 			}

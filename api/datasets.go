@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"github.com/qri-io/qri/repo/profile"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -345,16 +346,16 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 
-		if p.URL == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'url' field"))
+		if p.DataURL == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'dataUrl' field"))
 			return
 		}
 
 	default:
 		p = &core.InitParams{
 			Peername: r.FormValue("peername"),
-			URL:      r.FormValue("url"),
 			Name:     r.FormValue("name"),
+			DataURL:  r.FormValue("url"),
 			Private:  r.FormValue("private") == "true",
 		}
 
@@ -364,29 +365,36 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if infile != nil {
-			p.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
-			p.DataFilename = fileHeader.Filename
+			path := filepath.Join(os.TempDir(), fileHeader.Filename)
+			f, err := os.Create(path)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("writing data file: %s", err.Error()))
+			}
+			defer os.Remove(path)
+			io.Copy(f, infile)
+			f.Close()
+			p.DataPath = path
 		}
 
-		metadatafile, metadataHeader, err := r.FormFile("metadata")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
-			return
-		}
-		if metadatafile != nil {
-			p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
-			p.MetadataFilename = metadataHeader.Filename
-		}
+		// metadatafile, metadataHeader, err := r.FormFile("metadata")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
+		// 	return
+		// }
+		// if metadatafile != nil {
+		// 	p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+		// 	p.MetadataFilename = metadataHeader.Filename
+		// }
 
-		structurefile, structureHeader, err := r.FormFile("structure")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
-			return
-		}
-		if structurefile != nil {
-			p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
-			p.StructureFilename = structureHeader.Filename
-		}
+		// structurefile, structureHeader, err := r.FormFile("structure")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
+		// 	return
+		// }
+		// if structurefile != nil {
+		// 	p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
+		// 	p.StructureFilename = structureHeader.Filename
+		// }
 	}
 
 	res := &repo.DatasetRef{}

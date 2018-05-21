@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"sync"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
@@ -23,10 +26,28 @@ import (
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
-	badDataFile := testrepo.BadDataFile
-	jobsByAutomationFile := testrepo.NewJobsByAutomationFile()
+	// badDataFile := testrepo.BadDataFile
+	// jobsByAutomationFile := testrepo.NewJobsByAutomationFile()
 	// badDataFormatFile := testrepo.BadDataFormatFile
 	// badStructureFile := testrepo.BadStructureFile
+	jobsDataPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	// jobsDataPath, err := testrepo.DataFilepath("jobs_by_automation")
+	// if err != nil {
+	// 	t.Errorf("error loading file: %s", err.Error())
+	// 	return
+	// }
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"json":"data"}`))
+	}))
+	badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`\\\{"json":"data"}`))
+	}))
 
 	cases := []struct {
 		p   *InitParams
@@ -34,21 +55,19 @@ func TestDatasetRequestsInit(t *testing.T) {
 		err string
 	}{
 		{&InitParams{}, nil, "either a file or a url is required to create a dataset"},
-		{&InitParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
-		{&InitParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
-		// TODO - reenable
-		// Ensure that DataFormat validation is being called
-		// {&InitParams{DataFilename: badDataFormatFile.FileName(),
-		// Data: badDataFormatFile}, nil, "invalid data format: error: inconsistent column length on line 2 of length 3 (rather than 4). ensure all csv columns same length"},
-		// TODO - restore
-		// Ensure that structure validation is being called
-		// {&InitParams{DataFilename: badStructureFile.FileName(),
-		// 	Data: badStructureFile}, nil, "invalid structure: schema: fields: error: cannot use the same name, 'col_b' more than once"},
-		// should reject invalid names
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
-			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		// this should work
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Data: jobsByAutomationFile}, nil, ""},
+		{&InitParams{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
+		{&InitParams{Dataset: &dataset.DatasetPod{Commit: &dataset.CommitPod{Qri: "qri:st"}}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&InitParams{DataURL: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&InitParams{Name: "bad name", DataPath: jobsDataPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&InitParams{Private: true}, nil, "option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates"},
+		{&InitParams{DataURL: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
+
+		{&InitParams{Dataset: &dataset.DatasetPod{
+			Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
+		}, DataPath: jobsDataPath}, nil, "invalid dataset: structure: format is required"},
+		{&InitParams{DataPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+		{&InitParams{DataPath: jobsDataPath}, nil, ""},
+		{&InitParams{DataURL: s.URL + "/data.json"}, nil, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
@@ -550,7 +569,7 @@ Pirates of the Caribbean: At World's End ,foo
 	}
 }
 
-func TestDataRequestsDiff(t *testing.T) {
+func TestDatasetRequestsDiff(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
@@ -558,29 +577,39 @@ func TestDataRequestsDiff(t *testing.T) {
 		return
 	}
 	req := NewDatasetRequests(mr, nil)
+
 	// File 1
-	dsFile1 := testrepo.NewJobsByAutomationFile()
+	fp1, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	if err != nil {
+		t.Errorf("getting data filepath: %s", err.Error())
+		return
+	}
+
 	dsRef1 := repo.DatasetRef{}
 	initParams := &InitParams{
-		Peername:     "peer",
-		DataFilename: dsFile1.FileName(),
-		Data:         dsFile1,
+		Peername: "peer",
+		Name:     "jobs_ranked_by_automation_prob",
+		DataPath: fp1,
 		// MetadataFilename: jobsMeta.FileName(),
 		// Metadata:         jobsMeta,
 	}
 	err = req.Init(initParams, &dsRef1)
 	if err != nil {
-		t.Errorf("couldn't load file 1: %s", err.Error())
+		t.Errorf("couldn't init file 1: %s", err.Error())
 		return
 	}
 
 	// File 2
-	// dsFile2 := testrepo.NewJobsByAutomationFile()
+	fp2, err := dstest.DataFilepath("testdata/jobs_by_automation_2")
+	if err != nil {
+		t.Errorf("getting data filepath: %s", err.Error())
+		return
+	}
 	dsRef2 := repo.DatasetRef{}
 	initParams = &InitParams{
-		Peername:     "peer",
-		DataFilename: jobsByAutomationFile2.FileName(),
-		Data:         jobsByAutomationFile2,
+		Peername: "peer",
+		Name:     "jobs_ranked_by_automation_prob",
+		DataPath: fp2,
 	}
 	err = req.Init(initParams, &dsRef2)
 	if err != nil {
@@ -627,36 +656,3 @@ func TestDataRequestsDiff(t *testing.T) {
 		}
 	}
 }
-
-var jobsByAutomationFile2 = cafs.NewMemfileBytes("jobs_ranked_by_automation_prob.csv", []byte(`rank,probability_of_automation,industry_code,job_name
-702,"0.99","41-9041","Telemarketers"
-701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
-700,"0.99","51-6051","Sewers, Hand"
-699,"0.99","15-2091","Mathematical Technicians"
-698,"0.88","13-2053","Insurance Underwriters"
-697,"0.99","49-9064","Watch Repairers"
-696,"0.99","43-5011","Cargo and Freight Agents"
-695,"0.99","13-2082","Tax Preparers"
-694,"0.99","51-9151","Photographic Process Workers and Processing Machine Operators"
-693,"0.99","43-4141","New Accounts Clerks"
-692,"0.99","25-4031","Library Technicians"
-691,"0.99","43-9021","Data Entry Keyers"
-690,"0.98","51-2093","Timing Device Assemblers and Adjusters"
-689,"0.98","43-9041","Insurance Claims and Policy Processing Clerks"
-688,"0.98","43-4011","Brokerage Clerks"
-687,"0.98","43-4151","Order Clerks"
-686,"0.98","13-2072","Loan Officers"
-685,"0.98","13-1032","Insurance Appraisers, Auto Damage"
-684,"0.98","27-2023","Umpires, Referees, and Other Sports Officials"
-683,"0.98","43-3071","Tellers"
-682,"0.98","51-9194","Etchers and Engravers"
-681,"0.98","51-9111","Packaging and Filling Machine Operators and Tenders"
-680,"0.98","43-3061","Procurement Clerks"
-679,"0.98","43-5071","Shipping, Receiving, and Traffic Clerks"
-678,"0.98","51-4035","Milling and Planing Machine Setters, Operators, and Tenders, Metal and Plastic"
-677,"0.98","13-2041","Credit Analysts"
-676,"0.98","41-2022","Parts Salespersons"
-675,"0.98","13-1031","Claims Adjusters, Examiners, and Investigators"
-674,"0.98","53-3031","Driver/Sales Workers"
-673,"0.98","27-4013","Radio Operators"
-`))

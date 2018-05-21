@@ -120,19 +120,19 @@ func TestServerRoutes(t *testing.T) {
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmTXuXJnekBzNkiG9ZHCvreJuYaLaj6jMcWuZvZCxhnNe5", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmTXuXJnekBzNkiG9ZHCvreJuYaLaj6jMcWuZvZCxhnNe5", "", "historyResponseAt.json", 200},
 
 		{"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "", 200},
-		{"GET", "/export/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmTXuXJnekBzNkiG9ZHCvreJuYaLaj6jMcWuZvZCxhnNe5", "", "", 200},
+		{"GET", "/export/at/map/QmTXuXJnekBzNkiG9ZHCvreJuYaLaj6jMcWuZvZCxhnNe5", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmTXuXJnekBzNkiG9ZHCvreJuYaLaj6jMcWuZvZCxhnNe5", "", "removeResponseWithPath.json", 200},
 		{"POST", "/remove/at/map/QmRvu8tNk1ChFmhpczooykvAM4BCLCb4Ss55orpyWYBcoA", "", "removeResponseByPath.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
