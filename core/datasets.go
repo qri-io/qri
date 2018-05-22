@@ -311,8 +311,8 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 		if err != nil {
 			return fmt.Errorf("fetching data url: %s", err.Error())
 		}
-		filename = filepath.Base(p.DataURL)
 		defer res.Body.Close()
+		filename = filepath.Base(p.DataURL)
 		rdr = res.Body
 
 		if ds.Meta == nil {
@@ -334,6 +334,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 		if err != nil {
 			return fmt.Errorf("opening file: %s", err.Error())
 		}
+		defer file.Close()
 		filename = filepath.Base(p.DataPath)
 		rdr = file
 	} else {
@@ -403,17 +404,13 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 
 // SaveParams defines permeters for Dataset Saves
 type SaveParams struct {
-	Name              string    // dataset name
-	Peername          string    // peername
-	URL               string    // string of url to get new data. optional.
-	DataFilename      string    // filename for new data. optional.
-	Data              io.Reader // stream of complete dataset update.
-	MetadataFilename  string    // filename for new data. optional.
-	Metadata          io.Reader // stream of complete dataset update. optional.
-	StructureFilename string    // filename for new data. optional.
-	Structure         io.Reader // stream of complete dataset update.
-	Title             string    // save message title. required.
-	Message           string    // save message. optional.
+	Name     string              // dataset name
+	Peername string              // peername
+	Title    string              // save message title. required.
+	Message  string              // save message. optional.
+	Dataset  *dataset.DatasetPod // dataset to update with
+	DataURL  string              // string of url to get new data. optional.
+	DataPath string              // path to update data on local filesystem
 }
 
 // Save adds a history entry, updating a dataset
@@ -431,64 +428,68 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	var (
-		data     []byte
+		rdr      io.Reader
 		dataf    cafs.File
+		filename string
+		updates  = &dataset.Dataset{}
 		ds       = &dataset.Dataset{}
-		store    = r.repo.Store()
-		filename = p.DataFilename
 	)
 
-	prevReq := &repo.DatasetRef{Name: p.Name, Peername: p.Peername}
+	if p.Name == "" || p.Peername == "" {
+		return fmt.Errorf("peername & name are required to update dataset")
+	}
+	if p.DataURL == "" && p.DataPath == "" && p.Dataset == nil {
+		return fmt.Errorf("need a DataURL/Data File of data updates, or a dataset file of changes")
+	}
 
+	if p.Dataset != nil {
+		if err = updates.Decode(p.Dataset); err != nil {
+			return fmt.Errorf("decoding dataset: %s", err.Error())
+		}
+	}
+
+	prevReq := &repo.DatasetRef{Name: p.Name, Peername: p.Peername}
 	if err = repo.CanonicalizeDatasetRef(r.repo, prevReq); err != nil {
-		return fmt.Errorf("error canonicalizing previous dataset reference: %s", err.Error())
+		return fmt.Errorf("canonicalizing previous dataset reference: %s", err.Error())
 	}
 
 	prev := &repo.DatasetRef{}
-
 	if err := r.Get(prevReq, prev); err != nil {
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
-	if p.URL == "" && p.Data == nil && p.Metadata == nil && p.Structure == nil {
-		return fmt.Errorf("to save update, need a URL or data file, metadata file, or structure file")
-	}
-
-	if p.URL != "" && p.Data != nil {
-		return fmt.Errorf("to save update, need either a URL or data file")
-	}
-
-	if p.URL != "" {
-		res, err := http.Get(p.URL)
+	if p.DataURL != "" {
+		var res *http.Response
+		res, err = http.Get(p.DataURL)
 		if err != nil {
-			return fmt.Errorf("error fetching url: %s", err.Error())
+			return fmt.Errorf("fetching data url: %s", err.Error())
 		}
-		filename = filepath.Base(p.URL)
 		defer res.Body.Close()
-		p.Data = res.Body
+		filename = filepath.Base(p.DataURL)
+		rdr = res.Body
+	} else if p.DataPath != "" {
+		var file *os.File
+		file, err = os.Open(p.DataPath)
+		if err != nil {
+			return fmt.Errorf("opening file: %s", err.Error())
+		}
+		defer file.Close()
+		filename = filepath.Base(p.DataPath)
+		rdr = file
 	}
 
-	if p.Data != nil {
-		// TODO - need a better strategy for huge files
-		data, err = ioutil.ReadAll(p.Data)
-		if err != nil {
-			return fmt.Errorf("error reading file: %s", err.Error())
-		}
-	} else {
+	if rdr == nil {
 		// load data cause we need something to compare the structure to
 		ds := &dataset.Dataset{}
 		if err := ds.Decode(prev.Dataset); err != nil {
 			return fmt.Errorf("error decoding dataset: %s", err)
 		}
-		datafile, err := dsfs.LoadData(store, ds)
+		datafile, err := dsfs.LoadData(r.Repo().Store(), ds)
 		if err != nil {
 			return fmt.Errorf("error loading previous data from filestore: %s", err)
 		}
-		// TODO - need a better strategy for huge files
-		data, err = ioutil.ReadAll(datafile)
-		if err != nil {
-			return fmt.Errorf("error reading file after file was loaded from filestore: %s", err)
-		}
+
+		rdr = datafile
 		// TODO - need a filename with an extension because that is how
 		// we determine the schema in line 421 in detect.FromReader
 		// however, when reading from IPFS, the datafile.Filename
@@ -498,45 +499,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		filename = "data." + ds.Structure.Format.String()
 	}
 
-	// read structure from SaveParams, or detect from data
-	st := &dataset.Structure{}
-	if p.Structure != nil {
-		if err := json.NewDecoder(p.Structure).Decode(st); err != nil {
-			return fmt.Errorf("error parsing structure json: %s", err.Error())
-		}
-	} else {
-		var df dataset.DataFormat
-
-		df, err = detect.ExtensionDataFormat(filename)
-		if err != nil {
-			return fmt.Errorf("determing data format: %s", err.Error())
-		}
-
-		st, _, err = detect.FromReader(df, bytes.NewReader(data))
-		if err != nil {
-			return fmt.Errorf("error determining dataset schema: %s", err.Error())
-		}
-	}
-
-	// read meta from SaveParams, edit to include URL download Path if needed
-	mt := &dataset.Meta{}
-	if p.Metadata != nil {
-		if err := json.NewDecoder(p.Metadata).Decode(mt); err != nil {
-			return fmt.Errorf("error parsing metadata json: %s", err.Error())
-		}
-	}
-	if p.URL != "" {
-		mt.DownloadPath = p.URL
-		// if we're adding from a dataset url, set a default accrual periodicity of once a week
-		// this'll set us up to re-check urls over time
-		// TODO - make this configurable via a param?
-		mt.AccrualPeriodicity = "R/P1W"
-	}
-	changes := &dataset.Dataset{
-		Commit:    &dataset.Commit{Title: p.Title, Message: p.Message},
-		Structure: st,
-		Meta:      mt,
-	}
+	// if updates.Commit == nil {
+	// 	updates.Commit = &dataset.Commit{}
+	// }
 
 	prevds, err := prev.DecodeDataset()
 	if err != nil {
@@ -544,7 +509,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	// add all previous fields and any changes
-	ds.Assign(prevds, changes)
+	ds.Assign(prevds, updates)
 	ds.PreviousPath = prev.Path
 
 	// ds.Assign clobbers empty commit messages with the previous
@@ -563,25 +528,25 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	// since we will potentially have changes in the Meta and Structure
 	// we want the differ to have to compare each field
 	// so we reset the paths
-	ds.Meta.SetPath("")
-	ds.Structure.SetPath("")
+	if ds.Meta != nil {
+		ds.Meta.SetPath("")
+	}
+	if ds.Structure != nil {
+		ds.Structure.SetPath("")
+	}
+	// ds.VisConfig.SetPath("")
 
-	dataf = cafs.NewMemfileBytes("data."+st.Format.String(), data)
+	if rdr != nil {
+		dataf = cafs.NewMemfileReader(filename, rdr)
+	}
 	ref, err := r.repo.CreateDataset(p.Name, ds, dataf, true)
 	if err != nil {
-		fmt.Printf("create ds error: %s\n", err.Error())
+		log.Errorf("create ds error: %s\n", err.Error())
 		return err
 	}
 	ref.Dataset = ds.Encode()
 
-	// *res = repo.DatasetRef{
-	// 	Peername: p.Peername,
-	// 	Name:     p.Name,
-	// 	Path:     dspath.String(),
-	// 	Dataset:  ds,
-	// }
 	*res = ref
-
 	return nil
 }
 

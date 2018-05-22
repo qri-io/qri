@@ -94,20 +94,17 @@ changes to qri.`,
 }
 
 func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
-	var (
-		// dataFile, metaFile, structureFile *os.File
-		err error
-	)
+	var err error
 
-	// if addDsDataFilepath == "" && addDsURL == "" || addDsDataFilepath != "" && addDsURL != "" {
-	// 	ErrExit(fmt.Errorf("please provide either a file or a url argument"))
-	// }
-	// dataFile, err = loadFileIfPath(addDsDataFilepath)
-	// ExitIfErr(err)
 	// metaFile, err = loadFileIfPath(addDsMetaFilepath)
 	// ExitIfErr(err)
 	// structureFile, err = loadFileIfPath(addDsStructureFilepath)
 	// ExitIfErr(err)
+
+	if addDsDataFilepath != "" {
+		addDsDataFilepath, err = filepath.Abs(addDsDataFilepath)
+		ExitIfErr(err)
+	}
 
 	p := &core.InitParams{
 		Peername: name.Peername,
@@ -158,7 +155,7 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 	if ref.Dataset.Structure.ErrCount > 0 {
 		printWarning(fmt.Sprintf("this dataset has %d validation errors", ref.Dataset.Structure.ErrCount))
 
-		// TODO - restore. This should read from the created dataset instead of input data
+		// TODO - restore.
 		// if addDsShowValidation {
 		// 	printWarning("Validation Error Detail:")
 		// 	data, err := ioutil.ReadAll(dataFile)

@@ -147,6 +147,7 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 	arg := r.URL.Path[len("/connect/"):]
 	if len(arg) == 0 {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid connect argument"))
+		return
 	}
 	pcpod := core.NewPeerConnectionParamsPod(arg)
 

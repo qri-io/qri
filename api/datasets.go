@@ -1,7 +1,6 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -13,7 +12,6 @@ import (
 	"strings"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
@@ -429,17 +427,19 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 type saveParamsJSON struct {
-	Peername  string          `json:"peername,omitempty"`
-	Name      string          `json:"name,omitempty"`
-	Title     string          `json:"title,omitempty"`
-	Message   string          `json:"message,omitempty"`
-	Data      json.RawMessage `json:"data,omitempty"`
-	Meta      json.RawMessage `json:"meta,omitempty"`
-	Structure json.RawMessage `json:"structure,omitempty"`
+	Peername  string                `json:"peername,omitempty"`
+	Name      string                `json:"name,omitempty"`
+	Title     string                `json:"title,omitempty"`
+	Message   string                `json:"message,omitempty"`
+	Data      json.RawMessage       `json:"data,omitempty"`
+	Meta      *dataset.Meta         `json:"meta,omitempty"`
+	Structure *dataset.StructurePod `json:"structure,omitempty"`
+	Commit    *dataset.CommitPod    `json:"commit,omitempty"`
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	save := &core.SaveParams{}
+
 	if r.Header.Get("Content-Type") == "application/json" {
 		saveParams := &saveParamsJSON{}
 		err := json.NewDecoder(r.Body).Decode(saveParams)
@@ -465,63 +465,75 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			Name:     saveParams.Name,
 			Title:    saveParams.Title,
 			Message:  saveParams.Message,
+			Dataset: &dataset.DatasetPod{
+				Commit:    saveParams.Commit,
+				Meta:      saveParams.Meta,
+				Structure: saveParams.Structure,
+			},
 		}
-		if len(saveParams.Data) != 0 {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
-			return
-		}
+
+		// if len(saveParams.Data) != 0 {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
+		// 	return
+		// }
 		//  TODO - restore when we are sure we can accept json data with no errors
 		// if len(saveParams.Data) != 0 {
 		// 	save.Data = cafs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
 		// 	save.DataFilename = "data.json"
 		// }
-		if len(saveParams.Meta) != 0 {
-			save.Metadata = cafs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
-			save.MetadataFilename = "meta.json"
-		}
-		if len(saveParams.Structure) != 0 {
-			save.Structure = cafs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
-			save.StructureFilename = "structure.json"
-		}
+		// if len(saveParams.Meta) != 0 {
+		// 	save.Metadata = cafs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
+		// 	save.MetadataFilename = "meta.json"
+		// }
+		// if len(saveParams.Structure) != 0 {
+		// 	save.Structure = cafs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
+		// 	save.StructureFilename = "structure.json"
+		// }
 	} else {
 		save = &core.SaveParams{
 			Peername: r.FormValue("peername"),
-			URL:      r.FormValue("url"),
+			DataURL:  r.FormValue("data_url"),
 			Name:     r.FormValue("name"),
 			Title:    r.FormValue("title"),
 			Message:  r.FormValue("message"),
 		}
 
-		infile, fileHeader, err := r.FormFile("file")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
-			return
-		}
-		if infile != nil {
-			save.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
-			save.DataFilename = fileHeader.Filename
-		}
+		// infile, fileHeader, err := r.FormFile("file")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
+		// 	return
+		// }
+		// if infile != nil {
+		// 	save.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
+		// 	save.DataFilename = fileHeader.Filename
+		// }
 
-		metadatafile, metadataHeader, err := r.FormFile("metadata")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
-			return
-		}
-		if metadatafile != nil {
-			save.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
-			save.MetadataFilename = metadataHeader.Filename
-		}
+		// metadatafile, metadataHeader, err := r.FormFile("metadata")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
+		// 	return
+		// }
+		// if metadatafile != nil {
+		// 	save.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+		// 	save.MetadataFilename = metadataHeader.Filename
+		// }
 
-		structurefile, structureHeader, err := r.FormFile("structure")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
-			return
-		}
-		if structurefile != nil {
-			save.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
-			save.StructureFilename = structureHeader.Filename
-		}
+		// structurefile, structureHeader, err := r.FormFile("structure")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
+		// 	return
+		// }
+		// if structurefile != nil {
+		// 	save.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
+		// 	save.StructureFilename = structureHeader.Filename
+		// }
 	}
+
+	// prev := &repo.DatasetRef{}
+	// if err := h.Get(&repo.DatasetRef{Peername: save.Peername, Name: save.Name}, prev); err != nil {
+	// 	panic(err)
+	// }
+	// fmt.Println("PREV: ", prev.Dataset)
 
 	res := &repo.DatasetRef{}
 	if err := h.Save(save, res); err != nil {

@@ -26,21 +26,11 @@ import (
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
-	// badDataFile := testrepo.BadDataFile
-	// jobsByAutomationFile := testrepo.NewJobsByAutomationFile()
-	// badDataFormatFile := testrepo.BadDataFormatFile
-	// badStructureFile := testrepo.BadStructureFile
 	jobsDataPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
-
-	// jobsDataPath, err := testrepo.DataFilepath("jobs_by_automation")
-	// if err != nil {
-	// 	t.Errorf("error loading file: %s", err.Error())
-	// 	return
-	// }
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"json":"data"}`))
@@ -85,6 +75,62 @@ func TestDatasetRequestsInit(t *testing.T) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
+	}
+}
+
+func TestDatasetRequestsSave(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	citiesDataPath, err := dstest.DataFilepath("testdata/cities_2")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		res := `city,pop,avg_age,in_usa
+toronto,40000000,55.5,false
+new york,8500000,44.4,true
+chicago,300000,44.4,true
+chatham,35000,65.25,true
+raleigh,250000,50.65,true
+sarnia,550000,55.65,false
+`
+		w.Write([]byte(res))
+	}))
+
+	cases := []struct {
+		p   *SaveParams
+		res *repo.DatasetRef
+		err string
+	}{
+		{&SaveParams{}, nil, "peername & name are required to update dataset"},
+		{&SaveParams{Peername: "foo", Name: "bar"}, nil, "need a DataURL/Data File of data updates, or a dataset file of changes"},
+		{&SaveParams{Peername: "bad", Name: "path", Dataset: &dataset.DatasetPod{Commit: &dataset.CommitPod{Qri: "qri:st"}}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&SaveParams{Peername: "bad", Name: "path", DataPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&SaveParams{Peername: "me", Name: "cities", DataURL: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+
+		{&SaveParams{Peername: "me", Name: "cities", Dataset: &dataset.DatasetPod{Meta: &dataset.Meta{Title: "updated name of movies dataset"}}}, nil, ""},
+		{&SaveParams{Peername: "me", Name: "cities", DataPath: citiesDataPath}, nil, ""},
+		{&SaveParams{Peername: "me", Name: "cities", DataURL: s.URL + "/data.csv"}, nil, ""},
+	}
+
+	req := NewDatasetRequests(mr, nil)
+	for i, c := range cases {
+		got := &repo.DatasetRef{}
+		err := req.Save(c.p, got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+		// if got != c.res && c.checkResult == true {
+		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
+		// }
 	}
 }
 
@@ -303,39 +349,6 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 	wg.Wait()
 }
 
-func TestDatasetRequestsSave(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-	cases := []struct {
-		p   *SaveParams
-		err string
-	}{
-		//TODO: probably delete some of these
-		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
-		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-		{&SaveParams{Name: "movies", Peername: "peer", MetadataFilename: "meta.json", Metadata: bytes.NewReader([]byte(`{"title":"movies!"}`))}, ""},
-		{&SaveParams{Name: "unknown_dataset", Peername: "peer"}, "error getting previous dataset: repo: not found"},
-		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
-	}
-
-	req := NewDatasetRequests(mr, nil)
-	for i, c := range cases {
-		got := &repo.DatasetRef{}
-		err := req.Save(c.p, got)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-		// if got != c.res && c.checkResult == true {
-		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
-		// }
-	}
-}
-
 func TestDatasetRequestsRename(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
@@ -484,7 +497,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "this store cannot fetch from remote sources"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "error fetching file: this store cannot fetch from remote sources"},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
