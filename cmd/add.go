@@ -18,8 +18,6 @@ import (
 var (
 	addDsFile              string
 	addDsDataPath          string
-	addDsMetaFilepath      string
-	addDsStructureFilepath string
 	addDsName              string
 	addDsTitle             string
 	addDsMessage           string
@@ -52,14 +50,14 @@ changes to qri.`,
 	Example: `  add a new dataset named annual_pop:
   $ qri add --data data.csv me/annual_pop
 
-  create a dataset with a metadata and data file:
-  $ qri add --meta meta.json --data comics.csv me/comic_characters`,
+  create a dataset with a dataset data file:
+  $ qri add --file dataset.yaml --data comics.csv me/comic_characters`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 
-		ingest := (addDsFile != "" || addDsDataPath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "")
+		ingest := (addDsFile != "" || addDsDataPath != "")
 
 		if ingest {
 			ref, err := repo.ParseDatasetRef(args[0])
@@ -117,11 +115,6 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 		dsp.DataPath = addDsDataPath
 	}
 
-	// metaFile, err = loadFileIfPath(addDsMetaFilepath)
-	// ExitIfErr(err)
-	// structureFile, err = loadFileIfPath(addDsStructureFilepath)
-	// ExitIfErr(err)
-
 	p := &core.SaveParams{
 		Dataset: dsp,
 		Private: addDsPrivate,
@@ -157,12 +150,10 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 }
 
 func init() {
-	datasetAddCmd.Flags().StringVarP(&addDsFile, "file", "f", "", "dataset data file in either (.yaml or .json) file")
+	datasetAddCmd.Flags().StringVarP(&addDsFile, "file", "f", "", "dataset data file in either yaml or json format")
 	datasetAddCmd.Flags().StringVarP(&addDsDataPath, "data", "d", "", "path to file or url to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsTitle, "title", "t", "", "commit title")
 	datasetAddCmd.Flags().StringVarP(&addDsMessage, "messsage", "m", "", "commit message")
-	// datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
-	// datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
 	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)

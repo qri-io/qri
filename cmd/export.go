@@ -44,12 +44,22 @@ To export everything about a dataset, use the --dataset flag.`,
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			fmt.Println("please specify a dataset name to export")
-			return
-		}
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
+
+    if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
+      if path == "" {
+        path = "dataset.yaml"
+      }
+      if _, err := os.Stat(path); os.IsNotExist(err) {
+        err := ioutil.WriteFile(path, []byte(blankYamlDataset), os.ModePerm)
+        ExitIfErr(err)
+        printSuccess("blank dataset file saved to %s", path)
+        } else {
+          ErrExit(fmt.Errorf("'%s' already exists", path))
+        }
+      return
+    }
 
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
@@ -194,6 +204,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 func init() {
 	RootCmd.AddCommand(exportCmd)
+  exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
@@ -208,3 +219,48 @@ func init() {
 	// TODO - get format conversion up & running
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json,cbor]")
 }
+
+
+const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:
+# $ qri add --file=dataset.yaml
+# For more info check out https://qri.io/docs
+
+# Name is a short name for working with this dataset without spaces for example:
+# "my_dataset" or "number_of_cows_that_have_jumped_the_moon"
+# name is required
+name: 
+
+# Commit contains notes about this dataset at the time it was saved
+# commit is optional
+commit:
+  title:
+  message:
+
+# Meta stores descriptive information about a dataset.
+# all meta info is optional, but you should at least add a title.
+# detailed, accurate metadata helps you & others find your data later.
+meta:
+  title:
+  # description:
+  # category:
+  # tags:
+
+# Structure contains the info a computer needs to interpret this dataset
+# qri will figure structure out for you if you don't one
+# and later you can change structure to do neat stuff like validate your
+# data and make your data work with other datasets.
+# Below is an example structure
+structure:
+  # Syntax in JSON format:
+  # format: json
+  # Schema defines the "shape" data should take, here we're saying
+  # data should be an array of strings, like this: ["foo", "bar", "baz"]
+  # schema:
+  #   type: array
+  #   items:
+  #     type: string
+
+# data itself is either a path to a file on your computer,
+# or a URL that leads to the raw data
+# dataPath:
+`

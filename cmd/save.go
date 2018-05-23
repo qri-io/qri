@@ -18,8 +18,6 @@ import (
 var (
 	saveFilePath       string
 	saveDataPath       string
-	saveMetaFile       string
-	saveStructureFile  string
 	saveTitle          string
 	saveMessage        string
 	savePassive        bool
@@ -30,7 +28,7 @@ var (
 // saveCmd represents the save command
 var saveCmd = &cobra.Command{
 	Use:     "save",
-	Aliases: []string{"update"},
+	Aliases: []string{"update", "commit"},
 	Short:   "save changes to a dataset",
 	Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and 
@@ -50,7 +48,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 	},
 	Run: func(cmd *cobra.Command, args []string) {
 		if len(args) < 1 && saveFilePath == "" {
-			ErrExit(fmt.Errorf("please provide the name of an existing dataset to save updates to"))
+			ErrExit(fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername"))
 		}
 
 		ref, err := repo.ParseDatasetRef(args[0])
@@ -93,13 +91,6 @@ collaboration are in the works. Sit tight sportsfans.`,
 		if saveDataPath != "" {
 			dsp.DataPath = saveDataPath
 		}
-		// if saveMetaFile == "" && saveDataPath == "" && saveStructureFile == "" {
-		// 	ErrExit(fmt.Errorf("one of --structure, --meta or --data or --url is required"))
-		// }
-		// metaFile, err = loadFileIfPath(saveMetaFile)
-		// ExitIfErr(err)
-		// structureFile, err = loadFileIfPath(saveStructureFile)
-		// ExitIfErr(err)
 
 		p := &core.SaveParams{
 			Dataset: dsp,
@@ -139,8 +130,6 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
 	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "path to file or url to initialize from")
-	// saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "metadata.json file")
-	// saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
 	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(saveCmd)
 }

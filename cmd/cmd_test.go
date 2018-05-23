@@ -165,6 +165,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},
 		{"remove", "me/movie"},
+    {"export", "--blank", "-o"+path+"/blank_dataset.yaml"},
 		{"setup", "--remove"},
 	}
 

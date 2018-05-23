@@ -76,7 +76,6 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
-	log.Debugf("list datasets: %s %d/%d", p.Peername, p.Limit, p.Offset)
 
 	ds := &repo.DatasetRef{
 		Peername:  p.Peername,
@@ -149,7 +148,6 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		log.Debug(err.Error())
 		return fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
-	log.Debugf("found %d references", len(replies))
 
 	for i, ref := range replies {
 		if err := repo.CanonicalizeProfile(r.repo, &replies[i]); err != nil {
@@ -157,7 +155,6 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
-		log.Debugf("loading %s", ref.Path)
 		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
 		if err != nil {
 			return fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
