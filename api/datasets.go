@@ -336,25 +336,24 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.InitParams{}
+	dsp := &dataset.DatasetPod{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(dsp); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
 			return
 		}
 
-		if p.DataURL == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'dataUrl' field"))
+		if dsp.DataPath == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'dataPath' field"))
 			return
 		}
 
 	default:
-		p = &core.InitParams{
+		dsp = &dataset.DatasetPod{
 			Peername: r.FormValue("peername"),
 			Name:     r.FormValue("name"),
-			DataURL:  r.FormValue("url"),
-			Private:  r.FormValue("private") == "true",
+			DataPath: r.FormValue("data_path"),
 		}
 
 		infile, fileHeader, err := r.FormFile("file")
@@ -371,7 +370,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			defer os.Remove(path)
 			io.Copy(f, infile)
 			f.Close()
-			p.DataPath = path
+			dsp.DataPath = path
 		}
 
 		// metadatafile, metadataHeader, err := r.FormFile("metadata")
@@ -396,6 +395,10 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &repo.DatasetRef{}
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: r.FormValue("private") == "true",
+	}
 	if err := h.Init(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -426,23 +429,22 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-type saveParamsJSON struct {
-	Peername  string                `json:"peername,omitempty"`
-	Name      string                `json:"name,omitempty"`
-	Title     string                `json:"title,omitempty"`
-	Message   string                `json:"message,omitempty"`
-	Data      json.RawMessage       `json:"data,omitempty"`
-	Meta      *dataset.Meta         `json:"meta,omitempty"`
-	Structure *dataset.StructurePod `json:"structure,omitempty"`
-	Commit    *dataset.CommitPod    `json:"commit,omitempty"`
-}
+// type saveParamsJSON struct {
+// 	Peername  string                `json:"peername,omitempty"`
+// 	Name      string                `json:"name,omitempty"`
+// 	Title     string                `json:"title,omitempty"`
+// 	Message   string                `json:"message,omitempty"`
+// 	Data      json.RawMessage       `json:"data,omitempty"`
+// 	Meta      *dataset.Meta         `json:"meta,omitempty"`
+// 	Structure *dataset.StructurePod `json:"structure,omitempty"`
+// 	Commit    *dataset.CommitPod    `json:"commit,omitempty"`
+// }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	save := &core.SaveParams{}
+	dsp := &dataset.DatasetPod{}
 
 	if r.Header.Get("Content-Type") == "application/json" {
-		saveParams := &saveParamsJSON{}
-		err := json.NewDecoder(r.Body).Decode(saveParams)
+		err := json.NewDecoder(r.Body).Decode(dsp)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -455,22 +457,22 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if args.Peername != "" {
-				saveParams.Peername = args.Peername
-				saveParams.Name = args.Name
+				dsp.Peername = args.Peername
+				dsp.Name = args.Name
 			}
 		}
 
-		save = &core.SaveParams{
-			Peername: saveParams.Peername,
-			Name:     saveParams.Name,
-			Title:    saveParams.Title,
-			Message:  saveParams.Message,
-			Dataset: &dataset.DatasetPod{
-				Commit:    saveParams.Commit,
-				Meta:      saveParams.Meta,
-				Structure: saveParams.Structure,
-			},
-		}
+		// save = &core.SaveParams{
+		// 	Peername: saveParams.Peername,
+		// 	Name:     saveParams.Name,
+		// 	Title:    saveParams.Title,
+		// 	Message:  saveParams.Message,
+		// 	Dataset: &dataset.DatasetPod{
+		// 		Commit:    saveParams.Commit,
+		// 		Meta:      saveParams.Meta,
+		// 		Structure: saveParams.Structure,
+		// 	},
+		// }
 
 		// if len(saveParams.Data) != 0 {
 		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
@@ -490,13 +492,13 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		// 	save.StructureFilename = "structure.json"
 		// }
 	} else {
-		save = &core.SaveParams{
-			Peername: r.FormValue("peername"),
-			DataURL:  r.FormValue("data_url"),
-			Name:     r.FormValue("name"),
-			Title:    r.FormValue("title"),
-			Message:  r.FormValue("message"),
-		}
+		// save = &core.SaveParams{
+		// 	Peername: r.FormValue("peername"),
+		// 	DataURL:  r.FormValue("data_path"),
+		// 	Name:     r.FormValue("name"),
+		// 	Title:    r.FormValue("title"),
+		// 	Message:  r.FormValue("message"),
+		// }
 
 		// infile, fileHeader, err := r.FormFile("file")
 		// if err != nil && err != http.ErrMissingFile {
@@ -529,14 +531,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		// }
 	}
 
-	// prev := &repo.DatasetRef{}
-	// if err := h.Get(&repo.DatasetRef{Peername: save.Peername, Name: save.Name}, prev); err != nil {
-	// 	panic(err)
-	// }
-	// fmt.Println("PREV: ", prev.Dataset)
-
 	res := &repo.DatasetRef{}
-	if err := h.Save(save, res); err != nil {
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: r.FormValue("private") == "true",
+	}
+	if err := h.Save(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

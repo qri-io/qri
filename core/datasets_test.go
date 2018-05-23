@@ -39,27 +39,6 @@ func TestDatasetRequestsInit(t *testing.T) {
 		w.Write([]byte(`\\\{"json":"data"}`))
 	}))
 
-	cases := []struct {
-		p   *InitParams
-		res *repo.DatasetRef
-		err string
-	}{
-		{&InitParams{}, nil, "either a file or a url is required to create a dataset"},
-		{&InitParams{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
-		{&InitParams{Dataset: &dataset.DatasetPod{Commit: &dataset.CommitPod{Qri: "qri:st"}}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&InitParams{DataURL: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
-		{&InitParams{Name: "bad name", DataPath: jobsDataPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&InitParams{Private: true}, nil, "option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates"},
-		{&InitParams{DataURL: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
-
-		{&InitParams{Dataset: &dataset.DatasetPod{
-			Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
-		}, DataPath: jobsDataPath}, nil, "invalid dataset: structure: format is required"},
-		{&InitParams{DataPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
-		{&InitParams{DataPath: jobsDataPath}, nil, ""},
-		{&InitParams{DataURL: s.URL + "/data.json"}, nil, ""},
-	}
-
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
@@ -67,9 +46,39 @@ func TestDatasetRequestsInit(t *testing.T) {
 	}
 
 	req := NewDatasetRequests(mr, nil)
+
+	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
+	if err := req.Init(&SaveParams{Private: true}, nil); err == nil {
+		t.Errorf("expected datset to error")
+	} else if err.Error() != privateErrMsg {
+		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
+	}
+
+	cases := []struct {
+		dataset *dataset.DatasetPod
+		res     *repo.DatasetRef
+		err     string
+	}{
+		{nil, nil, "dataset is required"},
+		{&dataset.DatasetPod{}, nil, "either dataBytes or dataPath is required to create a dataset"},
+		{&dataset.DatasetPod{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.DatasetPod{DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{Name: "bad name", DataPath: jobsDataPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&dataset.DatasetPod{DataPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
+		{&dataset.DatasetPod{DataPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+
+		{&dataset.DatasetPod{
+			Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
+			DataPath:  jobsDataPath,
+		}, nil, "invalid dataset: structure: format is required"},
+		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{}}, nil, ""},
+		{&dataset.DatasetPod{DataPath: s.URL + "/data.json"}, nil, ""},
+	}
+
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Init(c.p, got)
+		err := req.Init(&SaveParams{Dataset: c.dataset}, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -104,26 +113,35 @@ sarnia,550000,55.65,false
 		w.Write([]byte(res))
 	}))
 
-	cases := []struct {
-		p   *SaveParams
-		res *repo.DatasetRef
-		err string
-	}{
-		{&SaveParams{}, nil, "peername & name are required to update dataset"},
-		{&SaveParams{Peername: "foo", Name: "bar"}, nil, "need a DataURL/Data File of data updates, or a dataset file of changes"},
-		{&SaveParams{Peername: "bad", Name: "path", Dataset: &dataset.DatasetPod{Commit: &dataset.CommitPod{Qri: "qri:st"}}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&SaveParams{Peername: "bad", Name: "path", DataPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
-		{&SaveParams{Peername: "me", Name: "cities", DataURL: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+	req := NewDatasetRequests(mr, nil)
 
-		{&SaveParams{Peername: "me", Name: "cities", Dataset: &dataset.DatasetPod{Meta: &dataset.Meta{Title: "updated name of movies dataset"}}}, nil, ""},
-		{&SaveParams{Peername: "me", Name: "cities", DataPath: citiesDataPath}, nil, ""},
-		{&SaveParams{Peername: "me", Name: "cities", DataURL: s.URL + "/data.csv"}, nil, ""},
+	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
+	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
+		t.Errorf("expected datset to error")
+	} else if err.Error() != privateErrMsg {
+		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	cases := []struct {
+		dataset *dataset.DatasetPod
+		res     *repo.DatasetRef
+		err     string
+	}{
+		{nil, nil, "dataset is required"},
+		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
+		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", DataPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, DataPath: citiesDataPath}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: s.URL + "/data.csv"}, nil, ""},
+	}
+
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Save(c.p, got)
+		err := req.Save(&SaveParams{Dataset: c.dataset}, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
@@ -599,12 +617,11 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 
 	dsRef1 := repo.DatasetRef{}
-	initParams := &InitParams{
-		Peername: "peer",
-		Name:     "jobs_ranked_by_automation_prob",
-		DataPath: fp1,
-		// MetadataFilename: jobsMeta.FileName(),
-		// Metadata:         jobsMeta,
+	initParams := &SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Name:     "jobs_ranked_by_automation_prob",
+			DataPath: fp1,
+		},
 	}
 	err = req.Init(initParams, &dsRef1)
 	if err != nil {
@@ -619,10 +636,11 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		return
 	}
 	dsRef2 := repo.DatasetRef{}
-	initParams = &InitParams{
-		Peername: "peer",
-		Name:     "jobs_ranked_by_automation_prob",
-		DataPath: fp2,
+	initParams = &SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Name:     "jobs_ranked_by_automation_prob",
+			DataPath: fp2,
+		},
 	}
 	err = req.Init(initParams, &dsRef2)
 	if err != nil {

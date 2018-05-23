@@ -146,7 +146,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"help"},
 		{"version"},
 		{"setup", "--peername=" + "alan", "--registry=" + registryServer.URL},
-		{"config", "get"},
+		{"config", "get", "-c"},
 		{"config", "get", "profile"},
 		{"config", "set", "webapp.port", "3505"},
 		// TODO - add setting whole config via a file
@@ -170,12 +170,12 @@ func TestCommandsIntegration(t *testing.T) {
 
 	for i, args := range commands {
 		func() {
-			// defer func() {
-			// 	if e := recover(); e != nil {
-			// 		t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
-			// 		return
-			// 	}
-			// }()
+			defer func() {
+				if e := recover(); e != nil {
+					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
+					return
+				}
+			}()
 			_, err := executeCommand(RootCmd, args...)
 			if err != nil {
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, strings.Join(args, " "), err.Error())

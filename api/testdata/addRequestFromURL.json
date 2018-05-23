@@ -1,5 +1,5 @@
 {
   "peername":"peer",
   "name":"family_relationships",
-  "dataUrl":"http://insight.dev.schoolwires.com/HelpAssets/C2Assets/C2Files/C2ImportFamRelSample.csv"
+  "dataPath":"http://insight.dev.schoolwires.com/HelpAssets/C2Assets/C2Files/C2ImportFamRelSample.csv"
 }

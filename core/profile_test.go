@@ -1,6 +1,7 @@
 package core
 
 import (
+	"encoding/json"
 	"os"
 	"path/filepath"
 	"reflect"
@@ -11,6 +12,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
+	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
 func TestProfileRequestsGet(t *testing.T) {
@@ -123,10 +125,15 @@ func TestSaveProfile(t *testing.T) {
 	}
 	got.PrivKey = savedConf.Profile.PrivKey
 
+	savedConf.Profile.Online = savedConf.P2P.Enabled
+
 	// Verify that the saved config matches the returned config (after private key is copied).
 	if !reflect.DeepEqual(*savedConf.Profile, got) {
-		log.Errorf("Saved Profile does not match returned Profile: %v <> %v",
-			*savedConf.Profile, got)
+		dmp := diffmatchpatch.New()
+		saved, _ := json.Marshal(*savedConf.Profile)
+		g, _ := json.Marshal(got)
+		diffs := dmp.DiffMain(string(saved), string(g), false)
+		log.Errorf("Saved Profile does not match returned Profile: %s", dmp.DiffPrettyText(diffs))
 	}
 
 	// Validate that the returned Profile has all the proper individual fields.

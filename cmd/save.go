@@ -16,8 +16,8 @@ import (
 )
 
 var (
+	saveFilePath       string
 	saveDataPath       string
-	saveURL            string
 	saveMetaFile       string
 	saveStructureFile  string
 	saveTitle          string
@@ -49,49 +49,61 @@ collaboration are in the works. Sit tight sportsfans.`,
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
+		if len(args) < 1 && saveFilePath == "" {
 			ErrExit(fmt.Errorf("please provide the name of an existing dataset to save updates to"))
 		}
-		// if saveMetaFile == "" && saveDataPath == "" && saveStructureFile == "" {
-		// 	ErrExit(fmt.Errorf("one of --structure, --meta or --data or --url is required"))
-		// }
 
 		ref, err := repo.ParseDatasetRef(args[0])
 		ExitIfErr(err)
 
+		dsp := &dataset.DatasetPod{}
+		if saveFilePath != "" {
+			f, err := os.Open(saveFilePath)
+			ExitIfErr(err)
+
+			switch strings.ToLower(filepath.Ext(saveFilePath)) {
+			case ".yaml", ".yml":
+				data, err := ioutil.ReadAll(f)
+				ExitIfErr(err)
+				err = dsutil.UnmarshalYAMLDatasetPod(data, dsp)
+				ExitIfErr(err)
+			case ".json":
+				err = json.NewDecoder(f).Decode(dsp)
+				ExitIfErr(err)
+			}
+		}
+
+		if ref.Name != "" {
+			dsp.Name = ref.Name
+		}
+		if ref.Peername != "" {
+			dsp.Peername = ref.Peername
+		}
+
+		if (saveTitle != "" || saveMessage != "") && dsp.Commit == nil {
+			dsp.Commit = &dataset.CommitPod{}
+		}
+		if saveTitle != "" {
+			dsp.Commit.Title = saveTitle
+		}
+		if saveMessage != "" {
+			dsp.Commit.Message = saveMessage
+		}
+
+		if saveDataPath != "" {
+			dsp.DataPath = saveDataPath
+		}
+		// if saveMetaFile == "" && saveDataPath == "" && saveStructureFile == "" {
+		// 	ErrExit(fmt.Errorf("one of --structure, --meta or --data or --url is required"))
+		// }
 		// metaFile, err = loadFileIfPath(saveMetaFile)
 		// ExitIfErr(err)
 		// structureFile, err = loadFileIfPath(saveStructureFile)
 		// ExitIfErr(err)
 
 		p := &core.SaveParams{
-			Name:     ref.Name,
-			Title:    saveTitle,
-			Message:  saveMessage,
-			Peername: ref.Peername,
-			DataURL:  saveURL,
-			DataPath: saveDataPath,
-			// MetadataFilename:  filepath.Base(saveMetaFile),
-			// StructureFilename: filepath.Base(saveStructureFile),
-		}
-
-		if dspath, err := cmd.Flags().GetString("dataset"); err == nil && dspath != "" {
-			ds := &dataset.DatasetPod{}
-			f, err := os.Open(dspath)
-			ExitIfErr(err)
-
-			switch strings.ToLower(filepath.Ext(dspath)) {
-			case ".yaml", ".yml":
-				data, err := ioutil.ReadAll(f)
-				ExitIfErr(err)
-				// err = UnmarshalYAML(data, ds)
-				err = dsutil.UnmarshalYAMLDatasetPod(data, ds)
-				ExitIfErr(err)
-			case ".json":
-				err = json.NewDecoder(f).Decode(ds)
-				ExitIfErr(err)
-			}
-			p.Dataset = ds
+			Dataset: dsp,
+			Private: false,
 		}
 
 		req, err := datasetRequests(false)
@@ -123,11 +135,10 @@ collaboration are in the works. Sit tight sportsfans.`,
 }
 
 func init() {
-	saveCmd.Flags().StringP("dataset", "", "", "dataset data file (yaml or json)")
+	saveCmd.Flags().StringVarP(&saveFilePath, "file", "f", "", "dataset data file (yaml or json)")
 	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
-	saveCmd.Flags().StringVarP(&saveURL, "url", "", "", "url that data file can be updated from")
-	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "data file that forms the dataset")
+	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "path to file or url to initialize from")
 	// saveCmd.Flags().StringVarP(&saveMetaFile, "meta", "", "", "metadata.json file")
 	// saveCmd.Flags().StringVarP(&saveStructureFile, "structure", "", "", "structure.json file")
 	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")

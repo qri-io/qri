@@ -6,10 +6,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"net/rpc"
-	"os"
-	"path/filepath"
 	"time"
 
 	"github.com/ipfs/go-datastore"
@@ -265,36 +262,40 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	return nil
 }
 
-// InitParams encapsulates arguments to Init
-type InitParams struct {
-	Peername string              // name of peer creating this dataset. required.
-	Name     string              // variable name for referring to this dataset. required.
-	Dataset  *dataset.DatasetPod // dataset to create
-	DataURL  string              // url to download data from. either Url or Data is required
-	DataPath string              // absolute path to data on local filesystem
-	Private  bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
+// SaveParams encapsulates arguments to Init & Save
+type SaveParams struct {
+	Dataset *dataset.DatasetPod // dataset to create
+	Private bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
 }
 
 // Init creates a new qri dataset from a source of data
-func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
 	if p.Private {
-		return fmt.Errorf("option to make dataset private not available yet, refer to https://github.com/qri-io/qri/issues/291 for updates")
+		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
-	var (
-		rdr      io.Reader
-		filename string
-		ds       = &dataset.Dataset{}
-	)
+	dsp := p.Dataset
+	if dsp == nil {
+		return fmt.Errorf("dataset is required")
+	}
 
-	if p.Dataset != nil {
-		if err = ds.Decode(p.Dataset); err != nil {
-			return fmt.Errorf("decoding dataset: %s", err.Error())
-		}
+	if dsp.DataPath == "" && dsp.DataBytes == nil {
+		return fmt.Errorf("either dataBytes or dataPath is required to create a dataset")
+	}
+
+	dataFile, err := repo.DatasetPodDataFile(dsp)
+	if err != nil {
+		return err
+	}
+	defer dataFile.Close()
+
+	ds := &dataset.Dataset{}
+	if err = ds.Decode(dsp); err != nil {
+		return fmt.Errorf("decoding dataset: %s", err.Error())
 	}
 
 	if ds.Commit == nil {
@@ -305,47 +306,11 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 		ds.Commit.Title = "created dataset"
 	}
 
-	if p.DataURL != "" {
-		var res *http.Response
-		res, err = http.Get(p.DataURL)
-		if err != nil {
-			return fmt.Errorf("fetching data url: %s", err.Error())
-		}
-		defer res.Body.Close()
-		filename = filepath.Base(p.DataURL)
-		rdr = res.Body
-
-		if ds.Meta == nil {
-			ds.Meta = &dataset.Meta{}
-		}
-		if ds.Meta.DownloadPath == "" {
-			ds.Meta.DownloadPath = p.DataURL
-		}
-		// if we're adding from a dataset url, set a default accrual periodicity of once a week
-		// this'll set us up to re-check urls over time
-		// TODO - make this configurable via a param?
-		if ds.Meta.AccrualPeriodicity == "" {
-			ds.Meta.AccrualPeriodicity = "R/P1W"
-		}
-
-	} else if p.DataPath != "" {
-		var file *os.File
-		file, err = os.Open(p.DataPath)
-		if err != nil {
-			return fmt.Errorf("opening file: %s", err.Error())
-		}
-		defer file.Close()
-		filename = filepath.Base(p.DataPath)
-		rdr = file
-	} else {
-		return fmt.Errorf("either a file or a url is required to create a dataset")
-	}
-
 	// validate / generate dataset name
-	if p.Name == "" {
-		p.Name = varName.CreateVarNameFromString(filename)
+	if dsp.Name == "" {
+		dsp.Name = varName.CreateVarNameFromString(dataFile.FileName())
 	}
-	if err := validate.ValidName(p.Name); err != nil {
+	if err := validate.ValidName(dsp.Name); err != nil {
 		return fmt.Errorf("invalid name: %s", err.Error())
 	}
 
@@ -353,10 +318,10 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 	if ds.Structure == nil {
 		// use a TeeReader that writes to a buffer to preserve data
 		buf := &bytes.Buffer{}
-		tr := io.TeeReader(rdr, buf)
+		tr := io.TeeReader(dataFile, buf)
 		var df dataset.DataFormat
 
-		df, err = detect.ExtensionDataFormat(filename)
+		df, err = detect.ExtensionDataFormat(dataFile.FileName())
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("invalid data format: %s", err.Error())
@@ -368,7 +333,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 			return fmt.Errorf("determining dataset schema: %s", err.Error())
 		}
 		// glue whatever we just read back onto the reader
-		rdr = io.MultiReader(buf, rdr)
+		dataFile = cafs.NewMemfileReader(dataFile.FileName(), io.MultiReader(buf, dataFile))
 	}
 
 	// Ensure that dataset structure is valid
@@ -392,8 +357,7 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 	// 	return fmt.Errorf("this data already exists")
 	// }
 
-	dataf := cafs.NewMemfileReader("data."+ds.Structure.Format.String(), rdr)
-	*res, err = r.repo.CreateDataset(p.Name, ds, dataf, true)
+	*res, err = r.repo.CreateDataset(dsp.Name, ds, dataFile, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
@@ -402,23 +366,12 @@ func (r *DatasetRequests) Init(p *InitParams, res *repo.DatasetRef) (err error) 
 	return r.repo.ReadDataset(res)
 }
 
-// SaveParams defines permeters for Dataset Saves
-type SaveParams struct {
-	Name     string              // dataset name
-	Peername string              // peername
-	Title    string              // save message title. required.
-	Message  string              // save message. optional.
-	Dataset  *dataset.DatasetPod // dataset to update with
-	DataURL  string              // string of url to get new data. optional.
-	DataPath string              // path to update data on local filesystem
-}
-
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 // TODO - currently, if a user adds metadata or structure, but does not add
 // data, we load the data from the previous commit
 // this means that the SAME data is getting saved to the store
-// this bad!
+// this could be better/faster by just not reading the data:
 // should amend dsfs.CreateDataset to compare the data being added,
 // and not add if the hash already exists
 // but still use the hash to add to dataset.DataPath
@@ -427,28 +380,32 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
+	if p.Private {
+		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+	}
+
 	var (
-		rdr      io.Reader
-		dataf    cafs.File
-		filename string
 		updates  = &dataset.Dataset{}
 		ds       = &dataset.Dataset{}
+		dsp      = p.Dataset
+		dataFile cafs.File
 	)
 
-	if p.Name == "" || p.Peername == "" {
+	if dsp == nil {
+		return fmt.Errorf("dataset is required")
+	}
+	if dsp.Name == "" || dsp.Peername == "" {
 		return fmt.Errorf("peername & name are required to update dataset")
 	}
-	if p.DataURL == "" && p.DataPath == "" && p.Dataset == nil {
-		return fmt.Errorf("need a DataURL/Data File of data updates, or a dataset file of changes")
+	// if p.DataURL == "" && p.DataPath == "" && p.Dataset == nil {
+	// 	return fmt.Errorf("need a DataURL/Data File of data updates, or a dataset file of changes")
+	// }
+
+	if err = updates.Decode(p.Dataset); err != nil {
+		return fmt.Errorf("decoding dataset: %s", err.Error())
 	}
 
-	if p.Dataset != nil {
-		if err = updates.Decode(p.Dataset); err != nil {
-			return fmt.Errorf("decoding dataset: %s", err.Error())
-		}
-	}
-
-	prevReq := &repo.DatasetRef{Name: p.Name, Peername: p.Peername}
+	prevReq := &repo.DatasetRef{Name: dsp.Name, Peername: dsp.Peername}
 	if err = repo.CanonicalizeDatasetRef(r.repo, prevReq); err != nil {
 		return fmt.Errorf("canonicalizing previous dataset reference: %s", err.Error())
 	}
@@ -458,50 +415,22 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
-	if p.DataURL != "" {
-		var res *http.Response
-		res, err = http.Get(p.DataURL)
+	if dsp.DataBytes != nil || dsp.DataPath != "" {
+		dataFile, err = repo.DatasetPodDataFile(dsp)
 		if err != nil {
-			return fmt.Errorf("fetching data url: %s", err.Error())
+			return err
 		}
-		defer res.Body.Close()
-		filename = filepath.Base(p.DataURL)
-		rdr = res.Body
-	} else if p.DataPath != "" {
-		var file *os.File
-		file, err = os.Open(p.DataPath)
-		if err != nil {
-			return fmt.Errorf("opening file: %s", err.Error())
-		}
-		defer file.Close()
-		filename = filepath.Base(p.DataPath)
-		rdr = file
-	}
-
-	if rdr == nil {
+	} else {
 		// load data cause we need something to compare the structure to
-		ds := &dataset.Dataset{}
-		if err := ds.Decode(prev.Dataset); err != nil {
-			return fmt.Errorf("error decoding dataset: %s", err)
+		prevDs := &dataset.Dataset{}
+		if err := prevDs.Decode(prev.Dataset); err != nil {
+			return fmt.Errorf("error decoding previous dataset: %s", err)
 		}
-		datafile, err := dsfs.LoadData(r.Repo().Store(), ds)
+		dataFile, err = dsfs.LoadData(r.Repo().Store(), prevDs)
 		if err != nil {
 			return fmt.Errorf("error loading previous data from filestore: %s", err)
 		}
-
-		rdr = datafile
-		// TODO - need a filename with an extension because that is how
-		// we determine the schema in line 421 in detect.FromReader
-		// however, when reading from IPFS, the datafile.Filename
-		// is an ipfs hash, with no extention
-		// using this janky way of constructing a fake filename
-		// for us to use later when we detect the schema
-		filename = "data." + ds.Structure.Format.String()
 	}
-
-	// if updates.Commit == nil {
-	// 	updates.Commit = &dataset.Commit{}
-	// }
 
 	prevds, err := prev.DecodeDataset()
 	if err != nil {
@@ -513,14 +442,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ds.PreviousPath = prev.Path
 
 	// ds.Assign clobbers empty commit messages with the previous
-	// commit message. So if the peer hasn't provided a message at this point
-	// let's maintain that going into CreateDataset
-	if p.Title == "" {
-		ds.Commit.Title = ""
+	// commit message, reassign with updates
+	if updates.Commit == nil {
+		updates.Commit = &dataset.Commit{}
 	}
-	if p.Message == "" {
-		ds.Commit.Message = ""
-	}
+	ds.Commit.Title = updates.Commit.Title
+	ds.Commit.Message = updates.Commit.Message
 
 	// Assign will assign any previous paths to the current paths
 	// the dsdiff (called in dsfs.CreateDataset), will compare the paths
@@ -536,10 +463,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 	// ds.VisConfig.SetPath("")
 
-	if rdr != nil {
-		dataf = cafs.NewMemfileReader(filename, rdr)
-	}
-	ref, err := r.repo.CreateDataset(p.Name, ds, dataf, true)
+	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, true)
 	if err != nil {
 		log.Errorf("create ds error: %s\n", err.Error())
 		return err

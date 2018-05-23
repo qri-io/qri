@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	// "gopkg.in/yaml.v2"
 	"os"
 	"path/filepath"
 	"strings"
@@ -17,11 +16,13 @@ import (
 )
 
 var (
-	addDsDataFilepath      string
+	addDsFile              string
+	addDsDataPath          string
 	addDsMetaFilepath      string
 	addDsStructureFilepath string
 	addDsName              string
-	addDsURL               string
+	addDsTitle             string
+	addDsMessage           string
 	addDsPassive           bool
 	addDsShowValidation    bool
 	addDsPrivate           bool
@@ -56,14 +57,9 @@ changes to qri.`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
-	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		ingest := (addDsDataFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
-
-		if ingest && len(args) != 1 {
-			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
-		}
+		ingest := (addDsFile != "" || addDsDataPath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "")
 
 		if ingest {
 			ref, err := repo.ParseDatasetRef(args[0])
@@ -74,10 +70,6 @@ changes to qri.`,
 		}
 
 		for _, arg := range args {
-			if addDsPrivate {
-				ErrExit(fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"))
-			}
-
 			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
@@ -96,54 +88,44 @@ changes to qri.`,
 func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 	var err error
 
+	dsp := &dataset.DatasetPod{}
+	if addDsFile != "" {
+		f, err := os.Open(addDsFile)
+		ExitIfErr(err)
+
+		switch strings.ToLower(filepath.Ext(addDsFile)) {
+		case ".yaml", ".yml":
+			data, err := ioutil.ReadAll(f)
+			ExitIfErr(err)
+			err = dsutil.UnmarshalYAMLDatasetPod(data, dsp)
+			ExitIfErr(err)
+		case ".json":
+			err = json.NewDecoder(f).Decode(dsp)
+			ExitIfErr(err)
+		}
+	}
+
+	if name.Peername != "" {
+		dsp.Name = name.Name
+	}
+	if name.Peername != "" {
+		dsp.Peername = name.Peername
+	}
+	if addDsDataPath != "" {
+		addDsDataPath, err = filepath.Abs(addDsDataPath)
+		ExitIfErr(err)
+		dsp.DataPath = addDsDataPath
+	}
+
 	// metaFile, err = loadFileIfPath(addDsMetaFilepath)
 	// ExitIfErr(err)
 	// structureFile, err = loadFileIfPath(addDsStructureFilepath)
 	// ExitIfErr(err)
 
-	if addDsDataFilepath != "" {
-		addDsDataFilepath, err = filepath.Abs(addDsDataFilepath)
-		ExitIfErr(err)
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: addDsPrivate,
 	}
-
-	p := &core.InitParams{
-		Peername: name.Peername,
-		Name:     name.Name,
-		DataURL:  addDsURL,
-		DataPath: addDsDataFilepath,
-		Private:  addDsPrivate,
-	}
-
-	if dspath, err := cmd.Flags().GetString("dataset"); err == nil && dspath != "" {
-		ds := &dataset.DatasetPod{}
-		f, err := os.Open(dspath)
-		ExitIfErr(err)
-
-		switch strings.ToLower(filepath.Ext(dspath)) {
-		case ".yaml", ".yml":
-			data, err := ioutil.ReadAll(f)
-			ExitIfErr(err)
-			// err = UnmarshalYAML(data, ds)
-			err = dsutil.UnmarshalYAMLDatasetPod(data, ds)
-			ExitIfErr(err)
-		case ".json":
-			err = json.NewDecoder(f).Decode(ds)
-			ExitIfErr(err)
-		}
-		p.Dataset = ds
-	}
-
-	// this is because passing nil to interfaces is bad
-	// see: https://golang.org/doc/faq#nil_error
-	// if dataFile != nil {
-	// 	p.Data = dataFile
-	// }
-	// if metaFile != nil {
-	// 	p.Metadata = metaFile
-	// }
-	// if structureFile != nil {
-	// 	p.Structure = structureFile
-	// }
 
 	req, err := datasetRequests(false)
 	ExitIfErr(err)
@@ -175,12 +157,13 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 }
 
 func init() {
-	datasetAddCmd.Flags().StringP("dataset", "", "", "dataset data file")
-	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "", "", "url of file to initialize from")
-	datasetAddCmd.Flags().StringVarP(&addDsDataFilepath, "data", "", "", "data file to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsFile, "file", "f", "", "dataset data file in either (.yaml or .json) file")
+	datasetAddCmd.Flags().StringVarP(&addDsDataPath, "data", "d", "", "path to file or url to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsTitle, "title", "t", "", "commit title")
+	datasetAddCmd.Flags().StringVarP(&addDsMessage, "messsage", "m", "", "commit message")
 	// datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
 	// datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
-	datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }
