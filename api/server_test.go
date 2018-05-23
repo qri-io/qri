@@ -111,8 +111,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmRvu8tNk1ChFmhpczooykvAM4BCLCb4Ss55orpyWYBcoA", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmRvu8tNk1ChFmhpczooykvAM4BCLCb4Ss55orpyWYBcoA", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -133,7 +133,7 @@ func TestServerRoutes(t *testing.T) {
 
 		// remove
 		{"POST", "/remove/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "removeResponseWithPath.json", 200},
-		{"POST", "/remove/at/map/QmRvu8tNk1ChFmhpczooykvAM4BCLCb4Ss55orpyWYBcoA", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "removeResponseByPath.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 

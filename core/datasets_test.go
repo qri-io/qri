@@ -60,7 +60,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		err     string
 	}{
 		{nil, nil, "dataset is required"},
-		{&dataset.DatasetPod{}, nil, "either dataBytes or dataPath is required to create a dataset"},
+		{&dataset.DatasetPod{}, nil, "either dataBytes, dataPath, or a transform is required to create a dataset"},
 		{&dataset.DatasetPod{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
 		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		{&dataset.DatasetPod{DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},

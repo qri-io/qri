@@ -271,6 +271,8 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
+	var dataFile cafs.File
+
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
@@ -280,15 +282,9 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("dataset is required")
 	}
 
-	if dsp.DataPath == "" && dsp.DataBytes == nil {
-		return fmt.Errorf("either dataBytes or dataPath is required to create a dataset")
+	if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
+		return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
 	}
-
-	dataFile, err := repo.DatasetPodDataFile(dsp)
-	if err != nil {
-		return err
-	}
-	defer dataFile.Close()
 
 	ds := &dataset.Dataset{}
 	if err = ds.Decode(dsp); err != nil {
@@ -303,40 +299,49 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds.Commit.Title = "created dataset"
 	}
 
-	// validate / generate dataset name
-	if dsp.Name == "" {
-		dsp.Name = varName.CreateVarNameFromString(dataFile.FileName())
-	}
-	if err := validate.ValidName(dsp.Name); err != nil {
-		return fmt.Errorf("invalid name: %s", err.Error())
-	}
+	if dsp.Transform == nil {
 
-	// read structure from InitParams, or detect from data
-	if ds.Structure == nil {
-		// use a TeeReader that writes to a buffer to preserve data
-		buf := &bytes.Buffer{}
-		tr := io.TeeReader(dataFile, buf)
-		var df dataset.DataFormat
-
-		df, err = detect.ExtensionDataFormat(dataFile.FileName())
+		dataFile, err = repo.DatasetPodDataFile(dsp)
 		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("invalid data format: %s", err.Error())
+			return err
+		}
+		defer dataFile.Close()
+
+		// validate / generate dataset name
+		if dsp.Name == "" {
+			dsp.Name = varName.CreateVarNameFromString(dataFile.FileName())
+		}
+		if err := validate.ValidName(dsp.Name); err != nil {
+			return fmt.Errorf("invalid name: %s", err.Error())
 		}
 
-		ds.Structure, _, err = detect.FromReader(df, tr)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("determining dataset schema: %s", err.Error())
-		}
-		// glue whatever we just read back onto the reader
-		dataFile = cafs.NewMemfileReader(dataFile.FileName(), io.MultiReader(buf, dataFile))
-	}
+		// read structure from InitParams, or detect from data
+		if ds.Structure == nil && ds.Transform == nil {
+			// use a TeeReader that writes to a buffer to preserve data
+			buf := &bytes.Buffer{}
+			tr := io.TeeReader(dataFile, buf)
+			var df dataset.DataFormat
 
-	// Ensure that dataset structure is valid
-	if err = validate.Dataset(ds); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("invalid dataset: %s", err.Error())
+			df, err = detect.ExtensionDataFormat(dataFile.FileName())
+			if err != nil {
+				log.Debug(err.Error())
+				return fmt.Errorf("invalid data format: %s", err.Error())
+			}
+
+			ds.Structure, _, err = detect.FromReader(df, tr)
+			if err != nil {
+				log.Debug(err.Error())
+				return fmt.Errorf("determining dataset schema: %s", err.Error())
+			}
+			// glue whatever we just read back onto the reader
+			dataFile = cafs.NewMemfileReader(dataFile.FileName(), io.MultiReader(buf, dataFile))
+		}
+
+		// Ensure that dataset structure is valid
+		if err = validate.Dataset(ds); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("invalid dataset: %s", err.Error())
+		}
 	}
 
 	// TODO - this relies on repo graph calculations, which are temporarily disabled b/c bugs.
