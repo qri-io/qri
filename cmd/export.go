@@ -47,19 +47,19 @@ To export everything about a dataset, use the --dataset flag.`,
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 
-    if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
-      if path == "" {
-        path = "dataset.yaml"
-      }
-      if _, err := os.Stat(path); os.IsNotExist(err) {
-        err := ioutil.WriteFile(path, []byte(blankYamlDataset), os.ModePerm)
-        ExitIfErr(err)
-        printSuccess("blank dataset file saved to %s", path)
-        } else {
-          ErrExit(fmt.Errorf("'%s' already exists", path))
-        }
-      return
-    }
+		if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
+			if path == "" {
+				path = "dataset.yaml"
+			}
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				err := ioutil.WriteFile(path, []byte(blankYamlDataset), os.ModePerm)
+				ExitIfErr(err)
+				printSuccess("blank dataset file saved to %s", path)
+			} else {
+				ErrExit(fmt.Errorf("'%s' already exists", path))
+			}
+			return
+		}
 
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
@@ -204,7 +204,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 func init() {
 	RootCmd.AddCommand(exportCmd)
-  exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
+	exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
@@ -220,7 +220,6 @@ func init() {
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json,cbor]")
 }
 
-
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:
 # $ qri add --file=dataset.yaml
 # For more info check out https://qri.io/docs
@@ -231,7 +230,7 @@ const blankYamlDataset = `# This file defines a qri dataset. Change this file, s
 name: 
 
 # Commit contains notes about this dataset at the time it was saved
-# commit is optional
+# all commit stuff is optional (one will be generated for you if you don't provide one)
 commit:
   title:
   message:
@@ -259,6 +258,13 @@ structure:
   #   type: array
   #   items:
   #     type: string
+
+# Transform contains instructions for creating repeatable, auditable scripts
+# that qri can execute for you. Currently transforms are written in the skylark
+# scripting language, which is modeled after the python programming language
+# for more info check https://qri.io/docs/transforms
+# transform:
+#   scriptpath: tf.sky
 
 # data itself is either a path to a file on your computer,
 # or a URL that leads to the raw data

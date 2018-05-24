@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	addDsFile              string
-	addDsDataPath          string
-	addDsName              string
-	addDsTitle             string
-	addDsMessage           string
-	addDsPassive           bool
-	addDsShowValidation    bool
-	addDsPrivate           bool
+	addDsFile           string
+	addDsDataPath       string
+	addDsName           string
+	addDsTitle          string
+	addDsMessage        string
+	addDsPassive        bool
+	addDsShowValidation bool
+	addDsPrivate        bool
 )
 
 var datasetAddCmd = &cobra.Command{
@@ -113,6 +113,10 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 		addDsDataPath, err = filepath.Abs(addDsDataPath)
 		ExitIfErr(err)
 		dsp.DataPath = addDsDataPath
+	}
+	if dsp.Transform != nil && dsp.Transform.ScriptPath != "" {
+		dsp.Transform.ScriptPath, err = filepath.Abs(dsp.Transform.ScriptPath)
+		ExitIfErr(err)
 	}
 
 	p := &core.SaveParams{

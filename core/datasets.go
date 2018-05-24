@@ -299,12 +299,8 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds.Commit.Title = "created dataset"
 	}
 
-	if dsp.Transform == nil {
-
-		dataFile, err = repo.DatasetPodDataFile(dsp)
-		if err != nil {
-			return err
-		}
+	// open a data file if we can
+	if dataFile, err = repo.DatasetPodDataFile(dsp); err == nil {
 		defer dataFile.Close()
 
 		// validate / generate dataset name
@@ -342,22 +338,17 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 			log.Debug(err.Error())
 			return fmt.Errorf("invalid dataset: %s", err.Error())
 		}
-	}
 
-	// TODO - this relies on repo graph calculations, which are temporarily disabled b/c bugs.
-	// the idea here was to check the datastore for existence before proceeding. This whole process
-	// needs a rethink if we're going to convert to CBOR at ingest.
-	// datakey, err := store.Put(cafs.NewMemfileBytes("data."+st.Format.String(), data), false)
-	// if err != nil {
-	// 	return fmt.Errorf("error putting data file in store: %s", err.Error())
-	// }
-	// dataexists, err := repo.HasPath(r.repo, datakey)
-	// if err != nil && !strings.Contains(err.Error(), repo.ErrRepoEmpty.Error()) {
-	// 	return fmt.Errorf("error checking repo for already-existing data: %s", err.Error())
-	// }
-	// if dataexists {
-	// 	return fmt.Errorf("this data already exists")
-	// }
+		// NOTE - if we have a data file, this overrides any transformation,
+		// so we need to remove the transform to avoid having the data appear to be
+		// the result of a transform process
+		ds.Transform = nil
+
+	} else if err.Error() == "not found" {
+		err = nil
+	} else {
+		return err
+	}
 
 	*res, err = r.repo.CreateDataset(dsp.Name, ds, dataFile, true)
 	if err != nil {
@@ -399,8 +390,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if dsp.Name == "" || dsp.Peername == "" {
 		return fmt.Errorf("peername & name are required to update dataset")
 	}
-	// if p.DataURL == "" && p.DataPath == "" && p.Dataset == nil {
-	// 	return fmt.Errorf("need a DataURL/Data File of data updates, or a dataset file of changes")
+	// if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
+	// 	return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
 	// }
 
 	if err = updates.Decode(p.Dataset); err != nil {

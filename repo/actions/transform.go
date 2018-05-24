@@ -12,7 +12,8 @@ import (
 )
 
 // ExecTransform executes a designated transformation
-func (act Dataset) ExecTransform(ds *dataset.Dataset, filepath string) (file cafs.File, err error) {
+func (act Dataset) ExecTransform(ds *dataset.Dataset) (file cafs.File, err error) {
+	filepath := ds.Transform.ScriptPath
 	rr, err := skytf.ExecFile(ds, filepath)
 	if err != nil {
 		return nil, err
@@ -46,25 +47,20 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, filepath string) (file caf
 		return nil, fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
-	// Add skylark file to store
+	// TODO - adding here just to get the script path. clean up events to handle this situation
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO - currently this is just pinning to the repo, this should *not* be pinned,
-	// instead it should be added to the dataset merkleDAG
-	tfPath, err := act.Repo.Store().Put(cafs.NewMemfileReader("transform.sky", f), true)
+	tfPath, err := act.Repo.Store().Put(cafs.NewMemfileReader("transform.sky", f), false)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO - clean up events to handle this situation
 	ref := repo.DatasetRef{
 		Dataset: &dataset.DatasetPod{
 			Transform: &dataset.TransformPod{
-				Syntax: "skylark",
-				Data:   tfPath.String(),
+				Syntax:     "skylark",
+				ScriptPath: tfPath.String(),
 			},
 		},
 	}
@@ -73,9 +69,6 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, filepath string) (file caf
 		return
 	}
 
-	fmt.Println(string(buf.Bytes()))
-
 	ds.Structure = st
-	ds.Transform.Data = tfPath.String()
 	return cafs.NewMemfileBytes(fmt.Sprintf("data.%s", st.Format.String()), buf.Bytes()), nil
 }
