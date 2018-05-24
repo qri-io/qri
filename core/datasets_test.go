@@ -536,6 +536,71 @@ func TestDatasetRequestsAdd(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsAddP2p(t *testing.T) {
+	// Matches what is used to generate the test peers.
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+
+	// Create test nodes.
+	ctx := context.Background()
+	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 2, p2p.NewTestQriNode)
+	if err != nil {
+		t.Errorf("error creating network: %s", err.Error())
+		return
+	}
+
+	// Peers exchange Qri profile information.
+	if err := p2ptest.ConnectQriPeers(ctx, testPeers); err != nil {
+		t.Errorf("error connecting peers: %s", err.Error())
+	}
+
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*p2p.QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*p2p.QriNode)
+	}
+
+	// Connect in memory Mapstore's behind the scene to simulate IPFS like behavior.
+	for i, s0 := range peers {
+		for _, s1 := range peers[i+1:] {
+			m0 := (s0.Repo.Store()).(*cafs.MapStore)
+			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0.AddConnection(m1)
+		}
+	}
+
+	var wg sync.WaitGroup
+	for i, p0 := range peers {
+		for _, p1 := range peers[i+1:] {
+			wg.Add(1)
+			go func(p0, p1 *p2p.QriNode) {
+				defer wg.Done()
+
+				// Get ref to dataset that peer2 has.
+				profile, _ := p1.Repo.Profile()
+				num := profile.Peername[len(profile.Peername)-1:]
+				index, _ := strconv.ParseInt(num, 10, 32)
+				name := datasets[index]
+				ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
+
+				// Build requests for peer1 to peer2.
+				dsr := NewDatasetRequestsWithNode(p0.Repo, nil, p0)
+				got := &repo.DatasetRef{}
+
+				err := dsr.Add(&ref, got)
+				if err != nil {
+					pro1, _ := p0.Repo.Profile()
+					pro2, _ := p1.Repo.Profile()
+					t.Errorf("error adding dataset for %s from %s to %s: %s",
+						ref.Name, pro2.Peername, pro1.Peername, err.Error())
+				}
+			}(p0, p1)
+		}
+	}
+	wg.Wait()
+
+	// TODO: Validate that p1 has added data from p2.
+}
+
 func TestDatasetRequestsValidate(t *testing.T) {
 	movieb := []byte(`movie_title,duration
 Avatar ,178
