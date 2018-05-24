@@ -230,7 +230,7 @@ const blankYamlDataset = `# This file defines a qri dataset. Change this file, s
 name: 
 
 # Commit contains notes about this dataset at the time it was saved
-# commit is optional
+# all commit stuff is optional (one will be generated for you if you don't provide one)
 commit:
   title:
   message:
@@ -258,6 +258,13 @@ structure:
   #   type: array
   #   items:
   #     type: string
+
+# Transform contains instructions for creating repeatable, auditable scripts
+# that qri can execute for you. Currently transforms are written in the skylark
+# scripting language, which is modeled after the python programming language
+# for more info check https://qri.io/docs/transforms
+# transform:
+#   scriptpath: tf.sky
 
 # data itself is either a path to a file on your computer,
 # or a URL that leads to the raw data

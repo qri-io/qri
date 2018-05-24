@@ -38,6 +38,8 @@ const (
 	ETDsUnpinned = EventType("ds_unpinned")
 	// ETDsAdded represents adding a reference to another peer's dataset to their node
 	ETDsAdded = EventType("ds_added")
+	// ETTransformExecuted represents running a transformation
+	ETTransformExecuted = EventType("tf_executed")
 )
 
 // MemEventLog is an in-memory implementation of the

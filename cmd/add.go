@@ -114,6 +114,10 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 		ExitIfErr(err)
 		dsp.DataPath = addDsDataPath
 	}
+	if dsp.Transform != nil && dsp.Transform.ScriptPath != "" {
+		dsp.Transform.ScriptPath, err = filepath.Abs(dsp.Transform.ScriptPath)
+		ExitIfErr(err)
+	}
 
 	p := &core.SaveParams{
 		Dataset: dsp,

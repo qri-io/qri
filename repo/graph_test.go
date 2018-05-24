@@ -92,8 +92,8 @@ func makeTestRepo() (Repo, error) {
 			Schema: dataset.BaseSchemaObject,
 		},
 		Transform: &dataset.Transform{
-			Syntax: "sql",
-			Data:   "select * from a,b where b.id = 'foo'",
+			Syntax:     "sql",
+			ScriptPath: "foo.sky",
 			Resources: map[string]*dataset.Dataset{
 				"a": dataset.NewDatasetRef(datastore.NewKey("/path/to/a")),
 				"b": dataset.NewDatasetRef(datastore.NewKey("/path/to/b")),
