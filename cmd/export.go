@@ -47,19 +47,19 @@ To export everything about a dataset, use the --dataset flag.`,
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 
-    if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
-      if path == "" {
-        path = "dataset.yaml"
-      }
-      if _, err := os.Stat(path); os.IsNotExist(err) {
-        err := ioutil.WriteFile(path, []byte(blankYamlDataset), os.ModePerm)
-        ExitIfErr(err)
-        printSuccess("blank dataset file saved to %s", path)
-        } else {
-          ErrExit(fmt.Errorf("'%s' already exists", path))
-        }
-      return
-    }
+		if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
+			if path == "" {
+				path = "dataset.yaml"
+			}
+			if _, err := os.Stat(path); os.IsNotExist(err) {
+				err := ioutil.WriteFile(path, []byte(blankYamlDataset), os.ModePerm)
+				ExitIfErr(err)
+				printSuccess("blank dataset file saved to %s", path)
+			} else {
+				ErrExit(fmt.Errorf("'%s' already exists", path))
+			}
+			return
+		}
 
 		r := getRepo(false)
 		req := core.NewDatasetRequests(r, nil)
@@ -204,7 +204,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 func init() {
 	RootCmd.AddCommand(exportCmd)
-  exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
+	exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
@@ -219,7 +219,6 @@ func init() {
 	// TODO - get format conversion up & running
 	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json,cbor]")
 }
-
 
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:
 # $ qri add --file=dataset.yaml

@@ -87,7 +87,7 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 func (act Dataset) AddDataset(ref *repo.DatasetRef) (err error) {
 	log.Debugf("AddDataset: %s", ref)
 
-	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/" + dsfs.PackageFileDataset.String()))
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
 	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
 
 	fetcher, ok := act.Store().(cafs.Fetcher)

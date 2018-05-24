@@ -105,7 +105,6 @@ func printPeerInfo(i int, p *config.ProfilePod) {
 	fmt.Println("")
 }
 
-
 func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
 	case dataset.JSONDataFormat:
