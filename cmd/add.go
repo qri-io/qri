@@ -16,14 +16,14 @@ import (
 )
 
 var (
-	addDsFile              string
-	addDsDataPath          string
-	addDsName              string
-	addDsTitle             string
-	addDsMessage           string
-	addDsPassive           bool
-	addDsShowValidation    bool
-	addDsPrivate           bool
+	addDsFile           string
+	addDsDataPath       string
+	addDsName           string
+	addDsTitle          string
+	addDsMessage        string
+	addDsPassive        bool
+	addDsShowValidation bool
+	addDsPrivate        bool
 )
 
 var datasetAddCmd = &cobra.Command{
