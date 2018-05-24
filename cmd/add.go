@@ -1,10 +1,14 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -12,11 +16,11 @@ import (
 )
 
 var (
-	addDsFilepath          string
-	addDsMetaFilepath      string
-	addDsStructureFilepath string
+	addDsFile              string
+	addDsDataPath          string
 	addDsName              string
-	addDsURL               string
+	addDsTitle             string
+	addDsMessage           string
 	addDsPassive           bool
 	addDsShowValidation    bool
 	addDsPrivate           bool
@@ -46,33 +50,24 @@ changes to qri.`,
 	Example: `  add a new dataset named annual_pop:
   $ qri add --data data.csv me/annual_pop
 
-  create a dataset with a metadata and data file:
-  $ qri add --meta meta.json --data comics.csv me/comic_characters`,
+  create a dataset with a dataset data file:
+  $ qri add --file dataset.yaml --data comics.csv me/comic_characters`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
-	Args: cobra.MinimumNArgs(1),
 	Run: func(cmd *cobra.Command, args []string) {
 
-		ingest := (addDsFilepath != "" || addDsMetaFilepath != "" || addDsStructureFilepath != "" || addDsURL != "")
-
-		if ingest && len(args) != 1 {
-			ErrExit(fmt.Errorf("adding datasets with --structure, --meta, or --data requires exactly 1 argument for the new dataset name"))
-		}
+		ingest := (addDsFile != "" || addDsDataPath != "")
 
 		if ingest {
 			ref, err := repo.ParseDatasetRef(args[0])
 			ExitIfErr(err)
 
-			initDataset(ref)
+			initDataset(ref, cmd)
 			return
 		}
 
 		for _, arg := range args {
-			if addDsPrivate {
-				ErrExit(fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"))
-			}
-
 			ref, err := repo.ParseDatasetRef(arg)
 			ExitIfErr(err)
 
@@ -88,41 +83,41 @@ changes to qri.`,
 	},
 }
 
-func initDataset(name repo.DatasetRef) {
-	var (
-		dataFile, metaFile, structureFile *os.File
-		err                               error
-	)
+func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
+	var err error
 
-	if addDsFilepath == "" && addDsURL == "" || addDsFilepath != "" && addDsURL != "" {
-		ErrExit(fmt.Errorf("please provide either a file or a url argument"))
+	dsp := &dataset.DatasetPod{}
+	if addDsFile != "" {
+		f, err := os.Open(addDsFile)
+		ExitIfErr(err)
+
+		switch strings.ToLower(filepath.Ext(addDsFile)) {
+		case ".yaml", ".yml":
+			data, err := ioutil.ReadAll(f)
+			ExitIfErr(err)
+			err = dsutil.UnmarshalYAMLDatasetPod(data, dsp)
+			ExitIfErr(err)
+		case ".json":
+			err = json.NewDecoder(f).Decode(dsp)
+			ExitIfErr(err)
+		}
 	}
 
-	dataFile, err = loadFileIfPath(addDsFilepath)
-	ExitIfErr(err)
-	metaFile, err = loadFileIfPath(addDsMetaFilepath)
-	ExitIfErr(err)
-	structureFile, err = loadFileIfPath(addDsStructureFilepath)
-	ExitIfErr(err)
-
-	p := &core.InitParams{
-		Peername:     name.Peername,
-		Name:         name.Name,
-		URL:          addDsURL,
-		DataFilename: filepath.Base(addDsFilepath),
-		Private:      addDsPrivate,
+	if name.Peername != "" {
+		dsp.Name = name.Name
+	}
+	if name.Peername != "" {
+		dsp.Peername = name.Peername
+	}
+	if addDsDataPath != "" {
+		addDsDataPath, err = filepath.Abs(addDsDataPath)
+		ExitIfErr(err)
+		dsp.DataPath = addDsDataPath
 	}
 
-	// this is because passing nil to interfaces is bad
-	// see: https://golang.org/doc/faq#nil_error
-	if dataFile != nil {
-		p.Data = dataFile
-	}
-	if metaFile != nil {
-		p.Metadata = metaFile
-	}
-	if structureFile != nil {
-		p.Structure = structureFile
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: addDsPrivate,
 	}
 
 	req, err := datasetRequests(false)
@@ -134,18 +129,20 @@ func initDataset(name repo.DatasetRef) {
 
 	if ref.Dataset.Structure.ErrCount > 0 {
 		printWarning(fmt.Sprintf("this dataset has %d validation errors", ref.Dataset.Structure.ErrCount))
-		if addDsShowValidation {
-			printWarning("Validation Error Detail:")
-			data, err := ioutil.ReadAll(dataFile)
-			ExitIfErr(err)
-			ds, err := ref.DecodeDataset()
-			ErrExit(err)
-			errorList, err := ds.Structure.Schema.ValidateBytes(data)
-			ExitIfErr(err)
-			for i, validationErr := range errorList {
-				printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
-			}
-		}
+
+		// TODO - restore.
+		// if addDsShowValidation {
+		// 	printWarning("Validation Error Detail:")
+		// 	data, err := ioutil.ReadAll(dataFile)
+		// 	ExitIfErr(err)
+		// 	ds, err := ref.DecodeDataset()
+		// 	ErrExit(err)
+		// 	errorList, err := ds.Structure.Schema.ValidateBytes(data)
+		// 	ExitIfErr(err)
+		// 	for i, validationErr := range errorList {
+		// 		printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
+		// 	}
+		// }
 	}
 
 	ref.Peername = "me"
@@ -153,11 +150,11 @@ func initDataset(name repo.DatasetRef) {
 }
 
 func init() {
-	datasetAddCmd.Flags().StringVarP(&addDsURL, "url", "", "", "url of file to initialize from")
-	datasetAddCmd.Flags().StringVarP(&addDsFilepath, "data", "", "", "data file to initialize from")
-	datasetAddCmd.Flags().StringVarP(&addDsStructureFilepath, "structure", "", "", "dataset structure JSON file")
-	datasetAddCmd.Flags().StringVarP(&addDsMetaFilepath, "meta", "", "", "dataset metadata JSON file")
+	datasetAddCmd.Flags().StringVarP(&addDsFile, "file", "f", "", "dataset data file in either yaml or json format")
+	datasetAddCmd.Flags().StringVarP(&addDsDataPath, "data", "d", "", "path to file or url to initialize from")
+	datasetAddCmd.Flags().StringVarP(&addDsTitle, "title", "t", "", "commit title")
+	datasetAddCmd.Flags().StringVarP(&addDsMessage, "messsage", "m", "", "commit message")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
-	datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }

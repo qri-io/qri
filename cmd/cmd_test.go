@@ -146,7 +146,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"help"},
 		{"version"},
 		{"setup", "--peername=" + "alan", "--registry=" + registryServer.URL},
-		{"config", "get"},
+		{"config", "get", "-c"},
 		{"config", "get", "profile"},
 		{"config", "set", "webapp.port", "3505"},
 		// TODO - add setting whole config via a file
@@ -165,6 +165,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},
 		{"remove", "me/movie"},
+    {"export", "--blank", "-o"+path+"/blank_dataset.yaml"},
 		{"setup", "--remove"},
 	}
 

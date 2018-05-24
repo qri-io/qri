@@ -103,7 +103,7 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/list", "", "listResponse.json", 200},
 
 		// profile
-		// {"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
+		{"POST", "/profile", "profileRequest.json", "profileResponse.json", 200},
 		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
 
@@ -120,24 +120,24 @@ func TestServerRoutes(t *testing.T) {
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "historyResponseAt.json", 200},
 
 		{"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "", 200},
-		{"GET", "/export/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "", 200},
+		{"GET", "/export/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/Qme63PBEFau5q3Paxxemb4J6xTNow9QjBFa91XeCe1hKre", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "removeResponseWithPath.json", 200},
 		{"POST", "/remove/at/map/QmRvu8tNk1ChFmhpczooykvAM4BCLCb4Ss55orpyWYBcoA", "", "removeResponseByPath.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 
-		// blatently checking all options for easy test coverage bump
+		// // blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},
 		{"OPTIONS", "/profile", "", "", 200},

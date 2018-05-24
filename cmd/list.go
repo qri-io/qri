@@ -31,8 +31,7 @@ qri repository.`,
 		loadConfig()
 	},
 	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 {
-			// TODO - add limit & offset params
+		if len(args) == 0 {
 			r, err := datasetRequests(false)
 			ExitIfErr(err)
 
@@ -58,10 +57,7 @@ qri repository.`,
 				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
 			}
 		} else {
-			// for _, ref := range args {
-			// ref, err := repo.ParseDatasetRef(ref)
-			// ExitIfErr(err)
-			// }
+			printInfo("args: ", args[0])
 			r, err := datasetRequests(true)
 			ExitIfErr(err)
 

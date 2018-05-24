@@ -10,7 +10,6 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
@@ -45,11 +44,6 @@ type Repo interface {
 	// record of this repository's data. Store gives direct access to the
 	// cafs.Filestore instance any given repo is using.
 	Store() cafs.Filestore
-
-	// Graph returns a graph of this repositories data resources
-	// TODO - either depricate or refactor this. We need graph support for dataset transforms
-	// to work properly, but the whole notion of transforms needs a rethink first.
-	Graph() (map[string]*dsgraph.Node, error)
 
 	// All Repos must keep a Refstore, defining a store of known datasets
 	Refstore

@@ -13,35 +13,19 @@ var walkParallelism = 4
 
 // HasPath returns true if this repo already has a reference to
 // a given path.
-func HasPath(r Repo, path datastore.Key) (bool, error) {
-	nodes, err := r.Graph()
-	if err != nil {
-		return false, fmt.Errorf("error getting repo graph: %s", err.Error())
-	}
-	p := path.String()
-	for np := range nodes {
-		if p == np {
-			return true, nil
-		}
-	}
-	return false, nil
-}
-
-// DatasetForQuery gives a corresponding dataset for a query path if one exists
-func DatasetForQuery(r Repo, qpath datastore.Key) (datastore.Key, error) {
-	nodes, err := r.Graph()
-	if err != nil {
-		return datastore.NewKey(""), fmt.Errorf("error getting repo graph: %s", err.Error())
-	}
-	qps := qpath.String()
-	qs := QueriesMap(nodes)
-	for qp, dsp := range qs {
-		if qp == qps {
-			return dsp, nil
-		}
-	}
-	return datastore.NewKey(""), ErrNotFound
-}
+// func HasPath(r Repo, path datastore.Key) (bool, error) {
+// 	nodes, err := r.Graph()
+// 	if err != nil {
+// 		return false, fmt.Errorf("error getting repo graph: %s", err.Error())
+// 	}
+// 	p := path.String()
+// 	for np := range nodes {
+// 		if p == np {
+// 			return true, nil
+// 		}
+// 	}
+// 	return false, nil
+// }
 
 // Graph generates a map of all paths on this repository pointing
 // to dsgraph.Node structs with all links configured. This is potentially
@@ -64,39 +48,6 @@ func Graph(r Repo) (map[string]*dsgraph.Node, error) {
 		}
 	}(root))
 	return nodes.Nodes, err
-}
-
-// QueriesMap returns a mapped subset of a list of nodes in the form:
-// 		QueryHash : DatasetHash
-func QueriesMap(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
-	qs = map[string]datastore.Key{}
-	for path, node := range nodes {
-		if node.Type == dsgraph.NtDataset && len(node.Links) > 0 {
-			for _, l := range node.Links {
-				if l.To.Type == dsgraph.NtTransform {
-					qs[path] = datastore.NewKey(l.To.Path)
-				}
-			}
-		}
-	}
-	return
-}
-
-// DatasetQueries returns a mapped subset of a list of nodes in the form:
-// 		DatasetHash : QueryHash
-func DatasetQueries(nodes map[string]*dsgraph.Node) (qs map[string]datastore.Key) {
-	qs = map[string]datastore.Key{}
-	for path, node := range nodes {
-		if node.Type == dsgraph.NtTransform && len(node.Links) > 0 {
-			for _, l := range node.Links {
-				if l.To.Type == dsgraph.NtDataset {
-					// qs[path] = datastore.NewKey(l.To.Path)
-					qs[l.To.Path] = datastore.NewKey(path)
-				}
-			}
-		}
-	}
-	return
 }
 
 // DataNodes returns a map[path]bool of all raw data nodes

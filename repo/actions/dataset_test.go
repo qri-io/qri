@@ -227,10 +227,15 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 		}
 	}
 
-	if err := act.UnpinDataset(b); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
-		return
-	}
+	// TODO - calling unpin followed by delete will trigger two unpin events,
+	// which based on our current architecture can and will probably cause problems
+	// we should either hardern every unpin implementation to not error on multiple
+	// calls to unpin the same hash, or include checks in the delete method
+	// and only call unpin if the hash is in fact pinned
+	// if err := act.UnpinDataset(b); err != nil && err != repo.ErrNotPinner {
+	// 	t.Error(err.Error())
+	// 	return
+	// }
 
 	if err := act.DeleteDataset(b); err != nil {
 		t.Error(err.Error())
@@ -251,6 +256,10 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 
 	if len(events) != len(ets) {
 		t.Errorf("event log length mismatch. expected: %d, got: %d", len(ets), len(events))
+		t.Log("event log:")
+		for i, e := range events {
+			t.Logf("\t%d: %s", i, e.Type)
+		}
 		return
 	}
 

@@ -157,6 +157,10 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	*res = *Config.Profile
 	res.PrivKey = ""
 
+	if Config.P2P != nil {
+		res.Online = Config.P2P.Enabled
+	}
+
 	return SetConfig(Config)
 }
 

@@ -46,15 +46,6 @@ func printNotYetFinished(cmd *cobra.Command) {
 	color.Yellow("%s command is not yet implemented", cmd.Name())
 }
 
-// func PrintValidationErrors(errs map[string][]*history.ValidationError) {
-// 	for key, es := range errs {
-// 		color.Yellow("%s:", key)
-// 		for _, e := range es {
-// 			color.Yellow("\t%s", e.String())
-// 		}
-// 	}
-// }
-
 func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
@@ -101,48 +92,19 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 
 func printPeerInfo(i int, p *config.ProfilePod) {
 	white := color.New(color.FgWhite).SprintFunc()
-	grey := color.New(color.FgBlack).SprintFunc()
 	yellow := color.New(color.FgYellow).SprintFunc()
-	// blue := color.New(color.FgBlue).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
 	if p.Online {
 		fmt.Printf("%s | %s\n", white(p.Peername), yellow("online"))
 	} else {
 		fmt.Printf("%s\n", white(p.Peername))
 	}
-	fmt.Printf("%s\n", grey(p.ID))
+	fmt.Printf("%s\n", blue(p.ID))
 	fmt.Printf("%s\n", p.Twitter)
 	fmt.Printf("%s\n", p.Description)
 	fmt.Println("")
 }
 
-// func PrintDatasetDetailedInfo(ds *dataset.Dataset) {
-// 	fmt.Println("")
-// 	white := color.New(color.FgWhite).SprintFunc()
-// 	cyan := color.New(color.FgCyan).SprintFunc()
-// 	blue := color.New(color.FgBlue).SprintFunc()
-// 	fmt.Printf("\taddress: %s\n", white(ds.Address))
-// 	fmt.Printf("\tname: %s\n", white(ds.Name))
-// 	if ds.Description != "" {
-// 		fmt.Printf("\tdescription: %s\n", white(ds.Description))
-// 	}
-
-// 	fmt.Println("\tfields:")
-// 	for _, f := range ds.Fields {
-// 		fmt.Printf("\t%s", cyan(f.Name))
-// 	}
-// 	fmt.Printf("\n")
-// 	for _, f := range ds.Fields {
-// 		fmt.Printf("\t%s", blue(f.Type.String()))
-// 	}
-// 	fmt.Printf("\n")
-// }
-
-func printQuery(i int, r *repo.DatasetRef) {
-	white := color.New(color.FgWhite).SprintFunc()
-	cyan := color.New(color.FgCyan).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	fmt.Printf("%s:\t%s\n\t%s\n", cyan(i), white(r.Dataset.Transform.Data), blue(r.Path))
-}
 
 func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
@@ -200,18 +162,6 @@ func terribleHackToGetHeaderRow(st *dataset.Structure) ([]string, error) {
 	return nil, fmt.Errorf("nope")
 }
 
-// func PrintTree(ds *dataset.Dataset, indent int) {
-// 	fmt.Println(strings.Repeat(" ", indent), ds.Address.String())
-// 	for i, d := range ds.Datasets {
-// 		if i < len(ds.Datasets)-1 {
-// 			fmt.Println(strings.Repeat(" ", indent), "├──", d.Address.String())
-// 		} else {
-// 			fmt.Println(strings.Repeat(" ", indent), "└──", d.Address.String())
-
-// 		}
-// 	}
-// }
-
 func prompt(msg string) string {
 	var input string
 	printPrompt(msg)
@@ -248,15 +198,4 @@ func printDiffs(diffText string) {
 			fmt.Printf("%s\n", line)
 		}
 	}
-	// output := ""
-	// for _, line := range lines {
-	// 	if len(line) >= 3 && (line[:2] == "+ " || line[:2] == "++") {
-	// 		output += fmt.Sprintf("🎾%s\n", green(line))
-	// 	} else if len(line) >= 3 && (line[:2] == "- " || line[:2] == "--") {
-	// 		output += fmt.Sprintf("🏓%s\n", red(line))
-	// 	} else {
-	// 		output += fmt.Sprintf("%s\n", line)
-	// 	}
-	// }
-	// fmt.Printf("%s", output)
 }

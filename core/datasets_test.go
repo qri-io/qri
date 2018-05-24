@@ -5,6 +5,8 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"net/http"
+	"net/http/httptest"
 	"strconv"
 	"sync"
 	"testing"
@@ -13,6 +15,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/p2p"
@@ -23,33 +26,18 @@ import (
 )
 
 func TestDatasetRequestsInit(t *testing.T) {
-	badDataFile := testrepo.BadDataFile
-	jobsByAutomationFile := testrepo.NewJobsByAutomationFile()
-	// badDataFormatFile := testrepo.BadDataFormatFile
-	// badStructureFile := testrepo.BadStructureFile
-
-	cases := []struct {
-		p   *InitParams
-		res *repo.DatasetRef
-		err string
-	}{
-		{&InitParams{}, nil, "either a file or a url is required to create a dataset"},
-		{&InitParams{Data: badDataFile}, nil, "error determining dataset schema: no file extension provided"},
-		{&InitParams{DataFilename: badDataFile.FileName(), Data: badDataFile}, nil, "error determining dataset schema: EOF"},
-		// TODO - reenable
-		// Ensure that DataFormat validation is being called
-		// {&InitParams{DataFilename: badDataFormatFile.FileName(),
-		// Data: badDataFormatFile}, nil, "invalid data format: error: inconsistent column length on line 2 of length 3 (rather than 4). ensure all csv columns same length"},
-		// TODO - restore
-		// Ensure that structure validation is being called
-		// {&InitParams{DataFilename: badStructureFile.FileName(),
-		// 	Data: badStructureFile}, nil, "invalid structure: schema: fields: error: cannot use the same name, 'col_b' more than once"},
-		// should reject invalid names
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Name: "foo bar baz", Data: jobsByAutomationFile}, nil,
-			"invalid name: error: illegal name 'foo bar baz', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		// this should work
-		{&InitParams{DataFilename: jobsByAutomationFile.FileName(), Peername: "peer", Data: jobsByAutomationFile}, nil, ""},
+	jobsDataPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	if err != nil {
+		t.Error(err.Error())
+		return
 	}
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`{"json":"data"}`))
+	}))
+	badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`\\\{"json":"data"}`))
+	}))
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
@@ -58,14 +46,109 @@ func TestDatasetRequestsInit(t *testing.T) {
 	}
 
 	req := NewDatasetRequests(mr, nil)
+
+	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
+	if err := req.Init(&SaveParams{Private: true}, nil); err == nil {
+		t.Errorf("expected datset to error")
+	} else if err.Error() != privateErrMsg {
+		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
+	}
+
+	cases := []struct {
+		dataset *dataset.DatasetPod
+		res     *repo.DatasetRef
+		err     string
+	}{
+		{nil, nil, "dataset is required"},
+		{&dataset.DatasetPod{}, nil, "either dataBytes or dataPath is required to create a dataset"},
+		{&dataset.DatasetPod{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.DatasetPod{DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{Name: "bad name", DataPath: jobsDataPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&dataset.DatasetPod{DataPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
+		{&dataset.DatasetPod{DataPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+
+		{&dataset.DatasetPod{
+			Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
+			DataPath:  jobsDataPath,
+		}, nil, "invalid dataset: structure: format is required"},
+		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{}}, nil, ""},
+		{&dataset.DatasetPod{DataPath: s.URL + "/data.json"}, nil, ""},
+	}
+
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Init(c.p, got)
+		err := req.Init(&SaveParams{Dataset: c.dataset}, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
+	}
+}
+
+func TestDatasetRequestsSave(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	citiesDataPath, err := dstest.DataFilepath("testdata/cities_2")
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		res := `city,pop,avg_age,in_usa
+toronto,40000000,55.5,false
+new york,8500000,44.4,true
+chicago,300000,44.4,true
+chatham,35000,65.25,true
+raleigh,250000,50.65,true
+sarnia,550000,55.65,false
+`
+		w.Write([]byte(res))
+	}))
+
+	req := NewDatasetRequests(mr, nil)
+
+	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
+	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
+		t.Errorf("expected datset to error")
+	} else if err.Error() != privateErrMsg {
+		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
+	}
+
+	cases := []struct {
+		dataset *dataset.DatasetPod
+		res     *repo.DatasetRef
+		err     string
+	}{
+		{nil, nil, "dataset is required"},
+		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
+		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", DataPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, DataPath: citiesDataPath}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: s.URL + "/data.csv"}, nil, ""},
+	}
+
+	for i, c := range cases {
+		got := &repo.DatasetRef{}
+		err := req.Save(&SaveParams{Dataset: c.dataset}, got)
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+		// if got != c.res && c.checkResult == true {
+		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
+		// }
 	}
 }
 
@@ -284,39 +367,6 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 	wg.Wait()
 }
 
-func TestDatasetRequestsSave(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-	cases := []struct {
-		p   *SaveParams
-		err string
-	}{
-		//TODO: probably delete some of these
-		// {&SaveParams{Path: datastore.NewKey("abc"), Name: "ABC", Hash: "123"}, nil, "error loading dataset: error getting file bytes: datastore: key not found"},
-		// {&SaveParams{Path: path, Name: "ABC", Hash: "123"}, nil, ""},
-		{&SaveParams{Name: "movies", Peername: "peer", MetadataFilename: "meta.json", Metadata: bytes.NewReader([]byte(`{"title":"movies!"}`))}, ""},
-		{&SaveParams{Name: "unknown_dataset", Peername: "peer"}, "error getting previous dataset: repo: not found"},
-		// {&SaveParams{Path: path, Name: "cats"}, moviesDs, ""},
-	}
-
-	req := NewDatasetRequests(mr, nil)
-	for i, c := range cases {
-		got := &repo.DatasetRef{}
-		err := req.Save(c.p, got)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-		// if got != c.res && c.checkResult == true {
-		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
-		// }
-	}
-}
-
 func TestDatasetRequestsRename(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
@@ -465,7 +515,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "this store cannot fetch from remote sources"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "error fetching file: this store cannot fetch from remote sources"},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
@@ -550,7 +600,7 @@ Pirates of the Caribbean: At World's End ,foo
 	}
 }
 
-func TestDataRequestsDiff(t *testing.T) {
+func TestDatasetRequestsDiff(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
@@ -558,29 +608,39 @@ func TestDataRequestsDiff(t *testing.T) {
 		return
 	}
 	req := NewDatasetRequests(mr, nil)
+
 	// File 1
-	dsFile1 := testrepo.NewJobsByAutomationFile()
+	fp1, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	if err != nil {
+		t.Errorf("getting data filepath: %s", err.Error())
+		return
+	}
+
 	dsRef1 := repo.DatasetRef{}
-	initParams := &InitParams{
-		Peername:     "peer",
-		DataFilename: dsFile1.FileName(),
-		Data:         dsFile1,
-		// MetadataFilename: jobsMeta.FileName(),
-		// Metadata:         jobsMeta,
+	initParams := &SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Name:     "jobs_ranked_by_automation_prob",
+			DataPath: fp1,
+		},
 	}
 	err = req.Init(initParams, &dsRef1)
 	if err != nil {
-		t.Errorf("couldn't load file 1: %s", err.Error())
+		t.Errorf("couldn't init file 1: %s", err.Error())
 		return
 	}
 
 	// File 2
-	// dsFile2 := testrepo.NewJobsByAutomationFile()
+	fp2, err := dstest.DataFilepath("testdata/jobs_by_automation_2")
+	if err != nil {
+		t.Errorf("getting data filepath: %s", err.Error())
+		return
+	}
 	dsRef2 := repo.DatasetRef{}
-	initParams = &InitParams{
-		Peername:     "peer",
-		DataFilename: jobsByAutomationFile2.FileName(),
-		Data:         jobsByAutomationFile2,
+	initParams = &SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Name:     "jobs_ranked_by_automation_prob",
+			DataPath: fp2,
+		},
 	}
 	err = req.Init(initParams, &dsRef2)
 	if err != nil {
@@ -627,36 +687,3 @@ func TestDataRequestsDiff(t *testing.T) {
 		}
 	}
 }
-
-var jobsByAutomationFile2 = cafs.NewMemfileBytes("jobs_ranked_by_automation_prob.csv", []byte(`rank,probability_of_automation,industry_code,job_name
-702,"0.99","41-9041","Telemarketers"
-701,"0.99","23-2093","Title Examiners, Abstractors, and Searchers"
-700,"0.99","51-6051","Sewers, Hand"
-699,"0.99","15-2091","Mathematical Technicians"
-698,"0.88","13-2053","Insurance Underwriters"
-697,"0.99","49-9064","Watch Repairers"
-696,"0.99","43-5011","Cargo and Freight Agents"
-695,"0.99","13-2082","Tax Preparers"
-694,"0.99","51-9151","Photographic Process Workers and Processing Machine Operators"
-693,"0.99","43-4141","New Accounts Clerks"
-692,"0.99","25-4031","Library Technicians"
-691,"0.99","43-9021","Data Entry Keyers"
-690,"0.98","51-2093","Timing Device Assemblers and Adjusters"
-689,"0.98","43-9041","Insurance Claims and Policy Processing Clerks"
-688,"0.98","43-4011","Brokerage Clerks"
-687,"0.98","43-4151","Order Clerks"
-686,"0.98","13-2072","Loan Officers"
-685,"0.98","13-1032","Insurance Appraisers, Auto Damage"
-684,"0.98","27-2023","Umpires, Referees, and Other Sports Officials"
-683,"0.98","43-3071","Tellers"
-682,"0.98","51-9194","Etchers and Engravers"
-681,"0.98","51-9111","Packaging and Filling Machine Operators and Tenders"
-680,"0.98","43-3061","Procurement Clerks"
-679,"0.98","43-5071","Shipping, Receiving, and Traffic Clerks"
-678,"0.98","51-4035","Milling and Planing Machine Setters, Operators, and Tenders, Metal and Plastic"
-677,"0.98","13-2041","Credit Analysts"
-676,"0.98","41-2022","Parts Salespersons"
-675,"0.98","13-1031","Claims Adjusters, Examiners, and Investigators"
-674,"0.98","53-3031","Driver/Sales Workers"
-673,"0.98","27-4013","Radio Operators"
-`))

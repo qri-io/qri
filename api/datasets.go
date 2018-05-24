@@ -1,18 +1,17 @@
 package api
 
 import (
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"github.com/qri-io/qri/repo/profile"
+	"io"
 	"net/http"
 	"os"
 	"path/filepath"
 	"strings"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
@@ -337,25 +336,24 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.InitParams{}
+	dsp := &dataset.DatasetPod{}
 	switch r.Header.Get("Content-Type") {
 	case "application/json":
-		if err := json.NewDecoder(r.Body).Decode(p); err != nil {
+		if err := json.NewDecoder(r.Body).Decode(dsp); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
 			return
 		}
 
-		if p.URL == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'url' field"))
+		if dsp.DataPath == "" {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'dataPath' field"))
 			return
 		}
 
 	default:
-		p = &core.InitParams{
+		dsp = &dataset.DatasetPod{
 			Peername: r.FormValue("peername"),
-			URL:      r.FormValue("url"),
 			Name:     r.FormValue("name"),
-			Private:  r.FormValue("private") == "true",
+			DataPath: r.FormValue("data_path"),
 		}
 
 		infile, fileHeader, err := r.FormFile("file")
@@ -364,32 +362,43 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 		if infile != nil {
-			p.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
-			p.DataFilename = fileHeader.Filename
+			path := filepath.Join(os.TempDir(), fileHeader.Filename)
+			f, err := os.Create(path)
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("writing data file: %s", err.Error()))
+			}
+			defer os.Remove(path)
+			io.Copy(f, infile)
+			f.Close()
+			dsp.DataPath = path
 		}
 
-		metadatafile, metadataHeader, err := r.FormFile("metadata")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
-			return
-		}
-		if metadatafile != nil {
-			p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
-			p.MetadataFilename = metadataHeader.Filename
-		}
+		// metadatafile, metadataHeader, err := r.FormFile("metadata")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
+		// 	return
+		// }
+		// if metadatafile != nil {
+		// 	p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+		// 	p.MetadataFilename = metadataHeader.Filename
+		// }
 
-		structurefile, structureHeader, err := r.FormFile("structure")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
-			return
-		}
-		if structurefile != nil {
-			p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
-			p.StructureFilename = structureHeader.Filename
-		}
+		// structurefile, structureHeader, err := r.FormFile("structure")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
+		// 	return
+		// }
+		// if structurefile != nil {
+		// 	p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
+		// 	p.StructureFilename = structureHeader.Filename
+		// }
 	}
 
 	res := &repo.DatasetRef{}
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: r.FormValue("private") == "true",
+	}
 	if err := h.Init(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -420,21 +429,22 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	util.WriteResponse(w, res)
 }
 
-type saveParamsJSON struct {
-	Peername  string          `json:"peername,omitempty"`
-	Name      string          `json:"name,omitempty"`
-	Title     string          `json:"title,omitempty"`
-	Message   string          `json:"message,omitempty"`
-	Data      json.RawMessage `json:"data,omitempty"`
-	Meta      json.RawMessage `json:"meta,omitempty"`
-	Structure json.RawMessage `json:"structure,omitempty"`
-}
+// type saveParamsJSON struct {
+// 	Peername  string                `json:"peername,omitempty"`
+// 	Name      string                `json:"name,omitempty"`
+// 	Title     string                `json:"title,omitempty"`
+// 	Message   string                `json:"message,omitempty"`
+// 	Data      json.RawMessage       `json:"data,omitempty"`
+// 	Meta      *dataset.Meta         `json:"meta,omitempty"`
+// 	Structure *dataset.StructurePod `json:"structure,omitempty"`
+// 	Commit    *dataset.CommitPod    `json:"commit,omitempty"`
+// }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	save := &core.SaveParams{}
+	dsp := &dataset.DatasetPod{}
+
 	if r.Header.Get("Content-Type") == "application/json" {
-		saveParams := &saveParamsJSON{}
-		err := json.NewDecoder(r.Body).Decode(saveParams)
+		err := json.NewDecoder(r.Body).Decode(dsp)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -447,76 +457,86 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if args.Peername != "" {
-				saveParams.Peername = args.Peername
-				saveParams.Name = args.Name
+				dsp.Peername = args.Peername
+				dsp.Name = args.Name
 			}
 		}
 
-		save = &core.SaveParams{
-			Peername: saveParams.Peername,
-			Name:     saveParams.Name,
-			Title:    saveParams.Title,
-			Message:  saveParams.Message,
-		}
-		if len(saveParams.Data) != 0 {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
-			return
-		}
+		// save = &core.SaveParams{
+		// 	Peername: saveParams.Peername,
+		// 	Name:     saveParams.Name,
+		// 	Title:    saveParams.Title,
+		// 	Message:  saveParams.Message,
+		// 	Dataset: &dataset.DatasetPod{
+		// 		Commit:    saveParams.Commit,
+		// 		Meta:      saveParams.Meta,
+		// 		Structure: saveParams.Structure,
+		// 	},
+		// }
+
+		// if len(saveParams.Data) != 0 {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("cannot accept data files using Content-Type: application/json. must make a mime/multipart request"))
+		// 	return
+		// }
 		//  TODO - restore when we are sure we can accept json data with no errors
 		// if len(saveParams.Data) != 0 {
 		// 	save.Data = cafs.NewMemfileReader("data.json", bytes.NewReader(saveParams.Data))
 		// 	save.DataFilename = "data.json"
 		// }
-		if len(saveParams.Meta) != 0 {
-			save.Metadata = cafs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
-			save.MetadataFilename = "meta.json"
-		}
-		if len(saveParams.Structure) != 0 {
-			save.Structure = cafs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
-			save.StructureFilename = "structure.json"
-		}
+		// if len(saveParams.Meta) != 0 {
+		// 	save.Metadata = cafs.NewMemfileReader("meta.json", bytes.NewReader(saveParams.Meta))
+		// 	save.MetadataFilename = "meta.json"
+		// }
+		// if len(saveParams.Structure) != 0 {
+		// 	save.Structure = cafs.NewMemfileReader("structure.json", bytes.NewReader(saveParams.Structure))
+		// 	save.StructureFilename = "structure.json"
+		// }
 	} else {
-		save = &core.SaveParams{
-			Peername: r.FormValue("peername"),
-			URL:      r.FormValue("url"),
-			Name:     r.FormValue("name"),
-			Title:    r.FormValue("title"),
-			Message:  r.FormValue("message"),
-		}
+		// save = &core.SaveParams{
+		// 	Peername: r.FormValue("peername"),
+		// 	DataURL:  r.FormValue("data_path"),
+		// 	Name:     r.FormValue("name"),
+		// 	Title:    r.FormValue("title"),
+		// 	Message:  r.FormValue("message"),
+		// }
 
-		infile, fileHeader, err := r.FormFile("file")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
-			return
-		}
-		if infile != nil {
-			save.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
-			save.DataFilename = fileHeader.Filename
-		}
+		// infile, fileHeader, err := r.FormFile("file")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
+		// 	return
+		// }
+		// if infile != nil {
+		// 	save.Data = cafs.NewMemfileReader(fileHeader.Filename, infile)
+		// 	save.DataFilename = fileHeader.Filename
+		// }
 
-		metadatafile, metadataHeader, err := r.FormFile("metadata")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
-			return
-		}
-		if metadatafile != nil {
-			save.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
-			save.MetadataFilename = metadataHeader.Filename
-		}
+		// metadatafile, metadataHeader, err := r.FormFile("metadata")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
+		// 	return
+		// }
+		// if metadatafile != nil {
+		// 	save.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
+		// 	save.MetadataFilename = metadataHeader.Filename
+		// }
 
-		structurefile, structureHeader, err := r.FormFile("structure")
-		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
-			return
-		}
-		if structurefile != nil {
-			save.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
-			save.StructureFilename = structureHeader.Filename
-		}
+		// structurefile, structureHeader, err := r.FormFile("structure")
+		// if err != nil && err != http.ErrMissingFile {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
+		// 	return
+		// }
+		// if structurefile != nil {
+		// 	save.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
+		// 	save.StructureFilename = structureHeader.Filename
+		// }
 	}
 
 	res := &repo.DatasetRef{}
-	if err := h.Save(save, res); err != nil {
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: r.FormValue("private") == "true",
+	}
+	if err := h.Save(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
