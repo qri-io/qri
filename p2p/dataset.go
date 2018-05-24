@@ -18,10 +18,6 @@ const MtDatasetInfo = MsgType("dataset_info")
 func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s RequestDataset %s", n.ID, ref)
 
-	// if ref.Path == "" {
-	// 	return fmt.Errorf("path is required")
-	// }
-
 	act := actions.Dataset{n.Repo}
 
 	// if peer ID is *our* peer.ID check for local dataset

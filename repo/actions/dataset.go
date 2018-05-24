@@ -84,16 +84,21 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
-// TODO - this needs tests, first we need an implementation of the fetcher interface that isn't cafs/ipfs
 func (act Dataset) AddDataset(ref *repo.DatasetRef) (err error) {
 	log.Debugf("AddDataset: %s", ref)
+
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/" + dsfs.PackageFileDataset.String()))
+	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+
 	fetcher, ok := act.Store().(cafs.Fetcher)
 	if !ok {
 		err = fmt.Errorf("this store cannot fetch from remote sources")
 		return
 	}
 
-	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
+	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
+	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
+	// more correctly in line with what's actually required.
 	_, err = fetcher.Fetch(cafs.SourceAny, key)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
@@ -109,7 +114,6 @@ func (act Dataset) AddDataset(ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
 
-	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
 	ds, err := dsfs.LoadDataset(act.Store(), path)
 	if err != nil {
 		log.Debug(err.Error())
