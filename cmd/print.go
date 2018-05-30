@@ -66,28 +66,12 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 				fmt.Printf("    %s\n", white(ds.Meta.Description))
 			}
 		}
-
-		if ds.Structure != nil {
-			fmt.Printf("    %d bytes, %d entries, %d errors", ds.Structure.Length, ds.Structure.Entries, ds.Structure.ErrCount)
-		}
+	}
+	if ds != nil && ds.Structure != nil {
+		fmt.Printf("    %d bytes, %d entries, %d errors", ds.Structure.Length, ds.Structure.Entries, ds.Structure.ErrCount)
 	}
 
 	fmt.Println()
-
-	// fmt.Println("\tfields:")
-	// fmt.Printf("\t\t")
-	// for _, f := range ds.Fields {
-	// 	fmt.Printf("%s|%s\t", cyan(f.Name), blue(f.Type.String()))
-	// }
-	// fmt.Println()
-
-	// table := tablewriter.NewWriter(os.Stdout)
-	// table.SetBorders(tablewriter.Border{Left: false, Top: false, Right: false, Bottom: false})
-	// table.SetCenterSeparator("")
-	// table.Append(ds.FieldNames())
-	// table.Append(ds.FieldTypeStrings())
-	// table.Render()
-	// fmt.Println()
 }
 
 func printPeerInfo(i int, p *config.ProfilePod) {
