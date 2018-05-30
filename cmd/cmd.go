@@ -9,17 +9,18 @@ import (
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
 func Execute() {
-	// Catch errors & pretty-print.
-	// comment this out to get stack traces back.
-	defer func() {
-		if r := recover(); r != nil {
-			if err, ok := r.(error); ok {
-				fmt.Println(err.Error())
-			} else {
-				fmt.Println(r)
+	if os.Getenv("QRI_BACKTRACE") == "" {
+		// Catch errors & pretty-print.
+		defer func() {
+			if r := recover(); r != nil {
+				if err, ok := r.(error); ok {
+					fmt.Println(err.Error())
+				} else {
+					fmt.Println(r)
+				}
 			}
-		}
-	}()
+		}()
+	}
 
 	if err := RootCmd.Execute(); err != nil {
 		printErr(err)
