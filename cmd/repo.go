@@ -220,7 +220,11 @@ func repoOrClient(online bool) (repo.Repo, *rpc.Client, error) {
 		return r, nil, err
 
 	} else if strings.Contains(err.Error(), "lock") {
-		return nil, rpcConn(), nil
+		conn := rpcConn()
+		if conn != nil {
+			return nil, conn, nil
+		}
+		return nil, nil, err
 	} else {
 		return nil, nil, err
 	}
