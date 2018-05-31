@@ -178,7 +178,7 @@ func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
 func init() {
 	configGetCommand.Flags().Bool("with-private-keys", false, "include private keys in export")
 	configGetCommand.Flags().BoolP("concise", "c", false, "print output without indentation, only applies to json format")
-	configGetCommand.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
+	configGetCommand.Flags().StringP("format", "f", "yaml", "data format to export. either json or yaml")
 	configGetCommand.Flags().StringP("output", "o", "", "path to export to")
 	configCmd.AddCommand(configGetCommand)
 
