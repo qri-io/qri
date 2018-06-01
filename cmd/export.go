@@ -100,7 +100,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			err = dst.Close()
 			ExitIfErr(err)
 			return
-		} else if cmd.Flag("all").Value.String() == "true" {
+		} else if exportCmdAll {
 			exportCmdData = true
 			exportCmdDataset = true
 			exportCmdMeta = true
@@ -116,7 +116,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			var md interface{}
 			// TODO - this ensures a "form" metadata file is written
 			// when one doesn't exist. This should be better
-			if ds.Meta.IsEmpty() {
+			if ds.Meta != nil && ds.Meta.IsEmpty() {
 				md = struct {
 					// Url to access the dataset
 					AccessPath string `json:"accessPath"`
