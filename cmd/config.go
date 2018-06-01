@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 func configFilepath() string {
@@ -139,7 +139,6 @@ var configSetCommand = &cobra.Command{
 				ExitIfErr(err)
 			}
 		}
-
 		err = core.SetConfig(core.Config)
 		ExitIfErr(err)
 

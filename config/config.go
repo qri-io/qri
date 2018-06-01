@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"math"
 	"reflect"
 	"strconv"
 	"strings"
@@ -122,9 +123,20 @@ func (cfg *Config) Set(path string, value interface{}) error {
 
 	rv := reflect.ValueOf(value)
 	if rv.Kind() != v.Kind() {
+		// we have one caveat: since json automatically casts all numbers to float64
+		// we need to check if we have a float value trying to be cast to an integer value
+		// if it can be cast as an integer without loss of value, we should allow it
+		if rv.Kind() == reflect.Float64 && v.Kind() == reflect.Int {
+			_, fraction := math.Modf(rv.Float())
+			if fraction == 0 {
+				v.SetInt(int64(rv.Float()))
+				return nil
+			}
+		}
 		return fmt.Errorf("invalid type for config path %s, expected: %s, got: %s", path, v.Kind().String(), rv.Kind().String())
 	}
 
+	// how to make sure a float doesn't have a decimal, can it be cast to an int
 	switch v.Kind() {
 	case reflect.Int:
 		v.SetInt(rv.Int())
