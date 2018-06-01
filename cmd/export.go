@@ -160,7 +160,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			}
 
 			metaPath := filepath.Join(path, dsfs.PackageFileMeta.Filename())
-			mdBytes := []byte{}
+			var mdBytes []byte
 
 			switch format {
 			case "json":
@@ -169,7 +169,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			default:
 				mdBytes, err = yaml.Marshal(md)
 				ExitIfErr(err)
-				metaPath = FilenameToYAML(metaPath)
+				metaPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(metaPath, filepath.Ext(metaPath)))
 			}
 			err = ioutil.WriteFile(metaPath, mdBytes, os.ModePerm)
 			ExitIfErr(err)
@@ -178,7 +178,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 		if exportCmdStructure {
 			stPath := filepath.Join(path, dsfs.PackageFileStructure.Filename())
-			stBytes := []byte{}
+			var stBytes []byte
 
 			switch format {
 			case "json":
@@ -187,7 +187,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			default:
 				stBytes, err = yaml.Marshal(ds.Structure)
 				ExitIfErr(err)
-				stPath = FilenameToYAML(stPath)
+				stPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(stPath, filepath.Ext(stPath)))
 			}
 			err = ioutil.WriteFile(stPath, stBytes, os.ModePerm)
 			ExitIfErr(err)
@@ -212,7 +212,7 @@ To export everything about a dataset, use the --dataset flag.`,
 
 		if exportCmdDataset {
 			dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
-			dsBytes := []byte{}
+			var dsBytes []byte
 
 			switch format {
 			case "json":
@@ -221,7 +221,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			default:
 				dsBytes, err = yaml.Marshal(ds)
 				ExitIfErr(err)
-				dsPath = FilenameToYAML(dsPath)
+				dsPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(dsPath, filepath.Ext(dsPath)))
 			}
 			err = ioutil.WriteFile(dsPath, dsBytes, os.ModePerm)
 			ExitIfErr(err)
@@ -303,18 +303,3 @@ structure:
 # or a URL that leads to the raw data
 # dataPath:
 `
-
-// FilenameToYAML takes a filename, removes any format ending (if there is one), and replaces it with yaml
-// should probably be generalized to
-// FilenameFormatChange(filename string, newEnding string) string
-func FilenameToYAML(filename string) string {
-	if len(filename) == 0 {
-		return ""
-	}
-	index := strings.LastIndex(filename, ".")
-	if index == -1 {
-		index = len(filename)
-		filename += "."
-	}
-	return filename[:index+1] + "yaml"
-}
