@@ -10,8 +10,8 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
-	"gopkg.in/yaml.v2"
 )
 
 // Config encapsulates all configuration details for qri

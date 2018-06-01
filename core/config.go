@@ -4,9 +4,9 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/ghodss/yaml"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/config"
-	yaml "gopkg.in/yaml.v2"
 )
 
 var (
