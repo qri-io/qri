@@ -119,6 +119,18 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 		ExitIfErr(err)
 	}
 
+	if dsp.Commit == nil && (addDsTitle != "" || addDsMessage != "") {
+		dsp.Commit = &dataset.CommitPod{}
+	}
+
+	if addDsTitle != "" {
+		dsp.Commit.Title = addDsTitle
+	}
+
+	if addDsMessage != "" {
+		dsp.Commit.Message = addDsMessage
+	}
+
 	p := &core.SaveParams{
 		Dataset: dsp,
 		Private: addDsPrivate,
@@ -157,7 +169,7 @@ func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsFile, "file", "f", "", "dataset data file in either yaml or json format")
 	datasetAddCmd.Flags().StringVarP(&addDsDataPath, "data", "d", "", "path to file or url to initialize from")
 	datasetAddCmd.Flags().StringVarP(&addDsTitle, "title", "t", "", "commit title")
-	datasetAddCmd.Flags().StringVarP(&addDsMessage, "messsage", "m", "", "commit message")
+	datasetAddCmd.Flags().StringVarP(&addDsMessage, "message", "m", "", "commit message")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
 	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
