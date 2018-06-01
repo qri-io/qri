@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
@@ -46,6 +48,7 @@ To export everything about a dataset, use the --dataset flag.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
+		format := cmd.Flag("format").Value.String()
 
 		if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
 			if path == "" {
@@ -97,7 +100,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			err = dst.Close()
 			ExitIfErr(err)
 			return
-		} else if cmd.Flag("all").Value.String() == "true" {
+		} else if exportCmdAll {
 			exportCmdData = true
 			exportCmdDataset = true
 			exportCmdMeta = true
@@ -113,7 +116,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			var md interface{}
 			// TODO - this ensures a "form" metadata file is written
 			// when one doesn't exist. This should be better
-			if ds.Meta.IsEmpty() {
+			if ds.Meta != nil && ds.Meta.IsEmpty() {
 				md = struct {
 					// Url to access the dataset
 					AccessPath string `json:"accessPath"`
@@ -157,18 +160,38 @@ To export everything about a dataset, use the --dataset flag.`,
 			}
 
 			metaPath := filepath.Join(path, dsfs.PackageFileMeta.Filename())
-			mdBytes, err := json.MarshalIndent(md, "", "  ")
+			var mdBytes []byte
+
+			switch format {
+			case "json":
+				mdBytes, err = json.MarshalIndent(md, "", "  ")
+				ExitIfErr(err)
+			default:
+				mdBytes, err = yaml.Marshal(md)
+				ExitIfErr(err)
+				metaPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(metaPath, filepath.Ext(metaPath)))
+			}
 			err = ioutil.WriteFile(metaPath, mdBytes, os.ModePerm)
 			ExitIfErr(err)
 			printSuccess("exported metadata file to: %s", metaPath)
 		}
 
 		if exportCmdStructure {
-			stpath := filepath.Join(path, dsfs.PackageFileStructure.Filename())
-			stbytes, err := json.MarshalIndent(ds.Structure, "", "  ")
-			err = ioutil.WriteFile(stpath, stbytes, os.ModePerm)
+			stPath := filepath.Join(path, dsfs.PackageFileStructure.Filename())
+			var stBytes []byte
+
+			switch format {
+			case "json":
+				stBytes, err = json.MarshalIndent(ds.Structure, "", "  ")
+				ExitIfErr(err)
+			default:
+				stBytes, err = yaml.Marshal(ds.Structure)
+				ExitIfErr(err)
+				stPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(stPath, filepath.Ext(stPath)))
+			}
+			err = ioutil.WriteFile(stPath, stBytes, os.ModePerm)
 			ExitIfErr(err)
-			printSuccess("exported structure file to: %s", stpath)
+			printSuccess("exported structure file to: %s", stPath)
 		}
 
 		if exportCmdData {
@@ -189,9 +212,18 @@ To export everything about a dataset, use the --dataset flag.`,
 
 		if exportCmdDataset {
 			dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
-			dsbytes, err := json.MarshalIndent(ds, "", "  ")
-			ExitIfErr(err)
-			err = ioutil.WriteFile(dsPath, dsbytes, os.ModePerm)
+			var dsBytes []byte
+
+			switch format {
+			case "json":
+				dsBytes, err = json.MarshalIndent(ds, "", "  ")
+				ExitIfErr(err)
+			default:
+				dsBytes, err = yaml.Marshal(ds)
+				ExitIfErr(err)
+				dsPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(dsPath, filepath.Ext(dsPath)))
+			}
+			err = ioutil.WriteFile(dsPath, dsBytes, os.ModePerm)
 			ExitIfErr(err)
 
 			printSuccess("exported dataset.json to: %s", dsPath)
@@ -206,6 +238,7 @@ func init() {
 	RootCmd.AddCommand(exportCmd)
 	exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
+	exportCmd.Flags().StringP("format", "f", "yaml", "format for all exported files, except for data. yaml is the default format. options: yaml, json")
 	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
@@ -217,7 +250,7 @@ func init() {
 	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	// TODO - get format conversion up & running
-	// exportCmd.Flags().StringP("format", "f", "csv", "set output format [csv,json,cbor]")
+	// exportCmd.Flags().StringP("data-format", "", "csv", "set output format [csv,json,cbor]")
 }
 
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:

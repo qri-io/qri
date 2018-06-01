@@ -3,11 +3,11 @@ package test
 import (
 	"encoding/base64"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/ghodss/yaml"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"

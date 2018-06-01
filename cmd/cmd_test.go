@@ -161,6 +161,7 @@ func TestCommandsIntegration(t *testing.T) {
 		{"log", "me/movies"},
 		{"diff", "me/movies", "me/movies2", "-d", "detail"},
 		{"export", "--dataset", "-o" + path, "me/movies"},
+		{"export", "--all", "-o" + path, "--format=json", "me/movies"},
 		{"rename", "me/movies", "me/movie"},
 		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
 		{"validate", "me/movie"},

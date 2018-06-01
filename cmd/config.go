@@ -7,10 +7,10 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/spf13/cobra"
-	"gopkg.in/yaml.v2"
 )
 
 func configFilepath() string {
@@ -139,7 +139,6 @@ var configSetCommand = &cobra.Command{
 				ExitIfErr(err)
 			}
 		}
-
 		err = core.SetConfig(core.Config)
 		ExitIfErr(err)
 
@@ -178,7 +177,7 @@ func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
 func init() {
 	configGetCommand.Flags().Bool("with-private-keys", false, "include private keys in export")
 	configGetCommand.Flags().BoolP("concise", "c", false, "print output without indentation, only applies to json format")
-	configGetCommand.Flags().StringP("format", "f", "json", "data format to export. either json or yaml")
+	configGetCommand.Flags().StringP("format", "f", "yaml", "data format to export. either json or yaml")
 	configGetCommand.Flags().StringP("output", "o", "", "path to export to")
 	configCmd.AddCommand(configGetCommand)
 

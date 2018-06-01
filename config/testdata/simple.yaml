@@ -1,26 +1,25 @@
-profile:
-  id: QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs
-  privkey: ""
-  peername: test_peername
-  created: 2009-02-13T23:31:30Z
-  updated: 2009-02-13T23:31:30Z
-  type: ""
-  email: ""
-  name: ""
-  description: ""
-  homeurl: ""
+API: null
+CLI: null
+Logging: null
+P2P: null
+Profile:
   color: ""
-  thumb: ""
+  created: "2009-02-13T23:31:30Z"
+  description: ""
+  email: ""
+  homeurl: ""
+  id: QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs
+  name: ""
+  peername: test_peername
   photo: ""
   poster: ""
+  thumb: ""
   twitter: ""
-repo: null
-store: null
-p2p: null
-registry: null
-cli: null
-api: null
-webapp: null
-rpc: null
-logging: null
-render: null
+  type: ""
+  updated: "2009-02-13T23:31:30Z"
+RPC: null
+Registry: null
+Render: null
+Repo: null
+Store: null
+Webapp: null
