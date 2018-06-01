@@ -38,7 +38,8 @@ https://github.com/qri-io/qri/issues`,
 
 func init() {
 	cobra.OnInitialize(initializeCLI)
-	RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
+	// TODO: write a test that verifies this works with our new yaml config
+	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
 	// RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 	RootCmd.SetUsageTemplate(rootUsageTemplate)
 	for _, cmd := range RootCmd.Commands() {
