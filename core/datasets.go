@@ -902,6 +902,9 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	}
 	// Hack to examine data
 	if p.DiffAll || p.DiffComponents["data"] == true {
+		if dsLeft.Structure.Checksum == dsRight.Structure.Checksum {
+			return nil
+		}
 		sd1Params := &StructuredDataParams{
 			Format: dataset.JSONDataFormat,
 			Path:   dsLeft.Path().String(),
