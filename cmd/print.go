@@ -19,6 +19,18 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	bite = 1 << (10 * iota)
+	kilobyte
+	megabyte
+	gigabyte
+	terabyte
+	petabyte
+	exabyte
+	zettabyte
+	yottabyte
+)
+
 var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
@@ -46,6 +58,48 @@ func printNotYetFinished(cmd *cobra.Command) {
 	color.Yellow("%s command is not yet implemented", cmd.Name())
 }
 
+func printByteInfo(l int) string {
+	length := struct {
+		name  string
+		value int
+	}{"", 0}
+
+	switch {
+	// yottabyte and zettabyte overflow int
+	// case l > yottabyte:
+	// 	length.name = "YB"
+	// 	length.value = l / yottabyte
+	// case l > zettabyte:
+	// 	length.name = "ZB"
+	// 	length.value = l / zettabyte
+	case l >= exabyte:
+		length.name = "EB"
+		length.value = l / exabyte
+	case l >= petabyte:
+		length.name = "PB"
+		length.value = l / petabyte
+	case l >= terabyte:
+		length.name = "TB"
+		length.value = l / terabyte
+	case l >= gigabyte:
+		length.name = "GB"
+		length.value = l / gigabyte
+	case l >= megabyte:
+		length.name = "MB"
+		length.value = l / megabyte
+	case l >= kilobyte:
+		length.name = "KB"
+		length.value = l / kilobyte
+	default:
+		length.name = "byte"
+		length.value = l
+	}
+	if length.value != 1 {
+		length.name += "s"
+	}
+	return fmt.Sprintf("%v %s", length.value, length.name)
+}
+
 func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
@@ -68,7 +122,7 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 		}
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Printf("    %d bytes, %d entries, %d errors", ds.Structure.Length, ds.Structure.Entries, ds.Structure.ErrCount)
+		fmt.Printf("    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
 	}
 
 	fmt.Println()
