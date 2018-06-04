@@ -22,7 +22,7 @@ var (
 	exportCmdDataset    bool
 	exportCmdMeta       bool
 	exportCmdStructure  bool
-	exportCmdData       bool
+	exportCmdNoData     bool
 	exportCmdTransform  bool
 	exportCmdVis        bool
 	exportCmdAll        bool
@@ -105,7 +105,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			ExitIfErr(err)
 			return
 		} else if exportCmdAll {
-			exportCmdData = true
+			exportCmdNoData = false
 			exportCmdDataset = true
 			exportCmdMeta = true
 			exportCmdStructure = true
@@ -198,8 +198,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			printSuccess("exported structure file to: %s", stPath)
 		}
 
-		if exportCmdData {
-
+		if !exportCmdNoData {
 			src, err := dsfs.LoadData(r.Store(), ds)
 			ExitIfErr(err)
 
@@ -270,13 +269,13 @@ func init() {
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().StringP("format", "f", "yaml", "format for all exported files, except for data. yaml is the default format. options: yaml, json")
 	exportCmd.Flags().StringP("data-format", "", "", "format for data file. default is the original data format. options: json, csv, cbor")
-	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
+	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive, export all parts of dataset, data in original format")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
 	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export root dataset")
 	exportCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
 	exportCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
-	exportCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")
+	exportCmd.Flags().BoolVarP(&exportCmdNoData, "no-data", "", false, "don't include dataset data file in export")
 	// exportCmd.Flags().BoolVarP(&exportCmdTransform, "transform", "t", false, "export dataset transform file")
 	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
