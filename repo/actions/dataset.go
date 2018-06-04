@@ -30,9 +30,9 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		return
 	}
 
-	if ds.Transform != nil && data == nil {
+	if ds.Transform != nil {
 		log.Info("running transformation...")
-		data, err = act.ExecTransform(ds)
+		data, err = act.ExecTransform(ds, data)
 		if err != nil {
 			return
 		}

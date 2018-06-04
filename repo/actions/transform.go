@@ -12,9 +12,9 @@ import (
 )
 
 // ExecTransform executes a designated transformation
-func (act Dataset) ExecTransform(ds *dataset.Dataset) (file cafs.File, err error) {
+func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
-	rr, err := skytf.ExecFile(ds, filepath)
+	rr, err := skytf.ExecFile(ds, filepath, infile)
 	if err != nil {
 		return nil, err
 	}
