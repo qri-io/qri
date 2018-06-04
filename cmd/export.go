@@ -11,7 +11,6 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
@@ -78,7 +77,6 @@ To export everything about a dataset, use the --dataset flag.`,
 		err = req.Get(&dsr, res)
 		ExitIfErr(err)
 
-		fmt.Println(res)
 		ds, err := res.DecodeDataset()
 		ExitIfErr(err)
 
@@ -199,9 +197,6 @@ To export everything about a dataset, use the --dataset flag.`,
 		}
 
 		if !exportCmdNoData {
-			src, err := dsfs.LoadData(r.Store(), ds)
-			ExitIfErr(err)
-
 			if dataFormat == "" {
 				dataFormat = ds.Structure.Format.String()
 			}
@@ -209,29 +204,24 @@ To export everything about a dataset, use the --dataset flag.`,
 			df, err := dataset.ParseDataFormatString(dataFormat)
 			ExitIfErr(err)
 
-			st := &dataset.Structure{}
-			st.Assign(ds.Structure, &dataset.Structure{
+			p := &core.LookupParams{
 				Format: df,
-				Schema: ds.Structure.Schema,
-			})
+				Path:   ds.Path().String(),
+				All:    true,
+			}
+			r := &core.LookupResult{}
 
-			buf, err := dsio.NewEntryBuffer(st)
+			req, err := datasetRequests(true)
 			ExitIfErr(err)
 
-			rr, err := dsio.NewEntryReader(ds.Structure, src)
-			ExitIfErr(err)
-
-			err = dsio.Copy(rr, buf)
-			ExitIfErr(err)
-
-			err = buf.Close()
+			err = req.LookupBody(p, r)
 			ExitIfErr(err)
 
 			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", dataFormat))
 			dst, err := os.Create(dataPath)
 			ExitIfErr(err)
 
-			_, err = dst.Write(buf.Bytes())
+			_, err = dst.Write(r.Data)
 			ExitIfErr(err)
 
 			err = dst.Close()
