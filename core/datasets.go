@@ -576,9 +576,8 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	return nil
 }
 
-// StructuredDataParams defines parameters for retrieving
-// structured data (which is the kind of data datasets contain)
-type StructuredDataParams struct {
+// LookupParams defines parameters for looking up the body of a dataset
+type LookupParams struct {
 	Format        dataset.DataFormat
 	FormatConfig  dataset.FormatConfig
 	Path          string
@@ -586,14 +585,15 @@ type StructuredDataParams struct {
 	All           bool
 }
 
-// StructuredData combines data with it's hashed path
-type StructuredData struct {
+// LookupResult combines data with it's hashed path
+type LookupResult struct {
 	Path string `json:"path"`
+	// TODO: Rename to Body
 	Data []byte `json:"data"`
 }
 
-// StructuredData retrieves dataset data
-func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *StructuredData) (err error) {
+// LookupBody retrieves the dataset body
+func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.StructuredData", p, data)
 	}
@@ -601,7 +601,6 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 	var (
 		file  cafs.File
 		store = r.repo.Store()
-		read  = 0
 	)
 
 	if p.Limit < 0 || p.Offset < 0 {
@@ -636,31 +635,20 @@ func (r *DatasetRequests) StructuredData(p *StructuredDataParams, data *Structur
 		return fmt.Errorf("error allocating data reader: %s", err)
 	}
 
-	for i := 0; i >= 0; i++ {
-		val, err := rr.ReadEntry()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return fmt.Errorf("row iteration error: %s", err.Error())
-		}
-		if !p.All && i < p.Offset {
-			continue
-		}
-		if err := buf.WriteEntry(val); err != nil {
-			return fmt.Errorf("error writing value to buffer: %s", err.Error())
-		}
-		read++
-		if read == p.Limit {
-			break
+	if !p.All {
+		rr = &dsio.PagedReader{
+			Reader: rr,
+			Limit:  p.Limit,
+			Offset: p.Offset,
 		}
 	}
+	err = dsio.Copy(rr, buf)
 
 	if err := buf.Close(); err != nil {
 		return fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
-	*data = StructuredData{
+	*data = LookupResult{
 		Path: ds.DataPath,
 		Data: buf.Bytes(),
 	}
@@ -905,40 +893,40 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 		if dsLeft.Structure.Checksum == dsRight.Structure.Checksum {
 			return nil
 		}
-		sd1Params := &StructuredDataParams{
+		params0 := &LookupParams{
 			Format: dataset.JSONDataFormat,
 			Path:   dsLeft.Path().String(),
 		}
-		sd2Params := &StructuredDataParams{
+		params1 := &LookupParams{
 			Format: dataset.JSONDataFormat,
 			Path:   dsRight.Path().String(),
 		}
-		sd1 := &StructuredData{}
-		sd2 := &StructuredData{}
-		err := r.StructuredData(sd1Params, sd1)
+		result0 := &LookupResult{}
+		result1 := &LookupResult{}
+		err := r.LookupBody(params0, result0)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error getting structured data: %s", err.Error())
 		}
-		err = r.StructuredData(sd2Params, sd2)
+		err = r.LookupBody(params1, result1)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error getting structured data: %s", err.Error())
 		}
 
-		m1 := &map[string]json.RawMessage{"data": sd1.Data}
-		m2 := &map[string]json.RawMessage{"data": sd2.Data}
+		m0 := &map[string]json.RawMessage{"data": result0.Data}
+		m1 := &map[string]json.RawMessage{"data": result1.Data}
+		dataBytes0, err := json.Marshal(m0)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error marshaling json: %s", err.Error())
+		}
 		dataBytes1, err := json.Marshal(m1)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error marshaling json: %s", err.Error())
 		}
-		dataBytes2, err := json.Marshal(m2)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error marshaling json: %s", err.Error())
-		}
-		dataDiffs, err := dsdiff.DiffJSON(dataBytes1, dataBytes2, "data")
+		dataDiffs, err := dsdiff.DiffJSON(dataBytes0, dataBytes1, "data")
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error comparing structured data: %s", err.Error())

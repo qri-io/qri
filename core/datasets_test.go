@@ -438,7 +438,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 }
 
-func TestDatasetRequestsStructuredData(t *testing.T) {
+func TestDatasetRequestsLookupBody(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
@@ -463,23 +463,23 @@ func TestDatasetRequestsStructuredData(t *testing.T) {
 
 	var df1 = dataset.JSONDataFormat
 	cases := []struct {
-		p        *StructuredDataParams
+		p        *LookupParams
 		resCount int
 		err      string
 	}{
-		{&StructuredDataParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
-		{&StructuredDataParams{Format: df1, Path: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&StructuredDataParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&StructuredDataParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&StructuredDataParams{Format: df1, Path: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
-		{&StructuredDataParams{Format: df1, Path: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
-		{&StructuredDataParams{Format: df1, Path: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
+		{&LookupParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
+		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
+		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
+		{&LookupParams{Format: df1, Path: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&LookupParams{Format: df1, Path: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
+		{&LookupParams{Format: df1, Path: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
 	}
 
 	req := NewDatasetRequests(mr, nil)
 	for i, c := range cases {
-		got := &StructuredData{}
-		err := req.StructuredData(c.p, got)
+		got := &LookupResult{}
+		err := req.LookupBody(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)

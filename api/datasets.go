@@ -655,7 +655,7 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 
-	p := &core.StructuredDataParams{
+	p := &core.LookupParams{
 		Path:   d.Path,
 		Format: dataset.JSONDataFormat,
 		Limit:  limit,
@@ -663,16 +663,16 @@ func (h DatasetHandlers) dataHandler(w http.ResponseWriter, r *http.Request) {
 		All:    r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
 	}
 
-	data := &core.StructuredData{}
-	if err := h.StructuredData(p, data); err != nil {
+	result := &core.LookupResult{}
+	if err := h.LookupBody(p, result); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	page := util.PageFromRequest(r)
 	dataResponse := DataResponse{
-		Path: data.Path,
-		Data: json.RawMessage(data.Data),
+		Path: result.Path,
+		Data: json.RawMessage(result.Data),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		log.Infof("error writing repsonse: %s", err.Error())

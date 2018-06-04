@@ -52,7 +52,7 @@ Data reads records from a dataset`,
 		df, err := dataset.ParseDataFormatString(dataCmdFormat)
 		ExitIfErr(err)
 
-		p := &core.StructuredDataParams{
+		p := &core.LookupParams{
 			Format: df,
 			Path:   ds.Path,
 			Limit:  dataCmdLimit,
@@ -60,15 +60,15 @@ Data reads records from a dataset`,
 			All:    dataCmdAll,
 		}
 
-		sd := &core.StructuredData{}
+		result := &core.LookupResult{}
 
-		if err := req.StructuredData(p, sd); err != nil {
+		if err := req.LookupBody(p, result); err != nil {
 			ErrExit(err)
 		}
 
-		data := sd.Data
+		data := result.Data
 		if p.Format == dataset.CBORDataFormat {
-			data = []byte(hex.EncodeToString(sd.Data))
+			data = []byte(hex.EncodeToString(result.Data))
 		}
 
 		path := cmd.Flag("output").Value.String()
