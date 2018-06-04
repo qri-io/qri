@@ -13,10 +13,15 @@ var datasetDiffCmd = &cobra.Command{
 	Use:   "diff",
 	Short: "compare differences between two datasets",
 	Long: `
-Diff compares two datasets from your repo and prints a represntation 
+Diff compares two datasets from your repo and prints a representation 
 of the differences between them.  You can specifify the datasets
 either by name or by their hash`,
-	// Example: `todo`,
+	Example: `  show diff between two versions of the same dataset:
+  $ qri diff me/annual_pop@/ipfs/QmcBZoEQ7ot4UYKn1JM3gwd4LHorj6FJ4Ep19rfLBT3VZ8 
+  me/annual_pop@/ipfs/QmVvqsge5wqp4piJbLArwVB6iJSTrdM8ZRpHY7fikASrr8
+
+  show diff between two different datasets:
+  $ qri diff me/population_2016 me/population_2017`,
 	Annotations: map[string]string{
 		"group": "dataset",
 	},

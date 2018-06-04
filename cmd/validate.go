@@ -18,39 +18,44 @@ var (
 	validateDsFilepath       string
 	validateDsSchemaFilepath string
 	validateDsURL            string
-	validateDsPassive        bool
+	// validateDsPassive        bool
 )
 
 // validateCmd represents the validate command
 var validateCmd = &cobra.Command{
 	Use:   "validate",
 	Short: "show schema validation errors",
-	Long: `
-validate checks data for errors using a structure, printing a list of issues.
-By default validate checks dataset data against it’s own structure. validate is 
-a flexible command that works with data and structures either inside our outside 
-of qri by providing one or both of --data and --structure arguments. 
-
-Providing --structure and --data is an “external validation that uses nothing 
-stored in qri. When only one of structure or data args are provided, the other 
-comes from a dataset reference. For example, to check how a file “data.csv” 
-validates against a dataset "foo”, we would run:
-	qri validate —data data.csv foo
-In this case, qri will will print any validation as if data.csv was foo’s data.
-
-To see how changes to a structure “structure.json” will validate against a 
-dataset in qri, we would run:
-	qri validate —structure structure.json foo
-In this case, qri will print and validation errors as if stucture.json was the
-structure for dataset foo
-
-Using validate this way is a great way to see how changes to data or structure
-will affect a dataset before saving changes to a dataset.`,
-	Example: `  show errors in an existing dataset:
-  $ qri validate b5/comics`,
 	Annotations: map[string]string{
 		"group": "dataset",
 	},
+	Long: `
+Validate checks data for errors using a schema and then printing a list of 
+issues. By default validate checks dataset data against it’s own schema. 
+Validate is a flexible command that works with data and schemas either 
+inside or outside of qri by providing one or both of --data and --schema 
+arguments. 
+
+Providing --schema and --data is an “external validation" that uses nothing 
+stored in qri. When only one of schema or data args are provided, the other 
+comes from a dataset reference. For example, to check how a file “data.csv” 
+validates against a dataset "foo”, we would run:
+
+  $ qri validate --data data.csv me/foo
+
+In this case, qri will will print any validation as if data.csv was foo’s data.
+
+To see how changes to a schema "schema.json” will validate against a 
+dataset in qri, we would run:
+
+	$ qri validate --schema schema.json foo
+
+In this case, qri will print validation errors as if stucture.json was the
+schema for dataset "foo"
+
+Using validate this way is a great way to see how changes to data or schema
+will affect a dataset before saving changes to a dataset.`,
+	Example: `  show errors in an existing dataset:
+  $ qri validate b5/comics`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
@@ -68,7 +73,7 @@ will affect a dataset before saving changes to a dataset.`,
 		}
 
 		if ref.IsEmpty() && !(validateDsFilepath != "" && validateDsSchemaFilepath != "") {
-			ErrExit(fmt.Errorf("please provide a dataset name to validate, or both  --file and --schema arguments"))
+			ErrExit(fmt.Errorf("please provide a dataset name to validate, or both  --data and --schema arguments"))
 		}
 
 		dataFile, err = loadFileIfPath(validateDsFilepath)
@@ -110,8 +115,8 @@ will affect a dataset before saving changes to a dataset.`,
 
 func init() {
 	validateCmd.Flags().StringVarP(&validateDsURL, "url", "u", "", "url to file to initialize from")
-	validateCmd.Flags().StringVarP(&validateDsFilepath, "file", "f", "", "data file to initialize from")
+	validateCmd.Flags().StringVarP(&validateDsFilepath, "data", "f", "", "data file to initialize from")
 	validateCmd.Flags().StringVarP(&validateDsSchemaFilepath, "schema", "", "", "json schema file to use for validation")
-	validateCmd.Flags().BoolVarP(&validateDsPassive, "passive", "p", false, "disable interactive init")
+	// validateCmd.Flags().BoolVarP(&validateDsPassive, "passive", "p", false, "disable interactive init")
 	RootCmd.AddCommand(validateCmd)
 }
