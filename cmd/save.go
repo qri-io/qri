@@ -40,6 +40,8 @@ qri will automatically generate one for you.
 
 Currently you can only save changes to datasets that you control. Tools for 
 collaboration are in the works. Sit tight sportsfans.`,
+	Example: `  save updated data to dataset annual_pop:
+  $ qri --data /path/to/data.csv me/annual_pop`,
 	Annotations: map[string]string{
 		"group": "dataset",
 	},
