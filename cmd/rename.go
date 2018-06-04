@@ -11,11 +11,15 @@ var datasetRenameCmd = &cobra.Command{
 	Aliases: []string{"mv"},
 	Short:   "change the name of a dataset",
 	Long: `
-Rename changes the name of a dataset. So, uh, it’s worth noting that this can 
-break lots of stuff for other people, especially in these early days of qri. 
+Rename changes the name of a dataset.
 
-So free to rename stuff lots at first, but try to settle on a name and stick 
-with it, especially if you want other people to like your datasets.`,
+Note that if someone has added your dataset to their qri node, and then
+you rename your local dataset, your peer's version of your dataset will
+not have the updated name. While this won't break anything, it will
+confuse anyone who has added your dataset before the change. Try to keep
+renames to a minimum.`,
+	Example: `  rename a dataset named annual_pop to annual_population:
+  $ qri rename me/annual_pop me/annual_population`,
 	PreRun: func(cmd *cobra.Command, args []string) {
 		loadConfig()
 	},
