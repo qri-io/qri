@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -12,6 +11,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
@@ -49,6 +49,10 @@ To export everything about a dataset, use the --dataset flag.`,
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 		format := cmd.Flag("format").Value.String()
+		dataFormat := cmd.Flag("data-format").Value.String()
+		if dataFormat != "" && !(dataFormat == "json" || dataFormat == "csv" || dataFormat == "cbor") {
+			ErrExit(fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", dataFormat))
+		}
 
 		if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
 			if path == "" {
@@ -195,14 +199,40 @@ To export everything about a dataset, use the --dataset flag.`,
 		}
 
 		if exportCmdData {
+
 			src, err := dsfs.LoadData(r.Store(), ds)
 			ExitIfErr(err)
 
-			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format))
+			if dataFormat == "" {
+				dataFormat = ds.Structure.Format.String()
+			}
+
+			df, err := dataset.ParseDataFormatString(dataFormat)
+			ExitIfErr(err)
+
+			st := &dataset.Structure{}
+			st.Assign(ds.Structure, &dataset.Structure{
+				Format: df,
+				Schema: ds.Structure.Schema,
+			})
+
+			buf, err := dsio.NewEntryBuffer(st)
+			ExitIfErr(err)
+
+			rr, err := dsio.NewEntryReader(ds.Structure, src)
+			ExitIfErr(err)
+
+			err = dsio.Copy(rr, buf)
+			ExitIfErr(err)
+
+			err = buf.Close()
+			ExitIfErr(err)
+
+			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", dataFormat))
 			dst, err := os.Create(dataPath)
 			ExitIfErr(err)
 
-			_, err = io.Copy(dst, src)
+			_, err = dst.Write(buf.Bytes())
 			ExitIfErr(err)
 
 			err = dst.Close()
@@ -239,6 +269,7 @@ func init() {
 	exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().StringP("format", "f", "yaml", "format for all exported files, except for data. yaml is the default format. options: yaml, json")
+	exportCmd.Flags().StringP("data-format", "", "", "format for data file. default is the original data format. options: json, csv, cbor")
 	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
