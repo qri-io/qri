@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -22,7 +21,7 @@ var (
 	exportCmdDataset    bool
 	exportCmdMeta       bool
 	exportCmdStructure  bool
-	exportCmdData       bool
+	exportCmdNoData     bool
 	exportCmdTransform  bool
 	exportCmdVis        bool
 	exportCmdAll        bool
@@ -49,6 +48,10 @@ To export everything about a dataset, use the --dataset flag.`,
 		requireNotRPC(cmd.Name())
 		path := cmd.Flag("output").Value.String()
 		format := cmd.Flag("format").Value.String()
+		dataFormat := cmd.Flag("data-format").Value.String()
+		if dataFormat != "" && !(dataFormat == "json" || dataFormat == "csv" || dataFormat == "cbor") {
+			ErrExit(fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", dataFormat))
+		}
 
 		if blank, err := cmd.Flags().GetBool("blank"); err == nil && blank {
 			if path == "" {
@@ -74,7 +77,6 @@ To export everything about a dataset, use the --dataset flag.`,
 		err = req.Get(&dsr, res)
 		ExitIfErr(err)
 
-		fmt.Println(res)
 		ds, err := res.DecodeDataset()
 		ExitIfErr(err)
 
@@ -101,7 +103,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			ExitIfErr(err)
 			return
 		} else if exportCmdAll {
-			exportCmdData = true
+			exportCmdNoData = false
 			exportCmdDataset = true
 			exportCmdMeta = true
 			exportCmdStructure = true
@@ -194,15 +196,32 @@ To export everything about a dataset, use the --dataset flag.`,
 			printSuccess("exported structure file to: %s", stPath)
 		}
 
-		if exportCmdData {
-			src, err := dsfs.LoadData(r.Store(), ds)
+		if !exportCmdNoData {
+			if dataFormat == "" {
+				dataFormat = ds.Structure.Format.String()
+			}
+
+			df, err := dataset.ParseDataFormatString(dataFormat)
 			ExitIfErr(err)
 
-			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", ds.Structure.Format))
+			p := &core.LookupParams{
+				Format: df,
+				Path:   ds.Path().String(),
+				All:    true,
+			}
+			r := &core.LookupResult{}
+
+			req, err := datasetRequests(true)
+			ExitIfErr(err)
+
+			err = req.LookupBody(p, r)
+			ExitIfErr(err)
+
+			dataPath := filepath.Join(path, fmt.Sprintf("data.%s", dataFormat))
 			dst, err := os.Create(dataPath)
 			ExitIfErr(err)
 
-			_, err = io.Copy(dst, src)
+			_, err = dst.Write(r.Data)
 			ExitIfErr(err)
 
 			err = dst.Close()
@@ -239,13 +258,14 @@ func init() {
 	exportCmd.Flags().BoolP("blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
 	exportCmd.Flags().StringP("output", "o", "", "path to write to, default is current directory")
 	exportCmd.Flags().StringP("format", "f", "yaml", "format for all exported files, except for data. yaml is the default format. options: yaml, json")
-	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive")
+	exportCmd.Flags().StringP("data-format", "", "", "format for data file. default is the original data format. options: json, csv, cbor")
+	exportCmd.Flags().BoolVarP(&exportCmdZipped, "zip", "z", false, "compress export as zip archive, export all parts of dataset, data in original format")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "all", "a", false, "export full dataset package")
 	exportCmd.Flags().BoolVarP(&exportCmdAll, "namespaced", "n", false, "export to a peer name namespaced directory")
 	exportCmd.Flags().BoolVarP(&exportCmdDataset, "dataset", "", false, "export root dataset")
 	exportCmd.Flags().BoolVarP(&exportCmdMeta, "meta", "m", false, "export dataset metadata file")
 	exportCmd.Flags().BoolVarP(&exportCmdStructure, "structure", "s", false, "export dataset structure file")
-	exportCmd.Flags().BoolVarP(&exportCmdData, "data", "d", true, "export dataset data file")
+	exportCmd.Flags().BoolVarP(&exportCmdNoData, "no-data", "", false, "don't include dataset data file in export")
 	// exportCmd.Flags().BoolVarP(&exportCmdTransform, "transform", "t", false, "export dataset transform file")
 	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
