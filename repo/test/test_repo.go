@@ -79,7 +79,7 @@ func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 
 		datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
 
-		if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, true); err != nil {
+		if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
 	}
@@ -114,7 +114,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 	}
 
 	datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
-	if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, true); err != nil {
+	if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
 		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
 	}
 
@@ -149,7 +149,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	for _, c := range tc {
-		if _, err := act.CreateDataset(c.Name, c.Input, c.DataFile(), true); err != nil {
+		if _, err := act.CreateDataset(c.Name, c.Input, c.DataFile(), nil, true); err != nil {
 			return mr, pk, err
 		}
 	}

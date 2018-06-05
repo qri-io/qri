@@ -17,6 +17,7 @@ var (
 	cfgFile string
 	// setting noLoadConfig to true will skip the the default call to LoadConfig
 	noLoadConfig bool
+	noPrompt     bool
 	// global pagination variables
 	pageNum  int
 	pageSize int
@@ -42,6 +43,7 @@ func init() {
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
 	// RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 	RootCmd.SetUsageTemplate(rootUsageTemplate)
+	RootCmd.PersistentFlags().BoolVarP(&noPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	for _, cmd := range RootCmd.Commands() {
 		cmd.SetUsageTemplate(defaultUsageTemplate)
 	}

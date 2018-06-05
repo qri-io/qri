@@ -271,7 +271,10 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return r.cli.Call("DatasetRequests.Init", p, res)
 	}
 
-	var dataFile cafs.File
+	var (
+		dataFile cafs.File
+		secrets  map[string]string
+	)
 
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
@@ -284,6 +287,10 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
 		return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
+	}
+
+	if dsp.Transform != nil {
+		secrets = dsp.Transform.Secrets
 	}
 
 	ds := &dataset.Dataset{}
@@ -350,7 +357,7 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 
-	*res, err = r.repo.CreateDataset(dsp.Name, ds, dataFile, true)
+	*res, err = r.repo.CreateDataset(dsp.Name, ds, dataFile, secrets, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
@@ -382,6 +389,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds       = &dataset.Dataset{}
 		dsp      = p.Dataset
 		dataFile cafs.File
+		secrets  map[string]string
 	)
 
 	if dsp == nil {
@@ -390,9 +398,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if dsp.Name == "" || dsp.Peername == "" {
 		return fmt.Errorf("peername & name are required to update dataset")
 	}
+
 	// if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
 	// 	return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
 	// }
+
+	if dsp.Transform != nil {
+		secrets = dsp.Transform.Secrets
+	}
 
 	if err = updates.Decode(p.Dataset); err != nil {
 		return fmt.Errorf("decoding dataset: %s", err.Error())
@@ -456,7 +469,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 	// ds.VisConfig.SetPath("")
 
-	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, true)
+	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, secrets, true)
 	if err != nil {
 		log.Errorf("create ds error: %s\n", err.Error())
 		return err

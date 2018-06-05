@@ -12,9 +12,19 @@ import (
 )
 
 // ExecTransform executes a designated transformation
-func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File) (file cafs.File, err error) {
+func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
-	rr, err := skytf.ExecFile(ds, filepath, infile)
+	rr, err := skytf.ExecFile(ds, filepath, infile, func(o *skytf.ExecOpts) {
+		if secrets != nil {
+			// convert to map[string]interface{}, which the lower-level skytf supports
+			// until we're sure map[string]string is going to work in the majority of use cases
+			s := map[string]interface{}{}
+			for key, val := range secrets {
+				s[key] = val
+			}
+			o.Secrets = s
+		}
+	})
 	if err != nil {
 		return nil, err
 	}
