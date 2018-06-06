@@ -39,18 +39,9 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets 
 		return nil, fmt.Errorf("error allocating result buffer: %s", err)
 	}
 
-	for {
-		val, err := rr.ReadEntry()
-		if err != nil {
-			if err.Error() == "EOF" {
-				err = nil
-				break
-			}
-			return nil, fmt.Errorf("row iteration error: %s", err.Error())
-		}
-		if err := buf.WriteEntry(val); err != nil {
-			return nil, fmt.Errorf("error writing value to buffer: %s", err.Error())
-		}
+	err = dsio.Copy(rr, buf)
+	if err != nil {
+		return nil, err
 	}
 
 	if err := buf.Close(); err != nil {
