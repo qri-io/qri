@@ -44,13 +44,13 @@ validates against a dataset "foo”, we would run:
 
 In this case, qri will will print any validation as if data.csv was foo’s data.
 
-To see how changes to a schema "schema.json” will validate against a 
+To see how changes to a schema will validate against a 
 dataset in qri, we would run:
 
-	$ qri validate --schema schema.json foo
+  $ qri validate --schema schema.json me/foo
 
 In this case, qri will print validation errors as if stucture.json was the
-schema for dataset "foo"
+schema for dataset "me/foo"
 
 Using validate this way is a great way to see how changes to data or schema
 will affect a dataset before saving changes to a dataset.`,
