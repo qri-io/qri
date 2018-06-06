@@ -14,13 +14,16 @@ var infoCmd = &cobra.Command{
 	Use:     "info",
 	Aliases: []string{"get", "describe"},
 	Short:   "show summarized description of a dataset",
-	Long:    `info describes users and datasets`,
-	Example: `  show b5 user info
-	get info for b5/comics:
+	Long:    `info describes datasets`,
+	Example: `  get info for b5/comics:
   $ qri info b5/comics
 
   get info for a dataset at a specific version:
-  $ qri info QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+  $ qri info me@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+
+  or
+
+  $ qri info me/comics@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
 	Annotations: map[string]string{
 		"group": "dataset",
 	},
