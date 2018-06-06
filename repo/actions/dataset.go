@@ -30,6 +30,12 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		return
 	}
 
+	if ds.Commit != nil {
+		// NOTE: add author ProfileID here to keep the dataset package agnostic to
+		// all identity stuff except keypair crypto
+		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
+	}
+
 	if ds.Transform != nil {
 		log.Info("running transformation...")
 		data, err = act.ExecTransform(ds, data, secrets)

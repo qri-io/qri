@@ -111,8 +111,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -120,22 +120,22 @@ func TestServerRoutes(t *testing.T) {
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "historyResponseAt.json", 200},
 
 		{"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "", 200},
-		{"GET", "/export/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "", 200},
+		{"GET", "/export/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/QmbYtNU53DDjYWKSdYHmRz1CUnJhqH5jZ4Aa1ovNm323ib", "", "removeResponseWithPath.json", 200},
-		{"POST", "/remove/at/map/QmeSBfrDgFShkfjHJevhSe3zo6L9beTxqrxruzFfUqpNVv", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "removeResponseByPath.json", 200},
 
-		{"GET", "/connect/", "", "", 400},
+		// {"GET", "/connect/", "", "", 400},
 
 		// // blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
