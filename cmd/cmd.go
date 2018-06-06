@@ -67,3 +67,15 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 
 	return os.Open(path)
 }
+
+// parseSecrets turns a key,value sequence into a map[string]string
+func parseSecrets(secrets ...string) (map[string]string, error) {
+	if len(secrets)%2 != 0 {
+		return nil, fmt.Errorf("expected even number of (key,value) pairs for secrets")
+	}
+	s := map[string]string{}
+	for i := 0; i < len(secrets); i = i + 2 {
+		s[secrets[i]] = secrets[i+1]
+	}
+	return s, nil
+}

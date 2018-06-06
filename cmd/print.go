@@ -207,15 +207,30 @@ func prompt(msg string) string {
 }
 
 func inputText(message, defaultText string) string {
-	if message == "" {
-		message = "enter text:"
-	}
 	input := prompt(fmt.Sprintf("%s [%s]: ", message, defaultText))
 	if input == "" {
 		input = defaultText
 	}
 
 	return input
+}
+
+func confirm(message string, def bool) bool {
+	if noPrompt {
+		return def
+	}
+
+	yellow := color.New(color.FgYellow).SprintFunc()
+	defaultText := "y/N"
+	if def {
+		defaultText = "Y/n"
+	}
+	input := prompt(fmt.Sprintf("%s [%s]: ", yellow(message), defaultText))
+	if input == "" {
+		return def
+	}
+	input = strings.TrimSpace(strings.ToLower(input))
+	return (input == "y" || input == "yes") == def
 }
 
 func printDiffs(diffText string) {

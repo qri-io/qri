@@ -23,6 +23,7 @@ var (
 	savePassive        bool
 	saveRescursive     bool
 	saveShowValidation bool
+	saveSecrets        []string
 )
 
 // saveCmd represents the save command
@@ -97,6 +98,18 @@ collaboration are in the works. Sit tight sportsfans.`,
 			dsp.DataPath = saveDataPath
 		}
 
+		if dsp.Transform != nil && saveSecrets != nil {
+			if !confirm(`
+Warning: You are providing secrets to a dataset transformation.
+Never provide secrets to a transformation you do not trust.
+continue?`, true) {
+				return
+			}
+
+			dsp.Transform.Secrets, err = parseSecrets(addDsSecrets...)
+			ExitIfErr(err)
+		}
+
 		p := &core.SaveParams{
 			Dataset: dsp,
 			Private: false,
@@ -136,5 +149,6 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
 	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "path to file or url to initialize from")
 	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	saveCmd.Flags().StringSliceVar(&saveSecrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	RootCmd.AddCommand(saveCmd)
 }

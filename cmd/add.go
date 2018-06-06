@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
@@ -12,7 +13,6 @@ import (
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
 
 var (
@@ -24,6 +24,7 @@ var (
 	addDsPassive        bool
 	addDsShowValidation bool
 	addDsPrivate        bool
+	addDsSecrets        []string
 )
 
 var datasetAddCmd = &cobra.Command{
@@ -60,9 +61,11 @@ changes to qri.`,
 		ingest := (addDsFile != "" || addDsDataPath != "")
 
 		if ingest {
-			ref, err := repo.ParseDatasetRef(args[0])
-			ExitIfErr(err)
-
+			var arg string
+			if len(args) == 1 {
+				arg = args[0]
+			}
+			ref, _ := repo.ParseDatasetRef(arg)
 			initDataset(ref, cmd)
 			return
 		}
@@ -114,9 +117,21 @@ func initDataset(name repo.DatasetRef, cmd *cobra.Command) {
 		ExitIfErr(err)
 		dsp.DataPath = addDsDataPath
 	}
-	if dsp.Transform != nil && dsp.Transform.ScriptPath != "" {
-		dsp.Transform.ScriptPath, err = filepath.Abs(dsp.Transform.ScriptPath)
-		ExitIfErr(err)
+	if dsp.Transform != nil {
+		if addDsSecrets != nil {
+			if !confirm(`
+Warning: You are providing secrets to a dataset transformation.
+Never provide secrets to a transformation you do not trust.
+continue?`, true) {
+				return
+			}
+			dsp.Transform.Secrets, err = parseSecrets(addDsSecrets...)
+			ExitIfErr(err)
+		}
+		if dsp.Transform.ScriptPath != "" {
+			dsp.Transform.ScriptPath, err = filepath.Abs(dsp.Transform.ScriptPath)
+			ExitIfErr(err)
+		}
 	}
 
 	if dsp.Commit == nil && (addDsTitle != "" || addDsMessage != "") {
@@ -171,6 +186,7 @@ func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsTitle, "title", "t", "", "commit title")
 	datasetAddCmd.Flags().StringVarP(&addDsMessage, "message", "m", "", "commit message")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
+	datasetAddCmd.Flags().StringSliceVar(&addDsSecrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }

@@ -19,7 +19,7 @@ type Dataset struct {
 }
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
-func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, pin bool) (ref repo.DatasetRef, err error) {
+func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, pin bool) (ref repo.DatasetRef, err error) {
 	log.Debugf("CreateDataset: %s", name)
 	var (
 		path datastore.Key
@@ -32,7 +32,7 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 
 	if ds.Transform != nil {
 		log.Info("running transformation...")
-		data, err = act.ExecTransform(ds, data)
+		data, err = act.ExecTransform(ds, data, secrets)
 		if err != nil {
 			return
 		}
