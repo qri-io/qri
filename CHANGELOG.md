@@ -1,3 +1,63 @@
+<a name="0.4.0"></a>
+# [0.4.0](https://github.com/qri-io/qri/compare/v0.3.2...v0.4.0) (2018-06-06)
+
+_We're going to start writing proper release notes now, so, uh, here are those notes:_
+
+This release brings a big new feature in the form of our first transformation implementation, and a bunch of refinements that make the experience of working with qri a little easier. 
+
+#### Introducing Skylark Transformations
+For months qri has had a planned feature set for embedding the concept of "transformations" directly into datasets. Basically transforms are scripts that auto-generate datasets. We've defined a "transformation" to be a repeatable process that takes zero or more datasets and data sources, and outputs exactly one dataset. By embedding transformations directly into datasets, users can repeat them with a single command, keeping the code that updates a dataset, and it's resulting data in the same place. This opens up a whole new set of uses for qri datasets, making them auditable, repeatable, configurable, and generally _functional_. Using transformations, qri can check to see if your dataset is out of date, and update it for you.
+
+While we've had the _plan_ for transformations for some time now, it's taken us a long time to figure out how to write a first implementaion. Because transformations are executable code, security & behavioural expectations are a big concern. We also want to set ourselves up for success by choosing an implementation that will feel familiar to those who do a lot of code-based data munging, while also leaving the door open to things we'd like to do in the future like parallelized execution.
+
+So after a lot of reasearch and a false-start or five, we've decided on a scripting language called _skylark_ as our base implementation, which has grown out of the _bazel_ project at google. This choice might seem strange at first (bazel is a build tool and has nothing to do with data), but skylark has a number of advantages:
+* **python-like syntax** - _many_ people working in data science these days write python, we like that.
+* **deterministic subset of python** - unlike python, skylark removes properties that reduce introspection into code behaviour. things like `while` loops and recursive functions are ommitted, making it possible for qri to infer how a given transformation will behave.
+* **parallel execution** - thanks to this deterministic requirement (and lack of global interpreter lock) skylark functions can be executed in parallel. Combined with peer-2-peer networking, we're hoping to advance tranformations toward peer-driven distribed computing. More on that in the coming months.
+
+A tutorial on how to write skylark transformations is forthcoming, we'll post examples to our documentation site when it's ready: https://qri.io/docs
+
+#### dataset.yaml, and more :heart: for the CLI
+For a while now we've been thinking about datasets as being a lot like web pages. Web pages have `head`,`meta` and `body` elements. Datasets have `meta`, `structure`, `commit`, and `data`. To us this metaphor helps reason about the elements of a dataset, why they exist, and their function. And just like how webpages are defined in `.html` files, we've updated the CLI to work with `.yaml` files that define dataests. `qri export --blank` will now write a blank dataset file with comments that link to documentation on each section of a dataset. You can edit that file, save it, and run `qri add --dataset=dataset.yaml me/my_dataset` to add the dataset to qri. Ditto for `qri update`.
+
+We'd like to encourage users to think in terms of these `dataset.yaml` files, building up a mental model of each element of a dataset in much the same way we think about HTML page elements. We chose `yaml` over JSON specifically because we can include comments in these files, making it easier to pass them around with tools outside of qri, and we're hoping this'll make it easier to think about datasets moving forward. In futures release we plan to rename the "data" element to "body" to bring this metaphor even closer.
+
+Along with `dataset.yaml`, we've also done a bunch of refactoring & bug fixes to make the CLI generally work better, and look forward to improving on this trend in near-term patch releases. One of the biggest things we'd like to improve upon is providing more meaningful error messages.
+
+
+### Bug Fixes
+
+* **cmd.list:** `qri list` now displays datasets size in KBs, MBs, etc ([c4805ca](https://github.com/qri-io/qri/commit/c4805ca))
+* **cmd/add:** title and message flags work and override the dataset.Commit fields ([0ef9b80](https://github.com/qri-io/qri/commit/0ef9b80))
+* **ipfs:** Display better error if IPFS is holding a lock ([dbc1604](https://github.com/qri-io/qri/commit/dbc1604))
+* **list:** Show info for datasets even if they don't have meta ([a853e71](https://github.com/qri-io/qri/commit/a853e71))
+
+
+### Code Refactoring
+
+* **core.Add, core.Save:** refactor input params, folding into a DatasetPod ([e63694f](https://github.com/qri-io/qri/commit/e63694f))
+
+
+### Features
+
+* **add:** accept --dataset yaml/json file arg to add ([6e04481](https://github.com/qri-io/qri/commit/6e04481))
+* **backtrace:** Show error's stack if QRI_BACKTRACE is defined ([88160e2](https://github.com/qri-io/qri/commit/88160e2))
+* **cmd.Export:** added --blank flag to export dataset template ([27d13a0](https://github.com/qri-io/qri/commit/27d13a0)), closes [#409](https://github.com/qri-io/qri/issues/409)
+* **cmd/export:** specify data format using --data-format flag ([8549d59](https://github.com/qri-io/qri/commit/8549d59))
+* **CreateDataset:** write author ProfileID when creating a dataset ([93d4ef1](https://github.com/qri-io/qri/commit/93d4ef1))
+* **export:** can now choose dataset/structure/meta format on export ([2863ded](https://github.com/qri-io/qri/commit/2863ded))
+* **registry cmd:** add commands for working with registries ([85d6892](https://github.com/qri-io/qri/commit/85d6892))
+* **skylark:** Pass previous dataset body to skylark for updates ([64e5b64](https://github.com/qri-io/qri/commit/64e5b64))
+* **transform:** execute transformations with skylark langauge ([f684229](https://github.com/qri-io/qri/commit/f684229))
+* **transform secrets:** supply secrets to transforms ([5d8cac9](https://github.com/qri-io/qri/commit/5d8cac9))
+
+
+### BREAKING CHANGES
+
+* **core.Add, core.Save:** add & save on both API & CLI now accept a "file" which is the full dataset
+
+
+
 <a name="0.3.2"></a>
 # [0.3.2](https://github.com/qri-io/qri/compare/v0.3.1...v0.3.2) (2018-05-15)
 
