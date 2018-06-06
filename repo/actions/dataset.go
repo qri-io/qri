@@ -69,18 +69,6 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		return
 	}
 
-	if rc := act.Registry(); rc != nil {
-		log.Debugf("posting dataset to registry: %s/%s", pro.Peername, name)
-		dse := ds.Encode()
-		// TODO - this should be set be dsfs.CreateDataset:
-		dse.Path = path.String()
-
-		if e := rc.PutDataset(pro.Peername, name, dse, pro.PrivKey.GetPublic()); e != nil {
-			// ignore registry errors
-			log.Errorf("registering dataset: %s", e.Error())
-		}
-	}
-
 	if err = act.LogEvent(repo.ETDsCreated, ref); err != nil {
 		return
 	}
