@@ -38,7 +38,7 @@ $ qri config set registry.location ""`,
 	},
 }
 
-// publishCmd represents the export command
+// publishCmd represents the publish command
 var publishCmd = &cobra.Command{
 	Use:   "publish",
 	Short: "publish dataset info to the registry",
@@ -64,7 +64,7 @@ var publishCmd = &cobra.Command{
 	},
 }
 
-// unpublishCmd represents the export command
+// unpublishCmd represents the unpublish command
 var unpublishCmd = &cobra.Command{
 	Use:   "unpublish",
 	Short: "remove dataset info from the registry",
