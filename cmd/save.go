@@ -23,6 +23,7 @@ var (
 	savePassive        bool
 	saveRescursive     bool
 	saveShowValidation bool
+	saveNoRegistry     bool
 	saveSecrets        []string
 )
 
@@ -113,6 +114,7 @@ continue?`, true) {
 		p := &core.SaveParams{
 			Dataset: dsp,
 			Private: false,
+			Publish: !saveNoRegistry,
 		}
 
 		req, err := datasetRequests(false)
@@ -150,5 +152,6 @@ func init() {
 	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "path to file or url to initialize from")
 	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	saveCmd.Flags().StringSliceVar(&saveSecrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	saveCmd.Flags().BoolVarP(&saveNoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
 	RootCmd.AddCommand(saveCmd)
 }

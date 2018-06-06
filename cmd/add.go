@@ -24,6 +24,7 @@ var (
 	addDsPassive        bool
 	addDsShowValidation bool
 	addDsPrivate        bool
+	addDsNoRegistry     bool
 	addDsSecrets        []string
 )
 
@@ -149,6 +150,7 @@ continue?`, true) {
 	p := &core.SaveParams{
 		Dataset: dsp,
 		Private: addDsPrivate,
+		Publish: !addDsNoRegistry,
 	}
 
 	req, err := datasetRequests(false)
@@ -187,6 +189,7 @@ func init() {
 	datasetAddCmd.Flags().StringVarP(&addDsMessage, "message", "m", "", "commit message")
 	datasetAddCmd.Flags().BoolVarP(&addDsPrivate, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
 	datasetAddCmd.Flags().StringSliceVar(&addDsSecrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	datasetAddCmd.Flags().BoolVarP(&addDsNoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
 	// datasetAddCmd.Flags().BoolVarP(&addDsShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	RootCmd.AddCommand(datasetAddCmd)
 }

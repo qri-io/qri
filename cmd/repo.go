@@ -120,6 +120,28 @@ func datasetRequests(online bool) (*core.DatasetRequests, error) {
 	return req, nil
 }
 
+func registryRequests(online bool) (*core.RegistryRequests, error) {
+	if cli := rpcConn(); cli != nil {
+		return core.NewRegistryRequests(nil, cli), nil
+	}
+
+	if !online {
+		// TODO - make this not terrible
+		r, cli, err := repoOrClient(online)
+		if err != nil {
+			return nil, err
+		}
+		return core.NewRegistryRequests(r, cli), nil
+	}
+
+	n, err := qriNode(online)
+	if err != nil {
+		return nil, err
+	}
+
+	return core.NewRegistryRequests(n.Repo, nil), nil
+}
+
 func renderRequests(online bool) (*core.RenderRequests, error) {
 	if cli := rpcConn(); cli != nil {
 		return core.NewRenderRequests(nil, cli), nil

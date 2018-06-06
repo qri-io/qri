@@ -263,6 +263,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 type SaveParams struct {
 	Dataset *dataset.DatasetPod // dataset to create
 	Private bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
+	Publish bool
 }
 
 // Init creates a new qri dataset from a source of data
@@ -361,6 +362,15 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
+	}
+
+	if p.Publish {
+		fmt.Println("posting dataset to registry ...")
+		var done bool
+		if err = NewRegistryRequests(r.repo, nil).Publish(res, &done); err != nil {
+			return err
+		}
+		fmt.Println("done")
 	}
 
 	return r.repo.ReadDataset(res)
@@ -475,6 +485,15 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 	ref.Dataset = ds.Encode()
+
+	if p.Publish {
+		fmt.Println("posting dataset to registry ...")
+		var done bool
+		if err = NewRegistryRequests(r.repo, nil).Publish(&ref, &done); err != nil {
+			return err
+		}
+		fmt.Println("done")
+	}
 
 	*res = ref
 	return nil
