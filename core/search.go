@@ -31,14 +31,14 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 	}
 }
 
-// Result struct
-type Result struct {
+// SearchResult struct
+type SearchResult struct {
 	Type, ID string
 	Value    interface{}
 }
 
 // Search queries for items on qri related to given parameters
-func (d *SearchRequests) Search(p *regclient.SearchParams, res *[]Result) error {
+func (d *SearchRequests) Search(p *regclient.SearchParams, res *[]SearchResult) error {
 	if d.cli != nil {
 		return d.cli.Call("SearchRequests.Search", p, res)
 	}
@@ -50,7 +50,7 @@ func (d *SearchRequests) Search(p *regclient.SearchParams, res *[]Result) error 
 		return err
 	}
 
-	searchResults := make([]Result, len(results))
+	searchResults := make([]SearchResult, len(results))
 	for i, result := range results {
 		searchResults[i].Type = result.Type
 		searchResults[i].ID = result.ID

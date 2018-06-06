@@ -101,7 +101,7 @@ func printByteInfo(l int) string {
 	return fmt.Sprintf("%v %s", length.value, length.name)
 }
 
-func printSearchResult(i int, result core.Result) {
+func printSearchResult(i int, result core.SearchResult) {
 	white := color.New(color.FgWhite).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
 	// NOTE: in the future we need to switch based on result.Type

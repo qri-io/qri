@@ -3,7 +3,6 @@ package core
 import (
 	"testing"
 
-	// "github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/registry/regclient"
 	regmock "github.com/qri-io/registry/regserver/mock"
@@ -20,29 +19,24 @@ func TestSearch(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
-
-	cases := []struct {
-		p          *regclient.SearchParams
-		numResults int
-		err        string
-	}{
-		{&regclient.SearchParams{"abc", nil, 0, 100}, 0, "error 400: search not supported"},
-	}
+	// Case 0
+	i := 0
+	p := &regclient.SearchParams{"abc", nil, 0, 100}
+	numResults := 0
+	errString := "error 400: search not supported"
 
 	req := NewSearchRequests(mr, nil)
-	for i, c := range cases {
-		got := &[]Result{}
-		err := req.Search(c.p, got)
 
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-
-		if len(*got) != c.numResults {
-			t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, c.numResults, len(*got))
-		}
+	got := &[]SearchResult{}
+	err = req.Search(p, got)
+	if !(err == nil && errString == "" || err != nil && err.Error() == errString) {
+		t.Errorf("case %d error mismatch: expected: %s, got: %s", i, errString, err)
 	}
+	if len(*got) != numResults {
+		t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, numResults, len(*got))
+	}
+
+	// Case 1
 	// create fake server that returns results
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write(mockResponse)
@@ -54,27 +48,23 @@ func TestSearch(t *testing.T) {
 		return
 	}
 
-	cases = []struct {
-		p          *regclient.SearchParams
-		numResults int
-		err        string
-	}{
-		{&regclient.SearchParams{"abc", nil, 0, 100}, 3, ""},
-	}
+	// Case 1
+	i = 1
+	p = &regclient.SearchParams{"abc", nil, 0, 100}
+	numResults = 3
+	errString = ""
 
 	req = NewSearchRequests(mr, nil)
-	for i, c := range cases {
-		got := &[]Result{}
-		err := req.Search(c.p, got)
 
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
+	got = &[]SearchResult{}
+	err = req.Search(p, got)
 
-		if len(*got) != c.numResults {
-			t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, c.numResults, len(*got))
-		}
+	if !(err == nil && errString == "" || err != nil && err.Error() == errString) {
+		t.Errorf("case %d error mismatch: expected: %s, got: %s", i, errString, err)
+	}
+
+	if len(*got) != numResults {
+		t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, numResults, len(*got))
 	}
 
 }

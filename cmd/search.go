@@ -36,7 +36,7 @@ var searchCmd = &cobra.Command{
 			Limit:       100,
 			Offset:      0}
 
-		results := &[]core.Result{}
+		results := &[]core.SearchResult{}
 		err = req.Search(p, results)
 		ExitIfErr(err)
 		fmt.Printf("showing %d results for '%s'\n", len(*results), args[0])
