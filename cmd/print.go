@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -98,6 +99,31 @@ func printByteInfo(l int) string {
 		length.name += "s"
 	}
 	return fmt.Sprintf("%v %s", length.value, length.name)
+}
+
+func printSearchResult(i int, result core.Result) {
+	white := color.New(color.FgWhite).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
+	// NOTE: in the future we need to switch based on result.Type
+	// For now we are taking a shortcut and assuming a dataset struct
+	dsname := result.ID
+	resultStruct := &registry.Dataset{}
+	resultString := dsname
+	bytes, err := json.Marshal(result.Value)
+	if err == nil {
+		err = json.Unmarshal(bytes, resultStruct)
+		if err == nil {
+			var title, desc string
+			if resultStruct != nil {
+				if resultStruct.Meta != nil {
+					title = resultStruct.Meta.Title
+					desc = resultStruct.Meta.Description
+				}
+			}
+			resultString = fmt.Sprintf("%s\n   %s\n   %s\n", white(dsname), green(title), desc)
+		}
+	}
+	fmt.Printf("%s. %s", white(i+1), resultString)
 }
 
 func printDatasetRefInfo(i int, ref repo.DatasetRef) {

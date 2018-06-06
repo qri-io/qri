@@ -4,19 +4,15 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
-	// "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/registry/regclient"
 )
 
 // SearchRequests encapsulates business logic for the qri search
 // command
 type SearchRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
-	// node  *p2p.QriNode
-	cli *rpc.Client
+	repo repo.Repo
+	cli  *rpc.Client
 }
 
 // CoreRequestsName implements the requests
@@ -31,8 +27,7 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 
 	return &SearchRequests{
 		repo: r,
-		// node:  node,
-		cli: cli,
+		cli:  cli,
 	}
 }
 
@@ -56,7 +51,6 @@ func (d *SearchRequests) Search(p *regclient.SearchParams, res *[]Result) error 
 	}
 
 	searchResults := make([]Result, len(results))
-	// *res = searchResults
 	for i, result := range results {
 		searchResults[i].Type = result.Type
 		searchResults[i].ID = result.ID
