@@ -598,9 +598,9 @@ Log levels for the api
 
 **Commands:**
 ```
-$ qri config get logging.levels.qriapi
+$ qri config get logging.levels.qriapi.info
 
-$ qri config set logging.levels.qriapi info
+$ qri config set logging.levels {"qriapi":"info"}
 ```
 
 -----
