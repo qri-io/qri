@@ -13,7 +13,6 @@ import (
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -118,10 +117,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		read  = 0
 	)
 
-	sm, err := schemaScanMode(ds.Structure.Schema)
-	if err != nil {
-		return err
-	}
+	tlt := ds.Structure.Schema.TopLevelType()
 
 	rr, err := dsio.NewEntryReader(ds.Structure, file)
 	if err != nil {
@@ -140,7 +136,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 			continue
 		}
 
-		if sm == "object" {
+		if tlt == "object" {
 			obj[val.Key] = val.Value
 		} else {
 			array = append(array, val.Value)
@@ -160,7 +156,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	enc.ProfileID = ref.ProfileID.String()
 	enc.Name = ref.Name
 
-	if sm == "object" {
+	if tlt == "object" {
 		enc.Data = obj
 	} else {
 		enc.Data = array
@@ -173,25 +169,4 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 
 	*res = tmplBuf.Bytes()
 	return nil
-}
-
-// TODO - this is stolen from dataset/dsio, dsio should probably export this
-// schemaScanMode determines weather the top level is an array or object
-func schemaScanMode(sc *jsonschema.RootSchema) (string, error) {
-	if vt, ok := sc.Validators["type"]; ok {
-		// TODO - lol go PR jsonschema to export access to this instead of this
-		// silly validation hack
-		obj := []jsonschema.ValError{}
-		arr := []jsonschema.ValError{}
-		vt.Validate("", map[string]interface{}{}, &obj)
-		vt.Validate("", []interface{}{}, &arr)
-		if len(obj) == 0 {
-			return "object", nil
-		} else if len(arr) == 0 {
-			return "array", nil
-		}
-	}
-	err := fmt.Errorf("invalid schema. root must be either an array or object type")
-	log.Debug(err.Error())
-	return "object", err
 }
