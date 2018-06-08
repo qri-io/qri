@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"fmt"
+
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
@@ -30,6 +32,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *
 		refCache:    &MemRefstore{},
 		profile:     p,
 		profiles:    ps,
+		registry:    rc,
 	}, nil
 }
 
@@ -40,13 +43,19 @@ func (r *MemRepo) Store() cafs.Filestore {
 
 // SetPrivateKey sets this repos's internal private key reference
 func (r *MemRepo) SetPrivateKey(pk crypto.PrivKey) error {
-	r.pk = pk
+	if r.profile == nil {
+		return fmt.Errorf("no profile")
+	}
+	r.profile.PrivKey = pk
 	return nil
 }
 
 // PrivateKey returns this repo's private key
 func (r *MemRepo) PrivateKey() crypto.PrivKey {
-	return r.pk
+	if r.profile == nil {
+		return nil
+	}
+	return r.profile.PrivKey
 }
 
 // RefCache gives access to the ephemeral Refstore
