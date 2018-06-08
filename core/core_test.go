@@ -10,6 +10,11 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+const (
+	// numReceivers = 7
+	numReceivers = 6
+)
+
 func TestReceivers(t *testing.T) {
 	node, err := testQriNode()
 	if err != nil {
@@ -18,8 +23,8 @@ func TestReceivers(t *testing.T) {
 	}
 
 	reqs := Receivers(node)
-	if len(reqs) != 7 {
-		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 7, len(reqs))
+	if len(reqs) != numReceivers {
+		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", numReceivers, len(reqs))
 		return
 	}
 }

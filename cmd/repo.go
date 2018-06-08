@@ -173,13 +173,13 @@ func profileRequests(online bool) (*core.ProfileRequests, error) {
 	return core.NewProfileRequests(r, cli), nil
 }
 
-func searchRequests(online bool) (*core.SearchRequests, error) {
-	r, cli, err := repoOrClient(online)
-	if err != nil {
-		return nil, err
-	}
-	return core.NewSearchRequests(r, cli), nil
-}
+// func searchRequests(online bool) (*core.SearchRequests, error) {
+// 	r, cli, err := repoOrClient(online)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	return core.NewSearchRequests(r, cli), nil
+// }
 
 func historyRequests(online bool) (*core.HistoryRequests, error) {
 	if cli := rpcConn(); cli != nil {
