@@ -4,18 +4,15 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/fs"
+	"github.com/qri-io/registry/regclient"
 )
 
 // SearchRequests encapsulates business logic for the qri search
 // command
 type SearchRequests struct {
-	store cafs.Filestore
-	repo  repo.Repo
-	// node  *p2p.QriNode
-	cli *rpc.Client
+	repo repo.Repo
+	cli  *rpc.Client
 }
 
 // CoreRequestsName implements the requests
@@ -30,56 +27,60 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 
 	return &SearchRequests{
 		repo: r,
-		// node:  node,
-		cli: cli,
+		cli:  cli,
 	}
 }
 
+// SearchResult struct
+type SearchResult struct {
+	Type, ID string
+	Value    interface{}
+}
+
 // Search queries for items on qri related to given parameters
-func (d *SearchRequests) Search(p *repo.SearchParams, res *[]repo.DatasetRef) error {
+func (d *SearchRequests) Search(p *regclient.SearchParams, res *[]SearchResult) error {
 	if d.cli != nil {
 		return d.cli.Call("SearchRequests.Search", p, res)
 	}
-	// if d.node != nil {
-	// 	r, err := d.node.Search(p.Query, p.Limit, p.Offset)
-	// 	if err != nil {
-	// 		return err
-	// 	}
 
-	if searchable, ok := d.repo.(repo.Searchable); ok {
-		results, err := searchable.Search(*p)
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error searching: %s", err.Error())
-		}
-		*res = results
-		return nil
+	reg := d.repo.Registry()
+
+	results, err := reg.Search(p)
+	if err != nil {
+		return err
 	}
 
-	return fmt.Errorf("this repo doesn't support search")
+	searchResults := make([]SearchResult, len(results))
+	for i, result := range results {
+		searchResults[i].Type = result.Type
+		searchResults[i].ID = result.ID
+		searchResults[i].Value = result.Value
+	}
+	*res = searchResults
+	return nil
 }
 
 // ReindexSearchParams defines parmeters for
 // the Reindex method
-type ReindexSearchParams struct {
-	// no args for reindex
-}
+// type ReindexSearchParams struct {
+// 	// no args for reindex
+// }
 
 // Reindex instructs a qri node to re-calculate it's search index
-func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
-	if d.cli != nil {
-		return d.cli.Call("SearchRequests.Reindex", p, done)
-	}
+// func (d *SearchRequests) Reindex(p *ReindexSearchParams, done *bool) error {
+// 	if d.cli != nil {
+// 		return d.cli.Call("SearchRequests.Reindex", p, done)
+// 	}
 
-	if fsr, ok := d.repo.(*fsrepo.Repo); ok {
-		err := fsr.UpdateSearchIndex(d.repo.Store())
-		if err != nil {
-			log.Debug(err.Error())
-			return fmt.Errorf("error reindexing: %s", err.Error())
-		}
-		*done = true
-		return nil
-	}
+// 	if fsr, ok := d.repo.(*fsrepo.Repo); ok {
+// 		err := fsr.UpdateSearchIndex(d.repo.Store())
+// 		if err != nil {
+// 			log.Debug(err.Error())
+// 			return fmt.Errorf("error reindexing: %s", err.Error())
+// 		}
+// 		*done = true
+// 		return nil
+// 	}
 
-	return fmt.Errorf("search reindexing is currently only supported on file-system repos")
-}
+// 	return fmt.Errorf("search reindexing is currently only supported on file-system repos")
+// }

@@ -30,6 +30,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *
 		refCache:    &MemRefstore{},
 		profile:     p,
 		profiles:    ps,
+		registry:    rc,
 	}, nil
 }
 
