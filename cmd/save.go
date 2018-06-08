@@ -58,8 +58,14 @@ collaboration are in the works. Sit tight sportsfans.`,
 			ErrExit(fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername"))
 		}
 
-		ref, err := repo.ParseDatasetRef(args[0])
-		ExitIfErr(err)
+		var arg string
+		if len(args) == 1 {
+			arg = args[0]
+		}
+		ref, err := repo.ParseDatasetRef(arg)
+		if err != nil && saveFilePath == "" {
+			ErrExit(err)
+		}
 
 		dsp := &dataset.DatasetPod{}
 		if saveFilePath != "" {
@@ -83,6 +89,8 @@ collaboration are in the works. Sit tight sportsfans.`,
 		}
 		if ref.Peername != "" {
 			dsp.Peername = ref.Peername
+		} else if dsp.Peername == "" {
+			dsp.Peername = "me"
 		}
 
 		if (saveTitle != "" || saveMessage != "") && dsp.Commit == nil {
