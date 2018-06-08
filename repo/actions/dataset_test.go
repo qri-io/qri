@@ -6,7 +6,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
@@ -95,14 +94,6 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef)
 	ref, err := act.CreateDataset(tc.Name, tc.Input, tc.DataFile(), nil, true)
 	if err != nil {
 		t.Error(err.Error())
-	}
-
-	if rc := r.Registry(); rc != nil {
-		// silly sleep to make sure registry http req goroutine has happened
-		time.Sleep(time.Millisecond * 150)
-		if _, err := rc.GetDataset(testPeerProfile.Peername, tc.Name, "", ""); err != nil {
-			t.Errorf("registry should have received dataset: %s", err.Error())
-		}
 	}
 
 	return r, ref
