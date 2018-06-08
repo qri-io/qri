@@ -7,7 +7,7 @@ import (
 
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/registry/regclient"
-	// regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/registry/regserver/mock"
 	//  "github.com/qri-io/qri/repo"
 )
 
@@ -28,7 +28,7 @@ func TestSearch(t *testing.T) {
 	// Case 0 - request with expected result
 	i := 0
 	p := &SearchParams{"abc", 0, 100}
-	numResults := 2
+	numResults := 3
 	errString := ""
 
 	// make request 0
@@ -46,29 +46,29 @@ func TestSearch(t *testing.T) {
 	}
 
 	// Case 1 - request with expected error
-	// rc, _ = regmock.NewMockServer()
-	// mr, err = testrepo.NewTestRepo(rc)
-	// if err != nil {
-	//  t.Errorf("error allocating test repo: %s", err.Error())
-	//  return
-	// }
+	rc, _ = regmock.NewMockServer()
+	mr, err = testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Errorf("error allocating test repo: %s", err.Error())
+		return
+	}
 
-	// i = 1
-	// p = &SearchParams{"abc", 0, 100}
-	// numResults = 0
-	// errString = "error 400: search not supported"
+	i = 1
+	p = &SearchParams{"abc", 0, 100}
+	numResults = 0
+	errString = "error 400: search not supported"
 
-	// // make request 1
-	// req = NewSearchRequests(mr, nil)
+	// make request 1
+	req = NewSearchRequests(mr, nil)
 
-	// got = &[]SearchResult{}
-	// err = req.Search(p, got)
-	// if !(err == nil && errString == "" || err != nil && err.Error() == errString) {
-	//  t.Errorf("case %d error mismatch: expected: %s, got: %s", i, errString, err)
-	// }
-	// if len(*got) != numResults {
-	//  t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, numResults, len(*got))
-	// }
+	got = &[]SearchResult{}
+	err = req.Search(p, got)
+	if !(err == nil && errString == "" || err != nil && err.Error() == errString) {
+		t.Errorf("case %d error mismatch: expected: %s, got: %s", i, errString, err)
+	}
+	if len(*got) != numResults {
+		t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, numResults, len(*got))
+	}
 
 }
 

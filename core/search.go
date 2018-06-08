@@ -6,6 +6,7 @@ import (
 
 	// 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/registry/regclient"
 	// 	"github.com/qri-io/qri/repo/fs"
 )
 
@@ -49,15 +50,24 @@ func (sr *SearchRequests) Search(p *SearchParams, results *[]SearchResult) error
 	if sr.cli != nil {
 		return sr.cli.Call("SearchRequests.Search", p, results)
 	}
-	// TODO: actual search implementation
-	// ...
-	// ...
-	// ...
-	// ...
-	fakeResult1 := &SearchResult{"Dataset", "ID1", "Value1"}
-	fakeResult2 := &SearchResult{"Dataset", "ID2", "Value2"}
-	*results = append(*results, *fakeResult1)
-	*results = append(*results, *fakeResult2)
+	reg := sr.repo.Registry()
+	if p == nil {
+		return fmt.Errorf("error: search params cannot be nil")
+	}
+	params := &regclient.SearchParams{p.QueryString, nil, p.Limit, p.Offset}
+
+	regResults, err := reg.Search(params)
+	if err != nil {
+		return err
+	}
+
+	searchResults := make([]SearchResult, len(regResults))
+	for i, result := range regResults {
+		searchResults[i].Type = result.Type
+		searchResults[i].ID = result.ID
+		searchResults[i].Value = result.Value
+	}
+	*results = searchResults
 	return nil
 }
 
