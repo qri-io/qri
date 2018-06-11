@@ -22,15 +22,16 @@ func Execute() {
 		}()
 	}
 
-	if err := RootCmd.Execute(); err != nil {
-		printErr(err)
+	root := NewQriCommand(EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+	if err := root.Execute(); err != nil {
+		printErr(os.Stdin, err)
 		os.Exit(-1)
 	}
 }
 
 // ErrExit writes an error to stdout & exits
 func ErrExit(err error) {
-	printErr(err)
+	printErr(os.Stdout, err)
 	os.Exit(1)
 }
 

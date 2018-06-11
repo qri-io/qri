@@ -365,12 +365,12 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.Publish {
-		fmt.Println("posting dataset to registry ...")
+		// fmt.Println("posting dataset to registry ...")
 		var done bool
 		if err = NewRegistryRequests(r.repo, nil).Publish(res, &done); err != nil {
 			return err
 		}
-		fmt.Println("done")
+		// fmt.Println("done")
 	}
 
 	return r.repo.ReadDataset(res)

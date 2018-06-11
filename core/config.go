@@ -31,19 +31,12 @@ func LoadConfig(path string) (err error) {
 
 	if err == nil && cfg.Profile == nil {
 		err = fmt.Errorf("missing profile")
+		return
 	}
 
 	if err != nil {
-		str := `couldn't read config file. error
-  %s
-if you've recently updated qri your config file may no longer be valid.
-The easiest way to fix this is to delete your repository at:
-  %s
-and start with a fresh qri install by running 'qri setup' again.
-Sorry, we know this is not exactly a great experience, from this point forward
-we won't be shipping changes that require starting over.
-`
-		err = fmt.Errorf(str, err.Error(), path)
+		err = fmt.Errorf(`couldn't read config file. error: %s, path: %s`, err.Error(), path)
+		return
 	}
 
 	// configure logging straight away

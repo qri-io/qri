@@ -5,6 +5,7 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"strings"
 	"time"
@@ -31,27 +32,27 @@ const (
 	yottabyte
 )
 
-var printPrompt = color.New(color.FgWhite).PrintfFunc()
+// var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
 func setNoColor() {
 	color.NoColor = core.Config.CLI.ColorizeOutput
 }
 
-func printSuccess(msg string, params ...interface{}) {
-	color.Green(msg, params...)
+func printSuccess(w io.Writer, msg string, params ...interface{}) {
+	fmt.Fprintln(w, color.New(color.FgGreen).Sprintf(msg, params...))
 }
 
-func printInfo(msg string, params ...interface{}) {
-	color.White(msg, params...)
+func printInfo(w io.Writer, msg string, params ...interface{}) {
+	fmt.Fprintln(w, color.New(color.FgWhite).Sprintf(msg, params...))
 }
 
-func printWarning(msg string, params ...interface{}) {
-	color.Yellow(msg, params...)
+func printWarning(w io.Writer, msg string, params ...interface{}) {
+	fmt.Fprintln(w, color.New(color.FgYellow).Sprintf(msg, params...))
 }
 
-func printErr(err error, params ...interface{}) {
-	color.Red(err.Error(), params...)
+func printErr(w io.Writer, err error, params ...interface{}) {
+	fmt.Fprintln(w, color.New(color.FgRed).Sprintf(err.Error(), params...))
 }
 
 func printNotYetFinished(cmd *cobra.Command) {
@@ -100,53 +101,53 @@ func printByteInfo(l int) string {
 	return fmt.Sprintf("%v %s", length.value, length.name)
 }
 
-func printDatasetRefInfo(i int, ref repo.DatasetRef) {
+func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	white := color.New(color.FgWhite).SprintFunc()
 	cyan := color.New(color.FgCyan).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()
 	ds := ref.Dataset
 
-	fmt.Printf("%s  %s\n", cyan(i), white(ref.AliasString()))
-	fmt.Printf("    %s\n", blue(ref.Path))
+	fmt.Fprintf(w, "%s  %s\n", cyan(i), white(ref.AliasString()))
+	fmt.Fprintf(w, "    %s\n", blue(ref.Path))
 	if ds != nil && ds.Meta != nil {
 		if ds.Meta.Title != "" {
-			fmt.Printf("    %s\n", white(ds.Meta.Title))
+			fmt.Fprintf(w, "    %s\n", white(ds.Meta.Title))
 		}
 
 		if ds.Meta.Description != "" {
 			if len(ds.Meta.Description) > 77 {
-				fmt.Printf("    %s...\n", white(ds.Meta.Description[:77]))
+				fmt.Fprintf(w, "    %s...\n", white(ds.Meta.Description[:77]))
 			} else {
-				fmt.Printf("    %s\n", white(ds.Meta.Description))
+				fmt.Fprintf(w, "    %s\n", white(ds.Meta.Description))
 			}
 		}
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Printf("    %s, %d entries, %d errors\n", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
+		fmt.Fprintf(w, "    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
 	}
 
-	fmt.Println()
+	fmt.Fprintln(w)
 }
 
-func printPeerInfo(i int, p *config.ProfilePod) {
+func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {
 	white := color.New(color.FgWhite).SprintFunc()
 	yellow := color.New(color.FgYellow).SprintFunc()
 	blue := color.New(color.FgBlue).SprintFunc()
 	if p.Online {
-		fmt.Printf("%s | %s\n", white(p.Peername), yellow("online"))
+		fmt.Fprintf(w, "%s | %s\n", white(p.Peername), yellow("online"))
 	} else {
-		fmt.Printf("%s\n", white(p.Peername))
+		fmt.Fprintf(w, "%s\n", white(p.Peername))
 	}
-	fmt.Printf("%s\n", blue(p.ID))
-	fmt.Printf("%s\n", p.Twitter)
-	fmt.Printf("%s\n", p.Description)
-	fmt.Println("")
+	fmt.Fprintf(w, "%s\n", blue(p.ID))
+	fmt.Fprintf(w, "%s\n", p.Twitter)
+	fmt.Fprintf(w, "%s\n", p.Description)
+	fmt.Fprintln(w, "")
 }
 
-func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) {
+func printResults(w io.Writer, r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
 	case dataset.JSONDataFormat:
-		fmt.Println(string(data))
+		fmt.Fprintln(w, string(data))
 	case dataset.CSVDataFormat:
 		table := tablewriter.NewWriter(os.Stdout)
 		table.SetBorders(tablewriter.Border{Left: true, Top: false, Right: true, Bottom: false})
@@ -162,7 +163,7 @@ func printResults(r *dataset.Structure, data []byte, format dataset.DataFormat) 
 				if err.Error() == "EOF" {
 					break
 				}
-				fmt.Println(err.Error())
+				fmt.Fprintln(w, err.Error())
 				os.Exit(1)
 			}
 
@@ -199,15 +200,15 @@ func terribleHackToGetHeaderRow(st *dataset.Structure) ([]string, error) {
 	return nil, fmt.Errorf("nope")
 }
 
-func prompt(msg string) string {
+func prompt(w io.Writer, r io.Reader, msg string) string {
 	var input string
-	printPrompt(msg)
-	fmt.Scanln(&input)
+	printInfo(w, msg)
+	fmt.Fscanln(r, &input)
 	return strings.TrimSpace(input)
 }
 
-func inputText(message, defaultText string) string {
-	input := prompt(fmt.Sprintf("%s [%s]: ", message, defaultText))
+func inputText(w io.Writer, r io.Reader, message, defaultText string) string {
+	input := prompt(w, r, fmt.Sprintf("%s [%s]: ", message, defaultText))
 	if input == "" {
 		input = defaultText
 	}
@@ -215,17 +216,17 @@ func inputText(message, defaultText string) string {
 	return input
 }
 
-func confirm(message string, def bool) bool {
-	if noPrompt {
-		return def
-	}
+func confirm(w io.Writer, r io.Reader, message string, def bool) bool {
+	// if noPrompt {
+	// 	return def
+	// }
 
 	yellow := color.New(color.FgYellow).SprintFunc()
 	defaultText := "y/N"
 	if def {
 		defaultText = "Y/n"
 	}
-	input := prompt(fmt.Sprintf("%s [%s]: ", yellow(message), defaultText))
+	input := prompt(w, r, fmt.Sprintf("%s [%s]: ", yellow(message), defaultText))
 	if input == "" {
 		return def
 	}
@@ -233,21 +234,27 @@ func confirm(message string, def bool) bool {
 	return (input == "y" || input == "yes") == def
 }
 
-func printDiffs(diffText string) {
+func printDiffs(w io.Writer, diffText string) {
 	green := color.New(color.FgGreen).SprintFunc()
 	red := color.New(color.FgRed).SprintFunc()
 	lines := strings.Split(diffText, "\n")
 	for _, line := range lines {
 		if len(line) >= 3 {
 			if line[:2] == "+ " || line[:2] == "++" {
-				fmt.Printf("%s\n", green(line))
+				fmt.Fprintf(w, "%s\n", green(line))
 			} else if line[:2] == "- " || line[:2] == "--" {
-				fmt.Printf("%s\n", red(line))
+				fmt.Fprintf(w, "%s\n", red(line))
 			} else {
-				fmt.Printf("%s\n", line)
+				fmt.Fprintf(w, "%s\n", line)
 			}
 		} else {
-			fmt.Printf("%s\n", line)
+			fmt.Fprintf(w, "%s\n", line)
 		}
 	}
+}
+
+func usingRPCError(cmdName string) error {
+	return fmt.Errorf(`sorry, we can't run the '%s' command while 'qri connect' is running
+we know this is super irritating, and it'll be fixed in the future. 
+In the meantime please close qri and re-run this command`, cmdName)
 }

@@ -113,6 +113,12 @@ func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err
 		// node, it has built-in p2p, overlay the qri protocol
 		// on the ipfs node's p2p connections.
 		if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
+			if !ipfsfs.Online() {
+				if err := ipfsfs.GoOnline(); err != nil {
+					return nil, err
+				}
+			}
+
 			ipfsnode := ipfsfs.Node()
 			if ipfsnode.PeerHost != nil {
 				node.Host = ipfsnode.PeerHost
