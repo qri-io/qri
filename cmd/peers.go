@@ -10,190 +10,200 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// peersCmd represents the info command
-var peersCmd = &cobra.Command{
-	Use:   "peers",
-	Short: "commands for working with peers",
-	Annotations: map[string]string{
-		"group": "network",
-	},
-}
+// NewPeersCommand cerates a new `qri peers` cobra command
+func NewPeersCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+	o := &PeersOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:   "peers",
+		Short: "commands for working with peers",
+		Annotations: map[string]string{
+			"group": "network",
+		},
+	}
 
-var peersInfoCmd = &cobra.Command{
-	Use:   "info",
-	Short: `Get info on a qri peer`,
-	Long: `
+	info := &cobra.Command{
+		Use:   "info",
+		Short: `Get info on a qri peer`,
+		Long: `
 The peers info command returns a peer's profile information. The default
 format is yaml.`,
-	Example: `  show info on a peer named "b5":
+		Example: `  show info on a peer named "b5":
   $ qri peers info b5
 
   show info in json:
   $ qri peers info b5 --format json`,
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Args: cobra.MinimumNArgs(1),
-	Run: func(cmd *cobra.Command, args []string) {
-		req, err := peerRequests(false)
-		ExitIfErr(err)
+		Args: cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Info())
+		},
+	}
 
-		v, err := cmd.Flags().GetBool("verbose")
-		ExitIfErr(err)
-
-		f, err := cmd.Flags().GetString("format")
-		ExitIfErr(err)
-
-		if !(f == "yaml" || f == "json") {
-			ExitIfErr(fmt.Errorf("format must be either `yaml` or `json`"))
-		}
-
-		var data []byte
-
-		p := &core.PeerInfoParams{
-			Peername: args[0],
-			Verbose:  v,
-		}
-
-		res := &config.ProfilePod{}
-		err = req.Info(p, res)
-		ExitIfErr(err)
-
-		switch f {
-		case "json":
-			data, err = json.MarshalIndent(res, "", "  ")
-			ExitIfErr(err)
-		case "yaml":
-			data, err = yaml.Marshal(res)
-		}
-
-		printInfo("\n" + string(data) + "\n")
-	},
-}
-
-var peersListCmd = &cobra.Command{
-	Use:   "list",
-	Short: "list known qri peers",
-	Long: `
+	list := &cobra.Command{
+		Use:   "list",
+		Short: "list known qri peers",
+		Long: `
 lists the peers your qri node has seen before. The peers list command will
 show the cached list of peers, unless you are currently running the connect
 command in the background or in another terminal window.
 
 (run 'qri help connect' for more information about the connect command) `,
-	Example: `  to list qri peers:
+		Example: `  to list qri peers:
   $ qri peers list
 
   to ensure you get a cached version of the list:
   $ qri peers list --cached`,
-	Aliases: []string{"ls"},
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		ntwk, err := cmd.Flags().GetString("network")
-		ExitIfErr(err)
-		showCached, err := cmd.Flags().GetBool("cached")
-		ExitIfErr(err)
-		limit := 200
+		Aliases: []string{"ls"},
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.List())
+		},
+	}
 
-		// TODO - resurrect
-		// outformat := cmd.Flag("format").Value.String()
-		// if outformat != "" {
-		// 	format, err := dataset.ParseDataFormatString(outformat)
-		// 	if err != nil {
-		// 		ErrExit(fmt.Errorf("invalid data format: %s", cmd.Flag("format").Value.String()))
-		// 	}
-		// 	if format != dataset.JSONDataFormat {
-		// 		ErrExit(fmt.Errorf("invalid data format. currently only json or plaintext are supported"))
-		// 	}
-		// }
+	connect := &cobra.Command{
+		Use:   "connect",
+		Short: "connect to a peer",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Connect())
+		},
+	}
 
-		req, err := peerRequests(false)
-		ExitIfErr(err)
+	disconnect := &cobra.Command{
+		Use:   "disconnect",
+		Short: "explicitly close a connection to a peer",
+		Args:  cobra.MinimumNArgs(1),
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Disconnect())
+		},
+	}
 
-		if ntwk == "ipfs" {
-			res := []string{}
-			err := req.ConnectedIPFSPeers(&limit, &res)
-			ExitIfErr(err)
+	info.Flags().BoolVarP(&o.Verbose, "verbose", "v", false, "show verbose profile info")
+	info.Flags().StringVarP(&o.Format, "format", "", "yaml", "output format. formats: yaml, json")
 
-			for i, p := range res {
-				printSuccess("%d.\t%s", i+1, p)
-			}
-		} else {
+	list.Flags().BoolVarP(&o.Cached, "cached", "c", false, "show peers that aren't online, but previously seen")
+	list.Flags().StringVarP(&o.Network, "network", "n", "", "specify network to show peers from [ipfs]")
+	list.Flags().IntVarP(&o.Limit, "limit", "l", 200, "limit max number of peers to show")
+	list.Flags().IntVarP(&o.Offset, "offset", "s", 0, "number of peers to skip during listing")
 
-			// if we don't have an RPC client, assume we're not connected
-			if rpcConn() == nil && !showCached {
-				printInfo("qri not connected, listing cached peers")
-				showCached = true
-			}
+	cmd.AddCommand(info, list, connect, disconnect)
 
-			p := &core.PeerListParams{
-				Limit:  200,
-				Offset: 0,
-				Cached: showCached,
-			}
-			res := []*config.ProfilePod{}
-			err = req.List(p, &res)
-			ExitIfErr(err)
+	return cmd
+}
 
-			fmt.Println("")
-			for i, peer := range res {
-				printPeerInfo(i, peer)
-			}
+type PeersOptions struct {
+	IOStreams
+
+	Peername string
+	Verbose  bool
+	Format   string
+	Cached   bool
+	Network  string
+	Limit    int
+	Offset   int
+
+	UsingRPC     bool
+	PeerRequests *core.PeerRequests
+}
+
+func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		o.Peername = args[0]
+	}
+	o.UsingRPC = f.RPC() != nil
+	o.PeerRequests, err = f.PeerRequests()
+	return
+}
+
+func (o *PeersOptions) Info() (err error) {
+	if !(o.Format == "yaml" || o.Format == "json") {
+		return fmt.Errorf("format must be either `yaml` or `json`")
+	}
+
+	var data []byte
+
+	p := &core.PeerInfoParams{
+		Peername: o.Peername,
+		Verbose:  o.Verbose,
+	}
+
+	res := &config.ProfilePod{}
+	if err = o.PeerRequests.Info(p, res); err != nil {
+		return err
+	}
+
+	switch o.Format {
+	case "json":
+		if data, err = json.MarshalIndent(res, "", "  "); err != nil {
+			return err
+		}
+	case "yaml":
+		if data, err = yaml.Marshal(res); err != nil {
+			return err
+		}
+	}
+
+	printInfo(o.Out, "\n"+string(data)+"\n")
+	return
+}
+
+func (o *PeersOptions) List() (err error) {
+	if o.Network == "ipfs" {
+		res := []string{}
+		if err := o.PeerRequests.ConnectedIPFSPeers(&o.Limit, &res); err != nil {
+			return err
 		}
 
-	},
+		for i, p := range res {
+			printSuccess(o.Out, "%d.\t%s", i+1, p)
+		}
+	} else {
+
+		// if we don't have an RPC client, assume we're not connected
+		if o.UsingRPC && !o.Cached {
+			printInfo(o.Out, "qri not connected, listing cached peers")
+			o.Cached = true
+		}
+
+		p := &core.PeerListParams{
+			Limit:  o.Limit,
+			Offset: o.Offset,
+			Cached: o.Cached,
+		}
+		res := []*config.ProfilePod{}
+		if err = o.PeerRequests.List(p, &res); err != nil {
+			return err
+		}
+
+		fmt.Fprintln(o.Out, "")
+		for i, peer := range res {
+			printPeerInfo(o.Out, i, peer)
+		}
+	}
+	return nil
 }
 
-var peersConnectCmd = &cobra.Command{
-	Use:   "connect",
-	Short: "connect to a peer",
-	Args:  cobra.MinimumNArgs(1),
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		pr, err := peerRequests(false)
-		ExitIfErr(err)
+func (o *PeersOptions) Connect() (err error) {
+	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
+	res := &config.ProfilePod{}
+	if err = o.PeerRequests.ConnectToPeer(pcpod, res); err != nil {
+		return err
+	}
 
-		pcpod := core.NewPeerConnectionParamsPod(args[0])
-		res := &config.ProfilePod{}
-		err = pr.ConnectToPeer(pcpod, res)
-		ExitIfErr(err)
-
-		printSuccess("successfully connected to %s:\n", res.Peername)
-		printPeerInfo(0, res)
-	},
+	printSuccess(o.Out, "successfully connected to %s:\n", res.Peername)
+	printPeerInfo(o.Out, 0, res)
+	return nil
 }
 
-var peersDisconnectCmd = &cobra.Command{
-	Use:   "disconnect",
-	Short: "explicitly close a connection to a peer",
-	Args:  cobra.MinimumNArgs(1),
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		pr, err := peerRequests(false)
-		ExitIfErr(err)
+func (o *PeersOptions) Disconnect() (err error) {
+	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
+	res := false
+	if err = o.PeerRequests.DisconnectFromPeer(pcpod, &res); err != nil {
+		return err
+	}
 
-		pcpod := core.NewPeerConnectionParamsPod(args[0])
-		res := false
-		err = pr.DisconnectFromPeer(pcpod, &res)
-		ExitIfErr(err)
-
-		printSuccess("disconnected")
-	},
-}
-
-func init() {
-	peersInfoCmd.Flags().BoolP("verbose", "v", false, "show verbose profile info")
-	peersInfoCmd.Flags().StringP("format", "", "yaml", "format in which to show peers profile info. formats: yaml, json")
-
-	// peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
-	peersListCmd.Flags().StringP("network", "n", "", "list peers from connected networks. currently only accepts \"ipfs\"")
-	peersListCmd.Flags().BoolP("cached", "c", false, "show peers that aren't online, but previously seen")
-
-	peersCmd.AddCommand(peersInfoCmd, peersListCmd, peersConnectCmd, peersDisconnectCmd)
-	RootCmd.AddCommand(peersCmd)
+	printSuccess(o.Out, "disconnected")
+	return nil
 }

@@ -54,7 +54,7 @@ func Setup(p SetupParams) error {
 	}
 
 	if err := os.MkdirAll(p.QriRepoPath, os.ModePerm); err != nil {
-		return fmt.Errorf("error creating home dir: %s", err.Error())
+		return fmt.Errorf("error creating qri repo directory: %s, path: %s", err.Error(), p.QriRepoPath)
 	}
 
 	if p.SetupIPFS {

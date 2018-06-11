@@ -3,101 +3,125 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
-var (
-	dsListLimit, dsListOffset int
-)
-
-var datasetListCmd = &cobra.Command{
-	Use:     "list",
-	Aliases: []string{"ls"},
-	Short:   "show a list of datasets",
-	Long: `
+// NewListCommand creates new `qri list` command that lists datasets
+// for the local peer & others
+func NewListCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+	o := &ListOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "show a list of datasets",
+		Long: `
 list shows lists of datasets, including names and current hashes. 
 
 The default list is the latest version of all datasets you have on your local 
 qri repository.`,
-	Example: `  show all of your datasets:
+		Example: `  show all of your datasets:
   $ qri list`,
-	Annotations: map[string]string{
-		"group": "dataset",
-	},
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) == 0 {
-			r, err := datasetRequests(false)
-			ExitIfErr(err)
+		Annotations: map[string]string{
+			"group": "dataset",
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Run())
+		},
+	}
 
-			p := &core.ListParams{
-				Limit:  dsListLimit,
-				Offset: dsListOffset,
-			}
-			refs := []repo.DatasetRef{}
-			err = r.List(p, &refs)
-			ExitIfErr(err)
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
+	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
+	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
 
-			outformat := cmd.Flag("format").Value.String()
-			switch outformat {
-			case "":
-				for i, ref := range refs {
-					printDatasetRefInfo(i+1, ref)
-				}
-			case dataset.JSONDataFormat.String():
-				data, err := json.MarshalIndent(refs, "", "  ")
-				ExitIfErr(err)
-				fmt.Printf("%s\n", string(data))
-			default:
-				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
-			}
-		} else {
-			r, err := datasetRequests(true)
-			ExitIfErr(err)
-
-			p := &core.ListParams{
-				Peername: args[0],
-				Limit:    dsListLimit,
-				Offset:   dsListOffset,
-			}
-			refs := []repo.DatasetRef{}
-			err = r.List(p, &refs)
-			ExitIfErr(err)
-
-			for _, ref := range refs {
-				// remove profileID so names print pretty
-				ref.ProfileID = ""
-			}
-
-			outformat := cmd.Flag("format").Value.String()
-			switch outformat {
-			case "":
-				if len(refs) == 0 {
-					printInfo("%s has no datasets", args[0])
-				} else {
-					for i, ref := range refs {
-						printDatasetRefInfo(i+1, ref)
-					}
-				}
-			case dataset.JSONDataFormat.String():
-				data, err := json.MarshalIndent(refs, "", "  ")
-				ExitIfErr(err)
-				fmt.Printf("%s\n", string(data))
-			default:
-				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
-			}
-		}
-	},
+	return cmd
 }
 
-func init() {
-	RootCmd.AddCommand(datasetListCmd)
-	datasetListCmd.Flags().StringP("format", "f", "", "set output format [json]")
-	datasetListCmd.Flags().IntVarP(&dsListLimit, "limit", "l", 25, "limit results, default 25")
-	datasetListCmd.Flags().IntVarP(&dsListOffset, "offset", "o", 0, "offset results, default 0")
+type ListOptions struct {
+	IOStreams
+
+	Format   string
+	Limit    int
+	Offset   int
+	Peername string
+
+	DatasetRequests *core.DatasetRequests
+}
+
+func (o *ListOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		o.Peername = args[0]
+	}
+	o.DatasetRequests, err = f.DatasetRequests()
+	return
+}
+
+func (o *ListOptions) Run() (err error) {
+	if o.Peername == "" {
+
+		p := &core.ListParams{
+			Limit:  o.Limit,
+			Offset: o.Offset,
+		}
+		refs := []repo.DatasetRef{}
+		if err = o.DatasetRequests.List(p, &refs); err != nil {
+			return err
+		}
+
+		switch o.Format {
+		case "":
+			for i, ref := range refs {
+				printDatasetRefInfo(o.Out, i+1, ref)
+			}
+		case dataset.JSONDataFormat.String():
+			data, err := json.MarshalIndent(refs, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(o.Out, "%s\n", string(data))
+		default:
+			return fmt.Errorf("unrecognized format: %s", o.Format)
+		}
+	} else {
+
+		p := &core.ListParams{
+			Peername: o.Peername,
+			Limit:    o.Limit,
+			Offset:   o.Offset,
+		}
+		refs := []repo.DatasetRef{}
+		if err = o.DatasetRequests.List(p, &refs); err != nil {
+			return err
+		}
+
+		for _, ref := range refs {
+			// remove profileID so names print pretty
+			ref.ProfileID = ""
+		}
+
+		switch o.Format {
+		case "":
+			if len(refs) == 0 {
+				printInfo(o.Out, "%s has no datasets", o.Peername)
+			} else {
+				for i, ref := range refs {
+					printDatasetRefInfo(o.Out, i+1, ref)
+				}
+			}
+		case dataset.JSONDataFormat.String():
+			data, err := json.MarshalIndent(refs, "", "  ")
+			if err != nil {
+				return err
+			}
+			fmt.Fprintf(o.Out, "%s\n", string(data))
+		default:
+			return fmt.Errorf("unrecognized format: %s", o.Format)
+		}
+	}
+
+	return nil
 }

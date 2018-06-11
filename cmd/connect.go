@@ -2,37 +2,22 @@ package cmd
 
 import (
 	"fmt"
+
 	"github.com/qri-io/qri/api"
+  "github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
-var (
-	connectCmdAPIPort         int
-	connectCmdRPCPort         int
-	connectCmdWebappPort      int
-	connectCmdDisconnectAfter int
-
-	disableAPI    bool
-	disableRPC    bool
-	disableWebapp bool
-
-	connectSetup       bool
-	connectCmdRegistry string
-	disableP2P         bool
-	connectReadOnly    bool
-)
-
-// connectCmd represents the run command
-var connectCmd = &cobra.Command{
-	Use:   "connect",
-	Short: "connect to the distributed web, start a local API server",
-	Annotations: map[string]string{
-		"group": "network",
-	},
-	Long: `
+func NewConnectCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+	o := ConnectOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:   "connect",
+		Short: "connect to the distributed web, start a local API server",
+		Annotations: map[string]string{
+			"group": "network",
+		},
+		Long: `
 While it’s not totally accurate, connect is like starting a server. running 
 connect will start a process and stay there until you exit the process 
 (ctrl+c from the terminal, or killing the process using tools like activity 
@@ -44,91 +29,120 @@ things:
 
 When you run connect you are connecting to the distributed web, interacting with
 peers & swapping data.`,
-	PreRun: func(cmd *cobra.Command, args []string) {
-		if !connectSetup {
-			loadConfig()
-		}
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		var (
-			r   repo.Repo
-			err error
-		)
+		Run: func(cmd *cobra.Command, args []string) {
+      ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Run())
+		},
+	}
 
-		if connectSetup && !QRIRepoInitialized() {
-			err = doSetup("", "", connectCmdRegistry, false)
-			ExitIfErr(err)
-		} else if !QRIRepoInitialized() {
-			ErrExit(fmt.Errorf("no qri repo exists"))
-		} else {
-			loadConfig()
-		}
+	cmd.Flags().IntVarP(&o.APIPort, "api-port", "", 0, "port to start api on")
+	cmd.Flags().IntVarP(&o.RPCPort, "rpc-port", "", 0, "port to start rpc listener on")
+	cmd.Flags().IntVarP(&o.WebappPort, "webapp-port", "", 0, "port to serve webapp on")
+	cmd.Flags().IntVarP(&o.DisconnectAfter, "disconnect-after", "", 0, "duration to keep connected in seconds, 0 means run indefinitely")
 
-		r = getRepo(true)
+	cmd.Flags().BoolVarP(&o.DisableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
+	cmd.Flags().BoolVarP(&o.DisableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
+	cmd.Flags().BoolVarP(&o.DisableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
+	// TODO - not yet supported
+	// cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
 
-		s, err := api.New(r, func(c *config.Config) {
-			*c = *core.Config
+	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
+	cmd.Flags().BoolVarP(&o.ReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
+	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
 
-			if connectCmdAPIPort != 0 {
-				c.API.Port = connectCmdAPIPort
-			}
-
-			if connectCmdRPCPort != 0 {
-				c.RPC.Port = connectCmdRPCPort
-			}
-
-			if connectCmdWebappPort != 0 {
-				c.Webapp.Port = connectCmdWebappPort
-			}
-
-			if connectCmdDisconnectAfter != 0 {
-				c.API.DisconnectAfter = connectCmdDisconnectAfter
-			}
-
-			if connectReadOnly {
-				c.API.ReadOnly = true
-			}
-
-			if disableP2P {
-				c.P2P.Enabled = false
-			}
-
-			if disableAPI {
-				c.API.Enabled = false
-			}
-
-			if disableRPC {
-				c.RPC.Enabled = false
-			}
-
-			if disableWebapp {
-				c.Webapp.Enabled = false
-			}
-		})
-		ExitIfErr(err)
-
-		err = s.Serve()
-		if err != nil && err.Error() == "http: Server closed" {
-			return
-		}
-		ExitIfErr(err)
-	},
+	return cmd
 }
 
-func init() {
-	connectCmd.Flags().IntVarP(&connectCmdAPIPort, "api-port", "", 0, "port to start api on")
-	connectCmd.Flags().IntVarP(&connectCmdRPCPort, "rpc-port", "", 0, "port to start rpc listener on")
-	connectCmd.Flags().IntVarP(&connectCmdWebappPort, "webapp-port", "", 0, "port to serve webapp on")
-	connectCmd.Flags().IntVarP(&connectCmdDisconnectAfter, "disconnect-after", "", 0, "duration to keep connected in seconds, 0 means run indefinitely")
+// SetupOptions encapsulates state for the connect command
+type ConnectOptions struct {
+	IOStreams
 
-	connectCmd.Flags().BoolVarP(&disableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
-	connectCmd.Flags().BoolVarP(&disableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
-	connectCmd.Flags().BoolVarP(&disableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
-	// TODO - not yet supported
-	// connectCmd.Flags().BoolVarP(&disableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
+	APIPort         int
+	RPCPort         int
+	WebappPort      int
+	DisconnectAfter int
 
-	connectCmd.Flags().BoolVarP(&connectSetup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
-	connectCmd.Flags().BoolVarP(&connectReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
-	connectCmd.Flags().StringVarP(&connectCmdRegistry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
-	RootCmd.AddCommand(connectCmd)
+	DisableAPI    bool
+	DisableRPC    bool
+	DisableWebapp bool
+	DisableP2P    bool
+
+	Registry string
+	Setup    bool
+	ReadOnly bool
+
+  Repo repo.Repo
+  Config *config.Config
+}
+
+func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
+  qriPath := f.QriRepoPath()
+
+  if o.Setup && !QRIRepoInitialized(qriPath) {
+    so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true}
+    if err = so.Complete(f, args); err != nil {
+      return err
+    }
+    if err = so.DoSetup(f); err != nil {
+      return err
+    }
+  } else if !QRIRepoInitialized(qriPath) {
+    return fmt.Errorf("no qri repo exists")
+  }
+
+  // TODO - calling f.Repo has the side effect of
+  // calling init if we haven't initialized so far. Should this be made
+  // more explicit?
+  o.Repo, err = f.Repo()
+  if err != nil {
+    return err
+  }
+  o.Config, err = f.Config()
+  return
+} 
+
+// Run executes the connect command with currently configured state
+func (o *ConnectOptions) Run() (err error) {
+	s, err := api.New(o.Repo, func(c *config.Config) {
+		*c = *o.Config
+
+		if o.APIPort != 0 {
+			c.API.Port = o.APIPort
+		}
+		if o.RPCPort != 0 {
+			c.RPC.Port = o.RPCPort
+		}
+		if o.WebappPort != 0 {
+			c.Webapp.Port = o.WebappPort
+		}
+
+		if o.DisconnectAfter != 0 {
+			c.API.DisconnectAfter = o.DisconnectAfter
+		}
+
+		if o.ReadOnly {
+			c.API.ReadOnly = true
+		}
+		if o.DisableP2P {
+			c.P2P.Enabled = false
+		}
+		if o.DisableAPI {
+			c.API.Enabled = false
+		}
+		if o.DisableRPC {
+			c.RPC.Enabled = false
+		}
+		if o.DisableWebapp {
+			c.Webapp.Enabled = false
+		}
+	})
+	if err != nil {
+		return err
+	}
+
+	err = s.Serve()
+	if err != nil && err.Error() == "http: Server closed" {
+		return nil
+	}
+	return err
 }

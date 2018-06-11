@@ -14,22 +14,13 @@ import (
 	"github.com/spf13/cobra"
 )
 
-var (
-	setupAnonymous      bool
-	setupOverwrite      bool
-	setupIPFS           bool
-	setupRemove         bool
-	setupPeername       string
-	setupRegistry       string
-	setupIPFSConfigData string
-	setupConfigData     string
-)
-
-// setupCmd represents the setup command
-var setupCmd = &cobra.Command{
-	Use:   "setup",
-	Short: "initialize qri and IPFS repositories, provision a new qri ID",
-	Long: `
+// NewSetupCommand creates a setup command
+func NewSetupCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+	o := &SetupOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:   "setup",
+		Short: "initialize qri and IPFS repositories, provision a new qri ID",
+		Long: `
 Setup is the first command you run to get a fresh install of qri. If you’ve 
 never run qri before, you’ll need to run setup before you can do anything. 
 
@@ -41,55 +32,159 @@ Setup does a few things:
 This command is automatically run if you invoke any qri command without first 
 running setup. If setup has already been run, by default qri won’t let you 
 overwrite this info.`,
-	Example: `  run setup with a peername of your choosing:
+		Example: `  run setup with a peername of your choosing:
 	$ qri setup --peername=your_great_peername`,
-	Annotations: map[string]string{
-		"group": "other",
-	},
-	Run: func(cmd *cobra.Command, args []string) {
+		Annotations: map[string]string{
+			"group": "other",
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Run(f))
+		},
+	}
 
-		if setupRemove {
-			loadConfig()
-			// TODO - add a big warning here that requires user input
-			err := core.Teardown(core.TeardownParams{
-				Config:      core.Config,
-				QriRepoPath: QriRepoPath,
-			})
-			ExitIfErr(err)
-			printSuccess("repo removed")
-			return
-		}
+	cmd.Flags().BoolVarP(&o.Anonymous, "anonymous", "a", false, "use an auto-generated peername")
+	cmd.Flags().BoolVarP(&o.Overwrite, "overwrite", "", false, "overwrite repo if one exists")
+	cmd.Flags().BoolVarP(&o.IPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
+	cmd.Flags().BoolVarP(&o.Remove, "remove", "", false, "permanently remove qri, overrides all setup options")
+	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL")
+	cmd.Flags().StringVarP(&o.Peername, "peername", "", "", "choose your desired peername")
+	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
+	cmd.Flags().StringVarP(&o.ConfigData, "conifg-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 
-		if QRIRepoInitialized() && !setupOverwrite {
-			// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
-			// this is usually a terrible idea
-			ErrExit(fmt.Errorf("repo already initialized"))
-		}
-
-		err := doSetup(setupConfigData, setupIPFSConfigData, setupRegistry, setupAnonymous)
-		ExitIfErr(err)
-
-		printSuccess("set up qri repo at: %s\n", QriRepoPath)
-	},
+	return cmd
 }
 
-func init() {
-	RootCmd.AddCommand(setupCmd)
-	setupCmd.Flags().BoolVarP(&setupAnonymous, "anonymous", "a", false, "use an auto-generated peername")
-	setupCmd.Flags().BoolVarP(&setupOverwrite, "overwrite", "", false, "overwrite repo if one exists")
-	setupCmd.Flags().BoolVarP(&setupIPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
-	setupCmd.Flags().BoolVarP(&setupRemove, "remove", "", false, "permanently remove qri, overrides all setup options")
-	setupCmd.Flags().StringVarP(&setupRegistry, "registry", "", "", "override default registry URL")
-	setupCmd.Flags().StringVarP(&setupPeername, "peername", "", "", "choose your desired peername")
-	setupCmd.Flags().StringVarP(&setupIPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
-	setupCmd.Flags().StringVarP(&setupConfigData, "conifg-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
-	// setupCmd.Flags().StringVarP(&setupProfileData, "profile", "", "", "json-encoded user profile data, specify a filepath with '@' prefix")
+// SetupOptions encapsulates state for the setup command
+type SetupOptions struct {
+	IOStreams
+
+	Anonymous      bool
+	Overwrite      bool
+	IPFS           bool
+	Remove         bool
+	Peername       string
+	Registry       string
+	IPFSConfigData string
+	ConfigData     string
+
+	QriRepoPath string
+	IpfsFsPath  string
+}
+
+func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
+	o.QriRepoPath = f.QriRepoPath()
+	o.IpfsFsPath = f.IpfsFsPath()
+	return
+}
+
+func (o *SetupOptions) Run(f Factory) error {
+	if o.Remove {
+		cfg, err := f.Config()
+		if err != nil {
+			return err
+		}
+		// TODO - add a big warning here that requires user input
+		err = core.Teardown(core.TeardownParams{
+			Config:      cfg,
+			QriRepoPath: o.QriRepoPath,
+		})
+		if err != nil {
+			return err
+		}
+		printSuccess(o.Out, "repo removed")
+		return nil
+	}
+
+	if QRIRepoInitialized(o.QriRepoPath) && !o.Overwrite {
+		// use --overwrite to overwrite this repo, erasing all data and deleting your account for good
+		// this is usually a terrible idea
+		return fmt.Errorf("repo already initialized")
+	}
+
+	if err := o.DoSetup(f); err != nil {
+		return err
+	}
+
+	printSuccess(o.Out, "set up qri repo at: %s\n", o.QriRepoPath)
+	return nil
+}
+
+func (o *SetupOptions) DoSetup(f Factory) (err error) {
+	cfg := config.DefaultConfig()
+
+	envVars := map[string]*string{
+		"QRI_SETUP_CONFIG_DATA":      &o.ConfigData,
+		"QRI_SETUP_IPFS_CONFIG_DATA": &o.IPFSConfigData,
+	}
+	mapEnvVars(envVars)
+
+	if o.ConfigData != "" {
+		if err = readAtFile(&o.ConfigData); err != nil {
+			return err
+		}
+
+		err = json.Unmarshal([]byte(o.ConfigData), cfg)
+		if cfg.Profile != nil {
+			o.Peername = cfg.Profile.Peername
+		}
+		if err != nil {
+			return err
+		}
+	}
+
+	if cfg.Profile == nil {
+		cfg.Profile = config.DefaultProfile()
+	}
+
+	if o.Peername != "" {
+		cfg.Profile.Peername = o.Peername
+	} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !o.Anonymous {
+		cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+	}
+
+	if o.Registry != "" {
+		cfg.Registry.Location = o.Registry
+	}
+
+	p := core.SetupParams{
+		Config:      cfg,
+		QriRepoPath: o.QriRepoPath,
+		ConfigFilepath: filepath.Join(o.QriRepoPath, "config.yaml"),
+		SetupIPFS:  o.IPFS,
+		IPFSFsPath: o.IpfsFsPath,
+	}
+
+	if o.IPFSConfigData != "" {
+		if err = readAtFile(&o.IPFSConfigData); err != nil {
+			return err
+		}
+		p.SetupIPFSConfigData = []byte(o.IPFSConfigData)
+	}
+
+	for {
+		err := core.Setup(p)
+		if err != nil {
+			if err == core.ErrHandleTaken {
+				printWarning(o.Out, "peername '%s' already taken", cfg.Profile.Peername)
+				cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
+				continue
+			} else {
+				return err
+			}
+		}
+		break
+	}
+
+  // TODO - this call is to trigger initialization
+_, err = f.Repo()
+	return err
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH
-func QRIRepoInitialized() bool {
+func QRIRepoInitialized(path string) bool {
 	// for now this just checks for an existing config file
-	_, err := os.Stat(configFilepath())
+	_, err := os.Stat(filepath.Join(path, "config.yaml"))
 	return !os.IsNotExist(err)
 }
 
@@ -129,73 +224,5 @@ func readAtFile(data *string) error {
 		}
 		*data = string(fileData)
 	}
-	return nil
-}
-
-func doSetup(configData, IPFSConfigData, registry string, anon bool) (err error) {
-	cfg := config.DefaultConfig()
-
-	envVars := map[string]*string{
-		"QRI_SETUP_CONFIG_DATA":      &configData,
-		"QRI_SETUP_IPFS_CONFIG_DATA": &IPFSConfigData,
-	}
-	mapEnvVars(envVars)
-
-	if configData != "" {
-		if err = readAtFile(&configData); err != nil {
-			return err
-		}
-
-		err = json.Unmarshal([]byte(configData), cfg)
-		if cfg.Profile != nil {
-			setupPeername = cfg.Profile.Peername
-		}
-		if err != nil {
-			return err
-		}
-	}
-
-	if cfg.Profile == nil {
-		cfg.Profile = config.DefaultProfile()
-	}
-
-	if setupPeername != "" {
-		cfg.Profile.Peername = setupPeername
-	} else if cfg.Profile.Peername == doggos.DoggoNick(cfg.Profile.ID) && !anon {
-		cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-	}
-
-	if registry != "" {
-		cfg.Registry.Location = registry
-	}
-
-	p := core.SetupParams{
-		Config:         cfg,
-		QriRepoPath:    QriRepoPath,
-		ConfigFilepath: configFilepath(),
-		SetupIPFS:      setupIPFS,
-		IPFSFsPath:     IpfsFsPath,
-	}
-
-	if IPFSConfigData != "" {
-		err = readAtFile(&IPFSConfigData)
-		ExitIfErr(err)
-		p.SetupIPFSConfigData = []byte(IPFSConfigData)
-	}
-
-	for {
-		err := core.Setup(p)
-		if err != nil {
-			if err == core.ErrHandleTaken {
-				printWarning("peername '%s' already taken", cfg.Profile.Peername)
-				cfg.Profile.Peername = inputText("choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
-				continue
-			} else {
-				ErrExit(err)
-			}
-		}
-		break
-	}
-
 	return nil
 }

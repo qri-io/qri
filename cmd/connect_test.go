@@ -19,8 +19,6 @@ func TestConnect(t *testing.T) {
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_connect")
 	t.Logf("temp path: %s", path)
-	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
-	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -32,8 +30,6 @@ func TestConnect(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
-
 	// defer func() {
 	// 	if e := recover(); e != nil {
 	// 		t.Errorf("unexpected panic:\n%s\n%s", strings.Join(args, " "), e)
@@ -41,7 +37,11 @@ func TestConnect(t *testing.T) {
 	// 	}
 	// }()
 
-	_, err := executeCommand(RootCmd, args...)
+  args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
+	_, in, out, errs := NewTestIOStreams()
+	root := NewQriCommand(NewDirPathFactory(path), in, out, errs)
+
+	_, err := executeCommand(root, args...)
 	if err != nil {
 		t.Errorf("unexpected error executing command\n%s\n%s", strings.Join(args, " "), err.Error())
 		return

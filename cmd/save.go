@@ -15,24 +15,15 @@ import (
 	"io/ioutil"
 )
 
-var (
-	saveFilePath       string
-	saveDataPath       string
-	saveTitle          string
-	saveMessage        string
-	savePassive        bool
-	saveRescursive     bool
-	saveShowValidation bool
-	saveNoRegistry     bool
-	saveSecrets        []string
-)
-
-// saveCmd represents the save command
-var saveCmd = &cobra.Command{
-	Use:     "save",
-	Aliases: []string{"update", "commit"},
-	Short:   "save changes to a dataset",
-	Long: `
+// NewSaveCommand creates a `qri save` cobra command used for saving changes
+// to datasets
+func NewSaveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+	o := &SaveOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:     "save",
+		Aliases: []string{"update", "commit"},
+		Short:   "save changes to a dataset",
+		Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and 
 structure. You can also update your data via url. Every time you run save, 
 an entry is added to your dataset’s log (which you can see by running “qri log 
@@ -42,124 +33,140 @@ qri will automatically generate one for you.
 
 Currently you can only save changes to datasets that you control. Tools for 
 collaboration are in the works. Sit tight sportsfans.`,
-	Example: `  save updated data to dataset annual_pop:
+		Example: `  save updated data to dataset annual_pop:
   $ qri --data /path/to/data.csv me/annual_pop
 
   save updated dataset (no data) to annual_pop:
   $ qri --file /path/to/dataset.yaml me/annual_pop`,
-	Annotations: map[string]string{
-		"group": "dataset",
-	},
-	PreRun: func(cmd *cobra.Command, args []string) {
-		loadConfig()
-	},
-	Run: func(cmd *cobra.Command, args []string) {
-		if len(args) < 1 && saveFilePath == "" {
-			ErrExit(fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername"))
+		Annotations: map[string]string{
+			"group": "dataset",
+		},
+		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Run())
+		},
+	}
+
+	cmd.Flags().StringVarP(&o.FilePath, "file", "f", "", "dataset data file (yaml or json)")
+	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for save")
+	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for save")
+	cmd.Flags().StringVarP(&o.DataPath, "data", "", "", "path to file or url to initialize from")
+	cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
+
+	return cmd
+}
+
+type SaveOptions struct {
+	IOStreams
+
+	Ref            string
+	FilePath       string
+	DataPath       string
+	Title          string
+	Message        string
+	Passive        bool
+	Rescursive     bool
+	ShowValidation bool
+	NoRegistry     bool
+	Secrets        []string
+
+	DatasetRequests *core.DatasetRequests
+}
+
+func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		o.Ref = args[0]
+	}
+
+	o.DatasetRequests, err = f.DatasetRequests()
+	return
+}
+
+func (o *SaveOptions) Run() (err error) {
+	if o.Ref == "" && o.FilePath == "" {
+		return fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername")
+	}
+
+	ref, err := repo.ParseDatasetRef(o.Ref)
+	if err != nil && o.FilePath == "" {
+		return err
+	}
+
+	dsp := &dataset.DatasetPod{}
+	if o.FilePath != "" {
+		f, err := os.Open(o.FilePath)
+		if err != nil {
+			return err
 		}
 
-		var arg string
-		if len(args) == 1 {
-			arg = args[0]
-		}
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil && saveFilePath == "" {
-			ErrExit(err)
-		}
-
-		dsp := &dataset.DatasetPod{}
-		if saveFilePath != "" {
-			f, err := os.Open(saveFilePath)
-			ExitIfErr(err)
-
-			switch strings.ToLower(filepath.Ext(saveFilePath)) {
-			case ".yaml", ".yml":
-				data, err := ioutil.ReadAll(f)
-				ExitIfErr(err)
-				err = dsutil.UnmarshalYAMLDatasetPod(data, dsp)
-				ExitIfErr(err)
-			case ".json":
-				err = json.NewDecoder(f).Decode(dsp)
-				ExitIfErr(err)
+		switch strings.ToLower(filepath.Ext(o.FilePath)) {
+		case ".yaml", ".yml":
+			data, err := ioutil.ReadAll(f)
+			if err != nil {
+				return err
+			}
+			if err = dsutil.UnmarshalYAMLDatasetPod(data, dsp); err != nil {
+				return err
+			}
+		case ".json":
+			if err = json.NewDecoder(f).Decode(dsp); err != nil {
+				return err
 			}
 		}
+	}
 
-		if ref.Name != "" {
-			dsp.Name = ref.Name
-		}
-		if ref.Peername != "" {
-			dsp.Peername = ref.Peername
-		} else if dsp.Peername == "" {
-			dsp.Peername = "me"
-		}
+	if ref.Name != "" {
+		dsp.Name = ref.Name
+	}
+	if ref.Peername != "" {
+		dsp.Peername = ref.Peername
+	} else if dsp.Peername == "" {
+		dsp.Peername = "me"
+	}
 
-		if (saveTitle != "" || saveMessage != "") && dsp.Commit == nil {
-			dsp.Commit = &dataset.CommitPod{}
-		}
-		if saveTitle != "" {
-			dsp.Commit.Title = saveTitle
-		}
-		if saveMessage != "" {
-			dsp.Commit.Message = saveMessage
-		}
+	if (o.Title != "" || o.Message != "") && dsp.Commit == nil {
+		dsp.Commit = &dataset.CommitPod{}
+	}
+	if o.Title != "" {
+		dsp.Commit.Title = o.Title
+	}
+	if o.Message != "" {
+		dsp.Commit.Message = o.Message
+	}
 
-		if saveDataPath != "" {
-			dsp.DataPath = saveDataPath
-		}
+	if o.DataPath != "" {
+		dsp.DataPath = o.DataPath
+	}
 
-		if dsp.Transform != nil && saveSecrets != nil {
-			if !confirm(`
+	if dsp.Transform != nil && o.Secrets != nil {
+		if !confirm(o.Out, o.In, `
 Warning: You are providing secrets to a dataset transformation.
 Never provide secrets to a transformation you do not trust.
 continue?`, true) {
-				return
-			}
-
-			dsp.Transform.Secrets, err = parseSecrets(addDsSecrets...)
-			ExitIfErr(err)
+			return
 		}
 
-		p := &core.SaveParams{
-			Dataset: dsp,
-			Private: false,
-			Publish: !saveNoRegistry,
+		if dsp.Transform.Secrets, err = parseSecrets(o.Secrets...); err != nil {
+			return err
 		}
+	}
 
-		req, err := datasetRequests(false)
-		ExitIfErr(err)
+	p := &core.SaveParams{
+		Dataset: dsp,
+		Private: false,
+		Publish: !o.NoRegistry,
+	}
 
-		res := &repo.DatasetRef{}
-		err = req.Save(p, res)
-		ExitIfErr(err)
+	res := &repo.DatasetRef{}
+	if err = o.DatasetRequests.Save(p, res); err != nil {
+		return err
+	}
 
-		printSuccess("dataset saved: %s", res)
-		if res.Dataset.Structure.ErrCount > 0 {
-			printWarning(fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
-
-			// TODO - restore. This should read from the created dataset instead of input data
-			// if saveShowValidation {
-			// 	printWarning("Validation Error Detail:")
-			// 	data, err := ioutil.ReadAll(dataFile)
-			// 	ExitIfErr(err)
-			// 	ds, err := res.DecodeDataset()
-			// 	ExitIfErr(err)
-			// 	errorList, err := ds.Structure.Schema.ValidateBytes(data)
-			// 	ExitIfErr(err)
-			// 	for i, validationErr := range errorList {
-			// 		printWarning(fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
-			// 	}
-			// }
-		}
-	},
-}
-
-func init() {
-	saveCmd.Flags().StringVarP(&saveFilePath, "file", "f", "", "dataset data file (yaml or json)")
-	saveCmd.Flags().StringVarP(&saveTitle, "title", "t", "", "title of commit message for save")
-	saveCmd.Flags().StringVarP(&saveMessage, "message", "m", "", "commit message for save")
-	saveCmd.Flags().StringVarP(&saveDataPath, "data", "", "", "path to file or url to initialize from")
-	saveCmd.Flags().BoolVarP(&saveShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
-	saveCmd.Flags().StringSliceVar(&saveSecrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	saveCmd.Flags().BoolVarP(&saveNoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
-	RootCmd.AddCommand(saveCmd)
+	printSuccess(o.Out, "dataset saved: %s", res)
+	if res.Dataset.Structure.ErrCount > 0 {
+		printWarning(o.Out, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
+	}
+	return nil
 }

@@ -16,7 +16,8 @@ func main() {
 	switch lastArg {
 	case "completions":
 		fmt.Printf("generating completions file...")
-		cmd.RootCmd.GenBashCompletionFile("out.sh")
+		root := cmd.NewQriCommand(cmd.EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+		root.GenBashCompletionFile("out.sh")
 		fmt.Println("done")
 	case "docs":
 		fmt.Printf("generating markdown docs...")
@@ -24,7 +25,8 @@ func main() {
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-		err := doc.GenMarkdownTree(cmd.RootCmd, path)
+		root := cmd.NewQriCommand(cmd.EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+		err := doc.GenMarkdownTree(root, path)
 		if err != nil {
 			log.Fatal(err)
 		}

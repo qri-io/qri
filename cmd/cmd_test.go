@@ -172,6 +172,9 @@ func TestCommandsIntegration(t *testing.T) {
 		{"setup", "--remove"},
 	}
 
+	_, in, out, err := NewTestIOStreams()
+	root := NewQriCommand(NewDirPathFactory(path), in, out, err)
+
 	for i, args := range commands {
 		func() {
 			defer func() {
@@ -180,7 +183,7 @@ func TestCommandsIntegration(t *testing.T) {
 					return
 				}
 			}()
-			_, err := executeCommand(RootCmd, args...)
+			_, err := executeCommand(root, args...)
 			if err != nil {
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, strings.Join(args, " "), err.Error())
 				return
