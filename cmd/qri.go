@@ -38,7 +38,6 @@ func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Comm
 	ioStreams := IOStreams{In: in, Out: out, ErrOut: err}
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(qriPath, ipfsPath, ioStreams)
-	// initializeCLI()
 
 	// TODO: write a test that verifies this works with our new yaml config
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
@@ -105,7 +104,12 @@ func NewQriOptions(qriPath, ipfsPath string, ioStreams IOStreams) *QriOptions {
 
 func (o *QriOptions) init() (err error) {
 	initBody := func() {
-		if err = core.LoadConfig(core.ConfigFilepath); err != nil {
+		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
+
+		// TODO - need to remove global config state in core, then remove this
+		core.ConfigFilepath = cfgPath
+
+		if err = core.LoadConfig(cfgPath); err != nil {
 			return
 		}
 		o.config = core.Config
@@ -119,7 +123,7 @@ func (o *QriOptions) init() (err error) {
 		}
 
 		// for now this just checks for an existing config file
-		if _, e := os.Stat(filepath.Join(o.qriRepoPath, "config.yaml")); os.IsNotExist(e) {
+		if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
 			err = fmt.Errorf("no qri repo found, please run `qri setup`")
 			return
 		}

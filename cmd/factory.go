@@ -39,6 +39,7 @@ type PathFactory func() (string, string)
 func EnvPathFactory() (string, string) {
 	home, err := homedir.Dir()
 	if err != nil {
+		panic(err)
 		return "", ""
 	}
 
