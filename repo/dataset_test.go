@@ -28,17 +28,17 @@ func TestDatasetPodDataFile(t *testing.T) {
 		{&dataset.DatasetPod{}, "", 0, "not found"},
 
 		// inline data
-		{&dataset.DatasetPod{DataBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying dataBytes requires format be specified in dataset.structure"},
-		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, DataBytes: []byte("a,b,c\n1,2,3")}, "data.csv", 11, ""},
+		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying dataBytes requires format be specified in dataset.structure"},
+		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "data.csv", 11, ""},
 
 		// urlz
-		{&dataset.DatasetPod{DataPath: "http://"}, "", 0, "fetching data url: Get http:: http: no Host in request URL"},
-		{&dataset.DatasetPod{DataPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching data url: 500"},
-		{&dataset.DatasetPod{DataPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
+		{&dataset.DatasetPod{BodyPath: "http://"}, "", 0, "fetching data url: Get http:: http: no Host in request URL"},
+		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching data url: 500"},
+		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
 		// local filepaths
-		{&dataset.DatasetPod{DataPath: "nope.cbor"}, "", 0, "opening file: open nope.cbor: no such file or directory"},
-		{&dataset.DatasetPod{DataPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
+		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "opening file: open nope.cbor: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
 	}
 
 	for i, c := range cases {

@@ -253,7 +253,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
-	m.Handle("/data/", s.middleware(dsh.DataHandler))
+	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 
 	hh := NewHistoryHandlers(s.qriNode.Repo)
 	// TODO - stupid hack for now.

@@ -51,7 +51,7 @@ changes to qri.`,
 	}
 
 	cmd.Flags().StringVarP(&o.File, "file", "f", "", "dataset data file in either yaml or json format")
-	cmd.Flags().StringVarP(&o.DataPath, "data", "d", "", "path to file or url to initialize from")
+	cmd.Flags().StringVarP(&o.BodyPath, "body", "b", "", "path to file or url to contents of dataset")
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "commit title")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message")
 	cmd.Flags().BoolVarP(&o.Private, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
@@ -67,7 +67,7 @@ type AddOptions struct {
 	IOStreams
 
 	File           string
-	DataPath       string
+	BodyPath       string
 	Name           string
 	Title          string
 	Message        string
@@ -90,7 +90,7 @@ func (o *AddOptions) Complete(f Factory) (err error) {
 
 // Run adds a dataset, parsing references
 func (o *AddOptions) Run(args []string) error {
-	ingest := (o.File != "" || o.DataPath != "")
+	ingest := (o.File != "" || o.BodyPath != "")
 
 	if ingest {
 		var arg string
@@ -152,11 +152,11 @@ func (o *AddOptions) InitDataset(name repo.DatasetRef) error {
 	if name.Peername != "" {
 		dsp.Peername = name.Peername
 	}
-	if o.DataPath != "" {
-		if o.DataPath, err = filepath.Abs(o.DataPath); err != nil {
+	if o.BodyPath != "" {
+		if o.BodyPath, err = filepath.Abs(o.BodyPath); err != nil {
 			return err
 		}
-		dsp.DataPath = o.DataPath
+		dsp.BodyPath = o.BodyPath
 	}
 	if dsp.Transform != nil {
 		if o.Secrets != nil {

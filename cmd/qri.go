@@ -49,7 +49,7 @@ func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Comm
 		NewAddCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
 		NewConnectCommand(opt, ioStreams),
-		NewDataCommand(opt, ioStreams),
+		NewBodyCommand(opt, ioStreams),
 		NewDiffCommand(opt, ioStreams),
 		NewExportCommand(opt, ioStreams),
 		NewInfoCommand(opt, ioStreams),

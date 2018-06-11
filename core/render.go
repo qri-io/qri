@@ -157,9 +157,9 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	enc.Name = ref.Name
 
 	if tlt == "object" {
-		enc.Data = obj
+		enc.Body = obj
 	} else {
-		enc.Data = array
+		enc.Body = array
 	}
 
 	tmplBuf := &bytes.Buffer{}

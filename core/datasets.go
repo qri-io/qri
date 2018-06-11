@@ -286,8 +286,8 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("dataset is required")
 	}
 
-	if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
-		return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
+	if dsp.BodyPath == "" && dsp.BodyBytes == nil && dsp.Transform == nil {
+		return fmt.Errorf("either dataBytes, bodyPath, or a transform is required to create a dataset")
 	}
 
 	if dsp.Transform != nil {
@@ -384,7 +384,7 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 // this could be better/faster by just not reading the data:
 // should amend dsfs.CreateDataset to compare the data being added,
 // and not add if the hash already exists
-// but still use the hash to add to dataset.DataPath
+// but still use the hash to add to dataset.BodyPath
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
@@ -409,7 +409,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("peername & name are required to update dataset")
 	}
 
-	// if dsp.DataPath == "" && dsp.DataBytes == nil && dsp.Transform == nil {
+	// if dsp.BodyPath == "" && dsp.BodyBytes == nil && dsp.Transform == nil {
 	// 	return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
 	// }
 
@@ -431,7 +431,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("error getting previous dataset: %s", err.Error())
 	}
 
-	if dsp.DataBytes != nil || dsp.DataPath != "" {
+	if dsp.BodyBytes != nil || dsp.BodyPath != "" {
 		dataFile, err = repo.DatasetPodDataFile(dsp)
 		if err != nil {
 			return err
@@ -681,7 +681,7 @@ func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err e
 	}
 
 	*data = LookupResult{
-		Path: ds.DataPath,
+		Path: ds.BodyPath,
 		Data: buf.Bytes(),
 	}
 	return nil
@@ -883,7 +883,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 					}
 				case "data":
 					//TODO
-					if dsLeft.DataPath != "" && dsRight.DataPath != "" {
+					if dsLeft.BodyPath != "" && dsRight.BodyPath != "" {
 						dataDiffs, err := dsdiff.DiffData(dsLeft, dsRight)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())

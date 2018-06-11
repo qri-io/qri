@@ -111,8 +111,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -120,20 +120,20 @@ func TestServerRoutes(t *testing.T) {
 
 		// history
 		{"GET", "/history/me/cities", "", "historyResponse.json", 200},
-		{"GET", "/history/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "historyResponsePath.json", 200},
-		{"GET", "/history/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "historyResponseAt.json", 200},
+		{"GET", "/history/me/cities/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "historyResponsePath.json", 200},
+		{"GET", "/history/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "historyResponseAt.json", 200},
 
 		{"GET", "/export/me/cities", "", "", 200},
-		{"GET", "/export/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "", 200},
-		{"GET", "/export/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "", 200},
+		{"GET", "/export/me/cities/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "", 200},
+		{"GET", "/export/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "", 200},
 
 		// diff
 		{"GET", "/diff", "diffRequest.json", "diffResponse.json", 200},
 		{"GET", "/diff", "diffRequestPlusMinusColor.json", "diffResponsePlusMinusColor.json", 200},
 
 		// remove
-		{"POST", "/remove/me/cities/at/map/QmWtDh13DxRBUwv7FsWrSUNzTR4FhMUb6kSRwXK3M311GU", "", "removeResponseWithPath.json", 200},
-		{"POST", "/remove/at/map/QmcPS5vqKpE96hZQ2hPCvexkMMJJFXmNEU118YazMmbhTE", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/me/cities/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "removeResponseWithPath.json", 200},
+		{"POST", "/remove/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "removeResponseByPath.json", 200},
 
 		// {"GET", "/connect/", "", "", 400},
 
@@ -307,7 +307,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/export/", 403},
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
-		{"GET", "/data/", 403},
+		{"GET", "/body/", 403},
 
 		// active endpoints:
 		{"GET", "/status", 200},
