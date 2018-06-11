@@ -10,8 +10,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewListCommand creates new `qri list` command that lists datasets
-// for the local peer & others
+// NewListCommand creates new `qri list` command that lists datasets for the local peer & others
 func NewListCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &ListOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -41,6 +40,7 @@ qri repository.`,
 	return cmd
 }
 
+// ListOptions encapsulates state for the List command
 type ListOptions struct {
 	IOStreams
 
@@ -52,6 +52,7 @@ type ListOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Peername = args[0]
@@ -60,6 +61,7 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the list command
 func (o *ListOptions) Run() (err error) {
 	if o.Peername == "" {
 

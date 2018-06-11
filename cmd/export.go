@@ -81,10 +81,11 @@ type ExportOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
-  if len(args) > 0 {
-    o.Ref = args[0]
-  }
+	if len(args) > 0 {
+		o.Ref = args[0]
+	}
 	o.UsingRPC = f.RPC() != nil
 	o.DatasetRequests, err = f.DatasetRequests()
 	o.Repo, err = f.Repo()
@@ -96,6 +97,7 @@ func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
 	return err
 }
 
+// Run executes the Export command
 func (o *ExportOptions) Run() error {
 	if o.UsingRPC {
 		return usingRPCError("export")

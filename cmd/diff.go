@@ -7,6 +7,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewDiffCommand creates a new `qri diff` cobra command for comparing changes between datasets
 func NewDiffCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -50,6 +51,7 @@ type DiffOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 	o.Left = args[0]
 	o.Right = args[1]

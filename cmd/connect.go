@@ -4,11 +4,12 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/api"
-  "github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
+// NewConnectCommand creates a new `qri connect` cobra command for connecting to the d.web, local api, rpc server, and webapp
 func NewConnectCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := ConnectOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -30,7 +31,7 @@ things:
 When you run connect you are connecting to the distributed web, interacting with
 peers & swapping data.`,
 		Run: func(cmd *cobra.Command, args []string) {
-      ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.Complete(f, args))
 			ExitIfErr(o.Run())
 		},
 	}
@@ -53,7 +54,7 @@ peers & swapping data.`,
 	return cmd
 }
 
-// SetupOptions encapsulates state for the connect command
+// ConnectOptions encapsulates state for the connect command
 type ConnectOptions struct {
 	IOStreams
 
@@ -71,35 +72,36 @@ type ConnectOptions struct {
 	Setup    bool
 	ReadOnly bool
 
-  Repo repo.Repo
-  Config *config.Config
+	Repo   repo.Repo
+	Config *config.Config
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
-  qriPath := f.QriRepoPath()
+	qriPath := f.QriRepoPath()
 
-  if o.Setup && !QRIRepoInitialized(qriPath) {
-    so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true}
-    if err = so.Complete(f, args); err != nil {
-      return err
-    }
-    if err = so.DoSetup(f); err != nil {
-      return err
-    }
-  } else if !QRIRepoInitialized(qriPath) {
-    return fmt.Errorf("no qri repo exists")
-  }
+	if o.Setup && !QRIRepoInitialized(qriPath) {
+		so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true}
+		if err = so.Complete(f, args); err != nil {
+			return err
+		}
+		if err = so.DoSetup(f); err != nil {
+			return err
+		}
+	} else if !QRIRepoInitialized(qriPath) {
+		return fmt.Errorf("no qri repo exists")
+	}
 
-  // TODO - calling f.Repo has the side effect of
-  // calling init if we haven't initialized so far. Should this be made
-  // more explicit?
-  o.Repo, err = f.Repo()
-  if err != nil {
-    return err
-  }
-  o.Config, err = f.Config()
-  return
-} 
+	// TODO - calling f.Repo has the side effect of
+	// calling init if we haven't initialized so far. Should this be made
+	// more explicit?
+	o.Repo, err = f.Repo()
+	if err != nil {
+		return err
+	}
+	o.Config, err = f.Config()
+	return
+}
 
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() (err error) {

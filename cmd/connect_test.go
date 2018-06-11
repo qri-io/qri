@@ -37,7 +37,7 @@ func TestConnect(t *testing.T) {
 	// 	}
 	// }()
 
-  args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
+	args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
 	_, in, out, errs := NewTestIOStreams()
 	root := NewQriCommand(NewDirPathFactory(path), in, out, errs)
 

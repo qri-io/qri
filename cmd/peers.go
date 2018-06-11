@@ -93,6 +93,7 @@ command in the background or in another terminal window.
 	return cmd
 }
 
+// PeersOptions encapsulates state for the peers command
 type PeersOptions struct {
 	IOStreams
 
@@ -108,6 +109,7 @@ type PeersOptions struct {
 	PeerRequests *core.PeerRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Peername = args[0]
@@ -117,6 +119,7 @@ func (o *PeersOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Info gets peer info
 func (o *PeersOptions) Info() (err error) {
 	if !(o.Format == "yaml" || o.Format == "json") {
 		return fmt.Errorf("format must be either `yaml` or `json`")
@@ -149,6 +152,7 @@ func (o *PeersOptions) Info() (err error) {
 	return
 }
 
+// List shows a list of peers
 func (o *PeersOptions) List() (err error) {
 	if o.Network == "ipfs" {
 		res := []string{}
@@ -185,6 +189,7 @@ func (o *PeersOptions) List() (err error) {
 	return nil
 }
 
+// Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
 	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
 	res := &config.ProfilePod{}
@@ -197,6 +202,7 @@ func (o *PeersOptions) Connect() (err error) {
 	return nil
 }
 
+// Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
 	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
 	res := false

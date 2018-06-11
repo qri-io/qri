@@ -51,12 +51,14 @@ type InfoOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *InfoOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
 
+// Run executes the info command
 func (o *InfoOptions) Run() error {
 	if o.Format != "" {
 		format, err := dataset.ParseDataFormatString(o.Format)

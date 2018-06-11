@@ -33,6 +33,7 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	return cmd
 }
 
+// SearchOptions encapsulates state for the search command
 type SearchOptions struct {
 	IOStreams
 
@@ -43,12 +44,14 @@ type SearchOptions struct {
 	SearchRequests *core.SearchRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
 	o.Query = args[0]
 	o.SearchRequests, err = f.SearchRequests()
 	return
 }
 
+// Run executes the search command
 func (o *SearchOptions) Run() (err error) {
 
 	if o.Reindex {

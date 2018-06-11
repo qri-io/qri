@@ -74,14 +74,13 @@ type AddOptions struct {
 	Passive        bool
 	ShowValidation bool
 	Private        bool
-	Publish     bool
+	Publish        bool
 	Secrets        []string
 
 	DatasetRequests *core.DatasetRequests
 }
 
-// Complete adds any missing configuration that can only be added
-// just before calling Run
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *AddOptions) Complete(f Factory) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return

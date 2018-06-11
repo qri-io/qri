@@ -39,6 +39,7 @@ func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	return cmd
 }
 
+// RenderOptions encapsulates state for the render command
 type RenderOptions struct {
 	IOStreams
 
@@ -52,12 +53,14 @@ type RenderOptions struct {
 	RenderRequests *core.RenderRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref = args[0]
 	o.RenderRequests, err = f.RenderRequests()
 	return
 }
 
+// Run executes the render command
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
 

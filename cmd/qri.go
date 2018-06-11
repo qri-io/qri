@@ -94,6 +94,7 @@ type QriOptions struct {
 	initialized sync.Once
 }
 
+// NewQriOptions creates an options object
 func NewQriOptions(qriPath, ipfsPath string, ioStreams IOStreams) *QriOptions {
 	return &QriOptions{
 		qriRepoPath: qriPath,
@@ -154,60 +155,83 @@ func (o *QriOptions) init() (err error) {
 	return err
 }
 
+// Config returns from internal state
 func (o *QriOptions) Config() (*config.Config, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return o.config, nil
 }
+
+// IpfsFsPath returns from internal state
 func (o *QriOptions) IpfsFsPath() string {
 	return o.ipfsFsPath
 }
+
+// QriRepoPath returns from internal state
 func (o *QriOptions) QriRepoPath() string {
 	return o.qriRepoPath
 }
+
+// RPC returns from internal state
 func (o *QriOptions) RPC() *rpc.Client {
 	return o.rpc
 }
+
+// Repo returns from internal state
 func (o *QriOptions) Repo() (repo.Repo, error) {
 	return o.repo, o.init()
 }
+
+// DatasetRequests generates a core.DatasetRequests from internal state
 func (o *QriOptions) DatasetRequests() (*core.DatasetRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewDatasetRequests(o.repo, o.rpc), nil
 }
+
+// RegistryRequests generates a core.RegistryRequests from internal state
 func (o *QriOptions) RegistryRequests() (*core.RegistryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewRegistryRequests(o.repo, o.rpc), nil
 }
+
+// HistoryRequests generates a core.HistoryRequests from internal state
 func (o *QriOptions) HistoryRequests() (*core.HistoryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewHistoryRequests(o.repo, o.rpc), nil
 }
+
+// PeerRequests generates a core.PeerRequests from internal state
 func (o *QriOptions) PeerRequests() (*core.PeerRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewPeerRequests(nil, o.rpc), nil
 }
+
+// ProfileRequests generates a core.ProfileRequests from internal state
 func (o *QriOptions) ProfileRequests() (*core.ProfileRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewProfileRequests(o.repo, o.rpc), nil
 }
+
+// SearchRequests generates a core.SearchRequests from internal state
 func (o *QriOptions) SearchRequests() (*core.SearchRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
 	return core.NewSearchRequests(o.repo, o.rpc), nil
 }
+
+// RenderRequests generates a core.RenderRequests from internal state
 func (o *QriOptions) RenderRequests() (*core.RenderRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err

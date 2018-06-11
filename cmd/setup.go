@@ -72,12 +72,14 @@ type SetupOptions struct {
 	IpfsFsPath  string
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
 	o.QriRepoPath = f.QriRepoPath()
 	o.IpfsFsPath = f.IpfsFsPath()
 	return
 }
 
+// Run executes the setup command
 func (o *SetupOptions) Run(f Factory) error {
 	if o.Remove {
 		cfg, err := f.Config()
@@ -110,6 +112,7 @@ func (o *SetupOptions) Run(f Factory) error {
 	return nil
 }
 
+// DoSetup executes the setup-ie bit from the setup command
 func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	cfg := config.DefaultConfig()
 
@@ -148,11 +151,11 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	}
 
 	p := core.SetupParams{
-		Config:      cfg,
-		QriRepoPath: o.QriRepoPath,
+		Config:         cfg,
+		QriRepoPath:    o.QriRepoPath,
 		ConfigFilepath: filepath.Join(o.QriRepoPath, "config.yaml"),
-		SetupIPFS:  o.IPFS,
-		IPFSFsPath: o.IpfsFsPath,
+		SetupIPFS:      o.IPFS,
+		IPFSFsPath:     o.IpfsFsPath,
 	}
 
 	if o.IPFSConfigData != "" {
@@ -176,8 +179,8 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		break
 	}
 
-  // TODO - this call is to trigger initialization
-_, err = f.Repo()
+	// TODO - this call is to trigger initialization
+	_, err = f.Repo()
 	return err
 }
 

@@ -103,7 +103,7 @@ func testCommandSection(t *testing.T, subSections []subSection) {
 			ioutil.WriteFile(filepath.Join(path, name), []byte(data), os.ModePerm)
 		}
 
-		for cmd, _ := range ss.commands {
+		for cmd := range ss.commands {
 			cmd = strings.Replace(cmd, "$PATH", path, -1)
 			cmd = strings.TrimPrefix(cmd, "qri ")
 			_, err := executeCommand(root, strings.Split(cmd, " ")...)

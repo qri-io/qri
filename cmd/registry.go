@@ -71,6 +71,7 @@ $ qri config set registry.location ""`,
 	return cmd
 }
 
+// RegistryOptions encapsulates state for the registry command & subcommands
 type RegistryOptions struct {
 	IOStreams
 
@@ -79,12 +80,14 @@ type RegistryOptions struct {
 	RegistryRequests *core.RegistryRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
 	o.RegistryRequests, err = f.RegistryRequests()
 	return
 }
 
+// Publish executes the publish command
 func (o *RegistryOptions) Publish() error {
 	var res bool
 	for _, arg := range o.Refs {
@@ -101,6 +104,7 @@ func (o *RegistryOptions) Publish() error {
 	return nil
 }
 
+// Unpublish executes the unpublish command
 func (o *RegistryOptions) Unpublish() error {
 	var res bool
 	for _, arg := range o.Refs {

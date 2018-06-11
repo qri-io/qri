@@ -58,6 +58,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 	return cmd
 }
 
+// SaveOptions encapsulates state for the save command
 type SaveOptions struct {
 	IOStreams
 
@@ -75,6 +76,7 @@ type SaveOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Ref = args[0]
@@ -84,6 +86,7 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the save command
 func (o *SaveOptions) Run() (err error) {
 	if o.Ref == "" && o.FilePath == "" {
 		return fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername")

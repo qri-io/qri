@@ -43,6 +43,7 @@ working backwards in time.`,
 	return cmd
 }
 
+// LogOptions encapsulates state for the log command
 type LogOptions struct {
 	IOStreams
 
@@ -54,6 +55,7 @@ type LogOptions struct {
 	HistoryRequests *core.HistoryRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	if f.RPC() != nil {
 		return usingRPCError("log")
@@ -74,6 +76,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the log command
 func (o *LogOptions) Run() error {
 
 	ref, err := repo.ParseDatasetRef(o.Ref)

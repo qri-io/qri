@@ -36,6 +36,7 @@ renames to a minimum.`,
 	return cmd
 }
 
+// RenameOptions encapsulates state for the rename command
 type RenameOptions struct {
 	IOStreams
 
@@ -45,6 +46,7 @@ type RenameOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenameOptions) Complete(f Factory, args []string) (err error) {
 	o.From = args[0]
 	o.To = args[1]
@@ -52,6 +54,7 @@ func (o *RenameOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the rename command
 func (o *RenameOptions) Run() error {
 	current, err := repo.ParseDatasetRef(o.From)
 	if err != nil {

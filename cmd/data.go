@@ -12,7 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewDataCommand
+// NewDataCommand creates a new `qri data` cobra command to fetch entries from the body of a dataset
 func NewDataCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &DataOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -56,6 +56,7 @@ type DataOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *DataOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref = args[0]
 	o.UsingRPC = f.RPC() != nil
@@ -63,6 +64,7 @@ func (o *DataOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the data command
 func (o *DataOptions) Run() error {
 	if o.UsingRPC {
 		return usingRPCError("data")

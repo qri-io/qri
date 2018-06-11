@@ -62,6 +62,7 @@ will affect a dataset before saving changes to a dataset.`,
 	return cmd
 }
 
+// ValidateOptions encapsulates state for the validate command
 type ValidateOptions struct {
 	IOStreams
 
@@ -74,6 +75,7 @@ type ValidateOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 	if f.RPC() != nil {
 		return usingRPCError("validate")
@@ -84,6 +86,7 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Run executes the validate command
 func (o *ValidateOptions) Run() (err error) {
 	var (
 		dataFile, schemaFile *os.File

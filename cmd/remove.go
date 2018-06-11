@@ -8,6 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
+// NewRemoveCommand creates a new `qri remove` cobra command for removing datasets from a local repository
 func NewRemoveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &RemoveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -41,6 +42,7 @@ both qri & IPFS. Promise.`,
 	return cmd
 }
 
+// RemoveOptions encapsulates state for the remove command
 type RemoveOptions struct {
 	IOStreams
 
@@ -49,12 +51,14 @@ type RemoveOptions struct {
 	DatasetRequests *core.DatasetRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	o.Args = args
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
 
+// Run executes the remove command
 func (o *RemoveOptions) Run() error {
 	if len(o.Args) == 0 {
 		return fmt.Errorf("please specify a dataset path or name to get the info of")

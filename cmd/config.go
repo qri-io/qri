@@ -12,24 +12,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-/*
-func configFilepath() string {
-	return filepath.Join(QriRepoPath, "config.yaml")
-	// if cfgFile == "" {
-	// 	return filepath.Join(QriRepoPath, "config.yaml")
-	// }
-	// return cfgFile
-}
-
-func loadConfig() {
-	core.ConfigFilepath = configFilepath()
-	if err := core.LoadConfig(core.ConfigFilepath); err != nil {
-		ErrExit(err)
-	}
-}
-*/
-
-// NewConfigCommand creates a new Config command
+// NewConfigCommand creates a new `qri config` cobra command
 // config represents commands that read & modify configuration settings
 func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := ConfigOptions{IOStreams: ioStreams}
@@ -103,11 +86,13 @@ type ConfigOptions struct {
 	ProfileRequests *core.ProfileRequests
 }
 
+// Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
 	o.ProfileRequests, err = f.ProfileRequests()
 	return
 }
 
+// Get a configuration option
 func (o *ConfigOptions) Get(args []string) (err error) {
 	params := &core.GetConfigParams{
 		WithPrivateKey: o.WithPrivateKeys,
@@ -137,6 +122,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 	return
 }
 
+// Set a configuration option
 func (o *ConfigOptions) Set(args []string) (err error) {
 	if len(args)%2 != 0 {
 		return fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]")

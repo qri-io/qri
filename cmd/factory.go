@@ -11,6 +11,8 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// Factory is an interface for providing required structures to cobra commands
+// It's main implementation is QriOptions
 type Factory interface {
 	Config() (*config.Config, error)
 
