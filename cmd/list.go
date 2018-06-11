@@ -57,7 +57,6 @@ qri repository.`,
 				ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
 			}
 		} else {
-			printInfo("args: ", args[0])
 			r, err := datasetRequests(true)
 			ExitIfErr(err)
 

@@ -191,6 +191,7 @@ func init() {
 	peersInfoCmd.Flags().StringP("format", "", "yaml", "format in which to show peers profile info. formats: yaml, json")
 
 	// peersListCmd.Flags().StringP("format", "f", "", "set output format [json]")
+	peersListCmd.Flags().StringP("network", "n", "", "list peers from connected networks. currently only accepts \"ipfs\"")
 	peersListCmd.Flags().BoolP("cached", "c", false, "show peers that aren't online, but previously seen")
 
 	peersCmd.AddCommand(peersInfoCmd, peersListCmd, peersConnectCmd, peersDisconnectCmd)

@@ -122,7 +122,7 @@ func printDatasetRefInfo(i int, ref repo.DatasetRef) {
 		}
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Printf("    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
+		fmt.Printf("    %s, %d entries, %d errors\n", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
 	}
 
 	fmt.Println()
