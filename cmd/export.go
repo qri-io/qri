@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/hex"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -44,14 +45,9 @@ To export everything about a dataset, use the --dataset flag.`,
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write to, default is current directory")
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "yaml", "format for all exported files, except for body. yaml is the default format. options: yaml, json")
 	cmd.Flags().StringVarP(&o.BodyFormat, "body-format", "", "", "format for dataset body. default is the original data format. options: json, csv, cbor")
-	cmd.Flags().BoolVarP(&o.Zipped, "zip", "z", false, "compress export as zip archive, export all parts of dataset, data in original format")
-	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "export full dataset package")
-	cmd.Flags().BoolVarP(&o.Namespaced, "namespaced", "n", false, "export to a peer name namespaced directory")
-	cmd.Flags().BoolVarP(&o.Dataset, "dataset", "", false, "export root dataset")
-	cmd.Flags().BoolVarP(&o.Meta, "meta", "m", false, "export dataset metadata file")
-	cmd.Flags().BoolVarP(&o.Structure, "structure", "s", false, "export dataset structure file")
-	cmd.Flags().BoolVarP(&o.Transform, "transform", "t", false, "export dataset transformation file & details")
-	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "", false, "don't include dataset body in export")
+	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "b", false, "don't include dataset body in export")
+	cmd.Flags().BoolVarP(&o.PeerDir, "peer-dir", "d", false, "export to a peer name namespaced directory")
+	// cmd.Flags().BoolVarP(&o.Zipped, "zip", "z", false, "compress export as zip archive, export all parts of dataset, data in original format")
 	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	return cmd
@@ -62,19 +58,13 @@ type ExportOptions struct {
 	IOStreams
 
 	Ref        string
-	Dataset    bool
-	Meta       bool
-	Structure  bool
-	NoBody     bool
-	Transform  bool
-	Vis        bool
-	All        bool
-	Namespaced bool
+	PeerDir    bool
 	Zipped     bool
 	Blank      bool
 	Output     string
 	Format     string
 	BodyFormat string
+	NoBody     bool
 
 	UsingRPC        bool
 	Repo            repo.Repo
@@ -87,7 +77,10 @@ func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		o.Ref = args[0]
 	}
-	o.UsingRPC = f.RPC() != nil
+	if f.RPC() != nil {
+		return usingRPCError("export")
+	}
+
 	o.DatasetRequests, err = f.DatasetRequests()
 	o.Repo, err = f.Repo()
 	if err != nil {
@@ -100,16 +93,9 @@ func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the Export command
 func (o *ExportOptions) Run() error {
-	if o.UsingRPC {
-		return usingRPCError("export")
-	}
-
 	path := o.Output
 	format := o.Format
 	bodyFormat := o.BodyFormat
-	if bodyFormat != "" && !(bodyFormat == "json" || bodyFormat == "csv" || bodyFormat == "cbor") {
-		ErrExit(fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", bodyFormat))
-	}
 
 	if o.Blank {
 		if path == "" {
@@ -123,6 +109,10 @@ func (o *ExportOptions) Run() error {
 			return nil
 		}
 		return fmt.Errorf("'%s' already exists", path)
+	}
+
+	if bodyFormat != "" && !(bodyFormat == "json" || bodyFormat == "csv" || bodyFormat == "cbor") {
+		return fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", bodyFormat)
 	}
 
 	dsr, err := repo.ParseDatasetRef(o.Ref)
@@ -140,7 +130,7 @@ func (o *ExportOptions) Run() error {
 		return err
 	}
 
-	if o.Namespaced {
+	if o.PeerDir {
 		peerName := dsr.Peername
 		if peerName == "me" {
 			peerName = o.Profile.Peername
@@ -159,134 +149,10 @@ func (o *ExportOptions) Run() error {
 			return err
 		}
 		return dst.Close()
-	} else if o.All {
-		o.NoBody = false
-		o.Dataset = true
-		o.Meta = true
-		o.Structure = true
-		o.Transform = true
 	}
 
 	if path != "" {
 		if err = os.MkdirAll(path, os.ModePerm); err != nil {
-			return err
-		}
-	}
-
-	if o.Meta {
-		var md interface{}
-		// TODO - this ensures a "form" metadata file is written
-		// when one doesn't exist. This should be better
-		if ds.Meta != nil && ds.Meta.IsEmpty() {
-			md = struct {
-				AccessPath         string       `json:"accessPath"`
-				AccrualPeriodicity string       `json:"accrualPeriodicity"`
-				Citations          []string     `json:"citations"`
-				Description        string       `json:"description"`
-				DownloadPath       string       `json:"downloadPath"`
-				HomePath           string       `json:"homePath"`
-				Identifier         string       `json:"identifier"`
-				Keywords           []string     `json:"keywords"`
-				Language           []string     `json:"language"`
-				License            string       `json:"license"`
-				Qri                dataset.Kind `json:"qri"`
-				ReadmePath         string       `json:"readmePath"`
-				Title              string       `json:"title"`
-				Theme              []string     `json:"theme"`
-				Version            string       `json:"version"`
-			}{
-				Qri: dataset.KindMeta,
-			}
-		} else {
-			md = ds.Meta
-		}
-
-		metaPath := filepath.Join(path, dsfs.PackageFileMeta.Filename())
-		var mdBytes []byte
-
-		switch format {
-		case "json":
-			mdBytes, err = json.MarshalIndent(md, "", "  ")
-			if err != nil {
-				return err
-			}
-		default:
-			mdBytes, err = yaml.Marshal(md)
-			if err != nil {
-				return err
-			}
-			metaPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(metaPath, filepath.Ext(metaPath)))
-		}
-		if err = ioutil.WriteFile(metaPath, mdBytes, os.ModePerm); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "exported metadata file to: %s", metaPath)
-	}
-
-	if o.Structure {
-		stPath := filepath.Join(path, dsfs.PackageFileStructure.Filename())
-		var stBytes []byte
-
-		switch format {
-		case "json":
-			stBytes, err = json.MarshalIndent(ds.Structure, "", "  ")
-			if err != nil {
-				return err
-			}
-		default:
-			stBytes, err = yaml.Marshal(ds.Structure)
-			if err != nil {
-				return err
-			}
-			stPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(stPath, filepath.Ext(stPath)))
-		}
-		if err = ioutil.WriteFile(stPath, stBytes, os.ModePerm); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "exported structure file to: %s", stPath)
-	}
-
-	writeTransformScript := func() error {
-		if ds.Transform != nil && ds.Transform.ScriptPath != "" {
-			f, err := o.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
-			if err != nil {
-				return err
-			}
-			scriptData, err := ioutil.ReadAll(f)
-			if err != nil {
-				return err
-			}
-			// TODO - transformations should have default file extensions
-			if err = ioutil.WriteFile(filepath.Join(path, "transform.sky"), scriptData, os.ModePerm); err != nil {
-				return err
-			}
-			printSuccess(o.Out, "exported transform script to: %s", filepath.Join(path, "transform.sky"))
-		}
-		return nil
-	}
-
-	if o.Transform {
-		tfPath := filepath.Join(path, dsfs.PackageFileTransform.Filename())
-		var stBytes []byte
-
-		switch format {
-		case "json":
-			stBytes, err = json.MarshalIndent(ds.Transform, "", "  ")
-			if err != nil {
-				return err
-			}
-		default:
-			stBytes, err = yaml.Marshal(ds.Transform)
-			if err != nil {
-				return err
-			}
-			tfPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(tfPath, filepath.Ext(tfPath)))
-		}
-		if err = ioutil.WriteFile(tfPath, stBytes, os.ModePerm); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "exported transform file to: %s", tfPath)
-		if err = writeTransformScript(); err != nil {
 			return err
 		}
 	}
@@ -318,6 +184,9 @@ func (o *ExportOptions) Run() error {
 			return err
 		}
 
+		if p.Format == dataset.CBORDataFormat {
+			r.Data = []byte(hex.EncodeToString(r.Data))
+		}
 		if _, err = dst.Write(r.Data); err != nil {
 			return err
 		}
@@ -328,32 +197,43 @@ func (o *ExportOptions) Run() error {
 		printSuccess(o.Out, "exported data to: %s", dataPath)
 	}
 
-	if o.Dataset {
-		dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
-		var dsBytes []byte
+	dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
+	var dsBytes []byte
 
-		switch format {
-		case "json":
-			dsBytes, err = json.MarshalIndent(ds, "", "  ")
-			if err != nil {
-				return err
-			}
-		default:
-			dsBytes, err = yaml.Marshal(ds)
-			if err != nil {
-				return err
-			}
-			dsPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(dsPath, filepath.Ext(dsPath)))
-		}
-		if err = ioutil.WriteFile(dsPath, dsBytes, os.ModePerm); err != nil {
+	switch format {
+	case "json":
+		dsBytes, err = json.MarshalIndent(ds, "", "  ")
+		if err != nil {
 			return err
 		}
-		if err = writeTransformScript(); err != nil {
+	default:
+		dsBytes, err = yaml.Marshal(ds)
+		if err != nil {
 			return err
 		}
-
-		printSuccess(o.Out, "exported dataset.json to: %s", dsPath)
+		dsPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(dsPath, filepath.Ext(dsPath)))
 	}
+	if err = ioutil.WriteFile(dsPath, dsBytes, os.ModePerm); err != nil {
+		return err
+	}
+
+	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
+		f, err := o.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+		if err != nil {
+			return err
+		}
+		scriptData, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
+		// TODO - transformations should have default file extensions
+		if err = ioutil.WriteFile(filepath.Join(path, "transform.sky"), scriptData, os.ModePerm); err != nil {
+			return err
+		}
+		printSuccess(o.Out, "exported transform script to: %s", filepath.Join(path, "transform.sky"))
+	}
+
+	printSuccess(o.Out, "exported dataset.json to: %s", dsPath)
 
 	return nil
 }
