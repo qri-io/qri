@@ -11,7 +11,6 @@ import (
 )
 
 const (
-	// numReceivers = 6
 	numReceivers = 7
 )
 
