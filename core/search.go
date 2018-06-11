@@ -6,8 +6,8 @@ import (
 
 	// 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/registry/regclient"
-	// 	"github.com/qri-io/qri/repo/fs"
 )
 
 // SearchRequests encapsulates business logic for the qri search
@@ -25,7 +25,7 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 	}
 	return &SearchRequests{
 		cli:  cli,
-		repo: r,
+		repo: &actions.Registry{r},
 	}
 }
 

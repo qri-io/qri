@@ -11,8 +11,8 @@ import (
 )
 
 const (
-	// numReceivers = 7
-	numReceivers = 6
+	// numReceivers = 6
+	numReceivers = 7
 )
 
 func TestReceivers(t *testing.T) {
