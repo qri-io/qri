@@ -60,7 +60,7 @@ func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Comm
 		NewRenameCommand(opt, ioStreams),
 		NewRenderCommand(opt, ioStreams),
 		NewSaveCommand(opt, ioStreams),
-		// NewSearchCommand(opt, ioStreams),
+		NewSearchCommand(opt, ioStreams),
 		NewSetupCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
 		NewVersionCommand(opt, ioStreams),
