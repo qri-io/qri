@@ -126,6 +126,7 @@ func TestConfigSet(t *testing.T) {
 		{"p2p.enabled", false, ""},
 		{"p2p.qribootstrapaddrs.0", "wahoo", ""},
 		{"p2p.qribootstrapaddrs.0", false, "invalid type for config path p2p.qribootstrapaddrs.0, expected: string, got: bool"},
+		{"logging.levels.qriapi", "debug", ""},
 	}
 
 	for i, c := range cases {

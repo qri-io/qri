@@ -136,6 +136,15 @@ func (cfg *Config) Set(path string, value interface{}) error {
 		return fmt.Errorf("invalid type for config path %s, expected: %s, got: %s", path, v.Kind().String(), rv.Kind().String())
 	}
 
+	// if we can't address this value check to see if it's a map
+	if !v.CanAddr() {
+		parent, base := splitBase(path)
+		if v, _ := cfg.path(parent); v.Kind() == reflect.Map {
+			v.SetMapIndex(reflect.ValueOf(base), rv)
+			return nil
+		}
+	}
+
 	// how to make sure a float doesn't have a decimal, can it be cast to an int
 	switch v.Kind() {
 	case reflect.Int:
@@ -147,6 +156,14 @@ func (cfg *Config) Set(path string, value interface{}) error {
 	}
 
 	return nil
+}
+
+func splitBase(path string) (string, string) {
+	components := strings.Split(path, ".")
+	if len(components) > 0 {
+		return strings.Join(components[0:len(components)-1], "."), components[len(components)-1]
+	}
+	return "", ""
 }
 
 func (cfg Config) path(path string) (elem reflect.Value, err error) {
@@ -171,18 +188,13 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 			}
 			elem = elem.Index(index)
 		case reflect.Map:
-			set := false
 			for _, key := range elem.MapKeys() {
-				// we only support strings as values
+				// we only support strings as keys
 				if strings.ToLower(key.String()) == sel {
-					elem = elem.MapIndex(key)
-					set = true
-					break
+					return elem.MapIndex(key), nil
 				}
 			}
-			if !set {
-				return elem, fmt.Errorf("invalid config path: %s", path)
-			}
+			return elem, fmt.Errorf("invalid config path: %s", path)
 		}
 
 		if elem.Kind() == reflect.Invalid {

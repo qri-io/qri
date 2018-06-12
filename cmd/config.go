@@ -51,6 +51,7 @@ PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
+			ExitIfErr(o.Complete(f))
 			ExitIfErr(o.Get(args))
 		},
 	}
