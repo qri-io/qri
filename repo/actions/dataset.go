@@ -24,11 +24,21 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 	var (
 		path datastore.Key
 		pro  *profile.Profile
+		// NOTE - struct fields need to be instantiated to make assign set to
+		// new pointer values
+		userSet = &dataset.Dataset{
+			Commit:    &dataset.Commit{},
+			Meta:      &dataset.Meta{},
+			Structure: &dataset.Structure{},
+			Transform: &dataset.Transform{},
+		}
 	)
 	pro, err = act.Profile()
 	if err != nil {
 		return
 	}
+
+	userSet.Assign(ds)
 
 	if ds.Commit != nil {
 		// NOTE: add author ProfileID here to keep the dataset package agnostic to
@@ -43,6 +53,7 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 			return
 		}
 		log.Info("done")
+		ds.Assign(userSet)
 	}
 
 	path, err = dsfs.CreateDataset(act.Store(), ds, data, act.PrivateKey(), pin)

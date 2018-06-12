@@ -50,7 +50,7 @@ overwrite this info.`,
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL")
 	cmd.Flags().StringVarP(&o.Peername, "peername", "", "", "choose your desired peername")
 	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
-	cmd.Flags().StringVarP(&o.ConfigData, "conifg-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
+	cmd.Flags().StringVarP(&o.ConfigData, "config-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 
 	return cmd
 }

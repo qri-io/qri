@@ -10,6 +10,7 @@ import (
 	"strconv"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -23,7 +24,14 @@ import (
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
+	"github.com/qri-io/skytf"
 )
+
+func init() {
+	dsfs.Timestamp = func() time.Time {
+		return time.Time{}
+	}
+}
 
 func TestDatasetRequestsInit(t *testing.T) {
 	jobsDataPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
@@ -39,7 +47,8 @@ func TestDatasetRequestsInit(t *testing.T) {
 		w.Write([]byte(`\\\{"json":"data"}`))
 	}))
 
-	mr, err := testrepo.NewTestRepo(nil)
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -56,7 +65,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 	cases := []struct {
 		dataset *dataset.DatasetPod
-		res     *repo.DatasetRef
+		res     *dataset.DatasetPod
 		err     string
 	}{
 		{nil, nil, "dataset is required"},
@@ -74,15 +83,68 @@ func TestDatasetRequestsInit(t *testing.T) {
 		}, nil, "invalid dataset: structure: format is required"},
 		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{}}, nil, ""},
 		{&dataset.DatasetPod{DataPath: s.URL + "/data.json"}, nil, ""},
+
+		// confirm input metadata overwrites transform metadata
+		{&dataset.DatasetPod{
+			Name: "foo",
+			Meta: &dataset.Meta{Title: "foo"},
+			Transform: &dataset.TransformPod{
+				ScriptPath: "testdata/tf/transform.sky",
+			}},
+			&dataset.DatasetPod{
+				Name:     "foo",
+				Qri:      "qri:ds:0",
+				DataPath: "/map/QmYMHqqgzR2V1sMD6g68EDPSZrpsvY6zZM22TagzZVxiKQ",
+				Commit: &dataset.CommitPod{
+					Qri:       "cm:0",
+					Title:     "created dataset",
+					Signature: "Ak4bJBNUt+XWH2xTiY4Da4I5eZmtsTZMhNS6f4Sb0cgYrrsuOCTQ3NJUlbYR9gyyYiXp3p+pgV8JmzYnUJkllFL6g00Bc0CkNC+N0/pkONYJY180BxPmqzz7oZEBqpLEtqzOP7QsaXFSXBqBkVAJxGBiLj7WunECGVayeYeKoWRcNnZCeW1y8LiDmiP2CahzbievFQs0fyFI3c9hJqxFq0YEjMzOCG9ICejOtitJkAwjLOO46mS4XC0enCRlkqtpPwnTD0dWtfmbx7+laxJJlbxx1wpnyjsDnupua7UB+GS9V7QCZDl915IF/sLCfRJ5j/PNCdmndgtl5/otJHum7Q==",
+				},
+				Meta: &dataset.Meta{Qri: "md:0", Title: "foo"},
+				Transform: &dataset.TransformPod{
+					Qri:           "tf:0",
+					Syntax:        "skylark",
+					SyntaxVersion: skytf.Version,
+					ScriptPath:    "/map/QmcjVAiafyztY4rKjmZQZQybMMEo9EPekSErzs6eHtadfg",
+				},
+				Structure: &dataset.StructurePod{
+					Qri:      "st:0",
+					Format:   dataset.JSONDataFormat.String(),
+					Length:   17,
+					Entries:  2,
+					Checksum: "QmYMHqqgzR2V1sMD6g68EDPSZrpsvY6zZM22TagzZVxiKQ",
+					Schema: map[string]interface{}{
+						"type": "array",
+					},
+				},
+			},
+			""},
 	}
 
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Init(&SaveParams{Dataset: c.dataset}, got)
+		err := req.Init(&SaveParams{Dataset: c.dataset, Publish: true}, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
+		}
+
+		if got != nil && c.res != nil {
+			expect := &dataset.Dataset{}
+			if err := expect.Decode(c.res); err != nil {
+				t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
+				continue
+			}
+			gotDs := &dataset.Dataset{}
+			if err := gotDs.Decode(got.Dataset); err != nil {
+				t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
+				continue
+			}
+			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
+				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
+				continue
+			}
 		}
 	}
 }
@@ -124,7 +186,7 @@ sarnia,550000,55.65,false
 
 	cases := []struct {
 		dataset *dataset.DatasetPod
-		res     *repo.DatasetRef
+		res     *dataset.DatasetPod
 		err     string
 	}{
 		{nil, nil, "dataset is required"},
@@ -146,9 +208,23 @@ sarnia,550000,55.65,false
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
-		// if got != c.res && c.checkResult == true {
-		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
-		// }
+
+		if got != nil && c.res != nil {
+			expect := &dataset.Dataset{}
+			if err := expect.Decode(c.res); err != nil {
+				t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
+				continue
+			}
+			gotDs := &dataset.Dataset{}
+			if err := gotDs.Decode(got.Dataset); err != nil {
+				t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
+				continue
+			}
+			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
+				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
+				continue
+			}
+		}
 	}
 }
 

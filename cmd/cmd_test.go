@@ -25,7 +25,10 @@ func confirmQriNotRunning() error {
 	return nil
 }
 
-func executeCommand(root *cobra.Command, args ...string) (output string, err error) {
+func executeCommand(root *cobra.Command, cmd string) (output string, err error) {
+	cmd = strings.TrimPrefix(cmd, "qri ")
+	// WARNING - currently doesn't support quoted strings as input
+	args := strings.Split(cmd, " ")
 	_, output, err = executeCommandC(root, args...)
 	return output, err
 }
@@ -102,11 +105,6 @@ func TestCommandsIntegration(t *testing.T) {
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
 	t.Logf("test filepath: %s", path)
-	fmt.Println(path)
-
-	// fmt.Printf("temp path: %s", path)
-	os.Setenv("IPFS_PATH", filepath.Join(path, "ipfs"))
-	os.Setenv("QRI_PATH", filepath.Join(path, "qri"))
 
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -142,50 +140,48 @@ func TestCommandsIntegration(t *testing.T) {
 		return
 	}
 
-	commands := [][]string{
-		{"help"},
-		{"version"},
-		{"setup", "--peername=" + "alan", "--registry=" + registryServer.URL},
-		{"config", "get", "-c"},
-		{"config", "get", "profile"},
-		{"config", "set", "webapp.port", "3505"},
-		// TODO - add setting whole config via a file
-		// {"config", "set", "-i" + profileDataFilepath},
-		{"info", "me"},
-		{"add", "--data=" + moviesFilePath, "me/movies"},
-		{"add", "--data=" + movies2FilePath, "me/movies2"},
-		{"add", "--data=" + linksFilepath, "me/links"},
-		{"info", "me/movies"},
-		{"list"},
-		{"save", "--data=" + movies2FilePath, "-t" + "commit_1", "me/movies"},
-		{"log", "me/movies"},
-		{"diff", "me/movies", "me/movies2", "-d", "detail"},
-		{"export", "-o" + path, "me/movies"},
-		{"export", "-o" + path, "--format=cbor", "--body-format=json", "me/movies"},
-		{"registry", "unpublish", "me/movies"},
-		{"registry", "publish", "me/movies"},
-		{"rename", "me/movies", "me/movie"},
-		{"data", "--limit=1", "--data-format=cbor", "me/movie"},
-		{"validate", "me/movie"},
-		{"remove", "me/movie"},
-		{"export", "--blank", "-o" + path + "/blank_dataset.yaml"},
-		{"setup", "--remove"},
+	commands := []string{
+		"qri help",
+		"qri version",
+		fmt.Sprintf("qri setup --peername=alan --registry=%s", registryServer.URL),
+		"qri config get -c",
+		"qri config get profile",
+		"qri config set webapp.port 3505",
+		"qri info me",
+		fmt.Sprintf("qri add --data=%s me/movies", moviesFilePath),
+		fmt.Sprintf("qri add --data=%s me/movies2", movies2FilePath),
+		fmt.Sprintf("qri add --data=%s me/links", linksFilepath),
+		"qri info me/movies",
+		"qri list",
+		fmt.Sprintf("qri save --data=%s -t=commit_1 me/movies", movies2FilePath),
+		"qri log me/movies",
+		"qri diff me/movies me/movies2 -d=detail",
+		fmt.Sprintf("qri export -o=%s me/movies",path),
+		fmt.Sprintf("qri export -o=%s --format=cbor --body-format=json me/movies", path),
+		"qri registry unpublish me/movies",
+		"qri registry publish me/movies",
+		"qri rename me/movies me/movie",
+		"qri data --limit=1 --data-format=cbor me/movie",
+		"qri validate me/movie",
+		"qri remove me/movie",
+		fmt.Sprintf("qri export --blank -o=%s/blank_dataset.yaml", path),
+		"qri setup --remove",
 	}
 
 	_, in, out, err := NewTestIOStreams()
 	root := NewQriCommand(NewDirPathFactory(path), in, out, err)
 
-	for i, args := range commands {
+	for i, command := range commands {
 		func() {
 			defer func() {
 				if e := recover(); e != nil {
-					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, strings.Join(args, " "), e)
+					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, command, e)
 					return
 				}
 			}()
-			_, err := executeCommand(root, args...)
+			_, err := executeCommand(root, command)
 			if err != nil {
-				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, strings.Join(args, " "), err.Error())
+				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, err.Error())
 				return
 			}
 		}()

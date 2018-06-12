@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	regmock "github.com/qri-io/registry/regserver/mock"
@@ -30,20 +29,20 @@ func TestConnect(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	// defer func() {
-	// 	if e := recover(); e != nil {
-	// 		t.Errorf("unexpected panic:\n%s\n%s", strings.Join(args, " "), e)
-	// 		return
-	// 	}
-	// }()
-
-	args := []string{"connect", "--setup", "--registry=" + registryServer.URL, "--disconnect-after=3"}
+	cmd := "qri connect --setup --registry=" + registryServer.URL + " --disconnect-after=1"
 	_, in, out, errs := NewTestIOStreams()
 	root := NewQriCommand(NewDirPathFactory(path), in, out, errs)
 
-	_, err := executeCommand(root, args...)
+	defer func() {
+		if e := recover(); e != nil {
+			t.Errorf("unexpected panic:\n%s\n%s", cmd, e)
+			return
+		}
+	}()
+
+	_, err := executeCommand(root, cmd)
 	if err != nil {
-		t.Errorf("unexpected error executing command\n%s\n%s", strings.Join(args, " "), err.Error())
+		t.Errorf("unexpected error executing command\n%s\n%s", cmd, err.Error())
 		return
 	}
 }
