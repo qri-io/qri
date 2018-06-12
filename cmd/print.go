@@ -130,29 +130,20 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	fmt.Fprintln(w)
 }
 
-func printSearchResult(i int, result core.SearchResult) {
+func printSearchResult(w io.Writer, i int, result core.SearchResult) {
 	white := color.New(color.FgWhite).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
 	// NOTE: in the future we need to switch based on result.Type
 	// For now we are taking a shortcut and assuming a dataset struct
-	dsname := result.ID
-	resultStruct := &registry.Dataset{}
-	resultString := dsname
-	bytes, err := json.Marshal(result.Value)
-	if err == nil {
-		err = json.Unmarshal(bytes, resultStruct)
-		if err == nil {
-			var title, desc string
-			if resultStruct != nil {
-				if resultStruct.Meta != nil {
-					title = resultStruct.Meta.Title
-					desc = strings.Replace(resultStruct.Meta.Description, "\n", "\n   ", -1)
-				}
-			}
-			resultString = fmt.Sprintf("%s\n   %s\n   %s\n", white(dsname), green(title), desc)
+	ds := &registry.Dataset{}
+	resultString := white(result.ID + "\n")
+	if data, err := json.Marshal(result.Value); err == nil {
+		if err = json.Unmarshal(data, ds); err == nil && ds.Meta != nil {
+			desc := strings.Replace(ds.Meta.Description, "\n", "\n   ", -1)
+			resultString = fmt.Sprintf("%s\n   %s\n   %s\n", white(result.ID), green(ds.Meta.Title), desc)
 		}
 	}
-	fmt.Printf("%s. %s", white(i+1), resultString)
+	fmt.Fprintf(w, "%s. %s\n", white(i+1), resultString)
 }
 
 func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {

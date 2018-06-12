@@ -60,17 +60,18 @@ func (o *SearchOptions) Run() (err error) {
 		Limit:       100,
 		Offset:      0,
 	}
-	results := &[]core.SearchResult{}
 
-	if err = o.SearchRequests.Search(p, results); err != nil {
+	results := []core.SearchResult{}
+
+	if err = o.SearchRequests.Search(p, &results); err != nil {
 		return err
 	}
 
 	switch o.Format {
 	case "":
-		fmt.Printf("showing %d results for '%s'\n", len(*results), o.Query)
-		for i, result := range *results {
-			printSearchResult(i, result)
+		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)
+		for i, result := range results {
+			printSearchResult(o.Out, i, result)
 		}
 
 	case dataset.JSONDataFormat.String():
