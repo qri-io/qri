@@ -6,7 +6,6 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/core"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -27,7 +26,6 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().BoolVarP(&o.Reindex, "reindex", "r", false, "re-generate search index from scratch. might take a while.")
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
 
 	return cmd
@@ -36,12 +34,13 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 // SearchOptions encapsulates state for the search command
 type SearchOptions struct {
 	IOStreams
-
-	Query   string
-	Format  string
-	Reindex bool
-
+	Query          string
 	SearchRequests *core.SearchRequests
+	Format         string
+	// TODO: add support for specifying limit and offset
+	// Limit int
+	// Offset int
+	// Reindex bool
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -54,33 +53,29 @@ func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the search command
 func (o *SearchOptions) Run() (err error) {
 
-	if o.Reindex {
-		printInfo(o.Out, "building index...")
-		done := false
-		if err = o.SearchRequests.Reindex(&core.ReindexSearchParams{}, &done); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "reindex complete")
+	// TODO: add reindex option back in
+
+	p := &core.SearchParams{
+		QueryString: o.Query,
+		Limit:       100,
+		Offset:      0,
 	}
 
-	p := &repo.SearchParams{
-		Q:      o.Query,
-		Limit:  30,
-		Offset: 0,
-	}
-	res := []repo.DatasetRef{}
+	results := []core.SearchResult{}
 
-	if err = o.SearchRequests.Search(p, &res); err != nil {
+	if err = o.SearchRequests.Search(p, &results); err != nil {
 		return err
 	}
 
 	switch o.Format {
 	case "":
-		for i, ref := range res {
-			printDatasetRefInfo(o.Out, i, ref)
+		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)
+		for i, result := range results {
+			printSearchResult(o.Out, i, result)
 		}
+
 	case dataset.JSONDataFormat.String():
-		data, err := json.MarshalIndent(res, "", "  ")
+		data, err := json.MarshalIndent(results, "", "  ")
 		if err != nil {
 			return err
 		}

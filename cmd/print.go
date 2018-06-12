@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -126,6 +127,22 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	}
 
 	fmt.Fprintln(w)
+}
+
+func printSearchResult(w io.Writer, i int, result core.SearchResult) {
+	white := color.New(color.FgWhite).SprintFunc()
+	green := color.New(color.FgGreen).SprintFunc()
+	// NOTE: in the future we need to switch based on result.Type
+	// For now we are taking a shortcut and assuming a dataset struct
+	ds := &registry.Dataset{}
+	resultString := white(result.ID + "\n")
+	if data, err := json.Marshal(result.Value); err == nil {
+		if err = json.Unmarshal(data, ds); err == nil && ds.Meta != nil {
+			desc := strings.Replace(ds.Meta.Description, "\n", "\n   ", -1)
+			resultString = fmt.Sprintf("%s\n   %s\n   %s\n", white(result.ID), green(ds.Meta.Title), desc)
+		}
+	}
+	fmt.Fprintf(w, "%s. %s\n", white(i+1), resultString)
 }
 
 func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {
