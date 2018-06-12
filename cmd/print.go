@@ -15,6 +15,7 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/registry"
 	"github.com/spf13/cobra"
