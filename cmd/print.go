@@ -15,7 +15,6 @@ import (
 	"github.com/olekukonko/tablewriter"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -35,8 +34,8 @@ const (
 // var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
-func setNoColor() {
-	color.NoColor = core.Config.CLI.ColorizeOutput
+func setNoColor(noColor bool) {
+	color.NoColor = noColor
 }
 
 func printSuccess(w io.Writer, msg string, params ...interface{}) {

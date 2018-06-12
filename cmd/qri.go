@@ -41,9 +41,10 @@ func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Comm
 
 	// TODO: write a test that verifies this works with our new yaml config
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
-	// RootCmd.PersistentFlags().BoolVarP(&noColor, "no-color", "c", false, "disable colorized output")
 	cmd.SetUsageTemplate(rootUsageTemplate)
-	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
+	cmd.Flags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
+	cmd.Flags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
+
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
@@ -82,6 +83,8 @@ type QriOptions struct {
 	ipfsFsPath string
 	// NoPrompt Disables all promt messages
 	NoPrompt bool
+	// NoColor disables colorized output
+	NoColor bool
 	// path to configuration object
 	ConfigPath string
 
@@ -113,6 +116,7 @@ func (o *QriOptions) init() (err error) {
 			return
 		}
 		o.config = core.Config
+		setNoColor(o.config.CLI.ColorizeOutput || o.NoColor)
 
 		addr := fmt.Sprintf(":%d", o.config.RPC.Port)
 		if conn, err := net.Dial("tcp", addr); err != nil {

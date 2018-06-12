@@ -1,0 +1,5 @@
+
+
+def transform(qri):
+  qri.set_meta("title", "bar")
+  return ["hello", "world"]
