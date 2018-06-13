@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestDatasetRequestsInit(t *testing.T) {
-	jobsBodyPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -157,7 +157,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		return
 	}
 
-	citiesBodyPath, err := dstest.DataFilepath("testdata/cities_2")
+	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -751,7 +751,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	req := NewDatasetRequests(mr, nil)
 
 	// File 1
-	fp1, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	fp1, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Errorf("getting data filepath: %s", err.Error())
 		return
@@ -771,7 +771,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 
 	// File 2
-	fp2, err := dstest.DataFilepath("testdata/jobs_by_automation_2")
+	fp2, err := dstest.BodyFilepath("testdata/jobs_by_automation_2")
 	if err != nil {
 		t.Errorf("getting data filepath: %s", err.Error())
 		return

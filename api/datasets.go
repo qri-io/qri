@@ -153,14 +153,14 @@ func (h *DatasetHandlers) RenameHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// BodyHandler gets a dataset's body
+// BodyHandler gets the contents of a dataset
 func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		if h.ReadOnly {
-			readOnlyResponse(w, "/data/")
+			readOnlyResponse(w, "/body/")
 			return
 		}
 		h.bodyHandler(w, r)
@@ -353,7 +353,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 		dsp = &dataset.DatasetPod{
 			Peername: r.FormValue("peername"),
 			Name:     r.FormValue("name"),
-			BodyPath: r.FormValue("data_path"),
+			BodyPath: r.FormValue("body_path"),
 		}
 
 		infile, fileHeader, err := r.FormFile("file")
@@ -372,26 +372,6 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			f.Close()
 			dsp.BodyPath = path
 		}
-
-		// metadatafile, metadataHeader, err := r.FormFile("metadata")
-		// if err != nil && err != http.ErrMissingFile {
-		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening metatdata file: %s", err))
-		// 	return
-		// }
-		// if metadatafile != nil {
-		// 	p.Metadata = cafs.NewMemfileReader(metadataHeader.Filename, metadatafile)
-		// 	p.MetadataFilename = metadataHeader.Filename
-		// }
-
-		// structurefile, structureHeader, err := r.FormFile("structure")
-		// if err != nil && err != http.ErrMissingFile {
-		// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening structure file: %s", err))
-		// 	return
-		// }
-		// if structurefile != nil {
-		// 	p.Structure = cafs.NewMemfileReader(structureHeader.Filename, structurefile)
-		// 	p.StructureFilename = structureHeader.Filename
-		// }
 	}
 
 	res := &repo.DatasetRef{}
@@ -634,7 +614,7 @@ type DataResponse struct {
 }
 
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	d, err := DatasetRefFromPath(r.URL.Path[len("/data"):])
+	d, err := DatasetRefFromPath(r.URL.Path[len("/body"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

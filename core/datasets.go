@@ -308,7 +308,7 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	// open a data file if we can
-	if dataFile, err = repo.DatasetPodDataFile(dsp); err == nil {
+	if dataFile, err = repo.DatasetPodBodyFile(dsp); err == nil {
 		defer dataFile.Close()
 
 		// validate / generate dataset name
@@ -409,10 +409,6 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("peername & name are required to update dataset")
 	}
 
-	// if dsp.BodyPath == "" && dsp.BodyBytes == nil && dsp.Transform == nil {
-	// 	return fmt.Errorf("either dataBytes, dataPath, or a transform is required to create a dataset")
-	// }
-
 	if dsp.Transform != nil {
 		secrets = dsp.Transform.Secrets
 	}
@@ -432,7 +428,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if dsp.BodyBytes != nil || dsp.BodyPath != "" {
-		dataFile, err = repo.DatasetPodDataFile(dsp)
+		dataFile, err = repo.DatasetPodBodyFile(dsp)
 		if err != nil {
 			return err
 		}
@@ -442,7 +438,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		if err := prevDs.Decode(prev.Dataset); err != nil {
 			return fmt.Errorf("error decoding previous dataset: %s", err)
 		}
-		dataFile, err = dsfs.LoadData(r.Repo().Store(), prevDs)
+		dataFile, err = dsfs.LoadBody(r.Repo().Store(), prevDs)
 		if err != nil {
 			return fmt.Errorf("error loading previous data from filestore: %s", err)
 		}
@@ -645,7 +641,7 @@ func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err e
 		return err
 	}
 
-	file, err = dsfs.LoadData(store, ds)
+	file, err = dsfs.LoadBody(store, ds)
 	if err != nil {
 		log.Debug(err.Error())
 		return err
@@ -801,7 +797,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 			return fmt.Errorf("error loading dataset data: %s", e.Error())
 		}
 
-		f, e := dsfs.LoadData(r.repo.Store(), ds)
+		f, e := dsfs.LoadBody(r.repo.Store(), ds)
 		if e != nil {
 			log.Debug(e.Error())
 			return fmt.Errorf("error loading dataset data: %s", e.Error())

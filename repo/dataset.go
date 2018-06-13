@@ -11,13 +11,13 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-// DatasetPodDataFile creates a streaming data file from a DatasetPod using the following precedence:
+// DatasetPodBodyFile creates a streaming data file from a DatasetPod using the following precedence:
 // * dsp.BodyBytes not being nil (requires dsp.Structure.Format be set to know data format)
 // * dsp.BodyPath being a url
 // * dsp.BodyPath being a path on the local filesystem
 // This func is in the repo package b/c it has a destiny. And that destiny is to become a method on a
 // forthcoming Dataset struct. see https://github.com/qri-io/qri/issues/414 for deets
-func DatasetPodDataFile(dsp *dataset.DatasetPod) (cafs.File, error) {
+func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 	if dsp.BodyBytes != nil {
 		if dsp.Structure == nil || dsp.Structure.Format == "" {
 			return nil, fmt.Errorf("specifying dataBytes requires format be specified in dataset.structure")

@@ -51,7 +51,7 @@ changes to qri.`,
 	}
 
 	cmd.Flags().StringVarP(&o.File, "file", "f", "", "dataset data file in either yaml or json format")
-	cmd.Flags().StringVarP(&o.BodyPath, "body", "b", "", "path to file or url to contents of dataset")
+	cmd.Flags().StringVarP(&o.BodyPath, "body", "b", "", "path to file or url for contents of dataset")
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "commit title")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message")
 	cmd.Flags().BoolVarP(&o.Private, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")

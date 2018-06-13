@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func TestDatasetPodDataFile(t *testing.T) {
+func TestDatasetPodBodyFile(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"json":"data"}`))
 	}))
@@ -42,7 +42,7 @@ func TestDatasetPodDataFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		file, err := DatasetPodDataFile(c.dsp)
+		file, err := DatasetPodBodyFile(c.dsp)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

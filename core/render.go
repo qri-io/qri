@@ -105,7 +105,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		return err
 	}
 
-	file, err := dsfs.LoadData(store, ds)
+	file, err := dsfs.LoadBody(store, ds)
 	if err != nil {
 		log.Debug(err.Error())
 		return err

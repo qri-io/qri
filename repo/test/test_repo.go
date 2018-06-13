@@ -77,7 +77,7 @@ func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 			return nil, err
 		}
 
-		datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
+		datafile := cafs.NewMemfileBytes(tc.BodyFilename, tc.Body)
 
 		if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
@@ -113,7 +113,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return r, err
 	}
 
-	datafile := cafs.NewMemfileBytes(tc.DataFilename, tc.Data)
+	datafile := cafs.NewMemfileBytes(tc.BodyFilename, tc.Body)
 	if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
 		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
 	}
@@ -149,7 +149,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	for _, c := range tc {
-		if _, err := act.CreateDataset(c.Name, c.Input, c.DataFile(), nil, true); err != nil {
+		if _, err := act.CreateDataset(c.Name, c.Input, c.BodyFile(), nil, true); err != nil {
 			return mr, pk, err
 		}
 	}
@@ -191,8 +191,8 @@ func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err e
 	return
 }
 
-// BadDataFile is a bunch of bad CSV data
-var BadDataFile = cafs.NewMemfileBytes("bad_csv_file.csv", []byte(`
+// BadBodyFile is a bunch of bad CSV data
+var BadBodyFile = cafs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
 f;lajsmf 
@@ -212,8 +212,8 @@ colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))
 
-// DataFilepath returns the absolute path to a data file for a given test case name
-// func DataFilepath(testcase string) (string, error) {
+// BodyFilepath returns the absolute path to a data file for a given test case name
+// func BodyFilepath(testcase string) (string, error) {
 // 	gp := os.Getenv("GOPATH")
 // 	dir := filepath.Join(gp, "src/github.com/qri-io/qri/repo/test/testdata", testcase)
 // 	for _, df := range dataset.SupportedDataFormats() {
