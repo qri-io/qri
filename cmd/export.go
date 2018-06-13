@@ -284,7 +284,7 @@ structure:
 # transform:
 #   scriptpath: tf.sky
 
-# data itself is either a path to a file on your computer,
+# the body of a dataset is data itself. either a path to a file on your computer,
 # or a URL that leads to the raw data
-# dataPath:
+# bodyPath:
 `

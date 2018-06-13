@@ -40,7 +40,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef)
 		return r, repo.DatasetRef{}
 	}
 
-	ref, err := act.CreateDataset(tc.Name, tc.Input, tc.DataFile(), nil, true)
+	ref, err := act.CreateDataset(tc.Name, tc.Input, tc.BodyFile(), nil, true)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -109,7 +109,7 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref2, err := act.CreateDataset(tc.Name, tc.Input, tc.DataFile(), nil, false)
+	ref2, err := act.CreateDataset(tc.Name, tc.Input, tc.BodyFile(), nil, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

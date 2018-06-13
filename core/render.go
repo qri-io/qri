@@ -105,7 +105,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		return err
 	}
 
-	file, err := dsfs.LoadData(store, ds)
+	file, err := dsfs.LoadBody(store, ds)
 	if err != nil {
 		log.Debug(err.Error())
 		return err
@@ -157,9 +157,9 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	enc.Name = ref.Name
 
 	if tlt == "object" {
-		enc.Data = obj
+		enc.Body = obj
 	} else {
-		enc.Data = array
+		enc.Body = array
 	}
 
 	tmplBuf := &bytes.Buffer{}

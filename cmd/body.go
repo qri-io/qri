@@ -12,14 +12,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewDataCommand creates a new `qri data` cobra command to fetch entries from the body of a dataset
-func NewDataCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+// NewBodyCommand creates a new `qri body` cobra command to fetch entries from the body of a dataset
+func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &DataOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "data",
-		Short: "Read dataset data",
+		Use:   "body",
+		Short: "Get the contents of a dataset",
 		Long: `
-Data reads records from a dataset`,
+body reads records from a dataset`,
 		Example: `  show the first 50 rows of a dataset:
   $ qri data me/dataset_name`,
 		Annotations: map[string]string{
@@ -34,7 +34,7 @@ Data reads records from a dataset`,
 
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write to, default is stdout")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "read all dataset entries (overrides limit, offest)")
-	cmd.Flags().StringVarP(&o.Format, "data-format", "f", "json", "format to export. one of [json,csv,cbor]")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "json", "format to export. one of [json,csv,cbor]")
 	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 50, "max number of records to read")
 	cmd.Flags().IntVarP(&o.Offset, "offset", "s", 0, "number of records to skip")
 
@@ -64,10 +64,10 @@ func (o *DataOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// Run executes the data command
+// Run executes the body command
 func (o *DataOptions) Run() error {
 	if o.UsingRPC {
-		return usingRPCError("data")
+		return usingRPCError("body")
 	}
 
 	dsr, err := repo.ParseDatasetRef(o.Ref)

@@ -34,7 +34,7 @@ func init() {
 }
 
 func TestDatasetRequestsInit(t *testing.T) {
-	jobsDataPath, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -69,20 +69,20 @@ func TestDatasetRequestsInit(t *testing.T) {
 		err     string
 	}{
 		{nil, nil, "dataset is required"},
-		{&dataset.DatasetPod{}, nil, "either dataBytes, dataPath, or a transform is required to create a dataset"},
-		{&dataset.DatasetPod{DataPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
-		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
-		{&dataset.DatasetPod{Name: "bad name", DataPath: jobsDataPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&dataset.DatasetPod{DataPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
-		{&dataset.DatasetPod{DataPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+		{&dataset.DatasetPod{}, nil, "either dataBytes, bodyPath, or a transform is required to create a dataset"},
+		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.DatasetPod{BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&dataset.DatasetPod{BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
+		{&dataset.DatasetPod{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
 
 		{&dataset.DatasetPod{
 			Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
-			DataPath:  jobsDataPath,
+			BodyPath:  jobsBodyPath,
 		}, nil, "invalid dataset: structure: format is required"},
-		{&dataset.DatasetPod{DataPath: jobsDataPath, Commit: &dataset.CommitPod{}}, nil, ""},
-		{&dataset.DatasetPod{DataPath: s.URL + "/data.json"}, nil, ""},
+		{&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{}}, nil, ""},
+		{&dataset.DatasetPod{BodyPath: s.URL + "/data.json"}, nil, ""},
 
 		// confirm input metadata overwrites transform metadata
 		{&dataset.DatasetPod{
@@ -94,7 +94,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 			&dataset.DatasetPod{
 				Name:     "foo",
 				Qri:      "qri:ds:0",
-				DataPath: "/map/QmYMHqqgzR2V1sMD6g68EDPSZrpsvY6zZM22TagzZVxiKQ",
+				BodyPath: "/map/QmYMHqqgzR2V1sMD6g68EDPSZrpsvY6zZM22TagzZVxiKQ",
 				Commit: &dataset.CommitPod{
 					Qri:       "cm:0",
 					Title:     "created dataset",
@@ -157,7 +157,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		return
 	}
 
-	citiesDataPath, err := dstest.DataFilepath("testdata/cities_2")
+	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -193,12 +193,12 @@ sarnia,550000,55.65,false
 		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
 		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{Peername: "bad", Name: "path", DataPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, DataPath: citiesDataPath}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", DataPath: s.URL + "/data.csv"}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, BodyPath: citiesBodyPath}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: s.URL + "/data.csv"}, nil, ""},
 	}
 
 	for i, c := range cases {
@@ -751,7 +751,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	req := NewDatasetRequests(mr, nil)
 
 	// File 1
-	fp1, err := dstest.DataFilepath("testdata/jobs_by_automation")
+	fp1, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Errorf("getting data filepath: %s", err.Error())
 		return
@@ -761,7 +761,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	initParams := &SaveParams{
 		Dataset: &dataset.DatasetPod{
 			Name:     "jobs_ranked_by_automation_prob",
-			DataPath: fp1,
+			BodyPath: fp1,
 		},
 	}
 	err = req.Init(initParams, &dsRef1)
@@ -771,7 +771,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 
 	// File 2
-	fp2, err := dstest.DataFilepath("testdata/jobs_by_automation_2")
+	fp2, err := dstest.BodyFilepath("testdata/jobs_by_automation_2")
 	if err != nil {
 		t.Errorf("getting data filepath: %s", err.Error())
 		return
@@ -780,7 +780,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	initParams = &SaveParams{
 		Dataset: &dataset.DatasetPod{
 			Name:     "jobs_ranked_by_automation_prob",
-			DataPath: fp2,
+			BodyPath: fp2,
 		},
 	}
 	err = req.Init(initParams, &dsRef2)

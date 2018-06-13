@@ -83,7 +83,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 
 	root.AddLinks(dsgraph.Link{
 		From: root,
-		To:   nl.node(dsgraph.NtData, ds.DataPath),
+		To:   nl.node(dsgraph.NtData, ds.BodyPath),
 	})
 
 	if ds.PreviousPath != "" {

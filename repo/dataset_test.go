@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-func TestDatasetPodDataFile(t *testing.T) {
+func TestDatasetPodBodyFile(t *testing.T) {
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"json":"data"}`))
 	}))
@@ -28,21 +28,21 @@ func TestDatasetPodDataFile(t *testing.T) {
 		{&dataset.DatasetPod{}, "", 0, "not found"},
 
 		// inline data
-		{&dataset.DatasetPod{DataBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying dataBytes requires format be specified in dataset.structure"},
-		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, DataBytes: []byte("a,b,c\n1,2,3")}, "data.csv", 11, ""},
+		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying dataBytes requires format be specified in dataset.structure"},
+		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "data.csv", 11, ""},
 
 		// urlz
-		{&dataset.DatasetPod{DataPath: "http://"}, "", 0, "fetching data url: Get http:: http: no Host in request URL"},
-		{&dataset.DatasetPod{DataPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching data url: 500"},
-		{&dataset.DatasetPod{DataPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
+		{&dataset.DatasetPod{BodyPath: "http://"}, "", 0, "fetching data url: Get http:: http: no Host in request URL"},
+		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching data url: 500"},
+		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
 		// local filepaths
-		{&dataset.DatasetPod{DataPath: "nope.cbor"}, "", 0, "opening file: open nope.cbor: no such file or directory"},
-		{&dataset.DatasetPod{DataPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
+		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "opening file: open nope.cbor: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
 	}
 
 	for i, c := range cases {
-		file, err := DatasetPodDataFile(c.dsp)
+		file, err := DatasetPodBodyFile(c.dsp)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
