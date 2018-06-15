@@ -28,17 +28,20 @@ func TestDatasetPodBodyFile(t *testing.T) {
 		{&dataset.DatasetPod{}, "", 0, "not found"},
 
 		// inline data
-		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying dataBytes requires format be specified in dataset.structure"},
-		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "data.csv", 11, ""},
+		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying bodyBytes requires format be specified in dataset.structure"},
+		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "body.csv", 11, ""},
 
 		// urlz
-		{&dataset.DatasetPod{BodyPath: "http://"}, "", 0, "fetching data url: Get http:: http: no Host in request URL"},
-		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching data url: 500"},
+		{&dataset.DatasetPod{BodyPath: "http://"}, "", 0, "fetching body url: Get http:: http: no Host in request URL"},
+		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching body url: 500"},
 		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
 		// local filepaths
-		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "opening file: open nope.cbor: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "reading body file: open nope.cbor: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "nope.yaml"}, "", 0, "reading body file: open nope.yaml: no such file or directory"},
 		{&dataset.DatasetPod{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
+		{&dataset.DatasetPod{BodyPath: "testdata/bad.yaml"}, "", 0, "converting yaml body to json: yaml: line 1: did not find expected '-' indicator"},
+		{&dataset.DatasetPod{BodyPath: "testdata/oh_hai.yaml"}, "oh_hai.json", 29, ""},
 	}
 
 	for i, c := range cases {
