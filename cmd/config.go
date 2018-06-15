@@ -23,21 +23,21 @@ func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			"group": "other",
 		},
 		Long: `
-	config encapsulates all settings that control the behaviour of qri.
-	This includes all kinds of stuff: your profile details; enabling & disabling 
-	different services; what kind of output qri logs to; 
-	which ports on qri serves on; etc.
+config encapsulates all settings that control the behaviour of qri.
+This includes all kinds of stuff: your profile details; enabling & disabling 
+different services; what kind of output qri logs to; 
+which ports on qri serves on; etc.
 
-	Configuration is stored as a .yaml file kept at $QRI_PATH, or provided at CLI 
-	runtime via command a line argument.`,
+Configuration is stored as a .yaml file kept at $QRI_PATH, or provided at CLI 
+runtime via command a line argument.`,
 		Example: `  # get your profile information
-	  $ qri config get profile
+  $ qri config get profile
 
-	  # set your api port to 4444
-	  $ qri config set api.port 4444
+  # set your api port to 4444
+  $ qri config set api.port 4444
 
-	  # disable rpc connections:
-	  $ qri config set rpc.enabled false`,
+  # disable rpc connections:
+  $ qri config set rpc.enabled false`,
 	}
 
 	get := &cobra.Command{

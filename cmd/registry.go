@@ -46,7 +46,7 @@ $ qri config set registry.location ""`,
 		Use:   "publish",
 		Short: "publish dataset info to the registry",
 		Example: `  Publish a dataset you've created to the registry:
-	$ qri registry publish me/dataset_name`,
+  $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f, args))

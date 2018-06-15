@@ -26,13 +26,13 @@ func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Comm
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
 		Long: `
-	qri ("query") is a global dataset version control system 
-	on the distributed web.
+qri ("query") is a global dataset version control system 
+on the distributed web.
 
-	https://qri.io
+https://qri.io
 
-	Feedback, questions, bug reports, and contributions are welcome!
-	https://github.com/qri-io/qri/issues`,
+Feedback, questions, bug reports, and contributions are welcome!
+https://github.com/qri-io/qri/issues`,
 	}
 
 	ioStreams := IOStreams{In: in, Out: out, ErrOut: err}
@@ -116,7 +116,7 @@ func (o *QriOptions) init() (err error) {
 			return
 		}
 		o.config = core.Config
-		setNoColor(o.config.CLI.ColorizeOutput || o.NoColor)
+		setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
 
 		addr := fmt.Sprintf(":%d", o.config.RPC.Port)
 		if conn, err := net.Dial("tcp", addr); err != nil {

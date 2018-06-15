@@ -42,7 +42,7 @@ changes to qri.`,
 		Example: `  add a new dataset named annual_pop:
   $ qri add --data data.csv me/annual_pop
 
-  create a dataset with a dataset data file:
+create a dataset with a dataset data file:
   $ qri add --file dataset.yaml --data comics.csv me/comic_characters`,
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f))
