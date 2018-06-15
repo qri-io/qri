@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -43,7 +43,7 @@ type RenameOptions struct {
 	From string
 	To   string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -66,7 +66,7 @@ func (o *RenameOptions) Run() error {
 		return err
 	}
 
-	p := &core.RenameParams{
+	p := &lib.RenameParams{
 		Current: current,
 		New:     next,
 	}

@@ -1,19 +1,16 @@
-// Package core implements core qri business logic. It exports
+// Package lib implements core qri business logic. It exports
 // canonical methods that a qri instance can perform regardless of
-// client interface. API's of any sort must use core methods.
-// Tests of core functions should be extensive.
-// Refactoring core methods should be a process of moving logic
-// out of core itself in favor of delegation to logical subsystems.
-package core
+// client interface. API's of any sort must use lib methods
+package lib
 
 import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/p2p"
 )
 
-var log = golog.Logger("core")
+var log = golog.Logger("lib")
 
-// Requests defines a set of core methods
+// Requests defines a set of library methods
 type Requests interface {
 	// CoreRequestsName confirms participation in the CoreRequests interface while
 	// also giving a human readable string for logging purposes
@@ -21,7 +18,7 @@ type Requests interface {
 }
 
 // Receivers returns a slice of CoreRequests that defines the full local
-// API of core methods
+// API of lib methods
 func Receivers(node *p2p.QriNode) []Requests {
 	r := node.Repo
 

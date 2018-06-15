@@ -1,4 +1,4 @@
-package core
+package lib
 
 import (
 	"fmt"
@@ -184,7 +184,7 @@ func (r *ProfileRequests) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err
 	return
 }
 
-// FileParams defines parameters for Files as arguments to core methods
+// FileParams defines parameters for Files as arguments to lib methods
 type FileParams struct {
 	// Url      string    // url to download data from. either Url or Data is required
 	Filename string    // filename of data file. extension is used for filetype detection

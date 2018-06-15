@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -48,7 +48,7 @@ type RemoveOptions struct {
 
 	Args []string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run

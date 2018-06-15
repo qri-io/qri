@@ -10,7 +10,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -42,7 +42,7 @@ changes to qri.`,
 		Example: `  add a new dataset named annual_pop:
   $ qri add --data data.csv me/annual_pop
 
-  create a dataset with a dataset data file:
+create a dataset with a dataset data file:
   $ qri add --file dataset.yaml --data comics.csv me/comic_characters`,
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f))
@@ -77,7 +77,7 @@ type AddOptions struct {
 	Publish        bool
 	Secrets        []string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -189,7 +189,7 @@ continue?`, true) {
 		dsp.Commit.Message = o.Message
 	}
 
-	p := &core.SaveParams{
+	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: o.Private,
 		Publish: o.Publish,

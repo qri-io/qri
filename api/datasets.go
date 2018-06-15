@@ -15,20 +15,20 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
-	core.DatasetRequests
+	lib.DatasetRequests
 	repo     repo.Repo
 	ReadOnly bool
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(r repo.Repo, readOnly bool) *DatasetHandlers {
-	req := core.NewDatasetRequests(r, nil)
+	req := lib.NewDatasetRequests(r, nil)
 	h := DatasetHandlers{*req, r, readOnly}
 	return &h
 }
@@ -212,7 +212,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
-	args := core.ListParamsFromRequest(r)
+	args := lib.ListParamsFromRequest(r)
 	args.OrderBy = "created"
 
 	res := []repo.DatasetRef{}
@@ -279,7 +279,7 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	diffs := make(map[string]*dsdiff.SubDiff)
-	p := &core.DiffParams{
+	p := &lib.DiffParams{
 		Left:    left,
 		Right:   right,
 		DiffAll: true,
@@ -303,7 +303,7 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
 	log.Info(r.URL.Path)
-	p := core.ListParamsFromRequest(r)
+	p := lib.ListParamsFromRequest(r)
 	p.OrderBy = "created"
 
 	// TODO - cheap peerId detection
@@ -375,7 +375,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &repo.DatasetRef{}
-	p := &core.SaveParams{
+	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: r.FormValue("private") == "true",
 	}
@@ -442,7 +442,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
-		// save = &core.SaveParams{
+		// save = &lib.SaveParams{
 		// 	Peername: saveParams.Peername,
 		// 	Name:     saveParams.Name,
 		// 	Title:    saveParams.Title,
@@ -472,7 +472,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		// 	save.StructureFilename = "structure.json"
 		// }
 	} else {
-		// save = &core.SaveParams{
+		// save = &lib.SaveParams{
 		// 	Peername: r.FormValue("peername"),
 		// 	DataURL:  r.FormValue("data_path"),
 		// 	Name:     r.FormValue("name"),
@@ -512,7 +512,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &repo.DatasetRef{}
-	p := &core.SaveParams{
+	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: r.FormValue("private") == "true",
 	}
@@ -547,7 +547,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 
 // RenameReqParams is an encoding struct
 // its intent is to be a more user-friendly structure for the api endpoint
-// that will map to and from the core.RenameParams struct
+// that will map to and from the lib.RenameParams struct
 type RenameReqParams struct {
 	Current string
 	New     string
@@ -555,7 +555,7 @@ type RenameReqParams struct {
 
 func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 	reqParams := &RenameReqParams{}
-	p := &core.RenameParams{}
+	p := &lib.RenameParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
 		if err := json.NewDecoder(r.Body).Decode(reqParams); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
@@ -575,7 +575,7 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
 		return
 	}
-	p = &core.RenameParams{
+	p = &lib.RenameParams{
 		Current: current,
 		New:     n,
 	}
@@ -603,7 +603,7 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 }
 
 // default number of entries to limit to when reading
-// TODO - should move this into core
+// TODO - should move this into lib
 const defaultDataLimit = 100
 
 // DataResponse is the struct used to respond to api requests made to the /data endpoint
@@ -635,7 +635,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 
-	p := &core.LookupParams{
+	p := &lib.LookupParams{
 		Path:   d.Path,
 		Format: dataset.JSONDataFormat,
 		Limit:  limit,
@@ -643,7 +643,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		All:    r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
 	}
 
-	result := &core.LookupResult{}
+	result := &lib.LookupResult{}
 	if err := h.LookupBody(p, result); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

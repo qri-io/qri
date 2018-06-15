@@ -6,7 +6,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -106,7 +106,7 @@ type PeersOptions struct {
 	Offset   int
 
 	UsingRPC     bool
-	PeerRequests *core.PeerRequests
+	PeerRequests *lib.PeerRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -127,7 +127,7 @@ func (o *PeersOptions) Info() (err error) {
 
 	var data []byte
 
-	p := &core.PeerInfoParams{
+	p := &lib.PeerInfoParams{
 		Peername: o.Peername,
 		Verbose:  o.Verbose,
 	}
@@ -171,7 +171,7 @@ func (o *PeersOptions) List() (err error) {
 			o.Cached = true
 		}
 
-		p := &core.PeerListParams{
+		p := &lib.PeerListParams{
 			Limit:  o.Limit,
 			Offset: o.Offset,
 			Cached: o.Cached,
@@ -191,7 +191,7 @@ func (o *PeersOptions) List() (err error) {
 
 // Connect attempts to connect to a peer
 func (o *PeersOptions) Connect() (err error) {
-	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
 	res := &config.ProfilePod{}
 	if err = o.PeerRequests.ConnectToPeer(pcpod, res); err != nil {
 		return err
@@ -204,7 +204,7 @@ func (o *PeersOptions) Connect() (err error) {
 
 // Disconnect attempts to disconnect from a peer
 func (o *PeersOptions) Disconnect() (err error) {
-	pcpod := core.NewPeerConnectionParamsPod(o.Peername)
+	pcpod := lib.NewPeerConnectionParamsPod(o.Peername)
 	res := false
 	if err = o.PeerRequests.DisconnectFromPeer(pcpod, &res); err != nil {
 		return err

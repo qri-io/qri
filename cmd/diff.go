@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -48,7 +48,7 @@ type DiffOptions struct {
 	Right   string
 
 	UsingRPC        bool
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -76,7 +76,7 @@ func (o *DiffOptions) Run() error {
 	}
 
 	diffs := make(map[string]*dsdiff.SubDiff)
-	p := &core.DiffParams{
+	p := &lib.DiffParams{
 		Left:    left,
 		Right:   right,
 		DiffAll: true,

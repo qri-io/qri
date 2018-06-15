@@ -1,4 +1,4 @@
-package core
+package lib
 
 import (
 	"os"
@@ -12,7 +12,7 @@ import (
 func TestSetupTeardown(t *testing.T) {
 	_, registryServer := regmock.NewMockServer()
 
-	path := filepath.Join(os.TempDir(), "test_core_setup_teardown")
+	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
 	cfg1 := config.DefaultConfig()
 	cfg1.Profile = nil
 	cfg1.Registry = nil

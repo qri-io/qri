@@ -8,7 +8,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -23,21 +23,21 @@ func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			"group": "other",
 		},
 		Long: `
-	config encapsulates all settings that control the behaviour of qri.
-	This includes all kinds of stuff: your profile details; enabling & disabling 
-	different services; what kind of output qri logs to; 
-	which ports on qri serves on; etc.
+config encapsulates all settings that control the behaviour of qri.
+This includes all kinds of stuff: your profile details; enabling & disabling 
+different services; what kind of output qri logs to; 
+which ports on qri serves on; etc.
 
-	Configuration is stored as a .yaml file kept at $QRI_PATH, or provided at CLI 
-	runtime via command a line argument.`,
+Configuration is stored as a .yaml file kept at $QRI_PATH, or provided at CLI 
+runtime via command a line argument.`,
 		Example: `  # get your profile information
-	  $ qri config get profile
+  $ qri config get profile
 
-	  # set your api port to 4444
-	  $ qri config set api.port 4444
+  # set your api port to 4444
+  $ qri config set api.port 4444
 
-	  # disable rpc connections:
-	  $ qri config set rpc.enabled false`,
+  # disable rpc connections:
+  $ qri config set rpc.enabled false`,
 	}
 
 	get := &cobra.Command{
@@ -84,7 +84,7 @@ type ConfigOptions struct {
 	Concise         bool
 	Output          string
 
-	ProfileRequests *core.ProfileRequests
+	ProfileRequests *lib.ProfileRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -95,7 +95,7 @@ func (o *ConfigOptions) Complete(f Factory) (err error) {
 
 // Get a configuration option
 func (o *ConfigOptions) Get(args []string) (err error) {
-	params := &core.GetConfigParams{
+	params := &lib.GetConfigParams{
 		WithPrivateKey: o.WithPrivateKeys,
 		Format:         o.Format,
 		Concise:        o.Concise,
@@ -107,7 +107,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	var data []byte
 
-	if err = core.GetConfig(params, &data); err != nil {
+	if err = lib.GetConfig(params, &data); err != nil {
 		return err
 	}
 
@@ -151,12 +151,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 				return err
 			}
 
-			if err = core.Config.Set(path, value); err != nil {
+			if err = lib.Config.Set(path, value); err != nil {
 				return err
 			}
 		}
 	}
-	if err = core.SetConfig(core.Config); err != nil {
+	if err = lib.SetConfig(lib.Config); err != nil {
 		return err
 	}
 
@@ -164,13 +164,13 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	return nil
 }
 
-func setPhotoPath(req *core.ProfileRequests, proppath, filepath string) error {
+func setPhotoPath(req *lib.ProfileRequests, proppath, filepath string) error {
 	f, err := loadFileIfPath(filepath)
 	if err != nil {
 		return err
 	}
 
-	p := &core.FileParams{
+	p := &lib.FileParams{
 		Filename: f.Name(),
 		Data:     f,
 	}

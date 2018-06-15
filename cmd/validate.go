@@ -6,7 +6,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/jsonschema"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -72,7 +72,7 @@ type ValidateOptions struct {
 	URL            string
 	// validateDsPassive        bool
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -111,7 +111,7 @@ func (o *ValidateOptions) Run() (err error) {
 		return err
 	}
 
-	p := &core.ValidateDatasetParams{
+	p := &lib.ValidateDatasetParams{
 		Ref: ref,
 		// URL:          addDsURL,
 		DataFilename: filepath.Base(o.SchemaFilepath),

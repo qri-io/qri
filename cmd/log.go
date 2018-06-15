@@ -3,7 +3,7 @@ package cmd
 import (
 	"fmt"
 
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -25,7 +25,7 @@ created the version) and a message explaining what changed. Log prints these
 details in order of occurrence, starting with the most recent known version, 
 working backwards in time.`,
 		Example: `  show log for the dataset b5/precip:
-	$ qri log b5/precip`,
+  $ qri log b5/precip`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -52,7 +52,7 @@ type LogOptions struct {
 	Ref    string
 
 	Repo            repo.Repo
-	HistoryRequests *core.HistoryRequests
+	HistoryRequests *lib.HistoryRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -88,9 +88,9 @@ func (o *LogOptions) Run() error {
 		return err
 	}
 
-	p := &core.LogParams{
+	p := &lib.LogParams{
 		Ref: ref,
-		ListParams: core.ListParams{
+		ListParams: lib.ListParams{
 			Peername: ref.Peername,
 			Limit:    o.Limit,
 			Offset:   o.Offset,

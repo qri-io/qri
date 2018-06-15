@@ -1,4 +1,4 @@
-package core
+package lib
 
 import (
 	"bytes"
@@ -70,9 +70,9 @@ func TestDatasetRequestsInit(t *testing.T) {
 	}{
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "either dataBytes, bodyPath, or a transform is required to create a dataset"},
-		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "opening file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "reading body file: open /bad/path: no such file or directory"},
 		{&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 		{&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		{&dataset.DatasetPod{BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
 		{&dataset.DatasetPod{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
@@ -194,11 +194,11 @@ sarnia,550000,55.65,false
 		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching data url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, BodyPath: citiesBodyPath}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: s.URL + "/data.csv"}, nil, ""},
+		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
 	}
 
 	for i, c := range cases {

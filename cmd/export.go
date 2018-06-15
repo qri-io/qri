@@ -14,7 +14,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
@@ -69,7 +69,7 @@ type ExportOptions struct {
 	UsingRPC        bool
 	Repo            repo.Repo
 	Profile         *profile.Profile
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -167,12 +167,12 @@ func (o *ExportOptions) Run() error {
 			return err
 		}
 
-		p := &core.LookupParams{
+		p := &lib.LookupParams{
 			Format: df,
 			Path:   ds.Path().String(),
 			All:    true,
 		}
-		r := &core.LookupResult{}
+		r := &lib.LookupResult{}
 
 		if err = o.DatasetRequests.LookupBody(p, r); err != nil {
 			return err

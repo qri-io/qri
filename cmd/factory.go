@@ -7,7 +7,7 @@ import (
 
 	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -22,13 +22,13 @@ type Factory interface {
 
 	RPC() *rpc.Client
 
-	DatasetRequests() (*core.DatasetRequests, error)
-	RegistryRequests() (*core.RegistryRequests, error)
-	HistoryRequests() (*core.HistoryRequests, error)
-	PeerRequests() (*core.PeerRequests, error)
-	ProfileRequests() (*core.ProfileRequests, error)
-	SearchRequests() (*core.SearchRequests, error)
-	RenderRequests() (*core.RenderRequests, error)
+	DatasetRequests() (*lib.DatasetRequests, error)
+	RegistryRequests() (*lib.RegistryRequests, error)
+	HistoryRequests() (*lib.HistoryRequests, error)
+	PeerRequests() (*lib.PeerRequests, error)
+	ProfileRequests() (*lib.ProfileRequests, error)
+	SearchRequests() (*lib.SearchRequests, error)
+	RenderRequests() (*lib.RenderRequests, error)
 }
 
 // PathFactory is a function that returns paths to qri & ipfs repos

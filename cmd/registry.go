@@ -1,7 +1,7 @@
 package cmd
 
 import (
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -46,7 +46,7 @@ $ qri config set registry.location ""`,
 		Use:   "publish",
 		Short: "publish dataset info to the registry",
 		Example: `  Publish a dataset you've created to the registry:
-	$ qri registry publish me/dataset_name`,
+  $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f, args))
@@ -77,7 +77,7 @@ type RegistryOptions struct {
 
 	Refs []string
 
-	RegistryRequests *core.RegistryRequests
+	RegistryRequests *lib.RegistryRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run

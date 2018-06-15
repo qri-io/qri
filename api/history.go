@@ -5,19 +5,19 @@ import (
 
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
 // HistoryHandlers wraps a HistoryRequests with http.HandlerFuncs
 type HistoryHandlers struct {
-	core.HistoryRequests
+	lib.HistoryRequests
 	repo repo.Repo
 }
 
 // NewHistoryHandlers allocates a HistoryHandlers pointer
 func NewHistoryHandlers(r repo.Repo) *HistoryHandlers {
-	req := core.NewHistoryRequests(r, nil)
+	req := lib.NewHistoryRequests(r, nil)
 	h := HistoryHandlers{*req, r}
 	return &h
 }
@@ -46,10 +46,10 @@ func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	lp := core.ListParamsFromRequest(r)
+	lp := lib.ListParamsFromRequest(r)
 	lp.Peername = args.Peername
 
-	params := &core.LogParams{
+	params := &lib.LogParams{
 		ListParams: lp,
 		Ref:        args,
 	}

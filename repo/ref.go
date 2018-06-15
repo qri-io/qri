@@ -296,7 +296,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	// when operating over RPC there's a good chance we won't have a repo, in that
 	// case we're going to have to rely on the other end of the wire to do canonicalization
 	// TODO - think carefully about placement of reference parsing, possibly moving
-	// this into core functions.
+	// this into lib functions.
 	if r == nil {
 		return nil
 	}

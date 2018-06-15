@@ -9,7 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 	"io/ioutil"
@@ -73,7 +73,7 @@ type SaveOptions struct {
 	NoRegistry     bool
 	Secrets        []string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -156,7 +156,7 @@ continue?`, true) {
 		}
 	}
 
-	p := &core.SaveParams{
+	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: false,
 		Publish: !o.NoRegistry,
