@@ -6,7 +6,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -32,7 +32,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	if ref.IsPeerRef() {
-		p := &core.PeerInfoParams{
+		p := &lib.PeerInfoParams{
 			Peername: ref.Peername,
 		}
 		res := &config.ProfilePod{}

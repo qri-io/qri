@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"io/ioutil"
 
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -50,7 +50,7 @@ type RenderOptions struct {
 	Limit    int
 	Offset   int
 
-	RenderRequests *core.RenderRequests
+	RenderRequests *lib.RenderRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -71,7 +71,7 @@ func (o *RenderOptions) Run() (err error) {
 		}
 	}
 
-	p := &core.RenderParams{
+	p := &lib.RenderParams{
 		Ref:            o.Ref,
 		Template:       template,
 		TemplateFormat: "html",

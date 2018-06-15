@@ -11,7 +11,7 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
@@ -109,13 +109,13 @@ func (o *QriOptions) init() (err error) {
 	initBody := func() {
 		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 
-		// TODO - need to remove global config state in core, then remove this
-		core.ConfigFilepath = cfgPath
+		// TODO - need to remove global config state in lib, then remove this
+		lib.ConfigFilepath = cfgPath
 
-		if err = core.LoadConfig(cfgPath); err != nil {
+		if err = lib.LoadConfig(cfgPath); err != nil {
 			return
 		}
-		o.config = core.Config
+		o.config = lib.Config
 
 		setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
 
@@ -198,58 +198,58 @@ func (o *QriOptions) Repo() (repo.Repo, error) {
 	return o.repo, err
 }
 
-// DatasetRequests generates a core.DatasetRequests from internal state
-func (o *QriOptions) DatasetRequests() (*core.DatasetRequests, error) {
+// DatasetRequests generates a lib.DatasetRequests from internal state
+func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewDatasetRequests(o.repo, o.rpc), nil
+	return lib.NewDatasetRequests(o.repo, o.rpc), nil
 }
 
-// RegistryRequests generates a core.RegistryRequests from internal state
-func (o *QriOptions) RegistryRequests() (*core.RegistryRequests, error) {
+// RegistryRequests generates a lib.RegistryRequests from internal state
+func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewRegistryRequests(o.repo, o.rpc), nil
+	return lib.NewRegistryRequests(o.repo, o.rpc), nil
 }
 
-// HistoryRequests generates a core.HistoryRequests from internal state
-func (o *QriOptions) HistoryRequests() (*core.HistoryRequests, error) {
+// HistoryRequests generates a lib.HistoryRequests from internal state
+func (o *QriOptions) HistoryRequests() (*lib.HistoryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewHistoryRequests(o.repo, o.rpc), nil
+	return lib.NewHistoryRequests(o.repo, o.rpc), nil
 }
 
-// PeerRequests generates a core.PeerRequests from internal state
-func (o *QriOptions) PeerRequests() (*core.PeerRequests, error) {
+// PeerRequests generates a lib.PeerRequests from internal state
+func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewPeerRequests(nil, o.rpc), nil
+	return lib.NewPeerRequests(nil, o.rpc), nil
 }
 
-// ProfileRequests generates a core.ProfileRequests from internal state
-func (o *QriOptions) ProfileRequests() (*core.ProfileRequests, error) {
+// ProfileRequests generates a lib.ProfileRequests from internal state
+func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewProfileRequests(o.repo, o.rpc), nil
+	return lib.NewProfileRequests(o.repo, o.rpc), nil
 }
 
-// SearchRequests generates a core.SearchRequests from internal state
-func (o *QriOptions) SearchRequests() (*core.SearchRequests, error) {
+// SearchRequests generates a lib.SearchRequests from internal state
+func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewSearchRequests(o.repo, o.rpc), nil
+	return lib.NewSearchRequests(o.repo, o.rpc), nil
 }
 
-// RenderRequests generates a core.RenderRequests from internal state
-func (o *QriOptions) RenderRequests() (*core.RenderRequests, error) {
+// RenderRequests generates a lib.RenderRequests from internal state
+func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return core.NewRenderRequests(o.repo, o.rpc), nil
+	return lib.NewRenderRequests(o.repo, o.rpc), nil
 }

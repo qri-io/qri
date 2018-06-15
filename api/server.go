@@ -14,7 +14,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -89,7 +89,7 @@ func (s *Server) Serve() (err error) {
 		if pinner, ok := s.qriNode.Repo.Store().(cafs.Pinner); ok {
 
 			go func() {
-				if _, err := core.CheckVersion(context.Background(), node.Namesys, core.PrevIPNSName, core.LastPubVerHash); err == core.ErrUpdateRequired {
+				if _, err := lib.CheckVersion(context.Background(), node.Namesys, lib.PrevIPNSName, lib.LastPubVerHash); err == lib.ErrUpdateRequired {
 					log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
 				} else if err != nil {
 					log.Infof("error checking for software update: %s", err.Error())
@@ -97,19 +97,19 @@ func (s *Server) Serve() (err error) {
 			}()
 
 			go func() {
-				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into core
-				if core.Config != nil && core.Config.Render != nil && core.Config.Render.TemplateUpdateAddress != "" {
-					if latest, err := core.CheckVersion(context.Background(), node.Namesys, core.Config.Render.TemplateUpdateAddress, core.Config.Render.DefaultTemplateHash); err == core.ErrUpdateRequired {
+				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
+				if lib.Config != nil && lib.Config.Render != nil && lib.Config.Render.TemplateUpdateAddress != "" {
+					if latest, err := lib.CheckVersion(context.Background(), node.Namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
 						err := pinner.Pin(datastore.NewKey(latest), true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
 							return
 						}
-						if err := core.Config.Set("Render.DefaultTemplateHash", latest); err != nil {
+						if err := lib.Config.Set("Render.DefaultTemplateHash", latest); err != nil {
 							log.Debug("error setting latest hash: %s", err.Error())
 							return
 						}
-						if err := core.SaveConfig(); err != nil {
+						if err := lib.SaveConfig(); err != nil {
 							log.Debug("error saving config hash: %s", err.Error())
 							return
 						}
@@ -153,7 +153,7 @@ func (s *Server) ServeRPC() {
 		return
 	}
 
-	for _, rcvr := range core.Receivers(s.qriNode) {
+	for _, rcvr := range lib.Receivers(s.qriNode) {
 		if err := rpc.Register(rcvr); err != nil {
 			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return

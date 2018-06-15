@@ -6,7 +6,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -14,14 +14,14 @@ import (
 
 // PeerHandlers wraps a requests struct to interface with http.HandlerFunc
 type PeerHandlers struct {
-	core.PeerRequests
+	lib.PeerRequests
 	repo     repo.Repo
 	ReadOnly bool
 }
 
 // NewPeerHandlers allocates a PeerHandlers pointer
 func NewPeerHandlers(r repo.Repo, node *p2p.QriNode, readOnly bool) *PeerHandlers {
-	req := core.NewPeerRequests(node, nil)
+	req := lib.NewPeerRequests(node, nil)
 	h := PeerHandlers{*req, r, readOnly}
 	return &h
 }
@@ -87,13 +87,13 @@ func (h *PeerHandlers) ConnectionsHandler(w http.ResponseWriter, r *http.Request
 }
 
 func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) {
-	args := core.ListParamsFromRequest(r)
+	args := lib.ListParamsFromRequest(r)
 	// args.OrderBy = "created"
 	cached, err := util.ReqParamBool("cached", r)
 	if err != nil {
 		cached = false
 	}
-	p := &core.PeerListParams{
+	p := &lib.PeerListParams{
 		Limit:  args.Limit,
 		Offset: args.Offset,
 		Cached: cached,
@@ -110,7 +110,7 @@ func (h *PeerHandlers) listPeersHandler(w http.ResponseWriter, r *http.Request) 
 func (h *PeerHandlers) listConnectionsHandler(w http.ResponseWriter, r *http.Request) {
 	//limit := 0
 	// TODO: double check with @b5 on this change
-	listParams := core.ListParamsFromRequest(r)
+	listParams := lib.ListParamsFromRequest(r)
 	peers := []string{}
 
 	if err := h.ConnectedIPFSPeers(&listParams.Limit, &peers); err != nil {
@@ -130,7 +130,7 @@ func (h *PeerHandlers) peerHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := &core.PeerInfoParams{
+	p := &lib.PeerInfoParams{
 		ProfileID: id,
 	}
 	res := &config.ProfilePod{}
@@ -149,7 +149,7 @@ func (h *PeerHandlers) connectToPeerHandler(w http.ResponseWriter, r *http.Reque
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("invalid connect argument"))
 		return
 	}
-	pcpod := core.NewPeerConnectionParamsPod(arg)
+	pcpod := lib.NewPeerConnectionParamsPod(arg)
 
 	res := &config.ProfilePod{}
 	if err := h.ConnectToPeer(pcpod, res); err != nil {

@@ -10,7 +10,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -77,7 +77,7 @@ type AddOptions struct {
 	Publish        bool
 	Secrets        []string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -189,7 +189,7 @@ continue?`, true) {
 		dsp.Commit.Message = o.Message
 	}
 
-	p := &core.SaveParams{
+	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: o.Private,
 		Publish: o.Publish,

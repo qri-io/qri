@@ -7,7 +7,7 @@ import (
 	"os"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -53,7 +53,7 @@ type DataOptions struct {
 	Ref    string
 
 	UsingRPC        bool
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -85,7 +85,7 @@ func (o *DataOptions) Run() error {
 		return err
 	}
 
-	p := &core.LookupParams{
+	p := &lib.LookupParams{
 		Format: df,
 		Path:   ds.Path,
 		Limit:  o.Limit,
@@ -93,7 +93,7 @@ func (o *DataOptions) Run() error {
 		All:    o.All,
 	}
 
-	result := &core.LookupResult{}
+	result := &lib.LookupResult{}
 	if err := o.DatasetRequests.LookupBody(p, result); err != nil {
 		return err
 	}

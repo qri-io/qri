@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -49,7 +49,7 @@ type ListOptions struct {
 	Offset   int
 	Peername string
 
-	DatasetRequests *core.DatasetRequests
+	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -65,7 +65,7 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 func (o *ListOptions) Run() (err error) {
 	if o.Peername == "" {
 
-		p := &core.ListParams{
+		p := &lib.ListParams{
 			Limit:  o.Limit,
 			Offset: o.Offset,
 		}
@@ -90,7 +90,7 @@ func (o *ListOptions) Run() (err error) {
 		}
 	} else {
 
-		p := &core.ListParams{
+		p := &lib.ListParams{
 			Peername: o.Peername,
 			Limit:    o.Limit,
 			Offset:   o.Offset,

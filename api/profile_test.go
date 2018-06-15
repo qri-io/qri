@@ -16,7 +16,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
@@ -46,12 +46,12 @@ func TestProfileHandler(t *testing.T) {
 		return
 	}
 
-	core.Config = config.DefaultConfig()
-	core.Config.Profile = test.ProfileConfig()
-	core.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := core.SaveConfig
-	core.SaveConfig = func() error {
-		p, err := profile.NewProfile(core.Config.Profile)
+	lib.Config = config.DefaultConfig()
+	lib.Config.Profile = test.ProfileConfig()
+	lib.Config.Registry.Location = registryServer.URL
+	prevSaveConfig := lib.SaveConfig
+	lib.SaveConfig = func() error {
+		p, err := profile.NewProfile(lib.Config.Profile)
 		if err != nil {
 			return err
 		}
@@ -59,7 +59,7 @@ func TestProfileHandler(t *testing.T) {
 		r.SetProfile(p)
 		return err
 	}
-	defer func() { core.SaveConfig = prevSaveConfig }()
+	defer func() { lib.SaveConfig = prevSaveConfig }()
 
 	if err != nil {
 		t.Error(err.Error())
@@ -121,12 +121,12 @@ func TestProfilePhotoHandler(t *testing.T) {
 		return
 	}
 
-	core.Config = config.DefaultConfig()
-	core.Config.Profile = test.ProfileConfig()
-	core.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := core.SaveConfig
-	core.SaveConfig = func() error {
-		p, err := profile.NewProfile(core.Config.Profile)
+	lib.Config = config.DefaultConfig()
+	lib.Config.Profile = test.ProfileConfig()
+	lib.Config.Registry.Location = registryServer.URL
+	prevSaveConfig := lib.SaveConfig
+	lib.SaveConfig = func() error {
+		p, err := profile.NewProfile(lib.Config.Profile)
 		if err != nil {
 			return err
 		}
@@ -134,7 +134,7 @@ func TestProfilePhotoHandler(t *testing.T) {
 		r.SetProfile(p)
 		return err
 	}
-	defer func() { core.SaveConfig = prevSaveConfig }()
+	defer func() { lib.SaveConfig = prevSaveConfig }()
 
 	if err != nil {
 		t.Error(err.Error())
@@ -212,12 +212,12 @@ func TestProfilePosterHandler(t *testing.T) {
 		return
 	}
 
-	core.Config = config.DefaultConfig()
-	core.Config.Profile = test.ProfileConfig()
-	core.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := core.SaveConfig
-	core.SaveConfig = func() error {
-		p, err := profile.NewProfile(core.Config.Profile)
+	lib.Config = config.DefaultConfig()
+	lib.Config.Profile = test.ProfileConfig()
+	lib.Config.Registry.Location = registryServer.URL
+	prevSaveConfig := lib.SaveConfig
+	lib.SaveConfig = func() error {
+		p, err := profile.NewProfile(lib.Config.Profile)
 		if err != nil {
 			return err
 		}
@@ -225,7 +225,7 @@ func TestProfilePosterHandler(t *testing.T) {
 		r.SetProfile(p)
 		return err
 	}
-	defer func() { core.SaveConfig = prevSaveConfig }()
+	defer func() { lib.SaveConfig = prevSaveConfig }()
 
 	if err != nil {
 		t.Error(err.Error())

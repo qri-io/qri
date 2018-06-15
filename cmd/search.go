@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
@@ -35,7 +35,7 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 type SearchOptions struct {
 	IOStreams
 	Query          string
-	SearchRequests *core.SearchRequests
+	SearchRequests *lib.SearchRequests
 	Format         string
 	// TODO: add support for specifying limit and offset
 	// Limit int
@@ -55,13 +55,13 @@ func (o *SearchOptions) Run() (err error) {
 
 	// TODO: add reindex option back in
 
-	p := &core.SearchParams{
+	p := &lib.SearchParams{
 		QueryString: o.Query,
 		Limit:       100,
 		Offset:      0,
 	}
 
-	results := []core.SearchResult{}
+	results := []lib.SearchResult{}
 
 	if err = o.SearchRequests.Search(p, &results); err != nil {
 		return err

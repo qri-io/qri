@@ -7,19 +7,19 @@ import (
 	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/core"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
 type ProfileHandlers struct {
-	core.ProfileRequests
+	lib.ProfileRequests
 	ReadOnly bool
 }
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
 func NewProfileHandlers(r repo.Repo, readOnly bool) *ProfileHandlers {
-	req := core.NewProfileRequests(r, nil)
+	req := lib.NewProfileRequests(r, nil)
 	h := ProfileHandlers{*req, readOnly}
 	return &h
 }
@@ -98,7 +98,7 @@ func (h *ProfileHandlers) getProfilePhotoHandler(w http.ResponseWriter, r *http.
 }
 
 func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.FileParams{}
+	p := &lib.FileParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
 		json.NewDecoder(r.Body).Decode(p)
 	} else {
@@ -108,7 +108,7 @@ func (h *ProfileHandlers) setProfilePhotoHandler(w http.ResponseWriter, r *http.
 			return
 		}
 
-		p = &core.FileParams{
+		p = &lib.FileParams{
 			// Url:          r.FormValue("url"),
 			Filename: header.Filename,
 			Data:     infile,
@@ -154,7 +154,7 @@ func (h *ProfileHandlers) getPosterHandler(w http.ResponseWriter, r *http.Reques
 }
 
 func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Request) {
-	p := &core.FileParams{}
+	p := &lib.FileParams{}
 	if r.Header.Get("Content-Type") == "application/json" {
 		json.NewDecoder(r.Body).Decode(p)
 	} else {
@@ -164,7 +164,7 @@ func (h *ProfileHandlers) setPosterHandler(w http.ResponseWriter, r *http.Reques
 			return
 		}
 
-		p = &core.FileParams{
+		p = &lib.FileParams{
 			Filename: header.Filename,
 			Data:     infile,
 		}

@@ -19,7 +19,7 @@ import (
 // * dsp.BodyPath being a path on the local filesystem
 // This func is in the repo package b/c it has a destiny. And that destiny is to become a method on a
 // forthcoming Dataset struct. see https://github.com/qri-io/qri/issues/414 for deets
-// TODO - this feels out of place. maybe this belongs in core? actions?
+// TODO - this feels out of place. maybe this belongs in lib? actions?
 func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 	if dsp.BodyBytes != nil {
 		if dsp.Structure == nil || dsp.Structure.Format == "" {
