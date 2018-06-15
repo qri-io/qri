@@ -17,7 +17,7 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Short: "Search qri",
 		Long:  `Search datasets & peers that match your query`,
 		Annotations: map[string]string{
-			"group": "other",
+			"group": "network",
 		},
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {

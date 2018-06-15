@@ -116,14 +116,17 @@ func (o *QriOptions) init() (err error) {
 			return
 		}
 		o.config = core.Config
+
 		setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
 
-		addr := fmt.Sprintf(":%d", o.config.RPC.Port)
-		if conn, err := net.Dial("tcp", addr); err != nil {
-			err = nil
-		} else {
-			o.rpc = rpc.NewClient(conn)
-			return
+		if o.config.RPC.Enabled {
+			addr := fmt.Sprintf(":%d", o.config.RPC.Port)
+			if conn, err := net.Dial("tcp", addr); err != nil {
+				err = nil
+			} else {
+				o.rpc = rpc.NewClient(conn)
+				return
+			}
 		}
 
 		// for now this just checks for an existing config file
@@ -188,7 +191,11 @@ func (o *QriOptions) RPC() *rpc.Client {
 
 // Repo returns from internal state
 func (o *QriOptions) Repo() (repo.Repo, error) {
-	return o.repo, o.init()
+	err := o.init()
+	if o.repo == nil {
+		return nil, fmt.Errorf("repo not available (are you running qri in another terminal?)")
+	}
+	return o.repo, err
 }
 
 // DatasetRequests generates a core.DatasetRequests from internal state
