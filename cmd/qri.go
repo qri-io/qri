@@ -52,6 +52,7 @@ https://github.com/qri-io/qri/issues`,
 		NewBodyCommand(opt, ioStreams),
 		NewDiffCommand(opt, ioStreams),
 		NewExportCommand(opt, ioStreams),
+		NewGetCommand(opt, ioStreams),
 		NewInfoCommand(opt, ioStreams),
 		NewListCommand(opt, ioStreams),
 		NewLogCommand(opt, ioStreams),
@@ -63,6 +64,7 @@ https://github.com/qri-io/qri/issues`,
 		NewSaveCommand(opt, ioStreams),
 		NewSearchCommand(opt, ioStreams),
 		NewSetupCommand(opt, ioStreams),
+		NewUseCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
 		NewVersionCommand(opt, ioStreams),
 	)
@@ -236,6 +238,14 @@ func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
 		return nil, err
 	}
 	return lib.NewProfileRequests(o.repo, o.rpc), nil
+}
+
+// SelectionRequests creates a lib.SelectionRequests from internal state
+func (o *QriOptions) SelectionRequests() (*lib.SelectionRequests, error) {
+	if err := o.init(); err != nil {
+		return nil, err
+	}
+	return lib.NewSelectionRequests(o.repo, o.rpc), nil
 }
 
 // SearchRequests generates a lib.SearchRequests from internal state

@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
@@ -166,6 +167,57 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	}
 
 	*res = replies
+	return nil
+}
+
+// SelectParams encapsulates options for getting details on one or more datasets
+type SelectParams struct {
+	Refs    []repo.DatasetRef
+	Path    string
+	Format  string
+	Concise bool
+}
+
+// Select selects details of one or more datasets
+func (r *DatasetRequests) Select(p *SelectParams, res *[]byte) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Select", p, res)
+	}
+
+	if len(p.Refs) == 0 {
+		var done bool
+		if err := NewSelectionRequests(r.repo.Repo, nil).SelectedRefs(&done, &p.Refs); err != nil {
+			return err
+		}
+	}
+
+	encode := map[string]interface{}{}
+	for _, ref := range p.Refs {
+		if err = repo.CanonicalizeDatasetRef(r.repo.Repo, &ref); err != nil {
+			log.Debug(err.Error())
+			return err
+		}
+
+		data, err := r.repo.Select(ref, p.Path)
+		if err != nil {
+			return err
+		}
+		encode[ref.String()] = data
+	}
+
+	switch p.Format {
+	case "json":
+		if p.Concise {
+			*res, err = json.Marshal(encode)
+		} else {
+			*res, err = json.MarshalIndent(encode, "", " ")
+		}
+	case "yaml":
+		*res, err = yaml.Marshal(encode)
+	}
+	if err != nil {
+		return fmt.Errorf("error getting config: %s", err)
+	}
 	return nil
 }
 
