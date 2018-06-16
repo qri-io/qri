@@ -21,6 +21,14 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
+// RefSelector is an interface for supporting reference selection
+// a reference selection is a slice of references intended for using
+// in dataset operations
+type RefSelector interface {
+	SetSelectedRefs([]DatasetRef) error
+	SelectedRefs() ([]DatasetRef, error)
+}
+
 // ProfileRef encapsulates a reference to a peer profile
 // It's main job is to connect peernames / profile ID's to profiles
 type ProfileRef struct {

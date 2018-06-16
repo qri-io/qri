@@ -115,10 +115,10 @@ func makeTestRepo() (Repo, error) {
 		return nil, err
 	}
 
-	r.SetPrivateKey(privKey)
 	r.SetProfile(&profile.Profile{
 		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 		Peername: "peer",
+		PrivKey:  privKey,
 	})
 
 	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))

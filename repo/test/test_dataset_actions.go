@@ -31,7 +31,6 @@ func testCreateDataset(t *testing.T, rmf RepoMakerFunc) {
 func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef) {
 	r := rmf(t)
 	r.SetProfile(testPeerProfile)
-	r.SetPrivateKey(privKey)
 	act := actions.Dataset{r}
 
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))

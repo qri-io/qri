@@ -53,12 +53,8 @@ type Repo interface {
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the peer.
 	Profile() (*profile.Profile, error)
-	// It must be possible to alter profile information.
+	// SetProfile sets this repo's current profile. Profiles must contain a private key
 	SetProfile(*profile.Profile) error
-	// SetPrivateKey sets an internal reference to the private key for this profile.
-	// PrivateKey is used to tie peer actions to this profile. Repo implementations must
-	// never expose this private key once set.
-	SetPrivateKey(pk crypto.PrivKey) error
 	// PrivateKey hands over this repo's private key
 	// TODO - this is needed to create action structs, any way we can make this
 	// privately-negotiated or created at init?
