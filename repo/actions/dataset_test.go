@@ -43,6 +43,7 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 		return
 	}
+	testPeerProfile.PrivKey = privKey
 }
 
 func TestDataset(t *testing.T) {
@@ -53,7 +54,7 @@ func TestDataset(t *testing.T) {
 		if err != nil {
 			panic(err)
 		}
-		mr.SetPrivateKey(privKey)
+		// mr.SetPrivateKey(privKey)
 		return mr
 	}
 	DatasetTests(t, rmf)
@@ -82,7 +83,6 @@ func testCreateDataset(t *testing.T, rmf RepoMakerFunc) {
 func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef) {
 	r := rmf(t)
 	r.SetProfile(testPeerProfile)
-	r.SetPrivateKey(privKey)
 	act := Dataset{r}
 
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))

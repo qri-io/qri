@@ -53,6 +53,8 @@ const (
 	FileAnalytics
 	// FileSearchIndex is the path to a search index
 	FileSearchIndex
+	// FileSelectedRefs is the path to the current ref selection
+	FileSelectedRefs
 	// FileChangeRequests is a file of change requests
 	FileChangeRequests
 )
@@ -68,6 +70,7 @@ var paths = map[File]string{
 	FilePeers:          "/peers.json",
 	FileAnalytics:      "/analytics.json",
 	FileSearchIndex:    "/index.bleve",
+	FileSelectedRefs:   "/selected_refs.json",
 	FileChangeRequests: "/change_requests.json",
 }
 

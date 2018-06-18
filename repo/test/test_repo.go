@@ -1,6 +1,7 @@
 package test
 
 import (
+	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -44,6 +45,7 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 		return
 	}
+	testPeerProfile.PrivKey = privKey
 }
 
 // ProfileConfig returns the test profile as a config.Profile
@@ -66,7 +68,6 @@ func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 		return
 	}
 
-	mr.SetPrivateKey(privKey)
 	act := actions.Dataset{mr}
 
 	gopath := os.Getenv("GOPATH")
@@ -91,9 +92,15 @@ func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
 func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.Repo, error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
+	pk, _, err := crypto.GenerateSecp256k1Key(rand.Reader)
+	if err != nil {
+		return nil, err
+	}
+
 	r, err := repo.NewMemRepo(&profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
+		PrivKey:  pk,
 	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		return r, err
@@ -102,8 +109,6 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 	if dataIndex == -1 || dataIndex >= len(datasets) {
 		return r, nil
 	}
-
-	r.SetPrivateKey(privKey)
 	act := actions.Dataset{r}
 
 	gopath := os.Getenv("GOPATH")
@@ -140,7 +145,6 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	if err != nil {
 		return mr, pk, err
 	}
-	mr.SetPrivateKey(pk)
 	act := actions.Dataset{mr}
 
 	tc, err := dstest.LoadTestCases(path)
@@ -187,6 +191,7 @@ func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err e
 		err = fmt.Errorf("error unmarshaling privatekey: %s", err.Error())
 		return
 	}
+	pro.PrivKey = pk
 
 	return
 }

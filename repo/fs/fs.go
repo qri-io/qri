@@ -1,8 +1,8 @@
 package fsrepo
 
 import (
+	"encoding/json"
 	"fmt"
-	"github.com/qri-io/registry/regclient"
 	"os"
 
 	golog "github.com/ipfs/go-log"
@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
+	"github.com/qri-io/registry/regclient"
 )
 
 var log = golog.Logger("fsrepo")
@@ -25,14 +26,14 @@ func init() {
 type Repo struct {
 	basepath
 
-	profile *profile.Profile
-	pk      crypto.PrivKey
-
-	store cafs.Filestore
-	graph map[string]*dsgraph.Node
-
 	Refstore
 	EventLog
+
+	profile *profile.Profile
+
+	store        cafs.Filestore
+	selectedRefs []repo.DatasetRef
+	graph        map[string]*dsgraph.Node
 
 	profiles ProfileStore
 	index    search.Index
@@ -53,7 +54,6 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, b
 
 	r := &Repo{
 		profile: pro,
-		pk:      pro.PrivKey,
 
 		store:    store,
 		basepath: bp,
@@ -110,15 +110,9 @@ func (r *Repo) SetProfile(p *profile.Profile) error {
 	return r.Profiles().PutProfile(p)
 }
 
-// SetPrivateKey sets an internal reference to the private key for this profile
-func (r *Repo) SetPrivateKey(pk crypto.PrivKey) error {
-	r.pk = pk
-	return nil
-}
-
 // PrivateKey returns this repo's private key
 func (r *Repo) PrivateKey() crypto.PrivKey {
-	return r.pk
+	return r.profile.PrivKey
 }
 
 // Search this repo for dataset references
@@ -150,6 +144,25 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 // UpdateSearchIndex refreshes this repos search index
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 	return search.IndexRepo(r, r.index)
+}
+
+// SetSelectedRefs sets the current reference selection
+func (r *Repo) SetSelectedRefs(sel []repo.DatasetRef) error {
+	return r.saveFile(sel, FileSelectedRefs)
+}
+
+// SelectedRefs gives the current reference selection
+func (r *Repo) SelectedRefs() ([]repo.DatasetRef, error) {
+	data, err := r.readBytes(FileSelectedRefs)
+	if err != nil {
+		return nil, nil
+	}
+	res := []repo.DatasetRef{}
+	if err = json.Unmarshal(data, &res); err != nil {
+		return nil, nil
+	}
+
+	return res, nil
 }
 
 // Profiles returns this repo's Peers implementation

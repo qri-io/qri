@@ -23,6 +23,7 @@ func testdataPath(path string) string {
 func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 	tests := []repoTestFunc{
 		testProfile,
+		testRefSelector,
 		// testRefstore,
 		// DatasetActions,
 	}
@@ -47,4 +48,29 @@ func testProfile(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
+}
+
+func testRefSelector(t *testing.T, rmf RepoMakerFunc) {
+	r := rmf(t)
+	if rs, ok := r.(repo.RefSelector); ok {
+		sel := []repo.DatasetRef{
+			{Peername: "foo"},
+		}
+
+		err := rs.SetSelectedRefs(sel)
+		if err != nil {
+			t.Errorf("Error setting selection: %s", err)
+		}
+
+		got, err := rs.SelectedRefs()
+		if len(sel) != len(got) {
+			t.Errorf("Selected length mismatch. Expected: %d. Got: %d.", len(sel), len(got))
+		}
+
+		for i, a := range sel {
+			if err := repo.CompareDatasetRef(a, got[i]); err != nil {
+				t.Errorf("comparing selected reference %d: %s", i, err)
+			}
+		}
+	}
 }

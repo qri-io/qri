@@ -1,8 +1,6 @@
 package repo
 
 import (
-	"fmt"
-
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
@@ -12,12 +10,14 @@ import (
 
 // MemRepo is an in-memory implementation of the Repo interface
 type MemRepo struct {
-	pk       crypto.PrivKey
-	store    cafs.Filestore
-	graph    map[string]*dsgraph.Node
-	refCache *MemRefstore
 	*MemRefstore
 	*MemEventLog
+
+	store        cafs.Filestore
+	graph        map[string]*dsgraph.Node
+	refCache     *MemRefstore
+	selectedRefs []DatasetRef
+
 	profile  *profile.Profile
 	profiles profile.Store
 	registry *regclient.Client
@@ -39,15 +39,6 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *
 // Store returns the underlying cafs.Filestore for this repo
 func (r *MemRepo) Store() cafs.Filestore {
 	return r.store
-}
-
-// SetPrivateKey sets this repos's internal private key reference
-func (r *MemRepo) SetPrivateKey(pk crypto.PrivKey) error {
-	if r.profile == nil {
-		return fmt.Errorf("no profile")
-	}
-	r.profile.PrivKey = pk
-	return nil
 }
 
 // PrivateKey returns this repo's private key
@@ -77,6 +68,17 @@ func (r *MemRepo) Profile() (*profile.Profile, error) {
 func (r *MemRepo) SetProfile(p *profile.Profile) error {
 	r.profile = p
 	return nil
+}
+
+// SetSelectedRefs sets the current reference selection
+func (r *MemRepo) SetSelectedRefs(sel []DatasetRef) error {
+	r.selectedRefs = sel
+	return nil
+}
+
+// SelectedRefs gives the current reference selection
+func (r *MemRepo) SelectedRefs() ([]DatasetRef, error) {
+	return r.selectedRefs, nil
 }
 
 // Profiles gives this repo's Peer interface implementation

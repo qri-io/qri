@@ -30,5 +30,6 @@ func Receivers(node *p2p.QriNode) []Requests {
 		NewProfileRequests(r, nil),
 		NewSearchRequests(r, nil),
 		NewRenderRequests(r, nil),
+		NewSelectionRequests(r, nil),
 	}
 }

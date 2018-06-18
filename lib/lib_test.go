@@ -18,8 +18,8 @@ func TestReceivers(t *testing.T) {
 	}
 
 	reqs := Receivers(node)
-	if len(reqs) != 7 {
-		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 7, len(reqs))
+	if len(reqs) != 8 {
+		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 8, len(reqs))
 		return
 	}
 }
