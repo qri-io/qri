@@ -126,10 +126,16 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			Limit:  p.Limit,
 			Offset: p.Offset,
 		})
-		*res = replies
 		if err != nil {
 			err = fmt.Errorf("error requesting dataset list: %s", err.Error())
 		}
+		// TODO - for now we're removing schemas b/c they don't serialize properly over RPC
+		for _, rep := range replies {
+			if rep.Dataset.Structure != nil {
+				rep.Dataset.Structure.Schema = nil
+			}
+		}
+		*res = replies
 		return err
 	}
 
