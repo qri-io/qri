@@ -5,7 +5,7 @@ import (
 )
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.4.1-dev"
+const VersionNumber = "0.5.0"
 
 // NewVersionCommand creates a new `qri version` cobra command that prints the current qri version
 func NewVersionCommand(_ Factory, ioStreams IOStreams) *cobra.Command {
