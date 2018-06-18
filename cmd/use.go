@@ -14,15 +14,30 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "use",
 		Short: "select datasets for use with other commands",
-		Long:  ``,
+		Example: `  use dataset me/dataset_name, then get meta.title:
+  $ qri data me/dataset_name
+  $ qri get meta.title
+
+  clear current selection:
+  $ qri use --clear
+
+  show current selected dataset references:
+  $ qri use --list`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f, args))
+			if o.Clear == false && o.List == false && len(args) == 0 {
+				err := cmd.Help()
+				ExitIfErr(err)
+			}
 			ExitIfErr(o.Run())
 		},
 	}
+
+	cmd.Flags().BoolVarP(&o.Clear, "clear", "c", false, "clear the current selection")
+	cmd.Flags().BoolVarP(&o.List, "list", "l", false, "list selected references")
 
 	return cmd
 }
@@ -31,7 +46,9 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 type UseOptions struct {
 	IOStreams
 
-	Refs []string
+	Refs  []string
+	List  bool
+	Clear bool
 
 	SelectionRequests *lib.SelectionRequests
 }
@@ -50,21 +67,27 @@ func (o *UseOptions) Run() (err error) {
 		res  bool
 	)
 
-	for _, refstr := range o.Refs {
-		ref, err := repo.ParseDatasetRef(refstr)
-		if err != nil {
+	if o.List {
+		if err = o.SelectionRequests.SelectedRefs(&res, &refs); err != nil {
 			return err
 		}
-		refs = append(refs, ref)
-	}
+	} else if len(o.Refs) > 0 || o.Clear {
+		for _, refstr := range o.Refs {
+			ref, err := repo.ParseDatasetRef(refstr)
+			if err != nil {
+				return err
+			}
+			refs = append(refs, ref)
+		}
 
-	if err = o.SelectionRequests.SetSelectedRefs(&refs, &res); err != nil {
-		return err
-	}
+		if err = o.SelectionRequests.SetSelectedRefs(&refs, &res); err != nil {
+			return err
+		}
 
-	if len(refs) == 0 {
-		printInfo(o.Out, "cleared selected datasets")
-		return nil
+		if len(refs) == 0 {
+			printInfo(o.Out, "cleared selected datasets")
+			return nil
+		}
 	}
 
 	for _, ref := range refs {
