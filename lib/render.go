@@ -59,6 +59,10 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		return err
 	}
 
+	if err := DefaultSelectedRef(r.repo, &ref); err != nil {
+		return err
+	}
+
 	err = repo.CanonicalizeDatasetRef(r.repo, &ref)
 	if err != nil {
 		log.Debug(err.Error())

@@ -46,6 +46,10 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	}
 
 	ref := params.Ref
+	if err = DefaultSelectedRef(d.repo, &ref); err != nil {
+		return
+	}
+
 	err = repo.CanonicalizeDatasetRef(d.repo, &ref)
 	if err != nil {
 		log.Debug(err.Error())

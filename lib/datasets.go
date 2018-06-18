@@ -184,11 +184,8 @@ func (r *DatasetRequests) Select(p *SelectParams, res *[]byte) (err error) {
 		return r.cli.Call("DatasetRequests.Select", p, res)
 	}
 
-	if len(p.Refs) == 0 {
-		var done bool
-		if err := NewSelectionRequests(r.repo.Repo, nil).SelectedRefs(&done, &p.Refs); err != nil {
-			return err
-		}
+	if err = DefaultSelectedRefs(r.repo.Repo, &p.Refs); err != nil {
+		return err
 	}
 
 	encode := map[string]interface{}{}
@@ -770,6 +767,10 @@ type ValidateDatasetParams struct {
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
+	}
+
+	if err = DefaultSelectedRef(r.repo, &p.Ref); err != nil {
+		return
 	}
 
 	if p.Ref.IsEmpty() && p.Data == nil {

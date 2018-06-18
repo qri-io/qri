@@ -62,6 +62,11 @@ func (o *UseOptions) Run() (err error) {
 		return err
 	}
 
+	if len(refs) == 0 {
+		printInfo(o.Out, "cleared selected datasets")
+		return nil
+	}
+
 	for _, ref := range refs {
 		fmt.Fprintln(o.Out, ref.String())
 	}

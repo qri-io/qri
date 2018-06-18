@@ -34,3 +34,87 @@ func TestSelectionRequestsSelectedRefs(t *testing.T) {
 		}
 	}
 }
+
+func TestDefaultSelectedRefs(t *testing.T) {
+	mr, err := testrepo.NewTestRepo(nil)
+	if err != nil {
+		t.Fatalf("allocating test repo: %s", err)
+	}
+
+	refs := []repo.DatasetRef{}
+	if err := DefaultSelectedRefs(mr, &refs); err != nil {
+		t.Error(err.Error())
+	}
+	if len(refs) != 0 {
+		t.Error("expected 0 references")
+	}
+
+	sr := NewSelectionRequests(mr, nil)
+	var done bool
+	a := []repo.DatasetRef{{Peername: "a"}, {Peername: "b"}}
+	if err := sr.SetSelectedRefs(&a, &done); err != nil {
+		t.Errorf("setting selected refs: %s", err.Error())
+	}
+
+	if err := DefaultSelectedRefs(mr, &refs); err != nil {
+		t.Error(err.Error())
+	}
+	if len(refs) != 2 {
+		t.Error("expected 2 references")
+	}
+
+	refs = []repo.DatasetRef{}
+	b := []repo.DatasetRef{}
+	if err := sr.SetSelectedRefs(&b, &done); err != nil {
+		t.Errorf("setting selected refs: %s", err.Error())
+	}
+	if err := DefaultSelectedRefs(mr, &refs); err != nil {
+		t.Error(err.Error())
+	}
+	if len(refs) != 0 {
+		t.Error("expected 0 references")
+	}
+
+}
+
+func TestDefaultSelectedRef(t *testing.T) {
+	mr, err := testrepo.NewTestRepo(nil)
+	if err != nil {
+		t.Fatalf("allocating test repo: %s", err)
+	}
+
+	ref := &repo.DatasetRef{}
+	if err := DefaultSelectedRef(mr, ref); err != nil {
+		t.Error(err.Error())
+	}
+	if !ref.IsEmpty() {
+		t.Error("expected ref to be empty")
+	}
+
+	sr := NewSelectionRequests(mr, nil)
+	var done bool
+	a := []repo.DatasetRef{{Peername: "a"}, {Peername: "b"}}
+	if err := sr.SetSelectedRefs(&a, &done); err != nil {
+		t.Errorf("setting selected refs: %s", err.Error())
+	}
+
+	if err := DefaultSelectedRef(mr, ref); err != nil {
+		t.Error(err.Error())
+	}
+	if ref.IsEmpty() {
+		t.Error("expected ref not to be empty")
+	}
+
+	ref = &repo.DatasetRef{}
+	b := []repo.DatasetRef{}
+	if err := sr.SetSelectedRefs(&b, &done); err != nil {
+		t.Errorf("setting selected refs: %s", err.Error())
+	}
+	if err := DefaultSelectedRef(mr, ref); err != nil {
+		t.Error(err.Error())
+	}
+	if !ref.IsEmpty() {
+		t.Error("expected ref to be empty")
+	}
+
+}

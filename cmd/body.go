@@ -54,6 +54,7 @@ type DataOptions struct {
 
 	UsingRPC        bool
 	DatasetRequests *lib.DatasetRequests
+	Repo            repo.Repo
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -61,6 +62,10 @@ func (o *DataOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref = args[0]
 	o.UsingRPC = f.RPC() != nil
 	o.DatasetRequests, err = f.DatasetRequests()
+	if err != nil {
+		return
+	}
+	o.Repo, err = f.Repo()
 	return
 }
 
@@ -72,6 +77,10 @@ func (o *DataOptions) Run() error {
 
 	dsr, err := repo.ParseDatasetRef(o.Ref)
 	if err != nil {
+		return err
+	}
+
+	if err = lib.DefaultSelectedRef(o.Repo, &dsr); err != nil {
 		return err
 	}
 

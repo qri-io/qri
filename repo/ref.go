@@ -21,6 +21,9 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
+// ErrRefSelectionNotSupported is the expected error for when RefSelector interface is *not* implemented
+var ErrRefSelectionNotSupported = fmt.Errorf("selection not supported")
+
 // RefSelector is an interface for supporting reference selection
 // a reference selection is a slice of references intended for using
 // in dataset operations
