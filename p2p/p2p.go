@@ -16,7 +16,7 @@ const (
 	// QriProtocolID is the top level Protocol Identifier
 	QriProtocolID = protocol.ID("/qri")
 	// QriServiceTag tags the type & version of the qri service
-	QriServiceTag = "qri/0.4.1-dev"
+	QriServiceTag = "qri/0.5.0"
 	// tag qri service uses in host connection Manager
 	qriConnManagerTag = "qri"
 	// default value to give qri peer connections in connmanager

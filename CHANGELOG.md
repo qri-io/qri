@@ -1,3 +1,63 @@
+<a name="0.5.0"></a>
+# [0.5.0](https://github.com/qri-io/qri/compare/v0.4.0...v0.5.0) (2018-06-18)
+
+Who needs patch releases!? In version 0.5.0 we're introducing an initial search implementation, a few new commands, rounding out a bunch of features that warrent a minor version bump with some breaking changes. Because of these breaking changes, datasets created with v0.4.0 or earler will need to be re-created to work properly with this version.
+
+#### :mag: Registry Search Alpha
+We're still hard at work on getting registries right (more on that in the coming weeks), but for now we've shipped an initial command "qri search", that'll let you search registries for datasets. The way we see search working in the future is leveraging registries to build indexes of published datasets so you can easily search for datasets that have been published. We have a lot of work to do around making sure those datasets are available for download, but feel free to play with the command to get a feel for where we're headed with search.
+
+#### use & get commands
+working with the command line, it can get really irritating to constantly re-type the name of a dataset. To help with this, we've added a new command: `qri use`, which takes it's inspiration from database "use" commands that set the current database. `qri use` takes any number of dataset references as arguments, and once a user has set a selection with qri use, they become the default dataset names when no selection is made.
+
+Around qri HQ we've all come to love the ease of working with the `qri config` command. `qri config get` shows either the whole configuration, or you can provide a dot.separated.path to scope down the section of config to show. `qri get` takes this idea an applies it to datasets. `qri get meta.title me/dataset_name` will get the title from metadata, and like the config command, it's output can be switched from YAML (default) to JSON. `qri get` also accepts multiple datasets, which will be combined into 
+
+#### new skylark html module
+We're still working on a proper html module for skylark transforms with an API that pythonists will be familiar with, but in the meantime we've added in a basic jquery-like selector syntax for working with HTML documents.
+
+#### "Data" is now "Body"
+This is a breaking change we've been hoping to get in sooner-rather-than-later that renames the `Data` field of a dataset to `Body`. From here on in we'll refer to the _body_ of a dataset as it's principle content. We think this langauge helps show how datasets are like webpages, and cutw down on use of an ambiguous term like "data".
+
+#### Thinking about qri as an importable library
+Finally, in what is more of a symbolic change than anything else, we've renamed the `core` package to `lib` to get us to start thinking about qri as an importable library. Next week we'll publish a new project aimed at writing tutorials & docs with an associated test suite built around datasets that uses qri as a library. We hope to use this project to mature the `lib` package for this use case.
+
+
+### Bug Fixes
+
+* **cmd:** set core.ConfigPath on init ([9e841b8](https://github.com/qri-io/qri/commit/9e841b8))
+* **cmd.RPC:** warn when RPC connected ([00ff64f](https://github.com/qri-io/qri/commit/00ff64f))
+* **cmd/list:** fix `network` flag error ([e15483b](https://github.com/qri-io/qri/commit/e15483b))
+* **config:** set map values with config set command ([edd9e44](https://github.com/qri-io/qri/commit/edd9e44)), closes [#450](https://github.com/qri-io/qri/issues/450)
+* **CreateDataset:** user-specified data should override transforms ([7edff80](https://github.com/qri-io/qri/commit/7edff80))
+* **CreateDataset:** user-specified data should override transforms ([dea1ac4](https://github.com/qri-io/qri/commit/dea1ac4)), closes [#456](https://github.com/qri-io/qri/issues/456)
+* **list peer datasets:** fix to make listing peer datasets work ([f1df720](https://github.com/qri-io/qri/commit/f1df720))
+* **MemRepo:** remove privatekey field, properly assign regclient ([594a86c](https://github.com/qri-io/qri/commit/594a86c))
+* **save:** qri save without CLI dataset arg ([780d734](https://github.com/qri-io/qri/commit/780d734))
+
+
+### Code Refactoring
+
+* **dataset.Body:** rename dataset.Data to Body ([d764749](https://github.com/qri-io/qri/commit/d764749)), closes [#422](https://github.com/qri-io/qri/issues/422)
+* **export:** remove excessive flags from qri export ([aeb5ee4](https://github.com/qri-io/qri/commit/aeb5ee4))
+
+
+### Features
+
+* **default to use:** added use-defaults to commands ([dee523e](https://github.com/qri-io/qri/commit/dee523e))
+* **export:** export transform.sky when present ([5939668](https://github.com/qri-io/qri/commit/5939668))
+* **Reference Selection:** support reference selection ([3cae7bd](https://github.com/qri-io/qri/commit/3cae7bd))
+* **Search:** added implementations for core search and commandline search ([698a53b](https://github.com/qri-io/qri/commit/698a53b))
+* **use flags:** added list & clear flags to qri use ([3b61f60](https://github.com/qri-io/qri/commit/3b61f60))
+* **use, get:** added use and get commands ([6628354](https://github.com/qri-io/qri/commit/6628354))
+* **yaml body:** support yaml body with json conversion ([49568e0](https://github.com/qri-io/qri/commit/49568e0))
+
+
+### BREAKING CHANGES
+
+* **dataset.Body:** this change will break hashes. `dataPath` is now `bodyPath`.
+* **export:** option to export specific dataset components has been removed
+
+
+
 <a name="0.4.0"></a>
 # [0.4.0](https://github.com/qri-io/qri/compare/v0.3.2...v0.4.0) (2018-06-06)
 
