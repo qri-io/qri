@@ -81,7 +81,14 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 		return usingRPCError("validate")
 	}
 
-	o.Ref = args[0]
+	if o.Filepath != "" && o.SchemaFilepath != "" {
+		o.Ref = ""
+	}
+
+	if len(args) > 0 {
+		o.Ref = args[0]
+	}
+
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
@@ -101,7 +108,7 @@ func (o *ValidateOptions) Run() (err error) {
 	}
 
 	if ref.IsEmpty() && !(o.Filepath != "" && o.SchemaFilepath != "") {
-		ErrExit(fmt.Errorf("please provide a dataset name to validate, or both  --data and --schema arguments"))
+		ErrExit(fmt.Errorf("please provide a dataset name to validate, or filepaths for both  --data and --schema arguments"))
 	}
 
 	if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
