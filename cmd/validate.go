@@ -81,11 +81,16 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 		return usingRPCError("validate")
 	}
 
+	if len(args) == 0 && (o.Filepath == "" && o.SchemaFilepath == "") {
+		printErr(o.IOStreams.ErrOut, fmt.Errorf("you need to provide a dataset name or a supply the --data and --schema flags with file paths"))
+		return ErrBadArgs
+	}
+
 	if o.Filepath != "" && o.SchemaFilepath != "" {
 		o.Ref = ""
 	}
 
-	if len(args) > 0 {
+	if len(args) != 0 {
 		o.Ref = args[0]
 	}
 
@@ -107,10 +112,6 @@ func (o *ValidateOptions) Run() (err error) {
 		}
 	}
 
-	if ref.IsEmpty() && !(o.Filepath != "" && o.SchemaFilepath != "") {
-		ErrExit(fmt.Errorf("please provide a dataset name to validate, or filepaths for both  --data and --schema arguments"))
-	}
-
 	if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
 		return err
 	}
@@ -121,7 +122,7 @@ func (o *ValidateOptions) Run() (err error) {
 	p := &lib.ValidateDatasetParams{
 		Ref: ref,
 		// URL:          addDsURL,
-		DataFilename: filepath.Base(o.SchemaFilepath),
+		DataFilename: filepath.Base(o.Filepath),
 	}
 
 	// this is because passing nil to interfaces is bad
