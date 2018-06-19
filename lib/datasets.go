@@ -829,7 +829,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 			}
 			str, _, e := detect.FromReader(df, bytes.NewBuffer(data))
 			if e != nil {
-				return e
+				return fmt.Errorf("error detecting from reader: %s", e)
 			}
 			st = str
 		}

@@ -34,6 +34,7 @@ const (
 	yottabyte
 )
 
+// ErrBadArgs is a new error for when a user provides bad arguments
 var ErrBadArgs = errors.New("bad arguments provided")
 
 // var printPrompt = color.New(color.FgWhite).PrintfFunc()
