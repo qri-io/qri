@@ -45,8 +45,8 @@ changes to qri.`,
 create a dataset with a dataset data file:
   $ qri add --file dataset.yaml --body comics.csv me/comic_characters`,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f))
-			ExitIfErr(o.Run(args))
+			ExitIfErr(o.ErrOut, o.Complete(f))
+			ExitIfErr(o.ErrOut, o.Run(args))
 		},
 	}
 
@@ -207,11 +207,11 @@ continue?`, true) {
 		// if o.ShowValidation {
 		// 	printWarning(o.Out, "Validation Error Detail:")
 		// 	data, err := ioutil.ReadAll(dataFile)
-		// 	ExitIfErr(err)
+		// 	ExitIfErr(o.ErrOut, err)
 		// 	ds, err := ref.DecodeDataset()
-		// 	ErrExit(err)
+		// 	ErrExit(o.ErrOut, err)
 		// 	errorList, err := ds.Structure.Schema.ValidateBytes(data)
-		// 	ExitIfErr(err)
+		// 	ExitIfErr(o.ErrOut, err)
 		// 	for i, validationErr := range errorList {
 		// 		printWarning(o.Out, fmt.Sprintf("\t%d. %s", i+1, validationErr.Error()))
 		// 	}

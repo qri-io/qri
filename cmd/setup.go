@@ -38,8 +38,8 @@ overwrite this info.`,
 			"group": "other",
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run(f))
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run(f))
 		},
 	}
 

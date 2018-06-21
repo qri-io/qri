@@ -27,12 +27,12 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			"group": "dataset",
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
 			if o.Clear == false && o.List == false && len(args) == 0 {
 				err := cmd.Help()
-				ExitIfErr(err)
+				ExitIfErr(o.ErrOut, err)
 			}
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 

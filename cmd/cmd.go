@@ -2,10 +2,12 @@ package cmd
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
 
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -32,18 +34,22 @@ func Execute() {
 	}
 }
 
-// ErrExit writes an error to stdout & exits
-func ErrExit(err error) {
-	printErr(os.Stdout, err)
+// ErrExit writes an error to the given io.Writer & exits
+func ErrExit(w io.Writer, err error) {
+	if e, ok := err.(lib.Error); ok {
+		if e.Message() != "" {
+			printErr(w, fmt.Errorf(e.Message()))
+			os.Exit(1)
+		}
+	}
+	printErr(w, err)
 	os.Exit(1)
 }
 
-// ExitIfErr panics if an error is present
-func ExitIfErr(err error) {
+// ExitIfErr only calls ErrExit if there is an error present
+func ExitIfErr(w io.Writer, err error) {
 	if err != nil {
-		// printErr(err)
-		panic(err)
-		os.Exit(1)
+		ErrExit(w, err)
 	}
 }
 

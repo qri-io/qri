@@ -27,8 +27,8 @@ body reads records from a dataset`,
 		},
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 

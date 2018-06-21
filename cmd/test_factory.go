@@ -10,19 +10,13 @@ import (
 	"github.com/qri-io/qri/repo/test"
 )
 
-// TestFactory holds the states of the test command
+// TestFactory is an implementation of the Factory interface for testing purposes
 type TestFactory struct {
 	IOStreams
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	ipfsFsPath string
-	// NoPrompt Disables all promt messages
-	NoPrompt bool
-	// NoColor disables colorized output
-	NoColor bool
-	// path to configuration object
-	ConfigPath string
 
 	// Configuration object
 	config *config.Config
@@ -32,19 +26,15 @@ type TestFactory struct {
 }
 
 // NewTestFactory creates TestFactory object with an in memory test repo
-func NewTestFactory(streams IOStreams) (tf TestFactory, err error) {
+func NewTestFactory() (tf TestFactory, err error) {
 	repo, err := test.NewTestRepo(nil)
 	if err != nil {
 		return
 	}
 
 	return TestFactory{
-		IOStreams:   streams,
 		qriRepoPath: "",
 		ipfsFsPath:  "",
-		NoPrompt:    true,
-		NoColor:     true,
-		ConfigPath:  "",
 
 		repo:   repo,
 		rpc:    nil,

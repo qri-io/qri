@@ -32,8 +32,8 @@ func NewInfoCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		},
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 
@@ -81,7 +81,7 @@ func (o *InfoOptions) Run() error {
 		} else {
 			res := repo.DatasetRef{}
 			err = o.DatasetRequests.Get(&ref, &res)
-			ExitIfErr(err)
+			ExitIfErr(o.ErrOut, err)
 
 			if o.Format == "" {
 				printDatasetRefInfo(o.Out, i, res)

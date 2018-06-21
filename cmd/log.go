@@ -31,8 +31,8 @@ working backwards in time.`,
 		},
 		Args: cobra.ExactArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 
@@ -114,10 +114,10 @@ func (o *LogOptions) Run() error {
 	//  }
 	// case dataset.JSONDataFormat.String():
 	//  data, err := json.MarshalIndent(refs, "", "  ")
-	//  ExitIfErr(err)
+	//  ExitIfErr(o.ErrOut, err)
 	//  fmt.Printf("%s\n", string(data))
 	// default:
-	//  ErrExit(fmt.Errorf("unrecognized format: %s", outformat))
+	//  ErrExit(o.ErrOut, fmt.Errorf("unrecognized format: %s", outformat))
 	// }
 	return nil
 }

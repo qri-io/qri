@@ -50,8 +50,8 @@ will affect a dataset before saving changes to a dataset.`,
 		Example: `  show errors in an existing dataset:
   $ qri validate b5/comics`,
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 
@@ -82,7 +82,7 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if len(args) == 0 && (o.Filepath == "" && o.SchemaFilepath == "") {
-		printErr(o.IOStreams.ErrOut, fmt.Errorf("you need to provide a dataset name or a supply the --data and --schema flags with file paths"))
+		printErr(o.ErrOut, fmt.Errorf("you need to provide a dataset name or a supply the --data and --schema flags with file paths"))
 		return ErrBadArgs
 	}
 
@@ -108,14 +108,17 @@ func (o *ValidateOptions) Run() (err error) {
 	if o.Ref != "" {
 		ref, err = repo.ParseDatasetRef(o.Ref)
 		if err != nil {
+			printErr(o.ErrOut, fmt.Errorf("%s must be in correct DatasetRef format, [peername]/[datatset_name]", o.Ref))
 			return err
 		}
 	}
 
 	if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
+		printErr(o.ErrOut, fmt.Errorf("could not %s", err))
 		return err
 	}
 	if schemaFile, err = loadFileIfPath(o.SchemaFilepath); err != nil {
+		printErr(o.ErrOut, fmt.Errorf("could not  %s", err))
 		return err
 	}
 
@@ -136,6 +139,7 @@ func (o *ValidateOptions) Run() (err error) {
 
 	res := []jsonschema.ValError{}
 	if err = o.DatasetRequests.Validate(p, &res); err != nil {
+		printErr(o.ErrOut, fmt.Errorf("could not validate this data. try double checking the peername, dataset name, or file names given"))
 		return err
 	}
 	if len(res) == 0 {

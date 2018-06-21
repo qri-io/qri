@@ -49,8 +49,8 @@ $ qri config set registry.location ""`,
   $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Publish())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Publish())
 		},
 	}
 
@@ -62,8 +62,8 @@ $ qri config set registry.location ""`,
   $ qri registry unpublish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Unpublish())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Unpublish())
 		},
 	}
 

@@ -11,7 +11,7 @@ func TestValidateComplete(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(streams)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -32,20 +32,20 @@ func TestValidateComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &ValidateOptions{
-			IOStreams:      f.IOStreams,
+			IOStreams:      streams,
 			Filepath:       c.filepath,
 			SchemaFilepath: c.schemaFilepath,
 		}
 		opt.Complete(f, c.args)
 
-		if errs.String() != c.err {
-			t.Errorf("case %v, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
+		if c.err != errs.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
 			ioReset(in, out, errs)
 			continue
 		}
 
-		if opt.Ref != c.expect {
-			t.Errorf("case %v, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Ref)
+		if c.expect != opt.Ref {
+			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Ref)
 			ioReset(in, out, errs)
 			continue
 		}
@@ -58,7 +58,7 @@ func TestValidateRun(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(streams)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -83,7 +83,7 @@ func TestValidateRun(t *testing.T) {
 	for i, c := range cases {
 		dsr, err := f.DatasetRequests()
 		if err != nil {
-			t.Errorf("case %v, error creating dataset request: %s", i, err)
+			t.Errorf("case %d, error creating dataset request: %s", i, err)
 			continue
 		}
 
@@ -98,12 +98,13 @@ func TestValidateRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %v, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
 			ioReset(in, out, errs)
 			continue
 		}
-		if out.String() != c.expected {
-			t.Errorf("case %v, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
+
+		if c.expected != out.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
 			ioReset(in, out, errs)
 			continue
 		}
