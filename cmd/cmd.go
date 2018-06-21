@@ -7,9 +7,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
+
+var log = golog.Logger("cmd")
 
 // Execute adds all child commands to the root command sets flags appropriately.
 // This is called by main.main(). It only needs to happen once to the rootCmd.
@@ -36,6 +39,7 @@ func Execute() {
 
 // ErrExit writes an error to the given io.Writer & exits
 func ErrExit(w io.Writer, err error) {
+	log.Debug(err.Error())
 	if e, ok := err.(lib.Error); ok {
 		if e.Message() != "" {
 			printErr(w, fmt.Errorf(e.Message()))
