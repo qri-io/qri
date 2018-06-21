@@ -4,6 +4,8 @@ import (
 	"bytes"
 	// "io/ioutil"
 	"testing"
+
+	"github.com/qri-io/qri/lib"
 )
 
 func TestValidateComplete(t *testing.T) {
@@ -24,7 +26,6 @@ func TestValidateComplete(t *testing.T) {
 		expect         string
 		err            string
 	}{
-		{[]string{}, "", "", "", "you need to provide a dataset name or a supply the --data and --schema flags with file paths\n"},
 		{[]string{}, "filepath", "schemafilepath", "", ""},
 		{[]string{"test"}, "", "", "test", ""},
 		{[]string{"foo", "bar"}, "", "", "foo", ""},
@@ -49,9 +50,48 @@ func TestValidateComplete(t *testing.T) {
 			ioReset(in, out, errs)
 			continue
 		}
+
+		if opt.DatasetRequests == nil {
+			t.Errorf("case %d, opt.DatasetRequests not set.", i)
+			ioReset(in, out, errs)
+			continue
+		}
 		ioReset(in, out, errs)
 	}
 
+}
+
+// jesus this name
+func TestValidateValidate(t *testing.T) {
+	cases := []struct {
+		ref, filePath, schemaFilePath, url, err, errMsg string
+	}{
+		{"", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
+		{"", "", "", "url", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
+		{"me/ref", "", "", "", "", ""},
+		{"", "file/path", "schema/path", "", "", ""},
+		{"me/ref", "file/path", "schema/path", "", "", ""},
+	}
+	for i, c := range cases {
+		opt := &ValidateOptions{
+			Ref:            c.ref,
+			Filepath:       c.filePath,
+			SchemaFilepath: c.schemaFilePath,
+			URL:            c.url,
+		}
+
+		err := opt.Validate()
+		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+			t.Errorf("case %d, mismatched error. Expected: %s, Got: %s", i, c.err, err)
+			continue
+		}
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.errMsg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: %s, Got: %s", i, c.errMsg, libErr.Message())
+				continue
+			}
+		}
+	}
 }
 
 func TestValidateRun(t *testing.T) {
@@ -71,13 +111,14 @@ func TestValidateRun(t *testing.T) {
 		url            string
 		expected       string
 		err            string
+		errMsg         string
 	}{
-		{"peer/movies", "", "", "", movieOutput, ""},
-		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},
-		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/filepath: no such file or directory"},
-		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/schema_filepath: no such file or directory"},
-		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", ""},
-		// TOD0: pull from url
+		{"peer/movies", "", "", "", movieOutput, "", ""},
+		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
+		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/filepath: no such file or directory", "error opening body file: could not open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/filepath: no such file or directory"},
+		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/schema_filepath: no such file or directory", "error opening schema file: could not open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/schema_filepath: no such file or directory"},
+		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
+		// TODO: pull from url
 	}
 
 	for i, c := range cases {
@@ -101,6 +142,14 @@ func TestValidateRun(t *testing.T) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
 			ioReset(in, out, errs)
 			continue
+		}
+
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.errMsg {
+				t.Errorf("case %d, mismatched user-friendly error. Expected: '%s', Got: '%v'", i, c.errMsg, libErr.Message())
+				ioReset(in, out, errs)
+				continue
+			}
 		}
 
 		if c.expected != out.String() {
