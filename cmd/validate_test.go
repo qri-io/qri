@@ -1,8 +1,8 @@
 package cmd
 
 import (
-	"bytes"
-	// "io/ioutil"
+	"path"
+	"runtime"
 	"testing"
 
 	"github.com/qri-io/qri/lib"
@@ -104,6 +104,12 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
+	path, ok := currentPath()
+	if !ok {
+		t.Errorf("error getting path to current folder")
+		return
+	}
+
 	cases := []struct {
 		ref            string
 		filePath       string
@@ -115,8 +121,8 @@ func TestValidateRun(t *testing.T) {
 	}{
 		{"peer/movies", "", "", "", movieOutput, "", ""},
 		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
-		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/filepath: no such file or directory", "error opening body file: could not open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/filepath: no such file or directory"},
-		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/schema_filepath: no such file or directory", "error opening schema file: could not open /Users/ramfox/go/src/github.com/qri-io/qri/cmd/bad/schema_filepath: no such file or directory"},
+		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
+		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open " + path + "/bad/schema_filepath: no such file or directory", "error opening schema file: could not open " + path + "/bad/schema_filepath: no such file or directory"},
 		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
 		// TODO: pull from url
 	}
@@ -157,14 +163,9 @@ func TestValidateRun(t *testing.T) {
 			ioReset(in, out, errs)
 			continue
 		}
+
 		ioReset(in, out, errs)
 	}
-}
-
-func ioReset(in, out, errs *bytes.Buffer) {
-	in.Reset()
-	out.Reset()
-	errs.Reset()
 }
 
 var movieOutput = `0: /4/1: "" type should be integer
@@ -183,3 +184,11 @@ var movieOutput = `0: /4/1: "" type should be integer
 13: /4948/1: "" type should be integer
 14: /4989/1: "" type should be integer
 `
+
+func currentPath() (string, bool) {
+	_, filename, _, ok := runtime.Caller(1)
+	if !ok {
+		return "", ok
+	}
+	return path.Dir(filename), true
+}

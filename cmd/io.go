@@ -39,3 +39,11 @@ func NewTestIOStreamsDiscard() IOStreams {
 		ErrOut: ioutil.Discard,
 	}
 }
+
+// ioReset resets the in, out, errs buffers
+// convenience function used in testing
+func ioReset(in, out, errs *bytes.Buffer) {
+	in.Reset()
+	out.Reset()
+	errs.Reset()
+}
