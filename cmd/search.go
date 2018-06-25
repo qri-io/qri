@@ -19,9 +19,10 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "network",
 		},
-		Args: cobra.MinimumNArgs(1),
+		Args: cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Validate())
 			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
@@ -45,9 +46,19 @@ type SearchOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
-	o.Query = args[0]
+	if len(args) != 0 {
+		o.Query = args[0]
+	}
 	o.SearchRequests, err = f.SearchRequests()
 	return
+}
+
+// Validate checks that any user inputs are valid
+func (o *SearchOptions) Validate() error {
+	if o.Query == "" {
+		return lib.NewError(ErrBadArgs, "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information")
+	}
+	return nil
 }
 
 // Run executes the search command
