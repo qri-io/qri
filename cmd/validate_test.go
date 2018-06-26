@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"path"
-	"runtime"
 	"testing"
 
 	"github.com/qri-io/qri/lib"
@@ -191,11 +189,3 @@ var movieOutput = `0: /4/1: "" type should be integer
 13: /4948/1: "" type should be integer
 14: /4989/1: "" type should be integer
 `
-
-func currentPath() (string, bool) {
-	_, filename, _, ok := runtime.Caller(1)
-	if !ok {
-		return "", ok
-	}
-	return path.Dir(filename), true
-}
