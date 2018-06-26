@@ -64,7 +64,7 @@ func TestValidateComplete(t *testing.T) {
 // jesus this name
 func TestValidateValidate(t *testing.T) {
 	cases := []struct {
-		ref, filePath, schemaFilePath, url, err, errMsg string
+		ref, filePath, schemaFilePath, url, err, msg string
 	}{
 		{"", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
 		{"", "", "", "url", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
@@ -86,10 +86,13 @@ func TestValidateValidate(t *testing.T) {
 			continue
 		}
 		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.errMsg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: %s, Got: %s", i, c.errMsg, libErr.Message())
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
 			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			continue
 		}
 	}
 }
@@ -117,7 +120,7 @@ func TestValidateRun(t *testing.T) {
 		url            string
 		expected       string
 		err            string
-		errMsg         string
+		msg            string
 	}{
 		{"peer/movies", "", "", "", movieOutput, "", ""},
 		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
@@ -151,11 +154,15 @@ func TestValidateRun(t *testing.T) {
 		}
 
 		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.errMsg {
-				t.Errorf("case %d, mismatched user-friendly error. Expected: '%s', Got: '%v'", i, c.errMsg, libErr.Message())
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				ioReset(in, out, errs)
 				continue
 			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			ioReset(in, out, errs)
+			continue
 		}
 
 		if c.expected != out.String() {

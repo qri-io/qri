@@ -56,9 +56,9 @@ func TestSearchComplete(t *testing.T) {
 
 func TestSearchValidate(t *testing.T) {
 	cases := []struct {
-		query  string
-		err    string
-		errMsg string
+		query string
+		err   string
+		msg   string
 	}{
 		{"test", "", ""},
 		{"", ErrBadArgs.Error(), "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information"},
@@ -74,10 +74,13 @@ func TestSearchValidate(t *testing.T) {
 			continue
 		}
 		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.errMsg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: %s, Got: %s", i, c.errMsg, libErr.Message())
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
 			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			continue
 		}
 	}
 }

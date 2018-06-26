@@ -88,6 +88,9 @@ func TestUseValidate(t *testing.T) {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
 			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			continue
 		}
 	}
 }
