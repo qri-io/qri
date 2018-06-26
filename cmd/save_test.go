@@ -2,7 +2,9 @@ package cmd
 
 import (
 	"testing"
+	"time"
 
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -93,68 +95,92 @@ func TestSaveValidate(t *testing.T) {
 	}
 }
 
-// func TestSaveRun(t *testing.T) {
-//  streams, in, out, errs := NewTestIOStreams()
-//  setNoColor(true)
-//  setNoPrompt(true)
+func TestSaveRun(t *testing.T) {
+	streams, in, out, errs := NewTestIOStreams()
+	setNoColor(true)
+	setNoPrompt(true)
 
-//  f, err := NewTestFactory()
-//  if err != nil {
-//    t.Errorf("error creating new test factory: %s", err)
-//    return
-//  }
+	// in order to have consistent responses
+	// we need to artificially specify the timestamp
+	// we use the dsfs.Timestamp func variable to override
+	// the actual time
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-//  cases := []struct {
-//    ref        string
-//    filepath   string
-//    bodypath   string
-//    title      string
-//    message    string
-//    noRegistry bool
-//    secrets    []string
-//  }{
-//    {""},
-//  }
+	f, err := NewTestFactory()
+	if err != nil {
+		t.Errorf("error creating new test factory: %s", err)
+		return
+	}
 
-//  for i, c := range cases {
-//    dsr, err := f.DatasetRequests()
-//    if err != nil {
-//      t.Errorf("case %d, error creating dataset request: %s", i, err)
-//      continue
-//    }
+	_, ok := currentPath()
+	if !ok {
+		t.Errorf("error getting path to current folder")
+		return
+	}
 
-//    opt := &SaveOptions{
-//      IOStreams:       streams,
-//      Ref:             c.ref,
-//      FilePath:        c.filepath,
-//      BodyPath:        c.bodypath,
-//      Title:           c.title,
-//      Message:         c.message,
-//      NoRegistry:      c.noRegistry,
-//      Secrets:         c.secrets,
-//      DatasetRequests: dsr,
-//    }
+	cases := []struct {
+		ref        string
+		filepath   string
+		bodypath   string
+		title      string
+		message    string
+		noRegistry bool
+		expect     string
+		err        string
+		msg        string
+	}{
+		{"me/bad_dataset", "", "", "", "", false, "", "error getting previous dataset: repo: not found", ""},
+		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
+		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "reading body file: open bad/bodypath.csv: no such file or directory", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcQxYfLwwAzkbHcFRGFGQbvawSB2u2vKnS3eqEe9vBdUj\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmZ5r5S1pdeJJQxz1CT8dzhjNUYV5Q6T2oLV5SUJpp6yaM\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, "", "error saving: no changes detected", ""},
+	}
 
-//    err = opt.Run()
-//    if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-//      t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-//      ioReset(in, out, errs)
-//      continue
-//    }
+	for i, c := range cases {
+		dsr, err := f.DatasetRequests()
+		if err != nil {
+			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			continue
+		}
 
-//    if libErr, ok := err.(lib.Error); ok {
-//      if libErr.Message() != c.msg {
-//        t.Errorf("case %d, mismatched user-friendly error. Expected: '%s', Got: '%v'", i, c.msg, libErr.Message())
-//        ioReset(in, out, errs)
-//        continue
-//      }
-//    }
+		opt := &SaveOptions{
+			IOStreams:       streams,
+			Ref:             c.ref,
+			FilePath:        c.filepath,
+			BodyPath:        c.bodypath,
+			Title:           c.title,
+			Message:         c.message,
+			NoRegistry:      c.noRegistry,
+			DatasetRequests: dsr,
+		}
 
-//    if c.expected != out.String() {
-//      t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-//      ioReset(in, out, errs)
-//      continue
-//    }
-//    ioReset(in, out, errs)
-//  }
-// }
+		err = opt.Run()
+		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			ioReset(in, out, errs)
+			continue
+		}
+
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				ioReset(in, out, errs)
+				continue
+			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			ioReset(in, out, errs)
+			continue
+		}
+
+		if c.expect != out.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expect, out.String())
+			ioReset(in, out, errs)
+			continue
+		}
+		ioReset(in, out, errs)
+	}
+}
