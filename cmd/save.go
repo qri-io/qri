@@ -43,6 +43,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 		},
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Validate())
 			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
@@ -51,7 +52,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for save")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for save")
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
-	cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
+	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
 
@@ -86,15 +87,22 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Validate checks that all user input is valid
+func (o *SaveOptions) Validate() error {
+	if o.Ref == "" {
+		return lib.NewError(ErrBadArgs, "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info")
+	}
+	if o.FilePath == "" && o.BodyPath == "" {
+		return lib.NewError(ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
+	}
+	return nil
+}
+
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
-	if o.Ref == "" && o.FilePath == "" {
-		return fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername")
-	}
-
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
-		return err
+		return lib.NewError(ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
 	dsp := &dataset.DatasetPod{}
@@ -120,14 +128,8 @@ func (o *SaveOptions) Run() (err error) {
 		}
 	}
 
-	if ref.Name != "" {
-		dsp.Name = ref.Name
-	}
-	if ref.Peername != "" {
-		dsp.Peername = ref.Peername
-	} else if dsp.Peername == "" {
-		dsp.Peername = "me"
-	}
+	dsp.Name = ref.Name
+	dsp.Peername = ref.Peername
 
 	if (o.Title != "" || o.Message != "") && dsp.Commit == nil {
 		dsp.Commit = &dataset.CommitPod{}
