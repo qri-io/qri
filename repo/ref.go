@@ -177,15 +177,16 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 
 	} else {
 
-		var peername, datasetname, pid bool
+		var hasFirst, hasSecond, hasPid bool
+		var first, second string
 		toks := strings.Split(ref, "/")
 
 		for i, tok := range toks {
 			if isBase58Multihash(tok) {
 				// first hash we encounter is a peerID
-				if !pid {
+				if !hasPid {
 					dsr.ProfileID, _ = profile.IDB58Decode(tok)
-					pid = true
+					hasPid = true
 					continue
 				}
 
@@ -197,20 +198,27 @@ func ParseDatasetRef(ref string) (DatasetRef, error) {
 				break
 			}
 
-			if !peername {
-				dsr.Peername = tok
-				peername = true
+			if !hasFirst {
+				first = tok
+				hasFirst = true
 				continue
 			}
 
-			if !datasetname {
-				dsr.Name = tok
-				datasetname = true
+			if !hasSecond {
+				second = tok
+				hasSecond = true
 				continue
 			}
 
 			dsr.Path = strings.Join(toks[i:], "/")
 			break
+		}
+
+		if hasFirst && !hasSecond {
+			dsr.Name = first
+		} else if hasFirst && hasSecond {
+			dsr.Peername = first
+			dsr.Name = second
 		}
 	}
 

@@ -90,6 +90,10 @@ func TestParseDatasetRef(t *testing.T) {
 		Name:     "datasetname",
 	}
 
+	justNameDatasetRef := DatasetRef{
+		Name:     "datasetname",
+	}
+
 	peerIDDatasetRef := DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 	}
@@ -142,7 +146,7 @@ func TestParseDatasetRef(t *testing.T) {
 	}{
 		{"", DatasetRef{}, "cannot parse empty string as dataset reference"},
 		{"peername/", peernameDatasetRef, ""},
-		{"peername", peernameDatasetRef, ""},
+		{"datasetname", justNameDatasetRef, ""},
 
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/", peerIDDatasetRef, ""},
 		{"/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", peerIDDatasetRef, ""},
@@ -160,7 +164,7 @@ func TestParseDatasetRef(t *testing.T) {
 		{"peername/datasetname@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", fullDatasetRef, ""},
 
 		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
-		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""}, // 15
+		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
 		{"/datasetname/@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullIPFSDatasetRef, ""},
 		{"/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", idFullDatasetRef, ""},
 
@@ -170,23 +174,7 @@ func TestParseDatasetRef(t *testing.T) {
 
 		{"peername/datasetname/@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullDatasetRef, ""},
 		{"peername/datasetname/@/ipfs/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-
-		// TODO - restore. These have been removed b/c I didn't have time to make dem work properly - @b5
-		// {"peername/datasetname@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		// {"peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", fullIPFSDatasetRef, ""},
-		// {"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
-		// {"@network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
-		// {"@/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
-		// {"@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D96w1L5qAhUM5Y/junk/junk/...", ipfsOnlyDatasetRef, ""},
-
-		// {"peername/datasetname@network/bad_hash", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('network'"}),
-		// {"peername/datasetname@bad_hash/junk/junk..", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
-		// {"peername/datasetname@bad_hash", DatasetRef{}, "invalid ProfileID: profile.IDB58MustDecode('bad_hash'"}),
-
-		// {"@///*(*)/", DatasetRef{}, "malformed DatasetRef string: @///*(*)/"},
-		// {"///*(*)/", DatasetRef{}, "malformed DatasetRef string: ///*(*)/"},
-		// {"@", DatasetRef{}, ""},
-		// {"///@////", DatasetRef{}, ""},
+		{"@/network/QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/junk/junk/...", pathOnlyDatasetRef, ""},
 	}
 
 	for i, c := range cases {
@@ -410,8 +398,8 @@ func TestCanonicalizeProfile(t *testing.T) {
 		expect          DatasetRef
 		err             string
 	}{
-		{"me", DatasetRef{}, lucille, ""},
-		{"lucille", DatasetRef{}, lucille, ""},
+		{"me/", DatasetRef{}, lucille, ""},
+		{"lucille/", DatasetRef{}, lucille, ""},
 		{"QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, lucille, ""},
 		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
 		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", DatasetRef{}, ball, ""},
