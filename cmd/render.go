@@ -23,9 +23,9 @@ func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Validate())
 			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
@@ -55,9 +55,19 @@ type RenderOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref = args[0]
+	if len(args) > 0 {
+		o.Ref = args[0]
+	}
 	o.RenderRequests, err = f.RenderRequests()
 	return
+}
+
+// Validate checks that all user input is valid
+func (o *RenderOptions) Validate() error {
+	if o.Ref == "" {
+		return lib.NewError(ErrBadArgs, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
+	}
+	return nil
 }
 
 // Run executes the render command
