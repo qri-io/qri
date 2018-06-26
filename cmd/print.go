@@ -34,6 +34,8 @@ const (
 	yottabyte
 )
 
+var noPrompt = false
+
 // ErrBadArgs is a new error for when a user provides bad arguments
 var ErrBadArgs = errors.New("bad arguments provided")
 
@@ -42,6 +44,10 @@ var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
 func setNoColor(noColor bool) {
 	color.NoColor = noColor
+}
+
+func setNoPrompt(np bool) {
+	noPrompt = np
 }
 
 func printSuccess(w io.Writer, msg string, params ...interface{}) {
@@ -73,11 +79,11 @@ func printByteInfo(l int) string {
 	switch {
 	// yottabyte and zettabyte overflow int
 	// case l > yottabyte:
-	// 	length.name = "YB"
-	// 	length.value = l / yottabyte
+	//  length.name = "YB"
+	//  length.value = l / yottabyte
 	// case l > zettabyte:
-	// 	length.name = "ZB"
-	// 	length.value = l / zettabyte
+	//  length.name = "ZB"
+	//  length.value = l / zettabyte
 	case l >= exabyte:
 		length.name = "EB"
 		length.value = l / exabyte
@@ -238,9 +244,9 @@ func inputText(w io.Writer, r io.Reader, message, defaultText string) string {
 }
 
 func confirm(w io.Writer, r io.Reader, message string, def bool) bool {
-	// if noPrompt {
-	// 	return def
-	// }
+	if noPrompt {
+		return def
+	}
 
 	yellow := color.New(color.FgYellow).SprintFunc()
 	defaultText := "y/N"
