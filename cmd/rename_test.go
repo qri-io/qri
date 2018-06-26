@@ -1,0 +1,146 @@
+package cmd
+
+import (
+	"testing"
+
+	"github.com/qri-io/qri/lib"
+)
+
+func TestRenameComplete(t *testing.T) {
+	streams, in, out, errs := NewTestIOStreams()
+	setNoColor(true)
+
+	f, err := NewTestFactory()
+	if err != nil {
+		t.Errorf("error creating new test factory: %s", err)
+		return
+	}
+
+	cases := []struct {
+		args       []string
+		expectFrom string
+		expectTo   string
+		err        string
+	}{
+		{[]string{}, "", "", ""},
+		{[]string{"me/from"}, "", "", ""},
+		{[]string{"me/from", "me/to"}, "me/from", "me/to", ""},
+	}
+
+	for i, c := range cases {
+		opt := &RenameOptions{
+			IOStreams: streams,
+		}
+
+		opt.Complete(f, c.args)
+
+		if c.err != errs.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
+			ioReset(in, out, errs)
+			continue
+		}
+
+		if c.expectFrom != opt.From {
+			t.Errorf("case %d, opt.From not set correctly. Expected: '%s', Got: '%s'", i, c.expectFrom, opt.From)
+			ioReset(in, out, errs)
+			continue
+		}
+
+		if c.expectTo != opt.To {
+			t.Errorf("case %d, opt.From not set correctly. Expected: '%s', Got: '%s'", i, c.expectTo, opt.To)
+			ioReset(in, out, errs)
+			continue
+		}
+
+		if opt.DatasetRequests == nil {
+			t.Errorf("case %d, opt.DatasetRequests not set.", i)
+			ioReset(in, out, errs)
+			continue
+		}
+		ioReset(in, out, errs)
+	}
+}
+
+func TestRenameValidate(t *testing.T) {
+	cases := []struct {
+		from string
+		to   string
+		err  string
+		msg  string
+	}{
+		{"", "", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"me/from", "", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"", "me/to", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"me/from", "me/to", "", ""},
+	}
+	for i, c := range cases {
+		opt := &RenameOptions{
+			From: c.from,
+			To:   c.to,
+		}
+
+		err := opt.Validate()
+		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+			t.Errorf("case %d, mismatched error. Expected: %s, Got: %s", i, c.err, err)
+			continue
+		}
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				continue
+			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			continue
+		}
+	}
+}
+
+// func TestRenameRun(t *testing.T) {
+// 	streams, in, out, errs := NewTestIOStreams()
+// 	setNoColor(true)
+
+// 	f, err := NewTestFactory()
+// 	if err != nil {
+// 		t.Errorf("error creating new test factory: %s", err)
+// 		return
+// 	}
+
+// 	cases := []struct{}{}
+
+// 	for i, c := range cases {
+// 		slr, err := f.RenameRequests()
+// 		if err != nil {
+// 			t.Errorf("case %d, error creating dataset request: %s", i, err)
+// 			continue
+// 		}
+
+// 		opt := &RenameOptions{}
+
+// 		err = opt.Run()
+// 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+// 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+// 			ioReset(in, out, errs)
+// 			continue
+// 		}
+
+// 		if libErr, ok := err.(lib.Error); ok {
+// 			if libErr.Message() != c.msg {
+// 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+// 				ioReset(in, out, errs)
+// 				continue
+// 			}
+// 		} else if c.msg != "" {
+// 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+// 			ioReset(in, out, errs)
+// 			continue
+// 		}
+
+// 		if c.expected != out.String() {
+// 			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
+// 			ioReset(in, out, errs)
+// 			continue
+// 		}
+// 		ioReset(in, out, errs)
+// 	}
+// }
