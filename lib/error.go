@@ -1,6 +1,6 @@
 package lib
 
-// Error wraps an error and satisfies the error interface.
+// Error wraps an error and satisfies the error interface
 // It couples more developer focused errors with more
 // user-friendly errors. If a msg exists, you can send an
 // e.Message() to the user, rather than the standard error

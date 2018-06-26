@@ -19,7 +19,6 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "network",
 		},
-		Args: cobra.MinimumNArgs(0),
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.ErrOut, o.Complete(f, args))
 			ExitIfErr(o.ErrOut, o.Validate())

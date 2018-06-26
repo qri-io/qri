@@ -36,7 +36,7 @@ const (
 
 var noPrompt = false
 
-// ErrBadArgs is a new error for when a user provides bad arguments
+// ErrBadArgs is a custom error for when a user provides bad arguments
 var ErrBadArgs = errors.New("bad arguments provided")
 
 // var printPrompt = color.New(color.FgWhite).PrintfFunc()
