@@ -86,7 +86,7 @@ func parseSecrets(secrets ...string) (map[string]string, error) {
 
 // parseCmdLineDatasetRef parses DatasetRefs, assuming peer "me" if none given.
 func parseCmdLineDatasetRef(ref string) (repo.DatasetRef, error) {
-	if strings.Index(ref, "@") == -1 && strings.Index(ref, "/") == -1 {
+	if !strings.ContainsAny(ref, "@/") {
 		ref = "me/" + ref
 	}
 	return repo.ParseDatasetRef(ref)

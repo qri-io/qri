@@ -92,7 +92,7 @@ func (o *SaveOptions) Run() (err error) {
 		return fmt.Errorf("please provide the name of an existing dataset to save updates to, or specify a dataset --file with name and peername")
 	}
 
-	ref, err := repo.ParseDatasetRef(o.Ref)
+	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
 		return err
 	}
