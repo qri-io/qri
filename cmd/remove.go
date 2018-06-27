@@ -57,12 +57,16 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Validate checks that all user input is valid
+func (o *RemoveOptions) Validate() error {
+	if len(o.Args) == 0 {
+		return lib.NewError(ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
+	}
+	return nil
+}
+
 // Run executes the remove command
 func (o *RemoveOptions) Run() error {
-	if len(o.Args) == 0 {
-		return fmt.Errorf("please specify a dataset path or name to get the info of")
-	}
-
 	for _, arg := range o.Args {
 		ref, err := parseCmdLineDatasetRef(arg)
 		if err != nil {
@@ -71,9 +75,12 @@ func (o *RemoveOptions) Run() error {
 
 		res := false
 		if err = o.DatasetRequests.Remove(&ref, &res); err != nil {
+			if err.Error() == "repo: not found" {
+				return lib.NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", ref.Peername, ref.Name))
+			}
 			return err
 		}
-		printSuccess(o.Out, "removed dataset %s", ref)
+		printSuccess(o.Out, "removed dataset '%s'", ref)
 	}
 	return nil
 }
