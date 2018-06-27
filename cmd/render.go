@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -74,6 +75,11 @@ func (o *RenderOptions) Validate() error {
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
 
+	ref, err := repo.ParseDatasetRef(o.Ref)
+	if err != nil {
+		return err
+	}
+
 	if o.Template != "" {
 		template, err = ioutil.ReadFile(o.Template)
 		if err != nil {
@@ -82,7 +88,7 @@ func (o *RenderOptions) Run() (err error) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            o.Ref,
+		Ref:            ref,
 		Template:       template,
 		TemplateFormat: "html",
 		All:            o.All,

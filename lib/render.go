@@ -41,7 +41,7 @@ func (RenderRequests) CoreRequestsName() string { return "render" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
-	Ref            string
+	Ref            repo.DatasetRef
 	Template       []byte
 	TemplateFormat string
 	All            bool
@@ -54,24 +54,25 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		return r.cli.Call("RenderRequests.Render", p, res)
 	}
 
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil {
+	if err := DefaultSelectedRef(r.repo, &p.Ref); err != nil {
 		return err
 	}
 
-	if err := DefaultSelectedRef(r.repo, &ref); err != nil {
-		return err
-	}
-
-	err = repo.CanonicalizeDatasetRef(r.repo, &ref)
+	err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
 	if err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
+	ref, err := r.repo.GetRef(p.Ref)
+	if err != nil {
+		log.Debug(err.Error())
+		return NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", p.Ref.Peername, p.Ref.Name))
+	}
+
 	store := r.repo.Store()
 
-	if p.Template == nil && Config.Render != nil && Config.Render.DefaultTemplateHash != "" {
+	if p.Template == nil && Config != nil && Config.Render != nil && Config.Render.DefaultTemplateHash != "" {
 		log.Debugf("using default hash: %s", Config.Render.DefaultTemplateHash)
 		var rdr io.Reader
 		file, err := store.Get(datastore.NewKey(Config.Render.DefaultTemplateHash))

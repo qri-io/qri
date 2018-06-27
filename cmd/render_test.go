@@ -85,51 +85,73 @@ func TestRenderValidate(t *testing.T) {
 	}
 }
 
-// func TestRenderRun(t *testing.T) {
-// 	streams, in, out, errs := NewTestIOStreams()
-// 	setNoColor(true)
+func TestRenderRun(t *testing.T) {
+	streams, in, out, errs := NewTestIOStreams()
+	setNoColor(true)
 
-// 	f, err := NewTestFactory()
-// 	if err != nil {
-// 		t.Errorf("error creating new test factory: %s", err)
-// 		return
-// 	}
+	f, err := NewTestFactory()
+	if err != nil {
+		t.Errorf("error creating new test factory: %s", err)
+		return
+	}
 
-// 	cases := []struct{}{}
+	cases := []struct {
+		ref      string
+		template string
+		output   string
+		all      bool
+		limit    int
+		offset   int
+		expected string
+		err      string
+		msg      string
+	}{
+		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
+		{"peer/cities", "", "", false, 10, 0, "", "", ""},
+	}
 
-// 	for i, c := range cases {
-// 		slr, err := f.RenderRequests()
-// 		if err != nil {
-// 			t.Errorf("case %d, error creating dataset request: %s", i, err)
-// 			continue
-// 		}
+	for i, c := range cases {
+		rr, err := f.RenderRequests()
+		if err != nil {
+			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			continue
+		}
 
-// 		opt := &RenderOptions{}
+		opt := &RenderOptions{
+			IOStreams:      streams,
+			Ref:            c.ref,
+			Template:       c.template,
+			Output:         c.output,
+			All:            c.all,
+			Limit:          c.limit,
+			Offset:         c.offset,
+			RenderRequests: rr,
+		}
 
-// 		err = opt.Run()
-// 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-// 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
+		err = opt.Run()
+		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			ioReset(in, out, errs)
+			continue
+		}
 
-// 		if libErr, ok := err.(lib.Error); ok {
-// 			if libErr.Message() != c.msg {
-// 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-// 				ioReset(in, out, errs)
-// 				continue
-// 			}
-// 		} else if c.msg != "" {
-// 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				ioReset(in, out, errs)
+				continue
+			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			ioReset(in, out, errs)
+			continue
+		}
 
-// 		if c.expected != out.String() {
-// 			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
-// 		ioReset(in, out, errs)
-// 	}
-// }
+		if c.expected != out.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
+			ioReset(in, out, errs)
+			continue
+		}
+		ioReset(in, out, errs)
+	}
+}
