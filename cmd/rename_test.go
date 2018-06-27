@@ -96,51 +96,68 @@ func TestRenameValidate(t *testing.T) {
 	}
 }
 
-// func TestRenameRun(t *testing.T) {
-// 	streams, in, out, errs := NewTestIOStreams()
-// 	setNoColor(true)
+func TestRenameRun(t *testing.T) {
+	streams, in, out, errs := NewTestIOStreams()
+	setNoColor(true)
 
-// 	f, err := NewTestFactory()
-// 	if err != nil {
-// 		t.Errorf("error creating new test factory: %s", err)
-// 		return
-// 	}
+	f, err := NewTestFactory()
+	if err != nil {
+		t.Errorf("error creating new test factory: %s", err)
+		return
+	}
 
-// 	cases := []struct{}{}
+	cases := []struct {
+		from     string
+		to       string
+		expected string
+		err      string
+		msg      string
+	}{
+		{"", "", "", "cannot parse empty string as dataset reference", ""},
+		{"me/from", "", "", "cannot parse empty string as dataset reference", ""},
+		{"", "me/to", "", "cannot parse empty string as dataset reference", ""},
+		{"me/bad_name", "me/bad_name_too", "", "error getting dataset: repo: not found", ""},
+		{"me/cities", "me/cities_too", "renamed dataset cities_too\n", "", ""},
+	}
 
-// 	for i, c := range cases {
-// 		slr, err := f.RenameRequests()
-// 		if err != nil {
-// 			t.Errorf("case %d, error creating dataset request: %s", i, err)
-// 			continue
-// 		}
+	for i, c := range cases {
+		dsr, err := f.DatasetRequests()
+		if err != nil {
+			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			continue
+		}
 
-// 		opt := &RenameOptions{}
+		opt := &RenameOptions{
+			IOStreams:       streams,
+			From:            c.from,
+			To:              c.to,
+			DatasetRequests: dsr,
+		}
 
-// 		err = opt.Run()
-// 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-// 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
+		err = opt.Run()
+		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
+			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			ioReset(in, out, errs)
+			continue
+		}
 
-// 		if libErr, ok := err.(lib.Error); ok {
-// 			if libErr.Message() != c.msg {
-// 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-// 				ioReset(in, out, errs)
-// 				continue
-// 			}
-// 		} else if c.msg != "" {
-// 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
+		if libErr, ok := err.(lib.Error); ok {
+			if libErr.Message() != c.msg {
+				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				ioReset(in, out, errs)
+				continue
+			}
+		} else if c.msg != "" {
+			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			ioReset(in, out, errs)
+			continue
+		}
 
-// 		if c.expected != out.String() {
-// 			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-// 			ioReset(in, out, errs)
-// 			continue
-// 		}
-// 		ioReset(in, out, errs)
-// 	}
-// }
+		if c.expected != out.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
+			ioReset(in, out, errs)
+			continue
+		}
+		ioReset(in, out, errs)
+	}
+}
