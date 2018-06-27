@@ -107,7 +107,7 @@ func TestRenderRun(t *testing.T) {
 		msg      string
 	}{
 		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{"peer/cities", "", "", false, 10, 0, "", "", ""},
+		// {"peer/cities", "", "", false, 10, 0, "", "", ""},
 	}
 
 	for i, c := range cases {

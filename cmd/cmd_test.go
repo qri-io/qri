@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/qri-io/qri/config"
 	regmock "github.com/qri-io/registry/regserver/mock"
@@ -180,6 +181,7 @@ func TestCommandsIntegration(t *testing.T) {
 				}
 			}()
 			_, err := executeCommand(root, command)
+			time.Sleep(100 * time.Millisecond)
 			if err != nil {
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, err.Error())
 				return
