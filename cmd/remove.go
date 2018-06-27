@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -65,7 +64,7 @@ func (o *RemoveOptions) Run() error {
 	}
 
 	for _, arg := range o.Args {
-		ref, err := repo.ParseDatasetRef(arg)
+		ref, err := parseCmdLineDatasetRef(arg)
 		if err != nil {
 			return err
 		}

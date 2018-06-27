@@ -40,10 +40,10 @@ Once you’ve added data, you can use the export command to pull the data out of
 qri, change the data outside of qri, and use the save command to record those 
 changes to qri.`,
 		Example: `  add a new dataset named annual_pop:
-  $ qri add --data data.csv me/annual_pop
+  $ qri add --body data.csv me/annual_pop
 
 create a dataset with a dataset data file:
-  $ qri add --file dataset.yaml --data comics.csv me/comic_characters`,
+  $ qri add --file dataset.yaml --body comics.csv me/comic_characters`,
 		Run: func(cmd *cobra.Command, args []string) {
 			ExitIfErr(o.Complete(f))
 			ExitIfErr(o.Run(args))
@@ -97,12 +97,12 @@ func (o *AddOptions) Run(args []string) error {
 		if len(args) == 1 {
 			arg = args[0]
 		}
-		ref, _ := repo.ParseDatasetRef(arg)
+		ref, _ := parseCmdLineDatasetRef(arg)
 		return o.InitDataset(ref)
 	}
 
 	for _, arg := range args {
-		ref, err := repo.ParseDatasetRef(arg)
+		ref, err := parseCmdLineDatasetRef(arg)
 		if err != nil {
 			return err
 		}
@@ -146,7 +146,7 @@ func (o *AddOptions) InitDataset(name repo.DatasetRef) error {
 		}
 	}
 
-	if name.Peername != "" {
+	if name.Name != "" {
 		dsp.Name = name.Name
 	}
 	if name.Peername != "" {

@@ -4,6 +4,9 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
+
+	"github.com/qri-io/qri/repo"
 )
 
 // Execute adds all child commands to the root command sets flags appropriately.
@@ -79,4 +82,12 @@ func parseSecrets(secrets ...string) (map[string]string, error) {
 		s[secrets[i]] = secrets[i+1]
 	}
 	return s, nil
+}
+
+// parseCmdLineDatasetRef parses DatasetRefs, assuming peer "me" if none given.
+func parseCmdLineDatasetRef(ref string) (repo.DatasetRef, error) {
+	if !strings.ContainsAny(ref, "@/") {
+		ref = "me/" + ref
+	}
+	return repo.ParseDatasetRef(ref)
 }
