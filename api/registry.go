@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
@@ -25,9 +26,9 @@ func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Reques
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
-	case "GET":
-		// get status of dataset, is it published or not
-		h.checkRegistryHandler(w, r)
+	// case "GET":
+	// 	// get status of dataset, is it published or not
+	// 	h.statusRegistryHandler(w, r)
 	case "POST", "PUT":
 		// publish a dataset to the registry
 		h.publishRegistryHandler(w, r)
@@ -39,14 +40,47 @@ func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-func (h *RegistryHandlers) checkRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteResponse(w, "check registry handler response")
+func (h *RegistryHandlers) statusRegistryHandler(w http.ResponseWriter, r *http.Request) {
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	var res bool
+	if err := h.RegistryRequests.Status(&ref, &res); err != nil {
+		util.WriteResponse(w, fmt.Sprintf("error getting status from registry: %s", err))
+		return
+	}
+
+	util.WriteResponse(w, fmt.Sprintf("dataset %s is published to the registry", ref))
 }
 
 func (h *RegistryHandlers) publishRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteResponse(w, "publish registry handler response")
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	var res bool
+	if err = h.RegistryRequests.Publish(&ref, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, fmt.Sprintf("published dataset %s", ref))
 }
 
 func (h *RegistryHandlers) unpublishRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteResponse(w, "unpublish registry handler response")
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	var res bool
+	if err = h.RegistryRequests.Unpublish(&ref, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, fmt.Sprintf("unpublished dataset %s", ref))
 }

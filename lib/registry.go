@@ -108,3 +108,11 @@ func (r *RegistryRequests) Unpublish(ref *repo.DatasetRef, done *bool) error {
 	}
 	return r.repo.Unpublish(*ref)
 }
+
+// Status checks if a dataset has been published to a registry
+func (r *RegistryRequests) Status(ref *repo.DatasetRef, done *bool) error {
+	if r.cli != nil {
+		return r.cli.Call("RegistryRequests.Status", ref, done)
+	}
+	return r.repo.Status(*ref)
+}
