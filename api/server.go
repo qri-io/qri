@@ -260,6 +260,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	hh.HistoryRequests.Node = s.qriNode
 	m.Handle("/history/", s.middleware(hh.LogHandler))
 
+	rgh := NewRegistryHandlers(s.qriNode.Repo)
+	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
+
 	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
