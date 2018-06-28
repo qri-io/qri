@@ -33,9 +33,9 @@ func (sr SearchRequests) CoreRequestsName() string { return "search" }
 
 // SearchParams defines paremeters for the search Method
 type SearchParams struct {
-	QueryString string
-	Limit       int
-	Offset      int
+	QueryString string `json:"q"`
+	Limit       int    `json:"limit,omitempty"`
+	Offset      int    `json:"offset,omitempty"`
 }
 
 // SearchResult struct
