@@ -81,7 +81,7 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 	qriPath := f.QriRepoPath()
 
 	if o.Setup && !QRIRepoInitialized(qriPath) {
-		so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true}
+		so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true, Registry: o.Registry}
 		if err = so.Complete(f, args); err != nil {
 			return err
 		}

@@ -213,7 +213,11 @@ func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewRegistryRequests(o.repo, o.rpc), nil
+	req := lib.NewRegistryRequests(o.repo, o.rpc)
+	if o.node != nil {
+		req.SetQriNode(o.node)
+	}
+	return req, nil
 }
 
 // HistoryRequests generates a lib.HistoryRequests from internal state

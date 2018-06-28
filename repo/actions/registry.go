@@ -27,6 +27,7 @@ func (act Registry) Publish(ref repo.DatasetRef) (err error) {
 	if err = act.permission(ref); err != nil {
 		return
 	}
+
 	return cli.PutDataset(ref.Peername, ref.Name, ds.Encode(), pub)
 }
 
@@ -40,6 +41,37 @@ func (act Registry) Unpublish(ref repo.DatasetRef) (err error) {
 		return
 	}
 	return cli.DeleteDataset(ref.Peername, ref.Name, ds.Encode(), pub)
+}
+
+// Pin requests a dataset be pinned to the designated registry
+func (act Registry) Pin(ref repo.DatasetRef, addrs []string) (err error) {
+	cli, _, ds, err := act.dsParams(&ref)
+	if err != nil {
+		return err
+	}
+	if err = act.permission(ref); err != nil {
+		return
+	}
+
+	// TODO - better test for this
+	if ds.Structure.Length > 1000000*250 {
+		return fmt.Errorf("dataset size exceeds 250Mb limit for pinning")
+	}
+
+	return cli.Pin(ref.Path, act.Repo.PrivateKey(), addrs)
+}
+
+// Unpin removes a pin from the remote registry
+func (act Registry) Unpin(ref repo.DatasetRef, addrs []string) (err error) {
+	var cli *regclient.Client
+	if cli, _, _, err = act.dsParams(&ref); err != nil {
+		return err
+	}
+	if err = act.permission(ref); err != nil {
+		return
+	}
+
+	return cli.Unpin(ref.Path, act.Repo.PrivateKey())
 }
 
 // dsParams is a convenience func that collects params for registry dataset interaction

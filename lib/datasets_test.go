@@ -47,7 +47,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		w.Write([]byte(`\\\{"json":"data"}`))
 	}))
 
-	rc, _ := regmock.NewMockServer()
+	rc, _ := regmock.NewMockServerWithMemPinset()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())

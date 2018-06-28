@@ -4,12 +4,16 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/actions"
+	"github.com/qri-io/registry"
 )
 
 // RegistryRequests defines business logic for working with registries
 type RegistryRequests struct {
+	node *p2p.QriNode
 	repo actions.Registry
 	cli  *rpc.Client
 }
@@ -30,12 +34,65 @@ func NewRegistryRequests(r repo.Repo, cli *rpc.Client) *RegistryRequests {
 	}
 }
 
+// SetQriNode assigns the unexported qri node pointer
+func (r *RegistryRequests) SetQriNode(node *p2p.QriNode) {
+	r.node = node
+}
+
+// PublishParams encapsulates arguments to the publish method
+type PublishParams struct {
+	Ref repo.DatasetRef
+	Pin bool
+}
+
 // Publish a dataset to a registry
-func (r *RegistryRequests) Publish(ref *repo.DatasetRef, done *bool) error {
+func (r *RegistryRequests) Publish(p *PublishParams, done *bool) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RegistryRequests.Publish", ref, done)
+		return r.cli.Call("RegistryRequests.Publish", p, done)
 	}
-	return r.repo.Publish(*ref)
+
+	ref := p.Ref
+
+	if p.Pin {
+		log.Info("pinning dataset...")
+		node := r.node
+
+		if node == nil {
+			// if we don't have an online node, create one and connect
+			node, err = p2p.NewQriNode(r.repo.Repo, func(c *config.P2P) {
+				*c = *Config.P2P
+				c.Enabled = true
+			})
+			if err != nil {
+				return err
+			}
+
+			if err := node.StartOnlineServices(func(string) {}); err != nil {
+				return err
+			}
+		} else if !node.Online {
+			if err := node.StartOnlineServices(func(string) {}); err != nil {
+				return err
+			}
+		}
+
+		var addrs []string
+		for _, maddr := range node.EncapsulatedAddresses() {
+			addrs = append(addrs, maddr.String())
+		}
+
+		if err = r.repo.Pin(ref, addrs); err != nil {
+			if err == registry.ErrPinsetNotSupported {
+				log.Info("this registry does not support pinning, dataset not pinned.")
+			} else {
+				return err
+			}
+		} else {
+			log.Info("done")
+		}
+	}
+
+	return r.repo.Publish(ref)
 }
 
 // Unpublish a dataset from a registry

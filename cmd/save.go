@@ -54,7 +54,7 @@ collaboration are in the works. Sit tight sportsfans.`,
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
 	// cmd.Flags().BoolVarP(&o.ShowValidation, "show-validation", "s", false, "display a list of validation errors upon adding")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "n", false, "don't publish this dataset to the registry")
+	cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
 
 	return cmd
 }
@@ -71,7 +71,7 @@ type SaveOptions struct {
 	Passive        bool
 	Rescursive     bool
 	ShowValidation bool
-	NoRegistry     bool
+	Publish        bool
 	Secrets        []string
 
 	DatasetRequests *lib.DatasetRequests
@@ -161,7 +161,7 @@ continue?`, true) {
 	p := &lib.SaveParams{
 		Dataset: dsp,
 		Private: false,
-		Publish: !o.NoRegistry,
+		Publish: o.Publish,
 	}
 
 	res := &repo.DatasetRef{}
