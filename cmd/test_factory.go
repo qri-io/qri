@@ -39,13 +39,15 @@ func NewTestFactory() (tf TestFactory, err error) {
 		return
 	}
 
+	cfg := config.DefaultConfig()
+
 	return TestFactory{
 		qriRepoPath: "",
 		ipfsFsPath:  "",
 
 		repo:   repo,
 		rpc:    nil,
-		config: nil,
+		config: cfg,
 		node:   nil,
 	}, nil
 }

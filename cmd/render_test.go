@@ -3,6 +3,7 @@ package cmd
 import (
 	"testing"
 
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -95,6 +96,32 @@ func TestRenderRun(t *testing.T) {
 		return
 	}
 
+	templateFile := cafs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
+
+	repo, err := f.Repo()
+	if err != nil {
+		t.Errorf("error getting repo from factory: %s", err)
+		return
+	}
+
+	key, err := repo.Store().Put(templateFile, false)
+	if err != nil {
+		t.Errorf("error putting template into store: %s", err)
+		return
+	}
+
+	cfg, err := f.Config()
+	if err != nil {
+		t.Errorf("error getting config from factory: %s", err)
+		return
+	}
+
+	if err := cfg.Set("render.defaultTemplateHash", key.String()); err != nil {
+		t.Errorf("error setting default template in config: %s", err)
+		return
+	}
+	lib.Config = cfg
+
 	cases := []struct {
 		ref      string
 		template string
@@ -107,7 +134,9 @@ func TestRenderRun(t *testing.T) {
 		msg      string
 	}{
 		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		// {"peer/cities", "", "", false, 10, 0, "", "", ""},
+		{"peer/cities", "", "", false, 10, 0, "<html><h2>peer/cities</h2></html>", "", ""},
+		{"peer/cities", "testdata/template.html", "", false, 2, 0, "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
+		{"peer/cities", "testdata/template.html", "", false, 1, 2, "<html><h2>peer/cities</h2><tbody><tr><td>chicago</td><td>300000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
 	}
 
 	for i, c := range cases {
