@@ -51,8 +51,8 @@ PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
 		Args: cobra.MaximumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f))
-			ExitIfErr(o.Get(args))
+			ExitIfErr(o.ErrOut, o.Complete(f))
+			ExitIfErr(o.ErrOut, o.Get(args))
 		},
 	}
 
@@ -60,8 +60,8 @@ Anyone with your private keys can impersonate you on qri.`,
 		Use:   "set",
 		Short: "Set a configuration option",
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f))
-			ExitIfErr(o.Set(args))
+			ExitIfErr(o.ErrOut, o.Complete(f))
+			ExitIfErr(o.ErrOut, o.Set(args))
 		},
 	}
 
@@ -139,7 +139,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		var value interface{}
 		path := strings.ToLower(args[i])
 		if ip[path] {
-			ErrExit(fmt.Errorf("cannot set path %s", path))
+			ErrExit(o.ErrOut, fmt.Errorf("cannot set path %s", path))
 		}
 
 		if photoPaths[path] {

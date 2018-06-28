@@ -1,0 +1,16 @@
+{
+  "items": {
+    "items": [
+      {
+        "title": "english",
+        "type": "string"
+      },
+      {
+        "title": "spanish",
+        "type": "string"
+      }
+    ],
+    "type": "array"
+  },
+  "type": "array"
+}

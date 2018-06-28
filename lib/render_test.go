@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"testing"
 
+	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -53,14 +54,52 @@ func TestRenderRequestsRender(t *testing.T) {
 		expect []byte
 		err    string
 	}{
-		{&RenderParams{}, nil, "cannot parse empty string as dataset reference"},
-		{&RenderParams{Ref: "foo/invalid_ref"}, nil, "error fetching peer from store: profile: not found"},
-		{&RenderParams{Ref: "me/movies", Template: []byte("{{ .Meta.Title }}")}, []byte("example movie data"), ""},
-		{&RenderParams{Ref: "me/movies", Template: []byte("{{ .BadTemplateBooPlzFail }}")}, nil, `template: template:1:3: executing "template" at <.BadTemplateBooPlzFa...>: can't evaluate field BadTemplateBooPlzFail in type *dataset.DatasetPod`},
-		{&RenderParams{Ref: "me/movies", Template: []byte("{{ .BadTemplateBooPlzFail")}, nil, `parsing template: template: template:1: unclosed action`},
-		{&RenderParams{Ref: "me/movies"}, []byte("<html><h1>peer/movies</h1></html>"), ""},
-		{&RenderParams{Ref: "me/sitemap"}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
-		{&RenderParams{Ref: "me/sitemap", Limit: 4, Offset: 4}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
+		{&RenderParams{}, nil, "repo: not found"},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "foo",
+				Name:     "invalid_ref",
+			},
+		}, nil, "error fetching peer from store: profile: not found"},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "movies",
+			},
+			Template: []byte("{{ .Meta.Title }}"),
+		}, []byte("example movie data"), ""},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "movies",
+			},
+			Template: []byte("{{ .BadTemplateBooPlzFail }}"),
+		}, nil, `template: template:1:3: executing "template" at <.BadTemplateBooPlzFa...>: can't evaluate field BadTemplateBooPlzFail in type *dataset.DatasetPod`},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "movies",
+			},
+			Template: []byte("{{ .BadTemplateBooPlzFail"),
+		}, nil, `parsing template: template: template:1: unclosed action`},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "movies",
+			},
+		}, []byte("<html><h1>peer/movies</h1></html>"), ""},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "sitemap",
+			},
+		}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
+		{&RenderParams{
+			Ref: repo.DatasetRef{
+				Peername: "me",
+				Name:     "sitemap",
+			},
+		}, []byte("<html><h1>peer/sitemap</h1></html>"), ""},
 	}
 
 	tr, err := testrepo.NewTestRepo(nil)

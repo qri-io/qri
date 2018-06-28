@@ -34,8 +34,8 @@ format is yaml.`,
   $ qri peers info b5 --format json`,
 		Args: cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Info())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Info())
 		},
 	}
 
@@ -55,8 +55,8 @@ command in the background or in another terminal window.
   $ qri peers list --cached`,
 		Aliases: []string{"ls"},
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.List())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.List())
 		},
 	}
 
@@ -65,8 +65,8 @@ command in the background or in another terminal window.
 		Short: "connect to a peer",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Connect())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Connect())
 		},
 	}
 
@@ -75,8 +75,8 @@ command in the background or in another terminal window.
 		Short: "explicitly close a connection to a peer",
 		Args:  cobra.MinimumNArgs(1),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Disconnect())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Disconnect())
 		},
 	}
 

@@ -27,12 +27,9 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			"group": "dataset",
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			if o.Clear == false && o.List == false && len(args) == 0 {
-				err := cmd.Help()
-				ExitIfErr(err)
-			}
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Validate())
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 
@@ -58,6 +55,17 @@ func (o *UseOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
 	o.SelectionRequests, err = f.SelectionRequests()
 	return
+}
+
+// Validate checks that any user input is valide
+func (o *UseOptions) Validate() error {
+	if o.Clear == false && o.List == false && len(o.Refs) == 0 {
+		return lib.NewError(ErrBadArgs, "please provide dataset name, or --clear flag, or --list flag\nsee `qri use --help` for more info")
+	}
+	if o.Clear == true && o.List == true || o.Clear == true && len(o.Refs) != 0 || o.List == true && len(o.Refs) != 0 {
+		return lib.NewError(ErrBadArgs, "please only give a dataset name, or a --clear flag, or  a --list flag")
+	}
+	return nil
 }
 
 // Run executes the search command

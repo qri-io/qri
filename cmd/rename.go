@@ -26,10 +26,9 @@ renames to a minimum.`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.MinimumNArgs(2),
 		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.Complete(f, args))
-			ExitIfErr(o.Run())
+			ExitIfErr(o.ErrOut, o.Complete(f, args))
+			ExitIfErr(o.ErrOut, o.Run())
 		},
 	}
 
@@ -48,10 +47,20 @@ type RenameOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenameOptions) Complete(f Factory, args []string) (err error) {
-	o.From = args[0]
-	o.To = args[1]
+	if len(args) == 2 {
+		o.From = args[0]
+		o.To = args[1]
+	}
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
+}
+
+// Validate checks that all user input is valid
+func (o *RenameOptions) Validate() error {
+	if o.From == "" || o.To == "" {
+		return lib.NewError(ErrBadArgs, "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details")
+	}
+	return nil
 }
 
 // Run executes the rename command
