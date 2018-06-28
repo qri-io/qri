@@ -6,11 +6,8 @@ import (
 	"os"
 	"path"
 	"path/filepath"
-<<<<<<< HEAD
-	"strings"
-=======
 	"runtime"
->>>>>>> refactor(cmd/cmd): move `currentPath` func from validate_test.go to cmd.go
+	"strings"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/lib"
