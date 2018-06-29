@@ -105,7 +105,6 @@ func TestCommandsIntegration(t *testing.T) {
 	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	fmt.Println(path)
 	t.Logf("test filepath: %s", path)
 
 	//clean up if previous cleanup failed
