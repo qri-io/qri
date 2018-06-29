@@ -27,7 +27,7 @@ func NewRootHandler(dsh *DatasetHandlers, ph *PeerHandlers) *RootHandler {
 func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	ref := DatasetRefFromCtx(r.Context())
 	if ref.IsEmpty() {
-		util.HealthCheckHandler(w, r)
+		HealthCheckHandler(w, r)
 		return
 	}
 

@@ -1,11 +1,9 @@
 package cmd
 
 import (
+	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
-
-// VersionNumber is the current version qri
-const VersionNumber = "0.5.0"
 
 // NewVersionCommand creates a new `qri version` cobra command that prints the current qri version
 func NewVersionCommand(_ Factory, ioStreams IOStreams) *cobra.Command {
@@ -18,7 +16,7 @@ For updates & further information check https://github.com/qri-io/qri/releases`,
 			"group": "other",
 		},
 		Run: func(cmd *cobra.Command, args []string) {
-			printInfo(ioStreams.Out, VersionNumber)
+			printInfo(ioStreams.Out, lib.VersionNumber)
 		},
 	}
 	return cmd
