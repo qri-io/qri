@@ -31,6 +31,8 @@ var (
 	ErrRepoEmpty = fmt.Errorf("repo: this repo contains no datasets")
 	// ErrNotPinner is for when the repo doesn't have the concept of pinning as a feature
 	ErrNotPinner = fmt.Errorf("repo: backing store doesn't support pinning")
+	// ErrNoRegistry indicates no regsitry is currently configured
+	ErrNoRegistry = fmt.Errorf("no configured registry")
 )
 
 // Repo is the interface for working with a qri repository qri repos are stored

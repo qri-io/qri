@@ -533,7 +533,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, secrets, true)
 	if err != nil {
-		log.Errorf("create ds error: %s\n", err.Error())
+		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
 	ref.Dataset = ds.Encode()

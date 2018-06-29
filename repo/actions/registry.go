@@ -77,7 +77,7 @@ func (act Registry) Unpin(ref repo.DatasetRef, addrs []string) (err error) {
 // dsParams is a convenience func that collects params for registry dataset interaction
 func (act Registry) dsParams(ref *repo.DatasetRef) (cli *regclient.Client, pub crypto.PubKey, ds *dataset.Dataset, err error) {
 	if cli = act.Registry(); cli == nil {
-		err = fmt.Errorf("no configured registry")
+		err = repo.ErrNoRegistry
 		return
 	}
 

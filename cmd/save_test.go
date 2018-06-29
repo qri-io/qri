@@ -6,13 +6,14 @@ import (
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/registry/regserver/mock"
 )
 
 func TestSaveComplete(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory()
+	f, err := NewTestFactory(nil)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -108,11 +109,16 @@ func TestSaveRun(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	f, err := NewTestFactory()
+	c, _ := mock.NewMockServerWithMemPinset()
+
+	f, err := NewTestFactory(c)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
 	}
+
+	// TODO - this is bad
+	lib.Config = f.config
 
 	_, ok := currentPath()
 	if !ok {
@@ -121,15 +127,15 @@ func TestSaveRun(t *testing.T) {
 	}
 
 	cases := []struct {
-		ref        string
-		filepath   string
-		bodypath   string
-		title      string
-		message    string
-		noRegistry bool
-		expect     string
-		err        string
-		msg        string
+		ref      string
+		filepath string
+		bodypath string
+		title    string
+		message  string
+		publish  bool
+		expect   string
+		err      string
+		msg      string
 	}{
 		{"me/bad_dataset", "", "", "", "", false, "", "error getting previous dataset: repo: not found", ""},
 		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
@@ -153,7 +159,7 @@ func TestSaveRun(t *testing.T) {
 			BodyPath:        c.bodypath,
 			Title:           c.title,
 			Message:         c.message,
-			NoRegistry:      c.noRegistry,
+			Publish:         c.publish,
 			DatasetRequests: dsr,
 		}
 
