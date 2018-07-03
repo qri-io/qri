@@ -12,6 +12,11 @@ import (
 	"github.com/qri-io/registry/regclient"
 )
 
+// MaxDatasetSize is the maximum size a dataset body can be
+// before it cannot be uploaded to a registry
+// TODO - this should be dictated by registries
+const MaxDatasetSize = 1000000 * 250
+
 // Registry wraps a repo.Repo, adding actions related to working
 // with registries
 type Registry struct {
@@ -54,7 +59,7 @@ func (act Registry) Pin(ref repo.DatasetRef, addrs []string) (err error) {
 	}
 
 	// TODO - better test for this
-	if ds.Structure.Length > 1000000*250 {
+	if ds.Structure.Length > MaxDatasetSize {
 		return fmt.Errorf("dataset size exceeds 250Mb limit for pinning")
 	}
 
