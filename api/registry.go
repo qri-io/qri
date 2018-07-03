@@ -62,7 +62,11 @@ func (h *RegistryHandlers) publishRegistryHandler(w http.ResponseWriter, r *http
 		return
 	}
 	var res bool
-	if err = h.RegistryRequests.Publish(&ref, &res); err != nil {
+	p := &lib.PublishParams{
+		Ref: ref,
+		Pin: true,
+	}
+	if err = h.RegistryRequests.Publish(p, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

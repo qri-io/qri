@@ -25,7 +25,7 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
-	case "GET", "POST":
+	case "GET":
 		h.searchHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)

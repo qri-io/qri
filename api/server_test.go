@@ -135,6 +135,13 @@ func TestServerRoutes(t *testing.T) {
 		{"POST", "/remove/me/cities/at/map/QmWB9YPNVRhNJoRLziAfNN3s9DoZDbgZR1j3kUxdrRgQ8L", "", "removeResponseWithPath.json", 200},
 		{"POST", "/remove/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "removeResponseByPath.json", 200},
 
+		// publish
+		{"DELETE", "/registry/me/counter", "", "unpublishResponse.json", 200},
+		{"POST", "/registry/me/counter", "", "publishResponse.json", 200},
+
+		// search
+		{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
+
 		// {"GET", "/connect/", "", "", 400},
 
 		// // blatently checking all options for easy test coverage bump
@@ -216,6 +223,10 @@ func TestServerRoutes(t *testing.T) {
 				// t.Errorf("case %d: %s - %s response body mismatch.", i, c.method, c.endpoint)
 				// TODO - this is spitting out _very_ large reponses on fail
 				t.Errorf("case %d: %s - %s response body mismatch.", i, c.method, c.endpoint)
+
+				if c.endpoint == "/search" {
+					fmt.Println(string(gotBody))
+				}
 
 				dirpath := filepath.Join(os.TempDir(), "qri-io/qri/api", "TestServerRoutes")
 				if err := os.MkdirAll(dirpath, os.ModePerm); err != nil {
@@ -308,6 +319,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"POST", "/diff", 403},
 		{"GET", "/diff", 403},
 		{"GET", "/body/", 403},
+		{"POST", "/registry/", 403},
 
 		// active endpoints:
 		{"GET", "/status", 200},
