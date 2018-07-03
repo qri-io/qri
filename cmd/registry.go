@@ -96,7 +96,12 @@ func (o *RegistryOptions) Publish() error {
 			return err
 		}
 
-		if err = o.RegistryRequests.Publish(&ref, &res); err != nil {
+		p := &lib.PublishParams{
+			Ref: ref,
+			Pin: true,
+		}
+
+		if err = o.RegistryRequests.Publish(p, &res); err != nil {
 			return err
 		}
 		printInfo(o.Out, "published dataset %s", ref)

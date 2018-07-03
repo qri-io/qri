@@ -49,9 +49,13 @@ func (sr *SearchRequests) Search(p *SearchParams, results *[]SearchResult) error
 	if sr.cli != nil {
 		return sr.cli.Call("SearchRequests.Search", p, results)
 	}
-	reg := sr.repo.Registry()
 	if p == nil {
 		return fmt.Errorf("error: search params cannot be nil")
+	}
+
+	reg := sr.repo.Registry()
+	if reg == nil {
+		return repo.ErrNoRegistry
 	}
 	params := &regclient.SearchParams{p.QueryString, nil, p.Limit, p.Offset}
 

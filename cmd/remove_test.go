@@ -12,7 +12,7 @@ func TestRemoveComplete(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory()
+	f, err := NewTestFactory(nil)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -99,7 +99,7 @@ func TestRemoveRun(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	f, err := NewTestFactory()
+	f, err := NewTestFactory(nil)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

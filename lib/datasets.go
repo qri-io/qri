@@ -422,7 +422,8 @@ func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if p.Publish {
 		// fmt.Println("posting dataset to registry ...")
 		var done bool
-		if err = NewRegistryRequests(r.repo, nil).Publish(res, &done); err != nil {
+
+		if err = NewRegistryRequests(r.repo, nil).Publish(&PublishParams{Ref: *res, Pin: true}, &done); err != nil {
 			return err
 		}
 		// fmt.Println("done")
@@ -532,7 +533,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, secrets, true)
 	if err != nil {
-		log.Errorf("create ds error: %s\n", err.Error())
+		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
 	ref.Dataset = ds.Encode()
@@ -540,7 +541,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if p.Publish {
 		fmt.Println("posting dataset to registry ...")
 		var done bool
-		if err = NewRegistryRequests(r.repo, nil).Publish(&ref, &done); err != nil {
+		if err = NewRegistryRequests(r.repo.Repo, nil).Publish(&PublishParams{Ref: ref, Pin: true}, &done); err != nil {
 			return err
 		}
 		fmt.Println("done")

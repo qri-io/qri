@@ -109,7 +109,9 @@ func TestCommandsIntegration(t *testing.T) {
 
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.RemoveAll(path)
+		if err := os.RemoveAll(path); err != nil {
+			t.Fatalf("failed to cleanup from previous test execution: %s", err.Error())
+		}
 	}
 	if err := os.MkdirAll(path, os.ModePerm); err != nil {
 		t.Errorf("error creating test path: %s", err.Error())
