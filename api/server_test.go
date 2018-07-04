@@ -364,6 +364,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 }
 
 func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Client) {
+
 	cases := []struct {
 		method         string
 		endpoint       string
@@ -378,7 +379,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 		},
 		{"POST", "/add", "testdata/addResponsePrivate.json", 500,
 			map[string]string{
-				"file":      "testdata/cities/data.csv",
+				"body":      "testdata/cities/data.csv",
 				"structure": "testdata/cities/structure.json",
 				"metadata":  "testdata/cities/meta.json",
 			},
@@ -390,9 +391,8 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 		},
 		{"POST", "/add", "testdata/addResponseFromFile.json", 200,
 			map[string]string{
-				"file":      "testdata/cities/data.csv",
-				"structure": "testdata/cities/structure.json",
-				"metadata":  "testdata/cities/meta.json",
+				"body": "testdata/cities/data.csv",
+				"file": "testdata/cities/init_dataset.json",
 			},
 			map[string]string{
 				"peername": "peer",
@@ -401,7 +401,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 		},
 		{"POST", "/save", "testdata/saveResponse.json", 200,
 			map[string]string{
-				"file": "testdata/cities/data_update.csv",
+				"body": "testdata/cities/data_update.csv",
 			},
 			map[string]string{
 				"peername": "peer",
@@ -444,7 +444,6 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 	}
 
 	for i, c := range cases {
-
 		expectBody, err := ioutil.ReadFile(c.expectBodyPath)
 		if err != nil {
 			t.Errorf("case add dataset from file, error reading expected response from file: %s", err)
@@ -469,8 +468,19 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 		}
 
 		if string(gotBody) != string(expectBody) {
-			// t.Errorf("testMimeMultipart case %d, %s - %s:\nresponse body mismatch. expected: %s, got %s", i, c.method, c.endpoint, string(expectBody), string(gotBody))
-			// t.Errorf("testMimeMultipart case %d, %s - %s:\nresponse body mismatch. expected: %s, got %s", i, c.method, c.endpoint, string(expectBody), string(gotBody))
+			t.Errorf("testMimeMultipart case %d, %s - %s:\nresponse body mismatch", i, c.method, c.endpoint)
+
+			dirpath := filepath.Join(os.TempDir(), "qri-io/qri/api", "TestServerRoutes")
+			if err := os.MkdirAll(dirpath+"/testdata", os.ModePerm); err != nil {
+				t.Logf("error creating test dirpath: %s", err.Error())
+				continue
+			}
+			path := filepath.Join(dirpath, c.expectBodyPath)
+			if err := ioutil.WriteFile(path, gotBody, os.ModePerm); err != nil {
+				t.Logf("error writing test file: %s", err.Error())
+				continue
+			}
+			t.Logf("error written to: %s", path)
 			continue
 		}
 

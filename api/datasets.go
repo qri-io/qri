@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/qri-io/qri/repo/profile"
 	"io"
+	"io/ioutil"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -350,28 +351,52 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 		}
 
 	default:
-		dsp = &dataset.DatasetPod{
-			Peername: r.FormValue("peername"),
-			Name:     r.FormValue("name"),
-			BodyPath: r.FormValue("body_path"),
-		}
-
-		infile, fileHeader, err := r.FormFile("file")
+		datafile, dataHeader, err := r.FormFile("file")
 		if err != nil && err != http.ErrMissingFile {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening data file: %s", err))
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening dataset file: %s", err))
 			return
 		}
-		if infile != nil {
-			path := filepath.Join(os.TempDir(), fileHeader.Filename)
+		if datafile != nil {
+			switch strings.ToLower(filepath.Ext(dataHeader.Filename)) {
+			case ".yaml", ".yml":
+				data, err := ioutil.ReadAll(datafile)
+				if err != nil {
+					util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error reading dataset file: %s", err))
+					return
+				}
+				if err = dsutil.UnmarshalYAMLDatasetPod(data, dsp); err != nil {
+					util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error unmarshaling yaml file: %s", err))
+					return
+				}
+			case ".json":
+				if err = json.NewDecoder(datafile).Decode(dsp); err != nil {
+					util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding json file: %s", err))
+					return
+				}
+			}
+		}
+
+		dsp.Peername = r.FormValue("peername")
+		dsp.Name = r.FormValue("name")
+		dsp.BodyPath = r.FormValue("body_path")
+
+		bodyfile, bodyHeader, err := r.FormFile("body")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening body file: %s", err))
+			return
+		}
+		if bodyfile != nil {
+			path := filepath.Join(os.TempDir(), bodyHeader.Filename)
 			f, err := os.Create(path)
 			if err != nil {
-				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("writing data file: %s", err.Error()))
+				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error writing body file: %s", err.Error()))
 			}
 			defer os.Remove(path)
-			io.Copy(f, infile)
+			io.Copy(f, bodyfile)
 			f.Close()
 			dsp.BodyPath = path
 		}
+
 	}
 
 	res := &repo.DatasetRef{}
