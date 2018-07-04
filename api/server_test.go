@@ -224,10 +224,6 @@ func TestServerRoutes(t *testing.T) {
 				// TODO - this is spitting out _very_ large reponses on fail
 				t.Errorf("case %d: %s - %s response body mismatch.", i, c.method, c.endpoint)
 
-				if c.endpoint == "/search" {
-					fmt.Println(string(gotBody))
-				}
-
 				dirpath := filepath.Join(os.TempDir(), "qri-io/qri/api", "TestServerRoutes")
 				if err := os.MkdirAll(dirpath, os.ModePerm); err != nil {
 					t.Logf("error creating test dirpath: %s", err.Error())
