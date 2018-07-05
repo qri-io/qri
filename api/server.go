@@ -217,11 +217,18 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 	apiutil.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("qri server is in read-only mode, access to '%s' endpoint is forbidden", endpoint))
 }
 
+// HealthCheckHandler is a basic ok response for load balancers & co
+// returns the version of qri this node is running, pulled from the lib package
+func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + lib.VersionNumber + `" }, "data": [] }`))
+}
+
 // NewServerRoutes returns a Muxer that has all API routes
 func NewServerRoutes(s *Server) *http.ServeMux {
 	m := http.NewServeMux()
 
-	m.Handle("/status", s.middleware(apiutil.HealthCheckHandler))
+	m.Handle("/status", s.middleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
@@ -259,6 +266,12 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	// TODO - stupid hack for now.
 	hh.HistoryRequests.Node = s.qriNode
 	m.Handle("/history/", s.middleware(hh.LogHandler))
+
+	rgh := NewRegistryHandlers(s.qriNode.Repo)
+	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
+
+	sh := NewSearchHandlers(s.qriNode.Repo)
+	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))

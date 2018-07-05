@@ -79,6 +79,21 @@ func (act Registry) Unpin(ref repo.DatasetRef, addrs []string) (err error) {
 	return cli.Unpin(ref.Path, act.Repo.PrivateKey())
 }
 
+// Status checks to see if a dataset is published to a repo's specific registry
+func (act Registry) Status(ref repo.DatasetRef) (err error) {
+	cli, _, _, err := act.dsParams(&ref)
+	if err != nil {
+		return err
+	}
+	if err = act.permission(ref); err != nil {
+		return err
+	}
+	if _, err := cli.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err != nil {
+		return err
+	}
+	return nil
+}
+
 // dsParams is a convenience func that collects params for registry dataset interaction
 func (act Registry) dsParams(ref *repo.DatasetRef) (cli *regclient.Client, pub crypto.PubKey, ds *dataset.Dataset, err error) {
 	if cli = act.Registry(); cli == nil {
