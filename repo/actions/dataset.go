@@ -31,6 +31,7 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 			Meta:      &dataset.Meta{},
 			Structure: &dataset.Structure{},
 			Transform: &dataset.Transform{},
+			Viz:       &dataset.Viz{},
 		}
 	)
 	pro, err = act.Profile()
@@ -54,6 +55,10 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		}
 		log.Info("done")
 		ds.Assign(userSet)
+	}
+
+	if err = act.PrepareViz(ds); err != nil {
+		return
 	}
 
 	path, err = dsfs.CreateDataset(act.Store(), ds, data, act.PrivateKey(), pin)

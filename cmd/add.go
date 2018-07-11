@@ -177,6 +177,14 @@ continue?`, true) {
 		}
 	}
 
+	if dsp.Viz != nil {
+		if dsp.Viz.ScriptPath != "" {
+			if dsp.Viz.ScriptPath, err = filepath.Abs(dsp.Viz.ScriptPath); err != nil {
+				return err
+			}
+		}
+	}
+
 	if dsp.Commit == nil && (o.Title != "" || o.Message != "") {
 		dsp.Commit = &dataset.CommitPod{}
 	}
