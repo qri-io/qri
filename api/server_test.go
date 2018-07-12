@@ -35,9 +35,9 @@ func confirmQriNotRunning() error {
 }
 
 func TestServerRoutes(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
+	//if err := confirmQriNotRunning(); err != nil {
+	//	t.Skip(err.Error())
+	//}
 
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
