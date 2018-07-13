@@ -46,6 +46,20 @@ func TestServerRoutes(t *testing.T) {
 	// use a test registry server & client
 	rc, registryServer := regmock.NewMockServer()
 
+	mockDataServer := httptest.NewUnstartedServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`Parent Identifier,Student Identifier
+1001,1002
+1010,1020
+`))
+	}))
+	l, err := net.Listen("tcp", ":55555")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	mockDataServer.Listener = l
+	mockDataServer.Start()
+	defer mockDataServer.Close()
+
 	// in order to have consistent responses
 	// we need to artificially specify the timestamp
 	// we use the dsfs.Timestamp func variable to override
@@ -111,8 +125,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -133,7 +147,7 @@ func TestServerRoutes(t *testing.T) {
 
 		// remove
 		{"POST", "/remove/me/cities/at/map/QmVU86zb7A6NvipimEJ7mQFu1jy2nk96o6f3uwHe92D8US", "", "removeResponseWithPath.json", 500},
-		{"POST", "/remove/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "removeResponseByPath.json", 200},
 
 		// publish
 		{"POST", "/registry/me/counter", "", "publishResponse.json", 200},
