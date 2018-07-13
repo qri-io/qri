@@ -136,15 +136,15 @@ func TestServerRoutes(t *testing.T) {
 		{"POST", "/remove/at/map/QmdMZVqUQGXxpLEQFZG6WBUooJGet1WME5LiV7n8AVkYrL", "", "removeResponseByPath.json", 200},
 
 		// publish
-		{"DELETE", "/registry/me/counter", "", "unpublishResponse.json", 200},
 		{"POST", "/registry/me/counter", "", "publishResponse.json", 200},
+		{"DELETE", "/registry/me/counter", "", "unpublishResponse.json", 200},
 
 		// search
 		{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
 
-		// {"GET", "/connect/", "", "", 400},
+		{"GET", "/connect/", "", "", 400},
 
-		// // blatently checking all options for easy test coverage bump
+		// blatently checking all options for easy test coverage bump
 		{"OPTIONS", "/add", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},
 		{"OPTIONS", "/profile", "", "", 200},

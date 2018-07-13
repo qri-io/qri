@@ -42,13 +42,11 @@ func Execute() {
 // ErrExit writes an error to the given io.Writer & exits
 func ErrExit(w io.Writer, err error) {
 	log.Debug(err.Error())
-	if e, ok := err.(lib.Error); ok {
-		if e.Message() != "" {
-			printErr(w, fmt.Errorf(e.Message()))
-			os.Exit(1)
-		}
-	}
-	printErr(w, err)
+	if e, ok := err.(lib.Error); ok && e.Message() != "" {
+		printErr(w, fmt.Errorf(e.Message()))
+	} else {
+    printErr(w, err)
+  }
 	os.Exit(1)
 }
 

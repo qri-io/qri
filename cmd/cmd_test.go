@@ -182,12 +182,14 @@ func TestCommandsIntegration(t *testing.T) {
 					return
 				}
 			}()
-			_, err := executeCommand(root, command)
-			time.Sleep(100 * time.Millisecond)
-			if err != nil {
-				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, err.Error())
+
+			_, er := executeCommand(root, command)
+			if er != nil {
+				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, er.Error())
 				return
 			}
+
+			time.Sleep(500 * time.Millisecond)
 		}()
 	}
 }
