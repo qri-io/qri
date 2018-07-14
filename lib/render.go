@@ -50,6 +50,9 @@ type RenderParams struct {
 
 // Render executes a template against a template
 func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
+	const tmplName = "template"
+	var rdr io.Reader
+
 	if r.cli != nil {
 		return r.cli.Call("RenderRequests.Render", p, res)
 	}
@@ -72,9 +75,28 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 
 	store := r.repo.Store()
 
-	if p.Template == nil && Config != nil && Config.Render != nil && Config.Render.DefaultTemplateHash != "" {
+	ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
+	if p.Template != nil {
+		rdr = bytes.NewBuffer(p.Template)
+	}
+
+	// TODO - hack for now. a subpackage of dataset should handle all of the below,
+	// and use a method to set the default template if one can be loaded from the web
+	if rdr == nil && ds.Viz != nil && ds.Viz.ScriptPath != "" {
+		f, err := store.Get(datastore.NewKey(ds.Viz.ScriptPath))
+		if err != nil {
+			return fmt.Errorf("loading template from store: %s", err.Error())
+		}
+		rdr = f
+	}
+
+	if rdr == nil && Config != nil && Config.Render != nil && Config.Render.DefaultTemplateHash != "" {
 		log.Debugf("using default hash: %s", Config.Render.DefaultTemplateHash)
-		var rdr io.Reader
 		file, err := store.Get(datastore.NewKey(Config.Render.DefaultTemplateHash))
 		if err != nil {
 			if strings.Contains(err.Error(), "not found") && Config.P2P != nil && Config.P2P.HTTPGatewayAddr != "" {
@@ -92,22 +114,16 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		} else {
 			rdr = file
 		}
-
-		p.Template, err = ioutil.ReadAll(rdr)
-		if err != nil {
-			return fmt.Errorf("reading template: %s", err.Error())
-		}
 	}
 
-	tmpl, err := template.New("template").Parse(string(p.Template))
+	tmplBytes, err := ioutil.ReadAll(rdr)
+	if err != nil {
+		return fmt.Errorf("reading template data: %s", err.Error())
+	}
+
+	tmpl, err := template.New(tmplName).Parse(string(tmplBytes))
 	if err != nil {
 		return fmt.Errorf("parsing template: %s", err.Error())
-	}
-
-	ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
-	if err != nil {
-		log.Debug(err.Error())
-		return err
 	}
 
 	file, err := dsfs.LoadBody(store, ds)

@@ -48,7 +48,8 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets 
 		return nil, fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
-	// TODO - adding here just to get the script path. clean up events to handle this situation
+	// TODO - adding here just to get the content-addressed script path for the event.
+  // clean up events to handle this situation
 	f, err := os.Open(filepath)
 	if err != nil {
 		return nil, err

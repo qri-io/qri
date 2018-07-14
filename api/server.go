@@ -262,6 +262,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 
+	renderh := NewRenderHandlers(s.qriNode.Repo)
+	m.Handle("/render/", s.middleware(renderh.RenderHandler))
+
 	hh := NewHistoryHandlers(s.qriNode.Repo)
 	// TODO - stupid hack for now.
 	hh.HistoryRequests.Node = s.qriNode

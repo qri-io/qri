@@ -98,7 +98,8 @@ func (o *RegistryOptions) Publish() error {
 
 		p := &lib.PublishParams{
 			Ref: ref,
-			Pin: true,
+			// TODO - re-enable once registry server is properly tested
+			// Pin: true,
 		}
 
 		if err = o.RegistryRequests.Publish(p, &res); err != nil {

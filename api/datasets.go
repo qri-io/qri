@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"github.com/qri-io/qri/repo/profile"
 	"io"
 	"io/ioutil"
 	"net/http"
@@ -18,6 +17,7 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc

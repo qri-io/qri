@@ -532,7 +532,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if ds.Structure != nil {
 		ds.Structure.SetPath("")
 	}
-	// ds.VisConfig.SetPath("")
+	// ds.Viz.SetPath("")
 
 	ref, err := r.repo.CreateDataset(dsp.Name, ds, dataFile, secrets, true)
 	if err != nil {
@@ -899,7 +899,7 @@ type DiffParams struct {
 	// override flag to diff full dataset without having to specify each component
 	DiffAll bool
 	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
-	// currently supported components include "structure", "data", "meta", "transform", and "visConfig"
+	// currently supported components include "structure", "data", "meta", "transform", and "viz"
 	DiffComponents map[string]bool
 }
 
@@ -974,13 +974,13 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 						}
 						diffMap[k] = metaDiffs
 					}
-				case "visConfig":
-					if dsLeft.VisConfig != nil && dsRight.VisConfig != nil {
-						visConfigDiffs, err := dsdiff.DiffVisConfig(dsLeft.VisConfig, dsRight.VisConfig)
+				case "viz":
+					if dsLeft.Viz != nil && dsRight.Viz != nil {
+						vizDiffs, err := dsdiff.DiffViz(dsLeft.Viz, dsRight.Viz)
 						if err != nil {
 							return fmt.Errorf("error diffing %s: %s", k, err.Error())
 						}
-						diffMap[k] = visConfigDiffs
+						diffMap[k] = vizDiffs
 					}
 				}
 			}
