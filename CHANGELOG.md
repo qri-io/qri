@@ -1,3 +1,36 @@
+<a name="0.5.1-rc1"></a>
+# [0.5.1-rc1](https://github.com/qri-io/qri/compare/v0.5.0...v0.5.1-rc1) (2018-07-14)
+
+0.5.1 is a release candidate to get a few important details out the door to demo at the wonderful _our networks_ conference in Toronto. we antipate further changes before cutting a proper 0.5.1 release, which we'll properly document. More soon!
+
+### Bug Fixes
+
+* **add:** Work-around for RPC error that breaks `qri add`. ([d9f7805](https://github.com/qri-io/qri/commit/d9f7805))
+* **cmd:** Assume "me" peername for save and remove as well. ([1ef627c](https://github.com/qri-io/qri/commit/1ef627c))
+* **cmd:** Wrap how DatasetRefs are parsed for better cmd behavior. ([62bf188](https://github.com/qri-io/qri/commit/62bf188))
+* **cmd/validate:** fix bug that did not give proper error message when command inputs were incorrect ([07b2d13](https://github.com/qri-io/qri/commit/07b2d13))
+* **render:** fix render template render priority ([dffdbb4](https://github.com/qri-io/qri/commit/dffdbb4))
+* **render:** restore render tests, small refactoring ([7735669](https://github.com/qri-io/qri/commit/7735669))
+
+
+### Features
+
+* **`/add`:** can now use dataset.yaml or .json file to add commit/meta/structure/etc info on add ([3cc1917](https://github.com/qri-io/qri/commit/3cc1917))
+* **api.Registry:** add groundwork for `/registry/` endpoint ([ec10ddd](https://github.com/qri-io/qri/commit/ec10ddd))
+* **api/registry, lib/registry, repo/registry:** finish publish and unpublish endpoints ([841bfb8](https://github.com/qri-io/qri/commit/841bfb8))
+* **api/search:** add `/search` endpoint back to api ([25635f1](https://github.com/qri-io/qri/commit/25635f1))
+* **api/server:** add RegistryHandler to server ([b675fdd](https://github.com/qri-io/qri/commit/b675fdd))
+* **api/server:** version added to `/status` response ([739671e](https://github.com/qri-io/qri/commit/739671e))
+* **cmd Validate:** `Validate` func for `validate` cmd ([b9e675b](https://github.com/qri-io/qri/commit/b9e675b))
+* **cmd/search:** Validate function to validate user input ([0593058](https://github.com/qri-io/qri/commit/0593058))
+* **lib.Error:** new type Error that satisfies the error interface ([207e314](https://github.com/qri-io/qri/commit/207e314))
+* **pin,unpin:** add registry actions for pinning and unpinning ([c67df8c](https://github.com/qri-io/qri/commit/c67df8c))
+* **TestFactory:** new struct TestFactory that can be used as factory when building tests on individual commands ([79446cd](https://github.com/qri-io/qri/commit/79446cd))
+* **useOptions.validate:** add `Validate` function to use command ([d831a51](https://github.com/qri-io/qri/commit/d831a51))
+* **viz:** add viz api endpoint, viz refactor ([b5a658e](https://github.com/qri-io/qri/commit/b5a658e))
+
+
+
 <a name="0.5.0"></a>
 # [0.5.0](https://github.com/qri-io/qri/compare/v0.4.0...v0.5.0) (2018-06-18)
 
