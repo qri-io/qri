@@ -35,9 +35,9 @@ func confirmQriNotRunning() error {
 }
 
 func TestServerRoutes(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
+	//if err := confirmQriNotRunning(); err != nil {
+	//	t.Skip(err.Error())
+	//}
 
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
@@ -156,7 +156,7 @@ func TestServerRoutes(t *testing.T) {
 		// search
 		// TODO(dlong): Disabled for now due to non-determinism between local runs vs
 		// circleci runs vs qri connect running vs not running.
-		//{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
+		{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 
