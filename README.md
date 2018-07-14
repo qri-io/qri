@@ -47,6 +47,14 @@ Once your GOPATH is set, run:
 $ go get github.com/qri-io/qri
 ```
 
+Alternatively, if you opt to clone the repository using `git`, be sure to clone it to a directory based on your GOPATH.
+
+```shell
+$ mkdir -p $GOPATH/src/github.com/qri-io
+$ cd $GOPATH/src/github.com/qri-io
+$ git clone git@github.com:qri-io/qri.git
+```
+
 Note - if you run into this error:
 
 ```shell
