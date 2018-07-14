@@ -75,6 +75,13 @@ $ make build
 $ go install
 ```
 
+If you cloned the repository directly, you may need to build the `qri` binary using the Go compiler directly (after
+running `make build`). This will result in the `qri` binary being built in the `qri` directory.
+
+```shell
+$ go build
+```
+
 The `make build` command will have a lot of output. That's good! Its means it's working :)
 
 It'll take a minute, but once everything's finished a new binary `qri` will appear in the `$GOPATH/bin` directory. You should be able to run:
