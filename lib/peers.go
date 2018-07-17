@@ -51,6 +51,9 @@ func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) error 
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
+	if d.qriNode == nil {
+		return fmt.Errorf("error: not connected, run `qri connect` in another window")
+	}
 
 	r := d.qriNode.Repo
 	user, err := r.Profile()

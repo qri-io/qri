@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/qri-io/qri/config"
@@ -9,6 +10,18 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
+
+func TestPeerRequestsListNoConnection(t *testing.T) {
+	req := NewPeerRequests(nil, nil)
+	p := PeerListParams{}
+	got := []*config.ProfilePod{}
+	err := req.List(&p, &got)
+	if err == nil {
+		t.Errorf("error: req.List should have failed and returned an error")
+	} else if !strings.HasPrefix(err.Error(), "error: not connected") {
+		t.Errorf("error: unexpected error message: %s", err.Error())
+	}
+}
 
 func TestPeerRequestsList(t *testing.T) {
 	cases := []struct {
