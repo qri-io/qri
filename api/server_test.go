@@ -154,9 +154,7 @@ func TestServerRoutes(t *testing.T) {
 		{"DELETE", "/registry/me/counter", "", "unpublishResponse.json", 200},
 
 		// search
-		// TODO(dlong): Disabled for now due to non-determinism between local runs vs
-		// circleci runs vs qri connect running vs not running.
-		//{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
+		{"GET", "/search", "searchRequest.json", "searchResponse.json", 200},
 
 		{"GET", "/connect/", "", "", 400},
 

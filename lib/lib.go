@@ -4,6 +4,7 @@
 package lib
 
 import (
+	"encoding/gob"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/p2p"
 )
@@ -18,6 +19,14 @@ type Requests interface {
 	// CoreRequestsName confirms participation in the CoreRequests interface while
 	// also giving a human readable string for logging purposes
 	CoreRequestsName() string
+}
+
+func init() {
+	// Fields like dataset.Structure.Schema contain data of arbitrary types,
+	// registering with the gob package prevents errors when sending them
+	// over net/rpc calls.
+	gob.Register([]interface{}{})
+	gob.Register(map[string]interface{}{})
 }
 
 // Receivers returns a slice of CoreRequests that defines the full local
