@@ -44,9 +44,6 @@ func (r *DatasetRequests) Repo() repo.Repo {
 // CoreRequestsName implements the Requets interface
 func (DatasetRequests) CoreRequestsName() string { return "datasets" }
 
-// ErrReadBodyEOF is an error message returned by net/rpc when it can't deserialize data
-const ErrReadBodyEOF = "reading body EOF"
-
 // NewDatasetRequests creates a DatasetRequests pointer from either a repo
 // or an rpc.Client
 func NewDatasetRequests(r repo.Repo, cli *rpc.Client) *DatasetRequests {
@@ -745,16 +742,7 @@ func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err e
 // Add adds an existing dataset to a peer's repository
 func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		err = r.cli.Call("DatasetRequests.Add", ref, res)
-		if err.Error() == ErrReadBodyEOF {
-			// This isn't actually an error, it just means that the response from
-			// the net/rpc client could not be unserialized. That it a separate problem
-			// that should be fixed, but it does not mean that the Add operation itself
-			// has failed.
-			log.Debug("ignoring EOF error")
-			err = nil
-		}
-		return
+		return r.cli.Call("DatasetRequests.Add", ref, res)
 	}
 
 	if err := repo.CanonicalizeDatasetRef(r.repo, ref); err != nil {
