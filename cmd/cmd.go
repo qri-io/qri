@@ -45,8 +45,8 @@ func ErrExit(w io.Writer, err error) {
 	if e, ok := err.(lib.Error); ok && e.Message() != "" {
 		printErr(w, fmt.Errorf(e.Message()))
 	} else {
-    printErr(w, err)
-  }
+		printErr(w, err)
+	}
 	os.Exit(1)
 }
 
