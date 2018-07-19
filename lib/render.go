@@ -6,11 +6,11 @@ import (
 	"html/template"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"net/rpc"
 	"strings"
 
 	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qri/repo"
@@ -95,25 +95,8 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 		rdr = f
 	}
 
-	if rdr == nil && Config != nil && Config.Render != nil && Config.Render.DefaultTemplateHash != "" {
-		log.Debugf("using default hash: %s", Config.Render.DefaultTemplateHash)
-		file, err := store.Get(datastore.NewKey(Config.Render.DefaultTemplateHash))
-		if err != nil {
-			if strings.Contains(err.Error(), "not found") && Config.P2P != nil && Config.P2P.HTTPGatewayAddr != "" {
-				log.Debugf("fetching %d from ipfs gateway", Config.Render.DefaultTemplateHash)
-				var res *http.Response
-				res, err = http.Get(fmt.Sprintf("%s%s", Config.P2P.HTTPGatewayAddr, Config.Render.DefaultTemplateHash))
-				if err != nil {
-					return err
-				}
-				defer res.Body.Close()
-				rdr = res.Body
-			} else {
-				return fmt.Errorf("loading default template: %s", err.Error())
-			}
-		} else {
-			rdr = file
-		}
+	if rdr == nil {
+		rdr = strings.NewReader(DefaultTemplate)
 	}
 
 	tmplBytes, err := ioutil.ReadAll(rdr)
@@ -176,6 +159,9 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	enc.Peername = ref.Peername
 	enc.ProfileID = ref.ProfileID.String()
 	enc.Name = ref.Name
+	if enc.Meta == nil {
+		enc.Meta = &dataset.Meta{}
+	}
 
 	if tlt == "object" {
 		enc.Body = obj
@@ -191,3 +177,53 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	*res = tmplBuf.Bytes()
 	return nil
 }
+
+// DefaultTemplate is the template that render will fall back to should no
+// template be available
+var DefaultTemplate = `<!DOCTYPE html>
+<html>
+<head>
+  <title>{{ .Peername }}/{{ .Name }}</title>
+  <style type="text/css">
+    html, body, .viewport { height: 100%; width: 100%; margin: 0; font-family: "avenir next", "avenir", sans-serif; font-size: 16px; }
+    body { display: flex; flex-direction: column; }
+    header { width: 100%; background: #0061A6; color: white; padding: 80px 0 40px 0; }
+    section { min-height: 450px; }
+    footer { width: 100%; background: #EBEBEB; padding: 40px 0 20px 0; margin-top: 40px; }
+    header, section, footer { width: 100%; flex: 1; }
+    label { display: block; font-weight: normal; color: #999; text-transform: uppercase; font-size: 14px; }
+    .content { margin: 0 auto; max-width: 600px; }
+    .stat { font-weight: bold; }
+    .ref { margin-top: 5px; }}
+    .path { color: #bebebe; }
+  </style>
+</head>
+<body class="viewport">
+  <header>
+    <div class="content">
+      <label style="color: white">Dataset</label>
+      <h4 class="ref">{{.Peername}}/{{ .Name }}</h4>
+      <h1>{{ .Meta.Title }}</h1>
+      <small class="path">{{ .Path }}</small>
+      <p>{{ .Meta.Description }}</p>
+    </div>
+  </header>
+  <section>
+    <div class="content">
+      <p class="stat"><label>updated:</label>{{ .Commit.Timestamp.Format "Mon, 02 Jan 2006" }}</p>
+      <p class="stat"><label>data format:</label>{{ .Structure.Format }}</p>
+      <p class="stat"><label>entry count:</label>{{ .Structure.Entries }}</p>
+      <p class="stat"><label>errors:</label>{{ .Structure.ErrCount }}</p>
+      <p class="stat"><label>commit title:</label>{{ .Commit.Title }}</p>
+    </div>
+  </section>
+  <footer>
+    <div class="content">
+      {{ if .Meta.License }}
+        <p>License: <a href="{{ .Meta.License.URL }}">{{ .Meta.License.Type }}</a></p>
+      {{ end }}
+      <p>Created with <a href="https://qri.io">qri</a></p>
+    </div>
+  </footer>
+</body>
+</html>`
