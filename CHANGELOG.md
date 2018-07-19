@@ -38,7 +38,7 @@ This would print the Title & Description from your dataset's metadata. If your d
 #### Moar Better Frontend
 We're so into viz, we've completely overhauled the frontend to put custom templates front-and-center for datasets. Be sure to take the new frontend for a spin by visiting `http://localhost:2505` while `qri connect` is running.
 
-We've chosen to invest time in viz because we think it brings an important moment of delight to datasets. Without it, all of this _data_ stuff just feels like work. There's something truely magical about seeing your data rendered in a custom page that makes all the munging worthwhile.
+We've chosen to invest time in viz because we think it brings an important moment of delight to datasets. Without it, all of this _data_ stuff just feels like work. There's something truly magical about seeing your data rendered in a custom page that makes all the munging worthwhile.
 
 
 ### Bug Fixes
