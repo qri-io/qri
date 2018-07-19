@@ -284,6 +284,13 @@ structure:
 # transform:
 #   scriptpath: tf.sky
 
+# use viz to provide custom a HTML template of your dataset
+# the currently accepted syntax is 'html'
+# scriptpath is the path to your template, relative to this file:
+# viz:
+#   syntax: html
+#   scriptpath: template.html
+
 # the body of a dataset is data itself. either a path to a file on your computer,
 # or a URL that leads to the raw data
 # bodyPath:
