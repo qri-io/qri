@@ -1,3 +1,54 @@
+<a name="0.5.1"></a>
+# [0.5.1](https://github.com/qri-io/qri/compare/v0.5.1-rc1...v0.5.1) (2018-07-19)
+
+Ok ok so now we have a formal 0.5.1 release. Maybe this should be 0.6.0 given the magnitude of visualizations, but meh, we're calling it a patch.
+
+#### :bar_chart: Delight in Data with HTML-template visualizations
+For a little while we've been experimenting with the `qri render` as a way to template data into html. The more we've played with it, the more we've come to rely on it. So much so, that we think templates should become a native component of datasets. For this we've added a new section to the dataset definition called `viz`, which is where you specify a custom template. a `dataset.yaml` file that specifies viz will look something like this (These details are always avilable with the handy `qri export --blank`):
+
+```
+# use viz to provide custom a HTML template of your dataset
+# the currently accepted syntax is 'html'
+# scriptpath is the path to your template, relative to this file:
+# viz:
+#   syntax: html
+#   scriptpath: template.html
+```
+
+A template can only be a single file. So your template can't reference a local "style.css" file for now. _But!_ You're more than welcome to write HTML that grabs external resources, like getting jQuery or D3, or your favourite charting library off a CDN.
+
+When you supply a template, the Dataset itself is handed back to you, and we use golang's `html/template` package to render. Here's a simplified example:
+
+```html
+<html>
+  <body>
+    <h1>{{ .Meta.Title }}</h1>
+    <p>{{ .Meta.Description }}</p>
+    <ul>
+    {{ range .Body }}
+      <li>{{ . }}</li>
+    {{ end }}
+    </ul>
+  </body>
+</html>
+```
+
+This would print the Title & Description from your dataset's metadata. If your dataset was a list of strings, each entry would be printed out as a list item.
+
+#### Moar Better Frontend
+We're so into viz, we've completely overhauled the frontend to put custom templates front-and-center for datasets. Be sure to take the new frontend for a spin by visiting `http://localhost:2505` while `qri connect` is running.
+
+We've chosen to invest time in viz because we think it brings an important moment of delight to datasets. Without it, all of this _data_ stuff just feels like work. There's something truly magical about seeing your data rendered in a custom page that makes all the munging worthwhile.
+
+
+### Bug Fixes
+
+* **get:** fix get command not accepting ds refs ([fc2a2b2](https://github.com/qri-io/qri/commit/fc2a2b2)), closes [#492](https://github.com/qri-io/qri/issues/492)
+* **peers:** If user is not connected, show error instead of segfaulting. ([80b1e3e](https://github.com/qri-io/qri/commit/80b1e3e))
+* **rpc:** Register types with gob to avoid "reading body EOF" errors ([011f4bd](https://github.com/qri-io/qri/commit/011f4bd))
+
+
+
 <a name="0.5.1-rc1"></a>
 # [0.5.1-rc1](https://github.com/qri-io/qri/compare/v0.5.0...v0.5.1-rc1) (2018-07-14)
 
