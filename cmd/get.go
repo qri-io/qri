@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"regexp"
+
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -28,7 +30,7 @@ func NewGetCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	return cmd
 }
 
-// GetOptions encapsulates state for the search command
+// GetOptions encapsulates state for the get command
 type GetOptions struct {
 	IOStreams
 
@@ -40,17 +42,23 @@ type GetOptions struct {
 	DatasetRequests *lib.DatasetRequests
 }
 
+// isDatasetField checks if a string is a dataset field or not
+var isDatasetField = regexp.MustCompile("(?i)commit|structure|body|meta|viz|transform")
+
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) != 0 {
-		o.Path = args[0]
-		o.Refs = args[1:]
+	if len(args) > 0 {
+		if isDatasetField.MatchString(args[0]) {
+			o.Path = args[0]
+			args = args[1:]
+		}
 	}
+	o.Refs = args
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
 
-// Run executes the search command
+// Run executes the get command
 func (o *GetOptions) Run() (err error) {
 	var refs []repo.DatasetRef
 	for _, refstr := range o.Refs {
