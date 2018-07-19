@@ -90,6 +90,12 @@ func TestRenderRun(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
 
+	// set Default Template to something easier to work with, then
+	// cleanup when test completes
+	prevDefaultTemplate := lib.DefaultTemplate
+	lib.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	defer func() { lib.DefaultTemplate = prevDefaultTemplate }()
+
 	f, err := NewTestFactory(nil)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
@@ -134,7 +140,7 @@ func TestRenderRun(t *testing.T) {
 		msg      string
 	}{
 		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{"peer/cities", "", "", false, 10, 0, "<html><h2>peer/cities</h2></html>", "", ""},
+		{"peer/cities", "", "", false, 10, 0, "<html><h1>peer/cities</h1></html>", "", ""},
 		{"peer/cities", "testdata/template.html", "", false, 2, 0, "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
 		{"peer/cities", "testdata/template.html", "", false, 1, 2, "<html><h2>peer/cities</h2><tbody><tr><td>chicago</td><td>300000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
 	}

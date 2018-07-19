@@ -42,12 +42,11 @@ func TestNewRenderRequests(t *testing.T) {
 }
 
 func TestRenderRequestsRender(t *testing.T) {
-	mockGateway := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		tmpl := `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
-		w.Write([]byte(tmpl))
-	}))
-
-	Config.P2P.HTTPGatewayAddr = mockGateway.URL
+	// set Default Template to something easier to work with, then
+	// cleanup when test completes
+	prevDefaultTemplate := DefaultTemplate
+	DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	defer func() { DefaultTemplate = prevDefaultTemplate }()
 
 	cases := []struct {
 		params *RenderParams
