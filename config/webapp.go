@@ -27,7 +27,7 @@ func DefaultWebapp() *Webapp {
 		Enabled: true,
 		Port:    DefaultWebappPort,
 		EntrypointUpdateAddress: "/ipns/webapp.qri.io",
-		EntrypointHash:          "QmUHrSnckLjfGp6No59BWmVhoitmzw7eAj732pymMBH4rB",
+		EntrypointHash:          "QmfWr3jS97PNNUH5bg39nig4Jd8JDnXvRxvytmFpWnTPLn",
 	}
 }
 
