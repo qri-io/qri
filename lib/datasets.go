@@ -94,7 +94,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		ds.ProfileID = pro.ID
 	}
 
-	if err := repo.CanonicalizeProfile(r.repo, ds); err != nil {
+	if err := repo.CanonicalizeProfile(r.repo, ds, nil); err != nil {
 		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
@@ -156,9 +156,10 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
 
+	renames := repo.NewNeedPeernameRenames()
 	for i, ref := range replies {
-		if err := repo.CanonicalizeProfile(r.repo, &replies[i]); err != nil {
-			log.Debug(err.Error())
+		// May need to change peername.
+		if err := repo.CanonicalizeProfile(r.repo, &replies[i], &renames); err != nil {
 			return fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
@@ -171,6 +172,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			replies[i].Dataset.Structure.Schema = nil
 		}
 	}
+	// TODO: If renames.Renames is non-empty, apply it to r.repo
 
 	*res = replies
 	return nil
