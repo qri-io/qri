@@ -208,14 +208,13 @@ func (cfg Config) path(path string) (elem reflect.Value, err error) {
 // ImmutablePaths returns a map of paths that should never be modified
 func ImmutablePaths() map[string]bool {
 	return map[string]bool{
-		"p2p.peerid":       true,
-		"p2p.pubkey":       true,
-		"p2p.privkey":      true,
-		"profile.id":       true,
-		"profile.privkey":  true,
-		"profile.peername": true,
-		"profile.created":  true,
-		"profile.updated":  true,
+		"p2p.peerid":      true,
+		"p2p.pubkey":      true,
+		"p2p.privkey":     true,
+		"profile.id":      true,
+		"profile.privkey": true,
+		"profile.created": true,
+		"profile.updated": true,
 	}
 }
 
