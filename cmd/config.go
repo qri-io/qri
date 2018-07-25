@@ -12,6 +12,8 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const profilePrefix = "profile."
+
 // NewConfigCommand creates a new `qri config` cobra command
 // config represents commands that read & modify configuration settings
 func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
@@ -135,6 +137,9 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		"profile.thumb":  true,
 	}
 
+	profile := lib.Config.Profile
+	profileChanged := false
+
 	for i := 0; i < len(args)-1; i = i + 2 {
 		var value interface{}
 		path := strings.ToLower(args[i])
@@ -146,6 +151,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			if err = setPhotoPath(o.ProfileRequests, path, args[i+1]); err != nil {
 				return err
 			}
+		} else if strings.HasPrefix(path, profilePrefix) {
+			field := strings.ToLower(path[len(profilePrefix):])
+			if err = profile.SetField(field, args[i+1]); err != nil {
+				return err
+			}
+			profileChanged = true
 		} else {
 			if err = yaml.Unmarshal([]byte(args[i+1]), &value); err != nil {
 				return err
@@ -158,6 +169,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	}
 	if err = lib.SetConfig(lib.Config); err != nil {
 		return err
+	}
+	if profileChanged {
+		var res config.ProfilePod
+		if err = o.ProfileRequests.SaveProfile(profile, &res); err != nil {
+			return err
+		}
 	}
 
 	printSuccess(o.Out, "config updated")

@@ -3,6 +3,7 @@ package config
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"fmt"
 	"time"
 
 	"github.com/libp2p/go-libp2p-crypto"
@@ -82,7 +83,7 @@ func DefaultProfile() *ProfilePod {
 }
 
 // Validate validates all fields of profile returning all errors found.
-func (cfg ProfilePod) Validate() error {
+func (p ProfilePod) Validate() error {
 	schema := jsonschema.Must(`{
     "$schema": "http://json-schema.org/draft-06/schema#",
     "title": "Profile",
@@ -213,32 +214,71 @@ func (cfg ProfilePod) Validate() error {
       "privkey"
     ]
   }`)
-	return validate(schema, &cfg)
+	return validate(schema, &p)
 }
 
 // Copy makes a deep copy of the ProfilePod struct
-func (cfg *ProfilePod) Copy() *ProfilePod {
+func (p *ProfilePod) Copy() *ProfilePod {
 	res := &ProfilePod{
-		ID:          cfg.ID,
-		PrivKey:     cfg.PrivKey,
-		Peername:    cfg.Peername,
-		Created:     cfg.Created,
-		Updated:     cfg.Updated,
-		Type:        cfg.Type,
-		Email:       cfg.Email,
-		Name:        cfg.Name,
-		Description: cfg.Description,
-		HomeURL:     cfg.HomeURL,
-		Color:       cfg.Color,
-		Thumb:       cfg.Thumb,
-		Photo:       cfg.Photo,
-		Poster:      cfg.Poster,
-		Twitter:     cfg.Twitter,
+		ID:          p.ID,
+		PrivKey:     p.PrivKey,
+		Peername:    p.Peername,
+		Created:     p.Created,
+		Updated:     p.Updated,
+		Type:        p.Type,
+		Email:       p.Email,
+		Name:        p.Name,
+		Description: p.Description,
+		HomeURL:     p.HomeURL,
+		Color:       p.Color,
+		Thumb:       p.Thumb,
+		Photo:       p.Photo,
+		Poster:      p.Poster,
+		Twitter:     p.Twitter,
 	}
-	if cfg.PeerIDs != nil {
-		res.PeerIDs = make([]string, len(cfg.PeerIDs))
-		copy(res.PeerIDs, cfg.PeerIDs)
+	if p.PeerIDs != nil {
+		res.PeerIDs = make([]string, len(p.PeerIDs))
+		copy(res.PeerIDs, p.PeerIDs)
 	}
 
 	return res
+}
+
+// SetField assigns to the name field of the Profile.
+// TODO: Replace this with a generic package.
+func (p *ProfilePod) SetField(field, value string) error {
+	if field == "id" {
+		p.ID = value
+	} else if field == "privkey" {
+		return fmt.Errorf("Cannot set profile.privkey, read-only")
+	} else if field == "peername" {
+		p.Peername = value
+	} else if field == "created" {
+		return fmt.Errorf("Cannot set profile.created, read-only")
+	} else if field == "updated" {
+		return fmt.Errorf("Cannot set profile.updated, read-only")
+	} else if field == "type" {
+		p.Type = value
+	} else if field == "email" {
+		p.Email = value
+	} else if field == "name" {
+		p.Name = value
+	} else if field == "description" {
+		p.Description = value
+	} else if field == "homeurl" {
+		p.HomeURL = value
+	} else if field == "color" {
+		p.Color = value
+	} else if field == "thumb" {
+		p.Thumb = value
+	} else if field == "photo" {
+		return fmt.Errorf("Not implemented: set profile.photo")
+	} else if field == "poster" {
+		p.Poster = value
+	} else if field == "twitter" {
+		p.Twitter = value
+	} else {
+		return fmt.Errorf("Unknown profile field: %s", value)
+	}
+	return nil
 }
