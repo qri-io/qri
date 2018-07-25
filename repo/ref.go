@@ -298,6 +298,18 @@ func isBase58Multihash(hash string) bool {
 	return true
 }
 
+// NeedPeernameRenames represents which peernames need to be renamed, and to what.
+type NeedPeernameRenames struct {
+	Renames map[string]string
+}
+
+// NewNeedPeernameRenames returns a new NeedPeerNameRenames struct.
+func NewNeedPeernameRenames() NeedPeernameRenames {
+	return NeedPeernameRenames{
+		Renames: make(map[string]string),
+	}
+}
+
 // CanonicalizeDatasetRef uses a repo to turn any local aliases into known
 // canonical peername for a dataset and populates a missing path
 // if the repo has path information for a peername/name combo
@@ -312,7 +324,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return nil
 	}
 
-	if err := CanonicalizeProfile(r, ref); err != nil {
+	if err := CanonicalizeProfile(r, ref, nil); err != nil {
 		return err
 	}
 
@@ -344,7 +356,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 
 // CanonicalizeProfile populates dataset DatasetRef ProfileID and Peername properties,
 // changing aliases to known names, and adding ProfileID from a peerstore
-func CanonicalizeProfile(r Repo, ref *DatasetRef) error {
+func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) error {
 	if ref.Peername == "" && ref.ProfileID == "" {
 		return nil
 	}
@@ -354,6 +366,7 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef) error {
 		return err
 	}
 
+	// If this is a dataset ref that a peer of the user owns.
 	if ref.Peername == "me" || ref.Peername == p.Peername || ref.ProfileID == p.ID {
 		if ref.Peername == "me" {
 			ref.ProfileID = p.ID
@@ -365,6 +378,12 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef) error {
 				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", p.Peername, p.ID, ref.ProfileID)
 			}
 			if ref.ProfileID == p.ID && ref.Peername != p.Peername {
+				// Rename may have happended, record it if requested by caller.
+				if need != nil {
+					need.Renames[ref.Peername] = p.Peername
+					ref.Peername = p.Peername
+					return nil
+				}
 				return fmt.Errorf("Peername and ProfileID combination not valid: ProfileID = %s, Peername = %s, but was given Peername = %s", p.ID, p.Peername, ref.Peername)
 			}
 			if ref.Peername == p.Peername && ref.ProfileID == p.ID {
@@ -389,11 +408,6 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef) error {
 		return nil
 	}
 	if ref.ProfileID != "" {
-		// pid, err := profile.NewB58ID(ref.ProfileID)
-		// if err != nil {
-		// 	return fmt.Errorf("error converting ProfileID to base58 hash: %s", err)
-		// }
-
 		profile, err := r.Profiles().GetProfile(ref.ProfileID)
 		if err != nil {
 			return fmt.Errorf("error fetching peers from store: %s", err)
