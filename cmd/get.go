@@ -70,6 +70,7 @@ func (o *GetOptions) Run() (err error) {
 	}
 
 	p := &lib.SelectParams{
+		Refs:    refs,
 		Path:    o.Path,
 		Format:  o.Format,
 		Concise: o.Concise,
