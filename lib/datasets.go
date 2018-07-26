@@ -323,10 +323,10 @@ type SaveParams struct {
 	Publish bool
 }
 
-// Init creates a new qri dataset from a source of data
-func (r *DatasetRequests) Init(p *SaveParams, res *repo.DatasetRef) (err error) {
+// New creates a new qri dataset from a source of data
+func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Init", p, res)
+		return r.cli.Call("DatasetRequests.New", p, res)
 	}
 
 	var (

@@ -404,7 +404,7 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 		Dataset: dsp,
 		Private: r.FormValue("private") == "true",
 	}
-	if err := h.Init(p, res); err != nil {
+	if err := h.New(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

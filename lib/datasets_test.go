@@ -57,7 +57,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 	req := NewDatasetRequests(mr, nil)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := req.Init(&SaveParams{Private: true}, nil); err == nil {
+	if err := req.New(&SaveParams{Private: true}, nil); err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
@@ -123,7 +123,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
-		err := req.Init(&SaveParams{Dataset: c.dataset, Publish: true}, got)
+		err := req.New(&SaveParams{Dataset: c.dataset, Publish: true}, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -764,7 +764,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			BodyPath: fp1,
 		},
 	}
-	err = req.Init(initParams, &dsRef1)
+	err = req.New(initParams, &dsRef1)
 	if err != nil {
 		t.Errorf("couldn't init file 1: %s", err.Error())
 		return
@@ -783,7 +783,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			BodyPath: fp2,
 		},
 	}
-	err = req.Init(initParams, &dsRef2)
+	err = req.New(initParams, &dsRef2)
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
 		return
