@@ -51,10 +51,17 @@ will affect a dataset before saving changes to a dataset.
 Note: --body and --schema flags will override the dataset if both flags are provided.`,
 		Example: `  show errors in an existing dataset:
   $ qri validate b5/comics`,
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Validate())
-			ExitIfErr(o.ErrOut, o.Run())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Validate(); err != nil {
+				return err
+			}
+			if err := o.Run(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

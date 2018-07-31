@@ -15,8 +15,9 @@ For updates & further information check https://github.com/qri-io/qri/releases`,
 		Annotations: map[string]string{
 			"group": "other",
 		},
-		Run: func(cmd *cobra.Command, args []string) {
+		RunE: func(cmd *cobra.Command, args []string) error {
 			printInfo(ioStreams.Out, lib.VersionNumber)
+			return nil
 		},
 	}
 	return cmd

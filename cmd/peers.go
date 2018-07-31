@@ -33,9 +33,14 @@ format is yaml.`,
   show info in json:
   $ qri peers info b5 --format json`,
 		Args: cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Info())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Info(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
@@ -54,9 +59,14 @@ command in the background or in another terminal window.
   to ensure you get a cached version of the list:
   $ qri peers list --cached`,
 		Aliases: []string{"ls"},
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.List())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.List(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
@@ -64,9 +74,14 @@ command in the background or in another terminal window.
 		Use:   "connect",
 		Short: "connect to a peer",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Connect())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Connect(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
@@ -74,9 +89,14 @@ command in the background or in another terminal window.
 		Use:   "disconnect",
 		Short: "explicitly close a connection to a peer",
 		Args:  cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Disconnect())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Disconnect(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

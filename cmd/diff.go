@@ -27,9 +27,14 @@ either by name or by their hash`,
 			"group": "dataset",
 		},
 		Args: cobra.MinimumNArgs(2),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Run())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Run(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

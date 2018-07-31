@@ -33,9 +33,15 @@ func Execute() {
 	}
 
 	root := NewQriCommand(EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+	// If the subcommand hits an error, don't show usage or the error, since we'll show
+	// the error message below, on our own. Usage is still shown if the subcommand
+	// is missing command-line arguments.
+	root.SilenceUsage = true
+	root.SilenceErrors = true
+	// Execute the subcommand
 	if err := root.Execute(); err != nil {
 		printErr(os.Stdin, err)
-		os.Exit(-1)
+		os.Exit(1)
 	}
 }
 
