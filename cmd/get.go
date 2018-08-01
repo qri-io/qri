@@ -18,9 +18,14 @@ func NewGetCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Run())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Run(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

@@ -37,9 +37,14 @@ overwrite this info.`,
 		Annotations: map[string]string{
 			"group": "other",
 		},
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Run(f))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Run(f); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

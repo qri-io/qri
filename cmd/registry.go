@@ -48,9 +48,14 @@ $ qri config set registry.location ""`,
 		Example: `  Publish a dataset you've created to the registry:
   $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Publish())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Publish(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
@@ -61,9 +66,14 @@ $ qri config set registry.location ""`,
 		Example: `  Remove a dataset from the registry:
   $ qri registry unpublish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f, args))
-			ExitIfErr(o.ErrOut, o.Unpublish())
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Unpublish(); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

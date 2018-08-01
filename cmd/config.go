@@ -52,18 +52,29 @@ The --with-private-keys option will show private keys.
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
 		Args: cobra.MaximumNArgs(1),
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f))
-			ExitIfErr(o.ErrOut, o.Get(args))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f); err != nil {
+				return err
+			}
+			if err := o.Get(args); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
 	set := &cobra.Command{
 		Use:   "set",
 		Short: "Set a configuration option",
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f))
-			ExitIfErr(o.ErrOut, o.Set(args))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			cmd.SilenceUsage = true
+			if err := o.Complete(f); err != nil {
+				return err
+			}
+			if err := o.Set(args); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 

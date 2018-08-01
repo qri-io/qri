@@ -44,9 +44,14 @@ changes to qri.`,
 
 create a dataset with a dataset data file:
   $ qri add --file dataset.yaml --body comics.csv me/comic_characters`,
-		Run: func(cmd *cobra.Command, args []string) {
-			ExitIfErr(o.ErrOut, o.Complete(f))
-			ExitIfErr(o.ErrOut, o.Run(args))
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f); err != nil {
+				return err
+			}
+			if err := o.Run(args); err != nil {
+				return err
+			}
+			return nil
 		},
 	}
 
