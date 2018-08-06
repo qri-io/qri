@@ -310,11 +310,10 @@ func NewNeedPeernameRenames() NeedPeernameRenames {
 	}
 }
 
-// CanonicalizeDatasetRef uses a repo to turn any local aliases into known
-// canonical peername for a dataset and populates a missing path
-// if the repo has path information for a peername/name combo
-// if we provide any other shortcuts for names other than "me"
-// in the future, it should be handled here.
+// CanonicalizeDatasetRef uses the user's repo to turn any local aliases into full dataset
+// references using known canonical peernames and paths. If the provided reference is not
+// in the local repo, still do the work of handling aliases, but return a repo.ErrNotFound
+// error, which callers can respond to by possibly contacting remote repos.
 func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	// when operating over RPC there's a good chance we won't have a repo, in that
 	// case we're going to have to rely on the other end of the wire to do canonicalization
@@ -333,24 +332,25 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	}
 
 	got, err := r.GetRef(*ref)
-	if err == nil {
-		if ref.Path == "" {
-			ref.Path = got.Path
-		}
-		if ref.ProfileID == "" {
-			ref.ProfileID = got.ProfileID
-		}
-		if ref.Name == "" {
-			ref.Name = got.Name
-		}
-		if ref.Peername == "" {
-			ref.Peername = got.Peername
-		}
-		if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name || ref.Peername != got.Peername {
-			return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
-		}
+	if err != nil {
+		return err
 	}
 
+	if ref.Path == "" {
+		ref.Path = got.Path
+	}
+	if ref.ProfileID == "" {
+		ref.ProfileID = got.ProfileID
+	}
+	if ref.Name == "" {
+		ref.Name = got.Name
+	}
+	if ref.Peername == "" {
+		ref.Peername = got.Peername
+	}
+	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name || ref.Peername != got.Peername {
+		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
+	}
 	return nil
 }
 

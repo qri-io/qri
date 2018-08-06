@@ -331,22 +331,28 @@ func TestCompareDatasetRefs(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"},
+	    cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
 	}
+	mr := repo.MemRefstore
+	mr.PutRef(DatasetRef{Peername:"lucille", Name: "foo", Path: "/ipfs/QmTest"})
+	mr.PutRef(DatasetRef{Peername:"you",     Name: "other", Path: "/ipfs/QmTest2"})
+	mr.PutRef(DatasetRef{Peername:"lucille", Name: "ball",
+                         Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"})
 
 	cases := []struct {
 		input  string
 		expect string
 		err    string
 	}{
-		{"me/foo", "lucille/foo", ""},
-		{"you/foo", "you/foo", ""},
+		{"me/foo", "lucille/foo@/ipfs/QmTest", ""},
+		{"you/other", "you/other@/ipfs/QmTest2", ""},
+		{"lucille/ball", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		// TODO - add tests that show path fulfillment
-		// {"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	for i, c := range cases {

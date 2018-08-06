@@ -64,14 +64,12 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) error {
 	err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
 	if err != nil {
 		log.Debug(err.Error())
+		if err == repo.ErrNotFound {
+			return NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", p.Ref.Peername, p.Ref.Name))
+		}
 		return err
 	}
-
-	ref, err := r.repo.GetRef(p.Ref)
-	if err != nil {
-		log.Debug(err.Error())
-		return NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", p.Ref.Peername, p.Ref.Name))
-	}
+	ref := p.Ref
 
 	store := r.repo.Store()
 

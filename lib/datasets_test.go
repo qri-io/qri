@@ -191,9 +191,9 @@ sarnia,550000,55.65,false
 	}{
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
-		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "canonicalizing previous dataset reference: error fetching peer from store: profile: not found"},
+		{&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
@@ -459,7 +459,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{}, "", "current name is required to rename a dataset"},
 		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new movies"}}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new_movies"}}, "new_movies", ""},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "new_movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new_movies"}}, "", "dataset 'peer/new_movies' already exists"},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "", "dataset 'peer/sitemap' already exists"},
 	}
 
 	req := NewDatasetRequests(mr, nil)
