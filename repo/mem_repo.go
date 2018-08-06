@@ -24,7 +24,7 @@ type MemRepo struct {
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *regclient.Client) (Repo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *regclient.Client) (*MemRepo, error) {
 	return &MemRepo{
 		store:       store,
 		MemRefstore: &MemRefstore{},

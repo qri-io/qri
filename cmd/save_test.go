@@ -137,7 +137,7 @@ func TestSaveRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"me/bad_dataset", "", "", "", "", false, "", "error getting previous dataset: repo: not found", ""},
+		{"me/bad_dataset", "", "", "", "", false, "", "error with previous reference: repo: not found", ""},
 		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
 		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "reading body file: open bad/bodypath.csv: no such file or directory", ""},
 		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcQxYfLwwAzkbHcFRGFGQbvawSB2u2vKnS3eqEe9vBdUj\nthis dataset has 1 validation errors\n", "", ""},

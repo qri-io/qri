@@ -233,7 +233,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 	}
 
 	err = repo.CanonicalizeDatasetRef(r.repo, p)
-	if err != nil {
+	if err != nil && err != repo.ErrNotFound {
 		log.Debug(err.Error())
 		return err
 	}
@@ -477,7 +477,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	prevReq := &repo.DatasetRef{Name: dsp.Name, Peername: dsp.Peername}
 	if err = repo.CanonicalizeDatasetRef(r.repo, prevReq); err != nil {
-		return fmt.Errorf("canonicalizing previous dataset reference: %s", err.Error())
+		return fmt.Errorf("error with previous reference: %s", err.Error())
 	}
 
 	prev := &repo.DatasetRef{}
@@ -564,15 +564,6 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return r.cli.Call("DatasetRequests.Rename", p, res)
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Current); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error canonicalizing existing reference: %s", err.Error())
-	}
-	if err := repo.CanonicalizeDatasetRef(r.repo, &p.New); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
-	}
-
 	if p.Current.IsEmpty() {
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
@@ -580,16 +571,18 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	if err := validate.ValidName(p.New.Name); err != nil {
 		return err
 	}
-
-	if _, err := r.repo.GetRef(p.New); err != repo.ErrNotFound {
-		return fmt.Errorf("dataset '%s/%s' already exists", p.New.Peername, p.New.Name)
-	}
-
-	p.Current, err = r.repo.GetRef(p.Current)
-	if err != nil {
+	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Current); err != nil {
 		log.Debug(err.Error())
-		return fmt.Errorf("error getting dataset: %s", err.Error())
+		return fmt.Errorf("error with existing reference: %s", err.Error())
 	}
+	err = repo.CanonicalizeDatasetRef(r.repo, &p.New)
+	if err == nil {
+		return fmt.Errorf("dataset '%s/%s' already exists", p.New.Peername, p.New.Name)
+	} else if err != repo.ErrNotFound {
+		log.Debug(err.Error())
+		return fmt.Errorf("error with new reference: %s", err.Error())
+	}
+
 	p.New.Path = p.Current.Path
 	if err := r.repo.DeleteRef(p.Current); err != nil {
 		log.Debug(err.Error())
@@ -622,15 +615,14 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 		return r.cli.Call("DatasetRequests.Remove", p, ok)
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.repo, p); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
-	}
-
 	if p.Path == "" && (p.Peername == "" && p.Name == "") {
 		return fmt.Errorf("either peername/name or path is required")
 	}
-
+	err = repo.CanonicalizeDatasetRef(r.repo, p)
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
 	ref, err := r.repo.GetRef(*p)
 	if err != nil {
 		log.Debug(err.Error())
@@ -747,8 +739,11 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		return r.cli.Call("DatasetRequests.Add", ref, res)
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.repo, ref); err != nil {
-		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
+	err = repo.CanonicalizeDatasetRef(r.repo, ref)
+	if err == nil {
+		return fmt.Errorf("error: dataset %s already exists in repo", ref)
+	} else if err != repo.ErrNotFound {
+		return fmt.Errorf("error with new reference: %s", err.Error())
 	}
 
 	if ref.Path == "" && r.Node != nil {
@@ -786,9 +781,10 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return fmt.Errorf("either data or a dataset reference is required")
 	}
 
-	if err := repo.CanonicalizeDatasetRef(r.repo, &p.Ref); err != nil {
+	err = repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
+	if err != nil && err != repo.ErrNotFound {
 		log.Debug(err.Error())
-		return fmt.Errorf("error canonicalizing new reference: %s", err.Error())
+		return fmt.Errorf("error with new reference: %s", err.Error())
 	}
 
 	var (

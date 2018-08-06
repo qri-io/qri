@@ -59,7 +59,7 @@ func ProfileConfig() *config.ProfilePod {
 }
 
 // NewTestRepo generates a repository usable for testing purposes
-func NewTestRepo(rc *regclient.Client) (mr repo.Repo, err error) {
+func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	ms := cafs.NewMapstore()
