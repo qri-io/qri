@@ -198,11 +198,20 @@ func (r *DatasetRequests) Select(p *SelectParams, res *[]byte) (err error) {
 
 	encode := map[string]interface{}{}
 	for _, ref := range p.Refs {
-		if err = repo.CanonicalizeDatasetRef(r.repo.Repo, &ref); err != nil {
+		err = repo.CanonicalizeDatasetRef(r.repo.Repo, &ref)
+		if err != nil && err != repo.ErrNotFound {
 			log.Debug(err.Error())
 			return err
 		}
-
+		if err == repo.ErrNotFound {
+			if r.Node == nil {
+				return fmt.Errorf("%s, and no p2p connection", err.Error())
+			}
+			err = r.Node.RequestDataset(&ref)
+			if err != nil {
+				return err
+			}
+		}
 		data, err := r.repo.Select(ref, p.Path)
 		if err != nil {
 			return err
@@ -237,6 +246,7 @@ func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err err
 		log.Debug(err.Error())
 		return err
 	}
+	// TODO: Fix this to get remote datasets.
 
 	store := r.repo.Store()
 
