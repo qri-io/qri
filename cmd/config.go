@@ -20,18 +20,21 @@ func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := ConfigOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "get and set local configuration information",
+		Short: "Get and set local configuration information",
 		Annotations: map[string]string{
 			"group": "other",
 		},
 		Long: `
-config encapsulates all settings that control the behaviour of qri.
+'qri config' encapsulates all settings that control the behaviour of qri.
 This includes all kinds of stuff: your profile details; enabling & disabling 
 different services; what kind of output qri logs to; 
 which ports on qri serves on; etc.
 
 Configuration is stored as a .yaml file kept at $QRI_PATH, or provided at CLI 
-runtime via command a line argument.`,
+runtime via command a line argument.
+
+For details on each config field checkout: 
+https://github.com/qri-io/qri/blob/master/config/readme.md`,
 		Example: `  # get your profile information
   $ qri config get profile
 
@@ -48,9 +51,21 @@ runtime via command a line argument.`,
 		Long: `get outputs your current configuration file with private keys 
 removed by default, making it easier to share your qri configuration settings.
 
+You can get particular parts of the config by using dot notation to
+traverse the config object. For details on each config field checkout: 
+https://github.com/qri-io/qri/blob/master/config/readme.md
+
 The --with-private-keys option will show private keys.
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
+		Example: `  # get the entire config
+  qri config get
+
+  # get the config profile
+  qri config get profile
+
+  # get the profile description
+  qri config get profile.description`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f); err != nil {
@@ -65,7 +80,24 @@ Anyone with your private keys can impersonate you on qri.`,
 
 	set := &cobra.Command{
 		Use:   "set",
-		Short: "Set a configuration option",
+		Short: "Set configuration options",
+		Long: `'qri config set' allows you to set configuration options. You can set 
+particular parts of the config by using dot notation to traverse the 
+config object. 
+
+While the 'qri config get' command allows you to view the whole config,
+or only parts of it, the 'qri config set' command is more specific.
+
+If the config object were a tree and each field a branch, you can only
+set the leaves of the branches. In other words, the you cannot set a 
+field that is itself an object or array. For details on each config 
+field checkout: https://github.com/qri-io/qri/blob/master/config/readme.md`,
+		Example: `  # set a profile description
+  qri config set profile.description "This is my new description that I
+  am very proud of and want displayed in my profile"
+
+  # disable rpc communication
+  qri config set rpc.enabled false`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 			if err := o.Complete(f); err != nil {
