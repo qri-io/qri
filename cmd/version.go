@@ -9,8 +9,10 @@ import (
 func NewVersionCommand(_ Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
-		Short: "print the version number",
-		Long: `qri uses semantic versioning.
+		Short: "Print the version number",
+		Long: `
+Qri uses semantic versioning.
+
 For updates & further information check https://github.com/qri-io/qri/releases`,
 		Annotations: map[string]string{
 			"group": "other",
