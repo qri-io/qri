@@ -13,16 +13,16 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &UseOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "use",
-		Short: "select datasets for use with other commands",
-		Example: `  use dataset me/dataset_name, then get meta.title:
-  $ qri data me/dataset_name
-  $ qri get meta.title
+		Short: "Select datasets for use with the qri get command",
+		Example: `  # use dataset me/dataset_name, then get meta.title:
+  qri use me/dataset_name
+  qri get meta.title
 
-  clear current selection:
-  $ qri use --clear
+  # clear current selection:
+  qri use --clear
 
-  show current selected dataset references:
-  $ qri use --list`,
+  # show current selected dataset references:
+  qri use --list`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
