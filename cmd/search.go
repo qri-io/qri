@@ -15,7 +15,10 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search qri",
-		Long:  `Search datasets & peers that match your query. Search pings the qri registry. Any dataset that has been published to the registry is available for search.`,
+		Long: `
+Search datasets & peers that match your query. Search pings the qri registry. 
+
+Any dataset that has been published to the registry is available for search.`,
 		Example: `
   # search 
   $ qri search "annual population"`,
