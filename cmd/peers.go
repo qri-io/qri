@@ -15,7 +15,14 @@ func NewPeersCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &PeersOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "peers",
-		Short: "commands for working with peers",
+		Short: "Commands for working with peers",
+		Long: `
+The ` + "`peers`" + ` commands allow you to interact with other peers on the Qri network.
+In order for these commands to work, you must be running a Qri node. This 
+node allows you to communicate on the network. To spin up a Qri node, run
+` + "`qri connect`" + ` in a separate terminal. This will connect you to the network, 
+until you choose to close the connection by ending the session or closing 
+the terminal.`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
@@ -23,10 +30,14 @@ func NewPeersCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 
 	info := &cobra.Command{
 		Use:   "info",
-		Short: `Get info on a qri peer`,
+		Short: `Get info on a Qri peer`,
 		Long: `
 The peers info command returns a peer's profile information. The default
-format is yaml.`,
+format is yaml.
+
+Using the ` + "`--verbose`" + ` flag, you can also view a peer's network information.
+
+You must have ` + "`qri connect`" + ` running in another terminal.`,
 		Example: `  show info on a peer named "b5":
   $ qri peers info b5
 
@@ -46,18 +57,22 @@ format is yaml.`,
 
 	list := &cobra.Command{
 		Use:   "list",
-		Short: "list known qri peers",
+		Short: "List known qri peers",
 		Long: `
-lists the peers your qri node has seen before. The peers list command will
-show the cached list of peers, unless you are currently running the connect
-command in the background or in another terminal window.
+Lists the peers to which your Qri node is connected. 
 
-(run 'qri help connect' for more information about the connect command) `,
-		Example: `  to list qri peers:
-  $ qri peers list
+You must have ` + "`qri connect`" + ` running in another terminal.
 
-  to ensure you get a cached version of the list:
-  $ qri peers list --cached`,
+To find peers that are not online, but to which your node has previously been 
+connected, use the ` + "`--cached`" + ` flag.`,
+		Example: `  # spin up a Qri node
+  qri connect
+
+  # thenin a separate terminal, to list qri peers:
+  qri peers list
+
+  # to ensure you get a cached version of the list:
+  qri peers list --cached`,
 		Aliases: []string{"ls"},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
@@ -72,8 +87,22 @@ command in the background or in another terminal window.
 
 	connect := &cobra.Command{
 		Use:   "connect",
-		Short: "connect to a peer",
-		Args:  cobra.MinimumNArgs(1),
+		Short: "Connect to a peer",
+		Long: `
+Connect to a peer using a peername, peer ID, or multiaddress. Qri will use this name, id, or address
+to find a peer to which it has not automatically connected. 
+
+You must have a Qri node running (` + "`qri connect`" + `) in a separate terminal. You will only be able 
+to connect to a peer that also has spun up it's own Qri node.
+
+A multiaddress, or multiaddr, is the most specific way to refer to a peer's location, and is therefore
+the most sure-fire way to connect to a peer. `,
+		Example: `  # spin up a Qri node
+  qri connect
+
+  # in a separate terminal, connect to a specific peer
+  qri peers connect /ip4/192.168.0.194/tcp/4001/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -87,8 +116,24 @@ command in the background or in another terminal window.
 
 	disconnect := &cobra.Command{
 		Use:   "disconnect",
-		Short: "explicitly close a connection to a peer",
+		Short: "Explicitly close a connection to a peer",
 		Args:  cobra.MinimumNArgs(1),
+		Long: `
+Explicitly close a connection to a peer using a peername, peer id, or multiaddress. 
+
+You can close all connections to the Qri network by ending your Qri node session. 
+
+Use the disconnect command when you want to stay connected to the network, but want to 
+close your connection to a specific peer. This could be because that connection is hung,
+the connection is pulling too many resources, or because you simply no longer need an
+explicit connection.  This is not the same as blocking a peer or connection.
+
+Once you close a connection to a peer, you or that peer can immediately open another 
+connection.
+
+You must have ` + "`qri connect`" + ` running in another terminal.`,
+		Example: `  # disconnect from a peer using a multiaddr
+  qri peers disconnect /ip4/192.168.0.194/tcp/4001/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
