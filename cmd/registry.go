@@ -44,7 +44,15 @@ $ qri config set registry.location ""`,
 	// publishCmd represents the publish command
 	publish := &cobra.Command{
 		Use:   "publish",
-		Short: "publish dataset info to the registry",
+		Short: "Publish dataset info to the registry",
+		Long: `
+Publishes the dataset information onto the registry. There will be a record
+of your dataset on the registry, and if your dataset is less than 20mbs, 
+Qri will back your dataset up onto the registry.
+
+Published datasets can be found by other peers using the ` + "`qri search`" + ` command.
+
+Datasets are by default published to the registry when they are created.`,
 		Example: `  Publish a dataset you've created to the registry:
   $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
@@ -63,6 +71,12 @@ $ qri config set registry.location ""`,
 	unpublish := &cobra.Command{
 		Use:   "unpublish",
 		Short: "remove dataset info from the registry",
+		Long: `
+Unpublish will remove the reference to your dataset from the registry. If 
+you dataset was previously backed up onto the registry, this backup will 
+be removed.
+
+This dataset will no longer show up in search results.`,
 		Example: `  Remove a dataset from the registry:
   $ qri registry unpublish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
