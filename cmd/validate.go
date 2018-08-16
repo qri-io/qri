@@ -48,9 +48,18 @@ schema for dataset "me/foo"
 Using validate this way is a great way to see how changes to data or schema
 will affect a dataset before saving changes to a dataset.
 
+You can get the current schema of a dataset by running the ` + "`qri get structure.schema`" + `
+command.
+
 Note: --body and --schema flags will override the dataset if both flags are provided.`,
-		Example: `  show errors in an existing dataset:
-  $ qri validate b5/comics`,
+		Example: `  # show errors in an existing dataset:
+  qri validate b5/comics
+
+  # validate a new body against an existing schema
+  qri validate --body new_data.csv me/annual_pop
+
+  # validate data against a new schema
+  qri validate --body data.csv --schema schema.json`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
