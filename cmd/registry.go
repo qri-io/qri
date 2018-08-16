@@ -11,17 +11,13 @@ func NewRegistryCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "registry",
-		Short: "commands for working with a qri registry",
-		Long: `Registries are federated public records of datasets and peers.
+		Short: "Commands for working with a qri registry",
+		Long: `
+Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
 can find them through search tools and via web links. You can use registry 
 commands to control how your datasets are published to registries, opting out
 on a dataset-by-dataset basis.
-
-By default qri is configured to publish to https://registry.qri.io,
-the main public collection of datasets & peers. "qri add" and "qri update"
-default to publishing to a registry as part of dataset creation unless run 
-with the "no-registry" flag.
 
 Unpublished dataset info will be held locally so you can still interact
 with it. And your datasets will be available to others peers when you run 
