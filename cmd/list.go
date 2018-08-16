@@ -16,14 +16,24 @@ func NewListCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "show a list of datasets",
+		Short:   "Show a list of datasets",
 		Long: `
-list shows lists of datasets, including names and current hashes. 
+List shows lists of datasets, including names and current hashes. 
 
 The default list is the latest version of all datasets you have on your local 
-qri repository.`,
-		Example: `  show all of your datasets:
-  $ qri list`,
+qri repository.
+
+When used in conjuction with ` + "`qri connect`" + `, list can list a peer's dataset. You
+must have ` + "`qri connect`" + ` running in a separate terminal window.`,
+		Example: `  # show all of your datasets:
+  qri list
+
+  # to view the list of your peer's dataset,
+  # in one terminal window:
+  qri connect
+
+  # in a separate terminal window, to show all of b5's datasets:
+  qri list b5`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
