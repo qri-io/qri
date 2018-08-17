@@ -71,10 +71,7 @@ Anyone with your private keys can impersonate you on qri.`,
 			if err := o.Complete(f); err != nil {
 				return err
 			}
-			if err := o.Get(args); err != nil {
-				return err
-			}
-			return nil
+			return o.Get(args)
 		},
 	}
 
@@ -103,10 +100,7 @@ field checkout: https://github.com/qri-io/qri/blob/master/config/readme.md`,
 			if err := o.Complete(f); err != nil {
 				return err
 			}
-			if err := o.Set(args); err != nil {
-				return err
-			}
-			return nil
+			return o.Set(args)
 		},
 	}
 

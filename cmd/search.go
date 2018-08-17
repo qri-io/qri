@@ -32,10 +32,7 @@ Any dataset that has been published to the registry is available for search.`,
 			if err := o.Validate(); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

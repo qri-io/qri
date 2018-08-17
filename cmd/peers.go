@@ -48,10 +48,7 @@ You must have ` + "`qri connect`" + ` running in another terminal.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Info(); err != nil {
-				return err
-			}
-			return nil
+			return o.Info()
 		},
 	}
 
@@ -78,10 +75,7 @@ connected, use the ` + "`--cached`" + ` flag.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.List(); err != nil {
-				return err
-			}
-			return nil
+			return o.List()
 		},
 	}
 
@@ -107,10 +101,7 @@ the most sure-fire way to connect to a peer. `,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Connect(); err != nil {
-				return err
-			}
-			return nil
+			return o.Connect()
 		},
 	}
 
@@ -138,10 +129,7 @@ You must have ` + "`qri connect`" + ` running in another terminal.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Disconnect(); err != nil {
-				return err
-			}
-			return nil
+			return o.Disconnect()
 		},
 	}
 

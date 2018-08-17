@@ -17,7 +17,7 @@ func NewValidateCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &ValidateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "validate",
-		Short: "show schema validation errors",
+		Short: "Show schema validation errors",
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -67,10 +67,7 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 			if err := o.Validate(); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

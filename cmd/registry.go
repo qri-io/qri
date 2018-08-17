@@ -56,10 +56,7 @@ Datasets are by default published to the registry when they are created.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Publish(); err != nil {
-				return err
-			}
-			return nil
+			return o.Publish()
 		},
 	}
 
@@ -80,10 +77,7 @@ This dataset will no longer show up in search results.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Unpublish(); err != nil {
-				return err
-			}
-			return nil
+			return o.Unpublish()
 		},
 	}
 

@@ -34,10 +34,7 @@ peers & swapping data.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

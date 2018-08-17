@@ -27,10 +27,7 @@ the name of the peer that originally added the dataset.`,
 			if err := o.Complete(f); err != nil {
 				return err
 			}
-			if err := o.Run(args); err != nil {
-				return err
-			}
-			return nil
+			return o.Run(args)
 		},
 	}
 
