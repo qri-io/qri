@@ -14,6 +14,13 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "use",
 		Short: "Select datasets for use with the qri get command",
+		Long: `
+Run the ` + "`use`" + ` command to have Qri remember references to a specific datasets. 
+These datasets will be referenced for future commands, if no dataset reference 
+is explicitly given for those commands.
+
+We created this command to ease the typing/copy and pasting burden while using
+Qri to explore a dataset.`,
 		Example: `  # use dataset me/dataset_name, then get meta.title:
   qri use me/dataset_name
   qri get meta.title
@@ -22,7 +29,10 @@ func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
   qri use --clear
 
   # show current selected dataset references:
-  qri use --list`,
+  qri use --list
+
+  # add multiple references to the remembered list
+  qri use me/population_2017 me/population_2018`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},

@@ -14,7 +14,7 @@ func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &RenderOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "render",
-		Short: "execute a template against a dataset",
+		Short: "Execute a template against a dataset",
 		Long: `
 You can use html templates, formatted in the go/html template style, 
 to render visualizations from your dataset. These visualizations can be charts, 

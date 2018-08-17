@@ -13,7 +13,7 @@ func NewRemoveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "remove",
 		Aliases: []string{"rm", "delete"},
-		Short:   "remove a dataset from your local repository",
+		Short:   "Remove a dataset from your local repository",
 		Long: `
 Remove gets rid of a dataset from your qri node. After running remove, qri will 
 no longer list your dataset as being available locally. By default, remove frees

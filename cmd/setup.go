@@ -19,7 +19,7 @@ func NewSetupCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &SetupOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "setup",
-		Short: "initialize qri and IPFS repositories, provision a new qri ID",
+		Short: "Initialize qri and IPFS repositories, provision a new qri ID",
 		Long: `
 Setup is the first command you run to get a fresh install of Qri. If you’ve 
 never run qri before, you’ll need to run setup before you can do anything. 

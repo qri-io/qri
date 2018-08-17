@@ -12,7 +12,7 @@ func NewRenameCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "rename",
 		Aliases: []string{"mv"},
-		Short:   "change the name of a dataset",
+		Short:   "Change the name of a dataset",
 		Long: `
 Rename changes the name of a dataset.
 

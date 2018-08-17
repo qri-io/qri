@@ -19,7 +19,7 @@ func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Use:   "body",
 		Short: "Get the body of a dataset",
 		Long: `
-'qri body' reads records from a dataset`,
+` + "`qri body`" + ` reads entries from a dataset. Default is 50 entries, starting from the beginning of the body. You can using the ` + "`--limit`" + ` and ` + "`--offset`" + ` flags to iterate through the dataset body.`,
 		Example: `  show the first 50 rows of a dataset:
   $ qri body me/dataset_name
 

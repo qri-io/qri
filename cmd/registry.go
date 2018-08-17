@@ -16,7 +16,7 @@ func NewRegistryCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
 can find them through search tools and via web links. You can use registry 
-commands to control how your datasets are published to registries, opting out
+commands to control how your datasets are published to registries, opting in or out
 on a dataset-by-dataset basis.
 
 Unpublished dataset info will be held locally so you can still interact

@@ -16,7 +16,7 @@ func NewInfoCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "info",
 		Aliases: []string{"get", "describe"},
-		Short:   "show summarized description of a dataset",
+		Short:   "Show summarized description of a dataset",
 		Long: `Info describes datasets. By default, it will return the peername, dataset name, 
 the network, the dataset hash, the file size, the length of the datasets, 
 and the validation errors.

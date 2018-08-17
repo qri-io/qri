@@ -22,7 +22,7 @@ func NewSaveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "save",
 		Aliases: []string{"update", "commit"},
-		Short:   "save changes to a dataset",
+		Short:   "Save changes to a dataset",
 		Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and structure. 
 You can also update your data via url. Every time you run save, an entry is added to 
