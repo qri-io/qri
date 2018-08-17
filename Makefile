@@ -1,5 +1,5 @@
 GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
-GOPACKAGES = github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/analytics github.com/qri-io/skytf github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/doggos github.com/qri-io/dsdiff github.com/qri-io/varName github.com/qri-io/registry/regclient github.com/sergi/go-diff/diffmatchpatch github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/cobra/doc github.com/theckman/go-flock github.com/ugorji/go/codec github.com/beme/abide github.com/ghodss/yaml
+GOPACKAGES = github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/skytf github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/doggos github.com/qri-io/dsdiff github.com/qri-io/varName github.com/qri-io/registry/regclient github.com/sergi/go-diff/diffmatchpatch github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/cobra/doc github.com/theckman/go-flock github.com/ugorji/go/codec github.com/beme/abide github.com/ghodss/yaml
 
 default: build
 
