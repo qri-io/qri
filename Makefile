@@ -61,3 +61,7 @@ test:
 
 test-all-coverage:
 	./.circleci/cover.test.sh
+
+cli-docs:
+	go run docs/docs.go --dir temp --filename cli_commands.md
+
