@@ -7,9 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/rpc"
-	"time"
 
-	"github.com/ghodss/yaml"
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
@@ -29,6 +27,7 @@ import (
 // DatasetRequests encapsulates business logic for this node's
 // user profile
 type DatasetRequests struct {
+	// TODO: Rename repo to actor.
 	repo actions.Dataset
 	cli  *rpc.Client
 	Node *p2p.QriNode
@@ -178,151 +177,38 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	return nil
 }
 
-// SelectParams encapsulates options for getting details on one or more datasets
-type SelectParams struct {
-	Refs    []repo.DatasetRef
-	Path    string
-	Format  string
-	Concise bool
-}
-
-// Select selects details of one or more datasets
-func (r *DatasetRequests) Select(p *SelectParams, res *[]byte) (err error) {
+// Get a dataset
+func (r *DatasetRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Select", p, res)
+		return r.cli.Call("DatasetRequests.Get", ref, res)
 	}
 
-	if err = DefaultSelectedRefs(r.repo.Repo, &p.Refs); err != nil {
+	// Handle `qri use` to get the current default dataset.
+	if err := DefaultSelectedRef(r.repo.Repo, ref); err != nil {
 		return err
 	}
 
-	encode := map[string]interface{}{}
-	for _, ref := range p.Refs {
-		err = repo.CanonicalizeDatasetRef(r.repo.Repo, &ref)
-		if err != nil && err != repo.ErrNotFound {
-			log.Debug(err.Error())
-			return err
-		}
-		if err == repo.ErrNotFound {
-			if r.Node == nil {
-				return fmt.Errorf("%s, and no p2p connection", err.Error())
-			}
-			err = r.Node.RequestDataset(&ref)
-			if err != nil {
-				return err
-			}
-		}
-		data, err := r.repo.Select(ref, p.Path)
-		if err != nil {
-			return err
-		}
-		encode[ref.String()] = data
-	}
-
-	switch p.Format {
-	case "json":
-		if p.Concise {
-			*res, err = json.Marshal(encode)
-		} else {
-			*res, err = json.MarshalIndent(encode, "", " ")
-		}
-	case "yaml":
-		*res, err = yaml.Marshal(encode)
-	}
-	if err != nil {
-		return fmt.Errorf("error getting config: %s", err)
-	}
-	return nil
-}
-
-// Get a dataset
-func (r *DatasetRequests) Get(p *repo.DatasetRef, res *repo.DatasetRef) (err error) {
-	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Get", p, res)
-	}
-
-	err = repo.CanonicalizeDatasetRef(r.repo, p)
+	err := repo.CanonicalizeDatasetRef(r.repo.Repo, ref)
 	if err != nil && err != repo.ErrNotFound {
 		log.Debug(err.Error())
 		return err
 	}
-	// TODO: Fix this to get remote datasets.
-
-	store := r.repo.Store()
-
-	// try to load dataset locally
-	ds, err := dsfs.LoadDataset(store, datastore.NewKey(p.Path))
-	if err != nil {
-		var (
-			refs         = make(chan repo.DatasetRef)
-			errs         = make(chan error)
-			tries, fails int
-		)
-
-		// if we have a p2p node, check p2p network for deets
-		if r.Node != nil {
-			tries++
-			go func() {
-				ref := repo.DatasetRef{}
-				// TODO - should add a context to this call with a timeout
-				if err := r.Node.RequestDataset(&ref); err == nil {
-					refs <- ref
-				} else {
-					errs <- err
-				}
-			}()
+	if err == repo.ErrNotFound {
+		if r.Node == nil {
+			return fmt.Errorf("%s, and no p2p connection", err.Error())
 		}
-
-		// if we have a registry check it for details
-		if rc := r.repo.Registry(); rc != nil {
-			go func() {
-				tries++
-				if dsp, err := rc.GetDataset(p.Peername, p.Name, p.ProfileID.String(), p.Path); err == nil {
-					ref := repo.DatasetRef{
-						Path:     dsp.Path,
-						Peername: dsp.Peername,
-						Name:     dsp.Name,
-						Dataset:  dsp,
-					}
-
-					if pid, err := profile.IDB58Decode(dsp.ProfileID); err == nil {
-						ref.ProfileID = pid
-					}
-
-					refs <- ref
-				} else {
-					errs <- err
-				}
-			}()
+		err = r.Node.RequestDataset(ref)
+		if err != nil {
+			return err
 		}
-
-		for {
-			select {
-			case ref := <-refs:
-				*res = ref
-				return nil
-			case err := <-errs:
-				fails++
-				log.Debugf("error getting dataset: %s", err.Error())
-				if fails == tries {
-					return repo.ErrNotFound
-				}
-			case <-time.After(time.Second * 5):
-				// TODO- replace this with context.WithTimeout funcs on all network calls
-				return repo.ErrNotFound
-			}
-		}
-
+		*res = *ref
 		return nil
 	}
-
-	*res = repo.DatasetRef{
-		ProfileID: p.ProfileID,
-		Peername:  p.Peername,
-		Name:      p.Name,
-		Path:      p.Path,
-		Dataset:   ds.Encode(),
+	err = r.repo.ReadDataset(ref)
+	if err != nil {
+		return err
 	}
+	*res = *ref
 	return nil
 }
 
