@@ -11,17 +11,13 @@ func NewRegistryCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "registry",
-		Short: "commands for working with a qri registry",
-		Long: `Registries are federated public records of datasets and peers.
+		Short: "Commands for working with a qri registry",
+		Long: `
+Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
 can find them through search tools and via web links. You can use registry 
-commands to control how your datasets are published to registries, opting out
+commands to control how your datasets are published to registries, opting in or out
 on a dataset-by-dataset basis.
-
-By default qri is configured to publish to https://registry.qri.io,
-the main public collection of datasets & peers. "qri add" and "qri update"
-default to publishing to a registry as part of dataset creation unless run 
-with the "no-registry" flag.
 
 Unpublished dataset info will be held locally so you can still interact
 with it. And your datasets will be available to others peers when you run 
@@ -44,7 +40,15 @@ $ qri config set registry.location ""`,
 	// publishCmd represents the publish command
 	publish := &cobra.Command{
 		Use:   "publish",
-		Short: "publish dataset info to the registry",
+		Short: "Publish dataset info to the registry",
+		Long: `
+Publishes the dataset information onto the registry. There will be a record
+of your dataset on the registry, and if your dataset is less than 20mbs, 
+Qri will back your dataset up onto the registry.
+
+Published datasets can be found by other peers using the ` + "`qri search`" + ` command.
+
+Datasets are by default published to the registry when they are created.`,
 		Example: `  Publish a dataset you've created to the registry:
   $ qri registry publish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
@@ -52,10 +56,7 @@ $ qri config set registry.location ""`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Publish(); err != nil {
-				return err
-			}
-			return nil
+			return o.Publish()
 		},
 	}
 
@@ -63,6 +64,12 @@ $ qri config set registry.location ""`,
 	unpublish := &cobra.Command{
 		Use:   "unpublish",
 		Short: "remove dataset info from the registry",
+		Long: `
+Unpublish will remove the reference to your dataset from the registry. If 
+you dataset was previously backed up onto the registry, this backup will 
+be removed.
+
+This dataset will no longer show up in search results.`,
 		Example: `  Remove a dataset from the registry:
   $ qri registry unpublish me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
@@ -70,10 +77,7 @@ $ qri config set registry.location ""`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Unpublish(); err != nil {
-				return err
-			}
-			return nil
+			return o.Unpublish()
 		},
 	}
 

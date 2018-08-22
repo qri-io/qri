@@ -14,12 +14,12 @@ func NewConnectCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := ConnectOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "connect",
-		Short: "connect to the distributed web, start a local API server",
+		Short: "Connect to the distributed web by spinning up a Qri node",
 		Annotations: map[string]string{
 			"group": "network",
 		},
 		Long: `
-While it’s not totally accurate, connect is like starting a server. running 
+While it’s not totally accurate, connect is like starting a server. Running 
 connect will start a process and stay there until you exit the process 
 (ctrl+c from the terminal, or killing the process using tools like activity 
 monitor on the mac, or the aptly-named “kill” command). Connect does three main 
@@ -34,10 +34,7 @@ peers & swapping data.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 
@@ -52,7 +49,7 @@ peers & swapping data.`,
 	// TODO - not yet supported
 	// cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
 
-	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from enviornment variables")
+	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
 	cmd.Flags().BoolVarP(&o.ReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
 

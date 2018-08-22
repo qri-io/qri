@@ -19,9 +19,9 @@ func NewSetupCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &SetupOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "setup",
-		Short: "initialize qri and IPFS repositories, provision a new qri ID",
+		Short: "Initialize qri and IPFS repositories, provision a new qri ID",
 		Long: `
-Setup is the first command you run to get a fresh install of qri. If you’ve 
+Setup is the first command you run to get a fresh install of Qri. If you’ve 
 never run qri before, you’ll need to run setup before you can do anything. 
 
 Setup does a few things:
@@ -29,9 +29,12 @@ Setup does a few things:
 - provisions a new qri ID
 - create an IPFS repository if one doesn’t exist
 
-This command is automatically run if you invoke any qri command without first 
-running setup. If setup has already been run, by default qri won’t let you 
-overwrite this info.`,
+This command is automatically run if you invoke any Qri command without first 
+running setup. If setup has already been run, by default Qri won’t let you 
+overwrite this info.
+
+Use the ` + "`--remove`" + ` to remove your Qri repo. This deletes your entire repo, 
+including all your datasets, and de-registers your peername from the registry.`,
 		Example: `  run setup with a peername of your choosing:
   $ qri setup --peername=your_great_peername`,
 		Annotations: map[string]string{
@@ -41,10 +44,7 @@ overwrite this info.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(f); err != nil {
-				return err
-			}
-			return nil
+			return o.Run(f)
 		},
 	}
 

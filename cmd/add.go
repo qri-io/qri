@@ -6,31 +6,28 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 // TODO: Tests.
-
 
 // NewAddCommand creates an add command
 func NewAddCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &AddOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:        "add",
-		Short:      "Add a dataset",
+		Use:   "add",
+		Short: "Add a dataset from another peer",
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
 		Long: `
-Add retrieves a dataset owned by another peer and adds it to your repo.`,
+Add retrieves a dataset owned by another peer and adds it to your repo. 
+The dataset reference of the dataset will remain the same, including 
+the name of the peer that originally added the dataset.`,
 		Example: `  add a dataset named their_data, owned by other_peer:
   $ qri add other_peer/their_data`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f); err != nil {
 				return err
 			}
-			if err := o.Run(args); err != nil {
-				return err
-			}
-			return nil
+			return o.Run(args)
 		},
 	}
 

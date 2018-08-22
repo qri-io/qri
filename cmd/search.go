@@ -15,7 +15,13 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "search",
 		Short: "Search qri",
-		Long:  `Search datasets & peers that match your query`,
+		Long: `
+Search datasets & peers that match your query. Search pings the qri registry. 
+
+Any dataset that has been published to the registry is available for search.`,
+		Example: `
+  # search 
+  $ qri search "annual population"`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
@@ -26,10 +32,7 @@ func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			if err := o.Validate(); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

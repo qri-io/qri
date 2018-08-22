@@ -12,11 +12,12 @@ func NewDiffCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "diff",
-		Short: "compare differences between two datasets",
+		Short: "Compare differences between two datasets",
 		Long: `
 Diff compares two datasets from your repo and prints a representation 
 of the differences between them.  You can specifify the datasets
-either by name or by their hash`,
+either by name or by their hash. You can compare different versions of 
+the same dataset.`,
 		Example: `  show diff between two versions of the same dataset:
   $ qri diff me/annual_pop@/ipfs/QmcBZoEQ7ot4UYKn1JM3gwd4LHorj6FJ4Ep19rfLBT3VZ8 
   me/annual_pop@/ipfs/QmVvqsge5wqp4piJbLArwVB6iJSTrdM8ZRpHY7fikASrr8
@@ -31,10 +32,7 @@ either by name or by their hash`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

@@ -16,17 +16,35 @@ func NewInfoCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "info",
 		Aliases: []string{"get", "describe"},
-		Short:   "show summarized description of a dataset",
-		Long:    `info describes datasets`,
-		Example: `  get info for b5/comics:
-  $ qri info b5/comics
+		Short:   "Show summarized description of a dataset",
+		Long: `Info describes datasets. By default, it will return the peername, dataset name, 
+the network, the dataset hash, the file size, the length of the datasets, 
+and the validation errors.
 
-  get info for a dataset at a specific version:
-  $ qri info me@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+Using the ` + "`--format`" + ` flag, you can get output in json. This will return a json
+representation of the dataset, without the dataset body, identical to 
+` + "`qri get --format json`" + `.
+
+To get info on a peer's dataset, you must be running ` + "`qri connect`" + ` in a separate 
+terminal window.`,
+		Example: `  # get info for my dataset:
+  qri info me/annual_pop
+
+  # get info for a dataset at a specific version:
+  qri info me@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
 
   or
 
-  $ qri info me/comics@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn`,
+  qri info me/comics@/ipfs/QmUNLLsPACCz1vLxQVkXqqLX5R1X345qqfHbsf67hvA3Nn
+
+  # get info in json format
+  qri info -f json me/annual_pop
+
+  # to get info on a peer's dataset, spin up your qri node
+  qri connect
+
+  # then, in a separate window, request the info from peer b5
+  qri info b5/comics`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -35,10 +53,7 @@ func NewInfoCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 
