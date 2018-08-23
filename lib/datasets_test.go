@@ -373,7 +373,8 @@ func TestDatasetRequestsGet(t *testing.T) {
 		err string
 	}{
 		// TODO: probably delete some of these
-		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil, "repo: not found"},
+		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil,
+			"error loading dataset: error getting file bytes: datastore: key not found"},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
