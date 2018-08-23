@@ -177,7 +177,8 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	return nil
 }
 
-// Get a dataset
+// Get retrieves a dataset head (commit, structure, meta, etc) for a given reference, either
+// from the local repo or by asking peers for it. The res parameter will be populated upon success.
 func (r *DatasetRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", ref, res)
