@@ -17,9 +17,9 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )

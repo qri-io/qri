@@ -4,10 +4,10 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/registry"
 )
 
