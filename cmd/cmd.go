@@ -46,7 +46,7 @@ func Execute() {
 	root.SilenceErrors = true
 	// Execute the subcommand
 	if err := root.Execute(); err != nil {
-		printErr(os.Stdin, err)
+		printErr(os.Stdout, err)
 		os.Exit(1)
 	}
 }

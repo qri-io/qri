@@ -1,0 +1,1324 @@
+openapi: 3.0.0
+info:
+  title: Qri API
+  description: Qri API used to communicate with a Qri node.
+  version: 0.5.1
+
+paths:
+  /{peername}:
+    get:
+      summary: Get the profile of a peer using the `peername`
+      operationId: getPeername
+      parameters:
+        - $ref: '#/components/parameters/peername'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /{peername}/{datasetName}:
+    get:
+      summary: Get dataset info from a peer's dataset using the `peername` and `dataset_name`
+      operationId: getDataset
+      parameters:
+        - $ref: '#/components/parameters/peername'
+        - name: datasetName
+          in: path
+          description: Dataset name
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /status:
+    get:
+      summary: A basic ok response for load balancers & co. Returns the version of qri this node is running, pulled from the qri/lib package
+      operationId: status
+      responses:
+        '200':
+          description: Status OK response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  meta:
+                    type: object
+                    properties:
+                      code:
+                        type: integer
+                        enum: [200]
+                      status:
+                        type: string
+                        enum: [ok]
+                      version:
+                        type: string
+                  data:
+                    type: array
+                    items: {}
+                    minItems: 0
+                    maxItems: 0
+  /me:
+    get: 
+      summary: Get this Qri node's profile
+      operationId: getProfile
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Save changes to this peer's profile
+      operationId: saveProfile
+      requestBody:
+        description: required profile described in json
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /profile:
+    get: 
+      summary: Get this Qri node's profile
+      operationId: getProfile
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Save changes to this peer's profile
+      operationId: saveProfile
+      requestBody:
+        description: Profile with changes
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /peers:
+    get:
+      summary: Get the list of this node's peers
+      operationId: getPeersList
+      responses:
+        '200':
+          $ref: '#/components/responses/PeersResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+  /peers/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Get the head of a specific dataset
+      operationId: getPeersDatasetInfo
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+  /list:
+    get:
+      summary: Get the list of this peer's datasets
+      operationId: getDatasetList
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetsResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'   
+  /list/{peername}:
+    parameters:
+      - name: peername
+        in: path
+        description: Peername
+        required: true
+        schema:
+          type: string
+    get:
+      summary: Get the list a specific peer's datasets
+      operationId: getPeersDatasetList
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetsResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+  /save:
+    post:
+      summary: Save and update to a dataset head
+      operationId: saveDataset
+      requestBody:
+        description: Updated dataset head
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /save/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    post:
+      summary: Save and update to a dataset head
+      operationId: saveDataset
+      requestBody:
+        description: Updated dataset head
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'       
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /remove/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    post:
+      summary: Remove a dataset
+      operationId: removeDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    delete:
+      summary: Remove a dataset
+      operationId: removeDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /me/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Get the head of your own dataset
+      operationId: getDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /add/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    put:
+      summary: Add a peer's dataset to your node
+      operationId: addDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Add a peer's dataset to your node
+      operationId: addDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /body/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Get a dataset's body
+      operationId: getBody
+      responses:
+        '200':
+          $ref: '#/components/responses/BodyResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /history/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Get the version history of a dataset
+      operationId: datasetHistory
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetsResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /registry/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    put:
+      summary: Publish this dataset to the registry
+      operationId: publishDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/RegistryResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Publish this dataset to the registry
+      operationId: publishDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/RegistryResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    delete:
+      summary: Publish this dataset to the registry
+      operationId: unpublishDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/RegistryResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+  /render/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Get a visualized version of your dataset in html. Visualiztions taken from a golang/html template
+      operationId: renderDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/RenderResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /connect/{address}:
+    parameters:
+      - name: address
+        in: path
+        required: true
+        schema:
+          type: string
+          enum:
+            - $ref: '#/components/schemas/Path'
+            - $ref: '#/components/schemas/ID'
+            - $ref: '#/components/schemas/Peername'
+            - $ref: '#/components/schemas/Multiaddr'
+    get:
+      summary: Create an explicit connection to another peer
+      operationId: ConnectToPeer
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'        
+  /ipfs/{hash}/{filename}:
+    parameters:
+      - $ref: '#/components/parameters/hash'
+      - $ref: '#/components/parameters/filename'
+    get:
+      summary: Get file straight from ipfs
+      operationId: ipfs
+      responses:
+        '200':
+          description: get file or data straight from ipfs
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                  - type: array
+            text/csv:
+              schema:
+                type: array
+                items: {}
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /ipns/{hash}:
+    parameters:
+      - $ref: '#/components/parameters/hash'
+    get:
+      summary: Resolve ipns hash
+      operationId: ipns
+      responses:
+        '200':
+          description: get file or data straight from ipfs
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - type: object
+                  - type: array
+            text/csv:
+              schema:
+                type: array
+                items: {}
+            text/plain; charset=utf-8:
+              schema:
+                type: string
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /profile/photo:
+    get:
+      parameters:
+        - name: peername
+          in: query
+          description: peername
+          schema:
+            $ref: '#/components/schemas/Peername'
+        - name: id
+          in: query
+          description: peer id
+          schema:
+            $ref: '#/components/schemas/ID'
+      summary: Get your profile photo or a peer's profile photo
+      operationId: getProfilePhoto
+      responses:
+        '200':
+          $ref: '#/components/responses/PhotoResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+    put:
+      summary: Set your profile photo
+      operationId: setProfilePhoto
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Set your profile photo
+      operationId: setProfilePhoto
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /profile/poster:
+    get:
+      parameters:
+        - name: peername
+          in: query
+          description: peername
+          schema:
+            $ref: '#/components/schemas/Peername'
+        - name: id
+          in: query
+          description: peer id
+          schema:
+            $ref: '#/components/schemas/ID'
+      summary: Get your profile poster or a peer's profile poster
+      operationId: getProfilePoster
+      responses:
+        '200':
+          $ref: '#/components/responses/PhotoResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'  
+    put:
+      summary: Set your profile poster
+      operationId: setProfilePoster
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+    post:
+      summary: Set your profile poster
+      operationId: setProfilePoster
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              properties:
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/ProfileResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /diff:
+    post:
+      summary: Get the diff between two datasets
+      operationId: diffDatasets
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                left:
+                  description: a dataset reference
+                  type: string
+                right:
+                  description: a dataset reference
+                  type: string
+                format:
+                  type: string
+                  enum: [simple, listKeys, plusMinusColor, plusMinus]
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                left:
+                  description: a dataset reference
+                  type: string
+                right:
+                  type: string
+                  description: a dataset reference
+                format:
+                  type: string
+                  enum: [simple, listKeys, plusMinusColor, plusMinus] 
+      responses:
+        '200':
+          $ref: '#/components/responses/DiffResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /export/{datasetRef}:
+    parameters:
+      - $ref: '#/components/parameters/datasetRef'
+    get:
+      summary: Export a dataset header and body as a zip
+      operationId: zipDataset
+      responses:
+        '200':
+          $ref: '#/components/responses/ZipResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /rename:
+    put:
+      summary: Rename a dataset
+      operationId: renameDataset
+      parameters:
+        - name: new
+          in: query
+          description: Dataset name (<handle>/<dataset_name>)
+          schema:
+            type: string
+        - name: current
+          in: query
+          description: Dataset name (<handle>/<dataset_name>)
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                current:
+                  description: Dataset name (<handle>/<dataset_name>)
+                  type: string
+                new:
+                  description: Dataset name (<handle>/<dataset_name>)
+                  type: string
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+  /new:
+    put:
+      summary: Create a new dataset
+      operationId: newDataset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                peername:
+                  $ref: '#/components/schemas/Peername'
+                name:
+                  type: string
+                  description: name of the dataset
+                body_path:
+                  type: string
+                  description: Path to the body file
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+    post:
+      summary: Create a new dataset
+      operationId: newDataset
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Dataset'
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                peername:
+                  $ref: '#/components/schemas/Peername'
+                name:
+                  type: string
+                  description: name of the dataset
+                body_path:
+                  type: string
+                  description: Path to the body file
+                file:
+                  type: string
+                  format: binary
+      responses:
+        '200':
+          $ref: '#/components/responses/DatasetResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /connections:
+    get:
+      summary: Get list of connections available to this Qri node
+      operationId: getConnections
+      responses:
+        '200':
+          $ref: '#/components/responses/ConnectionsResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError' 
+  /search:
+    get:
+      summary: Search the Qri registry for datasets
+      operationId: search
+      parameters:
+        - name: search
+          in: query
+          description: Search Query
+          required: true
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Max number of search results to return
+          schema:
+            type: integer
+        - name: offset
+          in: query
+          description: Number of entries to skip before returning search results
+          schema:
+            type: integer
+      responses:
+        '200':
+          $ref: '#/components/responses/SearchResponse'
+        '403':
+          $ref: '#/components/responses/StatusForbidden'
+        '404':
+          $ref: '#/components/responses/StatusNotFound'
+        '500':
+          $ref: '#/components/responses/StatusInternalServerError'
+          
+components:
+  schemas:
+    Dataset:
+      type: object
+      description: Dataset is a document for describing & storing structured data. Dataset documents are designed to satisfy the FAIR principle of being Findable, Accessible, Interoperable, and Reproducible, in relation to other dataset documents, and related-but-separate technologies such as data catalogs, HTTP API's, and data package formats Datasets are designed to be stored and distributed on content-addressed (identify-by-hash) systems The dataset document definition is built from a research-first principle, valuing direct interoperability with existing standards over novel definitions or specifications
+      properties:
+        commit:
+          $ref: '#/components/schemas/Commit'
+        bodyPath:
+          type: string
+          description: BodyPath is the path to the hash of raw data as it resolves on the network. Datasets have at most one body
+        name:
+          type: string
+        path:
+          $ref: '#/components/schemas/Path'
+        peername:
+          $ref: '#/components/schemas/Peername'
+        profileID:
+          $ref: '#/components/schemas/ID'
+        meta:
+          $ref: '#/components/schemas/Meta'
+        previousPath: 
+          type: string
+          description: PreviousPath connects datasets to form a historical merkle-DAG of snapshots of this document, creating a version history
+        qri:
+          $ref: '#/components/schemas/Qri'
+        structure:
+          $ref: '#/components/schemas/Structure'
+        transform:
+          $ref: '#/components/schemas/Transform'
+        viz:
+          $ref: '#/components/schemas/Viz'
+    Profile:
+      type: object
+      properties:
+        id:
+          $ref: '#/components/schemas/ID'
+        privKey:
+          type: string
+        peername:
+          $ref: '#/components/schemas/Peername'
+        created:
+          $ref: '#/components/schemas/Created'
+        updated:
+          $ref: '#/components/schemas/Updated'
+        type:
+          type: string
+          enum: [peer, organization]
+        email:
+          $ref: '#/components/schemas/Email'
+        name:
+          type: string
+        description:
+          type: string
+        homeurl:
+          $ref: '#/components/schemas/URI'
+        color:
+          type: string
+        thumb:
+          $ref: '#/components/schemas/Path'
+        photo:
+          $ref: '#/components/schemas/Path'
+        poster:
+          $ref: '#/components/schemas/Path'
+        twitter:
+          type: string
+        Online:
+          type: boolean
+        peerIDs:
+          type: array
+          items:
+            $ref: '#/components/schemas/Path'
+    Commit:
+      type: object
+      properties:
+        author:
+          $ref: '#/components/schemas/User'
+        message:
+          type: string
+        path:
+          $ref: '#/components/schemas/Path'
+        qri:
+          $ref: '#/components/schemas/Qri'
+        signature:
+          type: string
+          minLength: 344
+          maxLength: 344
+          pattern: '^[a-zA-Z0-9\/+]+=='
+        timestamp:
+          $ref: '#/components/schemas/Datetime'
+        title:
+          type: string
+    Meta:
+      description: Dataset metadata.
+      type: object
+      properties:
+        qri:
+          $ref: '#/components/schemas/Qri'
+        accessPath:
+          $ref: '#/components/schemas/URI'
+        accrualPeriodicity:
+          description: Frequency at which his dataset should be updated.
+          type: string
+        citations:
+          description: List of citations for this dataset.
+          type: array
+          items:
+            type: object
+            properties:
+              name:
+                type: string
+              url:
+                $ref: '#/components/schemas/URI'
+              email:
+                $ref: '#/components/schemas/Email'
+        contributors:
+          description: List of contributors on this dataset.
+          type: array
+          items:
+            type: object
+            properties:
+              id:
+                $ref: '#/components/schemas/ID'
+              fullname:
+                type: string
+              email:
+                $ref: '#/components/schemas/Email'
+        description:
+          description: Human-readable description of the dataset.
+          type: string
+        downloadPath:
+          $ref: '#/components/schemas/URI'
+        homePath:
+          $ref: '#/components/schemas/URI'
+        identifier:
+          type: string
+        keywords:
+          description: Keywords or tags that should be associated with the dataset.
+          type: array
+          items:
+            type: string
+        language:
+          description: Language or languages the dataset is available in.
+          type: array
+          items:
+            type: string
+        license:
+          description: License under which the dataset is authorized to be used.
+          type: object
+          properties:
+            type:
+              type: string
+              description: Name or kind of license.
+            url:
+              $ref: '#/components/schemas/URI'
+        readmePath:
+          $ref: '#/components/schemas/URI'
+        title:
+          description: Human-readable title of the dataset.
+          type: string
+        theme:
+          description: List of categories to which this dataset should belong.
+          type: array
+          items:
+            type: string
+        version:
+          description: The semantic version of this dataset.
+          type: string
+    Structure:
+      description: Defines the characteristics of a dataset document necessary for a machine to interpret the dataset body.
+      type: object
+      properties:
+        checksum:
+          $ref: '#/components/schemas/ID'
+        compression:
+          description: Compression specifies any compression on the source data, if empty assume no compression
+          type: integer
+        encoding:
+          description: Encoding specifics character encoding, assume utf-8 if not specified
+          type: string
+        errCount:
+          description: ErrCount is the number of errors returned by validating data against this schema. required
+          type: integer
+        entries:
+          description: Entries is number of top-level entries in the dataset. With tablular datanthis is the same as the number of `rows`
+          type: integer
+        format:
+          description: Format specifies the format of the raw data MIME type
+          type: integer
+        formatConfig:
+          description: FormatConfig removes as much ambiguity as possible about how to interpret the specified format.
+          type: object
+        length: 
+          description: Length is the length of the data object in bytes. Must always match & be present.
+          type: integer
+        path:
+          $ref: '#/components/schemas/Path'
+        qri:
+          $ref: '#/components/schemas/Qri'
+        schema:
+          $ref: '#/components/schemas/Schema'
+    Viz:
+      type: object
+      description: Viz stores configuration data related to representing a dataset as a visualization
+      properties:
+        qri:
+          $ref: '#/components/schemas/Qri'
+        format:
+          type: string
+          enum: [html]
+        scriptPath:
+          type: string
+          description: the path to the script that created this visualization
+    Transform:
+      type: object
+      description: Transform is a record of executing a transformation on data. Transforms can theoretically be anything for an SQL query, a jupyter notebook, the state of an ETL pipeline, etc, so long as the input is zero or more datasets, and the output is a single dataset. Ideally, transforms should contain all the machine-necessary bits to deterministicly execute the algorithm referenced in ScriptPath
+      properties:
+        qri:
+          $ref: '#/components/schemas/Qri'
+        path:
+          $ref: '#/components/schemas/Path'
+        scriptPath:
+          type: string
+        syntax:
+          type: string
+        syntaxVersion:
+          type: string
+        structure:
+          $ref: '#/components/schemas/Structure'
+        config:
+          type: object
+        secrets:
+          type: object
+        resources:
+          type: object
+    ID:
+      type: string
+      description: The base58 encoded ID unique to this peer
+      maxLength: 46
+      minLength: 46
+      pattern: '^[a-zA-Z0-9]{46}'
+    Peername:
+      type: string
+      description: The peername associated with a particular qri node
+      not:
+        enum: [me, status, at, add, history, remove, export, profile, list, peers, connections, new, log, registry, diff, validate]
+    Created:
+      type: string
+      format: date-time
+      description: Date and time created.
+    Updated:
+      type: string
+      format: date-time
+      description: Date and time updated.
+    Path:
+      type: string
+      pattern: '^\/[a-zA-Z]+\/[a-zA-Z0-9]{46}$'
+      description: Path to an asset, in the format of '/network/hash'
+    Error:
+      type: object
+      properties:
+        meta:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+          required:
+            - code
+            - message
+      required:
+        - meta
+    URI:
+      type: string
+      format: uri
+    Email:
+      type: string
+      format: email
+    Datetime:
+      type: string
+      format: date-time
+    Qri:
+      description: Internal notation to ensure the Qri dataset is being handled according to the correct version.
+      type: string
+    User:
+      description: User is a placeholder for talking about people, groups, organizations
+      type: object
+      properties:
+        ID:
+          $ref: '#/components/schemas/ID'
+        Fullname:
+          type: string
+          description: First and last name, or full name of the organizations
+        Email:
+          $ref: '#/components/schemas/Email'
+    Schema:
+      type: object
+      description: Schema contains the schema definition for the underlying data, schemas are defined using the IETF json-schema specification. for more info on json-schema see https://json-schema.org
+      properties: 
+        type:
+          type: string
+          description: dataset body's top level structure, either object or array
+          enum: [array, object]
+    MetaResponse:
+      type: object
+      properties:
+        code:
+          type: integer
+    Pagination:
+      type: object
+      properties:
+        nextUrl:
+          type: string
+    Multiaddr:
+      type: string
+      pattern: '^(\/[0-9A-Za-z:.]+\/[0-9A-Za-z:.]+)+\/([^\/]\S)+$'
+      description: Path to an asset, in the form of a multiaddress
+    SearchItem:
+      description: Single search result
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [dataset, profile]
+        id:
+          type: string
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/Dataset'
+            - $ref: '#/components/schemas/Profile'
+      
+  parameters:
+    datasetRef:
+      name: datasetRef
+      in: path
+      description: Dataset Reference
+      required: true
+      schema:
+        type: string
+    peername:
+      name: peername
+      in: path
+      description: Peername
+      required: true
+      schema:
+        type: string
+    datasetName:
+      name: datasetName
+      in: path
+      description: Dataset name
+      required: true
+      schema:
+        type: string
+    filename:
+      name: filename
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[\w,\s-]+\.[\w]+$'
+    hash:
+      name: hash
+      in: path
+      required: true
+      schema:
+        $ref: '#/components/schemas/ID'
+          
+  responses:
+    StatusInternalServerError:
+      description: Server error.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    StatusNotFound:
+      description: Not found.
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    StatusForbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+    ProfileResponse:
+      description: Profile Response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Profile'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    DatasetResponse:
+      description: Dataset Reponse
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                $ref: '#/components/schemas/Dataset'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    PeersResponse:
+      description: Peers List Response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Profile'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    DatasetsResponse:
+      description: Response with list of datasets 
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Dataset'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+    BodyResponse:
+      description: Dataset Body Response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: object
+                properties:
+                  path:
+                    $ref: '#/components/schemas/Path'
+                  data:
+                    oneOf:
+                      - type: object
+                      - type: array
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+              pagination:
+                $ref: '#/components/schemas/Pagination'
+    RegistryResponse:
+      description: Publish and unpublish dataset to registry response
+      content:
+        application/json:
+          schema: 
+            type: object
+            properties:
+              data:
+                type: string
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    RenderResponse:
+      description: HTML render response
+      content:
+        text/html:
+          schema:
+            type: string
+    PhotoResponse:
+      description: Response with an image
+      content:
+        image/jpeg:
+          schema:
+            type: string
+            format: binary
+    DiffResponse:
+      description: Diff between two datasets
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: string
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    ZipResponse:
+      description: Zip Response
+      content:
+        application/zip:
+          schema:
+            type: string
+            format: binary
+    ConnectionsResponse:
+      description: Connections Response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  type: string
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+    SearchResponse:
+      description: Search Response
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              data:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SearchItem'
+              meta:
+                $ref: '#/components/schemas/MetaResponse'
+              pagination:
+                $ref: '#/components/schemas/Pagination' 
