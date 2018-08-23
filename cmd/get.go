@@ -6,9 +6,9 @@ import (
 
 	"encoding/json"
 	"github.com/ghodss/yaml"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	"github.com/spf13/cobra"
 )
 

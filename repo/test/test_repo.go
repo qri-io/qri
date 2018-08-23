@@ -12,9 +12,9 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )

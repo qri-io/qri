@@ -24,8 +24,6 @@ func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 	tests := []repoTestFunc{
 		testProfile,
 		testRefSelector,
-		// testRefstore,
-		// DatasetActions,
 	}
 
 	for _, test := range tests {

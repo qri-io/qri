@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/actions"
 )
 
 // MtDatasetInfo gets info on a dataset
