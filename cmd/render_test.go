@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 )
 
 func TestRenderComplete(t *testing.T) {
@@ -55,37 +56,6 @@ func TestRenderComplete(t *testing.T) {
 	}
 }
 
-func TestRenderValidate(t *testing.T) {
-	cases := []struct {
-		ref string
-		err string
-		msg string
-	}{
-		{"", ErrBadArgs.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
-		{"me/test", "", ""},
-	}
-	for i, c := range cases {
-		opt := &RenderOptions{
-			Ref: c.ref,
-		}
-
-		err := opt.Validate()
-		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: %s, Got: %s", i, c.err, err)
-			continue
-		}
-		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.msg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				continue
-			}
-		} else if c.msg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			continue
-		}
-	}
-}
-
 func TestRenderRun(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
@@ -104,13 +74,13 @@ func TestRenderRun(t *testing.T) {
 
 	templateFile := cafs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
 
-	repo, err := f.Repo()
+	r, err := f.Repo()
 	if err != nil {
 		t.Errorf("error getting repo from factory: %s", err)
 		return
 	}
 
-	key, err := repo.Store().Put(templateFile, false)
+	key, err := r.Store().Put(templateFile, false)
 	if err != nil {
 		t.Errorf("error putting template into store: %s", err)
 		return
@@ -139,6 +109,7 @@ func TestRenderRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
+		{"", "", "", false, 10, 0, "", repo.ErrEmptyRef.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
 		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
 		{"peer/cities", "", "", false, 10, 0, "<html><h1>peer/cities</h1></html>", "", ""},
 		{"peer/cities", "testdata/template.html", "", false, 2, 0, "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
