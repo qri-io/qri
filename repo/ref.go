@@ -157,7 +157,7 @@ func (r DatasetRef) IsEmpty() bool {
 // TODO - figure out how IPFS CID's play into this
 func ParseDatasetRef(ref string) (DatasetRef, error) {
 	if ref == "" {
-		return DatasetRef{}, fmt.Errorf("cannot parse empty string as dataset reference")
+		return DatasetRef{}, ErrEmptyRef
 	}
 
 	var (
@@ -321,6 +321,10 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	// this into lib functions.
 	if r == nil {
 		return nil
+	}
+
+	if ref.IsEmpty() {
+		return ErrEmptyRef
 	}
 
 	if err := CanonicalizeProfile(r, ref, nil); err != nil {
