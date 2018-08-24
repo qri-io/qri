@@ -128,12 +128,15 @@ func (o *ExportOptions) Run() error {
 	}
 
 	dsr, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 
 	res := &repo.DatasetRef{}
 	if err = o.DatasetRequests.Get(&dsr, res); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "please provide a dataset reference")
+		}
 		return err
 	}
 
