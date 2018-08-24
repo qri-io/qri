@@ -794,6 +794,28 @@ type DiffParams struct {
 
 // Diff computes the diff of two datasets
 func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff) (err error) {
+	refs := []repo.DatasetRef{}
+
+	// Handle `qri use` to get the current default dataset.
+	if err := DefaultSelectedRefs(r.repo.Repo, &refs); err != nil {
+		return err
+	}
+
+	// fill in the left side if Left is empty, and there are enough
+	// refs in the `use` list
+	if p.Left.IsEmpty() && len(refs) > 0 {
+		p.Left = refs[0]
+	}
+	// fill in the right side if Right is empty, and there are enough
+	// refs in the `use` list
+	if p.Right.IsEmpty() && len(refs) > 1 {
+		p.Right = refs[1]
+	}
+
+	if p.Left.IsEmpty() || p.Right.IsEmpty() {
+		return NewError(repo.ErrEmptyRef, "please provide two dataset references to compare")
+	}
+
 	left := &repo.DatasetRef{}
 	if e := r.Get(&p.Left, left); e != nil {
 		return e

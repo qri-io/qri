@@ -59,42 +59,6 @@ func TestValidateComplete(t *testing.T) {
 
 }
 
-// jesus this name
-func TestValidateValidate(t *testing.T) {
-	cases := []struct {
-		ref, filePath, schemaFilePath, url, err, msg string
-	}{
-		{"", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
-		{"", "", "", "url", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
-		{"me/ref", "", "", "", "", ""},
-		{"", "file/path", "schema/path", "", "", ""},
-		{"me/ref", "file/path", "schema/path", "", "", ""},
-	}
-	for i, c := range cases {
-		opt := &ValidateOptions{
-			Ref:            c.ref,
-			Filepath:       c.filePath,
-			SchemaFilepath: c.schemaFilePath,
-			URL:            c.url,
-		}
-
-		err := opt.Validate()
-		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: %s, Got: %s", i, c.err, err)
-			continue
-		}
-		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.msg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				continue
-			}
-		} else if c.msg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			continue
-		}
-	}
-}
-
 func TestValidateRun(t *testing.T) {
 	streams, in, out, errs := NewTestIOStreams()
 	setNoColor(true)
@@ -111,9 +75,6 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
-			ref, filePath, schemaFilePath, url, err, msg string
-	}{
-
 	cases := []struct {
 		ref            string
 		filePath       string
@@ -123,8 +84,9 @@ func TestValidateRun(t *testing.T) {
 		err            string
 		msg            string
 	}{
-		{"", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
-		{"", "", "", "url", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
+		{"", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
+		// TODO: add back when we again support validating from a URL
+		// {"", "", "", "url", "", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
 		{"peer/movies", "", "", "", movieOutput, "", ""},
 		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
 		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
