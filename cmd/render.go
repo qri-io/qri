@@ -14,8 +14,16 @@ func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &RenderOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "render",
-		Short: "execute a template against a dataset",
-		Long:  `the most common use for render is to generate html from a qri dataset`,
+		Short: "Execute a template against a dataset",
+		Long: `
+You can use html templates, formatted in the go/html template style, 
+to render visualizations from your dataset. These visualizations can be charts, 
+graphs, or just display your dataset in a different format.
+
+Use the ` + "`--output`" + ` flag to save the rendered html to a file.
+
+Use the ` + "`--template`" + ` flag to use a custom template. If no template is
+provided, Qri will render the dataset with a default template.`,
 		Example: `  render a dataset called me/schools:
   $ qri render -o=schools.html me/schools
 
@@ -31,10 +39,7 @@ func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 			if err := o.Validate(); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

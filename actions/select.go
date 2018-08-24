@@ -12,6 +12,8 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// TODO: Remove this, move other functions to another file, possibly in lib/.
+
 // Select loads a dataset value specified by case.Sensitve.dot.separated.paths
 func (act Dataset) Select(ref repo.DatasetRef, path string) (interface{}, error) {
 	ds, err := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
@@ -28,6 +30,16 @@ func (act Dataset) Select(ref repo.DatasetRef, path string) (interface{}, error)
 		return nil, err
 	}
 	return v.Interface(), nil
+}
+
+// ApplyPath gets a dataset value by applying a case.Sensitve.dot.separated.path
+func ApplyPath(ds *dataset.DatasetPod, path string) (interface{}, error) {
+	var value reflect.Value
+	value, err := pathValue(ds, path)
+	if err != nil {
+		return nil, err
+	}
+	return value.Interface(), nil
 }
 
 func pathValue(ds *dataset.DatasetPod, path string) (elem reflect.Value, err error) {

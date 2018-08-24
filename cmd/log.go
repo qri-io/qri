@@ -14,9 +14,9 @@ func NewLogCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "log",
 		Aliases: []string{"history"},
-		Short:   "show log of dataset history",
+		Short:   "Show log of dataset history",
 		Long: `
-log prints a list of changes to a dataset over time. Each entry in the log is a 
+` + "`qri log`" + ` prints a list of changes to a dataset over time. Each entry in the log is a 
 snapshot of a dataset taken at the moment it was saved that keeps exact details 
 about how that dataset looked at at that point in time. 
 
@@ -34,10 +34,7 @@ working backwards in time.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

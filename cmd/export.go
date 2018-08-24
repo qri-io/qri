@@ -26,12 +26,22 @@ func NewExportCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &ExportOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "export",
-		Short: "copy datasets to your local filesystem",
+		Short: "Copy datasets to your local filesystem",
 		Long: `
-Export gets datasets out of qri. By default it exports only a dataset’s data to 
-the path [current directory]/[peername]/[dataset name]/[data file]. 
+Export gets datasets out of qri. By default it exports only the dataset body. 
 
-To export everything about a dataset, use the --dataset flag.`,
+To export to a specific directory, use the --output flag.
+
+If you want an empty dataset that can be filled in with details to create a
+new dataset, use --blank.`,
+		Example: `  # export dataset
+  qri export me/annual_pop
+
+  # export without the body of the dataset
+  qri export --no-body me/annual_pop
+
+  # export to a specific directory
+  qri export -o ~/new_directory me/annual_pop`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -39,10 +49,7 @@ To export everything about a dataset, use the --dataset flag.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 

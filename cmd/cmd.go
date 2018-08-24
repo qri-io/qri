@@ -1,3 +1,9 @@
+// Package cmd defines the CLI interface. It relies heavily on the spf13/cobra
+// package. Much of its structure is adapted from kubernetes/kubernetes/tree/master/cmd
+// The `help` message for each command uses backticks rather than quotes when
+// refering to commands by name, even though it is cumbersome to maintain.
+// Using backticks means we can get better formatting when auto generating markdown
+// documentation from the command help messages.
 package cmd
 
 import (
@@ -40,7 +46,7 @@ func Execute() {
 	root.SilenceErrors = true
 	// Execute the subcommand
 	if err := root.Execute(); err != nil {
-		printErr(os.Stdin, err)
+		printErr(os.Stdout, err)
 		os.Exit(1)
 	}
 }

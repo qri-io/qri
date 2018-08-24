@@ -1,0 +1,1851 @@
+swagger: '2.0'
+info:
+  description: Qri API used to communicate with a Qri node.
+  title: Qri API
+  version: 0.5.1
+
+paths:
+  "/add/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    post:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: addDataset
+      summary: Add a peer's dataset to your node
+    put:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: addDataset
+      summary: Add a peer's dataset to your node
+  "/body/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Body Response
+          schema:
+            properties:
+              data:
+                properties:
+                  data:
+                    oneOf:
+                    - type: object
+                    - type: array
+                  path:
+                    "$ref": "#/definitions/Path"
+                type: object
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+              pagination:
+                "$ref": "#/definitions/Pagination"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getBody
+      summary: Get a dataset's body
+  "/connect/{address}":
+    parameters:
+    - in: path
+      name: address
+      required: true
+      schema:
+        enum:
+        - "$ref": "#/definitions/Path"
+        - "$ref": "#/definitions/ID"
+        - "$ref": "#/definitions/Peername"
+        - "$ref": "#/definitions/Multiaddr"
+        type: string
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: ConnectToPeer
+      summary: Create an explicit connection to another peer
+  "/connections":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Connections Response
+          schema:
+            properties:
+              data:
+                items:
+                  type: string
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getConnections
+      summary: Get list of connections available to this Qri node
+  "/diff":
+    post:
+      consumes:
+      - application/json
+      produces:
+      - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          properties:
+            format:
+              enum:
+              - simple
+              - listKeys
+              - plusMinusColor
+              - plusMinus
+              type: string
+            left:
+              description: a dataset reference
+              type: string
+            right:
+              description: a dataset reference
+              type: string
+          type: object
+      responses:
+        '200':
+          description: Diff between two datasets
+          schema:
+            properties:
+              data:
+                type: string
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: diffDatasets
+      summary: Get the diff between two datasets
+  "/export/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      produces:
+      - application/zip
+      parameters: []
+      responses:
+        '200':
+          description: Zip Response
+          format: binary
+          schema:
+            format: binary
+            type: string
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: zipDataset
+      summary: Export a dataset header and body as a zip
+  "/history/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Response with list of datasets
+          schema:
+            properties:
+              data:
+                items:
+                  "$ref": "#/definitions/Dataset"
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+              pagination:
+                "$ref": "#/definitions/Pagination"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: datasetHistory
+      summary: Get the version history of a dataset
+  "/ipfs/{hash}/{filename}":
+    parameters:
+    - "$ref": "#/x-components/parameters/hash"
+    - "$ref": "#/x-components/parameters/filename"
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: get file or data straight from ipfs
+          schema:
+            oneOf:
+            - type: object
+            - type: array
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: ipfs
+      summary: Get file straight from ipfs
+  "/ipns/{hash}":
+    parameters:
+    - "$ref": "#/x-components/parameters/hash"
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: get file or data straight from ipfs
+          schema:
+            oneOf:
+            - type: object
+            - type: array
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: ipns
+      summary: Resolve ipns hash
+  "/list":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Response with list of datasets
+          schema:
+            properties:
+              data:
+                items:
+                  "$ref": "#/definitions/Dataset"
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+              pagination:
+                "$ref": "#/definitions/Pagination"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getDatasetList
+      summary: Get the list of this peer's datasets
+  "/list/{peername}":
+    parameters:
+    - description: Peername
+      in: path
+      name: peername
+      required: true
+      schema:
+        type: string
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Response with list of datasets
+          schema:
+            properties:
+              data:
+                items:
+                  "$ref": "#/definitions/Dataset"
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+              pagination:
+                "$ref": "#/definitions/Pagination"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getPeersDatasetList
+      summary: Get the list a specific peer's datasets
+  "/me":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getProfile
+      summary: Get this Qri node's profile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: required profile described in json
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/Profile"
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: saveProfile
+      summary: Save changes to this peer's profile
+  "/me/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getDataset
+      summary: Get the head of your own dataset
+  "/new":
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          "$ref": "#/definitions/Dataset"
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: newDataset
+      summary: Create a new dataset
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - in: body
+        name: body
+        schema:
+          "$ref": "#/definitions/Dataset"
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: newDataset
+      summary: Create a new dataset
+  "/peers":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Peers List Response
+          schema:
+            properties:
+              data:
+                items:
+                  "$ref": "#/definitions/Profile"
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getPeersList
+      summary: Get the list of this node's peers
+  "/peers/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getPeersDatasetInfo
+      summary: Get the head of a specific dataset
+  "/profile":
+    get:
+      parameters: []
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getProfile
+      summary: Get this Qri node's profile
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Profile with changes
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/Profile"
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: saveProfile
+      summary: Save changes to this peer's profile
+  "/profile/photo":
+    get:
+      produces:
+      - image/jpeg
+      parameters:
+      - description: peername
+        in: query
+        name: peername
+        type: string
+      - description: peer id
+        in: query
+        maxLength: 46
+        minLength: 46
+        name: id
+        pattern: "^[a-zA-Z0-9]{46}"
+        type: string
+      responses:
+        '200':
+          description: Response with an image
+          format: binary
+          schema:
+            format: binary
+            type: string
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getProfilePhoto
+      summary: Get your profile photo or a peer's profile photo
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - in: formData
+        name: body
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: setProfilePhoto
+      summary: Set your profile photo
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - in: formData
+        name: body
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: setProfilePhoto
+      summary: Set your profile photo
+  "/profile/poster":
+    get:
+      parameters:
+      - description: peername
+        in: query
+        name: peername
+        type: string
+      - description: peer id
+        in: query
+        maxLength: 46
+        minLength: 46
+        name: id
+        pattern: "^[a-zA-Z0-9]{46}"
+        type: string
+      responses:
+        '200':
+          description: Response with an image
+          format: binary
+          schema:
+            format: binary
+            type: string
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getProfilePoster
+      summary: Get your profile poster or a peer's profile poster
+    post:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - in: formData
+        name: body
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: setProfilePoster
+      summary: Set your profile poster
+    put:
+      consumes:
+      - multipart/form-data
+      parameters:
+      - in: formData
+        name: body
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: setProfilePoster
+      summary: Set your profile poster
+  "/registry/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    delete:
+      parameters: []
+      responses:
+        '200':
+          description: Publish and unpublish dataset to registry response
+          schema:
+            properties:
+              data:
+                type: string
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: unpublishDataset
+      summary: Publish this dataset to the registry
+    post:
+      parameters: []
+      responses:
+        '200':
+          description: Publish and unpublish dataset to registry response
+          schema:
+            properties:
+              data:
+                type: string
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: publishDataset
+      summary: Publish this dataset to the registry
+    put:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Publish and unpublish dataset to registry response
+          schema:
+            properties:
+              data:
+                type: string
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: publishDataset
+      summary: Publish this dataset to the registry
+  "/remove/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    delete:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: removeDataset
+      summary: Remove a dataset
+    post:
+      parameters: []
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: removeDataset
+      summary: Remove a dataset
+  "/rename":
+    put:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dataset name (<handle>/<dataset_name>)
+        in: query
+        name: new
+        type: string
+      - description: Dataset name (<handle>/<dataset_name>)
+        in: query
+        name: current
+        type: string
+      - in: body
+        name: body
+        schema:
+          properties:
+            current:
+              description: Dataset name (<handle>/<dataset_name>)
+              type: string
+            new:
+              description: Dataset name (<handle>/<dataset_name>)
+              type: string
+          type: object
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: renameDataset
+      summary: Rename a dataset
+  "/render/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    get:
+      produces:
+      - text/html
+      parameters: []
+      responses:
+        '200':
+          description: HTML render response
+          schema:
+            type: string
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: renderDataset
+      summary: Get a visualized version of your dataset in html. Visualiztions taken
+        from a golang/html template
+  "/save":
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Updated dataset head
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/Dataset"
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: saveDataset
+      summary: Save and update to a dataset head
+  "/save/{datasetRef}":
+    parameters:
+    - "$ref": "#/x-components/parameters/datasetRef"
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Updated dataset head
+        in: body
+        name: body
+        required: true
+        schema:
+          "$ref": "#/definitions/Dataset"
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: saveDataset
+      summary: Save and update to a dataset head
+  "/search":
+    get:
+      produces:
+      - application/json
+      parameters:
+      - description: Search Query
+        in: query
+        name: search
+        required: true
+        type: string
+      - description: Max number of search results to return
+        in: query
+        name: limit
+        type: integer
+      - description: Number of entries to skip before returning search results
+        in: query
+        name: offset
+        type: integer
+      responses:
+        '200':
+          description: Search Response
+          schema:
+            properties:
+              data:
+                items:
+                  "$ref": "#/definitions/SearchItem"
+                type: array
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+              pagination:
+                "$ref": "#/definitions/Pagination"
+            type: object
+        '403':
+          description: Forbidden
+          schema:
+            "$ref": "#/definitions/Error"
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: search
+      summary: Search the Qri registry for datasets
+  "/status":
+    get:
+      produces:
+      - application/json
+      parameters: []
+      responses:
+        '200':
+          description: Status OK response
+          schema:
+            properties:
+              data:
+                items: {}
+                maxItems: 0
+                minItems: 0
+                type: array
+              meta:
+                properties:
+                  code:
+                    enum:
+                    - 200
+                    type: integer
+                  status:
+                    enum:
+                    - ok
+                    type: string
+                  version:
+                    type: string
+                type: object
+            type: object
+      operationId: status
+      summary: A basic ok response for load balancers & co. Returns the version of
+        qri this node is running, pulled from the qri/lib package
+  "/{peername}":
+    get:
+      produces:
+      - application/json
+      parameters:
+      - description: Peername
+        in: path
+        name: peername
+        required: true
+        type: string
+      responses:
+        '200':
+          description: Profile Response
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Profile"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getPeername
+      summary: Get the profile of a peer using the `peername`
+  "/{peername}/{datasetName}":
+    get:
+      produces:
+      - application/json
+      parameters:
+      - description: Peername
+        in: path
+        name: peername
+        required: true
+        type: string
+      - description: Dataset name
+        in: path
+        name: datasetName
+        required: true
+        type: string
+      responses:
+        '200':
+          description: Dataset Reponse
+          schema:
+            properties:
+              data:
+                "$ref": "#/definitions/Dataset"
+              meta:
+                "$ref": "#/definitions/MetaResponse"
+            type: object
+        '404':
+          description: Not found.
+          schema:
+            "$ref": "#/definitions/Error"
+        '500':
+          description: Server error.
+          schema:
+            "$ref": "#/definitions/Error"
+      operationId: getDataset
+      summary: Get dataset info from a peer's dataset using the `peername` and `dataset_name`
+
+definitions:
+  Commit:
+    properties:
+      author:
+        "$ref": "#/definitions/User"
+      message:
+        type: string
+      path:
+        "$ref": "#/definitions/Path"
+      qri:
+        "$ref": "#/definitions/Qri"
+      signature:
+        maxLength: 344
+        minLength: 344
+        pattern: "^[a-zA-Z0-9\\/+]+=="
+        type: string
+      timestamp:
+        "$ref": "#/definitions/Datetime"
+      title:
+        type: string
+    type: object
+  Created:
+    description: Date and time created.
+    format: date-time
+    type: string
+  Dataset:
+    description: Dataset is a document for describing & storing structured data. Dataset
+      documents are designed to satisfy the FAIR principle of being Findable, Accessible,
+      Interoperable, and Reproducible, in relation to other dataset documents, and
+      related-but-separate technologies such as data catalogs, HTTP API's, and data
+      package formats Datasets are designed to be stored and distributed on content-addressed
+      (identify-by-hash) systems The dataset document definition is built from a research-first
+      principle, valuing direct interoperability with existing standards over novel
+      definitions or specifications
+    properties:
+      bodyPath:
+        description: BodyPath is the path to the hash of raw data as it resolves on
+          the network. Datasets have at most one body
+        type: string
+      commit:
+        "$ref": "#/definitions/Commit"
+      meta:
+        "$ref": "#/definitions/Meta"
+      name:
+        type: string
+      path:
+        "$ref": "#/definitions/Path"
+      peername:
+        "$ref": "#/definitions/Peername"
+      previousPath:
+        description: PreviousPath connects datasets to form a historical merkle-DAG
+          of snapshots of this document, creating a version history
+        type: string
+      profileID:
+        "$ref": "#/definitions/ID"
+      qri:
+        "$ref": "#/definitions/Qri"
+      structure:
+        "$ref": "#/definitions/Structure"
+      transform:
+        "$ref": "#/definitions/Transform"
+      viz:
+        "$ref": "#/definitions/Viz"
+    type: object
+  Datetime:
+    format: date-time
+    type: string
+  Email:
+    format: email
+    type: string
+  Error:
+    properties:
+      meta:
+        properties:
+          code:
+            type: string
+          message:
+            type: string
+        required:
+        - code
+        - message
+        type: object
+    required:
+    - meta
+    type: object
+  ID:
+    description: The base58 encoded ID unique to this peer
+    maxLength: 46
+    minLength: 46
+    pattern: "^[a-zA-Z0-9]{46}"
+    type: string
+  Meta:
+    description: Dataset metadata.
+    properties:
+      accessPath:
+        "$ref": "#/definitions/URI"
+      accrualPeriodicity:
+        description: Frequency at which his dataset should be updated.
+        type: string
+      citations:
+        description: List of citations for this dataset.
+        items:
+          properties:
+            email:
+              "$ref": "#/definitions/Email"
+            name:
+              type: string
+            url:
+              "$ref": "#/definitions/URI"
+          type: object
+        type: array
+      contributors:
+        description: List of contributors on this dataset.
+        items:
+          properties:
+            email:
+              "$ref": "#/definitions/Email"
+            fullname:
+              type: string
+            id:
+              "$ref": "#/definitions/ID"
+          type: object
+        type: array
+      description:
+        description: Human-readable description of the dataset.
+        type: string
+      downloadPath:
+        "$ref": "#/definitions/URI"
+      homePath:
+        "$ref": "#/definitions/URI"
+      identifier:
+        type: string
+      keywords:
+        description: Keywords or tags that should be associated with the dataset.
+        items:
+          type: string
+        type: array
+      language:
+        description: Language or languages the dataset is available in.
+        items:
+          type: string
+        type: array
+      license:
+        description: License under which the dataset is authorized to be used.
+        properties:
+          type:
+            description: Name or kind of license.
+            type: string
+          url:
+            "$ref": "#/definitions/URI"
+        type: object
+      qri:
+        "$ref": "#/definitions/Qri"
+      readmePath:
+        "$ref": "#/definitions/URI"
+      theme:
+        description: List of categories to which this dataset should belong.
+        items:
+          type: string
+        type: array
+      title:
+        description: Human-readable title of the dataset.
+        type: string
+      version:
+        description: The semantic version of this dataset.
+        type: string
+    type: object
+  MetaResponse:
+    properties:
+      code:
+        type: integer
+    type: object
+  Multiaddr:
+    description: Path to an asset, in the form of a multiaddress
+    pattern: "^(\\/[0-9A-Za-z:.]+\\/[0-9A-Za-z:.]+)+\\/([^\\/]\\S)+$"
+    type: string
+  Pagination:
+    properties:
+      nextUrl:
+        type: string
+    type: object
+  Path:
+    description: Path to an asset, in the format of '/network/hash'
+    pattern: "^\\/[a-zA-Z]+\\/[a-zA-Z0-9]{46}$"
+    type: string
+  Peername:
+    description: The peername associated with a particular qri node
+    not:
+      enum:
+      - me
+      - status
+      - at
+      - add
+      - history
+      - remove
+      - export
+      - profile
+      - list
+      - peers
+      - connections
+      - new
+      - log
+      - registry
+      - diff
+      - validate
+    type: string
+  Profile:
+    properties:
+      Online:
+        type: boolean
+      color:
+        type: string
+      created:
+        "$ref": "#/definitions/Created"
+      description:
+        type: string
+      email:
+        "$ref": "#/definitions/Email"
+      homeurl:
+        "$ref": "#/definitions/URI"
+      id:
+        "$ref": "#/definitions/ID"
+      name:
+        type: string
+      peerIDs:
+        items:
+          "$ref": "#/definitions/Path"
+        type: array
+      peername:
+        "$ref": "#/definitions/Peername"
+      photo:
+        "$ref": "#/definitions/Path"
+      poster:
+        "$ref": "#/definitions/Path"
+      privKey:
+        type: string
+      thumb:
+        "$ref": "#/definitions/Path"
+      twitter:
+        type: string
+      type:
+        enum:
+        - peer
+        - organization
+        type: string
+      updated:
+        "$ref": "#/definitions/Updated"
+    type: object
+  Qri:
+    description: Internal notation to ensure the Qri dataset is being handled according
+      to the correct version.
+    type: string
+  Schema:
+    description: Schema contains the schema definition for the underlying data, schemas
+      are defined using the IETF json-schema specification. for more info on json-schema
+      see https://json-schema.org
+    properties:
+      type:
+        description: dataset body's top level structure, either object or array
+        enum:
+        - array
+        - object
+        type: string
+    type: object
+  SearchItem:
+    description: Single search result
+    properties:
+      id:
+        type: string
+      type:
+        enum:
+        - dataset
+        - profile
+        type: string
+      value:
+        oneOf:
+        - "$ref": "#/definitions/Dataset"
+        - "$ref": "#/definitions/Profile"
+    type: object
+  Structure:
+    description: Defines the characteristics of a dataset document necessary for a
+      machine to interpret the dataset body.
+    properties:
+      checksum:
+        "$ref": "#/definitions/ID"
+      compression:
+        description: Compression specifies any compression on the source data, if
+          empty assume no compression
+        type: integer
+      encoding:
+        description: Encoding specifics character encoding, assume utf-8 if not specified
+        type: string
+      entries:
+        description: Entries is number of top-level entries in the dataset. With tablular
+          datanthis is the same as the number of `rows`
+        type: integer
+      errCount:
+        description: ErrCount is the number of errors returned by validating data
+          against this schema. required
+        type: integer
+      format:
+        description: Format specifies the format of the raw data MIME type
+        type: integer
+      formatConfig:
+        description: FormatConfig removes as much ambiguity as possible about how
+          to interpret the specified format.
+        type: object
+      length:
+        description: Length is the length of the data object in bytes. Must always
+          match & be present.
+        type: integer
+      path:
+        "$ref": "#/definitions/Path"
+      qri:
+        "$ref": "#/definitions/Qri"
+      schema:
+        "$ref": "#/definitions/Schema"
+    type: object
+  Transform:
+    description: Transform is a record of executing a transformation on data. Transforms
+      can theoretically be anything for an SQL query, a jupyter notebook, the state
+      of an ETL pipeline, etc, so long as the input is zero or more datasets, and
+      the output is a single dataset. Ideally, transforms should contain all the machine-necessary
+      bits to deterministicly execute the algorithm referenced in ScriptPath
+    properties:
+      config:
+        type: object
+      path:
+        "$ref": "#/definitions/Path"
+      qri:
+        "$ref": "#/definitions/Qri"
+      resources:
+        type: object
+      scriptPath:
+        type: string
+      secrets:
+        type: object
+      structure:
+        "$ref": "#/definitions/Structure"
+      syntax:
+        type: string
+      syntaxVersion:
+        type: string
+    type: object
+  URI:
+    format: uri
+    type: string
+  Updated:
+    description: Date and time updated.
+    format: date-time
+    type: string
+  User:
+    description: User is a placeholder for talking about people, groups, organizations
+    properties:
+      Email:
+        "$ref": "#/definitions/Email"
+      Fullname:
+        description: First and last name, or full name of the organizations
+        type: string
+      ID:
+        "$ref": "#/definitions/ID"
+    type: object
+  Viz:
+    description: Viz stores configuration data related to representing a dataset as
+      a visualization
+    properties:
+      format:
+        enum:
+        - html
+        type: string
+      qri:
+        "$ref": "#/definitions/Qri"
+      scriptPath:
+        description: the path to the script that created this visualization
+        type: string
+    type: object
+    
+x-components:
+  parameters:
+    datasetName:
+      description: Dataset name
+      in: path
+      name: datasetName
+      required: true
+      schema:
+        type: string
+    datasetRef:
+      description: Dataset Reference
+      in: path
+      name: datasetRef
+      required: true
+      schema:
+        type: string
+    filename:
+      in: path
+      name: filename
+      required: true
+      schema:
+        pattern: "^[\\w,\\s-]+\\.[\\w]+$"
+        type: string
+    hash:
+      in: path
+      name: hash
+      required: true
+      schema:
+        "$ref": "#/definitions/ID"
+    peername:
+      description: Peername
+      in: path
+      name: peername
+      required: true
+      type: string
+  responses:
+    BodyResponse:
+      description: Dataset Body Response
+      schema:
+        properties:
+          data:
+            properties:
+              data:
+                oneOf:
+                - type: object
+                - type: array
+              path:
+                "$ref": "#/definitions/Path"
+            type: object
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+          pagination:
+            "$ref": "#/definitions/Pagination"
+        type: object
+    ConnectionsResponse:
+      description: Connections Response
+      schema:
+        properties:
+          data:
+            items:
+              type: string
+            type: array
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    DatasetResponse:
+      description: Dataset Reponse
+      schema:
+        properties:
+          data:
+            "$ref": "#/definitions/Dataset"
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    DatasetsResponse:
+      description: Response with list of datasets
+      schema:
+        properties:
+          data:
+            items:
+              "$ref": "#/definitions/Dataset"
+            type: array
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+          pagination:
+            "$ref": "#/definitions/Pagination"
+        type: object
+    DiffResponse:
+      description: Diff between two datasets
+      schema:
+        properties:
+          data:
+            type: string
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    PeersResponse:
+      description: Peers List Response
+      schema:
+        properties:
+          data:
+            items:
+              "$ref": "#/definitions/Profile"
+            type: array
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    PhotoResponse:
+      description: Response with an image
+      format: binary
+      schema:
+        format: binary
+        type: string
+    ProfileResponse:
+      description: Profile Response
+      schema:
+        properties:
+          data:
+            "$ref": "#/definitions/Profile"
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    RegistryResponse:
+      description: Publish and unpublish dataset to registry response
+      schema:
+        properties:
+          data:
+            type: string
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+        type: object
+    RenderResponse:
+      description: HTML render response
+      schema:
+        type: string
+    SearchResponse:
+      description: Search Response
+      schema:
+        properties:
+          data:
+            items:
+              "$ref": "#/definitions/SearchItem"
+            type: array
+          meta:
+            "$ref": "#/definitions/MetaResponse"
+          pagination:
+            "$ref": "#/definitions/Pagination"
+        type: object
+    StatusForbidden:
+      description: Forbidden
+      schema:
+        "$ref": "#/definitions/Error"
+    StatusInternalServerError:
+      description: Server error.
+      schema:
+        "$ref": "#/definitions/Error"
+    StatusNotFound:
+      description: Not found.
+      schema:
+        "$ref": "#/definitions/Error"
+    ZipResponse:
+      description: Zip Response
+      format: binary
+      schema:
+        format: binary
+        type: string

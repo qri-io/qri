@@ -44,7 +44,7 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 		}
 
 		// TODO - should this happen here? probs not.
-		// consider moving to repo/actions.CreateDataset
+		// consider moving to actions.CreateDataset
 		if dsp.Meta == nil {
 			dsp.Meta = &dataset.Meta{}
 		}

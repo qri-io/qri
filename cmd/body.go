@@ -17,11 +17,17 @@ func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 	o := &BodyOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "body",
-		Short: "Get the contents of a dataset",
+		Short: "Get the body of a dataset",
 		Long: `
-body reads records from a dataset`,
+` + "`qri body`" + ` reads entries from a dataset. Default is 50 entries, starting from the beginning of the body. You can using the ` + "`--limit`" + ` and ` + "`--offset`" + ` flags to iterate through the dataset body.`,
 		Example: `  show the first 50 rows of a dataset:
-  $ qri data me/dataset_name`,
+  $ qri body me/dataset_name
+
+  show the next 50 rows of a dataset:
+  $ qri body --offset 50 me/dataset_name
+
+  save the body as csv to file
+  $ qri body -o new_file.csv -f csv me/dataset_name`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -30,10 +36,7 @@ body reads records from a dataset`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Run(); err != nil {
-				return err
-			}
-			return nil
+			return o.Run()
 		},
 	}
 
