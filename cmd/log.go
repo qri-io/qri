@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"fmt"
-
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -29,7 +27,6 @@ working backwards in time.`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -53,7 +50,6 @@ type LogOptions struct {
 	Offset int
 	Ref    string
 
-	Repo            repo.Repo
 	HistoryRequests *lib.HistoryRequests
 }
 
@@ -63,14 +59,10 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 		return usingRPCError("log")
 	}
 
-	if len(args) < 1 {
-		return fmt.Errorf("please specify a dataset reference to log")
-	} else if len(args) != 1 {
-		return fmt.Errorf("only one argument ([peername]/[datasetname]) allowed")
+	if len(args) > 0 {
+		o.Ref = args[0]
 	}
-	o.Ref = args[0]
 
-	o.Repo, err = f.Repo()
 	if err != nil {
 		return err
 	}
@@ -82,11 +74,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 func (o *LogOptions) Run() error {
 
 	ref, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil {
-		return err
-	}
-
-	if err = repo.CanonicalizeDatasetRef(o.Repo, &ref); err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 
@@ -101,6 +89,9 @@ func (o *LogOptions) Run() error {
 
 	refs := []repo.DatasetRef{}
 	if err = o.HistoryRequests.Log(p, &refs); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "please provide a dataset reference")
+		}
 		return err
 	}
 

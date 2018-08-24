@@ -46,12 +46,10 @@ func (d *HistoryRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err er
 	}
 
 	ref := params.Ref
-	if err = DefaultSelectedRef(d.repo, &ref); err != nil {
+	if err = DefaultSelectedRef(d.repo.Repo, &ref); err != nil {
 		return
 	}
-	if ref.Path == "" && (ref.Name == "" && ref.Peername == "") {
-		return fmt.Errorf("either path or peername/name is required")
-	}
+
 	// TODO: Cleanup how this treats non-local datasetrefs. It is doing a bunch of work below
 	// to request remote data, but it's weird how it does so - once CanonicalizeDatasetRef returns
 	// ErrNotFound, we know that the data is remote. Don't need this callback function, just

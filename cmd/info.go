@@ -111,24 +111,24 @@ func (o *InfoOptions) info(index int, refstr string) error {
 
 	if ref.IsPeerRef() {
 		return fmt.Errorf("please specify a dataset for peer %s", ref.Peername)
+	}
+
+	res := repo.DatasetRef{}
+	if err = o.DatasetRequests.Get(&ref, &res); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "please provide a dataset reference")
+		}
+		return err
+	}
+
+	if o.Format == "" {
+		printDatasetRefInfo(o.Out, index, res)
 	} else {
-		res := repo.DatasetRef{}
-		if err = o.DatasetRequests.Get(&ref, &res); err != nil {
-			if err == repo.ErrEmptyRef {
-				return lib.NewError(err, "please provide a dataset reference")
-			}
+		data, err := json.MarshalIndent(res.Dataset, "", "  ")
+		if err != nil {
 			return err
 		}
-
-		if o.Format == "" {
-			printDatasetRefInfo(o.Out, index, res)
-		} else {
-			data, err := json.MarshalIndent(res.Dataset, "", "  ")
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(o.Out, "%s", string(data))
-		}
+		fmt.Fprintf(o.Out, "%s", string(data))
 	}
 	return nil
 }
