@@ -670,12 +670,16 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
 
-	if err = DefaultSelectedRef(r.repo, &p.Ref); err != nil {
+	if err = DefaultSelectedRef(r.repo.Repo, &p.Ref); err != nil {
 		return
 	}
 
-	if p.Ref.IsEmpty() && p.Data == nil {
-		return fmt.Errorf("either data or a dataset reference is required")
+	// TODO: restore
+  // if p.URL != "" && p.Ref.IsEmpty() && o.Schema == nil {
+  //   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
+  // }
+  if p.Ref.IsEmpty() && p.Data == nil && p.Schema == nil {
+    return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
 	if !p.Ref.IsEmpty() {

@@ -1,5 +1,7 @@
 package lib
 
+import "errors"
+
 // Error wraps an error and satisfies the error interface
 // It couples more developer focused errors with more
 // user-friendly errors. If a msg exists, you can send an
@@ -26,3 +28,6 @@ func NewError(err error, msg string) Error {
 		msg: msg,
 	}
 }
+
+// ErrBadArgs is a custom error for when a user provides bad arguments
+var ErrBadArgs = errors.New("bad arguments provided")

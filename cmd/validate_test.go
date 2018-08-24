@@ -111,6 +111,9 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
+			ref, filePath, schemaFilePath, url, err, msg string
+	}{
+
 	cases := []struct {
 		ref            string
 		filePath       string
@@ -120,6 +123,8 @@ func TestValidateRun(t *testing.T) {
 		err            string
 		msg            string
 	}{
+		{"", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
+		{"", "", "", "url", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
 		{"peer/movies", "", "", "", movieOutput, "", ""},
 		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
 		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},

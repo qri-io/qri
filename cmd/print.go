@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -35,9 +34,6 @@ const (
 )
 
 var noPrompt = false
-
-// ErrBadArgs is a custom error for when a user provides bad arguments
-var ErrBadArgs = errors.New("bad arguments provided")
 
 // var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)

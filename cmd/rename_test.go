@@ -68,9 +68,9 @@ func TestRenameValidate(t *testing.T) {
 		err  string
 		msg  string
 	}{
-		{"", "", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
-		{"me/from", "", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
-		{"", "me/to", ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"", "", lib.ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"me/from", "", lib.ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
+		{"", "me/to", lib.ErrBadArgs.Error(), "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details"},
 		{"me/from", "me/to", "", ""},
 	}
 	for i, c := range cases {

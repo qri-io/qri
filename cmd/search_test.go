@@ -64,7 +64,7 @@ func TestSearchValidate(t *testing.T) {
 		msg   string
 	}{
 		{"test", "", ""},
-		{"", ErrBadArgs.Error(), "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information"},
+		{"", lib.ErrBadArgs.Error(), "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information"},
 	}
 	for i, c := range cases {
 		opt := &SearchOptions{

@@ -61,7 +61,7 @@ func TestRemoveValidate(t *testing.T) {
 		err  string
 		msg  string
 	}{
-		{[]string{}, ErrBadArgs.Error(), "please specify a dataset path or name you would like to remove from your qri node"},
+		{[]string{}, lib.ErrBadArgs.Error(), "please specify a dataset path or name you would like to remove from your qri node"},
 		{[]string{"me/test"}, "", ""},
 		{[]string{"me/test", "me/test2"}, "", ""},
 	}

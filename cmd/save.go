@@ -98,10 +98,10 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that all user input is valid
 func (o *SaveOptions) Validate() error {
 	if o.Ref == "" {
-		return lib.NewError(ErrBadArgs, "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info")
+		return lib.NewError(lib.ErrBadArgs, "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info")
 	}
 	if o.FilePath == "" && o.BodyPath == "" {
-		return lib.NewError(ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
+		return lib.NewError(lib.ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
 	}
 	return nil
 }
@@ -110,7 +110,7 @@ func (o *SaveOptions) Validate() error {
 func (o *SaveOptions) Run() (err error) {
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
-		return lib.NewError(ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
+		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
 	dsp := &dataset.DatasetPod{}
