@@ -113,9 +113,9 @@ func TestRenameRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"", "", "", "cannot parse empty string as dataset reference", ""},
-		{"me/from", "", "", "cannot parse empty string as dataset reference", ""},
-		{"", "me/to", "", "cannot parse empty string as dataset reference", ""},
+		{"", "", "", "repo: empty dataset reference", ""},
+		{"me/from", "", "", "repo: empty dataset reference", ""},
+		{"", "me/to", "", "repo: empty dataset reference", ""},
 		{"me/bad_name", "me/bad_name_too", "", "error with existing reference: repo: not found", ""},
 		{"me/cities", "me/cities_too", "renamed dataset cities_too\n", "", ""},
 	}

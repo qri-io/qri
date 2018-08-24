@@ -678,10 +678,12 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return fmt.Errorf("either data or a dataset reference is required")
 	}
 
-	err = repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
-	if err != nil && err != repo.ErrNotFound {
-		log.Debug(err.Error())
-		return fmt.Errorf("error with new reference: %s", err.Error())
+	if !p.Ref.IsEmpty() {
+		err = repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
+		if err != nil && err != repo.ErrNotFound {
+			log.Debug(err.Error())
+			return fmt.Errorf("error with new reference: %s", err.Error())
+		}
 	}
 
 	var (

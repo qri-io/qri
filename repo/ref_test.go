@@ -141,7 +141,7 @@ func TestParseDatasetRef(t *testing.T) {
 		expect DatasetRef
 		err    string
 	}{
-		{"", DatasetRef{}, "cannot parse empty string as dataset reference"},
+		{"", DatasetRef{}, "repo: empty dataset reference"},
 		{"peername/", peernameDatasetRef, ""},
 		{"peername", peernameDatasetRef, ""},
 
@@ -332,16 +332,16 @@ func TestCompareDatasetRefs(t *testing.T) {
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
 	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"},
-	    cafs.NewMapstore(), profile.NewMemStore(), nil)
+		cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
 	}
 	mr := repo.MemRefstore
-	mr.PutRef(DatasetRef{Peername:"lucille", Name: "foo", Path: "/ipfs/QmTest"})
-	mr.PutRef(DatasetRef{Peername:"you",     Name: "other", Path: "/ipfs/QmTest2"})
-	mr.PutRef(DatasetRef{Peername:"lucille", Name: "ball",
-                         Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"})
+	mr.PutRef(DatasetRef{Peername: "lucille", Name: "foo", Path: "/ipfs/QmTest"})
+	mr.PutRef(DatasetRef{Peername: "you", Name: "other", Path: "/ipfs/QmTest2"})
+	mr.PutRef(DatasetRef{Peername: "lucille", Name: "ball",
+		Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"})
 
 	cases := []struct {
 		input  string

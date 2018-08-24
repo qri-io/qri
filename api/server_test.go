@@ -121,7 +121,7 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
 
-		{"POST", "/add", "addRequestFromURL.json", "addResponseFromURL.json", 200},
+		{"POST", "/new", "addRequestFromURL.json", "addResponseFromURL.json", 200},
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
@@ -161,7 +161,7 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/connect/", "", "", 400},
 
 		// blatently checking all options for easy test coverage bump
-		{"OPTIONS", "/add", "", "", 200},
+		{"OPTIONS", "/new", "", "", 200},
 		{"OPTIONS", "/add/", "", "", 200},
 		{"OPTIONS", "/profile", "", "", 200},
 		{"OPTIONS", "/me", "", "", 200},
@@ -321,8 +321,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"POST", "/remove/", 403},
 		{"DELETE", "/remove/", 403},
 		{"GET", "/me/", 403},
-		{"POST", "/add", 403},
-		{"PUT", "/add", 403},
+		{"POST", "/new", 403},
+		{"PUT", "/new", 403},
 		{"POST", "/add/", 403},
 		{"PUT", "/add/", 403},
 		{"POST", "/rename", 403},
@@ -344,7 +344,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"GET", "/history/peer/movies", 200},
 
 		// blatently checking all options for easy test coverage bump
-		{"OPTIONS", "/add", 200},
+		{"OPTIONS", "/new", 200},
 		{"OPTIONS", "/add/", 200},
 		{"OPTIONS", "/profile", 200},
 		{"OPTIONS", "/me", 200},
@@ -393,7 +393,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 			map[string]string{},
 			map[string]string{},
 		},
-		{"POST", "/add", "testdata/addResponsePrivate.json", 500,
+		{"POST", "/new", "testdata/addResponsePrivate.json", 500,
 			map[string]string{
 				"body":      "testdata/cities/data.csv",
 				"structure": "testdata/cities/structure.json",
@@ -405,7 +405,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 				"private":  "true",
 			},
 		},
-		{"POST", "/add", "testdata/addResponseFromFile.json", 200,
+		{"POST", "/new", "testdata/addResponseFromFile.json", 200,
 			map[string]string{
 				"body": "testdata/cities/data.csv",
 				"file": "testdata/cities/init_dataset.json",
