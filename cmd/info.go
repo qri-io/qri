@@ -102,7 +102,7 @@ func (o *InfoOptions) Run() error {
 	return nil
 }
 
-// info pulls out the common info code so it can be re-run easily
+// info prints terse information about a single dataset
 func (o *InfoOptions) info(index int, refstr string) error {
 	ref, err := repo.ParseDatasetRef(refstr)
 	if err != nil && err != repo.ErrEmptyRef {
