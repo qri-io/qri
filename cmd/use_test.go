@@ -65,7 +65,7 @@ func TestUseValidate(t *testing.T) {
 		err   string
 		msg   string
 	}{
-		{[]string{}, false, false, ErrBadArgs.Error(), "please provide dataset name, or --clear flag, or --list flag\nsee `qri use --help` for more info"},
+		{[]string{}, false, false, lib.ErrBadArgs.Error(), "please provide dataset name, or --clear flag, or --list flag\nsee `qri use --help` for more info"},
 		{[]string{"me/test"}, false, false, "", ""},
 		{[]string{}, true, false, "", ""},
 		{[]string{}, false, true, "", ""},

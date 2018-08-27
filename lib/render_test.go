@@ -53,7 +53,7 @@ func TestRenderRequestsRender(t *testing.T) {
 		expect []byte
 		err    string
 	}{
-		{&RenderParams{}, nil, "repo: not found"},
+		{&RenderParams{}, nil, "repo: empty dataset reference"},
 		{&RenderParams{
 			Ref: repo.DatasetRef{
 				Peername: "foo",

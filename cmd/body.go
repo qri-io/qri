@@ -31,7 +31,6 @@ func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -67,7 +66,9 @@ type BodyOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *BodyOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref = args[0]
+	if len(args) > 0 {
+		o.Ref = args[0]
+	}
 	o.UsingRPC = f.RPC() != nil
 	o.DatasetRequests, err = f.DatasetRequests()
 	if err != nil {
@@ -84,18 +85,18 @@ func (o *BodyOptions) Run() error {
 	}
 
 	dsr, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil {
-		return err
-	}
-
-	if err = lib.DefaultSelectedRef(o.Repo, &dsr); err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 
 	res := &repo.DatasetRef{}
 	if err = o.DatasetRequests.Get(&dsr, res); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "please provide a dataset reference")
+		}
 		return err
 	}
+
 	ds := res.Dataset
 	df, err := dataset.ParseDataFormatString(o.Format)
 	if err != nil {

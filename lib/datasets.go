@@ -670,18 +670,24 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
 
-	if err = DefaultSelectedRef(r.repo, &p.Ref); err != nil {
+	if err = DefaultSelectedRef(r.repo.Repo, &p.Ref); err != nil {
 		return
 	}
 
-	if p.Ref.IsEmpty() && p.Data == nil {
-		return fmt.Errorf("either data or a dataset reference is required")
+	// TODO: restore validating data from a URL
+	// if p.URL != "" && p.Ref.IsEmpty() && o.Schema == nil {
+	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
+	// }
+	if p.Ref.IsEmpty() && p.Data == nil && p.Schema == nil {
+		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
-	err = repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
-	if err != nil && err != repo.ErrNotFound {
-		log.Debug(err.Error())
-		return fmt.Errorf("error with new reference: %s", err.Error())
+	if !p.Ref.IsEmpty() {
+		err = repo.CanonicalizeDatasetRef(r.repo, &p.Ref)
+		if err != nil && err != repo.ErrNotFound {
+			log.Debug(err.Error())
+			return fmt.Errorf("error with new reference: %s", err.Error())
+		}
 	}
 
 	var (
@@ -788,6 +794,28 @@ type DiffParams struct {
 
 // Diff computes the diff of two datasets
 func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff) (err error) {
+	refs := []repo.DatasetRef{}
+
+	// Handle `qri use` to get the current default dataset.
+	if err := DefaultSelectedRefs(r.repo.Repo, &refs); err != nil {
+		return err
+	}
+
+	// fill in the left side if Left is empty, and there are enough
+	// refs in the `use` list
+	if p.Left.IsEmpty() && len(refs) > 0 {
+		p.Left = refs[0]
+	}
+	// fill in the right side if Right is empty, and there are enough
+	// refs in the `use` list
+	if p.Right.IsEmpty() && len(refs) > 1 {
+		p.Right = refs[1]
+	}
+
+	if p.Left.IsEmpty() || p.Right.IsEmpty() {
+		return NewError(repo.ErrEmptyRef, "please provide two dataset references to compare")
+	}
+
 	left := &repo.DatasetRef{}
 	if e := r.Get(&p.Left, left); e != nil {
 		return e

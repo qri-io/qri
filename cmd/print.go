@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/csv"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -36,9 +35,6 @@ const (
 
 var noPrompt = false
 
-// ErrBadArgs is a custom error for when a user provides bad arguments
-var ErrBadArgs = errors.New("bad arguments provided")
-
 // var printPrompt = color.New(color.FgWhite).PrintfFunc()
 var spinner = sp.New(sp.CharSets[24], 100*time.Millisecond)
 
@@ -63,6 +59,10 @@ func printWarning(w io.Writer, msg string, params ...interface{}) {
 }
 
 func printErr(w io.Writer, err error, params ...interface{}) {
+	if e, ok := err.(lib.Error); ok && e.Message() != "" {
+		fmt.Fprintln(w, color.New(color.FgRed).Sprintf(e.Message(), params...))
+		return
+	}
 	fmt.Fprintln(w, color.New(color.FgRed).Sprintf(err.Error(), params...))
 }
 

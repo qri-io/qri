@@ -62,7 +62,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that all user input is valid
 func (o *RemoveOptions) Validate() error {
 	if len(o.Args) == 0 {
-		return lib.NewError(ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
+		return lib.NewError(lib.ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
 	}
 	return nil
 }

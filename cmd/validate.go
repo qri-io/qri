@@ -64,9 +64,6 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Validate(); err != nil {
-				return err
-			}
 			return o.Run()
 		},
 	}
@@ -106,17 +103,6 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// Validate checks that any user inputs are valid
-func (o *ValidateOptions) Validate() error {
-	if o.URL != "" && o.Ref == "" && o.SchemaFilepath == "" {
-		return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
-	}
-	if o.Ref == "" && o.Filepath == "" && o.SchemaFilepath == "" {
-		return lib.NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
-	}
-	return nil
-}
-
 // Run executes the run command
 func (o *ValidateOptions) Run() (err error) {
 	var (
@@ -124,18 +110,21 @@ func (o *ValidateOptions) Run() (err error) {
 		ref                  repo.DatasetRef
 	)
 
-	if o.Ref != "" {
-		ref, err = repo.ParseDatasetRef(o.Ref)
-		if err != nil {
-			return lib.NewError(err, fmt.Sprintf("%s must be in correct DatasetRef format, [peername]/[datatset_name]", o.Ref))
+	ref, err = repo.ParseDatasetRef(o.Ref)
+	if err != nil && err != repo.ErrEmptyRef {
+		return lib.NewError(err, fmt.Sprintf("%s must be in correct DatasetRef format, [peername]/[datatset_name]", o.Ref))
+	}
+
+	if o.Filepath != "" {
+		if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
+			return lib.NewError(err, fmt.Sprintf("error opening body file: could not %s", err))
 		}
 	}
 
-	if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
-		return lib.NewError(err, fmt.Sprintf("error opening body file: could not %s", err))
-	}
-	if schemaFile, err = loadFileIfPath(o.SchemaFilepath); err != nil {
-		return lib.NewError(err, fmt.Sprintf("error opening schema file: could not %s", err))
+	if o.SchemaFilepath != "" {
+		if schemaFile, err = loadFileIfPath(o.SchemaFilepath); err != nil {
+			return lib.NewError(err, fmt.Sprintf("error opening schema file: could not %s", err))
+		}
 	}
 
 	p := &lib.ValidateDatasetParams{
@@ -156,7 +145,7 @@ func (o *ValidateOptions) Run() (err error) {
 
 	res := []jsonschema.ValError{}
 	if err = o.DatasetRequests.Validate(p, &res); err != nil {
-		return lib.NewError(err, "")
+		return err
 	}
 	if len(res) == 0 {
 		printSuccess(o.Out, "✔ All good!")

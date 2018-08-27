@@ -150,7 +150,6 @@ func TestCommandsIntegration(t *testing.T) {
 		"qri config get -c",
 		"qri config get profile",
 		"qri config set webapp.port 3505",
-		"qri info me",
 		fmt.Sprintf("qri new --body=%s me/movies", moviesFilePath),
 		fmt.Sprintf("qri new --body=%s me/movies2", movies2FilePath),
 		fmt.Sprintf("qri new --body=%s me/links", linksFilepath),

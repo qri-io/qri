@@ -27,7 +27,6 @@ the same dataset.`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -56,8 +55,13 @@ type DiffOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
-	o.Left = args[0]
-	o.Right = args[1]
+	if len(args) > 1 {
+		o.Left = args[0]
+		o.Right = args[1]
+	}
+	if len(args) == 1 {
+		o.Right = args[0]
+	}
 	o.UsingRPC = f.RPC() != nil
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
@@ -70,11 +74,11 @@ func (o *DiffOptions) Run() error {
 	}
 
 	left, err := repo.ParseDatasetRef(o.Left)
-	if err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 	right, err := repo.ParseDatasetRef(o.Right)
-	if err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 

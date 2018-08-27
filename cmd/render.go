@@ -36,9 +36,6 @@ provided, Qri will render the dataset with a default template.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if err := o.Validate(); err != nil {
-				return err
-			}
 			return o.Run()
 		},
 	}
@@ -75,20 +72,12 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// Validate checks that all user input is valid
-func (o *RenderOptions) Validate() error {
-	if o.Ref == "" {
-		return lib.NewError(ErrBadArgs, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
-	}
-	return nil
-}
-
 // Run executes the render command
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
 
 	ref, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 
@@ -110,6 +99,9 @@ func (o *RenderOptions) Run() (err error) {
 
 	res := []byte{}
 	if err = o.RenderRequests.Render(p, &res); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
+		}
 		return err
 	}
 

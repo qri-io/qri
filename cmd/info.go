@@ -48,7 +48,6 @@ terminal window.`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -90,30 +89,46 @@ func (o *InfoOptions) Run() error {
 		}
 	}
 
+	if len(o.Refs) == 0 {
+		return o.info(0, "")
+	}
+
 	for i, refstr := range o.Refs {
-		ref, err := repo.ParseDatasetRef(refstr)
-		if err != nil {
+		if err := o.info(i, refstr); err != nil {
 			return err
-		}
-
-		if ref.IsPeerRef() {
-			printWarning(o.Out, "please specify a dataset for peer %s", ref.Peername)
-		} else {
-			res := repo.DatasetRef{}
-			err = o.DatasetRequests.Get(&ref, &res)
-			ExitIfErr(o.ErrOut, err)
-
-			if o.Format == "" {
-				printDatasetRefInfo(o.Out, i, res)
-			} else {
-				data, err := json.MarshalIndent(res.Dataset, "", "  ")
-				if err != nil {
-					return err
-				}
-				fmt.Fprintf(o.Out, "%s", string(data))
-			}
 		}
 	}
 
+	return nil
+}
+
+// info prints terse information about a single dataset
+func (o *InfoOptions) info(index int, refstr string) error {
+	ref, err := repo.ParseDatasetRef(refstr)
+	if err != nil && err != repo.ErrEmptyRef {
+		return err
+	}
+
+	if ref.IsPeerRef() {
+		return fmt.Errorf("please specify a dataset for peer %s", ref.Peername)
+	}
+
+	res := repo.DatasetRef{}
+	if err = o.DatasetRequests.Get(&ref, &res); err != nil {
+		if err == repo.ErrEmptyRef {
+			return lib.NewError(err, "please provide a dataset reference")
+		}
+		return err
+	}
+
+	if o.Format == "" {
+		printDatasetRefInfo(o.Out, index, res)
+	} else {
+		data, err := json.MarshalIndent(res.Dataset, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(o.Out, "%s", string(data))
+	}
 	return nil
 }
