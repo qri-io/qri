@@ -29,5 +29,5 @@ func NewError(err error, msg string) Error {
 	}
 }
 
-// ErrBadArgs is a custom error for when a user provides bad arguments
+// ErrBadArgs is an error for when a user provides bad arguments
 var ErrBadArgs = errors.New("bad arguments provided")

@@ -89,7 +89,7 @@ func (o *InfoOptions) Run() error {
 		}
 	}
 
-	if len(o.Refs) < 1 {
+	if len(o.Refs) == 0 {
 		return o.info(0, "")
 	}
 

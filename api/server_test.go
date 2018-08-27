@@ -121,7 +121,7 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/profile", "", "profileResponse.json", 200},
 		{"GET", "/me", "", "profileResponse.json", 200},
 
-		{"POST", "/new", "addRequestFromURL.json", "addResponseFromURL.json", 200},
+		{"POST", "/new", "newRequestFromURL.json", "newResponseFromURL.json", 200},
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
@@ -393,7 +393,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 			map[string]string{},
 			map[string]string{},
 		},
-		{"POST", "/new", "testdata/addResponsePrivate.json", 500,
+		{"POST", "/new", "testdata/newResponsePrivate.json", 500,
 			map[string]string{
 				"body":      "testdata/cities/data.csv",
 				"structure": "testdata/cities/structure.json",
@@ -405,7 +405,7 @@ func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Clien
 				"private":  "true",
 			},
 		},
-		{"POST", "/new", "testdata/addResponseFromFile.json", 200,
+		{"POST", "/new", "testdata/newResponseFromFile.json", 200,
 			map[string]string{
 				"body": "testdata/cities/data.csv",
 				"file": "testdata/cities/init_dataset.json",
