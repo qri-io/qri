@@ -37,7 +37,10 @@ like to submit changes, please see our
 
 ## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org) on your machine.
+To build qri you'll need the [go programming language](https://golang.org) on your machine. You need to have at least version 1.7, and can check your version of go by running:
+```shell
+$ go verison
+```
 
 You will also need to have go binaries on your path. By this, we mean the folder `$GOPATH/bin` should be in a place that your computer checks for binary executables. There are a few ways to set up your GOPATH, but we recommend checking out the [goLang wiki](https://github.com/golang/go/wiki/SettingGOPATH).
 
@@ -46,6 +49,8 @@ Once your GOPATH is set, run:
 ```shell
 $ go get github.com/qri-io/qri
 ```
+
+Ignore any errors about `unrecognized import path`, those are expected.
 
 Alternatively, if you opt to clone the repository using `git`, be sure to clone it to a directory based on your GOPATH.
 
@@ -67,7 +72,7 @@ You need to install XCode by running:
 $ xcode-select --install
 ```
 
-Once `go get` has finished, run:
+Once `go get` or `git clone` has finished, run:
 
 ```shell
 $ cd $GOPATH/src/github.com/qri-io/qri

@@ -12,8 +12,8 @@ jobs:
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/jstemmer/go-junit-report github.com/golang/lint/golint github.com/qri-io/dsdiff
-      - run: 
+      - run: go get github.com/jstemmer/go-junit-report github.com/golang/lint/golint github.com/qri-io/dsdiff github.com/jinzhu/copier
+      - run:
           name: Run Lint Tests
           command: golint -set_exit_status ./...
       - run:
@@ -21,11 +21,11 @@ jobs:
           command: make install-deps
       - restore_cache:
           key: dependency-cache-{{ checksum "package.json" }}
-      - run: 
+      - run:
           name: Install gx
           command: >
             go get -v -u
-            github.com/whyrusleeping/gx 
+            github.com/whyrusleeping/gx
             github.com/whyrusleeping/gx-go
       - run:
           name: Install gx deps
