@@ -52,7 +52,13 @@ type P2P struct {
 // DefaultP2P generates sensible settings for p2p, generating a new randomized
 // private key & peer id
 func DefaultP2P() *P2P {
-	r := rand.Reader
+	p := NewP2P()
+	_ = p.GeneratePrivateKeyAndPeerID()
+	return p
+}
+
+// NewP2P generates a p2p struct with only addresses, no keys or peer id
+func NewP2P() *P2P {
 	p2p := &P2P{
 		Enabled:         true,
 		HTTPGatewayAddr: "https://ipfs.io",
@@ -71,20 +77,29 @@ func DefaultP2P() *P2P {
 		},
 		ProfileReplication: "full",
 	}
-
-	// Generate a key pair for this host
-	if priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r); err == nil {
-		if pdata, err := priv.Bytes(); err == nil {
-			p2p.PrivKey = base64.StdEncoding.EncodeToString(pdata)
-		}
-
-		// Obtain Peer ID from public key
-		if pid, err := peer.IDFromPublicKey(pub); err == nil {
-			p2p.PeerID = pid.Pretty()
-		}
-	}
-
 	return p2p
+}
+
+// GeneratePrivateKeyAndPeerID generates a new random private key and peer id
+func (cfg *P2P) GeneratePrivateKeyAndPeerID() error {
+	r := rand.Reader
+	// Generate a key pair for this host
+	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
+	if err != nil {
+		return err
+	}
+	pdata, err := priv.Bytes()
+	if err != nil {
+		return err
+	}
+	cfg.PrivKey = base64.StdEncoding.EncodeToString(pdata)
+	// Obtain Peer ID from public key
+	pid, err := peer.IDFromPublicKey(pub)
+	if err != nil {
+		return err
+	}
+	cfg.PeerID = pid.Pretty()
+	return nil
 }
 
 // DecodePrivateKey generates a PrivKey instance from base64-encoded config file bytes

@@ -80,9 +80,15 @@ func NewTestQriNode(r repo.Repo, options ...func(o *config.P2P)) (p2ptest.Testab
 // NewQriNode creates a new node, providing no arguments will use
 // default configuration
 func NewQriNode(r repo.Repo, options ...func(o *config.P2P)) (node *QriNode, err error) {
-	cfg := config.DefaultP2P()
+	cfg := config.NewP2P()
 	for _, opt := range options {
 		opt(cfg)
+	}
+	if len(cfg.PrivKey) == 0 {
+		err = cfg.GeneratePrivateKeyAndPeerID()
+		if err != nil {
+			return nil, err
+		}
 	}
 	// if err := cfg.Validate(r); err != nil {
 	// 	return nil, err
