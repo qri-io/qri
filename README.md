@@ -37,7 +37,7 @@ like to submit changes, please see our
 
 ## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org) on your machine.
+To build qri you'll need the [go programming language](https://golang.org) on your machine (at least version 1.7).
 
 You will also need to have go binaries on your path. By this, we mean the folder `$GOPATH/bin` should be in a place that your computer checks for binary executables. There are a few ways to set up your GOPATH, but we recommend checking out the [goLang wiki](https://github.com/golang/go/wiki/SettingGOPATH).
 
