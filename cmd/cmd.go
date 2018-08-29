@@ -14,7 +14,6 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
-	"syscall"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/lib"
@@ -124,31 +123,4 @@ func currentPath() (string, bool) {
 		return "", ok
 	}
 	return path.Dir(filename), true
-}
-
-const PreferredNumOpenFiles = 10000
-
-// ensureLargeNumOpenFiles ensures that user can have a large number of open files
-func ensureLargeNumOpenFiles() {
-	// Get the number of open files currently allowed.
-	var rLimit syscall.Rlimit
-	err := syscall.Getrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	if err != nil {
-		panic(err)
-	}
-	if rLimit.Cur >= PreferredNumOpenFiles {
-		return
-	}
-
-	// Set the number of open files that are allowed to be sufficiently large. This avoids
-	// the error "too many open files" that often occurs when running IPFS or other
-	// local database-like technologies.
-	rLimit.Cur = PreferredNumOpenFiles
-	rLimit.Max = PreferredNumOpenFiles
-
-	err = syscall.Setrlimit(syscall.RLIMIT_NOFILE, &rLimit)
-	if err != nil {
-		fmt.Println("error setting max open files limit: %s", err)
-		return
-	}
 }
