@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "code": 500,
-    "error": "given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset"
-  }
-}
