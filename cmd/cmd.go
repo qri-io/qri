@@ -38,6 +38,8 @@ func Execute() {
 		}()
 	}
 
+	ensureLargeNumOpenFiles()
+
 	root := NewQriCommand(EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
