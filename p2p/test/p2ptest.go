@@ -2,18 +2,17 @@ package p2ptest
 
 import (
 	"context"
-	"encoding/base64"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"sync"
 
 	"github.com/qri-io/qri/config"
+	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 
-	testutil "gx/ipfs/QmVvkK7s5imCiq3JVbL3pGfnhcCnf3LrFJPF4GE2sAoGZf/go-testutil"
 	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	net "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
@@ -38,17 +37,17 @@ func NewTestNetwork(ctx context.Context, t *testing.T, num int, maker NodeMakerF
 	nodes := make([]TestablePeerNode, num)
 
 	for i := 0; i < num; i++ {
-		rid, err := testutil.RandPeerID()
-		if err != nil {
-			return nil, fmt.Errorf("error creating peer ID: %s", err.Error())
-		}
-
-		r, err := test.NewTestRepoFromProfileID(profile.ID(rid), i, i)
+		// TODO: This is ugly. Needed because p2p/connected_test generates 5 nodes with
+		// NewTestDirNetwork, then calls this to make a disconnected node. Instead, perhaps
+		// have a handle that keeps track of how many nodes have been allocated, and require
+		// passing that handle to this function and also NewTestDirNetwork.
+		info := cfgtest.GetTestPeerInfo(i + 5)
+		r, err := test.NewTestRepoFromProfileID(profile.ID(info.PeerID), i, i)
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}
 
-		node, err := NewTestNode(r, t, maker)
+		node, err := NewTestNode(r, t, info, maker)
 		if err != nil {
 			return nil, err
 		}
@@ -58,29 +57,21 @@ func NewTestNetwork(ctx context.Context, t *testing.T, num int, maker NodeMakerF
 	return nodes, nil
 }
 
-// NewTestNode constructs a node for testing.
-func NewTestNode(r repo.Repo, t *testing.T, maker NodeMakerFunc) (TestablePeerNode, error) {
-	localnp := testutil.RandPeerNetParamsOrFatal(t)
-	data, err := localnp.PrivKey.Bytes()
-	if err != nil {
-		return nil, err
-	}
-
-	privKey := base64.StdEncoding.EncodeToString(data)
-
+// NewTestNode constructs a node for testing, using TestPeerInfo for private key and peerID.
+func NewTestNode(r repo.Repo, t *testing.T, info *cfgtest.PeerInfo, maker NodeMakerFunc) (TestablePeerNode, error) {
 	node, err := maker(r, func(c *config.P2P) {
-		c.PeerID = localnp.ID.Pretty()
-		c.PrivKey = privKey
-		c.Addrs = []ma.Multiaddr{
-			localnp.Addr,
-		}
+		addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+		c.PeerID = info.EncodedPeerID
+		c.PrivKey = info.EncodedPrivKey
+		c.Addrs = []ma.Multiaddr{addr}
 		c.QriBootstrapAddrs = []string{}
 	})
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
 	}
-	node.Keys().AddPubKey(localnp.ID, localnp.PubKey)
-	node.Keys().AddPrivKey(localnp.ID, localnp.PrivKey)
+
+	node.Keys().AddPubKey(info.PeerID, info.PubKey)
+	node.Keys().AddPrivKey(info.PeerID, info.PrivKey)
 
 	return node, err
 }
@@ -93,14 +84,16 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T, maker NodeMakerFunc) (
 	}
 
 	nodes := []TestablePeerNode{}
-	for _, dir := range dirs {
+	for i, dir := range dirs {
+		info := cfgtest.GetTestPeerInfo(i)
 		if dir.IsDir() {
+
 			repo, _, err := test.NewMemRepoFromDir(filepath.Join("testdata", dir.Name()))
 			if err != nil {
 				return nil, err
 			}
 
-			node, err := NewTestNode(repo, t, maker)
+			node, err := NewTestNode(repo, t, info, maker)
 			if err != nil {
 				return nil, err
 			}
