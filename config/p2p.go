@@ -118,6 +118,9 @@ func (cfg *P2P) DecodePrivateKey() (crypto.PrivKey, error) {
 
 // DecodePeerID takes P2P.ID (a string), and decodes it into a peer.ID
 func (cfg *P2P) DecodePeerID() (peer.ID, error) {
+	if string(cfg.PeerID) == "" {
+		return peer.ID(""), fmt.Errorf("empty string for peer ID")
+	}
 	return peer.IDB58Decode(cfg.PeerID)
 }
 
