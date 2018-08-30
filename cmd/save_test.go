@@ -140,8 +140,8 @@ func TestSaveRun(t *testing.T) {
 		{"me/bad_dataset", "", "", "", "", false, "", "error with previous reference: repo: not found", ""},
 		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
 		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "reading body file: open bad/bodypath.csv: no such file or directory", ""},
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcQxYfLwwAzkbHcFRGFGQbvawSB2u2vKnS3eqEe9vBdUj\nthis dataset has 1 validation errors\n", "", ""},
-		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmZ5r5S1pdeJJQxz1CT8dzhjNUYV5Q6T2oLV5SUJpp6yaM\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVxUpVVVNedQ645nC25zu6ZtW3yWSiknVmAePLXQ2YSPR\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmW8999UBCFoBBwjFiSgm53znp8e5eWEP1kodJeev5CJM9\nthis dataset has 1 validation errors\n", "", ""},
 		{"me/movies", "", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, "", "error saving: no changes detected", ""},
 	}
 

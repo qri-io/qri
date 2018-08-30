@@ -144,15 +144,4 @@ var movieOutput = `0: /4/1: "" type should be integer
 1: /199/1: "" type should be integer
 2: /206/1: "" type should be integer
 3: /1510/1: "" type should be integer
-4: /3604/1: "" type should be integer
-5: /3815/1: "" type should be integer
-6: /3834/1: "" type should be integer
-7: /4299/1: "" type should be integer
-8: /4392/1: "" type should be integer
-9: /4397/1: "" type should be integer
-10: /4517/1: "" type should be integer
-11: /4609/1: "" type should be integer
-12: /4690/1: "" type should be integer
-13: /4948/1: "" type should be integer
-14: /4989/1: "" type should be integer
 `

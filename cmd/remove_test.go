@@ -113,7 +113,7 @@ func TestRemoveRun(t *testing.T) {
 	}{
 		{[]string{}, "", "", ""},
 		{[]string{"me/bad_dataset"}, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{[]string{"me/movies"}, "removed dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdfxQWGnLxXVsUi68DavrJ95UgXjbe8t3CBvaqWNEfBDQ'\n", "", ""},
+		{[]string{"me/movies"}, "removed dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQ7WC69LZh8TgzT9nWzCrmKQeFLcYiunT6viZEgNFwaYV'\n", "", ""},
 		{[]string{"me/cities", "me/counter"}, "removed dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSgwXYRCYfyjpKrm7AvajcNEeh3ppCAPKNhHxFM4hdNAA'\nremoved dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qmbh9W1KVq9kdPWZqVELrrRNiA2AwskRic15jK3vafizLA'\n", "", ""},
 		{[]string{"me/movies"}, "", "repo: not found", "could not find dataset 'peer/movies'"},
 	}
