@@ -57,6 +57,11 @@ func DefaultP2P() *P2P {
 	return p
 }
 
+// DefaultP2PWithoutKeys generates a p2p struct without keys or peerID
+func DefaultP2PWithoutKeys() *P2P {
+	return NewP2P()
+}
+
 // NewP2P generates a p2p struct with only addresses, no keys or peer id
 func NewP2P() *P2P {
 	p2p := &P2P{

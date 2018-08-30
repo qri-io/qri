@@ -24,19 +24,15 @@ func TestP2PDecodePrivateKey(t *testing.T) {
 		t.Errorf("error mismatch. expected: %s, got: %s", invalidErr, err.Error())
 	}
 
-	// run this test a few times to ensure default profile consistently generates
-	// a valid PrivateKey
-	for i := 0; i < 10; i++ {
-		p = DefaultP2P()
-		_, err = p.DecodePrivateKey()
-		if err != nil {
-			t.Errorf("iter %d unexpected error: %s", i, err.Error())
-		}
+	p = DefaultP2PForTesting()
+	_, err = p.DecodePrivateKey()
+	if err != nil {
+		t.Errorf("unexpected error: %s", err.Error())
 	}
 }
 
 func TestP2PValidate(t *testing.T) {
-	err := DefaultP2P().Validate()
+	err := DefaultP2PForTesting().Validate()
 	if err != nil {
 		t.Errorf("error validating default p2p: %s", err)
 	}
@@ -46,7 +42,7 @@ func TestP2PCopy(t *testing.T) {
 	cases := []struct {
 		p2p *P2P
 	}{
-		{DefaultP2P()},
+		{DefaultP2PForTesting()},
 	}
 	for i, c := range cases {
 		cpy := c.p2p.Copy()
