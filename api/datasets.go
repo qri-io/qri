@@ -645,8 +645,10 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repo.CanonicalizeDatasetRef(h.repo, &d); err != nil {
+	err = repo.CanonicalizeDatasetRef(h.repo, &d)
+	if err != nil && err != repo.ErrNotFound {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	limit, err := util.ReqParamInt("limit", r)
@@ -680,6 +682,6 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		Data: json.RawMessage(result.Data),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
-		log.Infof("error writing repsonse: %s", err.Error())
+		log.Infof("error writing response: %s", err.Error())
 	}
 }
