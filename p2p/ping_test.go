@@ -8,7 +8,8 @@ import (
 
 func TestPing(t *testing.T) {
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 3, NewTestQriNode)
+	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, f, 3)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return

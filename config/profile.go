@@ -92,6 +92,11 @@ func DefaultProfile() *ProfilePod {
 	return p
 }
 
+// GenerateNicknameFromPeerID generates a nick from the PeerID, assigning to the peername.
+func (p *ProfilePod) GenerateNicknameFromPeerID() {
+	p.Peername = doggos.DoggoNick(p.ID)
+}
+
 // Validate validates all fields of profile returning all errors found.
 func (p ProfilePod) Validate() error {
 	schema := jsonschema.Must(`{

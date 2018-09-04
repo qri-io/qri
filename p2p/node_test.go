@@ -3,6 +3,7 @@ package p2p
 import (
 	"testing"
 
+	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
@@ -16,12 +17,14 @@ func TestNewNode(t *testing.T) {
 		return
 	}
 
-	node, err := NewQriNode(r)
+	p2pconf := config.DefaultP2PForTesting()
+	node, err := NewTestableQriNode(r, p2pconf)
 	if err != nil {
-		t.Errorf("unexpected error: %s", err.Error())
+		t.Errorf("error creating qri node: %s", err.Error())
 		return
 	}
-	if node.Online != true {
+	n := node.(*QriNode)
+	if !n.Online {
 		t.Errorf("default node online flag should be true")
 	}
 }

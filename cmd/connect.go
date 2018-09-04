@@ -107,39 +107,39 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() (err error) {
-	s, err := api.New(o.Repo, func(c *config.Config) {
-		*c = *o.Config
+	cfg := *o.Config
 
-		if o.APIPort != 0 {
-			c.API.Port = o.APIPort
-		}
-		if o.RPCPort != 0 {
-			c.RPC.Port = o.RPCPort
-		}
-		if o.WebappPort != 0 {
-			c.Webapp.Port = o.WebappPort
-		}
+	if o.APIPort != 0 {
+		cfg.API.Port = o.APIPort
+	}
+	if o.RPCPort != 0 {
+		cfg.RPC.Port = o.RPCPort
+	}
+	if o.WebappPort != 0 {
+		cfg.Webapp.Port = o.WebappPort
+	}
 
-		if o.DisconnectAfter != 0 {
-			c.API.DisconnectAfter = o.DisconnectAfter
-		}
+	if o.DisconnectAfter != 0 {
+		cfg.API.DisconnectAfter = o.DisconnectAfter
+	}
 
-		if o.ReadOnly {
-			c.API.ReadOnly = true
-		}
-		if o.DisableP2P {
-			c.P2P.Enabled = false
-		}
-		if o.DisableAPI {
-			c.API.Enabled = false
-		}
-		if o.DisableRPC {
-			c.RPC.Enabled = false
-		}
-		if o.DisableWebapp {
-			c.Webapp.Enabled = false
-		}
-	})
+	if o.ReadOnly {
+		cfg.API.ReadOnly = true
+	}
+	if o.DisableP2P {
+		cfg.P2P.Enabled = false
+	}
+	if o.DisableAPI {
+		cfg.API.Enabled = false
+	}
+	if o.DisableRPC {
+		cfg.RPC.Enabled = false
+	}
+	if o.DisableWebapp {
+		cfg.Webapp.Enabled = false
+	}
+
+	s, err := api.New(o.Repo, &cfg)
 	if err != nil {
 		return err
 	}

@@ -11,7 +11,8 @@ import (
 
 func TestRequestProfile(t *testing.T) {
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, NewTestQriNode)
+	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, f, 5)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return

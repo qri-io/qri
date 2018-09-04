@@ -91,9 +91,9 @@ func TestServerRoutes(t *testing.T) {
 	}
 	defer func() { lib.SaveConfig = prevSaveConfig }()
 
-	s, err := New(r, func(c *config.Config) {
-		c.P2P.Enabled = false
-	})
+	cfg := config.DefaultConfigForTesting()
+	cfg.P2P.Enabled = false
+	s, err := New(r, cfg)
 
 	if err != nil {
 		t.Error(err.Error())
@@ -283,11 +283,10 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		return
 	}
 
-	s, err := New(r, func(opt *config.Config) {
-		opt.P2P.Enabled = false
-		// opt.MemOnly = true
-		opt.API.ReadOnly = true
-	})
+	cfg := config.DefaultConfigForTesting()
+	cfg.P2P.Enabled = false
+	cfg.API.ReadOnly = true
+	s, err := New(r, cfg)
 	if err != nil {
 		t.Error(err.Error())
 		return

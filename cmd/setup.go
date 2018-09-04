@@ -119,7 +119,7 @@ func (o *SetupOptions) Run(f Factory) error {
 
 // DoSetup executes the setup-ie bit from the setup command
 func (o *SetupOptions) DoSetup(f Factory) (err error) {
-	cfg := config.DefaultConfig()
+	cfg := config.DefaultConfigWithoutKeys()
 
 	envVars := map[string]*string{
 		"QRI_SETUP_CONFIG_DATA":      &o.ConfigData,
@@ -141,8 +141,24 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		}
 	}
 
+	if cfg.P2P == nil {
+		cfg.P2P = config.DefaultP2PWithoutKeys()
+	}
+	if cfg.P2P.PrivKey == "" {
+		// This is a fairly expensive operation.
+		err := cfg.P2P.GeneratePrivateKeyAndPeerID()
+		if err != nil {
+			panic(err)
+		}
+	}
 	if cfg.Profile == nil {
-		cfg.Profile = config.DefaultProfile()
+		cfg.Profile = config.DefaultProfileWithoutKeys()
+	}
+	if cfg.Profile.PrivKey == "" {
+		cfg.Profile.PrivKey = cfg.P2P.PrivKey
+		cfg.Profile.ID = cfg.P2P.PeerID
+		// This is not really that expensive, however.
+		cfg.Profile.GenerateNicknameFromPeerID()
 	}
 
 	if o.Peername != "" {

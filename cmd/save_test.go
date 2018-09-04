@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/registry/regserver/mock"
 )
@@ -117,8 +118,7 @@ func TestSaveRun(t *testing.T) {
 		return
 	}
 
-	// TODO - this is bad
-	lib.Config = f.config
+	lib.Config = config.DefaultConfigForTesting()
 
 	_, ok := currentPath()
 	if !ok {

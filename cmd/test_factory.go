@@ -36,7 +36,7 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 		return
 	}
 
-	cfg := config.DefaultConfig()
+	cfg := config.DefaultConfigForTesting()
 
 	return TestFactory{
 		qriRepoPath: "",
