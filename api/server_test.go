@@ -125,8 +125,8 @@ func TestServerRoutes(t *testing.T) {
 
 		// get dataset
 		{"GET", "/me/family_relationships", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/me/family_relationships/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "getResponseFamilyRelationships.json", 200},
-		{"GET", "/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/me/family_relationships/at/map/QmbzGasFGygpdWXQBxM1pKwiXWupCdAbNuVNmNJgjDr9XV", "", "getResponseFamilyRelationships.json", 200},
+		{"GET", "/at/map/QmbzGasFGygpdWXQBxM1pKwiXWupCdAbNuVNmNJgjDr9XV", "", "getResponseFamilyRelationships.json", 200},
 
 		{"POST", "/rename", "renameRequest.json", "renameResponse.json", 200},
 
@@ -140,7 +140,8 @@ func TestServerRoutes(t *testing.T) {
 		{"GET", "/export/me/cities", "", "", 200},
 		{"GET", "/export/me/cities/at/map/QmVU86zb7A6NvipimEJ7mQFu1jy2nk96o6f3uwHe92D8US", "", "", 200},
 		// TODO: This case was totally broken before, because it was ignoring
-		// CanonicalizeDatasetRef's error return code. Fix this.
+		// CanonicalizeDatasetRef's error return code. It is still broken because `export`
+		// doesn't handle remote datasets yet.
 		//{"GET", "/export/at/map/QmVU86zb7A6NvipimEJ7mQFu1jy2nk96o6f3uwHe92D8US", "", "", 200},
 
 		// diff
@@ -149,7 +150,7 @@ func TestServerRoutes(t *testing.T) {
 
 		// remove
 		{"POST", "/remove/me/cities/at/map/QmVU86zb7A6NvipimEJ7mQFu1jy2nk96o6f3uwHe92D8US", "", "removeResponseWithPath.json", 500},
-		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", "", "removeResponseByPath.json", 200},
+		{"POST", "/remove/at/map/QmbzGasFGygpdWXQBxM1pKwiXWupCdAbNuVNmNJgjDr9XV", "", "removeResponseByPath.json", 200},
 
 		// publish
 		{"POST", "/registry/me/counter", "", "publishResponse.json", 200},
