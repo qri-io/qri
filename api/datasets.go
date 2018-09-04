@@ -645,14 +645,10 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := repo.CanonicalizeDatasetRef(h.repo, &d); err != nil {
-		// TODO: look through lib.LookupBody and see if we can refactor so it takes a datasetRef rather than just a path.
-		// We can then canonicalize down there and the cases of local vs peer dataset correctly\
-		// For now, if a datasetRef has a path, let's keep trying to get the data
-		if d.Path == "" {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
+	err = repo.CanonicalizeDatasetRef(h.repo, &d)
+	if err != nil && err != repo.ErrNotFound {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 
 	limit, err := util.ReqParamInt("limit", r)
