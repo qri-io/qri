@@ -304,7 +304,8 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, p2p.NewTestQriNode)
+	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return
@@ -399,7 +400,8 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 5, p2p.NewTestQriNode)
+	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return
@@ -619,7 +621,8 @@ func TestDatasetRequestsAddP2p(t *testing.T) {
 
 	// Create test nodes.
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestNetwork(ctx, t, 2, p2p.NewTestQriNode)
+	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return

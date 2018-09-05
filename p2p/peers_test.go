@@ -9,7 +9,8 @@ import (
 
 func TestConnectedQriProfiles(t *testing.T) {
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestDirNetwork(ctx, t, NewTestQriNode)
+	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestDirNetwork(ctx, f)
 	if err != nil {
 		t.Error(err.Error())
 		return

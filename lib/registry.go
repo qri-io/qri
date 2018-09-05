@@ -5,7 +5,6 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/qri/actions"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/registry"
@@ -66,11 +65,11 @@ func (r *RegistryRequests) Publish(p *PublishParams, done *bool) (err error) {
 		node := r.node
 
 		if node == nil {
-			// if we don't have an online node, create one and connect
-			node, err = p2p.NewQriNode(r.repo.Repo, func(c *config.P2P) {
-				*c = *Config.P2P
-				c.Enabled = true
-			})
+			// if we don't have an online node, create one and connect, using the
+			// default, global Config object
+			p2pconf := Config.P2P
+			p2pconf.Enabled = true
+			node, err = p2p.NewQriNode(r.repo.Repo, p2pconf)
 			if err != nil {
 				return err
 			}

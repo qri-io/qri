@@ -33,23 +33,15 @@ type Server struct {
 	qriNode *p2p.QriNode
 }
 
-// New creates a new qri server with optional configuration
-// calling New() with no options will return the default configuration
-// as specified in DefaultConfig
-func New(r repo.Repo, options ...func(*config.Config)) (s *Server, err error) {
-	cfg := config.DefaultConfig()
-	for _, opt := range options {
-		opt(cfg)
-	}
-
+// New creates a new qri server from a configuration
+func New(r repo.Repo, cfg *config.Config) (s *Server, err error) {
 	s = &Server{
 		cfg: cfg,
 	}
 
 	// allocate a new node
-	s.qriNode, err = p2p.NewQriNode(r, func(c *config.P2P) {
-		*c = *cfg.P2P
-	})
+	s.qriNode, err = p2p.NewQriNode(r, cfg.P2P)
+
 	if err != nil {
 		return s, err
 	}
@@ -65,14 +57,6 @@ func (s *Server) Serve() (err error) {
 	go s.ServeRPC()
 	go s.ServeWebapp()
 
-	// func(p2pcfg *config.P2P) {
-	// p2pcfg.Online = s.cfg.Online
-	// if cfg.BoostrapAddrs != nil {
-	// 	p2pcfg.QriBootstrapAddrs = cfg.BoostrapAddrs
-	// }
-	// })
-
-	// bootstrapped := false
 	peerBootstrapped := func(peerId string) {
 		// if cfg.PostP2POnlineHook != nil && !bootstrapped {
 		// go cfg.PostP2POnlineHook(s.qriNode)

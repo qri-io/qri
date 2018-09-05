@@ -11,7 +11,8 @@ import (
 func TestAnnounceConnected(t *testing.T) {
 	ctx := context.Background()
 	// create a network of connected nodes
-	testNodes, err := p2ptest.NewTestDirNetwork(ctx, t, NewTestQriNode)
+	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
+	testNodes, err := p2ptest.NewTestDirNetwork(ctx, factory)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -29,7 +30,7 @@ func TestAnnounceConnected(t *testing.T) {
 	}
 
 	// create a new, disconnected node
-	nds, err := p2ptest.NewTestNetwork(ctx, t, 1, NewTestQriNode)
+	nds, err := p2ptest.NewTestNetwork(ctx, factory, 1)
 	if err != nil {
 		t.Error(err.Error())
 		return

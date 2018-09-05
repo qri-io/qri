@@ -10,7 +10,8 @@ import (
 
 func TestRequestDatasetsList(t *testing.T) {
 	ctx := context.Background()
-	testPeers, err := p2ptest.NewTestDirNetwork(ctx, t, NewTestQriNode)
+	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
 	if err != nil {
 		t.Errorf("error creating network: %s", err.Error())
 		return

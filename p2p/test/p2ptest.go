@@ -17,7 +17,6 @@ import (
 	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
 	net "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
 	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	"testing"
 )
 
 // TestablePeerNode is used by tests only. Implemented by QriNode
@@ -30,62 +29,70 @@ type TestablePeerNode interface {
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
-type NodeMakerFunc func(repo.Repo, ...func(*config.P2P)) (TestablePeerNode, error)
+type NodeMakerFunc func(repo.Repo, *config.P2P) (TestablePeerNode, error)
+
+// TestNodeFactory can be used to safetly construct nodes for tests
+type TestNodeFactory struct {
+	count int
+	maker NodeMakerFunc
+}
+
+// NewTestNodeFactory returns a new TestNodeFactory
+func NewTestNodeFactory(maker NodeMakerFunc) *TestNodeFactory {
+	return &TestNodeFactory{count: 0, maker: maker}
+}
+
+// New creates a new Node for testing
+func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
+	info := cfgtest.GetTestPeerInfo(f.count)
+	f.count++
+	p2pconf := config.NewP2P()
+	p2pconf.PeerID = info.EncodedPeerID
+	p2pconf.PrivKey = info.EncodedPrivKey
+	return f.maker(r, p2pconf)
+}
+
+// NewWithConf creates a new Node for testing using a configuration
+func (f *TestNodeFactory) NewWithConf(r repo.Repo, p2pconf *config.P2P) (TestablePeerNode, error) {
+	info := cfgtest.GetTestPeerInfo(f.count)
+	f.count++
+	p2pconf.PeerID = info.EncodedPeerID
+	p2pconf.PrivKey = info.EncodedPrivKey
+	return f.maker(r, p2pconf)
+}
+
+// NextInfo gets the PeerInfo for the next test Node to be constructed
+func (f *TestNodeFactory) NextInfo() *cfgtest.PeerInfo {
+	return cfgtest.GetTestPeerInfo(f.count)
+}
 
 // NewTestNetwork constructs nodes to test p2p functionality.
-func NewTestNetwork(ctx context.Context, t *testing.T, num int, maker NodeMakerFunc) ([]TestablePeerNode, error) {
+func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]TestablePeerNode, error) {
 	nodes := make([]TestablePeerNode, num)
-
 	for i := 0; i < num; i++ {
-		// TODO: This is ugly. Needed because p2p/connected_test generates 5 nodes with
-		// NewTestDirNetwork, then calls this to make a disconnected node. Instead, perhaps
-		// have a handle that keeps track of how many nodes have been allocated, and require
-		// passing that handle to this function and also NewTestDirNetwork.
-		info := cfgtest.GetTestPeerInfo(i + 5)
+		info := f.NextInfo()
 		r, err := test.NewTestRepoFromProfileID(profile.ID(info.PeerID), i, i)
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}
-
-		node, err := NewTestNode(r, t, info, maker)
+		node, err := NewAvailableTestNode(r, f)
 		if err != nil {
 			return nil, err
 		}
-
 		nodes[i] = node
 	}
 	return nodes, nil
 }
 
-// NewTestNode constructs a node for testing, using TestPeerInfo for private key and peerID.
-func NewTestNode(r repo.Repo, t *testing.T, info *cfgtest.PeerInfo, maker NodeMakerFunc) (TestablePeerNode, error) {
-	node, err := maker(r, func(c *config.P2P) {
-		addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
-		c.PeerID = info.EncodedPeerID
-		c.PrivKey = info.EncodedPrivKey
-		c.Addrs = []ma.Multiaddr{addr}
-		c.QriBootstrapAddrs = []string{}
-	})
-	if err != nil {
-		return nil, fmt.Errorf("error creating test node: %s", err.Error())
-	}
-
-	node.Keys().AddPubKey(info.PeerID, info.PubKey)
-	node.Keys().AddPrivKey(info.PeerID, info.PrivKey)
-
-	return node, err
-}
-
 // NewTestDirNetwork constructs nodes from the testdata directory, for p2p testing
-func NewTestDirNetwork(ctx context.Context, t *testing.T, maker NodeMakerFunc) ([]TestablePeerNode, error) {
+func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerNode, error) {
 	dirs, err := ioutil.ReadDir("testdata")
 	if err != nil {
 		return nil, err
 	}
 
 	nodes := []TestablePeerNode{}
-	for i, dir := range dirs {
-		info := cfgtest.GetTestPeerInfo(i)
+	for _, dir := range dirs {
 		if dir.IsDir() {
 
 			repo, _, err := test.NewMemRepoFromDir(filepath.Join("testdata", dir.Name()))
@@ -93,7 +100,7 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T, maker NodeMakerFunc) (
 				return nil, err
 			}
 
-			node, err := NewTestNode(repo, t, info, maker)
+			node, err := NewAvailableTestNode(repo, f)
 			if err != nil {
 				return nil, err
 			}
@@ -101,6 +108,22 @@ func NewTestDirNetwork(ctx context.Context, t *testing.T, maker NodeMakerFunc) (
 		}
 	}
 	return nodes, nil
+}
+
+// NewAvailableTestNode constructs a test node that is hooked up and ready to Connect
+func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, error) {
+	info := f.NextInfo()
+	addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
+	p2pconf := config.NewP2P()
+	p2pconf.Addrs = []ma.Multiaddr{addr}
+	p2pconf.QriBootstrapAddrs = []string{}
+	node, err := f.NewWithConf(r, p2pconf)
+	if err != nil {
+		return nil, fmt.Errorf("error creating test node: %s", err.Error())
+	}
+	node.Keys().AddPubKey(info.PeerID, info.PubKey)
+	node.Keys().AddPrivKey(info.PeerID, info.PrivKey)
+	return node, err
 }
 
 // ConnectNodes connects the nodes in the network so they may communicate
