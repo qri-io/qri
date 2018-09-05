@@ -9,7 +9,7 @@ func TestRenderHandler(t *testing.T) {
 	defer teardown()
 
 	cases := []handlerTestCase{
-		// {"OPTIONS", "OPTIONS", "/", nil},
+		{"OPTIONS", "/render", nil},
 	}
 
 	h := NewRenderHandlers(r)

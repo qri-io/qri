@@ -11,9 +11,8 @@ func TestPeerHandlers(t *testing.T) {
 	r, teardown := newTestRepo(t)
 	defer teardown()
 
-	node, err := p2p.NewQriNode(r, func(o *config.P2P) {
-		o.Enabled = false
-	})
+	cfg := config.DefaultConfigForTesting().P2P
+	node, err := p2p.NewQriNode(r, cfg)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

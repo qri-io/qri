@@ -50,7 +50,7 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
-	lib.Config = config.DefaultConfig()
+	lib.Config = config.DefaultConfigForTesting()
 	lib.Config.Profile = test.ProfileConfig()
 	lib.Config.Registry.Location = registryServer.URL
 	prevSaveConfig := lib.SaveConfig
@@ -156,11 +156,15 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		return
 	}
 
-	s, err := New(r, func(opt *config.Config) {
-		opt.P2P.Enabled = false
-		// opt.MemOnly = true
-		opt.API.ReadOnly = true
-	})
+	cfg := config.DefaultConfigForTesting()
+	cfg.P2P.Enabled = false
+	cfg.API.ReadOnly = true
+	defer func() {
+		cfg.P2P.Enabled = true
+		cfg.API.ReadOnly = false
+	}()
+
+	s, err := New(r, cfg)
 	if err != nil {
 		t.Error(err.Error())
 		return
