@@ -1,6 +1,0 @@
-{
-  "meta": {
-    "code": 500,
-    "error": "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-  }
-}

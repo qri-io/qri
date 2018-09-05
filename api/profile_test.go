@@ -10,136 +10,43 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/beme/abide"
-	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestProfileHandler(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
+	r, teardown := newTestRepo(t)
+	defer teardown()
 
-	// bump up log level to keep test output clean
-	golog.SetLogLevel("qriapi", "error")
-	defer golog.SetLogLevel("qriapi", "info")
-
-	// use a test registry server & client & client
-	rc, registryServer := regmock.NewMockServer()
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
-
-	r, err := test.NewTestRepo(rc)
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-
-	lib.Config = config.DefaultConfig()
-	lib.Config.Profile = test.ProfileConfig()
-	lib.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := lib.SaveConfig
-	lib.SaveConfig = func() error {
-		p, err := profile.NewProfile(lib.Config.Profile)
-		if err != nil {
-			return err
-		}
-
-		r.SetProfile(p)
-		return err
-	}
-	defer func() { lib.SaveConfig = prevSaveConfig }()
-
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	cases := []struct {
-		name, method, endpoint string
-		body                   []byte
-		readOnly               bool
-	}{
-		{"OPTIONS", "OPTIONS", "/", nil, false},
-		{"GET", "GET", "/", nil, false},
-		{"GET read-only", "GET", "/", nil, true},
-		{"POST", "POST", "/", []byte(`{"id": "","created": "0001-01-01T00:00:00Z","updated": "0001-01-01T00:00:00Z","peername": "","type": "peer","email": "test@email.com","name": "test name","description": "test description","homeUrl": "http://test.url","color": "default","thumb": "/","profile": "/","poster": "/","twitter": "test"}`), false},
-		{"POST bad data", "POST", "/", []byte(``), false},
-		{"bad method", "DELETE", "/", nil, false},
+	cases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"GET", "/", nil},
+		{"POST", "/", mustFile(t, "testdata/profileRequest.json")},
+		{"POST", "/", []byte(``)},
+		{"DELETE", "/", nil},
 	}
 
 	proh := NewProfileHandlers(r, false)
+	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases)
 
-	for _, c := range cases {
-		name := fmt.Sprintf("Profile Test: %s", c.name)
-		req := httptest.NewRequest(c.method, c.endpoint, bytes.NewBuffer(c.body))
-
-		w := httptest.NewRecorder()
-
-		proh.ReadOnly = c.readOnly
-		proh.ProfileHandler(w, req)
-
-		res := w.Result()
-		abide.AssertHTTPResponse(t, name, res)
+	readOnlyCases := []handlerTestCase{
+		{"GET", "/", nil},
 	}
+	proh.ReadOnly = true
+	runHandlerTestCases(t, "read-only", proh.ProfileHandler, readOnlyCases)
+
+	mimeCases := []handlerMimeMultipartTestCase{
+		{"GET", "/",
+			map[string]string{},
+			map[string]string{},
+		},
+	}
+	runMimeMultipartHandlerTestCases(t, "mime read", proh.ProfileHandler, mimeCases)
 }
 
 func TestProfilePhotoHandler(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
-
-	// bump up log level to keep test output clean
-	golog.SetLogLevel("qriapi", "error")
-	defer golog.SetLogLevel("qriapi", "info")
-
-	// use a test registry server & client
-	rc, registryServer := regmock.NewMockServer()
-
-	// in order to have consistent responses
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
-
-	r, err := test.NewTestRepo(rc)
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-
-	lib.Config = config.DefaultConfig()
-	lib.Config.Profile = test.ProfileConfig()
-	lib.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := lib.SaveConfig
-	lib.SaveConfig = func() error {
-		p, err := profile.NewProfile(lib.Config.Profile)
-		if err != nil {
-			return err
-		}
-
-		r.SetProfile(p)
-		return err
-	}
-	defer func() { lib.SaveConfig = prevSaveConfig }()
-
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
+	r, teardown := newTestRepo(t)
+	defer teardown()
 
 	cases := []struct {
 		name, method, endpoint string
@@ -178,7 +85,6 @@ func TestProfilePhotoHandler(t *testing.T) {
 		}
 
 		w := httptest.NewRecorder()
-
 		proh.ProfilePhotoHandler(w, req)
 
 		res := w.Result()
@@ -187,50 +93,8 @@ func TestProfilePhotoHandler(t *testing.T) {
 }
 
 func TestProfilePosterHandler(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
-
-	// bump up log level to keep test output clean
-	golog.SetLogLevel("qriapi", "error")
-	defer golog.SetLogLevel("qriapi", "info")
-
-	// use a test registry server & client
-	rc, registryServer := regmock.NewMockServer()
-
-	// in order to have consistent responses
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
-
-	r, err := test.NewTestRepo(rc)
-	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
-	}
-
-	lib.Config = config.DefaultConfig()
-	lib.Config.Profile = test.ProfileConfig()
-	lib.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := lib.SaveConfig
-	lib.SaveConfig = func() error {
-		p, err := profile.NewProfile(lib.Config.Profile)
-		if err != nil {
-			return err
-		}
-
-		r.SetProfile(p)
-		return err
-	}
-	defer func() { lib.SaveConfig = prevSaveConfig }()
-
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
+	r, teardown := newTestRepo(t)
+	defer teardown()
 
 	cases := []struct {
 		name, method, endpoint string

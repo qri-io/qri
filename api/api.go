@@ -1,3 +1,4 @@
+// Package api implements a JSON-API for interacting with a qri node
 package api
 
 import (
