@@ -5,6 +5,7 @@ package lib
 
 import (
 	"encoding/gob"
+
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/p2p"
 )
@@ -12,7 +13,7 @@ import (
 var log = golog.Logger("lib")
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.5.1"
+const VersionNumber = "0.5.2-dev"
 
 // Requests defines a set of library methods
 type Requests interface {

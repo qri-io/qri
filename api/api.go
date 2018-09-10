@@ -42,12 +42,7 @@ func New(r repo.Repo, cfg *config.Config) (s *Server, err error) {
 
 	// allocate a new node
 	s.qriNode, err = p2p.NewQriNode(r, cfg.P2P)
-
-	if err != nil {
-		return s, err
-	}
-
-	return s, nil
+	return s, err
 }
 
 // Serve starts the server. It will block while the server is running

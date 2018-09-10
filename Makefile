@@ -9,26 +9,16 @@ ifndef GOPATH
 endif
 
 build: require-gopath
-	@echo ""
-	@echo "1/5 install non-gx deps:"
-	@echo ""
+	@echo "\n1/5 install non-gx deps:\n"
 	go get -v -u $(GOPACKAGES)
-	@echo ""
-	@echo "2/5 install gx:"
-	@echo ""
+	@echo "\n"2/5 install gx:\n"
 	go get -v -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
-	@echo ""
-	@echo "3/5 install gx deps:"
-	@echo ""
+	@echo "\n3/5 install gx deps:\n"
 	$$GOPATH/bin/gx install
 	@echo ""
-	@echo ""
-	@echo "4/5 install gx dep-packages:"
-	@echo ""
+	@echo "\n4/5 install gx dep-packages:\n"
 	go get github.com/qri-io/cafs
-	@echo ""
-	@echo "5/5 build & install qri:"
-	@echo ""
+	@echo "\n5/5 build & install qri:\n"
 	go install
 	@echo "done!"
 

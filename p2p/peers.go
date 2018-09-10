@@ -7,10 +7,9 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 
-	swarm "gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
 // ConnectedQriProfiles lists all connected peers that support the qri protocol
@@ -173,13 +172,13 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, err
 	}
 
-	snet, ok := n.Host.Network().(*swarm.Network)
-	if !ok {
-		return nil, fmt.Errorf("peerhost network was not swarm")
-	}
-
-	// clear backoff b/c we're explicitly dialing this peer
-	snet.Swarm().Backoff().Clear(pinfo.ID)
+	// TODO - restore
+	// snet, ok := n.Host.Network().(*swarm.Network)
+	// if !ok {
+	// 	return nil, fmt.Errorf("peerhost network was not swarm")
+	// }
+	// // clear backoff b/c we're explicitly dialing this peer
+	// snet.Swarm().Backoff().Clear(pinfo.ID)
 
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
 		return nil, fmt.Errorf("connect %s failure: %s", pinfo.ID.Pretty(), err)

@@ -194,11 +194,13 @@ func (o *QriOptions) RPC() *rpc.Client {
 
 // Repo returns from internal state
 func (o *QriOptions) Repo() (repo.Repo, error) {
-	err := o.init()
+	if err := o.init(); err != nil {
+		return nil, err
+	}
 	if o.repo == nil {
 		return nil, fmt.Errorf("repo not available (are you running qri in another terminal?)")
 	}
-	return o.repo, err
+	return o.repo, nil
 }
 
 // DatasetRequests generates a lib.DatasetRequests from internal state

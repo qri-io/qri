@@ -9,20 +9,16 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
-	// "github.com/qri-io/qri/repo/profile"
 
-	yamux "gx/ipfs/QmNWCEvi7bPRcvqAV8AKLGVNoQdArWi7NJayka2SM4XtRe/go-smux-yamux"
-	discovery "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/discovery"
-	bhost "gx/ipfs/QmNh1kGFFdsPu79KNSaL4NUKUPb4Eiz4KHdMtFY6664RDp/go-libp2p/p2p/host/basic"
-	host "gx/ipfs/QmNmJZL7FQySMtE2BQuLMuZg2EB2CLEunJJUSVSc9YnnbV/go-libp2p-host"
-	swarm "gx/ipfs/QmSwZMWwFZSUpe5muU2xgTUwppH24KfMwdPXiwbEp2c6G5/go-libp2p-swarm"
-	msmux "gx/ipfs/QmVniQJkdzLZaZwzwMdd3dJTvWiJ1DQEkreVy6hs6h7Vk5/go-smux-multistream"
-	ma "gx/ipfs/QmWWQ2Txc2c6tqjsBpzg5Ar652cHPGNsQQp2SejkNmkUMb/go-multiaddr"
-	pstore "gx/ipfs/QmXauCuJzmzapetmC6W4TuDJLL1yFFrVzSHoWv8YdbmnxH/go-libp2p-peerstore"
-	net "gx/ipfs/QmXfkENeeBvh3zYA51MaSdGUdBjhQ99cP5WQe8zgr6wchG/go-libp2p-net"
-	peer "gx/ipfs/QmZoWKhxUmZ2seW4BzX6fJkNR8hh9PsGModr7q171yq2SS/go-libp2p-peer"
-	crypto "gx/ipfs/QmaPbCnUMBohSGo3KnxEa2bHqyJVVeEEcwtqJAYxerieBo/go-libp2p-crypto"
-	core "gx/ipfs/QmatUACvrFK3xYg1nd2iLAKfz7Yy5YB56tnzBYHpqiUuhn/go-ipfs/core"
+	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
+	libp2p "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p"
+	discovery "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p/p2p/discovery"
+	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
+	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
+	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	core "gx/ipfs/QmebqVUQQqQFhg74FtQFszUJo22Vpr3e8qBAkvvV4ho9HH/go-ipfs/core"
 )
 
 // QriNode encapsulates a qri peer-2-peer node
@@ -264,27 +260,13 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P
 	ps.AddPrivKey(pid, pk)
 	ps.AddPubKey(pid, pk.GetPublic())
 
-	// Set up stream multiplexer
-	tpt := msmux.NewBlankTransport()
-	tpt.AddTransport("/yamux/1.0.0", yamux.DefaultTransport)
-
-	// Create swarm (implements libP2P Network)
-	swrm, err := swarm.NewSwarmWithProtector(
-		ctx,
-		p2pconf.Addrs,
-		pid,
-		ps,
-		nil,
-		tpt,
-		nil,
-	)
-	if err != nil {
-		return nil, err
+	opts := []libp2p.Option{
+		libp2p.ListenAddrs(p2pconf.Addrs...),
+		libp2p.Identity(pk),
+		libp2p.Peerstore(ps),
 	}
 
-	netw := (*swarm.Network)(swrm)
-	basicHost := bhost.New(netw)
-	return basicHost, nil
+	return libp2p.New(ctx, opts...)
 }
 
 // SendMessage opens a stream & sends a message from p to one ore more peerIDs
@@ -393,9 +375,5 @@ func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 		MtDatasets:    n.handleDatasetsList,
 		MtEvents:      n.handleEvents,
 		MtConnected:   n.handleConnected,
-		// MtSearch:
-		// MtPeers:
-		// MtNodes:
-		// MtDatasetLog:
 	}
 }
