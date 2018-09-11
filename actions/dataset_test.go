@@ -10,6 +10,8 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
@@ -41,7 +43,6 @@ func init() {
 	privKey, err = crypto.UnmarshalPrivateKey(testPk)
 	if err != nil {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
-		return
 	}
 	testPeerProfile.PrivKey = privKey
 }
@@ -80,30 +81,33 @@ func testCreateDataset(t *testing.T, rmf RepoMakerFunc) {
 	createDataset(t, rmf)
 }
 
-func createDataset(t *testing.T, rmf RepoMakerFunc) (repo.Repo, repo.DatasetRef) {
+func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetRef) {
 	r := rmf(t)
 	r.SetProfile(testPeerProfile)
-	act := Dataset{r}
+	n, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Error(err.Error())
+		return n, repo.DatasetRef{}
+	}
 
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
 		t.Error(err.Error())
-		return r, repo.DatasetRef{}
+		return n, repo.DatasetRef{}
 	}
 
-	ref, err := act.CreateDataset(tc.Name, tc.Input, tc.BodyFile(), nil, true)
+	ref, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, true)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	return r, ref
+	return n, ref
 }
 
 func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
-	r, ref := createDataset(t, rmf)
-	act := Dataset{r}
+	n, ref := createDataset(t, rmf)
 
-	if err := act.ReadDataset(&ref); err != nil {
+	if err := ReadDataset(n.Repo, &ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -115,8 +119,7 @@ func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
-	r, ref := createDataset(t, rmf)
-	act := Dataset{r}
+	node, ref := createDataset(t, rmf)
 
 	b := repo.DatasetRef{
 		Name:      "cities2",
@@ -125,12 +128,12 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 		ProfileID: ref.ProfileID,
 	}
 
-	if err := act.RenameDataset(ref, b); err != nil {
+	if err := RenameDataset(node.Repo, ref, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := act.ReadDataset(&b); err != nil {
+	if err := ReadDataset(node.Repo, &b); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -142,10 +145,9 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
-	r, ref := createDataset(t, rmf)
-	act := Dataset{r}
+	node, ref := createDataset(t, rmf)
 
-	if err := act.PinDataset(ref); err != nil {
+	if err := PinDataset(node.Repo, ref); err != nil {
 		if err == repo.ErrNotPinner {
 			t.Log("repo store doesn't support pinning")
 		} else {
@@ -160,41 +162,39 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref2, err := act.CreateDataset(tc.Name, tc.Input, tc.BodyFile(), nil, false)
+	ref2, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := act.PinDataset(ref2); err != nil && err != repo.ErrNotPinner {
+	if err := PinDataset(node.Repo, ref2); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := act.UnpinDataset(ref); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(node.Repo, ref); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := act.UnpinDataset(ref2); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(node.Repo, ref2); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 }
 
 func testDeleteDataset(t *testing.T, rmf RepoMakerFunc) {
-	r, ref := createDataset(t, rmf)
-	act := Dataset{r}
+	node, ref := createDataset(t, rmf)
 
-	if err := act.DeleteDataset(ref); err != nil {
+	if err := DeleteDataset(node, ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
 }
 
 func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
-	r, ref := createDataset(t, rmf)
-	act := Dataset{r}
+	node, ref := createDataset(t, rmf)
 	pinner := true
 
 	b := repo.DatasetRef{
@@ -204,12 +204,12 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 		ProfileID: ref.ProfileID,
 	}
 
-	if err := act.RenameDataset(ref, b); err != nil {
+	if err := RenameDataset(node.Repo, ref, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := act.PinDataset(b); err != nil {
+	if err := PinDataset(node.Repo, b); err != nil {
 		if err == repo.ErrNotPinner {
 			pinner = false
 		} else {
@@ -228,12 +228,12 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 	// 	return
 	// }
 
-	if err := act.DeleteDataset(b); err != nil {
+	if err := DeleteDataset(node, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	events, err := r.Events(10, 0)
+	events, err := node.Repo.Events(10, 0)
 	if err != nil {
 		t.Error(err.Error())
 		return

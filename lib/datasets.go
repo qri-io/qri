@@ -24,8 +24,7 @@ import (
 	"github.com/qri-io/varName"
 )
 
-// DatasetRequests encapsulates business logic for this node's
-// user profile
+// DatasetRequests encapsulates business logic for working with Datasets on Qri
 type DatasetRequests struct {
 	// TODO: Rename repo to actor.
 	repo actions.Dataset

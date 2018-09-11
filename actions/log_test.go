@@ -20,16 +20,16 @@ func TestDatasetLog(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	act := Log{Node: p.(*p2p.QriNode)}
+	node := p.(*p2p.QriNode)
 
 	ref := repo.MustParseDatasetRef("peer/not_a_dataset")
-	log, err := act.DatasetLog(ref, -1, 0)
+	log, err := DatasetLog(node, ref, -1, 0)
 	if err == nil {
 		t.Errorf("expected lookup for nonexistent log to fail")
 	}
 
 	ref = repo.MustParseDatasetRef("peer/movies")
-	if log, err = act.DatasetLog(ref, -1, 0); err != nil {
+	if log, err = DatasetLog(node, ref, -1, 0); err != nil {
 		t.Error(err.Error())
 	}
 	if len(log) != 1 {

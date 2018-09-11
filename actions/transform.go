@@ -7,12 +7,13 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/skytf"
 )
 
 // ExecTransform executes a designated transformation
-func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
+func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
 	rr, err := skytf.ExecFile(ds, filepath, infile, func(o *skytf.ExecOpts) {
 		if secrets != nil {
@@ -54,7 +55,7 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets 
 	if err != nil {
 		return nil, err
 	}
-	tfPath, err := act.Repo.Store().Put(cafs.NewMemfileReader("transform.sky", f), false)
+	tfPath, err := node.Repo.Store().Put(cafs.NewMemfileReader("transform.sky", f), false)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +68,7 @@ func (act Dataset) ExecTransform(ds *dataset.Dataset, infile cafs.File, secrets 
 		},
 	}
 
-	if err = act.LogEvent(repo.ETTransformExecuted, ref); err != nil {
+	if err = node.Repo.LogEvent(repo.ETTransformExecuted, ref); err != nil {
 		return
 	}
 
