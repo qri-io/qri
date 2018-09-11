@@ -2,10 +2,10 @@
 package p2p
 
 import (
+	"fmt"
+
 	golog "github.com/ipfs/go-log"
 
-	// gologging "gx/ipfs/QmQvJiADDe7JR4m968MwXobTCCzUqQkP87aRHe29MEBGHV/go-logging"
-	// golog "gx/ipfs/QmSpJByNKFX1sCsHBEp3R73FL4NF6FnQTEGyNAXHm2GS52/go-log"
 	identify "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p/p2p/protocol/identify"
 	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
 )
@@ -30,3 +30,6 @@ func init() {
 	// TODO - understand where & how client versions are used
 	identify.ClientVersion = QriServiceTag
 }
+
+// ErrNotConnected is for a missing required network connection
+var ErrNotConnected = fmt.Errorf("no p2p connection")

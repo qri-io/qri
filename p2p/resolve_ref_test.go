@@ -5,14 +5,13 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
 
 func TestResolveDatasetRef(t *testing.T) {
 	ctx := context.Background()
-	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
+	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())

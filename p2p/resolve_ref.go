@@ -14,6 +14,10 @@ const MtResolveDatasetRef = MsgType("resolve_dataset_ref")
 func (n *QriNode) ResolveDatasetRef(ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s ResolveDatasetRef %s", n.ID, ref)
 
+	if !n.Online {
+		return ErrNotConnected
+	}
+
 	pids := n.ClosestConnectedPeers(ref.ProfileID, 15)
 	if len(pids) == 0 {
 		return fmt.Errorf("no connected peers")
