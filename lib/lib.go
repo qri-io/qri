@@ -38,7 +38,7 @@ func Receivers(node *p2p.QriNode) []Requests {
 	return []Requests{
 		NewDatasetRequestsWithNode(r, nil, node),
 		NewRegistryRequests(r, nil),
-		NewHistoryRequests(r, nil),
+		NewLogRequests(node, nil),
 		NewPeerRequests(node, nil),
 		NewProfileRequests(r, nil),
 		NewSearchRequests(r, nil),

@@ -76,6 +76,9 @@ func (r *RegistryRequests) Publish(p *PublishParams, done *bool) (err error) {
 		}
 
 		if !node.Online {
+			if err := node.Connect(); err != nil {
+				return err
+			}
 			if err := node.StartOnlineServices(func(string) {}); err != nil {
 				return err
 			}

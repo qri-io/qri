@@ -26,6 +26,7 @@ type TestablePeerNode interface {
 	HostNetwork() net.Network
 	SimplePeerInfo() pstore.PeerInfo
 	AddPeer(pstore.PeerInfo) error
+	Connect() error
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
@@ -120,6 +121,9 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 	node, err := f.NewWithConf(r, p2pconf)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
+	}
+	if err := node.Connect(); err != nil {
+		return nil, fmt.Errorf("errror connecting: %s", err.Error())
 	}
 	node.Keys().AddPubKey(info.PeerID, info.PubKey)
 	node.Keys().AddPrivKey(info.PeerID, info.PrivKey)

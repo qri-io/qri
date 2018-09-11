@@ -29,6 +29,8 @@ type QriNode struct {
 	// private key for encrypted communication & verifying identity
 	privateKey crypto.PrivKey
 
+	conf *config.P2P
+
 	// Online indicates weather this is node is connected to the p2p network
 	Online bool
 	// Host for p2p connections. can be provided by an ipfs node
@@ -73,11 +75,12 @@ func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerN
 	return NewQriNode(r, p2pconf)
 }
 
-// NewQriNode creates a new node from a configuration.
+// NewQriNode creates a new node from a configuration. To get a fully connected
+// node that's searching for peers call:
+// n, _ := NewQriNode
+// n.Connect()
+// n.StartOnlineServices()
 func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
-	// hoist store from repo
-	store := r.Store()
-
 	pid, err := p2pconf.DecodePeerID()
 	if err != nil {
 		return nil, fmt.Errorf("error decoding peer id: %s", err.Error())
@@ -85,7 +88,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 
 	node = &QriNode{
 		ID:                 pid,
-		Online:             p2pconf.Enabled,
+		conf:               p2pconf,
 		Repo:               r,
 		ctx:                context.Background(),
 		BootstrapAddrs:     p2pconf.QriBootstrapAddrs,
@@ -95,47 +98,55 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 	}
 	node.handlers = MakeHandlers(node)
 
-	if node.Online {
+	return node, nil
+}
+
+// Connect allocates all networking structs to enable QriNode to communicate
+// over
+func (n *QriNode) Connect() (err error) {
+	if !n.conf.Enabled {
+		return fmt.Errorf("p2p connection is disabled")
+	}
+
+	if !n.Online {
 		// If the underlying content-addressed-filestore is an ipfs
 		// node, it has built-in p2p, overlay the qri protocol
 		// on the ipfs node's p2p connections.
-		if ipfsfs, ok := store.(*ipfs_filestore.Filestore); ok {
+		if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 			if !ipfsfs.Online() {
 				if err := ipfsfs.GoOnline(); err != nil {
-					return nil, err
+					return err
 				}
 			}
 
 			ipfsnode := ipfsfs.Node()
 			if ipfsnode.PeerHost != nil {
-				node.Host = ipfsnode.PeerHost
+				n.Host = ipfsnode.PeerHost
 				// fmt.Println("ipfs host muxer:")
 				// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
 			}
 
 			if ipfsnode.Discovery != nil {
-				node.Discovery = ipfsnode.Discovery
+				n.Discovery = ipfsnode.Discovery
 			}
-		} else if node.Host == nil {
+		} else if n.Host == nil {
 			ps := pstore.NewPeerstore()
-			node.Host, err = makeBasicHost(node.ctx, ps, p2pconf)
+			n.Host, err = makeBasicHost(n.ctx, ps, n.conf)
 			if err != nil {
-				return nil, fmt.Errorf("error creating host: %s", err.Error())
+				return fmt.Errorf("error creating host: %s", err.Error())
 			}
 		}
 
 		// add multistream handler for qri protocol to the host
 		// for more info on multistreams check github.com/multformats/go-multistream
-		node.Host.SetStreamHandler(QriProtocolID, node.QriStreamHandler)
+		n.Host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 
-		p, err := node.Repo.Profile()
+		p, err := n.Repo.Profile()
 		if err != nil {
 			log.Errorf("error getting repo profile: %s\n", err.Error())
-			return node, err
+			return err
 		}
-		p.PeerIDs = []peer.ID{
-			node.Host.ID(),
-		}
+		p.PeerIDs = []peer.ID{n.Host.ID()}
 		// add listen addresses to profile store
 		// if addrs, err := node.ListenAddresses(); err == nil {
 		// 	if p.Addresses == nil {
@@ -143,14 +154,15 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		// 	}
 		// }
 
-		if err := node.Repo.SetProfile(p); err != nil {
-			return node, err
+		// update profile with our p2p addresses
+		if err := n.Repo.SetProfile(p); err != nil {
+			return err
 		}
+
+		n.Online = true
+		go n.echoMessages()
 	}
-
-	go node.echoMessages()
-
-	return node, nil
+	return nil
 }
 
 // StartOnlineServices bootstraps the node to qri & IPFS networks

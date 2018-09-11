@@ -17,7 +17,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 )
 
 var log = golog.Logger("qriapi")
@@ -34,19 +33,21 @@ type Server struct {
 	qriNode *p2p.QriNode
 }
 
-// New creates a new qri server from a configuration
-func New(r repo.Repo, cfg *config.Config) (s *Server, err error) {
-	s = &Server{
-		cfg: cfg,
+// New creates a new qri server from a p2p node & configuration
+func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
+	return &Server{
+		qriNode: node,
+		cfg:     cfg,
 	}
-
-	// allocate a new node
-	s.qriNode, err = p2p.NewQriNode(r, cfg.P2P)
-	return s, err
 }
 
 // Serve starts the server. It will block while the server is running
 func (s *Server) Serve() (err error) {
+	if err = s.qriNode.Connect(); err != nil {
+		fmt.Println("serving error", s.cfg.P2P.Enabled)
+		return
+	}
+
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
 
@@ -245,10 +246,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	renderh := NewRenderHandlers(s.qriNode.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 
-	hh := NewHistoryHandlers(s.qriNode.Repo)
-	// TODO - stupid hack for now.
-	hh.HistoryRequests.Node = s.qriNode
-	m.Handle("/history/", s.middleware(hh.LogHandler))
+	lh := NewLogHandlers(s.qriNode)
+	m.Handle("/history/", s.middleware(lh.LogHandler))
 
 	rgh := NewRegistryHandlers(s.qriNode.Repo)
 	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))

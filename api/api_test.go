@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
@@ -152,23 +153,20 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	r, err := test.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
 	cfg := config.DefaultConfigForTesting()
-	cfg.P2P.Enabled = false
 	cfg.API.ReadOnly = true
 	defer func() {
-		cfg.P2P.Enabled = true
 		cfg.API.ReadOnly = false
 	}()
 
-	s, err := New(r, cfg)
+	node, err := p2p.NewQriNode(r, cfg.P2P)
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatal(err.Error())
 	}
+	s := New(node, cfg)
 
 	server := httptest.NewServer(NewServerRoutes(s))
 

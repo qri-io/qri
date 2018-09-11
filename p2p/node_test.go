@@ -24,7 +24,13 @@ func TestNewNode(t *testing.T) {
 		return
 	}
 	n := node.(*QriNode)
+	if n.Online {
+		t.Errorf("default node online flag should be false")
+	}
+	if err := n.Connect(); err != nil {
+		t.Error(err.Error())
+	}
 	if !n.Online {
-		t.Errorf("default node online flag should be true")
+		t.Errorf("online should equal true")
 	}
 }

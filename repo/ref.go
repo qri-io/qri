@@ -126,6 +126,15 @@ func (r DatasetRef) IsEmpty() bool {
 	return r.Equal(DatasetRef{})
 }
 
+// MustParseDatasetRef panics if the reference is invalid. Useful for testing
+func MustParseDatasetRef(refstr string) DatasetRef {
+	ref, err := ParseDatasetRef(refstr)
+	if err != nil {
+		panic(err)
+	}
+	return ref
+}
+
 // ParseDatasetRef decodes a dataset reference from a string value
 // It’s possible to refer to a dataset in a number of ways.
 // The full definition of a dataset reference is as follows:
@@ -319,9 +328,9 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	// case we're going to have to rely on the other end of the wire to do canonicalization
 	// TODO - think carefully about placement of reference parsing, possibly moving
 	// this into lib functions.
-	if r == nil {
-		return nil
-	}
+	// if r == nil {
+	// 	return nil
+	// }
 
 	if ref.IsEmpty() {
 		return ErrEmptyRef
@@ -414,7 +423,8 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 	if ref.ProfileID != "" {
 		profile, err := r.Profiles().GetProfile(ref.ProfileID)
 		if err != nil {
-			return fmt.Errorf("error fetching peers from store: %s", err)
+			return err
+			// return fmt.Errorf("error fetching peers from store: %s", err)
 		}
 
 		if ref.Peername == "" {

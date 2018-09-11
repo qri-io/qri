@@ -26,6 +26,10 @@ func TestResolveDatasetRef(t *testing.T) {
 		peers[i] = node.(*p2p.QriNode)
 	}
 
+	if _, err := ResolveDatasetRef(peers[0], &repo.DatasetRef{}); err != repo.ErrEmptyRef {
+		t.Errorf("expected repo.ErrEmptRef, got: %s", err)
+	}
+
 	// give peer 1 a ref that others don't have
 	p, err := peers[1].Repo.Profile()
 	if err != nil {
@@ -40,12 +44,26 @@ func TestResolveDatasetRef(t *testing.T) {
 
 	// TODO - fix this lie
 	peers[2].Online = false
-	if err := ResolveDatasetRef(peers[2], in); err == nil {
+	local, err := ResolveDatasetRef(peers[2], in)
+	if err == nil {
 		t.Error("expected offline node to not be able to resolve non-local ref")
 	}
+	if local != false {
+		t.Error("expected local to equal false")
+	}
 
-	if err := ResolveDatasetRef(peers[0], in); err != nil {
+	if local, err = ResolveDatasetRef(peers[1], in); err != nil {
 		t.Error(err.Error())
+	}
+	if local != true {
+		t.Error("expected local to equal true")
+	}
+
+	if local, err = ResolveDatasetRef(peers[0], in); err != nil {
+		t.Error(err.Error())
+	}
+	if local != false {
+		t.Error("expected local to equal false")
 	}
 	if in.String() != expect {
 		t.Errorf("returned ref mismatch. expected: %s, got: %s", expect, in.String())

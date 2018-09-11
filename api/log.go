@@ -1,29 +1,29 @@
 package api
 
 import (
+	"fmt"
 	"net/http"
 
-	"fmt"
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
-// HistoryHandlers wraps a HistoryRequests with http.HandlerFuncs
-type HistoryHandlers struct {
-	lib.HistoryRequests
-	repo repo.Repo
+// LogHandlers wraps a LogRequests with http.HandlerFuncs
+type LogHandlers struct {
+	lib.LogRequests
 }
 
-// NewHistoryHandlers allocates a HistoryHandlers pointer
-func NewHistoryHandlers(r repo.Repo) *HistoryHandlers {
-	req := lib.NewHistoryRequests(r, nil)
-	h := HistoryHandlers{*req, r}
+// NewLogHandlers allocates a LogHandlers pointer
+func NewLogHandlers(n *p2p.QriNode) *LogHandlers {
+	req := lib.NewLogRequests(n, nil)
+	h := LogHandlers{*req}
 	return &h
 }
 
 // LogHandler is the endpoint for dataset logs
-func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
+func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
@@ -34,7 +34,7 @@ func (h *HistoryHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-func (h *HistoryHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
+func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)

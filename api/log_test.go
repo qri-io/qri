@@ -4,8 +4,9 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -28,7 +29,14 @@ func TestHistoryHandlers(t *testing.T) {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
 
-	h := NewHistoryHandlers(r)
+	cfg := config.DefaultP2PForTesting()
+	cfg.Enabled = false
+	node, err := p2p.NewTestableQriNode(r, cfg)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	h := NewLogHandlers(node.(*p2p.QriNode))
 
 	logCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

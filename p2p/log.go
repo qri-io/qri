@@ -6,11 +6,11 @@ import (
 
 const (
 	// MtDatasetLog gets log of a dataset
-	MtDatasetLog = MsgType("dataset_history")
+	MtDatasetLog = MsgType("dataset_log")
 )
 
 // RequestDatasetLog gets the log information of Peer's dataset
-func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef) (*[]repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]repo.DatasetRef, error) {
 	// id, err := n.Repo.Peers().IPFSPeerID(ref.Peername)
 	// if err != nil {
 	// 	return nil, fmt.Errorf("error getting peer IPFS id: %s", err.Error())
@@ -37,7 +37,7 @@ func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef) (*[]repo.DatasetRef, er
 	// 	err = fmt.Errorf("no log found")
 	// }
 
-	return &resref, nil
+	return resref, nil
 }
 
 func (n *QriNode) datasetsHistoryHandler(ws *WrappedStream, msg Message) (hangup bool) {

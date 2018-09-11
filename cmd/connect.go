@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 )
 
@@ -46,6 +46,7 @@ peers & swapping data.`,
 	cmd.Flags().BoolVarP(&o.DisableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
 	cmd.Flags().BoolVarP(&o.DisableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
 	cmd.Flags().BoolVarP(&o.DisableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
+	cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disables webapp, overrides the webapp-port flag")
 	// TODO - not yet supported
 	// cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
 
@@ -74,7 +75,7 @@ type ConnectOptions struct {
 	Setup    bool
 	ReadOnly bool
 
-	Repo   repo.Repo
+	Node   *p2p.QriNode
 	Config *config.Config
 }
 
@@ -83,7 +84,12 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 	qriPath := f.QriRepoPath()
 
 	if o.Setup && !QRIRepoInitialized(qriPath) {
-		so := &SetupOptions{IOStreams: o.IOStreams, IPFS: true, Registry: o.Registry, Anonymous: true}
+		so := &SetupOptions{
+			IOStreams: o.IOStreams,
+			IPFS:      true,
+			Registry:  o.Registry,
+			Anonymous: true,
+		}
 		if err = so.Complete(f, args); err != nil {
 			return err
 		}
@@ -94,10 +100,10 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("no qri repo exists")
 	}
 
-	// TODO - calling f.Repo has the side effect of
+	// TODO - calling f.Node has the side effect of
 	// calling init if we haven't initialized so far. Should this be made
 	// more explicit?
-	o.Repo, err = f.Repo()
+	o.Node, err = f.Node()
 	if err != nil {
 		return err
 	}
@@ -139,11 +145,7 @@ func (o *ConnectOptions) Run() (err error) {
 		cfg.Webapp.Enabled = false
 	}
 
-	s, err := api.New(o.Repo, &cfg)
-	if err != nil {
-		return err
-	}
-
+	s := api.New(o.Node, &cfg)
 	err = s.Serve()
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil
