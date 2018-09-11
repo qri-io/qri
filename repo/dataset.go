@@ -9,9 +9,51 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo/profile"
 )
+
+// CreateDataset uses dsfs to add a dataset to a repo's store, updating all
+// references within the repo if successful. CreateDataset is a lower-level
+// component of github.com/qri-io/qri/actions.CreateDataset
+func CreateDataset(r Repo, name string, ds *dataset.Dataset, body cafs.File, pin bool) (ref DatasetRef, err error) {
+	var (
+		path datastore.Key
+		pro  *profile.Profile
+	)
+	if pro, err = r.Profile(); err != nil {
+		return
+	}
+	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {
+		return
+	}
+
+	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
+		prev := DatasetRef{
+			ProfileID: pro.ID,
+			Peername:  pro.Peername,
+			Name:      name,
+			Path:      ds.PreviousPath,
+		}
+
+		// should be ok to skip this error. we may not have the previous
+		// reference locally
+		_ = r.DeleteRef(prev)
+	}
+
+	ref = DatasetRef{
+		ProfileID: pro.ID,
+		Peername:  pro.Peername,
+		Name:      name,
+		Path:      path.String(),
+	}
+
+	err = r.PutRef(ref)
+	return
+}
 
 // DatasetPodBodyFile creates a streaming data file from a DatasetPod using the following precedence:
 // * dsp.BodyBytes not being nil (requires dsp.Structure.Format be set to know data format)

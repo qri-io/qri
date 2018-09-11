@@ -22,8 +22,7 @@ type Dataset struct {
 func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, pin bool) (ref repo.DatasetRef, err error) {
 	log.Debugf("CreateDataset: %s", name)
 	var (
-		path datastore.Key
-		pro  *profile.Profile
+		pro *profile.Profile
 		// NOTE - struct fields need to be instantiated to make assign set to
 		// new pointer values
 		userSet = &dataset.Dataset{
@@ -61,33 +60,7 @@ func (act Dataset) CreateDataset(name string, ds *dataset.Dataset, data cafs.Fil
 		return
 	}
 
-	path, err = dsfs.CreateDataset(act.Store(), ds, data, act.PrivateKey(), pin)
-	if err != nil {
-		return
-	}
-
-	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
-		prev := repo.DatasetRef{
-			ProfileID: pro.ID,
-			Peername:  pro.Peername,
-			Name:      name,
-			Path:      ds.PreviousPath,
-		}
-		if err = act.DeleteRef(prev); err != nil {
-			log.Error(err.Error())
-			err = nil
-		}
-	}
-
-	ref = repo.DatasetRef{
-		ProfileID: pro.ID,
-		Peername:  pro.Peername,
-		Name:      name,
-		Path:      path.String(),
-	}
-
-	if err = act.PutRef(ref); err != nil {
-		log.Error(err.Error())
+	if ref, err = repo.CreateDataset(act.Repo, name, ds, data, pin); err != nil {
 		return
 	}
 
