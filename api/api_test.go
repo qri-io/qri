@@ -33,7 +33,7 @@ func init() {
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	var err error
 	if err = confirmQriNotRunning(); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// bump up log level to keep test output clean
@@ -72,6 +72,16 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	}
 
 	return
+}
+
+func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
+	var r repo.Repo
+	r, teardown = newTestRepo(t)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return node, teardown
 }
 
 type handlerTestCase struct {

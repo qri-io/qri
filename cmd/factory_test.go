@@ -105,12 +105,12 @@ func (t TestFactory) LogRequests() (*lib.LogRequests, error) {
 
 // PeerRequests generates a lib.PeerRequests from internal state
 func (t TestFactory) PeerRequests() (*lib.PeerRequests, error) {
-	return lib.NewPeerRequests(nil, t.rpc), nil
+	return lib.NewPeerRequests(t.node, t.rpc), nil
 }
 
 // ProfileRequests generates a lib.ProfileRequests from internal state
 func (t TestFactory) ProfileRequests() (*lib.ProfileRequests, error) {
-	return lib.NewProfileRequests(t.repo, t.rpc), nil
+	return lib.NewProfileRequests(t.node, t.rpc), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state
@@ -120,7 +120,7 @@ func (t TestFactory) SelectionRequests() (*lib.SelectionRequests, error) {
 
 // SearchRequests generates a lib.SearchRequests from internal state
 func (t TestFactory) SearchRequests() (*lib.SearchRequests, error) {
-	return lib.NewSearchRequests(t.repo, t.rpc), nil
+	return lib.NewSearchRequests(t.node, t.rpc), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

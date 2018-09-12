@@ -213,7 +213,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
+	proh := NewProfileHandlers(s.qriNode, s.cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
@@ -250,7 +250,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	rgh := NewRegistryHandlers(s.qriNode)
 	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
 
-	sh := NewSearchHandlers(s.qriNode.Repo)
+	sh := NewSearchHandlers(s.qriNode)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	rh := NewRootHandler(dsh, ph)

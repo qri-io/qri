@@ -10,6 +10,7 @@ import (
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -27,11 +28,14 @@ func TestProfileRequestsGet(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(mr, nil)
+	req := NewProfileRequests(node, nil)
 	for i, c := range cases {
 		got := &config.ProfilePod{}
 		err := req.GetProfile(&c.in, got)
@@ -62,11 +66,14 @@ func TestProfileRequestsSave(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(mr, nil)
+	req := NewProfileRequests(node, nil)
 	for i, c := range cases {
 		got := &config.ProfilePod{}
 		err := req.SaveProfile(c.p, got)
@@ -109,10 +116,14 @@ func TestSaveProfile(t *testing.T) {
 	// Save the CodingProfile.
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	req := NewProfileRequests(mr, nil)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	req := NewProfileRequests(node, nil)
 	got := config.ProfilePod{}
 	err = req.SaveProfile(&pro, &got)
 	if err != nil {
@@ -202,11 +213,14 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(mr, nil)
+	req := NewProfileRequests(node, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -253,11 +267,14 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(mr, nil)
+	req := NewProfileRequests(node, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {

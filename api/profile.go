@@ -5,10 +5,11 @@ import (
 	"net/http"
 
 	"fmt"
+
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/p2p"
 )
 
 // ProfileHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -18,8 +19,8 @@ type ProfileHandlers struct {
 }
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
-func NewProfileHandlers(r repo.Repo, readOnly bool) *ProfileHandlers {
-	req := lib.NewProfileRequests(r, nil)
+func NewProfileHandlers(node *p2p.QriNode, readOnly bool) *ProfileHandlers {
+	req := lib.NewProfileRequests(node, nil)
 	h := ProfileHandlers{*req, readOnly}
 	return &h
 }

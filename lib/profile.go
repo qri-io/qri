@@ -9,7 +9,9 @@ import (
 	"strings"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
@@ -18,7 +20,7 @@ import (
 // ProfileRequests encapsulates business logic for this node's
 // user profile
 type ProfileRequests struct {
-	repo repo.Repo
+	node *p2p.QriNode
 	cli  *rpc.Client
 }
 
@@ -27,13 +29,13 @@ func (ProfileRequests) CoreRequestsName() string { return "profile" }
 
 // NewProfileRequests creates a ProfileRequests pointer from either a repo
 // or an rpc.Client
-func NewProfileRequests(r repo.Repo, cli *rpc.Client) *ProfileRequests {
-	if r != nil && cli != nil {
+func NewProfileRequests(node *p2p.QriNode, cli *rpc.Client) *ProfileRequests {
+	if node != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewProfileRequests"))
 	}
 
 	return &ProfileRequests{
-		repo: r,
+		node: node,
 		cli:  cli,
 	}
 }
@@ -47,7 +49,7 @@ func (r *ProfileRequests) GetProfile(in *bool, res *config.ProfilePod) (err erro
 
 	// TODO - this is a carry-over from when GetProfile only supported getting
 	if res.ID == "" && res.Peername == "" {
-		pro, err = r.repo.Profile()
+		pro, err = r.node.Repo.Profile()
 	} else {
 		pro, err = r.getProfile(res.ID, res.Peername)
 	}
@@ -76,7 +78,7 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 		ref := &repo.DatasetRef{
 			Peername: peername,
 		}
-		if err = repo.CanonicalizeProfile(r.repo, ref, nil); err != nil {
+		if err = repo.CanonicalizeProfile(r.node.Repo, ref, nil); err != nil {
 			log.Error("error canonicalizing profile", err.Error())
 			return nil, err
 		}
@@ -90,12 +92,12 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 	}
 
 	// TODO - own profile should just be inside the profile store
-	profile, err := r.repo.Profile()
+	profile, err := r.node.Repo.Profile()
 	if err == nil && profile.ID.String() == id.String() {
 		return profile, nil
 	}
 
-	return r.repo.Profiles().GetProfile(id)
+	return r.node.Repo.Profiles().GetProfile(id)
 }
 
 // SaveProfile stores changes to this peer's editable profile
@@ -122,7 +124,7 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 
 			if err := reg.PutProfile(p.Peername, current.PrivKey); err != nil {
 				if strings.Contains(err.Error(), "taken") {
-					return ErrHandleTaken
+					return actions.ErrHandleTaken
 				}
 				return err
 			}
@@ -149,7 +151,7 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	if err != nil {
 		return err
 	}
-	if err := r.repo.SetProfile(pro); err != nil {
+	if err := r.node.Repo.SetProfile(pro); err != nil {
 		return err
 	}
 
@@ -175,7 +177,7 @@ func (r *ProfileRequests) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err
 		return nil
 	}
 
-	f, e := r.repo.Store().Get(pro.Photo)
+	f, e := r.node.Repo.Store().Get(pro.Photo)
 	if e != nil {
 		return e
 	}
@@ -219,7 +221,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.node.Repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
@@ -235,11 +237,11 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	if err != nil {
 		return err
 	}
-	if err := r.repo.SetProfile(pro); err != nil {
+	if err := r.node.Repo.SetProfile(pro); err != nil {
 		return err
 	}
 
-	newPro, err := r.repo.Profile()
+	newPro, err := r.node.Repo.Profile()
 	if err != nil {
 		return fmt.Errorf("error getting newly set profile: %s", err)
 	}
@@ -264,7 +266,7 @@ func (r *ProfileRequests) PosterPhoto(req *config.ProfilePod, res *[]byte) (err 
 		return nil
 	}
 
-	f, e := r.repo.Store().Get(pro.Poster)
+	f, e := r.node.Repo.Store().Get(pro.Poster)
 	if e != nil {
 		return e
 	}
@@ -302,7 +304,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.node.Repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 
@@ -316,11 +318,11 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	if err != nil {
 		return err
 	}
-	if err := r.repo.SetProfile(pro); err != nil {
+	if err := r.node.Repo.SetProfile(pro); err != nil {
 		return err
 	}
 
-	newPro, err := r.repo.Profile()
+	newPro, err := r.node.Repo.Profile()
 	if err != nil {
 		return fmt.Errorf("error getting newly set profile: %s", err)
 	}

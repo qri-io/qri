@@ -255,7 +255,7 @@ func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewProfileRequests(o.repo, o.rpc), nil
+	return lib.NewProfileRequests(o.node, o.rpc), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state
@@ -271,7 +271,7 @@ func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewSearchRequests(o.repo, o.rpc), nil
+	return lib.NewSearchRequests(o.node, o.rpc), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

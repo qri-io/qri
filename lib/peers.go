@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 	"strings"
 
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -47,7 +48,7 @@ type PeerListParams struct {
 }
 
 // List lists Peers on the qri network
-func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) error {
+func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) (err error) {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.List", p, res)
 	}
@@ -55,59 +56,8 @@ func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) error 
 		return fmt.Errorf("error: not connected, run `qri connect` in another window")
 	}
 
-	r := d.qriNode.Repo
-	user, err := r.Profile()
-	if err != nil {
-		return err
-	}
-
-	peers := make([]*config.ProfilePod, p.Limit)
-	online := []*config.ProfilePod{}
-	if err := d.ConnectedQriProfiles(&p.Limit, &online); err != nil {
-		return err
-	}
-
-	if !p.Cached {
-		*res = online
-		return nil
-	}
-
-	ps, err := r.Profiles().List()
-	if err != nil {
-		return fmt.Errorf("error listing peers: %s", err.Error())
-	}
-
-	if len(ps) == 0 {
-		*res = []*config.ProfilePod{}
-		return nil
-	}
-
-	i := 0
-	for _, pro := range ps {
-		if i >= p.Limit {
-			break
-		}
-		if pro == nil || pro.ID == user.ID {
-			continue
-		}
-
-		// TODO - this is dumb use a map
-		for _, olp := range online {
-			if pro.ID.String() == olp.ID {
-				pro.Online = true
-			}
-		}
-
-		peers[i], err = pro.Encode()
-		if err != nil {
-			return err
-		}
-
-		i++
-	}
-
-	*res = peers
-	return nil
+	*res, err = actions.ListPeers(d.qriNode, p.Limit, p.Offset, !p.Cached)
+	return err
 }
 
 // ConnectedIPFSPeers lists PeerID's we're currently connected to. If running
@@ -122,22 +72,13 @@ func (d *PeerRequests) ConnectedIPFSPeers(limit *int, peers *[]string) error {
 }
 
 // ConnectedQriProfiles lists profiles we're currently connected to
-func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) error {
+func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.ProfilePod) (err error) {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	parsed := []*config.ProfilePod{}
-	for _, p := range d.qriNode.ConnectedQriProfiles() {
-		// pro, err := p.Encode()
-		// if err != nil {
-		// 	return err
-		// }
-		parsed = append(parsed, p)
-	}
-
-	*peers = parsed
-	return nil
+	*peers, err = actions.ConnectedQriProfiles(d.qriNode, *limit)
+	return err
 }
 
 // PeerConnectionParamsPod defines parameters for defining a connection

@@ -5,7 +5,7 @@ import (
 )
 
 func TestSearchHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
 	searchCases := []handlerTestCase{
@@ -14,6 +14,6 @@ func TestSearchHandlers(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	proh := NewSearchHandlers(r)
+	proh := NewSearchHandlers(node)
 	runHandlerTestCases(t, "search", proh.SearchHandler, searchCases)
 }
