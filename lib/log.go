@@ -12,8 +12,8 @@ import (
 // LogRequests encapsulates business logic for the log
 // of changes to datasets, think "git log"
 type LogRequests struct {
-	act actions.Log
-	cli *rpc.Client
+	node *p2p.QriNode
+	cli  *rpc.Client
 }
 
 // CoreRequestsName implements the Requets interface
@@ -26,8 +26,8 @@ func NewLogRequests(node *p2p.QriNode, cli *rpc.Client) *LogRequests {
 		panic(fmt.Errorf("both node and client supplied to NewLogRequests"))
 	}
 	return &LogRequests{
-		act: actions.Log{Node: node},
-		cli: cli,
+		node: node,
+		cli:  cli,
 	}
 }
 
@@ -45,10 +45,10 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 	}
 
 	ref := params.Ref
-	if err = DefaultSelectedRef(r.act.Node.Repo, &ref); err != nil {
+	if err = DefaultSelectedRef(r.node.Repo, &ref); err != nil {
 		return
 	}
 
-	*res, err = r.act.DatasetLog(ref, params.Limit, params.Offset)
+	*res, err = actions.DatasetLog(r.node, ref, params.Limit, params.Offset)
 	return
 }

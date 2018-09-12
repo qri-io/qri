@@ -118,7 +118,12 @@ func TestServerRoutes(t *testing.T) {
 	r, teardown := newTestRepo(t)
 	defer teardown()
 
-	h := NewRootHandler(NewDatasetHandlers(r, false), NewPeerHandlers(r, nil, false))
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	h := NewRootHandler(NewDatasetHandlers(node, false), NewPeerHandlers(r, nil, false))
 	rootCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},

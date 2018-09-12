@@ -1,22 +1,189 @@
 package actions
 
 import (
+	"bytes"
 	"fmt"
+	"io"
 	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/varName"
 )
 
-// Dataset wraps a repo.Repo, adding actions for working with datasets
-// type Dataset struct {
-// 	Node *p2p.QriNode
-// }
+// NewDataset processes dataset input into it's necessary components for creation
+func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, secrets map[string]string, err error) {
+	if dsp == nil {
+		err = fmt.Errorf("dataset is required")
+		return
+	}
+
+	if dsp.BodyPath == "" && dsp.BodyBytes == nil && dsp.Transform == nil {
+		err = fmt.Errorf("either dataBytes, bodyPath, or a transform is required to create a dataset")
+		return
+	}
+
+	if dsp.Transform != nil {
+		secrets = dsp.Transform.Secrets
+	}
+
+	ds = &dataset.Dataset{}
+	if err = ds.Decode(dsp); err != nil {
+		err = fmt.Errorf("decoding dataset: %s", err.Error())
+		return
+	}
+
+	if ds.Commit == nil {
+		ds.Commit = &dataset.Commit{
+			Title: "created dataset",
+		}
+	} else if ds.Commit.Title == "" {
+		ds.Commit.Title = "created dataset"
+	}
+
+	// open a data file if we can
+	if body, err = repo.DatasetPodBodyFile(dsp); err == nil {
+		defer body.Close()
+
+		// validate / generate dataset name
+		if dsp.Name == "" {
+			dsp.Name = varName.CreateVarNameFromString(body.FileName())
+		}
+		if e := validate.ValidName(dsp.Name); e != nil {
+			err = fmt.Errorf("invalid name: %s", e.Error())
+			return
+		}
+
+		// read structure from InitParams, or detect from data
+		if ds.Structure == nil && ds.Transform == nil {
+			// use a TeeReader that writes to a buffer to preserve data
+			buf := &bytes.Buffer{}
+			tr := io.TeeReader(body, buf)
+			var df dataset.DataFormat
+
+			df, err = detect.ExtensionDataFormat(body.FileName())
+			if err != nil {
+				log.Debug(err.Error())
+				err = fmt.Errorf("invalid data format: %s", err.Error())
+				return
+			}
+
+			ds.Structure, _, err = detect.FromReader(df, tr)
+			if err != nil {
+				log.Debug(err.Error())
+				err = fmt.Errorf("determining dataset schema: %s", err.Error())
+				return
+			}
+			// glue whatever we just read back onto the reader
+			body = cafs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
+		}
+
+		// Ensure that dataset structure is valid
+		if err = validate.Dataset(ds); err != nil {
+			log.Debug(err.Error())
+			err = fmt.Errorf("invalid dataset: %s", err.Error())
+			return
+		}
+
+		// NOTE - if we have a data file, this overrides any transformation,
+		// so we need to remove the transform to avoid having the data appear to be
+		// the result of a transform process
+		ds.Transform = nil
+
+	} else if err.Error() == "not found" {
+		err = nil
+	}
+
+	return
+}
+
+// UpdateDataset prepares a set of changes for submission to CreateDataset
+func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, secrets map[string]string, err error) {
+	ds = &dataset.Dataset{}
+	updates := &dataset.Dataset{}
+
+	if dsp == nil {
+		err = fmt.Errorf("dataset is required")
+		return
+	}
+	if dsp.Name == "" || dsp.Peername == "" {
+		err = fmt.Errorf("peername & name are required to update dataset")
+		return
+	}
+
+	if dsp.Transform != nil {
+		secrets = dsp.Transform.Secrets
+	}
+
+	if err = updates.Decode(dsp); err != nil {
+		err = fmt.Errorf("decoding dataset: %s", err.Error())
+		return
+	}
+
+	prev := &repo.DatasetRef{Name: dsp.Name, Peername: dsp.Peername}
+	if err = repo.CanonicalizeDatasetRef(node.Repo, prev); err != nil {
+		err = fmt.Errorf("error with previous reference: %s", err.Error())
+		return
+	}
+
+	if err = DatasetHead(node, prev); err != nil {
+		err = fmt.Errorf("error getting previous dataset: %s", err.Error())
+		return
+	}
+
+	if dsp.BodyBytes != nil || dsp.BodyPath != "" {
+		if body, err = repo.DatasetPodBodyFile(dsp); err != nil {
+			return
+		}
+	} else {
+		// load data cause we need something to compare the structure to
+		// prevDs := &dataset.Dataset{}
+		// if err = prevDs.Decode(prev.Dataset); err != nil {
+		// 	err = fmt.Errorf("error decoding previous dataset: %s", err)
+		// 	return
+		// }
+	}
+
+	prevds, err := prev.DecodeDataset()
+	if err != nil {
+		err = fmt.Errorf("error decoding dataset: %s", err.Error())
+		return
+	}
+
+	// add all previous fields and any changes
+	ds.Assign(prevds, updates)
+	ds.PreviousPath = prev.Path
+
+	// ds.Assign clobbers empty commit messages with the previous
+	// commit message, reassign with updates
+	if updates.Commit == nil {
+		updates.Commit = &dataset.Commit{}
+	}
+	ds.Commit.Title = updates.Commit.Title
+	ds.Commit.Message = updates.Commit.Message
+
+	// Assign will assign any previous paths to the current paths
+	// the dsdiff (called in dsfs.CreateDataset), will compare the paths
+	// see that they are the same, and claim there are no differences
+	// since we will potentially have changes in the Meta and Structure
+	// we want the differ to have to compare each field
+	// so we reset the paths
+	if ds.Meta != nil {
+		ds.Meta.SetPath("")
+	}
+	if ds.Structure != nil {
+		ds.Structure.SetPath("")
+	}
+	// ds.Viz.SetPath("")
+	return
+}
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
 func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, pin bool) (ref repo.DatasetRef, err error) {
@@ -78,6 +245,23 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
+
+	// Old lib.Dataset.Add code:
+	// err = repo.CanonicalizeDatasetRef(r.repo, ref)
+	// if err == nil {
+	// 	return fmt.Errorf("error: dataset %s already exists in repo", ref)
+	// } else if err != repo.ErrNotFound {
+	// 	return fmt.Errorf("error with new reference: %s", err.Error())
+	// }
+
+	// if ref.Path == "" && r.Node != nil {
+	// 	if err := r.Node.RequestDataset(ref); err != nil {
+	// 		return fmt.Errorf("error requesting dataset: %s", err.Error())
+	// 	}
+	// }
+
+	// err = r.repo.AddDataset(ref)
+
 	log.Debugf("AddDataset: %s", ref)
 
 	r := node.Repo
@@ -134,6 +318,23 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 
 // RenameDataset alters a dataset name
 func RenameDataset(r repo.Repo, a, b repo.DatasetRef) (err error) {
+	// Old lib.RenameDataset
+	// if err := validate.ValidName(p.New.Name); err != nil {
+	// 	return err
+	// }
+	// if err := repo.CanonicalizeDatasetRef(r.node.Repo, &p.Current); err != nil {
+	// 	log.Debug(err.Error())
+	// 	return fmt.Errorf("error with existing reference: %s", err.Error())
+	// }
+	// err = repo.CanonicalizeDatasetRef(r.node.Repo, &p.New)
+	// if err == nil {
+	// 	return fmt.Errorf("dataset '%s/%s' already exists", p.New.Peername, p.New.Name)
+	// } else if err != repo.ErrNotFound {
+	// 	log.Debug(err.Error())
+	// 	return fmt.Errorf("error with new reference: %s", err.Error())
+	// }
+	// p.New.Path = p.Current.Path
+
 	if err = r.DeleteRef(a); err != nil {
 		return err
 	}
@@ -169,6 +370,26 @@ func DeleteDataset(node *p2p.QriNode, ref repo.DatasetRef) error {
 	if err != nil {
 		return err
 	}
+
+	// Old lib.DeleteDataset:
+	// err = repo.CanonicalizeDatasetRef(r.repo, p)
+	// if err != nil {
+	// 	log.Debug(err.Error())
+	// 	return err
+	// }
+	// ref, err := r.repo.GetRef(*p)
+	// if err != nil {
+	// 	log.Debug(err.Error())
+	// 	return
+	// }
+
+	// if ref.Path != p.Path {
+	// 	return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
+	// }
+
+	// if err = r.repo.DeleteDataset(ref); err != nil {
+	// 	return
+	// }
 
 	ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
 	if err != nil {

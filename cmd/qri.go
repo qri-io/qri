@@ -223,7 +223,7 @@ func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewDatasetRequestsWithNode(o.repo, o.rpc, o.node), nil
+	return lib.NewDatasetRequests(o.node, o.rpc), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state
@@ -231,7 +231,7 @@ func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewRegistryRequestsWithNode(o.repo, o.rpc, o.node), nil
+	return lib.NewRegistryRequests(o.node, o.rpc), nil
 }
 
 // LogRequests generates a lib.LogRequests from internal state

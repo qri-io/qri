@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -28,9 +29,9 @@ type DatasetHandlers struct {
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
-func NewDatasetHandlers(r repo.Repo, readOnly bool) *DatasetHandlers {
-	req := lib.NewDatasetRequests(r, nil)
-	h := DatasetHandlers{*req, r, readOnly}
+func NewDatasetHandlers(node *p2p.QriNode, readOnly bool) *DatasetHandlers {
+	req := lib.NewDatasetRequests(node, nil)
+	h := DatasetHandlers{*req, node.Repo, readOnly}
 	return &h
 }
 

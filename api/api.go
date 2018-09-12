@@ -226,10 +226,8 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
+	dsh := NewDatasetHandlers(s.qriNode, s.cfg.API.ReadOnly)
 
-	// TODO - stupid hack for now.
-	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
@@ -249,7 +247,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	lh := NewLogHandlers(s.qriNode)
 	m.Handle("/history/", s.middleware(lh.LogHandler))
 
-	rgh := NewRegistryHandlers(s.qriNode.Repo)
+	rgh := NewRegistryHandlers(s.qriNode)
 	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
 
 	sh := NewSearchHandlers(s.qriNode.Repo)

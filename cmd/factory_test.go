@@ -90,12 +90,12 @@ func (t TestFactory) RPC() *rpc.Client {
 
 // DatasetRequests generates a lib.DatasetRequests from internal state
 func (t TestFactory) DatasetRequests() (*lib.DatasetRequests, error) {
-	return lib.NewDatasetRequests(t.repo, t.rpc), nil
+	return lib.NewDatasetRequests(t.node, t.rpc), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state
 func (t TestFactory) RegistryRequests() (*lib.RegistryRequests, error) {
-	return lib.NewRegistryRequests(t.repo, t.rpc), nil
+	return lib.NewRegistryRequests(t.node, t.rpc), nil
 }
 
 // LogRequests generates a lib.LogRequests from internal state

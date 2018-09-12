@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -36,8 +37,7 @@ func init() {
 func TestDatasetRequestsInit(t *testing.T) {
 	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatal(err.Error())
 	}
 
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,11 +50,15 @@ func TestDatasetRequestsInit(t *testing.T) {
 	rc, _ := regmock.NewMockServerWithMemPinset()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	req := NewDatasetRequests(node, nil)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
 	if err := req.New(&SaveParams{Private: true}, nil); err == nil {
@@ -153,8 +157,11 @@ func TestDatasetRequestsSave(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
@@ -175,7 +182,7 @@ sarnia,550000,55.65,false
 		w.Write([]byte(res))
 	}))
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
 	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
@@ -235,14 +242,18 @@ func TestDatasetRequestsList(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
+		t.Fatalf("error allocating test repo: %s", err.Error())
 		return
 	}
 
 	refs, err := mr.References(30, 0)
 	if err != nil {
-		t.Errorf("error getting namespace: %s", err.Error())
-		return
+		t.Fatalf("error getting namespace: %s", err.Error())
+	}
+
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	for _, ref := range refs {
@@ -273,7 +284,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := []repo.DatasetRef{}
 		err := req.List(c.p, &got)
@@ -327,7 +338,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 
-			dsr := NewDatasetRequestsWithNode(node.Repo, nil, node)
+			dsr := NewDatasetRequests(node, nil)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
 			var res []repo.DatasetRef
 			err := dsr.List(p, &res)
@@ -353,19 +364,21 @@ func TestDatasetRequestsGet(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
-		return
+		t.Fatalf("error getting path: %s", err.Error())
 	}
 
 	moviesDs, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(ref.Path))
 	if err != nil {
-		t.Errorf("error loading dataset: %s", err.Error())
-		return
+		t.Fatalf("error loading dataset: %s", err.Error())
 	}
 
 	cases := []struct {
@@ -381,7 +394,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Get(&c.p, got)
@@ -429,7 +442,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			name := datasets[index]
 			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
-			dsr := NewDatasetRequestsWithNode(node.Repo, nil, node)
+			dsr := NewDatasetRequests(node, nil)
 			got := &repo.DatasetRef{}
 			err = dsr.Get(&ref, got)
 			if err != nil {
@@ -450,8 +463,11 @@ func TestDatasetRequestsRename(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	cases := []struct {
@@ -465,7 +481,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "", "dataset 'peer/sitemap' already exists"},
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
@@ -486,13 +502,16 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting movies ref: %s", err.Error())
-		return
+		t.Fatalf("error getting movies ref: %s", err.Error())
 	}
 
 	cases := []struct {
@@ -505,7 +524,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		{&ref, nil, ""},
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := false
 		err := req.Remove(c.p, &got)
@@ -521,23 +540,25 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
+		t.Fatalf("error allocating test repo: %s", err.Error())
 		return
 	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting movies ref: %s", err.Error())
-		return
+		t.Fatalf("error getting movies ref: %s", err.Error())
 	}
 	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
 	if err != nil {
-		t.Errorf("error getting craigslist ref: %s", err.Error())
-		return
+		t.Fatalf("error getting craigslist ref: %s", err.Error())
 	}
 	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
 	if err != nil {
-		t.Errorf("error getting sitemap ref: %s", err.Error())
-		return
+		t.Fatalf("error getting sitemap ref: %s", err.Error())
 	}
 
 	var df1 = dataset.JSONDataFormat
@@ -555,7 +576,7 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 		{&LookupParams{Format: df1, Path: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := &LookupResult{}
 		err := req.LookupBody(c.p, got)
@@ -599,11 +620,14 @@ func TestDatasetRequestsAdd(t *testing.T) {
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Add(c.p, got)
@@ -663,7 +687,7 @@ func TestDatasetRequestsAddP2p(t *testing.T) {
 				ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
 				// Build requests for peer1 to peer2.
-				dsr := NewDatasetRequestsWithNode(p0.Repo, nil, p0)
+				dsr := NewDatasetRequests(p0, nil)
 				got := &repo.DatasetRef{}
 
 				err := dsr.Add(&ref, got)
@@ -724,11 +748,14 @@ Pirates of the Caribbean: At World's End ,foo
 
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(mr, nil)
+	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := []jsonschema.ValError{}
 		err := req.Validate(&c.p, &got)
@@ -749,10 +776,13 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	req := NewDatasetRequests(mr, nil)
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	req := NewDatasetRequests(node, nil)
 
 	// File 1
 	fp1, err := dstest.BodyFilepath("testdata/jobs_by_automation")

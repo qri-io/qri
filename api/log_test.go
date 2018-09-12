@@ -14,6 +14,13 @@ func TestHistoryHandlers(t *testing.T) {
 	r, teardown := newTestRepo(t)
 	defer teardown()
 
+	cfg := config.DefaultP2PForTesting()
+	tnode, err := p2p.NewTestableQriNode(r, cfg)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	node := tnode.(*p2p.QriNode)
+
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{
 		Dataset: &dataset.DatasetPod{
@@ -25,18 +32,11 @@ func TestHistoryHandlers(t *testing.T) {
 		},
 		Private: false,
 	}
-	if err := lib.NewDatasetRequests(r, nil).Save(p, res); err != nil {
+	if err := lib.NewDatasetRequests(node, nil).Save(p, res); err != nil {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
 
-	cfg := config.DefaultP2PForTesting()
-	cfg.Enabled = false
-	node, err := p2p.NewTestableQriNode(r, cfg)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	h := NewLogHandlers(node.(*p2p.QriNode))
+	h := NewLogHandlers(node)
 
 	logCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

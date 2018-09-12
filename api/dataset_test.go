@@ -5,16 +5,24 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 )
 
 func TestDatasetHandlers(t *testing.T) {
 	r, teardown := newTestRepo(t)
 	defer teardown()
 
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	s := newMockDataServer(t)
 	defer s.Close()
 
-	h := NewDatasetHandlers(r, false)
+	h := NewDatasetHandlers(node, false)
 
 	listCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

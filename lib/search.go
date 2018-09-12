@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/registry/regclient"
 )
@@ -24,7 +23,7 @@ func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
 	}
 	return &SearchRequests{
 		cli:  cli,
-		repo: &actions.Registry{r},
+		repo: r,
 	}
 }
 
