@@ -105,7 +105,7 @@ func TestCommandsIntegration(t *testing.T) {
 	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	t.Logf("test filepath: %s", path)
+	fmt.Printf("test filepath: %s\n", path)
 
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {
@@ -177,6 +177,7 @@ func TestCommandsIntegration(t *testing.T) {
 		func() {
 			defer func() {
 				if e := recover(); e != nil {
+					fmt.Println(e)
 					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, command, e)
 					return
 				}
@@ -184,6 +185,7 @@ func TestCommandsIntegration(t *testing.T) {
 
 			_, er := executeCommand(root, command)
 			if er != nil {
+				fmt.Println(er)
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, er.Error())
 				return
 			}

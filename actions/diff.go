@@ -33,7 +33,6 @@ func DiffDatasets(node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool
 		err = e
 		return
 	}
-	fmt.Println(dsLeft, dsRight)
 
 	diffs = make(map[string]*dsdiff.SubDiff)
 	if all {

@@ -121,19 +121,17 @@ func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
 func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 	node, ref := createDataset(t, rmf)
 
-	b := repo.DatasetRef{
-		Name:      "cities2",
-		Path:      ref.Path,
-		Peername:  ref.Peername,
-		ProfileID: ref.ProfileID,
+	b := &repo.DatasetRef{
+		Name:     "cities2",
+		Peername: "me",
 	}
 
-	if err := RenameDataset(node.Repo, ref, b); err != nil {
+	if err := RenameDataset(node, &ref, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := ReadDataset(node.Repo, &b); err != nil {
+	if err := ReadDataset(node.Repo, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -187,7 +185,7 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 func testDeleteDataset(t *testing.T, rmf RepoMakerFunc) {
 	node, ref := createDataset(t, rmf)
 
-	if err := DeleteDataset(node, ref); err != nil {
+	if err := DeleteDataset(node, &ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -197,19 +195,17 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 	node, ref := createDataset(t, rmf)
 	pinner := true
 
-	b := repo.DatasetRef{
+	b := &repo.DatasetRef{
 		Name:      "cities2",
-		Path:      ref.Path,
-		Peername:  ref.Peername,
 		ProfileID: ref.ProfileID,
 	}
 
-	if err := RenameDataset(node.Repo, ref, b); err != nil {
+	if err := RenameDataset(node, &ref, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := PinDataset(node.Repo, b); err != nil {
+	if err := PinDataset(node.Repo, *b); err != nil {
 		if err == repo.ErrNotPinner {
 			pinner = false
 		} else {

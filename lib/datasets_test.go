@@ -639,7 +639,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 	}
 }
 
-func TestDatasetRequestsAddP2p(t *testing.T) {
+func TestDatasetRequestsAddP2P(t *testing.T) {
 	// Matches what is used to generate the test peers.
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 

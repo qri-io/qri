@@ -84,7 +84,7 @@ func (r *DatasetRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error 
 	}
 
 	if err := actions.DatasetHead(r.node, ref); err != nil {
-		return nil
+		return err
 	}
 
 	*res = *ref
@@ -111,6 +111,9 @@ func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 	ds, bodyFile, secrets, err := actions.NewDataset(p.Dataset)
 	if err != nil {
 		return err
+	}
+	if bodyFile != nil {
+		defer bodyFile.Close()
 	}
 
 	*res, err = actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, true)
@@ -186,7 +189,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
-	if err := actions.RenameDataset(r.node.Repo, p.Current, p.New); err != nil {
+	if err := actions.RenameDataset(r.node, &p.Current, &p.New); err != nil {
 		return err
 	}
 
@@ -208,21 +211,18 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 		return fmt.Errorf("either peername/name or path is required")
 	}
 
-	if err = actions.DeleteDataset(r.node, *p); err != nil {
+	if err = actions.DeleteDataset(r.node, p); err != nil {
 		return
 	}
 
-	// if pinner, ok := r.repo.Store().(cafs.Pinner); ok {
-	// 	// path := datastore.NewKey(strings.TrimSuffix(p.Path, "/"+dsfs.PackageFileDataset.String()))
-	// 	if err = pinner.Unpin(datastore.NewKey(p.Path), true); err != nil {
-	// 		log.Debug(err.Error())
-	// 		return
+	// if rc := r.Registry(); rc != nil {
+	// 	dse := ds.Encode()
+	// 	// TODO - this should be set by LoadDataset
+	// 	dse.Path = ref.Path
+	// 	if e := rc.DeleteDataset(ref.Peername, ref.Name, dse, pro.PrivKey.GetPublic()); e != nil {
+	// 		// ignore registry errors
+	// 		log.Errorf("deleting dataset: %s", e.Error())
 	// 	}
-	// }
-
-	// if err = r.repo.DeleteRef(*p); err != nil {
-	// 	log.Debug(err.Error())
-	// 	return
 	// }
 
 	*ok = true
@@ -296,6 +296,15 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 
 	if err = DefaultSelectedRef(r.node.Repo, &p.Ref); err != nil {
 		return
+	}
+
+	// TODO: restore validating data from a URL
+	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
+	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
+	// }
+	if p.Ref.IsEmpty() && p.Data == nil && p.Schema == nil {
+		// err = fmt.Errorf("please provide a dataset name, or a supply the --body and --schema flags with file paths")
+		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
 	var body, schema cafs.File

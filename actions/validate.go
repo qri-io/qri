@@ -18,16 +18,6 @@ import (
 
 // Validate checks a dataset body for errors based on a schema
 func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema cafs.File) (errors []jsonschema.ValError, err error) {
-	// TODO: restore validating data from a URL
-	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
-	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
-	// }
-	if ref.IsEmpty() && body == nil && schema == nil {
-		// NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
-		err = fmt.Errorf("please provide a dataset name, or a supply the --body and --schema flags with file paths")
-		return
-	}
-
 	if !ref.IsEmpty() {
 		err = repo.CanonicalizeDatasetRef(node.Repo, &ref)
 		if err != nil && err != repo.ErrNotFound {

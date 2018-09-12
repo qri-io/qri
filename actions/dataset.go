@@ -50,7 +50,7 @@ func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, s
 
 	// open a data file if we can
 	if body, err = repo.DatasetPodBodyFile(dsp); err == nil {
-		defer body.Close()
+		// defer body.Close()
 
 		// validate / generate dataset name
 		if dsp.Name == "" {
@@ -99,6 +99,8 @@ func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, s
 
 	} else if err.Error() == "not found" {
 		err = nil
+	} else {
+		return
 	}
 
 	return
@@ -245,24 +247,18 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
+	err = repo.CanonicalizeDatasetRef(node.Repo, ref)
+	if err == nil {
+		return fmt.Errorf("error: dataset %s already exists in repo", ref)
+	} else if err != repo.ErrNotFound {
+		return fmt.Errorf("error with new reference: %s", err.Error())
+	}
 
-	// Old lib.Dataset.Add code:
-	// err = repo.CanonicalizeDatasetRef(r.repo, ref)
-	// if err == nil {
-	// 	return fmt.Errorf("error: dataset %s already exists in repo", ref)
-	// } else if err != repo.ErrNotFound {
-	// 	return fmt.Errorf("error with new reference: %s", err.Error())
-	// }
-
-	// if ref.Path == "" && r.Node != nil {
-	// 	if err := r.Node.RequestDataset(ref); err != nil {
-	// 		return fmt.Errorf("error requesting dataset: %s", err.Error())
-	// 	}
-	// }
-
-	// err = r.repo.AddDataset(ref)
-
-	log.Debugf("AddDataset: %s", ref)
+	if ref.Path == "" && node != nil {
+		if err := node.RequestDataset(ref); err != nil {
+			return fmt.Errorf("error requesting dataset: %s", err.Error())
+		}
+	}
 
 	r := node.Repo
 	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
@@ -317,32 +313,32 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 }
 
 // RenameDataset alters a dataset name
-func RenameDataset(r repo.Repo, a, b repo.DatasetRef) (err error) {
-	// Old lib.RenameDataset
-	// if err := validate.ValidName(p.New.Name); err != nil {
-	// 	return err
-	// }
-	// if err := repo.CanonicalizeDatasetRef(r.node.Repo, &p.Current); err != nil {
-	// 	log.Debug(err.Error())
-	// 	return fmt.Errorf("error with existing reference: %s", err.Error())
-	// }
-	// err = repo.CanonicalizeDatasetRef(r.node.Repo, &p.New)
-	// if err == nil {
-	// 	return fmt.Errorf("dataset '%s/%s' already exists", p.New.Peername, p.New.Name)
-	// } else if err != repo.ErrNotFound {
-	// 	log.Debug(err.Error())
-	// 	return fmt.Errorf("error with new reference: %s", err.Error())
-	// }
-	// p.New.Path = p.Current.Path
-
-	if err = r.DeleteRef(a); err != nil {
+func RenameDataset(node *p2p.QriNode, current, new *repo.DatasetRef) (err error) {
+	r := node.Repo
+	if err := validate.ValidName(new.Name); err != nil {
 		return err
 	}
-	if err = r.PutRef(b); err != nil {
+	if err := repo.CanonicalizeDatasetRef(r, current); err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error with existing reference: %s", err.Error())
+	}
+	err = repo.CanonicalizeDatasetRef(r, new)
+	if err == nil {
+		return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
+	} else if err != repo.ErrNotFound {
+		log.Debug(err.Error())
+		return fmt.Errorf("error with new reference: %s", err.Error())
+	}
+	new.Path = current.Path
+
+	if err = r.DeleteRef(*current); err != nil {
+		return err
+	}
+	if err = r.PutRef(*new); err != nil {
 		return err
 	}
 
-	return r.LogEvent(repo.ETDsRenamed, b)
+	return r.LogEvent(repo.ETDsRenamed, *new)
 }
 
 // PinDataset marks a dataset for retention in a store
@@ -364,55 +360,35 @@ func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 }
 
 // DeleteDataset removes a dataset from the store
-func DeleteDataset(node *p2p.QriNode, ref repo.DatasetRef) error {
+func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	r := node.Repo
-	pro, err := r.Profile()
-	if err != nil {
+
+	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
+		log.Debug(err.Error())
 		return err
 	}
 
-	// Old lib.DeleteDataset:
-	// err = repo.CanonicalizeDatasetRef(r.repo, p)
+	p, err := r.GetRef(*ref)
+	if err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+	if ref.Path != p.Path {
+		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
+	}
+
+	// ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
 	// if err != nil {
-	// 	log.Debug(err.Error())
 	// 	return err
 	// }
-	// ref, err := r.repo.GetRef(*p)
-	// if err != nil {
-	// 	log.Debug(err.Error())
-	// 	return
-	// }
 
-	// if ref.Path != p.Path {
-	// 	return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
-	// }
-
-	// if err = r.repo.DeleteDataset(ref); err != nil {
-	// 	return
-	// }
-
-	ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
-	if err != nil {
+	if err = r.DeleteRef(*ref); err != nil {
 		return err
 	}
 
-	if err = r.DeleteRef(ref); err != nil {
+	if err = UnpinDataset(r, *ref); err != nil && err != repo.ErrNotPinner {
 		return err
 	}
 
-	if rc := r.Registry(); rc != nil {
-		dse := ds.Encode()
-		// TODO - this should be set by LoadDataset
-		dse.Path = ref.Path
-		if e := rc.DeleteDataset(ref.Peername, ref.Name, dse, pro.PrivKey.GetPublic()); e != nil {
-			// ignore registry errors
-			log.Errorf("deleting dataset: %s", e.Error())
-		}
-	}
-
-	if err = UnpinDataset(r, ref); err != nil && err != repo.ErrNotPinner {
-		return err
-	}
-
-	return r.LogEvent(repo.ETDsDeleted, ref)
+	return r.LogEvent(repo.ETDsDeleted, *ref)
 }
