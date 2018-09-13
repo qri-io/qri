@@ -53,7 +53,7 @@ including all your datasets, and de-registers your peername from the registry.`,
 	cmd.Flags().BoolVarP(&o.Overwrite, "overwrite", "", false, "overwrite repo if one exists")
 	cmd.Flags().BoolVarP(&o.IPFS, "init-ipfs", "", true, "initialize an IPFS repo if one isn't present")
 	cmd.Flags().BoolVarP(&o.Remove, "remove", "", false, "permanently remove qri, overrides all setup options")
-	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL")
+	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "override default registry URL, set to 'none' to remove registry")
 	cmd.Flags().StringVarP(&o.Peername, "peername", "", "", "choose your desired peername")
 	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	cmd.Flags().StringVarP(&o.ConfigData, "config-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
@@ -168,7 +168,9 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
 	}
 
-	if o.Registry != "" {
+	if o.Registry == "none" {
+		cfg.Registry = nil
+	} else if o.Registry != "" {
 		cfg.Registry.Location = o.Registry
 	}
 
@@ -178,6 +180,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		ConfigFilepath: filepath.Join(o.QriRepoPath, "config.yaml"),
 		SetupIPFS:      o.IPFS,
 		IPFSFsPath:     o.IpfsFsPath,
+		Register:       o.Registry == "none",
 	}
 
 	if o.IPFSConfigData != "" {

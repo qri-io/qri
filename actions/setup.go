@@ -17,12 +17,12 @@ import (
 var ErrHandleTaken = fmt.Errorf("handle is taken")
 
 // Setup provisions a new qri instance
-func Setup(repoPath, cfgPath string, cfg *config.Config) error {
+func Setup(repoPath, cfgPath string, cfg *config.Config, register bool) error {
 	if err := cfg.Validate(); err != nil {
 		return fmt.Errorf("invalid configuration: %s", err.Error())
 	}
 
-	if cfg.Registry != nil {
+	if register && cfg.Registry != nil {
 		pro, err := profile.NewProfile(cfg.Profile)
 		if err != nil {
 			return err
@@ -36,7 +36,9 @@ func Setup(repoPath, cfgPath string, cfg *config.Config) error {
 			if strings.Contains(err.Error(), "taken") {
 				return ErrHandleTaken
 			}
-			return err
+			// TODO - restore this error
+			// return err
+			err = nil
 		}
 	}
 

@@ -17,7 +17,7 @@ func TestSetupInitIPFSTeardown(t *testing.T) {
 
 	cfg := config.DefaultConfigForTesting()
 	cfg.Registry = nil
-	if err := Setup(path, path+"/config.yaml", cfg); err != nil {
+	if err := Setup(path, path+"/config.yaml", cfg, true); err != nil {
 		t.Error(err.Error())
 	}
 	if err := InitIPFS(path, nil); err != nil {

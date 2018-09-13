@@ -189,7 +189,6 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
 func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, pin bool) (ref repo.DatasetRef, err error) {
-	log.Debugf("CreateDataset: %s", name)
 	var (
 		r   = node.Repo
 		pro *profile.Profile
