@@ -180,6 +180,52 @@ func TestGetReferences(t *testing.T) {
 	}
 }
 
+func TestPeerConnectionsParamsPod(t *testing.T) {
+	if p := NewPeerConnectionParamsPod("peername"); p.Peername != "peername" {
+		t.Error("expected Peername to be set")
+	}
+
+	if p := NewPeerConnectionParamsPod("/ipfs/Foo"); p.NetworkID != "/ipfs/Foo" {
+		t.Error("expected NetworkID to be set")
+	}
+
+	ma := "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"
+	if p := NewPeerConnectionParamsPod(ma); p.Multiaddr != ma {
+		t.Error("expected Multiaddr to be set")
+	}
+
+	if p := NewPeerConnectionParamsPod("QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"); p.ProfileID != "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb" {
+		t.Error("expected ProfileID to be set")
+	}
+
+	p := PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	if _, err := p.Decode(); err != nil {
+		t.Error(err.Error())
+	}
+	p = PeerConnectionParamsPod{NetworkID: "/ipfs/QmNX"}
+	if _, err := p.Decode(); err == nil {
+		t.Error("expected invalid decode to error")
+	}
+
+	p = PeerConnectionParamsPod{ProfileID: "QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	if _, err := p.Decode(); err != nil {
+		t.Error(err.Error())
+	}
+	p = PeerConnectionParamsPod{ProfileID: "21hub2dj23"}
+	if _, err := p.Decode(); err == nil {
+		t.Error("expected invalid decode to error")
+	}
+
+	p = PeerConnectionParamsPod{Multiaddr: "/ip4/130.211.198.23/tcp/4001/ipfs/QmNX9nSos8sRFvqGTwdEme6LQ8R1eJ8EuFgW32F9jjp2Pb"}
+	if _, err := p.Decode(); err != nil {
+		t.Error(err.Error())
+	}
+	p = PeerConnectionParamsPod{Multiaddr: "nhuh"}
+	if _, err := p.Decode(); err == nil {
+		t.Error("expected invalid decode to error")
+	}
+}
+
 func newTestQriNode() (*p2p.QriNode, error) {
 	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
