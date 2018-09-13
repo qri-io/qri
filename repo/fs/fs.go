@@ -133,8 +133,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 			}
 		}
 
-		act := actions.Dataset{r}
-		if err := act.ReadDataset(&ref); err != nil {
+		if err := actions.ReadDataset(r, &ref); err != nil {
 			log.Debug(err.Error())
 		}
 	}

@@ -9,12 +9,11 @@ import (
 )
 
 func TestConnect(t *testing.T) {
-
-	_, registryServer := regmock.NewMockServer()
-
 	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}
+
+	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_connect")
 	t.Logf("temp path: %s", path)

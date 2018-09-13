@@ -8,6 +8,7 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -18,13 +19,14 @@ type Factory interface {
 
 	IpfsFsPath() string
 	QriRepoPath() string
-	Repo() (repo.Repo, error)
 
+	Repo() (repo.Repo, error)
+	Node() (*p2p.QriNode, error)
 	RPC() *rpc.Client
 
 	DatasetRequests() (*lib.DatasetRequests, error)
 	RegistryRequests() (*lib.RegistryRequests, error)
-	HistoryRequests() (*lib.HistoryRequests, error)
+	LogRequests() (*lib.LogRequests, error)
 	PeerRequests() (*lib.PeerRequests, error)
 	ProfileRequests() (*lib.ProfileRequests, error)
 	SearchRequests() (*lib.SearchRequests, error)

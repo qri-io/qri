@@ -83,12 +83,3 @@ type SearchParams struct {
 type Searchable interface {
 	Search(p SearchParams) ([]DatasetRef, error)
 }
-
-// MustProfile loads a repo's profile data, panicing if any error is encountered
-func MustProfile(r Repo) *profile.Profile {
-	p, err := r.Profile()
-	if err != nil {
-		panic(err)
-	}
-	return p
-}

@@ -17,7 +17,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 )
 
 var log = golog.Logger("qriapi")
@@ -34,19 +33,21 @@ type Server struct {
 	qriNode *p2p.QriNode
 }
 
-// New creates a new qri server from a configuration
-func New(r repo.Repo, cfg *config.Config) (s *Server, err error) {
-	s = &Server{
-		cfg: cfg,
+// New creates a new qri server from a p2p node & configuration
+func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
+	return &Server{
+		qriNode: node,
+		cfg:     cfg,
 	}
-
-	// allocate a new node
-	s.qriNode, err = p2p.NewQriNode(r, cfg.P2P)
-	return s, err
 }
 
 // Serve starts the server. It will block while the server is running
 func (s *Server) Serve() (err error) {
+	if err = s.qriNode.Connect(); err != nil {
+		fmt.Println("serving error", s.cfg.P2P.Enabled)
+		return
+	}
+
 	server := &http.Server{}
 	server.Handler = NewServerRoutes(s)
 
@@ -212,23 +213,21 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
+	proh := NewProfileHandlers(s.qriNode, s.cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.PosterHandler))
 
-	ph := NewPeerHandlers(s.qriNode.Repo, s.qriNode, s.cfg.API.ReadOnly)
+	ph := NewPeerHandlers(s.qriNode, s.cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.qriNode.Repo, s.cfg.API.ReadOnly)
+	dsh := NewDatasetHandlers(s.qriNode, s.cfg.API.ReadOnly)
 
-	// TODO - stupid hack for now.
-	dsh.DatasetRequests.Node = s.qriNode
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
@@ -245,15 +244,13 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	renderh := NewRenderHandlers(s.qriNode.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 
-	hh := NewHistoryHandlers(s.qriNode.Repo)
-	// TODO - stupid hack for now.
-	hh.HistoryRequests.Node = s.qriNode
-	m.Handle("/history/", s.middleware(hh.LogHandler))
+	lh := NewLogHandlers(s.qriNode)
+	m.Handle("/history/", s.middleware(lh.LogHandler))
 
-	rgh := NewRegistryHandlers(s.qriNode.Repo)
+	rgh := NewRegistryHandlers(s.qriNode)
 	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
 
-	sh := NewSearchHandlers(s.qriNode.Repo)
+	sh := NewSearchHandlers(s.qriNode)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	rh := NewRootHandler(dsh, ph)

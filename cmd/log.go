@@ -50,7 +50,7 @@ type LogOptions struct {
 	Offset int
 	Ref    string
 
-	HistoryRequests *lib.HistoryRequests
+	LogRequests *lib.LogRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -66,7 +66,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	o.HistoryRequests, err = f.HistoryRequests()
+	o.LogRequests, err = f.LogRequests()
 	return
 }
 
@@ -88,7 +88,7 @@ func (o *LogOptions) Run() error {
 	}
 
 	refs := []repo.DatasetRef{}
-	if err = o.HistoryRequests.Log(p, &refs); err != nil {
+	if err = o.LogRequests.Log(p, &refs); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "please provide a dataset reference")
 		}

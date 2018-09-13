@@ -6,7 +6,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/p2p"
 )
 
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -15,8 +15,8 @@ type SearchHandlers struct {
 }
 
 // NewSearchHandlers allocates a SearchHandlers pointer
-func NewSearchHandlers(r repo.Repo) *SearchHandlers {
-	req := lib.NewSearchRequests(r, nil)
+func NewSearchHandlers(node *p2p.QriNode) *SearchHandlers {
+	req := lib.NewSearchRequests(node, nil)
 	return &SearchHandlers{*req}
 }
 

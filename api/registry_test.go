@@ -5,10 +5,10 @@ import (
 )
 
 func TestRegistryHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
-	h := NewRegistryHandlers(r)
+	h := NewRegistryHandlers(node)
 
 	registryCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

@@ -4,13 +4,12 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
 func TestHistoryHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
 	res := &repo.DatasetRef{}
@@ -24,11 +23,11 @@ func TestHistoryHandlers(t *testing.T) {
 		},
 		Private: false,
 	}
-	if err := lib.NewDatasetRequests(r, nil).Save(p, res); err != nil {
+	if err := lib.NewDatasetRequests(node, nil).Save(p, res); err != nil {
 		t.Fatalf("error writing dataset update: %s", err.Error())
 	}
 
-	h := NewHistoryHandlers(r)
+	h := NewLogHandlers(node)
 
 	logCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

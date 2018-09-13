@@ -5,6 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/registry/regclient"
 )
@@ -19,8 +21,11 @@ func TestSearch(t *testing.T) {
 	rc := regclient.NewClient(&regclient.Config{Location: server.URL})
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	// Case 0 - request with expected result
@@ -30,7 +35,7 @@ func TestSearch(t *testing.T) {
 	errString := ""
 
 	// make request 0
-	req := NewSearchRequests(mr, nil)
+	req := NewSearchRequests(node, nil)
 
 	got := &[]SearchResult{}
 	err = req.Search(p, got)

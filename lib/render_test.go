@@ -7,6 +7,7 @@ import (
 	"net/rpc"
 	"testing"
 
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -44,9 +45,9 @@ func TestNewRenderRequests(t *testing.T) {
 func TestRenderRequestsRender(t *testing.T) {
 	// set Default Template to something easier to work with, then
 	// cleanup when test completes
-	prevDefaultTemplate := DefaultTemplate
-	DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
-	defer func() { DefaultTemplate = prevDefaultTemplate }()
+	prevDefaultTemplate := actions.DefaultTemplate
+	actions.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	defer func() { actions.DefaultTemplate = prevDefaultTemplate }()
 
 	cases := []struct {
 		params *RenderParams

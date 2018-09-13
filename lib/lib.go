@@ -33,16 +33,14 @@ func init() {
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
 func Receivers(node *p2p.QriNode) []Requests {
-	r := node.Repo
-
 	return []Requests{
-		NewDatasetRequestsWithNode(r, nil, node),
-		NewRegistryRequests(r, nil),
-		NewHistoryRequests(r, nil),
+		NewDatasetRequests(node, nil),
+		NewRegistryRequests(node, nil),
+		NewLogRequests(node, nil),
 		NewPeerRequests(node, nil),
-		NewProfileRequests(r, nil),
-		NewSearchRequests(r, nil),
-		NewRenderRequests(r, nil),
-		NewSelectionRequests(r, nil),
+		NewProfileRequests(node, nil),
+		NewSearchRequests(node, nil),
+		NewRenderRequests(node.Repo, nil),
+		NewSelectionRequests(node.Repo, nil),
 	}
 }

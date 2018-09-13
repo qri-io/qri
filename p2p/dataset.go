@@ -4,7 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/qri/actions"
+	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -18,16 +19,17 @@ const MtDatasetInfo = MsgType("dataset_info")
 func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s RequestDataset %s", n.ID, ref)
 
-	act := actions.Dataset{n.Repo}
-
 	// if peer ID is *our* peer.ID check for local dataset
 	// note that data may be on another machine, so this can still fail back to a
 	// network request
 	if ref.ProfileID != "" {
 		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.ProfileID {
-			if err := act.ReadDataset(ref); err == nil {
-				return nil
+			ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+			if err != nil {
+				return err
 			}
+			ref.Dataset = ds.Encode()
+			return nil
 		}
 	}
 
@@ -79,14 +81,15 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 			return
 		}
 		res := msg
-		act := actions.Dataset{n.Repo}
 
 		if err := repo.CanonicalizeDatasetRef(n.Repo, &dsr); err == nil {
 			if ref, err := n.Repo.GetRef(dsr); err == nil {
-
-				if err := act.ReadDataset(&ref); err != nil {
+				ds, e := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+				if e != nil {
 					log.Debug(err.Error())
+					return
 				}
+				ref.Dataset = ds.Encode()
 
 				res, err = msg.UpdateJSON(ref)
 				if err != nil {

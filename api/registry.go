@@ -6,7 +6,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/p2p"
 )
 
 // RegistryHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -15,8 +15,8 @@ type RegistryHandlers struct {
 }
 
 // NewRegistryHandlers allocates a RegistryHandlers pointer
-func NewRegistryHandlers(r repo.Repo) *RegistryHandlers {
-	req := lib.NewRegistryRequests(r, nil)
+func NewRegistryHandlers(node *p2p.QriNode) *RegistryHandlers {
+	req := lib.NewRegistryRequests(node, nil)
 	h := RegistryHandlers{*req}
 	return &h
 }

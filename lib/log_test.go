@@ -3,6 +3,8 @@ package lib
 import (
 	"testing"
 
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -10,13 +12,18 @@ import (
 func TestHistoryRequestsLog(t *testing.T) {
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
-		t.Errorf("error getting path: %s", err.Error())
-		return
+		t.Fatalf("error getting path: %s", err.Error())
+	}
+
+	cfg := config.DefaultP2PForTesting()
+	cfg.Enabled = false
+	node, err := p2p.NewTestableQriNode(mr, cfg)
+	if err != nil {
+		t.Fatal(err.Error())
 	}
 
 	cases := []struct {
@@ -25,11 +32,11 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err string
 	}{
 		{&LogParams{}, nil, "repo: empty dataset reference"},
-		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "error getting reference '@/badpath': repo: not found"},
+		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "no p2p connection"},
 		{&LogParams{Ref: ref}, []repo.DatasetRef{ref}, ""},
 	}
 
-	req := NewHistoryRequests(mr, nil)
+	req := NewLogRequests(node.(*p2p.QriNode), nil)
 	for i, c := range cases {
 		got := []repo.DatasetRef{}
 		err := req.Log(c.p, &got)

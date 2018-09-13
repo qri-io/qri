@@ -2,22 +2,13 @@ package api
 
 import (
 	"testing"
-
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
 )
 
 func TestPeerHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
-	cfg := config.DefaultConfigForTesting().P2P
-	node, err := p2p.NewQriNode(r, cfg)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	h := NewPeerHandlers(r, node, false)
+	h := NewPeerHandlers(node, false)
 
 	connectionsCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

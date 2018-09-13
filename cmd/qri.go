@@ -164,6 +164,10 @@ func (o *QriOptions) init() (err error) {
 			return
 		}
 
+		o.node, err = p2p.NewQriNode(o.repo, o.config.P2P)
+		if err != nil {
+			return
+		}
 	}
 	o.initialized.Do(initBody)
 	return err
@@ -203,12 +207,23 @@ func (o *QriOptions) Repo() (repo.Repo, error) {
 	return o.repo, nil
 }
 
+// Node returns the internal QriNode
+func (o *QriOptions) Node() (*p2p.QriNode, error) {
+	if err := o.init(); err != nil {
+		return nil, err
+	}
+	if o.repo == nil {
+		return nil, fmt.Errorf("repo not available (are you running qri in another terminal?)")
+	}
+	return o.node, nil
+}
+
 // DatasetRequests generates a lib.DatasetRequests from internal state
 func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewDatasetRequestsWithNode(o.repo, o.rpc, o.node), nil
+	return lib.NewDatasetRequests(o.node, o.rpc), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state
@@ -216,15 +231,15 @@ func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewRegistryRequestsWithNode(o.repo, o.rpc, o.node), nil
+	return lib.NewRegistryRequests(o.node, o.rpc), nil
 }
 
-// HistoryRequests generates a lib.HistoryRequests from internal state
-func (o *QriOptions) HistoryRequests() (*lib.HistoryRequests, error) {
+// LogRequests generates a lib.LogRequests from internal state
+func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewHistoryRequests(o.repo, o.rpc), nil
+	return lib.NewLogRequests(o.node, o.rpc), nil
 }
 
 // PeerRequests generates a lib.PeerRequests from internal state
@@ -240,7 +255,7 @@ func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewProfileRequests(o.repo, o.rpc), nil
+	return lib.NewProfileRequests(o.node, o.rpc), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state
@@ -256,7 +271,7 @@ func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
 	if err := o.init(); err != nil {
 		return nil, err
 	}
-	return lib.NewSearchRequests(o.repo, o.rpc), nil
+	return lib.NewSearchRequests(o.node, o.rpc), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

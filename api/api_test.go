@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
@@ -32,7 +33,7 @@ func init() {
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	var err error
 	if err = confirmQriNotRunning(); err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	// bump up log level to keep test output clean
@@ -71,6 +72,16 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	}
 
 	return
+}
+
+func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
+	var r repo.Repo
+	r, teardown = newTestRepo(t)
+	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return node, teardown
 }
 
 type handlerTestCase struct {
@@ -114,10 +125,10 @@ func confirmQriNotRunning() error {
 }
 
 func TestServerRoutes(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
-	h := NewRootHandler(NewDatasetHandlers(r, false), NewPeerHandlers(r, nil, false))
+	h := NewRootHandler(NewDatasetHandlers(node, false), NewPeerHandlers(node, false))
 	rootCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
@@ -152,23 +163,20 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	r, err := test.NewTestRepo(nil)
 	if err != nil {
-		t.Errorf("error allocating test repo: %s", err.Error())
-		return
+		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
 	cfg := config.DefaultConfigForTesting()
-	cfg.P2P.Enabled = false
 	cfg.API.ReadOnly = true
 	defer func() {
-		cfg.P2P.Enabled = true
 		cfg.API.ReadOnly = false
 	}()
 
-	s, err := New(r, cfg)
+	node, err := p2p.NewQriNode(r, cfg.P2P)
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatal(err.Error())
 	}
+	s := New(node, cfg)
 
 	server := httptest.NewServer(NewServerRoutes(s))
 
@@ -290,123 +298,6 @@ func runMimeMultipartHandlerTestCases(t *testing.T, name string, h http.HandlerF
 		res := w.Result()
 		abide.AssertHTTPResponse(t, name, res)
 	}
-}
-
-func testMimeMultipart(t *testing.T, server *httptest.Server, client *http.Client) {
-
-	// cases := []struct {
-	// 	method    string
-	// 	endpoint  string
-	// 	resStatus int
-	// 	filePaths map[string]string
-	// 	params    map[string]string
-	// }{
-	// 	// {"POST", "/remove/me/cities", 200,
-	// 	// 	map[string]string{},
-	// 	// 	map[string]string{},
-	// 	// },
-	// 	// {"POST", "/new", 500,
-	// 	// 	map[string]string{
-	// 	// 		"body":      "testdata/cities/data.csv",
-	// 	// 		"structure": "testdata/cities/structure.json",
-	// 	// 		"metadata":  "testdata/cities/meta.json",
-	// 	// 	},
-	// 	// 	map[string]string{
-	// 	// 		"peername": "peer",
-	// 	// 		"name":     "cities",
-	// 	// 		"private":  "true",
-	// 	// 	},
-	// 	// },
-	// 	// {"POST", "/new", 200,
-	// 	// 	map[string]string{
-	// 	// 		"body": "testdata/cities/data.csv",
-	// 	// 		"file": "testdata/cities/init_dataset.json",
-	// 	// 	},
-	// 	// 	map[string]string{
-	// 	// 		"peername": "peer",
-	// 	// 		"name":     "cities",
-	// 	// 	},
-	// 	// },
-	// 	// {"POST", "/save", "testdata/saveResponse.json", 200,
-	// 	// 	map[string]string{
-	// 	// 		"body": "testdata/cities/data_update.csv",
-	// 	// 	},
-	// 	// 	map[string]string{
-	// 	// 		"peername": "peer",
-	// 	// 		"name":     "cities",
-	// 	// 		"title":    "added row to include Seoul, Korea",
-	// 	// 		"message":  "want to expand this list to include more cities",
-	// 	// 	},
-	// 	// },
-	// 	{"GET", "/profile", 200,
-	// 		map[string]string{},
-	// 		map[string]string{},
-	// 	},
-	// 	// {"POST", "/save", "testdata/saveResponseMeta.json", 200,
-	// 	// 	map[string]string{
-	// 	// 		"metadata": "testdata/cities/meta_update.json",
-	// 	// 	},
-	// 	// 	map[string]string{
-	// 	// 		"peername": "peer",
-	// 	// 		"name":     "cities",
-	// 	// 		"title":    "Adding more specific metadata",
-	// 	// 		"message":  "added title and keywords",
-	// 	// 	},
-	// 	// },
-	// 	{"POST", "/profile/photo", 200,
-	// 		map[string]string{
-	// 			"file": "testdata/rico_400x400.jpg",
-	// 		},
-	// 		map[string]string{
-	// 			"peername": "peer",
-	// 		},
-	// 	},
-	// 	{"POST", "/profile/poster", 200,
-	// 		map[string]string{
-	// 			"file": "testdata/rico_poster_1500x500.jpg",
-	// 		},
-	// 		map[string]string{
-	// 			"peername": "peer",
-	// 		},
-	// 	},
-	// }
-
-	// for i, c := range cases {
-
-	// 	req, err := NewFilesRequest(name, c.endpoint, c.filePaths, c.params)
-	// 	if err != nil {
-	// 		t.Errorf("testMimeMultipart case %d, %s - %s:\nerror making mime/multipart request: %s", i, name, err)
-	// 		continue
-	// 	}
-
-	// 	res, err := client.Do(req)
-	// 	if err != nil {
-	// 		t.Errorf("testMimeMultipart case %d, %s - %s:\nerror performing request: %s", i, name, err)
-	// 		continue
-	// 	}
-
-	// 	gotBody, err := ioutil.ReadAll(res.Body)
-	// 	if err != nil {
-	// 		t.Errorf("testMimeMultipart case %d, %s - %s:\nerror reading response body request: %s", i, name, err)
-	// 		continue
-	// 	}
-
-	// 	if res.StatusCode != c.resStatus {
-	// 		t.Errorf("testMimeMultipart case %d, %s - %s:\nstatus code mismatch. expected: %d, got: %d", i, name, c.resStatus, res.StatusCode)
-	// 		continue
-	// 	}
-
-	// 	name := fmt.Sprintf("%s multipart case %d: %s %s", t.Name(), i, name)
-	// 	req := httptest.NewRequest(name, bytes.NewBuffer(c.body))
-	// 	// TODO - make this settable with some sort of test case interface
-	// 	// req.Header.Set("Content-Type", "application/json")
-	// 	w := httptest.NewRecorder()
-
-	// 	// h(w, req)
-
-	// 	res := w.Result()
-	// 	abide.AssertHTTPResponse(t, name, res)
-	// }
 }
 
 // NewFilesRequest creates a mime/multipart http.Request with files specified by a map of param : filepath,

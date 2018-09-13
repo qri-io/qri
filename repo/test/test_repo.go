@@ -11,8 +11,8 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -43,7 +43,6 @@ func init() {
 	privKey, err = crypto.UnmarshalPrivateKey(testPk)
 	if err != nil {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
-		return
 	}
 	testPeerProfile.PrivKey = privKey
 }
@@ -68,19 +67,14 @@ func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 		return
 	}
 
-	act := actions.Dataset{mr}
-
 	gopath := os.Getenv("GOPATH")
 	for _, k := range datasets {
-
 		tc, err := dstest.NewTestCaseFromDir(fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, k))
 		if err != nil {
 			return nil, err
 		}
 
-		datafile := cafs.NewMemfileBytes(tc.BodyFilename, tc.Body)
-
-		if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
+		if err = createDataset(mr, tc); err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
 	}
@@ -109,7 +103,6 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 	if dataIndex == -1 || dataIndex >= len(datasets) {
 		return r, nil
 	}
-	act := actions.Dataset{r}
 
 	gopath := os.Getenv("GOPATH")
 	filepath := fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, datasets[dataIndex])
@@ -118,17 +111,49 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return r, err
 	}
 
-	datafile := cafs.NewMemfileBytes(tc.BodyFilename, tc.Body)
-	if _, err = act.CreateDataset(tc.Name, tc.Input, datafile, nil, true); err != nil {
+	if err := createDataset(r, tc); err != nil {
 		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
 	}
-
 	return r, nil
 }
 
 func pkgPath(paths ...string) string {
 	gp := os.Getenv("GOPATH")
 	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)
+}
+
+// it's tempting to use actions.Dataset.CreateDataset here, but we can't b/c import cycle :/
+// this version of createDataset doesn't run transforms or prepare viz. Test cases
+// should be designed to avoid requiring Tranforms be run or Viz be prepped
+func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
+	var (
+		ds  = tc.Input
+		pro *profile.Profile
+		// NOTE - struct fields need to be instantiated to make assign set to
+		// new pointer values
+		userSet = &dataset.Dataset{
+			Commit:    &dataset.Commit{},
+			Meta:      &dataset.Meta{},
+			Structure: &dataset.Structure{},
+			Transform: &dataset.Transform{},
+			Viz:       &dataset.Viz{},
+		}
+	)
+	pro, err = r.Profile()
+	if err != nil {
+		return
+	}
+
+	userSet.Assign(ds)
+
+	if ds.Commit != nil {
+		// NOTE: add author ProfileID here to keep the dataset package agnostic to
+		// all identity stuff except keypair crypto
+		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
+	}
+
+	_, err = repo.CreateDataset(r, tc.Name, ds, tc.BodyFile(), true)
+	return
 }
 
 // NewMemRepoFromDir reads a director of testCases and calls createDataset
@@ -145,7 +170,6 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	if err != nil {
 		return mr, pk, err
 	}
-	act := actions.Dataset{mr}
 
 	tc, err := dstest.LoadTestCases(path)
 	if err != nil {
@@ -153,7 +177,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	for _, c := range tc {
-		if _, err := act.CreateDataset(c.Name, c.Input, c.BodyFile(), nil, true); err != nil {
+		if err := createDataset(mr, c); err != nil {
 			return mr, pk, err
 		}
 	}

@@ -8,16 +8,17 @@ import (
 )
 
 func TestDatasetHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
 
 	s := newMockDataServer(t)
 	defer s.Close()
 
-	h := NewDatasetHandlers(r, false)
+	h := NewDatasetHandlers(node, false)
 
 	listCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
+		{"GET", "/", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "list", h.ListHandler, listCases)
@@ -44,6 +45,13 @@ func TestDatasetHandlers(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases)
+
+	bodyCases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"GET", "/body/me/family_relationships", nil},
+		{"DELETE", "/", nil},
+	}
+	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases)
 
 	renameCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

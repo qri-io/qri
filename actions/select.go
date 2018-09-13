@@ -12,11 +12,9 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// TODO: Remove this, move other functions to another file, possibly in lib/.
-
 // Select loads a dataset value specified by case.Sensitve.dot.separated.paths
-func (act Dataset) Select(ref repo.DatasetRef, path string) (interface{}, error) {
-	ds, err := dsfs.LoadDataset(act.Store(), datastore.NewKey(ref.Path))
+func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) {
+	ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
 	if err != nil {
 		return nil, err
 	}

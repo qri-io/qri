@@ -8,7 +8,7 @@ import (
 )
 
 // PrepareViz loads vizualization bytes from a local filepath
-func (act Dataset) PrepareViz(ds *dataset.Dataset) (err error) {
+func PrepareViz(ds *dataset.Dataset) (err error) {
 	if ds.Viz != nil && ds.Viz.ScriptPath != "" {
 		// create a reader of script bytes
 		scriptdata, err := ioutil.ReadFile(ds.Viz.ScriptPath)

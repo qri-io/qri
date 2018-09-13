@@ -9,6 +9,7 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -189,7 +190,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	for {
 		err := lib.Setup(p)
 		if err != nil {
-			if err == lib.ErrHandleTaken {
+			if err == actions.ErrHandleTaken {
 				printWarning(o.Out, "peername '%s' already taken", cfg.Profile.Peername)
 				cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
 				continue

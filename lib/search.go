@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/registry/regclient"
 )
@@ -13,18 +13,18 @@ import (
 // command
 type SearchRequests struct {
 	cli  *rpc.Client
-	repo repo.Repo
+	node *p2p.QriNode
 }
 
 // NewSearchRequests creates a SearchRequests pointer from either a repo
 // or an rpc.Client
-func NewSearchRequests(r repo.Repo, cli *rpc.Client) *SearchRequests {
-	if r != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewSearchRequests"))
+func NewSearchRequests(node *p2p.QriNode, cli *rpc.Client) *SearchRequests {
+	if node != nil && cli != nil {
+		panic(fmt.Errorf("both node and client supplied to NewSearchRequests"))
 	}
 	return &SearchRequests{
 		cli:  cli,
-		repo: &actions.Registry{r},
+		node: node,
 	}
 }
 
@@ -53,7 +53,7 @@ func (sr *SearchRequests) Search(p *SearchParams, results *[]SearchResult) error
 		return fmt.Errorf("error: search params cannot be nil")
 	}
 
-	reg := sr.repo.Registry()
+	reg := sr.node.Repo.Registry()
 	if reg == nil {
 		return repo.ErrNoRegistry
 	}
