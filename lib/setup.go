@@ -11,6 +11,7 @@ type SetupParams struct {
 	QriRepoPath         string
 	ConfigFilepath      string
 	SetupIPFS           bool
+	Register            bool
 	IPFSFsPath          string
 	SetupIPFSConfigData []byte
 }
@@ -18,7 +19,7 @@ type SetupParams struct {
 // Setup provisions a new qri instance, it intentionally doesn't conform to the RPC function signature
 // because remotely invoking setup doesn't make much sense
 func Setup(p SetupParams) error {
-	if err := actions.Setup(p.QriRepoPath, p.ConfigFilepath, p.Config); err != nil {
+	if err := actions.Setup(p.QriRepoPath, p.ConfigFilepath, p.Config, p.Register); err != nil {
 		return err
 	}
 
