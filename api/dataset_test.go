@@ -5,19 +5,11 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
 )
 
 func TestDatasetHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
-
-	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 
 	s := newMockDataServer(t)
 	defer s.Close()
@@ -26,6 +18,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	listCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
+		{"GET", "/", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "list", h.ListHandler, listCases)
@@ -52,6 +45,13 @@ func TestDatasetHandlers(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases)
+
+	bodyCases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"GET", "/body/me/family_relationships", nil},
+		{"DELETE", "/", nil},
+	}
+	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases)
 
 	renameCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

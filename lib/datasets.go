@@ -255,13 +255,13 @@ func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err e
 		return fmt.Errorf("invalid limit / offset settings")
 	}
 
-	bufData, err := actions.LookupBody(r.node, p.Path, p.Format, p.FormatConfig, p.Limit, p.Offset, p.All)
+	bodyPath, bufData, err := actions.LookupBody(r.node, p.Path, p.Format, p.FormatConfig, p.Limit, p.Offset, p.All)
 	if err != nil {
 		return err
 	}
 
 	*data = LookupResult{
-		Path: p.Path,
+		Path: bodyPath,
 		Data: bufData,
 	}
 	return nil

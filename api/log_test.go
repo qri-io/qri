@@ -4,22 +4,13 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
 func TestHistoryHandlers(t *testing.T) {
-	r, teardown := newTestRepo(t)
+	node, teardown := newTestNode(t)
 	defer teardown()
-
-	cfg := config.DefaultP2PForTesting()
-	tnode, err := p2p.NewTestableQriNode(r, cfg)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	node := tnode.(*p2p.QriNode)
 
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{

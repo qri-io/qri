@@ -12,7 +12,7 @@ import (
 )
 
 // LookupBody grabs a subset of a dataset's body
-func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (data []byte, err error) {
+func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (bodyPath string, data []byte, err error) {
 	var (
 		file  cafs.File
 		store = node.Repo.Store()
@@ -21,13 +21,13 @@ func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg 
 	ds, err := dsfs.LoadDataset(store, datastore.NewKey(path))
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, err
+		return "", nil, err
 	}
 
 	file, err = dsfs.LoadBody(store, ds)
 	if err != nil {
 		log.Debug(err.Error())
-		return nil, err
+		return "", nil, err
 	}
 
 	st := &dataset.Structure{}
@@ -58,8 +58,8 @@ func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg 
 	err = dsio.Copy(rr, buf)
 
 	if err := buf.Close(); err != nil {
-		return nil, fmt.Errorf("error closing row buffer: %s", err.Error())
+		return "", nil, fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
-	return buf.Bytes(), nil
+	return ds.BodyPath, buf.Bytes(), nil
 }
