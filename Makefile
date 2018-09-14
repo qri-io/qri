@@ -11,7 +11,7 @@ endif
 build: require-gopath
 	@echo "\n1/5 install non-gx deps:\n"
 	go get -v -u $(GOPACKAGES)
-	@echo "\n"2/5 install gx:\n"
+	@echo "\n2/5 install gx:\n"
 	go get -v -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
 	@echo "\n3/5 install gx deps:\n"
 	$$GOPATH/bin/gx install
