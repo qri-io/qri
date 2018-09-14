@@ -72,6 +72,8 @@ func (o *SearchOptions) Validate() error {
 
 // Run executes the search command
 func (o *SearchOptions) Run() (err error) {
+	spinner.Start()
+	defer spinner.Stop()
 
 	// TODO: add reindex option back in
 
@@ -87,6 +89,7 @@ func (o *SearchOptions) Run() (err error) {
 		return err
 	}
 
+	spinner.Stop()
 	switch o.Format {
 	case "":
 		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)

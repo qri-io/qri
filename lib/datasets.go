@@ -21,13 +21,6 @@ type DatasetRequests struct {
 	node *p2p.QriNode
 }
 
-// Repo exposes the DatasetRequest's repo
-// TODO - this is an architectural flaw resulting from not having a clear
-// order of local > network > RPC requests figured out
-// func (r *DatasetRequests) Repo() repo.Repo {
-// 	return r.repo
-// }
-
 // CoreRequestsName implements the Requets interface
 func (DatasetRequests) CoreRequestsName() string { return "datasets" }
 

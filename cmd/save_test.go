@@ -67,7 +67,6 @@ func TestSaveValidate(t *testing.T) {
 		msg      string
 	}{
 		{"", "", "", lib.ErrBadArgs.Error(), "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info"},
-		{"me/test", "", "", lib.ErrBadArgs.Error(), "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info"},
 		{"me/test", "test/path.yaml", "", "", ""},
 		{"me/test", "", "test/bodypath.yaml", "", ""},
 		{"me/test", "test/filepath.yaml", "test/bodypath.yaml", "", ""},

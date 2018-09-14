@@ -15,15 +15,12 @@ import (
 	"github.com/spf13/cobra"
 )
 
-
 // TODO: Tests.
-
 
 const providingSecretWarningMessage = `
 Warning: You are providing secrets to a dataset transformation.
 Never provide secrets to a transformation you do not trust.
 continue?`
-
 
 // NewNewCommand creates a new command
 func NewNewCommand(f Factory, ioStreams IOStreams) *cobra.Command {
@@ -75,13 +72,13 @@ create a dataset with a dataset data file:
 type NewOptions struct {
 	IOStreams
 
-	File           string
-	BodyPath       string
-	Title          string
-	Message        string
-	Private        bool
-	Publish        bool
-	Secrets        []string
+	File     string
+	BodyPath string
+	Title    string
+	Message  string
+	Private  bool
+	Publish  bool
+	Secrets  []string
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -95,8 +92,9 @@ func (o *NewOptions) Complete(f Factory) (err error) {
 }
 
 // Run creates a new dataset
-func (o *NewOptions) Run(args []string) error {
-	var err error
+func (o *NewOptions) Run(args []string) (err error) {
+	spinner.Start()
+	defer spinner.Stop()
 
 	if o.File == "" && o.BodyPath == "" {
 		return fmt.Errorf("creating new dataset needs either --file or --body")

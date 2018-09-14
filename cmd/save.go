@@ -7,12 +7,13 @@ import (
 	"path/filepath"
 	"strings"
 
+	"io/ioutil"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
-	"io/ioutil"
 )
 
 // NewSaveCommand creates a `qri save` cobra command used for saving changes
@@ -26,22 +27,27 @@ func NewSaveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 		Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and structure. 
 You can also update your data via url. Every time you run save, an entry is added to 
-your dataset’s log (which you can see by running ` + "`qri log <dataset_reference>`" + `). 
+your dataset’s log (which you can see by running ` + "`qri log <dataset_reference>`" + `).
 
-Every time you save, you can provide a message about what 
-you changed and why. If you don’t provide a message 
-Qri will automatically generate one for you.
+If the dataset you're changing has defined a transform, running ` + "`qri save`" + `
+will re execute the transform. To only re-run the tranform, run save with no args.
+
+Every time you save, you can provide a message about what you changed and why. 
+If you don’t provide a message Qri will automatically generate one for you.
 
 When you make an update and save a dataset that you originally added from a different
 peer, the dataset gets renamed from ` + "`peers_name/dataset_name`" + ` to ` + "`my_name/dataset_name`" + `.
 
-The ` + "`--message`" + `" and ` + "`--title`" + ` flags allow you to add a commit message and title 
-to the save.`,
+The ` + "`--message`" + `" and ` + "`--title`" + ` flags allow you to add a 
+commit message and title to the save.`,
 		Example: `  # save updated data to dataset annual_pop:
-  qri --body /path/to/data.csv me/annual_pop
+  qri save --body /path/to/data.csv me/annual_pop
 
   # save updated dataset (no data) to annual_pop:
-  qri --file /path/to/dataset.yaml me/annual_pop`,
+  qri save --file /path/to/dataset.yaml me/annual_pop
+  
+  # re-execute a dataset that has a transform:
+  qri save me/tf_dataset`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -100,14 +106,17 @@ func (o *SaveOptions) Validate() error {
 	if o.Ref == "" {
 		return lib.NewError(lib.ErrBadArgs, "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info")
 	}
-	if o.FilePath == "" && o.BodyPath == "" {
-		return lib.NewError(lib.ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
-	}
+	// if o.FilePath == "" && o.BodyPath == "" {
+	// 	return lib.NewError(lib.ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
+	// }
 	return nil
 }
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
+	spinner.Start()
+	defer spinner.Stop()
+
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
@@ -177,6 +186,7 @@ continue?`, true) {
 		return err
 	}
 
+	spinner.Stop()
 	printSuccess(o.Out, "dataset saved: %s", res)
 	if res.Dataset.Structure.ErrCount > 0 {
 		printWarning(o.Out, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))

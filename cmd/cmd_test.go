@@ -16,6 +16,11 @@ import (
 	"github.com/spf13/cobra"
 )
 
+func init() {
+	// disable spinner output during testing
+	spinner.Writer = ioutil.Discard
+}
+
 func confirmQriNotRunning() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
 	if err != nil {

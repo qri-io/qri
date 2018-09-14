@@ -50,6 +50,9 @@ func (o *AddOptions) Complete(f Factory) (err error) {
 
 // Run adds another peer's dataset to this user's repo
 func (o *AddOptions) Run(args []string) error {
+	spinner.Start()
+	defer spinner.Stop()
+
 	for _, arg := range args {
 		ref, err := parseCmdLineDatasetRef(arg)
 		if err != nil {

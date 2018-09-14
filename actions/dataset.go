@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"strings"
 
 	"github.com/ipfs/go-datastore"
@@ -171,6 +172,45 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 	ds.Commit.Title = updates.Commit.Title
 	ds.Commit.Message = updates.Commit.Message
 
+	// TODO - this is so bad. fix. currently createDataset expects paths to
+	// local files, so we're just making them up on the spot.
+	if ds.Transform != nil && ds.Transform.ScriptPath[:len("/ipfs/")] == "/ipfs/" {
+		tfScript, e := node.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+		if e != nil {
+			err = e
+			return
+		}
+
+		f, e := ioutil.TempFile("", "transform.sky")
+		if e != nil {
+			err = e
+			return
+		}
+		if _, e := io.Copy(f, tfScript); err != nil {
+			err = e
+			return
+		}
+		ds.Transform.ScriptPath = f.Name()
+	}
+	if ds.Viz != nil && ds.Viz.ScriptPath[:len("/ipfs/")] == "/ipfs/" {
+		vizScript, e := node.Repo.Store().Get(datastore.NewKey(ds.Viz.ScriptPath))
+		if e != nil {
+			err = e
+			return
+		}
+
+		f, e := ioutil.TempFile("", "viz.html")
+		if e != nil {
+			err = e
+			return
+		}
+		if _, e := io.Copy(f, vizScript); err != nil {
+			err = e
+			return
+		}
+		ds.Viz.ScriptPath = f.Name()
+	}
+
 	// Assign will assign any previous paths to the current paths
 	// the dsdiff (called in dsfs.CreateDataset), will compare the paths
 	// see that they are the same, and claim there are no differences
@@ -183,7 +223,7 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 	if ds.Structure != nil {
 		ds.Structure.SetPath("")
 	}
-	// ds.Viz.SetPath("")
+
 	return
 }
 
