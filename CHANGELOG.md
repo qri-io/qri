@@ -1,3 +1,46 @@
+<a name="0.5.2"></a>
+# [0.5.2](https://github.com/qri-io/qri/compare/v0.5.1...v0.5.2) (2018-09-14)
+
+
+Most of 0.5.2 is under-the-hood changes that make qri work better. We've put a _lot_ of time into our test suite & refactoring our existing code, which will set the stage for dev work to move a little faster in the coming weeks :smile:
+
+### :truck: IPFS repo migration
+We've updated our IPFS dependencies from go-ipfs 0.4.15 to 0.4.17. Between those verions the structure of IPFS repositories changed, and as such need to be migrated. If this is your first time installing Qri, you won't have an issue, but if you're coming from Qri 0.5.1 or earlier you'll see a message after upgrading that'll explain you'll need to install go-ipfs to update your repo. We know this is, well, not fun, but it's the safest way to ensure the integrity of your underlying IPFS repo.
+
+### Bug Fixes
+
+* **api.Body:** fix bug that returns error when getting a peers body ([d87ccac](https://github.com/qri-io/qri/commit/d87ccac))
+* **api/datasets:** fix error based on [@dustmop](https://github.com/dustmop)'s comment https://github.com/qri-io/qri/pull/533#discussion_r214204240 ([a509627](https://github.com/qri-io/qri/commit/a509627)), closes [/github.com/qri-io/qri/pull/533#discussion_r214204240](https://github.com//github.com/qri-io/qri/pull/533/issues/discussion_r214204240)
+* **cmd:** Don't ignore command-line arguments for `get` command. ([d6b49d3](https://github.com/qri-io/qri/commit/d6b49d3))
+* **cmd:** Execute commands using RunE instead of Run ([5457ccb](https://github.com/qri-io/qri/commit/5457ccb))
+* **cmd:** Operating system-specific calls in their own sourcefile ([4074df6](https://github.com/qri-io/qri/commit/4074df6))
+* **cmd:** Set number of open files limit at startup. ([761259f](https://github.com/qri-io/qri/commit/761259f))
+* **cmd:** Split old `add` command into `new` and `add`. ([0abc837](https://github.com/qri-io/qri/commit/0abc837))
+* **cmd/cmd.go:** have printErr check errs for lib.Error and print correct message ([75a7e85](https://github.com/qri-io/qri/commit/75a7e85))
+* **connect --setup:** add Anon flag to make setup work w/o user input ([dcb92ae](https://github.com/qri-io/qri/commit/dcb92ae))
+* **CreateDataset:** remove transform creating default viz ([4536dc6](https://github.com/qri-io/qri/commit/4536dc6))
+* **get:** Additional documentation about lib/Get method. ([6108ddd](https://github.com/qri-io/qri/commit/6108ddd))
+* **get:** Can get another user's repo, as long as node is connected. ([3251d58](https://github.com/qri-io/qri/commit/3251d58))
+* **get:** Get completely reworked to function better ([7c0cc8d](https://github.com/qri-io/qri/commit/7c0cc8d)), closes [#519](https://github.com/qri-io/qri/issues/519) [#509](https://github.com/qri-io/qri/issues/509) [#479](https://github.com/qri-io/qri/issues/479) [#397](https://github.com/qri-io/qri/issues/397)
+* **LookupBody:** LookupBody should respond with *body* path ([7c1f38f](https://github.com/qri-io/qri/commit/7c1f38f))
+* **p2p:** Avoid generating p2p keys in DefaultP2P, for faster tests ([97a1b6e](https://github.com/qri-io/qri/commit/97a1b6e))
+* **p2p:** NewQriNode parameter cleanup, and factory for TestableQriNode. ([5652f4d](https://github.com/qri-io/qri/commit/5652f4d))
+* **profile:** Tests for ProfilePod.Copy and ProfilePod.SetField ([a1a464c](https://github.com/qri-io/qri/commit/a1a464c))
+* **profile:** Using config set profile.something calls SaveProfile. ([7c3e9f6](https://github.com/qri-io/qri/commit/7c3e9f6))
+
+
+### Features
+
+* **api/open_api:** add both open api 2.0 and open api 3.0 specs ([4faf8ac](https://github.com/qri-io/qri/commit/4faf8ac))
+* **cmd loading:** add loading indicator for long-running commands ([d988843](https://github.com/qri-io/qri/commit/d988843))
+* **docs:** add script to generate documentation in markdown ([6ca60f4](https://github.com/qri-io/qri/commit/6ca60f4))
+* **p2p.ResolveDatasetRef:** resolve dataset names with p2p network ([4fd24c5](https://github.com/qri-io/qri/commit/4fd24c5))
+* **profile:** Detect peername renames when listing datasets. ([f1a19ba](https://github.com/qri-io/qri/commit/f1a19ba))
+* **ResolveDatasetRef:** new action for resolving dataset references ([00aefc2](https://github.com/qri-io/qri/commit/00aefc2))
+* **save:** re-run transfrom on qri save with no args ([0e906ae](https://github.com/qri-io/qri/commit/0e906ae))
+
+
+
 <a name="0.5.1"></a>
 # [0.5.1](https://github.com/qri-io/qri/compare/v0.5.1-rc1...v0.5.1) (2018-07-19)
 
