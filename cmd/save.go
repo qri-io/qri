@@ -114,6 +114,9 @@ func (o *SaveOptions) Validate() error {
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
+	spinner.Start()
+	defer spinner.Stop()
+
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
@@ -183,6 +186,7 @@ continue?`, true) {
 		return err
 	}
 
+	spinner.Stop()
 	printSuccess(o.Out, "dataset saved: %s", res)
 	if res.Dataset.Structure.ErrCount > 0 {
 		printWarning(o.Out, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))

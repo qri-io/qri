@@ -80,6 +80,9 @@ func (o *BodyOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the body command
 func (o *BodyOptions) Run() error {
+	spinner.Start()
+	defer spinner.Stop()
+
 	if o.UsingRPC {
 		return usingRPCError("body")
 	}

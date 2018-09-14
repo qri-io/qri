@@ -109,6 +109,8 @@ func (o *ValidateOptions) Run() (err error) {
 		dataFile, schemaFile *os.File
 		ref                  repo.DatasetRef
 	)
+	spinner.Start()
+	defer spinner.Stop()
 
 	ref, err = repo.ParseDatasetRef(o.Ref)
 	if err != nil && err != repo.ErrEmptyRef {
@@ -147,6 +149,9 @@ func (o *ValidateOptions) Run() (err error) {
 	if err = o.DatasetRequests.Validate(p, &res); err != nil {
 		return err
 	}
+
+	spinner.Stop()
+
 	if len(res) == 0 {
 		printSuccess(o.Out, "✔ All good!")
 		return

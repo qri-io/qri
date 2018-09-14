@@ -104,6 +104,9 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // Publish executes the publish command
 func (o *RegistryOptions) Publish() error {
 	var res bool
+	spinner.Start()
+	defer spinner.Stop()
+
 	for _, arg := range o.Refs {
 		ref, err := repo.ParseDatasetRef(arg)
 		if err != nil {
@@ -127,6 +130,9 @@ func (o *RegistryOptions) Publish() error {
 // Unpublish executes the unpublish command
 func (o *RegistryOptions) Unpublish() error {
 	var res bool
+	spinner.Start()
+	defer spinner.Stop()
+
 	for _, arg := range o.Refs {
 		ref, err := repo.ParseDatasetRef(arg)
 		if err != nil {

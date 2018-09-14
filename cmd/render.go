@@ -76,6 +76,9 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
 
+	spinner.Start()
+	defer spinner.Stop()
+
 	ref, err := repo.ParseDatasetRef(o.Ref)
 	if err != nil && err != repo.ErrEmptyRef {
 		return err
