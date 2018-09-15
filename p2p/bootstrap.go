@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 	"math/rand"
 
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
@@ -43,7 +42,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 func (n *QriNode) BootstrapIPFS() {
 	if node, err := n.IPFSNode(); err == nil {
 		if err := node.Bootstrap(ipfscore.DefaultBootstrapConfig); err != nil {
-			fmt.Errorf("IPFS bootsrap error: %s", err.Error())
+			log.Errorf("IPFS bootsrap error: %s", err.Error())
 		}
 	}
 }
