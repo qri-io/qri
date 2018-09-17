@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/qri-io/cafs/ipfs"
@@ -48,17 +49,33 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	// handlers maps this nodes registered handlers. This works in a way similary to a router
-	// in traditional client/server models, but messages are flying around all over the place
-	// instead of a request/response pattern
+	// handlers maps this nodes registered handlers. This works in a way
+	// similary to a router in traditional client/server models, but messages
+	// are flying around all over the place instead of a
+	// request/response pattern
 	handlers map[MsgType]HandlerFunc
 
 	// msgState keeps a "scratch pad" of message IDS & timeouts
 	msgState *sync.Map
 	// msgChan provides a channel of received messages for others to tune into
 	msgChan chan Message
-	// receivers is a list of anyone who wants to be notifed on new message arrival
+	// receivers is a list of anyone who wants to be notifed on new
+	// message arrival
 	receivers []chan Message
+
+	// node keeps a set of IOStreams for "node local" io, often to the
+	// command line, to give feedback to the user. These may be piped to
+	// local http handlers/websockets/stdio, but these streams are meant for
+	// local feedback as opposed to p2p connections
+	LocalStreams IOStreams
+}
+
+// IOStreams provides the standard names for iostreams.  This is useful for embedding and for unit testing.
+// Inconsistent and different names make it hard to read and review code
+type IOStreams struct {
+	In     io.Reader
+	Out    io.Writer
+	ErrOut io.Writer
 }
 
 // Assert that conversions needed by the tests are valid.

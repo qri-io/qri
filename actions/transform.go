@@ -15,7 +15,7 @@ import (
 // ExecTransform executes a designated transformation
 func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
-	rr, err := skytf.ExecFile(ds, filepath, infile, func(o *skytf.ExecOpts) {
+	rr, err := skytf.ExecFile(ds, filepath, infile, skytf.AddQriNodeOpt(node), func(o *skytf.ExecOpts) {
 		if secrets != nil {
 			// convert to map[string]interface{}, which the lower-level skytf supports
 			// until we're sure map[string]string is going to work in the majority of use cases
