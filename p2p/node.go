@@ -3,6 +3,7 @@ package p2p
 import (
 	"context"
 	"fmt"
+	"io"
 	"sync"
 
 	"github.com/qri-io/cafs/ipfs"
@@ -29,7 +30,10 @@ type QriNode struct {
 	// private key for encrypted communication & verifying identity
 	privateKey crypto.PrivKey
 
-	conf *config.P2P
+	cfg *config.P2P
+
+	// base context for this node
+	ctx context.Context
 
 	// Online indicates weather this is node is connected to the p2p network
 	Online bool
@@ -38,9 +42,6 @@ type QriNode struct {
 	// Discovery service, can be provided by an ipfs node
 	Discovery discovery.Service
 
-	// base context for this node
-	ctx context.Context
-
 	// Repo is a repository of this node's qri data
 	// note that repo's are built upon a cafs.Filestore, which
 	// may contain a reference to a functioning IPFS node. In that case
@@ -48,22 +49,33 @@ type QriNode struct {
 	// ipfs node provided by repo
 	Repo repo.Repo
 
-	// BootstrapAddrs is a list of multiaddresses to bootrap *qri* from (not IPFS)
-	BootstrapAddrs []string
-
-	// handlers maps this nodes registered handlers. This works in a way similary to a router
-	// in traditional client/server models, but messages are flying around all over the place
-	// instead of a request/response pattern
+	// handlers maps this nodes registered handlers. This works in a way
+	// similary to a router in traditional client/server models, but messages
+	// are flying around all over the place instead of a
+	// request/response pattern
 	handlers map[MsgType]HandlerFunc
 
 	// msgState keeps a "scratch pad" of message IDS & timeouts
 	msgState *sync.Map
 	// msgChan provides a channel of received messages for others to tune into
 	msgChan chan Message
-	// receivers is a list of anyone who wants to be notifed on new message arrival
+	// receivers is a list of anyone who wants to be notifed on new
+	// message arrival
 	receivers []chan Message
-	// profileReplication sets what to do when this node sees it's own profile
-	profileReplication string
+
+	// node keeps a set of IOStreams for "node local" io, often to the
+	// command line, to give feedback to the user. These may be piped to
+	// local http handlers/websockets/stdio, but these streams are meant for
+	// local feedback as opposed to p2p connections
+	LocalStreams IOStreams
+}
+
+// IOStreams provides the standard names for iostreams.  This is useful for embedding and for unit testing.
+// Inconsistent and different names make it hard to read and review code
+type IOStreams struct {
+	In     io.Reader
+	Out    io.Writer
+	ErrOut io.Writer
 }
 
 // Assert that conversions needed by the tests are valid.
@@ -87,14 +99,12 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 	}
 
 	node = &QriNode{
-		ID:                 pid,
-		conf:               p2pconf,
-		Repo:               r,
-		ctx:                context.Background(),
-		BootstrapAddrs:     p2pconf.QriBootstrapAddrs,
-		msgState:           &sync.Map{},
-		msgChan:            make(chan Message),
-		profileReplication: p2pconf.ProfileReplication,
+		ID:       pid,
+		cfg:      p2pconf,
+		Repo:     r,
+		ctx:      context.Background(),
+		msgState: &sync.Map{},
+		msgChan:  make(chan Message),
 	}
 	node.handlers = MakeHandlers(node)
 
@@ -104,7 +114,7 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 // Connect allocates all networking structs to enable QriNode to communicate
 // over
 func (n *QriNode) Connect() (err error) {
-	if !n.conf.Enabled {
+	if !n.cfg.Enabled {
 		return fmt.Errorf("p2p connection is disabled")
 	}
 
@@ -131,7 +141,7 @@ func (n *QriNode) Connect() (err error) {
 			}
 		} else if n.Host == nil {
 			ps := pstore.NewPeerstore()
-			n.Host, err = makeBasicHost(n.ctx, ps, n.conf)
+			n.Host, err = makeBasicHost(n.ctx, ps, n.cfg)
 			if err != nil {
 				return fmt.Errorf("error creating host: %s", err.Error())
 			}
@@ -172,7 +182,7 @@ func (n *QriNode) StartOnlineServices(bootstrapped func(string)) error {
 		return nil
 	}
 
-	bsPeers := make(chan pstore.PeerInfo, len(n.BootstrapAddrs))
+	bsPeers := make(chan pstore.PeerInfo, len(n.cfg.BootstrapAddrs))
 	// need a call here to ensure boostrapped is called at least once
 	// TODO - this is an "original node" problem probably solved by being able
 	// to start a node with *no* qri peers specified.
@@ -362,8 +372,8 @@ func (n *QriNode) Addrs() pstore.AddrBook {
 // SimplePeerInfo returns a PeerInfo with just the ID and Addresses.
 func (n *QriNode) SimplePeerInfo() pstore.PeerInfo {
 	return pstore.PeerInfo{
-		n.Host.ID(),
-		n.Host.Addrs(),
+		ID:    n.Host.ID(),
+		Addrs: n.Host.Addrs(),
 	}
 }
 

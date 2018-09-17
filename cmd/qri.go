@@ -168,6 +168,7 @@ func (o *QriOptions) init() (err error) {
 		if err != nil {
 			return
 		}
+		o.node.LocalStreams = p2p.IOStreams(o.IOStreams)
 	}
 	o.initialized.Do(initBody)
 	return err
