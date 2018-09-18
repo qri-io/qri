@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -10,7 +11,7 @@ import (
 )
 
 // NewConnectCommand creates a new `qri connect` cobra command for connecting to the d.web, local api, rpc server, and webapp
-func NewConnectCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewConnectCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := ConnectOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "connect",
@@ -59,7 +60,7 @@ peers & swapping data.`,
 
 // ConnectOptions encapsulates state for the connect command
 type ConnectOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	APIPort         int
 	RPCPort         int

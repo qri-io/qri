@@ -3,12 +3,13 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
 // NewRemoveCommand creates a new `qri remove` cobra command for removing datasets from a local repository
-func NewRemoveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewRemoveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RemoveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "remove",
@@ -45,7 +46,7 @@ both qri & IPFS. Promise.`,
 
 // RemoveOptions encapsulates state for the remove command
 type RemoveOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Args []string
 

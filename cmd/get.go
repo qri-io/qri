@@ -5,7 +5,9 @@ import (
 	"regexp"
 
 	"encoding/json"
+
 	"github.com/ghodss/yaml"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -13,7 +15,7 @@ import (
 )
 
 // NewGetCommand creates a new `qri search` command that searches for datasets
-func NewGetCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewGetCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &GetOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "get",
@@ -58,7 +60,7 @@ dataset and its fields.`,
 
 // GetOptions encapsulates state for the get command
 type GetOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Refs    []string
 	Path    string

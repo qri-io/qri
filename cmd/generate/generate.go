@@ -6,6 +6,7 @@ import (
 	"log"
 	"os"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/cmd"
 	"github.com/spf13/cobra/doc"
 )
@@ -16,7 +17,7 @@ func main() {
 	switch lastArg {
 	case "completions":
 		fmt.Printf("generating completions file...")
-		root := cmd.NewQriCommand(cmd.EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+		root := cmd.NewQriCommand(cmd.EnvPathFactory, ioes.NewStdIOStreams())
 		root.GenBashCompletionFile("out.sh")
 		fmt.Println("done")
 	case "docs":
@@ -25,7 +26,7 @@ func main() {
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-		root := cmd.NewQriCommand(cmd.EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+		root := cmd.NewQriCommand(cmd.EnvPathFactory, ioes.NewStdIOStreams())
 		err := doc.GenMarkdownTree(root, path)
 		if err != nil {
 			log.Fatal(err)

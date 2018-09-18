@@ -1,12 +1,13 @@
 package cmd
 
 import (
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
 // NewVersionCommand creates a new `qri version` cobra command that prints the current qri version
-func NewVersionCommand(_ Factory, ioStreams IOStreams) *cobra.Command {
+func NewVersionCommand(_ Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "version",
 		Short: "Print the version number",

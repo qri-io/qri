@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -16,7 +17,7 @@ const profilePrefix = "profile."
 
 // NewConfigCommand creates a new `qri config` cobra command
 // config represents commands that read & modify configuration settings
-func NewConfigCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewConfigCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := ConfigOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "config",
@@ -116,7 +117,7 @@ field checkout: https://github.com/qri-io/qri/blob/master/config/readme.md`,
 
 // ConfigOptions encapsulates state for the config command
 type ConfigOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Format          string
 	WithPrivateKeys bool

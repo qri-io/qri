@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -13,7 +14,7 @@ import (
 
 // NewValidateCommand creates a new `qri validate` cobra command for showing schema errors
 // in a dataset body
-func NewValidateCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewValidateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ValidateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "validate",
@@ -78,7 +79,7 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 
 // ValidateOptions encapsulates state for the validate command
 type ValidateOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Ref            string
 	Filepath       string
@@ -109,8 +110,9 @@ func (o *ValidateOptions) Run() (err error) {
 		dataFile, schemaFile *os.File
 		ref                  repo.DatasetRef
 	)
-	spinner.Start()
-	defer spinner.Stop()
+	// TODO - this is failing output tests
+	// o.StartSpinner()
+	// defer o.StopSpinner()
 
 	ref, err = repo.ParseDatasetRef(o.Ref)
 	if err != nil && err != repo.ErrEmptyRef {
@@ -150,7 +152,7 @@ func (o *ValidateOptions) Run() (err error) {
 		return err
 	}
 
-	spinner.Stop()
+	o.StopSpinner()
 
 	if len(res) == 0 {
 		printSuccess(o.Out, "✔ All good!")

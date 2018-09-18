@@ -4,13 +4,14 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
 func TestRenderComplete(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)
@@ -58,7 +59,7 @@ func TestRenderComplete(t *testing.T) {
 }
 
 func TestRenderRun(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	// set Default Template to something easier to work with, then

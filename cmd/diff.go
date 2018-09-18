@@ -2,13 +2,14 @@ package cmd
 
 import (
 	"github.com/qri-io/dsdiff"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewDiffCommand creates a new `qri diff` cobra command for comparing changes between datasets
-func NewDiffCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "diff",
@@ -43,7 +44,7 @@ the same dataset.`,
 
 // DiffOptions encapsulates options for the diff command
 type DiffOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Display string
 	Left    string

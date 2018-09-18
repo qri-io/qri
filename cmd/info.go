@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewInfoCommand creates a `qri info` cobra command for describing datasets
-func NewInfoCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewInfoCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &InfoOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "info",
@@ -62,7 +63,7 @@ terminal window.`,
 
 // InfoOptions encapsulates state for the info command
 type InfoOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Refs   []string
 	Format string

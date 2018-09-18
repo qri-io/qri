@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/qri-io/ioes"
 	qri "github.com/qri-io/qri/cmd"
 	"github.com/spf13/cobra/doc"
 )
@@ -26,7 +27,7 @@ func main() {
 	flag.Parse()
 
 	// generate markdown filenames
-	root := qri.NewQriCommand(qri.EnvPathFactory, os.Stdin, ioutil.Discard, ioutil.Discard)
+	root := qri.NewQriCommand(qri.EnvPathFactory, ioes.NewStdIOStreams())
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)

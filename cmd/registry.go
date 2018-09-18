@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewRegistryCommand creates a `qri registry` subcommand for working with configured registries
-func NewRegistryCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewRegistryCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "registry",
@@ -87,7 +88,7 @@ This dataset will no longer show up in search results.`,
 
 // RegistryOptions encapsulates state for the registry command & subcommands
 type RegistryOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Refs []string
 
@@ -104,8 +105,8 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // Publish executes the publish command
 func (o *RegistryOptions) Publish() error {
 	var res bool
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	for _, arg := range o.Refs {
 		ref, err := repo.ParseDatasetRef(arg)
@@ -130,8 +131,8 @@ func (o *RegistryOptions) Publish() error {
 // Unpublish executes the unpublish command
 func (o *RegistryOptions) Unpublish() error {
 	var res bool
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	for _, arg := range o.Refs {
 		ref, err := repo.ParseDatasetRef(arg)

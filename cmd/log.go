@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewLogCommand creates a new `qri log` cobra command
-func NewLogCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewLogCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &LogOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "log",
@@ -44,7 +45,7 @@ working backwards in time.`,
 
 // LogOptions encapsulates state for the log command
 type LogOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Limit  int
 	Offset int

@@ -4,13 +4,14 @@ import (
 	"fmt"
 	"io/ioutil"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewRenderCommand creates a new `qri render` command for executing templates against datasets
-func NewRenderCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewRenderCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RenderOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "render",
@@ -51,7 +52,7 @@ provided, Qri will render the dataset with a default template.`,
 
 // RenderOptions encapsulates state for the render command
 type RenderOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Ref      string
 	Template string
@@ -75,9 +76,6 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the render command
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
-
-	spinner.Start()
-	defer spinner.Stop()
 
 	ref, err := repo.ParseDatasetRef(o.Ref)
 	if err != nil && err != repo.ErrEmptyRef {

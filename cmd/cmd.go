@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
@@ -40,7 +41,7 @@ func Execute() {
 
 	ensureLargeNumOpenFiles()
 
-	root := NewQriCommand(EnvPathFactory, os.Stdin, os.Stdout, os.Stderr)
+	root := NewQriCommand(EnvPathFactory, ioes.NewStdIOStreams())
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
 	// is missing command-line arguments.

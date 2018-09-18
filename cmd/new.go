@@ -10,6 +10,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -23,7 +24,7 @@ Never provide secrets to a transformation you do not trust.
 continue?`
 
 // NewNewCommand creates a new command
-func NewNewCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewNewCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &NewOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:        "new",
@@ -70,7 +71,7 @@ create a dataset with a dataset data file:
 
 // NewOptions encapsulates state for the new command
 type NewOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	File     string
 	BodyPath string
@@ -93,8 +94,8 @@ func (o *NewOptions) Complete(f Factory) (err error) {
 
 // Run creates a new dataset
 func (o *NewOptions) Run(args []string) (err error) {
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	if o.File == "" && o.BodyPath == "" {
 		return fmt.Errorf("creating new dataset needs either --file or --body")
@@ -143,9 +144,14 @@ func (o *NewOptions) Run(args []string) (err error) {
 	}
 	if dsp.Transform != nil {
 		if o.Secrets != nil {
+			if o.SpinnerActive() {
+				o.StopSpinner()
+			}
 			if !confirm(o.Out, o.In, providingSecretWarningMessage, true) {
 				return nil
 			}
+			o.StartSpinner()
+
 			if dsp.Transform.Secrets, err = parseSecrets(o.Secrets...); err != nil {
 				return err
 			}
@@ -193,6 +199,7 @@ func (o *NewOptions) Run(args []string) (err error) {
 	}
 
 	ref.Peername = "me"
-	printSuccess(o.Out, "created new dataset %s", ref)
+	o.StopSpinner()
+	o.Print(fmt.Sprintf("created new dataset %s\n", ref))
 	return nil
 }

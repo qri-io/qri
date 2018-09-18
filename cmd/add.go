@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -9,7 +10,7 @@ import (
 // TODO: Tests.
 
 // NewAddCommand creates an add command
-func NewAddCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewAddCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &AddOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "add",
@@ -36,7 +37,7 @@ the name of the peer that originally added the dataset.`,
 
 // AddOptions encapsulates state for the add command
 type AddOptions struct {
-	IOStreams
+	ioes.IOStreams
 	DatasetRequests *lib.DatasetRequests
 }
 
@@ -50,8 +51,8 @@ func (o *AddOptions) Complete(f Factory) (err error) {
 
 // Run adds another peer's dataset to this user's repo
 func (o *AddOptions) Run(args []string) error {
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	for _, arg := range args {
 		ref, err := parseCmdLineDatasetRef(arg)

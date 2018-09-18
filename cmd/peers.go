@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/ghodss/yaml"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
 // NewPeersCommand cerates a new `qri peers` cobra command
-func NewPeersCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewPeersCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &PeersOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "peers",
@@ -148,7 +149,7 @@ You must have ` + "`qri connect`" + ` running in another terminal.`,
 
 // PeersOptions encapsulates state for the peers command
 type PeersOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Peername string
 	Verbose  bool

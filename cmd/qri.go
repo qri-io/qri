@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io"
 	"net"
 	"net/rpc"
 	"os"
@@ -10,6 +9,7 @@ import (
 	"sync"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -21,7 +21,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(pf PathFactory, in io.Reader, out, err io.Writer) *cobra.Command {
+func NewQriCommand(pf PathFactory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
@@ -35,7 +35,6 @@ Feedback, questions, bug reports, and contributions are welcome!
 https://github.com/qri-io/qri/issues`,
 	}
 
-	ioStreams := IOStreams{In: in, Out: out, ErrOut: err}
 	qriPath, ipfsPath := pf()
 	opt := NewQriOptions(qriPath, ipfsPath, ioStreams)
 
@@ -79,7 +78,7 @@ https://github.com/qri-io/qri/issues`,
 
 // QriOptions holds the Root Command State
 type QriOptions struct {
-	IOStreams
+	ioes.IOStreams
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
@@ -100,7 +99,7 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(qriPath, ipfsPath string, ioStreams IOStreams) *QriOptions {
+func NewQriOptions(qriPath, ipfsPath string, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		qriRepoPath: qriPath,
 		ipfsFsPath:  ipfsPath,
@@ -168,7 +167,7 @@ func (o *QriOptions) init() (err error) {
 		if err != nil {
 			return
 		}
-		o.node.LocalStreams = p2p.IOStreams(o.IOStreams)
+		o.node.LocalStreams = o.IOStreams
 	}
 	o.initialized.Do(initBody)
 	return err

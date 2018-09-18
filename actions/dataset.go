@@ -256,12 +256,12 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 	}
 
 	if ds.Transform != nil {
-		log.Info("running transformation...")
+		node.LocalStreams.Print("🤖 executing transform\n")
 		data, err = ExecTransform(node, ds, data, secrets)
 		if err != nil {
 			return
 		}
-		log.Info("done")
+		node.LocalStreams.Print("✅ transform complete\n")
 		ds.Assign(userSet)
 	}
 

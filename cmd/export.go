@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -22,7 +23,7 @@ import (
 
 // NewExportCommand creates a new export cobra command
 // exportCmd represents the export command
-func NewExportCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewExportCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ExportOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "export",
@@ -67,7 +68,7 @@ new dataset, use --blank.`,
 
 // ExportOptions encapsulates state for the export command
 type ExportOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Ref        string
 	PeerDir    bool
