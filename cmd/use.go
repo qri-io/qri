@@ -3,13 +3,14 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewUseCommand creates a new `qri search` command that searches for datasets
-func NewUseCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewUseCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UseOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "use",
@@ -55,7 +56,7 @@ Qri to explore a dataset.`,
 
 // UseOptions encapsulates state for the search command
 type UseOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Refs  []string
 	List  bool

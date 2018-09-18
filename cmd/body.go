@@ -7,13 +7,14 @@ import (
 	"os"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewBodyCommand creates a new `qri body` cobra command to fetch entries from the body of a dataset
-func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewBodyCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &BodyOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "body",
@@ -50,7 +51,7 @@ func NewBodyCommand(f Factory, ioStreams IOStreams) *cobra.Command {
 
 // BodyOptions encapsulates options for the body command
 type BodyOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Format string
 	Output string
@@ -80,8 +81,8 @@ func (o *BodyOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the body command
 func (o *BodyOptions) Run() error {
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	if o.UsingRPC {
 		return usingRPCError("body")

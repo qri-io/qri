@@ -11,14 +11,18 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
 )
 
-func init() {
-	// disable spinner output during testing
-	spinner.Writer = ioutil.Discard
+// ioReset resets the in, out, errs buffers
+// convenience function used in testing
+func ioReset(in, out, errs *bytes.Buffer) {
+	in.Reset()
+	out.Reset()
+	errs.Reset()
 }
 
 func confirmQriNotRunning() error {
@@ -175,8 +179,8 @@ func TestCommandsIntegration(t *testing.T) {
 		"qri setup --remove",
 	}
 
-	_, in, out, err := NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), in, out, err)
+	streams, _, _, _ := ioes.NewTestIOStreams()
+	root := NewQriCommand(NewDirPathFactory(path), streams)
 
 	for i, command := range commands {
 		func() {

@@ -5,12 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/registry/regclient"
 )
 
 func TestSearchComplete(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)
@@ -89,7 +90,7 @@ func TestSearchValidate(t *testing.T) {
 }
 
 func TestSearchRun(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	// mock registry server that returns fake response data

@@ -9,6 +9,7 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -16,7 +17,7 @@ import (
 )
 
 // NewSetupCommand creates a setup command
-func NewSetupCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewSetupCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SetupOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "setup",
@@ -63,7 +64,7 @@ including all your datasets, and de-registers your peername from the registry.`,
 
 // SetupOptions encapsulates state for the setup command
 type SetupOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Anonymous      bool
 	Overwrite      bool

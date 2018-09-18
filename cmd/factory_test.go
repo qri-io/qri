@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/mitchellh/go-homedir"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -18,7 +19,7 @@ import (
 
 // TestFactory is an implementation of the Factory interface for testing purposes
 type TestFactory struct {
-	IOStreams
+	ioes.IOStreams
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
@@ -48,6 +49,7 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 	}
 
 	return TestFactory{
+		IOStreams:   ioes.NewDiscardIOStreams(),
 		qriRepoPath: "",
 		ipfsFsPath:  "",
 

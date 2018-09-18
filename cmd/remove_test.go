@@ -5,11 +5,12 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestRemoveComplete(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)
@@ -88,7 +89,7 @@ func TestRemoveValidate(t *testing.T) {
 }
 
 func TestRemoveRun(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	// in order to have consistent responses

@@ -5,13 +5,14 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/registry/regserver/mock"
 )
 
 func TestSaveComplete(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)
@@ -97,7 +98,7 @@ func TestSaveValidate(t *testing.T) {
 }
 
 func TestSaveRun(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 	setNoPrompt(true)
 

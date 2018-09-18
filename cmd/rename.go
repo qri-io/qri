@@ -1,13 +1,14 @@
 package cmd
 
 import (
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewRenameCommand creates a new `qri rename` cobra command for renaming datasets
-func NewRenameCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewRenameCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RenameOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "rename",
@@ -39,7 +40,7 @@ renames to a minimum.`,
 
 // RenameOptions encapsulates state for the rename command
 type RenameOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	From string
 	To   string

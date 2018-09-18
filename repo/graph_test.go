@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
@@ -81,9 +80,9 @@ func makeTestRepo() (Repo, error) {
 		Transform: &dataset.Transform{
 			Syntax:     "sql",
 			ScriptPath: "foo.sky",
-			Resources: map[string]*dataset.Dataset{
-				"a": dataset.NewDatasetRef(datastore.NewKey("/path/to/a")),
-				"b": dataset.NewDatasetRef(datastore.NewKey("/path/to/b")),
+			Resources: map[string]*dataset.TransformResource{
+				"a": &dataset.TransformResource{Path: "/path/to/a"},
+				"b": &dataset.TransformResource{Path: "/path/to/b"},
 			},
 		},
 		PreviousPath: "",

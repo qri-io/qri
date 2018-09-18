@@ -11,6 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -18,7 +19,7 @@ import (
 
 // NewSaveCommand creates a `qri save` cobra command used for saving changes
 // to datasets
-func NewSaveCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewSaveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SaveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "save",
@@ -75,7 +76,7 @@ commit message and title to the save.`,
 
 // SaveOptions encapsulates state for the save command
 type SaveOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Ref            string
 	FilePath       string
@@ -114,8 +115,8 @@ func (o *SaveOptions) Validate() error {
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
-	spinner.Start()
-	defer spinner.Stop()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && o.FilePath == "" {
@@ -186,7 +187,7 @@ continue?`, true) {
 		return err
 	}
 
-	spinner.Stop()
+	o.StopSpinner()
 	printSuccess(o.Out, "dataset saved: %s", res)
 	if res.Dataset.Structure.ErrCount > 0 {
 		printWarning(o.Out, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))

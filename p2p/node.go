@@ -3,10 +3,10 @@ package p2p
 import (
 	"context"
 	"fmt"
-	"io"
 	"sync"
 
 	"github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -67,15 +67,7 @@ type QriNode struct {
 	// command line, to give feedback to the user. These may be piped to
 	// local http handlers/websockets/stdio, but these streams are meant for
 	// local feedback as opposed to p2p connections
-	LocalStreams IOStreams
-}
-
-// IOStreams provides the standard names for iostreams.  This is useful for embedding and for unit testing.
-// Inconsistent and different names make it hard to read and review code
-type IOStreams struct {
-	In     io.Reader
-	Out    io.Writer
-	ErrOut io.Writer
+	LocalStreams ioes.IOStreams
 }
 
 // Assert that conversions needed by the tests are valid.
@@ -105,6 +97,9 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		ctx:      context.Background(),
 		msgState: &sync.Map{},
 		msgChan:  make(chan Message),
+		// Make sure we always have proper IOStreams, this can be set
+		// later
+		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
 	node.handlers = MakeHandlers(node)
 

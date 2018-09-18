@@ -3,12 +3,13 @@ package cmd
 import (
 	"testing"
 
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestValidateComplete(t *testing.T) {
 	// in, out, and errs are buffers
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)
@@ -60,7 +61,7 @@ func TestValidateComplete(t *testing.T) {
 }
 
 func TestValidateRun(t *testing.T) {
-	streams, in, out, errs := NewTestIOStreams()
+	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
 	f, err := NewTestFactory(nil)

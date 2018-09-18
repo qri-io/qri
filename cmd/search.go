@@ -5,12 +5,13 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
 
 // NewSearchCommand creates a new `qri search` command that searches for datasets
-func NewSearchCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewSearchCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SearchOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "search",
@@ -43,7 +44,8 @@ Any dataset that has been published to the registry is available for search.`,
 
 // SearchOptions encapsulates state for the search command
 type SearchOptions struct {
-	IOStreams
+	ioes.IOStreams
+
 	Query          string
 	SearchRequests *lib.SearchRequests
 	Format         string
@@ -72,8 +74,9 @@ func (o *SearchOptions) Validate() error {
 
 // Run executes the search command
 func (o *SearchOptions) Run() (err error) {
-	spinner.Start()
-	defer spinner.Stop()
+	// TODO - spinner is failing tests
+	// o.StartSpinner()
+	// defer o.StopSpinner()
 
 	// TODO: add reindex option back in
 
@@ -89,7 +92,7 @@ func (o *SearchOptions) Run() (err error) {
 		return err
 	}
 
-	spinner.Stop()
+	// o.StopSpinner()
 	switch o.Format {
 	case "":
 		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)

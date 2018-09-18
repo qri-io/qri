@@ -5,13 +5,14 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
 // NewListCommand creates new `qri list` command that lists datasets for the local peer & others
-func NewListCommand(f Factory, ioStreams IOStreams) *cobra.Command {
+func NewListCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ListOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "list",
@@ -54,7 +55,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 
 // ListOptions encapsulates state for the List command
 type ListOptions struct {
-	IOStreams
+	ioes.IOStreams
 
 	Format   string
 	Limit    int
