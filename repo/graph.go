@@ -103,7 +103,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 			for _, ref := range q.Resources {
 				trans.AddLinks(dsgraph.Link{
 					From: trans,
-					To:   nl.node(dsgraph.NtDataset, ref.Path().String()),
+					To:   nl.node(dsgraph.NtDataset, ref.Path),
 				})
 			}
 			root.AddLinks(dsgraph.Link{From: root, To: trans})
