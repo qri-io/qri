@@ -136,7 +136,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 		return n, repo.DatasetRef{}
 	}
 
-	ref, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, true)
+	ref, _, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -200,7 +200,7 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref2, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false)
+	ref2, _, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

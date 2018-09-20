@@ -92,6 +92,10 @@ func TestDatasetRequestsInit(t *testing.T) {
 		{&dataset.DatasetPod{
 			Name: "foo",
 			Meta: &dataset.Meta{Title: "foo"},
+			Structure: &dataset.StructurePod{
+				Format: "json",
+				Schema: map[string]interface{}{"type": "array"},
+			},
 			Transform: &dataset.TransformPod{
 				ScriptPath: "testdata/tf/transform.sky",
 			}},
@@ -109,7 +113,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 					Qri:           "tf:0",
 					Syntax:        "skylark",
 					SyntaxVersion: skytf.Version,
-					ScriptPath:    "/map/QmcjVAiafyztY4rKjmZQZQybMMEo9EPekSErzs6eHtadfg",
+					ScriptPath:    "/map/QmQDnmqNrxhggPSKrx3DMxhXf4NDhe3SEQKr7egFMu23L6",
 				},
 				Structure: &dataset.StructurePod{
 					Qri:      "st:0",

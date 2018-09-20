@@ -65,6 +65,7 @@ create a dataset with a dataset data file:
 	cmd.Flags().BoolVarP(&o.Private, "private", "", false, "make dataset private. WARNING: not yet implimented. Please refer to https://github.com/qri-io/qri/issues/291 for updates")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
+	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate creating a dataset")
 
 	return cmd
 }
@@ -79,6 +80,7 @@ type NewOptions struct {
 	Message  string
 	Private  bool
 	Publish  bool
+	DryRun   bool
 	Secrets  []string
 
 	DatasetRequests *lib.DatasetRequests
@@ -187,6 +189,7 @@ func (o *NewOptions) Run(args []string) (err error) {
 		Dataset: dsp,
 		Private: o.Private,
 		Publish: o.Publish,
+		DryRun:  o.DryRun,
 	}
 
 	ref = repo.DatasetRef{}
