@@ -291,9 +291,12 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 		r.LogEvent(repo.ETDsPinned, ref)
 	}
 
-	err = ReadDataset(r, &ref)
-	if err != nil {
-		body, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath))
+	if err = ReadDataset(r, &ref); err != nil {
+		return
+	}
+
+	if body, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
+		fmt.Println("error getting from store:", err.Error())
 	}
 
 	return
