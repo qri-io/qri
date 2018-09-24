@@ -1,3 +1,22 @@
+<a name="0.5.3"></a>
+# [0.5.3](https://github.com/qri-io/qri/compare/v0.5.2...v0.5.3) (2018-09-24)
+
+### :running_woman: Dry Run
+0.5.3 is a minor version bump that introduces a new `--dry-run` flag on `qri new` and `qri save` that'll run new/save _without committing changes_. We've added the same thing on the api using a query param: `dry_run=true`. Dry runs are fun! use 'em to experiment with different input without having to constantly delete stuff.
+
+### Bug Fixes
+
+* **dsgraph:** fix breaking change from dataset pkg ([0954513](https://github.com/qri-io/qri/commit/0954513))
+
+
+### Features
+
+* **api dry run:** add dry run & moar file options to /new ([52cfa19](https://github.com/qri-io/qri/commit/52cfa19))
+* **dry_run flag:** added dry run flag to creating & updating datasets ([ef2d5ca](https://github.com/qri-io/qri/commit/ef2d5ca))
+* **p2p local streams:** add local streams to QriNode for local stdio interaction ([53ff3fd](https://github.com/qri-io/qri/commit/53ff3fd))
+
+
+
 <a name="0.5.2"></a>
 # [0.5.2](https://github.com/qri-io/qri/compare/v0.5.1...v0.5.2) (2018-09-14)
 
