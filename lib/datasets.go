@@ -86,14 +86,21 @@ func (r *DatasetRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error 
 
 // SaveParams encapsulates arguments to Init & Save
 type SaveParams struct {
-	Dataset *dataset.DatasetPod // dataset to create
-	Private bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
-	Publish bool
+	Dataset    *dataset.DatasetPod // dataset to create
+	Private    bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
+	Publish    bool
+	DryRun     bool
+	ReturnBody bool // if true, res.Dataset.Body will be a cafs.file of the body
 }
 
 // New creates a new qri dataset from a source of data
 func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
+		if p.ReturnBody {
+			// can't send an io.Reader interface over RPC
+			p.ReturnBody = false
+			log.Error("cannot return body bytes over RPC, disabling body return")
+		}
 		return r.cli.Call("DatasetRequests.New", p, res)
 	}
 
@@ -109,7 +116,8 @@ func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 		defer bodyFile.Close()
 	}
 
-	*res, err = actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, true)
+	var body cafs.File
+	*res, body, err = actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
 	if err != nil {
 		log.Debugf("error creating dataset: %s\n", err.Error())
 		return err
@@ -123,7 +131,11 @@ func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 		}
 	}
 
-	return actions.ReadDataset(r.node.Repo, res)
+	if p.ReturnBody {
+		res.Dataset.Body = body
+	}
+
+	return nil
 }
 
 // Save adds a history entry, updating a dataset
@@ -137,6 +149,11 @@ func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
 // but still use the hash to add to dataset.BodyPath
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
+		if p.ReturnBody {
+			// can't send an io.Reader interface over RPC
+			p.ReturnBody = false
+			log.Error("cannot return body bytes over RPC, disabling body return")
+		}
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
@@ -149,7 +166,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 
-	ref, err := actions.CreateDataset(r.node, p.Dataset.Name, ds, body, secrets, true)
+	ref, body, err := actions.CreateDataset(r.node, p.Dataset.Name, ds, body, secrets, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -161,6 +178,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		if err = NewRegistryRequests(r.node, nil).Publish(&PublishParams{Ref: ref, Pin: true}, &done); err != nil {
 			return err
 		}
+	}
+
+	if p.ReturnBody {
+		res.Dataset.Body = body
 	}
 
 	*res = ref

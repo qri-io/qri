@@ -228,7 +228,7 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 }
 
 // CreateDataset initializes a dataset from a dataset pointer and data file
-func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, pin bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
 		r   = node.Repo
 		pro *profile.Profile
@@ -242,6 +242,12 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 			Viz:       &dataset.Viz{},
 		}
 	)
+
+	if dryRun {
+		// dry-runs store to an in-memory repo
+		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
+	}
+
 	pro, err = r.Profile()
 	if err != nil {
 		return
@@ -269,7 +275,14 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 		return
 	}
 
-	if ref, err = repo.CreateDataset(node.Repo, name, ds, data, pin); err != nil {
+	if dryRun {
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
+		if err != nil {
+			return
+		}
+	}
+
+	if ref, err = repo.CreateDataset(r, name, ds, data, pin); err != nil {
 		return
 	}
 
@@ -281,6 +294,15 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 	if pin && storeIsPinner {
 		r.LogEvent(repo.ETDsPinned, ref)
 	}
+
+	if err = ReadDataset(r, &ref); err != nil {
+		return
+	}
+
+	if body, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
+		fmt.Println("error getting from store:", err.Error())
+	}
+
 	return
 }
 

@@ -31,7 +31,7 @@ func TestRegistry(t *testing.T) {
 		return
 	}
 
-	ref, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, true)
+	ref, _, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 

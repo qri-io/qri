@@ -4,6 +4,8 @@ import (
 	"context"
 	"testing"
 
+	"github.com/qri-io/dataset"
+
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
@@ -101,6 +103,27 @@ func TestDataset(t *testing.T) {
 	DatasetTests(t, rmf)
 }
 
+func TestCreateDataset(t *testing.T) {
+	n := newTestNode(t)
+
+	// test Dry run
+	ds := &dataset.Dataset{
+		Commit:    &dataset.Commit{},
+		Structure: &dataset.Structure{Format: dataset.JSONDataFormat, Schema: dataset.BaseSchemaArray},
+		Meta: &dataset.Meta{
+			Title: "test title",
+		},
+	}
+	body := cafs.NewMemfileBytes("data.json", []byte("[]"))
+	ref, _, err := CreateDataset(n, "dry_run_test", ds, body, nil, true, false)
+	if err != nil {
+		t.Errorf("dry run error: %s", err.Error())
+	}
+	if ref.AliasString() != "peer/dry_run_test" {
+		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
+	}
+}
+
 type RepoMakerFunc func(t *testing.T) repo.Repo
 type RepoTestFunc func(t *testing.T, rmf RepoMakerFunc)
 
@@ -136,7 +159,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 		return n, repo.DatasetRef{}
 	}
 
-	ref, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, true)
+	ref, _, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -200,7 +223,7 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref2, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false)
+	ref2, _, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

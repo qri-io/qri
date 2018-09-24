@@ -115,6 +115,18 @@ func TestDatasetHandlers(t *testing.T) {
 				"name":     "cities",
 			},
 		},
+		{"POST", "/new",
+			map[string]string{
+				"body":      "testdata/cities/data.csv",
+				"structure": "testdata/cities/structure.json",
+				"metadata":  "testdata/cities/meta.json",
+			},
+			map[string]string{
+				"peername": "peer",
+				"name":     "cities_dry_run",
+				"dry_run":  "true",
+			},
+		},
 	}
 	runMimeMultipartHandlerTestCases(t, "new mime/multipart", h.InitHandler, newMimeCases)
 }

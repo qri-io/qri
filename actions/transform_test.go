@@ -39,6 +39,10 @@ def transform(qri):
 	}
 
 	ds := &dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: dataset.JSONDataFormat,
+			Schema: dataset.BaseSchemaArray,
+		},
 		Transform: &dataset.Transform{
 			Syntax:     "skylark",
 			ScriptPath: tfPath,

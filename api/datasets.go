@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -10,6 +11,8 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+
+	"github.com/qri-io/ioes"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
@@ -24,6 +27,7 @@ import (
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
 type DatasetHandlers struct {
 	lib.DatasetRequests
+	node     *p2p.QriNode
 	repo     repo.Repo
 	ReadOnly bool
 }
@@ -31,7 +35,7 @@ type DatasetHandlers struct {
 // NewDatasetHandlers allocates a DatasetHandlers pointer
 func NewDatasetHandlers(node *p2p.QriNode, readOnly bool) *DatasetHandlers {
 	req := lib.NewDatasetRequests(node, nil)
-	h := DatasetHandlers{*req, node.Repo, readOnly}
+	h := DatasetHandlers{*req, node, node.Repo, readOnly}
 	return &h
 }
 
@@ -377,6 +381,48 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 
+		tfFile, _, err := r.FormFile("transform")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening transform file: %s", err))
+			return
+		}
+		if tfFile != nil {
+			// TODO - this assumes a skylark / starlark transform file
+			f, err := ioutil.TempFile("", "transform")
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			defer os.Remove(f.Name())
+			io.Copy(f, tfFile)
+			if dsp.Transform == nil {
+				dsp.Transform = &dataset.TransformPod{}
+			}
+			dsp.Transform.Syntax = "skylark"
+			dsp.Transform.ScriptPath = f.Name()
+		}
+
+		vizFile, _, err := r.FormFile("viz")
+		if err != nil && err != http.ErrMissingFile {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error opening viz file: %s", err))
+			return
+		}
+		if vizFile != nil {
+			// TODO - this assumes an html viz file
+			f, err := ioutil.TempFile("", "viz")
+			if err != nil {
+				util.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+			defer os.Remove(f.Name())
+			io.Copy(f, vizFile)
+			if dsp.Viz == nil {
+				dsp.Viz = &dataset.Viz{}
+			}
+			dsp.Viz.Format = "html"
+			dsp.Viz.ScriptPath = f.Name()
+		}
+
 		dsp.Peername = r.FormValue("peername")
 		dsp.Name = r.FormValue("name")
 		dsp.BodyPath = r.FormValue("body_path")
@@ -401,17 +447,54 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 
 	}
 
+	// TODO - fix this awful mess, ioes needs some method for piping it's output
+	prev := h.node.LocalStreams
+	defer func() {
+		h.node.LocalStreams = prev
+	}()
+
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	errOut := &bytes.Buffer{}
+	s := ioes.NewIOStreams(in, out, errOut)
+	h.node.LocalStreams = s
+
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{
-		Dataset: dsp,
-		Private: r.FormValue("private") == "true",
+		Dataset:    dsp,
+		Private:    r.FormValue("private") == "true",
+		DryRun:     r.FormValue("dry_run") == "true",
+		ReturnBody: r.FormValue("return_body") == "true",
 	}
 	if err := h.New(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res.Dataset)
+
+	if p.ReturnBody {
+		// TODO - this'll only work for JSON responses
+		data, err := ioutil.ReadAll(res.Dataset.Body.(io.Reader))
+		if err != nil {
+			log.Info(err.Error())
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		res.Dataset.Body = json.RawMessage(data)
+	}
+
+	// util.WriteResponse(w, res)
+	env := map[string]interface{}{
+		"meta": map[string]interface{}{
+			"code":    http.StatusOK,
+			"message": string(out.Bytes()),
+		},
+		"data": res.Dataset,
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.WriteHeader(http.StatusOK)
+	json.NewEncoder(w).Encode(env)
 }
 
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
