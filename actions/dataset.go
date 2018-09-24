@@ -242,6 +242,12 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 			Viz:       &dataset.Viz{},
 		}
 	)
+
+	if dryRun {
+		// dry-runs store to an in-memory repo
+		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
+	}
+
 	pro, err = r.Profile()
 	if err != nil {
 		return
@@ -270,8 +276,6 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 	}
 
 	if dryRun {
-		// dry-runs store to an in-memory repo
-		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
