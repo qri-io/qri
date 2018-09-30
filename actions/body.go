@@ -37,12 +37,24 @@ func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg 
 		Schema:       ds.Structure.Schema,
 	})
 
-	buf, err := dsio.NewEntryBuffer(st)
+	data, err = ConvertBodyFile(file, ds.Structure, st, limit, offset, all)
+	if err != nil {
+		log.Debug(err.Error())
+		return "", nil, err
+	}
+
+	return ds.BodyPath, data, nil
+}
+
+// ConvertBodyFile takes an input file & structure, and converts a specified selection
+// to the structure specified by out
+func ConvertBodyFile(file cafs.File, in, out *dataset.Structure, limit, offset int, all bool) (data []byte, err error) {
+	buf, err := dsio.NewEntryBuffer(out)
 	if err != nil {
 		err = fmt.Errorf("error allocating result buffer: %s", err)
 		return
 	}
-	rr, err := dsio.NewEntryReader(ds.Structure, file)
+	rr, err := dsio.NewEntryReader(in, file)
 	if err != nil {
 		err = fmt.Errorf("error allocating data reader: %s", err)
 		return
@@ -58,8 +70,8 @@ func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg 
 	err = dsio.Copy(rr, buf)
 
 	if err := buf.Close(); err != nil {
-		return "", nil, fmt.Errorf("error closing row buffer: %s", err.Error())
+		return nil, fmt.Errorf("error closing row buffer: %s", err.Error())
 	}
 
-	return ds.BodyPath, buf.Bytes(), nil
+	return buf.Bytes(), nil
 }
