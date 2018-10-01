@@ -280,6 +280,8 @@ func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data caf
 		if err != nil {
 			return
 		}
+		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
+		// memRepo should be able to wrap another repo & check that before returning not found
 	}
 
 	if ref, err = repo.CreateDataset(r, name, ds, data, pin); err != nil {
