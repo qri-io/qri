@@ -1,3 +1,15 @@
+<a name="0.5.4"></a>
+# [0.5.4](https://github.com/qri-io/qri/compare/v0.5.3...v0.5.4) (2018-10-01)
+
+### :wrench: minor patch release
+0.5.4 is a _very_ minor release that cleans up a few issues with our API to make the frontend editor work :smile:
+
+### Features
+
+* **ConvertBodyFile:** extracted actions.ConvertBodyFile from LookupBody func ([d8a7f77](https://github.com/qri-io/qri/commit/d8a7f77))
+
+
+
 <a name="0.5.3"></a>
 # [0.5.3](https://github.com/qri-io/qri/compare/v0.5.2...v0.5.3) (2018-09-24)
 
