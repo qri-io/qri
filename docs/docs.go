@@ -10,6 +10,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	qri "github.com/qri-io/qri/cmd"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra/doc"
 )
 
@@ -27,7 +28,7 @@ func main() {
 	flag.Parse()
 
 	// generate markdown filenames
-	root := qri.NewQriCommand(qri.EnvPathFactory, ioes.NewStdIOStreams())
+	root := qri.NewQriCommand(qri.EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
 
 	if _, err := os.Stat(dir); os.IsNotExist(err) {
 		err = os.MkdirAll(dir, 0755)

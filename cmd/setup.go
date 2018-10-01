@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
 
@@ -77,12 +78,14 @@ type SetupOptions struct {
 
 	QriRepoPath string
 	IpfsFsPath  string
+	Generator   gen.CryptoGenerator
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
 	o.QriRepoPath = f.QriRepoPath()
 	o.IpfsFsPath = f.IpfsFsPath()
+	o.Generator = f.CryptoGenerator()
 	return
 }
 
@@ -147,11 +150,9 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		cfg.P2P = config.DefaultP2PWithoutKeys()
 	}
 	if cfg.P2P.PrivKey == "" {
-		// This is a fairly expensive operation.
-		err := cfg.P2P.GeneratePrivateKeyAndPeerID()
-		if err != nil {
-			panic(err)
-		}
+		privKey, peerID := o.Generator.GeneratePrivateKeyAndPeerID()
+		cfg.P2P.PrivKey = privKey
+		cfg.P2P.PeerID = peerID
 	}
 	if cfg.Profile == nil {
 		cfg.Profile = config.DefaultProfileWithoutKeys()
@@ -159,8 +160,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	if cfg.Profile.PrivKey == "" {
 		cfg.Profile.PrivKey = cfg.P2P.PrivKey
 		cfg.Profile.ID = cfg.P2P.PeerID
-		// This is not really that expensive, however.
-		cfg.Profile.GenerateNicknameFromPeerID()
+		cfg.Profile.Peername = o.Generator.GenerateNickname(cfg.P2P.PeerID)
 	}
 
 	if o.Peername != "" {

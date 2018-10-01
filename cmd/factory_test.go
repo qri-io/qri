@@ -10,9 +10,11 @@ import (
 	"github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/registry/regclient"
 )
@@ -24,6 +26,8 @@ type TestFactory struct {
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	ipfsFsPath string
+	// generator is a source of cryptographic info
+	generator gen.CryptoGenerator
 
 	// Configuration object
 	config *config.Config
@@ -52,6 +56,7 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 		IOStreams:   ioes.NewDiscardIOStreams(),
 		qriRepoPath: "",
 		ipfsFsPath:  "",
+		generator:   NewTestCrypto(),
 
 		repo:   repo,
 		rpc:    nil,
@@ -73,6 +78,11 @@ func (t TestFactory) IpfsFsPath() string {
 // QriRepoPath returns from internal state
 func (t TestFactory) QriRepoPath() string {
 	return t.qriRepoPath
+}
+
+// CryptoGenerator
+func (t TestFactory) CryptoGenerator() gen.CryptoGenerator {
+	return t.generator
 }
 
 // Repo returns from internal state
@@ -182,4 +192,25 @@ func TestEnvPathFactory(t *testing.T) {
 		}
 
 	}
+}
+
+func NewTestCrypto() gen.CryptoGenerator {
+	return &testCryptoGenerator{}
+}
+
+type testCryptoGenerator struct {
+	count int
+}
+
+// TODO: Add a method to this that performs a version of `cafs/ipfs/init` or InitIPFS in
+// `actions/setup` that is more appropriate for tests.
+
+func (g *testCryptoGenerator) GeneratePrivateKeyAndPeerID() (string, string) {
+	info := cfgtest.GetTestPeerInfo(g.count)
+	g.count++
+	return info.EncodedPrivKey, info.EncodedPeerID
+}
+
+func (g *testCryptoGenerator) GenerateNickname(peerID string) string {
+	return "testnick"
 }

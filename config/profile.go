@@ -1,14 +1,9 @@
 package config
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
-	"github.com/qri-io/doggos"
 	"github.com/qri-io/jsonschema"
 )
 
@@ -62,39 +57,6 @@ func DefaultProfileWithoutKeys() *ProfilePod {
 		Updated: now,
 		Type:    "peer",
 	}
-}
-
-// DefaultProfile gives a new default profile configuration, generating a new random
-// private key, peer.ID, and nickname
-func DefaultProfile() *ProfilePod {
-	r := rand.Reader
-	now := time.Now()
-	p := &ProfilePod{
-		Created: now,
-		Updated: now,
-		Type:    "peer",
-	}
-
-	// Generate a key pair for this host. We will use it at least
-	// to obtain a valid host ID.
-	if priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r); err == nil {
-		if pdata, err := priv.Bytes(); err == nil {
-			p.PrivKey = base64.StdEncoding.EncodeToString(pdata)
-		}
-
-		// Obtain Peer ID from public key
-		if pid, err := peer.IDFromPublicKey(pub); err == nil {
-			p.ID = pid.Pretty()
-			p.Peername = doggos.DoggoNick(p.ID)
-		}
-	}
-
-	return p
-}
-
-// GenerateNicknameFromPeerID generates a nick from the PeerID, assigning to the peername.
-func (p *ProfilePod) GenerateNicknameFromPeerID() {
-	p.Peername = doggos.DoggoNick(p.ID)
 }
 
 // Validate validates all fields of profile returning all errors found.
