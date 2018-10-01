@@ -420,7 +420,10 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	}
 
 	datafile, dataHeader, err := r.FormFile("file")
-	if err != nil && err != http.ErrMissingFile {
+	if err == http.ErrMissingFile {
+		err = nil
+	}
+	if err != nil {
 		err = fmt.Errorf("error opening dataset file: %s", err)
 		return
 	}
@@ -446,7 +449,10 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	}
 
 	tfFile, _, err := r.FormFile("transform")
-	if err != nil && err != http.ErrMissingFile {
+	if err == http.ErrMissingFile {
+		err = nil
+	}
+	if err != nil {
 		err = fmt.Errorf("error opening transform file: %s", err)
 		return
 	}
@@ -467,7 +473,10 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	}
 
 	vizFile, _, err := r.FormFile("viz")
-	if err != nil && err != http.ErrMissingFile {
+	if err == http.ErrMissingFile {
+		err = nil
+	}
+	if err != nil {
 		err = fmt.Errorf("error opening viz file: %s", err)
 		return
 	}
@@ -492,7 +501,10 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	dsp.BodyPath = r.FormValue("body_path")
 
 	bodyfile, bodyHeader, err := r.FormFile("body")
-	if err != nil && err != http.ErrMissingFile {
+	if err == http.ErrMissingFile {
+		err = nil
+	}
+	if err != nil {
 		err = fmt.Errorf("error opening body file: %s", err)
 		return
 	}
