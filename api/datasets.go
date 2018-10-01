@@ -413,6 +413,8 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), err error) {
 	var rmFiles []*os.File
 	cleanup = func() {
+		// TODO - this needs to be removed ASAP in favor of constructing cafs.Files from form-file readers
+		// There's danger this code could delete stuff not in temp directory if we're bad at our jobs.
 		for _, f := range rmFiles {
 			// TODO - log error?
 			os.Remove(f.Name())
@@ -457,10 +459,9 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 		return
 	}
 	if tfFile != nil {
+		var f *os.File
 		// TODO - this assumes a skylark / starlark transform file
-		f, e := ioutil.TempFile("", "transform")
-		if e != nil {
-			err = e
+		if f, err = ioutil.TempFile("", "transform"); err != nil {
 			return
 		}
 		rmFiles = append(rmFiles, f)
@@ -481,10 +482,9 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 		return
 	}
 	if vizFile != nil {
+		var f *os.File
 		// TODO - this assumes an html viz file
-		f, e := ioutil.TempFile("", "viz")
-		if e != nil {
-			err = e
+		if f, err = ioutil.TempFile("", "viz"); err != nil {
 			return
 		}
 		rmFiles = append(rmFiles, f)
@@ -509,10 +509,10 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 		return
 	}
 	if bodyfile != nil {
+		var f *os.File
 		path := filepath.Join(os.TempDir(), bodyHeader.Filename)
-		f, e := os.Create(path)
-		if e != nil {
-			err = fmt.Errorf("error writing body file: %s", e.Error())
+		if f, err = os.Create(path); err != nil {
+			err = fmt.Errorf("error writing body file: %s", err.Error())
 			return
 		}
 		rmFiles = append(rmFiles, f)
@@ -524,36 +524,43 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	return
 }
 
+// when datasets are created with save/new dataset bodies they can be run with "return body",
+// which populates res.Dataset.Body with a cafs.File of raw data
+// addBodyFile sets the dataset body, converting to JSON for a response the API can understand
+// TODO - make this less bad. this should happen lower and lib Params should be used to set the response
+// body to well-formed JSON
 func addBodyFile(res *repo.DatasetRef) error {
 	if res.Dataset.Structure.Format == dataset.JSONDataFormat.String() {
-		// TODO - this'll only work for JSON responses
 		data, err := ioutil.ReadAll(res.Dataset.Body.(io.Reader))
 		if err != nil {
 			return err
 		}
 		res.Dataset.Body = json.RawMessage(data)
-	} else {
-		if file, ok := res.Dataset.Body.(cafs.File); ok {
-			in := &dataset.Structure{}
-			if err := in.Decode(res.Dataset.Structure); err != nil {
-				return err
-			}
-
-			st := &dataset.Structure{}
-			st.Assign(in, &dataset.Structure{
-				Format: dataset.JSONDataFormat,
-				Schema: in.Schema,
-			})
-
-			data, err := actions.ConvertBodyFile(file, in, st, 0, 0, true)
-			if err != nil {
-				return fmt.Errorf("converting body file to JSON: %s", err)
-			}
-			res.Dataset.Body = json.RawMessage(data)
-		} else {
-			log.Error("response body isn't a cafs.File")
-		}
+		return nil
 	}
+
+	file, ok := res.Dataset.Body.(cafs.File)
+	if !ok {
+		log.Error("response body isn't a cafs.File")
+		return fmt.Errorf("response body isn't a cafs.File")
+	}
+
+	in := &dataset.Structure{}
+	if err := in.Decode(res.Dataset.Structure); err != nil {
+		return err
+	}
+
+	st := &dataset.Structure{}
+	st.Assign(in, &dataset.Structure{
+		Format: dataset.JSONDataFormat,
+		Schema: in.Schema,
+	})
+
+	data, err := actions.ConvertBodyFile(file, in, st, 0, 0, true)
+	if err != nil {
+		return fmt.Errorf("converting body file to JSON: %s", err)
+	}
+	res.Dataset.Body = json.RawMessage(data)
 	return nil
 }
 

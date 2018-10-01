@@ -51,7 +51,5 @@ func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, sec
 		return
 	}
 
-	// ds.Structure = st
-	// return cafs.NewMemfileBytes(fmt.Sprintf("data.%s", st.Format.String()), buf.Bytes()), nil
 	return
 }
