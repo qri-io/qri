@@ -31,7 +31,7 @@ func TestConnect(t *testing.T) {
 
 	cmd := "qri connect --setup --registry=" + registryServer.URL + " --disconnect-after=1"
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), streams)
+	root := NewQriCommand(NewDirPathFactory(path), NewTestCrypto(), streams)
 
 	defer func() {
 		if e := recover(); e != nil {

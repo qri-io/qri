@@ -15,13 +15,14 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 	"github.com/spf13/cobra"
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(pf PathFactory, ioStreams ioes.IOStreams) *cobra.Command {
+func NewQriCommand(pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
@@ -36,7 +37,7 @@ https://github.com/qri-io/qri/issues`,
 	}
 
 	qriPath, ipfsPath := pf()
-	opt := NewQriOptions(qriPath, ipfsPath, ioStreams)
+	opt := NewQriOptions(qriPath, ipfsPath, generator, ioStreams)
 
 	// TODO: write a test that verifies this works with our new yaml config
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
@@ -83,6 +84,8 @@ type QriOptions struct {
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	ipfsFsPath string
+	// generator is source of generating cryptographic info
+	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
 	NoPrompt bool
 	// NoColor disables colorized output
@@ -99,11 +102,12 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(qriPath, ipfsPath string, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
 		qriRepoPath: qriPath,
 		ipfsFsPath:  ipfsPath,
 		IOStreams:   ioStreams,
+		generator:   generator,
 	}
 }
 
@@ -189,6 +193,11 @@ func (o *QriOptions) IpfsFsPath() string {
 // QriRepoPath returns from internal state
 func (o *QriOptions) QriRepoPath() string {
 	return o.qriRepoPath
+}
+
+// CryptoGenerator returns a resource for generating cryptographic info
+func (o *QriOptions) CryptoGenerator() gen.CryptoGenerator {
+	return o.generator
 }
 
 // RPC returns from internal state

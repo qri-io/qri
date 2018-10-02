@@ -13,7 +13,7 @@ func TestSetupTeardown(t *testing.T) {
 	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
-	cfg1 := config.DefaultConfig()
+	cfg1 := config.DefaultConfigForTesting()
 	cfg1.Profile = nil
 	cfg1.Registry = nil
 	params := SetupParams{
@@ -25,7 +25,7 @@ func TestSetupTeardown(t *testing.T) {
 		t.Errorf("expected invalid cfg to fail")
 	}
 
-	params.Config = config.DefaultConfig()
+	params.Config = config.DefaultConfigForTesting()
 	params.Config.Registry.Location = registryServer.URL
 	params.SetupIPFS = true
 	params.IPFSFsPath = path

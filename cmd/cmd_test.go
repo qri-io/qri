@@ -180,7 +180,7 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), streams)
+	root := NewQriCommand(NewDirPathFactory(path), NewTestCrypto(), streams)
 
 	for i, command := range commands {
 		func() {

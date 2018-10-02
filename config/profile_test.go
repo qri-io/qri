@@ -7,7 +7,7 @@ import (
 )
 
 func TestProfileValidate(t *testing.T) {
-	err := DefaultProfile().Validate()
+	err := DefaultProfileForTesting().Validate()
 	if err != nil {
 		t.Errorf("error validating default profile: %s", err)
 	}
@@ -33,7 +33,7 @@ func TestProfileCopy(t *testing.T) {
 func TestProfileCopyPeerIDs(t *testing.T) {
 	// build off DefaultProfile so we can test that the profile Copy
 	// actually copies over correctly (ie, deeply)
-	p := DefaultProfile()
+	p := DefaultProfileForTesting()
 	p.PeerIDs = []string{"1", "2", "3"}
 
 	cpy := p.Copy()

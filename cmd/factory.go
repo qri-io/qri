@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/gen"
 )
 
 // Factory is an interface for providing required structures to cobra commands
@@ -19,6 +20,7 @@ type Factory interface {
 
 	IpfsFsPath() string
 	QriRepoPath() string
+	CryptoGenerator() gen.CryptoGenerator
 
 	Repo() (repo.Repo, error)
 	Node() (*p2p.QriNode, error)

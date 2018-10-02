@@ -23,7 +23,7 @@ func TestRepo(t *testing.T) {
 			t.Errorf("error removing files: %s", err.Error())
 		}
 
-		pro, err := profile.NewProfile(config.DefaultProfile())
+		pro, err := profile.NewProfile(config.DefaultProfileForTesting())
 		if err != nil {
 			t.Error(err.Error())
 		}

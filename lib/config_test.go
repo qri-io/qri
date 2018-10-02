@@ -11,7 +11,7 @@ import (
 )
 
 func init() {
-	Config = config.DefaultConfig()
+	Config = config.DefaultConfigForTesting()
 }
 
 func TestLoadConfig(t *testing.T) {
@@ -69,7 +69,7 @@ func TestSetConfig(t *testing.T) {
 		t.Errorf("expected saving empty config to be invalid")
 	}
 
-	cfg := config.DefaultConfig()
+	cfg := config.DefaultConfigForTesting()
 	SaveConfig = func() error { return fmt.Errorf("bad") }
 	if err := SetConfig(cfg); err == nil {
 		t.Errorf("expected saving error to return")

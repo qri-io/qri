@@ -1,7 +1,6 @@
 package config
 
 import (
-	"crypto/rand"
 	"encoding/base64"
 	"fmt"
 	"reflect"
@@ -49,14 +48,6 @@ type P2P struct {
 	BootstrapAddrs []string `json:"bootstrapaddrs"`
 }
 
-// DefaultP2P generates sensible settings for p2p, generating a new randomized
-// private key & peer id
-func DefaultP2P() *P2P {
-	p := NewP2P()
-	_ = p.GeneratePrivateKeyAndPeerID()
-	return p
-}
-
 // DefaultP2PWithoutKeys generates a p2p struct without keys or peerID
 func DefaultP2PWithoutKeys() *P2P {
 	return NewP2P()
@@ -83,28 +74,6 @@ func NewP2P() *P2P {
 		ProfileReplication: "full",
 	}
 	return p2p
-}
-
-// GeneratePrivateKeyAndPeerID generates a new random private key and peer id
-func (cfg *P2P) GeneratePrivateKeyAndPeerID() error {
-	r := rand.Reader
-	// Generate a key pair for this host
-	priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r)
-	if err != nil {
-		return err
-	}
-	pdata, err := priv.Bytes()
-	if err != nil {
-		return err
-	}
-	cfg.PrivKey = base64.StdEncoding.EncodeToString(pdata)
-	// Obtain Peer ID from public key
-	pid, err := peer.IDFromPublicKey(pub)
-	if err != nil {
-		return err
-	}
-	cfg.PeerID = pid.Pretty()
-	return nil
 }
 
 // DecodePrivateKey generates a PrivKey instance from base64-encoded config file bytes
