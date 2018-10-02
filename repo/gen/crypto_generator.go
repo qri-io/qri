@@ -1,3 +1,6 @@
+// Package gen contains routines that perform expensive cryptographic
+// operations. These should only be used when absolutely needed by
+// top-level commands, and not in, for example, in test code.
 package gen
 
 import (
@@ -11,43 +14,42 @@ import (
 
 // CryptoGenerator is an interface for generating cryptographic info like private keys and peerIDs
 type CryptoGenerator interface {
+	// GeneratePrivateKeyAndPeerID returns a base64 encoded private key, and a peerID
 	GeneratePrivateKeyAndPeerID() (string, string)
+	// GenerateNickname uses a peerID to return a human-friendly nickname
 	GenerateNickname(peerID string) string
 }
 
-// RealCryptoSource is a source of cryptographic info
-type RealCryptoSource struct {
+// CryptoSource is a source of cryptographic info
+type CryptoSource struct {
 }
 
-// NewCryptoSource returns a real source of p2p cryptographic info
-func NewCryptoSource() *RealCryptoSource {
-	return &RealCryptoSource{}
+// NewCryptoSource returns a source of p2p cryptographic info that
+// performs expensive computations like repeated primality testing
+func NewCryptoSource() *CryptoSource {
+	return &CryptoSource{}
 }
 
 // GeneratePrivateKeyAndPeerID returns a private key and peerID
-func (g *RealCryptoSource) GeneratePrivateKeyAndPeerID() (string, string) {
-	var privKey, peerID string
-
+func (g *CryptoSource) GeneratePrivateKeyAndPeerID() (privKey, peerID string) {
 	r := rand.Reader
 	// Generate a key pair for this host. This is a relatively expensive operation.
 	if priv, pub, err := crypto.GenerateKeyPairWithReader(crypto.RSA, 2048, r); err == nil {
 		if pdata, err := priv.Bytes(); err == nil {
 			privKey = base64.StdEncoding.EncodeToString(pdata)
 		}
-
-		// Obtain Peer ID from public key
+		// Obtain peerID from public key
 		if pid, err := peer.IDFromPublicKey(pub); err == nil {
 			peerID = pid.Pretty()
 		}
 	}
-
-	return privKey, peerID
+	return
 }
 
 // GenerateNickname returns a nickname using a peerID as a seed
-func (g *RealCryptoSource) GenerateNickname(peerID string) string {
+func (g *CryptoSource) GenerateNickname(peerID string) string {
 	return doggos.DoggoNick(peerID)
 }
 
 // TODO: Add a method that wraps the behavior of cafs/ipfs/init, which also performs
-// a bunch of cryptographic generation.
+// a bunch of generation of cryptographic information.
