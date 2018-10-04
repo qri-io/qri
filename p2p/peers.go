@@ -10,6 +10,7 @@ import (
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	swarm "gx/ipfs/QmemVjhp1UuWPQqrWSvPcaqH3QJRMjMqNm4T2RULMkDDQe/go-libp2p-swarm"
 )
 
 // ConnectedQriProfiles lists all connected peers that support the qri protocol
@@ -172,16 +173,13 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, err
 	}
 
-	// TODO - restore
-	// snet, ok := n.Host.Network().(*swarm.Network)
-	// if !ok {
-	// 	return nil, fmt.Errorf("peerhost network was not swarm")
-	// }
-	// // clear backoff b/c we're explicitly dialing this peer
-	// snet.Swarm().Backoff().Clear(pinfo.ID)
+	if swarm, ok := n.Host.Network().(*swarm.Swarm); ok {
+		// clear backoff b/c we're explicitly dialing this peer
+		swarm.Backoff().Clear(pinfo.ID)
+	}
 
 	if err := n.Host.Connect(ctx, pinfo); err != nil {
-		return nil, fmt.Errorf("connect %s failure: %s", pinfo.ID.Pretty(), err)
+		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
 	if err := n.AddQriPeer(pinfo); err != nil {
