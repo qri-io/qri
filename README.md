@@ -114,6 +114,8 @@ $ make build
 $ go install
 ```
 
+If you are building from source by cloning the repo, make sure to clone the repo to your go path: `$GOPATH/src/github.com/qri-io/qri`.
+
 The `make build` command will have a lot of output. That's good! Its means it's working :)
 
 It'll take a minute, but once everything's finished a new binary `qri` will appear in the `$GOPATH/bin` directory. You should be able to run:
