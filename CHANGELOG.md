@@ -1,3 +1,27 @@
+<a name="0.5.5"></a>
+# [0.5.5](https://github.com/qri-io/qri/compare/v0.5.4...v0.5.5) (2018-10-05)
+
+Version 0.5.5 is a patch release with some small features and a few bugfixes. It's mainly here because @b5 wants
+to play with .zip files & regexes in transform scripts.
+
+### :package: Skylark `re` and `zip` packages
+We've added two new small, bare-bones packages to skylark to handle common-yet-vital use cases:
+`re` brings basic support regular expressions, and `zip` brings read-only capacity to open zip archives.
+Both of these are rather utility-oriented, but _very_ importnat when opening & cleaning data.
+
+### :twisted_rightwards_arrows: Upcoming switch from "skylark" to "starlark"
+Speaking of skylark, google has landed on a rename for thier project, and it'll hence-fourth be named "starlark".
+As such we'll be making the switch to this terminology in an upcoming release. Our package names will be changing
+from `.sky` to some new file extension, which will be a breaking change for all tranforms that import `.sky` packages.
+We'll keep you posted.
+
+### Features
+
+* **RequestDatasetLog:** add back functionality for getting a peer's dataset log over p2p ([813bf0d](https://github.com/qri-io/qri/commit/813bf0d))
+* **RequestDatasetLog:** handle non-local datasets, rename lots of vars ([248e02e](https://github.com/qri-io/qri/commit/248e02e))
+
+
+
 <a name="0.5.4"></a>
 # [0.5.4](https://github.com/qri-io/qri/compare/v0.5.3...v0.5.4) (2018-10-01)
 
