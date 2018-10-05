@@ -11,18 +11,20 @@ import (
 
 const (
 	// MtDatasetLog gets log of a dataset
-	MtDatasetLog = MsgType("dataset_log")
+	MtDatasetLog      = MsgType("dataset_log")
+	// NumPeersToContact is the number of peers to contact with messages
+	NumPeersToContact = 15
 )
 
-// DatasetLogRequestBody encapsulates options for requesting dataset history
-type DatasetLogRequestBody struct {
+// DatasetLogRequest encapsulates options for requesting dataset history
+type DatasetLogRequest struct {
 	Ref    repo.DatasetRef
 	Limit  int
 	Offset int
 }
 
-// DatasetLogResponseBody encapsulates option for responding to a dataset history request
-type DatasetLogResponseBody struct {
+// DatasetLogResponse encapsulates option for responding to a dataset history request
+type DatasetLogResponse struct {
 	History []repo.DatasetRef
 	Err     error
 }
@@ -31,22 +33,18 @@ type DatasetLogResponseBody struct {
 func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]repo.DatasetRef, error) {
 
 	// get a list of peers to whom we will send the request
-	pids := n.ClosestConnectedPeers(ref.ProfileID, 15)
+	pids := n.ClosestConnectedPeers(ref.ProfileID, NumPeersToContact)
 	if len(pids) == 0 {
 		return nil, fmt.Errorf("no connected peers")
 	}
 
-	// create a channel on which to send the requests and receive the responses
-	replies := make(chan Message)
-
-	// create body of message:
-	body := DatasetLogRequestBody{
+	messages := make(chan Message)
+	body := DatasetLogRequest{
 		Ref:    ref,
 		Limit:  limit,
 		Offset: offset,
 	}
 
-	// create the request
 	req, err := NewJSONBodyMessage(n.ID, MtDatasetLog, body)
 	req = req.WithHeaders("phase", "request")
 	if err != nil {
@@ -54,91 +52,93 @@ func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]r
 		return nil, err
 	}
 
-	// iterate through the peer ids
 	for _, pid := range pids {
-
-		if err = n.SendMessage(req, replies, pid); err != nil {
+		if err = n.SendMessage(req, messages, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
 		}
-
-		res := <-replies
-		dlrb := DatasetLogResponseBody{}
-		if err = json.Unmarshal(res.Body, &dlrb); err == nil {
-			if dlrb.Err != nil {
+		msg := <-messages
+		logResponse := DatasetLogResponse{}
+		if err = json.Unmarshal(msg.Body, &logResponse); err == nil {
+			// Expect any peer who responds with a non-empty history list to have the
+			// authoritative answer. Return as soon as such a response is received.
+			if logResponse.Err != nil {
 				log.Debugf("%s err: %s", pid, err.Error())
 				continue
 			}
-			if len(dlrb.History) != 0 {
-				return dlrb.History, nil
+			if len(logResponse.History) != 0 {
+				return logResponse.History, nil
 			}
 		}
 	}
 	return nil, fmt.Errorf("unable to locate dataset log for %s", ref)
 }
 
-func (n *QriNode) handleDatasetLog(ws *WrappedStream, req Message) (hangup bool) {
+func (n *QriNode) handleDatasetLog(ws *WrappedStream, msg Message) (hangup bool) {
 	hangup = true
 
-	switch req.Header("phase") {
+	switch msg.Header("phase") {
 	case "request":
 
-		resBody := DatasetLogRequestBody{}
-		if err := json.Unmarshal(req.Body, &resBody); err != nil {
+		req := DatasetLogRequest{}
+		if err := json.Unmarshal(msg.Body, &req); err != nil {
 			log.Debug(err.Error())
 			return
 		}
 
-		ref := resBody.Ref
-		limit := resBody.Limit
-		offset := resBody.Offset
+		ref := req.Ref
+		limit := req.Limit
+		offset := req.Offset
 
-		local := true
-
-		err := n.ResolveDatasetRef(&ref)
-		if err != nil {
-			local = false
-		}
-
-		reqBody := DatasetLogResponseBody{}
 		history := []repo.DatasetRef{}
 
-		if local {
-			for {
-				dataset, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
-				if err != nil {
-					reqBody.Err = err
-					break
-				}
-				ref.Dataset = dataset.Encode()
+		err := repo.CanonicalizeDatasetRef(n.Repo, &ref)
+		if err == repo.ErrNotFound {
+			// non-local dataset, return early
+			sendDatasetLogReply(ws, msg, history, nil)
+			return
+		}
 
-				offset--
-				if offset > 0 {
-					continue
-				}
-
-				history = append(history, ref)
-
-				limit--
-				if limit == 0 || ref.Dataset.PreviousPath == "" {
-					break
-				}
-				ref.Path = ref.Dataset.PreviousPath
+		for {
+			dataset, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+			if err != nil {
+				sendDatasetLogReply(ws, msg, history, err)
+				return
 			}
+			ref.Dataset = dataset.Encode()
+
+			offset--
+			if offset > 0 {
+				ref.Path = ref.Dataset.PreviousPath
+				continue
+			}
+
+			history = append(history, ref)
+
+			limit--
+			if limit > 0 && ref.Dataset.PreviousPath != "" {
+				ref.Path = ref.Dataset.PreviousPath
+				continue
+			}
+			break
 		}
 
-		reqBody.History = history
-		res, err := req.UpdateJSON(reqBody)
-		if err != nil {
-			log.Debug(err.Error())
-			return
-		}
-
-		res = res.WithHeaders("phase", "response")
-		if err := ws.sendMessage(res); err != nil {
-			log.Debug(err.Error())
-			return
-		}
+		sendDatasetLogReply(ws, msg, history, nil)
 	}
 	return
+}
+
+func sendDatasetLogReply(ws *WrappedStream, msg Message, history []repo.DatasetRef, err error) {
+	response := DatasetLogResponse{}
+	response.History = history
+	updated, err := msg.UpdateJSON(response)
+	if err != nil {
+		log.Debug(err.Error())
+		return
+	}
+
+	updated = updated.WithHeaders("phase", "response")
+	if err := ws.sendMessage(updated); err != nil {
+		log.Debug(err.Error())
+	}
 }
