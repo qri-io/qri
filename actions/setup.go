@@ -7,8 +7,8 @@ import (
 	"path/filepath"
 	"strings"
 
-	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
@@ -53,7 +53,7 @@ func Setup(repoPath, cfgPath string, cfg *config.Config, register bool) error {
 }
 
 // InitIPFS initializes an IPFS repo
-func InitIPFS(path string, cfgData []byte) error {
+func InitIPFS(path string, cfgData []byte, g gen.CryptoGenerator) error {
 	tmpIPFSConfigPath := ""
 	if cfgData != nil {
 		// TODO - remove this temp file & instead adjust ipfs.InitRepo to accept an io.Reader
@@ -68,7 +68,7 @@ func InitIPFS(path string, cfgData []byte) error {
 		}()
 	}
 
-	if err := ipfs.InitRepo(path, tmpIPFSConfigPath); err != nil {
+	if err := g.GenerateEmptyIpfsRepo(path, tmpIPFSConfigPath); err != nil {
 		if !strings.Contains(err.Error(), "already") {
 			return fmt.Errorf("error creating IPFS repo: %s", err.Error())
 		}

@@ -9,6 +9,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
+	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
 )
 
@@ -18,6 +19,8 @@ type CryptoGenerator interface {
 	GeneratePrivateKeyAndPeerID() (string, string)
 	// GenerateNickname uses a peerID to return a human-friendly nickname
 	GenerateNickname(peerID string) string
+	// GenerateEmptyIpfsRepo creates an empty IPFS repo at a given path
+	GenerateEmptyIpfsRepo(repoPath, cfgPath string) error
 }
 
 // CryptoSource is a source of cryptographic info
@@ -51,5 +54,7 @@ func (g *CryptoSource) GenerateNickname(peerID string) string {
 	return doggos.DoggoNick(peerID)
 }
 
-// TODO: Add a method that wraps the behavior of cafs/ipfs/init, which also performs
-// a bunch of generation of cryptographic information.
+// GenerateEmptyIpfsRepo creates an empty IPFS repo in a secure manner at the given path
+func (g *CryptoSource) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
+	return ipfs.InitRepo(repoPath, configPath)
+}

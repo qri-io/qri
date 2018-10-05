@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -20,6 +21,7 @@ func TestSetupTeardown(t *testing.T) {
 		QriRepoPath:    path,
 		ConfigFilepath: filepath.Join(path, "config.yml"),
 		Config:         cfg1,
+		Generator:      libtest.NewTestCrypto(),
 	}
 	if err := Setup(params); err == nil {
 		t.Errorf("expected invalid cfg to fail")

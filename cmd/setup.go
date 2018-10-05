@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/actions"
@@ -182,6 +181,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		SetupIPFS:      o.IPFS,
 		IPFSFsPath:     o.IpfsFsPath,
 		Register:       o.Registry == "none",
+		Generator:      o.Generator,
 	}
 
 	if o.IPFSConfigData != "" {
@@ -227,13 +227,13 @@ func mapEnvVars(vars map[string]*string) {
 	}
 }
 
-func setupRepoIfEmpty(repoPath, configPath string) error {
+func setupRepoIfEmpty(repoPath, configPath string, g gen.CryptoGenerator) error {
 	if repoPath != "" {
 		if _, err := os.Stat(filepath.Join(repoPath, "config")); os.IsNotExist(err) {
 			if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 				return err
 			}
-			if err := ipfs.InitRepo(repoPath, configPath); err != nil {
+			if err := g.GenerateEmptyIpfsRepo(repoPath, configPath); err != nil {
 				return err
 			}
 		}

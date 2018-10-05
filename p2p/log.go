@@ -11,7 +11,7 @@ import (
 
 const (
 	// MtDatasetLog gets log of a dataset
-	MtDatasetLog      = MsgType("dataset_log")
+	MtDatasetLog = MsgType("dataset_log")
 	// NumPeersToContact is the number of peers to contact with messages
 	NumPeersToContact = 15
 )
