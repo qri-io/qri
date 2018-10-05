@@ -393,5 +393,6 @@ func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 		MtEvents:            n.handleEvents,
 		MtConnected:         n.handleConnected,
 		MtResolveDatasetRef: n.handleResolveDatasetRef,
+		MtDatasetLog:        n.handleDatasetLog,
 	}
 }
