@@ -276,7 +276,7 @@ meta:
   title:
   # description:
   # category:
-  # tags:
+  # keywords:
 
 # Structure contains the info a computer needs to interpret this dataset
 # qri will figure structure out for you if you don't one
@@ -309,5 +309,5 @@ structure:
 
 # the body of a dataset is data itself. either a path to a file on your computer,
 # or a URL that leads to the raw data
-# bodyPath:
+# bodypath:
 `
