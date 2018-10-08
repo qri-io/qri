@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	libtest "github.com/qri-io/qri/lib/test"
 )
 
 func TestSetupInitIPFSTeardown(t *testing.T) {
@@ -20,7 +21,8 @@ func TestSetupInitIPFSTeardown(t *testing.T) {
 	if err := Setup(path, path+"/config.yaml", cfg, true); err != nil {
 		t.Error(err.Error())
 	}
-	if err := InitIPFS(path, nil); err != nil {
+	g := libtest.NewTestCrypto()
+	if err := g.GenerateEmptyIpfsRepo(path, ""); err != nil {
 		t.Error(err.Error())
 	}
 	if err := Teardown(path, config.DefaultConfigForTesting()); err != nil {

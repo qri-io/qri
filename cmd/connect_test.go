@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/ioes"
+	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -31,7 +32,7 @@ func TestConnect(t *testing.T) {
 
 	cmd := "qri connect --setup --registry=" + registryServer.URL + " --disconnect-after=1"
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), NewTestCrypto(), streams)
+	root := NewQriCommand(NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
 
 	defer func() {
 		if e := recover(); e != nil {

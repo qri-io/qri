@@ -3,6 +3,7 @@ package lib
 import (
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo/gen"
 )
 
 // SetupParams encapsulates arguments for Setup
@@ -14,6 +15,7 @@ type SetupParams struct {
 	Register            bool
 	IPFSFsPath          string
 	SetupIPFSConfigData []byte
+	Generator           gen.CryptoGenerator
 }
 
 // Setup provisions a new qri instance, it intentionally doesn't conform to the RPC function signature
@@ -24,7 +26,7 @@ func Setup(p SetupParams) error {
 	}
 
 	if p.SetupIPFS {
-		if err := actions.InitIPFS(p.IPFSFsPath, p.SetupIPFSConfigData); err != nil {
+		if err := actions.InitIPFS(p.IPFSFsPath, p.SetupIPFSConfigData, p.Generator); err != nil {
 			return err
 		}
 	}

@@ -13,6 +13,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
 )
@@ -180,7 +181,7 @@ func TestCommandsIntegration(t *testing.T) {
 	}
 
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), NewTestCrypto(), streams)
+	root := NewQriCommand(NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
 
 	for i, command := range commands {
 		func() {
