@@ -139,10 +139,16 @@ func (o *NewOptions) Run(args []string) (err error) {
 		dsp.Peername = ref.Peername
 	}
 	if o.BodyPath != "" {
-		if o.BodyPath, err = filepath.Abs(o.BodyPath); err != nil {
+		dsp.BodyPath = o.BodyPath
+	}
+	if dsp.BodyPath != "" {
+		// Get the absolute path to the body file. Especially important if we are running
+		// `qri connect` in a different terminal, and that instance is in a different directory;
+		// that instance won't correctly find the body file we want to load if it's not absolute.
+		dsp.BodyPath, err = filepath.Abs(dsp.BodyPath)
+		if err != nil {
 			return err
 		}
-		dsp.BodyPath = o.BodyPath
 	}
 	if dsp.Transform != nil {
 		if o.Secrets != nil {
