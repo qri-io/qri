@@ -240,6 +240,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
+	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
 
 	renderh := NewRenderHandlers(s.qriNode.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
