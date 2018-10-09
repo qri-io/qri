@@ -215,7 +215,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	dsutil.WriteZipArchive(h.repo.Store(), ds, w)
+	dsutil.WriteZipArchive(h.repo.Store(), ds, res.String(), w)
 }
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {

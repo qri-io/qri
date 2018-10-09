@@ -60,8 +60,6 @@ new dataset, use --blank.`,
 	cmd.Flags().StringVarP(&o.BodyFormat, "body-format", "", "", "format for dataset body. default is the original data format. options: json, csv, cbor")
 	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "b", false, "don't include dataset body in export")
 	cmd.Flags().BoolVarP(&o.PeerDir, "peer-dir", "d", false, "export to a peer name namespaced directory")
-	// cmd.Flags().BoolVarP(&o.Zipped, "zip", "z", false, "compress export as zip archive, export all parts of dataset, data in original format")
-	// exportCmd.Flags().BoolVarP(&exportCmdVis, "vis-conf", "c", false, "export viz config file")
 
 	return cmd
 }
@@ -155,13 +153,16 @@ func (o *ExportOptions) Run() error {
 	}
 	path = filepath.Join(path, dsr.Name)
 
+	// TODO: Implement flags specified in the RFC 0014, only set the zip flag if the export
+	// includes multiple files and the --directories-for-files flag is not true.
+	o.Zipped = true
 	if o.Zipped {
 		dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 		if err != nil {
 			return err
 		}
 
-		if err = dsutil.WriteZipArchive(o.Repo.Store(), ds, dst); err != nil {
+		if err = dsutil.WriteZipArchive(o.Repo.Store(), ds, res.String(), dst); err != nil {
 			return err
 		}
 		return dst.Close()
