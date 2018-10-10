@@ -3,7 +3,8 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
-	"time"
+
+	// "time"
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
@@ -31,9 +32,10 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 	}
 
 	replies := make(chan Message)
-	msg := NewMessage(n.ID, MtProfile, data)
+	req := NewMessage(n.ID, MtProfile, data)
+	req = req.WithHeaders("phase", "request")
 
-	if err := n.SendMessage(msg, replies, pid); err != nil {
+	if err := n.SendMessage(req, replies, pid); err != nil {
 		log.Debugf("send profile message error: %s", err.Error())
 		return nil, err
 	}
@@ -66,24 +68,36 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 func (n *QriNode) handleProfile(ws *WrappedStream, msg Message) (hangup bool) {
 	// hangup = false
 
-	pro := &profile.Profile{}
-	if err := json.Unmarshal(msg.Body, pro); err != nil {
-		log.Debug(err.Error())
-		return
+	switch msg.Header("phase") {
+	case "request":
+
+		pp := &config.ProfilePod{}
+		if err := json.Unmarshal(msg.Body, pp); err != nil {
+			log.Debug(err.Error())
+			return
+		}
+
+		pro := &profile.Profile{}
+		if err := pro.Decode(pp); err != nil {
+			log.Debug(err.Error())
+			return
+		}
+
+		if err := n.Repo.Profiles().PutProfile(pro); err != nil {
+			log.Debug(err.Error())
+			return
+		}
+
+		data, err := n.profileBytes()
+		if err != nil {
+			log.Debug(err.Error())
+			return
+		}
+
+		if err := ws.sendMessage(msg.Update(data)); err != nil {
+			log.Debugf("error sending peer info message: %s", err.Error())
+		}
 	}
-
-	pro.Updated = time.Now().UTC()
-
-	data, err := n.profileBytes()
-	if err != nil {
-		log.Debug(err.Error())
-		return
-	}
-
-	if err := ws.sendMessage(msg.Update(data)); err != nil {
-		log.Debugf("error sending peer info message: %s", err.Error())
-	}
-
 	return
 }
 

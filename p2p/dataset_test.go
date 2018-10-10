@@ -22,11 +22,7 @@ func TestRequestDatasetInfo(t *testing.T) {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
 	refs := []repo.DatasetRef{}
 	for _, c := range peers {

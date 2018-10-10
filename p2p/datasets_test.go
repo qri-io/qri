@@ -21,11 +21,7 @@ func TestRequestDatasetsList(t *testing.T) {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
 	t.Logf("testing RequestDatasetList message with %d peers", len(peers))
 	var wg sync.WaitGroup

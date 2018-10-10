@@ -2,8 +2,9 @@ package p2p
 
 import (
 	"context"
-	"github.com/qri-io/qri/p2p/test"
 	"testing"
+
+	"github.com/qri-io/qri/p2p/test"
 )
 
 func TestPing(t *testing.T) {
@@ -16,10 +17,7 @@ func TestPing(t *testing.T) {
 	}
 
 	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, arg := range testPeers {
-		peers[i] = arg.(*QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
 	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
