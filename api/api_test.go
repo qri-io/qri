@@ -105,6 +105,21 @@ func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []
 	}
 }
 
+// runHandlerZipPostTestCases executes a slice of handlerTestCase against a handler using zip content-type
+func runHandlerZipPostTestCases(t *testing.T, name string, h http.HandlerFunc, cases []handlerTestCase) {
+	for i, c := range cases {
+		name := fmt.Sprintf("%s %s case %d: %s %s", t.Name(), name, i, c.method, c.endpoint)
+		req := httptest.NewRequest(c.method, c.endpoint, bytes.NewBuffer(c.body))
+		req.Header.Set("Content-Type", "application/zip")
+		w := httptest.NewRecorder()
+
+		h(w, req)
+
+		res := w.Result()
+		abide.AssertHTTPResponse(t, name, res)
+	}
+}
+
 // mustFile reads file bytes, calling t.Fatalf if the file doesn't exist
 func mustFile(t *testing.T, filename string) []byte {
 	data, err := ioutil.ReadFile(filename)
