@@ -124,67 +124,57 @@ func TestRequestProfileOneWayConnection(t *testing.T) {
 	}
 
 	t.Logf("testing profile message with %d peers", len(peers))
-	var wg sync.WaitGroup
 	for _, p2 := range peers {
-		wg.Add(1)
-		go func(p1, p2 *QriNode) {
-			defer wg.Done()
-			_, err := p1.RequestProfile(p2.ID)
-			if err != nil {
-				t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
-			}
-			pro, err := p1.Repo.Profiles().PeerProfile(p2.ID)
-			if err != nil {
-				t.Errorf("error getting profile from profile store: %s", err.Error())
-				return
-			}
+		t.Logf("Getting profile from peer %s", p2.ID)
+		_, err := p1.RequestProfile(p2.ID)
+		if err != nil {
+			t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
+		}
+		pro, err := p1.Repo.Profiles().PeerProfile(p2.ID)
+		if err != nil {
+			t.Errorf("error getting profile from profile store: %s", err.Error())
+			continue
+		}
 
-			if pro == nil {
-				t.Error("profile shouldn't be nil")
-				return
-			}
-			if len(pro.PeerIDs) == 0 {
-				t.Error("profile should have peer IDs")
-				return
-			}
+		if pro == nil {
+			t.Error("profile shouldn't be nil")
+			continue
+		}
+		if len(pro.PeerIDs) == 0 {
+			t.Error("profile should have peer IDs")
+			continue
+		}
 
-			peerInfo2 := p1.Host.Peerstore().PeerInfo(p2.ID)
-			if len(peerInfo2.Addrs) == 0 {
-				t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID.Pretty(), p2.ID.Pretty())
-			}
-			peerInfo1 := p2.Host.Peerstore().PeerInfo(p1.ID)
-			if len(peerInfo1.Addrs) == 0 {
-				t.Errorf("%s (request node) should have addrs of %s (response node)", p2.ID.Pretty(), p1.ID.Pretty())
-			}
+		peerInfo2 := p1.Host.Peerstore().PeerInfo(p2.ID)
+		if len(peerInfo2.Addrs) == 0 {
+			t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID.Pretty(), p2.ID.Pretty())
+		}
+		peerInfo1 := p2.Host.Peerstore().PeerInfo(p1.ID)
+		if len(peerInfo1.Addrs) == 0 {
+			t.Errorf("%s (request node) should have addrs of %s (response node)", p2.ID.Pretty(), p1.ID.Pretty())
+		}
 
-			pid := pro.PeerIDs[0]
-			if err != nil {
-				t.Error(err.Error())
-				return
-			}
+		pid := pro.PeerIDs[0]
 
-			if pid != p2.ID {
-				p2pro, _ := p2.Repo.Profile()
-				t.Logf("p2 profile ID: %s peerID: %s, host peerID: %s", peer.ID(p2pro.ID), p2.ID, p2.Host.ID())
-				t.Errorf("%s request profile peerID mismatch. expected: %s, got: %s", p1.ID, p2.ID, pid)
-			}
+		if pid != p2.ID {
+			p2pro, _ := p2.Repo.Profile()
+			t.Logf("p2 profile ID: %s peerID: %s, host peerID: %s", peer.ID(p2pro.ID), p2.ID, p2.Host.ID())
+			t.Errorf("%s request profile peerID mismatch. expected: %s, got: %s", p1.ID, p2.ID, pid)
+		}
 
-			pro1, err := p2.Repo.Profiles().PeerProfile(p1.ID)
-			if err != nil {
-				t.Errorf("error getting request profile from response profile store: %s", err.Error())
-				return
-			}
+		pro1, err := p2.Repo.Profiles().List()
+		if err != nil {
+			t.Errorf("error getting request profile from response profile store: %s", err.Error())
+			continue
+		}
 
-			if pro1 == nil {
-				t.Error("profile shouldn't be nil")
-				return
-			}
-			if len(pro1.PeerIDs) == 0 {
-				t.Error("profile should have peer IDs")
-				return
-			}
-		}(p1, p2)
+		if pro1 == nil {
+			t.Error("profile shouldn't be nil")
+			continue
+		}
+		if len(pro1) == 0 {
+			t.Error("profile should have peer IDs")
+			continue
+		}
 	}
-
-	wg.Wait()
 }
