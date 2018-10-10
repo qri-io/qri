@@ -385,14 +385,15 @@ func (n *QriNode) HostNetwork() net.Network {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:              n.handlePing,
-		MtProfile:           n.handleProfile,
-		MtProfiles:          n.handleProfiles,
+		MtPing:    n.handlePing,
+		MtProfile: n.handleProfile,
+		// MtProfiles:          n.handleProfiles,
 		MtDatasetInfo:       n.handleDataset,
 		MtDatasets:          n.handleDatasetsList,
 		MtEvents:            n.handleEvents,
 		MtConnected:         n.handleConnected,
 		MtResolveDatasetRef: n.handleResolveDatasetRef,
 		MtDatasetLog:        n.handleDatasetLog,
+		MtQriPeers:          n.handleQriPeers,
 	}
 }
