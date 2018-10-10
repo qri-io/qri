@@ -20,11 +20,8 @@ func TestRequestProfileConnectNodes(t *testing.T) {
 		t.Errorf("error creating network: %s", err.Error())
 		return
 	}
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+
+	peers := asQriNodes(testPeers)
 
 	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
 		t.Errorf("error connecting peers: %s", err.Error())
@@ -110,11 +107,7 @@ func TestRequestProfileOneWayConnection(t *testing.T) {
 		return
 	}
 
-	// Convert from test nodes to QriNodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
 	p1 := peers[0]
 	peers = peers[1:]

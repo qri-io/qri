@@ -23,11 +23,7 @@ func TestRequestDatasetLog(t *testing.T) {
 		t.Errorf("error connecting peers: %s", err.Error())
 	}
 
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
 	tc, err := dstest.NewTestCaseFromDir("testdata/tim/craigslist")
 	if err != nil {

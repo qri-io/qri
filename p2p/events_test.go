@@ -17,11 +17,8 @@ func TestRequestEventsList(t *testing.T) {
 		t.Errorf("error creating network: %s", err.Error())
 		return
 	}
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*QriNode)
-	}
+
+	peers := asQriNodes(testPeers)
 
 	for _, p := range peers {
 		p.Repo.LogEvent(repo.ETDsCreated, repo.DatasetRef{})
