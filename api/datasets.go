@@ -810,8 +810,5 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	// Send response.
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(data)
+	util.WriteResponse(w, json.RawMessage(data))
 }
