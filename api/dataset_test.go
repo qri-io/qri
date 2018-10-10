@@ -68,6 +68,14 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "export", h.ZipDatasetHandler, exportCases)
 
+	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combine
+	// `runHandlerZipPostTestCases` with `runHandlerTestCases`.
+	unpackCases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip")},
+	}
+	runHandlerZipPostTestCases(t, "unpack", h.UnpackHandler, unpackCases)
+
 	diffCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", mustFile(t, "testdata/diffRequest.json")},
