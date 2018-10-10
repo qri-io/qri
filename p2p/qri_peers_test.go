@@ -2,7 +2,6 @@ package p2p
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -14,7 +13,6 @@ import (
 // Test passes when the fifth node connects to the other three nodes by asking
 // it's one connection for the other three peer's profiles
 func TestSharePeers(t *testing.T) {
-	fmt.Println("hallo?")
 	ctx := context.Background()
 	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, f, 5)
@@ -33,9 +31,8 @@ func TestSharePeers(t *testing.T) {
 	done := make(chan bool)
 	deadline := time.NewTimer(time.Second * 2)
 	go func() {
-		for msg := range nasma.ReceiveMessages() {
+		for range nasma.ReceiveMessages() {
 			if len(nasma.ConnectedPeers()) == len(group) {
-				fmt.Println(msg.Type, len(nasma.ConnectedPeers()))
 				done <- true
 			}
 		}

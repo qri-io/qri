@@ -114,9 +114,9 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 // AddQriPeer negotiates a connection with a peer to get their profile details
 // and peer list.
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store
+	// add this peer to our store so libp2p has the provided addresses of
+	// the peer in the next call
 	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
-	n.Host.ConnManager().TagPeer(pinfo.ID, qriConnManagerTag, qriConnManagerValue)
 
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
 		log.Debug(err.Error())

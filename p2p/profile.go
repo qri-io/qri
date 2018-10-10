@@ -3,6 +3,7 @@ package p2p
 import (
 	"encoding/json"
 	"fmt"
+
 	// "time"
 
 	"github.com/qri-io/qri/config"

@@ -300,6 +300,11 @@ func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID
 		}
 		defer s.Close()
 
+		// now that we have a confirmed working connection
+		// tag this peer as supporting the qri protocol in the connection manager
+		n.Host.ConnManager().TagPeer(peerID, qriConnManagerTag, qriConnManagerValue)
+		n.Host.Peerstore().AddAddr(peerID, s.Conn().RemoteMultiaddr(), pstore.TempAddrTTL)
+
 		ws := WrapStream(s)
 		go n.handleStream(ws, replies)
 		if err := ws.sendMessage(msg); err != nil {
@@ -332,6 +337,10 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 			log.Debugf("error receiving message: %s", err.Error())
 			break
 		}
+
+		conn := ws.stream.Conn()
+		n.Host.ConnManager().TagPeer(conn.RemotePeer(), qriConnManagerTag, qriConnManagerValue)
+		n.Host.Peerstore().AddAddr(conn.RemotePeer(), conn.RemoteMultiaddr(), pstore.TempAddrTTL)
 
 		if replies != nil {
 			go func() { replies <- msg }()
@@ -385,9 +394,8 @@ func (n *QriNode) HostNetwork() net.Network {
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{
-		MtPing:    n.handlePing,
-		MtProfile: n.handleProfile,
-		// MtProfiles:          n.handleProfiles,
+		MtPing:              n.handlePing,
+		MtProfile:           n.handleProfile,
 		MtDatasetInfo:       n.handleDataset,
 		MtDatasets:          n.handleDatasetsList,
 		MtEvents:            n.handleEvents,

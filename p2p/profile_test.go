@@ -60,11 +60,11 @@ func TestRequestProfileConnectNodes(t *testing.T) {
 
 				addrsP1 := p1.Host.Peerstore().Addrs(p2.ID)
 				if len(addrsP1) == 0 {
-					t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID.Pretty(), p2.ID.Pretty())
+					t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID, p2.ID)
 				}
 				addrsP2 := p2.Host.Peerstore().Addrs(p1.ID)
 				if len(addrsP2) == 0 {
-					t.Errorf("%s (request node) should have addrs of %s (response node)", p2.ID.Pretty(), p1.ID.Pretty())
+					t.Errorf("%s (request node) should have addrs of %s (response node)", p2.ID, p1.ID)
 				}
 
 				pid := pro.PeerIDs[0]
@@ -147,11 +147,11 @@ func TestRequestProfileOneWayConnection(t *testing.T) {
 
 		peerInfo2 := p1.Host.Peerstore().PeerInfo(p2.ID)
 		if len(peerInfo2.Addrs) == 0 {
-			t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID.Pretty(), p2.ID.Pretty())
+			t.Errorf("%s (request node) should have addrs of %s (response node)", p1.ID, p2.ID)
 		}
 		peerInfo1 := p2.Host.Peerstore().PeerInfo(p1.ID)
 		if len(peerInfo1.Addrs) == 0 {
-			t.Errorf("%s (request node) should have addrs of %s (response node)", p2.ID.Pretty(), p1.ID.Pretty())
+			t.Errorf("%s (response node) should have addrs of %s (request node)", p2.ID, p1.ID)
 		}
 
 		pid := pro.PeerIDs[0]
