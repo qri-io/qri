@@ -7,6 +7,16 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
+// Convert from test nodes to non-test nodes.
+func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*QriNode {
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*QriNode)
+	}
+	return peers
+}
+
 func TestConnectedQriProfiles(t *testing.T) {
 	ctx := context.Background()
 	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
@@ -21,11 +31,7 @@ func TestConnectedQriProfiles(t *testing.T) {
 		return
 	}
 
-	// Convert from test nodes to non-test nodes.
-	nodes := make([]*QriNode, len(testPeers))
-	for i, node := range testPeers {
-		nodes[i] = node.(*QriNode)
-	}
+	nodes := asQriNodes(testPeers)
 
 	pros := nodes[0].ConnectedQriProfiles()
 	if len(pros) != len(nodes)-1 {

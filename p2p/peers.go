@@ -23,6 +23,15 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 		if p, err := n.Repo.Profiles().PeerProfile(conn.RemotePeer()); err == nil {
 			if pe, err := p.Encode(); err == nil {
 				pe.Online = true
+				// Build host multiaddress,
+				// TODO - this should be a convenience func
+				hostAddr, err := ma.NewMultiaddr(fmt.Sprintf("/ipfs/%s", conn.RemotePeer().Pretty()))
+				if err != nil {
+					log.Debug(err.Error())
+					return nil
+				}
+
+				pe.NetworkAddrs = []string{conn.RemoteMultiaddr().Encapsulate(hostAddr).String()}
 				peers[p.ID] = pe
 			}
 		}
@@ -113,6 +122,15 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 		log.Debug(err.Error())
 		return err
 	}
+
+	go func() {
+		ps, err := n.RequestQriPeers(pinfo.ID)
+		if err != nil {
+			log.Debugf("error fetching qri peers: %s", err)
+			return
+		}
+		n.RequestNewPeers(n.ctx, ps)
+	}()
 
 	return nil
 }
