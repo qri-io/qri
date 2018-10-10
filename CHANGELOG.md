@@ -1,3 +1,30 @@
+<a name="0.5.6"></a>
+# [0.5.6](https://github.com/qri-io/qri/compare/v0.5.5...v0.5.6) (2018-10-10)
+
+### :two_women_holding_hands: Peer Sharing Fixes & Slightly better export
+
+This patch release is focused on making inroads on some long-standing issues with peer discovery. We've added tests & a few fixes that should help peers get connected and stay connected. This is an area of active work that we'll be adding more improvements to in the future.
+
+We've also standardized our export format with a newly-approved [export rfc](https://github.com/qri-io/rfcs/blob/master/text/0014-export.md), which fixes a few issues with the way Qri exports .zip archives. exports should now be complete archives that we'll start using for import in a forthcoming release.
+
+### Bug Fixes
+
+* **export:** Blank yaml file should have correct fields ([15484c0](https://github.com/qri-io/qri/commit/15484c0))
+* **new:** Take absolute path to body file before loading it in `new`. ([b9afcd0](https://github.com/qri-io/qri/commit/b9afcd0))
+* **p2p:** fix concurrent writes to repo Profile store ([3cf6f5c](https://github.com/qri-io/qri/commit/3cf6f5c))
+* **p2p.QriConnectePeers:** properly tag QriPeers on both ends of the ConnManager ([14d473f](https://github.com/qri-io/qri/commit/14d473f))
+* **peer sharing:** fix peers not sharing info with each other ([8219bab](https://github.com/qri-io/qri/commit/8219bab)), closes [#510](https://github.com/qri-io/qri/issues/510)
+
+
+### Features
+
+* **api:** Unpack endpoint gets a zip and sends back its contents ([185c01a](https://github.com/qri-io/qri/commit/185c01a))
+* **api:** Wrap unpack response in api envelope ([aa5df03](https://github.com/qri-io/qri/commit/aa5df03))
+* **export:** Always export by zip for now, until full RFC is implemented. ([9bc77b0](https://github.com/qri-io/qri/commit/9bc77b0))
+* **export:** Test case for unpack endpoint. ([54aa3ee](https://github.com/qri-io/qri/commit/54aa3ee))
+
+
+
 <a name="0.5.5"></a>
 # [0.5.5](https://github.com/qri-io/qri/compare/v0.5.4...v0.5.5) (2018-10-05)
 
