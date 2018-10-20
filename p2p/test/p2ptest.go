@@ -30,7 +30,7 @@ type TestablePeerNode interface {
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
-type NodeMakerFunc func(repo.Repo, *config.P2P) (TestablePeerNode, error)
+type NodeMakerFunc func(repo.Repo, *config.Config) (TestablePeerNode, error)
 
 // TestNodeFactory can be used to safetly construct nodes for tests
 type TestNodeFactory struct {
@@ -47,19 +47,19 @@ func NewTestNodeFactory(maker NodeMakerFunc) *TestNodeFactory {
 func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
 	info := cfgtest.GetTestPeerInfo(f.count)
 	f.count++
-	p2pconf := config.NewP2P()
-	p2pconf.PeerID = info.EncodedPeerID
-	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf)
+	cfg := &config.Config{}
+	cfg.P2P.PeerID = info.EncodedPeerID
+	cfg.P2P.PrivKey = info.EncodedPrivKey
+	return f.maker(r, cfg)
 }
 
 // NewWithConf creates a new Node for testing using a configuration
-func (f *TestNodeFactory) NewWithConf(r repo.Repo, p2pconf *config.P2P) (TestablePeerNode, error) {
+func (f *TestNodeFactory) NewWithConf(r repo.Repo, cfg *config.Config) (TestablePeerNode, error) {
 	info := cfgtest.GetTestPeerInfo(f.count)
 	f.count++
-	p2pconf.PeerID = info.EncodedPeerID
-	p2pconf.PrivKey = info.EncodedPrivKey
-	return f.maker(r, p2pconf)
+	cfg.P2P.PeerID = info.EncodedPeerID
+	cfg.P2P.PrivKey = info.EncodedPrivKey
+	return f.maker(r, cfg)
 }
 
 // NextInfo gets the PeerInfo for the next test Node to be constructed
@@ -118,7 +118,8 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 	p2pconf := config.NewP2P()
 	p2pconf.Addrs = []ma.Multiaddr{addr}
 	p2pconf.QriBootstrapAddrs = []string{}
-	node, err := f.NewWithConf(r, p2pconf)
+	cfg := &config.Config{P2P: p2pconf}
+	node, err := f.NewWithConf(r, cfg)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
 	}

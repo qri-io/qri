@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"time"
 
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/ioes"
@@ -14,6 +15,7 @@ import (
 	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	libp2p "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p"
 	discovery "gx/ipfs/QmY51bqSM5XgxQZqsBrQcRkKTnCb8EKpJpR9K6Qax7Njco/go-libp2p/p2p/discovery"
+	connmgr "gx/ipfs/QmYAL9JsqVVPFWwM1ZzHNsofmTzRYQHJ2KqQaBmFJjJsNx/go-libp2p-connmgr"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
@@ -30,7 +32,8 @@ type QriNode struct {
 	// private key for encrypted communication & verifying identity
 	privateKey crypto.PrivKey
 
-	cfg *config.P2P
+	cfg            *config.P2P
+	registryConfig *config.Registry
 
 	// base context for this node
 	ctx context.Context
@@ -75,8 +78,8 @@ var _ p2ptest.TestablePeerNode = (*QriNode)(nil)
 var _ p2ptest.NodeMakerFunc = NewTestableQriNode
 
 // NewTestableQriNode creates a new node, as a TestablePeerNode, usable by testing utilities.
-func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerNode, error) {
-	return NewQriNode(r, p2pconf)
+func NewTestableQriNode(r repo.Repo, cfg *config.Config) (p2ptest.TestablePeerNode, error) {
+	return NewQriNode(r, cfg)
 }
 
 // NewQriNode creates a new node from a configuration. To get a fully connected
@@ -84,19 +87,21 @@ func NewTestableQriNode(r repo.Repo, p2pconf *config.P2P) (p2ptest.TestablePeerN
 // n, _ := NewQriNode
 // n.Connect()
 // n.StartOnlineServices()
-func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
+func NewQriNode(r repo.Repo, cfg *config.Config) (node *QriNode, err error) {
+	p2pconf := cfg.P2P
 	pid, err := p2pconf.DecodePeerID()
 	if err != nil {
 		return nil, fmt.Errorf("error decoding peer id: %s", err.Error())
 	}
 
 	node = &QriNode{
-		ID:       pid,
-		cfg:      p2pconf,
-		Repo:     r,
-		ctx:      context.Background(),
-		msgState: &sync.Map{},
-		msgChan:  make(chan Message),
+		ID:             pid,
+		cfg:            p2pconf,
+		registryConfig: cfg.Registry,
+		Repo:           r,
+		ctx:            context.Background(),
+		msgState:       &sync.Map{},
+		msgChan:        make(chan Message),
 		// Make sure we always have proper IOStreams, this can be set
 		// later
 		LocalStreams: ioes.NewDiscardIOStreams(),
@@ -255,6 +260,23 @@ func (n *QriNode) Context() context.Context {
 	return n.ctx
 }
 
+// RegistryLocation returns the location/uri of the registry associated with this node
+func (n *QriNode) RegistryLocation() string {
+	if n.registryConfig == nil {
+		return ""
+	}
+	return n.registryConfig.Location
+}
+
+// setRegistryLocation sets the registry location/uri of the registyr associated with this node, convenience function for testing purposes
+func (n *QriNode) setRegistryLocation(loc string) {
+	if n.registryConfig == nil {
+		n.registryConfig = &config.Registry{Location: loc}
+		return
+	}
+	n.registryConfig.Location = loc
+}
+
 // TODO - finish. We need a proper termination & cleanup process
 // func (n *QriNode) Close() error {
 // 	if node, err := n.IPFSNode(); err == nil {
@@ -282,6 +304,16 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P
 		libp2p.Identity(pk),
 		libp2p.Peerstore(ps),
 	}
+
+	// Let's talk about these options a bit. Most of the time, we will never
+	// follow the code path that takes us to makeBasicHost. Usually, we will be
+	// using the Host that comes with the ipfs node. But, let's say we want to not
+	// use that ipfs host, or, we are in a testing situation, we will need to
+	// create our own host. If we do not explicitly pass the host the options
+	// for a ConnManager, it will use the NullConnManager, which doesn't actually
+	// tag or manage any conns.
+	// So instead, we pass in the libp2p basic ConnManager:
+	opts = append(opts, libp2p.ConnectionManager(connmgr.NewConnManager(1000, 0, time.Millisecond)))
 
 	return libp2p.New(ctx, opts...)
 }

@@ -17,8 +17,8 @@ func TestNewNode(t *testing.T) {
 		return
 	}
 
-	p2pconf := config.DefaultP2PForTesting()
-	node, err := NewTestableQriNode(r, p2pconf)
+	cfg := config.DefaultConfigForTesting()
+	node, err := NewTestableQriNode(r, cfg)
 	if err != nil {
 		t.Errorf("error creating qri node: %s", err.Error())
 		return
