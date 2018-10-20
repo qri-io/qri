@@ -20,14 +20,19 @@ func TestSharePeers(t *testing.T) {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
 
-	single := testPeers[0]
-	group := testPeers[1:]
+	nodes := asQriNodes(testPeers)
 
-	if err := p2ptest.ConnectQriPeers(ctx, group); err != nil {
-		t.Errorf("error connecting peers: %s", err.Error())
+	for i, a := range nodes {
+		for _, b := range nodes[i+1:] {
+			bpi := b.SimplePeerInfo()
+			a.Host.Connect(ctx, bpi)
+		}
 	}
 
-	nasma := single.(*QriNode)
+	single := nodes[0]
+	group := nodes[1:]
+
+	nasma := single
 	done := make(chan bool)
 	deadline := time.NewTimer(time.Second * 2)
 	go func() {

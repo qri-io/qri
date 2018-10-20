@@ -2,6 +2,7 @@ package p2p
 
 import (
 	"context"
+	"fmt"
 	"sync"
 	"testing"
 
@@ -18,15 +19,18 @@ func TestAnnounceConnected(t *testing.T) {
 		return
 	}
 
-	if err := p2ptest.ConnectQriPeers(ctx, testNodes); err != nil {
-		t.Error(err.Error())
-		return
-	}
-
 	// Convert from test nodes to non-test nodes.
 	nodes := make([]*QriNode, len(testNodes))
 	for i, node := range testNodes {
 		nodes[i] = node.(*QriNode)
+	}
+
+	for i, a := range nodes {
+		for _, b := range nodes[i+1:] {
+			bpi := b.SimplePeerInfo()
+			a.Host.Connect(ctx, bpi)
+			a.HandlePeerFound(bpi)
+		}
 	}
 
 	// create a new, disconnected node
@@ -35,7 +39,7 @@ func TestAnnounceConnected(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	node := nds[0]
+	node := nds[0].(*QriNode)
 	wg := sync.WaitGroup{}
 
 	// TODO - this logic needs some precise-ifying to make this test more robust
@@ -57,19 +61,17 @@ func TestAnnounceConnected(t *testing.T) {
 				break
 			}
 		}
-	}(node.(*QriNode))
+	}(node)
 
 	// connected that node to only one member of the network
-	if err := p2ptest.ConnectQriPeers(ctx, []p2ptest.TestablePeerNode{node, testNodes[0]}); err != nil {
-		t.Error(err.Error())
-		return
-	}
+	npi := nodes[0].SimplePeerInfo()
+	node.Host.Connect(ctx, npi)
+	node.HandlePeerFound(npi)
 
 	// have that node announce connection
-	if err := node.(*QriNode).AnnounceConnected(); err != nil {
+	if err := node.AnnounceConnected(); err != nil {
 		t.Error(err.Error())
 		return
 	}
-
 	wg.Wait()
 }
