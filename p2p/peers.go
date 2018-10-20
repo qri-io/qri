@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
-
+	"github.com/qri-io/registry/regclient"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -111,17 +111,99 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 	return n.Host.Peerstore().PeerInfo(pid)
 }
 
-// AddQriPeer negotiates a connection with a peer to get their profile details
-// and peer list.
-func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store so libp2p has the provided addresses of
-	// the peer in the next call
-	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+// checkReputation gets the reputation of the specified profile, if it's negative
+// tag the connection, and close the connection
+// Since we want to limit the number of calls to the registry,
+// only check the reputation if the given reputation has not changed
+// from our baseline reputation. If it has changed, we know we have
+// looked up the reputation before, as the registry must respond with
+// a non zero number.
+func (n *QriNode) checkReputation(profile *profile.Profile) error {
+	pids := profile.PeerIDs
+	reps := []int{}
+	// assume we do not have to disconnect
+	disconnect := false
+	// assume we have already checked this
+	checked := true
+	// check to see if this reputation has been checked before
+	// get the reputation of each peerID from the peerstore
+	for _, pid := range pids {
+		_rep, err := n.Host.Peerstore().Get(pid, qriReputationKey)
+		if err != nil {
+			if err != pstore.ErrNotFound {
+				return fmt.Errorf("error getting peer's reputation from the peerstore: %s", err.Error())
+			}
+			// if the reputation is not in the peerstore, tag it with the qriBaseReputation
+			if err := n.TagReputation(pid, qriBaselineReputation); err != nil {
+				return fmt.Errorf("error tagging connection: %s", err)
+			}
+		}
+		rep := qriBaselineReputation
+		if _rep != nil {
+			rep = _rep.(int)
+		}
+		// if the reputation has not been changed, then it has not been checked
+		if rep == qriBaselineReputation {
+			checked = false
+		}
+		if rep < 0 {
+			disconnect = true
+		}
+		reps = append(reps, rep)
+	}
 
-	if _, err := n.RequestProfile(pinfo.ID); err != nil {
+	// if it has been checked already, return
+	if checked {
+		// if the reputation is negative, disconnect
+		if disconnect {
+			n.DisconnectFromProfile(profile)
+			return nil
+		}
+		return nil
+	}
+
+	// create a regclient and get the reputation from the registry
+	loc := n.RegistryLocation()
+	if loc == "" {
+		return fmt.Errorf("check reputation: no registry provided")
+	}
+	cfg := &regclient.Config{Location: loc}
+	client := regclient.NewClient(cfg)
+	reputation, err := client.GetReputation(profile.ID.String())
+	if err != nil {
+		return err
+	}
+	// get integer value of reputation
+	rep := reputation.Reputation()
+	// for each peerID, change the tag value and maybe close connection:
+	for i, pid := range pids {
+		newRep := reps[i] + rep
+		// put the new reputation in the peerstore & conn manager
+		if err := n.TagReputation(pid, newRep); err != nil {
+			return fmt.Errorf("error tagging connection: %s", err)
+		}
+		// close connection if value is negative
+		if newRep < 0 {
+			disconnect = true
+		}
+	}
+	if disconnect {
+		n.DisconnectFromProfile(profile)
+	}
+	return nil
+}
+
+// AddQriPeer negotiates a connection with a peer to get their profile details
+// and peer list. Checks reputation, updates conn manager with reputation, closes
+// connection if resulting reputation is negative.
+func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
+	pro, err := n.RequestProfile(pinfo.ID)
+	if err != nil {
 		log.Debug(err.Error())
 		return err
 	}
+
+	go n.checkReputation(pro)
 
 	go func() {
 		ps, err := n.RequestQriPeers(pinfo.ID)
@@ -208,19 +290,24 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 }
 
 // DisconnectFromPeer explicitly closes a connection to a peer
-func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams) error {
-	pinfo, err := n.peerConnectionParamsToPeerInfo(p)
-	if err != nil {
-		return err
-	}
-
-	conns := n.Host.Network().ConnsToPeer(pinfo.ID)
+func (n *QriNode) DisconnectFromPeer(pid peer.ID) error {
+	conns := n.Host.Network().ConnsToPeer(pid)
 	for _, conn := range conns {
 		if err := conn.Close(); err != nil {
 			return err
 		}
 	}
+	return nil
+}
 
+// DisconnectFromProfile explicitly closes a connection to all the peers associated with a profile
+func (n *QriNode) DisconnectFromProfile(profile *profile.Profile) error {
+	pids := profile.PeerIDs
+	for _, pid := range pids {
+		if err := n.DisconnectFromPeer(pid); err != nil {
+			return err
+		}
+	}
 	return nil
 }
 
