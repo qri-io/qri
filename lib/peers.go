@@ -175,7 +175,7 @@ func (d *PeerRequests) DisconnectFromPeer(p *PeerConnectionParamsPod, res *bool)
 		return err
 	}
 
-	if err := d.qriNode.DisconnectFromPeer(context.Background(), pcp); err != nil {
+	if err := d.qriNode.DisconnectFromPeer(context.Background(), pcp.PeerID); err != nil {
 		return err
 	}
 

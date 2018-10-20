@@ -19,8 +19,10 @@ const (
 	QriServiceTag = "qri/0.5.6"
 	// tag qri service uses in host connection Manager
 	qriConnManagerTag = "qri"
+	// tag qri server uses in host peerstore
+	qriReputationKey = "reputation"
 	// default value to give qri peer connections in connmanager
-	qriConnManagerValue = 6
+	qriBaselineReputation = 6
 )
 
 func init() {
