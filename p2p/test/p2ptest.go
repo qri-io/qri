@@ -134,6 +134,10 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 // remote peer.
 // Take a look at https://github.com/libp2p/go-libp2p-host/blob/623ffaa4ef2b8dad77933159d0848a393a91c41e/host.go#L36
 // for more info
+// Connect should always:
+// - add a connections to the peer
+// - add the addrs of the peer to the peerstore
+// - add a tag for each peer in the connmanager
 func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	var wg sync.WaitGroup
 	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
