@@ -295,7 +295,7 @@ structure:
   #     type: string
 
 # Transform contains instructions for creating repeatable, auditable scripts
-# that qri can execute for you. Currently transforms are written in the skylark
+# that qri can execute for you. Currently transforms are written in the starlark
 # scripting language, which is modeled after the python programming language
 # for more info check https://qri.io/docs/transforms
 # transform:

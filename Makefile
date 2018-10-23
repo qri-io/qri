@@ -1,6 +1,6 @@
 GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
 GOPACKAGES = github.com/briandowns/spinner github.com/datatogether/api/apiutil github.com/fatih/color github.com/ipfs/go-datastore github.com/olekukonko/tablewriter github.com/qri-io/bleve github.com/qri-io/dataset github.com/qri-io/doggos github.com/qri-io/dsdiff github.com/qri-io/varName github.com/qri-io/registry/regclient github.com/sergi/go-diff/diffmatchpatch github.com/sirupsen/logrus github.com/spf13/cobra github.com/spf13/cobra/doc github.com/theckman/go-flock github.com/ugorji/go/codec github.com/beme/abide github.com/ghodss/yaml github.com/qri-io/ioes
-GX_DEP_PACKAGES = github.com/qri-io/cafs github.com/qri-io/skytf
+GX_DEP_PACKAGES = github.com/qri-io/cafs github.com/qri-io/startf
 
 default: build
 
@@ -30,7 +30,7 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/varName && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dsdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/skytf && git checkout master && git pull
+	cd $$GOPATH/src/github.com/qri-io/startf && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/qri
 

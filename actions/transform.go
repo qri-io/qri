@@ -7,15 +7,15 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/skytf"
+	"github.com/qri-io/startf"
 )
 
 // ExecTransform executes a designated transformation
 func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
-	file, err = skytf.ExecFile(ds, filepath, infile, skytf.AddQriNodeOpt(node), func(o *skytf.ExecOpts) {
+	file, err = startf.ExecFile(ds, filepath, infile, startf.AddQriNodeOpt(node), func(o *startf.ExecOpts) {
 		if secrets != nil {
-			// convert to map[string]interface{}, which the lower-level skytf supports
+			// convert to map[string]interface{}, which the lower-level startf supports
 			// until we're sure map[string]string is going to work in the majority of use cases
 			s := map[string]interface{}{}
 			for key, val := range secrets {
@@ -41,7 +41,7 @@ func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, sec
 	ref := repo.DatasetRef{
 		Dataset: &dataset.DatasetPod{
 			Transform: &dataset.TransformPod{
-				Syntax:     "skylark",
+				Syntax:     "starlark",
 				ScriptPath: tfPath.String(),
 			},
 		},

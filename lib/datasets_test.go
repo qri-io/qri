@@ -25,7 +25,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
-	"github.com/qri-io/skytf"
+	"github.com/qri-io/startf"
 )
 
 func init() {
@@ -97,7 +97,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 				Schema: map[string]interface{}{"type": "array"},
 			},
 			Transform: &dataset.TransformPod{
-				ScriptPath: "testdata/tf/transform.sky",
+				ScriptPath: "testdata/tf/transform.star",
 			}},
 			&dataset.DatasetPod{
 				Name:     "foo",
@@ -111,9 +111,9 @@ func TestDatasetRequestsInit(t *testing.T) {
 				Meta: &dataset.Meta{Qri: "md:0", Title: "foo"},
 				Transform: &dataset.TransformPod{
 					Qri:           "tf:0",
-					Syntax:        "skylark",
-					SyntaxVersion: skytf.Version,
-					ScriptPath:    "/map/QmQDnmqNrxhggPSKrx3DMxhXf4NDhe3SEQKr7egFMu23L6",
+					Syntax:        "starlark",
+					SyntaxVersion: startf.Version,
+					ScriptPath:    "/map/QmYxTLyk2YL7YARtJZxgzafjAK2dR4XyZQCnxmHYSgvH5q",
 				},
 				Structure: &dataset.StructurePod{
 					Qri:      "st:0",

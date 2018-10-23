@@ -28,10 +28,10 @@ func TestExecTransform(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tfPath := filepath.Join(os.TempDir(), "transform.sky")
+	tfPath := filepath.Join(os.TempDir(), "transform.star")
 	defer os.RemoveAll(tfPath)
 	data := `
-def transform(qri):
+def transform(ds,ctx):
 	return [1,2,3]
 `
 	if err := ioutil.WriteFile(tfPath, []byte(data), 0777); err != nil {
@@ -44,7 +44,7 @@ def transform(qri):
 			Schema: dataset.BaseSchemaArray,
 		},
 		Transform: &dataset.Transform{
-			Syntax:     "skylark",
+			Syntax:     "starlark",
 			ScriptPath: tfPath,
 		},
 	}
