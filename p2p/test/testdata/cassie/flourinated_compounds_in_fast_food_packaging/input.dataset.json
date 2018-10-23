@@ -1,0 +1,61 @@
+{
+  "commit" : {
+    "qri" : "cm:0",
+    "title" : "initial commit",
+    "timestamp": "2017-05-01T01:00:00.000Z"
+  },
+  "meta" : {
+    "title" : "Fluorinated Compounds in U.S. Fast Food Packaging",
+    "description" : "Paper samples, paper extracts (known), paper extracts (unknown). \n\nThis dataset is associated with the following publication:\nSchaider, L., S. Balan, A. Blum, D. Andrews, M. Strynar, M. Dickinson, D. Lunderberg, J. Lang, and G. Peaslee. Fluorinated Compounds in U.S. Fast Food Packaging.   Environmental Science \u0026amp; Technology Letters. American Chemical Society, Washington, DC, USA, 4(3): 105\u0026ndash;111, (2017)."
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "cbor",
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "type": "string",
+            "title": "sample"
+          },
+          {
+            "type": "string",
+            "title": "comments"
+          },
+          {
+            "type": "integer",
+            "title": "length_cm",
+            "description": "length of sample in cm"
+          },
+          {
+            "type": "integer",
+            "title": "width_cm",
+            "description": "width of sample in cm"
+          },
+          {
+            "type": "integer",
+            "title": "area_cm",
+            "description": "area of sample in cm2"
+          },
+          {
+            "type": "number",
+            "title": "vial_tare_g",
+            "description": "vial tare in grams"
+          },
+          {
+            "type": "number",
+            "title": "vial_with_paper_g",
+            "description": "mass of vial tare with paper in grams"
+          },
+          {
+            "type": "number",
+            "title": "mass_g",
+            "description": "mass of paper in grams"
+          }
+        ]
+      }
+    }
+  }
+}

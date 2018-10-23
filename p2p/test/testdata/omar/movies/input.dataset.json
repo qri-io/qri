@@ -1,0 +1,35 @@
+{
+  "qri": "ds:0",
+  "commit": {
+    "qri": "cm:0",
+    "timestamp": "2017-03-01T01:00:00.000Z",
+    "title": "initial commit"
+  },
+  "meta": {
+    "qri": "md:0",
+    "title": "example movie data"
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  }
+}

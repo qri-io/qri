@@ -42,7 +42,7 @@ func (n *QriNode) AnnounceConnected() error {
 	log.Debugf("%s AnnounceConnected to %d peers", n.ID, len(pids))
 
 	addrs := []string{}
-	for _, ma := range n.Host.Addrs() {
+	for _, ma := range n.host.Addrs() {
 		addrs = append(addrs, ma.String())
 	}
 	ppod := &pinfoPod{
@@ -85,7 +85,7 @@ func (n *QriNode) handleConnected(ws *WrappedStream, msg Message) (hangup bool) 
 		log.Debug(err.Error())
 		return
 	}
-	n.Host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
 	// request this peer's profile to connect two node's knowledge of each other
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
