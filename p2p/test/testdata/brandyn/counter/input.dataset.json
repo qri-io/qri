@@ -1,0 +1,31 @@
+{
+  "qri": "ds:0",
+  "commit": {
+    "qri": "cm:0",
+    "timestamp": "2017-02-01T01:00:00.000Z",
+    "title": "initial commit"
+  },
+  "meta": {
+    "qri": "md:0",
+    "title": "it's a counter"
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "count",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  }
+}
