@@ -20,7 +20,7 @@ import (
 
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
-	// add host here?
+	// add Host here?
 	Host() host.Host
 	SimplePeerInfo() pstore.PeerInfo
 	UpgradeToQriConnection(pstore.PeerInfo) error

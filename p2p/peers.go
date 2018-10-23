@@ -16,10 +16,10 @@ import (
 // ConnectedQriProfiles lists all connected peers that support the qri protocol
 func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 	peers := map[profile.ID]*config.ProfilePod{}
-	if n.Host() == nil {
+	if n.host == nil {
 		return peers
 	}
-	for _, conn := range n.Host().Network().Conns() {
+	for _, conn := range n.host.Network().Conns() {
 		if p, err := n.Repo.Profiles().PeerProfile(conn.RemotePeer()); err == nil {
 			if pe, err := p.Encode(); err == nil {
 				pe.Online = true
@@ -42,10 +42,10 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 // ConnectedQriPeerIDs returns a slice of peer.IDs this peer is currently connected to
 func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
 	peers := []peer.ID{}
-	if n.Host() == nil {
+	if n.host == nil {
 		return peers
 	}
-	conns := n.Host().Network().Conns()
+	conns := n.host.Network().Conns()
 	for _, c := range conns {
 		id := c.RemotePeer()
 		if _, err := n.Repo.Profiles().PeerProfile(id); err == nil {
@@ -67,7 +67,7 @@ func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) 
 
 	if ids, err := n.Repo.Profiles().PeerIDs(id); err == nil {
 		for _, id := range ids {
-			if len(n.Host().Network().ConnsToPeer(id)) > 0 {
+			if len(n.host.Network().ConnsToPeer(id)) > 0 {
 				added++
 				pid = append(pid, id)
 			}
@@ -75,7 +75,7 @@ func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) 
 	}
 
 	if len(pid) == 0 {
-		for _, conn := range n.Host().Network().Conns() {
+		for _, conn := range n.host.Network().Conns() {
 			pid = append(pid, conn.RemotePeer())
 			added++
 			if added == max {
@@ -108,7 +108,7 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 		return pstore.PeerInfo{}
 	}
 
-	return n.Host().Peerstore().PeerInfo(pid)
+	return n.host.Peerstore().PeerInfo(pid)
 }
 
 // AddQriPeer negotiates a connection with a peer to get their profile details
@@ -116,7 +116,7 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 	// add this peer to our store so libp2p has the provided addresses of
 	// the peer in the next call
-	n.Host().Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
+	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
 	if _, err := n.RequestProfile(pinfo.ID); err != nil {
 		log.Debug(err.Error())
@@ -137,10 +137,10 @@ func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
 
 // Peers returns a list of currently connected peer IDs
 func (n *QriNode) Peers() []peer.ID {
-	if n.Host() == nil {
+	if n.host == nil {
 		return []peer.ID{}
 	}
-	conns := n.Host().Network().Conns()
+	conns := n.host.Network().Conns()
 	seen := make(map[peer.ID]struct{})
 	peers := make([]peer.ID, 0, len(conns))
 
@@ -159,14 +159,14 @@ func (n *QriNode) Peers() []peer.ID {
 
 // ConnectedPeers lists all IPFS connected peers
 func (n *QriNode) ConnectedPeers() []string {
-	if n.Host() == nil {
+	if n.host == nil {
 		return []string{}
 	}
-	conns := n.Host().Network().Conns()
+	conns := n.host.Network().Conns()
 	peers := make([]string, len(conns))
 	for i, c := range conns {
 		peers[i] = c.RemotePeer().Pretty()
-		if ti := n.Host().ConnManager().GetTagInfo(c.RemotePeer()); ti != nil {
+		if ti := n.host.ConnManager().GetTagInfo(c.RemotePeer()); ti != nil {
 			peers[i] = fmt.Sprintf("%s, %d, %v", c.RemotePeer().Pretty(), ti.Value, ti.Tags)
 		}
 	}
@@ -191,12 +191,12 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, err
 	}
 
-	if swarm, ok := n.Host().Network().(*swarm.Swarm); ok {
+	if swarm, ok := n.host.Network().(*swarm.Swarm); ok {
 		// clear backoff b/c we're explicitly dialing this peer
 		swarm.Backoff().Clear(pinfo.ID)
 	}
 
-	if err := n.Host().Connect(ctx, pinfo); err != nil {
+	if err := n.host.Connect(ctx, pinfo); err != nil {
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
@@ -214,7 +214,7 @@ func (n *QriNode) DisconnectFromPeer(ctx context.Context, p PeerConnectionParams
 		return err
 	}
 
-	conns := n.Host().Network().ConnsToPeer(pinfo.ID)
+	conns := n.host.Network().ConnsToPeer(pinfo.ID)
 	for _, conn := range conns {
 		if err := conn.Close(); err != nil {
 			return err
@@ -260,7 +260,7 @@ func (n *QriNode) peerConnectionParamsToPeerInfo(p PeerConnectionParams) (pi pst
 // to do routing lookups
 func (n *QriNode) getPeerInfo(pid peer.ID) (pstore.PeerInfo, error) {
 	// first check for local peer info
-	if pinfo := n.Host().Peerstore().PeerInfo(pid); len(pinfo.ID) > 0 {
+	if pinfo := n.host.Peerstore().PeerInfo(pid); len(pinfo.ID) > 0 {
 		// _, err := n.RequestProfile(pinfo.ID)
 		return pinfo, nil
 	}

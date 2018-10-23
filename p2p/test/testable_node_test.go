@@ -37,8 +37,8 @@ func (n *TestableNode) Host() host.Host {
 // SimplePeerInfo returns the PeerInfo of the TestableNode
 func (n *TestableNode) SimplePeerInfo() pstore.PeerInfo {
 	return pstore.PeerInfo{
-		ID:    n.Host().ID(),
-		Addrs: n.Host().Addrs(),
+		ID:    n.host.ID(),
+		Addrs: n.host.Addrs(),
 	}
 }
 
@@ -54,13 +54,13 @@ func (n *TestableNode) GoOnline() error {
 
 	// add multistream handler for qri protocol to the host
 	// for more info on multistreams check github.com/multformats/go-multistream
-	// n.Host().SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+	// n.host().SetStreamHandler(QriProtocolID, n.QriStreamHandler)
 
 	p, err := n.Repo.Profile()
 	if err != nil {
 		return fmt.Errorf("error getting repo profile: %s", err.Error())
 	}
-	p.PeerIDs = []peer.ID{n.Host().ID()}
+	p.PeerIDs = []peer.ID{n.host.ID()}
 
 	// update profile with our p2p addresses
 	if err := n.Repo.SetProfile(p); err != nil {
