@@ -478,7 +478,7 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 	}
 	if tfFile != nil {
 		var f *os.File
-		// TODO - this assumes a skylark / starlark transform file
+		// TODO - this assumes a starlark transform file
 		if f, err = ioutil.TempFile("", "transform"); err != nil {
 			return
 		}
@@ -487,7 +487,7 @@ func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), 
 		if dsp.Transform == nil {
 			dsp.Transform = &dataset.TransformPod{}
 		}
-		dsp.Transform.Syntax = "skylark"
+		dsp.Transform.Syntax = "starlark"
 		dsp.Transform.ScriptPath = f.Name()
 	}
 

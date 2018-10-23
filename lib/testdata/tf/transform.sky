@@ -1,5 +1,0 @@
-
-
-def transform(ds):
-  ds.set_body(["hello", "world"])
-  return ds
