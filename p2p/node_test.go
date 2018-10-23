@@ -27,7 +27,7 @@ func TestNewNode(t *testing.T) {
 	if n.Online {
 		t.Errorf("default node online flag should be false")
 	}
-	if err := n.Connect(); err != nil {
+	if err := n.GoOnline(); err != nil {
 		t.Error(err.Error())
 	}
 	if !n.Online {

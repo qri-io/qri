@@ -13,20 +13,18 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 
-	net "gx/ipfs/QmPjvxTpVH8qJyQDnxnsxF9kv9jezKD1kozz1hs3fCGsNh/go-libp2p-net"
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
 	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	host "gx/ipfs/Qmb8T6YBBsjYsVGfrihQLfCJveczZnneSBqBKkYEBWDjge/go-libp2p-host"
 )
 
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
-	Keys() pstore.KeyBook
-	Addrs() pstore.AddrBook
-	HostNetwork() net.Network
+	// add host here?
+	Host() host.Host
 	SimplePeerInfo() pstore.PeerInfo
-	AddPeer(pstore.PeerInfo) error
-	Connect() error
+	UpgradeQriConnection(pstore.PeerInfo) error
+	GoOnline() error
 }
 
 // NodeMakerFunc is a function that constructs a Node from a Repo and options.
@@ -122,21 +120,25 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 	if err != nil {
 		return nil, fmt.Errorf("error creating test node: %s", err.Error())
 	}
-	if err := node.Connect(); err != nil {
+	if err := node.GoOnline(); err != nil {
 		return nil, fmt.Errorf("errror connecting: %s", err.Error())
 	}
-	node.Keys().AddPubKey(info.PeerID, info.PubKey)
-	node.Keys().AddPrivKey(info.PeerID, info.PrivKey)
+	node.Host().Peerstore().AddPubKey(info.PeerID, info.PubKey)
+	node.Host().Peerstore().AddPrivKey(info.PeerID, info.PrivKey)
 	return node, err
 }
 
-// ConnectNodes connects the nodes in the network so they may communicate
+// ConnectNodes creates a basic connection between the nodes. This connection
+// mirrors the connection that would normally occur between two p2p nodes.
+// The Host.Connect function adds the addresses into the peerstore and dials the
+// remote peer.
+// Take a look at https://github.com/libp2p/go-libp2p-host/blob/623ffaa4ef2b8dad77933159d0848a393a91c41e/host.go#L36
+// for more info
 func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	var wg sync.WaitGroup
-	connect := func(n TestablePeerNode, dst peer.ID, addr ma.Multiaddr) error {
-		n.Addrs().AddAddr(dst, addr, pstore.PermanentAddrTTL)
-		if _, err := n.HostNetwork().DialPeer(ctx, dst); err != nil {
-			return err
+	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
+		if err := n.Host().Connect(ctx, pinfo); err != nil {
+			return fmt.Errorf("error connecting nodes: %s", err)
 		}
 		wg.Done()
 		return nil
@@ -145,7 +147,7 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	for i, s1 := range nodes {
 		for _, s2 := range nodes[i+1:] {
 			wg.Add(1)
-			if err := connect(s1, s2.HostNetwork().LocalPeer(), s2.HostNetwork().ListenAddresses()[0]); err != nil {
+			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
 				return err
 			}
 		}
@@ -160,7 +162,7 @@ func ConnectQriPeers(ctx context.Context, nodes []TestablePeerNode) error {
 	var wg sync.WaitGroup
 	connect := func(a, b TestablePeerNode) error {
 		bpi := b.SimplePeerInfo()
-		if err := a.AddPeer(bpi); err != nil {
+		if err := a.UpgradeQriConnection(bpi); err != nil {
 			return err
 		}
 		wg.Done()

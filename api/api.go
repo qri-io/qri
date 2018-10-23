@@ -43,7 +43,7 @@ func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
 
 // Serve starts the server. It will block while the server is running
 func (s *Server) Serve() (err error) {
-	if err = s.qriNode.Connect(); err != nil {
+	if err = s.qriNode.GoOnline(); err != nil {
 		fmt.Println("serving error", s.cfg.P2P.Enabled)
 		return
 	}
@@ -53,18 +53,6 @@ func (s *Server) Serve() (err error) {
 
 	go s.ServeRPC()
 	go s.ServeWebapp()
-
-	peerBootstrapped := func(peerId string) {
-		// if cfg.PostP2POnlineHook != nil && !bootstrapped {
-		// go cfg.PostP2POnlineHook(s.qriNode)
-		// bootstrapped = true
-		// }
-	}
-
-	err = s.qriNode.StartOnlineServices(peerBootstrapped)
-	if err != nil {
-		return fmt.Errorf("error starting P2P service: %s", err.Error())
-	}
 
 	if node, err := s.qriNode.IPFSNode(); err == nil {
 		if pinner, ok := s.qriNode.Repo.Store().(cafs.Pinner); ok {
