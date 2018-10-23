@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/varName"
 )
 
 // NewDataset processes dataset input into it's necessary components for creation
@@ -52,15 +51,6 @@ func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, s
 	// open a data file if we can
 	if body, err = repo.DatasetPodBodyFile(dsp); err == nil {
 		// defer body.Close()
-
-		// validate / generate dataset name
-		if dsp.Name == "" {
-			dsp.Name = varName.CreateVarNameFromString(body.FileName())
-		}
-		if e := validate.ValidName(dsp.Name); e != nil {
-			err = fmt.Errorf("invalid name: %s", e.Error())
-			return
-		}
 
 		// read structure from InitParams, or detect from data
 		if ds.Structure == nil && ds.Transform == nil {

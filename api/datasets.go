@@ -402,12 +402,11 @@ func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 		DryRun:     r.FormValue("dry_run") == "true",
 		ReturnBody: r.FormValue("return_body") == "true",
 	}
-	if err := h.New(p, res); err != nil {
+	if err := h.Save(p, res); err != nil {
 		log.Infof("error initializing dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
 	if p.ReturnBody {
 		if err := addBodyFile(res); err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)

@@ -93,51 +93,6 @@ type SaveParams struct {
 	ReturnBody bool // if true, res.Dataset.Body will be a cafs.file of the body
 }
 
-// New creates a new qri dataset from a source of data
-func (r *DatasetRequests) New(p *SaveParams, res *repo.DatasetRef) (err error) {
-	if r.cli != nil {
-		if p.ReturnBody {
-			// can't send an io.Reader interface over RPC
-			p.ReturnBody = false
-			log.Error("cannot return body bytes over RPC, disabling body return")
-		}
-		return r.cli.Call("DatasetRequests.New", p, res)
-	}
-
-	if p.Private {
-		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
-	}
-
-	ds, bodyFile, secrets, err := actions.NewDataset(p.Dataset)
-	if err != nil {
-		return err
-	}
-	if bodyFile != nil {
-		defer bodyFile.Close()
-	}
-
-	var body cafs.File
-	*res, body, err = actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
-	if err != nil {
-		log.Debugf("error creating dataset: %s\n", err.Error())
-		return err
-	}
-
-	if p.Publish {
-		var done bool
-
-		if err = NewRegistryRequests(r.node, nil).Publish(&PublishParams{Ref: *res, Pin: true}, &done); err != nil {
-			return err
-		}
-	}
-
-	if p.ReturnBody {
-		res.Dataset.Body = body
-	}
-
-	return nil
-}
-
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 // TODO - currently, if a user adds metadata or structure, but does not add
@@ -161,12 +116,24 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
-	ds, body, secrets, err := actions.UpdateDataset(r.node, p.Dataset)
-	if err != nil {
-		return err
+	var ds *dataset.Dataset
+	var bodyFile cafs.File
+	var secrets map[string]string
+	prev := &repo.DatasetRef{Name: p.Dataset.Name, Peername: p.Dataset.Peername}
+	err = repo.CanonicalizeDatasetRef(r.node.Repo, prev)
+	if err == repo.ErrNotFound {
+		ds, bodyFile, secrets, err = actions.NewDataset(p.Dataset)
+		if err != nil {
+			return err
+		}
+	} else {
+		ds, bodyFile, secrets, err = actions.UpdateDataset(r.node, p.Dataset)
+		if err != nil {
+			return err
+		}
 	}
 
-	ref, body, err := actions.CreateDataset(r.node, p.Dataset.Name, ds, body, secrets, p.DryRun, true)
+	ref, body, err := actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
