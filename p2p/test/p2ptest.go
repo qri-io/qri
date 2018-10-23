@@ -23,7 +23,7 @@ type TestablePeerNode interface {
 	// add host here?
 	Host() host.Host
 	SimplePeerInfo() pstore.PeerInfo
-	UpgradeQriConnection(pstore.PeerInfo) error
+	UpgradeToQriConnection(pstore.PeerInfo) error
 	GoOnline() error
 }
 
@@ -166,7 +166,7 @@ func ConnectQriPeers(ctx context.Context, nodes []TestablePeerNode) error {
 	var wg sync.WaitGroup
 	connect := func(a, b TestablePeerNode) error {
 		bpi := b.SimplePeerInfo()
-		if err := a.UpgradeQriConnection(bpi); err != nil {
+		if err := a.UpgradeToQriConnection(bpi); err != nil {
 			return err
 		}
 		wg.Done()

@@ -42,9 +42,9 @@ func (n *TestableNode) SimplePeerInfo() pstore.PeerInfo {
 	}
 }
 
-// UpgradeQriConnection upgrades the connection from a basic connection
+// UpgradeToQriConnection upgrades the connection from a basic connection
 // to a Qri connection
-func (n *TestableNode) UpgradeQriConnection(pstore.PeerInfo) error {
+func (n *TestableNode) UpgradeToQriConnection(pstore.PeerInfo) error {
 	return nil
 }
 

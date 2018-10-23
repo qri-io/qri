@@ -126,61 +126,63 @@ func (n *QriNode) GoOnline() (err error) {
 		return fmt.Errorf("p2p connection is disabled")
 	}
 
-	if !n.Online {
-		// If the underlying content-addressed-filestore is an ipfs
-		// node, it has built-in p2p, overlay the qri protocol
-		// on the ipfs node's p2p connections.
-		if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
-			if !ipfsfs.Online() {
-				if err := ipfsfs.GoOnline(); err != nil {
-					return err
-				}
-			}
-
-			ipfsnode := ipfsfs.Node()
-			if ipfsnode.PeerHost != nil {
-				n.setHost(ipfsnode.PeerHost)
-				// fmt.Println("ipfs host muxer:")
-				// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
-			}
-
-			if ipfsnode.Discovery != nil {
-				n.Discovery = ipfsnode.Discovery
-			}
-		} else if n.Host() == nil {
-			ps := pstore.NewPeerstore()
-			basicHost, err := makeBasicHost(n.ctx, ps, n.cfg)
-			if err != nil {
-				return fmt.Errorf("error creating host: %s", err.Error())
-			}
-			n.setHost(basicHost)
-		}
-
-		// add multistream handler for qri protocol to the host
-		// for more info on multistreams check github.com/multformats/go-multistream
-		n.Host().SetStreamHandler(QriProtocolID, n.QriStreamHandler)
-
-		p, err := n.Repo.Profile()
-		if err != nil {
-			log.Errorf("error getting repo profile: %s\n", err.Error())
-			return err
-		}
-		p.PeerIDs = []peer.ID{n.Host().ID()}
-		// add listen addresses to profile store
-		// if addrs, err := node.ListenAddresses(); err == nil {
-		// 	if p.Addresses == nil {
-		// 		p.Addresses = []string{fmt.Sprintf("/ipfs/%s", node.Host().ID().Pretty())}
-		// 	}
-		// }
-
-		// update profile with our p2p addresses
-		if err := n.Repo.SetProfile(p); err != nil {
-			return err
-		}
-
-		n.Online = true
-		go n.echoMessages()
+	if n.Online {
+		return nil
 	}
+	// If the underlying content-addressed-filestore is an ipfs
+	// node, it has built-in p2p, overlay the qri protocol
+	// on the ipfs node's p2p connections.
+	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
+		if !ipfsfs.Online() {
+			if err := ipfsfs.GoOnline(); err != nil {
+				return err
+			}
+		}
+
+		ipfsnode := ipfsfs.Node()
+		if ipfsnode.PeerHost != nil {
+			n.setHost(ipfsnode.PeerHost)
+			// fmt.Println("ipfs host muxer:")
+			// ipfsnode.PeerHost.Mux().Ls(os.Stderr)
+		}
+
+		if ipfsnode.Discovery != nil {
+			n.Discovery = ipfsnode.Discovery
+		}
+	} else if n.Host() == nil {
+		ps := pstore.NewPeerstore()
+		basicHost, err := makeBasicHost(n.ctx, ps, n.cfg)
+		if err != nil {
+			return fmt.Errorf("error creating host: %s", err.Error())
+		}
+		n.setHost(basicHost)
+	}
+
+	// add multistream handler for qri protocol to the host
+	// for more info on multistreams check github.com/multformats/go-multistream
+	n.Host().SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+
+	p, err := n.Repo.Profile()
+	if err != nil {
+		log.Errorf("error getting repo profile: %s\n", err.Error())
+		return err
+	}
+	p.PeerIDs = []peer.ID{n.Host().ID()}
+	// add listen addresses to profile store
+	// if addrs, err := node.ListenAddresses(); err == nil {
+	// 	if p.Addresses == nil {
+	// 		p.Addresses = []string{fmt.Sprintf("/ipfs/%s", node.Host().ID().Pretty())}
+	// 	}
+	// }
+
+	// update profile with our p2p addresses
+	if err := n.Repo.SetProfile(p); err != nil {
+		return err
+	}
+
+	n.Online = true
+	go n.echoMessages()
+
 	return n.startOnlineServices()
 }
 
@@ -324,8 +326,8 @@ func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID
 
 		// now that we have a confirmed working connection
 		// tag this peer as supporting the qri protocol in the connection manager
-		n.Host().ConnManager().TagPeer(peerID, qriConnManagerTag, qriConnManagerValue)
-		n.Host().Peerstore().AddAddr(peerID, s.Conn().RemoteMultiaddr(), pstore.TempAddrTTL)
+		n.host.ConnManager().TagPeer(peerID, qriConnManagerTag, qriConnManagerValue)
+		n.host.Peerstore().AddAddr(peerID, s.Conn().RemoteMultiaddr(), pstore.TempAddrTTL)
 
 		ws := WrapStream(s)
 		go n.handleStream(ws, replies)
@@ -403,9 +405,9 @@ func (n *QriNode) SimplePeerInfo() pstore.PeerInfo {
 	}
 }
 
-// UpgradeQriConnection marks this connection as a Qri peer and exchanges
+// UpgradeToQriConnection marks this connection as a Qri peer and exchanges
 // profile information with the peer
-func (n *QriNode) UpgradeQriConnection(peer pstore.PeerInfo) error {
+func (n *QriNode) UpgradeToQriConnection(peer pstore.PeerInfo) error {
 	return n.AddQriPeer(peer)
 }
 
