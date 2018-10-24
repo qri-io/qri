@@ -19,6 +19,8 @@ import (
 	"github.com/qri-io/varName"
 )
 
+// TODO: Move this to core.PrepareDatasetNew
+
 // NewDataset processes dataset input into it's necessary components for creation
 func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, secrets map[string]string, err error) {
 	if dsp == nil {
@@ -107,7 +109,9 @@ func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, s
 	return
 }
 
-// UpdateDataset prepares a set of changes for submission to CreateDataset
+// TODO: Move this to core.PrepareDatasetUpdate
+
+// UpdateDataset prepares a set of changes for submission to SaveDataset
 func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, secrets map[string]string, err error) {
 	ds = &dataset.Dataset{}
 	updates := &dataset.Dataset{}
@@ -227,8 +231,10 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 	return
 }
 
-// CreateDataset initializes a dataset from a dataset pointer and data file
-func CreateDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
+// TODO: Move this to core.CreateDataset
+
+// SaveDataset initializes a dataset from a dataset pointer and data file
+func SaveDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.File, secrets map[string]string, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
 		r   = node.Repo
 		pro *profile.Profile

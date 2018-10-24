@@ -106,12 +106,6 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 
 // Validate checks that all user input is valid
 func (o *SaveOptions) Validate() error {
-	if o.Ref == "" {
-		return lib.NewError(lib.ErrBadArgs, "please provide the peername and dataset name you would like to update, in the format of `peername/dataset_name`\nsee `qri save --help` for more info")
-	}
-	// if o.FilePath == "" && o.BodyPath == "" {
-	// 	return lib.NewError(lib.ErrBadArgs, "please an updated/changed dataset file (--file) or body file (--body), or both\nsee `qri save --help` for more info")
-	// }
 	return nil
 }
 
@@ -150,7 +144,6 @@ func (o *SaveOptions) Run() (err error) {
 
 	dsp.Name = ref.Name
 	dsp.Peername = ref.Peername
-
 	if (o.Title != "" || o.Message != "") && dsp.Commit == nil {
 		dsp.Commit = &dataset.CommitPod{}
 	}
@@ -164,7 +157,18 @@ func (o *SaveOptions) Run() (err error) {
 	if o.BodyPath != "" {
 		dsp.BodyPath = o.BodyPath
 	}
-
+	if dsp.BodyPath != "" {
+		if _, err := os.Stat(dsp.BodyPath); os.IsNotExist(err) {
+			return fmt.Errorf("body file \"%s\": no such file or directory", dsp.BodyPath)
+		}
+		// Get the absolute path to the body file. Especially important if we are running
+		// `qri connect` in a different terminal, and that instance is in a different directory;
+		// that instance won't correctly find the body file we want to load if it's not absolute.
+		dsp.BodyPath, err = filepath.Abs(dsp.BodyPath)
+		if err != nil {
+			return err
+		}
+	}
 	if dsp.Transform != nil && o.Secrets != nil {
 		if !confirm(o.Out, o.In, `
 Warning: You are providing secrets to a dataset transformation.

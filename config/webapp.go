@@ -24,8 +24,8 @@ type Webapp struct {
 // DefaultWebapp creates a new default Webapp configuration
 func DefaultWebapp() *Webapp {
 	return &Webapp{
-		Enabled: true,
-		Port:    DefaultWebappPort,
+		Enabled:                 true,
+		Port:                    DefaultWebappPort,
 		EntrypointUpdateAddress: "/ipns/webapp.qri.io",
 		EntrypointHash:          "QmfWr3jS97PNNUH5bg39nig4Jd8JDnXvRxvytmFpWnTPLn",
 	}
