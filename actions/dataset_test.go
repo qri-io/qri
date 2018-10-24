@@ -103,7 +103,7 @@ func TestDataset(t *testing.T) {
 	DatasetTests(t, rmf)
 }
 
-func TestCreateDataset(t *testing.T) {
+func TestSaveDataset(t *testing.T) {
 	n := newTestNode(t)
 
 	// test Dry run
@@ -115,7 +115,7 @@ func TestCreateDataset(t *testing.T) {
 		},
 	}
 	body := cafs.NewMemfileBytes("data.json", []byte("[]"))
-	ref, _, err := CreateDataset(n, "dry_run_test", ds, body, nil, true, false)
+	ref, _, err := SaveDataset(n, "dry_run_test", ds, body, nil, true, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -129,7 +129,7 @@ type RepoTestFunc func(t *testing.T, rmf RepoMakerFunc)
 
 func DatasetTests(t *testing.T, rmf RepoMakerFunc) {
 	for _, test := range []RepoTestFunc{
-		testCreateDataset,
+		testSaveDataset,
 		testReadDataset,
 		testRenameDataset,
 		testDatasetPinning,
@@ -140,7 +140,7 @@ func DatasetTests(t *testing.T, rmf RepoMakerFunc) {
 	}
 }
 
-func testCreateDataset(t *testing.T, rmf RepoMakerFunc) {
+func testSaveDataset(t *testing.T, rmf RepoMakerFunc) {
 	createDataset(t, rmf)
 }
 
@@ -159,7 +159,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 		return n, repo.DatasetRef{}
 	}
 
-	ref, _, err := CreateDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
+	ref, _, err := SaveDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -223,7 +223,7 @@ func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref2, _, err := CreateDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, false)
+	ref2, _, err := SaveDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

@@ -222,7 +222,6 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/save/", s.middleware(dsh.SaveHandler))
 	m.Handle("/remove/", s.middleware(dsh.RemoveHandler))
 	m.Handle("/me/", s.middleware(dsh.GetHandler))
-	m.Handle("/new", s.middleware(dsh.InitHandler))
 	m.Handle("/add/", s.middleware(dsh.AddHandler))
 	m.Handle("/rename", s.middleware(dsh.RenameHandler))
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))

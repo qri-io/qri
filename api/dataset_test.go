@@ -23,12 +23,13 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "list", h.ListHandler, listCases)
 
+	// TODO: Remove this case, update API snapshot.
 	initCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json")},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "init", h.InitHandler, initCases)
+	runHandlerTestCases(t, "init", h.SaveHandler, initCases)
 
 	saveCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -101,7 +102,7 @@ func TestDatasetHandlers(t *testing.T) {
 	runMimeMultipartHandlerTestCases(t, "remove mime/multipart", h.RemoveHandler, removeMimeCases)
 
 	newMimeCases := []handlerMimeMultipartTestCase{
-		{"POST", "/new",
+		{"POST", "/save",
 			map[string]string{
 				"body":      "testdata/cities/data.csv",
 				"structure": "testdata/cities/structure.json",
@@ -113,7 +114,7 @@ func TestDatasetHandlers(t *testing.T) {
 				"private":  "true",
 			},
 		},
-		{"POST", "/new",
+		{"POST", "/save",
 			map[string]string{
 				"body": "testdata/cities/data.csv",
 				"file": "testdata/cities/init_dataset.json",
@@ -123,7 +124,7 @@ func TestDatasetHandlers(t *testing.T) {
 				"name":     "cities",
 			},
 		},
-		{"POST", "/new",
+		{"POST", "/save",
 			map[string]string{
 				"body":      "testdata/cities/data.csv",
 				"structure": "testdata/cities/structure.json",
@@ -136,7 +137,7 @@ func TestDatasetHandlers(t *testing.T) {
 			},
 		},
 	}
-	runMimeMultipartHandlerTestCases(t, "new mime/multipart", h.InitHandler, newMimeCases)
+	runMimeMultipartHandlerTestCases(t, "save mime/multipart", h.SaveHandler, newMimeCases)
 }
 
 func newMockDataServer(t *testing.T) *httptest.Server {

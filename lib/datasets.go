@@ -115,12 +115,19 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
+	if p.Dataset == nil {
+		return fmt.Errorf("dataset is required")
+	}
 
 	var ds *dataset.Dataset
 	var bodyFile cafs.File
 	var secrets map[string]string
-	prev := &repo.DatasetRef{Name: p.Dataset.Name, Peername: p.Dataset.Peername}
-	err = repo.CanonicalizeDatasetRef(r.node.Repo, prev)
+	// Determine if the save is creating a new dataset or updating an existing dataset by
+	// seeing if the name can canonicalize to a repo that we know about.
+	// TODO: Move this logic into actions.SaveDataset, renaming NewDataset to
+	// core.PrepareDatasetNew and renaming UpdateDataset to core.PrepareDatasetUpdate.
+	lookup := &repo.DatasetRef{Name: p.Dataset.Name, Peername: p.Dataset.Peername}
+	err = repo.CanonicalizeDatasetRef(r.node.Repo, lookup)
 	if err == repo.ErrNotFound {
 		ds, bodyFile, secrets, err = actions.NewDataset(p.Dataset)
 		if err != nil {
@@ -133,7 +140,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 	}
 
-	ref, body, err := actions.CreateDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
+	ref, body, err := actions.SaveDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

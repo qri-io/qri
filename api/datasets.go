@@ -18,7 +18,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -120,18 +119,6 @@ func (h *DatasetHandlers) PeerListHandler(w http.ResponseWriter, r *http.Request
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		h.peerListHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
-// InitHandler is an endpoint for creating new datasets
-func (h *DatasetHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "POST", "PUT":
-		h.initHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -358,73 +345,6 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	if err := util.WritePageResponse(w, res, r, p.Page()); err != nil {
 		log.Infof("error list datasests response: %s", err.Error())
 	}
-}
-
-func (h *DatasetHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
-	dsp := &dataset.DatasetPod{}
-	switch r.Header.Get("Content-Type") {
-	case "application/json":
-		if err := json.NewDecoder(r.Body).Decode(dsp); err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error decoding body into params: %s", err.Error()))
-			return
-		}
-
-		if dsp.BodyPath == "" {
-			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("if adding dataset using json, body of request must have 'bodyPath' field"))
-			return
-		}
-
-	default:
-		cleanup, err := formFileDataset(dsp, r)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-		defer cleanup()
-	}
-
-	// TODO - fix this awful mess, ioes needs some method for piping it's output
-	prev := h.node.LocalStreams
-	defer func() {
-		h.node.LocalStreams = prev
-	}()
-
-	in := &bytes.Buffer{}
-	out := &bytes.Buffer{}
-	errOut := &bytes.Buffer{}
-	s := ioes.NewIOStreams(in, out, errOut)
-	h.node.LocalStreams = s
-
-	res := &repo.DatasetRef{}
-	p := &lib.SaveParams{
-		Dataset:    dsp,
-		Private:    r.FormValue("private") == "true",
-		DryRun:     r.FormValue("dry_run") == "true",
-		ReturnBody: r.FormValue("return_body") == "true",
-	}
-	if err := h.Save(p, res); err != nil {
-		log.Infof("error initializing dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	if p.ReturnBody {
-		if err := addBodyFile(res); err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-	}
-
-	// util.WriteResponse(w, res)
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code":    http.StatusOK,
-			"message": string(out.Bytes()),
-		},
-		"data": res.Dataset,
-	}
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	json.NewEncoder(w).Encode(env)
 }
 
 func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), err error) {

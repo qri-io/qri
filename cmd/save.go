@@ -11,11 +11,9 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
 
@@ -160,6 +158,9 @@ func (o *SaveOptions) Run() (err error) {
 		dsp.BodyPath = o.BodyPath
 	}
 	if dsp.BodyPath != "" {
+		if _, err := os.Stat(dsp.BodyPath); os.IsNotExist(err) {
+			return fmt.Errorf("body file \"%s\": no such file or directory", dsp.BodyPath)
+		}
 		// Get the absolute path to the body file. Especially important if we are running
 		// `qri connect` in a different terminal, and that instance is in a different directory;
 		// that instance won't correctly find the body file we want to load if it's not absolute.
@@ -167,13 +168,6 @@ func (o *SaveOptions) Run() (err error) {
 		if err != nil {
 			return err
 		}
-	}
-	// If dataset name is not given, derive it from the --body value.
-	if dsp.Name == "" {
-		dsp.Name = varName.CreateVarNameFromString(filepath.Base(dsp.BodyPath))
-	}
-	if e := validate.ValidName(dsp.Name); e != nil {
-		return fmt.Errorf("invalid name: %s", e.Error())
 	}
 	if dsp.Transform != nil && o.Secrets != nil {
 		if !confirm(o.Out, o.In, `

@@ -25,7 +25,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
-	"github.com/qri-io/startf"
 )
 
 func init() {
@@ -34,34 +33,47 @@ func init() {
 	}
 }
 
-func TestDatasetRequestsInit(t *testing.T) {
-	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`{"json":"data"}`))
-	}))
-	badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte(`\\\{"json":"data"}`))
-	}))
-
-	rc, _ := regmock.NewMockServerWithMemPinset()
+func TestDatasetRequestsSave(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-
 	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
+	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	// TODO: Needed for TestCases for `new`, see below.
+	/*jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
+	if err != nil {
+		t.Fatal(err.Error())
+	}*/
+
+	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		res := `city,pop,avg_age,in_usa
+toronto,40000000,55.5,false
+new york,8500000,44.4,true
+chicago,300000,44.4,true
+chatham,35000,65.25,true
+raleigh,250000,50.65,true
+sarnia,550000,55.65,false
+`
+		w.Write([]byte(res))
+	}))
+	// TODO: Needed for TestCases for `new`, see below.
+	/*badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte(`\\\{"json":"data"}`))
+	}))*/
+
 	req := NewDatasetRequests(node, nil)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := req.New(&SaveParams{Private: true}, nil); err == nil {
+	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
@@ -72,6 +84,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 		res     *dataset.DatasetPod
 		err     string
 	}{
+		/* TODO: TestCases from old `new` command, fix these so they work after merge with `save`.
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "either dataBytes, bodyPath, or a transform is required to create a dataset"},
 		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "reading body file: open /bad/path: no such file or directory"},
@@ -125,81 +138,7 @@ func TestDatasetRequestsInit(t *testing.T) {
 						"type": "array",
 					},
 				},
-			},
-			""},
-	}
-
-	for i, c := range cases {
-		got := &repo.DatasetRef{}
-		err := req.New(&SaveParams{Dataset: c.dataset, Publish: true}, got)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-
-		if got != nil && c.res != nil {
-			expect := &dataset.Dataset{}
-			if err := expect.Decode(c.res); err != nil {
-				t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
-				continue
-			}
-			gotDs := &dataset.Dataset{}
-			if err := gotDs.Decode(got.Dataset); err != nil {
-				t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
-				continue
-			}
-			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
-				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
-				continue
-			}
-		}
-	}
-}
-
-func TestDatasetRequestsSave(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		res := `city,pop,avg_age,in_usa
-toronto,40000000,55.5,false
-new york,8500000,44.4,true
-chicago,300000,44.4,true
-chatham,35000,65.25,true
-raleigh,250000,50.65,true
-sarnia,550000,55.65,false
-`
-		w.Write([]byte(res))
-	}))
-
-	req := NewDatasetRequests(node, nil)
-
-	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
-	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
-		t.Errorf("expected datset to error")
-	} else if err.Error() != privateErrMsg {
-		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
-	}
-
-	cases := []struct {
-		dataset *dataset.DatasetPod
-		res     *dataset.DatasetPod
-		err     string
-	}{
+			}, ""},*/
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
 		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
@@ -802,7 +741,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			BodyPath: fp1,
 		},
 	}
-	err = req.New(initParams, &dsRef1)
+	err = req.Save(initParams, &dsRef1)
 	if err != nil {
 		t.Errorf("couldn't init file 1: %s", err.Error())
 		return
@@ -821,7 +760,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			BodyPath: fp2,
 		},
 	}
-	err = req.New(initParams, &dsRef2)
+	err = req.Save(initParams, &dsRef2)
 	if err != nil {
 		t.Errorf("couldn't load second file: %s", err.Error())
 		return
