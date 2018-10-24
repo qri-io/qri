@@ -562,6 +562,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
+	res.Dataset.BodyPath = filepath.Base(res.Dataset.BodyPath)
 	util.WriteResponse(w, res)
 }
 
