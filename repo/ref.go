@@ -15,8 +15,8 @@ type Refstore interface {
 	// PutRef adds a reference to the store. References must be complete with
 	// Peername, Name, and Path specified
 	PutRef(ref DatasetRef) error
-	// GetRef "completes" a passed in partial reference, filling in missing fields
-	// with Data from the store
+	// GetRef "completes" a passed in alias (DatasetRef with at least Peername
+	// and Name field specified), filling in missing fields with a stored ref
 	// TODO - should we rename this to "CompleteRef"?
 	GetRef(ref DatasetRef) (DatasetRef, error)
 	// DeleteRef removes a reference from the store
@@ -74,7 +74,7 @@ type DatasetRef struct {
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
 	Dataset *dataset.DatasetPod `json:"dataset,omitempty"`
-	// Published indicates weather this reference is listed as an available dataset
+	// Published indicates whether this reference is listed as an available dataset
 	Published bool `json:"published,omitempty"`
 }
 
