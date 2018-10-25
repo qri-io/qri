@@ -185,28 +185,23 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		}
 	}
 	wgConnect.Wait()
-	var wgUpgrade sync.WaitGroup
-	upgradeConnection := func(a, b TestablePeerNode) error {
-		bpi := b.SimplePeerInfo()
-		if err := a.UpgradeToQriConnection(bpi); err != nil {
-			return err
-		}
-		wgUpgrade.Done()
-		return nil
-	}
 
+	// previously, we had UpgradeToQriConnection running in separate threads
+	// much like we did with the basic connection
+	// however, UpgradeToQriConnection asks for and sends profile information
+	// from it's various peers. We were running into a race condition where
+	// we would be writing to and requesting a profile at the same time.
 	for _, s1 := range nodes {
 		for _, s2 := range nodes {
-			if s1.SimplePeerInfo().ID == s2.SimplePeerInfo().ID {
+			pinfo := s2.SimplePeerInfo()
+			if s1.SimplePeerInfo().ID == pinfo.ID {
 				continue
 			}
-			wgUpgrade.Add(1)
-			if err := upgradeConnection(s1, s2); err != nil {
+			if err := s1.UpgradeToQriConnection(pinfo); err != nil {
 				return err
 			}
 		}
 	}
-	wgUpgrade.Wait()
 
 	return nil
 }
