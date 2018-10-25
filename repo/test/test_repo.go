@@ -57,12 +57,21 @@ func ProfileConfig() *config.ProfilePod {
 	}
 }
 
+// NewEmptyTestRepo initializes a test repo with no contents
+func NewEmptyTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
+	pro := &profile.Profile{
+		Peername: "peer",
+		ID:       profile.IDB58MustDecode(profileID),
+		PrivKey:  privKey,
+	}
+	return repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), rc)
+}
+
 // NewTestRepo generates a repository usable for testing purposes
 func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	ms := cafs.NewMapstore()
-	mr, err = repo.NewMemRepo(testPeerProfile, ms, profile.NewMemStore(), rc)
+	mr, err = NewEmptyTestRepo(rc)
 	if err != nil {
 		return
 	}

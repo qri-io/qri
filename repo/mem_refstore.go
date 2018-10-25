@@ -9,7 +9,9 @@ type MemRefstore []DatasetRef
 
 // PutRef adds a reference to the namestore. Only complete references may be added
 func (r *MemRefstore) PutRef(put DatasetRef) error {
-	if put.Peername == "" {
+	if put.ProfileID == "" {
+		return ErrPeerIDRequired
+	} else if put.Peername == "" {
 		return ErrPeernameRequired
 	} else if put.Name == "" {
 		return ErrNameRequired

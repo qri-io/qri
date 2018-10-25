@@ -331,28 +331,46 @@ func TestCompareDatasetRefs(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille"},
+	lucille := &profile.Profile{ID: profile.ID("a"), Peername: "lucille"}
+	carla := &profile.Profile{ID: profile.ID("b"), Peername: "carla"}
+
+	memRepo, err := NewMemRepo(lucille,
 		cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
 	}
-	mr := repo.MemRefstore
-	mr.PutRef(DatasetRef{Peername: "lucille", Name: "foo", Path: "/ipfs/QmTest"})
-	mr.PutRef(DatasetRef{Peername: "you", Name: "other", Path: "/ipfs/QmTest2"})
-	mr.PutRef(DatasetRef{Peername: "lucille", Name: "ball",
-		Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"})
+	rs := memRepo.MemRefstore
+	for _, r := range []DatasetRef{
+		{ProfileID: lucille.ID, Peername: "lucille", Name: "foo", Path: "/ipfs/QmTest"},
+		{ProfileID: carla.ID, Peername: carla.Peername, Name: "hockey_stats", Path: "/ipfs/QmTest2"},
+		{ProfileID: lucille.ID, Peername: "lucille", Name: "ball", Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"},
+	} {
+		if err := rs.PutRef(r); err != nil {
+			t.Fatal(err)
+		}
+	}
+
+	// TODO - this points to a problem in our thinking. placing a reference in the refstore doesn't automatically
+	// add it to the profile store. This can lead to bugs higher up the stack, but points to an architectural challenge:
+	// the profile store is supposed to be the source of truth for profiles, and that isn't being enforced here.
+	// Moreover, what's the correct thing to do when adding a ref to the refstore who's profile information is not in the profile
+	// store, or worse, doesn't match the profile store?
+	// There's an implied hierarchy of profile store > refstore that isn't being enforced in code, and should be.
+	if err := memRepo.Profiles().PutProfile(carla); err != nil {
+		t.Fatal(err.Error())
+	}
 
 	cases := []struct {
 		input  string
 		expect string
 		err    string
 	}{
-		{"me/foo", "lucille/foo@/ipfs/QmTest", ""},
-		{"you/other", "you/other@/ipfs/QmTest2", ""},
-		{"lucille/ball", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		{"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"me/foo", "lucille/foo@2g/ipfs/QmTest", ""},
+		{"carla/hockey_stats", "carla/hockey_stats@2h/ipfs/QmTest2", ""},
+		{"lucille/ball", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	for i, c := range cases {
@@ -363,7 +381,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeDatasetRef(repo, got)
+		err = CanonicalizeDatasetRef(memRepo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

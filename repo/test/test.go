@@ -33,6 +33,7 @@ func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {
 		"testRefstoreInvalidRefs": testRefstoreInvalidRefs,
 		"testRefstoreRefs":        testRefstoreRefs,
 		"testRefstore":            testRefstoreMain,
+		"testProfileStore":        testProfileStore,
 	}
 
 	for key, test := range tests {

@@ -108,8 +108,11 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 			t.Errorf("error putting test file in datastore: %s", err.Error())
 			return
 		}
+
 		ref.Path = path.String()
-		refs[i].Path = path.String()
+		// set path on input refs for later comparison
+		refs[i].Path = ref.Path
+
 		if err := r.PutRef(ref); err != nil {
 			t.Errorf("error putting name in repo for namespace test: %s", err.Error())
 			return
