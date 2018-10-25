@@ -355,10 +355,6 @@ func (n *QriNode) handleStream(ws *WrappedStream, replies chan Message) {
 			break
 		}
 
-		conn := ws.stream.Conn()
-		n.host.ConnManager().TagPeer(conn.RemotePeer(), qriConnManagerTag, qriConnManagerValue)
-		n.host.Peerstore().AddAddr(conn.RemotePeer(), conn.RemoteMultiaddr(), pstore.TempAddrTTL)
-
 		if replies != nil {
 			go func() { replies <- msg }()
 		}

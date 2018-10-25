@@ -30,6 +30,8 @@ type TestableNode struct {
 // testing protocol
 const TestQriProtocolID = protocol.ID("/qri/_testing")
 const TestQriSupportKey = "qri-support-test"
+const TestQriConnManagerTag = "qri_test"
+const TestQriConnManagerValue = 6
 
 // Host returns the node's underlying host
 func (n *TestableNode) Host() host.Host {
@@ -73,6 +75,12 @@ func (n *TestableNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// if it does support the qri protocol
 	// - request profile
 	// - request profiles
+	// - tag as qri connection
+	if !support {
+		return nil
+	}
+
+	n.Host().ConnManager().TagPeer(pinfo.ID, TestQriConnManagerTag, TestQriConnManagerValue)
 	return nil
 }
 

@@ -62,6 +62,7 @@ func TestConnectNodes(t *testing.T) {
 // - we have a tag on each peer
 // - we have the protocols each peer supports
 // - we have a record of if the peer supports the qri protocol
+// - we have tagged the connection in the conn manager
 // - we have a profile of that peer
 func TestConnectQriNodes(t *testing.T) {
 	ctx := context.Background()
@@ -106,12 +107,17 @@ func TestConnectQriNodes(t *testing.T) {
 			}
 			tag := node.Host().ConnManager().GetTagInfo(rpid)
 			if tag == nil {
-				t.Errorf("node %s has not tag info on node %s", pid, rpid)
+				t.Errorf("node %s does has not tag info on node %s", pid, rpid)
+			}
+			if tag != nil {
+				tagVal := tag.Tags[TestQriConnManagerTag]
+				if tagVal != TestQriConnManagerValue {
+					t.Errorf("node %s tag value for %s incorrect. expected: %d, got: %d", pid, rpid, TestQriConnManagerValue, tagVal)
+				}
 			}
 			supports, err := node.Host().Peerstore().Get(rpid, string(TestQriSupportKey))
 			if err != nil {
 				t.Errorf("node %s error getting %s support from peerstore: %s", pid, rpid, err)
-				continue
 			}
 			_, ok := supports.(bool)
 			if !ok {

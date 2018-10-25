@@ -134,9 +134,14 @@ func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 		return err
 	}
 	// if it does support the qri protocol
+	// - tag the connection as a qri connection in the ConnManager
 	// - request profile
 	// - request profiles
 	if support {
+
+		// tag the connection as more important in the conn manager:
+		n.host.ConnManager().TagPeer(pinfo.ID, qriConnManagerTag, qriConnManagerValue)
+
 		if _, err := n.RequestProfile(pinfo.ID); err != nil {
 			log.Debug(err.Error())
 			return err
