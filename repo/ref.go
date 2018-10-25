@@ -15,9 +15,15 @@ type Refstore interface {
 	// PutRef adds a reference to the store. References must be complete with
 	// Peername, Name, and Path specified
 	PutRef(ref DatasetRef) error
+	// GetRef "completes" a passed in alias (DatasetRef with at least Peername
+	// and Name field specified), filling in missing fields with a stored ref
+	// TODO - should we rename this to "CompleteRef"?
 	GetRef(ref DatasetRef) (DatasetRef, error)
+	// DeleteRef removes a reference from the store
 	DeleteRef(ref DatasetRef) error
+	// References returns a set of references from the store
 	References(limit, offset int) ([]DatasetRef, error)
+	// RefCount returns the number of references in the store
 	RefCount() (int, error)
 }
 
@@ -68,6 +74,8 @@ type DatasetRef struct {
 	Path string `json:"path,omitempty"`
 	// Dataset is a pointer to the dataset being referenced
 	Dataset *dataset.DatasetPod `json:"dataset,omitempty"`
+	// Published indicates whether this reference is listed as an available dataset
+	Published bool `json:"published,omitempty"`
 }
 
 // DecodeDataset returns a dataset.Dataset from the stored CodingDataset field
@@ -456,16 +464,19 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 // describing any difference between the two references
 func CompareDatasetRef(a, b DatasetRef) error {
 	if a.ProfileID != b.ProfileID {
-		return fmt.Errorf("peerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
+		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
 	}
 	if a.Peername != b.Peername {
-		return fmt.Errorf("peername mismatch. %s != %s", a.Peername, b.Peername)
+		return fmt.Errorf("Peername mismatch. %s != %s", a.Peername, b.Peername)
 	}
 	if a.Name != b.Name {
-		return fmt.Errorf("name mismatch. %s != %s", a.Name, b.Name)
+		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
 	}
 	if a.Path != b.Path {
-		return fmt.Errorf("path mismatch. %s != %s", a.Path, b.Path)
+		return fmt.Errorf("Path mismatch. %s != %s", a.Path, b.Path)
+	}
+	if a.Published != b.Published {
+		return fmt.Errorf("Published mismatch: %t != %t", a.Published, b.Published)
 	}
 	return nil
 }

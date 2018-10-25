@@ -10,18 +10,10 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func testRefstore(t *testing.T, rmf RepoMakerFunc) {
-	for _, test := range []repoTestFunc{
-		testInvalidRefs,
-		testRefs,
-		testRefstoreMain,
-	} {
-		test(t, rmf)
-	}
-}
+func testRefstoreInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
+	r, cleanup := rmf(t)
+	defer cleanup()
 
-func testInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
 	err := r.PutRef(repo.DatasetRef{Name: "a", Path: "/path/to/a/thing"})
 	if err != repo.ErrPeerIDRequired {
 		t.Errorf("attempting to put empty peerID in refstore should return repo.ErrPeerIDRequired, got: %s", err)
@@ -43,8 +35,10 @@ func testInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
 	return
 }
 
-func testRefs(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
+func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
+	r, cleanup := rmf(t)
+	defer cleanup()
+
 	path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
 	if err != nil {
 		t.Errorf("error putting test file in datastore: %s", err.Error())
@@ -98,23 +92,27 @@ func testRefs(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
-	aname := "test_namespace_a"
-	bname := "test_namespace_b"
+	r, cleanup := rmf(t)
+	defer cleanup()
+
 	refs := []repo.DatasetRef{
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: aname},
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: bname},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_a", Published: true},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_b"},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_c"},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_d"},
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e"},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e", Published: true},
 	}
-	for _, ref := range refs {
+	for i, ref := range refs {
 		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
 		if err != nil {
 			t.Errorf("error putting test file in datastore: %s", err.Error())
 			return
 		}
+
 		ref.Path = path.String()
+		// set path on input refs for later comparison
+		refs[i].Path = ref.Path
+
 		if err := r.PutRef(ref); err != nil {
 			t.Errorf("error putting name in repo for namespace test: %s", err.Error())
 			return
@@ -126,8 +124,8 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 		t.Errorf("repo.NameCount: %s", err.Error())
 		return
 	}
-	if count < 5 {
-		t.Errorf("repo.NameCount should have returned at least 5 results")
+	if count < len(refs) {
+		t.Errorf("repo.NameCount should have returned %d results", len(refs))
 		return
 	}
 
@@ -150,6 +148,9 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	idxs := map[string]int{}
 	for i, ref := range names {
 		idxs[ref.Name] = i
+		if err := repo.CompareDatasetRef(refs[i], names[i]); err != nil {
+			t.Errorf("ref %d error: %s", i, err)
+		}
 	}
 	for i, ref := range refs {
 		if i > 0 {

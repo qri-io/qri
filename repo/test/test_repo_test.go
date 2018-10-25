@@ -2,7 +2,21 @@ package test
 
 import (
 	"testing"
+
+	"github.com/qri-io/qri/repo"
 )
+
+func TestNewTestRepo(t *testing.T) {
+	rmf := func(t *testing.T) (repo.Repo, func()) {
+		mr, err := NewEmptyTestRepo(nil)
+		if err != nil {
+			t.Fatal(err)
+		}
+		return mr, func() {}
+	}
+
+	RunRepoTests(t, rmf)
+}
 
 func TestNewMemRepoFromDir(t *testing.T) {
 	repo, _, err := NewMemRepoFromDir("testdata")

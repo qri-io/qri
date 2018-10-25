@@ -101,11 +101,12 @@ func makeTestRepo() (Repo, error) {
 		return nil, err
 	}
 
-	r.SetProfile(&profile.Profile{
-		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+	pro := &profile.Profile{
+		ID:       profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
 		Peername: "peer",
 		PrivKey:  privKey,
-	})
+	}
+	r.SetProfile(pro)
 
 	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))
 
@@ -113,14 +114,18 @@ func makeTestRepo() (Repo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
-	r.PutRef(DatasetRef{Peername: "peer", Name: "ds1", Path: ds1p.String()})
+	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds1", Path: ds1p.String()}); err != nil {
+		return nil, err
+	}
 
 	data2f := cafs.NewMemfileBytes("data2", []byte("dataset_2"))
 	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
-	r.PutRef(DatasetRef{Peername: "peer", Name: "ds2", Path: ds2p.String()})
+	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds2", Path: ds2p.String()}); err != nil {
+		return nil, err
+	}
 
 	return r, nil
 }
