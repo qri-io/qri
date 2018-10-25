@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -50,7 +50,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	*res, err = actions.Render(r.repo, p.Ref, p.Template, p.Limit, p.Offset, p.All)
+	*res, err = base.Render(r.repo, p.Ref, p.Template, p.Limit, p.Offset, p.All)
 	if err == repo.ErrNotFound {
 		return NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", p.Ref.Peername, p.Ref.Name))
 	}

@@ -4,8 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 
 	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
@@ -71,22 +70,10 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 			dlp.Limit = listMax
 		}
 
-		refs, err := n.Repo.References(dlp.Limit, dlp.Offset)
+		refs, err := base.ListDatasets(n.Repo, dlp.Limit, dlp.Offset, false)
 		if err != nil {
-			log.Debug(err.Error())
+			log.Error(err)
 			return
-		}
-
-		for i, ref := range refs {
-			if i >= dlp.Limit {
-				break
-			}
-			ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
-			if err != nil {
-				log.Info("error loading dataset at path:", ref.Path)
-				return
-			}
-			refs[i].Dataset = ds.Encode()
 		}
 
 		reply, err := msg.UpdateJSON(refs)

@@ -8,6 +8,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -132,7 +133,6 @@ func DatasetTests(t *testing.T, rmf RepoMakerFunc) {
 		testSaveDataset,
 		testReadDataset,
 		testRenameDataset,
-		testDatasetPinning,
 		testDeleteDataset,
 		testEventsLog,
 	} {
@@ -170,7 +170,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
 	n, ref := createDataset(t, rmf)
 
-	if err := ReadDataset(n.Repo, &ref); err != nil {
+	if err := base.ReadDataset(n.Repo, &ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -194,53 +194,13 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	if err := ReadDataset(node.Repo, b); err != nil {
+	if err := base.ReadDataset(node.Repo, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
 
 	if b.Dataset == nil {
 		t.Error("expected dataset to not equal nil")
-		return
-	}
-}
-
-func testDatasetPinning(t *testing.T, rmf RepoMakerFunc) {
-	node, ref := createDataset(t, rmf)
-
-	if err := PinDataset(node.Repo, ref); err != nil {
-		if err == repo.ErrNotPinner {
-			t.Log("repo store doesn't support pinning")
-		} else {
-			t.Error(err.Error())
-			return
-		}
-	}
-
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("counter"))
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	ref2, _, err := SaveDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, false)
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := PinDataset(node.Repo, ref2); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := UnpinDataset(node.Repo, ref); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := UnpinDataset(node.Repo, ref2); err != nil && err != repo.ErrNotPinner {
-		t.Error(err.Error())
 		return
 	}
 }
@@ -268,7 +228,7 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	if err := PinDataset(node.Repo, *b); err != nil {
+	if err := base.PinDataset(node.Repo, *b); err != nil {
 		if err == repo.ErrNotPinner {
 			pinner = false
 		} else {

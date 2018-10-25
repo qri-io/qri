@@ -9,7 +9,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
@@ -133,7 +133,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 			}
 		}
 
-		if err := actions.ReadDataset(r, &ref); err != nil {
+		if err := base.ReadDataset(r, &ref); err != nil {
 			log.Debug(err.Error())
 		}
 	}

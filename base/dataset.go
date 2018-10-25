@@ -1,4 +1,4 @@
-package repo
+package base
 
 import (
 	"fmt"
@@ -13,13 +13,14 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r Repo, name string, ds *dataset.Dataset, body cafs.File, pin bool) (ref DatasetRef, err error) {
+func CreateDataset(r repo.Repo, name string, ds *dataset.Dataset, body cafs.File, pin bool) (ref repo.DatasetRef, err error) {
 	var (
 		path datastore.Key
 		pro  *profile.Profile
@@ -32,7 +33,7 @@ func CreateDataset(r Repo, name string, ds *dataset.Dataset, body cafs.File, pin
 	}
 
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
-		prev := DatasetRef{
+		prev := repo.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
 			Name:      name,
@@ -44,7 +45,7 @@ func CreateDataset(r Repo, name string, ds *dataset.Dataset, body cafs.File, pin
 		_ = r.DeleteRef(prev)
 	}
 
-	ref = DatasetRef{
+	ref = repo.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
 		Name:      name,
@@ -53,6 +54,38 @@ func CreateDataset(r Repo, name string, ds *dataset.Dataset, body cafs.File, pin
 
 	err = r.PutRef(ref)
 	return
+}
+
+// ReadDataset grabs a dataset from the store
+func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
+	if store := r.Store(); store != nil {
+		ds, e := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+		if e != nil {
+			return e
+		}
+		ref.Dataset = ds.Encode()
+		return
+	}
+
+	return datastore.ErrNotFound
+}
+
+// PinDataset marks a dataset for retention in a store
+func PinDataset(r repo.Repo, ref repo.DatasetRef) error {
+	if pinner, ok := r.Store().(cafs.Pinner); ok {
+		pinner.Pin(datastore.NewKey(ref.Path), true)
+		return r.LogEvent(repo.ETDsPinned, ref)
+	}
+	return repo.ErrNotPinner
+}
+
+// UnpinDataset unmarks a dataset for retention in a store
+func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
+	if pinner, ok := r.Store().(cafs.Pinner); ok {
+		pinner.Unpin(datastore.NewKey(ref.Path), true)
+		return r.LogEvent(repo.ETDsUnpinned, ref)
+	}
+	return repo.ErrNotPinner
 }
 
 // DatasetPodBodyFile creates a streaming data file from a DatasetPod using the following precedence:

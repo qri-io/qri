@@ -3,8 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -72,29 +71,5 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC
 		return
 	}
 
-	store := r.Store()
-	res, err = r.References(limit, offset)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())
-	}
-
-	renames := repo.NewNeedPeernameRenames()
-	for i, ref := range res {
-		// May need to change peername.
-		if err := repo.CanonicalizeProfile(r, &res[i], &renames); err != nil {
-			return nil, fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
-		}
-
-		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
-		if err != nil {
-			return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
-		}
-		res[i].Dataset = ds.Encode()
-		if RPC {
-			res[i].Dataset.Structure.Schema = nil
-		}
-	}
-	// TODO: If renames.Renames is non-empty, apply it to r
-	return
+	return base.ListDatasets(node.Repo, limit, offset, RPC)
 }
