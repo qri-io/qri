@@ -10,18 +10,10 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-func testRefstore(t *testing.T, rmf RepoMakerFunc) {
-	for _, test := range []repoTestFunc{
-		testInvalidRefs,
-		testRefs,
-		testRefstoreMain,
-	} {
-		test(t, rmf)
-	}
-}
+func testRefstoreInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
+	r, cleanup := rmf(t)
+	defer cleanup()
 
-func testInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
 	err := r.PutRef(repo.DatasetRef{Name: "a", Path: "/path/to/a/thing"})
 	if err != repo.ErrPeerIDRequired {
 		t.Errorf("attempting to put empty peerID in refstore should return repo.ErrPeerIDRequired, got: %s", err)
@@ -43,8 +35,10 @@ func testInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
 	return
 }
 
-func testRefs(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
+func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
+	r, cleanup := rmf(t)
+	defer cleanup()
+
 	path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(`{ "title": "test data" }`)), true)
 	if err != nil {
 		t.Errorf("error putting test file in datastore: %s", err.Error())
@@ -98,7 +92,9 @@ func testRefs(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
-	r := rmf(t)
+	r, cleanup := rmf(t)
+	defer cleanup()
+
 	aname := "test_namespace_a"
 	bname := "test_namespace_b"
 	refs := []repo.DatasetRef{
