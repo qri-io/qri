@@ -23,7 +23,7 @@ type Refstore interface {
 	DeleteRef(ref DatasetRef) error
 	// References returns a set of references from the store
 	References(limit, offset int) ([]DatasetRef, error)
-	// RefCount returns the number of reference in the store
+	// RefCount returns the number of references in the store
 	RefCount() (int, error)
 }
 
@@ -464,16 +464,19 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 // describing any difference between the two references
 func CompareDatasetRef(a, b DatasetRef) error {
 	if a.ProfileID != b.ProfileID {
-		return fmt.Errorf("peerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
+		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
 	}
 	if a.Peername != b.Peername {
-		return fmt.Errorf("peername mismatch. %s != %s", a.Peername, b.Peername)
+		return fmt.Errorf("Peername mismatch. %s != %s", a.Peername, b.Peername)
 	}
 	if a.Name != b.Name {
-		return fmt.Errorf("name mismatch. %s != %s", a.Name, b.Name)
+		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
 	}
 	if a.Path != b.Path {
-		return fmt.Errorf("path mismatch. %s != %s", a.Path, b.Path)
+		return fmt.Errorf("Path mismatch. %s != %s", a.Path, b.Path)
+	}
+	if a.Published != b.Published {
+		return fmt.Errorf("Published mismatch: %t != %t", a.Published, b.Published)
 	}
 	return nil
 }

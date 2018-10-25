@@ -95,22 +95,21 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
 
-	aname := "test_namespace_a"
-	bname := "test_namespace_b"
 	refs := []repo.DatasetRef{
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: aname},
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: bname},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_a", Published: true},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_b"},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_c"},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_d"},
-		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e"},
+		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_e", Published: true},
 	}
-	for _, ref := range refs {
+	for i, ref := range refs {
 		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
 		if err != nil {
 			t.Errorf("error putting test file in datastore: %s", err.Error())
 			return
 		}
 		ref.Path = path.String()
+		refs[i].Path = path.String()
 		if err := r.PutRef(ref); err != nil {
 			t.Errorf("error putting name in repo for namespace test: %s", err.Error())
 			return
@@ -122,8 +121,8 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 		t.Errorf("repo.NameCount: %s", err.Error())
 		return
 	}
-	if count < 5 {
-		t.Errorf("repo.NameCount should have returned at least 5 results")
+	if count < len(refs) {
+		t.Errorf("repo.NameCount should have returned %d results", len(refs))
 		return
 	}
 
@@ -146,6 +145,9 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	idxs := map[string]int{}
 	for i, ref := range names {
 		idxs[ref.Name] = i
+		if err := repo.CompareDatasetRef(refs[i], names[i]); err != nil {
+			t.Errorf("ref %d error: %s", i, err)
+		}
 	}
 	for i, ref := range refs {
 		if i > 0 {

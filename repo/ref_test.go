@@ -315,10 +315,10 @@ func TestCompareDatasetRefs(t *testing.T) {
 		err  string
 	}{
 		{DatasetRef{}, DatasetRef{}, ""},
-		{DatasetRef{Name: "a"}, DatasetRef{}, "name mismatch. a != "},
-		{DatasetRef{Peername: "a"}, DatasetRef{}, "peername mismatch. a != "},
-		{DatasetRef{Path: "a"}, DatasetRef{}, "path mismatch. a != "},
-		{DatasetRef{ProfileID: profile.IDB58MustDecode("QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1")}, DatasetRef{}, "peerID mismatch. QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1 != "},
+		{DatasetRef{Name: "a"}, DatasetRef{}, "Name mismatch. a != "},
+		{DatasetRef{Peername: "a"}, DatasetRef{}, "Peername mismatch. a != "},
+		{DatasetRef{Path: "a"}, DatasetRef{}, "Path mismatch. a != "},
+		{DatasetRef{ProfileID: profile.IDB58MustDecode("QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1")}, DatasetRef{}, "PeerID mismatch. QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1 != "},
 	}
 
 	for i, c := range cases {

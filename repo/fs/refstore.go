@@ -12,7 +12,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
 )
 
@@ -28,20 +27,18 @@ type Refstore struct {
 }
 
 // PutRef adds a reference to the store
-func (n Refstore) PutRef(put repo.DatasetRef) (err error) {
+func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 	var ds *dataset.Dataset
 
-	if put.ProfileID == "" {
+	if p.ProfileID == "" {
 		return repo.ErrPeerIDRequired
-	} else if put.Name == "" {
+	} else if p.Name == "" {
 		return repo.ErrNameRequired
-	} else if put.Path == "" {
+	} else if p.Path == "" {
 		return repo.ErrPathRequired
-	} else if put.Peername == "" {
+	} else if p.Peername == "" {
 		return repo.ErrPeernameRequired
 	}
-
-	p := repo.DatasetRef{Peername: put.Peername, ProfileID: put.ProfileID, Name: put.Name, Path: put.Path}
 
 	names, err := n.names()
 	if err != nil {
@@ -158,41 +155,44 @@ func (n *Refstore) names() ([]repo.DatasetRef, error) {
 		return nil, fmt.Errorf("error loading names: %s", err.Error())
 	}
 
-	refs := []string{}
+	refs := []repo.DatasetRef{}
 	if err := json.Unmarshal(data, &refs); err != nil {
-		prevns := []repo.DatasetRef{}
+
+		prevns := []string{}
 		if err := json.Unmarshal(data, &prevns); err != nil {
 			log.Debug(err.Error())
 			return nil, fmt.Errorf("error unmarshaling names: %s", err.Error())
 		}
-		return prevns, nil
-	}
 
-	ns := make([]repo.DatasetRef, len(refs))
-	for i, rs := range refs {
-		ref, err := repo.ParseDatasetRef(rs)
-		if err != nil {
-			// hold over for
-			// TODO - remove by 0.3.0
-			if err.Error() == "invalid PeerID: 'ipfs'" {
-				ref.ProfileID = profile.ID("")
-				ref.Path = fmt.Sprintf("/ipfs/%s", ref.Path)
-				ns[i] = ref
-				continue
+		ns := make([]repo.DatasetRef, len(refs))
+		for i, rs := range prevns {
+			ref, err := repo.ParseDatasetRef(rs)
+			if err != nil {
+				return nil, err
 			}
-			return nil, err
+			ns[i] = ref
 		}
-		ns[i] = ref
+
+		return ns, nil
 	}
 
-	return ns, nil
+	return refs, nil
 }
 
 func (n *Refstore) save(ns []repo.DatasetRef) error {
-	strs := make([]string, len(ns))
-	for i, ref := range ns {
-		strs[i] = ref.String()
-	}
-	strs = sort.StringSlice(strs)
-	return n.saveFile(strs, FileRefstore)
+	rs := refs(ns)
+	sort.Sort(rs)
+	return n.saveFile(rs, FileRefstore)
 }
+
+// refs is a slice of dataset refs that implements the sort interface
+type refs []repo.DatasetRef
+
+// Len returns the length of refs
+func (r refs) Len() int { return len(r) }
+
+// Less returns true if i comes before j
+func (r refs) Less(i, j int) bool { return r[i].AliasString() < r[j].AliasString() }
+
+// Swap flips the positions of i and j
+func (r refs) Swap(i, j int) { r[i], r[j] = r[j], r[i] }
