@@ -65,10 +65,10 @@ func TestAddDataset(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
-	// Peers exchange Qri profile information.
-	if err := p2ptest.ConnectQriPeers(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
+
 	// Convert from test nodes to non-test nodes.
 	peers := make([]*p2p.QriNode, len(testPeers))
 	for i, node := range testPeers {

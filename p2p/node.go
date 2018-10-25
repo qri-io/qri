@@ -398,12 +398,6 @@ func (n *QriNode) SimplePeerInfo() pstore.PeerInfo {
 	}
 }
 
-// UpgradeToQriConnection marks this connection as a Qri peer and exchanges
-// profile information with the peer
-func (n *QriNode) UpgradeToQriConnection(peer pstore.PeerInfo) error {
-	return n.AddQriPeer(peer)
-}
-
 // MakeHandlers generates a map of MsgTypes to their corresponding handler functions
 func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 	return map[MsgType]HandlerFunc{

@@ -56,14 +56,14 @@ func TestConnectNodes(t *testing.T) {
 	}
 }
 
-// Ensure that when we use ConnectQriPeers:
+// Ensure that when we use ConnectQriNodes:
 // - we have connections to each peer
 // - we have the addrs of each peer
 // - we have a tag on each peer
 // - we have the protocols each peer supports
 // - we have a record of if the peer supports the qri protocol
 // - we have a profile of that peer
-func TestConnectQriPeers(t *testing.T) {
+func TestConnectQriNodes(t *testing.T) {
 	ctx := context.Background()
 	f := NewTestNodeFactory(NewTestableNode)
 	testNodes, err := NewTestDirNetwork(ctx, f)
@@ -76,7 +76,7 @@ func TestConnectQriPeers(t *testing.T) {
 		t.Error(err)
 	}
 
-	if err := ConnectQriPeers(ctx, testNodes); err != nil {
+	if err := ConnectQriNodes(ctx, testNodes); err != nil {
 		t.Error(err)
 	}
 

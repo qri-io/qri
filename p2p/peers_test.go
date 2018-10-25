@@ -22,13 +22,10 @@ func TestConnectedQriProfiles(t *testing.T) {
 	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestDirNetwork(ctx, f)
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatalf("error creating network: %s", err.Error())
 	}
-
-	if err := p2ptest.ConnectQriPeers(ctx, testPeers); err != nil {
-		t.Error(err.Error())
-		return
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
 	nodes := asQriNodes(testPeers)

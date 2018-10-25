@@ -40,28 +40,17 @@ func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 // HandlePeerFound deals with the discovery of a peer that may or may not support
 // the qri protocol
 func (n *QriNode) HandlePeerFound(pinfo pstore.PeerInfo) {
+	log.Debugf("In %s node, handling peer found %s", n.ID, pinfo.ID)
+	log.Debug(n.host.Peerstore().PeerInfo(pinfo.ID))
+	log.Debug(n.host.Network().Conns())
 	// first check to see if we've seen this peer before
 	if _, err := n.host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
 		return
-	} else if support, err := n.SupportsQriProtocol(pinfo.ID); err == nil {
-		if err := n.host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
-			log.Errorf("error setting qri support flag", err.Error())
-			return
-		}
-
-		if support {
-			if err := n.AddQriPeer(pinfo); err != nil {
-				log.Errorf("error adding qri peer: %s", err.Error())
-			} else {
-				log.Infof("discovered qri peer: %s", pinfo.ID)
-			}
-		}
-	} else if err != nil && err != errNoProtos {
-		log.Errorf("error checking for qri support:", err.Error())
 	}
+	n.UpgradeToQriConnection(pinfo)
 }
 
-var errNoProtos = fmt.Errorf("no protocols available for check")
+var errNoProtos = fmt.Errorf("no protocols available")
 
 // SupportsQriProtocol checks to see if this peer supports the qri
 // streaming protocol, returns
@@ -93,7 +82,7 @@ func (n *QriNode) DiscoverPeerstoreQriPeers(store pstore.Peerstore) {
 		if _, err := n.host.Peerstore().Get(pid, qriSupportKey); err == pstore.ErrNotFound {
 			if supports, err := n.SupportsQriProtocol(pid); err == nil && supports {
 				// TODO - slow this down plz
-				if err := n.AddQriPeer(store.PeerInfo(pid)); err != nil {
+				if err := n.UpgradeToQriConnection(store.PeerInfo(pid)); err != nil {
 					fmt.Println(err.Error())
 				}
 			}

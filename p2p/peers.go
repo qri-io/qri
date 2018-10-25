@@ -111,27 +111,45 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 	return n.host.Peerstore().PeerInfo(pid)
 }
 
-// AddQriPeer negotiates a connection with a peer to get their profile details
+// UpgradeToQriConnection negotiates a connection with a peer to get their profile details
 // and peer list.
-func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store so libp2p has the provided addresses of
-	// the peer in the next call
-	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
-
-	if _, err := n.RequestProfile(pinfo.ID); err != nil {
-		log.Debug(err.Error())
+func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
+	// bail early if we have seen this peer before
+	if _, err := n.host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
+		return nil
+	}
+	log.Debugf("In UpgradeToQriConnection %s", n.ID)
+	log.Debug(n.host.Peerstore().PeerInfo(pinfo.ID))
+	log.Debug(n.host.Network().Conns())
+	// check if this connection supports the qri protocol
+	support, err := n.SupportsQriProtocol(pinfo.ID)
+	if err != nil {
+		log.Debugf("error checking for qri support: %s", err)
 		return err
 	}
 
-	go func() {
-		ps, err := n.RequestQriPeers(pinfo.ID)
-		if err != nil {
-			log.Debugf("error fetching qri peers: %s", err)
-			return
+	// mark whether or not this connection supports the qri protocol:
+	if err := n.host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
+		log.Debugf("error setting qri support flag: %s", err)
+		return err
+	}
+	// if it does support the qri protocol
+	// - request profile
+	// - request profiles
+	if support {
+		if _, err := n.RequestProfile(pinfo.ID); err != nil {
+			log.Debug(err.Error())
+			return err
 		}
-		n.RequestNewPeers(n.ctx, ps)
-	}()
 
+		go func() {
+			ps, err := n.RequestQriPeers(pinfo.ID)
+			if err != nil {
+				log.Debug("error fetching qri peers: %s", err)
+			}
+			n.RequestNewPeers(n.ctx, ps)
+		}()
+	}
 	return nil
 }
 
@@ -200,7 +218,7 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
-	if err := n.AddQriPeer(pinfo); err != nil {
+	if err := n.UpgradeToQriConnection(pinfo); err != nil {
 		return nil, err
 	}
 

@@ -163,10 +163,10 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	return nil
 }
 
-// ConnectQriPeers takes a slice of unconnected nodes and returns a slice
+// ConnectQriNodes takes a slice of unconnected nodes and returns a slice
 // of connected nodes that have upgraded qri connections:
 // They support the qri protocol and have exchanged profile
-func ConnectQriPeers(ctx context.Context, nodes []TestablePeerNode) error {
+func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	var wgConnect sync.WaitGroup
 	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
 		if err := n.Host().Connect(ctx, pinfo); err != nil {

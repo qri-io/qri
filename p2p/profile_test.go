@@ -17,15 +17,13 @@ func TestRequestProfileConnectNodes(t *testing.T) {
 	f := p2ptest.NewTestNodeFactory(NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, f, 5)
 	if err != nil {
-		t.Errorf("error creating network: %s", err.Error())
-		return
+		t.Fatalf("error creating network: %s", err.Error())
+	}
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
 	peers := asQriNodes(testPeers)
-
-	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
-		t.Errorf("error connecting peers: %s", err.Error())
-	}
 
 	t.Logf("testing profile message with %d peers", len(peers))
 	var wg sync.WaitGroup
