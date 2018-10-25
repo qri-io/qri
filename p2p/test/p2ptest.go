@@ -66,6 +66,7 @@ func (f *TestNodeFactory) NextInfo() *cfgtest.PeerInfo {
 }
 
 // NewTestNetwork constructs nodes to test p2p functionality.
+// each of these peers has no datasets and no peers are connected
 func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]TestablePeerNode, error) {
 	nodes := make([]TestablePeerNode, num)
 	for i := 0; i < num; i++ {
@@ -84,6 +85,8 @@ func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]Testabl
 }
 
 // NewTestDirNetwork constructs nodes from the testdata directory, for p2p testing
+// Peers are pulled from the "testdata" directory, and come pre-populated with datasets
+// no peers are connected.
 func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerNode, error) {
 	dirs, err := ioutil.ReadDir("testdata")
 	if err != nil {
@@ -157,31 +160,53 @@ func ConnectNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		}
 	}
 	wg.Wait()
-
 	return nil
 }
 
-// ConnectQriPeers connects the nodes as Qri peers using PeerInfo
+// ConnectQriPeers takes a slice of unconnected nodes and returns a slice
+// of connected nodes that have upgraded qri connections:
+// They support the qri protocol and have exchanged profile
 func ConnectQriPeers(ctx context.Context, nodes []TestablePeerNode) error {
-	var wg sync.WaitGroup
-	connect := func(a, b TestablePeerNode) error {
-		bpi := b.SimplePeerInfo()
-		if err := a.UpgradeToQriConnection(bpi); err != nil {
-			return err
+	var wgConnect sync.WaitGroup
+	connect := func(n TestablePeerNode, pinfo pstore.PeerInfo) error {
+		if err := n.Host().Connect(ctx, pinfo); err != nil {
+			return fmt.Errorf("error connecting nodes: %s", err)
 		}
-		wg.Done()
+		wgConnect.Done()
 		return nil
 	}
 
 	for i, s1 := range nodes {
 		for _, s2 := range nodes[i+1:] {
-			wg.Add(1)
-			if err := connect(s1, s2); err != nil {
+			wgConnect.Add(1)
+			if err := connect(s1, s2.SimplePeerInfo()); err != nil {
 				return err
 			}
 		}
 	}
-	wg.Wait()
+	wgConnect.Wait()
+	var wgUpgrade sync.WaitGroup
+	upgradeConnection := func(a, b TestablePeerNode) error {
+		bpi := b.SimplePeerInfo()
+		if err := a.UpgradeToQriConnection(bpi); err != nil {
+			return err
+		}
+		wgUpgrade.Done()
+		return nil
+	}
+
+	for _, s1 := range nodes {
+		for _, s2 := range nodes {
+			if s1.SimplePeerInfo().ID == s2.SimplePeerInfo().ID {
+				continue
+			}
+			wgUpgrade.Add(1)
+			if err := upgradeConnection(s1, s2); err != nil {
+				return err
+			}
+		}
+	}
+	wgUpgrade.Wait()
 
 	return nil
 }
