@@ -31,8 +31,9 @@ type QriPeer struct {
 func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// bail early if we have seen this peer before
 	// OKAY
-	log.Debugf("%s, attempting to upgrading %s to qri connection", n.ID, pinfo.ID)
-	if _support, err := n.host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
+	pid := pinfo.ID
+	log.Debugf("%s, attempting to upgrading %s to qri connection", n.ID, pid)
+	if _support, err := n.host.Peerstore().Get(pid, qriSupportKey); err == nil {
 		support, ok := _support.(bool)
 		if !ok {
 			return fmt.Errorf("support flag stored incorrectly in the peerstore")
@@ -42,15 +43,14 @@ func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 		}
 	}
 
-	// log.Debugf("%s upgrading connection to peer %s", n.ID, pinfo.ID)
 	// check if this connection supports the qri protocol
-	support, err := n.supportsQriProtocol(pinfo.ID)
+	support, err := n.supportsQriProtocol(pid)
 	if err != nil {
 		log.Debugf("error checking for qri support: %s", err)
 		return err
 	}
 	// mark whether or not this connection supports the qri protocol:
-	if err := n.host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
+	if err := n.host.Peerstore().Put(pid, qriSupportKey, support); err != nil {
 		log.Debugf("error setting qri support flag: %s", err)
 		return err
 	}
@@ -59,20 +59,20 @@ func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// - request profile
 	// - request profiles
 	if !support {
-		log.Debugf("%s could not upgrade %s to Qri connection: %s", n.ID, pinfo.ID, err)
+		log.Debugf("%s could not upgrade %s to Qri connection: %s", n.ID, pid, ErrQriProtocolNotSupported)
 		return ErrQriProtocolNotSupported
 	}
-	log.Debugf("%s upgraded %s to Qri connection", n.ID, pinfo.ID)
+	log.Debugf("%s upgraded %s to Qri connection", n.ID, pid)
 	// tag the connection as more important in the conn manager:
-	n.host.ConnManager().TagPeer(pinfo.ID, qriSupportKey, qriSupportValue)
+	n.host.ConnManager().TagPeer(pid, qriSupportKey, qriSupportValue)
 
-	if _, err := n.RequestProfile(pinfo.ID); err != nil {
+	if _, err := n.RequestProfile(pid); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
 	go func() {
-		ps, err := n.RequestQriPeers(pinfo.ID)
+		ps, err := n.RequestQriPeers(pid)
 		if err != nil {
 			log.Debug("error fetching qri peers: %s", err)
 		}

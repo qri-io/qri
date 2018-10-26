@@ -70,6 +70,9 @@ type QriNode struct {
 	// local http handlers/websockets/stdio, but these streams are meant for
 	// local feedback as opposed to p2p connections
 	LocalStreams ioes.IOStreams
+
+	// networkNotifee satisfies the net.Notifee interface
+	networkNotifee networkNotifee
 }
 
 // Assert that conversions needed by the tests are valid.
@@ -103,6 +106,11 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
 	node.handlers = MakeHandlers(node)
+
+	// using this work around, rather than implimenting the Notifee
+	// functions themselves, allows us to not pollute the QriNode
+	// namespace with function names that we may want to use in the future
+	node.networkNotifee = networkNotifee{node}
 
 	return node, nil
 }
@@ -162,6 +170,9 @@ func (n *QriNode) GoOnline() (err error) {
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+
+	// add n.networkNotifee as a Notifee of this network
+	n.host.Network().Notify(n.networkNotifee)
 
 	p, err := n.Repo.Profile()
 	if err != nil {
@@ -320,7 +331,6 @@ func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID
 		// now that we have a confirmed working connection
 		// tag this peer as supporting the qri protocol in the connection manager
 		n.host.ConnManager().TagPeer(peerID, qriSupportKey, qriSupportValue)
-		n.host.Peerstore().AddAddr(peerID, s.Conn().RemoteMultiaddr(), pstore.TempAddrTTL)
 
 		ws := WrapStream(s)
 		go n.handleStream(ws, replies)
