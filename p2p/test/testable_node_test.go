@@ -33,6 +33,8 @@ const TestQriSupportKey = "qri-support-test"
 const TestQriConnManagerTag = "qri_test"
 const TestQriConnManagerValue = 6
 
+var ErrTestQriProtocolNotSupported = fmt.Errorf("test qri protocol not supported")
+
 // Host returns the node's underlying host
 func (n *TestableNode) Host() host.Host {
 	return n.host
@@ -57,8 +59,7 @@ func (n *TestableNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// check if this connection supports the qri protocol
 	protos, err := n.Host().Peerstore().SupportsProtocols(pinfo.ID, string(TestQriProtocolID))
 	if err != nil {
-		fmt.Printf("error checking for qri support: %s\n", err)
-		return err
+		fmt.Printf("error getting protocols from peerstore: %s", err)
 	}
 
 	support := true
@@ -77,7 +78,7 @@ func (n *TestableNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// - request profiles
 	// - tag as qri connection
 	if !support {
-		return nil
+		return ErrTestQriProtocolNotSupported
 	}
 
 	n.Host().ConnManager().TagPeer(pinfo.ID, TestQriConnManagerTag, TestQriConnManagerValue)

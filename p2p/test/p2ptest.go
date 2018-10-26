@@ -185,7 +185,6 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 		}
 	}
 	wgConnect.Wait()
-
 	// previously, we had UpgradeToQriConnection running in separate threads
 	// much like we did with the basic connection
 	// however, UpgradeToQriConnection asks for and sends profile information
@@ -198,7 +197,7 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 				continue
 			}
 			if err := s1.UpgradeToQriConnection(pinfo); err != nil {
-				return err
+				return fmt.Errorf("%s error upgrading connection to %s: %s", s1.SimplePeerInfo().ID, pinfo.ID, err)
 			}
 		}
 	}

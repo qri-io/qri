@@ -319,7 +319,7 @@ func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID
 
 		// now that we have a confirmed working connection
 		// tag this peer as supporting the qri protocol in the connection manager
-		n.host.ConnManager().TagPeer(peerID, qriConnManagerTag, qriConnManagerValue)
+		n.host.ConnManager().TagPeer(peerID, qriSupportKey, qriSupportValue)
 		n.host.Peerstore().AddAddr(peerID, s.Conn().RemoteMultiaddr(), pstore.TempAddrTTL)
 
 		ws := WrapStream(s)

@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 
 	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
+	pstore "gx/ipfs/QmZR2XWVVBCtbgBWnQhWk2xcQfaR3W8faQPriAiaaj7rsr/go-libp2p-peerstore"
 	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
 )
 
@@ -21,6 +22,80 @@ type QriPeer struct {
 	ProfileID    string
 	PeerID       string
 	NetworkAddrs []string
+}
+
+// UpgradeToQriConnection attempts to open a Qri protocol connection to a peer
+// it records whether the peer supports Qri in the host Peerstore,
+// returns ErrQriProtocolNotSupported if the connection cannot be upgraded,
+// and sets a priority in the host Connection Manager if the connection is upgraded
+func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
+	// bail early if we have seen this peer before
+	// OKAY
+	log.Debugf("%s, attempting to upgrading %s to qri connection", n.ID, pinfo.ID)
+	if _support, err := n.host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
+		support, ok := _support.(bool)
+		if !ok {
+			return fmt.Errorf("support flag stored incorrectly in the peerstore")
+		}
+		if support {
+			return nil
+		}
+	}
+
+	// log.Debugf("%s upgrading connection to peer %s", n.ID, pinfo.ID)
+	// check if this connection supports the qri protocol
+	support, err := n.supportsQriProtocol(pinfo.ID)
+	if err != nil {
+		log.Debugf("error checking for qri support: %s", err)
+		return err
+	}
+	// mark whether or not this connection supports the qri protocol:
+	if err := n.host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
+		log.Debugf("error setting qri support flag: %s", err)
+		return err
+	}
+	// if it does support the qri protocol
+	// - tag the connection as a qri connection in the ConnManager
+	// - request profile
+	// - request profiles
+	if !support {
+		log.Debugf("%s could not upgrade %s to Qri connection: %s", n.ID, pinfo.ID, err)
+		return ErrQriProtocolNotSupported
+	}
+	log.Debugf("%s upgraded %s to Qri connection", n.ID, pinfo.ID)
+	// tag the connection as more important in the conn manager:
+	n.host.ConnManager().TagPeer(pinfo.ID, qriSupportKey, qriSupportValue)
+
+	if _, err := n.RequestProfile(pinfo.ID); err != nil {
+		log.Debug(err.Error())
+		return err
+	}
+
+	go func() {
+		ps, err := n.RequestQriPeers(pinfo.ID)
+		if err != nil {
+			log.Debug("error fetching qri peers: %s", err)
+		}
+		n.RequestNewPeers(n.ctx, ps)
+	}()
+
+	return nil
+}
+
+// supportsQriProtocol checks to see if this peer supports the qri
+// streaming protocol, returns
+func (n *QriNode) supportsQriProtocol(peer peer.ID) (bool, error) {
+	protos, err := n.host.Peerstore().GetProtocols(peer)
+	if err != nil {
+		return false, err
+	}
+
+	for _, p := range protos {
+		if p == string(QriProtocolID) {
+			return true, nil
+		}
+	}
+	return false, nil
 }
 
 func toQriPeers(psm map[profile.ID]*config.ProfilePod) (peers []QriPeer) {

@@ -111,53 +111,6 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 	return n.host.Peerstore().PeerInfo(pid)
 }
 
-// UpgradeToQriConnection negotiates a connection with a peer to get their profile details
-// and peer list.
-func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
-	// bail early if we have seen this peer before
-	if _, err := n.host.Peerstore().Get(pinfo.ID, qriSupportKey); err == nil {
-		return nil
-	}
-	log.Debugf("In UpgradeToQriConnection %s", n.ID)
-	log.Debug(n.host.Peerstore().PeerInfo(pinfo.ID))
-	log.Debug(n.host.Network().Conns())
-	// check if this connection supports the qri protocol
-	support, err := n.SupportsQriProtocol(pinfo.ID)
-	if err != nil {
-		log.Debugf("error checking for qri support: %s", err)
-		return err
-	}
-
-	// mark whether or not this connection supports the qri protocol:
-	if err := n.host.Peerstore().Put(pinfo.ID, qriSupportKey, support); err != nil {
-		log.Debugf("error setting qri support flag: %s", err)
-		return err
-	}
-	// if it does support the qri protocol
-	// - tag the connection as a qri connection in the ConnManager
-	// - request profile
-	// - request profiles
-	if support {
-
-		// tag the connection as more important in the conn manager:
-		n.host.ConnManager().TagPeer(pinfo.ID, qriConnManagerTag, qriConnManagerValue)
-
-		if _, err := n.RequestProfile(pinfo.ID); err != nil {
-			log.Debug(err.Error())
-			return err
-		}
-
-		go func() {
-			ps, err := n.RequestQriPeers(pinfo.ID)
-			if err != nil {
-				log.Debug("error fetching qri peers: %s", err)
-			}
-			n.RequestNewPeers(n.ctx, ps)
-		}()
-	}
-	return nil
-}
-
 // Peers returns a list of currently connected peer IDs
 func (n *QriNode) Peers() []peer.ID {
 	if n.host == nil {
@@ -224,6 +177,8 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 	}
 
 	if err := n.UpgradeToQriConnection(pinfo); err != nil {
+		// TODO: if the err is ErrQriProtocolNotSupported, let the user know the
+		// connection has been established, but that the Qri Protocol is not supported
 		return nil, err
 	}
 
