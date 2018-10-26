@@ -3,34 +3,43 @@ package base
 import (
 	"testing"
 
-	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
-	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestSelect(t *testing.T) {
-	regClient, regServer := regmock.NewMockServer()
-	defer regServer.Close()
+	r := newTestRepo(t)
+	ref := addCitiesDataset(t, r)
 
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), regClient)
-	if err != nil {
-		t.Fatal(err.Error())
+	if _, err := Select(r, repo.DatasetRef{Peername: "bad", Name: "ref"}, "commit"); err == nil {
+		t.Error("expected select of bad ref to fail")
 	}
-
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
-	if err != nil {
+	if _, err := Select(r, ref, ""); err != nil {
 		t.Error(err.Error())
-		return
 	}
-
-	ref, err := CreateDataset(mr, tc.Name, tc.Input, tc.BodyFile(), false)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	if _, err := Select(mr, ref, "commit"); err != nil {
+	if _, err := Select(r, ref, "commit"); err != nil {
 		t.Error(err.Error())
+	}
+	if _, err := Select(r, ref, "meta.title"); err != nil {
+		t.Error(err.Error())
+	}
+	if _, err := Select(r, ref, "structure.schema.items.0"); err != nil {
+		t.Error(err.Error())
+	}
+}
+
+func TestApplyPath(t *testing.T) {
+	r := newTestRepo(t)
+	ref := addCitiesDataset(t, r)
+
+	if err := ReadDataset(r, &ref); err != nil {
+		t.Error(err)
+	}
+
+	body, err := ApplyPath(ref.Dataset, "meta.title")
+	if err != nil {
+		t.Error(err)
+	}
+	if body == nil {
+		t.Error("expected body to not be nil")
 	}
 }
