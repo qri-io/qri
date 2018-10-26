@@ -9,12 +9,24 @@ import (
 )
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(r repo.Repo, limit, offset int, RPC bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res []repo.DatasetRef, err error) {
 	store := r.Store()
 	res, err = r.References(limit, offset)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())
+	}
+
+	if publishedOnly {
+		pub := make([]repo.DatasetRef, len(res))
+		i := 0
+		for _, ref := range res {
+			if ref.Published {
+				pub[i] = ref
+				i++
+			}
+		}
+		res = pub[:i]
 	}
 
 	renames := repo.NewNeedPeernameRenames()
