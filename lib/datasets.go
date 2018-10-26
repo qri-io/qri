@@ -58,7 +58,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.Offset = 0
 	}
 
-	replies, err := actions.ListDatasets(r.node, ds, p.Limit, p.Offset, p.RPC)
+	replies, err := actions.ListDatasets(r.node, ds, p.Limit, p.Offset, p.RPC, p.Published)
 
 	*res = replies
 	return err
@@ -160,6 +160,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	*res = ref
 	return nil
+}
+
+// SetPublishStatus updates the pubilicity of a reference in the peer's namespace
+func (r *DatasetRequests) SetPublishStatus(ref *repo.DatasetRef, res *bool) error {
+	res = &ref.Published
+	return actions.SetPublishStatus(r.node, ref)
 }
 
 // RenameParams defines parameters for Dataset renaming
