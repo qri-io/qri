@@ -3,11 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
-
-	"io/ioutil"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
@@ -23,7 +22,7 @@ func NewSaveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SaveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "save",
-		Aliases: []string{"update", "commit"},
+		Aliases: []string{"commit"},
 		Short:   "Save changes to a dataset",
 		Long: `
 Save is how you change a dataset, updating one or more of data, metadata, and structure. 
