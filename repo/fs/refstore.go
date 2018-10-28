@@ -64,6 +64,7 @@ func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 		}
 	}
 
+	// TODO - move this up into base package
 	if n.index != nil {
 		batch := n.index.NewBatch()
 		err = batch.Index(p.Path, ds)
