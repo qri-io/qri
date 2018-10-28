@@ -181,6 +181,22 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// PublishHandler works with dataset publicity
+func (h *DatasetHandlers) PublishHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		// TODO - this should list published datasets
+	case "POST":
+		h.publishHandler(w, r, true)
+	case "DELETE":
+		h.publishHandler(w, r, false)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -703,6 +719,22 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		log.Infof("error writing response: %s", err.Error())
 	}
+}
+
+func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, publish bool) {
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/publish"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	ref.Published = publish
+	var ok bool
+	if err := h.DatasetRequests.SetPublishStatus(&ref, &ok); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, ref)
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {
