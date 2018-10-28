@@ -10,7 +10,10 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-// Refstore keeps a collection of dataset references
+// Refstore keeps a collection of dataset references, Refstores require complete
+// references (with both alias and identifiers), and can carry only one of a
+// given alias eg: putting peer/dataset@a/ipfs/b when a ref with alias peer/dataset
+// is already in the store will overwrite the stored reference
 type Refstore interface {
 	// PutRef adds a reference to the store. References must be complete with
 	// Peername, Name, and Path specified

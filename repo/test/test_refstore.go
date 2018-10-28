@@ -124,7 +124,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 		t.Errorf("repo.NameCount: %s", err.Error())
 		return
 	}
-	if count < len(refs) {
+	if count != len(refs) {
 		t.Errorf("repo.NameCount should have returned %d results", len(refs))
 		return
 	}
@@ -159,6 +159,19 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 				return
 			}
 		}
+	}
+
+	refs[0].Published = false
+	if err := r.PutRef(refs[0]); err != nil {
+		t.Errorf("updating existing ref err: %s", err)
+	}
+
+	unpublished, err := r.GetRef(refs[0])
+	if err != nil {
+		t.Error(err)
+	}
+	if unpublished.Published {
+		t.Error("expected setting published value to be retained")
 	}
 
 	for _, ref := range refs {

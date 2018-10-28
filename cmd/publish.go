@@ -25,7 +25,7 @@ to a published dataset will be immideately visible to connected peers.
   $ qri publish me/dataset me/other_dataset
 
   # unpublish a dataset
-  $ qri publish -d me/dataset`,
+  $ qri publish -u me/dataset`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
@@ -37,6 +37,8 @@ to a published dataset will be immideately visible to connected peers.
 		},
 	}
 
+	cmd.Flags().BoolVarP(&o.Unpublish, "unpublish", "u", false, "unpublish a dataset")
+
 	return cmd
 }
 
@@ -44,7 +46,8 @@ to a published dataset will be immideately visible to connected peers.
 type PublishOptions struct {
 	ioes.IOStreams
 
-	Refs []string
+	Refs      []string
+	Unpublish bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -65,6 +68,8 @@ func (o *PublishOptions) Run() error {
 		if err != nil {
 			return err
 		}
+
+		ref.Published = !o.Unpublish
 
 		if err = o.DatasetRequests.SetPublishStatus(&ref, &res); err != nil {
 			return err
