@@ -111,30 +111,6 @@ func (n *QriNode) PeerInfo(pid peer.ID) pstore.PeerInfo {
 	return n.host.Peerstore().PeerInfo(pid)
 }
 
-// AddQriPeer negotiates a connection with a peer to get their profile details
-// and peer list.
-func (n *QriNode) AddQriPeer(pinfo pstore.PeerInfo) error {
-	// add this peer to our store so libp2p has the provided addresses of
-	// the peer in the next call
-	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
-
-	if _, err := n.RequestProfile(pinfo.ID); err != nil {
-		log.Debug(err.Error())
-		return err
-	}
-
-	go func() {
-		ps, err := n.RequestQriPeers(pinfo.ID)
-		if err != nil {
-			log.Debugf("error fetching qri peers: %s", err)
-			return
-		}
-		n.RequestNewPeers(n.ctx, ps)
-	}()
-
-	return nil
-}
-
 // Peers returns a list of currently connected peer IDs
 func (n *QriNode) Peers() []peer.ID {
 	if n.host == nil {
@@ -200,7 +176,9 @@ func (n *QriNode) ConnectToPeer(ctx context.Context, p PeerConnectionParams) (*p
 		return nil, fmt.Errorf("host connect %s failure: %s", pinfo.ID.Pretty(), err)
 	}
 
-	if err := n.AddQriPeer(pinfo); err != nil {
+	if err := n.UpgradeToQriConnection(pinfo); err != nil {
+		// TODO: if the err is ErrQriProtocolNotSupported, let the user know the
+		// connection has been established, but that the Qri Protocol is not supported
 		return nil, err
 	}
 

@@ -17,10 +17,10 @@ const (
 	QriProtocolID = protocol.ID("/qri")
 	// QriServiceTag tags the type & version of the qri service
 	QriServiceTag = "qri/0.5.6"
-	// tag qri service uses in host connection Manager
-	qriConnManagerTag = "qri"
 	// default value to give qri peer connections in connmanager
-	qriConnManagerValue = 6
+	qriSupportValue = 1
+	// qriSupportKey is the key we store the flag for qri support under in Peerstores and in ConnManager()
+	qriSupportKey = "qri-support"
 )
 
 func init() {
@@ -33,3 +33,6 @@ func init() {
 
 // ErrNotConnected is for a missing required network connection
 var ErrNotConnected = fmt.Errorf("no p2p connection")
+
+// ErrQriProtocolNotSupported is returned when a connection can't be upgraded
+var ErrQriProtocolNotSupported = fmt.Errorf("peer doesn't support the qri protocol")

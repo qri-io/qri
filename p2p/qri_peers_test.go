@@ -23,13 +23,18 @@ func TestSharePeers(t *testing.T) {
 	single := testPeers[0]
 	group := testPeers[1:]
 
-	if err := p2ptest.ConnectQriPeers(ctx, group); err != nil {
-		t.Errorf("error connecting peers: %s", err.Error())
+	if err := p2ptest.ConnectQriNodes(ctx, group); err != nil {
+		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
 	nasma := single.(*QriNode)
 	done := make(chan bool)
 	deadline := time.NewTimer(time.Second * 2)
+
+	if err := p2ptest.ConnectQriNodes(ctx, []p2ptest.TestablePeerNode{nasma, group[0]}); err != nil {
+		t.Fatalf("error connecting single node to single group node %s", err.Error())
+	}
+
 	go func() {
 		for range nasma.ReceiveMessages() {
 			if len(nasma.ConnectedPeers()) == len(group) {
@@ -37,8 +42,6 @@ func TestSharePeers(t *testing.T) {
 			}
 		}
 	}()
-
-	nasma.AddQriPeer(group[0].SimplePeerInfo())
 
 	select {
 	case <-done:

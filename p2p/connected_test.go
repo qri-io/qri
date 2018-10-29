@@ -12,20 +12,17 @@ func TestAnnounceConnected(t *testing.T) {
 	ctx := context.Background()
 	// create a network of connected nodes
 	factory := p2ptest.NewTestNodeFactory(NewTestableQriNode)
-	testNodes, err := p2ptest.NewTestDirNetwork(ctx, factory)
+	testPeers, err := p2ptest.NewTestDirNetwork(ctx, factory)
 	if err != nil {
-		t.Error(err.Error())
-		return
+		t.Fatalf("error creating network: %s", err.Error())
 	}
-
-	if err := p2ptest.ConnectQriPeers(ctx, testNodes); err != nil {
-		t.Error(err.Error())
-		return
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
 	// Convert from test nodes to non-test nodes.
-	nodes := make([]*QriNode, len(testNodes))
-	for i, node := range testNodes {
+	nodes := make([]*QriNode, len(testPeers))
+	for i, node := range testPeers {
 		nodes[i] = node.(*QriNode)
 	}
 
@@ -60,7 +57,7 @@ func TestAnnounceConnected(t *testing.T) {
 	}(node.(*QriNode))
 
 	// connected that node to only one member of the network
-	if err := p2ptest.ConnectQriPeers(ctx, []p2ptest.TestablePeerNode{node, testNodes[0]}); err != nil {
+	if err := p2ptest.ConnectQriNodes(ctx, []p2ptest.TestablePeerNode{node, testPeers[0]}); err != nil {
 		t.Error(err.Error())
 		return
 	}

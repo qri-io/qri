@@ -16,11 +16,11 @@ func TestResolveDatasetRef(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
-	if err := p2ptest.ConnectNodes(ctx, testPeers); err != nil {
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
-	// Convert from test nodes to non-test nodes.
+	// Convert from test nodes to qri nodes.
 	peers := make([]*p2p.QriNode, len(testPeers))
 	for i, node := range testPeers {
 		peers[i] = node.(*p2p.QriNode)
@@ -52,13 +52,6 @@ func TestResolveDatasetRef(t *testing.T) {
 		t.Error("expected local to equal false")
 	}
 
-	if local, err = ResolveDatasetRef(peers[1], in); err != nil {
-		t.Error(err.Error())
-	}
-	if local != true {
-		t.Error("expected local to equal true")
-	}
-
 	if local, err = ResolveDatasetRef(peers[0], in); err != nil {
 		t.Error(err.Error())
 	}
@@ -68,4 +61,12 @@ func TestResolveDatasetRef(t *testing.T) {
 	if in.String() != expect {
 		t.Errorf("returned ref mismatch. expected: %s, got: %s", expect, in.String())
 	}
+
+	if local, err = ResolveDatasetRef(peers[1], in); err != nil {
+		t.Error(err.Error())
+	}
+	if local != true {
+		t.Error("expected local to equal true")
+	}
+
 }
