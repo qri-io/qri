@@ -1,8 +1,7 @@
 package actions
 
 import (
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -18,26 +17,5 @@ func DatasetLog(node *p2p.QriNode, ref repo.DatasetRef, limit, offset int) (rlog
 		return node.RequestDatasetLog(ref, limit, offset)
 	}
 
-	for {
-		ds, e := dsfs.LoadDataset(node.Repo.Store(), datastore.NewKey(ref.Path))
-		if e != nil {
-			return nil, e
-		}
-		ref.Dataset = ds.Encode()
-
-		offset--
-		if offset > 0 {
-			continue
-		}
-
-		rlog = append(rlog, ref)
-
-		limit--
-		if limit == 0 || ref.Dataset.PreviousPath == "" {
-			break
-		}
-		ref.Path = ref.Dataset.PreviousPath
-	}
-
-	return rlog, nil
+	return base.DatasetLog(node.Repo, ref, limit, offset)
 }

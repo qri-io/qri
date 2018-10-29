@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
@@ -64,9 +64,9 @@ func TestRenderRun(t *testing.T) {
 
 	// set Default Template to something easier to work with, then
 	// cleanup when test completes
-	prevDefaultTemplate := actions.DefaultTemplate
-	actions.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
-	defer func() { actions.DefaultTemplate = prevDefaultTemplate }()
+	prevDefaultTemplate := base.DefaultTemplate
+	base.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
 
 	f, err := NewTestFactory(nil)
 	if err != nil {

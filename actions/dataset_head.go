@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -22,5 +23,5 @@ func DatasetHead(node *p2p.QriNode, ds *repo.DatasetRef) error {
 		return node.RequestDataset(ds)
 	}
 
-	return ReadDataset(node.Repo, ds)
+	return base.ReadDataset(node.Repo, ds)
 }

@@ -1,4 +1,4 @@
-package actions
+package base
 
 import (
 	"io/ioutil"

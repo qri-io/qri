@@ -6,8 +6,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo"
 )
 
 func TestRequestDatasetLog(t *testing.T) {
@@ -31,7 +31,7 @@ func TestRequestDatasetLog(t *testing.T) {
 	}
 
 	// add a dataset to tim
-	ref, err := repo.CreateDataset(peers[4].Repo, tc.Name, tc.Input, tc.BodyFile(), true)
+	ref, err := base.CreateDataset(peers[4].Repo, tc.Name, tc.Input, tc.BodyFile(), true)
 	if err != nil {
 		t.Fatal(err)
 	}

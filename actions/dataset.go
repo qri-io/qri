@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -52,7 +53,7 @@ func NewDataset(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.File, s
 	}
 
 	// open a data file if we can
-	if body, err = repo.DatasetPodBodyFile(dsp); err == nil {
+	if body, err = base.DatasetPodBodyFile(dsp); err == nil {
 		// defer body.Close()
 
 		// validate / generate dataset name
@@ -146,7 +147,7 @@ func UpdateDataset(node *p2p.QriNode, dsp *dataset.DatasetPod) (ds *dataset.Data
 	}
 
 	if dsp.BodyBytes != nil || dsp.BodyPath != "" {
-		if body, err = repo.DatasetPodBodyFile(dsp); err != nil {
+		if body, err = base.DatasetPodBodyFile(dsp); err != nil {
 			return
 		}
 	} else {
@@ -277,7 +278,7 @@ func SaveDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.
 		ds.Assign(userSet)
 	}
 
-	if err = PrepareViz(ds); err != nil {
+	if err = base.PrepareViz(ds); err != nil {
 		return
 	}
 
@@ -290,7 +291,7 @@ func SaveDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.
 		// memRepo should be able to wrap another repo & check that before returning not found
 	}
 
-	if ref, err = repo.CreateDataset(r, name, ds, data, pin); err != nil {
+	if ref, err = base.CreateDataset(r, name, ds, data, pin); err != nil {
 		return
 	}
 
@@ -303,7 +304,7 @@ func SaveDataset(node *p2p.QriNode, name string, ds *dataset.Dataset, data cafs.
 		r.LogEvent(repo.ETDsPinned, ref)
 	}
 
-	if err = ReadDataset(r, &ref); err != nil {
+	if err = base.ReadDataset(r, &ref); err != nil {
 		return
 	}
 
@@ -347,7 +348,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("error fetching file: %s", err.Error())
 	}
 
-	if err = PinDataset(r, *ref); err != nil {
+	if err = base.PinDataset(r, *ref); err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error pinning root key: %s", err.Error())
 	}
@@ -365,20 +366,6 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 
 	ref.Dataset = ds.Encode()
 	return
-}
-
-// ReadDataset grabs a dataset from the store
-func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
-	if store := r.Store(); store != nil {
-		ds, e := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
-		if e != nil {
-			return e
-		}
-		ref.Dataset = ds.Encode()
-		return
-	}
-
-	return datastore.ErrNotFound
 }
 
 // RenameDataset alters a dataset name
@@ -410,24 +397,6 @@ func RenameDataset(node *p2p.QriNode, current, new *repo.DatasetRef) (err error)
 	return r.LogEvent(repo.ETDsRenamed, *new)
 }
 
-// PinDataset marks a dataset for retention in a store
-func PinDataset(r repo.Repo, ref repo.DatasetRef) error {
-	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Pin(datastore.NewKey(ref.Path), true)
-		return r.LogEvent(repo.ETDsPinned, ref)
-	}
-	return repo.ErrNotPinner
-}
-
-// UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
-	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Unpin(datastore.NewKey(ref.Path), true)
-		return r.LogEvent(repo.ETDsUnpinned, ref)
-	}
-	return repo.ErrNotPinner
-}
-
 // DeleteDataset removes a dataset from the store
 func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	r := node.Repo
@@ -455,7 +424,7 @@ func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return err
 	}
 
-	if err = UnpinDataset(r, *ref); err != nil && err != repo.ErrNotPinner {
+	if err = base.UnpinDataset(r, *ref); err != nil && err != repo.ErrNotPinner {
 		return err
 	}
 

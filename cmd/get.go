@@ -8,7 +8,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -108,8 +108,8 @@ func (o *GetOptions) Run() (err error) {
 	if o.Path == "" {
 		value = res
 	} else {
-		// TODO: Don't depend directly on actions.
-		value, err = actions.ApplyPath(res.Dataset, o.Path)
+		// TODO: Don't depend directly on base.
+		value, err = base.ApplyPath(res.Dataset, o.Path)
 		if err != nil {
 			return err
 		}

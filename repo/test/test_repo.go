@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -161,7 +162,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	_, err = repo.CreateDataset(r, tc.Name, ds, tc.BodyFile(), true)
+	_, err = base.CreateDataset(r, tc.Name, ds, tc.BodyFile(), true)
 	return
 }
 
