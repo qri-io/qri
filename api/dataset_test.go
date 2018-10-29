@@ -71,6 +71,7 @@ func TestDatasetHandlers(t *testing.T) {
 
 	publishCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
+		{"GET", "/publish/", nil},
 		{"POST", "/publish/me/cities", nil},
 		{"DELETE", "/publish/me/cities", nil},
 	}
