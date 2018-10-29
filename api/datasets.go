@@ -187,7 +187,7 @@ func (h *DatasetHandlers) PublishHandler(w http.ResponseWriter, r *http.Request)
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		// TODO - this should list published datasets
+		h.listPublishedHandler(w, r)
 	case "POST":
 		h.publishHandler(w, r, true)
 	case "DELETE":
@@ -242,6 +242,22 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args := lib.ListParamsFromRequest(r)
 	args.OrderBy = "created"
+
+	res := []repo.DatasetRef{}
+	if err := h.List(&args, &res); err != nil {
+		log.Infof("error listing datasets: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
+		log.Infof("error list datasests response: %s", err.Error())
+	}
+}
+
+func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Request) {
+	args := lib.ListParamsFromRequest(r)
+	args.OrderBy = "created"
+	args.Published = true
 
 	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
