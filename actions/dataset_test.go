@@ -17,41 +17,6 @@ import (
 	"github.com/qri-io/registry/regserver/mock"
 )
 
-func TestNewDataset(t *testing.T) {
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	dsp := tc.Input.Encode()
-	dsp.BodyBytes = tc.Body
-
-	_, _, _, err = NewDataset(dsp)
-	if err != nil {
-		t.Error(err.Error())
-	}
-}
-
-func TestUpdateDataset(t *testing.T) {
-	node := newTestNode(t)
-	ref := addCitiesDataset(t, node)
-
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	dsp := tc.Input.Encode()
-	dsp.Meta.Title = "updated"
-	dsp.Name = ref.Name
-	dsp.Peername = ref.Peername
-
-	_, _, _, err = UpdateDataset(node, dsp)
-	if err != nil {
-		t.Error(err.Error())
-	}
-}
-
 func TestAddDataset(t *testing.T) {
 	node := newTestNode(t)
 
@@ -108,15 +73,16 @@ func TestSaveDataset(t *testing.T) {
 	n := newTestNode(t)
 
 	// test Dry run
-	ds := &dataset.Dataset{
-		Commit:    &dataset.Commit{},
-		Structure: &dataset.Structure{Format: dataset.JSONDataFormat, Schema: dataset.BaseSchemaArray},
+	ds := &dataset.DatasetPod{
+		Name:      "dry_run_test",
+		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
 		Meta: &dataset.Meta{
 			Title: "test title",
 		},
+		BodyBytes: []byte("[]"),
 	}
-	body := cafs.NewMemfileBytes("data.json", []byte("[]"))
-	ref, _, err := SaveDataset(n, "dry_run_test", ds, body, nil, true, false)
+
+	ref, _, err := SaveDataset(n, ds, true, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -158,8 +124,11 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 		t.Error(err.Error())
 		return n, repo.DatasetRef{}
 	}
+	dsp := tc.Input.Encode()
+	dsp.Name = tc.Name
+	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(n, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
+	ref, _, err := SaveDataset(n, dsp, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}

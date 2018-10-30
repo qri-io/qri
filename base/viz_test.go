@@ -20,7 +20,7 @@ func TestPrepareViz(t *testing.T) {
 		},
 	}
 
-	if err := PrepareViz(ds); err != nil {
+	if err := prepareViz(ds); err != nil {
 		t.Error(err.Error())
 	}
 }

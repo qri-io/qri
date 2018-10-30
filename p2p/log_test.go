@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p/test"
 )
@@ -29,7 +30,7 @@ func TestRequestDatasetLog(t *testing.T) {
 	}
 
 	// add a dataset to tim
-	ref, err := base.CreateDataset(peers[4].Repo, tc.Name, tc.Input, tc.BodyFile(), true)
+	ref, _, err := base.CreateDataset(peers[4].Repo, ioes.NewDiscardIOStreams(), tc.Name, tc.Input, tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err)
 	}

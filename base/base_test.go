@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
@@ -60,7 +61,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, tc.Name, tc.Input, tc.BodyFile(), true)
+	ref, _, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Name, tc.Input, tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -73,7 +74,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, tc.Name, tc.Input, tc.BodyFile(), true)
+	ref, _, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Name, tc.Input, tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -62,14 +63,44 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, name string, ds *dataset.Dataset, body cafs.File, pin bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset.Dataset, body cafs.File, dryRun, pin bool) (ref repo.DatasetRef, resBody cafs.File, err error) {
 	var (
-		path datastore.Key
 		pro  *profile.Profile
+		path datastore.Key
 	)
-	if pro, err = r.Profile(); err != nil {
+
+	if dryRun {
+		// dry-runs store to an in-memory repo
+		streams.Print("🏃🏽‍♀️ dry run\n")
+	}
+
+	pro, err = r.Profile()
+	if err != nil {
 		return
 	}
+
+	if ds.Commit != nil {
+		// NOTE: add author ProfileID here to keep the dataset package agnostic to
+		// all identity stuff except keypair crypto
+		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
+	}
+
+	if err = prepareViz(ds); err != nil {
+		return
+	}
+	if err = prepareTransform(ds); err != nil {
+		return
+	}
+
+	if dryRun {
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
+		if err != nil {
+			return
+		}
+		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
+		// memRepo should be able to wrap another repo & check that before returning not found
+	}
+
 	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {
 		return
 	}
@@ -94,7 +125,27 @@ func CreateDataset(r repo.Repo, name string, ds *dataset.Dataset, body cafs.File
 		Path:      path.String(),
 	}
 
-	err = r.PutRef(ref)
+	if err = r.PutRef(ref); err != nil {
+		return
+	}
+
+	if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
+		return
+	}
+
+	_, storeIsPinner := r.Store().(cafs.Pinner)
+	if pin && storeIsPinner {
+		r.LogEvent(repo.ETDsPinned, ref)
+	}
+
+	if err = ReadDataset(r, &ref); err != nil {
+		return
+	}
+
+	if resBody, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
+		fmt.Println("error getting from store:", err.Error())
+	}
+
 	return
 }
 
