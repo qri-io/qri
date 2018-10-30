@@ -26,7 +26,7 @@ func (n *QriNode) StartDiscovery(bootstrapPeers chan pstore.PeerInfo) error {
 	// Check our existing peerstore for any potential friends
 	go n.DiscoverPeerstoreQriPeers(n.host.Peerstore())
 	// Boostrap off of default addresses
-	go n.Bootstrap(n.cfg.BootstrapAddrs, bootstrapPeers)
+	go n.Bootstrap(n.cfg.QriBootstrapAddrs, bootstrapPeers)
 	// Bootstrap to IPFS network if this node is using an IPFS fs
 	go n.BootstrapIPFS()
 
