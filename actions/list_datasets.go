@@ -10,7 +10,7 @@ import (
 )
 
 // ListDatasets lists a peer's datasets
-func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC, publishedOnly bool) (res []repo.DatasetRef, err error) {
 	r := node.Repo
 	pro, err := r.Profile()
 	if err != nil {
@@ -71,5 +71,5 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC
 		return
 	}
 
-	return base.ListDatasets(node.Repo, limit, offset, RPC)
+	return base.ListDatasets(node.Repo, limit, offset, RPC, publishedOnly)
 }

@@ -45,15 +45,18 @@ func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 		return err
 	}
 
-	for _, ref := range names {
-		if ref.Equal(p) {
-			return nil
-		} else if ref.Match(p) {
-			return repo.ErrNameTaken
+	matched := false
+	for i, ref := range names {
+		if ref.Match(p) {
+			matched = true
+			names[i] = p
 		}
 	}
 
-	names = append(names, p)
+	if !matched {
+		names = append(names, p)
+	}
+
 	if n.store != nil {
 		ds, err = dsfs.LoadDataset(n.store, datastore.NewKey(p.Path))
 		if err != nil {
@@ -61,6 +64,7 @@ func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 		}
 	}
 
+	// TODO - move this up into base package
 	if n.index != nil {
 		batch := n.index.NewBatch()
 		err = batch.Index(p.Path, ds)

@@ -49,6 +49,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
 	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
 	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
+	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
 
 	return cmd
 }
@@ -57,10 +58,11 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 type ListOptions struct {
 	ioes.IOStreams
 
-	Format   string
-	Limit    int
-	Offset   int
-	Peername string
+	Format    string
+	Limit     int
+	Offset    int
+	Peername  string
+	Published bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -79,8 +81,9 @@ func (o *ListOptions) Run() (err error) {
 	if o.Peername == "" {
 
 		p := &lib.ListParams{
-			Limit:  o.Limit,
-			Offset: o.Offset,
+			Limit:     o.Limit,
+			Offset:    o.Offset,
+			Published: o.Published,
 		}
 		refs := []repo.DatasetRef{}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {

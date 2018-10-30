@@ -368,6 +368,13 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	return
 }
 
+// SetPublishStatus configures the publish status of a stored reference
+func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
+	// currently we're just passing this call off to the base package,
+	// in the near future we'll start publishing to registries here
+	return base.SetPublishStatus(node.Repo, ref, published)
+}
+
 // RenameDataset alters a dataset name
 func RenameDataset(node *p2p.QriNode, current, new *repo.DatasetRef) (err error) {
 	r := node.Repo

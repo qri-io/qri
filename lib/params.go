@@ -31,6 +31,8 @@ type ListParams struct {
 	// RPC is a horrible hack while we work to replace the net/rpc package
 	// TODO - remove this
 	RPC bool
+	// Published only applies to listing datasets
+	Published bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

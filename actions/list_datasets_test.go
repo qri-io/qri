@@ -10,7 +10,7 @@ func TestListDatasets(t *testing.T) {
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, 1, 0, false)
+	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, 1, 0, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

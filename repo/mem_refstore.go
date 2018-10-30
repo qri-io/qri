@@ -19,8 +19,10 @@ func (r *MemRefstore) PutRef(put DatasetRef) error {
 		return ErrPathRequired
 	}
 
-	for _, ref := range *r {
+	for i, ref := range *r {
 		if ref.Match(put) {
+			rs := *r
+			rs[i] = put
 			return nil
 		}
 	}

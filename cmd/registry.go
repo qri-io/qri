@@ -8,6 +8,9 @@ import (
 )
 
 // NewRegistryCommand creates a `qri registry` subcommand for working with configured registries
+// TODO - registry command is currently removed in favor of the newer "qri publish" command
+// we should consider refactoring this code (espcially it's documentation) &
+// use it for registry-specific publication & search interaction
 func NewRegistryCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
