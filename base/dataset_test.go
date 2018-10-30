@@ -14,6 +14,41 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+func TestListDatasets(t *testing.T) {
+	r := newTestRepo(t)
+	ref := addCitiesDataset(t, r)
+
+	res, err := ListDatasets(r, 1, 0, false, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(res) != 1 {
+		t.Error("expected one dataset response")
+	}
+
+	res, err = ListDatasets(r, 1, 0, false, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if len(res) != 0 {
+		t.Error("expected no published datasets")
+	}
+
+	if err := SetPublishStatus(r, &ref, true); err != nil {
+		t.Fatal(err)
+	}
+
+	res, err = ListDatasets(r, 1, 0, false, true)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	if len(res) != 1 {
+		t.Error("expected one published dataset response")
+	}
+}
+
 func TestCreateDataset(t *testing.T) {
 	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {

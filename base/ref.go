@@ -17,7 +17,7 @@ func InLocalNamespace(r repo.Repo, ref *repo.DatasetRef) bool {
 }
 
 // SetPublishStatus updates the Published field of a dataset ref
-func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef) error {
+func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef, published bool) error {
 	if err := repo.CanonicalizeDatasetRef(r, ref); err != nil {
 		return err
 	}
@@ -26,5 +26,6 @@ func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef) error {
 		return fmt.Errorf("can't publish datsets that are not in your namespace")
 	}
 
+	ref.Published = published
 	return r.PutRef(*ref)
 }

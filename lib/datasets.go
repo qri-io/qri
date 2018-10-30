@@ -162,10 +162,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	return nil
 }
 
-// SetPublishStatus updates the pubilicity of a reference in the peer's namespace
+// SetPublishStatus updates the publicity of a reference in the peer's namespace
 func (r *DatasetRequests) SetPublishStatus(ref *repo.DatasetRef, res *bool) error {
 	res = &ref.Published
-	return actions.SetPublishStatus(r.node, ref)
+	return actions.SetPublishStatus(r.node, ref, ref.Published)
 }
 
 // RenameParams defines parameters for Dataset renaming

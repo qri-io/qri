@@ -9,8 +9,8 @@ import (
 
 func TestInLocalNamespace(t *testing.T) {
 	r := newTestRepo(t)
-	reff := addCitiesDataset(t, r)
-	ref := &reff
+	cities := addCitiesDataset(t, r)
+	ref := &cities
 
 	if !InLocalNamespace(r, ref) {
 		t.Errorf("expected %s true", ref.String())
@@ -31,8 +31,7 @@ func TestSetPublishStatus(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	ref.Published = true
-	if err := SetPublishStatus(r, &ref); err != nil {
+	if err := SetPublishStatus(r, &ref, true); err != nil {
 		t.Error(err)
 	}
 	res, err := r.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
@@ -43,8 +42,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal true: %s,%s", ref, res)
 	}
 
-	ref.Published = false
-	if err := SetPublishStatus(r, &ref); err != nil {
+	if err := SetPublishStatus(r, &ref, false); err != nil {
 		t.Error(err)
 	}
 	res, err = r.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
@@ -55,7 +53,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal false: %s,%s", ref, res)
 	}
 
-	if err := SetPublishStatus(r, &repo.DatasetRef{Name: "foo"}); err == nil {
+	if err := SetPublishStatus(r, &repo.DatasetRef{Name: "foo"}, false); err == nil {
 		t.Error("expected invalid reference to error")
 	}
 
@@ -66,8 +64,7 @@ func TestSetPublishStatus(t *testing.T) {
 
 	r.Profiles().PutProfile(&profile.Profile{ID: outside.ProfileID, Peername: outside.Peername})
 
-	outside.Published = true
-	if err := SetPublishStatus(r, &outside); err == nil {
+	if err := SetPublishStatus(r, &outside, true); err == nil {
 		t.Error("expected setting the publish status of a name outside peer's namespace to fail")
 	}
 }
