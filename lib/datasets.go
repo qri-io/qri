@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/cafs"
-
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
@@ -119,33 +118,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("dataset is required")
 	}
 
-	var ds *dataset.Dataset
-	var bodyFile cafs.File
-	var secrets map[string]string
-	// Determine if the save is creating a new dataset or updating an existing dataset by
-	// seeing if the name can canonicalize to a repo that we know about.
-	// TODO: Move this logic into actions.SaveDataset, renaming NewDataset to
-	// core.PrepareDatasetNew and renaming UpdateDataset to core.PrepareDatasetUpdate.
-	lookup := &repo.DatasetRef{Name: p.Dataset.Name, Peername: p.Dataset.Peername}
-	err = repo.CanonicalizeDatasetRef(r.node.Repo, lookup)
-	if err == repo.ErrNotFound {
-		ds, bodyFile, secrets, err = actions.NewDataset(p.Dataset)
-		if err != nil {
-			return err
-		}
-	} else {
-		ds, bodyFile, secrets, err = actions.UpdateDataset(r.node, p.Dataset)
-		if err != nil {
-			return err
-		}
-	}
-
-	ref, body, err := actions.SaveDataset(r.node, p.Dataset.Name, ds, bodyFile, secrets, p.DryRun, true)
+	ref, body, err := actions.SaveDataset(r.node, p.Dataset, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
-	ref.Dataset = ds.Encode()
+	// ref.Dataset = p.Dataset.Encode()
 
 	if p.Publish {
 		var done bool

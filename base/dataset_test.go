@@ -7,6 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/qri-io/ioes"
+
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
@@ -50,6 +52,7 @@ func TestListDatasets(t *testing.T) {
 }
 
 func TestCreateDataset(t *testing.T) {
+	streams := ioes.NewDiscardIOStreams()
 	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -64,11 +67,11 @@ func TestCreateDataset(t *testing.T) {
 		},
 	}
 
-	if _, err := CreateDataset(r, "foo", &dataset.Dataset{}, nil, true); err == nil {
+	if _, _, err := CreateDataset(r, streams, "foo", &dataset.Dataset{}, nil, false, true); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(r, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), true)
+	ref, _, err := CreateDataset(r, streams, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -83,7 +86,7 @@ func TestCreateDataset(t *testing.T) {
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
 
-	ref, err = CreateDataset(r, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), true)
+	ref, _, err = CreateDataset(r, streams, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -281,6 +284,7 @@ func TestReadDataset(t *testing.T) {
 func TestDatasetPinning(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
+	streams := ioes.NewDiscardIOStreams()
 
 	if err := PinDataset(r, ref); err != nil {
 		if err == repo.ErrNotPinner {
@@ -297,7 +301,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(r, tc.Name, tc.Input, tc.BodyFile(), false)
+	ref2, _, err := CreateDataset(r, streams, tc.Name, tc.Input, tc.BodyFile(), false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

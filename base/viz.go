@@ -8,7 +8,7 @@ import (
 )
 
 // PrepareViz loads vizualization bytes from a local filepath
-func PrepareViz(ds *dataset.Dataset) (err error) {
+func prepareViz(ds *dataset.Dataset) (err error) {
 	// remove any empty vizualizations
 	if ds.Viz != nil && ds.Viz.IsEmpty() {
 		ds.Viz = nil
@@ -22,6 +22,24 @@ func PrepareViz(ds *dataset.Dataset) (err error) {
 			return err
 		}
 		ds.Viz.Script = bytes.NewReader(scriptdata)
+	}
+	return nil
+}
+
+func prepareTransform(ds *dataset.Dataset) (err error) {
+	// remove any empty transform
+	if ds.Transform != nil && ds.Transform.IsEmpty() {
+		ds.Transform = nil
+		return nil
+	}
+
+	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
+		// create a reader of script bytes
+		scriptdata, err := ioutil.ReadFile(ds.Transform.ScriptPath)
+		if err != nil {
+			return err
+		}
+		ds.Transform.Script = bytes.NewReader(scriptdata)
 	}
 	return nil
 }

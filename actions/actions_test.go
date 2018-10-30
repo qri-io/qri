@@ -65,8 +65,11 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	dsp := tc.Input.Encode()
+	dsp.Name = tc.Name
+	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
+	ref, _, err := SaveDataset(node, dsp, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -78,8 +81,11 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	dsp := tc.Input.Encode()
+	dsp.Name = tc.Name
+	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, tc.Name, tc.Input, tc.BodyFile(), nil, false, true)
+	ref, _, err := SaveDataset(node, dsp, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

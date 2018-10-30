@@ -23,7 +23,7 @@ type Store interface {
 
 // MemStore is an in-memory implementation of the profile Store interface
 type MemStore struct {
-	sync.RWMutex
+	sync.Mutex
 	store map[ID]*Profile
 }
 
@@ -35,7 +35,7 @@ func NewMemStore() Store {
 }
 
 // PutProfile adds a peer to this store
-func (m MemStore) PutProfile(profile *Profile) error {
+func (m *MemStore) PutProfile(profile *Profile) error {
 	if profile.ID.String() == "" {
 		return fmt.Errorf("profile.ID is required")
 	}
@@ -47,7 +47,7 @@ func (m MemStore) PutProfile(profile *Profile) error {
 }
 
 // PeernameID gives the ID for a given peername
-func (m MemStore) PeernameID(peername string) (ID, error) {
+func (m *MemStore) PeernameID(peername string) (ID, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -62,7 +62,7 @@ func (m MemStore) PeernameID(peername string) (ID, error) {
 // PeerProfile returns profile data for a given peer.ID
 // TODO - this func implies that peer.ID's are only ever connected to the same
 // profile. That could cause trouble.
-func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
+func (m *MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -80,7 +80,7 @@ func (m MemStore) PeerProfile(id peer.ID) (*Profile, error) {
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
-func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
+func (m *MemStore) PeerIDs(id ID) ([]peer.ID, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -94,7 +94,7 @@ func (m MemStore) PeerIDs(id ID) ([]peer.ID, error) {
 }
 
 // List hands the full list of peers back
-func (m MemStore) List() (map[ID]*Profile, error) {
+func (m *MemStore) List() (map[ID]*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -106,7 +106,7 @@ func (m MemStore) List() (map[ID]*Profile, error) {
 }
 
 // GetProfile give's peer info from the store for a given peer.ID
-func (m MemStore) GetProfile(id ID) (*Profile, error) {
+func (m *MemStore) GetProfile(id ID) (*Profile, error) {
 	m.Lock()
 	defer m.Unlock()
 
@@ -117,7 +117,7 @@ func (m MemStore) GetProfile(id ID) (*Profile, error) {
 }
 
 // DeleteProfile removes a peer from this store
-func (m MemStore) DeleteProfile(id ID) error {
+func (m *MemStore) DeleteProfile(id ID) error {
 	m.Lock()
 	delete(m.store, id)
 	m.Unlock()
