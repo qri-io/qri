@@ -1,15 +1,11 @@
 package cmd
 
 import (
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -119,51 +115,33 @@ func (o *SaveOptions) Run() (err error) {
 	}
 
 	dsp := &dataset.DatasetPod{}
-	if o.FilePath != "" {
-		f, err := os.Open(o.FilePath)
-		if err != nil {
-			return err
-		}
-
-		switch strings.ToLower(filepath.Ext(o.FilePath)) {
-		case ".yaml", ".yml":
-			data, err := ioutil.ReadAll(f)
-			if err != nil {
-				return err
-			}
-			if err = dsutil.UnmarshalYAMLDatasetPod(data, dsp); err != nil {
-				return err
-			}
-		case ".json":
-			if err = json.NewDecoder(f).Decode(dsp); err != nil {
-				return err
-			}
-		}
-	}
-
 	dsp.Name = ref.Name
 	dsp.Peername = ref.Peername
-	if (o.Title != "" || o.Message != "") && dsp.Commit == nil {
-		dsp.Commit = &dataset.CommitPod{}
-	}
+	dsp.Commit = &dataset.CommitPod{}
 	if o.Title != "" {
 		dsp.Commit.Title = o.Title
 	}
 	if o.Message != "" {
 		dsp.Commit.Message = o.Message
 	}
-
-	if o.BodyPath != "" {
-		dsp.BodyPath = o.BodyPath
+	datasetFilePath := ""
+	if o.FilePath != "" {
+		if _, err := os.Stat(o.FilePath); os.IsNotExist(err) {
+			return fmt.Errorf("open \"%s\": no such file or directory", o.FilePath)
+		}
+		datasetFilePath, err = filepath.Abs(o.FilePath)
+		if err != nil {
+			return err
+		}
 	}
-	if dsp.BodyPath != "" {
-		if _, err := os.Stat(dsp.BodyPath); os.IsNotExist(err) {
-			return fmt.Errorf("body file \"%s\": no such file or directory", dsp.BodyPath)
+	if o.BodyPath != "" {
+		if _, err := os.Stat(o.BodyPath); os.IsNotExist(err) {
+			return fmt.Errorf("body file \"%s\": no such file or directory", o.BodyPath)
 		}
 		// Get the absolute path to the body file. Especially important if we are running
 		// `qri connect` in a different terminal, and that instance is in a different directory;
 		// that instance won't correctly find the body file we want to load if it's not absolute.
-		dsp.BodyPath, err = filepath.Abs(dsp.BodyPath)
+		dsp.BodyPath, err = filepath.Abs(o.BodyPath)
 		if err != nil {
 			return err
 		}
@@ -182,10 +160,11 @@ continue?`, true) {
 	}
 
 	p := &lib.SaveParams{
-		Dataset: dsp,
-		Private: false,
-		Publish: o.Publish,
-		DryRun:  o.DryRun,
+		Dataset:  dsp,
+		Private:  false,
+		Publish:  o.Publish,
+		DryRun:   o.DryRun,
+		FilePath: datasetFilePath,
 	}
 
 	res := &repo.DatasetRef{}

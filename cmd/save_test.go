@@ -137,7 +137,7 @@ func TestSaveRun(t *testing.T) {
 		msg      string
 	}{
 		{"me/bad_dataset", "", "", "", "", false, "", "either dataBytes, bodyPath, or a transform is required to create a dataset", ""},
-		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
+		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open \"bad/filpath.json\": no such file or directory", ""},
 		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "body file \"bad/bodypath.csv\": no such file or directory", ""},
 		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVxUpVVVNedQ645nC25zu6ZtW3yWSiknVmAePLXQ2YSPR\nthis dataset has 1 validation errors\n", "", ""},
 		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmW8999UBCFoBBwjFiSgm53znp8e5eWEP1kodJeev5CJM9\nthis dataset has 1 validation errors\n", "", ""},
