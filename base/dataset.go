@@ -69,11 +69,6 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		path datastore.Key
 	)
 
-	if dryRun {
-		// dry-runs store to an in-memory repo
-		streams.Print("🏃🏽‍♀️ dry run\n")
-	}
-
 	pro, err = r.Profile()
 	if err != nil {
 		return
@@ -88,17 +83,19 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 	if err = prepareViz(ds); err != nil {
 		return
 	}
-	if err = prepareTransform(ds); err != nil {
-		return
+
+	if ds.Transform != nil && ds.Transform.IsEmpty() {
+		ds.Transform = nil
 	}
 
 	if dryRun {
+		// dry-runs store to an in-memory repo
+		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
+		// memRepo should be able to wrap another repo & check that before returning not found
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
 		}
-		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
-		// memRepo should be able to wrap another repo & check that before returning not found
 	}
 
 	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {

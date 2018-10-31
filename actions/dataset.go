@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"os"
 	"strings"
 
 	"github.com/ipfs/go-datastore"
@@ -13,8 +14,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
-
-// TODO: Move this to core.CreateDataset
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
 func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
@@ -32,6 +31,10 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 			Viz:       &dataset.Viz{},
 		}
 	)
+
+	if dryRun {
+		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
+	}
 
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
@@ -52,8 +55,19 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 	userSet.Assign(ds)
 
 	if ds.Transform != nil {
+		if ds.Transform.Script == nil {
+			var f *os.File
+			f, err = os.Open(ds.Transform.ScriptPath)
+			if err != nil {
+				return
+			}
+			ds.Transform.Script = f
+		}
+		// TODO - consider making this a standard method on dataset.Transform
+		script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
+
 		node.LocalStreams.Print("🤖 executing transform\n")
-		bodyFile, err = ExecTransform(node, ds, bodyFile, secrets)
+		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets)
 		if err != nil {
 			return
 		}
@@ -62,6 +76,82 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 	}
 
 	return base.CreateDataset(node.Repo, node.LocalStreams, dsp.Name, ds, bodyFile, dryRun, pin)
+}
+
+// UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is
+// in a peer's namespace, re-running a transform if the reference is owned by this profile
+func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
+	if dryRun {
+		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
+	}
+
+	if err = repo.CanonicalizeDatasetRef(node.Repo, ref); err == repo.ErrNotFound {
+		err = fmt.Errorf("unknown dataset '%s'. please add before updating", ref.AliasString())
+		return
+	} else if err != nil {
+		return
+	}
+
+	if !base.InLocalNamespace(node.Repo, ref) {
+		err = fmt.Errorf("remote updates are not yet finished")
+		return
+	}
+
+	return localUpdate(node, ref, dryRun, pin)
+}
+
+func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
+	var (
+		bodyFile cafs.File
+		secrets  map[string]string
+		commit   = &dataset.CommitPod{}
+	)
+
+	if ref.Dataset != nil {
+		commit = ref.Dataset.Commit
+		if ref.Dataset.Transform != nil {
+			secrets = ref.Dataset.Transform.Secrets
+		}
+	}
+
+	if err = base.ReadDataset(node.Repo, ref); err != nil {
+		log.Error(err)
+		return
+	}
+	if ref.Dataset.Transform == nil {
+		err = fmt.Errorf("transform script is required to automate updates to your own datasets")
+		return
+	}
+
+	ds := &dataset.Dataset{}
+	if err = ds.Decode(ref.Dataset); err != nil {
+		return
+	}
+	ds.Commit.Title = commit.Title
+	ds.Commit.Message = commit.Message
+
+	bodyFile, err = dsfs.LoadBody(node.Repo.Store(), ds)
+	if err != nil {
+		log.Error(err.Error())
+		return
+	}
+
+	script, err := node.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	ds.Transform.ScriptPath = script.FileName()
+
+	node.LocalStreams.Print("🤖 executing transform\n")
+	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets)
+	if err != nil {
+		log.Error(err)
+		return
+	}
+	node.LocalStreams.Print("✅ transform complete\n")
+
+	return base.CreateDataset(node.Repo, node.LocalStreams, ref.Name, ds, bodyFile, dryRun, pin)
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs

@@ -91,3 +91,19 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 	}
 	return ref
 }
+
+func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
+	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	dsp := tc.Input.Encode()
+	dsp.Name = tc.Name
+	dsp.Transform.ScriptPath = "testdata/now_tf/transform.star"
+
+	ref, _, err := SaveDataset(node, dsp, false, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ref
+}
