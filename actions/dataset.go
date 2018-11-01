@@ -3,7 +3,6 @@ package actions
 import (
 	"fmt"
 	"os"
-	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -93,7 +92,22 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (r
 	}
 
 	if !base.InLocalNamespace(node.Repo, ref) {
-		err = fmt.Errorf("remote updates are not yet finished")
+		var ldr base.LogDiffResult
+		ldr, err = node.RequestLogDiff(ref)
+		if err != nil {
+			return
+		}
+		for _, add := range ldr.Add {
+			if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
+				return
+			}
+		}
+		// for _, remove := range ldr.Remove {
+		// 	if err = base.UnpinDataset(node.Repo, remove); err != nil {
+		// 		return
+		// 	}
+		// }
+		err = node.Repo.PutRef(ldr.Head)
 		return
 	}
 
@@ -169,42 +183,16 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		}
 	}
 
-	r := node.Repo
-	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
-	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
-
-	fetcher, ok := r.Store().(cafs.Fetcher)
-	if !ok {
-		err = fmt.Errorf("this store cannot fetch from remote sources")
+	if err = base.FetchDataset(node.Repo, ref, true, true); err != nil {
 		return
 	}
 
-	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
-	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
-	// more correctly in line with what's actually required.
-	_, err = fetcher.Fetch(cafs.SourceAny, key)
-	if err != nil {
-		return fmt.Errorf("error fetching file: %s", err.Error())
-	}
-
-	if err = base.PinDataset(r, *ref); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error pinning root key: %s", err.Error())
-	}
-
-	if err = r.PutRef(*ref); err != nil {
+	if err = node.Repo.PutRef(*ref); err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
 	}
 
-	ds, err := dsfs.LoadDataset(r.Store(), path)
-	if err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
-	}
-
-	ref.Dataset = ds.Encode()
-	return
+	return nil
 }
 
 // SetPublishStatus configures the publish status of a stored reference

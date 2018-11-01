@@ -146,6 +146,45 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 	return
 }
 
+// FetchDataset grabs a dataset from a remote source
+func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
+	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+
+	fetcher, ok := r.Store().(cafs.Fetcher)
+	if !ok {
+		err = fmt.Errorf("this store cannot fetch from remote sources")
+		return
+	}
+
+	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
+	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
+	// more correctly in line with what's actually required.
+	_, err = fetcher.Fetch(cafs.SourceAny, key)
+	if err != nil {
+		return fmt.Errorf("error fetching file: %s", err.Error())
+	}
+
+	if pin {
+		if err = PinDataset(r, *ref); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error pinning root key: %s", err.Error())
+		}
+	}
+
+	if load {
+		ds, err := dsfs.LoadDataset(r.Store(), path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
+		}
+
+		ref.Dataset = ds.Encode()
+	}
+
+	return
+}
+
 // ReadDataset grabs a dataset from the store
 func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 	if store := r.Store(); store != nil {

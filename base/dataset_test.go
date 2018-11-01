@@ -7,11 +7,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/qri-io/ioes"
-
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -96,6 +95,23 @@ func TestCreateDataset(t *testing.T) {
 	}
 	if len(refs) != 1 {
 		t.Errorf("ref length mismatch. expected 1, got: %d", len(refs))
+	}
+}
+
+func TestFetchDataset(t *testing.T) {
+	r1 := newTestRepo(t)
+	r2 := newTestRepo(t)
+	ref := addCitiesDataset(t, r2)
+
+	// Connect in memory Mapstore's behind the scene to simulate IPFS-like behavior.
+	r1.Store().(*cafs.MapStore).AddConnection(r2.Store().(*cafs.MapStore))
+
+	if err := FetchDataset(r1, &repo.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
+		t.Error("expected add of invalid ref to error")
+	}
+
+	if err := FetchDataset(r1, &ref, true, true); err != nil {
+		t.Error(err.Error())
 	}
 }
 
