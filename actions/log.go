@@ -17,5 +17,5 @@ func DatasetLog(node *p2p.QriNode, ref repo.DatasetRef, limit, offset int) (rlog
 		return node.RequestDatasetLog(ref, limit, offset)
 	}
 
-	return base.DatasetLog(node.Repo, ref, limit, offset)
+	return base.DatasetLog(node.Repo, ref, limit, offset, true)
 }

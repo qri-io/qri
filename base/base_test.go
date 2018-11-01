@@ -68,6 +68,38 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	return ref
 }
 
+func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ref, err := r.GetRef(repo.DatasetRef{Peername: pro.Peername, Name: tc.Name})
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	prevTitle := tc.Input.Meta.Title
+	tc.Input.Meta.Title = "this is the new title"
+	tc.Input.PreviousPath = ref.Path
+	defer func() {
+		// because test cases are cached for performance, we need to clean up any mutation to
+		// testcase input
+		tc.Input.Meta.Title = prevTitle
+		tc.Input.PreviousPath = ""
+	}()
+
+	ref, _, err = CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Name, tc.Input, tc.BodyFile(), false, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ref
+}
+
 func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("flourinated_compounds_in_fast_food_packaging"))
 	if err != nil {
