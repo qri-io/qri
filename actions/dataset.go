@@ -102,12 +102,11 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (r
 				return
 			}
 		}
-		// for _, remove := range ldr.Remove {
-		// 	if err = base.UnpinDataset(node.Repo, remove); err != nil {
-		// 		return
-		// 	}
-		// }
-		err = node.Repo.PutRef(ldr.Head)
+		if err = node.Repo.PutRef(ldr.Head); err != nil {
+			return
+		}
+		res = ldr.Head
+		// TODO - currently we're not loading the body here
 		return
 	}
 

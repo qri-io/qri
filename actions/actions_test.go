@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
@@ -31,6 +32,27 @@ var (
 
 func testdataPath(path string) string {
 	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
+}
+
+// Convert from test nodes to non-test nodes.
+func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*p2p.QriNode {
+	// Convert from test nodes to non-test nodes.
+	peers := make([]*p2p.QriNode, len(testPeers))
+	for i, node := range testPeers {
+		peers[i] = node.(*p2p.QriNode)
+	}
+	return peers
+}
+
+// Connect in memory Mapstore's behind the scene to simulate IPFS like behavior.
+func connectMapStores(peers []*p2p.QriNode) {
+	for i, s0 := range peers {
+		for _, s1 := range peers[i+1:] {
+			m0 := (s0.Repo.Store()).(*cafs.MapStore)
+			m1 := (s1.Repo.Store()).(*cafs.MapStore)
+			m0.AddConnection(m1)
+		}
+	}
 }
 
 func init() {
