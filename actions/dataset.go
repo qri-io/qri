@@ -163,6 +163,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res
 		return
 	}
 	node.LocalStreams.Print("✅ transform complete\n")
+	ds.PreviousPath = ref.Path
 
 	return base.CreateDataset(node.Repo, node.LocalStreams, ref.Name, ds, bodyFile, dryRun, pin)
 }

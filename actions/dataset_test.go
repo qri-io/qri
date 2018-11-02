@@ -27,9 +27,14 @@ func TestUpdateDatasetLocal(t *testing.T) {
 	}
 
 	now := addNowTransformDataset(t, node)
+	prevPath := now.Path
 	now, _, err := UpdateDataset(node, &now, false, false)
 	if err != nil {
 		t.Error(err)
+	}
+
+	if now.Dataset.PreviousPath != prevPath {
+		t.Errorf("PreviousPath mismatch. expected: %s, got: %s", prevPath, now.Dataset.PreviousPath)
 	}
 }
 

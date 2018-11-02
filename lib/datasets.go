@@ -236,7 +236,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	}
 	*res = result
 
-	return fmt.Errorf("not finished")
+	return nil
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
