@@ -1,8 +1,6 @@
 package api
 
 import (
-	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -754,25 +752,10 @@ func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, 
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {
-	zr, err := zip.NewReader(bytes.NewReader(postData), int64(len(postData)))
+	contents, err := actions.UnzipGetContents(postData)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
-	}
-	// Create a map from filenames in the zip to their json encoded contents.
-	contents := make(map[string]string)
-	for _, f := range zr.File {
-		rc, err := f.Open()
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		data, err := ioutil.ReadAll(rc)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		contents[f.Name] = string(data)
 	}
 	data, err := json.Marshal(contents)
 	if err != nil {

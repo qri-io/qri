@@ -145,6 +145,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			if err = json.NewDecoder(f).Decode(loadDs); err != nil {
 				return err
 			}
+		case ".zip":
+			if err = actions.UnzipDataset(p.FilePath, loadDs); err != nil {
+				return err
+			}
 		default:
 			return fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
 		}
@@ -157,6 +161,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		if p.Dataset.Peername != "" {
 			loadDs.Peername = p.Dataset.Peername
 		}
+		if p.Dataset.Commit == nil {
+			p.Dataset.Commit = &dataset.CommitPod{}
+		}
 		if loadDs.Commit == nil {
 			loadDs.Commit = &dataset.CommitPod{}
 		}
@@ -168,6 +175,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 		if p.Dataset.BodyPath != "" {
 			loadDs.BodyPath = p.Dataset.BodyPath
+		}
+		if p.Dataset.BodyBytes != nil {
+			loadDs.BodyBytes = p.Dataset.BodyBytes
 		}
 		if p.Dataset.Transform != nil {
 			loadDs.Transform = p.Dataset.Transform

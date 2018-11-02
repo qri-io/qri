@@ -178,6 +178,33 @@ sarnia,550000,55.65,false
 	}
 }
 
+func TestDatasetRequestsSaveZip(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	req := NewDatasetRequests(node, nil)
+
+	dsp := &dataset.DatasetPod{Peername: "me"}
+	res := repo.DatasetRef{}
+	err = req.Save(&SaveParams{Dataset: dsp, FilePath: "testdata/import.zip"}, &res)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if res.Dataset.Commit.Title != "Test Title" {
+		t.Fatalf("Expected 'Test Title', got '%s'", res.Dataset.Commit.Title)
+	}
+	if res.Dataset.Meta.Title != "Test Repo" {
+		t.Fatalf("Expected 'Test Repo', got '%s'", res.Dataset.Meta.Title)
+	}
+}
+
 func TestDatasetRequestsList(t *testing.T) {
 	var (
 		movies, counter, cities, craigslist, sitemap repo.DatasetRef
