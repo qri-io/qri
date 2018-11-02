@@ -69,11 +69,6 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		path datastore.Key
 	)
 
-	if dryRun {
-		// dry-runs store to an in-memory repo
-		streams.Print("🏃🏽‍♀️ dry run\n")
-	}
-
 	pro, err = r.Profile()
 	if err != nil {
 		return
@@ -88,17 +83,19 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 	if err = prepareViz(ds); err != nil {
 		return
 	}
-	if err = prepareTransform(ds); err != nil {
-		return
+
+	if ds.Transform != nil && ds.Transform.IsEmpty() {
+		ds.Transform = nil
 	}
 
 	if dryRun {
+		// dry-runs store to an in-memory repo
+		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
+		// memRepo should be able to wrap another repo & check that before returning not found
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
 		}
-		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
-		// memRepo should be able to wrap another repo & check that before returning not found
 	}
 
 	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {
@@ -144,6 +141,45 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 
 	if resBody, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
 		fmt.Println("error getting from store:", err.Error())
+	}
+
+	return
+}
+
+// FetchDataset grabs a dataset from a remote source
+func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
+	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
+	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+
+	fetcher, ok := r.Store().(cafs.Fetcher)
+	if !ok {
+		err = fmt.Errorf("this store cannot fetch from remote sources")
+		return
+	}
+
+	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
+	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
+	// more correctly in line with what's actually required.
+	_, err = fetcher.Fetch(cafs.SourceAny, key)
+	if err != nil {
+		return fmt.Errorf("error fetching file: %s", err.Error())
+	}
+
+	if pin {
+		if err = PinDataset(r, *ref); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error pinning root key: %s", err.Error())
+		}
+	}
+
+	if load {
+		ds, err := dsfs.LoadDataset(r.Store(), path)
+		if err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
+		}
+
+		ref.Dataset = ds.Encode()
 	}
 
 	return

@@ -197,6 +197,18 @@ func (h *DatasetHandlers) PublishHandler(w http.ResponseWriter, r *http.Request)
 	}
 }
 
+// UpdateHandler brings a dataset to the latest version
+func (h *DatasetHandlers) UpdateHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.updateHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -747,6 +759,37 @@ func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, 
 	ref.Published = publish
 	var ok bool
 	if err := h.DatasetRequests.SetPublishStatus(&ref, &ok); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, ref)
+}
+
+func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/update"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	p := &lib.UpdateParams{
+		Ref:        ref.String(),
+		Title:      r.FormValue("title"),
+		Message:    r.FormValue("message"),
+		DryRun:     r.FormValue("dry_run") == "true",
+		ReturnBody: false,
+	}
+
+	if r.FormValue("secrets") != "" {
+		p.Secrets = map[string]string{}
+		if err := json.Unmarshal([]byte(r.FormValue("secrets")), &p.Secrets); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
+			return
+		}
+	}
+
+	res := &repo.DatasetRef{}
+	if err := h.DatasetRequests.Update(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

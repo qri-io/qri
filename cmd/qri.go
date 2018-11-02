@@ -69,6 +69,7 @@ https://github.com/qri-io/qri/issues`,
 		NewSearchCommand(opt, ioStreams),
 		NewSetupCommand(opt, ioStreams),
 		NewUseCommand(opt, ioStreams),
+		NewUpdateCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
 		NewVersionCommand(opt, ioStreams),
 	)

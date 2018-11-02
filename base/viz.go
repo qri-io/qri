@@ -25,21 +25,3 @@ func prepareViz(ds *dataset.Dataset) (err error) {
 	}
 	return nil
 }
-
-func prepareTransform(ds *dataset.Dataset) (err error) {
-	// remove any empty transform
-	if ds.Transform != nil && ds.Transform.IsEmpty() {
-		ds.Transform = nil
-		return nil
-	}
-
-	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
-		// create a reader of script bytes
-		scriptdata, err := ioutil.ReadFile(ds.Transform.ScriptPath)
-		if err != nil {
-			return err
-		}
-		ds.Transform.Script = bytes.NewReader(scriptdata)
-	}
-	return nil
-}

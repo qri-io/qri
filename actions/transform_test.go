@@ -1,9 +1,6 @@
 package actions
 
 import (
-	"io/ioutil"
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/cafs"
@@ -28,15 +25,11 @@ func TestExecTransform(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	tfPath := filepath.Join(os.TempDir(), "transform.star")
-	defer os.RemoveAll(tfPath)
-	data := `
+	data := []byte(`
 def transform(ds,ctx):
 	return [1,2,3]
-`
-	if err := ioutil.WriteFile(tfPath, []byte(data), 0777); err != nil {
-		t.Fatal(err.Error())
-	}
+`)
+	script := cafs.NewMemfileBytes("transform.star", data)
 
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
@@ -44,12 +37,11 @@ def transform(ds,ctx):
 			Schema: dataset.BaseSchemaArray,
 		},
 		Transform: &dataset.Transform{
-			Syntax:     "starlark",
-			ScriptPath: tfPath,
+			Syntax: "starlark",
 		},
 	}
 
-	if _, err := ExecTransform(node, ds, nil, nil); err != nil {
+	if _, err := ExecTransform(node, ds, script, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }

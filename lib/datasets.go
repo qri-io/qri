@@ -198,6 +198,47 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	return nil
 }
 
+// UpdateParams defines parameters for the Update command
+type UpdateParams struct {
+	Ref        string
+	Title      string
+	Message    string
+	Secrets    map[string]string
+	Publish    bool
+	DryRun     bool
+	ReturnBody bool
+}
+
+// Update advances a dataset to the latest known version from either a peer or by
+// re-running a transform in the peer's namespace
+func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	ref.Dataset = &dataset.DatasetPod{
+		Commit: &dataset.CommitPod{
+			Title:   p.Title,
+			Message: p.Message,
+		},
+		Transform: &dataset.TransformPod{
+			Secrets: p.Secrets,
+		},
+	}
+
+	result, body, err := actions.UpdateDataset(r.node, &ref, p.DryRun, true)
+	if err != nil {
+		return err
+	}
+	if p.ReturnBody {
+		res.Dataset.Body = body
+	}
+	*res = result
+
+	return nil
+}
+
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
 func (r *DatasetRequests) SetPublishStatus(ref *repo.DatasetRef, res *bool) error {
 	res = &ref.Published
@@ -308,7 +349,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	return err
 }
 
-// ValidateDatasetParams defines paremeters for dataset
+// ValidateDatasetParams defines parameters for dataset
 // data validation
 type ValidateDatasetParams struct {
 	Ref repo.DatasetRef

@@ -4,10 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/dataset"
-
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -16,6 +14,63 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
 )
+
+func TestUpdateDatasetLocal(t *testing.T) {
+	node := newTestNode(t)
+	cities := addCitiesDataset(t, node)
+
+	expect := "transform script is required to automate updates to your own datasets"
+	if _, _, err := UpdateDataset(node, &cities, false, true); err == nil {
+		t.Error("expected update without transform to error")
+	} else if err.Error() != expect {
+		t.Errorf("error mismatch. %s != %s", expect, err.Error())
+	}
+
+	now := addNowTransformDataset(t, node)
+	prevPath := now.Path
+	now, _, err := UpdateDataset(node, &now, false, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if now.Dataset.PreviousPath != prevPath {
+		t.Errorf("PreviousPath mismatch. expected: %s, got: %s", prevPath, now.Dataset.PreviousPath)
+	}
+}
+
+func TestUpdateDatasetRemote(t *testing.T) {
+	ctx := context.Background()
+	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 2)
+	if err != nil {
+		t.Fatalf("error creating network: %s", err.Error())
+	}
+	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
+		t.Fatalf("error connecting peers: %s", err.Error())
+	}
+
+	peers := asQriNodes(testPeers)
+	connectMapStores(peers)
+
+	now := addNowTransformDataset(t, peers[0])
+	if err := AddDataset(peers[1], &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
+		t.Error(err)
+	}
+
+	// run a local update to advance history
+	now0, _, err := UpdateDataset(peers[0], &now, false, false)
+	if err != nil {
+		t.Error(err)
+	}
+
+	now1, _, err := UpdateDataset(peers[1], &now, false, false)
+	if err != nil {
+		t.Error(err)
+	}
+	if !now0.Equal(now1) {
+		t.Errorf("refs unequal: %s != %s", now0, now1)
+	}
+}
 
 func TestAddDataset(t *testing.T) {
 	node := newTestNode(t)
@@ -35,20 +90,9 @@ func TestAddDataset(t *testing.T) {
 		t.Fatalf("error connecting peers: %s", err.Error())
 	}
 
-	// Convert from test nodes to non-test nodes.
-	peers := make([]*p2p.QriNode, len(testPeers))
-	for i, node := range testPeers {
-		peers[i] = node.(*p2p.QriNode)
-	}
+	peers := asQriNodes(testPeers)
 
-	// Connect in memory Mapstore's behind the scene to simulate IPFS like behavior.
-	for i, s0 := range peers {
-		for _, s1 := range peers[i+1:] {
-			m0 := (s0.Repo.Store()).(*cafs.MapStore)
-			m1 := (s1.Repo.Store()).(*cafs.MapStore)
-			m0.AddConnection(m1)
-		}
-	}
+	connectMapStores(peers)
 	p2Pro, _ := peers[1].Repo.Profile()
 	if err := AddDataset(peers[0], &repo.DatasetRef{Peername: p2Pro.Peername, Name: "cities"}); err != nil {
 		t.Error(err.Error())
@@ -119,20 +163,7 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 		return n, repo.DatasetRef{}
 	}
 
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
-	if err != nil {
-		t.Error(err.Error())
-		return n, repo.DatasetRef{}
-	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
-
-	ref, _, err := SaveDataset(n, dsp, false, true)
-	if err != nil {
-		t.Error(err.Error())
-	}
-
+	ref := addCitiesDataset(t, n)
 	return n, ref
 }
 
