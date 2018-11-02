@@ -229,6 +229,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
 	m.Handle("/publish/", s.middleware(dsh.PublishHandler))
+	m.Handle("/update/", s.middleware(dsh.UpdateHandler))
 
 	renderh := NewRenderHandlers(s.qriNode.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

@@ -77,6 +77,18 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases)
 
+	updateCases := []handlerMimeMultipartTestCase{
+		{"OPTIONS", "/", nil, nil},
+		{"GET", "/", nil, nil},
+		{"POST", "/update/me/cities", nil, map[string]string{
+			"secrets": "bad request",
+		}},
+		{"POST", "/update/me/cities", nil, map[string]string{
+			"secrets": `{"key":"value"}`,
+		}},
+	}
+	runMimeMultipartHandlerTestCases(t, "update", h.UpdateHandler, updateCases)
+
 	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combine
 	// `runHandlerZipPostTestCases` with `runHandlerTestCases`.
 	unpackCases := []handlerTestCase{
