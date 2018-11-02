@@ -30,7 +30,7 @@ func TestRequestLogDiff(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	// add a dataset to peer 5
+	// add a dataset to peer 4
 	ref, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err)
@@ -39,7 +39,7 @@ func TestRequestLogDiff(t *testing.T) {
 	// simulate IPFS connection (we're not on IPFS when running tests)
 	peers[3].Repo.Store().(*cafs.MapStore).AddConnection(peers[4].Repo.Store().(*cafs.MapStore))
 
-	// give that dataset to peer 4
+	// give that dataset to peer 3
 	if err := base.FetchDataset(peers[3].Repo, &ref, true, false); err != nil {
 		t.Fatalf("error fetching dataset: %s", err)
 	}
@@ -54,7 +54,7 @@ func TestRequestLogDiff(t *testing.T) {
 		tc.Input.PreviousPath = ""
 	}()
 
-	// add an update on peer 5
+	// add an update on peer 4
 	ref2, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err)

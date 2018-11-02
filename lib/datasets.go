@@ -198,7 +198,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	return nil
 }
 
-// UpdateParams defines paremeters for the Update command
+// UpdateParams defines parameters for the Update command
 type UpdateParams struct {
 	Ref        string
 	Title      string
@@ -349,7 +349,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	return err
 }
 
-// ValidateDatasetParams defines paremeters for dataset
+// ValidateDatasetParams defines parameters for dataset
 // data validation
 type ValidateDatasetParams struct {
 	Ref repo.DatasetRef

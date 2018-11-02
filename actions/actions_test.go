@@ -35,6 +35,7 @@ func testdataPath(path string) string {
 }
 
 // Convert from test nodes to non-test nodes.
+// copied from p2p/peers_test.go
 func asQriNodes(testPeers []p2ptest.TestablePeerNode) []*p2p.QriNode {
 	// Convert from test nodes to non-test nodes.
 	peers := make([]*p2p.QriNode, len(testPeers))

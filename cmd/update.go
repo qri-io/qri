@@ -17,7 +17,7 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 Update fast-forwards your dataset to the latest known version. If the dataset
 is not in your namespace (i.e. dataset name doesn't start with your peername), 
 update will ask the peer for any new versions and download them. Updating a peer
-dataset accepts no arguments other than the datsaet name and --dry-run flag.
+dataset accepts no arguments other than the dataset name and --dry-run flag.
 
 **For peer update to work, the peer must be online at the time. We know this is
 irritating, we're working on a solution.**
