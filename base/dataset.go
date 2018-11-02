@@ -214,8 +214,8 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 		if dsp.Meta == nil {
 			dsp.Meta = &dataset.Meta{}
 		}
-		if dsp.Meta.DownloadPath == "" {
-			dsp.Meta.DownloadPath = dsp.BodyPath
+		if dsp.Meta.DownloadURL == "" {
+			dsp.Meta.DownloadURL = dsp.BodyPath
 		}
 		// if we're adding from a dataset url, set a default accrual periodicity of once a week
 		// this'll set us up to re-check urls over time
