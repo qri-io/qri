@@ -1,6 +1,9 @@
 package actions
 
 import (
+	"bytes"
+	"io/ioutil"
+
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/p2p"
@@ -10,7 +13,12 @@ import (
 // ExecTransform executes a designated transformation
 func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, infile cafs.File, secrets map[string]string) (file cafs.File, err error) {
 	filepath := ds.Transform.ScriptPath
-	file, err = startf.ExecFile(ds, filepath, infile, startf.AddQriNodeOpt(node), func(o *startf.ExecOpts) {
+	scriptdata, err := ioutil.ReadFile(filepath)
+	if err != nil {
+		return nil, err
+	}
+	script := cafs.NewMemfileReader(filepath, bytes.NewReader(scriptdata))
+	file, err = startf.ExecFile(ds, script, infile, startf.AddQriNodeOpt(node), func(o *startf.ExecOpts) {
 		if secrets != nil {
 			// convert to map[string]interface{}, which the lower-level startf supports
 			// until we're sure map[string]string is going to work in the majority of use cases
