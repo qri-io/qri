@@ -776,6 +776,7 @@ func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 		Ref:        ref.String(),
 		Title:      r.FormValue("title"),
 		Message:    r.FormValue("message"),
+		DryRun:     r.FormValue("dry_run") == "true",
 		ReturnBody: false,
 	}
 
