@@ -27,15 +27,15 @@ type ProfileStore struct {
 }
 
 // NewProfileStore allocates a ProfileStore
-func NewProfileStore(bp basepath) ProfileStore {
-	return ProfileStore{
+func NewProfileStore(bp basepath) *ProfileStore {
+	return &ProfileStore{
 		basepath: bp,
 		flock:    flock.NewFlock(bp.filepath(FilePeers) + ".lock"),
 	}
 }
 
 // PutProfile adds a peer to the store
-func (r ProfileStore) PutProfile(p *profile.Profile) error {
+func (r *ProfileStore) PutProfile(p *profile.Profile) error {
 	log.Debugf("put profile: %s", p.ID.String())
 	if p.ID.String() == "" {
 		return fmt.Errorf("profile ID is required")
@@ -61,7 +61,7 @@ func (r ProfileStore) PutProfile(p *profile.Profile) error {
 }
 
 // PeerIDs gives the peer.IDs list for a given peername
-func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
+func (r *ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -86,7 +86,7 @@ func (r ProfileStore) PeerIDs(id profile.ID) ([]peer.ID, error) {
 }
 
 // List hands back the list of peers
-func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
+func (r *ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -110,7 +110,7 @@ func (r ProfileStore) List() (map[profile.ID]*profile.Profile, error) {
 }
 
 // PeernameID gives the profile.ID for a given peername
-func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
+func (r *ProfileStore) PeernameID(peername string) (profile.ID, error) {
 	r.Lock()
 	defer r.Unlock()
 
@@ -128,7 +128,7 @@ func (r ProfileStore) PeernameID(peername string) (profile.ID, error) {
 }
 
 // GetProfile fetches a profile from the store
-func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
+func (r *ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 	log.Debugf("get profile: %s", id.String())
 
 	r.Lock()
@@ -153,7 +153,7 @@ func (r ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 }
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
-func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
+func (r *ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 	log.Debugf("peerProfile: %s", id.Pretty())
 
 	r.Lock()
@@ -179,7 +179,7 @@ func (r ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 }
 
 // DeleteProfile removes a profile from the store
-func (r ProfileStore) DeleteProfile(id profile.ID) error {
+func (r *ProfileStore) DeleteProfile(id profile.ID) error {
 	r.Lock()
 	defer r.Unlock()
 
@@ -191,7 +191,7 @@ func (r ProfileStore) DeleteProfile(id profile.ID) error {
 	return r.saveFile(ps, FilePeers)
 }
 
-func (r ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error {
+func (r *ProfileStore) saveFile(ps map[string]*config.ProfilePod, f File) error {
 
 	data, err := json.Marshal(ps)
 	if err != nil {
