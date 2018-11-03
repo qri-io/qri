@@ -139,7 +139,7 @@ sarnia,550000,55.65,false
 					},
 				},
 			}, ""},*/
-		{nil, nil, "dataset is required"},
+		{nil, nil, "at least one of Dataset, DatasetPath is required"},
 		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
 		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
@@ -192,7 +192,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 
 	dsp := &dataset.DatasetPod{Peername: "me"}
 	res := repo.DatasetRef{}
-	err = req.Save(&SaveParams{Dataset: dsp, FilePath: "testdata/import.zip"}, &res)
+	err = req.Save(&SaveParams{Dataset: dsp, DatasetPath: "testdata/import.zip"}, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
