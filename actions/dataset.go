@@ -249,9 +249,17 @@ func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
 	}
 
-	// ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
+	// TODO - this is causing bad things in our tests
+	// log, err := base.DatasetLog(r, *ref, 10000, 0, false)
 	// if err != nil {
 	// 	return err
+	// }
+
+	// for _, ref := range log {
+	// 	time.Sleep(time.Millisecond * 50)
+	// 	if err = base.UnpinDataset(r, ref); err != nil {
+	// 		return err
+	// 	}
 	// }
 
 	if err = r.DeleteRef(*ref); err != nil {

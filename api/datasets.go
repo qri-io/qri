@@ -473,12 +473,10 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		cleanup, err := dsutil.FormFileDataset(r, dsp)
-		if err != nil {
+		if err := dsutil.FormFileDataset(r, dsp); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-		defer cleanup()
 	}
 
 	res := &repo.DatasetRef{}
