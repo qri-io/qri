@@ -12,11 +12,24 @@ func TestAbsPath(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	pathAbs, err := filepath.Abs("relative/path/data.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	httpAbs, err := filepath.Abs("http_got/relative/dataset.yaml")
+	if err != nil {
+		t.Fatal(err)
+	}
+
 	cases := []struct {
 		in, out, err string
 	}{
 		{"", "", ""},
 		{"http://example.com/zipfile.zip", "http://example.com/zipfile.zip", ""},
+		{"https://example.com/zipfile.zip", "https://example.com/zipfile.zip", ""},
+		{"relative/path/data.yaml", pathAbs, ""},
+		{"http_got/relative/dataset.yaml", httpAbs, ""},
 		{"/ipfs", "/ipfs", ""},
 		{tmp, tmp, ""},
 	}

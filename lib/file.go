@@ -13,11 +13,11 @@ import (
 	"github.com/qri-io/dataset/dsutil"
 )
 
-// AbsPath adjusts the provdide string to a path lib functions can work with
+// AbsPath adjusts the provided string to a path lib functions can work with
 // because paths for Qri can come from the local filesystem, an http url, or
 // the distributed web, Absolutizing is a little tricky
 //
-// If lib in put params call for a path, running it through AbsPath before
+// If lib in put params call for a path, running input through AbsPath before
 // calling a lib function should help reduce errors. calling AbsPath on empty
 // string has no effect
 func AbsPath(path *string) (err error) {
@@ -35,9 +35,6 @@ func AbsPath(path *string) (err error) {
 	}
 
 	// TODO - perform tilda (~) expansion
-	if _, err = os.Stat(p); os.IsNotExist(err) {
-		return fmt.Errorf(`open "%s": no such file or directory`, p)
-	}
 	if filepath.IsAbs(p) {
 		return
 	}
@@ -49,7 +46,7 @@ func pathKind(path string) string {
 	if path == "" {
 		return "none"
 	}
-	if strings.HasPrefix(path, "http") {
+	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 		return "http"
 	}
 	if strings.HasPrefix(path, "/ipfs") {

@@ -249,7 +249,9 @@ func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("given path does not equal most recent dataset path: cannot delete a specific save, can only delete entire dataset history. use `me/dataset_name` to delete entire dataset")
 	}
 
-	// TODO - this is causing bad things in our tests
+	// TODO - this is causing bad things in our tests. For some reason core repo explodes with nil
+	// references when this is on and go test ./... is run from $GOPATH/github.com/qri-io/qri
+	// let's upgrade IPFS to the latest version & try again
 	// log, err := base.DatasetLog(r, *ref, 10000, 0, false)
 	// if err != nil {
 	// 	return err
