@@ -78,7 +78,7 @@ type DatasetRef struct {
 	// Dataset is a pointer to the dataset being referenced
 	Dataset *dataset.DatasetPod `json:"dataset,omitempty"`
 	// Published indicates whether this reference is listed as an available dataset
-	Published bool `json:"published,omitempty"`
+	Published bool `json:"published"`
 }
 
 // DecodeDataset returns a dataset.Dataset from the stored CodingDataset field

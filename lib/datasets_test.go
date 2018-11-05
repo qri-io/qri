@@ -87,7 +87,7 @@ sarnia,550000,55.65,false
 		/* TODO: TestCases from old `new` command, fix these so they work after merge with `save`.
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "either dataBytes, bodyPath, or a transform is required to create a dataset"},
-		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "reading body file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "body file: open /bad/path: no such file or directory"},
 		{&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		{&dataset.DatasetPod{BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 		{&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
