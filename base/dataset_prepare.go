@@ -89,15 +89,8 @@ func PrepareDatasetNew(dsp *dataset.DatasetPod) (ds *dataset.Dataset, body cafs.
 			return
 		}
 
-		// NOTE - if we have a data file, this overrides any transformation,
-		// so we need to remove the transform to avoid having the data appear to be
-		// the result of a transform process
-		ds.Transform = nil
-
 	} else if err.Error() == "not found" {
 		err = nil
-	} else {
-		return
 	}
 
 	return

@@ -142,8 +142,8 @@ func TestDatasetPodBodyFile(t *testing.T) {
 		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
 		// local filepaths
-		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "reading body file: open nope.cbor: no such file or directory"},
-		{&dataset.DatasetPod{BodyPath: "nope.yaml"}, "", 0, "reading body file: open nope.yaml: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "body file: open nope.cbor: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "nope.yaml"}, "", 0, "body file: open nope.yaml: no such file or directory"},
 		{&dataset.DatasetPod{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
 		{&dataset.DatasetPod{BodyPath: "testdata/bad.yaml"}, "", 0, "converting yaml body to json: yaml: line 1: did not find expected '-' indicator"},
 		{&dataset.DatasetPod{BodyPath: "testdata/oh_hai.yaml"}, "oh_hai.json", 29, ""},

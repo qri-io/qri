@@ -87,7 +87,7 @@ sarnia,550000,55.65,false
 		/* TODO: TestCases from old `new` command, fix these so they work after merge with `save`.
 		{nil, nil, "dataset is required"},
 		{&dataset.DatasetPod{}, nil, "either dataBytes, bodyPath, or a transform is required to create a dataset"},
-		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "reading body file: open /bad/path: no such file or directory"},
+		{&dataset.DatasetPod{BodyPath: "/bad/path"}, nil, "body file: open /bad/path: no such file or directory"},
 		{&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		{&dataset.DatasetPod{BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 		{&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
@@ -139,7 +139,7 @@ sarnia,550000,55.65,false
 					},
 				},
 			}, ""},*/
-		{nil, nil, "dataset is required"},
+		{nil, nil, "at least one of Dataset, DatasetPath is required"},
 		{&dataset.DatasetPod{}, nil, "peername & name are required to update dataset"},
 		{&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		{&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
@@ -175,6 +175,33 @@ sarnia,550000,55.65,false
 				continue
 			}
 		}
+	}
+}
+
+func TestDatasetRequestsSaveZip(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	req := NewDatasetRequests(node, nil)
+
+	dsp := &dataset.DatasetPod{Peername: "me"}
+	res := repo.DatasetRef{}
+	err = req.Save(&SaveParams{Dataset: dsp, DatasetPath: "testdata/import.zip"}, &res)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	if res.Dataset.Commit.Title != "Test Title" {
+		t.Fatalf("Expected 'Test Title', got '%s'", res.Dataset.Commit.Title)
+	}
+	if res.Dataset.Meta.Title != "Test Repo" {
+		t.Fatalf("Expected 'Test Repo', got '%s'", res.Dataset.Meta.Title)
 	}
 }
 

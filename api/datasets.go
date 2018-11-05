@@ -1,8 +1,6 @@
 package api
 
 import (
-	"archive/zip"
-	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -391,120 +389,6 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-func formFileDataset(dsp *dataset.DatasetPod, r *http.Request) (cleanup func(), err error) {
-	var rmFiles []*os.File
-	cleanup = func() {
-		// TODO - this needs to be removed ASAP in favor of constructing cafs.Files from form-file readers
-		// There's danger this code could delete stuff not in temp directory if we're bad at our jobs.
-		for _, f := range rmFiles {
-			// TODO - log error?
-			os.Remove(f.Name())
-		}
-	}
-
-	datafile, dataHeader, err := r.FormFile("file")
-	if err == http.ErrMissingFile {
-		err = nil
-	}
-	if err != nil {
-		err = fmt.Errorf("error opening dataset file: %s", err)
-		return
-	}
-	if datafile != nil {
-		switch strings.ToLower(filepath.Ext(dataHeader.Filename)) {
-		case ".yaml", ".yml":
-			var data []byte
-			data, err = ioutil.ReadAll(datafile)
-			if err != nil {
-				err = fmt.Errorf("error reading dataset file: %s", err)
-				return
-			}
-			if err = dsutil.UnmarshalYAMLDatasetPod(data, dsp); err != nil {
-				err = fmt.Errorf("error unmarshaling yaml file: %s", err)
-				return
-			}
-		case ".json":
-			if err = json.NewDecoder(datafile).Decode(dsp); err != nil {
-				err = fmt.Errorf("error decoding json file: %s", err)
-				return
-			}
-		}
-	}
-
-	tfFile, _, err := r.FormFile("transform")
-	if err == http.ErrMissingFile {
-		err = nil
-	}
-	if err != nil {
-		err = fmt.Errorf("error opening transform file: %s", err)
-		return
-	}
-	if tfFile != nil {
-		var f *os.File
-		// TODO - this assumes a starlark transform file
-		if f, err = ioutil.TempFile("", "transform"); err != nil {
-			return
-		}
-		rmFiles = append(rmFiles, f)
-		io.Copy(f, tfFile)
-		if dsp.Transform == nil {
-			dsp.Transform = &dataset.TransformPod{}
-		}
-		dsp.Transform.Syntax = "starlark"
-		dsp.Transform.ScriptPath = f.Name()
-	}
-
-	vizFile, _, err := r.FormFile("viz")
-	if err == http.ErrMissingFile {
-		err = nil
-	}
-	if err != nil {
-		err = fmt.Errorf("error opening viz file: %s", err)
-		return
-	}
-	if vizFile != nil {
-		var f *os.File
-		// TODO - this assumes an html viz file
-		if f, err = ioutil.TempFile("", "viz"); err != nil {
-			return
-		}
-		rmFiles = append(rmFiles, f)
-		io.Copy(f, vizFile)
-		if dsp.Viz == nil {
-			dsp.Viz = &dataset.Viz{}
-		}
-		dsp.Viz.Format = "html"
-		dsp.Viz.ScriptPath = f.Name()
-	}
-
-	dsp.Peername = r.FormValue("peername")
-	dsp.Name = r.FormValue("name")
-	dsp.BodyPath = r.FormValue("body_path")
-
-	bodyfile, bodyHeader, err := r.FormFile("body")
-	if err == http.ErrMissingFile {
-		err = nil
-	}
-	if err != nil {
-		err = fmt.Errorf("error opening body file: %s", err)
-		return
-	}
-	if bodyfile != nil {
-		var f *os.File
-		path := filepath.Join(os.TempDir(), bodyHeader.Filename)
-		if f, err = os.Create(path); err != nil {
-			err = fmt.Errorf("error writing body file: %s", err.Error())
-			return
-		}
-		rmFiles = append(rmFiles, f)
-		io.Copy(f, bodyfile)
-		f.Close()
-		dsp.BodyPath = path
-	}
-
-	return
-}
-
 // when datasets are created with save/new dataset bodies they can be run with "return body",
 // which populates res.Dataset.Body with a cafs.File of raw data
 // addBodyFile sets the dataset body, converting to JSON for a response the API can understand
@@ -589,12 +473,10 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		cleanup, err := formFileDataset(dsp, r)
-		if err != nil {
+		if err := dsutil.FormFileDataset(r, dsp); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-		defer cleanup()
 	}
 
 	res := &repo.DatasetRef{}
@@ -797,25 +679,10 @@ func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {
-	zr, err := zip.NewReader(bytes.NewReader(postData), int64(len(postData)))
+	contents, err := dsutil.UnzipGetContents(postData)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
-	}
-	// Create a map from filenames in the zip to their json encoded contents.
-	contents := make(map[string]string)
-	for _, f := range zr.File {
-		rc, err := f.Open()
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		data, err := ioutil.ReadAll(rc)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-		contents[f.Name] = string(data)
 	}
 	data, err := json.Marshal(contents)
 	if err != nil {

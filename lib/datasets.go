@@ -1,18 +1,12 @@
 package lib
 
 import (
-	"encoding/json"
 	"fmt"
 	"io"
-	"io/ioutil"
 	"net/rpc"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/actions"
@@ -89,14 +83,22 @@ func (r *DatasetRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error 
 	return nil
 }
 
-// SaveParams encapsulates arguments to Init & Save
+// SaveParams encapsulates arguments to Save
 type SaveParams struct {
-	Dataset    *dataset.DatasetPod // dataset to create
-	FilePath   string              // absolute path to dataset file if provided, or empty string
-	Private    bool                // option to make dataset private. private data is not currently implimented, see https://github.com/qri-io/qri/issues/291 for updates
-	Publish    bool
-	DryRun     bool
-	ReturnBody bool // if true, res.Dataset.Body will be a cafs.file of the body
+	// dataset to create if both Dataset and DatasetPath are provided
+	// dataset values will override any values in the document at DatasetPath
+	Dataset *dataset.DatasetPod
+	// absolute path or URL to a dataset file to load dataset from
+	DatasetPath string
+	// option to make dataset private. private data is not currently implimented,
+	// see https://github.com/qri-io/qri/issues/291 for updates
+	Private bool
+	// if true, set saved dataset to published
+	Publish bool
+	// run without saving, returning results
+	DryRun bool
+	// if true, res.Dataset.Body will be a cafs.file of the body
+	ReturnBody bool
 }
 
 // Save adds a history entry, updating a dataset
@@ -121,62 +123,22 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
-	if p.Dataset == nil {
-		return fmt.Errorf("dataset is required")
+
+	ds := p.Dataset
+	if ds == nil && p.DatasetPath == "" {
+		return fmt.Errorf("at least one of Dataset, DatasetPath is required")
 	}
-	if p.FilePath != "" {
-		loadDs := &dataset.DatasetPod{}
-		f, err := os.Open(p.FilePath)
+
+	if p.DatasetPath != "" {
+		dsf, err := ReadDatasetFile(p.DatasetPath)
 		if err != nil {
 			return err
 		}
-
-		fileExt := strings.ToLower(filepath.Ext(p.FilePath))
-		switch fileExt {
-		case ".yaml", ".yml":
-			data, err := ioutil.ReadAll(f)
-			if err != nil {
-				return err
-			}
-			if err = dsutil.UnmarshalYAMLDatasetPod(data, loadDs); err != nil {
-				return err
-			}
-		case ".json":
-			if err = json.NewDecoder(f).Decode(loadDs); err != nil {
-				return err
-			}
-		default:
-			return fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
-		}
-
-		// Copy fields from p.Dataset, they were assigned with user-specified options.
-		// NOTE: This is the `Assign` pattern.
-		if p.Dataset.Name != "" {
-			loadDs.Name = p.Dataset.Name
-		}
-		if p.Dataset.Peername != "" {
-			loadDs.Peername = p.Dataset.Peername
-		}
-		if loadDs.Commit == nil {
-			loadDs.Commit = &dataset.CommitPod{}
-		}
-		if p.Dataset.Commit.Message != "" {
-			loadDs.Commit.Message = p.Dataset.Commit.Message
-		}
-		if p.Dataset.Commit.Title != "" {
-			loadDs.Commit.Title = p.Dataset.Commit.Title
-		}
-		if p.Dataset.BodyPath != "" {
-			loadDs.BodyPath = p.Dataset.BodyPath
-		}
-		if p.Dataset.Transform != nil {
-			loadDs.Transform = p.Dataset.Transform
-		}
-		// Replace the dataset with the merged result.
-		p.Dataset = loadDs
+		dsf.Assign(ds)
+		ds = dsf
 	}
 
-	ref, body, err := actions.SaveDataset(r.node, p.Dataset, p.DryRun, true)
+	ref, body, err := actions.SaveDataset(r.node, ds, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

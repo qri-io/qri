@@ -267,7 +267,7 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 		if ext == ".yaml" || ext == ".yml" {
 			yamlBody, err := ioutil.ReadFile(dsp.BodyPath)
 			if err != nil {
-				return nil, fmt.Errorf("reading body file: %s", err.Error())
+				return nil, fmt.Errorf("body file: %s", err.Error())
 			}
 			jsonBody, err := yaml.YAMLToJSON(yamlBody)
 			if err != nil {
@@ -280,7 +280,7 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 
 		file, err := os.Open(dsp.BodyPath)
 		if err != nil {
-			return nil, fmt.Errorf("reading body file: %s", err.Error())
+			return nil, fmt.Errorf("body file: %s", err.Error())
 		}
 
 		return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil

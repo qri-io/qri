@@ -2,8 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
@@ -95,6 +93,17 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 		o.Ref = args[0]
 	}
 
+	// Make all paths absolute. Especially important if we are running
+	// `qri connect` in a different terminal, and that instance is in a different directory;
+	// that instance won't correctly find the body file we want to load if it's not absolute.
+	if err := lib.AbsPath(&o.FilePath); err != nil {
+		return err
+	}
+
+	if err := lib.AbsPath(&o.BodyPath); err != nil {
+		return fmt.Errorf("body file: %s", err)
+	}
+
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
@@ -114,39 +123,17 @@ func (o *SaveOptions) Run() (err error) {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
-	dsp := &dataset.DatasetPod{}
-	dsp.Name = ref.Name
-	dsp.Peername = ref.Peername
-	dsp.Commit = &dataset.CommitPod{}
-	if o.Title != "" {
-		dsp.Commit.Title = o.Title
+	dsp := &dataset.DatasetPod{
+		Name:     ref.Name,
+		Peername: ref.Peername,
+		BodyPath: o.BodyPath,
+		Commit: &dataset.CommitPod{
+			Title:   o.Title,
+			Message: o.Message,
+		},
 	}
-	if o.Message != "" {
-		dsp.Commit.Message = o.Message
-	}
-	datasetFilePath := ""
-	if o.FilePath != "" {
-		if _, err := os.Stat(o.FilePath); os.IsNotExist(err) {
-			return fmt.Errorf("open \"%s\": no such file or directory", o.FilePath)
-		}
-		datasetFilePath, err = filepath.Abs(o.FilePath)
-		if err != nil {
-			return err
-		}
-	}
-	if o.BodyPath != "" {
-		if _, err := os.Stat(o.BodyPath); os.IsNotExist(err) {
-			return fmt.Errorf("body file \"%s\": no such file or directory", o.BodyPath)
-		}
-		// Get the absolute path to the body file. Especially important if we are running
-		// `qri connect` in a different terminal, and that instance is in a different directory;
-		// that instance won't correctly find the body file we want to load if it's not absolute.
-		dsp.BodyPath, err = filepath.Abs(o.BodyPath)
-		if err != nil {
-			return err
-		}
-	}
-	if dsp.Transform != nil && o.Secrets != nil {
+
+	if o.Secrets != nil {
 		if !confirm(o.Out, o.In, `
 Warning: You are providing secrets to a dataset transformation.
 Never provide secrets to a transformation you do not trust.
@@ -154,17 +141,18 @@ continue?`, true) {
 			return
 		}
 
+		dsp.Transform = &dataset.TransformPod{}
 		if dsp.Transform.Secrets, err = parseSecrets(o.Secrets...); err != nil {
 			return err
 		}
 	}
 
 	p := &lib.SaveParams{
-		Dataset:  dsp,
-		Private:  false,
-		Publish:  o.Publish,
-		DryRun:   o.DryRun,
-		FilePath: datasetFilePath,
+		Dataset:     dsp,
+		DatasetPath: o.FilePath,
+		Private:     false,
+		Publish:     o.Publish,
+		DryRun:      o.DryRun,
 	}
 
 	res := &repo.DatasetRef{}
