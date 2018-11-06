@@ -45,7 +45,6 @@ func EnvPathFactory() (string, string) {
 	home, err := homedir.Dir()
 	if err != nil {
 		panic(err)
-		return "", ""
 	}
 
 	qriRepoPath := os.Getenv("QRI_PATH")

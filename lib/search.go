@@ -57,7 +57,11 @@ func (sr *SearchRequests) Search(p *SearchParams, results *[]SearchResult) error
 	if reg == nil {
 		return repo.ErrNoRegistry
 	}
-	params := &regclient.SearchParams{p.QueryString, nil, p.Limit, p.Offset}
+	params := &regclient.SearchParams{
+		QueryString: p.QueryString,
+		Limit:       p.Limit,
+		Offset:      p.Offset,
+	}
 
 	regResults, err := reg.Search(params)
 	if err != nil {

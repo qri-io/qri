@@ -35,7 +35,7 @@ type Repo struct {
 	selectedRefs []repo.DatasetRef
 	graph        map[string]*dsgraph.Node
 
-	profiles ProfileStore
+	profiles *ProfileStore
 	index    search.Index
 
 	registry *regclient.Client
