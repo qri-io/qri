@@ -51,6 +51,7 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 		}
 	}
 
+	mutateCheck := mutatedComponentsFunc(dsp)
 	userSet.Assign(ds)
 
 	if ds.Transform != nil {
@@ -66,7 +67,7 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 		script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
 
 		node.LocalStreams.Print("🤖 executing transform\n")
-		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets)
+		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, mutateCheck)
 		if err != nil {
 			return
 		}
@@ -157,7 +158,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res
 	ds.Transform.ScriptPath = script.FileName()
 
 	node.LocalStreams.Print("🤖 executing transform\n")
-	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets)
+	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, nil)
 	if err != nil {
 		log.Error(err)
 		return
