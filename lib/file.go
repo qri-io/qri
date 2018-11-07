@@ -125,7 +125,7 @@ func ReadDatasetFile(path string) (dsp *dataset.DatasetPod, err error) {
 // absDatasetPaths converts any relative filepath references in a DatasetPod to
 // their absolute counterpart
 func absDatasetPaths(path string, dsp *dataset.DatasetPod) {
-	base := filepath.Base(path)
+	base := filepath.Dir(path)
 	if dsp.BodyPath != "" && pathKind(dsp.BodyPath) == "file" && !filepath.IsAbs(dsp.BodyPath) {
 		dsp.BodyPath = filepath.Join(base, dsp.BodyPath)
 	}

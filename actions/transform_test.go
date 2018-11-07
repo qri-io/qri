@@ -41,7 +41,7 @@ def transform(ds,ctx):
 		},
 	}
 
-	if _, err := ExecTransform(node, ds, script, nil, nil); err != nil {
+	if _, err := ExecTransform(node, ds, script, nil, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }
