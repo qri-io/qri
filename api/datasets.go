@@ -481,15 +481,26 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{
-		Dataset: dsp,
-		Private: r.FormValue("private") == "true",
+		Dataset:    dsp,
+		Private:    r.FormValue("private") == "true",
+		DryRun:     r.FormValue("dry_run") == "true",
+		ReturnBody: r.FormValue("return_body") == "true",
 	}
+
 	if err := h.Save(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
 	res.Dataset.BodyPath = filepath.Base(res.Dataset.BodyPath)
+
+	if p.ReturnBody {
+		if err := addBodyFile(res); err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+	}
+
 	util.WriteResponse(w, res)
 }
 

@@ -153,7 +153,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.ReturnBody {
-		res.Dataset.Body = body
+		if ref.Dataset != nil {
+			ref.Dataset.Body = body
+		}
 	}
 
 	*res = ref
