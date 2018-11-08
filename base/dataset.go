@@ -96,12 +96,15 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		if err != nil {
 			return
 		}
+		// TODO - to compensate for the above issue, using this hack to get around that
+		// dsfs.CreateDataset will attempt to load the previous dataset if there is a
+		// PreviousPath set in the dataset ds
+		ds.PreviousPath = ""
 	}
 
 	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {
 		return
 	}
-
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
 		prev := repo.DatasetRef{
 			ProfileID: pro.ID,
@@ -114,22 +117,18 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		// reference locally
 		_ = r.DeleteRef(prev)
 	}
-
 	ref = repo.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
 		Name:      name,
 		Path:      path.String(),
 	}
-
 	if err = r.PutRef(ref); err != nil {
 		return
 	}
-
 	if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
 		return
 	}
-
 	_, storeIsPinner := r.Store().(cafs.Pinner)
 	if pin && storeIsPinner {
 		r.LogEvent(repo.ETDsPinned, ref)
@@ -138,11 +137,9 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 	if err = ReadDataset(r, &ref); err != nil {
 		return
 	}
-
 	if resBody, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
 		fmt.Println("error getting from store:", err.Error())
 	}
-
 	return
 }
 
