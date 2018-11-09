@@ -1,0 +1,23 @@
+{
+  "qri": "ds:0",
+  "commit": {
+    "qri": "cm:0",
+    "timestamp": "2017-01-01T01:00:00.000Z",
+    "title": ""
+  },
+  "meta": {
+    "qri": "md:0",
+    "title": "example transform"
+  },
+  "transform": {},
+  "structure": {
+    "qri": "st:0",
+    "format": "json",
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      }
+    }
+  }
+}

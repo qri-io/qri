@@ -65,10 +65,10 @@ func TestDatasetRequestsSave(t *testing.T) {
 `
 		w.Write([]byte(res))
 	}))
-	// TODO: Needed for TestCases for `new`, see below.
-	/*badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+
+	badDataS := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`\\\{"json":"data"}`))
-	}))*/
+	}))
 
 	req := NewDatasetRequests(node, nil)
 
@@ -90,7 +90,6 @@ func TestDatasetRequestsSave(t *testing.T) {
 		// 	BodyPath:  jobsBodyPath,
 		// }, nil, "invalid dataset: structure: format is required"},
 		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{}}, nil, ""},
-		// {&dataset.DatasetPod{BodyPath: s.URL + "/data.json"}, nil, ""},
 
 		// {nil, nil, "at least one of Dataset, DatasetPath is required"},
 		// TODO - restore
@@ -102,7 +101,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		// {&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 		// {&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		// {&dataset.DatasetPod{BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset schema: invalid json data"},
+		{&dataset.DatasetPod{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
 		{&dataset.DatasetPod{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
 
 		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
@@ -161,6 +160,36 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 	if res.Dataset.Meta.Title != "Test Repo" {
 		t.Fatalf("Expected 'Test Repo', got '%s'", res.Dataset.Meta.Title)
+	}
+}
+
+func TestDatasetRequestsUpdate(t *testing.T) {
+	node := newTestQriNode(t)
+
+	r := NewDatasetRequests(node, nil)
+	res := &repo.DatasetRef{}
+	if err := r.Update(&UpdateParams{Ref: "me/bad_dataset"}, res); err == nil {
+		t.Error("expected update to nonexistent dataset to error")
+	}
+
+	ref := addNowTransformDataset(t, node)
+	res = &repo.DatasetRef{}
+	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), ReturnBody: true}, res); err != nil {
+		t.Errorf("update error: %s", err)
+	}
+
+	// run a manual save to lose the transform
+	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+		Peername: res.Peername,
+		Name:     res.Name,
+		Meta:     &dataset.Meta{Title: "an updated title"},
+	}}, res)
+	if err != nil {
+		t.Error("save failed")
+	}
+
+	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err == nil {
+		t.Error("expected updated without transform to error")
 	}
 }
 

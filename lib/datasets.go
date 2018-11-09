@@ -216,7 +216,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		return err
 	}
 	if p.ReturnBody {
-		res.Dataset.Body = body
+		result.Dataset.Body = body
 	}
 	*res = result
 
