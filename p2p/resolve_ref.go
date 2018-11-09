@@ -18,7 +18,7 @@ func (n *QriNode) ResolveDatasetRef(ref *repo.DatasetRef) (err error) {
 		return ErrNotConnected
 	}
 
-	pids := n.ClosestConnectedPeers(ref.ProfileID, 15)
+	pids := n.ClosestConnectedQriPeers(ref.ProfileID, 15)
 	if len(pids) == 0 {
 		return fmt.Errorf("no connected peers")
 	}

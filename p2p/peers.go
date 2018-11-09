@@ -57,31 +57,38 @@ func (n *QriNode) ConnectedQriPeerIDs() []peer.ID {
 	return peers
 }
 
-// ClosestConnectedPeers checks if a peer is connected, and if so adds it to the top
+// ClosestConnectedQriPeers checks if a peer is connected, and if so adds it to the top
 // of a slice cap(max) of peers to try to connect to
 // TODO - In the future we'll use a few tricks to improve on just iterating the list
 // at a bare minimum we should grab a randomized set of peers
-func (n *QriNode) ClosestConnectedPeers(id profile.ID, max int) (pid []peer.ID) {
+func (n *QriNode) ClosestConnectedQriPeers(profileID profile.ID, max int) (pid []peer.ID) {
 	added := 0
 	if !n.Online {
 		return []peer.ID{}
 	}
 
-	if ids, err := n.Repo.Profiles().PeerIDs(id); err == nil {
-		for _, id := range ids {
-			if len(n.host.Network().ConnsToPeer(id)) > 0 {
+	if peerIDs, err := n.Repo.Profiles().PeerIDs(profileID); err == nil {
+		for _, peerID := range peerIDs {
+			if len(n.host.Network().ConnsToPeer(peerID)) > 0 {
 				added++
-				pid = append(pid, id)
+				pid = append(pid, peerID)
 			}
 		}
 	}
 
 	if len(pid) == 0 {
 		for _, conn := range n.host.Network().Conns() {
-			pid = append(pid, conn.RemotePeer())
-			added++
-			if added == max {
-				break
+			peerID := conn.RemotePeer()
+			protocols, err := n.host.Peerstore().SupportsProtocols(peerID, string(QriProtocolID))
+			if err != nil {
+				continue
+			}
+			if len(protocols) != 0 {
+				pid = append(pid, peerID)
+				added++
+				if added == max {
+					break
+				}
 			}
 		}
 	}

@@ -33,7 +33,7 @@ type DatasetLogResponse struct {
 func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]repo.DatasetRef, error) {
 
 	// get a list of peers to whom we will send the request
-	pids := n.ClosestConnectedPeers(ref.ProfileID, NumPeersToContact)
+	pids := n.ClosestConnectedQriPeers(ref.ProfileID, NumPeersToContact)
 	if len(pids) == 0 {
 		return nil, fmt.Errorf("no connected peers")
 	}

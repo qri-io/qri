@@ -33,7 +33,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 		}
 	}
 
-	pids := n.ClosestConnectedPeers(ref.ProfileID, 15)
+	pids := n.ClosestConnectedQriPeers(ref.ProfileID, 15)
 	if len(pids) == 0 {
 		// TODO - start checking peerstore peers?
 		// something else should probably be trying to establish
