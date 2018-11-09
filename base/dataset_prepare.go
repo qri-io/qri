@@ -35,7 +35,6 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev *dataset.Datas
 		return
 	}
 	prevPath = lookup.Path
-	prev.PreviousPath = lookup.Path
 	prev.Commit = nil
 	prev.Transform = nil
 	if prev.BodyPath != "" {

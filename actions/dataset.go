@@ -17,9 +17,9 @@ import (
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
-		ds                       *dataset.Dataset
+		prev                     *dataset.Dataset
 		prevPath                 string
 		bodyFile, changeBodyFile cafs.File
 		secrets                  map[string]string
@@ -29,7 +29,7 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 	)
 
 	// set ds to dataset head, or empty dataset if no history
-	ds, bodyFile, prevPath, err = base.PrepareDatasetSave(r, dsp.Peername, dsp.Name)
+	prev, bodyFile, prevPath, err = base.PrepareDatasetSave(r, changesPod.Peername, changesPod.Name)
 	if err != nil {
 		return
 	}
@@ -47,15 +47,17 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 		}
 	}
 
-	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), dsp); err != nil {
+	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), changesPod); err != nil {
 		return
 	}
-	if err = changes.Decode(dsp); err != nil {
+	if err = changes.Decode(changesPod); err != nil {
 		return
 	}
 
 	if changes.Transform != nil {
-		mutateCheck := mutatedComponentsFunc(dsp)
+		// create a check func from a record of all the parts that the datasetPod is changing,
+		// the startf package will use this function to ensure the same components aren't modified
+		mutateCheck := mutatedComponentsFunc(changesPod)
 		if changes.Transform.Script == nil {
 			if strings.HasPrefix(changes.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(changes.Transform.ScriptPath, "/map") || strings.HasPrefix(changes.Transform.ScriptPath, "/cafs") {
 				var f cafs.File
@@ -72,29 +74,30 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 				}
 				changes.Transform.Script = f
 			}
-
 		}
 		// TODO - consider making this a standard method on dataset.Transform
 		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
 
-		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, mutateCheck)
+		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, mutateCheck)
 		if err != nil {
 			return
 		}
 		node.LocalStreams.Print("✅ transform complete\n")
 	}
 
-	ds.Assign(changes)
-	clearPaths(ds)
+	// apply changes to the previous path, set changes to the result
+	prev.Assign(changes)
+	changes = prev
+	clearPaths(changes)
 
 	if changeBodyFile != nil {
-		ds.BodyPath = ""
+		changes.BodyPath = ""
 		bodyFile = changeBodyFile
 	}
 
 	// let's make history, if it exists:
-	ds.PreviousPath = prevPath
-	return base.CreateDataset(r, node.LocalStreams, dsp.Name, ds, bodyFile, dryRun, pin)
+	changes.PreviousPath = prevPath
+	return base.CreateDataset(r, node.LocalStreams, changesPod.Name, changes, bodyFile, dryRun, pin)
 }
 
 // for now it's very important we remove any path references before saving

@@ -209,6 +209,11 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 		return cafs.NewMemfileBytes(fmt.Sprintf("body.%s", dsp.Structure.Format), dsp.BodyBytes), nil
 	}
 
+	// all other methods are based on path, bail if we don't have one
+	if dsp.BodyPath == "" {
+		return nil, nil
+	}
+
 	loweredPath := strings.ToLower(dsp.BodyPath)
 
 	// if opening protocol is http/s, we're dealing with a web request
@@ -225,32 +230,32 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 		}
 
 		return cafs.NewMemfileReader(filename, res.Body), nil
-	} else if strings.HasPrefix(dsp.BodyPath, "/ipfs") || strings.HasPrefix(dsp.BodyPath, "/cafs") || strings.HasPrefix(dsp.BodyPath, "/map") {
+	}
+
+	if strings.HasPrefix(dsp.BodyPath, "/ipfs") || strings.HasPrefix(dsp.BodyPath, "/cafs") || strings.HasPrefix(dsp.BodyPath, "/map") {
 		return store.Get(datastore.NewKey(dsp.BodyPath))
-	} else if dsp.BodyPath != "" {
-		// convert yaml input to json as a hack to support yaml input for now
-		ext := strings.ToLower(filepath.Ext(dsp.BodyPath))
-		if ext == ".yaml" || ext == ".yml" {
-			yamlBody, err := ioutil.ReadFile(dsp.BodyPath)
-			if err != nil {
-				return nil, fmt.Errorf("body file: %s", err.Error())
-			}
-			jsonBody, err := yaml.YAMLToJSON(yamlBody)
-			if err != nil {
-				return nil, fmt.Errorf("converting yaml body to json: %s", err.Error())
-			}
+	}
 
-			filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(dsp.BodyPath), ext))
-			return cafs.NewMemfileBytes(filename, jsonBody), nil
-		}
-
-		file, err := os.Open(dsp.BodyPath)
+	// convert yaml input to json as a hack to support yaml input for now
+	ext := strings.ToLower(filepath.Ext(dsp.BodyPath))
+	if ext == ".yaml" || ext == ".yml" {
+		yamlBody, err := ioutil.ReadFile(dsp.BodyPath)
 		if err != nil {
 			return nil, fmt.Errorf("body file: %s", err.Error())
 		}
+		jsonBody, err := yaml.YAMLToJSON(yamlBody)
+		if err != nil {
+			return nil, fmt.Errorf("converting yaml body to json: %s", err.Error())
+		}
 
-		return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil
+		filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(dsp.BodyPath), ext))
+		return cafs.NewMemfileBytes(filename, jsonBody), nil
 	}
 
-	return nil, nil
+	file, err := os.Open(dsp.BodyPath)
+	if err != nil {
+		return nil, fmt.Errorf("body file: %s", err.Error())
+	}
+
+	return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil
 }

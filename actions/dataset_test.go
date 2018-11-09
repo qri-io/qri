@@ -152,13 +152,6 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	tfScript := `def transform(ds,ctx):
-	bd = ds.get_body()
-	print("body:", bd)
-	bd.append("hey")
-	print("appended:", bd)
-	ds.set_body(bd)`
-
 	ds = &dataset.DatasetPod{
 		Peername: ref.Peername,
 		Name:     ref.Name,
@@ -167,8 +160,11 @@ func TestSaveDataset(t *testing.T) {
 			Message: "adding an append-only transform script",
 		},
 		Transform: &dataset.TransformPod{
-			Syntax:      "starlark",
-			ScriptBytes: []byte(tfScript),
+			Syntax: "starlark",
+			ScriptBytes: []byte(`def transform(ds,ctx):
+  bd = ds.get_body()
+  bd.append("hey")
+  ds.set_body(bd)`),
 		},
 	}
 	ref, _, err = SaveDataset(n, ds, false, true)
