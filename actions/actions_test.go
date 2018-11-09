@@ -30,6 +30,20 @@ var (
 	}
 )
 
+func init() {
+	data, err := base64.StdEncoding.DecodeString(string(testPk))
+	if err != nil {
+		panic(err)
+	}
+	testPk = data
+
+	privKey, err = crypto.UnmarshalPrivateKey(testPk)
+	if err != nil {
+		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
+	}
+	testPeerProfile.PrivKey = privKey
+}
+
 func testdataPath(path string) string {
 	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
 }
@@ -54,20 +68,6 @@ func connectMapStores(peers []*p2p.QriNode) {
 			m0.AddConnection(m1)
 		}
 	}
-}
-
-func init() {
-	data, err := base64.StdEncoding.DecodeString(string(testPk))
-	if err != nil {
-		panic(err)
-	}
-	testPk = data
-
-	privKey, err = crypto.UnmarshalPrivateKey(testPk)
-	if err != nil {
-		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
-	}
-	testPeerProfile.PrivKey = privKey
 }
 
 func newTestNode(t *testing.T) *p2p.QriNode {

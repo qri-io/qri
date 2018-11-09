@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -12,70 +13,109 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
-		ds       *dataset.Dataset
-		bodyFile cafs.File
-		secrets  map[string]string
-		// NOTE - struct fields need to be instantiated to make assign set to
-		// new pointer values
-		userSet = &dataset.Dataset{
-			Commit:    &dataset.Commit{},
-			Meta:      &dataset.Meta{},
-			Structure: &dataset.Structure{},
-			Transform: &dataset.Transform{},
-			Viz:       &dataset.Viz{},
-		}
+		prev                     *dataset.Dataset
+		prevPath                 string
+		bodyFile, changeBodyFile cafs.File
+		secrets                  map[string]string
+		pro                      *profile.Profile
+		changes                  = &dataset.Dataset{}
+		r                        = node.Repo
 	)
+
+	// set ds to dataset head, or empty dataset if no history
+	prev, bodyFile, prevPath, err = base.PrepareDatasetSave(r, changesPod.Peername, changesPod.Name)
+	if err != nil {
+		return
+	}
 
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-	}
-
-	// Determine if the save is creating a new dataset or updating an existing dataset by
-	// seeing if the name can canonicalize to a repo that we know about
-	lookup := &repo.DatasetRef{Name: dsp.Name, Peername: dsp.Peername}
-	err = repo.CanonicalizeDatasetRef(node.Repo, lookup)
-	if err == repo.ErrNotFound {
-		ds, bodyFile, secrets, err = base.PrepareDatasetNew(dsp)
+		pro, err = r.Profile()
 		if err != nil {
 			return
 		}
-	} else {
-		ds, bodyFile, secrets, err = base.PrepareDatasetSave(node.Repo, dsp)
+		// dry-runs store to an in-memory repo
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
 		}
 	}
 
-	mutateCheck := mutatedComponentsFunc(dsp)
-	userSet.Assign(ds)
+	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), changesPod); err != nil {
+		return
+	}
+	if err = changes.Decode(changesPod); err != nil {
+		return
+	}
 
-	if ds.Transform != nil {
-		if ds.Transform.Script == nil {
-			var f *os.File
-			f, err = os.Open(ds.Transform.ScriptPath)
-			if err != nil {
-				return
+	if changes.Transform != nil {
+		// create a check func from a record of all the parts that the datasetPod is changing,
+		// the startf package will use this function to ensure the same components aren't modified
+		mutateCheck := mutatedComponentsFunc(changesPod)
+		if changes.Transform.Script == nil {
+			if strings.HasPrefix(changes.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(changes.Transform.ScriptPath, "/map") || strings.HasPrefix(changes.Transform.ScriptPath, "/cafs") {
+				var f cafs.File
+				f, err = node.Repo.Store().Get(datastore.NewKey(changes.Transform.ScriptPath))
+				if err != nil {
+					return
+				}
+				changes.Transform.Script = f
+			} else {
+				var f *os.File
+				f, err = os.Open(changes.Transform.ScriptPath)
+				if err != nil {
+					return
+				}
+				changes.Transform.Script = f
 			}
-			ds.Transform.Script = f
 		}
 		// TODO - consider making this a standard method on dataset.Transform
-		script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
+		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
 
-		node.LocalStreams.Print("🤖 executing transform\n")
-		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, mutateCheck)
+		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, mutateCheck)
 		if err != nil {
 			return
 		}
 		node.LocalStreams.Print("✅ transform complete\n")
-		ds.Assign(userSet)
 	}
 
-	return base.CreateDataset(node.Repo, node.LocalStreams, dsp.Name, ds, bodyFile, dryRun, pin)
+	// apply changes to the previous path, set changes to the result
+	prev.Assign(changes)
+	changes = prev
+	clearPaths(changes)
+
+	if changeBodyFile != nil {
+		changes.BodyPath = ""
+		bodyFile = changeBodyFile
+	}
+
+	// let's make history, if it exists:
+	changes.PreviousPath = prevPath
+	return base.CreateDataset(r, node.LocalStreams, changesPod.Name, changes, bodyFile, dryRun, pin)
+}
+
+// for now it's very important we remove any path references before saving
+// we should remove this in the long run, but not without extensive tests in
+// dsfs, and dsdiff packages, both of which are very sensitive to paths being present
+func clearPaths(ds *dataset.Dataset) {
+	if ds.Meta != nil {
+		ds.Meta.SetPath("")
+	}
+	if ds.Structure != nil {
+		ds.Structure.SetPath("")
+	}
+	if ds.Viz != nil {
+		ds.Viz.SetPath("")
+	}
+	if ds.Transform != nil {
+		ds.Transform.SetPath("")
+	}
 }
 
 // UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is

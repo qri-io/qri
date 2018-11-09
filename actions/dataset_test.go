@@ -133,6 +133,88 @@ func TestSaveDataset(t *testing.T) {
 	if ref.AliasString() != "peer/dry_run_test" {
 		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
 	}
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "initial commit",
+			Message: "manually create a baseline dataset",
+		},
+		Meta: &dataset.Meta{
+			Title: "another test dataset",
+		},
+		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		BodyBytes: []byte("[]"),
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "add transform script",
+			Message: "adding an append-only transform script",
+		},
+		Transform: &dataset.TransformPod{
+			Syntax: "starlark",
+			ScriptBytes: []byte(`def transform(ds,ctx):
+  bd = ds.get_body()
+  bd.append("hey")
+  ds.set_body(bd)`),
+		},
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	// save new manual changes
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "update meta",
+			Message: "manual change that'll negate previous transform",
+		},
+		Meta: &dataset.Meta{
+			Title:       "updated title",
+			Description: "updated description",
+		},
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if ref.Dataset.Transform != nil {
+		t.Error("expected manual save to remove transform")
+	}
+
+	// recall previous transform
+	tfds, err := Recall(n, "tf", ref)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "re-run transform",
+			Message: "recall transform & re-run it",
+		},
+		Transform: tfds.Transform,
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if ref.Dataset.Transform == nil {
+		t.Error("expected recalled transform to be present")
+	}
 }
 
 type RepoMakerFunc func(t *testing.T) repo.Repo

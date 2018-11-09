@@ -136,7 +136,7 @@ func TestSaveRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"me/bad_dataset", "", "", "", "", false, "", "either dataBytes, bodyPath, or a transform is required to create a dataset", ""},
+		{"me/bad_dataset", "", "", "", "", false, "", "no changes to save", ""},
 		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
 		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "body file: open bad/bodypath.csv: no such file or directory", ""},
 		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVxUpVVVNedQ645nC25zu6ZtW3yWSiknVmAePLXQ2YSPR\nthis dataset has 1 validation errors\n", "", ""},

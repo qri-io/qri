@@ -129,8 +129,8 @@ func TestDatasetPodBodyFile(t *testing.T) {
 		fileLen  int
 		err      string
 	}{
-		// bad input
-		{&dataset.DatasetPod{}, "", 0, "not found"},
+		// bad input produces no result
+		{&dataset.DatasetPod{}, "", 0, ""},
 
 		// inline data
 		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying bodyBytes requires format be specified in dataset.structure"},
@@ -150,7 +150,7 @@ func TestDatasetPodBodyFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		file, err := DatasetPodBodyFile(c.dsp)
+		file, err := DatasetPodBodyFile(nil, c.dsp)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

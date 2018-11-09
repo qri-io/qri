@@ -20,6 +20,9 @@ func mutatedComponentsFunc(dsp *dataset.DatasetPod) func(path ...string) error {
 	if dsp.Structure != nil {
 		components["structure"] = []string{}
 	}
+	if dsp.Viz != nil {
+		components["viz"] = []string{}
+	}
 	if dsp.Body != nil || dsp.BodyBytes != nil || dsp.BodyPath != "" {
 		components["body"] = []string{}
 	}

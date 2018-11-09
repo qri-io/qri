@@ -47,6 +47,7 @@ will error.`,
 
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for update")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for update")
+	cmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history, only 'tf' applies when updating")
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	// cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
@@ -61,6 +62,7 @@ type UpdateOptions struct {
 	Ref     string
 	Title   string
 	Message string
+	Recall  string
 	Publish bool
 	DryRun  bool
 	Secrets []string
@@ -81,6 +83,9 @@ func (o *UpdateOptions) Complete(f Factory, args []string) (err error) {
 func (o *UpdateOptions) Validate() error {
 	if o.Ref == "" {
 		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
+	}
+	if o.Recall != "" && o.Recall != "tf" && o.Recall != "transform" {
+		return lib.NewError(lib.ErrBadArgs, "only 'tf' or 'transform' are valid recall values when updating")
 	}
 	return nil
 }
