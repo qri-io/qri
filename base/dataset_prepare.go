@@ -29,17 +29,17 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev *dataset.Datas
 		}
 		err = nil
 		return
-	} else {
-		if prev, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(lookup.Path)); err != nil {
-			return
-		}
-		prevPath = lookup.Path
-		prev.PreviousPath = lookup.Path
-		prev.Commit = nil
-		prev.Transform = nil
-		if prev.BodyPath != "" {
-			body, err = dsfs.LoadBody(r.Store(), prev)
-		}
+	}
+
+	if prev, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(lookup.Path)); err != nil {
+		return
+	}
+	prevPath = lookup.Path
+	prev.PreviousPath = lookup.Path
+	prev.Commit = nil
+	prev.Transform = nil
+	if prev.BodyPath != "" {
+		body, err = dsfs.LoadBody(r.Store(), prev)
 	}
 	return
 }
