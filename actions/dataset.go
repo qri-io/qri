@@ -3,6 +3,7 @@ package actions
 import (
 	"fmt"
 	"os"
+	"strings"
 
 	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
@@ -64,12 +65,22 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 	if ds.Transform != nil {
 		mutateCheck := mutatedComponentsFunc(dsp)
 		if ds.Transform.Script == nil {
-			var f *os.File
-			f, err = os.Open(ds.Transform.ScriptPath)
-			if err != nil {
-				return
+			if strings.HasPrefix(ds.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(ds.Transform.ScriptPath, "/map") || strings.HasPrefix(ds.Transform.ScriptPath, "/cafs") {
+				var f cafs.File
+				f, err = node.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+				if err != nil {
+					return
+				}
+				ds.Transform.Script = f
+			} else {
+				var f *os.File
+				f, err = os.Open(ds.Transform.ScriptPath)
+				if err != nil {
+					return
+				}
+				ds.Transform.Script = f
 			}
-			ds.Transform.Script = f
+
 		}
 		// TODO - consider making this a standard method on dataset.Transform
 		script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)

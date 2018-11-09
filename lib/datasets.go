@@ -172,10 +172,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 	}
 
-	if p.ReturnBody {
-		if ref.Dataset != nil {
-			ref.Dataset.Body = body
-		}
+	if p.ReturnBody && ref.Dataset != nil {
+		ref.Dataset.Body = body
 	}
 
 	*res = ref
@@ -196,6 +194,15 @@ type UpdateParams struct {
 // Update advances a dataset to the latest known version from either a peer or by
 // re-running a transform in the peer's namespace
 func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
+	if r.cli != nil {
+		if p.ReturnBody {
+			// can't send an io.Reader interface over RPC
+			p.ReturnBody = false
+			log.Error("cannot return body bytes over RPC, disabling body return")
+		}
+		return r.cli.Call("DatasetRequests.Update", p, res)
+	}
+
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err
@@ -225,6 +232,9 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
 func (r *DatasetRequests) SetPublishStatus(ref *repo.DatasetRef, res *bool) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.SetPublishStatus", ref, res)
+	}
 	res = &ref.Published
 	return actions.SetPublishStatus(r.node, ref, ref.Published)
 }

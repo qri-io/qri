@@ -136,6 +136,47 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsSaveRecall(t *testing.T) {
+	node := newTestQriNode(t)
+	ref := addNowTransformDataset(t, node)
+	r := NewDatasetRequests(node, nil)
+
+	res := &repo.DatasetRef{}
+	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Meta:     &dataset.Meta{Title: "an updated title"},
+	}, ReturnBody: true}, res)
+	if err != nil {
+		t.Error("save failed")
+	}
+
+	err = r.Save(&SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Peername: ref.Peername,
+			Name:     ref.Name,
+			Meta:     &dataset.Meta{Title: "an updated title"},
+		},
+		Recall: "wut"}, res)
+	if err == nil {
+		t.Error("expected bad recall to error")
+	}
+
+	err = r.Save(&SaveParams{
+		Dataset: &dataset.DatasetPod{
+			Peername: ref.Peername,
+			Name:     ref.Name,
+			Meta:     &dataset.Meta{Title: "new title!"},
+		},
+		Recall: "tf"}, res)
+	if err != nil {
+		t.Error(err)
+	}
+	if res.Dataset.Transform == nil {
+		t.Error("expected transform to exist on recalled save")
+	}
+}
+
 func TestDatasetRequestsSaveZip(t *testing.T) {
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)

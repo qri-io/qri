@@ -45,12 +45,12 @@ func AbsPath(path *string) (err error) {
 func pathKind(path string) string {
 	if path == "" {
 		return "none"
-	}
-	if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
+	} else if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
 		return "http"
-	}
-	if strings.HasPrefix(path, "/ipfs") {
+	} else if strings.HasPrefix(path, "/ipfs") {
 		return "ipfs"
+	} else if strings.HasPrefix(path, "/map") || strings.HasPrefix(path, "/cafs") {
+		return "cafs"
 	}
 	return "file"
 }
