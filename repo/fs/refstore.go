@@ -29,6 +29,7 @@ type Refstore struct {
 // PutRef adds a reference to the store
 func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 	var ds *dataset.Dataset
+	p.Dataset = nil
 
 	if p.ProfileID == "" {
 		return repo.ErrPeerIDRequired
