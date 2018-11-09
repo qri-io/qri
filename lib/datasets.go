@@ -99,17 +99,12 @@ type SaveParams struct {
 	DryRun bool
 	// if true, res.Dataset.Body will be a cafs.file of the body
 	ReturnBody bool
+	// string of references to recall before saving
+	Recall string
 }
 
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
-// TODO - currently, if a user adds metadata or structure, but does not add
-// data, we load the data from the previous commit
-// this means that the SAME data is getting saved to the store
-// this could be better/faster by just not reading the data:
-// should amend dsfs.CreateDataset to compare the data being added,
-// and not add if the hash already exists
-// but still use the hash to add to dataset.BodyPath
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
 		if p.ReturnBody {
@@ -129,6 +124,23 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("at least one of Dataset, DatasetPath is required")
 	}
 
+	if p.Recall != "" {
+		ref := repo.DatasetRef{
+			Peername: ds.Peername,
+			Name:     ds.Name,
+			// TODO - fix, but really this should be fine for a while because
+			// ProfileID is required to be local when saving
+			// ProfileID: ds.ProfileID,
+			Path: ds.Path,
+		}
+		recall, err := actions.Recall(r.node, p.Recall, ref)
+		if err != nil {
+			return err
+		}
+		recall.Assign(ds)
+		ds = recall
+	}
+
 	if p.DatasetPath != "" {
 		dsf, err := ReadDatasetFile(p.DatasetPath)
 		if err != nil {
@@ -138,11 +150,19 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds = dsf
 	}
 
+	if ds.Name == "" {
+		return fmt.Errorf("name is required")
+	}
+	if ds.BodyPath == "" && ds.Body == nil && ds.BodyBytes == nil && ds.Structure == nil && ds.Meta == nil && ds.Viz == nil && ds.Transform == nil {
+		return fmt.Errorf("no changes to save")
+	}
+
 	ref, body, err := actions.SaveDataset(r.node, ds, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
+	// TODO - check to make sure RPC saves aren't horribly broken, and if not remove this
 	// ref.Dataset = p.Dataset.Encode()
 
 	if p.Publish {

@@ -1,6 +1,8 @@
 package actions
 
-import "testing"
+import (
+	"testing"
+)
 
 func TestDiffDatasets(t *testing.T) {
 	node := newTestNode(t)

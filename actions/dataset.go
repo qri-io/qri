@@ -12,49 +12,57 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
 func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
-		ds       *dataset.Dataset
-		bodyFile cafs.File
-		secrets  map[string]string
-		// NOTE - struct fields need to be instantiated to make assign set to
-		// new pointer values
-		userSet = &dataset.Dataset{
-			Commit:    &dataset.Commit{},
-			Meta:      &dataset.Meta{},
-			Structure: &dataset.Structure{},
-			Transform: &dataset.Transform{},
-			Viz:       &dataset.Viz{},
-		}
+		ds                       *dataset.Dataset
+		prevPath                 string
+		bodyFile, changeBodyFile cafs.File
+		secrets                  map[string]string
+		pro                      *profile.Profile
+		changes                  = &dataset.Dataset{}
+		r                        = node.Repo
 	)
+
+	// set ds to dataset head, or empty dataset if no history
+	ds, bodyFile, prevPath, err = base.PrepareDatasetSave(r, dsp.Peername, dsp.Name)
+	if err != nil {
+		return
+	}
 
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-	}
 
-	// Determine if the save is creating a new dataset or updating an existing dataset by
-	// seeing if the name can canonicalize to a repo that we know about
-	lookup := &repo.DatasetRef{Name: dsp.Name, Peername: dsp.Peername}
-	err = repo.CanonicalizeDatasetRef(node.Repo, lookup)
-	if err == repo.ErrNotFound {
-		ds, bodyFile, secrets, err = base.PrepareDatasetNew(dsp)
+		pro, err = r.Profile()
 		if err != nil {
 			return
 		}
-	} else {
-		ds, bodyFile, secrets, err = base.PrepareDatasetSave(node.Repo, dsp)
+
+		// dry-runs store to an in-memory repo
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
 		}
 	}
 
-	mutateCheck := mutatedComponentsFunc(dsp)
-	userSet.Assign(ds)
+	if changeBodyFile, err = base.DatasetPodBodyFile(dsp); err == nil && changeBodyFile != nil {
+		dsp.BodyPath = ""
+		bodyFile = changeBodyFile
+	} else if err != nil {
+		return
+	}
+
+	if err = changes.Decode(dsp); err != nil {
+		return
+	}
+	ds.Assign(changes)
+	clearPaths(ds)
 
 	if ds.Transform != nil {
+		mutateCheck := mutatedComponentsFunc(dsp)
 		if ds.Transform.Script == nil {
 			var f *os.File
 			f, err = os.Open(ds.Transform.ScriptPath)
@@ -72,10 +80,29 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 			return
 		}
 		node.LocalStreams.Print("✅ transform complete\n")
-		ds.Assign(userSet)
 	}
 
-	return base.CreateDataset(node.Repo, node.LocalStreams, dsp.Name, ds, bodyFile, dryRun, pin)
+	// let's make history, if it exists:
+	ds.PreviousPath = prevPath
+	return base.CreateDataset(r, node.LocalStreams, dsp.Name, ds, bodyFile, dryRun, pin)
+}
+
+// for now it's very important we remove any path references before saving
+// we should remove this in the long run, but not without extensive tests in
+// dsfs, and dsdiff packages, both of which are very sensitive to paths being present
+func clearPaths(ds *dataset.Dataset) {
+	if ds.Meta != nil {
+		ds.Meta.SetPath("")
+	}
+	if ds.Structure != nil {
+		ds.Structure.SetPath("")
+	}
+	if ds.Viz != nil {
+		ds.Viz.SetPath("")
+	}
+	if ds.Transform != nil {
+		ds.Transform.SetPath("")
+	}
 }
 
 // UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is

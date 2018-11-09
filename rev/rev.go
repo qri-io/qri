@@ -22,8 +22,8 @@ type Rev struct {
 }
 
 // ParseRevs turns a comma-separated list of revisions into a slice of revisions
-func ParseRevs(ref string) (revs []*Rev, err error) {
-	for _, revStr := range strings.Split(ref, ",") {
+func ParseRevs(str string) (revs []*Rev, err error) {
+	for _, revStr := range strings.Split(str, ",") {
 		rev, err := ParseRev(revStr)
 		if err != nil {
 			return nil, err

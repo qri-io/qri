@@ -74,32 +74,14 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		return
 	}
 
-	if ds.Commit != nil {
-		// NOTE: add author ProfileID here to keep the dataset package agnostic to
-		// all identity stuff except keypair crypto
-		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
-	}
-
-	if err = prepareViz(ds); err != nil {
+	if body, err = InferValues(pro, &name, ds, body); err != nil {
 		return
 	}
 
-	if ds.Transform != nil && ds.Transform.IsEmpty() {
-		ds.Transform = nil
-	}
+	// TODO - move dsfs.prepareDataset stuff up here into a "SetComputedValues" func
 
-	if dryRun {
-		// dry-runs store to an in-memory repo
-		// TODO - memRepo needs to be able to load a previous dataset from our actual repo
-		// memRepo should be able to wrap another repo & check that before returning not found
-		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
-		if err != nil {
-			return
-		}
-		// TODO - to compensate for the above issue, using this hack to get around that
-		// dsfs.CreateDataset will attempt to load the previous dataset if there is a
-		// PreviousPath set in the dataset ds
-		ds.PreviousPath = ""
+	if err = ValidateDataset(name, ds); err != nil {
+		return
 	}
 
 	if path, err = dsfs.CreateDataset(r.Store(), ds, body, r.PrivateKey(), pin); err != nil {
@@ -242,21 +224,6 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 			return nil, fmt.Errorf("invalid status code fetching body url: %d", res.StatusCode)
 		}
 
-		// TODO - should this happen here? probs not.
-		// consider moving to actions.CreateDataset
-		if dsp.Meta == nil {
-			dsp.Meta = &dataset.Meta{}
-		}
-		if dsp.Meta.DownloadURL == "" {
-			dsp.Meta.DownloadURL = dsp.BodyPath
-		}
-		// if we're adding from a dataset url, set a default accrual periodicity of once a week
-		// this'll set us up to re-check urls over time
-		// TODO - make this configurable via a param?
-		if dsp.Meta.AccrualPeriodicity == "" {
-			dsp.Meta.AccrualPeriodicity = "R/P1W"
-		}
-
 		return cafs.NewMemfileReader(filename, res.Body), nil
 	} else if dsp.BodyPath != "" {
 		// convert yaml input to json as a hack to support yaml input for now
@@ -283,6 +250,5 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 		return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil
 	}
 
-	// TODO - standardize this error:
-	return nil, fmt.Errorf("not found")
+	return nil, nil
 }
