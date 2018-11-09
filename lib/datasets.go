@@ -185,6 +185,7 @@ type UpdateParams struct {
 	Ref        string
 	Title      string
 	Message    string
+	Recall     string
 	Secrets    map[string]string
 	Publish    bool
 	DryRun     bool
@@ -216,6 +217,23 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		Transform: &dataset.TransformPod{
 			Secrets: p.Secrets,
 		},
+	}
+
+	if p.Recall != "" {
+		ref := repo.DatasetRef{
+			Peername: ref.Peername,
+			Name:     ref.Name,
+			// TODO - fix, but really this should be fine for a while because
+			// ProfileID is required to be local when saving
+			// ProfileID: ds.ProfileID,
+			Path: ref.Path,
+		}
+		recall, err := actions.Recall(r.node, p.Recall, ref)
+		if err != nil {
+			return err
+		}
+		// only transform is assignable
+		ref.Dataset.Transform.Assign(recall.Transform)
 	}
 
 	result, body, err := actions.UpdateDataset(r.node, &ref, p.DryRun, true)
