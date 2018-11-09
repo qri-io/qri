@@ -51,7 +51,7 @@ We now also have our first real mechanism for automated syncronization: update. 
 The `new` and `save` commands (and API endpoints) have merged into just `save`. New wasn't doing too much for us, so we're hoping to get down to one keyword for all modifications that aren't re-running transform scripts.
 
 ### Deterministic Transforms & Overhauled Dataset Creation [(RFC0020)](https://github.com/qri-io/rfcs/blob/master/text/0020-distingush_manual_vs_scripted_transforms.md)
-We've completely overhauled the process of saving a datset, clearifying the mental model by distinguishing between _manual_ and _scripted_ transformations. The process of creating a dataset is now easier to understand and predict. We'll be working in the coming weeks to properly document how this works, but the first form of documentation we've landed are error messages that help clarify when an issue arises.
+We've completely overhauled the process of saving a datset, clarifying the mental model by distinguishing between _manual_ and _scripted_ transformations. The process of creating a dataset is now easier to understand and predict. We'll be working in the coming weeks to properly document how this works, but the first form of documentation we've landed are error messages that help clarify when an issue arises.
 =======
 <a name="0.0.0"></a>
 # [0.0.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.0.0) (2018-11-09)
