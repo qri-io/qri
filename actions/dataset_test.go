@@ -135,15 +135,40 @@ func TestSaveDataset(t *testing.T) {
 	}
 
 	ds = &dataset.DatasetPod{
-		Name: "save_test",
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "initial commit",
+			Message: "manually create a baseline dataset",
+		},
 		Meta: &dataset.Meta{
 			Title: "another test dataset",
 		},
+		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		BodyBytes: []byte("[]"),
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	tfScript := `def transform(ds,ctx):
+	bd = ds.get_body()
+	print("body:", bd)
+	bd.append("hey")
+	print("appended:", bd)
+	ds.set_body(bd)`
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "add transform script",
+			Message: "adding an append-only transform script",
+		},
 		Transform: &dataset.TransformPod{
-			Syntax: "starlark",
-			ScriptBytes: []byte(`load("time.star", "time")
-def transform(ds,ctx):
-  ds.set_body([str(time.now())])`),
+			Syntax:      "starlark",
+			ScriptBytes: []byte(tfScript),
 		},
 	}
 	ref, _, err = SaveDataset(n, ds, false, true)
@@ -151,14 +176,19 @@ def transform(ds,ctx):
 		t.Error(err)
 	}
 
-	ds = ref.Dataset
-	ds.Name = ref.Name
-	ds.Peername = ref.Peername
-	ds.Meta = &dataset.Meta{
-		Title:       "updated title",
-		Description: "updated description",
+	// save new manual changes
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "update meta",
+			Message: "manual change that'll negate previous transform",
+		},
+		Meta: &dataset.Meta{
+			Title:       "updated title",
+			Description: "updated description",
+		},
 	}
-	ds.Transform = nil
 	ref, _, err = SaveDataset(n, ds, false, true)
 	if err != nil {
 		t.Error(err)
@@ -167,12 +197,21 @@ def transform(ds,ctx):
 		t.Error("expected manual save to remove transform")
 	}
 
+	// recall previous transform
 	tfds, err := Recall(n, "tf", ref)
 	if err != nil {
 		t.Error(err)
 	}
-	ds.Assign(tfds)
 
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "re-run transform",
+			Message: "recall transform & re-run it",
+		},
+		Transform: tfds.Transform,
+	}
 	ref, _, err = SaveDataset(n, ds, false, true)
 	if err != nil {
 		t.Error(err)

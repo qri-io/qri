@@ -36,12 +36,10 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-
 		pro, err = r.Profile()
 		if err != nil {
 			return
 		}
-
 		// dry-runs store to an in-memory repo
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
@@ -49,48 +47,49 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 		}
 	}
 
-	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), dsp); err == nil && changeBodyFile != nil {
-		dsp.BodyPath = ""
-		bodyFile = changeBodyFile
-	} else if err != nil {
+	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), dsp); err != nil {
 		return
 	}
-
 	if err = changes.Decode(dsp); err != nil {
 		return
 	}
-	ds.Assign(changes)
-	clearPaths(ds)
 
-	if ds.Transform != nil {
+	if changes.Transform != nil {
 		mutateCheck := mutatedComponentsFunc(dsp)
-		if ds.Transform.Script == nil {
-			if strings.HasPrefix(ds.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(ds.Transform.ScriptPath, "/map") || strings.HasPrefix(ds.Transform.ScriptPath, "/cafs") {
+		if changes.Transform.Script == nil {
+			if strings.HasPrefix(changes.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(changes.Transform.ScriptPath, "/map") || strings.HasPrefix(changes.Transform.ScriptPath, "/cafs") {
 				var f cafs.File
-				f, err = node.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+				f, err = node.Repo.Store().Get(datastore.NewKey(changes.Transform.ScriptPath))
 				if err != nil {
 					return
 				}
-				ds.Transform.Script = f
+				changes.Transform.Script = f
 			} else {
 				var f *os.File
-				f, err = os.Open(ds.Transform.ScriptPath)
+				f, err = os.Open(changes.Transform.ScriptPath)
 				if err != nil {
 					return
 				}
-				ds.Transform.Script = f
+				changes.Transform.Script = f
 			}
 
 		}
 		// TODO - consider making this a standard method on dataset.Transform
-		script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
+		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
 
-		node.LocalStreams.Print("🤖 executing transform\n")
 		bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, mutateCheck)
 		if err != nil {
 			return
 		}
 		node.LocalStreams.Print("✅ transform complete\n")
+	}
+
+	ds.Assign(changes)
+	clearPaths(ds)
+
+	if changeBodyFile != nil {
+		ds.BodyPath = ""
+		bodyFile = changeBodyFile
 	}
 
 	// let's make history, if it exists:
