@@ -1,3 +1,111 @@
+<<<<<<< Updated upstream
+<a name="0.6.0"></a>
+# [0.6.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.6.0) (2018-11-09)
+
+Version 0.6.0 is a **big** 'ol release. Lots of changes that have taken close to a month to land. Test coverage is up, but expect us to have broken a bunch of things. We'll be rapidly iterating over the coming weeks to make sure everything works the way it should.
+
+This release marks turning a corner for the Qri project as a whole. We have a new look for the frontend, and have rounded out an initial feature set we think will take Qri out of the realm of "experimental" and into the world of dependable, usable code. It's taken a great deal of time, effort, and research. I'm _very_ thankful/proud/excited for all who have contributed to this release, and can't wait to start showing off this newest verion. Here's some of the highlights, with a full changelog below.
+
+### :heart: We've adopted the RFC process
+I'm delighted to say Qri's feature developement is now driven by a request-for-comments process. You can read about new features we're considering and implementing, as well as make suggestions over at our RFC repo. From this release forward, we'll note the biggest RFCs that have landed in release notes.
+
+
+### Overhauled, more capable starlark transform functions, renamed everything from "skylark" to "starlark" [(RFC0016)](https://github.com/qri-io/rfcs/blob/master/text/0016-revise_transform_processing.md)
+We've overhauled the way transform functions are called to provide greater flexibility between function calls to allow sidecar state to travel from special functions, and unified all transforms around the `transform` special function. here's an example:
+
+```python
+load("http.star", "http")
+def download(ctx):
+  res = http.get("https://api.github.com/")
+  return res.json()
+
+def transform(ds, ctx):
+  ds.set_body(ctx.download)
+```
+
+The passed in dataset is
+
+### `.zip` export & import [(RFC0014)](https://github.com/qri-io/rfcs/blob/master/text/0014-export.md)
+The following now works:
+```
+$ qri export me/my_dataset
+exported my_dataset.zip
+
+# on some other qri repo:
+$ qri save --file=my_dataset.zip
+```
+This makes it possible to send around Qri datasets without using the p2p network. It even works when the zip is posted to a url:
+```
+$ qri save --file=https://dropbox.com/.../my_dataset.zip
+```
+
+We think this is a big win for portability. We'll be working on exporting to different file formats in the coming weeks.
+
+
+### Publish & Update [(RFC0018)](https://github.com/qri-io/rfcs/blob/master/text/0018-publish-update.md)
+Qri now gives you control over which datasets of your will be listed for others to see using `qri publish`. This does mean you need to publish a datset before others will see it listed. **This does not mean that data added to Qri is private**. It's better to think of data you've added to qri that isn't published as 'unlisted'. If you gave someone the hash of your dataset, they could add it with `qri add`, but users who list your datasets over p2p won't see your unlisted work. If you want private data, for now Qri isn't the right tool, but now you have more control over what users see when they visit your profile.
+
+We now also have our first real mechanism for automated syncronization: update. Update works on both your own datasets and other people's. Running update on your own dataset will re-run the most recent transform and generate a new dataset version if Qri detects a change. Running update on a peer's dataset will check to see if they're online, and if they are, update will fast-forward your copy of their dataset to the latest version.
+
+### New and Save have merged [(RFC0017)](https://github.com/qri-io/rfcs/blob/master/text/0017-define_dataset_creation.md)
+The `new` and `save` commands (and API endpoints) have merged into just `save`. New wasn't doing too much for us, so we're hoping to get down to one keyword for all modifications that aren't re-running transform scripts.
+
+### Deterministic Transforms & Overhauled Dataset Creation [(RFC0020)](https://github.com/qri-io/rfcs/blob/master/text/0020-distingush_manual_vs_scripted_transforms.md)
+We've completely overhauled the process of saving a datset, clearifying the mental model by distinguishing between _manual_ and _scripted_ transformations. The process of creating a dataset is now easier to understand and predict. We'll be working in the coming weeks to properly document how this works, but the first form of documentation we've landed are error messages that help clarify when an issue arises.
+=======
+<a name="0.0.0"></a>
+# [0.0.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.0.0) (2018-11-09)
+
+>>>>>>> Stashed changes
+
+### Bug Fixes
+
+* **actions.SaveDataset:** ensure both manual & scripted transforms are provided previous dataset ([902183d](https://github.com/qri-io/qri/commit/902183d))
+* **actions.SaveDataset:** load transform from store if cafs scriptPath provided ([274fa76](https://github.com/qri-io/qri/commit/274fa76))
+* **actions.Update:** properly set PrevPath before saving update ([eafe8b5](https://github.com/qri-io/qri/commit/eafe8b5))
+* **bootstrap peers:** fix network not ever contacting bootstrap peers ([f9074b0](https://github.com/qri-io/qri/commit/f9074b0))
+* **fs Profile Store:** fix lock pass-by-value error ([a22515a](https://github.com/qri-io/qri/commit/a22515a))
+<<<<<<< Updated upstream
+* **fs refstore:** don't store DatasetPod in refstore ([6ab5849](https://github.com/qri-io/qri/commit/6ab5849))
+=======
+>>>>>>> Stashed changes
+* **lib.AbsPath:** allow directories named 'http' in filepaths ([684d3be](https://github.com/qri-io/qri/commit/684d3be))
+* **qri:** Fix usage of dataset and startf ([b754c06](https://github.com/qri-io/qri/commit/b754c06))
+* **racy p2p tests:** don't pass locks by value in MemStore ([5e410a3](https://github.com/qri-io/qri/commit/5e410a3))
+* **save:** ensure transforms are run when importing a zip ([a35523c](https://github.com/qri-io/qri/commit/a35523c))
+
+
+### Features
+
+* **actions.UpdateDataset:** support for local dataset updates ([f402956](https://github.com/qri-io/qri/commit/f402956))
+* **api /publish:** add publish API endpoint ([502188e](https://github.com/qri-io/qri/commit/502188e))
+* **api /publish:** add publish API endpoint ([3d1b4bf](https://github.com/qri-io/qri/commit/3d1b4bf))
+* **api published:** GET /publish/ now lists published datasets ([6c8f0b2](https://github.com/qri-io/qri/commit/6c8f0b2))
+* **api published:** GET /publish/ now lists published datasets ([9e60af6](https://github.com/qri-io/qri/commit/9e60af6))
+* **api update:** add update API endpoint ([cb66b36](https://github.com/qri-io/qri/commit/cb66b36))
+* **api.Update:** accept dry_run parameter ([642e7fa](https://github.com/qri-io/qri/commit/642e7fa))
+* **base:** defining base package ([1a7cd42](https://github.com/qri-io/qri/commit/1a7cd42))
+* **base.LogDiff:** diff logs against a repo's dataset history ([bd7340a](https://github.com/qri-io/qri/commit/bd7340a))
+* **cmd publish:** add publish command, publish-on-save flag ([1bfcd92](https://github.com/qri-io/qri/commit/1bfcd92))
+* **cmd publish:** add publish command, publish-on-save flag ([327f697](https://github.com/qri-io/qri/commit/327f697))
+* **cmd.Save, cmd.Update:** add recall flags to save and update ([083331d](https://github.com/qri-io/qri/commit/083331d))
+* **cmd.Update:** add update command ([03c2630](https://github.com/qri-io/qri/commit/03c2630))
+* **fsrepo:** add support for storing 'Published' field in fsrepo ([837edeb](https://github.com/qri-io/qri/commit/837edeb))
+* **mutal exclusion tf:** error if two transform types affect the same component ([fd439cb](https://github.com/qri-io/qri/commit/fd439cb))
+* **p2p update:** initial p2p update ([76e886a](https://github.com/qri-io/qri/commit/76e886a))
+* **p2p.test:** add `TestableNode` struct that satisfies the `TestablePeerNode` interface ([2c53a49](https://github.com/qri-io/qri/commit/2c53a49))
+* **published:** datasets now have a publish flag ([84019b7](https://github.com/qri-io/qri/commit/84019b7))
+* **published:** datasets now have a publish flag ([11db984](https://github.com/qri-io/qri/commit/11db984))
+* **rev:** add rev package, add LoadRevs to base ([00ca81c](https://github.com/qri-io/qri/commit/00ca81c))
+* **save:** add support for saving from file archives ([00a30d3](https://github.com/qri-io/qri/commit/00a30d3))
+* **save:** Don't leak file paths across API. ([57a1c36](https://github.com/qri-io/qri/commit/57a1c36))
+* **save:** Merge command `new` into `save`. ([33c4da6](https://github.com/qri-io/qri/commit/33c4da6))
+* **save:** Remove new api and cmd. Document plan for actions. ([4919503](https://github.com/qri-io/qri/commit/4919503))
+* **starlark:** renamed, reworked starlark syntax & transforms ([4e9c6fd](https://github.com/qri-io/qri/commit/4e9c6fd))
+* **zip:** Import a zip file using save on the command-line ([bbb989a](https://github.com/qri-io/qri/commit/bbb989a))
+
+
+
 <a name="0.5.6"></a>
 # [0.5.6](https://github.com/qri-io/qri/compare/v0.5.5...v0.5.6) (2018-10-10)
 

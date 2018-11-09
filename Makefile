@@ -61,3 +61,6 @@ test-all-coverage:
 cli-docs:
 	go run docs/docs.go --dir temp --filename cli_commands.md
 
+update-changelog:
+	conventional-changelog -p angular -i CHANGELOG.md -s
+
