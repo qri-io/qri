@@ -201,7 +201,7 @@ func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 // * dsp.BodyPath being a url
 // * dsp.BodyPath being a path on the local filesystem
 // TODO - consider moving this func to some other package. maybe actions?
-func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
+func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.File, error) {
 	if dsp.BodyBytes != nil {
 		if dsp.Structure == nil || dsp.Structure.Format == "" {
 			return nil, fmt.Errorf("specifying bodyBytes requires format be specified in dataset.structure")
@@ -225,6 +225,8 @@ func DatasetPodBodyFile(dsp *dataset.DatasetPod) (cafs.File, error) {
 		}
 
 		return cafs.NewMemfileReader(filename, res.Body), nil
+	} else if strings.HasPrefix(dsp.BodyPath, "/ipfs") || strings.HasPrefix(dsp.BodyPath, "/cafs") || strings.HasPrefix(dsp.BodyPath, "/map") {
+		return store.Get(datastore.NewKey(dsp.BodyPath))
 	} else if dsp.BodyPath != "" {
 		// convert yaml input to json as a hack to support yaml input for now
 		ext := strings.ToLower(filepath.Ext(dsp.BodyPath))

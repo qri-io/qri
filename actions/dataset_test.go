@@ -133,6 +133,53 @@ func TestSaveDataset(t *testing.T) {
 	if ref.AliasString() != "peer/dry_run_test" {
 		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
 	}
+
+	ds = &dataset.DatasetPod{
+		Name: "save_test",
+		Meta: &dataset.Meta{
+			Title: "another test dataset",
+		},
+		Transform: &dataset.TransformPod{
+			Syntax: "starlark",
+			ScriptBytes: []byte(`load("time.star", "time")
+def transform(ds,ctx):
+  ds.set_body([str(time.now())])`),
+		},
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = ref.Dataset
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Meta = &dataset.Meta{
+		Title:       "updated title",
+		Description: "updated description",
+	}
+	ds.Transform = nil
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if ref.Dataset.Transform != nil {
+		t.Error("expected manual save to remove transform")
+	}
+
+	tfds, err := Recall(n, "tf", ref)
+	if err != nil {
+		t.Error(err)
+	}
+	ds.Assign(tfds)
+
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if ref.Dataset.Transform == nil {
+		t.Error("expected recalled transform to be present")
+	}
 }
 
 type RepoMakerFunc func(t *testing.T) repo.Repo

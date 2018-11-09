@@ -150,7 +150,7 @@ func TestDatasetPodBodyFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		file, err := DatasetPodBodyFile(c.dsp)
+		file, err := DatasetPodBodyFile(nil, c.dsp)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue

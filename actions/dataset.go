@@ -49,7 +49,7 @@ func SaveDataset(node *p2p.QriNode, dsp *dataset.DatasetPod, dryRun, pin bool) (
 		}
 	}
 
-	if changeBodyFile, err = base.DatasetPodBodyFile(dsp); err == nil && changeBodyFile != nil {
+	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), dsp); err == nil && changeBodyFile != nil {
 		dsp.BodyPath = ""
 		bodyFile = changeBodyFile
 	} else if err != nil {
