@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 <a name="0.6.0"></a>
 # [0.6.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.6.0) (2018-11-09)
 
@@ -23,7 +22,7 @@ def transform(ds, ctx):
   ds.set_body(ctx.download)
 ```
 
-The passed in dataset is
+The passed in dataset is now properly set to the most recent snapshot thanks to our improved transform logic. More on that below.
 
 ### `.zip` export & import [(RFC0014)](https://github.com/qri-io/rfcs/blob/master/text/0014-export.md)
 The following now works:
@@ -52,11 +51,6 @@ The `new` and `save` commands (and API endpoints) have merged into just `save`. 
 
 ### Deterministic Transforms & Overhauled Dataset Creation [(RFC0020)](https://github.com/qri-io/rfcs/blob/master/text/0020-distingush_manual_vs_scripted_transforms.md)
 We've completely overhauled the process of saving a datset, clarifying the mental model by distinguishing between _manual_ and _scripted_ transformations. The process of creating a dataset is now easier to understand and predict. We'll be working in the coming weeks to properly document how this works, but the first form of documentation we've landed are error messages that help clarify when an issue arises.
-=======
-<a name="0.0.0"></a>
-# [0.0.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.0.0) (2018-11-09)
-
->>>>>>> Stashed changes
 
 ### Bug Fixes
 
@@ -65,10 +59,7 @@ We've completely overhauled the process of saving a datset, clarifying the menta
 * **actions.Update:** properly set PrevPath before saving update ([eafe8b5](https://github.com/qri-io/qri/commit/eafe8b5))
 * **bootstrap peers:** fix network not ever contacting bootstrap peers ([f9074b0](https://github.com/qri-io/qri/commit/f9074b0))
 * **fs Profile Store:** fix lock pass-by-value error ([a22515a](https://github.com/qri-io/qri/commit/a22515a))
-<<<<<<< Updated upstream
 * **fs refstore:** don't store DatasetPod in refstore ([6ab5849](https://github.com/qri-io/qri/commit/6ab5849))
-=======
->>>>>>> Stashed changes
 * **lib.AbsPath:** allow directories named 'http' in filepaths ([684d3be](https://github.com/qri-io/qri/commit/684d3be))
 * **qri:** Fix usage of dataset and startf ([b754c06](https://github.com/qri-io/qri/commit/b754c06))
 * **racy p2p tests:** don't pass locks by value in MemStore ([5e410a3](https://github.com/qri-io/qri/commit/5e410a3))
