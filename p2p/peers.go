@@ -31,7 +31,9 @@ func (n *QriNode) ConnectedQriProfiles() map[profile.ID]*config.ProfilePod {
 					return nil
 				}
 
-				pe.NetworkAddrs = []string{conn.RemoteMultiaddr().Encapsulate(hostAddr).String()}
+				pe.NetworkAddrs = []string{
+					conn.RemoteMultiaddr().Encapsulate(hostAddr).String(),
+				}
 				peers[p.ID] = pe
 			}
 		}
