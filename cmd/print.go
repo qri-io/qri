@@ -119,20 +119,12 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 		if ds.Meta.Title != "" {
 			fmt.Fprintf(w, "    %s\n", white(ds.Meta.Title))
 		}
-
-		if ds.Meta.Description != "" {
-			if len(ds.Meta.Description) > 77 {
-				fmt.Fprintf(w, "    %s...\n", white(ds.Meta.Description[:77]))
-			} else {
-				fmt.Fprintf(w, "    %s\n", white(ds.Meta.Description))
-			}
-		}
 	}
 	if ds != nil && ds.Structure != nil {
 		fmt.Fprintf(w, "    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
 	}
 
-	fmt.Fprintln(w)
+	fmt.Fprintln(w, "")
 }
 
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
@@ -160,9 +152,10 @@ func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {
 	} else {
 		fmt.Fprintf(w, "%s\n", white(p.Peername))
 	}
-	fmt.Fprintf(w, "%s\n", blue(p.ID))
-	fmt.Fprintf(w, "%s\n", p.Twitter)
-	fmt.Fprintf(w, "%s\n", p.Description)
+	fmt.Fprintf(w, "profile ID: %s\n", blue(p.ID))
+	if len(p.PeerIDs) > 0 {
+		fmt.Fprintf(w, "network ID: %s\n", p.PeerIDs[0])
+	}
 	fmt.Fprintln(w, "")
 }
 
