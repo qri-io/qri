@@ -487,6 +487,17 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		ReturnBody: r.FormValue("return_body") == "true",
 	}
 
+	if r.FormValue("secrets") != "" {
+		p.Secrets = map[string]string{}
+		if err := json.Unmarshal([]byte(r.FormValue("secrets")), &p.Secrets); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
+			return
+		}
+	} else if dsp.Transform != nil && dsp.Transform.Secrets != nil {
+		// TODO remove this, require API consumers to send secrets separately
+		p.Secrets = dsp.Transform.Secrets
+	}
+
 	if err := h.Save(p, res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

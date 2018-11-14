@@ -90,6 +90,8 @@ type SaveParams struct {
 	Dataset *dataset.DatasetPod
 	// absolute path or URL to a dataset file to load dataset from
 	DatasetPath string
+	// secrets for transform execution
+	Secrets map[string]string
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
 	Private bool
@@ -157,7 +159,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	ref, body, err := actions.SaveDataset(r.node, ds, p.DryRun, true)
+	ref, body, err := actions.SaveDataset(r.node, ds, p.Secrets, p.DryRun, true)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -236,7 +238,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		ref.Dataset.Transform.Assign(recall.Transform)
 	}
 
-	result, body, err := actions.UpdateDataset(r.node, &ref, p.DryRun, true)
+	result, body, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.DryRun, true)
 	if err != nil {
 		return err
 	}
