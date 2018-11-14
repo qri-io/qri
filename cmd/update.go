@@ -92,7 +92,17 @@ func (o *UpdateOptions) Validate() error {
 
 // Run executes the update command
 func (o *UpdateOptions) Run() (err error) {
-	var secrets map[string]string
+	o.StartSpinner()
+	defer o.StopSpinner()
+
+	p := &lib.UpdateParams{
+		Ref:        o.Ref,
+		Title:      o.Title,
+		Message:    o.Message,
+		DryRun:     o.DryRun,
+		Publish:    o.Publish,
+		ReturnBody: false,
+	}
 
 	if o.Secrets != nil {
 		if !confirm(o.Out, o.In, `
@@ -102,20 +112,9 @@ func (o *UpdateOptions) Run() (err error) {
 			return
 		}
 
-		secrets, err = parseSecrets(o.Secrets...)
-		if err != nil {
+		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
 			return err
 		}
-	}
-
-	p := &lib.UpdateParams{
-		Ref:        o.Ref,
-		Title:      o.Title,
-		Message:    o.Message,
-		DryRun:     o.DryRun,
-		Publish:    o.Publish,
-		Secrets:    secrets,
-		ReturnBody: false,
 	}
 
 	res := &repo.DatasetRef{}

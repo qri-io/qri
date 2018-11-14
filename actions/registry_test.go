@@ -34,7 +34,7 @@ func TestRegistry(t *testing.T) {
 	dsp.Name = tc.Name
 	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, dsp, false, true)
+	ref, _, err := SaveDataset(node, dsp, nil, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 

@@ -135,20 +135,6 @@ func (o *SaveOptions) Run() (err error) {
 		},
 	}
 
-	if o.Secrets != nil {
-		if !confirm(o.Out, o.In, `
-Warning: You are providing secrets to a dataset transformation.
-Never provide secrets to a transformation you do not trust.
-continue?`, true) {
-			return
-		}
-
-		dsp.Transform = &dataset.TransformPod{}
-		if dsp.Transform.Secrets, err = parseSecrets(o.Secrets...); err != nil {
-			return err
-		}
-	}
-
 	p := &lib.SaveParams{
 		Dataset:     dsp,
 		DatasetPath: o.FilePath,
@@ -156,6 +142,18 @@ continue?`, true) {
 		Publish:     o.Publish,
 		DryRun:      o.DryRun,
 		Recall:      o.Recall,
+	}
+
+	if o.Secrets != nil {
+		if !confirm(o.Out, o.In, `
+Warning: You are providing secrets to a dataset transformation.
+Never provide secrets to a transformation you do not trust.
+continue?`, true) {
+			return
+		}
+		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
+			return err
+		}
 	}
 
 	res := &repo.DatasetRef{}
