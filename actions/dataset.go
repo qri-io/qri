@@ -77,7 +77,6 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, dryRun, pin 
 		// TODO - consider making this a standard method on dataset.Transform
 		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
 
-		// TODO: Add tests for this.
 		var secrets map[string]string
 		var config map[string]interface{}
 		if changesPod.Transform == nil {
