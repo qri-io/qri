@@ -22,7 +22,6 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, dryRun, pin 
 		prev                     *dataset.Dataset
 		prevPath                 string
 		bodyFile, changeBodyFile cafs.File
-		secrets                  map[string]string
 		pro                      *profile.Profile
 		changes                  = &dataset.Dataset{}
 		r                        = node.Repo
@@ -78,7 +77,16 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, dryRun, pin 
 		// TODO - consider making this a standard method on dataset.Transform
 		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
 
-		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, mutateCheck)
+		var secrets map[string]string
+		var config map[string]interface{}
+		if changesPod.Transform == nil {
+			secrets = make(map[string]string)
+			config = make(map[string]interface{})
+		} else {
+			secrets = changesPod.Transform.Secrets
+			config = changesPod.Transform.Config
+		}
+		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, config, mutateCheck)
 		if err != nil {
 			return
 		}
@@ -157,15 +165,11 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (r
 func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
 	var (
 		bodyFile cafs.File
-		secrets  map[string]string
 		commit   = &dataset.CommitPod{}
 	)
 
 	if ref.Dataset != nil {
 		commit = ref.Dataset.Commit
-		if ref.Dataset.Transform != nil {
-			secrets = ref.Dataset.Transform.Secrets
-		}
 	}
 
 	if err = base.ReadDataset(node.Repo, ref); err != nil {
@@ -198,7 +202,17 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, dryRun, pin bool) (res
 	ds.Transform.ScriptPath = script.FileName()
 
 	node.LocalStreams.Print("🤖 executing transform\n")
-	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, nil)
+
+	var secrets map[string]string
+	var config map[string]interface{}
+	if ref.Dataset.Transform == nil {
+		secrets = make(map[string]string)
+		config = make(map[string]interface{})
+	} else {
+		secrets = ref.Dataset.Transform.Secrets
+		config = ref.Dataset.Transform.Config
+	}
+	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, config, nil)
 	if err != nil {
 		log.Error(err)
 		return

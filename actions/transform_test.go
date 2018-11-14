@@ -27,7 +27,9 @@ func TestExecTransform(t *testing.T) {
 
 	data := []byte(`
 def transform(ds,ctx):
-	return [1,2,3]
+	ctx.get_config("foo")
+	ctx.get_secret("bar")
+	ds.set_body([1,2,3])
 `)
 	script := cafs.NewMemfileBytes("transform.star", data)
 
@@ -41,7 +43,7 @@ def transform(ds,ctx):
 		},
 	}
 
-	if _, err := ExecTransform(node, ds, script, nil, nil, nil); err != nil {
+	if _, err := ExecTransform(node, ds, script, nil, map[string]string{"foo": "config"}, map[string]interface{}{"bar": "secret"}, nil); err != nil {
 		t.Error(err.Error())
 	}
 }

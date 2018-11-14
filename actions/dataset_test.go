@@ -169,7 +169,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 	ref, _, err = SaveDataset(n, ds, false, true)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	// save new manual changes
@@ -197,6 +197,121 @@ func TestSaveDataset(t *testing.T) {
 	tfds, err := Recall(n, "tf", ref)
 	if err != nil {
 		t.Error(err)
+	}
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "re-run transform",
+			Message: "recall transform & re-run it",
+		},
+		Transform: tfds.Transform,
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if ref.Dataset.Transform == nil {
+		t.Error("expected recalled transform to be present")
+	}
+}
+
+func TestSaveDatsetTfConfigSecrets(t *testing.T) {
+	n := newTestNode(t)
+
+	ds := &dataset.DatasetPod{
+		Name: "test_tf_with_config_and_secrets",
+		Commit: &dataset.CommitPod{
+			Title:   "initial commit",
+			Message: "manually create a baseline dataset",
+		},
+		Meta: &dataset.Meta{
+			Title: "another test dataset",
+		},
+		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		BodyBytes: []byte("[]"),
+	}
+	ref, _, err := SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+	}
+
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "add transform script",
+			Message: "adding an append-only transform script",
+		},
+		Transform: &dataset.TransformPod{
+			Syntax: "starlark",
+			Config: map[string]interface{}{
+				"foo": "config",
+			},
+			Secrets: map[string]string{
+				"bar": "secret",
+			},
+			ScriptBytes: []byte(`def transform(ds,ctx):
+  ctx.get_config("foo")
+  ctx.get_secret("bar")
+  bd = ds.get_body()
+  bd.append("hey")
+  ds.set_body(bd)`),
+		},
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// save new manual changes
+	ds = &dataset.DatasetPod{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.CommitPod{
+			Title:   "update meta",
+			Message: "manual change that'll negate previous transform",
+		},
+		Meta: &dataset.Meta{
+			Title:       "updated title",
+			Description: "updated description",
+		},
+		Transform: &dataset.TransformPod{
+			// TODO - the fact that we need to completely re-supply the transform function
+			// here is a bug. There's currently no way to supply secrets to a transform without
+			// recalling the previous version. Because of this, I think secrets need to be adjusted
+			// to be completely out-of-band to datasets, and instead plumbed down from a new field
+			// lib.SaveParams.Secrets. The Secrets field on dataset.DatasetPod should be removed
+			Syntax: "starlark",
+			Config: map[string]interface{}{
+				"foo": "config",
+			},
+			Secrets: map[string]string{
+				"bar": "secret",
+			},
+			ScriptBytes: []byte(`def transform(ds,ctx):
+  ctx.get_config("foo")
+  ctx.get_secret("bar")
+  bd = ds.get_body()
+  bd.append("hey")
+  ds.set_body(bd)`),
+		},
+	}
+	ref, _, err = SaveDataset(n, ds, false, true)
+	if err != nil {
+		t.Error(err)
+
+	}
+
+	// recall previous transform
+	tfds, err := Recall(n, "tf", ref)
+	if err != nil {
+		t.Error(err)
+	}
+
+	tfds.Transform.Secrets = map[string]string{
+		"bar": "secret",
 	}
 
 	ds = &dataset.DatasetPod{

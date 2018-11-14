@@ -39,12 +39,16 @@ please adjust either the transform script or remove the supplied '%s'`, path[0],
 }
 
 // ExecTransform executes a designated transformation
-func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile cafs.File, secrets map[string]string, mutateCheck func(...string) error) (file cafs.File, err error) {
+func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile cafs.File, secrets map[string]string, config map[string]interface{}, mutateCheck func(...string) error) (file cafs.File, err error) {
 	// filepath := ds.Transform.ScriptPath
 
 	// TODO - consider making this a standard method on dataset.Transform:
 	// script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
 
+	if ds.Transform == nil {
+		ds.Transform = &dataset.Transform{}
+	}
+	ds.Transform.Config = config
 	file, err = startf.ExecScript(ds, script, bodyFile, startf.AddQriNodeOpt(node), startf.AddMutateFieldCheck(mutateCheck), func(o *startf.ExecOpts) {
 		if secrets != nil {
 			// convert to map[string]interface{}, which the lower-level startf supports
