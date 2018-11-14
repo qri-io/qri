@@ -78,6 +78,12 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 		return
 	}
 
+	// TODO - we should remove the need for this by having viz always be kept in the right
+	// state until this point
+	if err = prepareViz(r, ds); err != nil {
+		return
+	}
+
 	// TODO - move dsfs.prepareDataset stuff up here into a "SetComputedValues" func
 
 	if err = ValidateDataset(name, ds); err != nil {

@@ -84,10 +84,6 @@ func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body c
 		res = cafs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
 	}
 
-	if err = prepareViz(ds); err != nil {
-		return
-	}
-
 	if ds.Transform != nil && ds.Transform.IsEmpty() {
 		ds.Transform = nil
 	}
