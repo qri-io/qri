@@ -46,6 +46,9 @@ type P2P struct {
 
 	// list of addresses to bootsrap qri peers on
 	BootstrapAddrs []string `json:"bootstrapaddrs"`
+
+	// Enable AutoNAT service. unless you're hosting a server, leave this as false
+	AutoNAT bool `json:autoNAT`
 }
 
 // DefaultP2PWithoutKeys generates a p2p struct without keys or peerID

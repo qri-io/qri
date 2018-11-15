@@ -32,9 +32,9 @@
     },
     {
       "author": "whyrusleeping",
-      "hash": "QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc",
+      "hash": "QmahxMNoNuSsgQefo9rkpcfRFmQrMN6Q99aztKXf63K7YJ",
       "name": "go-libp2p-host",
-      "version": "3.0.15"
+      "version": "3.0.19"
     },
     {
       "author": "whyrusleeping",
@@ -99,6 +99,11 @@
       "hash" : "QmTSih5JrkhMH62dp1oGjEwcaC38dxXBgRwTbeQEL4mPcU",
       "name" : "go-libp2p-connmgr",
       "version" : "0.3.23"
+    },
+    {
+      "hash" : "QmVYDvJjiKb9iFEyHxx4i1TJSRBLkQhGb5Fc8XpmDuNCEA",
+      "name" : "go-libp2p-circuit",
+      "version" : "2.3.2"
     }
   ],
   "gxVersion": "0.11.0",

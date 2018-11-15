@@ -21,6 +21,7 @@ import (
 	libp2p "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
 	discovery "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/discovery"
 	core "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	circuit "gx/ipfs/QmVYDvJjiKb9iFEyHxx4i1TJSRBLkQhGb5Fc8XpmDuNCEA/go-libp2p-circuit"
 	net "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 	host "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
 )
@@ -74,6 +75,10 @@ type QriNode struct {
 
 	// networkNotifee satisfies the net.Notifee interface
 	networkNotifee networkNotifee
+
+	// TODO - waiting on next IPFS release
+	// autoNAT service
+	// autonat *autonat.AutoNATService
 }
 
 // Assert that conversions needed by the tests are valid.
@@ -151,7 +156,7 @@ func (n *QriNode) GoOnline() (err error) {
 
 		ipfsnode := ipfsfs.Node()
 		if ipfsnode.PeerHost != nil {
-			n.setHost(ipfsnode.PeerHost)
+			n.host = ipfsnode.PeerHost
 		}
 
 		if ipfsnode.Discovery != nil {
@@ -159,11 +164,10 @@ func (n *QriNode) GoOnline() (err error) {
 		}
 	} else if n.host == nil {
 		ps := pstoremem.NewPeerstore()
-		basicHost, err := makeBasicHost(n.ctx, ps, n.cfg)
+		n.host, err = makeBasicHost(n.ctx, ps, n.cfg)
 		if err != nil {
 			return fmt.Errorf("error creating host: %s", err.Error())
 		}
-		n.setHost(basicHost)
 	}
 
 	// add multistream handler for qri protocol to the host
@@ -171,6 +175,14 @@ func (n *QriNode) GoOnline() (err error) {
 	// the distributed web that this node supports Qri. for more info on
 	// multistreams  check github.com/multformats/go-multistream
 	n.host.SetStreamHandler(QriProtocolID, n.QriStreamHandler)
+
+	// TODO - wait for new IPFS release
+	// if n.cfg.AutoNAT {
+	// 	n.autonat, err = autonat.NewAutoNATService(n.ctx, n.host)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	// add n.networkNotifee as a Notifee of this network
 	n.host.Network().Notify(n.networkNotifee)
@@ -300,6 +312,8 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P
 		libp2p.ListenAddrs(p2pconf.Addrs...),
 		libp2p.Identity(pk),
 		libp2p.Peerstore(ps),
+		libp2p.EnableRelay(circuit.OptHop),
+		// libp2p.Routing
 	}
 
 	// Let's talk about these options a bit. Most of the time, we will never
