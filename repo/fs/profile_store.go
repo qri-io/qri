@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/theckman/go-flock"
 
-	"gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 )
 
 // ErrNotFound is for when a qri profile isn't found
