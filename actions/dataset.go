@@ -17,7 +17,7 @@ import (
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, dryRun, pin bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, dryRun, pin bool, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
 		prev                     *dataset.Dataset
 		prevPath                 string
@@ -33,12 +33,13 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 		return
 	}
 
+	pro, err = r.Profile()
+	if err != nil {
+		return
+	}
+
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-		pro, err = r.Profile()
-		if err != nil {
-			return
-		}
 		// dry-runs store to an in-memory repo
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
 		if err != nil {
@@ -88,6 +89,26 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 			return
 		}
 		node.LocalStreams.Print("✅ transform complete\n")
+	}
+
+	// Infer any values about the incoming change before merging it with the previous version.
+	changeBodyFile, err = base.InferValues(pro, &changesPod.Name, changes, changeBodyFile)
+	if err != nil {
+		return
+	}
+
+	if prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
+		if convertFormatToPrev {
+			changeBodyFile, err = base.ConvertBodyFormat(changeBodyFile, changes.Structure,
+				prev.Structure)
+			if err != nil {
+				return
+			}
+		} else {
+			err = fmt.Errorf("Refusing to change structure from %s to %s",
+				prev.Structure.Format, changes.Structure.Format)
+			return
+		}
 	}
 
 	// apply changes to the previous path, set changes to the result

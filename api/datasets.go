@@ -481,10 +481,11 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{
-		Dataset:    dsp,
-		Private:    r.FormValue("private") == "true",
-		DryRun:     r.FormValue("dry_run") == "true",
-		ReturnBody: r.FormValue("return_body") == "true",
+		Dataset:             dsp,
+		Private:             r.FormValue("private") == "true",
+		DryRun:              r.FormValue("dry_run") == "true",
+		ReturnBody:          r.FormValue("return_body") == "true",
+		ConvertFormatToPrev: true,
 	}
 
 	if r.FormValue("secrets") != "" {

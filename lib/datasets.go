@@ -101,6 +101,8 @@ type SaveParams struct {
 	DryRun bool
 	// if true, res.Dataset.Body will be a cafs.file of the body
 	ReturnBody bool
+	// if true, convert body to the format of the previous version, if applicable
+	ConvertFormatToPrev bool
 	// string of references to recall before saving
 	Recall string
 }
@@ -159,7 +161,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	ref, body, err := actions.SaveDataset(r.node, ds, p.Secrets, p.DryRun, true)
+	ref, body, err := actions.SaveDataset(r.node, ds, p.Secrets, p.DryRun, true, p.ConvertFormatToPrev)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

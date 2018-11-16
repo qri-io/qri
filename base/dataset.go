@@ -1,6 +1,7 @@
 package base
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -13,6 +14,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -71,10 +73,6 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds *dataset
 
 	pro, err = r.Profile()
 	if err != nil {
-		return
-	}
-
-	if body, err = InferValues(pro, &name, ds, body); err != nil {
 		return
 	}
 
@@ -264,4 +262,33 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 	}
 
 	return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil
+}
+
+// ConvertBodyFormat rewrites a body from a source format to a destination format.
+func ConvertBodyFormat(bodyFile cafs.File, fromSt *dataset.Structure, toSt *dataset.Structure) (cafs.File, error) {
+	// Reader for entries of the source body.
+	r, err := dsio.NewEntryReader(fromSt, bodyFile)
+	if err != nil {
+		return nil, err
+	}
+
+	// Writes entries to a new body.
+	buffer := bytes.NewBufferString("")
+	w, err := dsio.NewEntryWriter(toSt, buffer)
+	if err != nil {
+		return nil, err
+	}
+
+	err = dsio.Copy(r, w)
+	if err != nil {
+		return nil, err
+	}
+	err = w.Close()
+	if err != nil {
+		return nil, err
+	}
+
+	// Set the new format on the structure.
+	fromSt.Format = toSt.Format
+	return cafs.NewMemfileReader("", buffer), nil
 }
