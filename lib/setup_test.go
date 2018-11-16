@@ -7,11 +7,13 @@ import (
 
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
+	"github.com/qri-io/registry"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestSetupTeardown(t *testing.T) {
-	_, registryServer := regmock.NewMockServer()
+	reg := regmock.NewMemRegistry()
+	_, registryServer := regmock.NewMockServerRegistry(reg)
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")
 	cfg1 := config.DefaultConfigForTesting()
@@ -28,13 +30,25 @@ func TestSetupTeardown(t *testing.T) {
 	}
 
 	params.Config = config.DefaultConfigForTesting()
+	params.Config.Profile.Peername = "hallo"
 	params.Config.Registry.Location = registryServer.URL
 	params.SetupIPFS = true
 	params.IPFSFsPath = path
 	params.SetupIPFSConfigData = ipfsCfg
+	params.Register = true
 	if err := Setup(params); err != nil {
 		t.Error(err.Error())
 	}
+
+	if reg.Profiles.Len() != 1 {
+		t.Errorf("expected registry to have one profile. got: %d", reg.Profiles.Len())
+	}
+	reg.Profiles.SortedRange(func(key string, profile *registry.Profile) bool {
+		if profile.Handle != params.Config.Profile.Peername {
+			t.Error("")
+		}
+		return false
+	})
 
 	err := Teardown(TeardownParams{
 		Config:         params.Config,

@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regclient"
 )
 
 // ProfileRequests encapsulates business logic for this node's
@@ -112,15 +111,11 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	if p.Peername != Config.Profile.Peername && p.Peername != "" {
 		// TODO - should ProfileRequests be allocated with a configuration? How should this work in relation to
 		// RPC requests?
-		if Config.Registry != nil {
+		if reg := r.node.Repo.Registry(); reg != nil {
 			current, err := profile.NewProfile(Config.Profile)
 			if err != nil {
 				return err
 			}
-
-			reg := regclient.NewClient(&regclient.Config{
-				Location: Config.Registry.Location,
-			})
 
 			if err := reg.PutProfile(p.Peername, current.PrivKey); err != nil {
 				if strings.Contains(err.Error(), "taken") {

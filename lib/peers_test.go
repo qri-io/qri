@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/registry/regclient"
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
@@ -216,6 +217,19 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 
 func newTestQriNode(t *testing.T) *p2p.QriNode {
 	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).New(r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	node := n.(*p2p.QriNode)
+	return node
+}
+
+func newTestQriNodeRegClient(t *testing.T, c *regclient.Client) *p2p.QriNode {
+	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), c)
 	if err != nil {
 		t.Fatal(err)
 	}

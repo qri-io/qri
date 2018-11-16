@@ -36,9 +36,7 @@ func Setup(repoPath, cfgPath string, cfg *config.Config, register bool) error {
 			if strings.Contains(err.Error(), "taken") {
 				return ErrHandleTaken
 			}
-			// TODO - restore this error
-			// return err
-			err = nil
+			return err
 		}
 	}
 
