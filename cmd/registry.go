@@ -20,8 +20,8 @@ func NewRegistryCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
 can find them through search tools and via web links. You can use registry 
-commands to control how your datasets are published to registries, opting in or out
-on a dataset-by-dataset basis.
+commands to control how your datasets are published to registries, opting 
+in or out on a dataset-by-dataset basis.
 
 Unpublished dataset info will be held locally so you can still interact
 with it. And your datasets will be available to others peers when you run 
@@ -41,7 +41,24 @@ $ qri config set registry.location ""`,
 		},
 	}
 
-	// publishCmd represents the publish command
+	// status represents the status command
+	status := &cobra.Command{
+		Use:   "status",
+		Short: "get the status of a reference on the registry",
+		Long: `
+	use status to see what version of a dataset the registry has on-record, if any`,
+		Example: `  Get status of a dataset reference::
+		$ qri registry status me/dataset_name`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Status()
+		},
+	}
+
+	// publish represents the publish command
 	publish := &cobra.Command{
 		Use:   "publish",
 		Short: "Publish dataset info to the registry",
@@ -64,7 +81,7 @@ Datasets are by default published to the registry when they are created.`,
 		},
 	}
 
-	// unpublishCmd represents the unpublish command
+	// unpublish represents the unpublish command
 	unpublish := &cobra.Command{
 		Use:   "unpublish",
 		Short: "remove dataset info from the registry",
@@ -85,7 +102,7 @@ This dataset will no longer show up in search results.`,
 		},
 	}
 
-	cmd.AddCommand(publish, unpublish)
+	cmd.AddCommand(publish, unpublish, status)
 	return cmd
 }
 
@@ -128,6 +145,33 @@ func (o *RegistryOptions) Publish() error {
 		}
 		printInfo(o.Out, "published dataset %s", ref)
 	}
+	return nil
+}
+
+// Status gets the status of a dataset reference on the registry
+func (o *RegistryOptions) Status() error {
+	var res bool
+
+	for _, arg := range o.Refs {
+		o.StartSpinner()
+
+		ref, err := repo.ParseDatasetRef(arg)
+		if err != nil {
+			return err
+		}
+
+		err = o.RegistryRequests.Status(&ref, &res)
+		o.StopSpinner()
+
+		if err != nil {
+			printErr(o.Out, err)
+			printInfo(o.Out, "%s is not on this registry", ref.String())
+		}
+		if ref.Dataset != nil {
+			printDatasetRefInfo(o.Out, -1, ref)
+		}
+	}
+
 	return nil
 }
 

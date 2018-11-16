@@ -58,10 +58,7 @@ https://github.com/qri-io/qri/issues`,
 		NewLogCommand(opt, ioStreams),
 		NewPublishCommand(opt, ioStreams),
 		NewPeersCommand(opt, ioStreams),
-		// TODO - registry command is currently removed in favor of the newer "qri publish" command
-		// we should consider refactoring this code (espcially it's documentation) &
-		// use it for registry-specific publication & search interaction
-		// NewRegistryCommand(opt, ioStreams),
+		NewRegistryCommand(opt, ioStreams),
 		NewRemoveCommand(opt, ioStreams),
 		NewRenameCommand(opt, ioStreams),
 		NewRenderCommand(opt, ioStreams),
