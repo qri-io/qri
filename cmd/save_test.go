@@ -109,7 +109,8 @@ func TestSaveRun(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	c, _ := mock.NewMockServerWithMemPinset()
+	reg := mock.NewMemRegistryPinset()
+	c, _ := mock.NewMockServerRegistry(reg)
 
 	f, err := NewTestFactory(c)
 	if err != nil {

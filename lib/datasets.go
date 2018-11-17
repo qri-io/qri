@@ -250,13 +250,36 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	return nil
 }
 
+// SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
+type SetPublishStatusParams struct {
+	Ref            *repo.DatasetRef
+	UpdateRegistry bool
+}
+
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (r *DatasetRequests) SetPublishStatus(ref *repo.DatasetRef, res *bool) error {
+func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, res *bool) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.SetPublishStatus", ref, res)
+		return r.cli.Call("DatasetRequests.SetPublishStatus", p, res)
 	}
+
+	ref := p.Ref
 	res = &ref.Published
-	return actions.SetPublishStatus(r.node, ref, ref.Published)
+	if err = actions.SetPublishStatus(r.node, ref, ref.Published); err != nil {
+		return err
+	}
+
+	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
+		if ref.Published == true {
+			if err = actions.Publish(r.node, *ref); err != nil {
+				return err
+			}
+		} else {
+			if err = actions.Unpublish(r.node, *ref); err != nil {
+				return err
+			}
+		}
+	}
+	return nil
 }
 
 // RenameParams defines parameters for Dataset renaming

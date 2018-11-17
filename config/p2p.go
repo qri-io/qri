@@ -5,9 +5,9 @@ import (
 	"fmt"
 	"reflect"
 
-	ma "gx/ipfs/QmYmsdtJ3HsodkePE3eU3TsCaP2YvPZJ4LoXnNkDE5Tpt7/go-multiaddr"
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
-	crypto "gx/ipfs/Qme1knMqwt1hKZbc1BmQFmnm9f36nyQGwXxPGVpVJ9rMK5/go-libp2p-crypto"
+	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
+	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 
 	"github.com/qri-io/jsonschema"
 )
@@ -46,6 +46,9 @@ type P2P struct {
 
 	// list of addresses to bootsrap qri peers on
 	BootstrapAddrs []string `json:"bootstrapaddrs"`
+
+	// Enable AutoNAT service. unless you're hosting a server, leave this as false
+	AutoNAT bool `json:autoNAT`
 }
 
 // DefaultP2PWithoutKeys generates a p2p struct without keys or peerID

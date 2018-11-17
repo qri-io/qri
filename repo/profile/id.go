@@ -3,7 +3,7 @@ package profile
 import (
 	"encoding/json"
 
-	peer "gx/ipfs/QmdVrMn1LhB4ybb8hMVaMLXnA8XRSewMnK6YqXKXoTcRvN/go-libp2p-peer"
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 )
 
 // ID is a distinct thing form a peer.ID. They are *NOT* meant to be interchangable

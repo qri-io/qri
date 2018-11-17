@@ -246,8 +246,6 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 
 // SetPublishStatus configures the publish status of a stored reference
 func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
-	// currently we're just passing this call off to the base package,
-	// in the near future we'll start publishing to registries here
 	return base.SetPublishStatus(node.Repo, ref, published)
 }
 

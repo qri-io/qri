@@ -38,6 +38,7 @@ to a published dataset will be immideately visible to connected peers.
 	}
 
 	cmd.Flags().BoolVarP(&o.Unpublish, "unpublish", "u", false, "unpublish a dataset")
+	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "s", false, "don't publish to registry")
 
 	return cmd
 }
@@ -46,8 +47,9 @@ to a published dataset will be immideately visible to connected peers.
 type PublishOptions struct {
 	ioes.IOStreams
 
-	Refs      []string
-	Unpublish bool
+	Refs       []string
+	Unpublish  bool
+	NoRegistry bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -70,8 +72,12 @@ func (o *PublishOptions) Run() error {
 		}
 
 		ref.Published = !o.Unpublish
+		p := &lib.SetPublishStatusParams{
+			Ref:            &ref,
+			UpdateRegistry: !o.NoRegistry,
+		}
 
-		if err = o.DatasetRequests.SetPublishStatus(&ref, &res); err != nil {
+		if err = o.DatasetRequests.SetPublishStatus(p, &res); err != nil {
 			return err
 		}
 		printInfo(o.Out, "published dataset %s", ref)

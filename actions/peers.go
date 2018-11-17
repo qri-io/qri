@@ -65,10 +65,6 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 func ConnectedQriProfiles(node *p2p.QriNode, limit int) ([]*config.ProfilePod, error) {
 	parsed := []*config.ProfilePod{}
 	for _, p := range node.ConnectedQriProfiles() {
-		// pro, err := p.Encode()
-		// if err != nil {
-		// 	return err
-		// }
 		parsed = append(parsed, p)
 	}
 	return parsed, nil

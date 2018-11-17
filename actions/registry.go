@@ -7,6 +7,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/subset"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -24,7 +25,13 @@ func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return
 	}
 
-	return cli.PutDataset(ref.Peername, ref.Name, ds.Encode(), pub)
+	enc := ds.Encode()
+	enc.Name = ref.Name
+	enc.Peername = ref.Peername
+	enc.Path = ref.Path
+	preview := subset.Preview(enc)
+
+	return cli.PutDataset(ref.Peername, ref.Name, preview, pub)
 }
 
 // Unpublish a dataset from a repo's specified registry
@@ -37,7 +44,14 @@ func Unpublish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	if err = permission(r, ref); err != nil {
 		return
 	}
-	return cli.DeleteDataset(ref.Peername, ref.Name, ds.Encode(), pub)
+
+	enc := ds.Encode()
+	enc.Name = ref.Name
+	enc.Peername = ref.Peername
+	enc.Path = ref.Path
+	preview := subset.Preview(enc)
+
+	return cli.DeleteDataset(ref.Peername, ref.Name, preview, pub)
 }
 
 // Status checks to see if a dataset is published to a repo's specific registry
@@ -45,9 +59,6 @@ func Status(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	r := node.Repo
 	cli, _, _, err := dsParams(r, &ref)
 	if err != nil {
-		return err
-	}
-	if err = permission(r, ref); err != nil {
 		return err
 	}
 	if _, err := cli.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err != nil {
@@ -93,7 +104,7 @@ func permission(r repo.Repo, ref repo.DatasetRef) (err error) {
 		return err
 	}
 	if pro.Peername != ref.Peername {
-		return fmt.Errorf("peername mismatch. '%s' doesn't have permission to publish a dataset created by '%s'", pro.Peername, ref.Peername)
+		return fmt.Errorf("'%s' doesn't have permission to publish a dataset created by '%s'", pro.Peername, ref.Peername)
 	}
 	return nil
 }

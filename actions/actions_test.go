@@ -15,6 +15,7 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/registry/regclient"
 	"github.com/qri-io/registry/regserver/mock"
 )
 
@@ -73,6 +74,18 @@ func connectMapStores(peers []*p2p.QriNode) {
 func newTestNode(t *testing.T) *p2p.QriNode {
 	rc, _ := mock.NewMockServer()
 	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return node
+}
+
+func newTestNodeRegClient(t *testing.T, cli *regclient.Client) *p2p.QriNode {
+	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), cli)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -153,8 +153,8 @@ func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {
 		fmt.Fprintf(w, "%s\n", white(p.Peername))
 	}
 	fmt.Fprintf(w, "profile ID: %s\n", blue(p.ID))
-	if len(p.PeerIDs) > 0 {
-		fmt.Fprintf(w, "network ID: %s\n", p.PeerIDs[0])
+	if len(p.NetworkAddrs) > 0 {
+		fmt.Fprintf(w, "address:    %s\n", p.NetworkAddrs[0])
 	}
 	fmt.Fprintln(w, "")
 }

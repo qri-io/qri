@@ -13,6 +13,8 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/registry"
+	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -104,7 +106,7 @@ func TestSaveProfile(t *testing.T) {
 	}
 	defer func() { SaveConfig = prevSaver }()
 
-	// CodingProfile filled with test data.
+	// ProfilePod filled with test data.
 	pro := config.ProfilePod{}
 	pro.Name = "test_name"
 	pro.Email = "test_email@example.com"
@@ -113,7 +115,7 @@ func TestSaveProfile(t *testing.T) {
 	pro.Color = "default"
 	pro.Twitter = "test_twitter"
 
-	// Save the CodingProfile.
+	// Save the ProfilePod.
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -191,6 +193,47 @@ func TestSaveProfile(t *testing.T) {
 	if got.Twitter != "test_twitter" {
 		log.Errorf("Got Type %v", got.Twitter)
 	}
+}
+
+func TestProfileRequestsSetPeername(t *testing.T) {
+	prevSC := SaveConfig
+	SaveConfig = func() error { return nil }
+	defer func() {
+		SaveConfig = prevSC
+	}()
+
+	reg := regmock.NewMemRegistry()
+	regCli, _ := regmock.NewMockServerRegistry(reg)
+	n := newTestQriNodeRegClient(t, regCli)
+
+	pr := NewProfileRequests(n, nil)
+
+	pro, err := n.Repo.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pro.Peername = "keyboard_cat"
+	pp, err := pro.Encode()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	res := &config.ProfilePod{}
+	if err := pr.SaveProfile(pp, res); err != nil {
+		t.Error(err)
+	}
+
+	if reg.Profiles.Len() != 1 {
+		t.Errorf("expected a profile to be in the registry. got: %d", reg.Profiles.Len())
+	}
+
+	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) bool {
+		if pro.Handle != "keyboard_cat" {
+			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Handle)
+		}
+		return true
+	})
 }
 
 func TestProfileRequestsSetProfilePhoto(t *testing.T) {
