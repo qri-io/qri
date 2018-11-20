@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/registry/pinset"
 	"github.com/qri-io/registry/regserver/mock"
 )
 
@@ -109,8 +110,9 @@ func TestSaveRun(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	reg := mock.NewMemRegistryPinset()
-	c, _ := mock.NewMockServerRegistry(reg)
+	reg := mock.NewMemRegistry()
+	ps := &pinset.MemPinset{Profiles: reg.Profiles}
+	c, _ := mock.NewMockServerRegistryPinset(reg, ps)
 
 	f, err := NewTestFactory(c)
 	if err != nil {
