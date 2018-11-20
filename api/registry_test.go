@@ -17,4 +17,9 @@ func TestRegistryHandlers(t *testing.T) {
 		{"PATCH", "/", nil},
 	}
 	runHandlerTestCases(t, "registry", h.RegistryHandler, registryCases)
+
+	registryListCases := []handlerTestCase{
+		{"GET", "/registry/list", nil},
+	}
+	runHandlerTestCases(t, "registryList", h.RegistryListHandler, registryListCases)
 }

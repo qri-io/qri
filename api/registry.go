@@ -26,15 +26,29 @@ func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Reques
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
-	// case "GET":
-	// 	// get status of dataset, is it published or not
-	// 	h.statusRegistryHandler(w, r)
+	case "GET":
+		// get status of dataset, is it published or not
+		h.statusRegistryHandler(w, r)
 	case "POST", "PUT":
 		// publish a dataset to the registry
 		h.publishRegistryHandler(w, r)
 	case "DELETE":
 		// unpublish a dataset from the registry
 		h.unpublishRegistryHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+// RegistryListHandler is the endpoint to get the list of dataset summaries
+// available on the registry
+func (h *RegistryHandlers) RegistryListHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		// returns list of published datasets on the registry
+		h.listRegistryHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -48,7 +62,7 @@ func (h *RegistryHandlers) statusRegistryHandler(w http.ResponseWriter, r *http.
 	}
 	var res bool
 	if err := h.RegistryRequests.Status(&ref, &res); err != nil {
-		util.WriteResponse(w, fmt.Sprintf("error getting status from registry: %s", err))
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status from registry: %s", err))
 		return
 	}
 
@@ -88,4 +102,21 @@ func (h *RegistryHandlers) unpublishRegistryHandler(w http.ResponseWriter, r *ht
 	}
 
 	util.WriteResponse(w, fmt.Sprintf("unpublished dataset %s", ref))
+}
+
+func (h *RegistryHandlers) listRegistryHandler(w http.ResponseWriter, r *http.Request) {
+	args := lib.ListParamsFromRequest(r)
+	params := &lib.RegistryListParams{
+		Limit:  args.Limit,
+		Offset: args.Offset,
+	}
+	var res bool
+	if err := h.RegistryRequests.List(params, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting list of datasets available on the registry: %s", err))
+		return
+	}
+
+	if err := util.WritePageResponse(w, params.Refs, r, args.Page()); err != nil {
+		log.Infof("error listing registry datasets: %s", err.Error())
+	}
 }
