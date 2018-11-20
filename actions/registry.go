@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry"
+	"github.com/qri-io/registry/pinset"
 	"github.com/qri-io/registry/regclient"
 )
 
@@ -106,7 +106,7 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	}
 
 	if err = reg.Pin(ref.Path, pk, addrs); err != nil {
-		if err == registry.ErrPinsetNotSupported {
+		if err == pinset.ErrPinsetNotSupported {
 			log.Info("this registry does not support pinning, dataset not pinned.")
 		} else {
 			return err

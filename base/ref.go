@@ -23,7 +23,7 @@ func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef, published bool) error {
 	}
 
 	if !InLocalNamespace(r, ref) {
-		return fmt.Errorf("can't publish datsets that are not in your namespace")
+		return fmt.Errorf("can't publish datasets that are not in your namespace")
 	}
 
 	ref.Published = published

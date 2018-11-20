@@ -39,7 +39,7 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 
-	// use a test registry server & client & client
+	// use a test registry server (with a pinset) & client & client
 	rc, registryServer := regmock.NewMockServer()
 	// we need to artificially specify the timestamp
 	// we use the dsfs.Timestamp func variable to override

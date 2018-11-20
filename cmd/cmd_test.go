@@ -172,7 +172,7 @@ func TestCommandsIntegration(t *testing.T) {
 		fmt.Sprintf("qri export -o=%s --format=cbor --body-format=json me/movies", path),
 		"qri publish me/movies",
 		"qri ls -p",
-		"qri publish -u me/movies",
+		"qri publish --unpublish me/movies",
 		// TODO - currently removed, see TODO in cmd/registry.go
 		// "qri registry unpublish me/movies",
 		// "qri registry publish me/movies",
