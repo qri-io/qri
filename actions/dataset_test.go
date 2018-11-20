@@ -126,7 +126,7 @@ func TestSaveDataset(t *testing.T) {
 		BodyBytes: []byte("[]"),
 	}
 
-	ref, _, err := SaveDataset(n, ds, nil, true, false)
+	ref, _, err := SaveDataset(n, ds, nil, true, false, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -147,7 +147,7 @@ func TestSaveDataset(t *testing.T) {
 		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
 		BodyBytes: []byte("[]"),
 	}
-	ref, _, err = SaveDataset(n, ds, nil, false, true)
+	ref, _, err = SaveDataset(n, ds, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -176,7 +176,7 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(bd)`),
 		},
 	}
-	ref, _, err = SaveDataset(n, ds, secrets, false, true)
+	ref, _, err = SaveDataset(n, ds, secrets, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestSaveDataset(t *testing.T) {
 			Description: "updated description",
 		},
 	}
-	ref, _, err = SaveDataset(n, ds, nil, false, true)
+	ref, _, err = SaveDataset(n, ds, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -217,7 +217,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 		Transform: tfds.Transform,
 	}
-	ref, _, err = SaveDataset(n, ds, secrets, false, true)
+	ref, _, err = SaveDataset(n, ds, secrets, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
