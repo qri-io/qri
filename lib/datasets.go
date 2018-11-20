@@ -275,8 +275,14 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, res *bool)
 			if err = actions.Publish(r.node, *ref); err != nil {
 				return err
 			}
+			if err = actions.Pin(r.node, *ref); err != nil {
+				return err
+			}
 		} else {
 			if err = actions.Unpublish(r.node, *ref); err != nil {
+				return err
+			}
+			if err = actions.Unpin(r.node, *ref); err != nil {
 				return err
 			}
 		}

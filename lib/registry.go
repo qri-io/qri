@@ -42,38 +42,7 @@ func (r *RegistryRequests) Publish(p *PublishParams, done *bool) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("RegistryRequests.Publish", p, done)
 	}
-
 	ref := p.Ref
-
-	// if p.Pin {
-	// 	log.Info("pinning dataset...")
-	// 	node := r.node
-
-	// 	if !node.Online {
-	// 		if err = node.Connect(); err != nil {
-	// 			return err
-	// 		}
-	// 		if err = node.StartOnlineServices(func(string) {}); err != nil {
-	// 			return err
-	// 		}
-	// 	}
-
-	// 	var addrs []string
-	// 	for _, maddr := range node.EncapsulatedAddresses() {
-	// 		addrs = append(addrs, maddr.String())
-	// 	}
-
-	// 	if err = r.node.repo.Pin(ref, addrs); err != nil {
-	// 		if err == registry.ErrPinsetNotSupported {
-	// 			log.Info("this registry does not support pinning, dataset not pinned.")
-	// 		} else {
-	// 			return err
-	// 		}
-	// 	} else {
-	// 		log.Info("done")
-	// 	}
-	// }
-
 	return actions.Publish(r.node, ref)
 }
 
@@ -91,4 +60,22 @@ func (r *RegistryRequests) Status(ref *repo.DatasetRef, done *bool) error {
 		return r.cli.Call("RegistryRequests.Status", ref, done)
 	}
 	return actions.Status(r.node, *ref)
+}
+
+// Pin asks a registry to host a copy of a dataset
+func (r *RegistryRequests) Pin(ref *repo.DatasetRef, done *bool) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("RegistryRequests.Pin", ref, done)
+	}
+	return actions.Pin(r.node, *ref)
+}
+
+// Unpin reverses the pin process, asking a registry to stop hosting a copy of
+// an already-pinned dataset
+func (r *RegistryRequests) Unpin(ref *repo.DatasetRef, done *bool) error {
+	if r.cli != nil {
+		return r.cli.Call("RegistryRequests.Unpin", ref, done)
+	}
+
+	return actions.Unpin(r.node, *ref)
 }

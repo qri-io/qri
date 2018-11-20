@@ -102,7 +102,41 @@ This dataset will no longer show up in search results.`,
 		},
 	}
 
-	cmd.AddCommand(publish, unpublish, status)
+	pin := &cobra.Command{
+		Use:   "pin",
+		Short: "pin dataset data to the registry",
+		Long: `
+Pin asks a registry to host a copy of your dataset, making it available for
+others to download on the d.web`,
+		Example: `  Pin a dataset to the registry:
+  $ qri registry pin me/dataset_name`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Pin()
+		},
+	}
+
+	unpin := &cobra.Command{
+		Use:   "unpin",
+		Short: "unpin dataset data from the registry",
+		Long: `
+Unpin reverses the pin process, asking a registry to remove it's hosted copy
+of your dataset from the registry`,
+		Example: `  Unpin a dataset from the registry:
+  $ qri registry unpin me/dataset_name`,
+		Args: cobra.MinimumNArgs(1),
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Unpin()
+		},
+	}
+
+	cmd.AddCommand(publish, unpublish, status, pin, unpin)
 	return cmd
 }
 
@@ -191,6 +225,46 @@ func (o *RegistryOptions) Unpublish() error {
 			return err
 		}
 		printInfo(o.Out, "unpublished dataset %s", ref)
+	}
+	return nil
+}
+
+// Pin executes the pin command
+func (o *RegistryOptions) Pin() error {
+	var res bool
+	o.StartSpinner()
+	defer o.StopSpinner()
+
+	for _, arg := range o.Refs {
+		ref, err := repo.ParseDatasetRef(arg)
+		if err != nil {
+			return err
+		}
+
+		if err = o.RegistryRequests.Pin(&ref, &res); err != nil {
+			return err
+		}
+		printInfo(o.Out, "pinned dataset %s", ref)
+	}
+	return nil
+}
+
+// Unpin executes the unpin command
+func (o *RegistryOptions) Unpin() error {
+	var res bool
+	o.StartSpinner()
+	defer o.StopSpinner()
+
+	for _, arg := range o.Refs {
+		ref, err := repo.ParseDatasetRef(arg)
+		if err != nil {
+			return err
+		}
+
+		if err = o.RegistryRequests.Unpin(&ref, &res); err != nil {
+			return err
+		}
+		printInfo(o.Out, "unpinned dataset %s", ref)
 	}
 	return nil
 }

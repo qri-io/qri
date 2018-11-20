@@ -25,7 +25,7 @@ to a published dataset will be immideately visible to connected peers.
   $ qri publish me/dataset me/other_dataset
 
   # unpublish a dataset
-  $ qri publish -u me/dataset`,
+  $ qri publish -unpublish me/dataset`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
@@ -37,8 +37,8 @@ to a published dataset will be immideately visible to connected peers.
 		},
 	}
 
-	cmd.Flags().BoolVarP(&o.Unpublish, "unpublish", "u", false, "unpublish a dataset")
-	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "s", false, "don't publish to registry")
+	cmd.Flags().BoolVarP(&o.Unpublish, "unpublish", "", false, "unpublish a dataset")
+	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "", false, "don't publish to registry")
 
 	return cmd
 }
