@@ -17,7 +17,7 @@ import (
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, dryRun, pin bool, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
 		prev                     *dataset.Dataset
 		prevPath                 string
@@ -104,6 +104,8 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 			if err != nil {
 				return
 			}
+			// Set the new format on the change structure.
+			changes.Structure.Format = prev.Structure.Format
 		} else {
 			err = fmt.Errorf("Refusing to change structure from %s to %s",
 				prev.Structure.Format, changes.Structure.Format)

@@ -1,6 +1,7 @@
 package base
 
 import (
+	"bytes"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -413,3 +414,78 @@ func TestDatasetPinning(t *testing.T) {
 // 		}
 // 	}
 // }
+
+func TestConvertBodyFormat(t *testing.T) {
+	jsonStructure := &dataset.Structure{Format: dataset.JSONDataFormat, Schema: dataset.BaseSchemaArray}
+	csvStructure := &dataset.Structure{Format: dataset.CSVDataFormat, Schema: dataset.BaseSchemaArray}
+
+	// CSV -> JSON
+	body := cafs.NewMemfileBytes("", []byte("a,b,c"))
+	got, err := ConvertBodyFormat(body, csvStructure, jsonStructure)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	data, err := ioutil.ReadAll(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte(`[["a","b","c"]]`)) {
+		t.Error(fmt.Errorf("converted body didn't match, got: %s", data))
+	}
+
+	// CSV -> JSON, multiple lines
+	body = cafs.NewMemfileBytes("", []byte("a,b,c\n\rd,e,f\n\rg,h,i"))
+	got, err = ConvertBodyFormat(body, csvStructure, jsonStructure)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	data, err = ioutil.ReadAll(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte(`[["a","b","c"],["d","e","f"],["g","h","i"]]`)) {
+		t.Error(fmt.Errorf("converted body didn't match, got: %s", data))
+	}
+
+	// JSON -> CSV
+	body = cafs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	got, err = ConvertBodyFormat(body, jsonStructure, csvStructure)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	data, err = ioutil.ReadAll(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte("a,b,c\n")) {
+		t.Error(fmt.Errorf("converted body didn't match, got: %s", data))
+	}
+
+	// CSV -> CSV
+	body = cafs.NewMemfileBytes("", []byte("a,b,c"))
+	got, err = ConvertBodyFormat(body, csvStructure, csvStructure)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	data, err = ioutil.ReadAll(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte("a,b,c\n")) {
+		t.Error(fmt.Errorf("converted body didn't match, got: %s", data))
+	}
+
+	// JSON -> JSON
+	body = cafs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	got, err = ConvertBodyFormat(body, jsonStructure, jsonStructure)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	data, err = ioutil.ReadAll(got)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	if !bytes.Equal(data, []byte(`[["a","b","c"]]`)) {
+		t.Error(fmt.Errorf("converted body didn't match, got: %s", data))
+	}
+}

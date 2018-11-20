@@ -265,7 +265,7 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 }
 
 // ConvertBodyFormat rewrites a body from a source format to a destination format.
-func ConvertBodyFormat(bodyFile cafs.File, fromSt *dataset.Structure, toSt *dataset.Structure) (cafs.File, error) {
+func ConvertBodyFormat(bodyFile cafs.File, fromSt, toSt *dataset.Structure) (cafs.File, error) {
 	// Reader for entries of the source body.
 	r, err := dsio.NewEntryReader(fromSt, bodyFile)
 	if err != nil {
@@ -273,7 +273,7 @@ func ConvertBodyFormat(bodyFile cafs.File, fromSt *dataset.Structure, toSt *data
 	}
 
 	// Writes entries to a new body.
-	buffer := bytes.NewBufferString("")
+	buffer := &bytes.Buffer{}
 	w, err := dsio.NewEntryWriter(toSt, buffer)
 	if err != nil {
 		return nil, err
@@ -288,7 +288,5 @@ func ConvertBodyFormat(bodyFile cafs.File, fromSt *dataset.Structure, toSt *data
 		return nil, err
 	}
 
-	// Set the new format on the structure.
-	fromSt.Format = toSt.Format
-	return cafs.NewMemfileReader("", buffer), nil
+	return cafs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
 }
