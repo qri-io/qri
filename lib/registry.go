@@ -79,3 +79,24 @@ func (r *RegistryRequests) Unpin(ref *repo.DatasetRef, done *bool) error {
 
 	return actions.Unpin(r.node, *ref)
 }
+
+// RegistryListParams encapsulates arguments to the publish method
+type RegistryListParams struct {
+	Refs   []*repo.DatasetRef
+	Limit  int
+	Offset int
+}
+
+// List returns the list of datasets that have been published to a registry
+func (r *RegistryRequests) List(params *RegistryListParams, done *bool) error {
+	if r.cli != nil {
+		return r.cli.Call("RegistryRequests.List", params, done)
+	}
+
+	dsRefs, err := actions.RegistryList(r.node, params.Limit, params.Offset)
+	if err != nil {
+		return err
+	}
+	params.Refs = dsRefs
+	return nil
+}

@@ -145,6 +145,27 @@ func Unpin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	}
 
 	return reg.Unpin(ref.Path, pk)
+
+}
+
+// RegistryList gets a list of the published datasets of a repo's specific registry
+func RegistryList(node *p2p.QriNode, limit, offset int) (datasets []*repo.DatasetRef, err error) {
+	r := node.Repo
+	cli := r.Registry()
+	if cli == nil {
+		err = repo.ErrNoRegistry
+		return
+	}
+
+	regDatasets, err := cli.ListDatasets(limit, offset)
+	if err != nil {
+		return
+	}
+
+	for _, regDataset := range regDatasets {
+		datasets = append(datasets, regToRepo(regDataset))
+	}
+	return
 }
 
 // dsParams is a convenience func that collects params for registry dataset interaction
@@ -187,4 +208,21 @@ func permission(r repo.Repo, ref repo.DatasetRef) (err error) {
 		return fmt.Errorf("'%s' doesn't have permission to publish a dataset created by '%s'", pro.Peername, ref.Peername)
 	}
 	return nil
+}
+
+func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
+	if rds == nil {
+		return &repo.DatasetRef{}
+	}
+
+	dsp := rds.DatasetPod
+
+	return &repo.DatasetRef{
+		Peername:  rds.Handle,
+		Name:      rds.Name,
+		Published: true,
+		Dataset:   &dsp,
+		Path:      dsp.Path,
+		ProfileID: profile.ID(dsp.ProfileID),
+	}
 }
