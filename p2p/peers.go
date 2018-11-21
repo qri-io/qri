@@ -86,7 +86,7 @@ func (n *QriNode) ClosestConnectedQriPeers(profileID profile.ID, max int) (pid [
 			if len(protocols) != 0 {
 				pid = append(pid, peerID)
 				added++
-				if added == max {
+				if added >= max {
 					break
 				}
 			}
