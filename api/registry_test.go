@@ -18,8 +18,8 @@ func TestRegistryHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "registry", h.RegistryHandler, registryCases)
 
-	registryListCases := []handlerTestCase{
-		{"GET", "/registry/list", nil},
+	registryDatasetsCases := []handlerTestCase{
+		{"GET", "/registry/datasets", nil},
 	}
-	runHandlerTestCases(t, "registryList", h.RegistryListHandler, registryListCases)
+	runHandlerTestCases(t, "registryDatasets", h.RegistryDatasetsHandler, registryDatasetsCases)
 }
