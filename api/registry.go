@@ -40,15 +40,15 @@ func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Reques
 	}
 }
 
-// RegistryListHandler is the endpoint to get the list of dataset summaries
+// RegistryDatasetsHandler is the endpoint to get the list of dataset summaries
 // available on the registry
-func (h *RegistryHandlers) RegistryListHandler(w http.ResponseWriter, r *http.Request) {
+func (h *RegistryHandlers) RegistryDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
 		// returns list of published datasets on the registry
-		h.listRegistryHandler(w, r)
+		h.listRegistryDatasetsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
 	}
@@ -104,7 +104,7 @@ func (h *RegistryHandlers) unpublishRegistryHandler(w http.ResponseWriter, r *ht
 	util.WriteResponse(w, fmt.Sprintf("unpublished dataset %s", ref))
 }
 
-func (h *RegistryHandlers) listRegistryHandler(w http.ResponseWriter, r *http.Request) {
+func (h *RegistryHandlers) listRegistryDatasetsHandler(w http.ResponseWriter, r *http.Request) {
 	args := lib.ListParamsFromRequest(r)
 	params := &lib.RegistryListParams{
 		Limit:  args.Limit,
