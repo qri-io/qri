@@ -140,10 +140,10 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	s.fetchIPFSPath(r.URL.Path, w, r)
+	s.fetchCAFSPath(r.URL.Path, w, r)
 }
 
-func (s *Server) fetchIPFSPath(path string, w http.ResponseWriter, r *http.Request) {
+func (s *Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
 	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(path))
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)

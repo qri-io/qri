@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"strings"
 )
 
 // ServeWebapp launches a webapp server on s.cfg.Webapp.Port
@@ -20,20 +21,25 @@ func (s *Server) ServeWebapp() {
 	}
 
 	m := http.NewServeMux()
-	m.Handle("/", s.middleware(s.WebappHandler))
-	m.Handle("/webapp.js", s.WebappJSHandler())
+	m.Handle("/", s.middleware(s.WebappTemplateHandler))
+	m.Handle("/webapp/", s.FrontendHandler("/webapp"))
+
 	webappserver := &http.Server{Handler: m}
 	webappserver.Serve(listener)
 	return
 }
 
-// WebappJSHandler attempts to resolve an update
-func (s *Server) WebappJSHandler() http.Handler {
+// FrontendHandler resolves the current webapp hash, (fetching the compiled frontend in the process)
+// and serves it up as a traditional HTTP endpoint, transparently redirecting requests
+// for [prefix]/foo.js to [CAFS Hash]/foo.js
+// prefix is the path prefix that should be stripped from the request URL.Path
+func (s *Server) FrontendHandler(prefix string) http.Handler {
 	var webappPath = s.cfg.Webapp.EntrypointHash
 	go s.resolveWebappPath(&webappPath)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		s.fetchIPFSPath(webappPath, w, r)
+		path := fmt.Sprintf("%s%s", webappPath, strings.TrimPrefix(r.URL.Path, prefix))
+		s.fetchCAFSPath(path, w, r)
 	})
 }
 
@@ -61,7 +67,7 @@ func (s *Server) resolveWebappPath(path *string) {
 	*path = p.String()
 }
 
-// WebappHandler renders the home page
-func (s *Server) WebappHandler(w http.ResponseWriter, r *http.Request) {
+// WebappTemplateHandler renders the home page
+func (s *Server) WebappTemplateHandler(w http.ResponseWriter, r *http.Request) {
 	renderTemplate(s.cfg.Webapp, w, "webapp")
 }
