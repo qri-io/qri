@@ -34,6 +34,13 @@ func (s *Server) ServeWebapp() {
 // for [prefix]/foo.js to [CAFS Hash]/foo.js
 // prefix is the path prefix that should be stripped from the request URL.Path
 func (s *Server) FrontendHandler(prefix string) http.Handler {
+	// TODO - refactor these next two lines. This kicks off a goroutine that checks a IPNS dns entry
+	// for the latest hash of the webapp and overwrites with that hash on completion. Problems:
+	// * it's mutating its input parameter
+	// * it has a race condition with the code below
+	// * there's no error handling,
+	// * and really the data could be owned by Server and initialized by it,
+	//   as there's nothing that necessitates it being within FrontendHandler.
 	var webappPath = s.cfg.Webapp.EntrypointHash
 	go s.resolveWebappPath(&webappPath)
 

@@ -54,7 +54,7 @@ func StartServer(c *config.API, s *http.Server) error {
 	return s.ListenAndServeTLS(cert, key)
 }
 
-// HTTPSRedirect listens pver TCP on addr, redirecting HTTP requests to https
+// HTTPSRedirect listens over TCP on addr, redirecting HTTP requests to https
 func HTTPSRedirect(addr string) {
 	ln, err := net.Listen("tcp", addr)
 	if err != nil {
