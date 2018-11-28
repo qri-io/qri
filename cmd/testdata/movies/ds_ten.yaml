@@ -1,0 +1,5 @@
+name: ten_movies
+meta:
+  qri: md:0
+  title: example movie data
+bodypath: body_ten.csv

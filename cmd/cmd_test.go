@@ -2,7 +2,10 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qri/repo/gen"
 	"io/ioutil"
 	"net"
 	"os"
@@ -11,6 +14,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
@@ -207,4 +211,153 @@ func TestCommandsIntegration(t *testing.T) {
 			time.Sleep(500 * time.Millisecond)
 		}()
 	}
+}
+
+// Test that saving a dataset with a relative body path works, and validate the contents of that
+// body match what was given to the save command.
+func TestSaveRelativeBodyPath(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	repo := NewTestRepoRoot("qri_test_save_relative_body")
+	defer repo.Delete()
+
+	// TODO: If TestRepoRoot is moved to a different package, pass it an a parameter to this
+	// function.
+	cmdR := repo.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read body from the dataset that was saved.
+	dsPath := repo.GetPathForDataset(0)
+	actualBody := repo.ReadBodyFromIPFS(dsPath + "/data.csv")
+
+	// Read the body from the testdata input file.
+	f, _ := os.Open("testdata/movies/body_ten.csv")
+	expectBytes, _ := ioutil.ReadAll(f)
+	expectBody := string(expectBytes)
+
+	// Make sure they match.
+	if actualBody != expectBody {
+		t.Errorf("error reading body, expect \"%s\", actual \"%s\"", actualBody, expectBody)
+	}
+}
+
+// TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
+// bodies of dataset in more of our test case. That would require extracting some parts out, like
+// pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a
+// parameter to its constructor.
+
+// TestRepoRoot stores paths to a test repo.
+type TestRepoRoot struct {
+	rootPath    string
+	ipfsPath    string
+	qriPath     string
+	pathFactory PathFactory
+	testCrypto  gen.CryptoGenerator
+}
+
+// NewTestRepoRoot constructs the test repo and initializes everything as cheaply as possible.
+func NewTestRepoRoot(prefix string) TestRepoRoot {
+	rootPath, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		panic(err)
+	}
+
+	// Create directory for new IPFS repo.
+	ipfsPath := filepath.Join(rootPath, "ipfs")
+	err = os.MkdirAll(ipfsPath, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	// Build IPFS repo directory by unzipping an empty repo.
+	testCrypto := libtest.NewTestCrypto()
+	err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, "")
+	if err != nil {
+		panic(err)
+	}
+	// Create directory for new Qri repo.
+	qriPath := filepath.Join(rootPath, "qri")
+	err = os.MkdirAll(qriPath, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	// Create empty config.yaml into the test repo.
+	cfg := config.DefaultConfigForTesting()
+	cfg.Profile.Peername = "test_peer"
+	err = cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
+	if err != nil {
+		panic(err)
+	}
+	// PathFactory returns the paths for qri and ipfs roots.
+	pathFactory := NewDirPathFactory(rootPath)
+	return TestRepoRoot{
+		rootPath:    rootPath,
+		ipfsPath:    ipfsPath,
+		qriPath:     qriPath,
+		pathFactory: pathFactory,
+		testCrypto:  testCrypto,
+	}
+}
+
+// Delete removes the test repo on disk.
+func (r *TestRepoRoot) Delete() {
+	os.RemoveAll(r.rootPath)
+}
+
+// CreateCommandRunner returns a cobra runable command.
+func (r *TestRepoRoot) CreateCommandRunner() *cobra.Command {
+	streams, _, _, _ := ioes.NewTestIOStreams()
+	return NewQriCommand(r.pathFactory, r.testCrypto, streams)
+}
+
+// GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
+func (r *TestRepoRoot) GetPathForDataset(index int) string {
+	dsRefs := filepath.Join(r.qriPath, "ds_refs.json")
+	file, err := os.Open(dsRefs)
+	if err != nil {
+		panic(err)
+	}
+
+	bytes, err := ioutil.ReadAll(file)
+	if err != nil {
+		panic(err)
+	}
+
+	var result []map[string]interface{}
+	err = json.Unmarshal([]byte(bytes), &result)
+	if err != nil {
+		panic(err)
+	}
+
+	var dsPath string
+	dsPath = result[index]["path"].(string)
+	return dsPath
+}
+
+// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.
+func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
+	// TODO: Perhaps there is an existing cafs primitive that does this work instead?
+	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+		cfg.Online = false
+		cfg.FsRepoPath = r.ipfsPath
+	})
+	if err != nil {
+		panic(err)
+	}
+
+	bodyFile, err := fs.Get(datastore.NewKey(keyPath))
+	if err != nil {
+		panic(err)
+	}
+
+	bodyBytes, err := ioutil.ReadAll(bodyFile)
+	if err != nil {
+		panic(err)
+	}
+
+	return string(bodyBytes)
 }
