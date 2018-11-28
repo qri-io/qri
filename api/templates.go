@@ -33,6 +33,6 @@ const webapptmpl = `
 </head>
 <body>
   <div id="root"></div>
-  <script type="text/javascript" src="/webapp.js"></script>
+  <script type="text/javascript" src="/webapp/main.js"></script>
 </body>
 </html>`
