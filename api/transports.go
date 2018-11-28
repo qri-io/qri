@@ -37,7 +37,7 @@ func StartServer(c *config.API, s *http.Server) error {
 	}
 
 	// Attempt to boot a port 80 https redirect
-	go func() { HTTPSRedirect() }()
+	go HTTPSRedirect(":80")
 
 	s.TLSConfig = &tls.Config{
 		GetCertificate: certManager.GetCertificate,
@@ -54,14 +54,14 @@ func StartServer(c *config.API, s *http.Server) error {
 	return s.ListenAndServeTLS(cert, key)
 }
 
-// HTTPSRedirect listens on port 80, redirecting HTTP requests to https
-func HTTPSRedirect() {
-	ln, err := net.Listen("tcp", ":80")
+// HTTPSRedirect listens pver TCP on addr, redirecting HTTP requests to https
+func HTTPSRedirect(addr string) {
+	ln, err := net.Listen("tcp", addr)
 	if err != nil {
 		return
 	}
 
-	// log.Infoln("TCP Port 80 is available, redirecting traffic to https")
+	log.Infof("TCP Port %s is available, redirecting traffic to https", addr)
 
 	srv := &http.Server{
 		ReadTimeout:  5 * time.Second,
