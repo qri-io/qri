@@ -55,19 +55,6 @@ func Unpublish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	return cli.DeleteDataset(ref.Peername, ref.Name, preview, pub)
 }
 
-// Status checks to see if a dataset is published to a repo's specific registry
-func Status(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
-	r := node.Repo
-	cli, _, _, err := dsParams(r, &ref)
-	if err != nil {
-		return err
-	}
-	if _, err := cli.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err != nil {
-		return err
-	}
-	return nil
-}
-
 // Pin asks a registry to host a copy of a dataset
 func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	node.LocalStreams.Print("📌 pinning dataset")
@@ -225,4 +212,29 @@ func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
 		Path:      dsp.Path,
 		ProfileID: profile.ID(dsp.ProfileID),
 	}
+}
+
+// RegistryDataset gets commit, structure, meta, viz & transform form a given reference
+// from a registry
+func RegistryDataset(node *p2p.QriNode, ds *repo.DatasetRef) error {
+	cli := node.Repo.Registry()
+	if cli == nil {
+		return repo.ErrNoRegistry
+	}
+	err := repo.CanonicalizeDatasetRef(node.Repo, ds)
+	if err != nil && err != repo.ErrNotFound {
+		log.Debug(err.Error())
+		return err
+	}
+	if err == repo.ErrNotFound && node == nil {
+		return fmt.Errorf("%s, and no network connection", err.Error())
+	}
+
+	dsReg, err := cli.GetDataset(ds.Peername, ds.Name, "", ds.Path)
+	if err != nil {
+		return err
+	}
+
+	*ds = *regToRepo(dsReg)
+	return nil
 }

@@ -450,6 +450,10 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 	if ref.Peername != "" {
 		id, err := r.Profiles().PeernameID(ref.Peername)
 		if err != nil {
+			// TODO: compare to actual error here, not string
+			if err.Error() == "datastore: key not found" {
+				return ErrNotFound
+			}
 			return fmt.Errorf("error fetching peer from store: %s", err)
 		}
 		if ref.ProfileID == "" {
