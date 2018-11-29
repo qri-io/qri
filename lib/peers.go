@@ -77,8 +77,20 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.Profile
 		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	*peers, err = actions.ConnectedQriProfiles(d.qriNode, *limit)
-	return err
+	connected, err := actions.ConnectedQriProfiles(d.qriNode)
+	if err != nil {
+		return err
+	}
+
+	build := make([]*config.ProfilePod, intMin(len(connected), *limit))
+	for _, p := range connected {
+		build = append(build, p)
+		if len(build) >= *limit {
+			break
+		}
+	}
+	*peers = build
+	return nil
 }
 
 // PeerConnectionParamsPod defines parameters for defining a connection
@@ -197,6 +209,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 		return d.cli.Call("PeerRequests.Info", p, res)
 	}
 
+	// TODO: Move most / all of this to actions package, perhaps.
 	r := d.qriNode.Repo
 
 	profiles, err := r.Profiles().List()
@@ -215,7 +228,21 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 
 			prof, err := pro.Encode()
 			*res = *prof
-			return err
+
+			connected, err := actions.ConnectedQriProfiles(d.qriNode)
+			if err != nil {
+				return err
+			}
+			// If the requested profileID is in the list of connected peers, set Online flag.
+			if _, ok := connected[pro.ID]; ok {
+				res.Online = true
+			}
+			// If the requested profileID is myself and I'm Online, set Online flag.
+			if peer.ID(pro.ID) == d.qriNode.ID && d.qriNode.Online {
+				res.Online = true
+			}
+			return nil
+
 		}
 	}
 
@@ -252,4 +279,11 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 
 	*res = refs
 	return err
+}
+
+func intMin(a, b int) int {
+	if a < b {
+		return a
+	}
+	return b
 }
