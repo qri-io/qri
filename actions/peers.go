@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // ListPeers lists Peers on the qri network
@@ -15,14 +16,17 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 		return nil, err
 	}
 
-	peers := make([]*config.ProfilePod, limit)
-	online := []*config.ProfilePod{}
-	if online, err = ConnectedQriProfiles(node, limit); err != nil {
+	peers := make([]*config.ProfilePod, 0, limit)
+	connected, err := ConnectedQriProfiles(node)
+	if err != nil {
 		return nil, err
 	}
 
 	if onlineOnly {
-		return online, nil
+		for _, p := range connected {
+			peers = append(peers, p)
+		}
+		return peers, nil
 	}
 
 	ps, err := r.Profiles().List()
@@ -34,38 +38,29 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 		return []*config.ProfilePod{}, nil
 	}
 
-	i := 0
 	for _, pro := range ps {
-		if i >= limit {
+		if len(peers) >= limit {
 			break
 		}
 		if pro == nil || pro.ID == user.ID {
 			continue
 		}
 
-		// TODO - this is dumb use a map
-		for _, olp := range online {
-			if pro.ID.String() == olp.ID {
-				pro.Online = true
-			}
+		if _, ok := connected[pro.ID]; ok {
+			pro.Online = true
 		}
 
-		peers[i], err = pro.Encode()
+		p, err := pro.Encode()
 		if err != nil {
 			return nil, err
 		}
-
-		i++
+		peers = append(peers, p)
 	}
 
 	return peers, nil
 }
 
-// ConnectedQriProfiles gives any currently connected qri profiles to this node
-func ConnectedQriProfiles(node *p2p.QriNode, limit int) ([]*config.ProfilePod, error) {
-	parsed := []*config.ProfilePod{}
-	for _, p := range node.ConnectedQriProfiles() {
-		parsed = append(parsed, p)
-	}
-	return parsed, nil
+// ConnectedQriProfiles returns a map from ProfileIDs to profiles for each connected node
+func ConnectedQriProfiles(node *p2p.QriNode) (map[profile.ID]*config.ProfilePod, error) {
+	return node.ConnectedQriProfiles(), nil
 }

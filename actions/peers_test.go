@@ -38,8 +38,14 @@ func TestListPeers(t *testing.T) {
 func TestConnectedQriProfiles(t *testing.T) {
 	node := newTestNode(t)
 
-	_, err := ConnectedQriProfiles(node, 100)
+	peers, err := ConnectedQriProfiles(node)
 	if err != nil {
 		t.Error(err.Error())
 	}
+
+	if len(peers) != 0 {
+		t.Errorf("expected 0 connected peers, got %d", len(peers))
+	}
+
+	// TODO: Test for node with at least 1 connected peer
 }
