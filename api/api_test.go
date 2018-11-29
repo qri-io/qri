@@ -41,9 +41,8 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 
 	// use a test registry server (with a pinset) & client & client
 	rc, registryServer := regmock.NewMockServer()
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
@@ -166,10 +165,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
 
-	// in order to have consistent responses
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
 	prev := dsfs.Timestamp
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }

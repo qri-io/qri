@@ -2,11 +2,22 @@ package actions
 
 import (
 	"testing"
+	"time"
 
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestRegistry(t *testing.T) {
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prevTs := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	defer func() {
+		dsfs.Timestamp = prevTs
+	}()
+
 	reg := regmock.NewMemRegistry()
 	regClient, regServer := regmock.NewMockServerRegistry(reg)
 	defer regServer.Close()
@@ -17,8 +28,23 @@ func TestRegistry(t *testing.T) {
 	if err := Publish(node, ref); err != nil {
 		t.Error(err.Error())
 	}
-	if err := Status(node, ref); err != nil {
+
+	cities := repo.DatasetRef{
+		Peername: "me",
+		Name:     "cities",
+	}
+	if err := RegistryDataset(node, &cities); err != nil {
 		t.Error(err.Error())
+	}
+
+	if cities.Path != "/map/QmW3QAZWmLcjS1RyPgYDa59w23k5VeyPHim2b8Zj7z8Zpo" {
+		t.Errorf("error getting dataset from registry, expected path to be '/map/QmW3QAZWmLcjS1RyPgYDa59w23k5VeyPHim2b8Zj7z8Zpo', got %s", cities.Path)
+	}
+	if cities.Dataset == nil {
+		t.Errorf("error getting dataset from registry, dataset is nil")
+	}
+	if cities.Published != true {
+		t.Errorf("error getting dataset from registry, expected published to be 'true'")
 	}
 
 	ref2 := addFlourinatedCompoundsDataset(t, node)

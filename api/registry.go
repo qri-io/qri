@@ -7,17 +7,19 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 )
 
 // RegistryHandlers wraps a requests struct to interface with http.HandlerFunc
 type RegistryHandlers struct {
 	lib.RegistryRequests
+	repo repo.Repo
 }
 
 // NewRegistryHandlers allocates a RegistryHandlers pointer
 func NewRegistryHandlers(node *p2p.QriNode) *RegistryHandlers {
 	req := lib.NewRegistryRequests(node, nil)
-	h := RegistryHandlers{*req}
+	h := RegistryHandlers{*req, node.Repo}
 	return &h
 }
 
@@ -27,8 +29,8 @@ func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Reques
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		// get status of dataset, is it published or not
-		h.statusRegistryHandler(w, r)
+		// get a dataset if it is published, error if not
+		h.registryDatasetHandler(w, r)
 	case "POST", "PUT":
 		// publish a dataset to the registry
 		h.publishRegistryHandler(w, r)
@@ -54,19 +56,18 @@ func (h *RegistryHandlers) RegistryDatasetsHandler(w http.ResponseWriter, r *htt
 	}
 }
 
-func (h *RegistryHandlers) statusRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+// RegistryDatasetHandler is the endpoint to get a dataset summary
+// from the registry
+func (h *RegistryHandlers) RegistryDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		// returns a registry dataset
+		h.registryDatasetHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
 	}
-	var res bool
-	if err := h.RegistryRequests.Status(&ref, &res); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status from registry: %s", err))
-		return
-	}
-
-	util.WriteResponse(w, fmt.Sprintf("dataset %s is published to the registry", ref))
 }
 
 func (h *RegistryHandlers) publishRegistryHandler(w http.ResponseWriter, r *http.Request) {
@@ -119,4 +120,24 @@ func (h *RegistryHandlers) listRegistryDatasetsHandler(w http.ResponseWriter, r 
 	if err := util.WritePageResponse(w, params.Refs, r, args.Page()); err != nil {
 		log.Infof("error listing registry datasets: %s", err.Error())
 	}
+}
+
+func (h *RegistryHandlers) registryDatasetHandler(w http.ResponseWriter, r *http.Request) {
+	res := &repo.DatasetRef{}
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry/"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+	if err = repo.CanonicalizeDatasetRef(h.repo, &ref); err != nil && err != repo.ErrNotFound {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	err = h.RegistryRequests.GetDataset(&ref, res)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	util.WriteResponse(w, res)
 }

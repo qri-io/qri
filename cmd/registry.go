@@ -184,21 +184,20 @@ func (o *RegistryOptions) Publish() error {
 
 // Status gets the status of a dataset reference on the registry
 func (o *RegistryOptions) Status() error {
-	var res bool
-
 	for _, arg := range o.Refs {
 		o.StartSpinner()
+
+		res := repo.DatasetRef{}
 
 		ref, err := repo.ParseDatasetRef(arg)
 		if err != nil {
 			return err
 		}
 
-		err = o.RegistryRequests.Status(&ref, &res)
+		err = o.RegistryRequests.GetDataset(&ref, &res)
 		o.StopSpinner()
 
 		if err != nil {
-			printErr(o.Out, err)
 			printInfo(o.Out, "%s is not on this registry", ref.String())
 		}
 		if ref.Dataset != nil {

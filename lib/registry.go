@@ -54,14 +54,6 @@ func (r *RegistryRequests) Unpublish(ref *repo.DatasetRef, done *bool) error {
 	return actions.Unpublish(r.node, *ref)
 }
 
-// Status checks if a dataset has been published to a registry
-func (r *RegistryRequests) Status(ref *repo.DatasetRef, done *bool) error {
-	if r.cli != nil {
-		return r.cli.Call("RegistryRequests.Status", ref, done)
-	}
-	return actions.Status(r.node, *ref)
-}
-
 // Pin asks a registry to host a copy of a dataset
 func (r *RegistryRequests) Pin(ref *repo.DatasetRef, done *bool) (err error) {
 	if r.cli != nil {
@@ -98,5 +90,24 @@ func (r *RegistryRequests) List(params *RegistryListParams, done *bool) error {
 		return err
 	}
 	params.Refs = dsRefs
+	return nil
+}
+
+// GetDataset returns a dataset that has been published to the registry
+func (r *RegistryRequests) GetDataset(ref *repo.DatasetRef, res *repo.DatasetRef) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Get", ref, res)
+	}
+
+	// Handle `qri use` to get the current default dataset
+	if err := DefaultSelectedRef(r.node.Repo, ref); err != nil {
+		return err
+	}
+
+	if err := actions.RegistryDataset(r.node, ref); err != nil {
+		return err
+	}
+
+	*res = *ref
 	return nil
 }
