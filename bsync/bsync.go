@@ -14,15 +14,43 @@ import (
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
+	coreopt "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface/options"
 )
 
-// Progress tracks completion of a sync task. each element in the slice represents
-// a block, the element itself must be a number from 0-100 representing the
-// transmission completion of that block. 0 = nothing sent, 100 = finished.
-type Progress []uint16
+// Completion tracks progress of a sync task against a manifest.
+// each element in the slice represents the index a block in a manifest.Nodes field,
+// which contains the hash of a block needed to complete a manifest
+// the element in the progress slice represents the transmission completion of that block
+// locally. It must be a number from 0-100, 0 = nothing locally, 100 = block is local.
+// note that progress is not necessarily linear. for example the following is 50% complete progress:
+//
+// manifest.Nodes: ["QmA", "QmB", "QmC", "QmD"]
+// progress:       [0, 100, 0, 100]
+//
+type Completion []uint16
 
-// Percentage expressess the completion
-func (p Progress) Percentage() (pct float32) {
+// NewCompletion constructs a progress from
+func NewCompletion(mfst, missing *manifest.Manifest) Completion {
+	// fill in progress
+	prog := make(Completion, len(mfst.Nodes))
+	for i := range prog {
+		prog[i] = 100
+	}
+
+	// then set missing blocks to 0
+	for _, miss := range missing.Nodes {
+		for i, hash := range mfst.Nodes {
+			if hash == miss {
+				prog[i] = 0
+			}
+		}
+	}
+
+	return prog
+}
+
+// Percentage expressess the completion as a floating point number betwen 0.0 and 1.0
+func (p Completion) Percentage() (pct float32) {
 	for _, bl := range p {
 		pct += float32(bl) / float32(100)
 	}
@@ -30,7 +58,7 @@ func (p Progress) Percentage() (pct float32) {
 }
 
 // CompletedBlocks returns the number of blocks that are completed
-func (p Progress) CompletedBlocks() (count int) {
+func (p Completion) CompletedBlocks() (count int) {
 	for _, bl := range p {
 		if bl == 100 {
 			count++
@@ -40,7 +68,7 @@ func (p Progress) CompletedBlocks() (count int) {
 }
 
 // Complete returns weather progress is finished
-func (p Progress) Complete() bool {
+func (p Completion) Complete() bool {
 	for _, bl := range p {
 		if bl != 100 {
 			return false
@@ -85,21 +113,111 @@ type Send struct {
 	lng         ipld.NodeGetter    // local NodeGetter (Block Getter)
 	remote      Remote             // place we're sending to
 	parallelism int                // number of "tracks" for sending along
-	prog        Progress           // progress state
-	progCh      chan Progress
+	prog        Completion         // progress state
+	progCh      chan Completion
 	blocksCh    chan string
 	responses   chan Response
 }
 
-// sender is a parallizable, stateless struct that sends blocks
+// NewSend gets a local path to a remote place using a local NodeGetter and a remote
+func NewSend(ctx context.Context, lng ipld.NodeGetter, mfst *manifest.Manifest, remote Remote) (*Send, error) {
+	ps := &Send{
+		mfst:        mfst,
+		lng:         lng,
+		remote:      remote,
+		parallelism: 4,
+		blocksCh:    make(chan string, 8),
+		progCh:      make(chan Completion, 8),
+		responses:   make(chan Response),
+	}
+	return ps, nil
+}
+
+// Do executes the send, blocking until complete
+func (snd *Send) Do() (err error) {
+	snd.sid, snd.diff, err = snd.remote.ReqSend(snd.mfst)
+	if err != nil {
+		return err
+	}
+
+	snd.prog = NewCompletion(snd.mfst, snd.diff)
+	go snd.updateCompletion()
+
+	// create senders
+	sends := make([]sender, snd.parallelism)
+	for i := 0; i <= snd.parallelism; i++ {
+		sends[i] = sender{
+			sid:       snd.sid,
+			ctx:       snd.ctx,
+			blocksCh:  snd.blocksCh,
+			responses: snd.responses,
+			lng:       snd.lng,
+			remote:    snd.remote,
+		}
+		sends[i].start()
+	}
+
+	errCh := make(chan error)
+
+	// receive block responses
+	go func(sends []sender, errCh chan error) {
+		for {
+			select {
+			case r := <-snd.responses:
+				switch r.Status {
+				case StatusOk:
+					// this is the only place we should modify progress after creation
+					for i, hash := range snd.mfst.Nodes {
+						if r.Hash == hash {
+							snd.prog[i] = 100
+						}
+					}
+					go snd.updateCompletion()
+					if snd.prog.Complete() {
+						errCh <- nil
+						return
+					}
+				case StatusErrored:
+					for _, s := range sends {
+						s.stop()
+					}
+					errCh <- r.Err
+				case StatusRetry:
+					snd.blocksCh <- r.Hash
+				}
+			}
+		}
+	}(sends, errCh)
+
+	// fill queue with missing blocks to kick off the send
+	go func() {
+		for _, hash := range snd.diff.Nodes {
+			snd.blocksCh <- hash
+		}
+	}()
+
+	// block until send on errCh
+	return <-errCh
+}
+
+// Completion returns a read-only channel of updates to completion
+func (snd *Send) Completion() <-chan Completion {
+	return snd.progCh
+}
+
+func (snd *Send) updateCompletion() {
+	snd.progCh <- snd.prog
+}
+
+// sender is a parallelizable, stateless struct that sends blocks
 type sender struct {
 	sid       string
 	ctx       context.Context
+	lng       ipld.NodeGetter
+	remote    Remote
 	blocksCh  chan string
 	responses chan Response
 	stopCh    chan bool
-	lng       ipld.NodeGetter
-	remote    Remote
 }
 
 func (s sender) start() {
@@ -139,117 +257,17 @@ func (s sender) stop() {
 	s.stopCh <- true
 }
 
-// NewSend gets a local path to a remote place using a local NodeGetter and a remote
-func NewSend(ctx context.Context, lng ipld.NodeGetter, mfst *manifest.Manifest, remote Remote) (*Send, error) {
-	ps := &Send{
-		mfst:        mfst,
-		lng:         lng,
-		remote:      remote,
-		parallelism: 4,
-		blocksCh:    make(chan string, 8),
-		progCh:      make(chan Progress, 8),
-		responses:   make(chan Response),
-	}
-	return ps, nil
-}
-
-// Do executes the send
-func (snd *Send) Do() (err error) {
-	snd.sid, snd.diff, err = snd.remote.ReqSend(snd.mfst)
-	if err != nil {
-		return err
-	}
-
-	// fill in progress
-	snd.prog = make(Progress, len(snd.mfst.Nodes))
-	for i := range snd.prog {
-		snd.prog[i] = 100
-	}
-
-	// then set missing blocks to
-	for i, hash := range snd.mfst.Nodes {
-		for _, missing := range snd.diff.Nodes {
-			if hash == missing {
-				snd.prog[i] = 0
-			}
-		}
-	}
-
-	go snd.updateProgress()
-
-	// create senders
-	sends := make([]sender, snd.parallelism)
-	for i := 0; i <= snd.parallelism; i++ {
-		sends[i] = sender{
-			sid:       snd.sid,
-			ctx:       snd.ctx,
-			blocksCh:  snd.blocksCh,
-			responses: snd.responses,
-			lng:       snd.lng,
-			remote:    snd.remote,
-		}
-		sends[i].start()
-	}
-
-	errCh := make(chan error)
-
-	// receive block responses
-	go func(sends []sender, errCh chan error) {
-		for {
-			select {
-			case r := <-snd.responses:
-				switch r.Status {
-				case StatusOk:
-					// this is the only place we should modify progress after creation
-					for i, hash := range snd.mfst.Nodes {
-						if r.Hash == hash {
-							snd.prog[i] = 100
-						}
-					}
-					go snd.updateProgress()
-					if snd.prog.Complete() {
-						errCh <- nil
-						return
-					}
-				case StatusErrored:
-					for _, s := range sends {
-						s.stop()
-					}
-					errCh <- r.Err
-				case StatusRetry:
-					snd.blocksCh <- r.Hash
-				}
-			}
-		}
-	}(sends, errCh)
-
-	// fill queue with missing blocks to kick off the send
-	go func() {
-		for _, hash := range snd.diff.Nodes {
-			snd.blocksCh <- hash
-		}
-	}()
-
-	// block until send on errCh
-	return <-errCh
-}
-
-func (snd *Send) updateProgress() {
-	snd.progCh <- snd.prog
-}
-
 // Receive tracks state of receiving a manifest of blocks from a remote
 type Receive struct {
-	sid       string
-	ctx       context.Context
-	lng       ipld.NodeGetter
-	dag       coreiface.DagAPI
-	batch     coreiface.DagBatch
-	mfst      *manifest.Manifest
-	diff      *manifest.Manifest
-	prog      Progress
-	responses chan Response
-	pch       chan Progress
+	sid    string
+	ctx    context.Context
+	lng    ipld.NodeGetter
+	dag    coreiface.DagAPI
+	batch  coreiface.DagBatch
+	mfst   *manifest.Manifest
+	diff   *manifest.Manifest
+	prog   Completion
+	progCh chan Completion
 }
 
 // NewReceive creates a receive state machine
@@ -260,28 +278,56 @@ func NewReceive(ctx context.Context, lng ipld.NodeGetter, dag coreiface.DagAPI, 
 	}
 
 	r := &Receive{
-		sid:   randStringBytesMask(10),
-		ctx:   ctx,
-		lng:   lng,
-		dag:   dag,
-		batch: dag.Batch(ctx),
-		mfst:  mfst,
-		diff:  diff,
+		sid:    randStringBytesMask(10),
+		ctx:    ctx,
+		lng:    lng,
+		dag:    dag,
+		batch:  dag.Batch(ctx),
+		mfst:   mfst,
+		diff:   diff,
+		prog:   NewCompletion(mfst, diff),
+		progCh: make(chan Completion),
 	}
+
+	go r.updateCompletion()
 
 	return r, nil
 }
 
 // ReceiveBlock accepts a block from the sender, placing it in the local blockstore
 func (r *Receive) ReceiveBlock(hash string, data io.Reader) Response {
-	// TODO - check hash
-	// r.batch.Put(r.ctx, )
+	path, err := r.batch.Put(r.ctx, data, coreopt.DagPutOption(func(o *coreopt.DagPutSettings) error {
+		o.InputEnc = "raw"
+		o.Codec = cid.DagProtobuf
+		return nil
+	}))
+
+	if err != nil {
+		return Response{
+			Hash:   hash,
+			Status: StatusRetry,
+			Err:    err,
+		}
+	}
+
+	if path.Cid().String() != hash {
+		return Response{
+			Hash:   hash,
+			Status: StatusErrored,
+			Err:    fmt.Errorf("hash mismatch. expected: '%s', got: '%s'", hash, path.Cid().String()),
+		}
+	}
+
+	// this should be the only place that modifies progress
 
 	return Response{
 		Hash:   hash,
-		Status: StatusErrored,
-		Err:    fmt.Errorf("not finished"),
+		Status: StatusOk,
 	}
+}
+
+func (r *Receive) updateCompletion() {
+	r.progCh <- r.prog
 }
 
 // the best stack overflow answer evaarrr: https://stackoverflow.com/a/22892986/9416066

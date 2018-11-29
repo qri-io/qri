@@ -11,7 +11,7 @@ import (
 	"github.com/ugorji/go/codec"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	format "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
 type layer struct {
@@ -28,9 +28,9 @@ type node struct {
 func (n node) String() string        { return n.cid.String() }
 func (n node) Cid() cid.Cid          { return *n.cid }
 func (n node) Size() (uint64, error) { return n.size, nil }
-func (n node) Links() (links []*format.Link) {
+func (n node) Links() (links []*ipld.Link) {
 	for _, l := range n.links {
-		links = append(links, &format.Link{
+		links = append(links, &ipld.Link{
 			Size: l.size,
 			Cid:  l.Cid(),
 		})
@@ -39,22 +39,22 @@ func (n node) Links() (links []*format.Link) {
 }
 
 // Not needed for manifest test:
-func (n node) Loggable() map[string]interface{}                          { return nil }
-func (n node) Copy() format.Node                                         { return nil }
-func (n node) RawData() []byte                                           { return nil }
-func (n node) Resolve(path []string) (interface{}, []string, error)      { return nil, nil, nil }
-func (n node) ResolveLink(path []string) (*format.Link, []string, error) { return nil, nil, nil }
-func (n node) Stat() (*format.NodeStat, error)                           { return nil, nil }
-func (n node) Tree(path string, depth int) []string                      { return nil }
+func (n node) Loggable() map[string]interface{}                        { return nil }
+func (n node) Copy() ipld.Node                                         { return nil }
+func (n node) RawData() []byte                                         { return nil }
+func (n node) Resolve(path []string) (interface{}, []string, error)    { return nil, nil, nil }
+func (n node) ResolveLink(path []string) (*ipld.Link, []string, error) { return nil, nil, nil }
+func (n node) Stat() (*ipld.NodeStat, error)                           { return nil, nil }
+func (n node) Tree(path string, depth int) []string                    { return nil }
 
-func NewGraph(layers []layer) (list []format.Node) {
+func NewGraph(layers []layer) (list []ipld.Node) {
 	root := newNode(2 * kb)
 	list = append(list, root)
 	insert(root, layers, &list)
 	return
 }
 
-func insert(n *node, layers []layer, list *[]format.Node) {
+func insert(n *node, layers []layer, list *[]ipld.Node) {
 	if len(layers) > 0 {
 		for i := 0; i < layers[0].numChildren; i++ {
 			ch := newNode(layers[0].size)
@@ -91,12 +91,12 @@ func newNode(size uint64) *node {
 }
 
 type TestNodeGetter struct {
-	Nodes []format.Node
+	Nodes []ipld.Node
 }
 
-var _ format.NodeGetter = (*TestNodeGetter)(nil)
+var _ ipld.NodeGetter = (*TestNodeGetter)(nil)
 
-func (ng TestNodeGetter) Get(_ context.Context, id cid.Cid) (format.Node, error) {
+func (ng TestNodeGetter) Get(_ context.Context, id cid.Cid) (ipld.Node, error) {
 	for _, node := range ng.Nodes {
 		if id.Equals(node.Cid()) {
 			return node, nil
@@ -106,9 +106,9 @@ func (ng TestNodeGetter) Get(_ context.Context, id cid.Cid) (format.Node, error)
 }
 
 // GetMany returns a channel of NodeOptions given a set of CIDs.
-func (ng TestNodeGetter) GetMany(context.Context, []cid.Cid) <-chan *format.NodeOption {
-	ch := make(chan *format.NodeOption)
-	ch <- &format.NodeOption{
+func (ng TestNodeGetter) GetMany(context.Context, []cid.Cid) <-chan *ipld.NodeOption {
+	ch := make(chan *ipld.NodeOption)
+	ch <- &ipld.NodeOption{
 		Err: fmt.Errorf("doesn't support GetMany"),
 	}
 	return ch

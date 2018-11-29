@@ -115,21 +115,3 @@ func (ms *mstate) addNode(node Node) (int, error) {
 
 	return idx, nil
 }
-
-// Present produces a list of nodes that are present in a nodeGetter
-// func (m *Manifest) Present(ctx context.Context, ng format.NodeGetter) ([]string, error) {
-// 	present := make([]string, len(m.Nodes))
-
-// 	i := 0
-// 	for _, id := range m.Nodes {
-// 		cid := cid.Par
-// 		node, err := ng.Get(ctx, cid)
-// 		if err != nil {
-// 			return present, err
-// 		} else {
-// 			present[i] = cid
-// 			i++
-// 		}
-// 	}
-// 	return present[:i], nil
-// }
