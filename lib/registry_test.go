@@ -10,9 +10,8 @@ import (
 )
 
 func TestRegistryRequests(t *testing.T) {
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 	defer func() {
@@ -40,7 +39,7 @@ func TestRegistryRequests(t *testing.T) {
 		Name:     "cities",
 	}
 	citiesRes := repo.DatasetRef{}
-	if err := req.Get(&citiesRef, &citiesRes); err != nil {
+	if err := req.GetDataset(&citiesRef, &citiesRes); err != nil {
 		t.Error(err)
 	}
 

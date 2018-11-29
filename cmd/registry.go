@@ -194,7 +194,7 @@ func (o *RegistryOptions) Status() error {
 			return err
 		}
 
-		err = o.RegistryRequests.Get(&ref, &res)
+		err = o.RegistryRequests.GetDataset(&ref, &res)
 		o.StopSpinner()
 
 		if err != nil {

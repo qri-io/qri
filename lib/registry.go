@@ -93,8 +93,8 @@ func (r *RegistryRequests) List(params *RegistryListParams, done *bool) error {
 	return nil
 }
 
-// Get returns a dataset that has been published to the registry
-func (r *RegistryRequests) Get(ref *repo.DatasetRef, res *repo.DatasetRef) error {
+// GetDataset returns a dataset that has been published to the registry
+func (r *RegistryRequests) GetDataset(ref *repo.DatasetRef, res *repo.DatasetRef) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", ref, res)
 	}

@@ -92,10 +92,8 @@ func TestRemoveRun(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	// in order to have consistent responses
-	// we need to artificially specify the timestamp
-	// we use the dsfs.Timestamp func variable to override
-	// the actual time
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
 	prev := dsfs.Timestamp
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }

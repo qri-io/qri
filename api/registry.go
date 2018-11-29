@@ -134,7 +134,7 @@ func (h *RegistryHandlers) registryDatasetHandler(w http.ResponseWriter, r *http
 		return
 	}
 
-	err = h.RegistryRequests.Get(&ref, res)
+	err = h.RegistryRequests.GetDataset(&ref, res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

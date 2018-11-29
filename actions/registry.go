@@ -214,8 +214,8 @@ func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
 	}
 }
 
-// RegistryDataset gets commit, structure, meta, viz & transform form a given reference
-// from a registry
+// RegistryDataset gets dataset info published to the registry, which is usually subset
+// of the full dataset, and not suitable for hash-referencing.
 func RegistryDataset(node *p2p.QriNode, ds *repo.DatasetRef) error {
 	cli := node.Repo.Registry()
 	if cli == nil {
