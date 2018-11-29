@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/manifest"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -468,5 +469,28 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	}
 
 	*diffs, err = actions.DiffDatasets(r.node, p.Left, p.Right, p.DiffAll, p.DiffComponents)
+	return
+}
+
+// Manifest generates a manifest for a dataset path
+func (r *DatasetRequests) Manifest(refstr *string, m *manifest.Manifest) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
+	}
+
+	ref, err := repo.ParseDatasetRef(*refstr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return
+	}
+
+	var mf *manifest.Manifest
+	mf, err = actions.NewManifest(r.node, ref.Path)
+	if err != nil {
+		return
+	}
+	*m = *mf
 	return
 }
