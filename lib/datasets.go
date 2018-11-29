@@ -494,3 +494,18 @@ func (r *DatasetRequests) Manifest(refstr *string, m *manifest.Manifest) (err er
 	*m = *mf
 	return
 }
+
+// ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
+func (r *DatasetRequests) ManifestMissing(a, b *manifest.Manifest) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Manifest", a, b)
+	}
+
+	var mf *manifest.Manifest
+	mf, err = actions.Missing(r.node, a)
+	if err != nil {
+		return
+	}
+	*b = *mf
+	return
+}

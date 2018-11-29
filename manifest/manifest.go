@@ -24,11 +24,11 @@ type Node interface {
 // node identifiers are stored in a slice "nodes", all other slices reference
 // cids by index positions
 type Manifest struct {
-	Root  int              `json:"root"`           // index if CID in nodes list this manifest is about. The subject of the manifest
-	Nodes []string         `json:"nodes"`          // list if CIDS contained in the root dag
-	Links [][2]int         `json:"links"`          // links between nodes
-	Sizes []uint64         `json:"sizes"`          // sizes of nodes in bytes
-	Meta  map[string][]int `json:"meta,omitempty"` // meta are lists of logical sub-DAGs by positions in the nodes list
+	Links    [][2]int         `json:"links"`              // links between nodes
+	Sections map[string][]int `json:"sections,omitempty"` // sections are lists of logical sub-DAGs by positions in the nodes list
+	Nodes    []string         `json:"nodes"`              // list if CIDS contained in the root dag
+	Root     int              `json:"root"`               // index if CID in nodes list this manifest is about. The subject of the manifest
+	Sizes    []uint64         `json:"sizes"`              // sizes of nodes in bytes
 }
 
 // NewManifest generates a manifest from an ipld node
