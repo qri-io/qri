@@ -14,7 +14,6 @@ import (
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
-	coreopt "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface/options"
 )
 
 // Completion tracks progress of a sync task against a manifest.
@@ -119,13 +118,21 @@ type Send struct {
 	responses   chan Response
 }
 
+const defaultSendParallelism = 4
+
 // NewSend gets a local path to a remote place using a local NodeGetter and a remote
 func NewSend(ctx context.Context, lng ipld.NodeGetter, mfst *manifest.Manifest, remote Remote) (*Send, error) {
+	parallelism := defaultSendParallelism
+	if len(mfst.Nodes) < parallelism {
+		parallelism = len(mfst.Nodes)
+	}
+
 	ps := &Send{
+		ctx:         ctx,
 		mfst:        mfst,
 		lng:         lng,
 		remote:      remote,
-		parallelism: 4,
+		parallelism: parallelism,
 		blocksCh:    make(chan string, 8),
 		progCh:      make(chan Completion, 8),
 		responses:   make(chan Response),
@@ -141,11 +148,11 @@ func (snd *Send) Do() (err error) {
 	}
 
 	snd.prog = NewCompletion(snd.mfst, snd.diff)
-	go snd.updateCompletion()
+	go snd.completionChanged()
 
 	// create senders
 	sends := make([]sender, snd.parallelism)
-	for i := 0; i <= snd.parallelism; i++ {
+	for i := 0; i < snd.parallelism; i++ {
 		sends[i] = sender{
 			sid:       snd.sid,
 			ctx:       snd.ctx,
@@ -172,7 +179,7 @@ func (snd *Send) Do() (err error) {
 							snd.prog[i] = 100
 						}
 					}
-					go snd.updateCompletion()
+					go snd.completionChanged()
 					if snd.prog.Complete() {
 						errCh <- nil
 						return
@@ -205,7 +212,7 @@ func (snd *Send) Completion() <-chan Completion {
 	return snd.progCh
 }
 
-func (snd *Send) updateCompletion() {
+func (snd *Send) completionChanged() {
 	snd.progCh <- snd.prog
 }
 
@@ -262,8 +269,7 @@ type Receive struct {
 	sid    string
 	ctx    context.Context
 	lng    ipld.NodeGetter
-	dag    coreiface.DagAPI
-	batch  coreiface.DagBatch
+	bapi   coreiface.BlockAPI
 	mfst   *manifest.Manifest
 	diff   *manifest.Manifest
 	prog   Completion
@@ -271,7 +277,7 @@ type Receive struct {
 }
 
 // NewReceive creates a receive state machine
-func NewReceive(ctx context.Context, lng ipld.NodeGetter, dag coreiface.DagAPI, mfst *manifest.Manifest) (*Receive, error) {
+func NewReceive(ctx context.Context, lng ipld.NodeGetter, bapi coreiface.BlockAPI, mfst *manifest.Manifest) (*Receive, error) {
 	diff, err := base.Missing(ctx, lng, mfst)
 	if err != nil {
 		return nil, err
@@ -281,26 +287,21 @@ func NewReceive(ctx context.Context, lng ipld.NodeGetter, dag coreiface.DagAPI, 
 		sid:    randStringBytesMask(10),
 		ctx:    ctx,
 		lng:    lng,
-		dag:    dag,
-		batch:  dag.Batch(ctx),
+		bapi:   bapi,
 		mfst:   mfst,
 		diff:   diff,
 		prog:   NewCompletion(mfst, diff),
 		progCh: make(chan Completion),
 	}
 
-	go r.updateCompletion()
+	go r.completionChanged()
 
 	return r, nil
 }
 
 // ReceiveBlock accepts a block from the sender, placing it in the local blockstore
 func (r *Receive) ReceiveBlock(hash string, data io.Reader) Response {
-	path, err := r.batch.Put(r.ctx, data, coreopt.DagPutOption(func(o *coreopt.DagPutSettings) error {
-		o.InputEnc = "raw"
-		o.Codec = cid.DagProtobuf
-		return nil
-	}))
+	bstat, err := r.bapi.Put(r.ctx, data)
 
 	if err != nil {
 		return Response{
@@ -310,15 +311,22 @@ func (r *Receive) ReceiveBlock(hash string, data io.Reader) Response {
 		}
 	}
 
-	if path.Cid().String() != hash {
+	id := bstat.Path().Cid()
+	if id.String() != hash {
 		return Response{
 			Hash:   hash,
 			Status: StatusErrored,
-			Err:    fmt.Errorf("hash mismatch. expected: '%s', got: '%s'", hash, path.Cid().String()),
+			Err:    fmt.Errorf("hash mismatch. expected: '%s', got: '%s'", hash, id.String()),
 		}
 	}
 
 	// this should be the only place that modifies progress
+	for i, h := range r.mfst.Nodes {
+		if hash == h {
+			r.prog[i] = 100
+		}
+	}
+	go r.completionChanged()
 
 	return Response{
 		Hash:   hash,
@@ -326,7 +334,7 @@ func (r *Receive) ReceiveBlock(hash string, data io.Reader) Response {
 	}
 }
 
-func (r *Receive) updateCompletion() {
+func (r *Receive) completionChanged() {
 	r.progCh <- r.prog
 }
 

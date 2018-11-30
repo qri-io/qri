@@ -7,15 +7,15 @@ import (
 	"github.com/ugorji/go/codec"
 
 	"gx/ipfs/QmPSQnBKM9g7BaUcZCvswUJVscQ1ipjmwxN5PXCjkp9EQ7/go-cid"
-	format "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
-// Node is a subset of the ipld format.Node interface
+// Node is a subset of the ipld ipld.Node interface
 type Node interface {
 	// pulled from blocks.Block format
 	Cid() cid.Cid
 	// Links is a helper function that returns all links within this object
-	Links() []*format.Link
+	Links() []*ipld.Link
 	// Size returns the size in bytes of the serialized object
 	Size() (uint64, error)
 }
@@ -32,7 +32,7 @@ type Manifest struct {
 }
 
 // NewManifest generates a manifest from an ipld node
-func NewManifest(ctx context.Context, ng format.NodeGetter, id cid.Cid) (*Manifest, error) {
+func NewManifest(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*Manifest, error) {
 	ms := &mstate{
 		ctx:  ctx,
 		ng:   ng,
@@ -70,7 +70,7 @@ func UnmarshalCBOR(data []byte) (m *Manifest, err error) {
 // mstate is a state machine for generating a manifest
 type mstate struct {
 	ctx  context.Context
-	ng   format.NodeGetter
+	ng   ipld.NodeGetter
 	idx  int
 	cids map[string]int // lookup table of already-added cids
 	m    *Manifest
