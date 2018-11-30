@@ -8,7 +8,7 @@
 ## <a name="setup"> Development Setup
 
 This document describes how to set up your development environment to build and test Qri, and
-explains the basic mechanics of using `git` and `yarn`.
+explains the basic mechanics of using `git`, `golint` and `go test`.
 
 ### Installing Dependencies
 
@@ -21,6 +21,8 @@ machine:
 * [The Go Programming Language](https://golang.org): see golang.org to get started
 
 * [gx](https://github.com/whyrusleeping/gx/): gx is a distributed package management tool needed to build IPFS.
+
+* [golint](https://github.com/golang/lint): Golint is a linter for Go source code
 
 
 ### Forking Qri on Github
@@ -35,56 +37,57 @@ Afterwards, go ahead and [fork](http://help.github.com/forking) the
 
 ### Building Qri
 
-To build Qri, you clone the source code repository and use Yarn to run the electron app:
 
-```shell
-# Clone your Github repository:
-git clone https://github.com/<github username>/qri.git
-
-# Go to the Qri directory:
-cd qri
-
-# Add the main Qri repository as an upstream remote to your repository:
-git remote add upstream "https://github.com/qri-io/frontend.git"
-
-
-# Install dependencies, make sure you have gx installed first
-gx install
-
-# This will complain *lots* about `package gx/ipfs unrecoginzed import path...`, that's ok
-go get ./...
-
-# Build the qri binary
-go install
-```
-
-**Note:** Qri is currently only tested for macOS.
-
-The `yarn dev` command will launch a development version of the Qri electron app.
-
-To get access to Chrome Developer Tools, use the keyboard shortcut Command-Shift-C.
-
-## <a name="Updating"></a> Updating Builds
-From time to time versions of packages we depend on may fall out of sync, causing `make build` to fail. In that case, the following should get you back up to speed:
-
-```shell
-make update-qri-deps
-make install-deps
-```
+Check out this documentation on [how to build Qri from source](https://github.com/qri-io/qri/README.md#build)
 
 
 ## <a name="rules"></a> Coding Rules
 
-To ensure consistency throughout the source code, keep these rules in mind as you are working:
+When you push your branch to github and open up a pull request, it will automatically trigger  [CircleCI](https://circleci.com/about/) to lint and test your code.
 
-* We use [standardJS](style) coding style, please use standard to lint any changes before committing:
+In order to catch linting and testing errors before pushing the code to github, be sure to run `golint` and `go test`.
 
+##### golint
+
+Use `golint` to lint your code. Using `./...` indicates to `golint` that you want to lint each file in the current directory, and each file in each sub-directory you must be in the top level directory of the project in order to lint every file in the project:
 ```shell
-# Use standard to lint files
-standard
+$ golint ./...
 ```
 
-The output will point you to which files/lines need to be changed in order to meet the standardJS formatting.
+No output indicates everything is styled correctly. Otherwise, the output will point you to which files/lines need to be changed in order to meet the go linting format.
+
+##### `go test`
+
+Use the built in `go test` command to test your code. Like the above, you can use `./...` to run each test file, if you are in the top most directory of the project:
+
+```shell
+$ go test ./...
+?     github.com/qri-io/qri [no test files]
+ok    github.com/qri-io/qri/actions 1.180s
+ok    github.com/qri-io/qri/api 0.702s
+ok    github.com/qri-io/qri/base  (cached)
+ok    github.com/qri-io/qri/cmd 17.557s
+?     github.com/qri-io/qri/cmd/generate  [no test files]
+ok    github.com/qri-io/qri/config  (cached)
+?     github.com/qri-io/qri/config/test [no test files]
+?     github.com/qri-io/qri/docs  [no test files]
+ok    github.com/qri-io/qri/lib 1.064s
+?     github.com/qri-io/qri/lib/test  [no test files]
+ok    github.com/qri-io/qri/p2p (cached)
+ok    github.com/qri-io/qri/p2p/test  (cached)
+ok    github.com/qri-io/qri/repo  (cached)
+ok    github.com/qri-io/qri/repo/fs (cached)
+?     github.com/qri-io/qri/repo/gen  [no test files]
+ok    github.com/qri-io/qri/repo/profile  (cached)
+?     github.com/qri-io/qri/repo/search [no test files]
+ok    github.com/qri-io/qri/repo/test (cached)
+ok    github.com/qri-io/qri/rev (cached)
+```
+
+Depending on what work you are doing and what has changed, tests may take up to a minute.
+
+If everything is marked "ok", you are in the clear. Any extended output is a sign that a test has failed. Be sure to fix any bugs that are indicated or tests that no longer pass.
+
 
 ## <a name="commits"></a> Git Commit Guidelines
 
@@ -131,7 +134,7 @@ Must be one of the following:
   generation
 
 ### Scope
-The scope could be anything specifying place of the commit change. For example **NEED TO MAKE DECISION ABOUT THIS** , etc...
+The scope could be anything specifying place of the commit change. For example, if I am refactoring something in the `api` package, I may start my commit with "refactor(api)". If it's something more specific, like the ListHandler, I may write "refactor(api/ListHandler)", or something similar. As long as it gets the point across on the scope of the refactor.
 
 You can use `*` when the change affects more than a single scope.
 
