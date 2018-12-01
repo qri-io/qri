@@ -14,8 +14,8 @@ type HTTPRemote struct {
 	URL string
 }
 
-// ReqSend initiates a send session
-func (rem *HTTPRemote) ReqSend(mfst *manifest.Manifest) (sid string, diff *manifest.Manifest, err error) {
+// ReqSession initiates a send session
+func (rem *HTTPRemote) ReqSession(mfst *manifest.Manifest) (sid string, diff *manifest.Manifest, err error) {
 	buf := &bytes.Buffer{}
 	if err = json.NewEncoder(buf).Encode(mfst); err != nil {
 		return
@@ -44,8 +44,8 @@ func (rem *HTTPRemote) ReqSend(mfst *manifest.Manifest) (sid string, diff *manif
 	return
 }
 
-// SendBlock sends a block over HTTP to a remote source
-func (rem *HTTPRemote) SendBlock(sid, hash string, data []byte) Response {
+// PutBlock sends a block over HTTP to a remote source
+func (rem *HTTPRemote) PutBlock(sid, hash string, data []byte) Response {
 	url := fmt.Sprintf("%s?sid=%s&hash=%s", rem.URL, sid, hash)
 	req, err := http.NewRequest("PUT", url, bytes.NewBuffer(data))
 	if err != nil {
