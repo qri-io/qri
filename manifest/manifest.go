@@ -3,7 +3,6 @@ package manifest
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"sort"
 
 	"github.com/ugorji/go/codec"
@@ -48,7 +47,7 @@ type Node interface {
 // foundation for
 type Manifest struct {
 	Links [][2]int `json:"links"` // links between nodes
-	Nodes []string `json:"nodes"` // list if CIDS contained in the root dag
+	Nodes []string `json:"nodes"` // list if CIDS contained in the DAG
 }
 
 // NewManifest generates a manifest from an ipld node
@@ -57,67 +56,44 @@ func NewManifest(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*Manifest
 		ctx:     ctx,
 		ng:      ng,
 		weights: map[string]int{},
-		links:   map[string]string{},
+		links:   [][2]string{},
 		sizes:   map[string]uint64{},
 		m:       &Manifest{},
 	}
 
-	node, err := ng.Get(ctx, id)
-	if err != nil {
-		return nil, err
-	}
-
-	weight := 0
-	if err := ms.addNode(node, &weight); err != nil {
-		return nil, err
-	}
-
-	// alpha sort keys
-	sort.StringSlice(ms.m.Nodes).Sort()
-	// then sort by weight
-	sort.Sort(ms)
-
-	// at this point indexes are set, re-use weights map to hold indicies
-	for i, id := range ms.m.Nodes {
-		ms.weights[id] = i
-	}
-
-	var sl sortableLinks
-	for from, to := range ms.links {
-		sl = append(sl, [2]int{ms.weights[from], ms.weights[to]})
-	}
-	sort.Sort(sl)
-	ms.m.Links = ([][2]int)(sl)
-
-	return ms.m, nil
+	err := ms.makeManifest(id)
+	return ms.m, err
 }
 
 type sortableLinks [][2]int
 
-func (sl sortableLinks) Len() int           { return len(sl) }
-func (sl sortableLinks) Less(i, j int) bool { return sl[i][0]+sl[i][1] < sl[j][0]+sl[j][1] }
-func (sl sortableLinks) Swap(i, j int)      { sl[i], sl[j] = sl[j], sl[i] }
-
-// SubDAG lists all hashes that are a descendant of the root id
-func (m *Manifest) SubDAG(id string) []string {
-	nodes := []string{id}
-	for i, h := range m.Nodes {
-		if id == h {
-			m.SubDAGIndex(i, &nodes)
-			return nodes
-		}
-	}
-	return nodes
+func (sl sortableLinks) Len() int { return len(sl) }
+func (sl sortableLinks) Less(i, j int) bool {
+	return (1000*(sl[i][0]+1) + (sl[i][1])) < (1000*(sl[j][0]+1) + (sl[j][1]))
 }
+func (sl sortableLinks) Swap(i, j int) { sl[i], sl[j] = sl[j], sl[i] }
 
-// SubDAGIndex lists all hashes that are a descendant of manifest node index
-func (m *Manifest) SubDAGIndex(idx int, nodes *[]string) {
-	// for i, l := range m.Links {
-	// 	if l[0] == idx {
+// TODO (b5): finish
+// // SubDAG lists all hashes that are a descendant of the root id
+// func (m *Manifest) SubDAG(id string) []string {
+// 	nodes := []string{id}
+// 	for i, h := range m.Nodes {
+// 		if id == h {
+// 			m.SubDAGIndex(i, &nodes)
+// 			return nodes
+// 		}
+// 	}
+// 	return nodes
+// }
 
-	// 	}
-	// }
-}
+// // SubDAGIndex lists all hashes that are a descendant of manifest node index
+// func (m *Manifest) SubDAGIndex(idx int, nodes *[]string) {
+// 	// for i, l := range m.Links {
+// 	// 	if l[0] == idx {
+
+// 	// 	}
+// 	// }
+// }
 
 // MarshalCBOR encodes this manifest as CBOR data
 func (m *Manifest) MarshalCBOR() (data []byte, err error) {
@@ -139,9 +115,41 @@ type mstate struct {
 	ctx     context.Context
 	ng      ipld.NodeGetter
 	weights map[string]int // map of already-added cids to weight (descendant count)
-	links   map[string]string
+	links   [][2]string
 	sizes   map[string]uint64
 	m       *Manifest
+}
+
+func (ms *mstate) makeManifest(id cid.Cid) error {
+	node, err := ms.ng.Get(ms.ctx, id)
+	if err != nil {
+		return err
+	}
+
+	weight := 0
+	if err := ms.addNode(node, &weight); err != nil {
+		return err
+	}
+
+	// alpha sort keys
+	sort.StringSlice(ms.m.Nodes).Sort()
+	// then sort by weight
+	sort.Sort(ms)
+
+	// at this point indexes are set, re-use weights map to hold indicies
+	for i, id := range ms.m.Nodes {
+		ms.weights[id] = i
+	}
+
+	var sl sortableLinks
+	for _, link := range ms.links {
+		from, to := link[0], link[1]
+		sl = append(sl, [2]int{ms.weights[from], ms.weights[to]})
+	}
+	sort.Sort(sl)
+	ms.m.Links = ([][2]int)(sl)
+
+	return nil
 }
 
 // mstate implements the sort interface to sort Manifest nodes by weights
@@ -173,7 +181,7 @@ func (ms *mstate) addNode(node Node, weight *int) (err error) {
 		if err != nil {
 			return err
 		}
-		ms.links[id] = linkNode.Cid().String()
+		ms.links = append(ms.links, [2]string{id, linkNode.Cid().String()})
 
 		lWeight = 0
 		if err = ms.addNode(linkNode, &lWeight); err != nil {
@@ -205,22 +213,27 @@ func NewDAGInfo(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*DAGInfo, 
 		ctx:     ctx,
 		ng:      ng,
 		weights: map[string]int{},
-		links:   map[string]string{},
+		links:   [][2]string{},
 		sizes:   map[string]uint64{},
 		m:       &Manifest{},
 	}
 
-	node, err := ng.Get(ctx, id)
+	err := ms.makeManifest(id)
 	if err != nil {
 		return nil, err
 	}
 
-	weight := 0
-	if err := ms.addNode(node, &weight); err != nil {
-		return nil, err
+	var sizes []uint64
+	for _, id := range ms.m.Nodes {
+		sizes = append(sizes, ms.sizes[id])
 	}
 
-	return nil, fmt.Errorf("not finished")
+	di := &DAGInfo{
+		Manifest: ms.m,
+		Sizes:    sizes,
+	}
+
+	return di, nil
 }
 
 // Completion tracks the presence of blocks described in a manifest
@@ -262,7 +275,7 @@ func (p Completion) Percentage() (pct float32) {
 	for _, bl := range p {
 		pct += float32(bl) / float32(100)
 	}
-	return (pct / float32(len(p))) * 100
+	return (pct / float32(len(p)))
 }
 
 // CompletedBlocks returns the number of blocks that are completed

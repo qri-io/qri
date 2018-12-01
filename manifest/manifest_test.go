@@ -81,7 +81,7 @@ func TestNewManifest(t *testing.T) {
 			"zb2rhnjvVfrzHtyeBcrCt3QUshMoYvEaxPXDykT4MyWvTCKV6", // f
 		},
 		Links: [][2]int{
-			{0, 1}, {1, 3}, {2, 5},
+			{0, 1}, {0, 4}, {1, 2}, {1, 3}, {2, 5},
 		},
 	}
 
@@ -89,12 +89,60 @@ func TestNewManifest(t *testing.T) {
 }
 
 func TestNewDAGInfo(t *testing.T) {
+	content = 0
 
+	a := newNode(10) // zb2rhd6jTUt94FLVLjrCJ6Wy3NMDxm2sDuwArDfuDaNeHGRi8
+	b := newNode(20) // zb2rhdt1wgqfpzMgYf7mefxCWToqUTTyriWA1ctNxmy5WojSz
+	c := newNode(30) // zb2rhkwbf5N999rJcRX3D89PVDibZXnctArZFkap4CB36QcAQ
+	d := newNode(40) // zb2rhbtsQanqdtuvSceyeKUcT4ao1ge7HULRuRbueGjznWsDP
+	e := newNode(50) // zb2rhbhaFdd82br6cP9uUjxQxUyrMFwR3K6uYt6YvUxJtgpSV
+	f := newNode(60) // zb2rhnjvVfrzHtyeBcrCt3QUshMoYvEaxPXDykT4MyWvTCKV6
+	a.links = []*node{b, c}
+	c.links = []*node{d, e}
+	d.links = []*node{f}
+
+	ctx := context.Background()
+	ng := TestingNodeGetter{[]ipld.Node{a, b, c, d, e, f}}
+	di, err := NewDAGInfo(ctx, ng, a.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exp := &DAGInfo{
+		Manifest: &Manifest{
+			Nodes: []string{
+				"zb2rhd6jTUt94FLVLjrCJ6Wy3NMDxm2sDuwArDfuDaNeHGRi8", // a
+				"zb2rhkwbf5N999rJcRX3D89PVDibZXnctArZFkap4CB36QcAQ", // c
+				"zb2rhbtsQanqdtuvSceyeKUcT4ao1ge7HULRuRbueGjznWsDP", // d
+				"zb2rhbhaFdd82br6cP9uUjxQxUyrMFwR3K6uYt6YvUxJtgpSV", // e
+				"zb2rhdt1wgqfpzMgYf7mefxCWToqUTTyriWA1ctNxmy5WojSz", // b
+				"zb2rhnjvVfrzHtyeBcrCt3QUshMoYvEaxPXDykT4MyWvTCKV6", // f
+			},
+			Links: [][2]int{
+				{0, 1}, {0, 4}, {1, 2}, {1, 3}, {2, 5},
+			},
+		},
+		Sizes: []uint64{10, 30, 40, 50, 20, 60},
+	}
+
+	verifyManifest(t, exp.Manifest, di.Manifest)
+
+	if len(exp.Sizes) != len(di.Sizes) {
+		t.Errorf("sizes length mismatch. expected: %d. got: %d", len(exp.Sizes), len(di.Sizes))
+		return
+	}
+
+	for i, s := range exp.Sizes {
+		if s != di.Sizes[i] {
+			t.Errorf("sizes index %d mismatch. expected: %d, got: %d", i, s, di.Sizes[i])
+		}
+	}
 }
 
 func verifyManifest(t *testing.T, exp, got *Manifest) {
 	if len(exp.Nodes) != len(got.Nodes) {
 		t.Errorf("nodes length mismatch. %d != %d", len(exp.Nodes), len(got.Nodes))
+		return
 	}
 
 	for i, id := range exp.Nodes {
@@ -105,13 +153,14 @@ func verifyManifest(t *testing.T, exp, got *Manifest) {
 
 	if len(exp.Links) != len(got.Links) {
 		t.Errorf("links length mismatch. %d != %d", len(exp.Links), len(got.Links))
+		return
 	}
 
 	for i, l := range exp.Links {
-		exp := l[0] + l[1]
-		g := got.Links[i][0] + got.Links[i][1]
-		if exp != g {
+		g := got.Links[i]
+		if l[0] != g[0] || l[1] != g[1] {
 			t.Errorf("links %d mismatch. expected: %v, got: %v", i, l, got.Links[i])
+			t.Log(got.Links)
 		}
 	}
 }
@@ -239,4 +288,42 @@ func (f fileSize) String() string {
 		return fmt.Sprintf("%fTb", float32(f)/float32(tb))
 	}
 	return "NaN"
+}
+
+func TestCompletion(t *testing.T) {
+	a := Completion{1, 2, 3, 4, 5, 6}
+	if a.CompletedBlocks() != 0 {
+		t.Errorf("expected completed blocks to equal 0. got: %d", a.CompletedBlocks())
+	}
+
+	b := Completion{0, 100}
+	if b.CompletedBlocks() != 1 {
+		t.Errorf("expected CompletedBlocks == 1. got: %d", b.CompletedBlocks())
+	}
+
+	half := Completion{50, 50, 50}
+	if half.Percentage() != float32(0.50) {
+		t.Errorf("expected half completion to equal 0.5, got: %f", half.Percentage())
+	}
+	if half.Complete() {
+		t.Error("expected unfinished completion to not equal complete")
+	}
+
+	done := Completion{100, 100}
+	if !done.Complete() {
+		t.Error("expected done to equal complete")
+	}
+}
+
+func TestNewCompletion(t *testing.T) {
+	mfst := &Manifest{
+		Nodes: []string{"a", "b", "c", "d"},
+	}
+	missing := &Manifest{
+		Nodes: []string{"b", "c"},
+	}
+	comp := NewCompletion(mfst, missing)
+	if comp.Percentage() != 0.5 {
+		t.Errorf("expected completion percentage to equal 0.5. got: %f", comp.Percentage())
+	}
 }
