@@ -24,7 +24,7 @@ List shows lists of datasets, including names and current hashes.
 The default list is the latest version of all datasets you have on your local 
 qri repository.
 
-When used in conjuction with ` + "`qri connect`" + `, list can list a peer's dataset. You
+When used in conjunction with ` + "`qri connect`" + `, list can list a peer's dataset. You
 must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 		Example: `  # show all of your datasets:
   qri list

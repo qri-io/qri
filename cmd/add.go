@@ -21,7 +21,8 @@ func NewAddCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Long: `
 Add retrieves a dataset owned by another peer and adds it to your repo. 
 The dataset reference of the dataset will remain the same, including 
-the name of the peer that originally added the dataset.`,
+the name of the peer that originally added the dataset. You must have 
+` + "`qri connect`" + ` running in another terminal to use this command.`,
 		Example: `  add a dataset named their_data, owned by other_peer:
   $ qri add other_peer/their_data`,
 		RunE: func(cmd *cobra.Command, args []string) error {
