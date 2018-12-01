@@ -3,6 +3,8 @@ package manifest
 import (
 	"bytes"
 	"context"
+	"fmt"
+	"sort"
 
 	"github.com/ugorji/go/codec"
 
@@ -10,7 +12,8 @@ import (
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
-// Node is a subset of the ipld ipld.Node interface
+// Node is a subset of the ipld ipld.Node interface, defining just the necessary
+// bits for creating a manifest
 type Node interface {
 	// pulled from blocks.Block format
 	Cid() cid.Cid
@@ -20,25 +23,43 @@ type Node interface {
 	Size() (uint64, error)
 }
 
-// Manifest is a DAG of only block names and links (no content)
-// node identifiers are stored in a slice "nodes", all other slices reference
-// cids by index positions
+// Manifest is a determinsitc description of a complete directed acyclic graph.
+// Analogous to bittorrent .magnet files, manifests contain no content, only a description of
+// the structure of a graph (nodes and links)
+//
+// Manifests are built around a flat list of node identifiers (usually hashes) and a list of
+// links. A link element is a tuple of [from,to] where from and to are indexes in the
+// nodes list
+//
+// Manifests always describe the FULL graph, a root node and all it's descendants
+//
+// A valid manifest has the following properties:
+// * supplying the same dag to the manifest function must be deterministic:
+//   manifest_of_dag = manifest(dag)
+//   hash(manifest_of_dag) == hash(manifest(dag))
+// * In order to generate a manifest, you need the full DAG
+// * The list of nodes MUST be sorted by number of descendants. When two nodes
+//   have the same number of descenants, they MUST be sorted lexographically by node ID.
+//   The means the root of the DAG will always be the first index
+//
+// Manifests are intentionally limited in scope to make them easier to prove, faster to calculate, hard requirement the list of nodes can be
+// used as a base other structures can be built upon.
+// by keeping manifests at a minimum they are easier to verify, forming a
+// foundation for
 type Manifest struct {
-	Links    [][2]int         `json:"links"`              // links between nodes
-	Sections map[string][]int `json:"sections,omitempty"` // sections are lists of logical sub-DAGs by positions in the nodes list
-	Nodes    []string         `json:"nodes"`              // list if CIDS contained in the root dag
-	Root     int              `json:"root"`               // index if CID in nodes list this manifest is about. The subject of the manifest
-	Sizes    []uint64         `json:"sizes"`              // sizes of nodes in bytes
+	Links [][2]int `json:"links"` // links between nodes
+	Nodes []string `json:"nodes"` // list if CIDS contained in the root dag
 }
 
 // NewManifest generates a manifest from an ipld node
 func NewManifest(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*Manifest, error) {
 	ms := &mstate{
-		ctx:  ctx,
-		ng:   ng,
-		cids: map[string]int{},
-		// by convention root is zero b/c root is first node to be added
-		m: &Manifest{},
+		ctx:     ctx,
+		ng:      ng,
+		weights: map[string]int{},
+		links:   map[string]string{},
+		sizes:   map[string]uint64{},
+		m:       &Manifest{},
 	}
 
 	node, err := ng.Get(ctx, id)
@@ -46,10 +67,56 @@ func NewManifest(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*Manifest
 		return nil, err
 	}
 
-	if _, err := ms.addNode(node); err != nil {
+	weight := 0
+	if err := ms.addNode(node, &weight); err != nil {
 		return nil, err
 	}
+
+	// alpha sort keys
+	sort.StringSlice(ms.m.Nodes).Sort()
+	// then sort by weight
+	sort.Sort(ms)
+
+	// at this point indexes are set, re-use weights map to hold indicies
+	for i, id := range ms.m.Nodes {
+		ms.weights[id] = i
+	}
+
+	var sl sortableLinks
+	for from, to := range ms.links {
+		sl = append(sl, [2]int{ms.weights[from], ms.weights[to]})
+	}
+	sort.Sort(sl)
+	ms.m.Links = ([][2]int)(sl)
+
 	return ms.m, nil
+}
+
+type sortableLinks [][2]int
+
+func (sl sortableLinks) Len() int           { return len(sl) }
+func (sl sortableLinks) Less(i, j int) bool { return sl[i][0]+sl[i][1] < sl[j][0]+sl[j][1] }
+func (sl sortableLinks) Swap(i, j int)      { sl[i], sl[j] = sl[j], sl[i] }
+
+// SubDAG lists all hashes that are a descendant of the root id
+func (m *Manifest) SubDAG(id string) []string {
+	nodes := []string{id}
+	for i, h := range m.Nodes {
+		if id == h {
+			m.SubDAGIndex(i, &nodes)
+			return nodes
+		}
+	}
+	return nodes
+}
+
+// SubDAGIndex lists all hashes that are a descendant of manifest node index
+func (m *Manifest) SubDAGIndex(idx int, nodes *[]string) {
+	// for i, l := range m.Links {
+	// 	if l[0] == idx {
+
+	// 	}
+	// }
 }
 
 // MarshalCBOR encodes this manifest as CBOR data
@@ -69,49 +136,151 @@ func UnmarshalCBOR(data []byte) (m *Manifest, err error) {
 
 // mstate is a state machine for generating a manifest
 type mstate struct {
-	ctx  context.Context
-	ng   ipld.NodeGetter
-	idx  int
-	cids map[string]int // lookup table of already-added cids
-	m    *Manifest
+	ctx     context.Context
+	ng      ipld.NodeGetter
+	weights map[string]int // map of already-added cids to weight (descendant count)
+	links   map[string]string
+	sizes   map[string]uint64
+	m       *Manifest
 }
+
+// mstate implements the sort interface to sort Manifest nodes by weights
+func (ms *mstate) Len() int           { return len(ms.sizes) }
+func (ms *mstate) Less(a, b int) bool { return ms.weights[ms.m.Nodes[a]] > ms.weights[ms.m.Nodes[b]] }
+func (ms *mstate) Swap(i, j int)      { ms.m.Nodes[j], ms.m.Nodes[i] = ms.m.Nodes[i], ms.m.Nodes[j] }
 
 // addNode places a node in the manifest & state machine, recursively adding linked nodes
 // addNode returns early if this node is already added to the manifest
-func (ms *mstate) addNode(node Node) (int, error) {
+// note (b5): this is one of my fav techniques. I ship hard for pointer outparams + recursion
+func (ms *mstate) addNode(node Node, weight *int) (err error) {
 	id := node.Cid().String()
-
-	if idx, ok := ms.cids[id]; ok {
-		return idx, nil
+	if _, ok := ms.sizes[id]; ok {
+		return nil
 	}
 
-	// add the node
-	idx := ms.idx
-	ms.idx++
-
-	ms.cids[id] = idx
 	ms.m.Nodes = append(ms.m.Nodes, id)
+	lWeight := 0
 
-	// ignore size errors b/c uint64 has no way to represent
-	// errored size state as an int (-1), hopefully implementations default to 0
-	// when erroring :/
-	size, _ := node.Size()
-
-	ms.m.Sizes = append(ms.m.Sizes, size)
+	ms.sizes[id], err = node.Size()
+	if err != nil {
+		return
+	}
 
 	for _, link := range node.Links() {
+		*weight++
+
 		linkNode, err := link.GetNode(ms.ctx, ms.ng)
 		if err != nil {
-			return -1, err
+			return err
+		}
+		ms.links[id] = linkNode.Cid().String()
+
+		lWeight = 0
+		if err = ms.addNode(linkNode, &lWeight); err != nil {
+			return err
 		}
 
-		nodeIdx, err := ms.addNode(linkNode)
-		if err != nil {
-			return -1, err
-		}
-
-		ms.m.Links = append(ms.m.Links, [2]int{idx, nodeIdx})
+		*weight += lWeight
 	}
 
-	return idx, nil
+	ms.weights[id] = *weight
+	return nil
+}
+
+// DAGInfo is os.FileInfo for graph-based storage: a struct that describes important
+// details about a graph by
+// when being sent over the network, the contents of DAGInfo should be considered gossip,
+// as DAGInfo's are *not* deterministic. This has important implications
+// DAGInfo should contain application-specific info about a datset
+type DAGInfo struct {
+	// DAGInfo is built upon a manifest
+	Manifest *Manifest      `json:"manifest"`
+	Paths    map[string]int `json:"paths,omitempty"` // sections are lists of logical sub-DAGs by positions in the nodes list
+	Sizes    []uint64       `json:"sizes,omitempty"` // sizes of nodes in bytes
+}
+
+// NewDAGInfo creates a
+func NewDAGInfo(ctx context.Context, ng ipld.NodeGetter, id cid.Cid) (*DAGInfo, error) {
+	ms := &mstate{
+		ctx:     ctx,
+		ng:      ng,
+		weights: map[string]int{},
+		links:   map[string]string{},
+		sizes:   map[string]uint64{},
+		m:       &Manifest{},
+	}
+
+	node, err := ng.Get(ctx, id)
+	if err != nil {
+		return nil, err
+	}
+
+	weight := 0
+	if err := ms.addNode(node, &weight); err != nil {
+		return nil, err
+	}
+
+	return nil, fmt.Errorf("not finished")
+}
+
+// Completion tracks the presence of blocks described in a manifest
+// Completion can be used to store transfer progress, or be stored as a record
+// of which blocks in a DAG are missing
+// each element in the slice represents the index a block in a manifest.Nodes field,
+// which contains the hash of a block needed to complete a manifest
+// the element in the progress slice represents the transmission completion of that block
+// locally. It must be a number from 0-100, 0 = nothing locally, 100 = block is local.
+// note that progress is not necessarily linear. for example the following is 50% complete progress:
+//
+// manifest.Nodes: ["QmA", "QmB", "QmC", "QmD"]
+// progress:       [0, 100, 0, 100]
+//
+type Completion []uint16
+
+// NewCompletion constructs a progress from
+func NewCompletion(mfst, missing *Manifest) Completion {
+	// fill in progress
+	prog := make(Completion, len(mfst.Nodes))
+	for i := range prog {
+		prog[i] = 100
+	}
+
+	// then set missing blocks to 0
+	for _, miss := range missing.Nodes {
+		for i, hash := range mfst.Nodes {
+			if hash == miss {
+				prog[i] = 0
+			}
+		}
+	}
+
+	return prog
+}
+
+// Percentage expressess the completion as a floating point number betwen 0.0 and 1.0
+func (p Completion) Percentage() (pct float32) {
+	for _, bl := range p {
+		pct += float32(bl) / float32(100)
+	}
+	return (pct / float32(len(p))) * 100
+}
+
+// CompletedBlocks returns the number of blocks that are completed
+func (p Completion) CompletedBlocks() (count int) {
+	for _, bl := range p {
+		if bl == 100 {
+			count++
+		}
+	}
+	return count
+}
+
+// Complete returns weather progress is finished
+func (p Completion) Complete() bool {
+	for _, bl := range p {
+		if bl != 100 {
+			return false
+		}
+	}
+	return true
 }

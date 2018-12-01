@@ -14,6 +14,108 @@ import (
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 )
 
+func TestGraphManifestSizeRato(t *testing.T) {
+	g := NewGraph([]layer{
+		{8, 4 * kb},
+		{8, 256 * kb},
+		{100, 256 * kb},
+	})
+
+	ng := TestingNodeGetter{g}
+	mf, err := NewManifest(context.Background(), ng, g[0].Cid())
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	buf := &bytes.Buffer{}
+	enc := codec.NewEncoder(buf, &codec.CborHandle{})
+	if err := enc.Encode(mf); err != nil {
+		t.Fatal(err.Error())
+	}
+
+	size := uint64(0)
+	for _, n := range g {
+		s, _ := n.Size()
+		size += s
+	}
+
+	t.Logf("manifest representing %d nodes and %s of content is %s as CBOR", len(mf.Nodes), fileSize(size), fileSize(buf.Len()))
+}
+
+/*
+		A
+	 / \
+	B   C
+		 / \
+		D   E
+	 /
+	F
+*/
+func TestNewManifest(t *testing.T) {
+	content = 0
+
+	a := newNode(10) // zb2rhd6jTUt94FLVLjrCJ6Wy3NMDxm2sDuwArDfuDaNeHGRi8
+	b := newNode(20) // zb2rhdt1wgqfpzMgYf7mefxCWToqUTTyriWA1ctNxmy5WojSz
+	c := newNode(30) // zb2rhkwbf5N999rJcRX3D89PVDibZXnctArZFkap4CB36QcAQ
+	d := newNode(40) // zb2rhbtsQanqdtuvSceyeKUcT4ao1ge7HULRuRbueGjznWsDP
+	e := newNode(50) // zb2rhbhaFdd82br6cP9uUjxQxUyrMFwR3K6uYt6YvUxJtgpSV
+	f := newNode(60) // zb2rhnjvVfrzHtyeBcrCt3QUshMoYvEaxPXDykT4MyWvTCKV6
+	a.links = []*node{b, c}
+	c.links = []*node{d, e}
+	d.links = []*node{f}
+
+	ctx := context.Background()
+	ng := TestingNodeGetter{[]ipld.Node{a, b, c, d, e, f}}
+	mf, err := NewManifest(ctx, ng, a.Cid())
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	exp := &Manifest{
+		Nodes: []string{
+			"zb2rhd6jTUt94FLVLjrCJ6Wy3NMDxm2sDuwArDfuDaNeHGRi8", // a
+			"zb2rhkwbf5N999rJcRX3D89PVDibZXnctArZFkap4CB36QcAQ", // c
+			"zb2rhbtsQanqdtuvSceyeKUcT4ao1ge7HULRuRbueGjznWsDP", // d
+			"zb2rhbhaFdd82br6cP9uUjxQxUyrMFwR3K6uYt6YvUxJtgpSV", // e
+			"zb2rhdt1wgqfpzMgYf7mefxCWToqUTTyriWA1ctNxmy5WojSz", // b
+			"zb2rhnjvVfrzHtyeBcrCt3QUshMoYvEaxPXDykT4MyWvTCKV6", // f
+		},
+		Links: [][2]int{
+			{0, 1}, {1, 3}, {2, 5},
+		},
+	}
+
+	verifyManifest(t, exp, mf)
+}
+
+func TestNewDAGInfo(t *testing.T) {
+
+}
+
+func verifyManifest(t *testing.T, exp, got *Manifest) {
+	if len(exp.Nodes) != len(got.Nodes) {
+		t.Errorf("nodes length mismatch. %d != %d", len(exp.Nodes), len(got.Nodes))
+	}
+
+	for i, id := range exp.Nodes {
+		if got.Nodes[i] != id {
+			t.Errorf("index: %d order mismatch. expected: %s, got: %s", i, id, got.Nodes[i])
+		}
+	}
+
+	if len(exp.Links) != len(got.Links) {
+		t.Errorf("links length mismatch. %d != %d", len(exp.Links), len(got.Links))
+	}
+
+	for i, l := range exp.Links {
+		exp := l[0] + l[1]
+		g := got.Links[i][0] + got.Links[i][1]
+		if exp != g {
+			t.Errorf("links %d mismatch. expected: %v, got: %v", i, l, got.Links[i])
+		}
+	}
+}
+
 type layer struct {
 	numChildren int
 	size        uint64
@@ -90,13 +192,13 @@ func newNode(size uint64) *node {
 	}
 }
 
-type TestNodeGetter struct {
+type TestingNodeGetter struct {
 	Nodes []ipld.Node
 }
 
-var _ ipld.NodeGetter = (*TestNodeGetter)(nil)
+var _ ipld.NodeGetter = (*TestingNodeGetter)(nil)
 
-func (ng TestNodeGetter) Get(_ context.Context, id cid.Cid) (ipld.Node, error) {
+func (ng TestingNodeGetter) Get(_ context.Context, id cid.Cid) (ipld.Node, error) {
 	for _, node := range ng.Nodes {
 		if id.Equals(node.Cid()) {
 			return node, nil
@@ -106,49 +208,12 @@ func (ng TestNodeGetter) Get(_ context.Context, id cid.Cid) (ipld.Node, error) {
 }
 
 // GetMany returns a channel of NodeOptions given a set of CIDs.
-func (ng TestNodeGetter) GetMany(context.Context, []cid.Cid) <-chan *ipld.NodeOption {
+func (ng TestingNodeGetter) GetMany(context.Context, []cid.Cid) <-chan *ipld.NodeOption {
 	ch := make(chan *ipld.NodeOption)
 	ch <- &ipld.NodeOption{
 		Err: fmt.Errorf("doesn't support GetMany"),
 	}
 	return ch
-}
-
-func TestNewManifest(t *testing.T) {
-	g := NewGraph([]layer{
-		{8, 4 * kb},
-		{8, 256 * kb},
-		{100, 256 * kb},
-	})
-
-	ng := TestNodeGetter{g}
-	mf, err := NewManifest(context.Background(), ng, g[0].Cid())
-	if err != nil {
-		t.Error(err.Error())
-	}
-
-	verifyManifest(t, mf)
-
-	buf := &bytes.Buffer{}
-	enc := codec.NewEncoder(buf, &codec.CborHandle{})
-	if err := enc.Encode(mf); err != nil {
-		t.Fatal(err.Error())
-	}
-
-	size := uint64(0)
-	for _, s := range mf.Sizes {
-		size += s
-	}
-
-	t.Logf("manifest representing %d nodes and %s of content is %s as CBOR", len(mf.Nodes), fileSize(size), fileSize(buf.Len()))
-}
-
-func verifyManifest(t *testing.T, mf *Manifest) {
-	if len(mf.Nodes) != len(mf.Sizes) {
-		t.Errorf("nodes/sizes length mismatch. %d != %d", len(mf.Nodes), len(mf.Sizes))
-	}
-
-	// TODO - check other business assertions
 }
 
 const (
