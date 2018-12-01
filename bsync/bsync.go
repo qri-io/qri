@@ -37,10 +37,12 @@ const (
 
 // Remote is an interface for a source that can be synced to
 type Remote interface {
-	// Remotes must be "pushable"
-	ReqSend(mfst *manifest.Manifest) (sid string, diff *manifest.Manifest, err error)
-	// SendBlock
-	SendBlock(sid, hash string, data []byte) Response
+	// ReqSession requests a new session from the remote, which will return a
+	// delta manifest of blocks the remote needs and a session id that must
+	// be sent with each block
+	ReqSession(mfst *manifest.Manifest) (sid string, diff *manifest.Manifest, err error)
+	// PutBlock places a block on the remote
+	PutBlock(sid, hash string, data []byte) Response
 }
 
 // Send coordinates sending a manifest to a receiver, tracking progress and state
@@ -82,7 +84,7 @@ func NewSend(ctx context.Context, lng ipld.NodeGetter, mfst *manifest.Manifest, 
 
 // Do executes the send, blocking until complete
 func (snd *Send) Do() (err error) {
-	snd.sid, snd.diff, err = snd.remote.ReqSend(snd.mfst)
+	snd.sid, snd.diff, err = snd.remote.ReqSession(snd.mfst)
 	if err != nil {
 		return err
 	}
@@ -189,7 +191,7 @@ func (s sender) start() {
 					}
 					continue
 				}
-				s.responses <- s.remote.SendBlock(s.sid, hash, node.RawData())
+				s.responses <- s.remote.PutBlock(s.sid, hash, node.RawData())
 			case <-s.stopCh:
 				return
 			case <-s.ctx.Done():
@@ -272,6 +274,11 @@ func (r *Receive) ReceiveBlock(hash string, data io.Reader) Response {
 		Hash:   hash,
 		Status: StatusOk,
 	}
+}
+
+// Complete returns if this receive session is finished or not
+func (r *Receive) Complete() bool {
+	return r.prog.Complete()
 }
 
 func (r *Receive) completionChanged() {
