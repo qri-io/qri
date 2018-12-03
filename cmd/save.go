@@ -24,7 +24,7 @@ You can also update your data via url. Every time you run save, an entry is adde
 your dataset’s log (which you can see by running ` + "`qri log <dataset_reference>`" + `).
 
 If the dataset you're changing has defined a transform, running ` + "`qri save`" + `
-will re execute the transform. To only re-run the tranform, run save with no args.
+will re execute the transform. To only re-run the transform, run save with no args.
 
 Every time you save, you can provide a message about what you changed and why. 
 If you don’t provide a message Qri will automatically generate one for you.

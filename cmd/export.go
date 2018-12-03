@@ -29,7 +29,7 @@ func NewExportCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:   "export",
 		Short: "Copy datasets to your local filesystem",
 		Long: `
-Export gets datasets out of qri. By default it exports only the dataset body. 
+Export gets datasets out of qri. By default it exports the dataset body, as ` + "`body.csv`" + `, header as` + "`dataset.json`" + `, and ref, as ` + "`ref.txt`" + ` files. 
 
 To export to a specific directory, use the --output flag.
 

@@ -16,7 +16,7 @@ func NewPublishCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Long: `Publish makes your dataset available to others. While online, peers that connect 
 to you can only see datasets and versions that you've published. Publishing a 
 dataset always makes all previous history entries available, and any updates
-to a published dataset will be immideately visible to connected peers.
+to a published dataset will be immediately visible to connected peers.
 `,
 		Example: `  # publish a dataset
   $ qri publish me/dataset
