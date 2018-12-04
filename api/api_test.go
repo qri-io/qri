@@ -236,6 +236,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		// {"GET", "/connect/QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", 200},
 		// Cannot test endpoint until we have peers in this test suite
 		// {"GET", "/peer", 200},
+		{"GET", "/profile/photo?peername=me", 200},
+		{"GET", "/profile/poster?peername=me", 200},
 		{"GET", "/peer/movies", 200},
 		{"GET", "/history/peer/movies", 200},
 	}
