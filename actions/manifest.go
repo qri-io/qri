@@ -7,6 +7,7 @@ import (
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
 	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
+	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 )
 
 // NewManifest generates a manifest for a given node
@@ -38,4 +39,14 @@ func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
 
 	ng = &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
 	return
+}
+
+// newIPFSCoreAPI generates an ipld.NodeGetter from a QriNode
+func newIPFSCoreAPI(node *p2p.QriNode) (capi coreiface.CoreAPI, err error) {
+	ipfsn, err := node.IPFSNode()
+	if err != nil {
+		return nil, err
+	}
+
+	return coreapi.NewCoreAPI(ipfsn), nil
 }

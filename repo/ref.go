@@ -114,6 +114,12 @@ func (r DatasetRef) AliasString() (s string) {
 	return
 }
 
+// Complete returns true if a dataset has Peername, Name, ProfileID and Path
+// properties set
+func (r DatasetRef) Complete() bool {
+	return r.Peername != "" && r.ProfileID != "" && r.Name != "" && r.Path != ""
+}
+
 // Match checks returns true if Peername and Name are equal,
 // and/or path is equal
 func (r DatasetRef) Match(b DatasetRef) bool {
@@ -431,23 +437,22 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 		ref.ProfileID = p.ID
 		return nil
 	}
-	if ref.ProfileID != "" {
-		profile, err := r.Profiles().GetProfile(ref.ProfileID)
-		if err != nil {
-			return err
-			// return fmt.Errorf("error fetching peers from store: %s", err)
-		}
 
-		if ref.Peername == "" {
-			ref.Peername = profile.Peername
-			return nil
-		}
-		if ref.Peername != profile.Peername {
-			return fmt.Errorf("Peername and ProfileID combination not valid: ProfileID = %s, Peername = %s, but was given Peername = %s", profile.ID, profile.Peername, ref.Peername)
+	if ref.ProfileID != "" {
+		if profile, err := r.Profiles().GetProfile(ref.ProfileID); err == nil {
+
+			if ref.Peername == "" {
+				ref.Peername = profile.Peername
+				return nil
+			}
+			if ref.Peername != profile.Peername {
+				return fmt.Errorf("Peername and ProfileID combination not valid: ProfileID = %s, Peername = %s, but was given Peername = %s", profile.ID, profile.Peername, ref.Peername)
+			}
 		}
 	}
 
 	if ref.Peername != "" {
+<<<<<<< HEAD
 		id, err := r.Profiles().PeernameID(ref.Peername)
 		if err != nil {
 			// TODO: compare to actual error here, not string
@@ -462,6 +467,19 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 		}
 		if ref.ProfileID != id {
 			return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
+=======
+		if id, err := r.Profiles().PeernameID(ref.Peername); err == nil {
+			// if err != nil {
+			// 	return fmt.Errorf("error fetching peer from store: %s", err)
+			// }
+			if ref.ProfileID == "" {
+				ref.ProfileID = id
+				return nil
+			}
+			if ref.ProfileID != id {
+				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
+			}
+>>>>>>> refactor(datasetRef): only check / populate peer name / profileID if available
 		}
 	}
 	return nil

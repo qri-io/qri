@@ -96,7 +96,7 @@ func TestUpdateRun(t *testing.T) {
 		opt              *UpdateOptions
 		expect, msg, err string
 	}{
-		{&UpdateOptions{Ref: "other/bad_ref"}, "", "", "error fetching peer from store: profile: not found"},
+		{&UpdateOptions{Ref: "other/bad_ref"}, "", "", "unknown dataset 'other/bad_ref'. please add before updating"},
 		{&UpdateOptions{Ref: "me/bad_ref"}, "", "", "unknown dataset 'peer/bad_ref'. please add before updating"},
 	}
 

@@ -242,21 +242,65 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
-	err = repo.CanonicalizeDatasetRef(node.Repo, ref)
-	if err == nil {
-		return fmt.Errorf("error: dataset %s already exists in repo", ref)
-	} else if err != repo.ErrNotFound {
-		return fmt.Errorf("error with new reference: %s", err.Error())
-	}
+	if !ref.Complete() {
+		err = repo.CanonicalizeDatasetRef(node.Repo, ref)
+		if err == nil {
+			return fmt.Errorf("error: dataset %s already exists in repo", ref)
+		} else if err != repo.ErrNotFound {
+			return fmt.Errorf("error with new reference: %s", err.Error())
+		}
 
-	if ref.Path == "" && node != nil {
-		if err := node.RequestDataset(ref); err != nil {
-			return fmt.Errorf("error requesting dataset: %s", err.Error())
+		if ref.Path == "" && node != nil {
+			if err := node.RequestDataset(ref); err != nil {
+				return fmt.Errorf("error requesting dataset: %s", err.Error())
+			}
 		}
 	}
 
-	if err = base.FetchDataset(node.Repo, ref, true, true); err != nil {
-		return
+	errs := make(chan error)
+	tasks := 1
+
+	rc := node.Repo.Registry()
+	if rc != nil {
+		tasks++
+		go func() {
+			ng, err := newNodeGetter(node)
+			if err != nil {
+				return
+			}
+
+			capi, err := newIPFSCoreAPI(node)
+			if err != nil {
+				return
+			}
+
+			if err := rc.DsyncFetch(node.Context(), ref.Path, ng, capi.Block()); err != nil {
+				errs <- err
+				return
+			}
+			node.LocalStreams.Print("fetched from registry")
+			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
+				if err := pinner.Pin(datastore.NewKey(ref.Path), true); err != nil {
+					errs <- err
+				}
+			}
+		}()
+	}
+
+	go func() {
+		errs <- base.FetchDataset(node.Repo, ref, true, true)
+	}()
+
+	success := false
+	for i := 0; i < tasks; i++ {
+		if err = <-errs; err == nil {
+			success = true
+			break
+		}
+	}
+
+	if !success {
+		return fmt.Errorf("add failed: %s", err.Error())
 	}
 
 	if err = node.Repo.PutRef(*ref); err != nil {
