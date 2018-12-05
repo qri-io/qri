@@ -452,22 +452,6 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 	}
 
 	if ref.Peername != "" {
-<<<<<<< HEAD
-		id, err := r.Profiles().PeernameID(ref.Peername)
-		if err != nil {
-			// TODO: compare to actual error here, not string
-			if err.Error() == "datastore: key not found" {
-				return ErrNotFound
-			}
-			return fmt.Errorf("error fetching peer from store: %s", err)
-		}
-		if ref.ProfileID == "" {
-			ref.ProfileID = id
-			return nil
-		}
-		if ref.ProfileID != id {
-			return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
-=======
 		if id, err := r.Profiles().PeernameID(ref.Peername); err == nil {
 			// if err != nil {
 			// 	return fmt.Errorf("error fetching peer from store: %s", err)
@@ -479,7 +463,6 @@ func CanonicalizeProfile(r Repo, ref *DatasetRef, need *NeedPeernameRenames) err
 			if ref.ProfileID != id {
 				return fmt.Errorf("Peername and ProfileID combination not valid: Peername = %s, ProfileID = %s, but was given ProfileID = %s", ref.Peername, id.String(), ref.ProfileID)
 			}
->>>>>>> refactor(datasetRef): only check / populate peer name / profileID if available
 		}
 	}
 	return nil
