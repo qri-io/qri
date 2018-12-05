@@ -49,7 +49,8 @@ func (s *Server) Serve() (err error) {
 	}
 
 	server := &http.Server{}
-	server.Handler = NewServerRoutes(s)
+	mux := NewServerRoutes(s)
+	server.Handler = mux
 
 	go s.ServeRPC()
 	go s.ServeWebapp()

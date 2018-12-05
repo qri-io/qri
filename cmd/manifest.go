@@ -1,18 +1,17 @@
 package cmd
 
 import (
+	"encoding/hex"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"path/filepath"
 	"strings"
 
-	"encoding/hex"
-	"encoding/json"
-
 	"github.com/ghodss/yaml"
+	"github.com/qri-io/dag"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/manifest"
 	"github.com/spf13/cobra"
 )
 
@@ -49,9 +48,11 @@ func NewManifestCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 
 	get.Flags().StringVar(&o.Format, "format", "json", "set output format [json, yaml, cbor]")
 	get.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
+	get.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
 
 	missing.Flags().StringVar(&o.Format, "format", "json", "set output format [json, yaml, cbor]")
 	missing.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
+	missing.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
 	missing.Flags().StringVar(&o.File, "file", "", "manifest file")
 
 	cmd.AddCommand(get, missing)
@@ -66,6 +67,7 @@ type ManifestOptions struct {
 	Refs   []string
 	Format string
 	Pretty bool
+	Hex    bool
 	File   string
 
 	DatasetRequests *lib.DatasetRequests
@@ -80,7 +82,7 @@ func (o *ManifestOptions) Complete(f Factory, args []string) (err error) {
 
 // Get executes the get command
 func (o *ManifestOptions) Get() (err error) {
-	mf := &manifest.Manifest{}
+	mf := &dag.Manifest{}
 	for _, refstr := range o.Refs {
 		if err = o.DatasetRequests.Manifest(&refstr, mf); err != nil {
 			return err
@@ -97,12 +99,13 @@ func (o *ManifestOptions) Get() (err error) {
 		case "yaml":
 			buffer, err = yaml.Marshal(mf)
 		case "cbor":
-			var raw []byte
-			raw, err = mf.MarshalCBOR()
-			buffer = []byte(hex.EncodeToString(raw))
+			buffer, err = mf.MarshalCBOR()
 		}
 		if err != nil {
-			return fmt.Errorf("error getting config: %s", err)
+			return fmt.Errorf("err encoding manifest: %s", err)
+		}
+		if o.Hex {
+			buffer = []byte(hex.EncodeToString(buffer))
 		}
 		_, err = o.Out.Write(buffer)
 	}
@@ -116,7 +119,7 @@ func (o *ManifestOptions) Missing() error {
 		return fmt.Errorf("manifest file is required")
 	}
 
-	in := &manifest.Manifest{}
+	in := &dag.Manifest{}
 	data, err := ioutil.ReadFile(o.File)
 	if err != nil {
 		return err
@@ -128,19 +131,19 @@ func (o *ManifestOptions) Missing() error {
 	case ".json":
 		err = json.Unmarshal(data, in)
 	case ".cbor":
-		// TODO - I'm not a fan of this hex tom-foolery
-		data, err = hex.DecodeString(string(data))
-		if err != nil {
-			return err
-		}
-		in, err = manifest.UnmarshalCBOR(data)
+		// TODO - detect hex input?
+		// data, err = hex.DecodeString(string(data))
+		// if err != nil {
+		// 	return err
+		// }
+		in, err = dag.UnmarshalCBORManifest(data)
 	}
 
 	if err != nil {
 		return err
 	}
 
-	mf := &manifest.Manifest{}
+	mf := &dag.Manifest{}
 	if err = o.DatasetRequests.ManifestMissing(in, mf); err != nil {
 		return err
 	}
@@ -156,12 +159,13 @@ func (o *ManifestOptions) Missing() error {
 	case "yaml":
 		buffer, err = yaml.Marshal(mf)
 	case "cbor":
-		var raw []byte
-		raw, err = mf.MarshalCBOR()
-		buffer = []byte(hex.EncodeToString(raw))
+		buffer, err = mf.MarshalCBOR()
 	}
 	if err != nil {
-		return fmt.Errorf("error getting config: %s", err)
+		return fmt.Errorf("error encoding manifest: %s", err)
+	}
+	if o.Hex {
+		buffer = []byte(hex.EncodeToString(buffer))
 	}
 	_, err = o.Out.Write(buffer)
 

@@ -25,8 +25,7 @@ endef
 
 define GX_DEP_PACKAGES 
 github.com/qri-io/cafs \
-github.com/qri-io/startf \
-github.com/ipfs/go-ipfs/keystore
+github.com/qri-io/startf
 endef
 
 default: build

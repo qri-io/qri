@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/ipfs/go-datastore"
@@ -57,7 +58,6 @@ func Unpublish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 
 // Pin asks a registry to host a copy of a dataset
 func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
-	node.LocalStreams.Print("📌 pinning dataset")
 	r := node.Repo
 	reg := node.Repo.Registry()
 	if reg == nil {
@@ -81,17 +81,34 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		}
 	}
 
-	if !node.Online {
-		if err = node.GoOnline(); err != nil {
-			return err
-		}
-	}
+	// if !node.Online {
+	// 	if err = node.GoOnline(); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	var addrs []string
-	for _, maddr := range node.EncapsulatedAddresses() {
-		addrs = append(addrs, maddr.String())
+	// for _, maddr := range node.EncapsulatedAddresses() {
+	// 	addrs = append(addrs, maddr.String())
+	// }
+
+	ng, err := newNodeGetter(node)
+	if err != nil {
+		return nil
 	}
 
+	node.LocalStreams.Print("✈️  generating dataset manifest\n")
+	mfst, err := NewManifest(node, ref.Path)
+	if err != nil {
+		return err
+	}
+
+	node.LocalStreams.Print("🔁 syncing dataset graph\n")
+	if err = reg.DsyncSend(context.Background(), ng, mfst); err != nil {
+		return err
+	}
+
+	node.LocalStreams.Print("📌 pinning dataset\n")
 	if err = reg.Pin(ref.Path, pk, addrs); err != nil {
 		if err == registry.ErrPinsetNotSupported {
 			log.Info("this registry does not support pinning, dataset not pinned.")
