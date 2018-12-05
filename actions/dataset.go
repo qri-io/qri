@@ -243,17 +243,10 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	if !ref.Complete() {
-		err = repo.CanonicalizeDatasetRef(node.Repo, ref)
-		if err == nil {
+		if local, err := ResolveDatasetRef(node, ref); err != nil {
+			return err
+		} else if local {
 			return fmt.Errorf("error: dataset %s already exists in repo", ref)
-		} else if err != repo.ErrNotFound {
-			return fmt.Errorf("error with new reference: %s", err.Error())
-		}
-
-		if ref.Path == "" && node != nil {
-			if err := node.RequestDataset(ref); err != nil {
-				return fmt.Errorf("error requesting dataset: %s", err.Error())
-			}
 		}
 	}
 

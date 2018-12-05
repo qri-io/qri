@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -13,12 +15,45 @@ import (
 // falling back to a network call if one isn't found
 // TODO - this looks small now, but in the future we may consider
 // reinforcing p2p network with registry lookups
-func ResolveDatasetRef(n *p2p.QriNode, ref *repo.DatasetRef) (local bool, err error) {
-	if err := repo.CanonicalizeDatasetRef(n.Repo, ref); err == nil && ref.Path != "" {
+func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err error) {
+	if err := repo.CanonicalizeDatasetRef(node.Repo, ref); err == nil && ref.Path != "" {
 		return true, nil
 	} else if err != nil && err != repo.ErrNotFound && err != profile.ErrNotFound {
+		// return early on any non "not found" error
 		return false, err
 	}
 
-	return false, n.ResolveDatasetRef(ref)
+	errs := make(chan error)
+	tasks := 1
+
+	if rc := node.Repo.Registry(); rc != nil {
+		tasks++
+		go func() {
+			if ds, err := rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err == nil {
+				ref.Peername = ds.Peername
+				ref.Name = ds.Name
+				ref.ProfileID = profile.ID(ds.Commit.Author.ID)
+				ref.Path = ds.Path
+				errs <- nil
+			}
+			errs <- fmt.Errorf("not found")
+		}()
+	}
+
+	go func() {
+		errs <- node.ResolveDatasetRef(ref)
+	}()
+
+	success := false
+	for i := 0; i < tasks; i++ {
+		if err = <-errs; err == nil {
+			success = true
+			break
+		}
+	}
+
+	if !success {
+		return false, fmt.Errorf("error resolving ref: %s", err.Error())
+	}
+	return false, nil
 }

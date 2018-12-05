@@ -614,7 +614,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "add failed: error fetching file: this store cannot fetch from remote sources"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "error resolving ref: no p2p connection"},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
