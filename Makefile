@@ -10,7 +10,6 @@ github.com/qri-io/dataset \
 github.com/qri-io/doggos \
 github.com/qri-io/dsdiff \
 github.com/qri-io/varName \
-github.com/qri-io/registry/regclient \
 github.com/sergi/go-diff/diffmatchpatch \
 github.com/sirupsen/logrus \
 github.com/spf13/cobra \
@@ -24,6 +23,8 @@ github.com/pkg/errors
 endef
 
 define GX_DEP_PACKAGES 
+github.com/qri-io/registry/regclient \
+github.com/qri-io/dag \
 github.com/qri-io/cafs \
 github.com/qri-io/startf
 endef
