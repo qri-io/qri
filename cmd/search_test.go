@@ -113,7 +113,7 @@ func TestSearchRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"test", "", "showing 3 results for 'test'\n1. ramfox/test\n\n2. b5/test\n   \n   \n\n3. EDGI/fib_6\n   Fibonacci(6)\n   test of starlark as a transformation language\n\n", "", ""},
+		{"test", "", textSearchResponse, "", ""},
 		{"test", "json", jsonSearchResponse, "", ""},
 	}
 
@@ -159,6 +159,18 @@ func TestSearchRun(t *testing.T) {
 		ioReset(in, out, errs)
 	}
 }
+
+var textSearchResponse = `showing 3 results for 'test'
+1. ramfox/test
+
+2. b5/test
+   18 KBs, 7 entries, 0 errors
+
+3. EDGI/fib_6
+   Fibonacci(6)
+   7 bytes, 6 entries, 0 errors
+
+`
 
 var jsonSearchResponse = `[
   {

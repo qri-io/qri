@@ -114,11 +114,11 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	ds := ref.Dataset
 
 	fmt.Fprintf(w, "%s  %s\n", cyan(i), white(ref.AliasString()))
-	fmt.Fprintf(w, "    %s\n", blue(ref.Path))
-	if ds != nil && ds.Meta != nil {
-		if ds.Meta.Title != "" {
-			fmt.Fprintf(w, "    %s\n", white(ds.Meta.Title))
-		}
+	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
+		fmt.Fprintf(w, "    %s\n", blue(ds.Meta.Title))
+	}
+	if ref.Path != "" {
+		fmt.Fprintf(w, "    %s\n", ref.Path)
 	}
 	if ds != nil && ds.Structure != nil {
 		fmt.Fprintf(w, "    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
@@ -130,17 +130,21 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
 	white := color.New(color.FgWhite).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
-	// NOTE: in the future we need to switch based on result.Type
+	// TODO: in the future we need to switch based on result.Type
 	// For now we are taking a shortcut and assuming a dataset struct
 	ds := &registry.Dataset{}
-	resultString := white(result.ID + "\n")
 	if data, err := json.Marshal(result.Value); err == nil {
-		if err = json.Unmarshal(data, ds); err == nil && ds.Meta != nil {
-			desc := strings.Replace(ds.Meta.Description, "\n", "\n   ", -1)
-			resultString = fmt.Sprintf("%s\n   %s\n   %s\n", white(result.ID), green(ds.Meta.Title), desc)
+		if err = json.Unmarshal(data, ds); err == nil {
+			fmt.Fprintf(w, "%s. %s\n", white(i+1), white(result.ID))
+			if ds.Meta != nil && ds.Meta.Title != "" {
+				fmt.Fprintf(w, "   %s\n", green(ds.Meta.Title))
+			}
+			if ds.Structure != nil {
+				fmt.Fprintf(w, "   %s, %d entries, %d errors\n", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
+			}
 		}
 	}
-	fmt.Fprintf(w, "%s. %s\n", white(i+1), resultString)
+	fmt.Fprintln(w)
 }
 
 func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {

@@ -32,7 +32,7 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 			if ds, err := rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err == nil {
 				ref.Peername = ds.Peername
 				ref.Name = ds.Name
-				ref.ProfileID = profile.ID(ds.Commit.Author.ID)
+				ref.ProfileID, _ = profile.IDB58Decode(ds.Commit.Author.ID)
 				ref.Path = ds.Path
 				errs <- nil
 			}

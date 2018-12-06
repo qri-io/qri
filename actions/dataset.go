@@ -273,9 +273,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 			}
 			node.LocalStreams.Print("fetched from registry")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-				if err := pinner.Pin(datastore.NewKey(ref.Path), true); err != nil {
-					errs <- err
-				}
+				errs <- pinner.Pin(datastore.NewKey(ref.Path), true)
 			}
 		}()
 	}
