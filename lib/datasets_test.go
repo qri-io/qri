@@ -614,7 +614,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "error fetching file: this store cannot fetch from remote sources"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "node is not online and no registry is configured"},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)

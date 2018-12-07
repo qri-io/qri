@@ -77,12 +77,7 @@ func (h *RegistryHandlers) publishRegistryHandler(w http.ResponseWriter, r *http
 		return
 	}
 	var res bool
-	p := &lib.PublishParams{
-		Ref: ref,
-		// TODO - re-enable once registry server is properly tested
-		// Pin: true,
-	}
-	if err = h.RegistryRequests.Publish(p, &res); err != nil {
+	if err = h.RegistryRequests.Publish(&ref, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

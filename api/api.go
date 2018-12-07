@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -22,6 +24,12 @@ import (
 var log = golog.Logger("qriapi")
 
 func init() {
+	// We don't use the log package, and the net/rpc package spits out some complaints b/c
+	// a few methods don't conform to the proper signature (comment this out & run 'qri connect' to see errors)
+	// so we're disabling the log package for now. This is potentially very stupid.
+	// TODO (b5): remove dep on net/rpc package entirely
+	stdlog.SetOutput(ioutil.Discard)
+
 	golog.SetLogLevel("qriapi", "info")
 }
 
@@ -49,7 +57,8 @@ func (s *Server) Serve() (err error) {
 	}
 
 	server := &http.Server{}
-	server.Handler = NewServerRoutes(s)
+	mux := NewServerRoutes(s)
+	server.Handler = mux
 
 	go s.ServeRPC()
 	go s.ServeWebapp()
@@ -90,12 +99,15 @@ func (s *Server) Serve() (err error) {
 		}
 	}
 
-	info := s.cfg.SummaryString()
+	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
+	info += s.cfg.SummaryString()
 	info += "IPFS Addresses:"
 	for _, a := range s.qriNode.EncapsulatedAddresses() {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
-	log.Info(info)
+	info += "\n\n"
+
+	s.qriNode.LocalStreams.Print(info)
 
 	if s.cfg.API.DisconnectAfter != 0 {
 		log.Infof("disconnecting after %d seconds", s.cfg.API.DisconnectAfter)

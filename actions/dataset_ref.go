@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"fmt"
+
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -13,12 +15,75 @@ import (
 // falling back to a network call if one isn't found
 // TODO - this looks small now, but in the future we may consider
 // reinforcing p2p network with registry lookups
-func ResolveDatasetRef(n *p2p.QriNode, ref *repo.DatasetRef) (local bool, err error) {
-	if err := repo.CanonicalizeDatasetRef(n.Repo, ref); err == nil && ref.Path != "" {
+func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err error) {
+	if err := repo.CanonicalizeDatasetRef(node.Repo, ref); err == nil && ref.Path != "" {
 		return true, nil
 	} else if err != nil && err != repo.ErrNotFound && err != profile.ErrNotFound {
+		// return early on any non "not found" error
 		return false, err
 	}
 
-	return false, n.ResolveDatasetRef(ref)
+	type response struct {
+		Ref   *repo.DatasetRef
+		Error error
+	}
+
+	responses := make(chan response)
+	tasks := 0
+
+	if rc := node.Repo.Registry(); rc != nil {
+		tasks++
+
+		refCopy := &repo.DatasetRef{
+			Peername:  ref.Peername,
+			Name:      ref.Name,
+			ProfileID: ref.ProfileID,
+		}
+
+		go func(ref *repo.DatasetRef) {
+			res := response{Ref: ref}
+			defer func() {
+				responses <- res
+			}()
+
+			if ds, err := rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err == nil {
+				// Commit author is required to resolve ref
+				if ds.Commit != nil && ds.Commit.Author != nil {
+					ref.Peername = ds.Peername
+					ref.Name = ds.Name
+					ref.ProfileID, _ = profile.IDB58Decode(ds.Commit.Author.ID)
+					ref.Path = ds.Path
+					return
+				}
+			}
+		}(refCopy)
+	}
+
+	if node.Online {
+		tasks++
+		go func() {
+			err := node.ResolveDatasetRef(ref)
+			responses <- response{Ref: ref, Error: err}
+		}()
+	}
+
+	if tasks == 0 {
+		return false, fmt.Errorf("node is not online and no registry is configured")
+	}
+
+	success := false
+	for i := 0; i < tasks; i++ {
+		res := <-responses
+		err = res.Error
+		if err == nil {
+			success = true
+			*ref = *res.Ref
+			break
+		}
+	}
+
+	if !success {
+		return false, fmt.Errorf("error resolving ref: %s", err)
+	}
+	return false, nil
 }

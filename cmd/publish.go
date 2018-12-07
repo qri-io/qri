@@ -25,7 +25,10 @@ to a published dataset will be immediately visible to connected peers.
   $ qri publish me/dataset me/other_dataset
 
   # unpublish a dataset
-  $ qri publish -unpublish me/dataset`,
+  $ qri publish -unpublish me/dataset
+
+  # publish a few dataset on p2p only
+  $ qri publish --no-registry me/dataset_2`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
@@ -39,6 +42,7 @@ to a published dataset will be immediately visible to connected peers.
 
 	cmd.Flags().BoolVarP(&o.Unpublish, "unpublish", "", false, "unpublish a dataset")
 	cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "", false, "don't publish to registry")
+	cmd.Flags().BoolVarP(&o.NoPin, "no-pin", "", false, "don't pin dataset to registry")
 
 	return cmd
 }
@@ -50,6 +54,7 @@ type PublishOptions struct {
 	Refs       []string
 	Unpublish  bool
 	NoRegistry bool
+	NoPin      bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -73,8 +78,9 @@ func (o *PublishOptions) Run() error {
 
 		ref.Published = !o.Unpublish
 		p := &lib.SetPublishStatusParams{
-			Ref:            &ref,
-			UpdateRegistry: !o.NoRegistry,
+			Ref:               &ref,
+			UpdateRegistry:    !o.NoRegistry,
+			UpdateRegistryPin: !o.NoPin,
 		}
 
 		if err = o.DatasetRequests.SetPublishStatus(p, &res); err != nil {

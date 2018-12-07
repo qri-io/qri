@@ -168,13 +168,7 @@ func (o *RegistryOptions) Publish() error {
 			return err
 		}
 
-		p := &lib.PublishParams{
-			Ref: ref,
-			// TODO - re-enable once registry server is properly tested
-			// Pin: true,
-		}
-
-		if err = o.RegistryRequests.Publish(p, &res); err != nil {
+		if err = o.RegistryRequests.Publish(&ref, &res); err != nil {
 			return err
 		}
 		printInfo(o.Out, "published dataset %s", ref)

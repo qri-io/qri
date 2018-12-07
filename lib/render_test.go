@@ -60,7 +60,7 @@ func TestRenderRequestsRender(t *testing.T) {
 				Peername: "foo",
 				Name:     "invalid_ref",
 			},
-		}, nil, "error fetching peer from store: profile: not found"},
+		}, nil, "repo: not found"},
 		{&RenderParams{
 			Ref: repo.DatasetRef{
 				Peername: "me",

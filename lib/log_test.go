@@ -32,7 +32,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		err string
 	}{
 		{&LogParams{}, nil, "repo: empty dataset reference"},
-		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "no p2p connection"},
+		{&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "node is not online and no registry is configured"},
 		{&LogParams{Ref: ref}, []repo.DatasetRef{ref}, ""},
 	}
 

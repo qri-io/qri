@@ -48,7 +48,7 @@ type P2P struct {
 	BootstrapAddrs []string `json:"bootstrapaddrs"`
 
 	// Enable AutoNAT service. unless you're hosting a server, leave this as false
-	AutoNAT bool `json:autoNAT`
+	AutoNAT bool `json:"autoNAT"`
 }
 
 // DefaultP2PWithoutKeys generates a p2p struct without keys or peerID

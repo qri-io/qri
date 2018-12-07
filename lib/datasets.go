@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
@@ -171,7 +172,13 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if p.Publish {
 		var done bool
-		if err = NewRegistryRequests(r.node, nil).Publish(&PublishParams{Ref: ref, Pin: true}, &done); err != nil {
+		err = r.SetPublishStatus(&SetPublishStatusParams{
+			Ref:               &ref,
+			UpdateRegistry:    true,
+			UpdateRegistryPin: true,
+		}, &done)
+
+		if err != nil {
 			return err
 		}
 	}
@@ -254,8 +261,9 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
 type SetPublishStatusParams struct {
-	Ref            *repo.DatasetRef
-	UpdateRegistry bool
+	Ref               *repo.DatasetRef
+	UpdateRegistry    bool
+	UpdateRegistryPin bool
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
@@ -271,23 +279,29 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, res *bool)
 	}
 
 	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
-		if ref.Published == true {
-			if err = actions.Publish(r.node, *ref); err != nil {
-				return err
+		var done bool
+		rr := NewRegistryRequests(r.node, nil)
+
+		if ref.Published {
+			if err = rr.Publish(ref, &done); err != nil {
+				return
 			}
-			if err = actions.Pin(r.node, *ref); err != nil {
-				return err
+
+			if p.UpdateRegistryPin {
+				return rr.Pin(ref, &done)
 			}
 		} else {
-			if err = actions.Unpublish(r.node, *ref); err != nil {
-				return err
+			if err = rr.Unpublish(ref, &done); err != nil {
+				return
 			}
-			if err = actions.Unpin(r.node, *ref); err != nil {
-				return err
+
+			if p.UpdateRegistryPin {
+				return rr.Unpin(ref, &done)
 			}
 		}
 	}
-	return nil
+
+	return
 }
 
 // RenameParams defines parameters for Dataset renaming
@@ -468,5 +482,43 @@ func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff)
 	}
 
 	*diffs, err = actions.DiffDatasets(r.node, p.Left, p.Right, p.DiffAll, p.DiffComponents)
+	return
+}
+
+// Manifest generates a manifest for a dataset path
+func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
+	}
+
+	ref, err := repo.ParseDatasetRef(*refstr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return
+	}
+
+	var mf *dag.Manifest
+	mf, err = actions.NewManifest(r.node, ref.Path)
+	if err != nil {
+		return
+	}
+	*m = *mf
+	return
+}
+
+// ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
+func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Manifest", a, b)
+	}
+
+	var mf *dag.Manifest
+	mf, err = actions.Missing(r.node, a)
+	if err != nil {
+		return
+	}
+	*b = *mf
 	return
 }

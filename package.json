@@ -104,6 +104,10 @@
       "hash" : "QmVYDvJjiKb9iFEyHxx4i1TJSRBLkQhGb5Fc8XpmDuNCEA",
       "name" : "go-libp2p-circuit",
       "version" : "2.3.2"
+    },
+    {
+      "hash" : "QmXctaABKwgzmQgNM4bucMJf7zJnxxvhmPM1Pw95dxUfB5",
+      "name" : "go-ipfs-config"
     }
   ],
   "gxVersion": "0.11.0",

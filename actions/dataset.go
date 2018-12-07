@@ -242,21 +242,93 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
-	err = repo.CanonicalizeDatasetRef(node.Repo, ref)
-	if err == nil {
-		return fmt.Errorf("error: dataset %s already exists in repo", ref)
-	} else if err != repo.ErrNotFound {
-		return fmt.Errorf("error with new reference: %s", err.Error())
-	}
-
-	if ref.Path == "" && node != nil {
-		if err := node.RequestDataset(ref); err != nil {
-			return fmt.Errorf("error requesting dataset: %s", err.Error())
+	if !ref.Complete() {
+		if local, err := ResolveDatasetRef(node, ref); err != nil {
+			return err
+		} else if local {
+			return fmt.Errorf("error: dataset %s already exists in repo", ref)
 		}
 	}
 
-	if err = base.FetchDataset(node.Repo, ref, true, true); err != nil {
-		return
+	type addResponse struct {
+		Ref   *repo.DatasetRef
+		Error error
+	}
+
+	responses := make(chan addResponse)
+	tasks := 0
+
+	rc := node.Repo.Registry()
+	if rc != nil {
+		tasks++
+
+		refCopy := &repo.DatasetRef{
+			Peername:  ref.Peername,
+			ProfileID: ref.ProfileID,
+			Name:      ref.Name,
+			Path:      ref.Path,
+		}
+
+		go func(ref *repo.DatasetRef) {
+			res := addResponse{Ref: ref}
+
+			// always send on responses channel
+			defer func() {
+				responses <- res
+			}()
+
+			ng, err := newNodeGetter(node)
+			if err != nil {
+				res.Error = err
+				return
+			}
+
+			capi, err := newIPFSCoreAPI(node)
+			if res.Error != nil {
+				res.Error = err
+				return
+			}
+
+			if err := rc.DsyncFetch(node.Context(), ref.Path, ng, capi.Block()); err != nil {
+				res.Error = err
+				return
+			}
+			node.LocalStreams.Print("🗼 fetched from registry\n")
+			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
+				err := pinner.Pin(datastore.NewKey(ref.Path), true)
+				res.Error = err
+			}
+		}(refCopy)
+	}
+
+	if node.Online {
+		tasks++
+		go func() {
+			err := base.FetchDataset(node.Repo, ref, true, true)
+			responses <- addResponse{
+				Ref:   ref,
+				Error: err,
+			}
+		}()
+	}
+
+	if tasks == 0 {
+		return fmt.Errorf("no registry configured and node is not online")
+	}
+
+	success := false
+	for i := 0; i < tasks; i++ {
+		res := <-responses
+		err = res.Error
+		if err == nil {
+			success = true
+			*ref = *res.Ref
+			break
+		}
+	}
+
+	if !success {
+		return fmt.Errorf("add failed: %s", err.Error())
 	}
 
 	if err = node.Repo.PutRef(*ref); err != nil {
@@ -269,6 +341,11 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 
 // SetPublishStatus configures the publish status of a stored reference
 func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
+	if published {
+		node.LocalStreams.Print("📝 listing dataset for p2p discovery\n")
+	} else {
+		node.LocalStreams.Print("unlisting dataset from p2p discovery\n")
+	}
 	return base.SetPublishStatus(node.Repo, ref, published)
 }
 

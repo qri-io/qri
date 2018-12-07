@@ -27,9 +27,8 @@ func TestRegistryRequests(t *testing.T) {
 
 	req := NewRegistryRequests(node, nil)
 
-	params := &PublishParams{Ref: ref, Pin: true}
 	done := false
-	if err := req.Publish(params, &done); err != nil {
+	if err := req.Publish(&ref, &done); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,9 +52,8 @@ func TestRegistryRequests(t *testing.T) {
 		t.Errorf("error getting dataset from registry, expected published to be 'true'")
 	}
 
-	params = &PublishParams{Ref: ref2, Pin: true}
 	done = false
-	if err := req.Publish(params, &done); err != nil {
+	if err := req.Publish(&ref2, &done); err != nil {
 		t.Fatal(err)
 	}
 
