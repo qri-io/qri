@@ -271,7 +271,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 				errs <- err
 				return
 			}
-			node.LocalStreams.Print("fetched from registry")
+			node.LocalStreams.Print("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
 				errs <- pinner.Pin(datastore.NewKey(ref.Path), true)
 			}
@@ -304,6 +304,11 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 
 // SetPublishStatus configures the publish status of a stored reference
 func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
+	if published {
+		node.LocalStreams.Print("📝 listing dataset for p2p discovery\n")
+	} else {
+		node.LocalStreams.Print("unlisting dataset from p2p discovery\n")
+	}
 	return base.SetPublishStatus(node.Repo, ref, published)
 }
 

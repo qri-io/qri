@@ -18,6 +18,7 @@ import (
 
 // Publish a dataset to a repo's specified registry
 func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
+	node.LocalStreams.Print("🗼 publishing dataset to registry\n")
 	r := node.Repo
 	cli, pub, ds, err := dsParams(r, &ref)
 	if err != nil {
@@ -81,17 +82,6 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		}
 	}
 
-	// if !node.Online {
-	// 	if err = node.GoOnline(); err != nil {
-	// 		return err
-	// 	}
-	// }
-
-	var addrs []string
-	// for _, maddr := range node.EncapsulatedAddresses() {
-	// 	addrs = append(addrs, maddr.String())
-	// }
-
 	ng, err := newNodeGetter(node)
 	if err != nil {
 		return nil
@@ -103,13 +93,13 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return err
 	}
 
-	node.LocalStreams.Print("🔁 syncing dataset graph\n")
+	node.LocalStreams.Print("🗼 syncing dataset graph to registry\n")
 	if err = reg.DsyncSend(context.Background(), ng, mfst); err != nil {
 		return err
 	}
 
 	node.LocalStreams.Print("📌 pinning dataset\n")
-	if err = reg.Pin(ref.Path, pk, addrs); err != nil {
+	if err = reg.Pin(ref.Path, pk, nil); err != nil {
 		if err == registry.ErrPinsetNotSupported {
 			log.Info("this registry does not support pinning, dataset not pinned.")
 		} else {

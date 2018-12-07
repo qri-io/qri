@@ -31,19 +31,12 @@ func NewRegistryRequests(node *p2p.QriNode, cli *rpc.Client) *RegistryRequests {
 	}
 }
 
-// PublishParams encapsulates arguments to the publish method
-type PublishParams struct {
-	Ref repo.DatasetRef
-	Pin bool
-}
-
 // Publish a dataset to a registry
-func (r *RegistryRequests) Publish(p *PublishParams, done *bool) (err error) {
+func (r *RegistryRequests) Publish(ref *repo.DatasetRef, done *bool) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RegistryRequests.Publish", p, done)
+		return r.cli.Call("RegistryRequests.Publish", ref, done)
 	}
-	ref := p.Ref
-	return actions.Publish(r.node, ref)
+	return actions.Publish(r.node, *ref)
 }
 
 // Unpublish a dataset from a registry

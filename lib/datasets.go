@@ -172,7 +172,13 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if p.Publish {
 		var done bool
-		if err = NewRegistryRequests(r.node, nil).Publish(&PublishParams{Ref: ref, Pin: true}, &done); err != nil {
+		err = r.SetPublishStatus(&SetPublishStatusParams{
+			Ref:               &ref,
+			UpdateRegistry:    true,
+			UpdateRegistryPin: true,
+		}, &done)
+
+		if err != nil {
 			return err
 		}
 	}
@@ -255,8 +261,9 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
 type SetPublishStatusParams struct {
-	Ref            *repo.DatasetRef
-	UpdateRegistry bool
+	Ref               *repo.DatasetRef
+	UpdateRegistry    bool
+	UpdateRegistryPin bool
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
@@ -272,23 +279,29 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, res *bool)
 	}
 
 	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
-		if ref.Published == true {
-			if err = actions.Publish(r.node, *ref); err != nil {
-				return err
+		var done bool
+		rr := NewRegistryRequests(r.node, nil)
+
+		if ref.Published {
+			if err = rr.Publish(ref, &done); err != nil {
+				return
 			}
-			if err = actions.Pin(r.node, *ref); err != nil {
-				return err
+
+			if p.UpdateRegistryPin {
+				return rr.Pin(ref, &done)
 			}
 		} else {
-			if err = actions.Unpublish(r.node, *ref); err != nil {
-				return err
+			if err = rr.Unpublish(ref, &done); err != nil {
+				return
 			}
-			if err = actions.Unpin(r.node, *ref); err != nil {
-				return err
+
+			if p.UpdateRegistryPin {
+				return rr.Unpin(ref, &done)
 			}
 		}
 	}
-	return nil
+
+	return
 }
 
 // RenameParams defines parameters for Dataset renaming
