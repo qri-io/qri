@@ -614,7 +614,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "error resolving ref: no p2p connection"},
+		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "node is not online and no registry is configured"},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)

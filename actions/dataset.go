@@ -250,42 +250,79 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		}
 	}
 
-	errs := make(chan error)
-	tasks := 1
+	type addResponse struct {
+		Ref   *repo.DatasetRef
+		Error error
+	}
+
+	responses := make(chan addResponse)
+	tasks := 0
 
 	rc := node.Repo.Registry()
 	if rc != nil {
 		tasks++
-		go func() {
+
+		refCopy := &repo.DatasetRef{
+			Peername:  ref.Peername,
+			ProfileID: ref.ProfileID,
+			Name:      ref.Name,
+			Path:      ref.Path,
+		}
+
+		go func(ref *repo.DatasetRef) {
+			res := addResponse{Ref: ref}
+
+			// always send on responses channel
+			defer func() {
+				responses <- res
+			}()
+
 			ng, err := newNodeGetter(node)
 			if err != nil {
+				res.Error = err
 				return
 			}
 
 			capi, err := newIPFSCoreAPI(node)
-			if err != nil {
+			if res.Error != nil {
+				res.Error = err
 				return
 			}
 
 			if err := rc.DsyncFetch(node.Context(), ref.Path, ng, capi.Block()); err != nil {
-				errs <- err
+				res.Error = err
 				return
 			}
 			node.LocalStreams.Print("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-				errs <- pinner.Pin(datastore.NewKey(ref.Path), true)
+				err := pinner.Pin(datastore.NewKey(ref.Path), true)
+				res.Error = err
+			}
+		}(refCopy)
+	}
+
+	if node.Online {
+		tasks++
+		go func() {
+			err := base.FetchDataset(node.Repo, ref, true, true)
+			responses <- addResponse{
+				Ref:   ref,
+				Error: err,
 			}
 		}()
 	}
 
-	go func() {
-		errs <- base.FetchDataset(node.Repo, ref, true, true)
-	}()
+	if tasks == 0 {
+		return fmt.Errorf("no registry configured and node is not online")
+	}
 
 	success := false
 	for i := 0; i < tasks; i++ {
-		if err = <-errs; err == nil {
+		res := <-responses
+		err = res.Error
+		if err == nil {
 			success = true
+			*ref = *res.Ref
 			break
 		}
 	}

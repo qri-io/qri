@@ -15,13 +15,14 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewManifestCommand creates a new `qri search` command that searches for datasets
+// NewManifestCommand creates a new `qri manifest` command that generates a manifest for a given
+// dataset reference. Referenced dataset must be stored in local CAFS
 func NewManifestCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ManifestOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:    "manifest",
 		Hidden: true,
-		Short:  "dataset manifest interation",
+		Short:  "dataset manifest interaction",
 	}
 
 	get := &cobra.Command{
@@ -60,7 +61,7 @@ func NewManifestCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	return cmd
 }
 
-// ManifestOptions encapsulates state for the get command
+// ManifestOptions encapsulates state for the manifest command
 type ManifestOptions struct {
 	ioes.IOStreams
 

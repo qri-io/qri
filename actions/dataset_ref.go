@@ -23,15 +23,29 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 		return false, err
 	}
 
-	errs := make(chan error)
-	tasks := 0
+	type response struct {
+		Ref   *repo.DatasetRef
+		Error error
+	}
 
-	// default error, will be cleared below while reading from errs channel if either task is assigned
-	err = fmt.Errorf("node is not online and no registry is configured")
+	responses := make(chan response)
+	tasks := 0
 
 	if rc := node.Repo.Registry(); rc != nil {
 		tasks++
-		go func() {
+
+		refCopy := &repo.DatasetRef{
+			Peername:  ref.Peername,
+			Name:      ref.Name,
+			ProfileID: ref.ProfileID,
+		}
+
+		go func(ref *repo.DatasetRef) {
+			res := response{Ref: ref}
+			defer func() {
+				responses <- res
+			}()
+
 			if ds, err := rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err == nil {
 				// Commit author is required to resolve ref
 				if ds.Commit != nil && ds.Commit.Author != nil {
@@ -39,25 +53,31 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 					ref.Name = ds.Name
 					ref.ProfileID, _ = profile.IDB58Decode(ds.Commit.Author.ID)
 					ref.Path = ds.Path
-					errs <- nil
 					return
 				}
 			}
-			errs <- fmt.Errorf("not found")
-		}()
+		}(refCopy)
 	}
 
 	if node.Online {
 		tasks++
 		go func() {
-			errs <- node.ResolveDatasetRef(ref)
+			err := node.ResolveDatasetRef(ref)
+			responses <- response{Ref: ref, Error: err}
 		}()
+	}
+
+	if tasks == 0 {
+		return false, fmt.Errorf("node is not online and no registry is configured")
 	}
 
 	success := false
 	for i := 0; i < tasks; i++ {
-		if err = <-errs; err == nil {
+		res := <-responses
+		err = res.Error
+		if err == nil {
 			success = true
+			*ref = *res.Ref
 			break
 		}
 	}

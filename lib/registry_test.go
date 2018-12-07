@@ -28,7 +28,7 @@ func TestRegistryRequests(t *testing.T) {
 	req := NewRegistryRequests(node, nil)
 
 	done := false
-	if err := req.Publish(ref, &done); err != nil {
+	if err := req.Publish(&ref, &done); err != nil {
 		t.Fatal(err)
 	}
 
@@ -53,7 +53,7 @@ func TestRegistryRequests(t *testing.T) {
 	}
 
 	done = false
-	if err := req.Publish(ref, &done); err != nil {
+	if err := req.Publish(&ref2, &done); err != nil {
 		t.Fatal(err)
 	}
 

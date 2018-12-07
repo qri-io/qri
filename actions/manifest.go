@@ -41,7 +41,8 @@ func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
 	return
 }
 
-// newIPFSCoreAPI generates an ipld.NodeGetter from a QriNode
+// newIPFSCoreAPI generates a coreiface.CoreAPI from a QriNode
+// from go-ipfs: "coreapi provides direct access to the core commands in IPFS"
 func newIPFSCoreAPI(node *p2p.QriNode) (capi coreiface.CoreAPI, err error) {
 	ipfsn, err := node.IPFSNode()
 	if err != nil {
