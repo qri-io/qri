@@ -378,6 +378,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	if ref.Peername == "" {
 		ref.Peername = got.Peername
 	}
+	ref.Published = got.Published
 	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name || ref.Peername != got.Peername {
 		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 	}

@@ -663,8 +663,9 @@ func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, 
 
 	ref.Published = publish
 	p := &lib.SetPublishStatusParams{
-		Ref:            &ref,
-		UpdateRegistry: r.FormValue("no_registry") != "true",
+		Ref:               &ref,
+		UpdateRegistry:    r.FormValue("no_registry") != "true",
+		UpdateRegistryPin: r.FormValue("no_pin") != "true",
 	}
 	var ok bool
 	if err := h.DatasetRequests.SetPublishStatus(p, &ok); err != nil {
