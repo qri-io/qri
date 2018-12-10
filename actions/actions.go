@@ -8,3 +8,7 @@ import (
 )
 
 var log = golog.Logger("actions")
+
+func init() {
+	golog.SetLogLevel("actions", "info")
+}
