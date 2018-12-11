@@ -46,6 +46,7 @@ func TestWriteToFileWithExtraData(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)
 	cfg := Config{
+		Version: CurrentConfigVersion,
 		Profile: &ProfilePod{
 			ID:       "QmU27VdAEUL5NGM6oB56htTxvHLfcGZgsgxrJTdVr2k4zs",
 			Peername: "test_peername",

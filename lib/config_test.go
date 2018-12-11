@@ -7,6 +7,8 @@ import (
 	"os"
 	"testing"
 
+	"github.com/qri-io/ioes"
+
 	"github.com/qri-io/qri/config"
 )
 
@@ -25,7 +27,7 @@ func TestLoadConfig(t *testing.T) {
 	if err := config.DefaultConfigForTesting().WriteToFile(cfgPath); err != nil {
 		t.Fatal(err.Error())
 	}
-	if err := LoadConfig(cfgPath); err != nil {
+	if err := LoadConfig(ioes.NewDiscardIOStreams(), cfgPath); err != nil {
 		t.Error(err.Error())
 	}
 }
