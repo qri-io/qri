@@ -1,3 +1,4 @@
+// Package migrate defines migrations for qri configuration files
 package migrate
 
 import (
@@ -7,7 +8,7 @@ import (
 
 // RunMigrations checks to see if any migrations runs them
 func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, err error) {
-	if cfg.Version != config.CurrentConfigVersion {
+	if cfg.Revision != config.CurrentConfigRevision {
 		streams.Print("migrating configuration...")
 		if err := ZeroToOne(cfg); err != nil {
 			return false, err
@@ -18,7 +19,7 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, e
 	return false, nil
 }
 
-// ZeroToOne migrates a configuration from version Zero to Version 1
+// ZeroToOne migrates a configuration from Revision Zero (no revision number) to Revision 1
 func ZeroToOne(cfg *config.Config) error {
 	if cfg.P2P != nil {
 		removes := map[string]bool{
@@ -46,6 +47,6 @@ func ZeroToOne(cfg *config.Config) error {
 		cfg.P2P.QriBootstrapAddrs = append(cfg.P2P.QriBootstrapAddrs, adds...)
 	}
 
-	cfg.Version = 1
+	cfg.Revision = 1
 	return nil
 }

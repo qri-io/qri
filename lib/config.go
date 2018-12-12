@@ -4,12 +4,11 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/config/migrate"
-
 	"github.com/ghodss/yaml"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/config/migrate"
 )
 
 var (

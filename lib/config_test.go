@@ -8,7 +8,6 @@ import (
 	"testing"
 
 	"github.com/qri-io/ioes"
-
 	"github.com/qri-io/qri/config"
 )
 
