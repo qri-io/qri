@@ -62,7 +62,7 @@ func (n *QriNode) handleResolveDatasetRef(ws *WrappedStream, msg Message) (hangu
 		}
 		res := msg
 
-		if err := repo.CanonicalizeDatasetRef(n.Repo, dsr); err == nil {
+		if err := repo.CanonicalizeDatasetRef(n.Repo, dsr); err == nil && dsr.Complete() {
 			res, err = msg.UpdateJSON(dsr)
 			if err != nil {
 				log.Debug(err.Error())

@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/registry"
 )
 
 // ResolveDatasetRef uses a node to complete the missing pieces of a dataset
@@ -38,6 +39,7 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 			Peername:  ref.Peername,
 			Name:      ref.Name,
 			ProfileID: ref.ProfileID,
+			Path:      ref.Path,
 		}
 
 		go func(ref *repo.DatasetRef) {
@@ -46,7 +48,8 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 				responses <- res
 			}()
 
-			if ds, err := rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); err == nil {
+			var ds *registry.Dataset
+			if ds, res.Error = rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); res.Error == nil {
 				// Commit author is required to resolve ref
 				if ds.Commit != nil && ds.Commit.Author != nil {
 					ref.Peername = ds.Peername
@@ -63,6 +66,10 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 		tasks++
 		go func() {
 			err := node.ResolveDatasetRef(ref)
+			log.Debugf("p2p ref res: %s", ref)
+			if !ref.Complete() && err == nil {
+				err = fmt.Errorf("p2p network responded with incomplete reference")
+			}
 			responses <- response{Ref: ref, Error: err}
 		}()
 	}
