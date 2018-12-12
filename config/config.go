@@ -15,8 +15,13 @@ import (
 	"github.com/qri-io/jsonschema"
 )
 
+// CurrentConfigRevision is the latest configuration revision configurations
+// that don't match this revision number should be migrated up
+const CurrentConfigRevision = 1
+
 // Config encapsulates all configuration details for qri
 type Config struct {
+	Revision int
 	Profile  *ProfilePod
 	Repo     *Repo
 	Store    *Store
@@ -35,6 +40,7 @@ type Config struct {
 // DefaultConfigWithoutKeys gives a new default configuration without any crypto keys
 func DefaultConfigWithoutKeys() *Config {
 	return &Config{
+		Revision: CurrentConfigRevision,
 		Profile:  DefaultProfileWithoutKeys(),
 		Repo:     DefaultRepo(),
 		Store:    DefaultStore(),
@@ -287,7 +293,9 @@ func (cfg Config) Validate() error {
 
 // Copy returns a deep copy of the Config struct
 func (cfg *Config) Copy() *Config {
-	res := &Config{}
+	res := &Config{
+		Revision: cfg.Revision,
+	}
 
 	if cfg.Profile != nil {
 		res.Profile = cfg.Profile.Copy()

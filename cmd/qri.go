@@ -120,7 +120,7 @@ func (o *QriOptions) init() (err error) {
 		// TODO - need to remove global config state in lib, then remove this
 		lib.ConfigFilepath = cfgPath
 
-		if err = lib.LoadConfig(cfgPath); err != nil {
+		if err = lib.LoadConfig(o.IOStreams, cfgPath); err != nil {
 			return
 		}
 		o.config = lib.Config

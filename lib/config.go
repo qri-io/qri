@@ -6,7 +6,9 @@ import (
 
 	"github.com/ghodss/yaml"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/config/migrate"
 )
 
 var (
@@ -25,7 +27,7 @@ var SaveConfig = func() error {
 }
 
 // LoadConfig loads the global default configuration
-func LoadConfig(path string) (err error) {
+func LoadConfig(streams ioes.IOStreams, path string) (err error) {
 	var cfg *config.Config
 	cfg, err = config.ReadFromFile(path)
 
@@ -48,7 +50,16 @@ func LoadConfig(path string) (err error) {
 
 	Config = cfg
 
-	return err
+	migrated, err := migrate.RunMigrations(streams, cfg)
+	if err != nil {
+		return err
+	}
+
+	if migrated {
+		return SaveConfig()
+	}
+
+	return nil
 }
 
 // GetConfigParams are the params needed to format/specify the fields in bytes returned from the GetConfig function
