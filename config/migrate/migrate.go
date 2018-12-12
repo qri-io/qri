@@ -13,7 +13,7 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, e
 		if err := ZeroToOne(cfg); err != nil {
 			return false, err
 		}
-		streams.Print("done!")
+		streams.Print("done!\n")
 		return true, nil
 	}
 	return false, nil
@@ -29,7 +29,7 @@ func ZeroToOne(cfg *config.Config) error {
 			"/ip4/35.192.140.245/tcp/4001/ipfs/QmUUVNiTz2K9zQSH9PxerKWXmN1p3DBo3oJXurvYziFzqh": true, // EDGI
 		}
 
-		adds := config.NewP2P().QriBootstrapAddrs
+		adds := config.DefaultP2P().QriBootstrapAddrs
 
 		for i, addr := range cfg.P2P.QriBootstrapAddrs {
 			// remove any old, invalid addresses

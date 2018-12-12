@@ -37,18 +37,26 @@ type Config struct {
 	Render *Render
 }
 
-// DefaultConfigWithoutKeys gives a new default configuration without any crypto keys
-func DefaultConfigWithoutKeys() *Config {
+// NOTE: The configuration returned by DefaultConfig is insufficient, as is, to run a functional
+// qri node. In particular, it lacks cryptographic keys and a peerID, which are necessary to
+// join the p2p network. However, these are very expensive to create, so they shouldn't be added
+// to the DefaultConfig, which only does the bare minimum necessary to construct the object. In
+// real use, the only places a Config object comes from are the cmd/setup command, which builds
+// upon DefaultConfig by adding p2p data, and LoadConfig, which parses a serialized config file
+// from the user's repo.
+
+// DefaultConfig gives a new configuration with simple, default settings
+func DefaultConfig() *Config {
 	return &Config{
 		Revision: CurrentConfigRevision,
-		Profile:  DefaultProfileWithoutKeys(),
+		Profile:  DefaultProfile(),
 		Repo:     DefaultRepo(),
 		Store:    DefaultStore(),
 		Registry: DefaultRegistry(),
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		P2P:     DefaultP2PWithoutKeys(),
+		P2P:     DefaultP2P(),
 		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),

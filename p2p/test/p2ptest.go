@@ -45,7 +45,7 @@ func NewTestNodeFactory(maker NodeMakerFunc) *TestNodeFactory {
 func (f *TestNodeFactory) New(r repo.Repo) (TestablePeerNode, error) {
 	info := cfgtest.GetTestPeerInfo(f.count)
 	f.count++
-	p2pconf := config.NewP2P()
+	p2pconf := config.DefaultP2P()
 	p2pconf.PeerID = info.EncodedPeerID
 	p2pconf.PrivKey = info.EncodedPrivKey
 	return f.maker(r, p2pconf)
@@ -116,7 +116,7 @@ func NewTestDirNetwork(ctx context.Context, f *TestNodeFactory) ([]TestablePeerN
 func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, error) {
 	info := f.NextInfo()
 	addr, _ := ma.NewMultiaddr("/ip4/127.0.0.1/tcp/0")
-	p2pconf := config.NewP2P()
+	p2pconf := config.DefaultP2P()
 	p2pconf.Addrs = []ma.Multiaddr{addr}
 	p2pconf.QriBootstrapAddrs = []string{}
 	node, err := f.NewWithConf(r, p2pconf)

@@ -246,7 +246,7 @@ func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
 	if err != nil {
 		return nil, err
 	}
-	p2pconf := config.NewP2P()
+	p2pconf := config.DefaultP2P()
 	// This Node has P2P disabled.
 	p2pconf.Enabled = false
 	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).NewWithConf(r, p2pconf)

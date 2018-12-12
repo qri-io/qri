@@ -49,8 +49,8 @@ type ProfilePod struct {
 	NetworkAddrs []string `json:"networkAddrs,omitempty"`
 }
 
-// DefaultProfileWithoutKeys gives a new default profile configuration without keys or peer.ID.
-func DefaultProfileWithoutKeys() *ProfilePod {
+// DefaultProfile gives a new default profile configuration
+func DefaultProfile() *ProfilePod {
 	now := time.Now()
 	return &ProfilePod{
 		Created: now,
