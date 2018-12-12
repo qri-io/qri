@@ -13,7 +13,7 @@ func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, e
 		if err := ZeroToOne(cfg); err != nil {
 			return false, err
 		}
-		streams.Print("done!")
+		streams.Print("done!\n")
 		return true, nil
 	}
 	return false, nil
@@ -34,12 +34,13 @@ func ZeroToOne(cfg *config.Config) error {
 		for i, addr := range cfg.P2P.QriBootstrapAddrs {
 			// remove any old, invalid addresses
 			if removes[addr] {
-				cfg.P2P.QriBootstrapAddrs = append(cfg.P2P.QriBootstrapAddrs[:i], cfg.P2P.QriBootstrapAddrs[i+1:]...)
+				cfg.P2P.QriBootstrapAddrs = delIdx(i, cfg.P2P.QriBootstrapAddrs)
 			}
 			// remove address from list of additions if already configured
 			for j, add := range adds {
 				if addr == add {
-					adds = append(adds[:j], adds[j+1:]...)
+					// adds = append(adds[:j], adds[j+1:]...)
+					adds = delIdx(j, adds)
 				}
 			}
 		}
@@ -49,4 +50,12 @@ func ZeroToOne(cfg *config.Config) error {
 
 	cfg.Revision = 1
 	return nil
+}
+
+func delIdx(i int, sl []string) []string {
+	if i < len(sl)-1 {
+		return append(sl[:i], sl[i+1:]...)
+	}
+
+	return sl[:i]
 }
