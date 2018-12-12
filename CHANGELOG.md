@@ -1,3 +1,51 @@
+<a name="0.6.1"></a>
+# [0.6.1](https://github.com/qri-io/qri/compare/v0.6.0...v0.6.1) (2018-12-12)
+
+For a patch release, 0.6.1 is on the larger side. After cutting the 0.6.0 release, we realized that NAT traversal issues were preventing Qri from working in a consistent, performant way. Basically, peers aren't seeing each other, and despite tools for building & maintaining direct connections with Qri peers, data transfer isn't performing in a way that's comparable with "git+github". To compensate for this, we're focusing on making publishing to the registry consistent & reliable, and using the registry to reduce our reliance on p2p connections. The result is Qri has a fast path that works with the registry for many dataset transfer commands, but still uses p2p whenever possible.
+
+In the coming months we'll continue to iterate these solutions toward each other, making our p2p technology faster & more reliable, while keeping these "fast-paths" for point-to-point dataset transfer.
+
+0.6.1 No breaking changes, but some behaviours are different. The biggie is `qri publish` now takes a few extra steps.
+
+### :racing_car: Faster, dependable Publish & Add
+Our big focus has been on making dataset transfer to the registry fast & reliable. The end result is `qri publish` and `qri add` now feels a _lot_ more like `git push` and `git fetch`. We're using our shiny new [dag package](https://github.com/qri-io/dag) to do a transfer of raw IPFS blocks directly. Look for us to expand & improve the use of this (open source) secret sauce for a more performant Qri experience.
+
+### :mag: Search is restored!
+`qri search` is back! It works with the registry! Try running `qri search foo` and `qri add` with one of the results!
+
+### Bug Fixes
+
+* **actions.ResolveDatasetRef:** temp fix to keep incomplete ref responses from resolve ([b284228](https://github.com/qri-io/qri/commit/b284228))
+* **build:** move gx-dep packages around ([f85b432](https://github.com/qri-io/qri/commit/f85b432))
+* **config migrate:** fix crash in migration ([2c4396e](https://github.com/qri-io/qri/commit/2c4396e))
+* **config migration:** add config migration to update p2p.QriBootstrapAddrs ([bc9bfcd](https://github.com/qri-io/qri/commit/bc9bfcd))
+* **connect output:** supress RPC error messages, clarify connection message ([934f11c](https://github.com/qri-io/qri/commit/934f11c)), closes [#623](https://github.com/qri-io/qri/issues/623)
+* **format:** Detect format change when saving, either error or rewrite ([137e18b](https://github.com/qri-io/qri/commit/137e18b))
+* **format:** Tests for ConvertBodyFormat, many small cleanups. ([be4a32c](https://github.com/qri-io/qri/commit/be4a32c))
+* **p2p:** bump qriSupportValue from 1 to 100 ([4159818](https://github.com/qri-io/qri/commit/4159818))
+* **publish:**  api publish endpoint and CanonicalizeDatasetRef fix ([75077cf](https://github.com/qri-io/qri/commit/75077cf))
+* **ResolveRef:** fix improper IDs form registry resolves, cleanup search CLI printing ([115350c](https://github.com/qri-io/qri/commit/115350c))
+* **Save:** fix saving dataset with viz stored in cafs ([bc2b00a](https://github.com/qri-io/qri/commit/bc2b00a))
+* **secrets:** move secrets out-of-band from dataset ([a258a23](https://github.com/qri-io/qri/commit/a258a23)), closes [#609](https://github.com/qri-io/qri/issues/609)
+* **transform:** Fix how secrets and config are passed into transform. ([179f31c](https://github.com/qri-io/qri/commit/179f31c))
+* **webapp:** restore webapp by serving compiled app as a directory ([ad5e2be](https://github.com/qri-io/qri/commit/ad5e2be))
+
+
+### Features
+
+* **api.registry:** create `/registry/list` endpoint that returns a list of datasets avail on the registry ([868bd5d](https://github.com/qri-io/qri/commit/868bd5d))
+* **bsync:** initial block-sync sketched out ([6718e69](https://github.com/qri-io/qri/commit/6718e69))
+* **bsync:** initial Receivers implementation, HTTP support ([2e986f6](https://github.com/qri-io/qri/commit/2e986f6))
+* **bsync:** initial work on bsync ([f3c37c6](https://github.com/qri-io/qri/commit/f3c37c6))
+* **cmd registry pin:** add registry pin commands ([2293275](https://github.com/qri-io/qri/commit/2293275))
+* **manifest:** generate a manifest for a given reference ([e3e52ac](https://github.com/qri-io/qri/commit/e3e52ac))
+* **manifest:** initial DAGInfo, move Completion into manifest ([2c206de](https://github.com/qri-io/qri/commit/2c206de))
+* **online:** Set Online flag for peers when using lib.Info. Cleanups. ([4542056](https://github.com/qri-io/qri/commit/4542056)), closes [#577](https://github.com/qri-io/qri/issues/577)
+* **RegistryList:** get a list of datasets from a registry ([708c554](https://github.com/qri-io/qri/commit/708c554))
+* **RegistryRequests.List:** wrap actions.RegistryList at the lib level ([e18f664](https://github.com/qri-io/qri/commit/e18f664))
+
+
+
 <a name="0.6.0"></a>
 # [0.6.0](https://github.com/qri-io/qri/compare/v0.5.6...v0.6.0) (2018-11-09)
 
