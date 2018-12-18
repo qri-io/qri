@@ -50,7 +50,6 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	}
 
 	for _, pid := range pids {
-
 		if err := n.SendMessage(req, replies, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
@@ -60,11 +59,15 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 		res := <-replies
 		dsr := repo.DatasetRef{}
 		if err := json.Unmarshal(res.Body, &dsr); err == nil {
-			if dsr.Dataset != nil {
+			if dsr.Path != "" && dsr.Dataset != nil {
 				*ref = dsr
 				break
 			}
 		}
+	}
+
+	if ref.Path == "" {
+		return repo.ErrNotFound
 	}
 
 	return nil
