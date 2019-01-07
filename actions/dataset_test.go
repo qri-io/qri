@@ -20,7 +20,7 @@ func TestUpdateDatasetLocal(t *testing.T) {
 	cities := addCitiesDataset(t, node)
 
 	expect := "transform script is required to automate updates to your own datasets"
-	if _, _, err := UpdateDataset(node, &cities, nil, false, true); err == nil {
+	if _, _, err := UpdateDataset(node, &cities, nil, nil, false, true); err == nil {
 		t.Error("expected update without transform to error")
 	} else if err.Error() != expect {
 		t.Errorf("error mismatch. %s != %s", expect, err.Error())
@@ -28,7 +28,7 @@ func TestUpdateDatasetLocal(t *testing.T) {
 
 	now := addNowTransformDataset(t, node)
 	prevPath := now.Path
-	now, _, err := UpdateDataset(node, &now, nil, false, false)
+	now, _, err := UpdateDataset(node, &now, nil, nil, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -58,12 +58,12 @@ func TestUpdateDatasetRemote(t *testing.T) {
 	}
 
 	// run a local update to advance history
-	now0, _, err := UpdateDataset(peers[0], &now, nil, false, false)
+	now0, _, err := UpdateDataset(peers[0], &now, nil, nil, false, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	now1, _, err := UpdateDataset(peers[1], &now, nil, false, false)
+	now1, _, err := UpdateDataset(peers[1], &now, nil, nil, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -126,7 +126,7 @@ func TestSaveDataset(t *testing.T) {
 		BodyBytes: []byte("[]"),
 	}
 
-	ref, _, err := SaveDataset(n, ds, nil, true, false, false)
+	ref, _, err := SaveDataset(n, ds, nil, nil, true, false, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -147,7 +147,7 @@ func TestSaveDataset(t *testing.T) {
 		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
 		BodyBytes: []byte("[]"),
 	}
-	ref, _, err = SaveDataset(n, ds, nil, false, true, false)
+	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -176,7 +176,7 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(bd)`),
 		},
 	}
-	ref, _, err = SaveDataset(n, ds, secrets, false, true, false)
+	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,7 +194,7 @@ func TestSaveDataset(t *testing.T) {
 			Description: "updated description",
 		},
 	}
-	ref, _, err = SaveDataset(n, ds, nil, false, true, false)
+	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -217,7 +217,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 		Transform: tfds.Transform,
 	}
-	ref, _, err = SaveDataset(n, ds, secrets, false, true, false)
+	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}

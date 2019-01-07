@@ -2,6 +2,7 @@ package actions
 
 import (
 	"fmt"
+	"io"
 	"os"
 	"strings"
 
@@ -17,7 +18,7 @@ import (
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
 		prev                     *dataset.Dataset
 		prevPath                 string
@@ -84,7 +85,7 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 		} else {
 			config = changesPod.Transform.Config
 		}
-		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, config, mutateCheck)
+		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, config, scriptOut, mutateCheck)
 		if err != nil {
 			return
 		}
@@ -148,7 +149,7 @@ func clearPaths(ds *dataset.Dataset) {
 
 // UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is
 // in a peer's namespace, re-running a transform if the reference is owned by this profile
-func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
+func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
 	}
@@ -179,10 +180,10 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]s
 		return
 	}
 
-	return localUpdate(node, ref, secrets, dryRun, pin)
+	return localUpdate(node, ref, secrets, scriptOut, dryRun, pin)
 }
 
-func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
+func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
 	var (
 		bodyFile cafs.File
 		commit   = &dataset.CommitPod{}
@@ -229,7 +230,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 	} else {
 		config = ref.Dataset.Transform.Config
 	}
-	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, config, nil)
+	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, config, scriptOut, nil)
 	if err != nil {
 		log.Error(err)
 		return
