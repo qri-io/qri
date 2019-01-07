@@ -1,0 +1,33 @@
+{
+  "qri": "ds:0",
+  "meta": {
+    "qri": "md:0",
+    "title": "example movie data"
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  },
+  "viz": {
+    "scriptPath": "viz.html"
+  }
+}
