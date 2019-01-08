@@ -113,7 +113,8 @@ func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioSt
 	}
 }
 
-func (o *QriOptions) init() (err error) {
+// Init will initialize the internal state
+func (o *QriOptions) Init() (err error) {
 	initBody := func() {
 		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 
@@ -181,7 +182,7 @@ func (o *QriOptions) init() (err error) {
 
 // Config returns from internal state
 func (o *QriOptions) Config() (*config.Config, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return o.config, nil
@@ -208,8 +209,9 @@ func (o *QriOptions) RPC() *rpc.Client {
 }
 
 // Repo returns from internal state
+// TODO (dlong): This function is deprecated. Don't add new calls. Remove it soon.
 func (o *QriOptions) Repo() (repo.Repo, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	if o.repo == nil {
@@ -220,7 +222,7 @@ func (o *QriOptions) Repo() (repo.Repo, error) {
 
 // Node returns the internal QriNode
 func (o *QriOptions) Node() (*p2p.QriNode, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	if o.repo == nil {
@@ -231,7 +233,7 @@ func (o *QriOptions) Node() (*p2p.QriNode, error) {
 
 // DatasetRequests generates a lib.DatasetRequests from internal state
 func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewDatasetRequests(o.node, o.rpc), nil
@@ -239,7 +241,7 @@ func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 
 // RegistryRequests generates a lib.RegistryRequests from internal state
 func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewRegistryRequests(o.node, o.rpc), nil
@@ -247,7 +249,7 @@ func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 
 // LogRequests generates a lib.LogRequests from internal state
 func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewLogRequests(o.node, o.rpc), nil
@@ -255,7 +257,7 @@ func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
 
 // PeerRequests generates a lib.PeerRequests from internal state
 func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewPeerRequests(nil, o.rpc), nil
@@ -263,7 +265,7 @@ func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
 
 // ProfileRequests generates a lib.ProfileRequests from internal state
 func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewProfileRequests(o.node, o.rpc), nil
@@ -271,7 +273,7 @@ func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
 
 // SelectionRequests creates a lib.SelectionRequests from internal state
 func (o *QriOptions) SelectionRequests() (*lib.SelectionRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewSelectionRequests(o.repo, o.rpc), nil
@@ -279,7 +281,7 @@ func (o *QriOptions) SelectionRequests() (*lib.SelectionRequests, error) {
 
 // SearchRequests generates a lib.SearchRequests from internal state
 func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewSearchRequests(o.node, o.rpc), nil
@@ -287,7 +289,7 @@ func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
 
 // RenderRequests generates a lib.RenderRequests from internal state
 func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
-	if err := o.init(); err != nil {
+	if err := o.Init(); err != nil {
 		return nil, err
 	}
 	return lib.NewRenderRequests(o.repo, o.rpc), nil

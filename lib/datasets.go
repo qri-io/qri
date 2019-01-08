@@ -384,7 +384,7 @@ type LookupResult struct {
 // LookupBody retrieves the dataset body
 func (r *DatasetRequests) LookupBody(p *LookupParams, data *LookupResult) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.StructuredData", p, data)
+		return r.cli.Call("DatasetRequests.LookupBody", p, data)
 	}
 
 	if p.Limit < 0 || p.Offset < 0 {

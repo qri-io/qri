@@ -93,6 +93,8 @@ func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	o.DatasetRequests, err = f.DatasetRequests()
+	// TODO (dlong): All other callers of this method have removed their need of it. Remove
+	// this call and then remove it from the factory interface.
 	o.Repo, err = f.Repo()
 	if err != nil {
 		return

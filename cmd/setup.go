@@ -204,10 +204,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		}
 		break
 	}
-
-	// TODO - this call is to trigger initialization
-	_, err = f.Repo()
-	return err
+	return f.Init()
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH

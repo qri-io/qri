@@ -62,7 +62,6 @@ type BodyOptions struct {
 
 	UsingRPC        bool
 	DatasetRequests *lib.DatasetRequests
-	Repo            repo.Repo
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -72,11 +71,7 @@ func (o *BodyOptions) Complete(f Factory, args []string) (err error) {
 	}
 	o.UsingRPC = f.RPC() != nil
 	o.DatasetRequests, err = f.DatasetRequests()
-	if err != nil {
-		return
-	}
-	o.Repo, err = f.Repo()
-	return
+	return err
 }
 
 // Run executes the body command
