@@ -22,6 +22,8 @@ type Factory interface {
 	QriRepoPath() string
 	CryptoGenerator() gen.CryptoGenerator
 
+	Init() error
+	// TODO (dlong): This function is deprecated. Don't add new calls. Remove it soon.
 	Repo() (repo.Repo, error)
 	Node() (*p2p.QriNode, error)
 	RPC() *rpc.Client

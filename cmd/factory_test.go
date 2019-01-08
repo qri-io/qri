@@ -85,6 +85,11 @@ func (t TestFactory) CryptoGenerator() gen.CryptoGenerator {
 	return t.generator
 }
 
+// Init will initialize the internal state
+func (t TestFactory) Init() error {
+	return nil
+}
+
 // Repo returns from internal state
 func (t TestFactory) Repo() (repo.Repo, error) {
 	return t.repo, nil
