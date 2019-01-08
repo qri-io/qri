@@ -1,6 +1,7 @@
 package base
 
 import (
+	"bytes"
 	"os"
 	"strings"
 
@@ -18,21 +19,30 @@ func prepareViz(r repo.Repo, ds *dataset.Dataset) (err error) {
 		return nil
 	}
 
-	if ds.Viz != nil && ds.Viz.ScriptPath != "" {
-		if strings.HasPrefix(ds.Viz.ScriptPath, "/ipfs") || strings.HasPrefix(ds.Viz.ScriptPath, "/map") || strings.HasPrefix(ds.Viz.ScriptPath, "/cafs") {
-			var f cafs.File
-			f, err = r.Store().Get(datastore.NewKey(ds.Viz.ScriptPath))
-			if err != nil {
-				return
+	if ds.Viz != nil {
+		if ds.Viz.Script != nil {
+			return
+		}
+		if ds.Viz.ScriptBytes != nil {
+			ds.Viz.Script = bytes.NewReader(ds.Viz.ScriptBytes)
+			return
+		}
+		if ds.Viz.ScriptPath != "" {
+			if strings.HasPrefix(ds.Viz.ScriptPath, "/ipfs") || strings.HasPrefix(ds.Viz.ScriptPath, "/map") || strings.HasPrefix(ds.Viz.ScriptPath, "/cafs") {
+				var f cafs.File
+				f, err = r.Store().Get(datastore.NewKey(ds.Viz.ScriptPath))
+				if err != nil {
+					return
+				}
+				ds.Viz.Script = f
+			} else {
+				var f *os.File
+				f, err = os.Open(ds.Viz.ScriptPath)
+				if err != nil {
+					return
+				}
+				ds.Viz.Script = f
 			}
-			ds.Viz.Script = f
-		} else {
-			var f *os.File
-			f, err = os.Open(ds.Viz.ScriptPath)
-			if err != nil {
-				return
-			}
-			ds.Viz.Script = f
 		}
 	}
 	return nil
