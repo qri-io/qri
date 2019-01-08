@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -480,12 +481,14 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &repo.DatasetRef{}
+	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
 		Dataset:             dsp,
 		Private:             r.FormValue("private") == "true",
 		DryRun:              r.FormValue("dry_run") == "true",
 		ReturnBody:          r.FormValue("return_body") == "true",
 		ConvertFormatToPrev: true,
+		ScriptOutput:        scriptOutput,
 	}
 
 	if r.FormValue("secrets") != "" {
@@ -513,7 +516,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	util.WriteResponse(w, res)
+	msg := scriptOutput.String()
+	util.WriteMessageResponse(w, msg, res)
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
