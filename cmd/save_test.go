@@ -140,8 +140,8 @@ func TestSaveRun(t *testing.T) {
 		{"me/bad_dataset", "", "", "", "", false, "", "no changes to save", ""},
 		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
 		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "body file: open bad/bodypath.csv: no such file or directory", ""},
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVxUpVVVNedQ645nC25zu6ZtW3yWSiknVmAePLXQ2YSPR\nthis dataset has 1 validation errors\n", "", ""},
-		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPeUYwHEUh3xV5C6k6YvyaDaHix1B7TMbMwG2ffXYYuEX\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQK6mkfu9hvDXrFP7uKkx737DHzASZffyAKnuDaTx8Vqy\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmaKAexWMNGWSHet7yW2rCRx6qvESd7mPUqM1v2eRHXz3r\nthis dataset has 1 validation errors\n", "", ""},
 		{"me/movies", "", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, "", "error saving: no changes detected", ""},
 	}
 

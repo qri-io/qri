@@ -43,7 +43,7 @@ def transform(ds,ctx):
 		},
 	}
 
-	if _, err := ExecTransform(node, ds, script, nil, map[string]string{"foo": "config"}, map[string]interface{}{"bar": "secret"}, nil); err != nil {
+	if _, err := ExecTransform(node, ds, script, nil, map[string]string{"foo": "config"}, map[string]interface{}{"bar": "secret"}, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }
