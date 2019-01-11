@@ -1,18 +1,11 @@
 package cmd
 
 import (
-	"encoding/hex"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
-	"github.com/ghodss/yaml"
-	"github.com/ipfs/go-datastore"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -60,6 +53,7 @@ new dataset, use --blank.`,
 	cmd.Flags().StringVarP(&o.BodyFormat, "body-format", "", "", "format for dataset body. default is the original data format. options: json, csv, cbor")
 	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "b", false, "don't include dataset body in export")
 	cmd.Flags().BoolVarP(&o.PeerDir, "peer-dir", "d", false, "export to a peer name namespaced directory")
+	cmd.Flags().BoolVarP(&o.Zipped, "zipped", "z", false, "export as a zip file")
 
 	return cmd
 }
@@ -124,7 +118,27 @@ func (o *ExportOptions) Run() error {
 		return fmt.Errorf("'%s' already exists", path)
 	}
 
-	if bodyFormat != "" && !(bodyFormat == "json" || bodyFormat == "csv" || bodyFormat == "cbor") {
+	// TODO: Support these flag, and remove these check.
+	if bodyFormat != "" {
+		return fmt.Errorf("--body-format flag is not supported currently")
+	}
+	if o.NoBody {
+		return fmt.Errorf("--no-body flag is not supported currently")
+	}
+	if o.PeerDir {
+		return fmt.Errorf("--peer-dir flag is not supported currently")
+	}
+	if !o.Zipped {
+		return fmt.Errorf("only exporting to a zip file is supported, must use --zipped flag")
+	}
+
+	if format == "" {
+		format = "yaml"
+	} else if format != "yaml" && format != "json" {
+		return fmt.Errorf("%s is not an accepted format, options are yaml and json", format)
+	}
+
+	if bodyFormat != "" && bodyFormat != "json" && bodyFormat != "csv" && bodyFormat != "cbor" {
 		return fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", bodyFormat)
 	}
 
@@ -155,22 +169,23 @@ func (o *ExportOptions) Run() error {
 	}
 	path = filepath.Join(path, dsr.Name)
 
-	// TODO: Implement flags specified in the RFC 0014, only set the zip flag if the export
-	// includes multiple files and the --directories-for-files flag is not true.
-	o.Zipped = true
-	if o.Zipped {
-		dst, err := os.Create(fmt.Sprintf("%s.zip", path))
-		if err != nil {
-			return err
-		}
-
-		if err = dsutil.WriteZipArchive(o.Repo.Store(), ds, res.String(), dst); err != nil {
-			return err
-		}
-		return dst.Close()
+	// TODO (dlong): When --zipped flag is supported, don't always do this.
+	dst, err := os.Create(fmt.Sprintf("%s.zip", path))
+	if err != nil {
+		return err
 	}
 
-	if path != "" {
+	// TODO (dlong): Use --body-format here to convert the body and ds.Structure.Format, before
+	// passing ds to WriteZipArchive.
+	if err = dsutil.WriteZipArchive(o.Repo.Store(), ds, format, res.String(), dst); err != nil {
+		return err
+	}
+	return dst.Close()
+
+	// TODO (dlong): Document the full functionality of export, and restore this code below. Allow
+	// non-zip formats like dataset.json with inline body, body.json by itself, outputting to a
+	// a directory, along with yaml, and xlsx.
+	/*if path != "" {
 		if err = os.MkdirAll(path, os.ModePerm); err != nil {
 			return err
 		}
@@ -254,7 +269,7 @@ func (o *ExportOptions) Run() error {
 
 	printSuccess(o.Out, "exported dataset.json to: %s", dsPath)
 
-	return nil
+	return nil*/
 }
 
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:

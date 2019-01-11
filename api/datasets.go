@@ -247,7 +247,11 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	dsutil.WriteZipArchive(h.repo.Store(), ds, res.String(), w)
+	err = dsutil.WriteZipArchive(h.repo.Store(), ds, "json", res.String(), w)
+	if err != nil {
+		log.Infof("error zipping dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	}
 }
 
 func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
