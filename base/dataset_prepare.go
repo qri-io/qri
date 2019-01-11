@@ -17,29 +17,30 @@ import (
 )
 
 // PrepareDatasetSave prepares a set of changes for submission to SaveDataset
-func PrepareDatasetSave(r repo.Repo, peername, name string) (prev *dataset.Dataset, body cafs.File, prevPath string, err error) {
+func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, body cafs.File, prevPath string, err error) {
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &repo.DatasetRef{Name: name, Peername: peername}
 	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound {
-		prev = &dataset.Dataset{
-			Commit: &dataset.Commit{
-				Title: "created dataset",
-			},
-		}
-		err = nil
-		return
+		return &dataset.Dataset{}, &dataset.Dataset{}, nil, "", nil
 	}
 
-	if prev, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(lookup.Path)); err != nil {
+	prevPath = lookup.Path
+
+	if prev, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(prevPath)); err != nil {
 		return
 	}
-	prevPath = lookup.Path
-	prev.Commit = nil
-	prev.Transform = nil
 	if prev.BodyPath != "" {
 		body, err = dsfs.LoadBody(r.Store(), prev)
 	}
+
+	if mutable, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(prevPath)); err != nil {
+		return
+	}
+
+	// remove the Transform & previous commit
+	mutable.Transform = nil
+	mutable.Commit = nil
 	return
 }
 

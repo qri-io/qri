@@ -67,11 +67,11 @@ func TestCreateDataset(t *testing.T) {
 		},
 	}
 
-	if _, _, err := CreateDataset(r, streams, "foo", &dataset.Dataset{}, nil, false, true); err == nil {
+	if _, _, err := CreateDataset(r, streams, "foo", &dataset.Dataset{}, &dataset.Dataset{}, nil, nil, false, true); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, _, err := CreateDataset(r, streams, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), false, true)
+	ref, refBody, err := CreateDataset(r, streams, "foo", ds, &dataset.Dataset{}, cafs.NewMemfileBytes("body.json", []byte("[]")), nil, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -86,7 +86,10 @@ func TestCreateDataset(t *testing.T) {
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
 
-	ref, _, err = CreateDataset(r, streams, "foo", ds, cafs.NewMemfileBytes("body.json", []byte("[]")), false, true)
+	prev := &dataset.Dataset{}
+	prev.Decode(ref.Dataset)
+
+	ref, _, err = CreateDataset(r, streams, "foo", ds, prev, cafs.NewMemfileBytes("body.json", []byte("[]")), refBody, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -318,7 +321,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, _, err := CreateDataset(r, streams, tc.Name, tc.Input, tc.BodyFile(), false, false)
+	ref2, _, err := CreateDataset(r, streams, tc.Name, tc.Input, nil, tc.BodyFile(), nil, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

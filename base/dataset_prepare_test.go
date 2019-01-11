@@ -11,12 +11,12 @@ func TestPrepareDatasetSave(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	_, _, _, err := PrepareDatasetSave(r, ref.Peername, ref.Name)
+	_, _, _, _, err := PrepareDatasetSave(r, ref.Peername, ref.Name)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
-	_, _, _, err = PrepareDatasetSave(r, "me", "non-existent")
+	_, _, _, _, err = PrepareDatasetSave(r, "me", "non-existent")
 	if err != nil {
 		t.Error(err.Error())
 	}
