@@ -133,26 +133,31 @@ func TestSaveRun(t *testing.T) {
 		title    string
 		message  string
 		publish  bool
+		dryrun   bool
 		expect   string
 		err      string
 		msg      string
 	}{
 		// no data
-		{"me/bad_dataset", "", "", "", "", false, "", "no changes to save", ""},
+		{"me/bad_dataset", "", "", "", "", false, false, "", "no changes to save", ""},
 		// bad dataset file
-		{"me/cities", "bad/filpath.json", "", "", "", false, "", "open bad/filpath.json: no such file or directory", ""},
+		{"me/cities", "bad/filpath.json", "", "", "", false, false, "", "open bad/filpath.json: no such file or directory", ""},
 		// bad body file
-		{"me/cities", "", "bad/bodypath.csv", "", "", false, "", "body file: open bad/bodypath.csv: no such file or directory", ""},
+		{"me/cities", "", "bad/bodypath.csv", "", "", false, false, "", "body file: open bad/bodypath.csv: no such file or directory", ""},
+		// good inputs, dryrun
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQK6mkfu9hvDXrFP7uKkx737DHzASZffyAKnuDaTx8Vqy\nthis dataset has 1 validation errors\n", "", ""},
 		// good inputs
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQK6mkfu9hvDXrFP7uKkx737DHzASZffyAKnuDaTx8Vqy\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQK6mkfu9hvDXrFP7uKkx737DHzASZffyAKnuDaTx8Vqy\nthis dataset has 1 validation errors\n", "", ""},
+		// add rows, dry run
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPwBVhCaKH5sBc8amByRcyGHeT4JMWWnpcfawxUx36T7d\nthis dataset has 1 validation errors\n", "", ""},
 		// add rows, save
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPwBVhCaKH5sBc8amByRcyGHeT4JMWWnpcfawxUx36T7d\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPwBVhCaKH5sBc8amByRcyGHeT4JMWWnpcfawxUx36T7d\nthis dataset has 1 validation errors\n", "", ""},
 		// no changes detected
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, "", "error saving: no changes detected", ""},
+		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, "", "error saving: no changes detected", ""},
 		// add viz
-		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVrSNgJqJNof7qeZVsdZp9FpnmKPRVg4VY7AmY5iFvgPy\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVrSNgJqJNof7qeZVsdZp9FpnmKPRVg4VY7AmY5iFvgPy\nthis dataset has 1 validation errors\n", "", ""},
 		// add transform
-		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmRSTsTSGirzxzWpKgbku66WSVFV3qNn3EZE3zSkZeh59u\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmW7nQNyFdogXzYYn3eCyDuoPdDRDu4v7979YV1zSNnxpu\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for i, c := range cases {
@@ -170,6 +175,7 @@ func TestSaveRun(t *testing.T) {
 			Title:           c.title,
 			Message:         c.message,
 			Publish:         c.publish,
+			DryRun:          c.dryrun,
 			DatasetRequests: dsr,
 		}
 
