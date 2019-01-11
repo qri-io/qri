@@ -20,16 +20,14 @@ import (
 // SaveDataset initializes a dataset from a dataset pointer and data file
 func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
 	var (
-		prev                     *dataset.Dataset
-		prevPath                 string
-		bodyFile, changeBodyFile cafs.File
-		pro                      *profile.Profile
-		changes                  = &dataset.Dataset{}
-		r                        = node.Repo
+		changes                                = &dataset.Dataset{}
+		prevBodyFile, bodyFile, changeBodyFile cafs.File
+		prevPath                               string
+		pro                                    *profile.Profile
+		r                                      = node.Repo
 	)
 
-	// set ds to dataset head, or empty dataset if no history
-	prev, bodyFile, prevPath, err = base.PrepareDatasetSave(r, changesPod.Peername, changesPod.Name)
+	prev, mutable, prevBodyFile, prevPath, err := base.PrepareDatasetSave(r, changesPod.Peername, changesPod.Name)
 	if err != nil {
 		return
 	}
@@ -48,6 +46,7 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 		}
 	}
 
+	// turns the bodybyte into file, or load file from path
 	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), changesPod); err != nil {
 		return
 	}
@@ -85,7 +84,8 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 		} else {
 			config = changesPod.Transform.Config
 		}
-		bodyFile, err = ExecTransform(node, prev, script, bodyFile, secrets, config, scriptOut, mutateCheck)
+
+		bodyFile, err = ExecTransform(node, mutable, script, prevBodyFile, secrets, config, scriptOut, mutateCheck)
 		if err != nil {
 			return
 		}
@@ -113,20 +113,18 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 			return
 		}
 	}
-
-	// apply changes to the previous path, set changes to the result
-	prev.Assign(changes)
-	changes = prev
+	// apply the changes to the previous dataset.
+	mutable.Assign(changes)
+	changes = mutable
 	clearPaths(changes)
 
 	if changeBodyFile != nil {
 		changes.BodyPath = ""
 		bodyFile = changeBodyFile
 	}
-
 	// let's make history, if it exists:
 	changes.PreviousPath = prevPath
-	return base.CreateDataset(r, node.LocalStreams, changesPod.Name, changes, bodyFile, dryRun, pin)
+	return base.CreateDataset(r, node.LocalStreams, changesPod.Name, changes, prev, bodyFile, prevBodyFile, dryRun, pin)
 }
 
 // for now it's very important we remove any path references before saving
@@ -185,8 +183,8 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]s
 
 func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
 	var (
-		bodyFile cafs.File
-		commit   = &dataset.CommitPod{}
+		bodyFile, prevBodyFile cafs.File
+		commit                 = &dataset.CommitPod{}
 	)
 
 	if ref.Dataset != nil {
@@ -202,6 +200,11 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 		return
 	}
 
+	prev := &dataset.Dataset{}
+	if err = prev.Decode(ref.Dataset); err != nil {
+		return
+	}
+
 	ds := &dataset.Dataset{}
 	if err = ds.Decode(ref.Dataset); err != nil {
 		return
@@ -209,7 +212,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 	ds.Commit.Title = commit.Title
 	ds.Commit.Message = commit.Message
 
-	bodyFile, err = dsfs.LoadBody(node.Repo.Store(), ds)
+	prevBodyFile, err = dsfs.LoadBody(node.Repo.Store(), ds)
 	if err != nil {
 		log.Error(err.Error())
 		return
@@ -230,7 +233,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 	} else {
 		config = ref.Dataset.Transform.Config
 	}
-	bodyFile, err = ExecTransform(node, ds, script, bodyFile, secrets, config, scriptOut, nil)
+	bodyFile, err = ExecTransform(node, ds, script, prevBodyFile, secrets, config, scriptOut, nil)
 	if err != nil {
 		log.Error(err)
 		return
@@ -238,7 +241,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 	node.LocalStreams.Print("✅ transform complete\n")
 	ds.PreviousPath = ref.Path
 
-	return base.CreateDataset(node.Repo, node.LocalStreams, ref.Name, ds, bodyFile, dryRun, pin)
+	return base.CreateDataset(node.Repo, node.LocalStreams, ref.Name, ds, prev, bodyFile, prevBodyFile, dryRun, pin)
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
