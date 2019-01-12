@@ -136,7 +136,7 @@ func TestSaveDataset(t *testing.T) {
 
 	ds = &dataset.DatasetPod{
 		Peername: ref.Peername,
-		Name:     ref.Name,
+		Name:     "test_save",
 		Commit: &dataset.CommitPod{
 			Title:   "initial commit",
 			Message: "manually create a baseline dataset",
@@ -147,11 +147,11 @@ func TestSaveDataset(t *testing.T) {
 		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
 		BodyBytes: []byte("[]"),
 	}
+	// test save
 	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
-
 	secrets := map[string]string{
 		"bar": "secret",
 	}
@@ -163,6 +163,7 @@ func TestSaveDataset(t *testing.T) {
 			Title:   "add transform script",
 			Message: "adding an append-only transform script",
 		},
+		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
 		Transform: &dataset.TransformPod{
 			Syntax: "starlark",
 			Config: map[string]interface{}{
@@ -176,6 +177,13 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(bd)`),
 		},
 	}
+	// dryrun should work
+	ref, _, err = SaveDataset(n, ds, secrets, nil, true, false, false)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// test save with transform
 	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err)
@@ -194,10 +202,12 @@ func TestSaveDataset(t *testing.T) {
 			Description: "updated description",
 		},
 	}
+
 	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
+
 	if ref.Dataset.Transform != nil {
 		t.Error("expected manual save to remove transform")
 	}
@@ -217,6 +227,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 		Transform: tfds.Transform,
 	}
+
 	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Error(err)

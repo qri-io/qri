@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
@@ -31,7 +32,7 @@ func TestRequestLogDiff(t *testing.T) {
 	}
 
 	// add a dataset to peer 4
-	ref, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, tc.BodyFile(), false, true)
+	ref, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, nil, tc.BodyFile(), nil, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -44,18 +45,13 @@ func TestRequestLogDiff(t *testing.T) {
 		t.Fatalf("error fetching dataset: %s", err)
 	}
 
-	prevTitle := tc.Input.Meta.Title
-	tc.Input.Meta.Title = "update"
-	tc.Input.PreviousPath = ref.Path
-	defer func() {
-		// because test cases are cached for performance, we need to clean up any mutation to
-		// testcase input
-		tc.Input.Meta.Title = prevTitle
-		tc.Input.PreviousPath = ""
-	}()
+	update := &dataset.Dataset{}
+	update.Decode(ref.Dataset)
+	update.PreviousPath = ref.Path
+	update.Meta.Title = "update"
 
 	// add an update on peer 4
-	ref2, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, tc.BodyFile(), false, true)
+	ref2, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, update, tc.Input, tc.BodyFile(), tc.BodyFile(), false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
