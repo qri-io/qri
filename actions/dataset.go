@@ -181,6 +181,13 @@ func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]s
 	return localUpdate(node, ref, secrets, scriptOut, dryRun, pin)
 }
 
+// localUpdate runs a transform on a local dataset and returns the new dataset ref and body
+// TODO (ramfox): Bug!
+// localUpdate is called by UpdateDataset. UpdateDataset, is called by lib.Update, which "recalls"
+// the last transform run, and adds that transform to the ref
+// However, once we get down here, that ref actually get's written over when we
+// call base.ReadDataset. Which means if our last dataset did not have a transform, when we called
+// Update, we will error, even though we just "recalled" the transform
 func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
 	var (
 		bodyFile, prevBodyFile cafs.File

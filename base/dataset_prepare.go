@@ -17,6 +17,12 @@ import (
 )
 
 // PrepareDatasetSave prepares a set of changes for submission to SaveDataset
+// prev is the previous dataset, if it exists
+// body is the previous dataset body, if it exists
+// mutable is the previous dataset, but without the commit and transform, making it
+// sutable for mutation/combination with any potential changes requested by the user
+// we do not error if the dataset is not found in the repo, instead we return all
+// empty values
 func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, body cafs.File, prevPath string, err error) {
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
