@@ -53,7 +53,7 @@ new dataset, use --blank.`,
 	cmd.Flags().StringVarP(&o.BodyFormat, "body-format", "", "", "format for dataset body. default is the original data format. options: json, csv, cbor")
 	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "b", false, "don't include dataset body in export")
 	cmd.Flags().BoolVarP(&o.PeerDir, "peer-dir", "d", false, "export to a peer name namespaced directory")
-	cmd.Flags().BoolVarP(&o.Zipped, "zipped", "z", false, "export as a zip file")
+	cmd.Flags().BoolVarP(&o.Zipped, "zip", "z", false, "export as a zip file")
 
 	return cmd
 }
@@ -129,7 +129,7 @@ func (o *ExportOptions) Run() error {
 		return fmt.Errorf("--peer-dir flag is not supported currently")
 	}
 	if !o.Zipped {
-		return fmt.Errorf("only exporting to a zip file is supported, must use --zipped flag")
+		return fmt.Errorf("only exporting to a zip file is supported, must use --zip flag")
 	}
 
 	if format == "" {
@@ -169,7 +169,7 @@ func (o *ExportOptions) Run() error {
 	}
 	path = filepath.Join(path, dsr.Name)
 
-	// TODO (dlong): When --zipped flag is supported, don't always do this.
+	// TODO (dlong): When --zip flag is not required, don't always do this.
 	dst, err := os.Create(fmt.Sprintf("%s.zip", path))
 	if err != nil {
 		return err
