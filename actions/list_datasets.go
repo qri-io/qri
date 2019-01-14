@@ -45,8 +45,11 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC
 				pro = p
 			}
 		}
-		if pro == nil {
+		if err != nil {
 			return nil, fmt.Errorf("couldn't find profile: %s", err.Error())
+		}
+		if pro == nil {
+			return nil, fmt.Errorf("profile not found: \"%s\"", ds.Peername)
 		}
 
 		if len(pro.PeerIDs) == 0 {
