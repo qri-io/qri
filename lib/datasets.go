@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/rev"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -325,7 +326,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
-	if err := actions.RenameDataset(r.node, &p.Current, &p.New); err != nil {
+	if err := actions.ModifyDataset(r.node, &p.Current, &p.New, true /*isRename*/); err != nil {
 		return err
 	}
 
@@ -337,19 +338,52 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
-// Remove a dataset
-func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
+// Remove a dataset entirely or remove a certain number of revisions
+func (r *DatasetRequests) Remove(p *RemoveParams, numDeleted *int) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Remove", p, ok)
+		return r.cli.Call("DatasetRequests.Remove", p, numDeleted)
 	}
 
-	if p.Path == "" && (p.Peername == "" && p.Name == "") {
+	if p.Ref.Path == "" && p.Ref.Peername == "" && p.Ref.Name == "" {
 		return fmt.Errorf("either peername/name or path is required")
 	}
 
-	if err = actions.DeleteDataset(r.node, p); err != nil {
-		return
+	if p.Revision.Field != "ds" {
+		return fmt.Errorf("can only delete whole dataset revisions, not individual fields")
 	}
+
+	if p.Revision.Gen == rev.AllGenerations {
+		// Delete entire dataset for all generations.
+		if err := actions.DeleteDataset(r.node, p.Ref); err != nil {
+			return err
+		}
+		*numDeleted = rev.AllGenerations
+		return nil
+	} else if p.Revision.Gen < 1 {
+		return fmt.Errorf("invalid number of revisions to delete: %d", p.Revision.Gen)
+	}
+
+	// Get the revisions that will be deleted.
+	log, err := actions.DatasetLog(r.node, *p.Ref, p.Revision.Gen+1, 0)
+	if err != nil {
+		return err
+	}
+
+	// If deleting more revisions then exist, delete the entire dataset.
+	if p.Revision.Gen >= len(log) {
+		if err := actions.DeleteDataset(r.node, p.Ref); err != nil {
+			return err
+		}
+		*numDeleted = rev.AllGenerations
+		return nil
+	}
+
+	// Delete the specific number of revisions.
+	replace := log[p.Revision.Gen]
+	if err := actions.ModifyDataset(r.node, p.Ref, &replace, false /*isRename*/); err != nil {
+		return err
+	}
+	*numDeleted = p.Revision.Gen
 
 	// if rc := r.Registry(); rc != nil {
 	// 	dse := ds.Encode()
@@ -361,7 +395,6 @@ func (r *DatasetRequests) Remove(p *repo.DatasetRef, ok *bool) (err error) {
 	// 	}
 	// }
 
-	*ok = true
 	return nil
 }
 

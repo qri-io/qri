@@ -8,9 +8,8 @@ package rev
 
 import (
 	"fmt"
+	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Rev names a field of a dataset at a snapshot
@@ -20,6 +19,9 @@ type Rev struct {
 	// the nth-generational ancestor of a history
 	Gen int
 }
+
+// AllGenerations represents all the generations of a dataset's history
+const AllGenerations = -1
 
 // ParseRevs turns a comma-separated list of revisions into a slice of revisions
 func ParseRevs(str string) (revs []*Rev, err error) {
@@ -35,14 +37,26 @@ func ParseRevs(str string) (revs []*Rev, err error) {
 
 // ParseRev turns a string into a revision
 func ParseRev(rev string) (*Rev, error) {
-	field, ok := fieldMap[rev]
-	if !ok {
-		return nil, errors.New(fmt.Sprintf("unrecognized revision field: %s", rev))
+	// Check for "all".
+	if rev == "all" {
+		return &Rev{Gen: AllGenerations, Field: "ds"}, nil
 	}
-	return &Rev{
-		Gen:   1,
-		Field: field,
-	}, nil
+	// Check for integer.
+	num, err := strconv.Atoi(rev)
+	if err == nil {
+		return &Rev{Gen: num, Field: "ds"}, nil
+	}
+	// Check for field name.
+	field, ok := fieldMap[rev]
+	if ok {
+		return &Rev{Gen: 1, Field: field}, nil
+	}
+	return nil, fmt.Errorf("unrecognized revision field: %s", rev)
+}
+
+// NewAllRevisions returns a Rev struct that represents all revisions.
+func NewAllRevisions() Rev {
+	return Rev{Field: "ds", Gen: AllGenerations}
 }
 
 var fieldMap = map[string]string{

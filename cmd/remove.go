@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/rev"
 	"github.com/spf13/cobra"
 )
 
@@ -16,12 +17,12 @@ func NewRemoveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Aliases: []string{"rm", "delete"},
 		Short:   "Remove a dataset from your local repository",
 		Long: `
-Remove gets rid of a dataset from your qri node. After running remove, qri will 
+Remove gets rid of a dataset from your qri node. After running remove, qri will
 no longer list your dataset as being available locally. By default, remove frees
-up the space taken up by the dataset, but not right away. The IPFS repo that’s 
-storing the data will need to garbage-collect that data when it’s good & ready, 
-which could be anytime. If you’re running low on space, garbage collection will 
-be sooner. 
+up the space taken up by the dataset, but not right away. The IPFS repo that’s
+storing the data will need to garbage-collect that data when it’s good & ready,
+which could be anytime. If you’re running low on space, garbage collection will
+be sooner.
 
 Keep in mind that by default your IPFS repo is capped at 10GB in size, if you
 adjust this cap using IPFS, qri will respect it.
@@ -29,7 +30,7 @@ adjust this cap using IPFS, qri will respect it.
 In the future we’ll add a flag that’ll force immediate removal of a dataset from
 both qri & IPFS. Promise.`,
 		Example: `  remove a dataset named annual_pop:
-  $ qri remove me/annual_pop`,
+  $ qri remove me/annual_pop --all`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -41,6 +42,9 @@ both qri & IPFS. Promise.`,
 		},
 	}
 
+	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
+	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
+
 	return cmd
 }
 
@@ -50,6 +54,10 @@ type RemoveOptions struct {
 
 	Args []string
 
+	RevisionsText string
+	All           bool
+	Revision      rev.Rev
+
 	DatasetRequests *lib.DatasetRequests
 }
 
@@ -57,7 +65,28 @@ type RemoveOptions struct {
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	o.Args = args
 	o.DatasetRequests, err = f.DatasetRequests()
-	return
+	if err != nil {
+		return err
+	}
+	if o.All {
+		o.Revision = rev.NewAllRevisions()
+	} else {
+		if o.RevisionsText == "" {
+			return fmt.Errorf("--revisions flag is requried")
+		}
+		revisions, err := rev.ParseRevs(o.RevisionsText)
+		if err != nil {
+			return err
+		}
+		if len(revisions) != 1 {
+			return fmt.Errorf("need exactly 1 revision parameter to remove")
+		}
+		if revisions[0] == nil {
+			return fmt.Errorf("invalid nil revision")
+		}
+		o.Revision = *revisions[0]
+	}
+	return err
 }
 
 // Validate checks that all user input is valid
@@ -76,14 +105,19 @@ func (o *RemoveOptions) Run() error {
 			return err
 		}
 
-		res := false
-		if err = o.DatasetRequests.Remove(&ref, &res); err != nil {
+		params := lib.RemoveParams{Ref: &ref, Revision: o.Revision}
+		numDeleted := 0
+		if err = o.DatasetRequests.Remove(&params, &numDeleted); err != nil {
 			if err.Error() == "repo: not found" {
 				return lib.NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", ref.Peername, ref.Name))
 			}
 			return err
 		}
-		printSuccess(o.Out, "removed dataset '%s'", ref)
+		if numDeleted == rev.AllGenerations {
+			printSuccess(o.Out, "removed entire dataset '%s'", ref)
+		} else {
+			printSuccess(o.Out, "removed %d revisions of dataset '%s'", numDeleted, ref)
+		}
 	}
 	return nil
 }

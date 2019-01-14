@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/rev"
 )
 
 func TestRemoveComplete(t *testing.T) {
@@ -106,15 +107,16 @@ func TestRemoveRun(t *testing.T) {
 
 	cases := []struct {
 		args     []string
+		revision int
 		expected string
 		err      string
 		msg      string
 	}{
-		{[]string{}, "", "", ""},
-		{[]string{"me/bad_dataset"}, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{[]string{"me/movies"}, "removed dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qme8h7HtAPAjjkUJcoSHWt6NXVvQjvUFCtyK7u66qN6gyV'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, "removed dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVQBd1UF2qehbQ4PsMGy7fmcRZ8as3G6zNmnzqcJ2qyTn'\nremoved dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUu4aj4aQN5seAJUXxjBLgWuMwtXR5GYumV7McpF6w8a3'\n", "", ""},
-		{[]string{"me/movies"}, "", "repo: not found", "could not find dataset 'peer/movies'"},
+		{[]string{}, -1, "", "", ""},
+		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qme8h7HtAPAjjkUJcoSHWt6NXVvQjvUFCtyK7u66qN6gyV'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVQBd1UF2qehbQ4PsMGy7fmcRZ8as3G6zNmnzqcJ2qyTn'\nremoved entire dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUu4aj4aQN5seAJUXxjBLgWuMwtXR5GYumV7McpF6w8a3'\n", "", ""},
+		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'peer/movies'"},
 	}
 
 	for i, c := range cases {
@@ -127,6 +129,7 @@ func TestRemoveRun(t *testing.T) {
 		opt := &RemoveOptions{
 			IOStreams:       streams,
 			Args:            c.args,
+			Revision:        rev.Rev{Field: "ds", Gen: c.revision},
 			DatasetRequests: dsr,
 		}
 

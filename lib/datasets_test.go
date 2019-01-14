@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/qri/rev"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
@@ -525,8 +526,9 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		got := false
-		err := req.Remove(c.p, &got)
+		numDeleted := 0
+		params := RemoveParams{Ref: c.p, Revision: rev.Rev{Field: "ds", Gen: -1}}
+		err := req.Remove(&params, &numDeleted)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)

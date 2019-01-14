@@ -14,6 +14,11 @@ func TestParseRevs(t *testing.T) {
 		{"", []*Rev{}, "unrecognized revision field: "},
 		{"body", []*Rev{&Rev{"bd", 1}}, ""},
 		{"md", []*Rev{&Rev{"md", 1}}, ""},
+		{"ds", []*Rev{&Rev{"ds", 1}}, ""},
+		{"1", []*Rev{&Rev{"ds", 1}}, ""},
+		{"2", []*Rev{&Rev{"ds", 2}}, ""},
+		{"3", []*Rev{&Rev{"ds", 3}}, ""},
+		{"all", []*Rev{&Rev{"ds", AllGenerations}}, ""},
 	}
 
 	for i, c := range cases {

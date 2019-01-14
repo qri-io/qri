@@ -360,8 +360,8 @@ func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (
 	return base.SetPublishStatus(node.Repo, ref, published)
 }
 
-// RenameDataset alters a dataset name
-func RenameDataset(node *p2p.QriNode, current, new *repo.DatasetRef) (err error) {
+// ModifyDataset alters a reference by changing what dataset it refers to
+func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bool) (err error) {
 	r := node.Repo
 	if err := validate.ValidName(new.Name); err != nil {
 		return err
@@ -372,12 +372,16 @@ func RenameDataset(node *p2p.QriNode, current, new *repo.DatasetRef) (err error)
 	}
 	err = repo.CanonicalizeDatasetRef(r, new)
 	if err == nil {
-		return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
+		if isRename {
+			return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
+		}
 	} else if err != repo.ErrNotFound {
 		log.Debug(err.Error())
 		return fmt.Errorf("error with new reference: %s", err.Error())
 	}
-	new.Path = current.Path
+	if isRename {
+		new.Path = current.Path
+	}
 
 	if err = r.DeleteRef(*current); err != nil {
 		return err
