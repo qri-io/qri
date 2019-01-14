@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/rev"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -541,8 +542,9 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		return
 	}
 
-	res := false
-	if err := h.Remove(ref, &res); err != nil {
+	numDeleted := 0
+	params := lib.RemoveParams{Ref: ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
+	if err := h.Remove(&params, &numDeleted); err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

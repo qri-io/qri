@@ -291,7 +291,7 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 		Peername: "me",
 	}
 
-	if err := RenameDataset(node, &ref, b); err != nil {
+	if err := ModifyDataset(node, &ref, b, true); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -325,7 +325,7 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 		ProfileID: ref.ProfileID,
 	}
 
-	if err := RenameDataset(node, &ref, b); err != nil {
+	if err := ModifyDataset(node, &ref, b, true); err != nil {
 		t.Error(err.Error())
 		return
 	}

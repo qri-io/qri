@@ -183,7 +183,7 @@ func TestCommandsIntegration(t *testing.T) {
 		"qri rename me/movies me/movie",
 		"qri body --limit=1 --format=cbor me/movie",
 		"qri validate me/movie",
-		"qri remove me/movie",
+		"qri remove me/movie --revisions=all",
 		fmt.Sprintf("qri export --blank -o=%s/blank_dataset.yaml", path),
 		"qri setup --remove",
 	}
@@ -243,6 +243,54 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 	// Make sure they match.
 	if actualBody != expectBody {
 		t.Errorf("error reading body, expect \"%s\", actual \"%s\"", actualBody, expectBody)
+	}
+}
+
+// Test that saving three revisions, then removing the newest two, leaves the first body.
+func TestRemoveOnlyTwoRevisions(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri remove me/test_movies --revisions=2")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read body from the dataset that was saved.
+	dsPath := r.GetPathForDataset(0)
+	actualBody := r.ReadBodyFromIPFS(dsPath + "/data.csv")
+
+	// Read the body from the testdata input file.
+	f, _ := os.Open("testdata/movies/body_ten.csv")
+	expectBytes, _ := ioutil.ReadAll(f)
+	expectBody := string(expectBytes)
+
+	// Make sure they match.
+	if expectBody != actualBody {
+		t.Errorf("error reading body, expect \"%s\", actual \"%s\"", expectBody, actualBody)
 	}
 }
 
