@@ -10,8 +10,6 @@ import (
 	"fmt"
 	"strconv"
 	"strings"
-
-	"github.com/pkg/errors"
 )
 
 // Rev names a field of a dataset at a snapshot
@@ -53,7 +51,7 @@ func ParseRev(rev string) (*Rev, error) {
 	if ok {
 		return &Rev{Gen: 1, Field: field}, nil
 	}
-	return nil, errors.New(fmt.Sprintf("unrecognized revision field: %s", rev))
+	return nil, fmt.Errorf("unrecognized revision field: %s", rev)
 }
 
 var fieldMap = map[string]string{
