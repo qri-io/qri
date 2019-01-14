@@ -294,6 +294,86 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 	}
 }
 
+// Test that adding three revision, then removing all of them leaves nothing.
+func TestRemoveAllRevisionsLongForm(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri remove me/test_movies --revisions=all")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read path for dataset, which shouldn't exist anymore.
+	dsPath := r.GetPathForDataset(0)
+	if dsPath != "" {
+		t.Errorf("expected dataset to be removed entirely, found at \"%s\"", dsPath)
+	}
+}
+
+// Test that adding three revision, then removing all of them leaves nothing, using --all.
+func TestRemoveAllRevisionsShortForm(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri remove me/test_movies --all")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read path for dataset, which shouldn't exist anymore.
+	dsPath := r.GetPathForDataset(0)
+	if dsPath != "" {
+		t.Errorf("expected dataset to be removed entirely, found at \"%s\"", dsPath)
+	}
+}
+
 // TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
 // bodies of dataset in more of our test case. That would require extracting some parts out, like
 // pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a
@@ -384,6 +464,11 @@ func (r *TestRepoRoot) GetPathForDataset(index int) string {
 	err = json.Unmarshal([]byte(bytes), &result)
 	if err != nil {
 		r.t.Fatal(err)
+	}
+
+	// If dataset doesn't exist, return an empty string for the path.
+	if len(result) == 0 {
+		return ""
 	}
 
 	var dsPath string

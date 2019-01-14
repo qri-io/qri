@@ -54,6 +54,11 @@ func ParseRev(rev string) (*Rev, error) {
 	return nil, fmt.Errorf("unrecognized revision field: %s", rev)
 }
 
+// NewAllRevisions returns a Rev struct that represents all revisions.
+func NewAllRevisions() Rev {
+	return Rev{Field: "ds", Gen: AllGenerations}
+}
+
 var fieldMap = map[string]string{
 	"dataset":   "ds",
 	"meta":      "md",

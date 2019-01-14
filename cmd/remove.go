@@ -30,7 +30,7 @@ adjust this cap using IPFS, qri will respect it.
 In the future we’ll add a flag that’ll force immediate removal of a dataset from
 both qri & IPFS. Promise.`,
 		Example: `  remove a dataset named annual_pop:
-  $ qri remove me/annual_pop --revisions=all`,
+  $ qri remove me/annual_pop --all`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -43,6 +43,7 @@ both qri & IPFS. Promise.`,
 	}
 
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
+	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
 
 	return cmd
 }
@@ -54,6 +55,7 @@ type RemoveOptions struct {
 	Args []string
 
 	RevisionsText string
+	All           bool
 	Revision      rev.Rev
 
 	DatasetRequests *lib.DatasetRequests
@@ -66,17 +68,24 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if o.RevisionsText == "" {
-		return fmt.Errorf("--revisions flag is requried")
+	if o.All {
+		o.Revision = rev.NewAllRevisions()
+	} else {
+		if o.RevisionsText == "" {
+			return fmt.Errorf("--revisions flag is requried")
+		}
+		revisions, err := rev.ParseRevs(o.RevisionsText)
+		if err != nil {
+			return err
+		}
+		if len(revisions) != 1 {
+			return fmt.Errorf("need exactly 1 revision parameter to remove")
+		}
+		if revisions[0] == nil {
+			return fmt.Errorf("invalid nil revision")
+		}
+		o.Revision = *revisions[0]
 	}
-	revisions, err := rev.ParseRevs(o.RevisionsText)
-	if len(revisions) != 1 {
-		return fmt.Errorf("need exactly 1 revision parameter to remove")
-	}
-	if revisions[0] == nil {
-		return fmt.Errorf("invalid nil revision")
-	}
-	o.Revision = *revisions[0]
 	return err
 }
 
