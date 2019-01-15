@@ -65,10 +65,13 @@ func printNotYetFinished(cmd *cobra.Command) {
 	color.Yellow("%s command is not yet implemented", cmd.Name())
 }
 
-func printByteInfo(l int) string {
+func printByteInfo(n int) string {
+	// Use 64-bit ints to support platforms on which int is not large enough to represent
+	// the constants below (exabyte, petabyte, etc). For example: Raspberry Pi running arm6.
+	l := int64(n)
 	length := struct {
 		name  string
-		value int
+		value int64
 	}{"", 0}
 
 	switch {
