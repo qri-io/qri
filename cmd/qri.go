@@ -208,25 +208,10 @@ func (o *QriOptions) RPC() *rpc.Client {
 	return o.rpc
 }
 
-// Repo returns from internal state
-// TODO (dlong): This function is deprecated. Don't add new calls. Remove it soon.
-func (o *QriOptions) Repo() (repo.Repo, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
+// ConnectionNode returns the internal QriNode, if it is available
+func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 	if o.repo == nil {
-		return nil, fmt.Errorf("repo not available (are you running qri in another terminal?)")
-	}
-	return o.repo, nil
-}
-
-// Node returns the internal QriNode
-func (o *QriOptions) Node() (*p2p.QriNode, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	if o.repo == nil {
-		return nil, fmt.Errorf("repo not available (are you running qri in another terminal?)")
+		return nil, fmt.Errorf("repo not available")
 	}
 	return o.node, nil
 }
@@ -253,6 +238,14 @@ func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
 		return nil, err
 	}
 	return lib.NewLogRequests(o.node, o.rpc), nil
+}
+
+// ExportRequests generates a lib.ExportRequests from internal state
+func (o *QriOptions) ExportRequests() (*lib.ExportRequests, error) {
+	if err := o.Init(); err != nil {
+		return nil, err
+	}
+	return lib.NewExportRequests(o.node, o.rpc), nil
 }
 
 // PeerRequests generates a lib.PeerRequests from internal state

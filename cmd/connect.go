@@ -101,12 +101,12 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("no qri repo exists")
 	}
 
-	// TODO - calling f.Node has the side effect of
-	// calling init if we haven't initialized so far. Should this be made
-	// more explicit?
-	o.Node, err = f.Node()
-	if err != nil {
+	if err = f.Init(); err != nil {
 		return err
+	}
+	o.Node, err = f.ConnectionNode()
+	if err != nil {
+		return fmt.Errorf("%s, is `qri connect` already running?", err)
 	}
 	o.Config, err = f.Config()
 	return

@@ -76,11 +76,16 @@ func TestRenderRun(t *testing.T) {
 
 	templateFile := cafs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
 
-	r, err := f.Repo()
-	if err != nil {
-		t.Errorf("error getting repo from factory: %s", err)
+	if err := f.Init(); err != nil {
+		t.Errorf("error initializing: %s", err)
 		return
 	}
+	node, err := f.ConnectionNode()
+	if err != nil {
+		t.Errorf("error getting node from factory: %s", err)
+		return
+	}
+	r := node.Repo
 
 	key, err := r.Store().Put(templateFile, false)
 	if err != nil {
