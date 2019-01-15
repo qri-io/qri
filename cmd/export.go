@@ -4,13 +4,10 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 
-	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/spf13/cobra"
 )
 
@@ -71,10 +68,8 @@ type ExportOptions struct {
 	BodyFormat string
 	NoBody     bool
 
-	UsingRPC        bool
-	Repo            repo.Repo
-	Profile         *profile.Profile
-	DatasetRequests *lib.DatasetRequests
+	UsingRPC       bool
+	ExportRequests *lib.ExportRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -85,16 +80,7 @@ func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
 	if f.RPC() != nil {
 		return usingRPCError("export")
 	}
-
-	o.DatasetRequests, err = f.DatasetRequests()
-	// TODO (dlong): All other callers of this method have removed their need of it. Remove
-	// this call and then remove it from the factory interface.
-	o.Repo, err = f.Repo()
-	if err != nil {
-		return
-	}
-
-	o.Profile, err = o.Repo.Profile()
+	o.ExportRequests, err = f.ExportRequests()
 	return err
 }
 
@@ -142,134 +128,23 @@ func (o *ExportOptions) Run() error {
 		return fmt.Errorf("%s is not an accepted data format, options are json, csv, and cbor", bodyFormat)
 	}
 
-	dsr, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
-	res := &repo.DatasetRef{}
-	if err = o.DatasetRequests.Get(&dsr, res); err != nil {
-		if err == repo.ErrEmptyRef {
-			return lib.NewError(err, "please provide a dataset reference")
-		}
-		return err
-	}
-
-	ds, err := res.DecodeDataset()
+	ref, err := repo.ParseDatasetRef(o.Ref)
 	if err != nil {
 		return err
 	}
 
-	if o.PeerDir {
-		peerName := dsr.Peername
-		if peerName == "me" {
-			peerName = o.Profile.Peername
-		}
-		path = filepath.Join(path, peerName)
+	p := &lib.ExportParams{
+		Ref:     ref,
+		PeerDir: false,
+		Format:  format,
 	}
-	path = filepath.Join(path, dsr.Name)
 
-	// TODO (dlong): When --zip flag is not required, don't always do this.
-	dst, err := os.Create(fmt.Sprintf("%s.zip", path))
-	if err != nil {
+	ok := false
+	if err = o.ExportRequests.Export(p, &ok); err != nil {
 		return err
 	}
 
-	// TODO (dlong): Use --body-format here to convert the body and ds.Structure.Format, before
-	// passing ds to WriteZipArchive.
-	if err = dsutil.WriteZipArchive(o.Repo.Store(), ds, format, res.String(), dst); err != nil {
-		return err
-	}
-	return dst.Close()
-
-	// TODO (dlong): Document the full functionality of export, and restore this code below. Allow
-	// non-zip formats like dataset.json with inline body, body.json by itself, outputting to a
-	// a directory, along with yaml, and xlsx.
-	/*if path != "" {
-		if err = os.MkdirAll(path, os.ModePerm); err != nil {
-			return err
-		}
-	}
-
-	if !o.NoBody {
-		if bodyFormat == "" {
-			bodyFormat = ds.Structure.Format.String()
-		}
-
-		df, err := dataset.ParseDataFormatString(bodyFormat)
-		if err != nil {
-			return err
-		}
-
-		p := &lib.LookupParams{
-			Format: df,
-			Path:   ds.Path().String(),
-			All:    true,
-		}
-		r := &lib.LookupResult{}
-
-		if err = o.DatasetRequests.LookupBody(p, r); err != nil {
-			return err
-		}
-
-		dataPath := filepath.Join(path, fmt.Sprintf("data.%s", bodyFormat))
-		dst, err := os.Create(dataPath)
-		if err != nil {
-			return err
-		}
-
-		if p.Format == dataset.CBORDataFormat {
-			r.Data = []byte(hex.EncodeToString(r.Data))
-		}
-		if _, err = dst.Write(r.Data); err != nil {
-			return err
-		}
-
-		if err = dst.Close(); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "exported data to: %s", dataPath)
-	}
-
-	dsPath := filepath.Join(path, dsfs.PackageFileDataset.String())
-	var dsBytes []byte
-
-	switch format {
-	case "json":
-		dsBytes, err = json.MarshalIndent(ds, "", "  ")
-		if err != nil {
-			return err
-		}
-	default:
-		dsBytes, err = yaml.Marshal(ds)
-		if err != nil {
-			return err
-		}
-		dsPath = fmt.Sprintf("%s.yaml", strings.TrimSuffix(dsPath, filepath.Ext(dsPath)))
-	}
-	if err = ioutil.WriteFile(dsPath, dsBytes, os.ModePerm); err != nil {
-		return err
-	}
-
-	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
-		f, err := o.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
-		if err != nil {
-			return err
-		}
-		scriptData, err := ioutil.ReadAll(f)
-		if err != nil {
-			return err
-		}
-		// TODO - transformations should have default file extensions
-		if err = ioutil.WriteFile(filepath.Join(path, "transform.sky"), scriptData, os.ModePerm); err != nil {
-			return err
-		}
-		printSuccess(o.Out, "exported transform script to: %s", filepath.Join(path, "transform.sky"))
-	}
-
-	printSuccess(o.Out, "exported dataset.json to: %s", dsPath)
-
-	return nil*/
+	return nil
 }
 
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:

@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -23,14 +22,13 @@ type Factory interface {
 	CryptoGenerator() gen.CryptoGenerator
 
 	Init() error
-	// TODO (dlong): This function is deprecated. Don't add new calls. Remove it soon.
-	Repo() (repo.Repo, error)
-	Node() (*p2p.QriNode, error)
 	RPC() *rpc.Client
+	ConnectionNode() (*p2p.QriNode, error)
 
 	DatasetRequests() (*lib.DatasetRequests, error)
 	RegistryRequests() (*lib.RegistryRequests, error)
 	LogRequests() (*lib.LogRequests, error)
+	ExportRequests() (*lib.ExportRequests, error)
 	PeerRequests() (*lib.PeerRequests, error)
 	ProfileRequests() (*lib.ProfileRequests, error)
 	SearchRequests() (*lib.SearchRequests, error)

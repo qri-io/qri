@@ -57,8 +57,8 @@ func TestReceivers(t *testing.T) {
 
 	node := n.(*p2p.QriNode)
 	reqs := Receivers(node)
-	if len(reqs) != 8 {
-		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 8, len(reqs))
+	if len(reqs) != 9 {
+		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 9, len(reqs))
 		return
 	}
 }

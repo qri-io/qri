@@ -90,13 +90,8 @@ func (t TestFactory) Init() error {
 	return nil
 }
 
-// Repo returns from internal state
-func (t TestFactory) Repo() (repo.Repo, error) {
-	return t.repo, nil
-}
-
 // Node returns the internal qri node from state
-func (t TestFactory) Node() (*p2p.QriNode, error) {
+func (t TestFactory) ConnectionNode() (*p2p.QriNode, error) {
 	return t.node, nil
 }
 
@@ -118,6 +113,11 @@ func (t TestFactory) RegistryRequests() (*lib.RegistryRequests, error) {
 // LogRequests generates a lib.LogRequests from internal state
 func (t TestFactory) LogRequests() (*lib.LogRequests, error) {
 	return lib.NewLogRequests(t.node, t.rpc), nil
+}
+
+// ExportRequests generates a lib.ExportRequests from internal state
+func (t TestFactory) ExportRequests() (*lib.ExportRequests, error) {
+	return lib.NewExportRequests(t.node, t.rpc), nil
 }
 
 // PeerRequests generates a lib.PeerRequests from internal state
