@@ -1,3 +1,4 @@
+// Package p2ptest defines utilities for qri peer-2-peer testing
 package p2ptest
 
 import (

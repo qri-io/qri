@@ -1,3 +1,4 @@
+// Docs is a tool for generating markdown documentation of the qri command line interface (CLI)
 package main
 
 import (

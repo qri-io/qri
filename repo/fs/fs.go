@@ -1,3 +1,4 @@
+// Package fsrepo is a file-system implementation of repo
 package fsrepo
 
 import (

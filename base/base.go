@@ -1,4 +1,4 @@
-// Package base defines business that operates on local data
+// Package base defines business that operates on local data.
 // it's main job is to composing APIs from the lower half of our tech stack,
 // providing uniform functions for higher up packages, mainly p2p and actions.
 // p2p and actions should use base as the only way of operate on the local repo

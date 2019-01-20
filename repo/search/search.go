@@ -1,3 +1,4 @@
+// Package search creates a local search index of a repo using the bleve search engine
 package search
 
 import (

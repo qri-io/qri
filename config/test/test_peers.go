@@ -1,3 +1,6 @@
+// Package test contains predefined set of PeerInfo for testing.
+// Generating private keys is computationally expensive, which slows down tests dramatically.
+// Using a cache of pre-calculated private keys defined here to keeps tests fast.
 package test
 
 import (
