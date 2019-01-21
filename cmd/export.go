@@ -45,7 +45,7 @@ new dataset, use --blank.`,
 	}
 
 	cmd.Flags().BoolVarP(&o.Blank, "blank", "", false, "export a blank dataset YAML file, overrides all other flags except output")
-	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write to, default is current directory")
+	cmd.Flags().StringVarP(&o.Output, "output", "o", ".", "path to write to, default is current directory")
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "yaml", "format for all exported files, except for body. yaml is the default format. options: yaml, json")
 	cmd.Flags().StringVarP(&o.BodyFormat, "body-format", "", "", "format for dataset body. default is the original data format. options: json, csv, cbor")
 	cmd.Flags().BoolVarP(&o.NoBody, "no-body", "b", false, "don't include dataset body in export")
@@ -133,15 +133,13 @@ func (o *ExportOptions) Run() error {
 		return err
 	}
 
-	// TOOD (dlong): Handle -o flag, use it to get target directory.
-	root := "."
-	if err = lib.AbsPath(&root); err != nil {
+	if err = lib.AbsPath(&path); err != nil {
 		return err
 	}
 
 	p := &lib.ExportParams{
 		Ref:     ref,
-		RootDir: root,
+		RootDir: path,
 		PeerDir: false,
 		Format:  format,
 	}
