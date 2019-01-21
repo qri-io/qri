@@ -59,7 +59,8 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 		return err
 	}
 
-	var path string
+	// TODO (dlong): The -o option, once it is implemened, can be used to calculate `path`.
+	path := p.RootDir
 	if p.PeerDir {
 		peerName := ref.Peername
 		if peerName == "me" {
