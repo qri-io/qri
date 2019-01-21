@@ -84,6 +84,7 @@ type RemoveParams struct {
 // ExportParams defines parameters for the export method
 type ExportParams struct {
 	Ref     repo.DatasetRef
+	RootDir string
 	PeerDir bool
 	Format  string
 }

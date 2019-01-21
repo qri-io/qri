@@ -133,8 +133,15 @@ func (o *ExportOptions) Run() error {
 		return err
 	}
 
+	// TOOD (dlong): Handle -o flag, use it to get target directory.
+	root := "."
+	if err = lib.AbsPath(&root); err != nil {
+		return err
+	}
+
 	p := &lib.ExportParams{
 		Ref:     ref,
+		RootDir: root,
 		PeerDir: false,
 		Format:  format,
 	}
