@@ -1,3 +1,4 @@
+// Package profile defines a qri peer profile
 package profile
 
 import (

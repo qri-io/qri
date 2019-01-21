@@ -1,4 +1,4 @@
-// package generates generates a bash completion file for qri
+// Package generate is a command that creates a bash completion file for qri
 package main
 
 import (

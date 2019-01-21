@@ -1,3 +1,5 @@
+// Package test defines utilities for testing the lib package, including caches
+// of expensive processes like cryptographic key generation and ipfs repo creation
 package test
 
 import (
