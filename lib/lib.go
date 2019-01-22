@@ -13,7 +13,7 @@ import (
 var log = golog.Logger("lib")
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.6.2-dev"
+const VersionNumber = "0.6.2"
 
 // Requests defines a set of library methods
 type Requests interface {

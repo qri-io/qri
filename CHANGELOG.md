@@ -1,3 +1,59 @@
+<a name="0.6.2"></a>
+# [0.6.2](https://github.com/qri-io/qri/compare/v0.6.1...v0.6.2) (2019-01-22)
+
+0.6.2 is mainly about squashing bugs, but there are three fun new features worth noting:
+
+### :globe_with_meridians: IPFS HTTP API Support
+Given that all Qri nodes currently run IPFS under the hood, it's sad that Qri doesn't expose the full power of IPFS while running. We've fixed that by adding new configuration options to enable the IPFS HTTP API. This lets you use the `ipfs` binary to use IPFS while qri is running. We've added support for toggling IPFS pubsub as well. By default new installations of Qri come with the IPFS api enabled, and pubsub disabled.
+
+To enable both, change your Qri config.yaml `store` to include the new options flags:
+
+```yaml
+store:
+  type: "ipfs"
+  options:
+    # when api is true, Qri will use the IPFS config to spin up an HTTP API
+    # at whatever port your IPFS repo is configured for
+    # (the configuration in IPFS is "Addresses.API", defaults to localhost:5001)
+    api: true
+    # optional, when true running "qri connect" will also enable IPFS pubsub 
+    # as if `ipfs daemon --enable-pubsub-experiment` were run
+    pubsub: true
+```
+
+With these settings you can run `qri connect` in one terminal, and then run (nearly) any regular IPFS command in another terminal with `ipfs --api /ip4/127.0.0.1/tcp/5001/ [command]`. Having both IPFS & Qri work at once makes life much easier for anyone who needs access to both functionalities at once.
+
+### :world_map: Starlark Geo Support
+We're very excited to land initial support for a geospatial module in Starlark. Considering just how much open data is geospatial, we're very excited to play with this :) [Here's an example transform script](https://gist.github.com/b5/7fc378b6ee504e929ab390bca8f038f6) to get started.
+
+### :1234: Remove now supports any number of revisions
+Previously, it was only possible to reomve _entire dataset histories_, which is, well, not ideal. We've changed the way remove works so you can now choose how many revisions (dataset versions) to delete. `qri remove --revisions 1 me/dataset_name` is basically an undo button, while `qri remove --all me/dataset_name` will delete the entire dataset. This also applies to the API, by supplying a now-required `revisions` query param.
+
+
+
+### Bug Fixes
+
+* **cmd:** Both body and setup runnable during "qri connect" ([0a9c93a](https://github.com/qri-io/qri/commit/0a9c93a))
+* **cmd.Export:** handle -o flag on export to get target directory ([0064715](https://github.com/qri-io/qri/commit/0064715))
+* **export:** Check for unsupported export flags, recognize --format ([aea27de](https://github.com/qri-io/qri/commit/aea27de))
+* **export:** Export can be used while running `qri connect` ([a5a56d1](https://github.com/qri-io/qri/commit/a5a56d1))
+* **export:** Flag is --zip instead of --zipped, api format form value ([f370632](https://github.com/qri-io/qri/commit/f370632))
+* **export:** Write exported file to pwd where command is run. ([b62f739](https://github.com/qri-io/qri/commit/b62f739))
+* **list:** Listing a non-existant profile should not crash ([e00d516](https://github.com/qri-io/qri/commit/e00d516))
+* **p2p dataset info:** return not found if dataset doesn't populate ([b55af2a](https://github.com/qri-io/qri/commit/b55af2a))
+* **print:** Use int64 in print in order to support Arm6 (Raspberry Pi). ([64fcbc4](https://github.com/qri-io/qri/commit/64fcbc4))
+* **remove:** Flag --all as an alias for --revisions=all. More tests ([7e29002](https://github.com/qri-io/qri/commit/7e29002))
+* **remove:** Remove requires the --revisions to specify what to delete ([02a0b02](https://github.com/qri-io/qri/commit/02a0b02))
+* **Save:** add tests to cmd that test you can save a transform and viz ([#649](https://github.com/qri-io/qri/issues/649)) ([42410a5](https://github.com/qri-io/qri/commit/42410a5))
+
+
+### Features
+
+* **api:** always include script output in POST /dataset responses ([ee32e44](https://github.com/qri-io/qri/commit/ee32e44))
+* **config.Store:** support store options to enable ipfs api & pubsub ([e76b9f8](https://github.com/qri-io/qri/commit/e76b9f8)), closes [#162](https://github.com/qri-io/qri/issues/162) [#658](https://github.com/qri-io/qri/issues/658)
+
+
+
 <a name="0.6.1"></a>
 # [0.6.1](https://github.com/qri-io/qri/compare/v0.6.0...v0.6.1) (2018-12-12)
 
