@@ -145,10 +145,16 @@ func (o *QriOptions) Init() (err error) {
 		}
 
 		var fs *ipfs.Filestore
-		fs, err = ipfs.NewFilestore(func(cfg *ipfs.StoreCfg) {
-			cfg.FsRepoPath = o.ipfsFsPath
-			// cfg.Online = online
-		})
+
+		fsOpts := []ipfs.Option{
+			func(cfg *ipfs.StoreCfg) {
+				cfg.FsRepoPath = o.ipfsFsPath
+				// cfg.Online = online
+			},
+			ipfs.OptsFromMap(o.config.Store.Options),
+		}
+
+		fs, err = ipfs.NewFilestore(fsOpts...)
 		if err != nil {
 			return
 		}

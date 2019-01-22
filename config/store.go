@@ -4,13 +4,17 @@ import "github.com/qri-io/jsonschema"
 
 // Store configures a qri content addessed file store (cafs)
 type Store struct {
-	Type string `json:"type"`
+	Type    string                 `json:"type"`
+	Options map[string]interface{} `json:"options,omitempty"`
 }
 
 // DefaultStore returns a new default Store configuration
 func DefaultStore() *Store {
 	return &Store{
 		Type: "ipfs",
+		Options: map[string]interface{}{
+			"api": true,
+		},
 	}
 }
 
@@ -38,7 +42,8 @@ func (cfg Store) Validate() error {
 // Copy returns a deep copy of the Store struct
 func (cfg *Store) Copy() *Store {
 	res := &Store{
-		Type: cfg.Type,
+		Type:    cfg.Type,
+		Options: cfg.Options,
 	}
 
 	return res
