@@ -157,7 +157,7 @@ func TestSaveRun(t *testing.T) {
 		// add viz
 		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVrSNgJqJNof7qeZVsdZp9FpnmKPRVg4VY7AmY5iFvgPy\nthis dataset has 1 validation errors\n", "", ""},
 		// add transform
-		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmW7nQNyFdogXzYYn3eCyDuoPdDRDu4v7979YV1zSNnxpu\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdS4jTg3rKsKUAP7kxqA3mhw1CKDmDpiGsRyHsg5RPsRp\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for i, c := range cases {
