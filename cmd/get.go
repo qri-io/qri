@@ -71,7 +71,7 @@ type GetOptions struct {
 }
 
 // isDatasetField checks if a string is a dataset field or not
-var isDatasetField = regexp.MustCompile("(?i)commit|structure|body|meta|viz|transform")
+var isDatasetField = regexp.MustCompile("(?i)^(commit|structure|body|meta|viz|transform)$")
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {

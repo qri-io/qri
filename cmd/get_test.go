@@ -28,6 +28,7 @@ func TestGetComplete(t *testing.T) {
 		{[]string{"peer/ds_two", "peer/ds"}, "", []string{"peer/ds_two", "peer/ds"}, ""},
 		{[]string{"foo", "peer/ds"}, "", []string{"foo", "peer/ds"}, ""},
 		{[]string{"structure"}, "structure", []string{}, ""},
+		{[]string{"peer/human_body_facts"}, "", []string{"peer/human_body_facts"}, ""},
 	}
 
 	for i, c := range cases {
