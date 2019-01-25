@@ -51,8 +51,7 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 }
 
 // InferValues populates any missing fields that must exist to create a snapshot
-func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body cafs.File) (res cafs.File, err error) {
-	res = body
+func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body cafs.File) (cafs.File, error) {
 	// try to pick up a dataset name
 	if *name == "" {
 		*name = varName.CreateVarNameFromString(body.FileName())
@@ -67,35 +66,47 @@ func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body c
 	ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	// TODO - infer title & message
 
-	// if we don't have a structure, attempte to determine one
-	if ds.Structure == nil && body != nil {
+	// if we don't have a structure or schema then attempt to determine one
+	if body != nil && (ds.Structure == nil || ds.Structure.Schema == nil) {
 		// use a TeeReader that writes to a buffer to preserve data
 		buf := &bytes.Buffer{}
 		tr := io.TeeReader(body, buf)
 		var df dataset.DataFormat
 
-		df, err = detect.ExtensionDataFormat(body.FileName())
+		df, err := detect.ExtensionDataFormat(body.FileName())
 		if err != nil {
 			log.Debug(err.Error())
 			err = fmt.Errorf("invalid data format: %s", err.Error())
-			return
+			return nil, err
 		}
 
-		ds.Structure, _, err = detect.FromReader(df, tr)
+		guessedStructure, _, err := detect.FromReader(df, tr)
 		if err != nil {
 			log.Debug(err.Error())
 			err = fmt.Errorf("determining dataset structure: %s", err.Error())
-			return
+			return nil, err
 		}
+
+		// attach the structure, schema, and formatConfig, as appropriate
+		if ds.Structure == nil {
+			ds.Structure = guessedStructure
+		}
+		if ds.Structure.Schema == nil {
+			ds.Structure.Schema = guessedStructure.Schema
+		}
+		if ds.Structure.FormatConfig == nil {
+			ds.Structure.FormatConfig = guessedStructure.FormatConfig
+		}
+
 		// glue whatever we just read back onto the reader
-		res = cafs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
+		body = cafs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
 	}
 
 	if ds.Transform != nil && ds.Transform.IsEmpty() {
 		ds.Transform = nil
 	}
 
-	return
+	return body, nil
 }
 
 // ValidateDataset checks that a dataset is semantically valid

@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/jsonschema"
 )
 
 func TestPrepareDatasetSave(t *testing.T) {
@@ -52,7 +53,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 	}
 }
 
-func TestInferValues(t *testing.T) {
+func TestInferValuesDatasetName(t *testing.T) {
 	r := newTestRepo(t)
 	pro, err := r.Profile()
 	if err != nil {
@@ -65,10 +66,119 @@ func TestInferValues(t *testing.T) {
 	if _, err = InferValues(pro, &name, ds, body); err != nil {
 		t.Error(err)
 	}
-	// TODO - lol fix varname, so broken
 	expectName := "gabba_gabba_heycsv"
 	if expectName != name {
 		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, name)
+	}
+}
+
+func TestInferValuesStructure(t *testing.T) {
+	r := newTestRepo(t)
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name := "animals"
+	body := cafs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
+	ds := &dataset.Dataset{}
+
+	if _, err = InferValues(pro, &name, ds, body); err != nil {
+		t.Error(err)
+	}
+
+	if ds.Structure.Format != dataset.CSVDataFormat {
+		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
+	}
+	if ds.Structure.FormatConfig.Map()["headerRow"] != true {
+		t.Errorf("expected format config to set headerRow set to true")
+	}
+
+	actual := datasetSchemaToJSON(ds)
+	expect := `{"items":{"items":[{"title":"animal","type":"string"},{"title":"sound","type":"string"},{"title":"weight","type":"number"}],"type":"array"},"type":"array"}`
+
+	if expect != actual {
+		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
+	}
+}
+
+func TestInferValuesSchema(t *testing.T) {
+	r := newTestRepo(t)
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name := "animals"
+	body := cafs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
+	ds := &dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: dataset.CSVDataFormat,
+		},
+	}
+	if _, err = InferValues(pro, &name, ds, body); err != nil {
+		t.Error(err)
+	}
+
+	if ds.Structure.Format != dataset.CSVDataFormat {
+		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
+	}
+	if ds.Structure.FormatConfig.Map()["headerRow"] != true {
+		t.Errorf("expected format config to set headerRow set to true")
+	}
+
+	actual := datasetSchemaToJSON(ds)
+	expect := `{"items":{"items":[{"title":"animal","type":"string"},{"title":"sound","type":"string"},{"title":"weight","type":"number"}],"type":"array"},"type":"array"}`
+
+	if expect != actual {
+		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
+	}
+}
+
+func TestInferValuesDontOverwriteSchema(t *testing.T) {
+	r := newTestRepo(t)
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	name := "animals"
+	body := cafs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
+	ds := &dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: dataset.CSVDataFormat,
+			Schema: jsonschema.Must(`{
+				"type": "array",
+				"items": {
+					"type": "array",
+					"items": [
+						{"title": "animal", "type": "number" },
+						{"title": "noise", "type": "number" },
+						{"title": "height", "type": "number" }
+					]
+				}
+			}`),
+		},
+	}
+	if _, err = InferValues(pro, &name, ds, body); err != nil {
+		t.Error(err)
+	}
+
+	if ds.Structure.Format != dataset.CSVDataFormat {
+		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
+	}
+	if ds.Structure.FormatConfig != nil {
+		t.Errorf("expected format config to be nil")
+	}
+
+	actual := datasetSchemaToJSON(ds)
+	expect := `{"items":{"items":[{"title":"animal","type":"number"},{"title":"noise","type":"number"},{"title":"height","type":"number"}],"type":"array"},"type":"array"}`
+
+	if expect != actual {
+		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
 	}
 }
 
@@ -76,4 +186,12 @@ func TestValidateDataset(t *testing.T) {
 	if err := ValidateDataset("this name has spaces", nil); err == nil {
 		t.Errorf("expected invalid name to fail")
 	}
+}
+
+func datasetSchemaToJSON(ds *dataset.Dataset) string {
+	json, err := ds.Structure.Schema.MarshalJSON()
+	if err != nil {
+		return err.Error()
+	}
+	return string(json)
 }
