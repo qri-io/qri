@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -48,7 +47,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 			return nil, fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
-		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+		ds, err := dsfs.LoadDataset(store, ref.Path)
 		if err != nil {
 			return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 		}
@@ -68,7 +67,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev *dataset.Dataset, body, bodyPrev cafs.File, dryRun, pin bool) (ref repo.DatasetRef, resBody cafs.File, err error) {
 	var (
 		pro  *profile.Profile
-		path datastore.Key
+		path string
 	)
 
 	pro, err = r.Profile()
@@ -107,7 +106,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
 		Name:      name,
-		Path:      path.String(),
+		Path:      path,
 	}
 	if err = r.PutRef(ref); err != nil {
 		return
@@ -123,7 +122,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 	if err = ReadDataset(r, &ref); err != nil {
 		return
 	}
-	if resBody, err = r.Store().Get(datastore.NewKey(ref.Dataset.BodyPath)); err != nil {
+	if resBody, err = r.Store().Get(ref.Dataset.BodyPath); err != nil {
 		fmt.Println("error getting from store:", err.Error())
 	}
 	return
@@ -131,8 +130,9 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 
 // FetchDataset grabs a dataset from a remote source
 func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
-	key := datastore.NewKey(strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String()))
-	path := datastore.NewKey(key.String() + "/" + dsfs.PackageFileDataset.String())
+	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())
+	// TODO (b5): use a function from a canonical place to produce this path, possibly from dsfs
+	path := key + "/" + dsfs.PackageFileDataset.String()
 
 	fetcher, ok := r.Store().(cafs.Fetcher)
 	if !ok {
@@ -159,7 +159,7 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 		ds, err := dsfs.LoadDataset(r.Store(), path)
 		if err != nil {
 			log.Debug(err.Error())
-			return fmt.Errorf("error loading newly saved dataset path: %s", path.String())
+			return fmt.Errorf("error loading newly saved dataset path: %s", path)
 		}
 
 		ref.Dataset = ds.Encode()
@@ -171,7 +171,7 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 // ReadDataset grabs a dataset from the store
 func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 	if store := r.Store(); store != nil {
-		ds, e := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+		ds, e := dsfs.LoadDataset(store, ref.Path)
 		if e != nil {
 			return e
 		}
@@ -179,13 +179,13 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 		return
 	}
 
-	return datastore.ErrNotFound
+	return cafs.ErrNotFound
 }
 
 // PinDataset marks a dataset for retention in a store
 func PinDataset(r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Pin(datastore.NewKey(ref.Path), true)
+		pinner.Pin(ref.Path, true)
 		return r.LogEvent(repo.ETDsPinned, ref)
 	}
 	return repo.ErrNotPinner
@@ -194,7 +194,7 @@ func PinDataset(r repo.Repo, ref repo.DatasetRef) error {
 // UnpinDataset unmarks a dataset for retention in a store
 func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Unpin(datastore.NewKey(ref.Path), true)
+		pinner.Unpin(ref.Path, true)
 		return r.LogEvent(repo.ETDsUnpinned, ref)
 	}
 	return repo.ErrNotPinner
@@ -237,7 +237,7 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 	}
 
 	if strings.HasPrefix(dsp.BodyPath, "/ipfs") || strings.HasPrefix(dsp.BodyPath, "/cafs") || strings.HasPrefix(dsp.BodyPath, "/map") {
-		return store.Get(datastore.NewKey(dsp.BodyPath))
+		return store.Get(dsp.BodyPath)
 	}
 
 	// convert yaml input to json as a hack to support yaml input for now

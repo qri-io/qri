@@ -36,7 +36,7 @@ func TestPrepareViz(t *testing.T) {
 
 	ds = &dataset.Dataset{
 		Viz: &dataset.Viz{
-			ScriptPath: key.String(),
+			ScriptPath: key,
 		},
 	}
 

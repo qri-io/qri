@@ -168,7 +168,7 @@ func (r *ProfileRequests) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err
 		return e
 	}
 
-	if pro.Photo.String() == "" || pro.Photo.String() == "/" {
+	if pro.Photo == "" || pro.Photo == "/" {
 		return nil
 	}
 
@@ -222,11 +222,11 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	res.Photo = path.String()
-	res.Thumb = path.String()
-	Config.Set("profile.photo", path.String())
+	res.Photo = path
+	res.Thumb = path
+	Config.Set("profile.photo", path)
 	// TODO - resize photo for thumb
-	Config.Set("profile.thumb", path.String())
+	Config.Set("profile.thumb", path)
 
 	pro, err := profile.NewProfile(Config.Profile)
 	if err != nil {
@@ -257,7 +257,7 @@ func (r *ProfileRequests) PosterPhoto(req *config.ProfilePod, res *[]byte) (err 
 		return e
 	}
 
-	if pro.Poster.String() == "" || pro.Poster.String() == "/" {
+	if pro.Poster == "" || pro.Poster == "/" {
 		return nil
 	}
 
@@ -306,8 +306,8 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 		return fmt.Errorf("error saving photo: %s", err.Error())
 	}
 
-	res.Poster = path.String()
-	Config.Set("profile.poster", path.String())
+	res.Poster = path
+	Config.Set("profile.poster", path)
 
 	pro, err := profile.NewProfile(Config.Profile)
 	if err != nil {

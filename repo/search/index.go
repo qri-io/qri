@@ -2,13 +2,11 @@ package search
 
 import (
 	"encoding/json"
-	"github.com/ipfs/go-datastore"
 	"log"
 	"time"
 
 	"github.com/qri-io/bleve"
 	"github.com/qri-io/bleve/analysis/lang/en"
-	//_ "github.com/qri-io/bleve/config"
 	"github.com/qri-io/bleve/mapping"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsfs"
@@ -119,7 +117,7 @@ func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []repo.DatasetRe
 	batch := i.NewBatch()
 	batchCount := 0
 	for _, ref := range refs {
-		ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+		ds, err := dsfs.LoadDataset(store, ref.Path)
 		if err != nil {
 			log.Printf("error loading dataset: %s", err.Error())
 			continue

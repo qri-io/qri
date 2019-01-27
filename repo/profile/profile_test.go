@@ -1,8 +1,9 @@
 package profile
 
 import (
-	"github.com/qri-io/qri/config"
 	"testing"
+
+	"github.com/qri-io/qri/config"
 )
 
 func TestProfileDecode(t *testing.T) {
@@ -34,13 +35,13 @@ func TestProfileDecode(t *testing.T) {
 		t.Errorf("unexpected error: %s", err.Error())
 	}
 
-	if p.Poster.String() != "/foo" {
+	if p.Poster != "foo" {
 		t.Error("poster mismatch")
 	}
-	if p.Photo.String() != "/bar" {
+	if p.Photo != "bar" {
 		t.Error("photo mismatch")
 	}
-	if p.Thumb.String() != "/baz" {
+	if p.Thumb != "baz" {
 		t.Error("thumb mismatch")
 	}
 }

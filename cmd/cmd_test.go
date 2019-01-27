@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -487,7 +486,7 @@ func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
 		r.t.Fatal(err)
 	}
 
-	bodyFile, err := fs.Get(datastore.NewKey(keyPath))
+	bodyFile, err := fs.Get(keyPath)
 	if err != nil {
 		r.t.Fatal(err)
 	}

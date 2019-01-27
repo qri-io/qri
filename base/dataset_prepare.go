@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"io"
 
-	datastore "github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
@@ -33,14 +32,14 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 
 	prevPath = lookup.Path
 
-	if prev, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(prevPath)); err != nil {
+	if prev, err = dsfs.LoadDataset(r.Store(), prevPath); err != nil {
 		return
 	}
 	if prev.BodyPath != "" {
 		body, err = dsfs.LoadBody(r.Store(), prev)
 	}
 
-	if mutable, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(prevPath)); err != nil {
+	if mutable, err = dsfs.LoadDataset(r.Store(), prevPath); err != nil {
 		return
 	}
 

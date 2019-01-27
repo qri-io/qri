@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/profile"
@@ -245,13 +244,13 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 
 	cases := []struct {
 		infile  string
-		respath datastore.Key
+		respath string
 		err     string
 	}{
-		{"", datastore.NewKey(""), "file is required"},
-		{"testdata/ink_big_photo.jpg", datastore.NewKey(""), "file size too large. max size is 250kb"},
-		{"testdata/q_bang.svg", datastore.NewKey(""), "invalid file format. only .jpg images allowed"},
-		{"testdata/rico_400x400.jpg", datastore.NewKey("/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1"), ""},
+		{"", "", "file is required"},
+		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
+		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
+		{"testdata/rico_400x400.jpg", "/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
@@ -283,8 +282,8 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 			continue
 		}
 
-		if !c.respath.Equal(datastore.NewKey(res.Photo)) {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Photo)
+		if c.respath != res.Photo {
+			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Photo)
 			continue
 		}
 	}
@@ -299,13 +298,13 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 
 	cases := []struct {
 		infile  string
-		respath datastore.Key
+		respath string
 		err     string
 	}{
-		{"", datastore.NewKey(""), "file is required"},
-		{"testdata/ink_big_photo.jpg", datastore.NewKey(""), "file size too large. max size is 250kb"},
-		{"testdata/q_bang.svg", datastore.NewKey(""), "invalid file format. only .jpg images allowed"},
-		{"testdata/rico_poster_1500x500.jpg", datastore.NewKey("/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL"), ""},
+		{"", "", "file is required"},
+		{"testdata/ink_big_photo.jpg", "", "file size too large. max size is 250kb"},
+		{"testdata/q_bang.svg", "", "invalid file format. only .jpg images allowed"},
+		{"testdata/rico_poster_1500x500.jpg", "/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)
@@ -337,8 +336,8 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 			continue
 		}
 
-		if !c.respath.Equal(datastore.NewKey(res.Photo)) {
-			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath.String(), res.Photo)
+		if c.respath != res.Photo {
+			t.Errorf("case %d profile hash mismatch. expected: %s, got: %s", i, c.respath, res.Photo)
 			continue
 		}
 	}

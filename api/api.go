@@ -13,7 +13,6 @@ import (
 	"time"
 
 	"github.com/datatogether/api/apiutil"
-	"github.com/ipfs/go-datastore"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/config"
@@ -78,7 +77,7 @@ func (s *Server) Serve() (err error) {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
 				if lib.Config != nil && lib.Config.Render != nil && lib.Config.Render.TemplateUpdateAddress != "" {
 					if latest, err := lib.CheckVersion(context.Background(), node.Namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
-						err := pinner.Pin(datastore.NewKey(latest), true)
+						err := pinner.Pin(latest, true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
 							return
@@ -156,7 +155,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s *Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
-	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(path))
+	file, err := s.qriNode.Repo.Store().Get(path)
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -184,7 +183,7 @@ func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := s.qriNode.Repo.Store().Get(datastore.NewKey(p.String()))
+	file, err := s.qriNode.Repo.Store().Get(p.String())
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

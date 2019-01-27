@@ -3,7 +3,6 @@ package base
 import (
 	"fmt"
 
-	datastore "github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -14,11 +13,11 @@ func DatasetLog(r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDataset
 	for {
 		var ds *dataset.Dataset
 		if loadDatasets {
-			if ds, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path)); err != nil {
+			if ds, err = dsfs.LoadDataset(r.Store(), ref.Path); err != nil {
 				return
 			}
 		} else {
-			if ds, err = dsfs.LoadDatasetRefs(r.Store(), datastore.NewKey(ref.Path)); err != nil {
+			if ds, err = dsfs.LoadDatasetRefs(r.Store(), ref.Path); err != nil {
 				return
 			}
 		}

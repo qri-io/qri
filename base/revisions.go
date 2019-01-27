@@ -1,7 +1,6 @@
 package base
 
 import (
-	datastore "github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -14,7 +13,7 @@ func LoadRevs(r repo.Repo, ref repo.DatasetRef, revs []*rev.Rev) (res *dataset.D
 	var ds *dataset.Dataset
 	res = &dataset.Dataset{}
 	for {
-		if ds, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path)); err != nil {
+		if ds, err = dsfs.LoadDataset(r.Store(), ref.Path); err != nil {
 			return
 		}
 

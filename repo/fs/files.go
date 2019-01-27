@@ -2,7 +2,6 @@ package fsrepo
 
 import (
 	"encoding/json"
-	"github.com/ipfs/go-datastore"
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -74,14 +73,8 @@ var paths = map[File]string{
 	FileChangeRequests: "/change_requests.json",
 }
 
-// Filepath gives the relative filepath to a repofile
+// Filepath gives the relative filepath to a repofiles
 // in a given repository
 func Filepath(rf File) string {
 	return paths[rf]
-}
-
-// FileKey returns a datastore.Key reference for a
-// given File
-func FileKey(rf File) datastore.Key {
-	return datastore.NewKey(Filepath(rf))
 }

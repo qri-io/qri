@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/ipfs/go-datastore"
+	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/theckman/go-flock"
@@ -124,7 +124,7 @@ func (r *ProfileStore) PeernameID(peername string) (profile.ID, error) {
 			return profile.IDB58Decode(id)
 		}
 	}
-	return "", datastore.ErrNotFound
+	return "", cafs.ErrNotFound
 }
 
 // GetProfile fetches a profile from the store
@@ -149,7 +149,7 @@ func (r *ProfileStore) GetProfile(id profile.ID) (*profile.Profile, error) {
 		}
 	}
 
-	return nil, datastore.ErrNotFound
+	return nil, cafs.ErrNotFound
 }
 
 // PeerProfile gives the profile that corresponds with a given peer.ID
@@ -175,7 +175,7 @@ func (r *ProfileStore) PeerProfile(id peer.ID) (*profile.Profile, error) {
 		}
 	}
 
-	return nil, datastore.ErrNotFound
+	return nil, cafs.ErrNotFound
 }
 
 // DeleteProfile removes a profile from the store

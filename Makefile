@@ -3,7 +3,6 @@ define GOPACKAGES
 github.com/briandowns/spinner \
 github.com/datatogether/api/apiutil \
 github.com/fatih/color \
-github.com/ipfs/go-datastore \
 github.com/olekukonko/tablewriter \
 github.com/qri-io/bleve \
 github.com/qri-io/dataset \

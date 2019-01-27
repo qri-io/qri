@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
@@ -100,7 +99,7 @@ func (n *QriNode) handleDatasetLog(ws *WrappedStream, msg Message) (hangup bool)
 		}
 
 		for {
-			dataset, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+			dataset, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
 			if err != nil {
 				sendDatasetLogReply(ws, msg, history, err)
 				return

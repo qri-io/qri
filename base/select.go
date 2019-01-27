@@ -6,7 +6,6 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -14,7 +13,7 @@ import (
 
 // Select loads a dataset value specified by case.Sensitve.dot.separated.paths
 func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) {
-	ds, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
+	ds, err := dsfs.LoadDataset(r.Store(), ref.Path)
 	if err != nil {
 		return nil, err
 	}

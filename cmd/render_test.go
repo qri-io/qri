@@ -99,7 +99,7 @@ func TestRenderRun(t *testing.T) {
 		return
 	}
 
-	if err := cfg.Set("render.defaultTemplateHash", key.String()); err != nil {
+	if err := cfg.Set("render.defaultTemplateHash", key); err != nil {
 		t.Errorf("error setting default template in config: %s", err)
 		return
 	}
