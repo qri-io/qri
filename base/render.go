@@ -8,7 +8,6 @@ import (
 	"io/ioutil"
 	"strings"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
@@ -28,7 +27,7 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 
 	store := r.Store()
 
-	ds, err := dsfs.LoadDataset(store, datastore.NewKey(ref.Path))
+	ds, err := dsfs.LoadDataset(store, ref.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, err
@@ -41,7 +40,7 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 	// TODO - hack for now. a subpackage of dataset should handle all of the below,
 	// and use a method to set the default template if one can be loaded from the web
 	if rdr == nil && ds.Viz != nil && ds.Viz.ScriptPath != "" {
-		f, err := store.Get(datastore.NewKey(ds.Viz.ScriptPath))
+		f, err := store.Get(ds.Viz.ScriptPath)
 		if err != nil {
 			return nil, fmt.Errorf("loading template from store: %s", err.Error())
 		}

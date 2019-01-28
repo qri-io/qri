@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 )
@@ -24,7 +23,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	// network request
 	if ref.ProfileID != "" {
 		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.ProfileID {
-			ds, err := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+			ds, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
 			if err != nil {
 				return err
 			}
@@ -87,7 +86,7 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 
 		if err := repo.CanonicalizeDatasetRef(n.Repo, &dsr); err == nil {
 			if ref, err := n.Repo.GetRef(dsr); err == nil {
-				ds, e := dsfs.LoadDataset(n.Repo.Store(), datastore.NewKey(ref.Path))
+				ds, e := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
 				if e != nil {
 					log.Debug(err.Error())
 					return

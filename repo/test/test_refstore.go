@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -45,7 +44,7 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref := repo.DatasetRef{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Name: "test", Path: path.String(), Peername: "peer"}
+	ref := repo.DatasetRef{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Name: "test", Path: path, Peername: "peer"}
 
 	if err := r.PutRef(ref); err != nil {
 		t.Errorf("repo.PutName: %s", err.Error())
@@ -84,7 +83,7 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 	}
 	err = nil
 
-	if err := r.Store().Delete(datastore.NewKey(ref.Path)); err != nil {
+	if err := r.Store().Delete(ref.Path); err != nil {
 		t.Errorf("error removing file from store")
 		return
 	}
@@ -105,11 +104,11 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	for i, ref := range refs {
 		path, err := r.Store().Put(cafs.NewMemfileBytes("test", []byte(fmt.Sprintf(`{ "title": "test_dataset_%s" }`, ref.Name))), true)
 		if err != nil {
-			t.Errorf("error putting test file in datastore: %s", err.Error())
+			t.Errorf("error putting test file in cafs: %s", err.Error())
 			return
 		}
 
-		ref.Path = path.String()
+		ref.Path = path
 		// set path on input refs for later comparison
 		refs[i].Path = ref.Path
 
@@ -175,7 +174,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	}
 
 	for _, ref := range refs {
-		if err := r.Store().Delete(datastore.NewKey(ref.Path)); err != nil {
+		if err := r.Store().Delete(ref.Path); err != nil {
 			t.Errorf("error removing path from repo store: %s", err.Error())
 			return
 		}

@@ -1,8 +1,6 @@
 // Package repo represents a repository of qri information
 // Analogous to a git repository, repo expects a rigid structure
 // filled with rich types specific to qri.
-// Lots of things in here take inspiration from the ipfs datastore interface:
-// github.com/ipfs/go-datastore
 package repo
 
 import (

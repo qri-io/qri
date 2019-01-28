@@ -7,7 +7,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/config"
 
@@ -39,11 +38,11 @@ type Profile struct {
 	// color this user likes to use as their theme color
 	Color string `json:"color"`
 	// Thumb path for user's thumbnail
-	Thumb datastore.Key `json:"thumb"`
+	Thumb string `json:"thumb"`
 	// Profile photo
-	Photo datastore.Key `json:"photo"`
+	Photo string `json:"photo"`
 	// Poster photo for users's profile page
-	Poster datastore.Key `json:"poster"`
+	Poster string `json:"poster"`
 	// Twitter is a  peer's twitter handle
 	Twitter string `json:"twitter"`
 	// Online indicates if this peer is currently connected to the network
@@ -111,15 +110,15 @@ func (p *Profile) Decode(sp *config.ProfilePod) error {
 	}
 
 	if sp.Thumb != "" {
-		pro.Thumb = datastore.NewKey(sp.Thumb)
+		pro.Thumb = sp.Thumb
 	}
 
 	if sp.Poster != "" {
-		pro.Poster = datastore.NewKey(sp.Poster)
+		pro.Poster = sp.Poster
 	}
 
 	if sp.Photo != "" {
-		pro.Photo = datastore.NewKey(sp.Photo)
+		pro.Photo = sp.Photo
 	}
 
 	for _, addrStr := range sp.NetworkAddrs {
@@ -154,9 +153,9 @@ func (p Profile) Encode() (*config.ProfilePod, error) {
 		HomeURL:      p.HomeURL,
 		Color:        p.Color,
 		Twitter:      p.Twitter,
-		Poster:       p.Poster.String(),
-		Photo:        p.Photo.String(),
-		Thumb:        p.Thumb.String(),
+		Poster:       p.Poster,
+		Photo:        p.Photo,
+		Thumb:        p.Thumb,
 		Online:       p.Online,
 		PeerIDs:      pids,
 		NetworkAddrs: addrs,

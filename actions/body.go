@@ -3,7 +3,6 @@ package actions
 import (
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -18,7 +17,7 @@ func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg 
 		store = node.Repo.Store()
 	)
 
-	ds, err := dsfs.LoadDataset(store, datastore.NewKey(path))
+	ds, err := dsfs.LoadDataset(store, path)
 	if err != nil {
 		log.Debug(err.Error())
 		return "", nil, err

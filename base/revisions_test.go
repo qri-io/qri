@@ -3,7 +3,6 @@ package base
 import (
 	"testing"
 
-	datastore "github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -14,7 +13,7 @@ func TestLoadRevisions(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	cities, err := dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
+	cities, err := dsfs.LoadDataset(r.Store(), ref.Path)
 	if err != nil {
 		t.Fatal(err)
 	}

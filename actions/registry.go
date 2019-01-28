@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -187,7 +186,7 @@ func dsParams(r repo.Repo, ref *repo.DatasetRef) (cli *regclient.Client, pub cry
 		}
 	}
 
-	ds, err = dsfs.LoadDataset(r.Store(), datastore.NewKey(ref.Path))
+	ds, err = dsfs.LoadDataset(r.Store(), ref.Path)
 	return
 }
 

@@ -114,7 +114,7 @@ func makeTestRepo() (Repo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
-	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds1", Path: ds1p.String()}); err != nil {
+	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds1", Path: ds1p}); err != nil {
 		return nil, err
 	}
 
@@ -123,7 +123,7 @@ func makeTestRepo() (Repo, error) {
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
-	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds2", Path: ds2p.String()}); err != nil {
+	if err := r.PutRef(DatasetRef{ProfileID: pro.ID, Peername: pro.Peername, Name: "ds2", Path: ds2p}); err != nil {
 		return nil, err
 	}
 

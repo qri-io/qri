@@ -4,28 +4,11 @@ import (
 	"fmt"
 	"sync"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsgraph"
 )
 
 var walkParallelism = 4
-
-// HasPath returns true if this repo already has a reference to
-// a given path.
-// func HasPath(r Repo, path datastore.Key) (bool, error) {
-// 	nodes, err := r.Graph()
-// 	if err != nil {
-// 		return false, fmt.Errorf("error getting repo graph: %s", err.Error())
-// 	}
-// 	p := path.String()
-// 	for np := range nodes {
-// 		if p == np {
-// 			return true, nil
-// 		}
-// 	}
-// 	return false, nil
-// }
 
 // Graph generates a map of all paths on this repository pointing
 // to dsgraph.Node structs with all links configured. This is potentially
@@ -98,7 +81,7 @@ func (nl NodeList) nodesFromDatasetRef(r Repo, ref *DatasetRef) *dsgraph.Node {
 	}
 
 	if ds.Transform != nil && ds.Transform.Path != "" {
-		if q, err := dsfs.LoadTransform(r.Store(), datastore.NewKey(ds.Transform.Path)); err == nil {
+		if q, err := dsfs.LoadTransform(r.Store(), ds.Transform.Path); err == nil {
 			trans := nl.node(dsgraph.NtTransform, ds.Transform.Path)
 			for _, ref := range q.Resources {
 				trans.AddLinks(dsgraph.Link{
@@ -137,7 +120,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 		}
 
 		for _, ref := range refs {
-			ds, err := dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
+			ds, err := dsfs.LoadDatasetRefs(store, ref.Path)
 			if err != nil {
 				err = fmt.Errorf("error loading dataset: %s", err.Error())
 			}
@@ -157,7 +140,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			for ref.Dataset != nil && ref.Dataset.PreviousPath != "" && ref.Dataset.PreviousPath != "/" {
 				ref.Path = ref.Dataset.PreviousPath
 
-				ds, err := dsfs.LoadDatasetRefs(store, datastore.NewKey(ref.Path))
+				ds, err := dsfs.LoadDatasetRefs(store, ref.Path)
 				if err != nil {
 					done <- err
 					return err

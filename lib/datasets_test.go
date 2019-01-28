@@ -12,7 +12,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -376,7 +375,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatalf("error getting path: %s", err.Error())
 	}
 
-	moviesDs, err := dsfs.LoadDataset(mr.Store(), datastore.NewKey(ref.Path))
+	moviesDs, err := dsfs.LoadDataset(mr.Store(), ref.Path)
 	if err != nil {
 		t.Fatalf("error loading dataset: %s", err.Error())
 	}
@@ -388,7 +387,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}{
 		// TODO: probably delete some of these
 		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil,
-			"error loading dataset: error getting file bytes: datastore: key not found"},
+			"error loading dataset: error getting file bytes: cafs: path not found"},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
 		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
@@ -568,7 +567,7 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 		resCount int
 		err      string
 	}{
-		{&LookupParams{}, 0, "error loading dataset: error getting file bytes: datastore: key not found"},
+		{&LookupParams{}, 0, "error loading dataset: error getting file bytes: cafs: path not found"},
 		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
 		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
 		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},

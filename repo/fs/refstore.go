@@ -7,7 +7,6 @@ import (
 	"os"
 	"sort"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -59,7 +58,7 @@ func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
 	}
 
 	if n.store != nil {
-		ds, err = dsfs.LoadDataset(n.store, datastore.NewKey(p.Path))
+		ds, err = dsfs.LoadDataset(n.store, p.Path)
 		if err != nil {
 			return err
 		}

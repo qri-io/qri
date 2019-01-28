@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ipfs/go-datastore"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -61,7 +60,7 @@ func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[
 		if changes.Transform.Script == nil {
 			if strings.HasPrefix(changes.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(changes.Transform.ScriptPath, "/map") || strings.HasPrefix(changes.Transform.ScriptPath, "/cafs") {
 				var f cafs.File
-				f, err = node.Repo.Store().Get(datastore.NewKey(changes.Transform.ScriptPath))
+				f, err = node.Repo.Store().Get(changes.Transform.ScriptPath)
 				if err != nil {
 					return
 				}
@@ -225,7 +224,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 		return
 	}
 
-	script, err := node.Repo.Store().Get(datastore.NewKey(ds.Transform.ScriptPath))
+	script, err := node.Repo.Store().Get(ds.Transform.ScriptPath)
 	if err != nil {
 		log.Error(err)
 		return
@@ -306,7 +305,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 			}
 			node.LocalStreams.Print("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-				err := pinner.Pin(datastore.NewKey(ref.Path), true)
+				err := pinner.Pin(ref.Path, true)
 				res.Error = err
 			}
 		}(refCopy)
