@@ -198,14 +198,7 @@ func printResults(w io.Writer, r *dataset.Structure, data []byte, format dataset
 
 // TODO - holy shit dis so bad. fix
 func terribleHackToGetHeaderRow(st *dataset.Structure) ([]string, error) {
-	data, err := st.Schema.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	sch := map[string]interface{}{}
-	if err := json.Unmarshal(data, &sch); err != nil {
-		return nil, err
-	}
+	sch := st.Schema
 	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
 		if itemArr, ok := itemObj["items"].([]interface{}); ok {
 			titles := make([]string, len(itemArr))

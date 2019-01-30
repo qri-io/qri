@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -62,7 +63,7 @@ func makeTestRepo() (Repo, error) {
 		},
 		PreviousPath: "",
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaObject,
 		},
 	}
@@ -74,7 +75,7 @@ func makeTestRepo() (Repo, error) {
 			Message: "bar",
 		},
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaObject,
 		},
 		Transform: &dataset.Transform{
@@ -90,7 +91,7 @@ func makeTestRepo() (Repo, error) {
 	store := cafs.NewMapstore()
 	p := &profile.Profile{}
 
-	r, err := NewMemRepo(p, store, nil, nil)
+	r, err := NewMemRepo(p, store, fs.NewMemFS(), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}
@@ -108,7 +109,7 @@ func makeTestRepo() (Repo, error) {
 	}
 	r.SetProfile(pro)
 
-	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))
+	data1f := fs.NewMemfileBytes("data1", []byte("dataset_1"))
 
 	ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
 	if err != nil {
@@ -118,7 +119,7 @@ func makeTestRepo() (Repo, error) {
 		return nil, err
 	}
 
-	data2f := cafs.NewMemfileBytes("data2", []byte("dataset_2"))
+	data2f := fs.NewMemfileBytes("data2", []byte("dataset_2"))
 	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())

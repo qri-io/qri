@@ -4,6 +4,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dsgraph"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
@@ -14,6 +15,7 @@ type MemRepo struct {
 	*MemEventLog
 
 	store        cafs.Filestore
+	filesystem   fs.Filesystem
 	graph        map[string]*dsgraph.Node
 	refCache     *MemRefstore
 	selectedRefs []DatasetRef
@@ -24,7 +26,7 @@ type MemRepo struct {
 }
 
 // NewMemRepo creates a new in-memory repository
-func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *regclient.Client) (*MemRepo, error) {
+func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys fs.Filesystem, ps profile.Store, rc *regclient.Client) (*MemRepo, error) {
 	return &MemRepo{
 		store:       store,
 		MemRefstore: &MemRefstore{},
@@ -39,6 +41,11 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, ps profile.Store, rc *
 // Store returns the underlying cafs.Filestore for this repo
 func (r *MemRepo) Store() cafs.Filestore {
 	return r.store
+}
+
+// Filesystem gives access to the underlying filesystem
+func (r *MemRepo) Filesystem() fs.Filesystem {
+	return r.filesystem
 }
 
 // PrivateKey returns this repo's private key

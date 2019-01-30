@@ -27,7 +27,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 			if err != nil {
 				return err
 			}
-			ref.Dataset = ds.Encode()
+			ref.Dataset = ds
 			return nil
 		}
 	}
@@ -91,7 +91,7 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 					log.Debug(err.Error())
 					return
 				}
-				ref.Dataset = ds.Encode()
+				ref.Dataset = ds
 
 				res, err = msg.UpdateJSON(ref)
 				if err != nil {

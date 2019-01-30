@@ -1,12 +1,12 @@
 package base
 
 import (
-	"bytes"
+	"io/ioutil"
 	"os"
 	"strings"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -19,28 +19,43 @@ func prepareViz(r repo.Repo, ds *dataset.Dataset) (err error) {
 	}
 
 	if ds.Viz != nil {
-		if ds.Viz.Script != nil {
-			return
-		}
+		// if ds.Viz.ScriptBytes != nil {
+		// 	return
+		// }
 		if ds.Viz.ScriptBytes != nil {
-			ds.Viz.Script = bytes.NewReader(ds.Viz.ScriptBytes)
 			return
 		}
 		if ds.Viz.ScriptPath != "" {
 			if strings.HasPrefix(ds.Viz.ScriptPath, "/ipfs") || strings.HasPrefix(ds.Viz.ScriptPath, "/map") || strings.HasPrefix(ds.Viz.ScriptPath, "/cafs") {
-				var f cafs.File
+				var (
+					f    fs.File
+					data []byte
+				)
 				f, err = r.Store().Get(ds.Viz.ScriptPath)
 				if err != nil {
 					return
 				}
-				ds.Viz.Script = f
+				// ds.Viz.Script = f
+				// TODO (b5): fix the file situation. This assignment is bad
+				data, err = ioutil.ReadAll(f)
+				if err != nil {
+					return
+				}
+				ds.Viz.ScriptBytes = data
 			} else {
-				var f *os.File
+				var (
+					f    *os.File
+					data []byte
+				)
 				f, err = os.Open(ds.Viz.ScriptPath)
 				if err != nil {
 					return
 				}
-				ds.Viz.Script = f
+				// ds.Viz.Script = f
+				data, err = ioutil.ReadAll(f)
+				if err != nil {
+					ds.Viz.ScriptBytes = data
+				}
 			}
 		}
 	}

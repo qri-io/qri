@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -51,7 +52,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 		if err != nil {
 			return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 		}
-		res[i].Dataset = ds.Encode()
+		res[i].Dataset = ds
 		if RPC {
 			res[i].Dataset.Structure.Schema = nil
 		}
@@ -64,7 +65,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev *dataset.Dataset, body, bodyPrev cafs.File, dryRun, pin bool) (ref repo.DatasetRef, resBody cafs.File, err error) {
+func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev *dataset.Dataset, body, bodyPrev fs.File, dryRun, pin bool) (ref repo.DatasetRef, resBody fs.File, err error) {
 	var (
 		pro  *profile.Profile
 		path string
@@ -81,13 +82,34 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 		return
 	}
 
-	// TODO - move dsfs.prepareDataset stuff up here into a "SetComputedValues" func
+	// TODO (b5): move dsfs.prepareDataset stuff up here into a "SetComputedValues" func
 
 	if err = ValidateDataset(name, ds); err != nil {
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, body, bodyPrev, r.PrivateKey(), pin); err != nil {
+	// TODO (b5): This'll probably need to happen higher up the stack
+	// fsys := r.Filesystem()
+	// if err := ds.ResolveBodyFile(fsys); err != nil {
+	// 	return fmt.Errorf("preparing body: %s", err.Error())
+	// }
+	// if err := dsPrev.ResolveBodyFile(fsys); err != nil {
+	// 	return fmt.Errorf("preparing previous dataset body: %s", err.Error())
+	// }
+
+	fmt.Println(bodyPrev)
+	// fmt.Println(fs.FileString(body))
+	// fmt.Println("--")
+	// if dsPrev != nil {
+	// 	fmt.Println(fs.FileString(bodyPrev))
+	// }
+
+	ds.SetBodyFile(body)
+	if dsPrev != nil {
+		dsPrev.SetBodyFile(bodyPrev)
+	}
+
+	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
@@ -122,6 +144,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 	if err = ReadDataset(r, &ref); err != nil {
 		return
 	}
+
 	if resBody, err = r.Store().Get(ref.Dataset.BodyPath); err != nil {
 		fmt.Println("error getting from store:", err.Error())
 	}
@@ -162,7 +185,7 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 			return fmt.Errorf("error loading newly saved dataset path: %s", path)
 		}
 
-		ref.Dataset = ds.Encode()
+		ref.Dataset = ds
 	}
 
 	return
@@ -175,7 +198,7 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 		if e != nil {
 			return e
 		}
-		ref.Dataset = ds.Encode()
+		ref.Dataset = ds
 		return
 	}
 
@@ -200,32 +223,32 @@ func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 	return repo.ErrNotPinner
 }
 
-// DatasetPodBodyFile creates a streaming data file from a DatasetPod using the following precedence:
-// * dsp.BodyBytes not being nil (requires dsp.Structure.Format be set to know data format)
-// * dsp.BodyPath being a url
-// * dsp.BodyPath being a path on the local filesystem
+// DatasetBodyFile creates a streaming data file from a Dataset using the following precedence:
+// * ds.BodyBytes not being nil (requires ds.Structure.Format be set to know data format)
+// * ds.BodyPath being a url
+// * ds.BodyPath being a path on the local filesystem
 // TODO - consider moving this func to some other package. maybe actions?
-func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.File, error) {
-	if dsp.BodyBytes != nil {
-		if dsp.Structure == nil || dsp.Structure.Format == "" {
+func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (fs.File, error) {
+	if ds.BodyBytes != nil {
+		if ds.Structure == nil || ds.Structure.Format == "" {
 			return nil, fmt.Errorf("specifying bodyBytes requires format be specified in dataset.structure")
 		}
-		return cafs.NewMemfileBytes(fmt.Sprintf("body.%s", dsp.Structure.Format), dsp.BodyBytes), nil
+		return fs.NewMemfileBytes(fmt.Sprintf("body.%s", ds.Structure.Format), ds.BodyBytes), nil
 	}
 
 	// all other methods are based on path, bail if we don't have one
-	if dsp.BodyPath == "" {
+	if ds.BodyPath == "" {
 		return nil, nil
 	}
 
-	loweredPath := strings.ToLower(dsp.BodyPath)
+	loweredPath := strings.ToLower(ds.BodyPath)
 
 	// if opening protocol is http/s, we're dealing with a web request
 	if strings.HasPrefix(loweredPath, "http://") || strings.HasPrefix(loweredPath, "https://") {
 		// TODO - attempt to determine file format based on response headers
-		filename := filepath.Base(dsp.BodyPath)
+		filename := filepath.Base(ds.BodyPath)
 
-		res, err := http.Get(dsp.BodyPath)
+		res, err := http.Get(ds.BodyPath)
 		if err != nil {
 			return nil, fmt.Errorf("fetching body url: %s", err.Error())
 		}
@@ -233,17 +256,17 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 			return nil, fmt.Errorf("invalid status code fetching body url: %d", res.StatusCode)
 		}
 
-		return cafs.NewMemfileReader(filename, res.Body), nil
+		return fs.NewMemfileReader(filename, res.Body), nil
 	}
 
-	if strings.HasPrefix(dsp.BodyPath, "/ipfs") || strings.HasPrefix(dsp.BodyPath, "/cafs") || strings.HasPrefix(dsp.BodyPath, "/map") {
-		return store.Get(dsp.BodyPath)
+	if strings.HasPrefix(ds.BodyPath, "/ipfs") || strings.HasPrefix(ds.BodyPath, "/cafs") || strings.HasPrefix(ds.BodyPath, "/map") {
+		return store.Get(ds.BodyPath)
 	}
 
 	// convert yaml input to json as a hack to support yaml input for now
-	ext := strings.ToLower(filepath.Ext(dsp.BodyPath))
+	ext := strings.ToLower(filepath.Ext(ds.BodyPath))
 	if ext == ".yaml" || ext == ".yml" {
-		yamlBody, err := ioutil.ReadFile(dsp.BodyPath)
+		yamlBody, err := ioutil.ReadFile(ds.BodyPath)
 		if err != nil {
 			return nil, fmt.Errorf("body file: %s", err.Error())
 		}
@@ -252,20 +275,20 @@ func DatasetPodBodyFile(store cafs.Filestore, dsp *dataset.DatasetPod) (cafs.Fil
 			return nil, fmt.Errorf("converting yaml body to json: %s", err.Error())
 		}
 
-		filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(dsp.BodyPath), ext))
-		return cafs.NewMemfileBytes(filename, jsonBody), nil
+		filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(ds.BodyPath), ext))
+		return fs.NewMemfileBytes(filename, jsonBody), nil
 	}
 
-	file, err := os.Open(dsp.BodyPath)
+	file, err := os.Open(ds.BodyPath)
 	if err != nil {
 		return nil, fmt.Errorf("body file: %s", err.Error())
 	}
 
-	return cafs.NewMemfileReader(filepath.Base(dsp.BodyPath), file), nil
+	return fs.NewMemfileReader(filepath.Base(ds.BodyPath), file), nil
 }
 
 // ConvertBodyFormat rewrites a body from a source format to a destination format.
-func ConvertBodyFormat(bodyFile cafs.File, fromSt, toSt *dataset.Structure) (cafs.File, error) {
+func ConvertBodyFormat(bodyFile fs.File, fromSt, toSt *dataset.Structure) (fs.File, error) {
 	// Reader for entries of the source body.
 	r, err := dsio.NewEntryReader(fromSt, bodyFile)
 	if err != nil {
@@ -288,5 +311,5 @@ func ConvertBodyFormat(bodyFile cafs.File, fromSt, toSt *dataset.Structure) (caf
 		return nil, err
 	}
 
-	return cafs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
+	return fs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
 }

@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -53,7 +54,7 @@ func TestListDatasets(t *testing.T) {
 
 func TestCreateDataset(t *testing.T) {
 	streams := ioes.NewDiscardIOStreams()
-	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -62,7 +63,7 @@ func TestCreateDataset(t *testing.T) {
 		Meta:   &dataset.Meta{Title: "test"},
 		Commit: &dataset.Commit{Title: "hello"},
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaArray,
 		},
 	}
@@ -71,7 +72,7 @@ func TestCreateDataset(t *testing.T) {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, refBody, err := CreateDataset(r, streams, "foo", ds, &dataset.Dataset{}, cafs.NewMemfileBytes("body.json", []byte("[]")), nil, false, true)
+	ref, refBody, err := CreateDataset(r, streams, "foo", ds, &dataset.Dataset{}, fs.NewMemfileBytes("body.json", []byte("[]")), nil, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -86,10 +87,9 @@ func TestCreateDataset(t *testing.T) {
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
 
-	prev := &dataset.Dataset{}
-	prev.Decode(ref.Dataset)
+	prev := ref.Dataset
 
-	ref, _, err = CreateDataset(r, streams, "foo", ds, prev, cafs.NewMemfileBytes("body.json", []byte("[]")), refBody, false, true)
+	ref, _, err = CreateDataset(r, streams, "foo", ds, prev, fs.NewMemfileBytes("body.json", []byte("[]")), refBody, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -128,33 +128,33 @@ func TestDatasetPodBodyFile(t *testing.T) {
 	}))
 
 	cases := []struct {
-		dsp      *dataset.DatasetPod
+		ds       *dataset.Dataset
 		filename string
 		fileLen  int
 		err      string
 	}{
 		// bad input produces no result
-		{&dataset.DatasetPod{}, "", 0, ""},
+		{&dataset.Dataset{}, "", 0, ""},
 
 		// inline data
-		{&dataset.DatasetPod{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying bodyBytes requires format be specified in dataset.structure"},
-		{&dataset.DatasetPod{Structure: &dataset.StructurePod{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "body.csv", 11, ""},
+		{&dataset.Dataset{BodyBytes: []byte("a,b,c\n1,2,3")}, "", 0, "specifying bodyBytes requires format be specified in dataset.structure"},
+		{&dataset.Dataset{Structure: &dataset.Structure{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "body.csv", 11, ""},
 
 		// urlz
-		{&dataset.DatasetPod{BodyPath: "http://"}, "", 0, "fetching body url: Get http:: http: no Host in request URL"},
-		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching body url: 500"},
-		{&dataset.DatasetPod{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
+		{&dataset.Dataset{BodyPath: "http://"}, "", 0, "fetching body url: Get http:: http: no Host in request URL"},
+		{&dataset.Dataset{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching body url: 500"},
+		{&dataset.Dataset{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
 		// local filepaths
-		{&dataset.DatasetPod{BodyPath: "nope.cbor"}, "", 0, "body file: open nope.cbor: no such file or directory"},
-		{&dataset.DatasetPod{BodyPath: "nope.yaml"}, "", 0, "body file: open nope.yaml: no such file or directory"},
-		{&dataset.DatasetPod{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
-		{&dataset.DatasetPod{BodyPath: "testdata/bad.yaml"}, "", 0, "converting yaml body to json: yaml: line 1: did not find expected '-' indicator"},
-		{&dataset.DatasetPod{BodyPath: "testdata/oh_hai.yaml"}, "oh_hai.json", 29, ""},
+		{&dataset.Dataset{BodyPath: "nope.cbor"}, "", 0, "body file: open nope.cbor: no such file or directory"},
+		{&dataset.Dataset{BodyPath: "nope.yaml"}, "", 0, "body file: open nope.yaml: no such file or directory"},
+		{&dataset.Dataset{BodyPath: "testdata/schools.cbor"}, "schools.cbor", 154, ""},
+		{&dataset.Dataset{BodyPath: "testdata/bad.yaml"}, "", 0, "converting yaml body to json: yaml: line 1: did not find expected '-' indicator"},
+		{&dataset.Dataset{BodyPath: "testdata/oh_hai.yaml"}, "oh_hai.json", 29, ""},
 	}
 
 	for i, c := range cases {
-		file, err := DatasetPodBodyFile(nil, c.dsp)
+		file, err := DatasetBodyFile(nil, c.ds)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -205,12 +205,12 @@ func TestDatasetPodBodyFile(t *testing.T) {
 // 	// test Dry run
 // 	ds := &dataset.Dataset{
 // 		Commit:    &dataset.Commit{},
-// 		Structure: &dataset.Structure{Format: dataset.JSONDataFormat, Schema: dataset.BaseSchemaArray},
+// 		Structure: &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray},
 // 		Meta: &dataset.Meta{
 // 			Title: "test title",
 // 		},
 // 	}
-// 	body := cafs.NewMemfileBytes("data.json", []byte("[]"))
+// 	body := fs.NewMemfileBytes("data.json", []byte("[]"))
 // 	ref, _, err := SaveDataset(n, "dry_run_test", ds, body, nil, true, false)
 // 	if err != nil {
 // 		t.Errorf("dry run error: %s", err.Error())
@@ -419,11 +419,11 @@ func TestDatasetPinning(t *testing.T) {
 // }
 
 func TestConvertBodyFormat(t *testing.T) {
-	jsonStructure := &dataset.Structure{Format: dataset.JSONDataFormat, Schema: dataset.BaseSchemaArray}
-	csvStructure := &dataset.Structure{Format: dataset.CSVDataFormat, Schema: dataset.BaseSchemaArray}
+	jsonStructure := &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray}
+	csvStructure := &dataset.Structure{Format: "csv", Schema: dataset.BaseSchemaArray}
 
 	// CSV -> JSON
-	body := cafs.NewMemfileBytes("", []byte("a,b,c"))
+	body := fs.NewMemfileBytes("", []byte("a,b,c"))
 	got, err := ConvertBodyFormat(body, csvStructure, jsonStructure)
 	if err != nil {
 		t.Error(err.Error())
@@ -437,7 +437,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// CSV -> JSON, multiple lines
-	body = cafs.NewMemfileBytes("", []byte("a,b,c\n\rd,e,f\n\rg,h,i"))
+	body = fs.NewMemfileBytes("", []byte("a,b,c\n\rd,e,f\n\rg,h,i"))
 	got, err = ConvertBodyFormat(body, csvStructure, jsonStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -451,7 +451,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// JSON -> CSV
-	body = cafs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	body = fs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
 	got, err = ConvertBodyFormat(body, jsonStructure, csvStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -465,7 +465,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// CSV -> CSV
-	body = cafs.NewMemfileBytes("", []byte("a,b,c"))
+	body = fs.NewMemfileBytes("", []byte("a,b,c"))
 	got, err = ConvertBodyFormat(body, csvStructure, csvStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -479,7 +479,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// JSON -> JSON
-	body = cafs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	body = fs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
 	got, err = ConvertBodyFormat(body, jsonStructure, jsonStructure)
 	if err != nil {
 		t.Fatal(err.Error())

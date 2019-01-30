@@ -13,10 +13,10 @@ import (
 	"strings"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -401,7 +401,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 // when datasets are created with save/new dataset bodies they can be run with "return body",
-// which populates res.Dataset.Body with a cafs.File of raw data
+// which populates res.Dataset.Body with a fs.File of raw data
 // addBodyFile sets the dataset body, converting to JSON for a response the API can understand
 // TODO - make this less bad. this should happen lower and lib Params should be used to set the response
 // body to well-formed JSON
@@ -415,20 +415,20 @@ func addBodyFile(res *repo.DatasetRef) error {
 		return nil
 	}
 
-	file, ok := res.Dataset.Body.(cafs.File)
+	file, ok := res.Dataset.Body.(fs.File)
 	if !ok {
-		log.Error("response body isn't a cafs.File")
-		return fmt.Errorf("response body isn't a cafs.File")
+		log.Error("response body isn't a fs.File")
+		return fmt.Errorf("response body isn't a fs.File")
 	}
 
-	in := &dataset.Structure{}
-	if err := in.Decode(res.Dataset.Structure); err != nil {
-		return err
-	}
+	in := res.Dataset.Structure
+	// if err := in.Decode(res.Dataset.Structure); err != nil {
+	// 	return err
+	// }
 
 	st := &dataset.Structure{}
 	st.Assign(in, &dataset.Structure{
-		Format: dataset.JSONDataFormat,
+		Format: "json",
 		Schema: in.Schema,
 	})
 
@@ -463,7 +463,7 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	dsp := &dataset.DatasetPod{}
+	dsp := &dataset.Dataset{}
 
 	if r.Header.Get("Content-Type") == "application/json" {
 		err := json.NewDecoder(r.Body).Decode(dsp)

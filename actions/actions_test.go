@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -73,7 +74,7 @@ func connectMapStores(peers []*p2p.QriNode) {
 
 func newTestNode(t *testing.T) *p2p.QriNode {
 	rc, _ := mock.NewMockServer()
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), rc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -85,7 +86,7 @@ func newTestNode(t *testing.T) *p2p.QriNode {
 }
 
 func newTestNodeRegClient(t *testing.T, cli *regclient.Client) *p2p.QriNode {
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), cli)
+	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), cli)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -101,11 +102,11 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
+	ds := tc.Input
+	ds.Name = tc.Name
+	ds.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,11 +118,11 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
+	ds := tc.Input
+	ds.Name = tc.Name
+	ds.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -133,11 +134,14 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.Transform.ScriptPath = "testdata/now_tf/transform.star"
+	ds := tc.Input
+	ds.Name = tc.Name
+	ds.Peername = "peer"
+	// ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
+	tsf, _ := tc.TransformScriptFile()
+	ds.Transform.SetScriptFile(tsf)
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

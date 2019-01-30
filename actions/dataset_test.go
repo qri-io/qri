@@ -2,10 +2,12 @@ package actions
 
 import (
 	"context"
+	"fmt"
 	"testing"
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -27,10 +29,14 @@ func TestUpdateDatasetLocal(t *testing.T) {
 	}
 
 	now := addNowTransformDataset(t, node)
+	// str, _ := node.Repo.Store().(*cafs.MapStore).Print()
 	prevPath := now.Path
+	fmt.Println("now dataset:", now.Peername, now.Name, now.ProfileID, now.Path)
+	refs, _ := node.Repo.References(100, 0)
+	fmt.Println(refs)
 	now, _, err := UpdateDataset(node, &now, nil, nil, false, false)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 
 	if now.Dataset.PreviousPath != prevPath {
@@ -103,7 +109,7 @@ func TestDataset(t *testing.T) {
 	rc, _ := mock.NewMockServer()
 
 	rmf := func(t *testing.T) repo.Repo {
-		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), rc)
 		if err != nil {
 			panic(err)
 		}
@@ -117,9 +123,9 @@ func TestSaveDataset(t *testing.T) {
 	n := newTestNode(t)
 
 	// test Dry run
-	ds := &dataset.DatasetPod{
+	ds := &dataset.Dataset{
 		Name:      "dry_run_test",
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 		Meta: &dataset.Meta{
 			Title: "test title",
 		},
@@ -134,17 +140,17 @@ func TestSaveDataset(t *testing.T) {
 		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     "test_save",
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "initial commit",
 			Message: "manually create a baseline dataset",
 		},
 		Meta: &dataset.Meta{
 			Title: "another test dataset",
 		},
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 		BodyBytes: []byte("[]"),
 	}
 	// test save
@@ -156,15 +162,15 @@ func TestSaveDataset(t *testing.T) {
 		"bar": "secret",
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "add transform script",
 			Message: "adding an append-only transform script",
 		},
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
-		Transform: &dataset.TransformPod{
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+		Transform: &dataset.Transform{
 			Syntax: "starlark",
 			Config: map[string]interface{}{
 				"foo": "config",
@@ -190,10 +196,10 @@ func TestSaveDataset(t *testing.T) {
 	}
 
 	// save new manual changes
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "update meta",
 			Message: "manual change that'll negate previous transform",
 		},
@@ -218,10 +224,10 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "re-run transform",
 			Message: "recall transform & re-run it",
 		},

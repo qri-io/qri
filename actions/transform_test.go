@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -16,7 +17,7 @@ func TestExecTransform(t *testing.T) {
 	regClient, regServer := regmock.NewMockServer()
 	defer regServer.Close()
 
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), regClient)
+	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), regClient)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -31,11 +32,11 @@ def transform(ds,ctx):
 	ctx.get_secret("bar")
 	ds.set_body([1,2,3])
 `)
-	script := cafs.NewMemfileBytes("transform.star", data)
+	script := fs.NewMemfileBytes("transform.star", data)
 
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaArray,
 		},
 		Transform: &dataset.Transform{

@@ -7,11 +7,11 @@ import (
 	"net/rpc"
 
 	"github.com/ghodss/yaml"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
@@ -133,7 +133,7 @@ func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
 type SaveParams struct {
 	// dataset to create if both Dataset and DatasetPath are provided
 	// dataset values will override any values in the document at DatasetPath
-	Dataset *dataset.DatasetPod
+	Dataset *dataset.Dataset
 	// absolute path or URL to a dataset file to load dataset from
 	DatasetPath string
 	// secrets for transform execution
@@ -145,7 +145,7 @@ type SaveParams struct {
 	Publish bool
 	// run without saving, returning results
 	DryRun bool
-	// if true, res.Dataset.Body will be a cafs.file of the body
+	// if true, res.Dataset.Body will be a fs.file of the body
 	ReturnBody bool
 	// if true, convert body to the format of the previous version, if applicable
 	ConvertFormatToPrev bool
@@ -271,12 +271,12 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		return err
 	}
 
-	ref.Dataset = &dataset.DatasetPod{
-		Commit: &dataset.CommitPod{
+	ref.Dataset = &dataset.Dataset{
+		Commit: &dataset.Commit{
 			Title:   p.Title,
 			Message: p.Message,
 		},
-		Transform: &dataset.TransformPod{
+		Transform: &dataset.Transform{
 			Secrets: p.Secrets,
 		},
 	}
@@ -547,15 +547,15 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
-	var body, schema cafs.File
+	var body, schema fs.File
 	if p.Data != nil {
-		body = cafs.NewMemfileReader(p.DataFilename, p.Data)
+		body = fs.NewMemfileReader(p.DataFilename, p.Data)
 	}
 	if p.Schema != nil {
-		schema = cafs.NewMemfileReader("schema.json", p.Schema)
+		schema = fs.NewMemfileReader("schema.json", p.Schema)
 	}
 
-	// var body cafs.File
+	// var body fs.File
 	// TODO - restore
 	*errors, err = actions.Validate(r.node, p.Ref, body, schema)
 	return

@@ -3,7 +3,7 @@ package cmd
 import (
 	"testing"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
@@ -74,7 +74,7 @@ func TestRenderRun(t *testing.T) {
 		return
 	}
 
-	templateFile := cafs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
+	templateFile := fs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
 
 	if err := f.Init(); err != nil {
 		t.Errorf("error initializing: %s", err)

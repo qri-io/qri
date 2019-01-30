@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -24,11 +25,11 @@ func createReposAndLogs() (repo.Repo, repo.Repo, *repo.MemEventLog, *repo.MemEve
 	aRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileAID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), &profile.MemStore{}, nil)
+	}, cafs.NewMapstore(), fs.NewMemFS(), &profile.MemStore{}, nil)
 	bRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileBID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), &profile.MemStore{}, nil)
+	}, cafs.NewMapstore(), fs.NewMemFS(), &profile.MemStore{}, nil)
 	aLog := aRepo.MemEventLog
 	bLog := bRepo.MemEventLog
 	return aRepo, bRepo, aLog, bLog

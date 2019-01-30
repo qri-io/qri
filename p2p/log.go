@@ -104,7 +104,7 @@ func (n *QriNode) handleDatasetLog(ws *WrappedStream, msg Message) (hangup bool)
 				sendDatasetLogReply(ws, msg, history, err)
 				return
 			}
-			ref.Dataset = dataset.Encode()
+			ref.Dataset = dataset
 
 			offset--
 			if offset > 0 {

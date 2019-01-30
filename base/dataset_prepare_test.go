@@ -1,11 +1,11 @@
 package base
 
 import (
+	"encoding/json"
 	"testing"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/fs"
 )
 
 func TestPrepareDatasetSave(t *testing.T) {
@@ -61,7 +61,7 @@ func TestInferValuesDatasetName(t *testing.T) {
 	}
 
 	name := ""
-	body := cafs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v"))
+	body := fs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v"))
 	ds := &dataset.Dataset{}
 	if _, err = InferValues(pro, &name, ds, body); err != nil {
 		t.Error(err)
@@ -80,7 +80,7 @@ func TestInferValuesStructure(t *testing.T) {
 	}
 
 	name := "animals"
-	body := cafs.NewMemfileBytes("animals.csv",
+	body := fs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
 	ds := &dataset.Dataset{}
 
@@ -88,10 +88,10 @@ func TestInferValuesStructure(t *testing.T) {
 		t.Error(err)
 	}
 
-	if ds.Structure.Format != dataset.CSVDataFormat {
+	if ds.Structure.Format != "csv" {
 		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
 	}
-	if ds.Structure.FormatConfig.Map()["headerRow"] != true {
+	if ds.Structure.FormatConfig["headerRow"] != true {
 		t.Errorf("expected format config to set headerRow set to true")
 	}
 
@@ -111,21 +111,21 @@ func TestInferValuesSchema(t *testing.T) {
 	}
 
 	name := "animals"
-	body := cafs.NewMemfileBytes("animals.csv",
+	body := fs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
-			Format: dataset.CSVDataFormat,
+			Format: "csv",
 		},
 	}
 	if _, err = InferValues(pro, &name, ds, body); err != nil {
 		t.Error(err)
 	}
 
-	if ds.Structure.Format != dataset.CSVDataFormat {
+	if ds.Structure.Format != "csv" {
 		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
 	}
-	if ds.Structure.FormatConfig.Map()["headerRow"] != true {
+	if ds.Structure.FormatConfig["headerRow"] != true {
 		t.Errorf("expected format config to set headerRow set to true")
 	}
 
@@ -145,29 +145,29 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	}
 
 	name := "animals"
-	body := cafs.NewMemfileBytes("animals.csv",
+	body := fs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
-			Format: dataset.CSVDataFormat,
-			Schema: jsonschema.Must(`{
+			Format: "csv",
+			Schema: map[string]interface{}{
 				"type": "array",
-				"items": {
+				"items": map[string]interface{}{
 					"type": "array",
-					"items": [
-						{"title": "animal", "type": "number" },
-						{"title": "noise", "type": "number" },
-						{"title": "height", "type": "number" }
-					]
-				}
-			}`),
+					"items": []interface{}{
+						map[string]interface{}{"title": "animal", "type": "number"},
+						map[string]interface{}{"title": "noise", "type": "number"},
+						map[string]interface{}{"title": "height", "type": "number"},
+					},
+				},
+			},
 		},
 	}
 	if _, err = InferValues(pro, &name, ds, body); err != nil {
 		t.Error(err)
 	}
 
-	if ds.Structure.Format != dataset.CSVDataFormat {
+	if ds.Structure.Format != "csv" {
 		t.Errorf("expected format CSV, got %s", ds.Structure.Format)
 	}
 	if ds.Structure.FormatConfig != nil {
@@ -189,9 +189,9 @@ func TestValidateDataset(t *testing.T) {
 }
 
 func datasetSchemaToJSON(ds *dataset.Dataset) string {
-	json, err := ds.Structure.Schema.MarshalJSON()
+	js, err := json.Marshal(ds.Structure.Schema)
 	if err != nil {
 		return err.Error()
 	}
-	return string(json)
+	return string(js)
 }

@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -335,7 +336,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	carla := &profile.Profile{ID: profile.ID("b"), Peername: "carla"}
 
 	memRepo, err := NewMemRepo(lucille,
-		cafs.NewMapstore(), profile.NewMemStore(), nil)
+		cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -395,7 +396,8 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 }
 
 func TestCanonicalizeProfile(t *testing.T) {
-	repo, err := NewMemRepo(&profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}
+	repo, err := NewMemRepo(prof, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -491,7 +493,7 @@ func TestCanonicalizeProfileWithRename(t *testing.T) {
 	repo, err := NewMemRepo(&profile.Profile{
 		Peername: "lucille",
 		ID:       profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	}, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

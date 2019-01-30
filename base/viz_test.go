@@ -4,9 +4,8 @@ import (
 	"io/ioutil"
 	"testing"
 
-	"github.com/qri-io/cafs"
-
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 )
 
 func TestPrepareViz(t *testing.T) {
@@ -29,7 +28,7 @@ func TestPrepareViz(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	key, err := r.Store().Put(cafs.NewMemfileBytes("tmpl.html", tmpl), true)
+	key, err := r.Store().Put(fs.NewMemfileBytes("tmpl.html", tmpl), true)
 	if err != nil {
 		t.Fatal(key)
 	}

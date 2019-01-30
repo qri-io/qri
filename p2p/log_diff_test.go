@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
@@ -45,8 +44,7 @@ func TestRequestLogDiff(t *testing.T) {
 		t.Fatalf("error fetching dataset: %s", err)
 	}
 
-	update := &dataset.Dataset{}
-	update.Decode(ref.Dataset)
+	update := ref.Dataset
 	update.PreviousPath = ref.Path
 	update.Meta.Title = "update"
 

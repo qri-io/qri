@@ -73,7 +73,10 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 		read  = 0
 	)
 
-	tlt := ds.Structure.Schema.TopLevelType()
+	tlt, err := dsio.GetTopLevelType(ds.Structure)
+	if err != nil {
+		return nil, fmt.Errorf("getting schema top level type: %s", err)
+	}
 
 	rr, err := dsio.NewEntryReader(ds.Structure, file)
 	if err != nil {
@@ -104,25 +107,24 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 		}
 	}
 
-	enc := ds.Encode()
-	// TODO - repo.DatasetRef should be refactored into this newly expanded DatasetPod,
+	// TODO (b5): repo.DatasetRef should be refactored into this newly expanded DatasetPod,
 	// once that's done these values should be populated by ds.Encode(), removing the need
 	// for these assignments
-	enc.Peername = ref.Peername
-	enc.ProfileID = ref.ProfileID.String()
-	enc.Name = ref.Name
-	if enc.Meta == nil {
-		enc.Meta = &dataset.Meta{}
+	ds.Peername = ref.Peername
+	ds.ProfileID = ref.ProfileID.String()
+	ds.Name = ref.Name
+	if ds.Meta == nil {
+		ds.Meta = &dataset.Meta{}
 	}
 
 	if tlt == "object" {
-		enc.Body = obj
+		ds.Body = obj
 	} else {
-		enc.Body = array
+		ds.Body = array
 	}
 
 	tmplBuf := &bytes.Buffer{}
-	if err := tmpl.Execute(tmplBuf, enc); err != nil {
+	if err := tmpl.Execute(tmplBuf, ds); err != nil {
 		return nil, err
 	}
 	return tmplBuf.Bytes(), nil

@@ -9,6 +9,7 @@ import (
 	"sync"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -144,7 +145,7 @@ func (o *QriOptions) Init() (err error) {
 			return
 		}
 
-		var fs *ipfs.Filestore
+		var store *ipfs.Filestore
 
 		fsOpts := []ipfs.Option{
 			func(cfg *ipfs.StoreCfg) {
@@ -154,7 +155,7 @@ func (o *QriOptions) Init() (err error) {
 			ipfs.OptsFromMap(o.config.Store.Options),
 		}
 
-		fs, err = ipfs.NewFilestore(fsOpts...)
+		store, err = ipfs.NewFilestore(fsOpts...)
 		if err != nil {
 			return
 		}
@@ -171,7 +172,7 @@ func (o *QriOptions) Init() (err error) {
 			})
 		}
 
-		o.repo, err = fsrepo.NewRepo(fs, pro, rc, o.qriRepoPath)
+		o.repo, err = fsrepo.NewRepo(store, fs.NewMemFS(), pro, rc, o.qriRepoPath)
 		if err != nil {
 			return
 		}

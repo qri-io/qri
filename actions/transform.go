@@ -4,13 +4,13 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/startf"
 )
 
-func mutatedComponentsFunc(dsp *dataset.DatasetPod) func(path ...string) error {
+func mutatedComponentsFunc(dsp *dataset.Dataset) func(path ...string) error {
 	components := map[string][]string{}
 	if dsp.Transform != nil {
 		components["transform"] = []string{}
@@ -40,7 +40,7 @@ please adjust either the transform script or remove the supplied '%s'`, path[0],
 }
 
 // ExecTransform executes a designated transformation
-func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile cafs.File, secrets map[string]string, config map[string]interface{}, scriptOut io.Writer, mutateCheck func(...string) error) (file cafs.File, err error) {
+func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile fs.File, secrets map[string]string, config map[string]interface{}, scriptOut io.Writer, mutateCheck func(...string) error) (file fs.File, err error) {
 	// filepath := ds.Transform.ScriptPath
 
 	// TODO - consider making this a standard method on dataset.Transform:

@@ -80,33 +80,33 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	cases := []struct {
-		dataset *dataset.DatasetPod
-		res     *dataset.DatasetPod
+		dataset *dataset.Dataset
+		res     *dataset.Dataset
 		err     string
 	}{
 
-		// {&dataset.DatasetPod{
+		// {&dataset.Dataset{
 		// 	Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
 		// 	BodyPath:  jobsBodyPath,
 		// }, nil, "invalid dataset: structure: format is required"},
-		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{}}, nil, ""},
+		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{}}, nil, ""},
 
 		// {nil, nil, "at least one of Dataset, DatasetPath is required"},
 		// TODO - restore
-		{&dataset.DatasetPod{}, nil, "name is required"},
-		// {&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
-		// {&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		// {&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
-		// {&dataset.DatasetPod{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
-		// {&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
-		// {&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
-		{&dataset.DatasetPod{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
+		{&dataset.Dataset{}, nil, "name is required"},
+		// {&dataset.Dataset{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
+		// {&dataset.Dataset{Peername: "bad", Name: "path", Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		// {&dataset.Dataset{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
+		// {&dataset.Dataset{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+		// {&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		// {&dataset.Dataset{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
+		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
 
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, BodyPath: citiesBodyPath}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
 	}
 
 	for i, c := range cases {
@@ -118,16 +118,17 @@ func TestDatasetRequestsSave(t *testing.T) {
 		}
 
 		if got != nil && c.res != nil {
-			expect := &dataset.Dataset{}
-			if err := expect.Decode(c.res); err != nil {
-				t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
-				continue
-			}
-			gotDs := &dataset.Dataset{}
-			if err := gotDs.Decode(got.Dataset); err != nil {
-				t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
-				continue
-			}
+			expect := c.res
+			// expect := &dataset.Dataset{}
+			// if err := expect.Decode(c.res); err != nil {
+			// 	t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
+			// 	continue
+			// }
+			gotDs := got.Dataset
+			// if err := gotDs.Decode(got.Dataset); err != nil {
+			// 	t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
+			// 	continue
+			// }
 			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
 				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
 				continue
@@ -142,7 +143,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	r := NewDatasetRequests(node, nil)
 
 	res := &repo.DatasetRef{}
-	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
 		Meta:     &dataset.Meta{Title: "an updated title"},
@@ -152,7 +153,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Peername: ref.Peername,
 			Name:     ref.Name,
 			Meta:     &dataset.Meta{Title: "an updated title"},
@@ -163,7 +164,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Peername: ref.Peername,
 			Name:     ref.Name,
 			Meta:     &dataset.Meta{Title: "new title!"},
@@ -189,7 +190,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 	req := NewDatasetRequests(node, nil)
 
-	dsp := &dataset.DatasetPod{Peername: "me"}
+	dsp := &dataset.Dataset{Peername: "me"}
 	res := repo.DatasetRef{}
 	err = req.Save(&SaveParams{Dataset: dsp, DatasetPath: "testdata/import.zip"}, &res)
 	if err != nil {
@@ -220,7 +221,7 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 	}
 
 	// run a manual save to lose the transform
-	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
 		Peername: res.Peername,
 		Name:     res.Name,
 		Meta:     &dataset.Meta{Title: "an updated title"},
@@ -791,7 +792,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 
 	dsRef1 := repo.DatasetRef{}
 	initParams := &SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Name:     "jobs_ranked_by_automation_prob",
 			BodyPath: fp1,
 		},
@@ -811,7 +812,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 	dsRef2 := repo.DatasetRef{}
 	initParams = &SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Name:     "jobs_ranked_by_automation_prob",
 			BodyPath: fp2,
 		},

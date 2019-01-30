@@ -27,11 +27,10 @@ func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return
 	}
 
-	enc := ds.Encode()
-	enc.Name = ref.Name
-	enc.Peername = ref.Peername
-	enc.Path = ref.Path
-	preview := subset.Preview(enc)
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Path = ref.Path
+	preview := subset.Preview(ds)
 
 	return cli.PutDataset(ref.Peername, ref.Name, preview, pub)
 }
@@ -47,11 +46,10 @@ func Unpublish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return
 	}
 
-	enc := ds.Encode()
-	enc.Name = ref.Name
-	enc.Peername = ref.Peername
-	enc.Path = ref.Path
-	preview := subset.Preview(enc)
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Path = ref.Path
+	preview := subset.Preview(ds)
 
 	return cli.DeleteDataset(ref.Peername, ref.Name, preview, pub)
 }
@@ -208,15 +206,15 @@ func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
 		return &repo.DatasetRef{}
 	}
 
-	dsp := rds.DatasetPod
+	ds := rds.Dataset
 
 	return &repo.DatasetRef{
 		Peername:  rds.Handle,
 		Name:      rds.Name,
 		Published: true,
-		Dataset:   &dsp,
-		Path:      dsp.Path,
-		ProfileID: profile.ID(dsp.ProfileID),
+		Dataset:   &ds,
+		Path:      ds.Path,
+		ProfileID: profile.ID(ds.ProfileID),
 	}
 }
 

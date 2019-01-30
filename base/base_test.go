@@ -10,6 +10,7 @@ import (
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -48,7 +49,7 @@ func testdataPath(path string) string {
 
 func newTestRepo(t *testing.T) repo.Repo {
 	rc, _ := mock.NewMockServer()
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), rc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

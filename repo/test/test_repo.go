@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
@@ -66,7 +67,7 @@ func NewEmptyTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
-	return repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	return repo.NewMemRepo(pro, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), rc)
 }
 
 // NewTestRepo generates a repository usable for testing purposes
@@ -106,7 +107,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
-	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	}, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		return r, err
 	}
@@ -177,7 +178,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, profile.NewMemStore(), nil)
+	mr, err := repo.NewMemRepo(pro, ms, fs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		return mr, pk, err
 	}

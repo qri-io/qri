@@ -55,15 +55,15 @@ func pathKind(path string) string {
 	return "file"
 }
 
-// ReadDatasetFile decodes a dataset document into a DatasetPod
-func ReadDatasetFile(path string) (dsp *dataset.DatasetPod, err error) {
+// ReadDatasetFile decodes a dataset document into a Dataset
+func ReadDatasetFile(path string) (dsp *dataset.Dataset, err error) {
 	var (
 		resp *http.Response
 		f    *os.File
 		data []byte
 	)
 
-	dsp = &dataset.DatasetPod{}
+	dsp = &dataset.Dataset{}
 
 	switch pathKind(path) {
 	case "http":
@@ -96,7 +96,7 @@ func ReadDatasetFile(path string) (dsp *dataset.DatasetPod, err error) {
 			if err != nil {
 				return
 			}
-			if err = dsutil.UnmarshalYAMLDatasetPod(data, dsp); err != nil {
+			if err = dsutil.UnmarshalYAMLDataset(data, dsp); err != nil {
 				return
 			}
 			absDatasetPaths(path, dsp)
@@ -122,9 +122,9 @@ func ReadDatasetFile(path string) (dsp *dataset.DatasetPod, err error) {
 	return
 }
 
-// absDatasetPaths converts any relative filepath references in a DatasetPod to
+// absDatasetPaths converts any relative filepath references in a Dataset to
 // their absolute counterpart
-func absDatasetPaths(path string, dsp *dataset.DatasetPod) {
+func absDatasetPaths(path string, dsp *dataset.Dataset) {
 	base := filepath.Dir(path)
 	if dsp.BodyPath != "" && pathKind(dsp.BodyPath) == "file" && !filepath.IsAbs(dsp.BodyPath) {
 		dsp.BodyPath = filepath.Join(base, dsp.BodyPath)

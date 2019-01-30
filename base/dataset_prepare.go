@@ -5,11 +5,11 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
@@ -22,14 +22,17 @@ import (
 // sutable for mutation/combination with any potential changes requested by the user
 // we do not error if the dataset is not found in the repo, instead we return all
 // empty values
-func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, body cafs.File, prevPath string, err error) {
+func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, body fs.File, prevPath string, err error) {
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &repo.DatasetRef{Name: name, Peername: peername}
+	fmt.Println("prepSave lookup:", lookup)
 	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound {
+		fmt.Println("not found:", lookup)
 		return &dataset.Dataset{}, &dataset.Dataset{}, nil, "", nil
 	}
 
+	fmt.Println("prepSave path:", lookup)
 	prevPath = lookup.Path
 
 	if prev, err = dsfs.LoadDataset(r.Store(), prevPath); err != nil {
@@ -44,13 +47,14 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 	}
 
 	// remove the Transform & previous commit
+	// transform & commit must be created from scratch with each new version
 	mutable.Transform = nil
 	mutable.Commit = nil
 	return
 }
 
 // InferValues populates any missing fields that must exist to create a snapshot
-func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body cafs.File) (cafs.File, error) {
+func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body fs.File) (fs.File, error) {
 	// try to pick up a dataset name
 	if *name == "" {
 		*name = varName.CreateVarNameFromString(body.FileName())
@@ -98,10 +102,10 @@ func InferValues(pro *profile.Profile, name *string, ds *dataset.Dataset, body c
 		}
 
 		// glue whatever we just read back onto the reader
-		body = cafs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
+		body = fs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body))
 	}
 
-	if ds.Transform != nil && ds.Transform.IsEmpty() {
+	if ds.Transform != nil && ds.Transform.ScriptFile() == nil && ds.Transform.IsEmpty() {
 		ds.Transform = nil
 	}
 
