@@ -231,17 +231,13 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	res := &repo.DatasetRef{}
-	err = h.Get(&args, res)
+	p := lib.LookupParams{
+		Ref: &args,
+	}
+	res := lib.LookupResult{}
+	err = h.Get(&p, &res)
 	if err != nil {
 		log.Infof("error getting dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	ds, err := res.DecodeDataset()
-	if err != nil {
-		log.Infof("error decoding dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -253,7 +249,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	err = dsutil.WriteZipArchive(h.repo.Store(), ds, format, res.String(), w)
+	err = dsutil.WriteZipArchive(h.repo.Store(), &res.Data, format, p.PathString, w)
 	if err != nil {
 		log.Infof("error zipping dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -292,7 +288,6 @@ func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	res := &repo.DatasetRef{}
 	args, err := DatasetRefFromPath(r.URL.Path)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
@@ -304,12 +299,17 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = h.Get(&args, res)
+	p := lib.LookupParams{
+		Ref: &args,
+	}
+	res := lib.LookupResult{}
+	err = h.Get(&p, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res)
+	p.Ref.Dataset = res.Data.Encode()
+	util.WriteResponse(w, p.Ref)
 }
 
 type diffAPIParams struct {
@@ -531,19 +531,22 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	p, err := DatasetRefFromPath(r.URL.Path[len("/remove"):])
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/remove"):])
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	ref := &repo.DatasetRef{}
-	if err := h.Get(&p, ref); err != nil {
+	p := lib.LookupParams{
+		Ref: &ref,
+	}
+	res := lib.LookupResult{}
+	if err := h.Get(&p, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	numDeleted := 0
-	params := lib.RemoveParams{Ref: ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
+	params := lib.RemoveParams{Ref: &ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
 	if err := h.Remove(&params, &numDeleted); err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -646,11 +649,11 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := &lib.LookupParams{
-		Path:   d.Path,
-		Format: dataset.JSONDataFormat,
-		Limit:  limit,
-		Offset: offset,
-		All:    r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
+		PathString: d.Path,
+		Format:     "json",
+		Limit:      limit,
+		Offset:     offset,
+		All:        r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
 	}
 
 	result := &lib.LookupResult{}
@@ -662,7 +665,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	page := util.PageFromRequest(r)
 	dataResponse := DataResponse{
 		Path: result.Path,
-		Data: json.RawMessage(result.Data),
+		Data: json.RawMessage(result.Bytes),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		log.Infof("error writing response: %s", err.Error())

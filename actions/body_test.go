@@ -5,13 +5,19 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 )
 
 func TestLookupBody(t *testing.T) {
 	node := newTestNode(t)
 	ref := addCitiesDataset(t, node)
 
-	bodyPath, data, err := LookupBody(node, ref.Path, dataset.JSONDataFormat, nil, 1, 1, false)
+	ds, err := dsfs.LoadDataset(node.Repo.Store(), ref.Path)
+	if err != nil {
+		t.Error(err.Error())
+	}
+
+	bodyPath, data, err := LookupBody(node, ds, dataset.JSONDataFormat, nil, 1, 1, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

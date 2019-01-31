@@ -4,13 +4,8 @@ import (
 	"fmt"
 	"regexp"
 
-	"encoding/json"
-
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -52,8 +47,11 @@ dataset and its fields.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "yaml", "set output format [json, yaml]")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
 	cmd.Flags().BoolVar(&o.Concise, "concise", false, "print output without indentation, only applies to json format")
+	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 10, "for body, limit how many entries to get")
+	cmd.Flags().IntVarP(&o.Offset, "offset", "s", 0, "for body, offset at which to get entries")
+	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 
 	return cmd
 }
@@ -62,10 +60,14 @@ dataset and its fields.`,
 type GetOptions struct {
 	ioes.IOStreams
 
-	Refs    []string
-	Path    string
-	Format  string
-	Concise bool
+	Refs     []string
+	Selector string
+	Format   string
+	Concise  bool
+
+	Limit  int
+	Offset int
+	All    bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -77,61 +79,52 @@ var isDatasetField = regexp.MustCompile("(?i)^(commit|structure|body|meta|viz|tr
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		if isDatasetField.MatchString(args[0]) {
-			o.Path = args[0]
+			o.Selector = args[0]
 			args = args[1:]
 		}
 	}
 	o.Refs = args
 	o.DatasetRequests, err = f.DatasetRequests()
-	return
+
+	if o.Selector != "body" {
+		if o.Limit != -1 {
+			return fmt.Errorf("can only use --limit flag when getting body")
+		}
+		if o.Offset != -1 {
+			return fmt.Errorf("can only use --offset flag when getting body")
+		}
+		if !o.All {
+			return fmt.Errorf("can only use --all flag when getting body")
+		}
+	}
+
+	return nil
 }
 
 // Run executes the get command
 func (o *GetOptions) Run() (err error) {
-	var ref repo.DatasetRef
+	var path string
 	if len(o.Refs) > 0 {
-		ref, err = repo.ParseDatasetRef(o.Refs[0])
+		path = o.Refs[0]
 		if err != nil {
 			return err
 		}
 	}
 
-	// TODO: It is more efficient to only request data in the Path field, but for now
-	// just post-process the less efficient full lookup.
-	res := repo.DatasetRef{}
-	if err = o.DatasetRequests.Get(&ref, &res); err != nil {
+	p := lib.LookupParams{
+		PathString: path,
+		Selector:   o.Selector,
+		Format:     o.Format,
+		Concise:    o.Concise,
+		Offset:     o.Offset,
+		Limit:      o.Limit,
+		All:        o.All,
+	}
+	res := lib.LookupResult{}
+	if err = o.DatasetRequests.Get(&p, &res); err != nil {
 		return err
 	}
 
-	// TOOD: Specially handle `body` to call LookupBody on the dataset.
-	var value interface{}
-	if o.Path == "" {
-		value = res
-	} else {
-		// TODO: Don't depend directly on base.
-		value, err = base.ApplyPath(res.Dataset, o.Path)
-		if err != nil {
-			return err
-		}
-	}
-
-	encode := map[string]interface{}{}
-	encode[res.String()] = value
-
-	var buffer []byte
-	switch o.Format {
-	case "json":
-		if o.Concise {
-			buffer, err = json.Marshal(encode)
-		} else {
-			buffer, err = json.MarshalIndent(encode, "", " ")
-		}
-	case "yaml":
-		buffer, err = yaml.Marshal(encode)
-	}
-	if err != nil {
-		return fmt.Errorf("error getting config: %s", err)
-	}
-	_, err = o.Out.Write(buffer)
+	_, err = o.Out.Write(res.Bytes)
 	return err
 }

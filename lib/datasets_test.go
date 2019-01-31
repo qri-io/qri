@@ -395,15 +395,13 @@ func TestDatasetRequestsGet(t *testing.T) {
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		got := &repo.DatasetRef{}
-		err := req.Get(&c.p, got)
+		got := &LookupResult{}
+		err := req.Get(&LookupParams{Ref: &c.p}, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
-		// if got != c.res && c.checkResult == true {
-		// 	t.Errorf("case %d result mismatch: \nexpected \n\t%s, \n\ngot: \n%s", i, c.res, got)
-		// }
+		// TODO (dlong): Inspect the contents of `got`
 	}
 }
 
@@ -442,13 +440,13 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
 			dsr := NewDatasetRequests(node, nil)
-			got := &repo.DatasetRef{}
-			err = dsr.Get(&ref, got)
+			got := &LookupResult{}
+			err = dsr.Get(&LookupParams{Ref: &ref}, got)
 			if err != nil {
 				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
 			}
 
-			if got.Dataset == nil {
+			if got.Bytes == nil {
 				t.Errorf("failed to get dataset for %s", ref.Name)
 			}
 			// TODO: Test contents of Dataset.
@@ -561,19 +559,18 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 		t.Fatalf("error getting sitemap ref: %s", err.Error())
 	}
 
-	var df1 = dataset.JSONDataFormat
 	cases := []struct {
 		p        *LookupParams
 		resCount int
 		err      string
 	}{
-		{&LookupParams{}, 0, "error loading dataset: error getting file bytes: cafs: path not found"},
-		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: df1, Path: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: df1, Path: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
-		{&LookupParams{Format: df1, Path: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
-		{&LookupParams{Format: df1, Path: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
+		{&LookupParams{}, 0, "repo: empty dataset reference"},
+		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
+		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
+		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
+		{&LookupParams{Format: "json", PathString: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
@@ -586,7 +583,7 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 			continue
 		}
 
-		if got.Data == nil && c.resCount == 0 {
+		if got.Bytes == nil && c.resCount == 0 {
 			continue
 		}
 
@@ -598,8 +595,8 @@ func TestDatasetRequestsLookupBody(t *testing.T) {
 				t.Errorf("case %d error parsing response data: %s", i, err.Error())
 				continue
 			}
-		case dataset.CSVDataFormat:
-			r := csv.NewReader(bytes.NewBuffer(got.Data))
+		case "csv":
+			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
 			_, err := r.ReadAll()
 			if err != nil {
 				t.Errorf("case %d error parsing response data: %s", i, err.Error())

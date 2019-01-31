@@ -17,10 +17,10 @@ func TestGetComplete(t *testing.T) {
 	}
 
 	cases := []struct {
-		args []string
-		path string
-		refs []string
-		err  string
+		args     []string
+		selector string
+		refs     []string
+		err      string
 	}{
 		{[]string{}, "", []string{}, ""},
 		{[]string{"one arg"}, "", []string{"one arg"}, ""},
@@ -50,8 +50,8 @@ func TestGetComplete(t *testing.T) {
 			continue
 		}
 
-		if c.path != opt.Path {
-			t.Errorf("case %d, opt.Path not set correctly. Expected: '%s', Got: '%s'", i, c.path, opt.Path)
+		if c.selector != opt.Selector {
+			t.Errorf("case %d, opt.Selector not set correctly. Expected: '%s', Got: '%s'", i, c.selector, opt.Selector)
 			ioReset(in, out, errs)
 			continue
 		}
