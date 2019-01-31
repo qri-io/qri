@@ -1,15 +1,10 @@
 package cmd
 
 import (
-	"encoding/hex"
 	"fmt"
-	"io/ioutil"
-	"os"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -76,55 +71,6 @@ func (o *BodyOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the body command
 func (o *BodyOptions) Run() error {
-	o.StartSpinner()
-	defer o.StopSpinner()
-
-	if o.UsingRPC {
-		return usingRPCError("body")
-	}
-
-	dsr, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
-	res := &repo.DatasetRef{}
-	if err = o.DatasetRequests.Get(&dsr, res); err != nil {
-		if err == repo.ErrEmptyRef {
-			return lib.NewError(err, "please provide a dataset reference")
-		}
-		return err
-	}
-
-	ds := res.Dataset
-	df, err := dataset.ParseDataFormatString(o.Format)
-	if err != nil {
-		return err
-	}
-
-	p := &lib.LookupParams{
-		Format: df,
-		Path:   ds.Path,
-		Limit:  o.Limit,
-		Offset: o.Offset,
-		All:    o.All,
-	}
-
-	result := &lib.LookupResult{}
-	if err := o.DatasetRequests.LookupBody(p, result); err != nil {
-		return err
-	}
-
-	data := result.Data
-	if p.Format == dataset.CBORDataFormat {
-		data = []byte(hex.EncodeToString(result.Data))
-	}
-
-	if o.Output != "" {
-		ioutil.WriteFile(o.Output, data, os.ModePerm)
-	} else {
-		fmt.Fprintln(o.Out, string(data))
-	}
-
-	return nil
+	// TODO (dlong): Delete `body` command in a later change. Update docs.
+	return fmt.Errorf("this command has been removed, use `qri get body` instead")
 }

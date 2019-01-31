@@ -11,16 +11,14 @@ import (
 )
 
 // LookupBody grabs a subset of a dataset's body
-func LookupBody(node *p2p.QriNode, path string, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (bodyPath string, data []byte, err error) {
+func LookupBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (bodyPath string, data []byte, err error) {
 	var (
 		file  cafs.File
 		store = node.Repo.Store()
 	)
 
-	ds, err := dsfs.LoadDataset(store, path)
-	if err != nil {
-		log.Debug(err.Error())
-		return "", nil, err
+	if ds == nil {
+		return "", nil, fmt.Errorf("can't load body from a nil dataset")
 	}
 
 	file, err = dsfs.LoadBody(store, ds)
