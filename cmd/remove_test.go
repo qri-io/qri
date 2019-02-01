@@ -114,8 +114,8 @@ func TestRemoveRun(t *testing.T) {
 	}{
 		{[]string{}, -1, "", "", ""},
 		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qme8h7HtAPAjjkUJcoSHWt6NXVvQjvUFCtyK7u66qN6gyV'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmVQBd1UF2qehbQ4PsMGy7fmcRZ8as3G6zNmnzqcJ2qyTn'\nremoved entire dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUu4aj4aQN5seAJUXxjBLgWuMwtXR5GYumV7McpF6w8a3'\n", "", ""},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcnKQTWNuAYpcqUa4Ss85WiNp4c9ySem4DNipxQzUqw5J'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSXfRRFy2T3gBARtvcf1GJAgg5dandb9fpqyUWAYzEcQq'\nremoved entire dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSULpGrhdSTVJh4C1jtnFsXNczMxXG6KaMLAhfSkM3zzu'\n", "", ""},
 		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'peer/movies'"},
 	}
 

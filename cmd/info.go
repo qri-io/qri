@@ -104,20 +104,12 @@ func (o *InfoOptions) Run() error {
 }
 
 // info prints terse information about a single dataset
-func (o *InfoOptions) info(index int, refstr string) error {
-	ref, err := repo.ParseDatasetRef(refstr)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
+func (o *InfoOptions) info(index int, refstr string) (err error) {
 
-	if ref.IsPeerRef() {
-		return fmt.Errorf("please specify a dataset for peer %s", ref.Peername)
+	p := lib.GetParams{
+		Path: refstr,
 	}
-
-	p := lib.LookupParams{
-		Ref: &ref,
-	}
-	res := lib.LookupResult{}
+	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "please provide a dataset reference")
@@ -126,9 +118,10 @@ func (o *InfoOptions) info(index int, refstr string) error {
 	}
 
 	if o.Format == "" {
-		printDatasetRefInfo(o.Out, index, *p.Ref)
+		ref := repo.DatasetRef{Peername: res.Dataset.Peername, Name: res.Dataset.Peername, Dataset: res.Dataset}
+		printDatasetRefInfo(o.Out, index, ref)
 	} else {
-		data, err := json.MarshalIndent(res.Data, "", "  ")
+		data, err := json.MarshalIndent(res.Dataset, "", "  ")
 		if err != nil {
 			return err
 		}

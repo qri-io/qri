@@ -59,6 +59,7 @@ func NewRepo(store cafs.Filestore, fsys fs.Filesystem, pro *profile.Profile, rc 
 		profile: pro,
 
 		store:    store,
+		fsys:     fsys,
 		basepath: bp,
 
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefstore},

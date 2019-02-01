@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/registry/regserver/mock"
 )
 
-func TestOpenDataset(t *testing.T) {
+func TestOpenCloseDataset(t *testing.T) {
 	t.Skip("TODO (b5)")
 }
 

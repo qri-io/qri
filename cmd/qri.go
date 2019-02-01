@@ -10,6 +10,9 @@ import (
 
 	ipfs "github.com/qri-io/cafs/ipfs"
 	"github.com/qri-io/fs"
+	"github.com/qri-io/fs/httpfs"
+	"github.com/qri-io/fs/localfs"
+	"github.com/qri-io/fs/muxfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -172,7 +175,14 @@ func (o *QriOptions) Init() (err error) {
 			})
 		}
 
-		o.repo, err = fsrepo.NewRepo(store, fs.NewMemFS(), pro, rc, o.qriRepoPath)
+		fsys := muxfs.NewMux(map[string]fs.PathResolver{
+			"local": localfs.NewFS(),
+			"http":  httpfs.NewFS(),
+			"cafs":  store,
+			"ipfs":  store,
+		})
+
+		o.repo, err = fsrepo.NewRepo(store, fsys, pro, rc, o.qriRepoPath)
 		if err != nil {
 			return
 		}

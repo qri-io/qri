@@ -4,27 +4,21 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/p2p"
 )
 
-// LookupBody grabs a subset of a dataset's body
-func LookupBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (bodyPath string, data []byte, err error) {
-	var (
-		file  fs.File
-		store = node.Repo.Store()
-	)
-
+// GetBody grabs some or all of a dataset's body, writing an output in the desired format
+func GetBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataFormat, fcfg dataset.FormatConfig, limit, offset int, all bool) (data []byte, err error) {
 	if ds == nil {
-		return "", nil, fmt.Errorf("can't load body from a nil dataset")
+		return nil, fmt.Errorf("can't load body from a nil dataset")
 	}
 
-	file, err = dsfs.LoadBody(store, ds)
-	if err != nil {
-		log.Debug(err.Error())
-		return "", nil, err
+	file := ds.BodyFile()
+	if file == nil {
+		err = fmt.Errorf("no body file to read")
+		return
 	}
 
 	st := &dataset.Structure{}
@@ -40,10 +34,10 @@ func LookupBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataForma
 	data, err = ConvertBodyFile(file, ds.Structure, st, limit, offset, all)
 	if err != nil {
 		log.Debug(err.Error())
-		return "", nil, err
+		return nil, err
 	}
 
-	return ds.BodyPath, data, nil
+	return data, nil
 }
 
 // ConvertBodyFile takes an input file & structure, and converts a specified selection

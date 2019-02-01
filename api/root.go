@@ -48,20 +48,20 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := lib.LookupParams{
-		Ref: &ref,
+	p := lib.GetParams{
+		Path: ref.String(),
 	}
-	res := lib.LookupResult{}
+	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	if res.Data.IsEmpty() {
+	if res.Dataset == nil || res.Dataset.IsEmpty() {
 		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
 		return
 	}
-	util.WriteResponse(w, res.Data)
+	util.WriteResponse(w, res.Dataset)
 	return
 }

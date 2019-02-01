@@ -111,16 +111,16 @@ func (o *GetOptions) Run() (err error) {
 		}
 	}
 
-	p := lib.LookupParams{
-		PathString: path,
-		Selector:   o.Selector,
-		Format:     o.Format,
-		Concise:    o.Concise,
-		Offset:     o.Offset,
-		Limit:      o.Limit,
-		All:        o.All,
+	p := lib.GetParams{
+		Path:     path,
+		Selector: o.Selector,
+		Format:   o.Format,
+		Concise:  o.Concise,
+		Offset:   o.Offset,
+		Limit:    o.Limit,
+		All:      o.All,
 	}
-	res := lib.LookupResult{}
+	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err != nil {
 		return err
 	}

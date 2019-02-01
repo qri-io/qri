@@ -69,54 +69,98 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	return err
 }
 
+// GetParams defines parameters for looking up the body of a dataset
+type GetParams struct {
+	// Path to get, this will often be a dataset reference like me/dataset
+	Path string
+
+	Format       string
+	FormatConfig dataset.FormatConfig
+
+	Selector string
+
+	Concise       bool
+	Limit, Offset int
+	All           bool
+}
+
+// GetResult combines data with it's hashed path
+type GetResult struct {
+	Dataset *dataset.Dataset `json:"data"`
+	Bytes   []byte           `json:"bytes"`
+}
+
 // Get retrieves datasets and components for a given reference. If p.Ref is provided, it is
-// used to load the dataset, otherwise p.PathString is parsed to create a reference. The
+// used to load the dataset, otherwise p.Path is parsed to create a reference. The
 // dataset will be loaded from the local repo if available, or by asking peers for it.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body.
-func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
+func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
+	ref := &repo.DatasetRef{}
 
-	if p.Ref == nil {
-		ref, err := repo.ParseDatasetRef(p.PathString)
-		if err != nil {
-			return err
-		}
-
+	if p.Path == "" {
 		// Handle `qri use` to get the current default dataset.
-		if err = DefaultSelectedRef(r.node.Repo, &ref); err != nil {
-			return err
+		if err = DefaultSelectedRef(r.node.Repo, ref); err != nil {
+			return
 		}
-
-		p.Ref = &ref
+	} else {
+		*ref, err = repo.ParseDatasetRef(p.Path)
+		if err != nil {
+			return fmt.Errorf("'%s' is not a valid dataset reference", p.Path)
+		}
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
+		return
 	}
 
-	if err = actions.DatasetHead(r.node, p.Ref); err != nil {
-		return err
+	ds, err := dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+	if err != nil {
+		return fmt.Errorf("error loading dataset")
+	}
+	res.Dataset = ds
+
+	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		return
 	}
 
 	if p.Selector == "body" {
 		// `qri get body` loads the body
-		return r.LookupBody(p, res)
+		// return r.GetBody(p, res)
+		if p.Limit < 0 || p.Offset < 0 {
+			return fmt.Errorf("invalid limit / offset settings")
+		}
+		df, err := dataset.ParseDataFormatString(p.Format)
+		if err != nil {
+			return err
+		}
+
+		bufData, err := actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
+			return err
+		}
+
+		res.Bytes = bufData
+		return err
 	} else if p.Selector == "" {
 		// `qri get` loads only the dataset head
 		switch p.Format {
 		case "json":
 			if p.Concise {
-				res.Bytes, err = json.Marshal(res.Data)
+				res.Bytes, err = json.Marshal(res.Dataset)
 			} else {
-				res.Bytes, err = json.MarshalIndent(res.Data, "", " ")
+				res.Bytes, err = json.MarshalIndent(res.Dataset, "", " ")
 			}
 		default:
-			res.Bytes, err = yaml.Marshal(res.Data)
+			res.Bytes, err = yaml.Marshal(res.Dataset)
 		}
 		return err
 	} else {
 		// `qri get <selector>` loads the dataset but only returns the applicable component / field
-		value, err := base.ApplyPath(p.Ref.Dataset, p.Selector)
+		value, err := base.ApplyPath(res.Dataset, p.Selector)
 		if err != nil {
 			return err
 		}
@@ -444,71 +488,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, numDeleted *int) error {
 	// 	}
 	// }
 
-	return nil
-}
-
-// LookupParams defines parameters for looking up the body of a dataset
-type LookupParams struct {
-	Format        string
-	FormatConfig  dataset.FormatConfig
-	PathString    string
-	Ref           *repo.DatasetRef
-	Selector      string
-	Concise       bool
-	Limit, Offset int
-	All           bool
-}
-
-// LookupResult combines data with it's hashed path
-type LookupResult struct {
-	Path  string          `json:"path"`
-	Data  dataset.Dataset `json:"data"`
-	Bytes []byte          `json:"bytes"`
-}
-
-// LookupBody retrieves the dataset body
-func (r *DatasetRequests) LookupBody(p *LookupParams, res *LookupResult) (err error) {
-	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.LookupBody", p, res)
-	}
-
-	if p.Limit < 0 || p.Offset < 0 {
-		return fmt.Errorf("invalid limit / offset settings")
-	}
-
-	if p.Ref == nil {
-		ref, err := repo.ParseDatasetRef(p.PathString)
-		if err != nil {
-			return err
-		}
-		p.Ref = &ref
-	}
-
-	if p.Ref.Dataset == nil {
-		ds, err := dsfs.LoadDataset(r.node.Repo.Store(), p.PathString)
-		if err != nil {
-			return fmt.Errorf("error loading dataset")
-		}
-		res.Data = *ds
-	} else {
-		// err = res.Data.Decode(p.Ref.Dataset)
-		// if err != nil {
-		// 	return err
-		// }
-	}
-
-	df, err := dataset.ParseDataFormatString(p.Format)
-	if err != nil {
-		return err
-	}
-
-	bodyPath, bufData, err := actions.LookupBody(r.node, &res.Data, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-	if err != nil {
-		return err
-	}
-
-	res.Path = bodyPath
-	res.Bytes = bufData
 	return nil
 }
 

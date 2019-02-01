@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -382,27 +383,101 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   repo.DatasetRef
-		res *dataset.Dataset
-		err string
+		params *GetParams
+		res    *dataset.Dataset
+		err    string
 	}{
 		// TODO: probably delete some of these
-		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil,
-			"error loading dataset: error getting file bytes: cafs: path not found"},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
+		{&GetParams{Path: "peer/ABC@abc"}, nil, "'peer/ABC@abc' is not a valid dataset reference"},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}.String()
+		{&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)}, nil, ""},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}.String()
+		{&GetParams{Path: "peer/movies"}, moviesDs, ""},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}.String()
+		// {, moviesDs, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		got := &LookupResult{}
-		err := req.Get(&LookupParams{Ref: &c.p}, got)
+		got := &GetResult{}
+		err := req.Get(c.params, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
 		// TODO (dlong): Inspect the contents of `got`
+	}
+}
+
+func TestDatasetRequestsGetBody(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+		return
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
+	if err != nil {
+		t.Fatalf("error getting movies ref: %s", err.Error())
+	}
+	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
+	if err != nil {
+		t.Fatalf("error getting craigslist ref: %s", err.Error())
+	}
+	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
+	if err != nil {
+		t.Fatalf("error getting sitemap ref: %s", err.Error())
+	}
+
+	cases := []struct {
+		p        *GetParams
+		resCount int
+		err      string
+	}{
+		{&GetParams{Selector: "body"}, 0, "repo: empty dataset reference"},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: 5, Offset: 0, All: false}, 5, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
+		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 2, Offset: 0, All: false}, 2, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: sitemapRef.String(), Limit: 3, Offset: 0, All: false}, 3, ""},
+	}
+
+	req := NewDatasetRequests(node, nil)
+	for i, c := range cases {
+		got := &GetResult{}
+		err := req.Get(c.p, got)
+
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+
+		if got.Bytes == nil && c.resCount == 0 {
+			continue
+		}
+
+		switch c.p.Format {
+		default:
+			// default should be json format
+			_, err := json.Marshal(got.Dataset)
+			if err != nil {
+				t.Errorf("case %d error parsing response data: %s", i, err.Error())
+				continue
+			}
+		case "csv":
+			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
+			_, err := r.ReadAll()
+			if err != nil {
+				t.Errorf("case %d error parsing response data: %s", i, err.Error())
+				continue
+			}
+		}
 	}
 }
 
@@ -441,8 +516,8 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
 			dsr := NewDatasetRequests(node, nil)
-			got := &LookupResult{}
-			err = dsr.Get(&LookupParams{Ref: &ref}, got)
+			got := &GetResult{}
+			err = dsr.Get(&GetParams{Path: ref.String()}, got)
 			if err != nil {
 				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
 			}
@@ -531,78 +606,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
-		}
-	}
-}
-
-func TestDatasetRequestsLookupBody(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-		return
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
-	if err != nil {
-		t.Fatalf("error getting movies ref: %s", err.Error())
-	}
-	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
-	if err != nil {
-		t.Fatalf("error getting craigslist ref: %s", err.Error())
-	}
-	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
-	if err != nil {
-		t.Fatalf("error getting sitemap ref: %s", err.Error())
-	}
-
-	cases := []struct {
-		p        *LookupParams
-		resCount int
-		err      string
-	}{
-		{&LookupParams{}, 0, "repo: empty dataset reference"},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
-		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
-		{&LookupParams{Format: "json", PathString: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
-	}
-
-	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
-		got := &LookupResult{}
-		err := req.LookupBody(c.p, got)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-
-		if got.Bytes == nil && c.resCount == 0 {
-			continue
-		}
-
-		switch c.p.Format {
-		default:
-			// default should be json format
-			_, err := json.Marshal(got.Data)
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
-		case "csv":
-			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
-			_, err := r.ReadAll()
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
 		}
 	}
 }
