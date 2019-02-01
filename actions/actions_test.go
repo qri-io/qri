@@ -102,11 +102,8 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ds := tc.Input
-	ds.Name = tc.Name
-	ds.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -118,11 +115,8 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ds := tc.Input
-	ds.Name = tc.Name
-	ds.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -134,14 +128,11 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	ds := tc.Input
-	ds.Name = tc.Name
-	ds.Peername = "peer"
-	// ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
-	tsf, _ := tc.TransformScriptFile()
-	ds.Transform.SetScriptFile(tsf)
+	// TODO (b5): need to figure out a better story for peernames in test cases
+	// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
+	tc.Input.Peername = "peer"
 
-	ref, _, err := SaveDataset(node, ds, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

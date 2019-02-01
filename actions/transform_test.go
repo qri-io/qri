@@ -26,25 +26,27 @@ func TestExecTransform(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	data := []byte(`
-def transform(ds,ctx):
-	ctx.get_config("foo")
-	ctx.get_secret("bar")
-	ds.set_body([1,2,3])
-`)
-	script := fs.NewMemfileBytes("transform.star", data)
-
 	ds := &dataset.Dataset{
 		Structure: &dataset.Structure{
 			Format: "json",
 			Schema: dataset.BaseSchemaArray,
 		},
 		Transform: &dataset.Transform{
-			Syntax: "starlark",
+			Syntax:  "starlark",
+			Config:  map[string]interface{}{"foo": "config"},
+			Secrets: map[string]string{"bar": "secret"},
 		},
 	}
 
-	if _, err := ExecTransform(node, ds, script, nil, map[string]string{"foo": "config"}, map[string]interface{}{"bar": "secret"}, nil, nil); err != nil {
+	data := []byte(`
+def transform(ds,ctx):
+	ctx.get_config("foo")
+	ctx.get_secret("bar")
+	ds.set_body([1,2,3])
+	`)
+	ds.Transform.SetScriptFile(fs.NewMemfileBytes("transform.star", data))
+
+	if err := ExecTransform(node, ds, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }

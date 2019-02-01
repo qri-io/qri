@@ -12,7 +12,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	prev, mutable, body, prevPath, err := PrepareDatasetSave(r, ref.Peername, ref.Name)
+	prev, mutable, prevPath, err := PrepareDatasetSave(r, ref.Peername, ref.Name)
 	if err != nil {
 		t.Errorf("case cities dataset error: %s ", err.Error())
 	}
@@ -28,14 +28,14 @@ func TestPrepareDatasetSave(t *testing.T) {
 	if mutable.Commit != nil {
 		t.Errorf("case cities dataset: mutable.Commit should be nil")
 	}
-	if body == nil {
+	if prev.BodyFile() == nil {
 		t.Errorf("case cities dataset: previous body should not be nil")
 	}
 	if prevPath == "" {
 		t.Errorf("case cities dataset: previous path should not be empty")
 	}
 
-	prev, mutable, body, prevPath, err = PrepareDatasetSave(r, "me", "non-existent")
+	prev, mutable, prevPath, err = PrepareDatasetSave(r, "me", "non-existent")
 	if err != nil {
 		t.Errorf("case non-existant previous dataset error: %s ", err.Error())
 	}
@@ -45,7 +45,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 	if !mutable.IsEmpty() {
 		t.Errorf("case non-existant previous dataset: mutable should be empty, got non-empty dataset")
 	}
-	if body != nil {
+	if prev.BodyFile() != nil {
 		t.Errorf("case non-existant previous dataset: previous body should be nil, got non-nil body")
 	}
 	if prevPath != "" {
@@ -60,15 +60,14 @@ func TestInferValuesDatasetName(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name := ""
-	body := fs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v"))
 	ds := &dataset.Dataset{}
-	if _, err = InferValues(pro, &name, ds, body); err != nil {
+	ds.SetBodyFile(fs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 	expectName := "gabba_gabba_heycsv"
-	if expectName != name {
-		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, name)
+	if expectName != ds.Name {
+		t.Errorf("inferred name mismatch. expected: '%s', got: '%s'", expectName, ds.Name)
 	}
 }
 
@@ -79,12 +78,13 @@ func TestInferValuesStructure(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name := "animals"
-	body := fs.NewMemfileBytes("animals.csv",
-		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
-	ds := &dataset.Dataset{}
+	ds := &dataset.Dataset{
+		Name: "animals",
+	}
+	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 
-	if _, err = InferValues(pro, &name, ds, body); err != nil {
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -110,15 +110,15 @@ func TestInferValuesSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name := "animals"
-	body := fs.NewMemfileBytes("animals.csv",
-		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
 	ds := &dataset.Dataset{
+		Name: "animals",
 		Structure: &dataset.Structure{
 			Format: "csv",
 		},
 	}
-	if _, err = InferValues(pro, &name, ds, body); err != nil {
+	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -144,10 +144,8 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	name := "animals"
-	body := fs.NewMemfileBytes("animals.csv",
-		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n"))
 	ds := &dataset.Dataset{
+		Name: "animals",
 		Structure: &dataset.Structure{
 			Format: "csv",
 			Schema: map[string]interface{}{
@@ -163,7 +161,9 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 			},
 		},
 	}
-	if _, err = InferValues(pro, &name, ds, body); err != nil {
+	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -183,7 +183,7 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 }
 
 func TestValidateDataset(t *testing.T) {
-	if err := ValidateDataset("this name has spaces", nil); err == nil {
+	if err := ValidateDataset(&dataset.Dataset{Name: "this name has spaces"}); err == nil {
 		t.Errorf("expected invalid name to fail")
 	}
 }

@@ -65,10 +65,11 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev *dataset.Dataset, body, bodyPrev fs.File, dryRun, pin bool) (ref repo.DatasetRef, resBody fs.File, err error) {
+func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin bool) (ref repo.DatasetRef, err error) {
 	var (
-		pro  *profile.Profile
-		path string
+		pro     *profile.Profile
+		path    string
+		resBody fs.File
 	)
 
 	pro, err = r.Profile()
@@ -78,35 +79,12 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 
 	// TODO - we should remove the need for this by having viz always be kept in the right
 	// state until this point
-	if err = prepareViz(r, ds); err != nil {
+	// if err = prepareViz(r, ds); err != nil {
+	// 	return
+	// }
+
+	if err = ValidateDataset(ds); err != nil {
 		return
-	}
-
-	// TODO (b5): move dsfs.prepareDataset stuff up here into a "SetComputedValues" func
-
-	if err = ValidateDataset(name, ds); err != nil {
-		return
-	}
-
-	// TODO (b5): This'll probably need to happen higher up the stack
-	// fsys := r.Filesystem()
-	// if err := ds.ResolveBodyFile(fsys); err != nil {
-	// 	return fmt.Errorf("preparing body: %s", err.Error())
-	// }
-	// if err := dsPrev.ResolveBodyFile(fsys); err != nil {
-	// 	return fmt.Errorf("preparing previous dataset body: %s", err.Error())
-	// }
-
-	fmt.Println(bodyPrev)
-	// fmt.Println(fs.FileString(body))
-	// fmt.Println("--")
-	// if dsPrev != nil {
-	// 	fmt.Println(fs.FileString(bodyPrev))
-	// }
-
-	ds.SetBodyFile(body)
-	if dsPrev != nil {
-		dsPrev.SetBodyFile(bodyPrev)
 	}
 
 	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin); err != nil {
@@ -116,7 +94,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 		prev := repo.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
-			Name:      name,
+			Name:      ds.Name,
 			Path:      ds.PreviousPath,
 		}
 
@@ -127,7 +105,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 	ref = repo.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
-		Name:      name,
+		Name:      ds.Name,
 		Path:      path,
 	}
 	if err = r.PutRef(ref); err != nil {
@@ -148,6 +126,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, name string, ds, dsPrev 
 	if resBody, err = r.Store().Get(ref.Dataset.BodyPath); err != nil {
 		fmt.Println("error getting from store:", err.Error())
 	}
+	ref.Dataset.SetBodyFile(resBody)
 	return
 }
 

@@ -2,7 +2,6 @@ package actions
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	"github.com/qri-io/cafs"
@@ -22,19 +21,15 @@ func TestUpdateDatasetLocal(t *testing.T) {
 	cities := addCitiesDataset(t, node)
 
 	expect := "transform script is required to automate updates to your own datasets"
-	if _, _, err := UpdateDataset(node, &cities, nil, nil, false, true); err == nil {
+	if _, err := UpdateDataset(node, &cities, nil, nil, false, true); err == nil {
 		t.Error("expected update without transform to error")
 	} else if err.Error() != expect {
 		t.Errorf("error mismatch. %s != %s", expect, err.Error())
 	}
 
 	now := addNowTransformDataset(t, node)
-	// str, _ := node.Repo.Store().(*cafs.MapStore).Print()
 	prevPath := now.Path
-	fmt.Println("now dataset:", now.Peername, now.Name, now.ProfileID, now.Path)
-	refs, _ := node.Repo.References(100, 0)
-	fmt.Println(refs)
-	now, _, err := UpdateDataset(node, &now, nil, nil, false, false)
+	now, err := UpdateDataset(node, &now, nil, nil, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -64,12 +59,12 @@ func TestUpdateDatasetRemote(t *testing.T) {
 	}
 
 	// run a local update to advance history
-	now0, _, err := UpdateDataset(peers[0], &now, nil, nil, false, false)
+	now0, err := UpdateDataset(peers[0], &now, nil, nil, false, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	now1, _, err := UpdateDataset(peers[1], &now, nil, nil, false, false)
+	now1, err := UpdateDataset(peers[1], &now, nil, nil, false, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -129,10 +124,10 @@ func TestSaveDataset(t *testing.T) {
 		Meta: &dataset.Meta{
 			Title: "test title",
 		},
-		BodyBytes: []byte("[]"),
 	}
+	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, _, err := SaveDataset(n, ds, nil, nil, true, false, false)
+	ref, err := SaveDataset(n, ds, nil, nil, true, false, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -151,10 +146,11 @@ func TestSaveDataset(t *testing.T) {
 			Title: "another test dataset",
 		},
 		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
-		BodyBytes: []byte("[]"),
 	}
+	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
+
 	// test save
-	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -178,19 +174,40 @@ func TestSaveDataset(t *testing.T) {
 			ScriptBytes: []byte(`def transform(ds,ctx): 
   ctx.get_config("foo")
   ctx.get_secret("bar")
-  bd = ds.get_body()
-  bd.append("hey")
-  ds.set_body(bd)`),
+  ds.set_body(["hey"])`),
 		},
 	}
+	ds.Transform.ResolveScriptFile(nil)
+
 	// dryrun should work
-	ref, _, err = SaveDataset(n, ds, secrets, nil, true, false, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, true, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	ds = &dataset.Dataset{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.Commit{
+			Title:   "add transform script",
+			Message: "adding an append-only transform script",
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+		Transform: &dataset.Transform{
+			Syntax: "starlark",
+			Config: map[string]interface{}{
+				"foo": "config",
+			},
+			ScriptBytes: []byte(`def transform(ds,ctx): 
+  ctx.get_config("foo")
+  ctx.get_secret("bar")
+  ds.set_body(["hey"])`),
+		},
+	}
+	ds.Transform.ResolveScriptFile(nil)
+
 	// test save with transform
-	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -209,7 +226,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -234,7 +251,7 @@ func TestSaveDataset(t *testing.T) {
 		Transform: tfds.Transform,
 	}
 
-	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}

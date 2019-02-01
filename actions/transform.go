@@ -5,7 +5,6 @@ import (
 	"io"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/fs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/startf"
 )
@@ -40,17 +39,12 @@ please adjust either the transform script or remove the supplied '%s'`, path[0],
 }
 
 // ExecTransform executes a designated transformation
-func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile fs.File, secrets map[string]string, config map[string]interface{}, scriptOut io.Writer, mutateCheck func(...string) error) (file fs.File, err error) {
-	// filepath := ds.Transform.ScriptPath
-
-	// TODO - consider making this a standard method on dataset.Transform:
-	// script := cafs.NewMemfileReader(ds.Transform.ScriptPath, ds.Transform.Script)
-
+func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, scriptOut io.Writer, mutateCheck func(...string) error) error {
 	if ds.Transform == nil {
-		ds.Transform = &dataset.Transform{}
+		return fmt.Errorf("no transform provided")
 	}
-	ds.Transform.Config = config
 
+	secrets := ds.Transform.Secrets
 	setSecrets := func(o *startf.ExecOpts) {
 		if secrets != nil {
 			// convert to map[string]interface{}, which the lower-level startf supports
@@ -70,9 +64,10 @@ func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, script, bodyFile fs.F
 		setSecrets,
 	}
 
-	if file, err = startf.ExecScript(ds, script, bodyFile, configs...); err != nil {
-		return nil, err
+	if err := startf.ExecScript(ds, configs...); err != nil {
+		log.Error(err.Error())
+		return err
 	}
 
-	return
+	return nil
 }

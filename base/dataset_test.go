@@ -60,6 +60,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 
 	ds := &dataset.Dataset{
+		Name:   "foo",
 		Meta:   &dataset.Meta{Title: "test"},
 		Commit: &dataset.Commit{Title: "hello"},
 		Structure: &dataset.Structure{
@@ -67,12 +68,13 @@ func TestCreateDataset(t *testing.T) {
 			Schema: dataset.BaseSchemaArray,
 		},
 	}
+	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, _, err := CreateDataset(r, streams, "foo", &dataset.Dataset{}, &dataset.Dataset{}, nil, nil, false, true); err == nil {
+	if _, err := CreateDataset(r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, refBody, err := CreateDataset(r, streams, "foo", ds, &dataset.Dataset{}, fs.NewMemfileBytes("body.json", []byte("[]")), nil, false, true)
+	ref, err := CreateDataset(r, streams, ds, &dataset.Dataset{}, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -86,10 +88,11 @@ func TestCreateDataset(t *testing.T) {
 
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
+	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
 
 	prev := ref.Dataset
 
-	ref, _, err = CreateDataset(r, streams, "foo", ds, prev, fs.NewMemfileBytes("body.json", []byte("[]")), refBody, false, true)
+	ref, err = CreateDataset(r, streams, ds, prev, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
