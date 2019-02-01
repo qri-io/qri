@@ -56,14 +56,14 @@ func pathKind(path string) string {
 }
 
 // ReadDatasetFile decodes a dataset document into a Dataset
-func ReadDatasetFile(path string) (dsp *dataset.Dataset, err error) {
+func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 	var (
 		resp *http.Response
 		f    *os.File
 		data []byte
 	)
 
-	dsp = &dataset.Dataset{}
+	ds = &dataset.Dataset{}
 
 	switch pathKind(path) {
 	case "http":
@@ -77,7 +77,7 @@ func ReadDatasetFile(path string) (dsp *dataset.Dataset, err error) {
 			return
 		}
 		resp.Body.Close()
-		err = dsutil.UnzipDatasetBytes(data, dsp)
+		err = dsutil.UnzipDatasetBytes(data, ds)
 		return
 
 	case "ipfs":
@@ -96,23 +96,23 @@ func ReadDatasetFile(path string) (dsp *dataset.Dataset, err error) {
 			if err != nil {
 				return
 			}
-			if err = dsutil.UnmarshalYAMLDataset(data, dsp); err != nil {
+			if err = dsutil.UnmarshalYAMLDataset(data, ds); err != nil {
 				return
 			}
-			absDatasetPaths(path, dsp)
+			absDatasetPaths(path, ds)
 
 		case ".json":
-			if err = json.NewDecoder(f).Decode(dsp); err != nil {
+			if err = json.NewDecoder(f).Decode(ds); err != nil {
 				return
 			}
-			absDatasetPaths(path, dsp)
+			absDatasetPaths(path, ds)
 
 		case ".zip":
 			data, err = ioutil.ReadAll(f)
 			if err != nil {
 				return
 			}
-			err = dsutil.UnzipDatasetBytes(data, dsp)
+			err = dsutil.UnzipDatasetBytes(data, ds)
 			return
 
 		default:

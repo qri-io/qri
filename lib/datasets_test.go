@@ -103,7 +103,6 @@ func TestDatasetRequestsSave(t *testing.T) {
 		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
 		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
-
 		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
 		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, ""},
 		{&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
@@ -113,7 +112,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 		got := &repo.DatasetRef{}
 		err := req.Save(&SaveParams{Dataset: c.dataset}, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			t.Fatalf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			// t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
 
@@ -216,7 +216,7 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 
 	ref := addNowTransformDataset(t, node)
 	res = &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), ReturnBody: true}, res); err != nil {
+	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), Recall: "tf", ReturnBody: true}, res); err != nil {
 		t.Errorf("update error: %s", err)
 	}
 

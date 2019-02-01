@@ -135,9 +135,10 @@ func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
 	green := color.New(color.FgGreen).SprintFunc()
 	// TODO: in the future we need to switch based on result.Type
 	// For now we are taking a shortcut and assuming a dataset struct
-	ds := &registry.Dataset{}
+	rds := &registry.Dataset{}
 	if data, err := json.Marshal(result.Value); err == nil {
-		if err = json.Unmarshal(data, ds); err == nil {
+		if err = json.Unmarshal(data, rds); err == nil {
+			ds := rds.Dataset
 			fmt.Fprintf(w, "%s. %s\n", white(i+1), white(result.ID))
 			if ds.Meta != nil && ds.Meta.Title != "" {
 				fmt.Fprintf(w, "   %s\n", green(ds.Meta.Title))

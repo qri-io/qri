@@ -98,10 +98,6 @@ func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
 		return err
 	}
 
-	if err = res.Data.Decode(p.Ref.Dataset); err != nil {
-		return err
-	}
-
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		return r.LookupBody(p, res)
@@ -131,7 +127,7 @@ func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
 
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
-	// dataset to create if both Dataset and DatasetPath are provided
+	// dataset to create. If both Dataset and DatasetPath are provided
 	// dataset values will override any values in the document at DatasetPath
 	Dataset *dataset.Dataset
 	// absolute path or URL to a dataset file to load dataset from
@@ -206,8 +202,18 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if ds.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if ds.BodyPath == "" && ds.Body == nil && ds.BodyBytes == nil && ds.Structure == nil && ds.Meta == nil && ds.Viz == nil && ds.Transform == nil {
+	if ds.BodyPath == "" &&
+		ds.Body == nil &&
+		ds.BodyBytes == nil &&
+		ds.Structure == nil &&
+		ds.Meta == nil &&
+		ds.Viz == nil &&
+		ds.Transform == nil {
 		return fmt.Errorf("no changes to save")
+	}
+
+	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		return
 	}
 
 	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
@@ -282,14 +288,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	}
 
 	if p.Recall != "" {
-		ref := repo.DatasetRef{
-			Peername: ref.Peername,
-			Name:     ref.Name,
-			// TODO - fix, but really this should be fine for a while because
-			// ProfileID is required to be local when saving
-			// ProfileID: ds.ProfileID,
-			Path: ref.Path,
-		}
+		// TODO - warn users attempting to update with anything other than tf recalls
 		recall, err := actions.Recall(r.node, p.Recall, ref)
 		if err != nil {
 			return err
@@ -297,6 +296,11 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		// only transform is assignable
 		ref.Dataset.Transform.Assign(recall.Transform)
 	}
+
+	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ref.Dataset); err != nil {
+		return err
+	}
+	defer actions.CloseDataset(ref.Dataset)
 
 	result, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.ScriptOutput, p.DryRun, true)
 	if err != nil {
@@ -487,10 +491,10 @@ func (r *DatasetRequests) LookupBody(p *LookupParams, res *LookupResult) (err er
 		}
 		res.Data = *ds
 	} else {
-		err = res.Data.Decode(p.Ref.Dataset)
-		if err != nil {
-			return err
-		}
+		// err = res.Data.Decode(p.Ref.Dataset)
+		// if err != nil {
+		// 	return err
+		// }
 	}
 
 	df, err := dataset.ParseDataFormatString(p.Format)

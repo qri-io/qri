@@ -29,6 +29,7 @@ type MemRepo struct {
 func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys fs.Filesystem, ps profile.Store, rc *regclient.Client) (*MemRepo, error) {
 	return &MemRepo{
 		store:       store,
+		filesystem:  fsys,
 		MemRefstore: &MemRefstore{},
 		MemEventLog: &MemEventLog{},
 		refCache:    &MemRefstore{},

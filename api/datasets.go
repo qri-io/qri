@@ -308,7 +308,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	p.Ref.Dataset = res.Data.Encode()
+	p.Ref.Dataset = &res.Data
 	util.WriteResponse(w, p.Ref)
 }
 

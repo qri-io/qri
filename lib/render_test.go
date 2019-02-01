@@ -74,7 +74,7 @@ func TestRenderRequestsRender(t *testing.T) {
 				Name:     "movies",
 			},
 			Template: []byte("{{ .BadTemplateBooPlzFail }}"),
-		}, nil, `template: template:1:3: executing "template" at <.BadTemplateBooPlzFa...>: can't evaluate field BadTemplateBooPlzFail in type *dataset.DatasetPod`},
+		}, nil, `template: template:1:3: executing "template" at <.BadTemplateBooPlzFa...>: can't evaluate field BadTemplateBooPlzFail in type *dataset.Dataset`},
 		{&RenderParams{
 			Ref: repo.DatasetRef{
 				Peername: "me",

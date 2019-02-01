@@ -109,9 +109,9 @@ func makeTestRepo() (Repo, error) {
 	}
 	r.SetProfile(pro)
 
-	data1f := fs.NewMemfileBytes("data1", []byte("dataset_1"))
+	ds1.SetBodyFile(fs.NewMemfileBytes("data1", []byte("dataset_1")))
 
-	ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
+	ds1p, err := dsfs.WriteDataset(store, ds1, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
@@ -119,8 +119,8 @@ func makeTestRepo() (Repo, error) {
 		return nil, err
 	}
 
-	data2f := fs.NewMemfileBytes("data2", []byte("dataset_2"))
-	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
+	ds2.SetBodyFile(fs.NewMemfileBytes("data2", []byte("dataset_2")))
+	ds2p, err := dsfs.WriteDataset(store, ds2, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}

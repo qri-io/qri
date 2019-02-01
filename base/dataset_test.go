@@ -324,7 +324,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, _, err := CreateDataset(r, streams, tc.Name, tc.Input, nil, tc.BodyFile(), nil, false, false)
+	ref2, err := CreateDataset(r, streams, tc.Input, nil, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return

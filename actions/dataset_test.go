@@ -16,6 +16,10 @@ import (
 	"github.com/qri-io/registry/regserver/mock"
 )
 
+func TestOpenDataset(t *testing.T) {
+	t.Skip("TODO (b5)")
+}
+
 func TestUpdateDatasetLocal(t *testing.T) {
 	node := newTestNode(t)
 	cities := addCitiesDataset(t, node)
@@ -177,7 +181,7 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(["hey"])`),
 		},
 	}
-	ds.Transform.ResolveScriptFile(nil)
+	ds.Transform.OpenScriptFile(nil)
 
 	// dryrun should work
 	ref, err = SaveDataset(n, ds, secrets, nil, true, false, false)
@@ -204,7 +208,7 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(["hey"])`),
 		},
 	}
-	ds.Transform.ResolveScriptFile(nil)
+	ds.Transform.OpenScriptFile(nil)
 
 	// test save with transform
 	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
@@ -249,6 +253,9 @@ func TestSaveDataset(t *testing.T) {
 			Message: "recall transform & re-run it",
 		},
 		Transform: tfds.Transform,
+	}
+	if err := ds.Transform.OpenScriptFile(n.Repo.Filesystem()); err != nil {
+		t.Error(err)
 	}
 
 	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
