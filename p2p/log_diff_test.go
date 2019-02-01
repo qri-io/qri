@@ -31,7 +31,7 @@ func TestRequestLogDiff(t *testing.T) {
 	}
 
 	// add a dataset to peer 4
-	ref, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, tc.Input, nil, tc.BodyFile(), nil, false, true)
+	ref, err := base.CreateDataset(peers[4].Repo, streams, tc.Input, nil, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,9 +47,10 @@ func TestRequestLogDiff(t *testing.T) {
 	update := ref.Dataset
 	update.PreviousPath = ref.Path
 	update.Meta.Title = "update"
+	update.Name = tc.Name
 
 	// add an update on peer 4
-	ref2, _, err := base.CreateDataset(peers[4].Repo, streams, tc.Name, update, tc.Input, tc.BodyFile(), tc.BodyFile(), false, true)
+	ref2, err := base.CreateDataset(peers[4].Repo, streams, update, tc.Input, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}

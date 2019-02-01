@@ -108,19 +108,8 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	changes = mutable
 	clearPaths(changes)
 
-	// if changeBodyFile != nil {
-	// changes.BodyPath = ""
-	// bodyFile = changeBodyFile
-	// }
-
 	// let's make history, if it exists:
 	changes.PreviousPath = prevPath
-
-	// if bodyFile != nil {
-	// 	f, str := fs.FileString(bodyFile)
-	// 	fmt.Println("bf: ", str)
-	// 	changes.SetBodyFile(f)
-	// }
 
 	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin)
 }

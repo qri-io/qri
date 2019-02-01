@@ -210,13 +210,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	ref, body, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
+	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
-	// TODO - check to make sure RPC saves aren't horribly broken, and if not remove this
-	// ref.Dataset = p.Dataset.Encode()
 
 	if p.Publish {
 		var done bool
@@ -231,9 +229,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 	}
 
-	if p.ReturnBody && ref.Dataset != nil {
-		ref.Dataset.Body = body
-	}
+	// TODO (b5): think about the ReturnBody flag now that dataset.Dataset should
+	// encode cleanly. probs just remove it
+	// if p.ReturnBody && ref.Dataset != nil {
+	// 	ref.Dataset.Body = body
+	// }
 
 	*res = ref
 	return nil
@@ -298,13 +298,14 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		ref.Dataset.Transform.Assign(recall.Transform)
 	}
 
-	result, body, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.ScriptOutput, p.DryRun, true)
+	result, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.ScriptOutput, p.DryRun, true)
 	if err != nil {
 		return err
 	}
-	if p.ReturnBody {
-		result.Dataset.Body = body
-	}
+	// TODO (b5): remove?
+	// if p.ReturnBody {
+	// 	result.Dataset.Body = body
+	// }
 	*res = result
 
 	return nil

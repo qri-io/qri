@@ -42,8 +42,9 @@ func TestRegistryRequests(t *testing.T) {
 		t.Error(err)
 	}
 
-	if citiesRes.Path != "/map/QmTdqyPFQijAEpkgxNJkHozWhDFsHvQtXpM7P78moUzhxa" {
-		t.Errorf("error getting dataset from registry, expected path to be '/map/QmTdqyPFQijAEpkgxNJkHozWhDFsHvQtXpM7P78moUzhxa', got %s", citiesRes.Path)
+	expect := "/map/QmWqMEXKtyjaY5ZEv2AdbQiZpdJMceAGHq9yp5wKtnuhbH"
+	if expect != citiesRes.Path {
+		t.Errorf("error getting dataset from registry, expected path to be '%s', got %s", expect, citiesRes.Path)
 	}
 	if citiesRes.Dataset == nil {
 		t.Errorf("error getting dataset from registry, dataset is nil")
