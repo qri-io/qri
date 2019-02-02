@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -16,7 +15,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -391,8 +389,14 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 // TODO - make this less bad. this should happen lower and lib Params should be used to set the response
 // body to well-formed JSON
 func addBodyFile(res *repo.DatasetRef) error {
+	file := res.Dataset.BodyFile()
+	if file == nil {
+		log.Error("no body file")
+		return fmt.Errorf("no response body file")
+	}
+
 	if res.Dataset.Structure.Format == dataset.JSONDataFormat.String() {
-		data, err := ioutil.ReadAll(res.Dataset.Body.(io.Reader))
+		data, err := ioutil.ReadAll(file)
 		if err != nil {
 			return err
 		}
@@ -400,17 +404,7 @@ func addBodyFile(res *repo.DatasetRef) error {
 		return nil
 	}
 
-	file, ok := res.Dataset.Body.(qfs.File)
-	if !ok {
-		log.Error("response body isn't a qfs.File")
-		return fmt.Errorf("response body isn't a qfs.File")
-	}
-
 	in := res.Dataset.Structure
-	// if err := in.Decode(res.Dataset.Structure); err != nil {
-	// 	return err
-	// }
-
 	st := &dataset.Structure{}
 	st.Assign(in, &dataset.Structure{
 		Format: "json",
@@ -419,6 +413,7 @@ func addBodyFile(res *repo.DatasetRef) error {
 
 	data, err := actions.ConvertBodyFile(file, in, st, 0, 0, true)
 	if err != nil {
+		log.Errorf("converting body file to JSON: %s", err)
 		return fmt.Errorf("converting body file to JSON: %s", err)
 	}
 	res.Dataset.Body = json.RawMessage(data)
@@ -448,10 +443,10 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	dsp := &dataset.Dataset{}
+	ds := &dataset.Dataset{}
 
 	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(dsp)
+		err := json.NewDecoder(r.Body).Decode(ds)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -464,12 +459,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if args.Peername != "" {
-				dsp.Peername = args.Peername
-				dsp.Name = args.Name
+				ds.Peername = args.Peername
+				ds.Name = args.Name
 			}
 		}
 	} else {
-		if err := dsutil.FormFileDataset(r, dsp); err != nil {
+		if err := dsutil.FormFileDataset(r, ds); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -478,7 +473,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
-		Dataset:             dsp,
+		Dataset:             ds,
 		Private:             r.FormValue("private") == "true",
 		DryRun:              r.FormValue("dry_run") == "true",
 		ReturnBody:          r.FormValue("return_body") == "true",
@@ -492,9 +487,9 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
 			return
 		}
-	} else if dsp.Transform != nil && dsp.Transform.Secrets != nil {
+	} else if ds.Transform != nil && ds.Transform.Secrets != nil {
 		// TODO remove this, require API consumers to send secrets separately
-		p.Secrets = dsp.Transform.Secrets
+		p.Secrets = ds.Transform.Secrets
 	}
 
 	if err := h.Save(p, res); err != nil {

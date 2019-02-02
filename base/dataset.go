@@ -117,8 +117,12 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		return
 	}
 
+	// need to open here b/c we might be doing a dry-run, which would mean we have
+	// references to files in a store that won't exist after this function call
+	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
+	// knows about the store
 	if resBody, err = r.Store().Get(ref.Dataset.BodyPath); err != nil {
-		fmt.Println("error getting from store:", err.Error())
+		log.Error("error getting from store:", err.Error())
 	}
 	ref.Dataset.SetBodyFile(resBody)
 	return

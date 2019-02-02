@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/rpc"
 
 	"github.com/ghodss/yaml"
@@ -146,7 +147,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		res.Bytes = bufData
 		return err
 	} else if p.Selector == "" {
-		// `qri get` loads only the dataset head
+		// `qri get` without a selector loads only the dataset head
 		switch p.Format {
 		case "json":
 			if p.Concise {
@@ -158,6 +159,14 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			res.Bytes, err = yaml.Marshal(res.Dataset)
 		}
 		return err
+	} else if p.Selector == "transform.script" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		// accomodate two special case script file fields
+		// TODO (b5): this is a hack that should be generalized
+		res.Bytes, err = ioutil.ReadAll(ds.Transform.ScriptFile())
+		return
+	} else if p.Selector == "viz.script" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
+		return
 	} else {
 		// `qri get <selector>` loads the dataset but only returns the applicable component / field
 		value, err := base.ApplyPath(res.Dataset, p.Selector)
@@ -278,12 +287,6 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			return err
 		}
 	}
-
-	// TODO (b5): think about the ReturnBody flag now that dataset.Dataset should
-	// encode cleanly. probs just remove it
-	// if p.ReturnBody && ref.Dataset != nil {
-	// 	ref.Dataset.Body = body
-	// }
 
 	*res = ref
 	return nil

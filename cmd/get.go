@@ -126,5 +126,10 @@ func (o *GetOptions) Run() (err error) {
 	}
 
 	_, err = o.Out.Write(res.Bytes)
+	if err != nil {
+		return err
+	}
+	// commands should always be newline-terminiated, which isn't included in res.Bytes
+	_, err = o.Out.Write([]byte{'\n'})
 	return err
 }

@@ -30,6 +30,7 @@ func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) 
 }
 
 // ApplyPath gets a dataset value by applying a case.Sensitve.dot.separated.path
+// ApplyPath cannot select file fields
 func ApplyPath(ds *dataset.Dataset, path string) (interface{}, error) {
 	var value reflect.Value
 	value, err := pathValue(ds, path)

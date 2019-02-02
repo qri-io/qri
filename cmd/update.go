@@ -105,10 +105,11 @@ func (o *UpdateOptions) Run() (err error) {
 	}
 
 	if o.Secrets != nil {
-		if !confirm(o.Out, o.In, `
-			Warning: You are providing secrets to a dataset transformation.
-			Never provide secrets to a transformation you do not trust.
-			continue?`, true) {
+		secretsMsg := `
+Warning: You are providing secrets to a dataset transformation.
+Never provide secrets to a transformation you do not trust.
+continue?`
+		if !confirm(o.Out, o.In, secretsMsg, true) {
 			return
 		}
 
