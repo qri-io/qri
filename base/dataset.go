@@ -77,12 +77,6 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		return
 	}
 
-	// TODO - we should remove the need for this by having viz always be kept in the right
-	// state until this point
-	// if err = prepareViz(r, ds); err != nil {
-	// 	return
-	// }
-
 	if err = ValidateDataset(ds); err != nil {
 		return
 	}
