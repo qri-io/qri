@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 )
 
@@ -42,7 +42,7 @@ func GetBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataFormat, 
 
 // ConvertBodyFile takes an input file & structure, and converts a specified selection
 // to the structure specified by out
-func ConvertBodyFile(file fs.File, in, out *dataset.Structure, limit, offset int, all bool) (data []byte, err error) {
+func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset int, all bool) (data []byte, err error) {
 	buf, err := dsio.NewEntryBuffer(out)
 	if err != nil {
 		err = fmt.Errorf("error allocating result buffer: %s", err)

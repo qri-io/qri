@@ -5,10 +5,10 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/fs"
-	"github.com/qri-io/fs/httpfs"
-	"github.com/qri-io/fs/localfs"
-	"github.com/qri-io/fs/muxfs"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -233,8 +233,8 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
-func newTestFS(cafsys cafs.Filestore) fs.Filesystem {
-	return muxfs.NewMux(map[string]fs.PathResolver{
+func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
+	return muxfs.NewMux(map[string]qfs.PathResolver{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  cafsys,

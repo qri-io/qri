@@ -10,7 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -45,7 +45,7 @@ func init() {
 }
 
 func TestReceivers(t *testing.T) {
-	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return

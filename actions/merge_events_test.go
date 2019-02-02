@@ -1,13 +1,14 @@
 package actions
 
 import (
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 	"testing"
 
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+
+	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
 )
 
 const refPath0 = "/ipfs/Qmaau1d1WjnQdTYfRYfFVsCS97cgD8ATyrKuNoEfexL7JZ"
@@ -25,11 +26,11 @@ func createReposAndLogs() (repo.Repo, repo.Repo, *repo.MemEventLog, *repo.MemEve
 	aRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileAID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), fs.NewMemFS(), &profile.MemStore{}, nil)
+	}, cafs.NewMapstore(), qfs.NewMemFS(), &profile.MemStore{}, nil)
 	bRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileBID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), fs.NewMemFS(), &profile.MemStore{}, nil)
+	}, cafs.NewMapstore(), qfs.NewMemFS(), &profile.MemStore{}, nil)
 	aLog := aRepo.MemEventLog
 	bLog := bRepo.MemEventLog
 	return aRepo, bRepo, aLog, bLog

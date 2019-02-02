@@ -14,8 +14,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -69,7 +69,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 	var (
 		pro     *profile.Profile
 		path    string
-		resBody fs.File
+		resBody qfs.File
 	)
 
 	pro, err = r.Profile()
@@ -201,12 +201,12 @@ func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 // * ds.BodyPath being a url
 // * ds.BodyPath being a path on the local filesystem
 // TODO - consider moving this func to some other package. maybe actions?
-func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (fs.File, error) {
+func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error) {
 	if ds.BodyBytes != nil {
 		if ds.Structure == nil || ds.Structure.Format == "" {
 			return nil, fmt.Errorf("specifying bodyBytes requires format be specified in dataset.structure")
 		}
-		return fs.NewMemfileBytes(fmt.Sprintf("body.%s", ds.Structure.Format), ds.BodyBytes), nil
+		return qfs.NewMemfileBytes(fmt.Sprintf("body.%s", ds.Structure.Format), ds.BodyBytes), nil
 	}
 
 	// all other methods are based on path, bail if we don't have one
@@ -229,7 +229,7 @@ func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (fs.File, error)
 			return nil, fmt.Errorf("invalid status code fetching body url: %d", res.StatusCode)
 		}
 
-		return fs.NewMemfileReader(filename, res.Body), nil
+		return qfs.NewMemfileReader(filename, res.Body), nil
 	}
 
 	if strings.HasPrefix(ds.BodyPath, "/ipfs") || strings.HasPrefix(ds.BodyPath, "/cafs") || strings.HasPrefix(ds.BodyPath, "/map") {
@@ -249,7 +249,7 @@ func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (fs.File, error)
 		}
 
 		filename := fmt.Sprintf("%s.json", strings.TrimSuffix(filepath.Base(ds.BodyPath), ext))
-		return fs.NewMemfileBytes(filename, jsonBody), nil
+		return qfs.NewMemfileBytes(filename, jsonBody), nil
 	}
 
 	file, err := os.Open(ds.BodyPath)
@@ -257,11 +257,11 @@ func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (fs.File, error)
 		return nil, fmt.Errorf("body file: %s", err.Error())
 	}
 
-	return fs.NewMemfileReader(filepath.Base(ds.BodyPath), file), nil
+	return qfs.NewMemfileReader(filepath.Base(ds.BodyPath), file), nil
 }
 
 // ConvertBodyFormat rewrites a body from a source format to a destination format.
-func ConvertBodyFormat(bodyFile fs.File, fromSt, toSt *dataset.Structure) (fs.File, error) {
+func ConvertBodyFormat(bodyFile qfs.File, fromSt, toSt *dataset.Structure) (qfs.File, error) {
 	// Reader for entries of the source body.
 	r, err := dsio.NewEntryReader(fromSt, bodyFile)
 	if err != nil {
@@ -284,5 +284,5 @@ func ConvertBodyFormat(bodyFile fs.File, fromSt, toSt *dataset.Structure) (fs.Fi
 		return nil, err
 	}
 
-	return fs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
+	return qfs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
 }

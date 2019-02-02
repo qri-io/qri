@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
@@ -39,7 +39,7 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 		return
 	}
 	if prev.BodyPath != "" {
-		var body fs.File
+		var body qfs.File
 		body, err = dsfs.LoadBody(r.Store(), prev)
 		if err != nil {
 			return
@@ -109,8 +109,8 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 
 		// glue whatever we just read back onto the reader
 		// TODO (b5)- this may ruin readers that transparently depend on a read-closer
-		// we should consider a method on fs.File that allows this non-destructive read pattern
-		ds.SetBodyFile(fs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body)))
+		// we should consider a method on qfs.File that allows this non-destructive read pattern
+		ds.SetBodyFile(qfs.NewMemfileReader(body.FileName(), io.MultiReader(buf, body)))
 	}
 
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil && ds.Transform.IsEmpty() {

@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -28,7 +28,7 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		r, err := NewRepo(cafs.NewMapstore(), fs.NewMemFS(), pro, nil, path)
+		r, err := NewRepo(cafs.NewMapstore(), qfs.NewMemFS(), pro, nil, path)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}

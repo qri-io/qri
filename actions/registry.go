@@ -102,10 +102,9 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		} else {
 			return err
 		}
-	} else {
-		log.Info("done")
 	}
 
+	node.LocalStreams.Print("  done\n")
 	return nil
 }
 

@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -442,7 +443,7 @@ func TestDatasetRequestsGetBody(t *testing.T) {
 		{&GetParams{Selector: "body"}, 0, "repo: empty dataset reference"},
 		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: 5, Offset: 0, All: false}, 5, ""},
 		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: true}, 0, ""},
 		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 0, Offset: 0, All: true}, 0, ""},
 		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 2, Offset: 0, All: false}, 2, ""},
 		{&GetParams{Selector: "body", Format: "json", Path: sitemapRef.String(), Limit: 3, Offset: 0, All: false}, 3, ""},
@@ -730,10 +731,10 @@ Pirates of the Caribbean: At World's End ,foo
 	  }
 	}`)
 
-	dataf := cafs.NewMemfileBytes("data.csv", movieb)
-	dataf2 := cafs.NewMemfileBytes("data.csv", movieb)
-	schemaf := cafs.NewMemfileBytes("schema.json", schemaB)
-	schemaf2 := cafs.NewMemfileBytes("schema.json", schemaB)
+	dataf := qfs.NewMemfileBytes("data.csv", movieb)
+	dataf2 := qfs.NewMemfileBytes("data.csv", movieb)
+	schemaf := qfs.NewMemfileBytes("schema.json", schemaB)
+	schemaf2 := qfs.NewMemfileBytes("schema.json", schemaB)
 
 	cases := []struct {
 		p         ValidateDatasetParams

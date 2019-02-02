@@ -155,9 +155,9 @@ func TestSaveRun(t *testing.T) {
 		// no changes detected
 		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, "", "error saving: no changes detected", ""},
 		// add viz
-		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qmcmjcw1onuvWCvM2NZzqDztfp3djpCErcD2zSirmAw65p\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPauqpHsrRKmg1TbT6aBi7Axse9uPETDgMGxZShv3c79F\nthis dataset has 1 validation errors\n", "", ""},
 		// add transform
-		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmQipUbViHMmVvHCN3u5Fge229qLJ1wd8yWqp1ntNqmzYB\nthis dataset has 1 validation errors\n", "", ""},
+		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmZjfDhDfJrN4HimiUaf1djNLSG47VRrNsJ2QBJbSLKWqR\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for i, c := range cases {

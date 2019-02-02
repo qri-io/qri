@@ -9,11 +9,11 @@ import (
 	"sync"
 
 	ipfs "github.com/qri-io/cafs/ipfs"
-	"github.com/qri-io/fs"
-	"github.com/qri-io/fs/httpfs"
-	"github.com/qri-io/fs/localfs"
-	"github.com/qri-io/fs/muxfs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -175,7 +175,7 @@ func (o *QriOptions) Init() (err error) {
 			})
 		}
 
-		fsys := muxfs.NewMux(map[string]fs.PathResolver{
+		fsys := muxfs.NewMux(map[string]qfs.PathResolver{
 			"local": localfs.NewFS(),
 			"http":  httpfs.NewFS(),
 			"cafs":  store,

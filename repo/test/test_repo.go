@@ -13,11 +13,11 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/fs"
-	"github.com/qri-io/fs/httpfs"
-	"github.com/qri-io/fs/localfs"
-	"github.com/qri-io/fs/muxfs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -74,8 +74,8 @@ func NewEmptyTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 	return repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore(), rc)
 }
 
-func newTestFS(cafsys cafs.Filestore) fs.Filesystem {
-	return muxfs.NewMux(map[string]fs.PathResolver{
+func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
+	return muxfs.NewMux(map[string]qfs.PathResolver{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  cafsys,
@@ -246,7 +246,7 @@ func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err e
 }
 
 // BadBodyFile is a bunch of bad CSV data
-var BadBodyFile = cafs.NewMemfileBytes("bad_csv_file.csv", []byte(`
+var BadBodyFile = qfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
 f;lajsmf 
@@ -255,13 +255,13 @@ a
 sdlfj asdf`))
 
 // BadDataFormatFile has weird line lengths
-var BadDataFormatFile = cafs.NewMemfileBytes("abc.csv", []byte(`
+var BadDataFormatFile = qfs.NewMemfileBytes("abc.csv", []byte(`
 "colA","colB","colC","colD"
 1,2,3,4
 1,2,3`))
 
 // BadStructureFile has double-named columns
-var BadStructureFile = cafs.NewMemfileBytes("badStructure.csv", []byte(`
+var BadStructureFile = qfs.NewMemfileBytes("badStructure.csv", []byte(`
 colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))

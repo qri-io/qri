@@ -11,14 +11,14 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
-	"github.com/qri-io/fs"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
 // Validate checks a dataset body for errors based on a schema
-func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema fs.File) (errors []jsonschema.ValError, err error) {
+func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
 	if !ref.IsEmpty() {
 		err = repo.CanonicalizeDatasetRef(node.Repo, &ref)
 		if err != nil && err != repo.ErrNotFound {

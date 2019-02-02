@@ -49,8 +49,8 @@ dataset and its fields.`,
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
 	cmd.Flags().BoolVar(&o.Concise, "concise", false, "print output without indentation, only applies to json format")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 10, "for body, limit how many entries to get")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "s", 0, "for body, offset at which to get entries")
+	cmd.Flags().IntVarP(&o.Limit, "limit", "l", -1, "for body, limit how many entries to get")
+	cmd.Flags().IntVarP(&o.Offset, "offset", "s", -1, "for body, offset at which to get entries")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 
 	return cmd

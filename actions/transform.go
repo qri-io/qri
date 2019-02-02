@@ -65,7 +65,6 @@ func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, scriptOut io.Writer, 
 	}
 
 	if err := startf.ExecScript(ds, configs...); err != nil {
-		log.Error(err.Error())
 		return err
 	}
 

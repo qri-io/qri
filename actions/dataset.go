@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/validate"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -17,7 +17,7 @@ import (
 // OpenDataset prepares a dataset for use, checking each component
 // for populated Path or Byte suffixed fields, consuming those fields to
 // set File handlers that are ready for reading
-func OpenDataset(fsys fs.Filesystem, ds *dataset.Dataset) (err error) {
+func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
 	if ds.BodyFile() == nil {
 		if err = ds.OpenBodyFile(fsys); err != nil {
 			return
@@ -90,7 +90,6 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 
 		changes.Transform.Secrets = secrets
 		if err = ExecTransform(node, changes, scriptOut, mutateCheck); err != nil {
-			log.Error(err)
 			return
 		}
 		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
@@ -104,7 +103,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
 		if convertFormatToPrev {
-			var f fs.File
+			var f qfs.File
 			f, err = base.ConvertBodyFormat(changes.BodyFile(), changes.Structure, prev.Structure)
 			if err != nil {
 				return
@@ -205,9 +204,7 @@ func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]str
 
 	node.LocalStreams.Print("🤖 executing transform\n")
 
-	err = ExecTransform(node, ds, scriptOut, nil)
-	if err != nil {
-		log.Error(err)
+	if err = ExecTransform(node, ds, scriptOut, nil); err != nil {
 		return
 	}
 	node.LocalStreams.Print("✅ transform complete\n")

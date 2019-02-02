@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -108,7 +108,7 @@ func TestDataset(t *testing.T) {
 	rc, _ := mock.NewMockServer()
 
 	rmf := func(t *testing.T) repo.Repo {
-		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), rc)
+		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), rc)
 		if err != nil {
 			panic(err)
 		}
@@ -129,7 +129,7 @@ func TestSaveDataset(t *testing.T) {
 			Title: "test title",
 		},
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	ref, err := SaveDataset(n, ds, nil, nil, true, false, false)
 	if err != nil {
@@ -151,7 +151,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
 	ref, err = SaveDataset(n, ds, nil, nil, false, true, false)

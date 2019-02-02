@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/fs"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
@@ -130,7 +130,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if p.Selector == "body" {
 		// `qri get body` loads the body
 		// return r.GetBody(p, res)
-		if p.Limit < 0 || p.Offset < 0 {
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return fmt.Errorf("invalid limit / offset settings")
 		}
 		df, err := dataset.ParseDataFormatString(p.Format)
@@ -531,16 +531,14 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
-	var body, schema fs.File
+	var body, schema qfs.File
 	if p.Data != nil {
-		body = fs.NewMemfileReader(p.DataFilename, p.Data)
+		body = qfs.NewMemfileReader(p.DataFilename, p.Data)
 	}
 	if p.Schema != nil {
-		schema = fs.NewMemfileReader("schema.json", p.Schema)
+		schema = qfs.NewMemfileReader("schema.json", p.Schema)
 	}
 
-	// var body fs.File
-	// TODO - restore
 	*errors, err = actions.Validate(r.node, p.Ref, body, schema)
 	return
 }

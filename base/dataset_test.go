@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/fs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -54,7 +54,7 @@ func TestListDatasets(t *testing.T) {
 
 func TestCreateDataset(t *testing.T) {
 	streams := ioes.NewDiscardIOStreams()
-	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), fs.NewMemFS(), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -68,7 +68,7 @@ func TestCreateDataset(t *testing.T) {
 			Schema: dataset.BaseSchemaArray,
 		},
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	if _, err := CreateDataset(r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true); err == nil {
 		t.Error("expected bad dataset to error")
@@ -88,7 +88,7 @@ func TestCreateDataset(t *testing.T) {
 
 	ds.Meta.Title = "an update"
 	ds.PreviousPath = ref.Path
-	ds.SetBodyFile(fs.NewMemfileBytes("body.json", []byte("[]")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	prev := ref.Dataset
 
@@ -213,7 +213,7 @@ func TestDatasetPodBodyFile(t *testing.T) {
 // 			Title: "test title",
 // 		},
 // 	}
-// 	body := fs.NewMemfileBytes("data.json", []byte("[]"))
+// 	body := qfs.NewMemfileBytes("data.json", []byte("[]"))
 // 	ref, _, err := SaveDataset(n, "dry_run_test", ds, body, nil, true, false)
 // 	if err != nil {
 // 		t.Errorf("dry run error: %s", err.Error())
@@ -426,7 +426,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	csvStructure := &dataset.Structure{Format: "csv", Schema: dataset.BaseSchemaArray}
 
 	// CSV -> JSON
-	body := fs.NewMemfileBytes("", []byte("a,b,c"))
+	body := qfs.NewMemfileBytes("", []byte("a,b,c"))
 	got, err := ConvertBodyFormat(body, csvStructure, jsonStructure)
 	if err != nil {
 		t.Error(err.Error())
@@ -440,7 +440,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// CSV -> JSON, multiple lines
-	body = fs.NewMemfileBytes("", []byte("a,b,c\n\rd,e,f\n\rg,h,i"))
+	body = qfs.NewMemfileBytes("", []byte("a,b,c\n\rd,e,f\n\rg,h,i"))
 	got, err = ConvertBodyFormat(body, csvStructure, jsonStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -454,7 +454,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// JSON -> CSV
-	body = fs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	body = qfs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
 	got, err = ConvertBodyFormat(body, jsonStructure, csvStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -468,7 +468,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// CSV -> CSV
-	body = fs.NewMemfileBytes("", []byte("a,b,c"))
+	body = qfs.NewMemfileBytes("", []byte("a,b,c"))
 	got, err = ConvertBodyFormat(body, csvStructure, csvStructure)
 	if err != nil {
 		t.Fatal(err.Error())
@@ -482,7 +482,7 @@ func TestConvertBodyFormat(t *testing.T) {
 	}
 
 	// JSON -> JSON
-	body = fs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
+	body = qfs.NewMemfileBytes("", []byte(`[["a","b","c"]]`))
 	got, err = ConvertBodyFormat(body, jsonStructure, jsonStructure)
 	if err != nil {
 		t.Fatal(err.Error())

@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 )
 
 func TestPrepareDatasetSave(t *testing.T) {
@@ -61,7 +61,7 @@ func TestInferValuesDatasetName(t *testing.T) {
 	}
 
 	ds := &dataset.Dataset{}
-	ds.SetBodyFile(fs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
+	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
 	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
@@ -81,7 +81,7 @@ func TestInferValuesStructure(t *testing.T) {
 	ds := &dataset.Dataset{
 		Name: "animals",
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 
 	if err = InferValues(pro, ds); err != nil {
@@ -116,7 +116,7 @@ func TestInferValuesSchema(t *testing.T) {
 			Format: "csv",
 		},
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
@@ -161,7 +161,7 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 			},
 		},
 	}
-	ds.SetBodyFile(fs.NewMemfileBytes("animals.csv",
+	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)

@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -386,7 +386,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 // when datasets are created with save/new dataset bodies they can be run with "return body",
-// which populates res.Dataset.Body with a fs.File of raw data
+// which populates res.Dataset.Body with a qfs.File of raw data
 // addBodyFile sets the dataset body, converting to JSON for a response the API can understand
 // TODO - make this less bad. this should happen lower and lib Params should be used to set the response
 // body to well-formed JSON
@@ -400,10 +400,10 @@ func addBodyFile(res *repo.DatasetRef) error {
 		return nil
 	}
 
-	file, ok := res.Dataset.Body.(fs.File)
+	file, ok := res.Dataset.Body.(qfs.File)
 	if !ok {
-		log.Error("response body isn't a fs.File")
-		return fmt.Errorf("response body isn't a fs.File")
+		log.Error("response body isn't a qfs.File")
+		return fmt.Errorf("response body isn't a qfs.File")
 	}
 
 	in := res.Dataset.Structure

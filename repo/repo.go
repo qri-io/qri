@@ -8,7 +8,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/cafs"
-	"github.com/qri-io/fs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
@@ -52,7 +52,7 @@ type Repo interface {
 	// Filestores can multiplex to read from multiple sources like the local
 	// filesystem, over http, or content-addressed filesystems.
 	// the long term-plan is to merge Filestore & Store
-	Filesystem() fs.Filesystem
+	Filesystem() qfs.Filesystem
 
 	// All Repos must keep a Refstore, defining a store of known datasets
 	Refstore
