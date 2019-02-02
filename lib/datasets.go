@@ -209,11 +209,6 @@ type SaveParams struct {
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		if p.ReturnBody {
-			// can't send an io.Reader interface over RPC
-			p.ReturnBody = false
-			log.Error("cannot return body bytes over RPC, disabling body return")
-		}
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
@@ -293,6 +288,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 }
 
 // UpdateParams defines parameters for the Update command
+// TODO (b5): I think we can merge this into SaveParams
 type UpdateParams struct {
 	Ref        string
 	Title      string
@@ -311,11 +307,6 @@ type UpdateParams struct {
 // re-running a transform in the peer's namespace
 func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		if p.ReturnBody {
-			// can't send an io.Reader interface over RPC
-			p.ReturnBody = false
-			log.Error("cannot return body bytes over RPC, disabling body return")
-		}
 		return r.cli.Call("DatasetRequests.Update", p, res)
 	}
 
@@ -324,42 +315,46 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		return err
 	}
 
-	ref.Dataset = &dataset.Dataset{
-		Commit: &dataset.Commit{
-			Title:   p.Title,
-			Message: p.Message,
-		},
-		Transform: &dataset.Transform{
-			Secrets: p.Secrets,
-		},
-	}
-
-	if p.Recall != "" {
-		// TODO - warn users attempting to update with anything other than tf recalls
-		recall, err := actions.Recall(r.node, p.Recall, ref)
-		if err != nil {
-			return err
-		}
-		// only transform is assignable
-		ref.Dataset.Transform.Assign(recall.Transform)
-	}
-
-	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ref.Dataset); err != nil {
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err == repo.ErrNotFound {
+		return fmt.Errorf("unknown dataset '%s'. please add before updating", ref.AliasString())
+	} else if err != nil {
 		return err
 	}
-	defer actions.CloseDataset(ref.Dataset)
 
-	result, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.ScriptOutput, p.DryRun, true)
-	if err != nil {
+	if !base.InLocalNamespace(r.node.Repo, &ref) {
+		*res, err = actions.UpdateRemoteDataset(r.node, &ref, true)
 		return err
 	}
-	// TODO (b5): remove?
-	// if p.ReturnBody {
-	// 	result.Dataset.Body = body
-	// }
-	*res = result
 
-	return nil
+	// default to recalling transfrom scripts for local updates
+	// TODO (b5): not sure if this should be here or in client libraries
+	if p.Recall == "" {
+		p.Recall = "tf"
+	}
+
+	saveParams := &SaveParams{
+		Dataset: &dataset.Dataset{
+			Name:      ref.Name,
+			Peername:  ref.Peername,
+			ProfileID: ref.ProfileID.String(),
+			Path:      ref.Path,
+			Commit: &dataset.Commit{
+				Title:   p.Title,
+				Message: p.Message,
+			},
+			Transform: &dataset.Transform{
+				Secrets: p.Secrets,
+			},
+		},
+		Recall:       p.Recall,
+		Secrets:      p.Secrets,
+		Publish:      p.Publish,
+		DryRun:       p.DryRun,
+		ReturnBody:   p.ReturnBody,
+		ScriptOutput: p.ScriptOutput,
+	}
+
+	return r.Save(saveParams, res)
 }
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset

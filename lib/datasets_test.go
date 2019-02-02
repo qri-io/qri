@@ -232,8 +232,9 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 		t.Error("save failed")
 	}
 
-	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err == nil {
-		t.Error("expected updated without transform to error")
+	// update should grab the transform from 2 commits back
+	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err != nil {
+		t.Error(err)
 	}
 }
 

@@ -20,30 +20,7 @@ func TestOpenCloseDataset(t *testing.T) {
 	t.Skip("TODO (b5)")
 }
 
-func TestUpdateDatasetLocal(t *testing.T) {
-	node := newTestNode(t)
-	cities := addCitiesDataset(t, node)
-
-	expect := "transform script is required to automate updates to your own datasets"
-	if _, err := UpdateDataset(node, &cities, nil, nil, false, true); err == nil {
-		t.Error("expected update without transform to error")
-	} else if err.Error() != expect {
-		t.Errorf("error mismatch. %s != %s", expect, err.Error())
-	}
-
-	now := addNowTransformDataset(t, node)
-	prevPath := now.Path
-	now, err := UpdateDataset(node, &now, nil, nil, false, false)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if now.Dataset.PreviousPath != prevPath {
-		t.Errorf("PreviousPath mismatch. expected: %s, got: %s", prevPath, now.Dataset.PreviousPath)
-	}
-}
-
-func TestUpdateDatasetRemote(t *testing.T) {
+func TestUpdateRemoteDataset(t *testing.T) {
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 2)
@@ -62,13 +39,29 @@ func TestUpdateDatasetRemote(t *testing.T) {
 		t.Error(err)
 	}
 
+	base.ReadDataset(peers[0].Repo, &now)
+
+	ds := &dataset.Dataset{
+		Peername: now.Peername,
+		Name:     now.Name,
+		Commit: &dataset.Commit{
+			Title:   "total overwrite",
+			Message: "manually create a silly change",
+		},
+		Meta: &dataset.Meta{
+			Title: "another test dataset",
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+
 	// run a local update to advance history
-	now0, err := UpdateDataset(peers[0], &now, nil, nil, false, false)
+	now0, err := SaveDataset(peers[0], ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	now1, err := UpdateDataset(peers[1], &now, nil, nil, false, false)
+	now1, err := UpdateRemoteDataset(peers[1], &now, false)
 	if err != nil {
 		t.Error(err)
 	}

@@ -128,89 +128,25 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin)
 }
 
-// UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is
-// in a peer's namespace, re-running a transform if the reference is owned by this profile
-func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, err error) {
-	if dryRun {
-		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-	}
-
-	if err = repo.CanonicalizeDatasetRef(node.Repo, ref); err == repo.ErrNotFound {
-		err = fmt.Errorf("unknown dataset '%s'. please add before updating", ref.AliasString())
-		return
-	} else if err != nil {
+// UpdateRemoteDataset brings a reference to the latest version, syncing to the
+// latest history it can find over p2p & via any configured registry
+func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
+	var ldr base.LogDiffResult
+	ldr, err = node.RequestLogDiff(ref)
+	if err != nil {
 		return
 	}
-
-	if !base.InLocalNamespace(node.Repo, ref) {
-		var ldr base.LogDiffResult
-		ldr, err = node.RequestLogDiff(ref)
-		if err != nil {
+	for _, add := range ldr.Add {
+		if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
 			return
 		}
-		for _, add := range ldr.Add {
-			if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
-				return
-			}
-		}
-		if err = node.Repo.PutRef(ldr.Head); err != nil {
-			return
-		}
-		res = ldr.Head
-		// TODO - currently we're not loading the body here
+	}
+	if err = node.Repo.PutRef(ldr.Head); err != nil {
 		return
 	}
-
-	return localUpdate(node, ref, secrets, scriptOut, dryRun, pin)
-}
-
-// localUpdate runs a transform on a local dataset and returns the new dataset ref and body
-func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, err error) {
-	ds := ref.Dataset
-
-	if ds == nil {
-		if err = base.ReadDataset(node.Repo, ref); err != nil {
-			log.Error(err)
-			return
-		}
-		ds = ref.Dataset
-	}
-
-	if ds.Transform == nil {
-		err = fmt.Errorf("transform script is required to automate updates to your own datasets")
-		return
-	}
-
-	ds.Name = ref.Name
-	ds.Transform.Secrets = secrets
-	if err = OpenDataset(node.Repo.Filesystem(), ds); err != nil {
-		return
-	}
-
-	prevRef := &repo.DatasetRef{
-		Peername:  ref.Peername,
-		Name:      ref.Name,
-		Path:      ref.Path,
-		ProfileID: ref.ProfileID,
-	}
-	if err = base.ReadDataset(node.Repo, prevRef); err != nil {
-		log.Error(err)
-		return
-	}
-	prev := prevRef.Dataset
-	if err = OpenDataset(node.Repo.Filesystem(), prev); err != nil {
-		return
-	}
-
-	node.LocalStreams.Print("🤖 executing transform\n")
-
-	if err = ExecTransform(node, ds, scriptOut, nil); err != nil {
-		return
-	}
-	node.LocalStreams.Print("✅ transform complete\n")
-	ds.PreviousPath = ref.Path
-
-	return base.CreateDataset(node.Repo, node.LocalStreams, ds, prev, dryRun, pin)
+	res = ldr.Head
+	// TODO - currently we're not loading the body here
+	return
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
