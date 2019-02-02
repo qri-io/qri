@@ -232,7 +232,7 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 
 	// Read body from the dataset that was saved.
 	dsPath := r.GetPathForDataset(0)
-	actualBody := r.ReadBodyFromIPFS(dsPath + "/data.csv")
+	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.csv")
 
 	// Read the body from the testdata input file.
 	f, _ := os.Open("testdata/movies/body_ten.csv")
@@ -280,7 +280,7 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 
 	// Read body from the dataset that was saved.
 	dsPath := r.GetPathForDataset(0)
-	actualBody := r.ReadBodyFromIPFS(dsPath + "/data.csv")
+	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.csv")
 
 	// Read the body from the testdata input file.
 	f, _ := os.Open("testdata/movies/body_ten.csv")
