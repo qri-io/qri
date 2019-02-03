@@ -239,6 +239,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.DatasetPath != "" {
+		// TODO (b5): handle this with a fs.Filesystem
 		dsf, err := ReadDatasetFile(p.DatasetPath)
 		if err != nil {
 			return err

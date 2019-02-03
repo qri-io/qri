@@ -32,7 +32,7 @@ func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	ds.Path = ref.Path
 	preview := subset.Preview(ds)
 
-	return cli.PutDataset(ref.Peername, ref.Name, preview, pub)
+	return cli.PutDataset(ds.Peername, ds.Name, preview, pub)
 }
 
 // Unpublish a dataset from a repo's specified registry
@@ -205,15 +205,20 @@ func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
 		return &repo.DatasetRef{}
 	}
 
-	ds := rds.Dataset
-
 	return &repo.DatasetRef{
 		Peername:  rds.Handle,
 		Name:      rds.Name,
 		Published: true,
-		Dataset:   &ds,
-		Path:      ds.Path,
-		ProfileID: profile.ID(ds.ProfileID),
+		Dataset: &dataset.Dataset{
+			Peername:  rds.Handle,
+			Name:      rds.Name,
+			Commit:    rds.Commit,
+			Meta:      rds.Meta,
+			Structure: rds.Structure,
+			Path:      rds.Path,
+		},
+		Path:      rds.Path,
+		ProfileID: profile.ID(rds.ProfileID),
 	}
 }
 
