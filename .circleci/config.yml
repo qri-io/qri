@@ -24,7 +24,7 @@ jobs:
       - run:
           name: Install gx
           command: >
-            go get -v -u
+            go get
             github.com/whyrusleeping/gx
             github.com/whyrusleeping/gx-go
       - run:

@@ -8,8 +8,9 @@ import (
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -44,7 +45,7 @@ func init() {
 }
 
 func TestReceivers(t *testing.T) {
-	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return
@@ -74,11 +75,11 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
+	ds := tc.Input
+	ds.Name = tc.Name
+	ds.BodyBytes = tc.Body
 
-	ref, _, err := actions.SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -90,11 +91,11 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.Transform.ScriptPath = "testdata/now_tf/transform.star"
+	ds := tc.Input
+	ds.Name = tc.Name
+	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, _, err := actions.SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

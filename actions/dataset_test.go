@@ -4,8 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -15,30 +16,11 @@ import (
 	"github.com/qri-io/registry/regserver/mock"
 )
 
-func TestUpdateDatasetLocal(t *testing.T) {
-	node := newTestNode(t)
-	cities := addCitiesDataset(t, node)
-
-	expect := "transform script is required to automate updates to your own datasets"
-	if _, _, err := UpdateDataset(node, &cities, nil, nil, false, true); err == nil {
-		t.Error("expected update without transform to error")
-	} else if err.Error() != expect {
-		t.Errorf("error mismatch. %s != %s", expect, err.Error())
-	}
-
-	now := addNowTransformDataset(t, node)
-	prevPath := now.Path
-	now, _, err := UpdateDataset(node, &now, nil, nil, false, false)
-	if err != nil {
-		t.Error(err)
-	}
-
-	if now.Dataset.PreviousPath != prevPath {
-		t.Errorf("PreviousPath mismatch. expected: %s, got: %s", prevPath, now.Dataset.PreviousPath)
-	}
+func TestOpenCloseDataset(t *testing.T) {
+	t.Skip("TODO (b5)")
 }
 
-func TestUpdateDatasetRemote(t *testing.T) {
+func TestUpdateRemoteDataset(t *testing.T) {
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 2)
@@ -57,13 +39,29 @@ func TestUpdateDatasetRemote(t *testing.T) {
 		t.Error(err)
 	}
 
+	base.ReadDataset(peers[0].Repo, &now)
+
+	ds := &dataset.Dataset{
+		Peername: now.Peername,
+		Name:     now.Name,
+		Commit: &dataset.Commit{
+			Title:   "total overwrite",
+			Message: "manually create a silly change",
+		},
+		Meta: &dataset.Meta{
+			Title: "another test dataset",
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+
 	// run a local update to advance history
-	now0, _, err := UpdateDataset(peers[0], &now, nil, nil, false, false)
+	now0, err := SaveDataset(peers[0], ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
 
-	now1, _, err := UpdateDataset(peers[1], &now, nil, nil, false, false)
+	now1, err := UpdateRemoteDataset(peers[1], &now, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -103,7 +101,7 @@ func TestDataset(t *testing.T) {
 	rc, _ := mock.NewMockServer()
 
 	rmf := func(t *testing.T) repo.Repo {
-		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), rc)
 		if err != nil {
 			panic(err)
 		}
@@ -117,16 +115,16 @@ func TestSaveDataset(t *testing.T) {
 	n := newTestNode(t)
 
 	// test Dry run
-	ds := &dataset.DatasetPod{
+	ds := &dataset.Dataset{
 		Name:      "dry_run_test",
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 		Meta: &dataset.Meta{
 			Title: "test title",
 		},
-		BodyBytes: []byte("[]"),
 	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, _, err := SaveDataset(n, ds, nil, nil, true, false, false)
+	ref, err := SaveDataset(n, ds, nil, nil, true, false, false)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -134,21 +132,22 @@ func TestSaveDataset(t *testing.T) {
 		t.Errorf("ref alias mismatch. expected: '%s' got: '%s'", "peer/dry_run_test", ref.AliasString())
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     "test_save",
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "initial commit",
 			Message: "manually create a baseline dataset",
 		},
 		Meta: &dataset.Meta{
 			Title: "another test dataset",
 		},
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
-		BodyBytes: []byte("[]"),
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+
 	// test save
-	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -156,15 +155,15 @@ func TestSaveDataset(t *testing.T) {
 		"bar": "secret",
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "add transform script",
 			Message: "adding an append-only transform script",
 		},
-		Structure: &dataset.StructurePod{Format: dataset.JSONDataFormat.String(), Schema: map[string]interface{}{"type": "array"}},
-		Transform: &dataset.TransformPod{
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+		Transform: &dataset.Transform{
 			Syntax: "starlark",
 			Config: map[string]interface{}{
 				"foo": "config",
@@ -172,28 +171,49 @@ func TestSaveDataset(t *testing.T) {
 			ScriptBytes: []byte(`def transform(ds,ctx): 
   ctx.get_config("foo")
   ctx.get_secret("bar")
-  bd = ds.get_body()
-  bd.append("hey")
-  ds.set_body(bd)`),
+  ds.set_body(["hey"])`),
 		},
 	}
+	ds.Transform.OpenScriptFile(nil)
+
 	// dryrun should work
-	ref, _, err = SaveDataset(n, ds, secrets, nil, true, false, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, true, false, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
+	ds = &dataset.Dataset{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Commit: &dataset.Commit{
+			Title:   "add transform script",
+			Message: "adding an append-only transform script",
+		},
+		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
+		Transform: &dataset.Transform{
+			Syntax: "starlark",
+			Config: map[string]interface{}{
+				"foo": "config",
+			},
+			ScriptBytes: []byte(`def transform(ds,ctx): 
+  ctx.get_config("foo")
+  ctx.get_secret("bar")
+  ds.set_body(["hey"])`),
+		},
+	}
+	ds.Transform.OpenScriptFile(nil)
+
 	// test save with transform
-	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// save new manual changes
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "update meta",
 			Message: "manual change that'll negate previous transform",
 		},
@@ -203,7 +223,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, _, err = SaveDataset(n, ds, nil, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -218,17 +238,20 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	ds = &dataset.DatasetPod{
+	ds = &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   "re-run transform",
 			Message: "recall transform & re-run it",
 		},
 		Transform: tfds.Transform,
 	}
+	if err := ds.Transform.OpenScriptFile(n.Repo.Filesystem()); err != nil {
+		t.Error(err)
+	}
 
-	ref, _, err = SaveDataset(n, ds, secrets, nil, false, true, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false)
 	if err != nil {
 		t.Error(err)
 	}

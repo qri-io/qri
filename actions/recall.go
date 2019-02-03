@@ -9,9 +9,9 @@ import (
 )
 
 // Recall loads revisions of a dataset from history
-func Recall(node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.DatasetPod, error) {
+func Recall(node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.Dataset, error) {
 	if str == "" {
-		return &dataset.DatasetPod{}, nil
+		return &dataset.Dataset{}, nil
 	}
 
 	revs, err := rev.ParseRevs(str)
@@ -28,5 +28,5 @@ func Recall(node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.Datase
 		return nil, err
 	}
 
-	return res.Encode(), nil
+	return res, nil
 }

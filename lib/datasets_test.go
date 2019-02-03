@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/csv"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
@@ -12,12 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -80,54 +82,55 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	cases := []struct {
-		dataset *dataset.DatasetPod
-		res     *dataset.DatasetPod
+		dataset *dataset.Dataset
+		res     *dataset.Dataset
 		err     string
 	}{
 
-		// {&dataset.DatasetPod{
+		// {&dataset.Dataset{
 		// 	Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
 		// 	BodyPath:  jobsBodyPath,
 		// }, nil, "invalid dataset: structure: format is required"},
-		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{}}, nil, ""},
+		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{}}, nil, ""},
 
 		// {nil, nil, "at least one of Dataset, DatasetPath is required"},
 		// TODO - restore
-		{&dataset.DatasetPod{}, nil, "name is required"},
-		// {&dataset.DatasetPod{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
-		// {&dataset.DatasetPod{Peername: "bad", Name: "path", Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		// {&dataset.DatasetPod{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
-		// {&dataset.DatasetPod{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
-		// {&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
-		// {&dataset.DatasetPod{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		// {&dataset.DatasetPod{BodyPath: jobsBodyPath, Commit: &dataset.CommitPod{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.DatasetPod{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
-		{&dataset.DatasetPod{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
-
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", Commit: &dataset.CommitPod{}, BodyPath: citiesBodyPath}, nil, ""},
-		{&dataset.DatasetPod{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
+		{&dataset.Dataset{}, nil, "name is required"},
+		// {&dataset.Dataset{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
+		// {&dataset.Dataset{Peername: "bad", Name: "path", Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		// {&dataset.Dataset{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
+		// {&dataset.Dataset{BodyPath: "testdata/q_bang.svg"}, nil, "invalid data format: unsupported file type: '.svg'"},
+		// {&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
+		// {&dataset.Dataset{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
+		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
+		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
 	}
 
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Save(&SaveParams{Dataset: c.dataset}, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			t.Fatalf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			// t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
 
 		if got != nil && c.res != nil {
-			expect := &dataset.Dataset{}
-			if err := expect.Decode(c.res); err != nil {
-				t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
-				continue
-			}
-			gotDs := &dataset.Dataset{}
-			if err := gotDs.Decode(got.Dataset); err != nil {
-				t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
-				continue
-			}
+			expect := c.res
+			// expect := &dataset.Dataset{}
+			// if err := expect.Decode(c.res); err != nil {
+			// 	t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
+			// 	continue
+			// }
+			gotDs := got.Dataset
+			// if err := gotDs.Decode(got.Dataset); err != nil {
+			// 	t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
+			// 	continue
+			// }
 			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
 				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
 				continue
@@ -142,7 +145,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	r := NewDatasetRequests(node, nil)
 
 	res := &repo.DatasetRef{}
-	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
 		Peername: ref.Peername,
 		Name:     ref.Name,
 		Meta:     &dataset.Meta{Title: "an updated title"},
@@ -152,7 +155,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Peername: ref.Peername,
 			Name:     ref.Name,
 			Meta:     &dataset.Meta{Title: "an updated title"},
@@ -163,7 +166,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Peername: ref.Peername,
 			Name:     ref.Name,
 			Meta:     &dataset.Meta{Title: "new title!"},
@@ -189,7 +192,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 	req := NewDatasetRequests(node, nil)
 
-	dsp := &dataset.DatasetPod{Peername: "me"}
+	dsp := &dataset.Dataset{Peername: "me"}
 	res := repo.DatasetRef{}
 	err = req.Save(&SaveParams{Dataset: dsp, DatasetPath: "testdata/import.zip"}, &res)
 	if err != nil {
@@ -215,12 +218,12 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 
 	ref := addNowTransformDataset(t, node)
 	res = &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), ReturnBody: true}, res); err != nil {
+	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), Recall: "tf", ReturnBody: true}, res); err != nil {
 		t.Errorf("update error: %s", err)
 	}
 
 	// run a manual save to lose the transform
-	err := r.Save(&SaveParams{Dataset: &dataset.DatasetPod{
+	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
 		Peername: res.Peername,
 		Name:     res.Name,
 		Meta:     &dataset.Meta{Title: "an updated title"},
@@ -229,8 +232,9 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 		t.Error("save failed")
 	}
 
-	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err == nil {
-		t.Error("expected updated without transform to error")
+	// update should grab the transform from 2 commits back
+	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err != nil {
+		t.Error(err)
 	}
 }
 
@@ -381,27 +385,101 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   repo.DatasetRef
-		res *dataset.Dataset
-		err string
+		params *GetParams
+		res    *dataset.Dataset
+		err    string
 	}{
 		// TODO: probably delete some of these
-		{repo.DatasetRef{Peername: "peer", Path: "abc", Name: "ABC"}, nil,
-			"error loading dataset: error getting file bytes: cafs: path not found"},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}, nil, ""},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}, moviesDs, ""},
-		{repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}, moviesDs, ""},
+		{&GetParams{Path: "peer/ABC@abc"}, nil, "'peer/ABC@abc' is not a valid dataset reference"},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}.String()
+		{&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)}, nil, ""},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}.String()
+		{&GetParams{Path: "peer/movies"}, moviesDs, ""},
+		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}.String()
+		// {, moviesDs, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		got := &LookupResult{}
-		err := req.Get(&LookupParams{Ref: &c.p}, got)
+		got := &GetResult{}
+		err := req.Get(c.params, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
 		// TODO (dlong): Inspect the contents of `got`
+	}
+}
+
+func TestDatasetRequestsGetBody(t *testing.T) {
+	rc, _ := regmock.NewMockServer()
+	mr, err := testrepo.NewTestRepo(rc)
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+		return
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
+	if err != nil {
+		t.Fatalf("error getting movies ref: %s", err.Error())
+	}
+	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
+	if err != nil {
+		t.Fatalf("error getting craigslist ref: %s", err.Error())
+	}
+	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
+	if err != nil {
+		t.Fatalf("error getting sitemap ref: %s", err.Error())
+	}
+
+	cases := []struct {
+		p        *GetParams
+		resCount int
+		err      string
+	}{
+		{&GetParams{Selector: "body"}, 0, "repo: empty dataset reference"},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: 5, Offset: 0, All: false}, 5, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
+		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: true}, 0, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 0, Offset: 0, All: true}, 0, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 2, Offset: 0, All: false}, 2, ""},
+		{&GetParams{Selector: "body", Format: "json", Path: sitemapRef.String(), Limit: 3, Offset: 0, All: false}, 3, ""},
+	}
+
+	req := NewDatasetRequests(node, nil)
+	for i, c := range cases {
+		got := &GetResult{}
+		err := req.Get(c.p, got)
+
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			continue
+		}
+
+		if got.Bytes == nil && c.resCount == 0 {
+			continue
+		}
+
+		switch c.p.Format {
+		default:
+			// default should be json format
+			_, err := json.Marshal(got.Dataset)
+			if err != nil {
+				t.Errorf("case %d error parsing response data: %s", i, err.Error())
+				continue
+			}
+		case "csv":
+			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
+			_, err := r.ReadAll()
+			if err != nil {
+				t.Errorf("case %d error parsing response data: %s", i, err.Error())
+				continue
+			}
+		}
 	}
 }
 
@@ -440,8 +518,8 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
 			dsr := NewDatasetRequests(node, nil)
-			got := &LookupResult{}
-			err = dsr.Get(&LookupParams{Ref: &ref}, got)
+			got := &GetResult{}
+			err = dsr.Get(&GetParams{Path: ref.String()}, got)
 			if err != nil {
 				t.Errorf("error listing dataset for %s: %s", ref.Name, err.Error())
 			}
@@ -530,78 +608,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
-		}
-	}
-}
-
-func TestDatasetRequestsLookupBody(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-		return
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-
-	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
-	if err != nil {
-		t.Fatalf("error getting movies ref: %s", err.Error())
-	}
-	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
-	if err != nil {
-		t.Fatalf("error getting craigslist ref: %s", err.Error())
-	}
-	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
-	if err != nil {
-		t.Fatalf("error getting sitemap ref: %s", err.Error())
-	}
-
-	cases := []struct {
-		p        *LookupParams
-		resCount int
-		err      string
-	}{
-		{&LookupParams{}, 0, "repo: empty dataset reference"},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: "json", PathString: moviesRef.Path, Limit: -5, Offset: -100, All: true}, 0, "invalid limit / offset settings"},
-		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 0, Offset: 0, All: true}, 0, ""},
-		{&LookupParams{Format: "json", PathString: clRef.Path, Limit: 2, Offset: 0, All: false}, 2, ""},
-		{&LookupParams{Format: "json", PathString: sitemapRef.Path, Limit: 3, Offset: 0, All: false}, 3, ""},
-	}
-
-	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
-		got := &LookupResult{}
-		err := req.LookupBody(c.p, got)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
-
-		if got.Bytes == nil && c.resCount == 0 {
-			continue
-		}
-
-		switch c.p.Format {
-		default:
-			// default should be json format
-			_, err := json.Marshal(got.Data)
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
-		case "csv":
-			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
-			_, err := r.ReadAll()
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
 		}
 	}
 }
@@ -726,10 +732,10 @@ Pirates of the Caribbean: At World's End ,foo
 	  }
 	}`)
 
-	dataf := cafs.NewMemfileBytes("data.csv", movieb)
-	dataf2 := cafs.NewMemfileBytes("data.csv", movieb)
-	schemaf := cafs.NewMemfileBytes("schema.json", schemaB)
-	schemaf2 := cafs.NewMemfileBytes("schema.json", schemaB)
+	dataf := qfs.NewMemfileBytes("data.csv", movieb)
+	dataf2 := qfs.NewMemfileBytes("data.csv", movieb)
+	schemaf := qfs.NewMemfileBytes("schema.json", schemaB)
+	schemaf2 := qfs.NewMemfileBytes("schema.json", schemaB)
 
 	cases := []struct {
 		p         ValidateDatasetParams
@@ -791,7 +797,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 
 	dsRef1 := repo.DatasetRef{}
 	initParams := &SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Name:     "jobs_ranked_by_automation_prob",
 			BodyPath: fp1,
 		},
@@ -811,7 +817,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 	dsRef2 := repo.DatasetRef{}
 	initParams = &SaveParams{
-		Dataset: &dataset.DatasetPod{
+		Dataset: &dataset.Dataset{
 			Name:     "jobs_ranked_by_automation_prob",
 			BodyPath: fp2,
 		},

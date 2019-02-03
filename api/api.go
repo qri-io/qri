@@ -14,7 +14,7 @@ import (
 
 	"github.com/datatogether/api/apiutil"
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"

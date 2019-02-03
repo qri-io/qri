@@ -8,7 +8,7 @@ import (
 	"net/rpc"
 	"strings"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -216,7 +216,7 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.node.Repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.node.Repo.Store().Put(qfs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
@@ -299,7 +299,7 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.node.Repo.Store().Put(cafs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.node.Repo.Store().Put(qfs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 

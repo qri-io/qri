@@ -2,22 +2,23 @@ package actions
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
 // Validate checks a dataset body for errors based on a schema
-func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema cafs.File) (errors []jsonschema.ValError, err error) {
+func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
 	if !ref.IsEmpty() {
 		err = repo.CanonicalizeDatasetRef(node.Repo, &ref)
 		if err != nil && err != repo.ErrNotFound {
@@ -85,8 +86,8 @@ func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema cafs.File) (e
 			err = e
 			return
 		}
-		sch := &jsonschema.RootSchema{}
-		if e := sch.UnmarshalJSON(stbytes); e != nil {
+		sch := map[string]interface{}{}
+		if e := json.Unmarshal(stbytes, &sch); e != nil {
 			err = fmt.Errorf("error reading schema: %s", e.Error())
 			return
 		}

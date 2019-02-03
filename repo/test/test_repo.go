@@ -10,10 +10,14 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -66,7 +70,16 @@ func NewEmptyTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
-	return repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	ms := cafs.NewMapstore()
+	return repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore(), rc)
+}
+
+func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
+	return muxfs.NewMux(map[string]qfs.PathResolver{
+		"local": localfs.NewFS(),
+		"http":  httpfs.NewFS(),
+		"cafs":  cafsys,
+	})
 }
 
 // NewTestRepo generates a repository usable for testing purposes
@@ -102,11 +115,12 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return nil, err
 	}
 
+	ms := cafs.NewMapstore()
 	r, err := repo.NewMemRepo(&profile.Profile{
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
-	}, cafs.NewMapstore(), profile.NewMemStore(), nil)
+	}, ms, newTestFS(ms), profile.NewMemStore(), nil)
 	if err != nil {
 		return r, err
 	}
@@ -163,7 +177,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	_, _, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Name, ds, nil, tc.BodyFile(), nil, false, true)
+	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true)
 	return
 }
 
@@ -177,7 +191,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, profile.NewMemStore(), nil)
+	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore(), nil)
 	if err != nil {
 		return mr, pk, err
 	}
@@ -232,7 +246,7 @@ func ReadRepoConfig(path string) (pro *profile.Profile, pk crypto.PrivKey, err e
 }
 
 // BadBodyFile is a bunch of bad CSV data
-var BadBodyFile = cafs.NewMemfileBytes("bad_csv_file.csv", []byte(`
+var BadBodyFile = qfs.NewMemfileBytes("bad_csv_file.csv", []byte(`
 asdlkfasd,,
 fm as
 f;lajsmf 
@@ -241,13 +255,13 @@ a
 sdlfj asdf`))
 
 // BadDataFormatFile has weird line lengths
-var BadDataFormatFile = cafs.NewMemfileBytes("abc.csv", []byte(`
+var BadDataFormatFile = qfs.NewMemfileBytes("abc.csv", []byte(`
 "colA","colB","colC","colD"
 1,2,3,4
 1,2,3`))
 
 // BadStructureFile has double-named columns
-var BadStructureFile = cafs.NewMemfileBytes("badStructure.csv", []byte(`
+var BadStructureFile = qfs.NewMemfileBytes("badStructure.csv", []byte(`
 colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))

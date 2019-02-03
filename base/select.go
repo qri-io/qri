@@ -19,10 +19,10 @@ func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) 
 	}
 
 	if path == "" {
-		return ds.Encode(), nil
+		return ds, nil
 	}
 
-	v, err := pathValue(ds.Encode(), path)
+	v, err := pathValue(ds, path)
 	if err != nil {
 		return nil, err
 	}
@@ -30,7 +30,8 @@ func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) 
 }
 
 // ApplyPath gets a dataset value by applying a case.Sensitve.dot.separated.path
-func ApplyPath(ds *dataset.DatasetPod, path string) (interface{}, error) {
+// ApplyPath cannot select file fields
+func ApplyPath(ds *dataset.Dataset, path string) (interface{}, error) {
 	var value reflect.Value
 	value, err := pathValue(ds, path)
 	if err != nil {
@@ -39,7 +40,7 @@ func ApplyPath(ds *dataset.DatasetPod, path string) (interface{}, error) {
 	return value.Interface(), nil
 }
 
-func pathValue(ds *dataset.DatasetPod, path string) (elem reflect.Value, err error) {
+func pathValue(ds *dataset.Dataset, path string) (elem reflect.Value, err error) {
 	elem = reflect.ValueOf(ds)
 
 	for _, sel := range strings.Split(path, ".") {

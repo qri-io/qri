@@ -8,8 +8,12 @@ import (
 	"path/filepath"
 	"sync"
 
-	ipfs "github.com/qri-io/cafs/ipfs"
+	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
@@ -144,7 +148,7 @@ func (o *QriOptions) Init() (err error) {
 			return
 		}
 
-		var fs *ipfs.Filestore
+		var store *ipfs.Filestore
 
 		fsOpts := []ipfs.Option{
 			func(cfg *ipfs.StoreCfg) {
@@ -154,7 +158,7 @@ func (o *QriOptions) Init() (err error) {
 			ipfs.OptsFromMap(o.config.Store.Options),
 		}
 
-		fs, err = ipfs.NewFilestore(fsOpts...)
+		store, err = ipfs.NewFilestore(fsOpts...)
 		if err != nil {
 			return
 		}
@@ -171,7 +175,14 @@ func (o *QriOptions) Init() (err error) {
 			})
 		}
 
-		o.repo, err = fsrepo.NewRepo(fs, pro, rc, o.qriRepoPath)
+		fsys := muxfs.NewMux(map[string]qfs.PathResolver{
+			"local": localfs.NewFS(),
+			"http":  httpfs.NewFS(),
+			"cafs":  store,
+			"ipfs":  store,
+		})
+
+		o.repo, err = fsrepo.NewRepo(store, fsys, pro, rc, o.qriRepoPath)
 		if err != nil {
 			return
 		}

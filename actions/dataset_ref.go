@@ -48,14 +48,14 @@ func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err
 				responses <- res
 			}()
 
-			var ds *registry.Dataset
-			if ds, res.Error = rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); res.Error == nil {
+			var rds *registry.Dataset
+			if rds, res.Error = rc.GetDataset(ref.Peername, ref.Name, ref.ProfileID.String(), ref.Path); res.Error == nil {
 				// Commit author is required to resolve ref
-				if ds.Commit != nil && ds.Commit.Author != nil {
-					ref.Peername = ds.Peername
-					ref.Name = ds.Name
-					ref.ProfileID, _ = profile.IDB58Decode(ds.Commit.Author.ID)
-					ref.Path = ds.Path
+				if rds.Commit != nil && rds.Commit.Author != nil {
+					ref.Peername = rds.Handle
+					ref.Name = rds.Name
+					ref.ProfileID, _ = profile.IDB58Decode(rds.Commit.Author.ID)
+					ref.Path = rds.Path
 					return
 				}
 			}

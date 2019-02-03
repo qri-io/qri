@@ -49,8 +49,8 @@ dataset and its fields.`,
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
 	cmd.Flags().BoolVar(&o.Concise, "concise", false, "print output without indentation, only applies to json format")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 10, "for body, limit how many entries to get")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "s", 0, "for body, offset at which to get entries")
+	cmd.Flags().IntVarP(&o.Limit, "limit", "l", -1, "for body, limit how many entries to get")
+	cmd.Flags().IntVarP(&o.Offset, "offset", "s", -1, "for body, offset at which to get entries")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 
 	return cmd
@@ -111,20 +111,25 @@ func (o *GetOptions) Run() (err error) {
 		}
 	}
 
-	p := lib.LookupParams{
-		PathString: path,
-		Selector:   o.Selector,
-		Format:     o.Format,
-		Concise:    o.Concise,
-		Offset:     o.Offset,
-		Limit:      o.Limit,
-		All:        o.All,
+	p := lib.GetParams{
+		Path:     path,
+		Selector: o.Selector,
+		Format:   o.Format,
+		Concise:  o.Concise,
+		Offset:   o.Offset,
+		Limit:    o.Limit,
+		All:      o.All,
 	}
-	res := lib.LookupResult{}
+	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err != nil {
 		return err
 	}
 
 	_, err = o.Out.Write(res.Bytes)
+	if err != nil {
+		return err
+	}
+	// commands should always be newline-terminiated, which isn't included in res.Bytes
+	_, err = o.Out.Write([]byte{'\n'})
 	return err
 }

@@ -5,9 +5,10 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -62,7 +63,7 @@ func makeTestRepo() (Repo, error) {
 		},
 		PreviousPath: "",
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaObject,
 		},
 	}
@@ -74,7 +75,7 @@ func makeTestRepo() (Repo, error) {
 			Message: "bar",
 		},
 		Structure: &dataset.Structure{
-			Format: dataset.JSONDataFormat,
+			Format: "json",
 			Schema: dataset.BaseSchemaObject,
 		},
 		Transform: &dataset.Transform{
@@ -90,7 +91,7 @@ func makeTestRepo() (Repo, error) {
 	store := cafs.NewMapstore()
 	p := &profile.Profile{}
 
-	r, err := NewMemRepo(p, store, nil, nil)
+	r, err := NewMemRepo(p, store, qfs.NewMemFS(), nil, nil)
 	if err != nil {
 		return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 	}
@@ -108,9 +109,9 @@ func makeTestRepo() (Repo, error) {
 	}
 	r.SetProfile(pro)
 
-	data1f := cafs.NewMemfileBytes("data1", []byte("dataset_1"))
+	ds1.SetBodyFile(qfs.NewMemfileBytes("data1", []byte("dataset_1")))
 
-	ds1p, err := dsfs.WriteDataset(store, ds1, data1f, true)
+	ds1p, err := dsfs.WriteDataset(store, ds1, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}
@@ -118,8 +119,8 @@ func makeTestRepo() (Repo, error) {
 		return nil, err
 	}
 
-	data2f := cafs.NewMemfileBytes("data2", []byte("dataset_2"))
-	ds2p, err := dsfs.WriteDataset(store, ds2, data2f, true)
+	ds2.SetBodyFile(qfs.NewMemfileBytes("data2", []byte("dataset_2")))
+	ds2p, err := dsfs.WriteDataset(store, ds2, true)
 	if err != nil {
 		return nil, fmt.Errorf("error putting dataset: %s", err.Error())
 	}

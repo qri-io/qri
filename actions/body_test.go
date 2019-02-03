@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 )
 
-func TestLookupBody(t *testing.T) {
+func TestGetBody(t *testing.T) {
 	node := newTestNode(t)
 	ref := addCitiesDataset(t, node)
 
@@ -16,8 +16,11 @@ func TestLookupBody(t *testing.T) {
 	if err != nil {
 		t.Error(err.Error())
 	}
+	if err = OpenDataset(node.Repo.Filesystem(), ds); err != nil {
+		t.Fatal(err)
+	}
 
-	bodyPath, data, err := LookupBody(node, ds, dataset.JSONDataFormat, nil, 1, 1, false)
+	data, err := GetBody(node, ds, dataset.JSONDataFormat, nil, 1, 1, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -25,7 +28,7 @@ func TestLookupBody(t *testing.T) {
 		t.Errorf("byte response mismatch. got: %s", string(data))
 	}
 
-	if bodyPath != "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD" {
+	if ds.BodyPath != "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD" {
 		t.Errorf("bodypath mismatch")
 	}
 }

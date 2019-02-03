@@ -105,14 +105,14 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 			return err
 		}
 
-		p := &lib.LookupParams{
+		p := &lib.ReadParams{
 			Format: df,
 			Path:   ds.Path().String(),
 			All:    true,
 		}
-		r := &lib.LookupResult{}
+		r := &lib.ReadResult{}
 
-		if err = o.DatasetRequests.LookupBody(p, r); err != nil {
+		if err = o.DatasetRequests.ReadBody(p, r); err != nil {
 			return err
 		}
 

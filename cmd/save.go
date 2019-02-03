@@ -125,11 +125,11 @@ func (o *SaveOptions) Run() (err error) {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
-	dsp := &dataset.DatasetPod{
+	dsp := &dataset.Dataset{
 		Name:     ref.Name,
 		Peername: ref.Peername,
 		BodyPath: o.BodyPath,
-		Commit: &dataset.CommitPod{
+		Commit: &dataset.Commit{
 			Title:   o.Title,
 			Message: o.Message,
 		},

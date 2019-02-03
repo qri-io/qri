@@ -7,7 +7,7 @@ import (
 	"os"
 	"sync"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/theckman/go-flock"

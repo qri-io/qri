@@ -8,8 +8,9 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dsgraph"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -33,6 +34,7 @@ type Repo struct {
 	profile *profile.Profile
 
 	store        cafs.Filestore
+	fsys         qfs.Filesystem
 	selectedRefs []repo.DatasetRef
 	graph        map[string]*dsgraph.Node
 
@@ -43,7 +45,7 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc *regclient.Client, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -57,6 +59,7 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, b
 		profile: pro,
 
 		store:    store,
+		fsys:     fsys,
 		basepath: bp,
 
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefstore},
@@ -85,6 +88,11 @@ func NewRepo(store cafs.Filestore, pro *profile.Profile, rc *regclient.Client, b
 // Store returns the underlying cafs.Filestore driving this repo
 func (r Repo) Store() cafs.Filestore {
 	return r.store
+}
+
+// Filesystem returns this repo's Filesystem
+func (r Repo) Filesystem() qfs.Filesystem {
+	return r.fsys
 }
 
 // Graph returns the graph of dataset objects for this repo

@@ -21,7 +21,7 @@ func DatasetLog(r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDataset
 				return
 			}
 		}
-		ref.Dataset = ds.Encode()
+		ref.Dataset = ds
 
 		offset--
 		if offset > 0 {

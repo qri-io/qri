@@ -124,7 +124,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 			if err != nil {
 				err = fmt.Errorf("error loading dataset: %s", err.Error())
 			}
-			ref.Dataset = ds.Encode()
+			ref.Dataset = ds
 
 			kontinue, err := visit(0, &ref, err)
 			if err != nil {
@@ -145,7 +145,7 @@ func WalkRepoDatasets(r Repo, visit func(depth int, ref *DatasetRef, err error) 
 					done <- err
 					return err
 				}
-				ref.Dataset = ds.Encode()
+				ref.Dataset = ds
 				kontinue, err = visit(depth, &ref, err)
 				if err != nil {
 					done <- err

@@ -3,251 +3,150 @@ package actions
 import (
 	"fmt"
 	"io"
-	"os"
-	"strings"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
 
+// OpenDataset prepares a dataset for use, checking each component
+// for populated Path or Byte suffixed fields, consuming those fields to
+// set File handlers that are ready for reading
+func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
+	if ds.BodyFile() == nil {
+		if err = ds.OpenBodyFile(fsys); err != nil {
+			return
+		}
+	}
+	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
+		if err = ds.Transform.OpenScriptFile(fsys); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
+		if err = ds.Viz.OpenScriptFile(fsys); err != nil {
+			return
+		}
+	}
+	return
+}
+
+// CloseDataset ensures all open dataset files are closed
+func CloseDataset(ds *dataset.Dataset) (err error) {
+	if ds.BodyFile() != nil {
+		if err = ds.BodyFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		if err = ds.Transform.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		if err = ds.Viz.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+
+	return
+}
+
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changesPod *dataset.DatasetPod, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, body cafs.File, err error) {
+func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, err error) {
 	var (
-		changes                                = &dataset.Dataset{}
-		prevBodyFile, bodyFile, changeBodyFile cafs.File
-		prevPath                               string
-		pro                                    *profile.Profile
-		r                                      = node.Repo
+		prevPath string
+		pro      *profile.Profile
+		r        = node.Repo
 	)
 
-	prev, mutable, prevBodyFile, prevPath, err := base.PrepareDatasetSave(r, changesPod.Peername, changesPod.Name)
+	prev, mutable, prevPath, err := base.PrepareDatasetSave(r, changes.Peername, changes.Name)
 	if err != nil {
 		return
 	}
 
-	pro, err = r.Profile()
-	if err != nil {
+	if pro, err = r.Profile(); err != nil {
 		return
 	}
 
 	if dryRun {
 		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
 		// dry-runs store to an in-memory repo
-		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), profile.NewMemStore(), nil)
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore(), nil)
 		if err != nil {
 			return
 		}
-	}
-
-	// turns the bodybyte into file, or load file from path
-	if changeBodyFile, err = base.DatasetPodBodyFile(node.Repo.Store(), changesPod); err != nil {
-		return
-	}
-	if err = changes.Decode(changesPod); err != nil {
-		return
 	}
 
 	if changes.Transform != nil {
 		// create a check func from a record of all the parts that the datasetPod is changing,
 		// the startf package will use this function to ensure the same components aren't modified
-		mutateCheck := mutatedComponentsFunc(changesPod)
-		if changes.Transform.Script == nil {
-			if strings.HasPrefix(changes.Transform.ScriptPath, "/ipfs") || strings.HasPrefix(changes.Transform.ScriptPath, "/map") || strings.HasPrefix(changes.Transform.ScriptPath, "/cafs") {
-				var f cafs.File
-				f, err = node.Repo.Store().Get(changes.Transform.ScriptPath)
-				if err != nil {
-					return
-				}
-				changes.Transform.Script = f
-			} else {
-				var f *os.File
-				f, err = os.Open(changes.Transform.ScriptPath)
-				if err != nil {
-					return
-				}
-				changes.Transform.Script = f
-			}
-		}
-		// TODO - consider making this a standard method on dataset.Transform
-		script := cafs.NewMemfileReader(changes.Transform.ScriptPath, changes.Transform.Script)
+		mutateCheck := mutatedComponentsFunc(changes)
 
-		var config map[string]interface{}
-		if changesPod.Transform == nil {
-			config = make(map[string]interface{})
-		} else {
-			config = changesPod.Transform.Config
-		}
-
-		bodyFile, err = ExecTransform(node, mutable, script, prevBodyFile, secrets, config, scriptOut, mutateCheck)
-		if err != nil {
+		changes.Transform.Secrets = secrets
+		if err = ExecTransform(node, changes, scriptOut, mutateCheck); err != nil {
 			return
 		}
+		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
 		node.LocalStreams.Print("✅ transform complete\n")
 	}
 
 	// Infer any values about the incoming change before merging it with the previous version.
-	changeBodyFile, err = base.InferValues(pro, &changesPod.Name, changes, changeBodyFile)
-	if err != nil {
+	if err = base.InferValues(pro, changes); err != nil {
 		return
 	}
 
-	if prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
+	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
 		if convertFormatToPrev {
-			changeBodyFile, err = base.ConvertBodyFormat(changeBodyFile, changes.Structure,
-				prev.Structure)
+			var f qfs.File
+			f, err = base.ConvertBodyFormat(changes.BodyFile(), changes.Structure, prev.Structure)
 			if err != nil {
 				return
 			}
 			// Set the new format on the change structure.
 			changes.Structure.Format = prev.Structure.Format
+			changes.SetBodyFile(f)
 		} else {
 			err = fmt.Errorf("Refusing to change structure from %s to %s",
 				prev.Structure.Format, changes.Structure.Format)
 			return
 		}
 	}
+
 	// apply the changes to the previous dataset.
 	mutable.Assign(changes)
 	changes = mutable
-	clearPaths(changes)
 
-	if changeBodyFile != nil {
-		changes.BodyPath = ""
-		bodyFile = changeBodyFile
-	}
 	// let's make history, if it exists:
 	changes.PreviousPath = prevPath
-	return base.CreateDataset(r, node.LocalStreams, changesPod.Name, changes, prev, bodyFile, prevBodyFile, dryRun, pin)
+
+	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin)
 }
 
-// for now it's very important we remove any path references before saving
-// we should remove this in the long run, but not without extensive tests in
-// dsfs, and dsdiff packages, both of which are very sensitive to paths being present
-func clearPaths(ds *dataset.Dataset) {
-	if ds.Meta != nil {
-		ds.Meta.SetPath("")
-	}
-	if ds.Structure != nil {
-		ds.Structure.SetPath("")
-	}
-	if ds.Viz != nil {
-		ds.Viz.SetPath("")
-	}
-	if ds.Transform != nil {
-		ds.Transform.SetPath("")
-	}
-}
-
-// UpdateDataset brings a reference to the latest version, syncing over p2p if the reference is
-// in a peer's namespace, re-running a transform if the reference is owned by this profile
-func UpdateDataset(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
-	if dryRun {
-		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
-	}
-
-	if err = repo.CanonicalizeDatasetRef(node.Repo, ref); err == repo.ErrNotFound {
-		err = fmt.Errorf("unknown dataset '%s'. please add before updating", ref.AliasString())
-		return
-	} else if err != nil {
+// UpdateRemoteDataset brings a reference to the latest version, syncing to the
+// latest history it can find over p2p & via any configured registry
+func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
+	var ldr base.LogDiffResult
+	ldr, err = node.RequestLogDiff(ref)
+	if err != nil {
 		return
 	}
-
-	if !base.InLocalNamespace(node.Repo, ref) {
-		var ldr base.LogDiffResult
-		ldr, err = node.RequestLogDiff(ref)
-		if err != nil {
+	for _, add := range ldr.Add {
+		if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
 			return
 		}
-		for _, add := range ldr.Add {
-			if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
-				return
-			}
-		}
-		if err = node.Repo.PutRef(ldr.Head); err != nil {
-			return
-		}
-		res = ldr.Head
-		// TODO - currently we're not loading the body here
+	}
+	if err = node.Repo.PutRef(ldr.Head); err != nil {
 		return
 	}
-
-	return localUpdate(node, ref, secrets, scriptOut, dryRun, pin)
-}
-
-// localUpdate runs a transform on a local dataset and returns the new dataset ref and body
-// TODO (ramfox): Bug!
-// localUpdate is called by UpdateDataset. UpdateDataset, is called by lib.Update, which "recalls"
-// the last transform run, and adds that transform to the ref
-// However, once we get down here, that ref actually get's written over when we
-// call base.ReadDataset. Which means if our last dataset did not have a transform, when we called
-// Update, we will error, even though we just "recalled" the transform
-func localUpdate(node *p2p.QriNode, ref *repo.DatasetRef, secrets map[string]string, scriptOut io.Writer, dryRun, pin bool) (res repo.DatasetRef, body cafs.File, err error) {
-	var (
-		bodyFile, prevBodyFile cafs.File
-		commit                 = &dataset.CommitPod{}
-	)
-
-	if ref.Dataset != nil {
-		commit = ref.Dataset.Commit
-	}
-
-	if err = base.ReadDataset(node.Repo, ref); err != nil {
-		log.Error(err)
-		return
-	}
-	if ref.Dataset.Transform == nil {
-		err = fmt.Errorf("transform script is required to automate updates to your own datasets")
-		return
-	}
-
-	prev := &dataset.Dataset{}
-	if err = prev.Decode(ref.Dataset); err != nil {
-		return
-	}
-
-	ds := &dataset.Dataset{}
-	if err = ds.Decode(ref.Dataset); err != nil {
-		return
-	}
-	ds.Commit.Title = commit.Title
-	ds.Commit.Message = commit.Message
-
-	prevBodyFile, err = dsfs.LoadBody(node.Repo.Store(), ds)
-	if err != nil {
-		log.Error(err.Error())
-		return
-	}
-
-	script, err := node.Repo.Store().Get(ds.Transform.ScriptPath)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	ds.Transform.ScriptPath = script.FileName()
-
-	node.LocalStreams.Print("🤖 executing transform\n")
-
-	var config map[string]interface{}
-	if ref.Dataset.Transform == nil {
-		config = make(map[string]interface{})
-	} else {
-		config = ref.Dataset.Transform.Config
-	}
-	bodyFile, err = ExecTransform(node, ds, script, prevBodyFile, secrets, config, scriptOut, nil)
-	if err != nil {
-		log.Error(err)
-		return
-	}
-	node.LocalStreams.Print("✅ transform complete\n")
-	ds.PreviousPath = ref.Path
-
-	return base.CreateDataset(node.Repo, node.LocalStreams, ref.Name, ds, prev, bodyFile, prevBodyFile, dryRun, pin)
+	res = ldr.Head
+	// TODO - currently we're not loading the body here
+	return
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs

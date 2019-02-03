@@ -106,22 +106,22 @@ func DiffDatasets(node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool
 	// 	if dsLeft.Structure.Checksum == dsRight.Structure.Checksum {
 	// 		return
 	// 	}
-	// 	params0 := &LookupParams{
+	// 	params0 := &ReadParams{
 	// 		Format: dataset.JSONDataFormat,
 	// 		Path:   dsLeft.Path().String(),
 	// 	}
-	// 	params1 := &LookupParams{
+	// 	params1 := &ReadParams{
 	// 		Format: dataset.JSONDataFormat,
 	// 		Path:   dsRight.Path().String(),
 	// 	}
-	// 	result0 := &LookupResult{}
-	// 	result1 := &LookupResult{}
-	// 	err := r.LookupBody(params0, result0)
+	// 	result0 := &ReadResult{}
+	// 	result1 := &ReadResult{}
+	// 	err := r.ReadBody(params0, result0)
 	// 	if err != nil {
 	// 		log.Debug(err.Error())
 	// 		return fmt.Errorf("error getting structured data: %s", err.Error())
 	// 	}
-	// 	err = r.LookupBody(params1, result1)
+	// 	err = r.ReadBody(params1, result1)
 	// 	if err != nil {
 	// 		log.Debug(err.Error())
 	// 		return fmt.Errorf("error getting structured data: %s", err.Error())

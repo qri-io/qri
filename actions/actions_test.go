@@ -8,8 +8,12 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -73,7 +77,8 @@ func connectMapStores(peers []*p2p.QriNode) {
 
 func newTestNode(t *testing.T) *p2p.QriNode {
 	rc, _ := mock.NewMockServer()
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), rc)
+	ms := cafs.NewMapstore()
+	mr, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), rc)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -84,8 +89,17 @@ func newTestNode(t *testing.T) *p2p.QriNode {
 	return node
 }
 
+func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
+	return muxfs.NewMux(map[string]qfs.PathResolver{
+		"local": localfs.NewFS(),
+		"http":  httpfs.NewFS(),
+		"cafs":  cafsys,
+	})
+}
+
 func newTestNodeRegClient(t *testing.T, cli *regclient.Client) *p2p.QriNode {
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), profile.NewMemStore(), cli)
+	ms := cafs.NewMapstore()
+	mr, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), cli)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -101,11 +115,8 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,11 +128,8 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.BodyBytes = tc.Body
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -133,11 +141,11 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	dsp := tc.Input.Encode()
-	dsp.Name = tc.Name
-	dsp.Transform.ScriptPath = "testdata/now_tf/transform.star"
+	// TODO (b5): need to figure out a better story for peernames in test cases
+	// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
+	tc.Input.Peername = "peer"
 
-	ref, _, err := SaveDataset(node, dsp, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

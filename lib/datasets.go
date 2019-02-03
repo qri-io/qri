@@ -4,15 +4,16 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"io/ioutil"
 	"net/rpc"
 
 	"github.com/ghodss/yaml"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
@@ -69,58 +70,108 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	return err
 }
 
+// GetParams defines parameters for looking up the body of a dataset
+type GetParams struct {
+	// Path to get, this will often be a dataset reference like me/dataset
+	Path string
+
+	Format       string
+	FormatConfig dataset.FormatConfig
+
+	Selector string
+
+	Concise       bool
+	Limit, Offset int
+	All           bool
+}
+
+// GetResult combines data with it's hashed path
+type GetResult struct {
+	Dataset *dataset.Dataset `json:"data"`
+	Bytes   []byte           `json:"bytes"`
+}
+
 // Get retrieves datasets and components for a given reference. If p.Ref is provided, it is
-// used to load the dataset, otherwise p.PathString is parsed to create a reference. The
+// used to load the dataset, otherwise p.Path is parsed to create a reference. The
 // dataset will be loaded from the local repo if available, or by asking peers for it.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body.
-func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
+func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
+	ref := &repo.DatasetRef{}
 
-	if p.Ref == nil {
-		ref, err := repo.ParseDatasetRef(p.PathString)
+	if p.Path == "" {
+		// Handle `qri use` to get the current default dataset.
+		if err = DefaultSelectedRef(r.node.Repo, ref); err != nil {
+			return
+		}
+	} else {
+		*ref, err = repo.ParseDatasetRef(p.Path)
+		if err != nil {
+			return fmt.Errorf("'%s' is not a valid dataset reference", p.Path)
+		}
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
+		return
+	}
+
+	ds, err := dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+	if err != nil {
+		return fmt.Errorf("error loading dataset")
+	}
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	res.Dataset = ds
+
+	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		return
+	}
+
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		switch p.Format {
+		case "json":
+			if p.Concise {
+				res.Bytes, err = json.Marshal(res.Dataset)
+			} else {
+				res.Bytes, err = json.MarshalIndent(res.Dataset, "", " ")
+			}
+		default:
+			res.Bytes, err = yaml.Marshal(res.Dataset)
+		}
+		return err
+	} else if p.Selector == "body" {
+		// `qri get body` loads the body
+		// return r.GetBody(p, res)
+		if !p.All && (p.Limit < 0 || p.Offset < 0) {
+			return fmt.Errorf("invalid limit / offset settings")
+		}
+		df, err := dataset.ParseDataFormatString(p.Format)
 		if err != nil {
 			return err
 		}
 
-		// Handle `qri use` to get the current default dataset.
-		if err = DefaultSelectedRef(r.node.Repo, &ref); err != nil {
+		bufData, err := actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
+		if err != nil {
 			return err
 		}
 
-		p.Ref = &ref
-	}
-
-	if err = actions.DatasetHead(r.node, p.Ref); err != nil {
+		res.Bytes = bufData
 		return err
-	}
-
-	if err = res.Data.Decode(p.Ref.Dataset); err != nil {
-		return err
-	}
-
-	if p.Selector == "body" {
-		// `qri get body` loads the body
-		return r.LookupBody(p, res)
-	} else if p.Selector == "" {
-		// `qri get` loads only the dataset head
-		switch p.Format {
-		case "json":
-			if p.Concise {
-				res.Bytes, err = json.Marshal(res.Data)
-			} else {
-				res.Bytes, err = json.MarshalIndent(res.Data, "", " ")
-			}
-		default:
-			res.Bytes, err = yaml.Marshal(res.Data)
-		}
-		return err
+	} else if p.Selector == "transform.script" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		// accomodate two special case script file fields
+		// TODO (b5): this is a hack that should be generalized
+		res.Bytes, err = ioutil.ReadAll(ds.Transform.ScriptFile())
+		return
+	} else if p.Selector == "viz.script" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
+		return
 	} else {
 		// `qri get <selector>` loads the dataset but only returns the applicable component / field
-		value, err := base.ApplyPath(p.Ref.Dataset, p.Selector)
+		value, err := base.ApplyPath(res.Dataset, p.Selector)
 		if err != nil {
 			return err
 		}
@@ -131,9 +182,9 @@ func (r *DatasetRequests) Get(p *LookupParams, res *LookupResult) (err error) {
 
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
-	// dataset to create if both Dataset and DatasetPath are provided
+	// dataset to create. If both Dataset and DatasetPath are provided
 	// dataset values will override any values in the document at DatasetPath
-	Dataset *dataset.DatasetPod
+	Dataset *dataset.Dataset
 	// absolute path or URL to a dataset file to load dataset from
 	DatasetPath string
 	// secrets for transform execution
@@ -145,7 +196,7 @@ type SaveParams struct {
 	Publish bool
 	// run without saving, returning results
 	DryRun bool
-	// if true, res.Dataset.Body will be a cafs.file of the body
+	// if true, res.Dataset.Body will be a fs.file of the body
 	ReturnBody bool
 	// if true, convert body to the format of the previous version, if applicable
 	ConvertFormatToPrev bool
@@ -160,11 +211,6 @@ type SaveParams struct {
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		if p.ReturnBody {
-			// can't send an io.Reader interface over RPC
-			p.ReturnBody = false
-			log.Error("cannot return body bytes over RPC, disabling body return")
-		}
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 
@@ -195,6 +241,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.DatasetPath != "" {
+		// TODO (b5): handle this with a fs.Filesystem
 		dsf, err := ReadDatasetFile(p.DatasetPath)
 		if err != nil {
 			return err
@@ -206,17 +253,25 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if ds.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if ds.BodyPath == "" && ds.Body == nil && ds.BodyBytes == nil && ds.Structure == nil && ds.Meta == nil && ds.Viz == nil && ds.Transform == nil {
+	if ds.BodyPath == "" &&
+		ds.Body == nil &&
+		ds.BodyBytes == nil &&
+		ds.Structure == nil &&
+		ds.Meta == nil &&
+		ds.Viz == nil &&
+		ds.Transform == nil {
 		return fmt.Errorf("no changes to save")
 	}
 
-	ref, body, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
+	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		return
+	}
+
+	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
 	}
-	// TODO - check to make sure RPC saves aren't horribly broken, and if not remove this
-	// ref.Dataset = p.Dataset.Encode()
 
 	if p.Publish {
 		var done bool
@@ -231,15 +286,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		}
 	}
 
-	if p.ReturnBody && ref.Dataset != nil {
-		ref.Dataset.Body = body
-	}
-
 	*res = ref
 	return nil
 }
 
 // UpdateParams defines parameters for the Update command
+// TODO (b5): I think we can merge this into SaveParams
 type UpdateParams struct {
 	Ref        string
 	Title      string
@@ -258,11 +310,6 @@ type UpdateParams struct {
 // re-running a transform in the peer's namespace
 func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		if p.ReturnBody {
-			// can't send an io.Reader interface over RPC
-			p.ReturnBody = false
-			log.Error("cannot return body bytes over RPC, disabling body return")
-		}
 		return r.cli.Call("DatasetRequests.Update", p, res)
 	}
 
@@ -271,43 +318,46 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		return err
 	}
 
-	ref.Dataset = &dataset.DatasetPod{
-		Commit: &dataset.CommitPod{
-			Title:   p.Title,
-			Message: p.Message,
-		},
-		Transform: &dataset.TransformPod{
-			Secrets: p.Secrets,
-		},
-	}
-
-	if p.Recall != "" {
-		ref := repo.DatasetRef{
-			Peername: ref.Peername,
-			Name:     ref.Name,
-			// TODO - fix, but really this should be fine for a while because
-			// ProfileID is required to be local when saving
-			// ProfileID: ds.ProfileID,
-			Path: ref.Path,
-		}
-		recall, err := actions.Recall(r.node, p.Recall, ref)
-		if err != nil {
-			return err
-		}
-		// only transform is assignable
-		ref.Dataset.Transform.Assign(recall.Transform)
-	}
-
-	result, body, err := actions.UpdateDataset(r.node, &ref, p.Secrets, p.ScriptOutput, p.DryRun, true)
-	if err != nil {
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err == repo.ErrNotFound {
+		return fmt.Errorf("unknown dataset '%s'. please add before updating", ref.AliasString())
+	} else if err != nil {
 		return err
 	}
-	if p.ReturnBody {
-		result.Dataset.Body = body
-	}
-	*res = result
 
-	return nil
+	if !base.InLocalNamespace(r.node.Repo, &ref) {
+		*res, err = actions.UpdateRemoteDataset(r.node, &ref, true)
+		return err
+	}
+
+	// default to recalling transfrom scripts for local updates
+	// TODO (b5): not sure if this should be here or in client libraries
+	if p.Recall == "" {
+		p.Recall = "tf"
+	}
+
+	saveParams := &SaveParams{
+		Dataset: &dataset.Dataset{
+			Name:      ref.Name,
+			Peername:  ref.Peername,
+			ProfileID: ref.ProfileID.String(),
+			Path:      ref.Path,
+			Commit: &dataset.Commit{
+				Title:   p.Title,
+				Message: p.Message,
+			},
+			Transform: &dataset.Transform{
+				Secrets: p.Secrets,
+			},
+		},
+		Recall:       p.Recall,
+		Secrets:      p.Secrets,
+		Publish:      p.Publish,
+		DryRun:       p.DryRun,
+		ReturnBody:   p.ReturnBody,
+		ScriptOutput: p.ScriptOutput,
+	}
+
+	return r.Save(saveParams, res)
 }
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
@@ -442,71 +492,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, numDeleted *int) error {
 	return nil
 }
 
-// LookupParams defines parameters for looking up the body of a dataset
-type LookupParams struct {
-	Format        string
-	FormatConfig  dataset.FormatConfig
-	PathString    string
-	Ref           *repo.DatasetRef
-	Selector      string
-	Concise       bool
-	Limit, Offset int
-	All           bool
-}
-
-// LookupResult combines data with it's hashed path
-type LookupResult struct {
-	Path  string          `json:"path"`
-	Data  dataset.Dataset `json:"data"`
-	Bytes []byte          `json:"bytes"`
-}
-
-// LookupBody retrieves the dataset body
-func (r *DatasetRequests) LookupBody(p *LookupParams, res *LookupResult) (err error) {
-	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.LookupBody", p, res)
-	}
-
-	if p.Limit < 0 || p.Offset < 0 {
-		return fmt.Errorf("invalid limit / offset settings")
-	}
-
-	if p.Ref == nil {
-		ref, err := repo.ParseDatasetRef(p.PathString)
-		if err != nil {
-			return err
-		}
-		p.Ref = &ref
-	}
-
-	if p.Ref.Dataset == nil {
-		ds, err := dsfs.LoadDataset(r.node.Repo.Store(), p.PathString)
-		if err != nil {
-			return fmt.Errorf("error loading dataset")
-		}
-		res.Data = *ds
-	} else {
-		err = res.Data.Decode(p.Ref.Dataset)
-		if err != nil {
-			return err
-		}
-	}
-
-	df, err := dataset.ParseDataFormatString(p.Format)
-	if err != nil {
-		return err
-	}
-
-	bodyPath, bufData, err := actions.LookupBody(r.node, &res.Data, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-	if err != nil {
-		return err
-	}
-
-	res.Path = bodyPath
-	res.Bytes = bufData
-	return nil
-}
-
 // Add adds an existing dataset to a peer's repository
 func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
@@ -547,16 +532,14 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
-	var body, schema cafs.File
+	var body, schema qfs.File
 	if p.Data != nil {
-		body = cafs.NewMemfileReader(p.DataFilename, p.Data)
+		body = qfs.NewMemfileReader(p.DataFilename, p.Data)
 	}
 	if p.Schema != nil {
-		schema = cafs.NewMemfileReader("schema.json", p.Schema)
+		schema = qfs.NewMemfileReader("schema.json", p.Schema)
 	}
 
-	// var body cafs.File
-	// TODO - restore
 	*errors, err = actions.Validate(r.node, p.Ref, body, schema)
 	return
 }

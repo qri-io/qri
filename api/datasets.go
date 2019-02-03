@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"io"
 	"io/ioutil"
 	"net/http"
 	"os"
@@ -13,7 +12,6 @@ import (
 	"strings"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/dsdiff"
@@ -226,16 +224,12 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path[len("/export"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+	p := lib.GetParams{
+		Path: HTTPPathToQriPath(r.URL.Path[len("/export"):]),
 	}
-	p := lib.LookupParams{
-		Ref: &args,
-	}
-	res := lib.LookupResult{}
-	err = h.Get(&p, &res)
+	res := lib.GetResult{}
+
+	err := h.Get(&p, &res)
 	if err != nil {
 		log.Infof("error getting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -249,7 +243,8 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 	w.Header().Set("Content-Type", "application/zip")
 	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	err = dsutil.WriteZipArchive(h.repo.Store(), &res.Data, format, p.PathString, w)
+	// TODO (b5): need to return dataset with valid reference components here
+	err = dsutil.WriteZipArchive(h.repo.Store(), res.Dataset, format, p.Path, w)
 	if err != nil {
 		log.Infof("error zipping dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -288,28 +283,16 @@ func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Re
 }
 
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+	p := lib.GetParams{
+		Path: HTTPPathToQriPath(r.URL.Path),
 	}
-
-	if err = repo.CanonicalizeDatasetRef(h.repo, &args); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	p := lib.LookupParams{
-		Ref: &args,
-	}
-	res := lib.LookupResult{}
-	err = h.Get(&p, &res)
+	res := lib.GetResult{}
+	err := h.Get(&p, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	p.Ref.Dataset = res.Data.Encode()
-	util.WriteResponse(w, p.Ref)
+	util.WriteResponse(w, res.Dataset)
 }
 
 type diffAPIParams struct {
@@ -401,13 +384,19 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 }
 
 // when datasets are created with save/new dataset bodies they can be run with "return body",
-// which populates res.Dataset.Body with a cafs.File of raw data
+// which populates res.Dataset.Body with a qfs.File of raw data
 // addBodyFile sets the dataset body, converting to JSON for a response the API can understand
 // TODO - make this less bad. this should happen lower and lib Params should be used to set the response
 // body to well-formed JSON
 func addBodyFile(res *repo.DatasetRef) error {
+	file := res.Dataset.BodyFile()
+	if file == nil {
+		log.Error("no body file")
+		return fmt.Errorf("no response body file")
+	}
+
 	if res.Dataset.Structure.Format == dataset.JSONDataFormat.String() {
-		data, err := ioutil.ReadAll(res.Dataset.Body.(io.Reader))
+		data, err := ioutil.ReadAll(file)
 		if err != nil {
 			return err
 		}
@@ -415,25 +404,16 @@ func addBodyFile(res *repo.DatasetRef) error {
 		return nil
 	}
 
-	file, ok := res.Dataset.Body.(cafs.File)
-	if !ok {
-		log.Error("response body isn't a cafs.File")
-		return fmt.Errorf("response body isn't a cafs.File")
-	}
-
-	in := &dataset.Structure{}
-	if err := in.Decode(res.Dataset.Structure); err != nil {
-		return err
-	}
-
+	in := res.Dataset.Structure
 	st := &dataset.Structure{}
 	st.Assign(in, &dataset.Structure{
-		Format: dataset.JSONDataFormat,
+		Format: "json",
 		Schema: in.Schema,
 	})
 
 	data, err := actions.ConvertBodyFile(file, in, st, 0, 0, true)
 	if err != nil {
+		log.Errorf("converting body file to JSON: %s", err)
 		return fmt.Errorf("converting body file to JSON: %s", err)
 	}
 	res.Dataset.Body = json.RawMessage(data)
@@ -463,10 +443,10 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
-	dsp := &dataset.DatasetPod{}
+	ds := &dataset.Dataset{}
 
 	if r.Header.Get("Content-Type") == "application/json" {
-		err := json.NewDecoder(r.Body).Decode(dsp)
+		err := json.NewDecoder(r.Body).Decode(ds)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -479,12 +459,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 				return
 			}
 			if args.Peername != "" {
-				dsp.Peername = args.Peername
-				dsp.Name = args.Name
+				ds.Peername = args.Peername
+				ds.Name = args.Name
 			}
 		}
 	} else {
-		if err := dsutil.FormFileDataset(r, dsp); err != nil {
+		if err := dsutil.FormFileDataset(r, ds); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -493,7 +473,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
-		Dataset:             dsp,
+		Dataset:             ds,
 		Private:             r.FormValue("private") == "true",
 		DryRun:              r.FormValue("dry_run") == "true",
 		ReturnBody:          r.FormValue("return_body") == "true",
@@ -507,9 +487,9 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("parsing secrets: %s", err))
 			return
 		}
-	} else if dsp.Transform != nil && dsp.Transform.Secrets != nil {
+	} else if ds.Transform != nil && ds.Transform.Secrets != nil {
 		// TODO remove this, require API consumers to send secrets separately
-		p.Secrets = dsp.Transform.Secrets
+		p.Secrets = ds.Transform.Secrets
 	}
 
 	if err := h.Save(p, res); err != nil {
@@ -531,22 +511,19 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/remove"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
+	// TODO (b5): drop this unnecessary get
+	p := lib.GetParams{
+		Path: HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
 	}
-	p := lib.LookupParams{
-		Ref: &ref,
-	}
-	res := lib.LookupResult{}
+	res := lib.GetResult{}
 	if err := h.Get(&p, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
 
 	numDeleted := 0
-	params := lib.RemoveParams{Ref: &ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
+	ref := &repo.DatasetRef{Peername: res.Dataset.Name, Name: res.Dataset.Name, Path: res.Dataset.Path}
+	params := lib.RemoveParams{Ref: ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
 	if err := h.Remove(&params, &numDeleted); err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -648,23 +625,24 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		err = nil
 	}
 
-	p := &lib.LookupParams{
-		PathString: d.Path,
-		Format:     "json",
-		Limit:      limit,
-		Offset:     offset,
-		All:        r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
+	p := &lib.GetParams{
+		Path:     d.String(),
+		Format:   "json",
+		Selector: "body",
+		Limit:    limit,
+		Offset:   offset,
+		All:      r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
 	}
 
-	result := &lib.LookupResult{}
-	if err := h.LookupBody(p, result); err != nil {
+	result := &lib.GetResult{}
+	if err := h.Get(p, result); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	page := util.PageFromRequest(r)
 	dataResponse := DataResponse{
-		Path: result.Path,
+		Path: result.Dataset.BodyPath,
 		Data: json.RawMessage(result.Bytes),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {

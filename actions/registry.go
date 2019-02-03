@@ -27,13 +27,12 @@ func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return
 	}
 
-	enc := ds.Encode()
-	enc.Name = ref.Name
-	enc.Peername = ref.Peername
-	enc.Path = ref.Path
-	preview := subset.Preview(enc)
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Path = ref.Path
+	preview := subset.Preview(ds)
 
-	return cli.PutDataset(ref.Peername, ref.Name, preview, pub)
+	return cli.PutDataset(ds.Peername, ds.Name, preview, pub)
 }
 
 // Unpublish a dataset from a repo's specified registry
@@ -47,11 +46,10 @@ func Unpublish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return
 	}
 
-	enc := ds.Encode()
-	enc.Name = ref.Name
-	enc.Peername = ref.Peername
-	enc.Path = ref.Path
-	preview := subset.Preview(enc)
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ds.Path = ref.Path
+	preview := subset.Preview(ds)
 
 	return cli.DeleteDataset(ref.Peername, ref.Name, preview, pub)
 }
@@ -104,10 +102,9 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		} else {
 			return err
 		}
-	} else {
-		log.Info("done")
 	}
 
+	node.LocalStreams.Print("  done\n")
 	return nil
 }
 
@@ -208,15 +205,20 @@ func regToRepo(rds *registry.Dataset) *repo.DatasetRef {
 		return &repo.DatasetRef{}
 	}
 
-	dsp := rds.DatasetPod
-
 	return &repo.DatasetRef{
 		Peername:  rds.Handle,
 		Name:      rds.Name,
 		Published: true,
-		Dataset:   &dsp,
-		Path:      dsp.Path,
-		ProfileID: profile.ID(dsp.ProfileID),
+		Dataset: &dataset.Dataset{
+			Peername:  rds.Handle,
+			Name:      rds.Name,
+			Commit:    rds.Commit,
+			Meta:      rds.Meta,
+			Structure: rds.Structure,
+			Path:      rds.Path,
+		},
+		Path:      rds.Path,
+		ProfileID: profile.ID(rds.ProfileID),
 	}
 }
 

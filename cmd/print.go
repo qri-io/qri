@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -133,9 +132,8 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
 	white := color.New(color.FgWhite).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()
-	// TODO: in the future we need to switch based on result.Type
-	// For now we are taking a shortcut and assuming a dataset struct
-	ds := &registry.Dataset{}
+
+	ds := &dataset.Dataset{}
 	if data, err := json.Marshal(result.Value); err == nil {
 		if err = json.Unmarshal(data, ds); err == nil {
 			fmt.Fprintf(w, "%s. %s\n", white(i+1), white(result.ID))
@@ -198,14 +196,7 @@ func printResults(w io.Writer, r *dataset.Structure, data []byte, format dataset
 
 // TODO - holy shit dis so bad. fix
 func terribleHackToGetHeaderRow(st *dataset.Structure) ([]string, error) {
-	data, err := st.Schema.MarshalJSON()
-	if err != nil {
-		return nil, err
-	}
-	sch := map[string]interface{}{}
-	if err := json.Unmarshal(data, &sch); err != nil {
-		return nil, err
-	}
+	sch := st.Schema
 	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
 		if itemArr, ok := itemObj["items"].([]interface{}); ok {
 			titles := make([]string, len(itemArr))
