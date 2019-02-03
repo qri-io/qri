@@ -2,7 +2,7 @@ package repo
 
 import (
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo/profile"

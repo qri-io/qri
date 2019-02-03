@@ -8,7 +8,7 @@ import (
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"

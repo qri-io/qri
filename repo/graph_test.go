@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs"

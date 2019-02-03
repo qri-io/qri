@@ -4,7 +4,7 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"

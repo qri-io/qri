@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	ipfs "github.com/qri-io/cafs/ipfs"
+	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/httpfs"

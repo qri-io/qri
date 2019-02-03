@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/cafs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"

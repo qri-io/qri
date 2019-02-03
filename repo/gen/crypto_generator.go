@@ -9,7 +9,7 @@ import (
 
 	"github.com/libp2p/go-libp2p-crypto"
 	"github.com/libp2p/go-libp2p-peer"
-	ipfs "github.com/qri-io/cafs/ipfs"
+	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/doggos"
 )
 

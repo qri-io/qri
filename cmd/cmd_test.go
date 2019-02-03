@@ -12,7 +12,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/cafs/ipfs"
+	"github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
