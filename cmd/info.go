@@ -118,7 +118,8 @@ func (o *InfoOptions) info(index int, refstr string) (err error) {
 	}
 
 	if o.Format == "" {
-		ref := repo.DatasetRef{Peername: res.Dataset.Peername, Name: res.Dataset.Peername, Dataset: res.Dataset}
+		// TODO (b5): refactor to work with dataset.Dataset instead
+		ref := repo.DatasetRef{Peername: res.Dataset.Peername, Name: res.Dataset.Name, Dataset: res.Dataset}
 		printDatasetRefInfo(o.Out, index, ref)
 	} else {
 		data, err := json.MarshalIndent(res.Dataset, "", "  ")

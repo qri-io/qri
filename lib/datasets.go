@@ -122,13 +122,28 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if err != nil {
 		return fmt.Errorf("error loading dataset")
 	}
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
 	res.Dataset = ds
 
 	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 
-	if p.Selector == "body" {
+	if p.Selector == "" {
+		// `qri get` without a selector loads only the dataset head
+		switch p.Format {
+		case "json":
+			if p.Concise {
+				res.Bytes, err = json.Marshal(res.Dataset)
+			} else {
+				res.Bytes, err = json.MarshalIndent(res.Dataset, "", " ")
+			}
+		default:
+			res.Bytes, err = yaml.Marshal(res.Dataset)
+		}
+		return err
+	} else if p.Selector == "body" {
 		// `qri get body` loads the body
 		// return r.GetBody(p, res)
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
@@ -145,19 +160,6 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		}
 
 		res.Bytes = bufData
-		return err
-	} else if p.Selector == "" {
-		// `qri get` without a selector loads only the dataset head
-		switch p.Format {
-		case "json":
-			if p.Concise {
-				res.Bytes, err = json.Marshal(res.Dataset)
-			} else {
-				res.Bytes, err = json.MarshalIndent(res.Dataset, "", " ")
-			}
-		default:
-			res.Bytes, err = yaml.Marshal(res.Dataset)
-		}
 		return err
 	} else if p.Selector == "transform.script" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
 		// accomodate two special case script file fields
