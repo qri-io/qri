@@ -4,9 +4,7 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/rev"
 )
 
 // DefaultPageSize is the max number of items in a page if no
@@ -65,10 +63,4 @@ func (lp ListParams) Page() util.Page {
 	}
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)
-}
-
-// RemoveParams defines parameters for remove command
-type RemoveParams struct {
-	Ref      *repo.DatasetRef
-	Revision rev.Rev
 }

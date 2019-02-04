@@ -590,20 +590,23 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   *repo.DatasetRef
+		ref string
 		res *dataset.Dataset
 		err string
 	}{
-		{&repo.DatasetRef{}, nil, "either peername/name or path is required"},
-		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
-		{&ref, nil, ""},
+		{"", nil, "either peername/name or path is required"},
+		{"abc/ABC", nil, "repo: not found"},
+		{ref.String(), nil, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		numDeleted := 0
-		params := RemoveParams{Ref: c.p, Revision: rev.Rev{Field: "ds", Gen: -1}}
-		err := req.Remove(&params, &numDeleted)
+		params := RemoveParams{
+			Ref:      c.ref,
+			Revision: rev.Rev{Field: "ds", Gen: -1},
+		}
+		res := RemoveResponse{}
+		err := req.Remove(&params, &res)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)

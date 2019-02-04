@@ -98,25 +98,24 @@ func (o *RemoveOptions) Validate() error {
 }
 
 // Run executes the remove command
-func (o *RemoveOptions) Run() error {
+func (o *RemoveOptions) Run() (err error) {
 	for _, arg := range o.Args {
-		ref, err := parseCmdLineDatasetRef(arg)
-		if err != nil {
-			return err
+		params := lib.RemoveParams{
+			Ref:      arg,
+			Revision: o.Revision,
 		}
 
-		params := lib.RemoveParams{Ref: &ref, Revision: o.Revision}
-		numDeleted := 0
-		if err = o.DatasetRequests.Remove(&params, &numDeleted); err != nil {
+		res := lib.RemoveResponse{}
+		if err = o.DatasetRequests.Remove(&params, &res); err != nil {
 			if err.Error() == "repo: not found" {
-				return lib.NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", ref.Peername, ref.Name))
+				return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", arg))
 			}
 			return err
 		}
-		if numDeleted == rev.AllGenerations {
-			printSuccess(o.Out, "removed entire dataset '%s'", ref)
+		if res.NumDeleted == rev.AllGenerations {
+			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
 		} else {
-			printSuccess(o.Out, "removed %d revisions of dataset '%s'", numDeleted, ref)
+			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
 		}
 	}
 	return nil

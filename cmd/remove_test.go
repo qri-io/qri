@@ -113,10 +113,10 @@ func TestRemoveRun(t *testing.T) {
 		msg      string
 	}{
 		{[]string{}, -1, "", "", ""},
-		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
+		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
 		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcnKQTWNuAYpcqUa4Ss85WiNp4c9ySem4DNipxQzUqw5J'\n", "", ""},
 		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSXfRRFy2T3gBARtvcf1GJAgg5dandb9fpqyUWAYzEcQq'\nremoved entire dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSULpGrhdSTVJh4C1jtnFsXNczMxXG6KaMLAhfSkM3zzu'\n", "", ""},
-		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'peer/movies'"},
+		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
 	}
 
 	for i, c := range cases {
