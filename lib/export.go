@@ -66,15 +66,6 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 	}
 	defer base.CloseDataset(ds)
 
-	// if err := actions.DatasetHead(r.node, &ref); err != nil {
-	// 	return err
-	// }
-
-	// ds, err := ref.DecodeDataset()
-	// if err != nil {
-	// 	return err
-	// }
-
 	profile, err := r.node.Repo.Profile()
 	if err != nil {
 		return err
