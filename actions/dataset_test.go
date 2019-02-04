@@ -260,6 +260,24 @@ func TestSaveDataset(t *testing.T) {
 	}
 }
 
+
+func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
+	n := newTestNode(t)
+
+	ds := &dataset.Dataset{
+		Name:      "no_st_or_body_test",
+		Meta: &dataset.Meta{
+			Title: "test title",
+		},
+	}
+
+	_, err := SaveDataset(n, ds, nil, nil, false, false, false)
+	expect := "creating a new dataset requires a structure or a body"
+	if err == nil || err.Error() != expect {
+		t.Errorf("expected error, but got %s", err.Error())
+	}
+}
+
 type RepoMakerFunc func(t *testing.T) repo.Repo
 type RepoTestFunc func(t *testing.T, rmf RepoMakerFunc)
 
