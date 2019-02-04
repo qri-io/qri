@@ -126,7 +126,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ds.Peername = ref.Peername
 	res.Dataset = ds
 
-	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 
@@ -145,7 +145,6 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		return err
 	} else if p.Selector == "body" {
 		// `qri get body` loads the body
-		// return r.GetBody(p, res)
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return fmt.Errorf("invalid limit / offset settings")
 		}
@@ -263,7 +262,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 

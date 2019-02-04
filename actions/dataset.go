@@ -4,58 +4,15 @@ import (
 	"fmt"
 	"io"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
-
-// OpenDataset prepares a dataset for use, checking each component
-// for populated Path or Byte suffixed fields, consuming those fields to
-// set File handlers that are ready for reading
-func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
-	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(fsys); err != nil {
-			return
-		}
-	}
-	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
-		if err = ds.Transform.OpenScriptFile(fsys); err != nil {
-			return
-		}
-	}
-	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
-		if err = ds.Viz.OpenScriptFile(fsys); err != nil {
-			return
-		}
-	}
-	return
-}
-
-// CloseDataset ensures all open dataset files are closed
-func CloseDataset(ds *dataset.Dataset) (err error) {
-	if ds.BodyFile() != nil {
-		if err = ds.BodyFile().Close(); err != nil {
-			return
-		}
-	}
-	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
-		if err = ds.Transform.ScriptFile().Close(); err != nil {
-			return
-		}
-	}
-	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-		if err = ds.Viz.ScriptFile().Close(); err != nil {
-			return
-		}
-	}
-
-	return
-}
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
 func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev bool) (ref repo.DatasetRef, err error) {

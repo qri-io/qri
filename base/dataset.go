@@ -10,15 +10,58 @@ import (
 	"strings"
 
 	"github.com/ghodss/yaml"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
+
+// OpenDataset prepares a dataset for use, checking each component
+// for populated Path or Byte suffixed fields, consuming those fields to
+// set File handlers that are ready for reading
+func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
+	if ds.BodyFile() == nil {
+		if err = ds.OpenBodyFile(fsys); err != nil {
+			return
+		}
+	}
+	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
+		if err = ds.Transform.OpenScriptFile(fsys); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
+		if err = ds.Viz.OpenScriptFile(fsys); err != nil {
+			return
+		}
+	}
+	return
+}
+
+// CloseDataset ensures all open dataset files are closed
+func CloseDataset(ds *dataset.Dataset) (err error) {
+	if ds.BodyFile() != nil {
+		if err = ds.BodyFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		if err = ds.Transform.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		if err = ds.Viz.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+
+	return
+}
 
 // ListDatasets lists datasets from a repo
 func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res []repo.DatasetRef, err error) {
@@ -165,6 +208,30 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 		ref.Dataset = ds
 	}
 
+	return
+}
+
+// ReadDatasetPath takes a path string, parses, canonicalizes, loads a dataset pointer, and opens the file
+// The medium-term goal here is to obfuscate use of repo.DatasetRef, which we're hoping to deprecate
+func ReadDatasetPath(r repo.Repo, path string) (ds *dataset.Dataset, err error) {
+	ref, err := repo.ParseDatasetRef(path)
+	if err != nil {
+		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
+	}
+
+	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
+		return
+	}
+
+	loaded, err := dsfs.LoadDataset(r.Store(), ref.Path)
+	if err != nil {
+		return nil, fmt.Errorf("error loading dataset")
+	}
+	loaded.Name = ref.Name
+	loaded.Peername = ref.Peername
+	ds = loaded
+
+	err = OpenDataset(r.Filesystem(), ds)
 	return
 }
 

@@ -13,14 +13,6 @@ import (
 // Limit param is provided to a paginated method
 const DefaultPageSize = 100
 
-// // GetParams defines parameters for User-Oriented Get methods
-// // TODO - should be renamed to GetUserParams
-// type GetParams struct {
-// 	Username string
-// 	Name     string
-// 	Hash     string
-// }
-
 // ListParams is the general input for any sort of Paginated Request
 // ListParams define limits & offsets, not pages & page sizes.
 // TODO - rename this to PageParams.
@@ -79,12 +71,4 @@ func (lp ListParams) Page() util.Page {
 type RemoveParams struct {
 	Ref      *repo.DatasetRef
 	Revision rev.Rev
-}
-
-// ExportParams defines parameters for the export method
-type ExportParams struct {
-	Ref     repo.DatasetRef
-	RootDir string
-	PeerDir bool
-	Format  string
 }

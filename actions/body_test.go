@@ -5,18 +5,19 @@ import (
 	"testing"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base"
 )
 
 func TestGetBody(t *testing.T) {
 	node := newTestNode(t)
 	ref := addCitiesDataset(t, node)
 
-	ds, err := dsfs.LoadDataset(node.Repo.Store(), ref.Path)
+	// ds, err := dsfs.LoadDataset(node.Repo.Store(), ref.Path)
+	// if err != nil {
+	// 	t.Error(err.Error())
+	// }
+	ds, err := base.ReadDatasetPath(node.Repo, ref.String())
 	if err != nil {
-		t.Error(err.Error())
-	}
-	if err = OpenDataset(node.Repo.Filesystem(), ds); err != nil {
 		t.Fatal(err)
 	}
 

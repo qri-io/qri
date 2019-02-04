@@ -114,13 +114,13 @@ func (o *ExportOptions) Run() error {
 	if o.PeerDir {
 		return fmt.Errorf("--peer-dir flag is not supported currently")
 	}
-	if !o.Zipped {
-		return fmt.Errorf("only exporting to a zip file is supported, must use --zip flag")
-	}
+	// if !o.Zipped {
+	// 	return fmt.Errorf("only exporting to a zip file is supported, must use --zip flag")
+	// }
 
 	if format == "" {
 		format = "yaml"
-	} else if format != "yaml" && format != "json" {
+	} else if format != "yaml" && format != "json" && format != "xlsx" {
 		return fmt.Errorf("%s is not an accepted format, options are yaml and json", format)
 	}
 
