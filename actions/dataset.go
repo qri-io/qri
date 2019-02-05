@@ -58,6 +58,11 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		return
 	}
 
+	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
+		err = fmt.Errorf("creating a new dataset requires a structure or a body")
+		return
+	}
+
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
 		if convertFormatToPrev {
 			var f qfs.File
