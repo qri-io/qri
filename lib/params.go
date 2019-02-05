@@ -4,22 +4,12 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/rev"
 )
 
 // DefaultPageSize is the max number of items in a page if no
 // Limit param is provided to a paginated method
 const DefaultPageSize = 100
-
-// // GetParams defines parameters for User-Oriented Get methods
-// // TODO - should be renamed to GetUserParams
-// type GetParams struct {
-// 	Username string
-// 	Name     string
-// 	Hash     string
-// }
 
 // ListParams is the general input for any sort of Paginated Request
 // ListParams define limits & offsets, not pages & page sizes.
@@ -73,18 +63,4 @@ func (lp ListParams) Page() util.Page {
 	}
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)
-}
-
-// RemoveParams defines parameters for remove command
-type RemoveParams struct {
-	Ref      *repo.DatasetRef
-	Revision rev.Rev
-}
-
-// ExportParams defines parameters for the export method
-type ExportParams struct {
-	Ref     repo.DatasetRef
-	RootDir string
-	PeerDir bool
-	Format  string
 }

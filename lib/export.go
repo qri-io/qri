@@ -1,14 +1,21 @@
 package lib
 
 import (
+	"encoding/json"
 	"fmt"
 	"net/rpc"
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset/dsio"
+
+	"github.com/qri-io/dataset"
+
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 )
 
 // ExportRequests encapsulates business logic of export operation
@@ -32,6 +39,14 @@ func NewExportRequests(node *p2p.QriNode, cli *rpc.Client) *ExportRequests {
 	}
 }
 
+// ExportParams defines parameters for the export method
+type ExportParams struct {
+	Ref     repo.DatasetRef
+	RootDir string
+	PeerDir bool
+	Format  string
+}
+
 // Export exports a dataset in the specified format
 func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 	if r.cli != nil {
@@ -45,14 +60,11 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 		return err
 	}
 
-	if err := actions.DatasetHead(r.node, &ref); err != nil {
-		return err
-	}
-
-	ds, err := ref.DecodeDataset()
+	ds, err := base.ReadDatasetPath(r.node.Repo, ref.String())
 	if err != nil {
 		return err
 	}
+	defer base.CloseDataset(ds)
 
 	profile, err := r.node.Repo.Profile()
 	if err != nil {
@@ -70,21 +82,74 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 	}
 	path = filepath.Join(path, ref.Name)
 
-	// TODO (dlong): When --zip flag is not required, don't always do this.
-	dst, err := os.Create(fmt.Sprintf("%s.zip", path))
-	if err != nil {
-		return err
-	}
+	switch p.Format {
+	case "json":
+		bufData, err := actions.GetBody(r.node, ds, dataset.JSONDataFormat, nil, 0, 0, true)
+		if err != nil {
+			return err
+		}
+		ds.Body = json.RawMessage(bufData)
+		ds.Structure = &dataset.Structure{
+			Format:   "json",
+			Schema:   ds.Structure.Schema,
+			Depth:    ds.Structure.Depth,
+			ErrCount: ds.Structure.ErrCount,
+		}
+		// drop any transform stuff
+		ds.Transform = nil
 
-	store := r.node.Repo.Store()
+		dst, err := os.Create(fmt.Sprintf("%s.json", path))
+		if err != nil {
+			return err
+		}
+		if err := json.NewEncoder(dst).Encode(ds); err != nil {
+			return err
+		}
+		*ok = true
+		return nil
 
-	// TODO (dlong): Use --body-format here to convert the body and ds.Structure.Format, before
-	// passing ds to WriteZipArchive.
-	if err = dsutil.WriteZipArchive(store, ds, p.Format, ref.String(), dst); err != nil {
-		return err
+	case "xlsx":
+		f, err := os.Create(fmt.Sprintf("%s.xlsx", path))
+		if err != nil {
+			return err
+		}
+
+		r, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
+		if err != nil {
+			return err
+		}
+
+		st := &dataset.Structure{
+			Format: "xlsx",
+			// FormatConfig: map[string]interface{}{
+			// 	"sheetName": "body",
+			// },
+		}
+		w, err := dsio.NewEntryWriter(st, f)
+		if err != nil {
+			return err
+		}
+
+		if err := dsio.Copy(r, w); err != nil {
+			return err
+		}
+		return w.Close()
+
+	default:
+		// default to a zip archive
+		dst, err := os.Create(fmt.Sprintf("%s.zip", path))
+		if err != nil {
+			return err
+		}
+		store := r.node.Repo.Store()
+		// TODO (dlong): Use --body-format here to convert the body and ds.Structure.Format, before
+		// passing ds to WriteZipArchive.
+		if err = dsutil.WriteZipArchive(store, ds, p.Format, ref.String(), dst); err != nil {
+			return err
+		}
+		*ok = true
+		// return dst.Close()
 	}
-	*ok = true
-	return dst.Close()
 
 	// TODO (dlong): Document the full functionality of export, and restore this code below. Allow
 	// non-zip formats like dataset.json with inline body, body.json by itself, outputting to a
@@ -174,4 +239,5 @@ func (r *ExportRequests) Export(p *ExportParams, ok *bool) error {
 	printSuccess(o.Out, "exported dataset.json to: %s", dsPath)
 
 	return nil*/
+	return nil
 }

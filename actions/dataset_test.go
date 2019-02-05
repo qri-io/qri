@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -15,10 +15,6 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
 )
-
-func TestOpenCloseDataset(t *testing.T) {
-	t.Skip("TODO (b5)")
-}
 
 func TestUpdateRemoteDataset(t *testing.T) {
 	ctx := context.Background()

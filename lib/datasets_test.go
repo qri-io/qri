@@ -13,13 +13,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -106,8 +106,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
 		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
 		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, ""},
-		{&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: s.URL + "/body.csv"}, nil, ""},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, "no meaningful changes detected"},
+		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Description: "Description, b/c bodies are the same thing"}, BodyPath: s.URL + "/body.csv"}, nil, ""},
 	}
 
 	for i, c := range cases {
@@ -590,20 +590,23 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   *repo.DatasetRef
+		ref string
 		res *dataset.Dataset
 		err string
 	}{
-		{&repo.DatasetRef{}, nil, "either peername/name or path is required"},
-		{&repo.DatasetRef{Path: "abc", Name: "ABC"}, nil, "repo: not found"},
-		{&ref, nil, ""},
+		{"", nil, "repo: empty dataset reference"},
+		{"abc/ABC", nil, "repo: not found"},
+		{ref.String(), nil, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		numDeleted := 0
-		params := RemoveParams{Ref: c.p, Revision: rev.Rev{Field: "ds", Gen: -1}}
-		err := req.Remove(&params, &numDeleted)
+		params := RemoveParams{
+			Ref:      c.ref,
+			Revision: rev.Rev{Field: "ds", Gen: -1},
+		}
+		res := RemoveResponse{}
+		err := req.Remove(&params, &res)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)

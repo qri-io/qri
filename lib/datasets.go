@@ -126,7 +126,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ds.Peername = ref.Peername
 	res.Dataset = ds
 
-	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 
@@ -145,7 +145,6 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		return err
 	} else if p.Selector == "body" {
 		// `qri get body` loads the body
-		// return r.GetBody(p, res)
 		if !p.All && (p.Limit < 0 || p.Offset < 0) {
 			return fmt.Errorf("invalid limit / offset settings")
 		}
@@ -263,7 +262,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	if err = actions.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 
@@ -432,13 +431,36 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	return nil
 }
 
+// RemoveParams defines parameters for remove command
+type RemoveParams struct {
+	Ref string
+	// Ref      *repo.DatasetRef
+	Revision rev.Rev
+}
+
+// RemoveResponse gives the results of a remove
+type RemoveResponse struct {
+	Ref        string
+	NumDeleted int
+}
+
 // Remove a dataset entirely or remove a certain number of revisions
-func (r *DatasetRequests) Remove(p *RemoveParams, numDeleted *int) error {
+func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Remove", p, numDeleted)
+		return r.cli.Call("DatasetRequests.Remove", p, res)
 	}
 
-	if p.Ref.Path == "" && p.Ref.Peername == "" && p.Ref.Name == "" {
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return err
+	}
+	res.Ref = ref.String()
+
+	if ref.Path == "" && ref.Peername == "" && ref.Name == "" {
 		return fmt.Errorf("either peername/name or path is required")
 	}
 
@@ -448,36 +470,36 @@ func (r *DatasetRequests) Remove(p *RemoveParams, numDeleted *int) error {
 
 	if p.Revision.Gen == rev.AllGenerations {
 		// Delete entire dataset for all generations.
-		if err := actions.DeleteDataset(r.node, p.Ref); err != nil {
+		if err := actions.DeleteDataset(r.node, &ref); err != nil {
 			return err
 		}
-		*numDeleted = rev.AllGenerations
+		res.NumDeleted = rev.AllGenerations
 		return nil
 	} else if p.Revision.Gen < 1 {
 		return fmt.Errorf("invalid number of revisions to delete: %d", p.Revision.Gen)
 	}
 
 	// Get the revisions that will be deleted.
-	log, err := actions.DatasetLog(r.node, *p.Ref, p.Revision.Gen+1, 0)
+	log, err := actions.DatasetLog(r.node, ref, p.Revision.Gen+1, 0)
 	if err != nil {
 		return err
 	}
 
 	// If deleting more revisions then exist, delete the entire dataset.
 	if p.Revision.Gen >= len(log) {
-		if err := actions.DeleteDataset(r.node, p.Ref); err != nil {
+		if err := actions.DeleteDataset(r.node, &ref); err != nil {
 			return err
 		}
-		*numDeleted = rev.AllGenerations
+		res.NumDeleted = rev.AllGenerations
 		return nil
 	}
 
 	// Delete the specific number of revisions.
 	replace := log[p.Revision.Gen]
-	if err := actions.ModifyDataset(r.node, p.Ref, &replace, false /*isRename*/); err != nil {
+	if err := actions.ModifyDataset(r.node, &ref, &replace, false /*isRename*/); err != nil {
 		return err
 	}
-	*numDeleted = p.Revision.Gen
+	res.NumDeleted = p.Revision.Gen
 
 	// if rc := r.Registry(); rc != nil {
 	// 	dse := ds.Encode()

@@ -8,14 +8,18 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
+
+func TestOpenCloseDataset(t *testing.T) {
+	t.Skip("TODO (b5)")
+}
 
 func TestListDatasets(t *testing.T) {
 	r := newTestRepo(t)

@@ -511,26 +511,18 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO (b5): drop this unnecessary get
-	p := lib.GetParams{
-		Path: HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
+	p := lib.RemoveParams{
+		Ref:      HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
+		Revision: rev.Rev{Field: "ds", Gen: -1},
 	}
-	res := lib.GetResult{}
-	if err := h.Get(&p, &res); err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	numDeleted := 0
-	ref := &repo.DatasetRef{Peername: res.Dataset.Name, Name: res.Dataset.Name, Path: res.Dataset.Path}
-	params := lib.RemoveParams{Ref: ref, Revision: rev.Rev{Field: "ds", Gen: -1}}
-	if err := h.Remove(&params, &numDeleted); err != nil {
+	res := lib.RemoveResponse{}
+	if err := h.Remove(&p, &res); err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, ref)
+	util.WriteResponse(w, res)
 }
 
 // RenameReqParams is an encoding struct
