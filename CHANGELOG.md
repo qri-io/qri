@@ -1,3 +1,62 @@
+<a name="0.7.0"></a>
+# [0.7.0](https://github.com/qri-io/qri/compare/v0.6.2...v0.7.0) (2019-02-05)
+
+We've bumped this release to 0.7.0 to reflect some major-league refactoring going on deeper in the stack. The main goal of this release has been to drive stability up, and put the Qri codebase on firmer foundation for refinement.
+
+### Major Stability Improvements
+Much of our refactoring has gone into removing & consolidating code, making it easier reason about. The effect of this are fewer unintended interactions between different subsystems, resulting in a version of qri that behaves much better, especially in the corner cases. All of these improvements are made on both the JSON API, the CLI, _and_ while operating over RPC (we use RPC when `qri connect` is running in another terminal).
+ 
+Commands like `qri get` and `qri export` in particular work consistently, and can be used to greater effect. For example, running `qri use` on a dataset let's you drop the repeated typing of a dataset name, and play with `get` to explore the dataset faster:
+```
+$ qri use me/dataset
+$ qri get meta --format yaml
+$ qri get body --format json --limit 20 --offset 3
+```
+
+It's much to fetch scripts with `get` and write them to a file for local work:
+```
+$ qri get transform.script > transform.star
+```
+
+Speaking of transforms, `qri update` on a local dataset is now true alias for `qri save --recall=tf`. Eliminating the alternate codepath for `qri update` has made update work far better for re-running transforms.
+
+Export now has a far friendlier `--format` flag for getting a dataset document into a common data format. This'll give you a JSON interpretation of your dataset:
+```
+qri export --format=json me/dataset
+```
+
+We're inching closer to our overall goal of building Qri into a series of well-composed packages with a cohesive user interface. Lots more work to do, partly because there's more that we _can_ do now that our code is better composed. We'd encourage you to play with the CLI if you haven't yet taken it for a spin.
+
+### XLSX support
+Along with the improved export command, we now have early support for Excel `.xlsx` documents! this now works:
+```
+qri export --format=xlsx peer/dataset
+``` 
+
+this now works too (so long as there's a sheet named "sheet1"), and an existing history in another format like JSON, CSV, or CBOR:
+```
+qri save --body dataset.xlsx --keep-format peer/dataset
+```
+Lots of work to do here, but early support for excel is an exciting addition.
+
+
+### Bug Fixes
+
+* **get:** Datasets whose name contains a field should work with get ([97410fb](https://github.com/qri-io/qri/commit/97410fb))
+* **get:** Fix get command using a dotted path ([c130349](https://github.com/qri-io/qri/commit/c130349))
+* **get:** Turn `body` into a selector of the `get` command ([7793845](https://github.com/qri-io/qri/commit/7793845))
+* **local update:** rework local update to be a type of save ([fa9ca11](https://github.com/qri-io/qri/commit/fa9ca11))
+* **save:** Improve error message if new ds has no body or structure ([31332fd](https://github.com/qri-io/qri/commit/31332fd))
+* **save:** Infer more values, such as Schema, when appropriate ([1c95539](https://github.com/qri-io/qri/commit/1c95539))
+
+
+### Features
+
+* **export:** initial foreign export support ([9382483](https://github.com/qri-io/qri/commit/9382483))
+* **get:** support getting script file fields ([da8ae46](https://github.com/qri-io/qri/commit/da8ae46))
+
+
+
 <a name="0.6.2"></a>
 # [0.6.2](https://github.com/qri-io/qri/compare/v0.6.1...v0.6.2) (2019-01-22)
 
