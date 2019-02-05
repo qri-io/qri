@@ -594,7 +594,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		res *dataset.Dataset
 		err string
 	}{
-		{"", nil, "either peername/name or path is required"},
+		{"", nil, "repo: empty dataset reference"},
 		{"abc/ABC", nil, "repo: not found"},
 		{ref.String(), nil, ""},
 	}
