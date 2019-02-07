@@ -20,6 +20,7 @@
     <a href="#packages">
       Packages
     </a>
+
     <span> | </span>
     <a href="https://github.com/qri-io/qri/blob/master/CONTRIBUTOR.md">
       Contribute
@@ -51,7 +52,7 @@
 | "I want to download Qri" | [Download Qri](https://qri.io/download) |
 | "I have a question" | [Create an issue](https://github.com/qri-io/qri/issues) and use the label 'question' |
 | "I found a bug" | [Create an issue](https://github.com/qri-io/qri/issues) and use the label 'bug' |
-| "I want to help build the Qri backend" | [Read the Contributing guides](https://github.com/qri-io/qri/blob/master/.github/CONTRIBUTING.md) |
+| "I want to help build the Qri backend" | [Read the Contributing guides](https://github.com/qri-io/qri/blob/master/CONTRIBUTOR.md) |
 | "I want to build Qri from source" | [Build Qri from source](#build)
 
 __qri is a global dataset version control system (GDVCS) built on the distributed web__
