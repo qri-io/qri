@@ -62,6 +62,7 @@ Breaking that down:
 - Specific to **datasets** because data deserves purpose-built tools
 - **version control** to keep data in sync, attributing all changes to authors
 - On the **distributed web** to make *all* of the data published on qri simultaneously available, letting peers work on data together.
+
 If you’re unfamiliar with *version control,* particularly the distributed kind, well you're probably viewing this document on [github](https://github.com/qri-io/qri) — which is a version control system intended for code. Its underlying technology – git – popularized some magic sauce that has inspired a generation of programmers and popularized concepts at the heart of the distributed web. Qri is applying that family of concepts to four common data problems:
 
 1. **Discovery** _Can I find data I’m looking for?_
