@@ -1,20 +1,21 @@
 package lib
 
 import (
-	"bytes"
 	"context"
-	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strconv"
+	"strings"
 	"sync"
 	"testing"
 	"time"
 
+	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
@@ -384,103 +385,118 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatalf("error loading dataset: %s", err.Error())
 	}
 
+	moviesDs.OpenBodyFile(node.Repo.Filesystem())
+	moviesBody := make([]interface{}, 0)
+	moviesBodyFile := moviesDs.BodyFile()
+	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
+	for {
+		ent, err := reader.ReadEntry()
+		if err != nil {
+			if err.Error() == "EOF" {
+				break
+			}
+			t.Fatal(err.Error())
+		}
+		moviesBody = append(moviesBody, ent.Value)
+	}
+
 	cases := []struct {
 		params *GetParams
-		res    *dataset.Dataset
-		err    string
+		expect string
 	}{
-		// TODO: probably delete some of these
-		{&GetParams{Path: "peer/ABC@abc"}, nil, "'peer/ABC@abc' is not a valid dataset reference"},
-		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "ABC"}.String()
-		{&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)}, nil, ""},
-		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "movies"}.String()
-		{&GetParams{Path: "peer/movies"}, moviesDs, ""},
-		// repo.DatasetRef{Peername: "peer", Path: ref.Path, Name: "cats"}.String()
-		// {, moviesDs, ""},
+		{&GetParams{Path: "peer/ABC@abc"}, "'peer/ABC@abc' is not a valid dataset reference"},
+
+		{&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)},
+			componentToString(setDatasetName(moviesDs, "peer/ABC"), "yaml")},
+
+		{&GetParams{Path: "peer/movies"},
+			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
+
+		{&GetParams{Path: "peer/movies", Format: "json"},
+			componentToString(setDatasetName(moviesDs, "peer/movies"), "json")},
+
+		{&GetParams{Path: "peer/movies", Selector: "commit"},
+			componentToString(moviesDs.Commit, "yaml")},
+
+		{&GetParams{Path: "peer/movies", Selector: "commit", Format: "json"},
+			componentToString(moviesDs.Commit, "json")},
+
+		{&GetParams{Path: "peer/movies", Selector: "commit.title"}, "initial commit\n"},
+
+		{&GetParams{Path: "peer/movies", Selector: "commit.title", Format: "json"}, "\"initial commit\""},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json"}, "[]"},
+
+		{&GetParams{Path: "", Selector: "body", Format: "json"}, "repo: empty dataset reference"},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "csv"}, "title,duration\n"},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+			Limit: 5, Offset: 0, All: false}, bodyToString(moviesBody[:5])},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+			Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+			Limit: -5, Offset: -100, All: true}, bodyToString(moviesBody)},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+			Limit: 0, Offset: 0, All: true}, bodyToString(moviesBody)},
+
+		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+			Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
 		got := &GetResult{}
 		err := req.Get(c.params, got)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+		if err != nil {
+			if err.Error() != c.expect {
+				t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.expect, err)
+			}
 			continue
 		}
-		// TODO (dlong): Inspect the contents of `got`
+
+		result := string(got.Bytes)
+		if result != c.expect {
+			t.Errorf("case %d Bytes mismatch: expected:\n\"%s\", got:\n\"%s\"", i, c.expect, result)
+		}
 	}
 }
 
-func TestDatasetRequestsGetBody(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-		return
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
+func setDatasetName(ds *dataset.Dataset, name string) *dataset.Dataset {
+	parts := strings.Split(name, "/")
+	ds.Peername = parts[0]
+	ds.Name = parts[1]
+	return ds
+}
 
-	moviesRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
-	if err != nil {
-		t.Fatalf("error getting movies ref: %s", err.Error())
-	}
-	clRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "craigslist"})
-	if err != nil {
-		t.Fatalf("error getting craigslist ref: %s", err.Error())
-	}
-	sitemapRef, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "sitemap"})
-	if err != nil {
-		t.Fatalf("error getting sitemap ref: %s", err.Error())
-	}
-
-	cases := []struct {
-		p        *GetParams
-		resCount int
-		err      string
-	}{
-		{&GetParams{Selector: "body"}, 0, "repo: empty dataset reference"},
-		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: 5, Offset: 0, All: false}, 5, ""},
-		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: false}, 0, "invalid limit / offset settings"},
-		{&GetParams{Selector: "body", Format: "json", Path: moviesRef.String(), Limit: -5, Offset: -100, All: true}, 0, ""},
-		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 0, Offset: 0, All: true}, 0, ""},
-		{&GetParams{Selector: "body", Format: "json", Path: clRef.String(), Limit: 2, Offset: 0, All: false}, 2, ""},
-		{&GetParams{Selector: "body", Format: "json", Path: sitemapRef.String(), Limit: 3, Offset: 0, All: false}, 3, ""},
-	}
-
-	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
-		got := &GetResult{}
-		err := req.Get(c.p, got)
-
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
+func componentToString(component interface{}, format string) string {
+	switch format {
+	case "json":
+		bytes, err := json.MarshalIndent(component, "", " ")
+		if err != nil {
+			return err.Error()
 		}
-
-		if got.Bytes == nil && c.resCount == 0 {
-			continue
+		return string(bytes)
+	case "yaml":
+		bytes, err := yaml.Marshal(component)
+		if err != nil {
+			return err.Error()
 		}
-
-		switch c.p.Format {
-		default:
-			// default should be json format
-			_, err := json.Marshal(got.Dataset)
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
-		case "csv":
-			r := csv.NewReader(bytes.NewBuffer(got.Bytes))
-			_, err := r.ReadAll()
-			if err != nil {
-				t.Errorf("case %d error parsing response data: %s", i, err.Error())
-				continue
-			}
-		}
+		return string(bytes)
+	default:
+		return "Unknown format"
 	}
+}
+
+func bodyToString(component interface{}) string {
+	bytes, err := json.Marshal(component)
+	if err != nil {
+		return err.Error()
+	}
+	return string(bytes)
 }
 
 func TestDatasetRequestsGetP2p(t *testing.T) {
