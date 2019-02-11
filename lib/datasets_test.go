@@ -47,10 +47,6 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	citiesBodyPath, err := dstest.BodyFilepath("testdata/cities_2")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
 	// TODO: Needed for TestCases for `new`, see below.
 	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
@@ -107,7 +103,6 @@ func TestDatasetRequestsSave(t *testing.T) {
 		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
 		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
 		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.Dataset{Peername: "me", Name: "cities", Commit: &dataset.Commit{}, BodyPath: citiesBodyPath}, nil, "no meaningful changes detected"},
 		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Description: "Description, b/c bodies are the same thing"}, BodyPath: s.URL + "/body.csv"}, nil, ""},
 	}
 
