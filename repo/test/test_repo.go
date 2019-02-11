@@ -10,11 +10,11 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -177,7 +177,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true)
+	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false)
 	return
 }
 

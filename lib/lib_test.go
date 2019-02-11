@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -79,7 +79,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.BodyBytes = tc.Body
 
-	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false)
+	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -95,7 +95,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false)
+	ref, err := actions.SaveDataset(node, ds, nil, nil, false, true, false, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

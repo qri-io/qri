@@ -108,7 +108,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force bool) (ref repo.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -124,7 +124,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin); err != nil {
+	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin, force); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {

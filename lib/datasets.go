@@ -204,6 +204,8 @@ type SaveParams struct {
 	ConvertFormatToPrev bool
 	// string of references to recall before saving
 	Recall string
+	// force a new commit, even if no changes are detected
+	Force bool
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer
@@ -255,7 +257,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if ds.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if ds.BodyPath == "" &&
+	if !p.Force &&
+		ds.BodyPath == "" &&
 		ds.Body == nil &&
 		ds.BodyBytes == nil &&
 		ds.Structure == nil &&
@@ -269,7 +272,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
-	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev)
+	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

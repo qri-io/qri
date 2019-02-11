@@ -8,9 +8,9 @@ import (
 	"testing"
 
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -116,7 +116,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -129,7 +129,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -145,7 +145,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
 	tc.Input.Peername = "peer"
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false)
+	ref, err := SaveDataset(node, tc.Input, nil, nil, false, true, false, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

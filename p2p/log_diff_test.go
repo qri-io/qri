@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 )
@@ -31,7 +31,7 @@ func TestRequestLogDiff(t *testing.T) {
 	}
 
 	// add a dataset to peer 4
-	ref, err := base.CreateDataset(peers[4].Repo, streams, tc.Input, nil, false, true)
+	ref, err := base.CreateDataset(peers[4].Repo, streams, tc.Input, nil, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -50,7 +50,7 @@ func TestRequestLogDiff(t *testing.T) {
 	update.Name = tc.Name
 
 	// add an update on peer 4
-	ref2, err := base.CreateDataset(peers[4].Repo, streams, update, tc.Input, false, true)
+	ref2, err := base.CreateDataset(peers[4].Repo, streams, update, tc.Input, false, true, false)
 	if err != nil {
 		t.Fatal(err)
 	}
