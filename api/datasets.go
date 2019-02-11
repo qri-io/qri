@@ -477,6 +477,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		Private:             r.FormValue("private") == "true",
 		DryRun:              r.FormValue("dry_run") == "true",
 		ReturnBody:          r.FormValue("return_body") == "true",
+		Force:               r.FormValue("force") == "true",
 		ConvertFormatToPrev: true,
 		ScriptOutput:        scriptOutput,
 	}

@@ -65,6 +65,7 @@ commit message and title to the save.`,
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate saving a dataset")
+	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
 
 	return cmd
@@ -86,6 +87,7 @@ type SaveOptions struct {
 	Publish        bool
 	DryRun         bool
 	KeepFormat     bool
+	Force          bool
 	Secrets        []string
 
 	DatasetRequests *lib.DatasetRequests
@@ -145,6 +147,7 @@ func (o *SaveOptions) Run() (err error) {
 		DryRun:              o.DryRun,
 		Recall:              o.Recall,
 		ConvertFormatToPrev: o.KeepFormat,
+		Force:               o.Force,
 	}
 
 	if o.Secrets != nil {

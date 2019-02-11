@@ -140,6 +140,24 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 }
 
+func TestDatasetRequestsForceSave(t *testing.T) {
+	node := newTestQriNode(t)
+	ref := addCitiesDataset(t, node)
+	r := NewDatasetRequests(node, nil)
+
+	res := &repo.DatasetRef{}
+	if err := r.Save(&SaveParams{Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername}}, res); err == nil {
+		t.Error("expected empty save without force flag to error")
+	}
+
+	if err := r.Save(&SaveParams{
+		Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername},
+		Force:   true,
+	}, res); err != nil {
+		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
+	}
+}
+
 func TestDatasetRequestsSaveRecall(t *testing.T) {
 	node := newTestQriNode(t)
 	ref := addNowTransformDataset(t, node)

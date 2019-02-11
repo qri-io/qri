@@ -74,11 +74,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, err := CreateDataset(r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true); err == nil {
+	if _, err := CreateDataset(r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true, false); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(r, streams, ds, &dataset.Dataset{}, false, true)
+	ref, err := CreateDataset(r, streams, ds, &dataset.Dataset{}, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -96,7 +96,7 @@ func TestCreateDataset(t *testing.T) {
 
 	prev := ref.Dataset
 
-	ref, err = CreateDataset(r, streams, ds, prev, false, true)
+	ref, err = CreateDataset(r, streams, ds, prev, false, true, false)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -106,6 +106,19 @@ func TestCreateDataset(t *testing.T) {
 	}
 	if len(refs) != 1 {
 		t.Errorf("ref length mismatch. expected 1, got: %d", len(refs))
+	}
+
+	ds.PreviousPath = ref.Path
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	prev = ref.Dataset
+
+	if ref, err = CreateDataset(r, streams, ds, prev, false, true, false); err == nil {
+		t.Error("expected unchanged dataset with no force flag to error")
+	}
+
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
+	if ref, err = CreateDataset(r, streams, ds, prev, false, true, true); err != nil {
+		t.Errorf("unexpected force-save error: %s", err)
 	}
 }
 
@@ -328,7 +341,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(r, streams, tc.Input, nil, false, false)
+	ref2, err := CreateDataset(r, streams, tc.Input, nil, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 		return
