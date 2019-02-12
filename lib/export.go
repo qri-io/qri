@@ -139,7 +139,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 
 		// TODO (dlong): Look into combining this functionality (reading body, changing structure),
 		// and moving it into a method of `actions`.
-		bodyEntries, err := base.ReadEntries(reader, true, 0, 0)
+		bodyEntries, err := base.ReadEntries(reader)
 		if err != nil {
 			return err
 		}
@@ -165,7 +165,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 
 	case "yaml":
 
-		bodyEntries, err := base.ReadEntries(reader, true, 0, 0)
+		bodyEntries, err := base.ReadEntries(reader)
 		if err != nil {
 			return err
 		}

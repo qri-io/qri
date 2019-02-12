@@ -402,7 +402,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 	moviesDs.OpenBodyFile(node.Repo.Filesystem())
 	moviesBodyFile := moviesDs.BodyFile()
 	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
-	moviesBody, _ := base.ReadEntriesToArray(reader, true, 0, 0)
+	moviesBody := mustBeArray(base.ReadEntries(reader))
 
 	cases := []struct {
 		params *GetParams
@@ -889,4 +889,12 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			t.Errorf("case %d response mistmatch: expected '%s', got '%s'", i, c.expected, stringDiffs)
 		}
 	}
+}
+
+// Convert the interface value into an array, or panic if not possible
+func mustBeArray(i interface{}, err error) []interface{} {
+	if err != nil {
+		panic(err)
+	}
+	return i.([]interface{})
 }

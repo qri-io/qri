@@ -13,17 +13,13 @@ func TestReadEntriesArray(t *testing.T) {
 	cases := []struct {
 		description           string
 		rdrCount, expectCount int
-		all                   bool
-		limit, offset         int
 	}{
-		{"read all 50", 50, 50, true, 0, 0},
-		{"read 40 of 50", 50, 40, false, 40, 0},
-		{"read 40-60 of 100", 100, 20, false, 20, 40},
+		{"read all 50", 50, 50},
 	}
 
 	for i, c := range cases {
 		r := newTestJSONArrayReader(c.rdrCount)
-		got, err := ReadEntries(r, c.all, c.limit, c.offset)
+		got, err := ReadEntries(r)
 		if err != nil {
 			t.Errorf("case %d %s unexpected error. '%s'", i, c.description, err)
 			continue
@@ -43,17 +39,13 @@ func TestReadEntriesObject(t *testing.T) {
 	cases := []struct {
 		description           string
 		rdrCount, expectCount int
-		all                   bool
-		limit, offset         int
 	}{
-		{"read all 50", 50, 50, true, 0, 0},
-		{"read 40 of 50", 50, 40, false, 40, 0},
-		{"read 40-60 of 100", 100, 20, false, 20, 40},
+		{"read all 50", 50, 50},
 	}
 
 	for i, c := range cases {
 		r := newTestJSONObjectReader(c.rdrCount)
-		got, err := ReadEntries(r, c.all, c.limit, c.offset)
+		got, err := ReadEntries(r)
 		if err != nil {
 			t.Errorf("case %d %s unexpected error. '%s'", i, c.description, err)
 			continue
@@ -67,23 +59,6 @@ func TestReadEntriesObject(t *testing.T) {
 		if len(obj) != c.expectCount {
 			t.Errorf("case %d %s unexpected entry count. expected: %d got: %d", i, c.description, c.expectCount, len(obj))
 		}
-	}
-}
-
-func TestReadEntriesToArray(t *testing.T) {
-	r := newTestJSONArrayReader(1)
-	got, err := ReadEntriesToArray(r, false, 1000, 0)
-	if err != nil {
-		t.Error(err)
-	}
-
-	expLen := 1
-	if expLen != len(got) {
-		t.Errorf("entry length mismatch. expected: %d, got: %d", expLen, len(got))
-	}
-
-	if _, err := ReadEntriesToArray(newTestJSONObjectReader(1), false, 1, 0); err == nil {
-		t.Errorf("expected reading object to error")
 	}
 }
 

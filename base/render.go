@@ -72,7 +72,10 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offset int
 		return nil, fmt.Errorf("error allocating data reader: %s", err)
 	}
 
-	bodyEntries, err := ReadEntries(rr, all, limit, offset)
+	if !all {
+		rr = &dsio.PagedReader{Reader: rr, Limit: limit, Offset: offset}
+	}
+	bodyEntries, err := ReadEntries(rr)
 	if err != nil {
 		return nil, err
 	}
