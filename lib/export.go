@@ -47,8 +47,6 @@ type ExportParams struct {
 	Format    string
 }
 
-// TODO (dlong): Tests!
-
 // Export exports a dataset in the specified format
 func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error) {
 	if p.TargetDir == "" {
