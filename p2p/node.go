@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"

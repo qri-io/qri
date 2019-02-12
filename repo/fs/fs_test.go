@@ -5,8 +5,8 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"

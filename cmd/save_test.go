@@ -127,43 +127,43 @@ func TestSaveRun(t *testing.T) {
 	}
 
 	cases := []struct {
-		ref      string
-		filepath string
-		bodypath string
-		title    string
-		message  string
-		publish  bool
-		dryrun   bool
-		expect   string
-		err      string
-		msg      string
+		description string
+		ref         string
+		filepath    string
+		bodypath    string
+		title       string
+		message     string
+		publish     bool
+		dryrun      bool
+		expect      string
+		err         string
+		msg         string
 	}{
-		// no data
-		{"me/bad_dataset", "", "", "", "", false, false, "", "no changes to save", ""},
-		// bad dataset file
-		{"me/cities", "bad/filpath.json", "", "", "", false, false, "", "open bad/filpath.json: no such file or directory", ""},
-		// bad body file
-		{"me/cities", "", "bad/bodypath.csv", "", "", false, false, "", "opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
-		// good inputs, dryrun
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUwGEwtP2B1Y2LqRQttwGSmvNEJQYXkoLba5JKjMp6uBb\nthis dataset has 1 validation errors\n", "", ""},
-		// good inputs
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUwGEwtP2B1Y2LqRQttwGSmvNEJQYXkoLba5JKjMp6uBb\nthis dataset has 1 validation errors\n", "", ""},
-		// add rows, dry run
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdKoLw1RFz8SK3GpGN7LBHi2hKVoDPnacJdQuWZmu6PBG\nthis dataset has 1 validation errors\n", "", ""},
-		// add rows, save
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdKoLw1RFz8SK3GpGN7LBHi2hKVoDPnacJdQuWZmu6PBG\nthis dataset has 1 validation errors\n", "", ""},
-		// no changes detected
-		{"me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, "", "error saving: no changes detected", ""},
-		// add viz
-		{"me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPauqpHsrRKmg1TbT6aBi7Axse9uPETDgMGxZShv3c79F\nthis dataset has 1 validation errors\n", "", ""},
-		// add transform
-		{"me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdYWztCY7VQpqSjBkmqDKtKsxru9JE8hr6Mj8cNuQMqWG\nthis dataset has 1 validation errors\n", "", ""},
+		{"no data", "me/bad_dataset", "", "", "", "", false, false, "", "no changes to save", ""},
+
+		{"bad dataset file", "me/cities", "bad/filpath.json", "", "", "", false, false, "", "open bad/filpath.json: no such file or directory", ""},
+
+		{"bad body file", "me/cities", "", "bad/bodypath.csv", "", "", false, false, "", "opening dataset.bodyPath 'bad/bodypath.csv': path not found", ""},
+
+		{"good inputs, dryrun", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUwGEwtP2B1Y2LqRQttwGSmvNEJQYXkoLba5JKjMp6uBb\nthis dataset has 1 validation errors\n", "", ""},
+
+		{"good inputs", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_ten.csv", "", "", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmUwGEwtP2B1Y2LqRQttwGSmvNEJQYXkoLba5JKjMp6uBb\nthis dataset has 1 validation errors\n", "", ""},
+
+		{"add rows, dry run", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", false, true, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdKoLw1RFz8SK3GpGN7LBHi2hKVoDPnacJdQuWZmu6PBG\nthis dataset has 1 validation errors\n", "", ""},
+
+		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmdKoLw1RFz8SK3GpGN7LBHi2hKVoDPnacJdQuWZmu6PBG\nthis dataset has 1 validation errors\n", "", ""},
+
+		{"no changes detected", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, "", "error saving: no changes detected", ""},
+
+		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmPauqpHsrRKmg1TbT6aBi7Axse9uPETDgMGxZShv3c79F\nthis dataset has 1 validation errors\n", "", ""},
+
+		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSHGct4PB15jvW6N5xVdWmJL8MPiK3jDwcTAt9uAzpz5f\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
-	for i, c := range cases {
+	for _, c := range cases {
 		dsr, err := f.DatasetRequests()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			t.Errorf("case \"%s\", error creating dataset request: %s", c.description, err)
 			continue
 		}
 
@@ -181,25 +181,25 @@ func TestSaveRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			t.Errorf("case \"%s\", mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
 			ioReset(in, out, errs)
 			continue
 		}
 
 		if libErr, ok := err.(lib.Error); ok {
 			if libErr.Message() != c.msg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
+				t.Errorf("case \"%s\", mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.msg, libErr.Message())
 				ioReset(in, out, errs)
 				continue
 			}
 		} else if c.msg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
+			t.Errorf("case \"%s\", mismatched user-friendly message. Expected: '%s', Got: ''", c.description, c.msg)
 			ioReset(in, out, errs)
 			continue
 		}
 
 		if c.expect != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expect, out.String())
+			t.Errorf("case \"%s\", output mismatch. Expected: '%s', Got: '%s'", c.description, c.expect, out.String())
 			ioReset(in, out, errs)
 			continue
 		}
