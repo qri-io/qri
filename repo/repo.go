@@ -7,8 +7,8 @@ import (
 	"fmt"
 
 	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )

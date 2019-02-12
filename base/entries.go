@@ -14,7 +14,7 @@ func ReadEntries(reader dsio.EntryReader) (interface{}, error) {
 		return nil, err
 	}
 
-	for i := 0;; i++ {
+	for i := 0; ; i++ {
 		val, err := reader.ReadEntry()
 		if err != nil {
 			if err.Error() == "EOF" {

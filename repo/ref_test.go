@@ -4,8 +4,8 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
 )
 
