@@ -2,21 +2,15 @@ package cmd
 
 import (
 	"fmt"
-	"net"
 	"net/rpc"
-	"os"
 	"sync"
 
 	"github.com/qri-io/ioes"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/gen"
-	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regclient"
 	"github.com/spf13/cobra"
 )
 
@@ -90,6 +84,7 @@ type QriOptions struct {
 	// path to configuration object
 	ConfigPath string
 
+	qri *lib.Qri
 	// Configuration object
 	config      *config.Config
 	node        *p2p.QriNode
@@ -110,15 +105,7 @@ func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioSt
 
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
-	initBody := func() {
-		// cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
-
-		// // for now this just checks for an existing config file
-		// if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
-		// 	err = fmt.Errorf("no qri repo found, please run `qri setup`")
-		// 	return
-		// }
-
+	initFunc := func() {
 		options := []lib.Option{
 			lib.OptIOStreams(o.IOStreams),
 			lib.OptDefaultQriPath(),
@@ -127,73 +114,14 @@ func (o *QriOptions) Init() (err error) {
 			lib.OptCheckConfigMigrations(""),
 		}
 
-		qri := lib.New(options...)
+		o.qri, err = lib.New(options...)
+		if err != nil {
+			return err
+		}
 
 		setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
-
-		// TODO - need to remove global config state in lib, then remove this
-		// lib.ConfigFilepath = cfgPath
-
-		if err = lib.LoadConfig(o.IOStreams, cfgPath); err != nil {
-			return
-		}
-		o.config = lib.Config
-
-		if o.config.RPC.Enabled {
-			addr := fmt.Sprintf(":%d", o.config.RPC.Port)
-			if conn, err := net.Dial("tcp", addr); err != nil {
-				err = nil
-			} else {
-				o.rpc = rpc.NewClient(conn)
-				return
-			}
-		}
-
-		// for now this just checks for an existing config file
-		if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
-			err = fmt.Errorf("no qri repo found, please run `qri setup`")
-			return
-		}
-
-		var store *ipfs.Filestore
-
-		fsOpts := []ipfs.Option{
-			func(cfg *ipfs.StoreCfg) {
-				cfg.FsRepoPath = o.ipfsFsPath
-				// cfg.Online = online
-			},
-			ipfs.OptsFromMap(o.config.Store.Options),
-		}
-
-		store, err = ipfs.NewFilestore(fsOpts...)
-		if err != nil {
-			return
-		}
-
-		var pro *profile.Profile
-		if pro, err = profile.NewProfile(o.config.Profile); err != nil {
-			return
-		}
-
-		var rc *regclient.Client
-		if o.config.Registry != nil && o.config.Registry.Location != "" {
-			rc = regclient.NewClient(&regclient.Config{
-				Location: o.config.Registry.Location,
-			})
-		}
-
-		o.repo, err = fsrepo.NewRepo(store, fsys, pro, rc, o.qriRepoPath)
-		if err != nil {
-			return
-		}
-
-		o.node, err = p2p.NewQriNode(o.repo, o.config.P2P)
-		if err != nil {
-			return
-		}
-		o.node.LocalStreams = o.IOStreams
 	}
-	o.initialized.Do(initBody)
+	o.initialized.Do(initFunc)
 	return err
 }
 
@@ -233,82 +161,74 @@ func (o *QriOptions) ConnectionNode() (*p2p.QriNode, error) {
 	return o.node, nil
 }
 
-// DatasetRequests generates a lib.DatasetRequests from internal state
-func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewDatasetRequests(o.node, o.rpc), nil
-}
+// // DatasetRequests generates a lib.DatasetRequests from internal state
+// func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewDatasetRequests(o.node, o.rpc), nil
+// }
 
-// RemoteRequests generates a lib.RemoteRequests from internal state
-func (o *QriOptions) RemoteRequests() (*lib.RemoteRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRemoteRequests(o.node, o.rpc), nil
-}
+// // RegistryRequests generates a lib.RegistryRequests from internal state
+// func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewRegistryRequests(o.node, o.rpc), nil
+// }
 
-// RegistryRequests generates a lib.RegistryRequests from internal state
-func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRegistryRequests(o.node, o.rpc), nil
-}
+// // LogRequests generates a lib.LogRequests from internal state
+// func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewLogRequests(o.node, o.rpc), nil
+// }
 
-// LogRequests generates a lib.LogRequests from internal state
-func (o *QriOptions) LogRequests() (*lib.LogRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewLogRequests(o.node, o.rpc), nil
-}
+// // ExportRequests generates a lib.ExportRequests from internal state
+// func (o *QriOptions) ExportRequests() (*lib.ExportRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewExportRequests(o.node, o.rpc), nil
+// }
 
-// ExportRequests generates a lib.ExportRequests from internal state
-func (o *QriOptions) ExportRequests() (*lib.ExportRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewExportRequests(o.node, o.rpc), nil
-}
+// // PeerRequests generates a lib.PeerRequests from internal state
+// func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewPeerRequests(nil, o.rpc), nil
+// }
 
-// PeerRequests generates a lib.PeerRequests from internal state
-func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewPeerRequests(nil, o.rpc), nil
-}
+// // ProfileRequests generates a lib.ProfileRequests from internal state
+// func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewProfileRequests(o.node, o.rpc), nil
+// }
 
-// ProfileRequests generates a lib.ProfileRequests from internal state
-func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewProfileRequests(o.node, o.rpc), nil
-}
+// // SelectionRequests creates a lib.SelectionRequests from internal state
+// func (o *QriOptions) SelectionRequests() (*lib.SelectionRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewSelectionRequests(o.repo, o.rpc), nil
+// }
 
-// SelectionRequests creates a lib.SelectionRequests from internal state
-func (o *QriOptions) SelectionRequests() (*lib.SelectionRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewSelectionRequests(o.repo, o.rpc), nil
-}
+// // SearchRequests generates a lib.SearchRequests from internal state
+// func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewSearchRequests(o.node, o.rpc), nil
+// }
 
-// SearchRequests generates a lib.SearchRequests from internal state
-func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewSearchRequests(o.node, o.rpc), nil
-}
-
-// RenderRequests generates a lib.RenderRequests from internal state
-func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
-	}
-	return lib.NewRenderRequests(o.repo, o.rpc), nil
-}
+// // RenderRequests generates a lib.RenderRequests from internal state
+// func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
+// 	if err := o.Init(); err != nil {
+// 		return nil, err
+// 	}
+// 	return lib.NewRenderRequests(o.repo, o.rpc), nil
+// }

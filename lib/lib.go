@@ -278,6 +278,11 @@ type Qri struct {
 	rpc     *rpc.Client
 }
 
+// Config provides methods for manipulating Qri configuration
+func (q *Qri) Config() *Config {
+	return NewConfig(q.cfg, filepath.Join(q.qriPath, "config.yaml"))
+}
+
 // Datasets provides methods for working with Datasets
 func (q *Qri) Datasets() *DatasetRequests {
 	return NewDatasetRequests(q.node, q.rpc)

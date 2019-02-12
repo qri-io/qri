@@ -22,6 +22,14 @@ type Config struct {
 	filePath string
 }
 
+// NewConfig creates a new configuration object
+func NewConfig(cfg *config.Config, path string) *Config {
+	return &Config{
+		cfg:      cfg,
+		filePath: path,
+	}
+}
+
 // Get returns the Config, or one of the specified fields of the Config, as a slice of bytes
 // the bytes can be formatted as json, concise json, or yaml
 func (c *Config) Get(p *GetConfigParams, res *[]byte) error {

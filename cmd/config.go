@@ -124,11 +124,19 @@ type ConfigOptions struct {
 	Output          string
 
 	ProfileRequests *lib.ProfileRequests
+	Config          *lib.Config
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
-	o.ProfileRequests, err = f.ProfileRequests()
+	var q *lib.Qri
+	q, err = f.Qri()
+	if err != nil {
+		return
+	}
+
+	o.ProfileRequests = q.Profiles()
+	o.Config = q.Config()
 	return
 }
 

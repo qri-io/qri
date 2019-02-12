@@ -42,14 +42,16 @@ func init() {
 type Server struct {
 	// configuration options
 	cfg     *config.Config
+	cfgPath string
 	qriNode *p2p.QriNode
 }
 
-// New creates a new qri server from a p2p node & configuration
-func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
+// New creates a new qri server from a p2p node,  configuration, and path
+func New(node *p2p.QriNode, cfg *config.Config, cfgPath string) (s *Server) {
 	return &Server{
 		qriNode: node,
 		cfg:     cfg,
+		cfgPath: cfgPath,
 	}
 }
 
@@ -78,27 +80,28 @@ func (s *Server) Serve() (err error) {
 				}
 			}()
 
-			go func() {
+			go func(cfg *config.Config, cfgPath string) {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-				if lib.Config != nil && lib.Config.Render != nil && lib.Config.Render.TemplateUpdateAddress != "" {
-					if latest, err := lib.CheckVersion(context.Background(), namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+				if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
+					if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
 						err := pinner.Pin(latest, true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
 							return
 						}
-						if err := lib.Config.Set("Render.DefaultTemplateHash", latest); err != nil {
+						if err := cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
 							log.Debug("error setting latest hash: %s", err.Error())
 							return
 						}
-						if err := lib.SaveConfig(); err != nil {
+
+						if err := cfg.WriteToFile(cfgPath); err != nil {
 							log.Debug("error saving config hash: %s", err.Error())
 							return
 						}
 						log.Info("auto-updated template hash: %s", latest)
 					}
 				}
-			}()
+			}(s.cfg, s.cfgPath)
 
 		}
 	}
@@ -138,7 +141,7 @@ func (s *Server) ServeRPC() {
 		return
 	}
 
-	for _, rcvr := range lib.Receivers(s.qriNode) {
+	for _, rcvr := range lib.Receivers(s.qriNode, s.cfg, s.cfgPath) {
 		if err := rpc.Register(rcvr); err != nil {
 			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return

@@ -43,10 +43,12 @@ type AddOptions struct {
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
-func (o *AddOptions) Complete(f Factory) (err error) {
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
-		return
+func (o *AddOptions) Complete(f Factory) error {
+	q, err := f.Qri()
+	if err != nil {
+		return err
 	}
+	o.DatasetRequests = q.Datasets()
 	return nil
 }
 

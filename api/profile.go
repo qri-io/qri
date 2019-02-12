@@ -20,7 +20,8 @@ type ProfileHandlers struct {
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
 func NewProfileHandlers(node *p2p.QriNode, readOnly bool) *ProfileHandlers {
-	req := lib.NewProfileRequests(node, nil)
+	// TODO (b5): plumb config nonsense into here
+	req := lib.NewProfileRequests(node, nil, "", nil)
 	h := ProfileHandlers{*req, readOnly}
 	return &h
 }
