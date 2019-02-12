@@ -15,7 +15,7 @@ import (
 )
 
 // Render executes a template for a dataset, returning a slice of HTML
-func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int, all bool) ([]byte, error) {
+func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offset int, all bool) ([]byte, error) {
 	const tmplName = "template"
 	var rdr io.Reader
 
@@ -67,44 +67,17 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 		return nil, err
 	}
 
-	var (
-		array []interface{}
-		obj   = map[string]interface{}{}
-		read  = 0
-	)
-
-	tlt, err := dsio.GetTopLevelType(ds.Structure)
-	if err != nil {
-		return nil, fmt.Errorf("getting schema top level type: %s", err)
-	}
-
 	rr, err := dsio.NewEntryReader(ds.Structure, file)
 	if err != nil {
 		return nil, fmt.Errorf("error allocating data reader: %s", err)
 	}
 
-	for i := 0; i >= 0; i++ {
-		val, err := rr.ReadEntry()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			return nil, fmt.Errorf("row iteration error: %s", err.Error())
-		}
-		if !all && i < offest {
-			continue
-		}
-
-		if tlt == "object" {
-			obj[val.Key] = val.Value
-		} else {
-			array = append(array, val.Value)
-		}
-
-		read++
-		if read == limit {
-			break
-		}
+	if !all {
+		rr = &dsio.PagedReader{Reader: rr, Limit: limit, Offset: offset}
+	}
+	bodyEntries, err := ReadEntries(rr)
+	if err != nil {
+		return nil, err
 	}
 
 	// TODO (b5): repo.DatasetRef should be refactored into this newly expanded DatasetPod,
@@ -117,11 +90,7 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offest int
 		ds.Meta = &dataset.Meta{}
 	}
 
-	if tlt == "object" {
-		ds.Body = obj
-	} else {
-		ds.Body = array
-	}
+	ds.Body = bodyEntries
 
 	tmplBuf := &bytes.Buffer{}
 	if err := tmpl.Execute(tmplBuf, ds); err != nil {

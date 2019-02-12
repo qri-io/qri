@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
@@ -399,19 +400,9 @@ func TestDatasetRequestsGet(t *testing.T) {
 	}
 
 	moviesDs.OpenBodyFile(node.Repo.Filesystem())
-	moviesBody := make([]interface{}, 0)
 	moviesBodyFile := moviesDs.BodyFile()
 	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
-	for {
-		ent, err := reader.ReadEntry()
-		if err != nil {
-			if err.Error() == "EOF" {
-				break
-			}
-			t.Fatal(err.Error())
-		}
-		moviesBody = append(moviesBody, ent.Value)
-	}
+	moviesBody := mustBeArray(base.ReadEntries(reader))
 
 	cases := []struct {
 		params *GetParams
@@ -898,4 +889,12 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			t.Errorf("case %d response mistmatch: expected '%s', got '%s'", i, c.expected, stringDiffs)
 		}
 	}
+}
+
+// Convert the interface value into an array, or panic if not possible
+func mustBeArray(i interface{}, err error) []interface{} {
+	if err != nil {
+		panic(err)
+	}
+	return i.([]interface{})
 }
