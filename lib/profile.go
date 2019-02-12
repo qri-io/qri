@@ -19,8 +19,11 @@ import (
 // ProfileRequests encapsulates business logic for this node's
 // user profile
 type ProfileRequests struct {
-	node *p2p.QriNode
-	cli  *rpc.Client
+	node        *p2p.QriNode
+	cfg         *config.Config
+	cfgFilepath string
+
+	cli *rpc.Client
 }
 
 // CoreRequestsName implements the Request interface
@@ -28,14 +31,17 @@ func (ProfileRequests) CoreRequestsName() string { return "profile" }
 
 // NewProfileRequests creates a ProfileRequests pointer from either a repo
 // or an rpc.Client
-func NewProfileRequests(node *p2p.QriNode, cli *rpc.Client) *ProfileRequests {
+func NewProfileRequests(node *p2p.QriNode, cfg *config.Config, cfgFilepath string, cli *rpc.Client) *ProfileRequests {
 	if node != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewProfileRequests"))
 	}
 
 	return &ProfileRequests{
-		node: node,
-		cli:  cli,
+		node:        node,
+		cfg:         cfg,
+		cfgFilepath: cfgFilepath,
+
+		cli: cli,
 	}
 }
 
@@ -57,8 +63,8 @@ func (r *ProfileRequests) GetProfile(in *bool, res *config.ProfilePod) (err erro
 		return err
 	}
 
-	if Config != nil && Config.P2P != nil {
-		pro.Online = Config.P2P.Enabled
+	if r.cfg != nil && r.cfg.P2P != nil {
+		pro.Online = r.cfg.P2P.Enabled
 	}
 
 	enc, err := pro.Encode()
@@ -107,12 +113,13 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	if p == nil {
 		return fmt.Errorf("profile required for update")
 	}
+	cfg := r.cfg.Copy()
 
-	if p.Peername != Config.Profile.Peername && p.Peername != "" {
+	if p.Peername != cfg.Profile.Peername && p.Peername != "" {
 		// TODO - should ProfileRequests be allocated with a configuration? How should this work in relation to
 		// RPC requests?
 		if reg := r.node.Repo.Registry(); reg != nil {
-			current, err := profile.NewProfile(Config.Profile)
+			current, err := profile.NewProfile(cfg.Profile)
 			if err != nil {
 				return err
 			}
@@ -125,24 +132,24 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 			}
 		}
 
-		Config.Set("profile.peername", p.Peername)
+		cfg.Set("profile.peername", p.Peername)
 	}
 
-	Config.Set("profile.name", p.Name)
-	Config.Set("profile.email", p.Email)
-	Config.Set("profile.description", p.Description)
-	Config.Set("profile.homeurl", p.HomeURL)
-	Config.Set("profile.twitter", p.Twitter)
+	cfg.Set("profile.name", p.Name)
+	cfg.Set("profile.email", p.Email)
+	cfg.Set("profile.description", p.Description)
+	cfg.Set("profile.homeurl", p.HomeURL)
+	cfg.Set("profile.twitter", p.Twitter)
 
 	if p.Color != "" {
-		Config.Set("profile.color", p.Color)
+		cfg.Set("profile.color", p.Color)
 	}
 	// TODO - strange bug:
-	if Config.Profile.Type == "" {
-		Config.Profile.Type = "peer"
+	if cfg.Profile.Type == "" {
+		cfg.Profile.Type = "peer"
 	}
 
-	pro, err := profile.NewProfile(Config.Profile)
+	pro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
 		return err
 	}
@@ -151,14 +158,15 @@ func (r *ProfileRequests) SaveProfile(p *config.ProfilePod, res *config.ProfileP
 	}
 
 	// Copy the global config, except without the private key.
-	*res = *Config.Profile
+	*res = *cfg.Profile
 	res.PrivKey = ""
 
-	if Config.P2P != nil {
-		res.Online = Config.P2P.Enabled
+	if cfg.P2P != nil {
+		res.Online = cfg.P2P.Enabled
 	}
 
-	return SetConfig(Config)
+	cfgR := &Config{cfg: cfg, filePath: r.cfgFilepath}
+	return cfgR.Set(cfg)
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
@@ -224,11 +232,12 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 
 	res.Photo = path
 	res.Thumb = path
-	Config.Set("profile.photo", path)
+	cfg := r.cfg.Copy()
+	cfg.Set("profile.photo", path)
 	// TODO - resize photo for thumb
-	Config.Set("profile.thumb", path)
+	cfg.Set("profile.thumb", path)
 
-	pro, err := profile.NewProfile(Config.Profile)
+	pro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
 		return err
 	}
@@ -247,7 +256,8 @@ func (r *ProfileRequests) SetProfilePhoto(p *FileParams, res *config.ProfilePod)
 
 	*res = *pp
 
-	return SetConfig(Config)
+	cfgR := &Config{cfg: r.cfg, filePath: r.cfgFilepath}
+	return cfgR.Set(cfg)
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
@@ -307,9 +317,10 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 	}
 
 	res.Poster = path
-	Config.Set("profile.poster", path)
+	cfg := r.cfg.Copy()
+	cfg.Set("profile.poster", path)
 
-	pro, err := profile.NewProfile(Config.Profile)
+	pro, err := profile.NewProfile(cfg.Profile)
 	if err != nil {
 		return err
 	}
@@ -328,5 +339,6 @@ func (r *ProfileRequests) SetPosterPhoto(p *FileParams, res *config.ProfilePod) 
 
 	*res = *pp
 
-	return SetConfig(Config)
+	cfgR := &Config{cfg: r.cfg, filePath: r.cfgFilepath}
+	return cfgR.Set(cfg)
 }

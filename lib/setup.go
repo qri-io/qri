@@ -31,8 +31,9 @@ func Setup(p SetupParams) error {
 		}
 	}
 
-	Config = p.Config
-	ConfigFilepath = p.ConfigFilepath
+	// TODO (b5): re-establish these?
+	// c.cfg = p.Config
+	// c.filePath = p.ConfigFilepath
 	return nil
 }
 

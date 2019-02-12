@@ -20,6 +20,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
@@ -48,14 +49,14 @@ func init() {
 
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
-func Receivers(node *p2p.QriNode) []Requests {
+func Receivers(node *p2p.QriNode, cfg *config.Config, cfgFilepath string) []Requests {
 	return []Requests{
 		NewDatasetRequests(node, nil),
 		NewRegistryRequests(node, nil),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),
-		NewProfileRequests(node, nil),
+		NewProfileRequests(node, cfg, cfgFilepath, nil),
 		NewSearchRequests(node, nil),
 		NewRenderRequests(node.Repo, nil),
 		NewSelectionRequests(node.Repo, nil),
@@ -114,16 +115,19 @@ func OptDefaultIPFSPath() Option {
 
 // OptLoadConfigFile loads a configuration from a given path
 func OptLoadConfigFile(path string) Option {
-	return func(o *QriOptions) error {
+	return func(o *QriOptions) (err error) {
 		// default to checking
 		if path == "" && o.QriPath != "" {
 			path = filepath.Join(o.QriPath, "config.yaml")
+		} else if path == "" {
+			return fmt.Errorf("no config path provided")
 		}
 
-		if err := LoadConfig(o.Streams, path); err != nil {
-			return err
+		if _, e := os.Stat(path); os.IsNotExist(e) {
+			return fmt.Errorf("no qri repo found, please run `qri setup`")
 		}
-		ConfigFilepath = path
+
+		o.Cfg, err = config.ReadFromFile(path)
 		return nil
 	}
 }
@@ -144,6 +148,33 @@ func OptStdIOStreams() Option {
 	}
 }
 
+// OptCheckConfigMigrations checks for any configuration migrations that may need to be run
+// running & updating config if so
+func OptCheckConfigMigrations(cfgPath string) Option {
+	return func(o *QriOptions) error {
+		// default to checking
+		if cfgPath == "" && o.QriPath != "" {
+			cfgPath = filepath.Join(o.QriPath, "config.yaml")
+		} else if cfgPath == "" {
+			return fmt.Errorf("no config path provided")
+		}
+
+		if o.Cfg == nil {
+			return fmt.Errorf("no config file to check for migrations")
+		}
+
+		migrated, err := migrate.RunMigrations(o.Streams, o.Cfg)
+		if err != nil {
+			return err
+		}
+
+		if migrated {
+			return o.Cfg.WriteToFile(cfgPath)
+		}
+		return nil
+	}
+}
+
 // New creates a new Qri handle, if no Option funcs are provided, New uses
 // a default set of Option funcs
 func New(opts ...Option) (qri *Qri, err error) {
@@ -155,10 +186,11 @@ func New(opts ...Option) (qri *Qri, err error) {
 			OptDefaultQriPath(),
 			OptDefaultIPFSPath(),
 			OptLoadConfigFile(""),
+			OptCheckConfigMigrations(""),
 		}
 	}
 	for _, opt := range opts {
-		if err = opt(cfg); err != nil {
+		if err = opt(o); err != nil {
 			return
 		}
 	}
@@ -170,6 +202,13 @@ func New(opts ...Option) (qri *Qri, err error) {
 	}
 	if err = cfg.Validate(); err != nil {
 		return
+	}
+
+	// configure logging straight away
+	if cfg != nil && cfg.Logging != nil {
+		for name, level := range cfg.Logging.Levels {
+			golog.SetLogLevel(name, level)
+		}
 	}
 
 	if cfg.RPC.Enabled {
@@ -188,7 +227,7 @@ func New(opts ...Option) (qri *Qri, err error) {
 	var store *ipfs.Filestore
 	fsOpts := []ipfs.Option{
 		func(c *ipfs.StoreCfg) {
-			c.FsRepoPath = cfg.Store.Path
+			c.FsRepoPath = o.IPFSPath
 			// c.Online = online
 		},
 		ipfs.OptsFromMap(cfg.Store.Options),
@@ -216,7 +255,7 @@ func New(opts ...Option) (qri *Qri, err error) {
 		"ipfs":  store,
 	})
 
-	repo, err := fsrepo.NewRepo(store, fsys, pro, rc, qriRepoPath)
+	repo, err := fsrepo.NewRepo(store, fsys, pro, rc, o.QriPath)
 	if err != nil {
 		return
 	}
@@ -227,15 +266,16 @@ func New(opts ...Option) (qri *Qri, err error) {
 	}
 	node.LocalStreams = o.Streams
 
-	return &Qri{cfg: cfg, node: node}, nil
+	return &Qri{cfg: cfg, node: node, qriPath: o.QriPath}, nil
 }
 
 // Qri is a single handle for accessing all of Qri's subsystems
 // create one with New
 type Qri struct {
-	cfg  *config.Config
-	node *p2p.QriNode
-	rpc  *rpc.Client
+	cfg     *config.Config
+	qriPath string
+	node    *p2p.QriNode
+	rpc     *rpc.Client
 }
 
 // Datasets provides methods for working with Datasets
@@ -265,7 +305,7 @@ func (q *Qri) Peers() *PeerRequests {
 
 // Profiles provides methods for working with Profiles
 func (q *Qri) Profiles() *ProfileRequests {
-	return NewProfileRequests(q.node, q.rpc)
+	return NewProfileRequests(q.node, q.cfg, filepath.Join(q.qriPath, "config.yaml"), q.rpc)
 }
 
 // Searchs provides methods for working with Searchs
@@ -275,10 +315,10 @@ func (q *Qri) Searchs() *SearchRequests {
 
 // Renders provides methods for working with Renders
 func (q *Qri) Renders() *RenderRequests {
-	return NewRenderRequests(node.q.node, q.rpc)
+	return NewRenderRequests(q.node.Repo, q.rpc)
 }
 
 // Selections provides methods for working with Selections
 func (q *Qri) Selections() *SelectionRequests {
-	return NewSelectionRequests(node.q.node, q.rpc)
+	return NewSelectionRequests(q.node.Repo, q.rpc)
 }

@@ -5,7 +5,6 @@ import (
 	"net"
 	"net/rpc"
 	"os"
-	"path/filepath"
 	"sync"
 
 	"github.com/qri-io/ioes"
@@ -112,22 +111,28 @@ func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioSt
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
 	initBody := func() {
-		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
+		// cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 
-		// for now this just checks for an existing config file
-		if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
-			err = fmt.Errorf("no qri repo found, please run `qri setup`")
-			return
+		// // for now this just checks for an existing config file
+		// if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
+		// 	err = fmt.Errorf("no qri repo found, please run `qri setup`")
+		// 	return
+		// }
+
+		options := []lib.Option{
+			lib.OptIOStreams(o.IOStreams),
+			lib.OptDefaultQriPath(),
+			lib.OptDefaultIPFSPath(),
+			lib.OptLoadConfigFile(""),
+			lib.OptCheckConfigMigrations(""),
 		}
 
-		options := []lib.Option{}
-
-		qri := lib.New()
+		qri := lib.New(options...)
 
 		setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
 
 		// TODO - need to remove global config state in lib, then remove this
-		lib.ConfigFilepath = cfgPath
+		// lib.ConfigFilepath = cfgPath
 
 		if err = lib.LoadConfig(o.IOStreams, cfgPath); err != nil {
 			return
