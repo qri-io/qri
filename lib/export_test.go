@@ -62,6 +62,18 @@ func TestExport(t *testing.T) {
 
 		{"export xlsx", ExportParams{Ref: "peer/movies", Format: "xlsx"},
 			"peer-movies_-_0001-01-01-00-00-00.xlsx"},
+
+		{"export zip", ExportParams{Ref: "peer/movies", Format: "zip"},
+			"peer-movies_-_0001-01-01-00-00-00.zip"},
+
+		{"export zip", ExportParams{Ref: "peer/cities", Zipped: true},
+			"peer-cities_-_0001-01-01-00-00-00.zip"},
+
+		{"export zip", ExportParams{Ref: "peer/counter", Format: "yaml", Zipped: true},
+			"peer-counter_-_0001-01-01-00-00-00.zip"},
+
+		{"export zip", ExportParams{Ref: "peer/sitemap", Format: "zip", Zipped: true},
+			"peer-sitemap_-_0001-01-01-00-00-00.zip"},
 	}
 
 	for _, c := range cases {
@@ -121,6 +133,9 @@ func readDataset(path string, ds *dataset.Dataset) error {
 			return err
 		}
 	case ".xlsx":
+		return fmt.Errorf("SKIP")
+	case ".zip":
+		// TODO: Instead, unzip the file, and inspect the dataset contents.
 		return fmt.Errorf("SKIP")
 	default:
 		return fmt.Errorf("unknown format: %s", ext)

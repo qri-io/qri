@@ -1,8 +1,10 @@
 package lib
 
 import (
+	"archive/zip"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/rpc"
 	"os"
 	"path"
@@ -45,6 +47,7 @@ type ExportParams struct {
 	TargetDir string
 	Output    string
 	Format    string
+	Zipped    bool
 }
 
 // Export exports a dataset in the specified format
@@ -84,8 +87,13 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 
 	format := p.Format
 	if format == "" {
-		// Default format is json
-		format = "json"
+		if p.Zipped {
+			// Default format, if --zip flag is set, is zip
+			format = "zip"
+		} else {
+			// Default format is json, otherwise
+			format = "json"
+		}
 	}
 
 	if p.Output == "" || isDirectory(p.Output) {
@@ -102,11 +110,12 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		if strings.HasPrefix(ext, ".") {
 			ext = ext[1:]
 		}
-
-		if p.Format == "" {
+		// If format was not supplied as a flag, and we're not outputting a zip, derive format
+		// from file extension.
+		if p.Format == "" && !p.Zipped {
 			format = ext
 		}
-
+		// Make sure the format doesn't contradict the file extension.
 		if ext != format {
 			return fmt.Errorf("file extension doesn't match format %s <> %s", ext, format)
 		}
@@ -122,11 +131,40 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		outputPath = path.Join(p.TargetDir, *fileWritten)
 	}
 
+	// If output is a format wrapped in a zip file, fixup the output name.
+	if p.Zipped && format != "zip" {
+		outputPath = replaceExt(outputPath, ".zip")
+		*fileWritten = replaceExt(*fileWritten, ".zip")
+	}
+
+	// Make sure output doesn't already exist.
 	_, err = os.Stat(outputPath)
 	if err == nil {
 		return fmt.Errorf("already exists: \"%s\"", *fileWritten)
 	}
 
+	// Create output writer.
+	var writer io.Writer
+	writer, err = os.Create(outputPath)
+	if err != nil {
+		return err
+	}
+
+	// If outputting a wrapped zip file, create the zip wrapper.
+	if p.Zipped && format != "zip" {
+		zipWriter := zip.NewWriter(writer)
+
+		writer, err = zipWriter.Create(fmt.Sprintf("dataset.%s", format))
+		if err != nil {
+			return err
+		}
+
+		defer func() {
+			zipWriter.Close()
+		}()
+	}
+
+	// Create entry reader.
 	reader, err := dsio.NewEntryReader(ds.Structure, ds.BodyFile())
 	if err != nil {
 		return err
@@ -152,11 +190,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		// drop any transform stuff
 		ds.Transform = nil
 
-		dst, err := os.Create(outputPath)
-		if err != nil {
-			return err
-		}
-		if err := json.NewEncoder(dst).Encode(ds); err != nil {
+		if err := json.NewEncoder(writer).Encode(ds); err != nil {
 			return err
 		}
 		return nil
@@ -182,29 +216,20 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 			return err
 		}
 
-		dst, err := os.Create(outputPath)
-		if err != nil {
-			return err
-		}
-		_, err = dst.Write(dsBytes)
+		_, err = writer.Write(dsBytes)
 		if err != nil {
 			return err
 		}
 		return nil
 
 	case "xlsx":
-		f, err := os.Create(outputPath)
-		if err != nil {
-			return err
-		}
-
 		st := &dataset.Structure{
 			Format: "xlsx",
 			// FormatConfig: map[string]interface{}{
 			// 	"sheetName": "body",
 			// },
 		}
-		w, err := dsio.NewEntryWriter(st, f)
+		w, err := dsio.NewEntryWriter(st, writer)
 		if err != nil {
 			return err
 		}
@@ -215,17 +240,13 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		return w.Close()
 
 	case "zip":
-		// default to a zip archive
-		w, err := os.Create(outputPath)
-		if err != nil {
-			return err
-		}
+
 		store := r.node.Repo.Store()
-		if err = dsutil.WriteZipArchive(store, ds, "json", ref.String(), w); err != nil {
+		if err = dsutil.WriteZipArchive(store, ds, "json", ref.String(), writer); err != nil {
 			return err
 		}
 
-		return w.Close()
+		return nil
 
 	default:
 		return fmt.Errorf("unknown file format \"%s\"", format)
@@ -238,4 +259,9 @@ func isDirectory(path string) bool {
 		return false
 	}
 	return st.Mode().IsDir()
+}
+
+func replaceExt(filename, newExt string) string {
+	ext := path.Ext(filename)
+	return filename[:len(filename)-len(ext)] + newExt
 }

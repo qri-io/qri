@@ -93,14 +93,11 @@ func (o *ExportOptions) Run() error {
 		return fmt.Errorf("'%s' already exists", path)
 	}
 
-	if o.Zipped {
-		return fmt.Errorf("--zipped flag is currently not supported")
-	}
-
 	p := &lib.ExportParams{
 		Ref:    o.Ref,
 		Output: path,
 		Format: format,
+		Zipped: o.Zipped,
 	}
 
 	var fileWritten string
