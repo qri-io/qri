@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"os"
+	"path"
 	"path/filepath"
 	"strings"
 
@@ -224,30 +225,52 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 }
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	p := lib.GetParams{
-		Path: HTTPPathToQriPath(r.URL.Path[len("/export"):]),
-	}
-	res := lib.GetResult{}
-
-	err := h.Get(&p, &res)
+	ref := HTTPPathToQriPath(r.URL.Path[len("/export"):])
+	format := r.FormValue("format")
+	zipped := r.FormValue("zipped") == "true"
+	tmpDir, err := ioutil.TempDir(os.TempDir(), "api_export")
 	if err != nil {
-		log.Infof("error getting dataset: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	params := lib.ExportParams{Ref: ref, TargetDir: tmpDir, Format: format, Zipped: zipped}
+
+	var fileWritten string
+	req := lib.NewExportRequests(h.node, nil)
+	err = req.Export(&params, &fileWritten)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	format := r.FormValue("format")
-	if format == "" {
-		format = "yaml"
+	f, err := os.Open(fileWritten)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	bytes, err := ioutil.ReadAll(f)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
 	}
 
-	w.Header().Set("Content-Type", "application/zip")
-	w.Header().Set("Content-Disposition", fmt.Sprintf("filename=\"%s.zip\"", "dataset"))
-	// TODO (b5): need to return dataset with valid reference components here
-	err = dsutil.WriteZipArchive(h.repo.Store(), res.Dataset, format, p.Path, w)
-	if err != nil {
-		log.Infof("error zipping dataset: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	w.Header().Set("Content-Type", extensionToMimeType(path.Ext(fileWritten)))
+	w.Header().Set("Content-Disposition", fileWritten)
+	w.Write(bytes)
+}
+
+func extensionToMimeType(ext string) string {
+	switch ext {
+	case ".json":
+		return "application/json"
+	case ".yaml":
+		return "application/x-yaml"
+	case ".xlsx":
+		return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+	case ".zip":
+		return "application/zip"
+	default:
+		return ""
 	}
 }
 
