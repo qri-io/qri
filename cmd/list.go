@@ -3,6 +3,7 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
@@ -105,9 +106,17 @@ func (o *ListOptions) Run() (err error) {
 			return fmt.Errorf("unrecognized format: %s", o.Format)
 		}
 	} else {
+		// if user provides "me/my_dataset", split into peername="me" and name="my_dataset"
+		peername := o.Peername
+		dsName := ""
+		parts := strings.Split(peername, "/")
+		if len(parts) > 1 {
+			peername = parts[0]
+			dsName = parts[1]
+		}
 
 		p := &lib.ListParams{
-			Peername: o.Peername,
+			Peername: peername,
 			Limit:    o.Limit,
 			Offset:   o.Offset,
 		}
@@ -116,19 +125,34 @@ func (o *ListOptions) Run() (err error) {
 			return err
 		}
 
+		replace := make([]repo.DatasetRef, 0)
 		for _, ref := range refs {
 			// remove profileID so names print pretty
 			ref.ProfileID = ""
+			// if there's a dsName that restricts the list operation, append matches
+			if dsName != "" && dsName == ref.Name {
+				replace = append(replace, ref)
+			}
+		}
+
+		// if there's a dsName that restricts the list operation, only show that dataset
+		if dsName != "" {
+			refs = replace
+		}
+
+		if len(refs) == 0 {
+			if dsName != "" {
+				printInfo(o.Out, "%s has no datasets that match \"%s\"", peername, dsName)
+			} else {
+				printInfo(o.Out, "%s has no datasets", peername)
+			}
+			return
 		}
 
 		switch o.Format {
 		case "":
-			if len(refs) == 0 {
-				printInfo(o.Out, "%s has no datasets", o.Peername)
-			} else {
-				for i, ref := range refs {
-					printDatasetRefInfo(o.Out, i+1, ref)
-				}
+			for i, ref := range refs {
+				printDatasetRefInfo(o.Out, i+1, ref)
 			}
 		case dataset.JSONDataFormat.String():
 			data, err := json.MarshalIndent(refs, "", "  ")
