@@ -31,6 +31,10 @@ func init() {
 }
 
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
+	return newTestRepoWithNumDatasets(t, 0)
+}
+
+func newTestRepoWithNumDatasets(t *testing.T, num int) (r repo.Repo, teardown func()) {
 	var err error
 	if err = confirmQriNotRunning(); err != nil {
 		t.Fatal(err.Error())
@@ -40,7 +44,7 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	golog.SetLogLevel("qriapi", "error")
 
 	// use a test registry server (with a pinset) & client & client
-	rc, registryServer := regmock.NewMockServer()
+	rc, registryServer := regmock.NewMockServerWithNumDatasets(num)
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
@@ -74,8 +78,12 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 }
 
 func newTestNode(t *testing.T) (node *p2p.QriNode, teardown func()) {
+	return newTestNodeWithNumDatasets(t, 0)
+}
+
+func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
-	r, teardown = newTestRepo(t)
+	r, teardown = newTestRepoWithNumDatasets(t, num)
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
 	if err != nil {
 		t.Fatal(err.Error())
