@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"strings"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/lib"
@@ -131,6 +132,11 @@ func (h *RegistryHandlers) registryDatasetHandler(w http.ResponseWriter, r *http
 
 	err = h.RegistryRequests.GetDataset(&ref, res)
 	if err != nil {
+		// If error was that the dataset wasn't found, send back 404 Not Found.
+		if strings.HasPrefix(err.Error(), "error 404") {
+			util.NotFoundHandler(w, r)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
