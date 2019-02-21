@@ -337,37 +337,38 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 		d.Format = r.FormValue("format")
 	}
 
-	left, err := DatasetRefFromPath(d.Left)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from left path: %s", err.Error()))
-		return
-	}
+	// TODO (b5): finish
+	// left, err := DatasetRefFromPath(d.Left)
+	// if err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from left path: %s", err.Error()))
+	// 	return
+	// }
 
-	right, err := DatasetRefFromPath(d.Right)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from right path: %s", err.Error()))
-		return
-	}
+	// right, err := DatasetRefFromPath(d.Right)
+	// if err != nil {
+	// 	util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error getting datasetRef from right path: %s", err.Error()))
+	// 	return
+	// }
 
 	diffs := make(map[string]*dsdiff.SubDiff)
-	p := &lib.DiffParams{
-		Left:    left,
-		Right:   right,
-		DiffAll: true,
-	}
+	// p := &lib.DiffParams{
+	// 	Left:    left,
+	// 	Right:   right,
+	// 	DiffAll: true,
+	// }
 
-	if err = h.Diff(p, &diffs); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error diffing datasets: %s", err))
-	}
+	// if err = h.Diff(p, &diffs); err != nil {
+	// 	util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error diffing datasets: %s", err))
+	// }
 
-	if d.Format != "" {
-		formattedDiffs, err := dsdiff.MapDiffsToString(diffs, d.Format)
-		if err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error formating diffs: %s", err))
-		}
-		util.WriteResponse(w, formattedDiffs)
-		return
-	}
+	// if d.Format != "" {
+	// 	formattedDiffs, err := dsdiff.MapDiffsToString(diffs, d.Format)
+	// 	if err != nil {
+	// 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error formating diffs: %s", err))
+	// 	}
+	// 	util.WriteResponse(w, formattedDiffs)
+	// 	return
+	// }
 
 	util.WriteResponse(w, diffs)
 }

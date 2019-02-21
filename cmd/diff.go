@@ -1,10 +1,11 @@
 package cmd
 
 import (
-	"github.com/qri-io/dsdiff"
+	"fmt"
+
+	"github.com/qri-io/difff"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -36,7 +37,7 @@ the same dataset.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Display, "display", "d", "", "set display format [reg|short|delta|detail]")
+	// cmd.Flags().StringVarP(&o.Display, "display", "d", "", "set display format [reg|short|delta|detail]")
 	// datasetDiffCmd.Flags().BoolP("color", "c", false, "set ")
 
 	return cmd
@@ -46,9 +47,10 @@ the same dataset.`,
 type DiffOptions struct {
 	ioes.IOStreams
 
-	Display string
-	Left    string
-	Right   string
+	// Display string
+	Selector string
+	Left     string
+	Right    string
 
 	UsingRPC        bool
 	DatasetRequests *lib.DatasetRequests
@@ -56,6 +58,13 @@ type DiffOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		if isDatasetField.MatchString(args[0]) {
+			o.Selector = args[0]
+			args = args[1:]
+		}
+	}
+
 	if len(args) > 1 {
 		o.Left = args[0]
 		o.Right = args[1]
@@ -69,48 +78,51 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 }
 
 // Run executes the diff command
-func (o *DiffOptions) Run() error {
+func (o *DiffOptions) Run() (err error) {
 	if o.UsingRPC {
 		return usingRPCError("diff")
 	}
 
-	left, err := repo.ParseDatasetRef(o.Left)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-	right, err := repo.ParseDatasetRef(o.Right)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
-	diffs := make(map[string]*dsdiff.SubDiff)
+	// diffs := make(map[string]*dsdiff.SubDiff)
 	p := &lib.DiffParams{
-		Left:    left,
-		Right:   right,
-		DiffAll: true,
+		LeftPath:  o.Left,
+		RightPath: o.Right,
+		Selector:  o.Selector,
+		// DiffAll:   true,
 	}
 
-	if err = o.DatasetRequests.Diff(p, &diffs); err != nil {
+	var changes []*lib.Delta
+	if err = o.DatasetRequests.Diff(p, &changes); err != nil {
 		return err
 	}
 
-	displayFormat := "listKeys"
-	switch o.Display {
-	case "reg", "regular":
-		displayFormat = "listKeys"
-	case "short", "s":
-		displayFormat = "simple"
-	case "delta":
-		displayFormat = "delta"
-	case "detail":
-		displayFormat = "plusMinus"
-	}
+	// data, err := json.MarshalIndent(res, "", "  ")
+	// if err != nil {
+	// 	return err
+	// }
 
-	result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
+	text, err := difff.FormatPrettyJSON(changes)
 	if err != nil {
 		return err
 	}
+	fmt.Fprint(o.Out, text)
 
-	printDiffs(o.Out, result)
+	// displayFormat := "listKeys"
+	// switch o.Display {
+	// case "reg", "regular":
+	// 	displayFormat = "listKeys"
+	// case "short", "s":
+	// 	displayFormat = "simple"
+	// case "delta":
+	// 	displayFormat = "delta"
+	// case "detail":
+	// 	displayFormat = "plusMinus"
+	// }
+
+	// result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
+	// if err != nil {
+	// 	return err
+	// }
+	// printDiffs(o.Out, result)
 	return nil
 }

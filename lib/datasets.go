@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/dsdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
@@ -569,40 +568,6 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	}
 
 	*errors, err = actions.Validate(r.node, p.Ref, body, schema)
-	return
-}
-
-// DiffParams defines parameters for diffing two datasets with Diff
-type DiffParams struct {
-	// The pointers to the datasets to diff
-	Left, Right repo.DatasetRef
-	// override flag to diff full dataset without having to specify each component
-	DiffAll bool
-	// if DiffAll is false, DiffComponents specifies which components of a dataset to diff
-	// currently supported components include "structure", "data", "meta", "transform", and "viz"
-	DiffComponents map[string]bool
-}
-
-// Diff computes the diff of two datasets
-func (r *DatasetRequests) Diff(p *DiffParams, diffs *map[string]*dsdiff.SubDiff) (err error) {
-	refs := []repo.DatasetRef{}
-
-	// Handle `qri use` to get the current default dataset.
-	if err := DefaultSelectedRefs(r.node.Repo, &refs); err != nil {
-		return err
-	}
-	// fill in the left side if Left is empty, and there are enough
-	// refs in the `use` list
-	if p.Left.IsEmpty() && len(refs) > 0 {
-		p.Left = refs[0]
-	}
-	// fill in the right side if Right is empty, and there are enough
-	// refs in the `use` list
-	if p.Right.IsEmpty() && len(refs) > 1 {
-		p.Right = refs[1]
-	}
-
-	*diffs, err = actions.DiffDatasets(r.node, p.Left, p.Right, p.DiffAll, p.DiffComponents)
 	return
 }
 
