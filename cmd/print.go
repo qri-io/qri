@@ -123,10 +123,27 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 		fmt.Fprintf(w, "    %s\n", ref.Path)
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Fprintf(w, "    %s, %d entries, %d errors", printByteInfo(ds.Structure.Length), ds.Structure.Entries, ds.Structure.ErrCount)
+		fmt.Fprintf(w, "    %s", printByteInfo(ds.Structure.Length))
+		if ds.Structure.Entries == 1 {
+			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
+		} else {
+			fmt.Fprintf(w, ", %d entries", ds.Structure.Entries)
+		}
+		if ds.Structure.ErrCount == 1 {
+			fmt.Fprintf(w, ", %d error", ds.Structure.ErrCount)
+		} else {
+			fmt.Fprintf(w, ", %d errors", ds.Structure.ErrCount)
+		}
+		if ds.NumVersions == 0 {
+			// nothing
+		} else if ds.NumVersions == 1 {
+			fmt.Fprintf(w, ", %d version", ds.NumVersions)
+		} else {
+			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
+		}
 	}
 
-	fmt.Fprintln(w, "")
+	fmt.Fprintf(w, "\n")
 }
 
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {

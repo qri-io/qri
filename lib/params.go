@@ -25,6 +25,8 @@ type ListParams struct {
 	RPC bool
 	// Published only applies to listing datasets
 	Published bool
+	// NumVersions only applies to listing datasets
+	NumVersions bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

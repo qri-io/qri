@@ -25,7 +25,7 @@ func TestListDatasets(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	res, err := ListDatasets(r, 1, 0, false, false)
+	res, err := ListDatasets(r, 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -33,7 +33,7 @@ func TestListDatasets(t *testing.T) {
 		t.Error("expected one dataset response")
 	}
 
-	res, err = ListDatasets(r, 1, 0, false, true)
+	res, err = ListDatasets(r, 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -46,7 +46,7 @@ func TestListDatasets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err = ListDatasets(r, 1, 0, false, true)
+	res, err = ListDatasets(r, 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}

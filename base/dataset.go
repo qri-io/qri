@@ -64,7 +64,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
 	store := r.Store()
 	res, err = r.References(limit, offset)
 	if err != nil {
@@ -98,6 +98,14 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly bool) (res 
 		res[i].Dataset = ds
 		if RPC {
 			res[i].Dataset.Structure.Schema = nil
+		}
+
+		if showVersions {
+			dsVersions, err := DatasetLog(r, ref, 0, 0, false)
+			if err != nil {
+				return nil, err
+			}
+			res[i].Dataset.NumVersions = len(dsVersions)
 		}
 	}
 
