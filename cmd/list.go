@@ -51,7 +51,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
 	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
-	cmd.Flags().BoolVarP(&o.NumVersions, "num-versions", "n", false, "show number of versions")
+	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 
 	return cmd
 }
@@ -60,12 +60,12 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 type ListOptions struct {
 	ioes.IOStreams
 
-	Format      string
-	Limit       int
-	Offset      int
-	Peername    string
-	Published   bool
-	NumVersions bool
+	Format          string
+	Limit           int
+	Offset          int
+	Peername        string
+	Published       bool
+	ShowNumVersions bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -87,10 +87,10 @@ func (o *ListOptions) Run() (err error) {
 	if o.Peername == "" {
 
 		p := &lib.ListParams{
-			Limit:       o.Limit,
-			Offset:      o.Offset,
-			Published:   o.Published,
-			NumVersions: o.NumVersions,
+			Limit:           o.Limit,
+			Offset:          o.Offset,
+			Published:       o.Published,
+			ShowNumVersions: o.ShowNumVersions,
 		}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {
 			return err
@@ -110,7 +110,7 @@ func (o *ListOptions) Run() (err error) {
 			Peername:    peername,
 			Limit:       o.Limit,
 			Offset:      o.Offset,
-			NumVersions: o.NumVersions,
+			ShowNumVersions: o.ShowNumVersions,
 		}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {
 			return err
