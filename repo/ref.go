@@ -2,6 +2,7 @@ package repo
 
 import (
 	"fmt"
+	"regexp"
 	"strings"
 
 	"github.com/mr-tron/base58/base58"
@@ -57,6 +58,13 @@ func (r ProfileRef) String() (s string) {
 		s += "@" + r.ProfileID.String()
 	}
 	return
+}
+
+var isRefString = regexp.MustCompile(`^((\w+)\/(\w+)){0,1}(@(\w*)(\/\w{0,4}\/\w+)){0,1}$`)
+
+// IsRefString checks to see if a reference is a valid dataset ref string
+func IsRefString(path string) bool {
+	return isRefString.MatchString(path)
 }
 
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind

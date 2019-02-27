@@ -83,7 +83,6 @@ func (o *DiffOptions) Run() (err error) {
 		return usingRPCError("diff")
 	}
 
-	// diffs := make(map[string]*dsdiff.SubDiff)
 	p := &lib.DiffParams{
 		LeftPath:  o.Left,
 		RightPath: o.Right,
@@ -91,38 +90,18 @@ func (o *DiffOptions) Run() (err error) {
 		// DiffAll:   true,
 	}
 
-	var changes []*lib.Delta
-	if err = o.DatasetRequests.Diff(p, &changes); err != nil {
+	res := lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, &res); err != nil {
 		return err
 	}
 
-	// data, err := json.MarshalIndent(res, "", "  ")
-	// if err != nil {
-	// 	return err
-	// }
+	fmt.Fprintf(o.Out, difff.FormatPrettyStatsColor(res.Stats)+"\n")
 
-	text, err := difff.FormatPrettyJSON(changes)
+	text, err := difff.FormatPrettyColor(res.Diff)
 	if err != nil {
 		return err
 	}
 	fmt.Fprint(o.Out, text)
 
-	// displayFormat := "listKeys"
-	// switch o.Display {
-	// case "reg", "regular":
-	// 	displayFormat = "listKeys"
-	// case "short", "s":
-	// 	displayFormat = "simple"
-	// case "delta":
-	// 	displayFormat = "delta"
-	// case "detail":
-	// 	displayFormat = "plusMinus"
-	// }
-
-	// result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
-	// if err != nil {
-	// 	return err
-	// }
-	// printDiffs(o.Out, result)
 	return nil
 }
