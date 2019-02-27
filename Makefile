@@ -7,6 +7,7 @@ github.com/olekukonko/tablewriter \
 github.com/qri-io/bleve \
 github.com/qri-io/dataset \
 github.com/qri-io/doggos \
+github.com/qri-io/difff \
 github.com/qri-io/dsdiff \
 github.com/qri-io/varName \
 github.com/sergi/go-diff/diffmatchpatch \
@@ -55,6 +56,7 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/registry && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dataset && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/varName && git checkout master && git pull
+	cd $$GOPATH/src/github.com/qri-io/difff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dsdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/startf && git checkout master && git pull
