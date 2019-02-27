@@ -11,16 +11,15 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/ugorji/go/codec"
 )
 
 // Delta is an alias for difff.Delta, abstracting the difff implementation
 // away from packages that depend on lib
 type Delta = difff.Delta
 
-// DiffStats is an alias for difff.Stats, abstracting the difff implementation
+// DiffStat is an alias for difff.Stat, abstracting the difff implementation
 // away from packages that depend on lib
-type DiffStats = difff.Stats
+type DiffStat = difff.Stats
 
 // DiffParams defines parameters for diffing two datasets with Diff
 type DiffParams struct {
@@ -38,8 +37,8 @@ type DiffParams struct {
 
 // DiffResponse is the result of a call to diff
 type DiffResponse struct {
-	Stats *DiffStats
-	Diff  []*Delta
+	Stat *DiffStat
+	Diff []*Delta
 }
 
 // Diff computes the diff of two datasets
@@ -61,10 +60,10 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	_res := DiffResponse{
-		Stats: &difff.Stats{},
+		Stat: &difff.Stats{},
 	}
 
-	if _res.Diff, err = difff.Diff(leftData, rightData, difff.OptionSetStats(_res.Stats)); err != nil {
+	if _res.Diff, err = difff.Diff(leftData, rightData, difff.OptionSetStats(_res.Stat)); err != nil {
 		return
 	}
 
@@ -154,7 +153,8 @@ func (r *DatasetRequests) loadDiffData(path, selector string, concise bool) (dat
 	case ".csv":
 		data, err = allCSVRows(file)
 	case ".cbor":
-		err = codec.NewDecoder(file, &codec.CborHandle{}).Decode(&data)
+		err = fmt.Errorf("cbor is not yet supported")
+		// err = codec.NewDecoder(file, &codec.CborHandle{}).Decode(&data)
 	default:
 		err = fmt.Errorf("unrecognized file extension: %s", ext)
 	}
