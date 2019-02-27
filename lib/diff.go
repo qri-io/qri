@@ -112,6 +112,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		if err != nil {
 			return
 		}
+		fmt.Println(res)
 		if len(res) > 1 {
 			*left = res[1].String()
 		}

@@ -95,7 +95,7 @@ func (o *DiffOptions) Run() (err error) {
 		return err
 	}
 
-	fmt.Fprintf(o.Out, difff.FormatPrettyStatsColor(res.Stats)+"\n")
+	fmt.Fprintf(o.Out, difff.FormatPrettyStatsColor(res.Stat)+"\n")
 
 	text, err := difff.FormatPrettyColor(res.Diff)
 	if err != nil {

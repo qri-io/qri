@@ -27,13 +27,13 @@ func TestProfileHandler(t *testing.T) {
 	}
 
 	proh := NewProfileHandlers(node, false)
-	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases)
+	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 
 	readOnlyCases := []handlerTestCase{
 		{"GET", "/", nil},
 	}
 	proh.ReadOnly = true
-	runHandlerTestCases(t, "read-only", proh.ProfileHandler, readOnlyCases)
+	runHandlerTestCases(t, "read-only", proh.ProfileHandler, readOnlyCases, true)
 
 	mimeCases := []handlerMimeMultipartTestCase{
 		{"GET", "/",

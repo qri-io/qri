@@ -36,5 +36,5 @@ func TestHistoryHandlers(t *testing.T) {
 		{"GET", "/history/at/map/QmZrmGvTPMCkJYfqaagFZBUWuX5bkqSXu179eNnFfhCKze", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "log", h.LogHandler, logCases)
+	runHandlerTestCases(t, "log", h.LogHandler, logCases, true)
 }
