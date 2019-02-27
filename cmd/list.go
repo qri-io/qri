@@ -51,6 +51,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
 	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
+	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 
 	return cmd
 }
@@ -59,11 +60,12 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 type ListOptions struct {
 	ioes.IOStreams
 
-	Format    string
-	Limit     int
-	Offset    int
-	Peername  string
-	Published bool
+	Format          string
+	Limit           int
+	Offset          int
+	Peername        string
+	Published       bool
+	ShowNumVersions bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -79,31 +81,19 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the list command
 func (o *ListOptions) Run() (err error) {
+
+	refs := []repo.DatasetRef{}
+
 	if o.Peername == "" {
 
 		p := &lib.ListParams{
-			Limit:     o.Limit,
-			Offset:    o.Offset,
-			Published: o.Published,
+			Limit:           o.Limit,
+			Offset:          o.Offset,
+			Published:       o.Published,
+			ShowNumVersions: o.ShowNumVersions,
 		}
-		refs := []repo.DatasetRef{}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {
 			return err
-		}
-
-		switch o.Format {
-		case "":
-			for i, ref := range refs {
-				printDatasetRefInfo(o.Out, i+1, ref)
-			}
-		case dataset.JSONDataFormat.String():
-			data, err := json.MarshalIndent(refs, "", "  ")
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(o.Out, "%s\n", string(data))
-		default:
-			return fmt.Errorf("unrecognized format: %s", o.Format)
 		}
 	} else {
 		// if user provides "me/my_dataset", split into peername="me" and name="my_dataset"
@@ -114,13 +104,14 @@ func (o *ListOptions) Run() (err error) {
 			peername = parts[0]
 			dsName = parts[1]
 		}
-
+		// TODO: It would be a bit more efficient to pass dsName to the ListParams
+		// and only retrieve information about that one dataset.
 		p := &lib.ListParams{
-			Peername: peername,
-			Limit:    o.Limit,
-			Offset:   o.Offset,
+			Peername:    peername,
+			Limit:       o.Limit,
+			Offset:      o.Offset,
+			ShowNumVersions: o.ShowNumVersions,
 		}
-		refs := []repo.DatasetRef{}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {
 			return err
 		}
@@ -148,21 +139,21 @@ func (o *ListOptions) Run() (err error) {
 			}
 			return
 		}
+	}
 
-		switch o.Format {
-		case "":
-			for i, ref := range refs {
-				printDatasetRefInfo(o.Out, i+1, ref)
-			}
-		case dataset.JSONDataFormat.String():
-			data, err := json.MarshalIndent(refs, "", "  ")
-			if err != nil {
-				return err
-			}
-			fmt.Fprintf(o.Out, "%s\n", string(data))
-		default:
-			return fmt.Errorf("unrecognized format: %s", o.Format)
+	switch o.Format {
+	case "":
+		for i, ref := range refs {
+			printDatasetRefInfo(o.Out, i+1, ref)
 		}
+	case dataset.JSONDataFormat.String():
+		data, err := json.MarshalIndent(refs, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Fprintf(o.Out, "%s\n", string(data))
+	default:
+		return fmt.Errorf("unrecognized format: %s", o.Format)
 	}
 
 	return nil

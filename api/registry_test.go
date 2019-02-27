@@ -28,7 +28,6 @@ func TestRegistryHandlers(t *testing.T) {
 	runHandlerTestCases(t, "registryDatasets", h.RegistryDatasetsHandler, registryDatasetsCases)
 }
 
-
 func TestRegistryGet(t *testing.T) {
 	node, teardown := newTestNodeWithNumDatasets(t, 1)
 	defer teardown()
@@ -50,7 +49,6 @@ func TestRegistryGet(t *testing.T) {
 		t.Errorf("did not match, got:\n%s\nexpect:\n%s\n", got, expect)
 	}
 }
-
 
 func TestRegistryGetNotFound(t *testing.T) {
 	node, teardown := newTestNodeWithNumDatasets(t, 1)
