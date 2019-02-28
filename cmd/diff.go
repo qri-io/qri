@@ -17,7 +17,9 @@ func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "diff",
 		Short: "Compare differences between two data sources",
-		Long: `
+		Long: `diff is a new & experimental feature, please report bugs here:
+https://github.com/qri-io/difff
+
 Diff compares two data sources & generates a description of the difference
 between them. The output of diff describes the steps required to make the 
 element on the left (the first argument) equal the element on the right (the
