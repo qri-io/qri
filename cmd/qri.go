@@ -46,8 +46,8 @@ https://github.com/qri-io/qri/issues`,
 	// TODO: write a test that verifies this works with our new yaml config
 	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
 	cmd.SetUsageTemplate(rootUsageTemplate)
-	cmd.Flags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
-	cmd.Flags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
+	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
+	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
 
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
