@@ -22,6 +22,7 @@ func FillStruct(fields map[string]interface{}, output interface{}) error {
 type KeyValSetter interface {
 	SetKeyVal(string, interface{}) error
 }
+
 // TODO (dlong): Implement this interface for dataset.Meta. It currently has the similar method
 // `Set`, which does more than needed, since it assigns to any field, not just the private map.
 
@@ -76,6 +77,11 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 			num, ok := val.(int)
 			if ok {
 				field.SetInt(int64(num))
+				continue
+			}
+			numFloat, ok := val.(float64)
+			if ok {
+				field.SetInt(int64(numFloat))
 				continue
 			}
 			errs = append(errs, fmt.Sprintf("field %s type int, value %s", fieldName, val))

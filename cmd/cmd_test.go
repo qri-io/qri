@@ -12,6 +12,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
@@ -373,6 +374,44 @@ func TestRemoveAllRevisionsShortForm(t *testing.T) {
 	}
 }
 
+// Test that save can override a single component, meta in this case.
+func TestSaveThenOverrideMetaComponent(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := r.GetPathForDataset(0)
+	actual := r.DatasetMarshalJSON(dsPath)
+
+	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified title\n","path":"/ipfs/QmfEiBVM5MLdw2zBgFVMcCRjavFmna8cLnPQiRzkjmWPBu","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Meta: 1 change"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmXHG7tsnNWcztDB6Dqde3qGEh7BFvgho8F138A9ho5yMM/dataset.json","peername":"me","previousPath":"/ipfs/QmdFjgWLL5nGdXLb9383x4dNskxQX84iqm7hPJiBCHij1p","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}}}`
+	if actual != expect {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	}
+}
+
 // TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
 // bodies of dataset in more of our test case. That would require extracting some parts out, like
 // pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a
@@ -497,4 +536,21 @@ func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
 	}
 
 	return string(bodyBytes)
+}
+
+// DatasetMarshalJSON reads the dataset head and marshals it as json.
+func (r *TestRepoRoot) DatasetMarshalJSON(ref string) string {
+	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+		cfg.Online = false
+		cfg.FsRepoPath = r.ipfsPath
+	})
+	ds, err := dsfs.LoadDataset(fs, ref)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+	bytes, err := json.Marshal(ds)
+	if err != nil {
+		r.t.Fatal(err)
+	}
+	return string(bytes)
 }
