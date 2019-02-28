@@ -43,6 +43,18 @@ type DiffResponse struct {
 
 // Diff computes the diff of two datasets
 func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
+	// absolutize any local paths before a possible trip over RPC to another local process
+	if !repo.IsRefString(p.LeftPath) {
+		if err = qfs.AbsPath(&p.LeftPath); err != nil {
+			return
+		}
+	}
+	if !repo.IsRefString(p.RightPath) {
+		if err = qfs.AbsPath(&p.RightPath); err != nil {
+			return
+		}
+	}
+
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Diff", p, res)
 	}
@@ -112,7 +124,6 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		if err != nil {
 			return
 		}
-		fmt.Println(res)
 		if len(res) > 1 {
 			*left = res[1].String()
 		}

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 
+	"github.com/fatih/color"
 	"github.com/qri-io/difff"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -47,12 +48,10 @@ the same dataset.`,
 type DiffOptions struct {
 	ioes.IOStreams
 
-	// Display string
-	Selector string
 	Left     string
 	Right    string
+	Selector string
 
-	UsingRPC        bool
 	DatasetRequests *lib.DatasetRequests
 }
 
@@ -72,22 +71,19 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) == 1 {
 		o.Right = args[0]
 	}
-	o.UsingRPC = f.RPC() != nil
+
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
 
 // Run executes the diff command
 func (o *DiffOptions) Run() (err error) {
-	if o.UsingRPC {
-		return usingRPCError("diff")
-	}
+	var stats, text string
 
 	p := &lib.DiffParams{
 		LeftPath:  o.Left,
 		RightPath: o.Right,
 		Selector:  o.Selector,
-		// DiffAll:   true,
 	}
 
 	res := lib.DiffResponse{}
@@ -95,12 +91,21 @@ func (o *DiffOptions) Run() (err error) {
 		return err
 	}
 
-	fmt.Fprintf(o.Out, difff.FormatPrettyStatsColor(res.Stat)+"\n")
-
-	text, err := difff.FormatPrettyColor(res.Diff)
-	if err != nil {
-		return err
+	if color.NoColor {
+		stats = difff.FormatPrettyStats(res.Stat)
+		text, err = difff.FormatPretty(res.Diff)
+		if err != nil {
+			return err
+		}
+	} else {
+		stats = difff.FormatPrettyStatsColor(res.Stat)
+		text, err = difff.FormatPrettyColor(res.Diff)
+		if err != nil {
+			return err
+		}
 	}
+
+	fmt.Fprintf(o.Out, stats+"\n")
 	fmt.Fprint(o.Out, text)
 
 	return nil
