@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/fatih/color"
@@ -15,18 +16,36 @@ func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "diff",
-		Short: "Compare differences between two datasets",
+		Short: "Compare differences between two data sources",
 		Long: `
-Diff compares two datasets from your repo and prints a representation 
-of the differences between them.  You can specifify the datasets
-either by name or by their hash. You can compare different versions of 
-the same dataset.`,
-		Example: `  show diff between two versions of the same dataset:
-  $ qri diff me/annual_pop@/ipfs/QmcBZoEQ7ot4UYKn1JM3gwd4LHorj6FJ4Ep19rfLBT3VZ8 
-  me/annual_pop@/ipfs/QmVvqsge5wqp4piJbLArwVB6iJSTrdM8ZRpHY7fikASrr8
+Diff compares two data sources & generates a description of the difference
+between them. The output of diff describes the steps required to make the 
+element on the left (the first argument) equal the element on the right (the
+second argument). The steps themselves are the "diff".
 
-  show diff between two different datasets:
-  $ qri diff me/population_2016 me/population_2017`,
+Unlike the classic unix diff utility (which operates on text),
+qri diff works on structured data. qri diffs are measured in elements
+(think cells in a spreadsheet), each change is either an insert (added 
+elements), delete (removed elements), or update (changed values).
+
+Each change has a path that locates it within the document`,
+		Example: `  diff between a latest version & the next one back:
+  $ qri diff me/annual_pop
+
+  diff current "qri use" selection:
+  $ qri diff
+
+  diff dataset body against it's last version
+  $ qri diff body me/annual_pop
+  
+  diff two dataset meta sections:
+  $ qri diff meta me/population_2016 me/population_2017
+
+  diff two local json files:
+  $ qri diff a.json b.json
+
+  diff a json & csv file
+  $ qri diff some_table.csv b.json`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -38,8 +57,7 @@ the same dataset.`,
 		},
 	}
 
-	// cmd.Flags().StringVarP(&o.Display, "display", "d", "", "set display format [reg|short|delta|detail]")
-	// datasetDiffCmd.Flags().BoolP("color", "c", false, "set ")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "pretty", "output format. one of [json,pretty]")
 
 	return cmd
 }
@@ -51,6 +69,7 @@ type DiffOptions struct {
 	Left     string
 	Right    string
 	Selector string
+	Format   string
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -91,6 +110,12 @@ func (o *DiffOptions) Run() (err error) {
 		return err
 	}
 
+	if o.Format == "json" {
+		json.NewEncoder(o.Out).Encode(res.Diff)
+		return
+	}
+
+	// TODO (b5): this reading from a package variable is pretty hacky :/
 	if color.NoColor {
 		stats = difff.FormatPrettyStats(res.Stat)
 		text, err = difff.FormatPretty(res.Diff)

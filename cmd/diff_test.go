@@ -79,16 +79,17 @@ func TestDiffRun(t *testing.T) {
 			"repo: empty dataset reference",
 			"",
 		},
-		{"diff with no options",
+		{"diff two dataset metas",
 			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta"},
 			"0 elements. 0 inserts. 0 deletes. 1 update.\n\n~ title: \"example city data\"\n",
 			"", "",
 		},
-		// {[]string{}, -1, "", "", ""},
-		// {[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
-		// {[]string{"me/movies"}, -1, "Diffd entire dataset 'peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmcnKQTWNuAYpcqUa4Ss85WiNp4c9ySem4DNipxQzUqw5J'\n", "", ""},
-		// {[]string{"me/cities", "me/counter"}, -1, "Diffd entire dataset 'peer/cities@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSXfRRFy2T3gBARtvcf1GJAgg5dandb9fpqyUWAYzEcQq'\nDiffd entire dataset 'peer/counter@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmSULpGrhdSTVJh4C1jtnFsXNczMxXG6KaMLAhfSkM3zzu'\n", "", ""},
-		// {[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
+		{"diff json output",
+			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta", Format: "json"},
+			`[{"type":"update","path":"/title","value":"example city data","originalValue":"example movie data"}]
+`,
+			"", "",
+		},
 	}
 
 	for i, c := range cases {
