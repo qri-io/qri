@@ -107,9 +107,9 @@ func (o *ListOptions) Run() (err error) {
 		// TODO: It would be a bit more efficient to pass dsName to the ListParams
 		// and only retrieve information about that one dataset.
 		p := &lib.ListParams{
-			Peername:    peername,
-			Limit:       o.Limit,
-			Offset:      o.Offset,
+			Peername:        peername,
+			Limit:           o.Limit,
+			Offset:          o.Offset,
 			ShowNumVersions: o.ShowNumVersions,
 		}
 		if err = o.DatasetRequests.List(p, &refs); err != nil {

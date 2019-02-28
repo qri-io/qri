@@ -11,6 +11,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qri/base"
+	"gopkg.in/yaml.v2"
 )
 
 // AbsPath adjusts the provided string to a path lib functions can work with
@@ -96,16 +98,19 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 			if err != nil {
 				return
 			}
-			if err = dsutil.UnmarshalYAMLDataset(data, ds); err != nil {
+
+			fields := make(map[string]interface{})
+			if err = yaml.Unmarshal(data, fields); err != nil {
 				return
 			}
-			absDatasetPaths(path, ds)
+			err = fillDatasetOrComponent(fields, path, ds)
 
 		case ".json":
-			if err = json.NewDecoder(f).Decode(ds); err != nil {
+			fields := make(map[string]interface{})
+			if err = json.NewDecoder(f).Decode(&fields); err != nil {
 				return
 			}
-			absDatasetPaths(path, ds)
+			err = fillDatasetOrComponent(fields, path, ds)
 
 		case ".zip":
 			data, err = ioutil.ReadAll(f)
@@ -120,6 +125,39 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 		}
 	}
 	return
+}
+
+func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) error {
+	switch fields["qri"] {
+	case "md:0":
+		md := &dataset.Meta{}
+		err := base.FillStruct(fields, md)
+		if err != nil {
+			return err
+		}
+		ds.Meta = md
+	case "cm:0":
+		cm := &dataset.Commit{}
+		err := base.FillStruct(fields, cm)
+		if err != nil {
+			return err
+		}
+		ds.Commit = cm
+	case "st:0":
+		st := &dataset.Structure{}
+		err := base.FillStruct(fields, st)
+		if err != nil {
+			return err
+		}
+		ds.Structure = st
+	default:
+		err := base.FillStruct(fields, ds)
+		if err != nil {
+			return err
+		}
+	}
+	absDatasetPaths(path, ds)
+	return nil
 }
 
 // absDatasetPaths converts any relative filepath references in a Dataset to
