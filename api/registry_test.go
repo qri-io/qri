@@ -20,12 +20,12 @@ func TestRegistryHandlers(t *testing.T) {
 		{"DELETE", "/registry/me/counter", nil},
 		{"PATCH", "/", nil},
 	}
-	runHandlerTestCases(t, "registry", h.RegistryHandler, registryCases)
+	runHandlerTestCases(t, "registry", h.RegistryHandler, registryCases, true)
 
 	registryDatasetsCases := []handlerTestCase{
 		{"GET", "/registry/datasets", nil},
 	}
-	runHandlerTestCases(t, "registryDatasets", h.RegistryDatasetsHandler, registryDatasetsCases)
+	runHandlerTestCases(t, "registryDatasets", h.RegistryDatasetsHandler, registryDatasetsCases, true)
 }
 
 func TestRegistryGet(t *testing.T) {

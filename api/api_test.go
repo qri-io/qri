@@ -97,12 +97,13 @@ type handlerTestCase struct {
 }
 
 // runHandlerTestCases executes a slice of handlerTestCase against a handler
-func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []handlerTestCase) {
+func runHandlerTestCases(t *testing.T, name string, h http.HandlerFunc, cases []handlerTestCase, jsonHeader bool) {
 	for i, c := range cases {
 		name := fmt.Sprintf("%s %s case %d: %s %s", t.Name(), name, i, c.method, c.endpoint)
 		req := httptest.NewRequest(c.method, c.endpoint, bytes.NewBuffer(c.body))
-		// TODO - make this settable with some sort of test case interface
-		req.Header.Set("Content-Type", "application/json")
+		if jsonHeader {
+			req.Header.Set("Content-Type", "application/json")
+		}
 		w := httptest.NewRecorder()
 
 		h(w, req)
@@ -155,13 +156,13 @@ func TestServerRoutes(t *testing.T) {
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 	}
-	runHandlerTestCases(t, "root", h.Handler, rootCases)
+	runHandlerTestCases(t, "root", h.Handler, rootCases, true)
 
 	healthCheckCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
 	}
-	runHandlerTestCases(t, "health check", HealthCheckHandler, healthCheckCases)
+	runHandlerTestCases(t, "health check", HealthCheckHandler, healthCheckCases, true)
 }
 
 func TestServerReadOnlyRoutes(t *testing.T) {

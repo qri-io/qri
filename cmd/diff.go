@@ -1,10 +1,13 @@
 package cmd
 
 import (
-	"github.com/qri-io/dsdiff"
+	"encoding/json"
+	"fmt"
+
+	"github.com/fatih/color"
+	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -13,18 +16,38 @@ func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "diff",
-		Short: "Compare differences between two datasets",
-		Long: `
-Diff compares two datasets from your repo and prints a representation 
-of the differences between them.  You can specifify the datasets
-either by name or by their hash. You can compare different versions of 
-the same dataset.`,
-		Example: `  show diff between two versions of the same dataset:
-  $ qri diff me/annual_pop@/ipfs/QmcBZoEQ7ot4UYKn1JM3gwd4LHorj6FJ4Ep19rfLBT3VZ8 
-  me/annual_pop@/ipfs/QmVvqsge5wqp4piJbLArwVB6iJSTrdM8ZRpHY7fikASrr8
+		Short: "Compare differences between two data sources",
+		Long: `diff is a new & experimental feature, please report bugs here:
+https://github.com/qri-io/deepdiff
 
-  show diff between two different datasets:
-  $ qri diff me/population_2016 me/population_2017`,
+Diff compares two data sources & generates a description of the difference
+between them. The output of diff describes the steps required to make the 
+element on the left (the first argument) equal the element on the right (the
+second argument). The steps themselves are the "diff".
+
+Unlike the classic unix diff utility (which operates on text),
+qri diff works on structured data. qri diffs are measured in elements
+(think cells in a spreadsheet), each change is either an insert (added 
+elements), delete (removed elements), or update (changed values).
+
+Each change has a path that locates it within the document`,
+		Example: `  diff between a latest version & the next one back:
+  $ qri diff me/annual_pop
+
+  diff current "qri use" selection:
+  $ qri diff
+
+  diff dataset body against it's last version
+  $ qri diff body me/annual_pop
+  
+  diff two dataset meta sections:
+  $ qri diff meta me/population_2016 me/population_2017
+
+  diff two local json files:
+  $ qri diff a.json b.json
+
+  diff a json & csv file
+  $ qri diff some_table.csv b.json`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -36,8 +59,7 @@ the same dataset.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Display, "display", "d", "", "set display format [reg|short|delta|detail]")
-	// datasetDiffCmd.Flags().BoolP("color", "c", false, "set ")
+	cmd.Flags().StringVarP(&o.Format, "format", "f", "pretty", "output format. one of [json,pretty]")
 
 	return cmd
 }
@@ -46,16 +68,23 @@ the same dataset.`,
 type DiffOptions struct {
 	ioes.IOStreams
 
-	Display string
-	Left    string
-	Right   string
+	Left     string
+	Right    string
+	Selector string
+	Format   string
 
-	UsingRPC        bool
 	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		if isDatasetField.MatchString(args[0]) {
+			o.Selector = args[0]
+			args = args[1:]
+		}
+	}
+
 	if len(args) > 1 {
 		o.Left = args[0]
 		o.Right = args[1]
@@ -63,54 +92,48 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) == 1 {
 		o.Right = args[0]
 	}
-	o.UsingRPC = f.RPC() != nil
+
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
 }
 
 // Run executes the diff command
-func (o *DiffOptions) Run() error {
-	if o.UsingRPC {
-		return usingRPCError("diff")
-	}
+func (o *DiffOptions) Run() (err error) {
+	var stats, text string
 
-	left, err := repo.ParseDatasetRef(o.Left)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-	right, err := repo.ParseDatasetRef(o.Right)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
-	diffs := make(map[string]*dsdiff.SubDiff)
 	p := &lib.DiffParams{
-		Left:    left,
-		Right:   right,
-		DiffAll: true,
+		LeftPath:  o.Left,
+		RightPath: o.Right,
+		Selector:  o.Selector,
 	}
 
-	if err = o.DatasetRequests.Diff(p, &diffs); err != nil {
+	res := lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, &res); err != nil {
 		return err
 	}
 
-	displayFormat := "listKeys"
-	switch o.Display {
-	case "reg", "regular":
-		displayFormat = "listKeys"
-	case "short", "s":
-		displayFormat = "simple"
-	case "delta":
-		displayFormat = "delta"
-	case "detail":
-		displayFormat = "plusMinus"
+	if o.Format == "json" {
+		json.NewEncoder(o.Out).Encode(res.Diff)
+		return
 	}
 
-	result, err := dsdiff.MapDiffsToString(diffs, displayFormat)
-	if err != nil {
-		return err
+	// TODO (b5): this reading from a package variable is pretty hacky :/
+	if color.NoColor {
+		stats = deepdiff.FormatPrettyStats(res.Stat)
+		text, err = deepdiff.FormatPretty(res.Diff)
+		if err != nil {
+			return err
+		}
+	} else {
+		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
+		text, err = deepdiff.FormatPrettyColor(res.Diff)
+		if err != nil {
+			return err
+		}
 	}
 
-	printDiffs(o.Out, result)
+	fmt.Fprintf(o.Out, stats+"\n")
+	fmt.Fprint(o.Out, text)
+
 	return nil
 }

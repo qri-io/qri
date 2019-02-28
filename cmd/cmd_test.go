@@ -170,7 +170,7 @@ func TestCommandsIntegration(t *testing.T) {
 		"qri list me/movies",
 		fmt.Sprintf("qri save --body=%s -t=commit_1 me/movies", movies2FilePath),
 		"qri log me/movies",
-		"qri diff me/movies me/movies2 -d=detail",
+		"qri diff me/movies me/movies2",
 		fmt.Sprintf("qri export -o=%s me/movies --zip", path),
 		fmt.Sprintf("qri export -o=%s/ds.yaml --format=yaml me/movies", path),
 		"qri publish me/movies",

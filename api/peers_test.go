@@ -15,6 +15,6 @@ func TestPeerHandlers(t *testing.T) {
 		{"GET", "/", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "connections", h.ConnectionsHandler, connectionsCases)
+	runHandlerTestCases(t, "connections", h.ConnectionsHandler, connectionsCases, true)
 
 }

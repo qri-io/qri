@@ -21,7 +21,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "list", h.ListHandler, listCases)
+	runHandlerTestCases(t, "list", h.ListHandler, listCases, true)
 
 	// TODO: Remove this case, update API snapshot.
 	initCases := []handlerTestCase{
@@ -29,14 +29,14 @@ func TestDatasetHandlers(t *testing.T) {
 		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json")},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "init", h.SaveHandler, initCases)
+	runHandlerTestCases(t, "init", h.SaveHandler, initCases, true)
 
 	saveCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"POST", "/", mustFile(t, "testdata/newRequestFromURL.json")},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "save", h.SaveHandler, saveCases)
+	runHandlerTestCases(t, "save", h.SaveHandler, saveCases, true)
 
 	getCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -45,21 +45,21 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "get", h.GetHandler, getCases)
+	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
 
 	bodyCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/body/me/family_relationships", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases)
+	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases, true)
 
 	renameCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"POST", "/rename", mustFile(t, "testdata/renameRequest.json")},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "rename", h.RenameHandler, renameCases)
+	runHandlerTestCases(t, "rename", h.RenameHandler, renameCases, true)
 
 	exportCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -67,7 +67,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/export/me/cities/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "export", h.ZipDatasetHandler, exportCases)
+	runHandlerTestCases(t, "export", h.ZipDatasetHandler, exportCases, true)
 
 	publishCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -75,7 +75,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"POST", "/publish/me/cities", nil},
 		{"DELETE", "/publish/me/cities", nil},
 	}
-	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases)
+	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases, true)
 
 	updateCases := []handlerMimeMultipartTestCase{
 		{"OPTIONS", "/", nil, nil},
@@ -89,8 +89,8 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runMimeMultipartHandlerTestCases(t, "update", h.UpdateHandler, updateCases)
 
-	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combine
-	// `runHandlerZipPostTestCases` with `runHandlerTestCases`.
+	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
+	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
 	unpackCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"POST", "/unpack/", mustFile(t, "testdata/exported.zip")},
@@ -99,11 +99,10 @@ func TestDatasetHandlers(t *testing.T) {
 
 	diffCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
-		{"GET", "/", mustFile(t, "testdata/diffRequest.json")},
-		{"GET", "/", mustFile(t, "testdata/diffRequestPlusMinusColor.json")},
+		{"GET", "/?left_path=me/family_relationships&right_path=me/cities", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases)
+	runHandlerTestCases(t, "diff", h.DiffHandler, diffCases, false)
 
 	removeCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -111,7 +110,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"POST", "/remove/me/cities", nil},
 		{"POST", "/remove/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
 	}
-	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases)
+	runHandlerTestCases(t, "remove", h.RemoveHandler, removeCases, true)
 
 	removeMimeCases := []handlerMimeMultipartTestCase{
 		{"POST", "/remove/me/cities",

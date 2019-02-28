@@ -13,5 +13,5 @@ func TestRenderHandler(t *testing.T) {
 	}
 
 	h := NewRenderHandlers(r)
-	runHandlerTestCases(t, "render", h.RenderHandler, cases)
+	runHandlerTestCases(t, "render", h.RenderHandler, cases, false)
 }
