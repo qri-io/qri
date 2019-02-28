@@ -95,7 +95,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		case 0:
 			// do nothing
 		case 1:
-			// if one ref is speficied, compare with previous version, so we'll put it in right
+			// if one ref is specified, compare with previous version, so we'll put it in right
 			// for further processing below
 			*right = refs[0].String()
 		case 2:
