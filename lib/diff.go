@@ -7,19 +7,19 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/qri-io/difff"
+	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
-// Delta is an alias for difff.Delta, abstracting the difff implementation
+// Delta is an alias for deepdiff.Delta, abstracting the deepdiff implementation
 // away from packages that depend on lib
-type Delta = difff.Delta
+type Delta = deepdiff.Delta
 
-// DiffStat is an alias for difff.Stat, abstracting the difff implementation
+// DiffStat is an alias for deepdiff.Stat, abstracting the deepdiff implementation
 // away from packages that depend on lib
-type DiffStat = difff.Stats
+type DiffStat = deepdiff.Stats
 
 // DiffParams defines parameters for diffing two datasets with Diff
 type DiffParams struct {
@@ -72,10 +72,10 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	_res := DiffResponse{
-		Stat: &difff.Stats{},
+		Stat: &deepdiff.Stats{},
 	}
 
-	if _res.Diff, err = difff.Diff(leftData, rightData, difff.OptionSetStats(_res.Stat)); err != nil {
+	if _res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
 		return
 	}
 

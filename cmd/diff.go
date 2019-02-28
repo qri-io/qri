@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/fatih/color"
-	"github.com/qri-io/difff"
+	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -18,7 +18,7 @@ func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:   "diff",
 		Short: "Compare differences between two data sources",
 		Long: `diff is a new & experimental feature, please report bugs here:
-https://github.com/qri-io/difff
+https://github.com/qri-io/deepdiff
 
 Diff compares two data sources & generates a description of the difference
 between them. The output of diff describes the steps required to make the 
@@ -119,14 +119,14 @@ func (o *DiffOptions) Run() (err error) {
 
 	// TODO (b5): this reading from a package variable is pretty hacky :/
 	if color.NoColor {
-		stats = difff.FormatPrettyStats(res.Stat)
-		text, err = difff.FormatPretty(res.Diff)
+		stats = deepdiff.FormatPrettyStats(res.Stat)
+		text, err = deepdiff.FormatPretty(res.Diff)
 		if err != nil {
 			return err
 		}
 	} else {
-		stats = difff.FormatPrettyStatsColor(res.Stat)
-		text, err = difff.FormatPrettyColor(res.Diff)
+		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
+		text, err = deepdiff.FormatPrettyColor(res.Diff)
 		if err != nil {
 			return err
 		}
