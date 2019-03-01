@@ -7,6 +7,8 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // RootHandler bundles handlers that may need to be called
@@ -62,6 +64,15 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
 		return
 	}
-	util.WriteResponse(w, res.Dataset)
+
+	ref = repo.DatasetRef{
+		Peername:  res.Dataset.Peername,
+		ProfileID: profile.ID(res.Dataset.ProfileID),
+		Name:      res.Dataset.Name,
+		Path:      res.Dataset.Path,
+		Dataset:   res.Dataset,
+	}
+
+	util.WriteResponse(w, ref)
 	return
 }
