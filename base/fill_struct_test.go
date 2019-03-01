@@ -2,6 +2,7 @@ package base
 
 import (
 	"encoding/json"
+	"reflect"
 	"testing"
 	"time"
 
@@ -159,6 +160,8 @@ type Collection struct {
 	More map[string]interface{}
 	Name string
 	Age  int
+	IsOn bool
+	Xpos float64
 }
 
 func (c *Collection) SetKeyVal(key string, val interface{}) error {
@@ -169,7 +172,7 @@ func (c *Collection) SetKeyVal(key string, val interface{}) error {
 	return nil
 }
 
-func TestFillCollection(t *testing.T) {
+func TestFillKeyValSetter(t *testing.T) {
 	jsonData := `{
   "Name": "Alice",
   "Age": 42,
@@ -196,5 +199,121 @@ func TestFillCollection(t *testing.T) {
 	}
 	if c.More["Unknown"] != "value" {
 		t.Errorf("expected: c.More[\"Unknown\"] should be \"value\", got: %s", c.More["Unknown"])
+	}
+}
+
+func TestFillBoolean(t *testing.T) {
+	jsonData := `{
+  "Name": "Bob",
+  "IsOn": true
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Name != "Bob" {
+		t.Errorf("expected: c.Name should be \"Alice\", got: %s", c.Name)
+	}
+	if c.IsOn != true {
+		t.Errorf("expected: c.IsOn should be true, got: %v", c.IsOn)
+	}
+}
+
+func TestFillFloatingPoint(t *testing.T) {
+	jsonData := `{
+  "Name": "Carol",
+  "Xpos": 6.283
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Name != "Carol" {
+		t.Errorf("expected: c.Name should be \"Alice\", got: %s", c.Name)
+	}
+	if c.Xpos != 6.283 {
+		t.Errorf("expected: c.Xpos should be 6.283, got: %v", c.Xpos)
+	}
+}
+
+func TestFillMetaKeywords(t *testing.T) {
+	jsonData := `{
+  "Keywords": [
+    "Test0",
+    "Test1",
+    "Test2"
+  ]
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var meta dataset.Meta
+	err = FillStruct(data, &meta)
+	if err != nil {
+		panic(err)
+	}
+
+	expect := []string{"Test0", "Test1", "Test2"}
+	if !reflect.DeepEqual(meta.Keywords, expect) {
+		t.Errorf("expected: c.Keywords should expect: %s, got: %s", expect, meta.Keywords)
+	}
+}
+
+func TestFillMetaCitations(t *testing.T) {
+	jsonData := `{
+  "Citations": [
+    {
+      "Name": "A website",
+      "URL": "http://example.com",
+      "Email": "me@example.com"
+    }
+  ]
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var meta dataset.Meta
+	err = FillStruct(data, &meta)
+	if err != nil {
+		panic(err)
+	}
+
+	expect := dataset.Meta{
+		Citations: []*dataset.Citation{
+			&dataset.Citation{
+				Name:  "A website",
+				URL:   "http://example.com",
+				Email: "me@example.com",
+			},
+		},
+	}
+	if !reflect.DeepEqual(meta, expect) {
+		t.Errorf("expected: c.Keywords should expect: %s, got: %s", expect, meta.Keywords)
 	}
 }

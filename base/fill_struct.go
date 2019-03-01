@@ -26,8 +26,9 @@ type KeyValSetter interface {
 // TODO (dlong): Implement this interface for dataset.Meta. It currently has the similar method
 // `Set`, which does more than needed, since it assigns to any field, not just the private map.
 
-// timeObj is used for reflect.TypeOf
+// timeObj and ifaceObj are used for reflect.TypeOf
 var timeObj time.Time
+var ifaceObj interface{}
 
 // putFieldsToTargetStruct iterates over the fields in the target struct, and assigns each
 // field the value from the `fields` map. Recursively call this for an sub structures. Field
@@ -70,77 +71,9 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		}
 		usedKeys[caseMap[lowerName]] = true
 
-		// Dispatch on kind of field.
-		field := target.Field(i)
-		switch field.Kind() {
-		case reflect.Int:
-			num, ok := val.(int)
-			if ok {
-				field.SetInt(int64(num))
-				continue
-			}
-			numFloat, ok := val.(float64)
-			if ok {
-				field.SetInt(int64(numFloat))
-				continue
-			}
-			errs = append(errs, fmt.Sprintf("field %s type int, value %s", fieldName, val))
-		case reflect.String:
-			text, ok := val.(string)
-			if ok {
-				field.SetString(text)
-				continue
-			}
-			errs = append(errs, fmt.Sprintf("field %s type string, value %s", fieldName, val))
-		case reflect.Struct:
-			// Specially handle time.Time, represented as a string, which needs to be parsed.
-			if field.Type() == reflect.TypeOf(timeObj) {
-				timeText, ok := val.(string)
-				if ok {
-					ts, err := time.Parse(time.RFC3339, timeText)
-					if err == nil {
-						field.Set(reflect.ValueOf(ts))
-						continue
-					}
-					errs = append(errs, err.Error())
-					continue
-				}
-				errs = append(errs, fmt.Sprintf("field %s type time, value %s", fieldName, val))
-				continue
-			}
-			// Other struct types are not handled currently. Should probably do the same thing
-			// as what's done for `pointer` below.
-			errs = append(errs, fmt.Sprintf("unknown struct %s for field %s\n", field.Type(), fieldName))
-		case reflect.Map:
-			m, ok := val.(map[string]interface{})
-			if ok {
-				field.Set(reflect.ValueOf(m))
-				continue
-			}
-			errs = append(errs, fmt.Sprintf("field %s type map, value %s", fieldName, val))
-		case reflect.Ptr:
-			// Allocate a new pointer for the sub-component to be filled in.
-			alloc := reflect.New(field.Type().Elem())
-			field.Set(alloc)
-			inner := alloc.Elem()
-			// For now, can only point to a struct.
-			if inner.Kind() != reflect.Struct {
-				errs = append(errs, fmt.Sprintf("can only assign to *struct @ %s", fieldName))
-				continue
-			}
-			// Struct must be assigned from a map.
-			component, err := toStringMap(val)
-			if err != nil {
-				errs = append(errs, err.Error())
-				continue
-			}
-			// Recursion to handle sub-component.
-			err = putFieldsToTargetStruct(component, inner)
-			if err != nil {
-				errs = append(errs, err.Error())
-			}
-		default:
-			errs = append(errs, fmt.Sprintf("unknown kind %s, field name %s (IMPLEMENT ME)", field.Kind(), fieldName))
+		err := putValueToPlace(val, target.Field(i))
+		if err != nil {
+			errs = append(errs, fmt.Sprintf("field %s: %s", fieldName, err.Error()))
 		}
 	}
 
@@ -166,6 +99,115 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		return nil
 	}
 	return fmt.Errorf("%s", strings.Join(errs, "\n"))
+}
+
+func putValueToPlace(val interface{}, place reflect.Value) error {
+	switch place.Kind() {
+	case reflect.Int:
+		num, ok := val.(int)
+		if ok {
+			place.SetInt(int64(num))
+			return nil
+		}
+		numFloat, ok := val.(float64)
+		if ok {
+			place.SetInt(int64(numFloat))
+			return nil
+		}
+		return fmt.Errorf("need type int, value %s", val)
+	case reflect.Float64:
+		num, ok := val.(int)
+		if ok {
+			place.SetFloat(float64(num))
+			return nil
+		}
+		numFloat, ok := val.(float64)
+		if ok {
+			place.SetFloat(numFloat)
+			return nil
+		}
+		return fmt.Errorf("need type string, value %s", val)
+	case reflect.String:
+		text, ok := val.(string)
+		if ok {
+			place.SetString(text)
+			return nil
+		}
+		return fmt.Errorf("need type string, value %s", val)
+	case reflect.Bool:
+		b, ok := val.(bool)
+		if ok {
+			place.SetBool(b)
+			return nil
+		}
+		return fmt.Errorf("need type string, value %s", val)
+	case reflect.Struct:
+		// Specially handle time.Time, represented as a string, which needs to be parsed.
+		if place.Type() == reflect.TypeOf(timeObj) {
+			timeText, ok := val.(string)
+			if ok {
+				ts, err := time.Parse(time.RFC3339, timeText)
+				if err == nil {
+					place.Set(reflect.ValueOf(ts))
+					return nil
+				}
+				return err
+			}
+			return fmt.Errorf("need type time, value %s", val)
+		}
+		// Other struct types are not handled currently. Should probably do the same thing
+		// as what's done for `pointer` below.
+		return fmt.Errorf("unknown struct %s", place.Type())
+	case reflect.Map:
+		m, ok := val.(map[string]interface{})
+		if ok {
+			place.Set(reflect.ValueOf(m))
+			return nil
+		}
+		return fmt.Errorf("need type map, value %s", val)
+	case reflect.Slice:
+		slice, ok := val.([]interface{})
+		if !ok {
+			return fmt.Errorf("need type slice, value %s", val)
+		}
+		// Get size of type of the slice to deserialize.
+		size := len(slice)
+		sliceType := reflect.TypeOf(ifaceObj)
+		if size > 0 {
+			sliceType = place.Type().Elem()
+		}
+		// Construct a new, empty slice of the same size.
+		create := reflect.MakeSlice(reflect.SliceOf(sliceType), size, size)
+		// Fill in each element.
+		for i := 0; i < size; i++ {
+			elem := reflect.Indirect(reflect.New(sliceType))
+			err := putValueToPlace(slice[i], elem)
+			if err != nil {
+				return err
+			}
+			create.Index(i).Set(elem)
+		}
+		place.Set(create)
+		return nil
+	case reflect.Ptr:
+		// Allocate a new pointer for the sub-component to be filled in.
+		alloc := reflect.New(place.Type().Elem())
+		place.Set(alloc)
+		inner := alloc.Elem()
+		// For now, can only point to a struct.
+		if inner.Kind() != reflect.Struct {
+			return fmt.Errorf("can only assign to *struct")
+		}
+		// Struct must be assigned from a map.
+		component, err := toStringMap(val)
+		if err != nil {
+			return err
+		}
+		// Recursion to handle sub-component.
+		return putFieldsToTargetStruct(component, inner)
+	default:
+		return fmt.Errorf("unknown kind %s", place.Kind())
+	}
 }
 
 // toStringMap converts the input to a map[string] if able. This is needed because, while JSON
