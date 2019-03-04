@@ -18,9 +18,9 @@ func FillStruct(fields map[string]interface{}, output interface{}) error {
 	return putFieldsToTargetStruct(fields, target)
 }
 
-// KeyValSetter should be implemented by structs that can store arbitrary fields in a private map.
-type KeyValSetter interface {
-	SetKeyVal(string, interface{}) error
+// ArbitrarySetter should be implemented by structs that can store arbitrary fields in a private map.
+type ArbitrarySetter interface {
+	SetArbitrary(string, interface{}) error
 }
 
 // TODO (dlong): Implement this interface for dataset.Meta. It currently has the similar method
@@ -78,7 +78,7 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 	}
 
 	// If the target struct is able, assign unknown keys to it.
-	arbitrarySetter := getArbitraryKeyValSetter(target)
+	arbitrarySetter := getArbitrarySetter(target)
 
 	// Iterate over keys in the `fields` data, see if there were any keys that were not stored in
 	// the target struct.
@@ -87,7 +87,7 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		if _, ok := usedKeys[k]; !ok {
 			// If target struct allows storing unknown keys to a map of arbitrary data.
 			if arbitrarySetter != nil {
-				arbitrarySetter.SetKeyVal(k, fields[k])
+				arbitrarySetter.SetArbitrary(k, fields[k])
 				continue
 			}
 			// Otherwise, unknown fields are an error.
@@ -229,15 +229,15 @@ func toStringMap(val interface{}) (map[string]interface{}, error) {
 	return nil, fmt.Errorf("could not convert to map[string]")
 }
 
-// getArbitraryKeyValSetter returns a KeyValSetter if the target implements it.
-func getArbitraryKeyValSetter(target reflect.Value) KeyValSetter {
+// getArbitrarySetter returns a ArbitrarySetter if the target implements it.
+func getArbitrarySetter(target reflect.Value) ArbitrarySetter {
 	if !target.CanAddr() {
 		return nil
 	}
 	ptr := target.Addr()
 	iface := ptr.Interface()
-	if s, ok := iface.(KeyValSetter); ok {
-		return s
+	if setter, ok := iface.(ArbitrarySetter); ok {
+		return setter
 	}
 	return nil
 }

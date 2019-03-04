@@ -164,7 +164,7 @@ type Collection struct {
 	Xpos float64
 }
 
-func (c *Collection) SetKeyVal(key string, val interface{}) error {
+func (c *Collection) SetArbitrary(key string, val interface{}) error {
 	if c.More == nil {
 		c.More = make(map[string]interface{})
 	}
@@ -172,7 +172,7 @@ func (c *Collection) SetKeyVal(key string, val interface{}) error {
 	return nil
 }
 
-func TestFillKeyValSetter(t *testing.T) {
+func TestFillArbitrarySetter(t *testing.T) {
 	jsonData := `{
   "Name": "Alice",
   "Age": 42,
@@ -221,7 +221,7 @@ func TestFillBoolean(t *testing.T) {
 	}
 
 	if c.Name != "Bob" {
-		t.Errorf("expected: c.Name should be \"Alice\", got: %s", c.Name)
+		t.Errorf("expected: c.Name should be \"Bob\", got: %s", c.Name)
 	}
 	if c.IsOn != true {
 		t.Errorf("expected: c.IsOn should be true, got: %v", c.IsOn)
@@ -247,7 +247,7 @@ func TestFillFloatingPoint(t *testing.T) {
 	}
 
 	if c.Name != "Carol" {
-		t.Errorf("expected: c.Name should be \"Alice\", got: %s", c.Name)
+		t.Errorf("expected: c.Name should be \"Carol\", got: %s", c.Name)
 	}
 	if c.Xpos != 6.283 {
 		t.Errorf("expected: c.Xpos should be 6.283, got: %v", c.Xpos)
