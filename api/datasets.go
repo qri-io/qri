@@ -314,7 +314,14 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, res.Dataset)
+	ref := repo.DatasetRef{
+		Peername:  res.Dataset.Peername,
+		ProfileID: profile.ID(res.Dataset.ProfileID),
+		Name:      res.Dataset.Name,
+		Path:      res.Dataset.Path,
+		Dataset:   res.Dataset,
+	}
+	util.WriteResponse(w, ref)
 }
 
 func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
