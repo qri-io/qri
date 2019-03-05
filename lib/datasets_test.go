@@ -208,7 +208,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 
 	dsp := &dataset.Dataset{Peername: "me"}
 	res := repo.DatasetRef{}
-	err = req.Save(&SaveParams{Dataset: dsp, DatasetPath: "testdata/import.zip"}, &res)
+	err = req.Save(&SaveParams{Dataset: dsp, FilePath: "testdata/import.zip"}, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

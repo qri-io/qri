@@ -183,11 +183,11 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
-	// dataset to create. If both Dataset and DatasetPath are provided
-	// dataset values will override any values in the document at DatasetPath
+	// dataset to create. If both Dataset and FilePath are provided
+	// dataset values will override any values in the document at FilePath
 	Dataset *dataset.Dataset
-	// absolute path or URL to a dataset file to load dataset from
-	DatasetPath string
+	// absolute path or URL to a dataset file or component to load
+	FilePath string
 	// secrets for transform execution
 	Secrets map[string]string
 	// option to make dataset private. private data is not currently implimented,
@@ -222,8 +222,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	ds := p.Dataset
-	if ds == nil && p.DatasetPath == "" {
-		return fmt.Errorf("at least one of Dataset, DatasetPath is required")
+	if ds == nil && p.FilePath == "" {
+		return fmt.Errorf("at least one of Dataset, FilePath is required")
 	}
 
 	if p.Recall != "" {
@@ -243,9 +243,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds = recall
 	}
 
-	if p.DatasetPath != "" {
+	if p.FilePath != "" {
 		// TODO (b5): handle this with a fs.Filesystem
-		dsf, err := ReadDatasetFile(p.DatasetPath)
+		dsf, err := ReadDatasetFile(p.FilePath)
 		if err != nil {
 			return err
 		}

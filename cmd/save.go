@@ -141,7 +141,7 @@ func (o *SaveOptions) Run() (err error) {
 
 	p := &lib.SaveParams{
 		Dataset:             dsp,
-		DatasetPath:         o.FilePath,
+		FilePath:            o.FilePath,
 		Private:             false,
 		Publish:             o.Publish,
 		DryRun:              o.DryRun,
