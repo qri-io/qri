@@ -127,34 +127,26 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 	return
 }
 
-func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) error {
-	switch fields["qri"] {
-	case "md:0":
-		md := &dataset.Meta{}
-		err := base.FillStruct(fields, md)
-		if err != nil {
-			return err
+func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (err error) {
+	var fill interface{}
+	fill = ds
+
+	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) > 3 {
+		switch kindStr[:2] {
+		case "md":
+			ds.Meta = &dataset.Meta{}
+			fill = ds.Meta
+		case "cm":
+			ds.Commit = &dataset.Commit{}
+			fill = ds.Commit
+		case "st":
+			ds.Structure = &dataset.Structure{}
+			fill = ds.Structure
 		}
-		ds.Meta = md
-	case "cm:0":
-		cm := &dataset.Commit{}
-		err := base.FillStruct(fields, cm)
-		if err != nil {
-			return err
-		}
-		ds.Commit = cm
-	case "st:0":
-		st := &dataset.Structure{}
-		err := base.FillStruct(fields, st)
-		if err != nil {
-			return err
-		}
-		ds.Structure = st
-	default:
-		err := base.FillStruct(fields, ds)
-		if err != nil {
-			return err
-		}
+	}
+
+	if err = base.FillStruct(fields, fill); err != nil {
+		return err
 	}
 	absDatasetPaths(path, ds)
 	return nil

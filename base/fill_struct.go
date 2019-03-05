@@ -9,7 +9,7 @@ import (
 
 // FillStruct fills in the values of an arbitrary structure using an already deserialized
 // map of nested data. Fields names are case-insensitive. Unknown fields are treated as an
-// error, *unless* the output structure implementes the KeyValSetter interface.
+// error, *unless* the output structure implementes the ArbitrarySetter interface.
 func FillStruct(fields map[string]interface{}, output interface{}) error {
 	target := reflect.ValueOf(output)
 	if target.Kind() == reflect.Ptr {
@@ -22,9 +22,6 @@ func FillStruct(fields map[string]interface{}, output interface{}) error {
 type ArbitrarySetter interface {
 	SetArbitrary(string, interface{}) error
 }
-
-// TODO (dlong): Implement this interface for dataset.Meta. It currently has the similar method
-// `Set`, which does more than needed, since it assigns to any field, not just the private map.
 
 // timeObj and ifaceObj are used for reflect.TypeOf
 var timeObj time.Time
