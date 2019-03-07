@@ -1,3 +1,120 @@
+<a name="0.7.1"></a>
+# [0.7.1](https://github.com/qri-io/qri/compare/v0.7.0...v0.7.1) (2019-03-07)
+
+0.7.1 is on the larger side for a patch release, shipping fixes & features aimed at doing more with datasets. With this release qri is better at comparing data, and more flexible when it comes to both saving & exporting data.
+
+### Overhauled Diff
+We've completely overhauled our `diff` command, using a new algorithm that's capable of diffing large volumes of structured data quickly. We've also adjusted the command itself to work with structured data both inside and outside of qri.
+
+Two caveats come with this new feature:
+* This code is new. We have tests that show our differ produces _valid_ diff scripts, but sometimes diff doesn't produce diffs that are fun to read. We'd love your feedback on improving the new diff command.
+* We haven't really figured out a proper way to _visualize_ these diffs yet.
+
+Caveats aside, new diff is mad decent. Here's a few examples:
+
+```
+# get more info on diff:
+$ qri diff --help
+
+# diff dataset body against it's previous version:
+$ qri diff body me/annual_pop
+
+# diff two dataset meta sections:
+$ qri diff meta me/population_2016 me/population_2017
+
+# diff two local json files:
+$ qri diff a.json b.json
+
+# diff a json & a csv file:
+$ qri diff data.csv b.json
+
+# output diff as json
+$ qri diff a.json b.json --format json
+
+# print just a diff summary
+$ qri diff me/annual_pop --summary
+```
+
+### Revamped Export
+We've overhauled our export command to up it's utility. We've also introduced the terms "foreign" and "native" export to refer to the _fidelity_ of an export. This round of improvements has focused on foreign exports, which converts qri datasets into common formats. For example, now you can (finally) express a complete dataset as json:
+
+```
+$ qri export --format json me/annual_pop
+```
+
+We've also made the role `qri export` plays work better in relation to `qri get`. If you want a _complete_ dataset, use `qri export`. If you want a piece of a dataset (for example, just the body), use `qri dataset`.
+
+
+### Shorthand Save Files
+
+We've added a way to save changes to datasets that only affect individual components. If you only want to change, say the meta section of a dataset, you can now create a file that only affects the meta component. In the past,  you'd have no choice but to construct a complete dataset document, and only alter the `meta` section. Instead you can now save a file like this:
+
+```json
+{
+  "qri": "md:0", // this "md:0" value for the "qri" key tells qri this only affects meta
+  "title" : "this is a new title",
+  "description": "new decription"
+}
+```
+
+and give that to save:
+`$ qri save --file meta.json me/dataset`
+
+Qri will interpret this file and apply the changes to the meta component. This pairs very nicely with `qri get` to make workflows that only affect specific components, you could use this to change a dataset's schema, which lives in the `structure` component:
+```
+$ qri get structure me/annual_pop  > structure.yaml
+
+# save changes to structure.yaml
+
+$ qri save --file structure.yaml me/annual_pop
+```
+
+### Starlark improvements:
+We've added a `json` package to starlark, and given `math` a new method `round()`, which is not built into starlark as a language primtive. If you want to round numbers in starlark scripts, do this:
+
+```python
+load("math.star", "math")
+
+print(math.round(3.5)) # prints: 4
+```
+
+### Fixes
+We've also shipped a bunch of little bug fixes that should add up to a better experience. All the changes described above also apply to the qri JSON api as well. Happy versioning!
+
+
+### Bug Fixes
+
+* **actions.SaveDataset:** delay inferring values until after writing changes ([86f57fa](https://github.com/qri-io/qri/commit/86f57fa))
+* **api:** restore api /diff endpoint ([e71fd8e](https://github.com/qri-io/qri/commit/e71fd8e))
+* **base.ReadEntries:** Simplify ReadEntries by using PagedReader in render ([4f914a6](https://github.com/qri-io/qri/commit/4f914a6))
+* **cli persistent flags:** properly register global flags ([f4f1ed7](https://github.com/qri-io/qri/commit/f4f1ed7)), closes [#506](https://github.com/qri-io/qri/issues/506)
+* **export:** Export --zip flag ([8514c76](https://github.com/qri-io/qri/commit/8514c76))
+* **export:** Overhaul export command ([f7df3f9](https://github.com/qri-io/qri/commit/f7df3f9))
+* **export:** Test cases for export ([12a279f](https://github.com/qri-io/qri/commit/12a279f))
+* **export:** Update api zip handler, and cmd integration test ([82cd4cc](https://github.com/qri-io/qri/commit/82cd4cc))
+* **get:** Apply format to get when using a selector ([ed1fd31](https://github.com/qri-io/qri/commit/ed1fd31))
+* **get:** Get returns 404 if dataset is not found ([291296b](https://github.com/qri-io/qri/commit/291296b))
+* **get dataset:** return a datasetRef, not a dataset! ([6e51a31](https://github.com/qri-io/qri/commit/6e51a31))
+* **info:** Remove the info command, list does it now ([ef34a05](https://github.com/qri-io/qri/commit/ef34a05))
+* **list:** Flag --num-versions shows number of versions of each dataset ([2f5a8b1](https://github.com/qri-io/qri/commit/2f5a8b1))
+* **list:** Improve usability of `list` command ([d773363](https://github.com/qri-io/qri/commit/d773363))
+* **list:** Rename lib parameter to ShowNumVersions ([7214f93](https://github.com/qri-io/qri/commit/7214f93))
+
+
+### Features
+
+* **cmd:** add summary flag to diff command ([f793c0f](https://github.com/qri-io/qri/commit/f793c0f))
+* **diff:** added diffStat string, support for diffing files ([2d16df5](https://github.com/qri-io/qri/commit/2d16df5))
+* **diff:** overhauling diff to use difff ([b825e65](https://github.com/qri-io/qri/commit/b825e65))
+* **fill_struct:** Additional tests, cover some edge-cases ([e1454de](https://github.com/qri-io/qri/commit/e1454de))
+* **fill_struct:** Fix qri key, multiple small fixes ([71d78e7](https://github.com/qri-io/qri/commit/71d78e7))
+* **fill_struct:** Json and yaml deserialization rewrite ([ace2c1e](https://github.com/qri-io/qri/commit/ace2c1e))
+* **fill_struct:** Rename to SetArbitrary ([990ad24](https://github.com/qri-io/qri/commit/990ad24))
+* **fill_struct:** Support bool, float, slices ([314be2a](https://github.com/qri-io/qri/commit/314be2a))
+* **lib.Datasets.Save:** add force flag to skip empty-commit checking ([6fd5b1f](https://github.com/qri-io/qri/commit/6fd5b1f))
+
+
+
 <a name="0.7.0"></a>
 # [0.7.0](https://github.com/qri-io/qri/compare/v0.6.2...v0.7.0) (2019-02-05)
 
@@ -98,7 +215,7 @@ Previously, it was only possible to reomve _entire dataset histories_, which is,
 * **export:** Export can be used while running `qri connect` ([a5a56d1](https://github.com/qri-io/qri/commit/a5a56d1))
 * **export:** Flag is --zip instead of --zipped, api format form value ([f370632](https://github.com/qri-io/qri/commit/f370632))
 * **export:** Write exported file to pwd where command is run. ([b62f739](https://github.com/qri-io/qri/commit/b62f739))
-* **list:** Listing a non-existant profile should not crash ([e00d516](https://github.com/qri-io/qri/commit/e00d516))
+* **list:** Listing a non-existent profile should not crash ([e00d516](https://github.com/qri-io/qri/commit/e00d516))
 * **p2p dataset info:** return not found if dataset doesn't populate ([b55af2a](https://github.com/qri-io/qri/commit/b55af2a))
 * **print:** Use int64 in print in order to support Arm6 (Raspberry Pi). ([64fcbc4](https://github.com/qri-io/qri/commit/64fcbc4))
 * **remove:** Flag --all as an alias for --revisions=all. More tests ([7e29002](https://github.com/qri-io/qri/commit/7e29002))
@@ -134,7 +251,7 @@ Our big focus has been on making dataset transfer to the registry fast & reliabl
 * **build:** move gx-dep packages around ([f85b432](https://github.com/qri-io/qri/commit/f85b432))
 * **config migrate:** fix crash in migration ([2c4396e](https://github.com/qri-io/qri/commit/2c4396e))
 * **config migration:** add config migration to update p2p.QriBootstrapAddrs ([bc9bfcd](https://github.com/qri-io/qri/commit/bc9bfcd))
-* **connect output:** supress RPC error messages, clarify connection message ([934f11c](https://github.com/qri-io/qri/commit/934f11c)), closes [#623](https://github.com/qri-io/qri/issues/623)
+* **connect output:** suppress RPC error messages, clarify connection message ([934f11c](https://github.com/qri-io/qri/commit/934f11c)), closes [#623](https://github.com/qri-io/qri/issues/623)
 * **format:** Detect format change when saving, either error or rewrite ([137e18b](https://github.com/qri-io/qri/commit/137e18b))
 * **format:** Tests for ConvertBodyFormat, many small cleanups. ([be4a32c](https://github.com/qri-io/qri/commit/be4a32c))
 * **p2p:** bump qriSupportValue from 1 to 100 ([4159818](https://github.com/qri-io/qri/commit/4159818))
@@ -169,7 +286,7 @@ Version 0.6.0 is a **big** 'ol release. Lots of changes that have taken close to
 This release marks turning a corner for the Qri project as a whole. We have a new look for the frontend, and have rounded out an initial feature set we think will take Qri out of the realm of "experimental" and into the world of dependable, usable code. It's taken a great deal of time, effort, and research. I'm _very_ thankful/proud/excited for all who have contributed to this release, and can't wait to start showing off this newest verion. Here's some of the highlights, with a full changelog below.
 
 ### :heart: We've adopted the RFC process
-I'm delighted to say Qri's feature developement is now driven by a request-for-comments process. You can read about new features we're considering and implementing, as well as make suggestions over at our RFC repo. From this release forward, we'll note the biggest RFCs that have landed in release notes.
+I'm delighted to say Qri's feature development is now driven by a request-for-comments process. You can read about new features we're considering and implementing, as well as make suggestions over at our RFC repo. From this release forward, we'll note the biggest RFCs that have landed in release notes.
 
 
 ### Overhauled, more capable starlark transform functions, renamed everything from "skylark" to "starlark" [(RFC0016)](https://github.com/qri-io/rfcs/blob/master/text/0016-revise_transform_processing.md)
@@ -207,7 +324,7 @@ We think this is a big win for portability. We'll be working on exporting to dif
 ### Publish & Update [(RFC0018)](https://github.com/qri-io/rfcs/blob/master/text/0018-publish-update.md)
 Qri now gives you control over which datasets of your will be listed for others to see using `qri publish`. This does mean you need to publish a datset before others will see it listed. **This does not mean that data added to Qri is private**. It's better to think of data you've added to qri that isn't published as 'unlisted'. If you gave someone the hash of your dataset, they could add it with `qri add`, but users who list your datasets over p2p won't see your unlisted work. If you want private data, for now Qri isn't the right tool, but now you have more control over what users see when they visit your profile.
 
-We now also have our first real mechanism for automated syncronization: update. Update works on both your own datasets and other people's. Running update on your own dataset will re-run the most recent transform and generate a new dataset version if Qri detects a change. Running update on a peer's dataset will check to see if they're online, and if they are, update will fast-forward your copy of their dataset to the latest version.
+We now also have our first real mechanism for automated synchronization: update. Update works on both your own datasets and other people's. Running update on your own dataset will re-run the most recent transform and generate a new dataset version if Qri detects a change. Running update on a peer's dataset will check to see if they're online, and if they are, update will fast-forward your copy of their dataset to the latest version.
 
 ### New and Save have merged [(RFC0017)](https://github.com/qri-io/rfcs/blob/master/text/0017-define_dataset_creation.md)
 The `new` and `save` commands (and API endpoints) have merged into just `save`. New wasn't doing too much for us, so we're hoping to get down to one keyword for all modifications that aren't re-running transform scripts.
@@ -299,7 +416,7 @@ We've added two new small, bare-bones packages to skylark to handle common-yet-v
 Both of these are rather utility-oriented, but _very_ importnat when opening & cleaning data.
 
 ### :twisted_rightwards_arrows: Upcoming switch from "skylark" to "starlark"
-Speaking of skylark, google has landed on a rename for thier project, and it'll hence-fourth be named "starlark".
+Speaking of skylark, google has landed on a rename for their project, and it'll hence-fourth be named "starlark".
 As such we'll be making the switch to this terminology in an upcoming release. Our package names will be changing
 from `.sky` to some new file extension, which will be a breaking change for all tranforms that import `.sky` packages.
 We'll keep you posted.
@@ -381,7 +498,7 @@ We've updated our IPFS dependencies from go-ipfs 0.4.15 to 0.4.17. Between those
 * **p2p.ResolveDatasetRef:** resolve dataset names with p2p network ([4fd24c5](https://github.com/qri-io/qri/commit/4fd24c5))
 * **profile:** Detect peername renames when listing datasets. ([f1a19ba](https://github.com/qri-io/qri/commit/f1a19ba))
 * **ResolveDatasetRef:** new action for resolving dataset references ([00aefc2](https://github.com/qri-io/qri/commit/00aefc2))
-* **save:** re-run transfrom on qri save with no args ([0e906ae](https://github.com/qri-io/qri/commit/0e906ae))
+* **save:** re-run transform on qri save with no args ([0e906ae](https://github.com/qri-io/qri/commit/0e906ae))
 
 
 
@@ -391,7 +508,7 @@ We've updated our IPFS dependencies from go-ipfs 0.4.15 to 0.4.17. Between those
 Ok ok so now we have a formal 0.5.1 release. Maybe this should be 0.6.0 given the magnitude of visualizations, but meh, we're calling it a patch.
 
 #### :bar_chart: Delight in Data with HTML-template visualizations
-For a little while we've been experimenting with the `qri render` as a way to template data into html. The more we've played with it, the more we've come to rely on it. So much so, that we think templates should become a native component of datasets. For this we've added a new section to the dataset definition called `viz`, which is where you specify a custom template. a `dataset.yaml` file that specifies viz will look something like this (These details are always avilable with the handy `qri export --blank`):
+For a little while we've been experimenting with the `qri render` as a way to template data into html. The more we've played with it, the more we've come to rely on it. So much so, that we think templates should become a native component of datasets. For this we've added a new section to the dataset definition called `viz`, which is where you specify a custom template. a `dataset.yaml` file that specifies viz will look something like this (These details are always available with the handy `qri export --blank`):
 
 ```
 # use viz to provide custom a HTML template of your dataset
@@ -472,7 +589,7 @@ We've chosen to invest time in viz because we think it brings an important momen
 <a name="0.5.0"></a>
 # [0.5.0](https://github.com/qri-io/qri/compare/v0.4.0...v0.5.0) (2018-06-18)
 
-Who needs patch releases!? In version 0.5.0 we're introducing an initial search implementation, a few new commands, rounding out a bunch of features that warrent a minor version bump with some breaking changes. Because of these breaking changes, datasets created with v0.4.0 or earler will need to be re-created to work properly with this version.
+Who needs patch releases!? In version 0.5.0 we're introducing an initial search implementation, a few new commands, rounding out a bunch of features that warrant a minor version bump with some breaking changes. Because of these breaking changes, datasets created with v0.4.0 or earler will need to be re-created to work properly with this version.
 
 #### :mag: Registry Search Alpha
 We're still hard at work on getting registries right (more on that in the coming weeks), but for now we've shipped an initial command "qri search", that'll let you search registries for datasets. The way we see search working in the future is leveraging registries to build indexes of published datasets so you can easily search for datasets that have been published. We have a lot of work to do around making sure those datasets are available for download, but feel free to play with the command to get a feel for where we're headed with search.
@@ -486,7 +603,7 @@ Around qri HQ we've all come to love the ease of working with the `qri config` c
 We're still working on a proper html module for skylark transforms with an API that pythonists will be familiar with, but in the meantime we've added in a basic jquery-like selector syntax for working with HTML documents.
 
 #### "Data" is now "Body"
-This is a breaking change we've been hoping to get in sooner-rather-than-later that renames the `Data` field of a dataset to `Body`. From here on in we'll refer to the _body_ of a dataset as it's principle content. We think this langauge helps show how datasets are like webpages, and cutw down on use of an ambiguous term like "data".
+This is a breaking change we've been hoping to get in sooner-rather-than-later that renames the `Data` field of a dataset to `Body`. From here on in we'll refer to the _body_ of a dataset as it's principle content. We think this language helps show how datasets are like webpages, and cutw down on use of an ambiguous term like "data".
 
 #### Thinking about qri as an importable library
 Finally, in what is more of a symbolic change than anything else, we've renamed the `core` package to `lib` to get us to start thinking about qri as an importable library. Next week we'll publish a new project aimed at writing tutorials & docs with an associated test suite built around datasets that uses qri as a library. We hope to use this project to mature the `lib` package for this use case.
@@ -539,11 +656,11 @@ This release brings a big new feature in the form of our first transformation im
 #### Introducing Skylark Transformations
 For months qri has had a planned feature set for embedding the concept of "transformations" directly into datasets. Basically transforms are scripts that auto-generate datasets. We've defined a "transformation" to be a repeatable process that takes zero or more datasets and data sources, and outputs exactly one dataset. By embedding transformations directly into datasets, users can repeat them with a single command, keeping the code that updates a dataset, and it's resulting data in the same place. This opens up a whole new set of uses for qri datasets, making them auditable, repeatable, configurable, and generally _functional_. Using transformations, qri can check to see if your dataset is out of date, and update it for you.
 
-While we've had the _plan_ for transformations for some time now, it's taken us a long time to figure out how to write a first implementaion. Because transformations are executable code, security & behavioural expectations are a big concern. We also want to set ourselves up for success by choosing an implementation that will feel familiar to those who do a lot of code-based data munging, while also leaving the door open to things we'd like to do in the future like parallelized execution.
+While we've had the _plan_ for transformations for some time now, it's taken us a long time to figure out how to write a first implementation. Because transformations are executable code, security & behavioural expectations are a big concern. We also want to set ourselves up for success by choosing an implementation that will feel familiar to those who do a lot of code-based data munging, while also leaving the door open to things we'd like to do in the future like parallelized execution.
 
-So after a lot of reasearch and a false-start or five, we've decided on a scripting language called _skylark_ as our base implementation, which has grown out of the _bazel_ project at google. This choice might seem strange at first (bazel is a build tool and has nothing to do with data), but skylark has a number of advantages:
+So after a lot of research and a false-start or five, we've decided on a scripting language called _skylark_ as our base implementation, which has grown out of the _bazel_ project at google. This choice might seem strange at first (bazel is a build tool and has nothing to do with data), but skylark has a number of advantages:
 * **python-like syntax** - _many_ people working in data science these days write python, we like that.
-* **deterministic subset of python** - unlike python, skylark removes properties that reduce introspection into code behaviour. things like `while` loops and recursive functions are ommitted, making it possible for qri to infer how a given transformation will behave.
+* **deterministic subset of python** - unlike python, skylark removes properties that reduce introspection into code behaviour. things like `while` loops and recursive functions are omitted, making it possible for qri to infer how a given transformation will behave.
 * **parallel execution** - thanks to this deterministic requirement (and lack of global interpreter lock) skylark functions can be executed in parallel. Combined with peer-2-peer networking, we're hoping to advance tranformations toward peer-driven distribed computing. More on that in the coming months.
 
 A tutorial on how to write skylark transformations is forthcoming, we'll post examples to our documentation site when it's ready: https://qri.io/docs
@@ -579,7 +696,7 @@ Along with `dataset.yaml`, we've also done a bunch of refactoring & bug fixes to
 * **export:** can now choose dataset/structure/meta format on export ([2863ded](https://github.com/qri-io/qri/commit/2863ded))
 * **registry cmd:** add commands for working with registries ([85d6892](https://github.com/qri-io/qri/commit/85d6892))
 * **skylark:** Pass previous dataset body to skylark for updates ([64e5b64](https://github.com/qri-io/qri/commit/64e5b64))
-* **transform:** execute transformations with skylark langauge ([f684229](https://github.com/qri-io/qri/commit/f684229))
+* **transform:** execute transformations with skylark language ([f684229](https://github.com/qri-io/qri/commit/f684229))
 * **transform secrets:** supply secrets to transforms ([5d8cac9](https://github.com/qri-io/qri/commit/5d8cac9))
 
 
@@ -833,7 +950,7 @@ Along with `dataset.yaml`, we've also done a bunch of refactoring & bug fixes to
 * **core.HistoryRequests.Log:** deliver history as a log of dataset references ([6ca1839](https://github.com/qri-io/qri/commit/6ca1839))
 * **core.Init:** initialize a dataset from a url ([7858ba7](https://github.com/qri-io/qri/commit/7858ba7))
 * **core.QueryRequests.DatasetQueries:** first implementation ([a8fd2ec](https://github.com/qri-io/qri/commit/a8fd2ec))
-* **core.QueryRequests.Query:** check for previously exectued queries ([c3be454](https://github.com/qri-io/qri/commit/c3be454)), closes [#30](https://github.com/qri-io/qri/issues/30)
+* **core.QueryRequests.Query:** check for previously executed queries ([c3be454](https://github.com/qri-io/qri/commit/c3be454)), closes [#30](https://github.com/qri-io/qri/issues/30)
 * **Datasets.List:** list removte peer datasets ([69a5210](https://github.com/qri-io/qri/commit/69a5210))
 * **DefaultDatasets:** first cuts on requesting default datasets ([05a9e2f](https://github.com/qri-io/qri/commit/05a9e2f)), closes [#161](https://github.com/qri-io/qri/issues/161)
 * **history:** add support for dataset history logs ([f9a3938](https://github.com/qri-io/qri/commit/f9a3938))
