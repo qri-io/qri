@@ -53,11 +53,6 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		node.LocalStreams.Print("✅ transform complete\n")
 	}
 
-	// Infer any values about the incoming change before merging it with the previous version.
-	if err = base.InferValues(pro, changes); err != nil {
-		return
-	}
-
 	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
 		err = fmt.Errorf("creating a new dataset requires a structure or a body")
 		return
@@ -83,6 +78,10 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	// apply the changes to the previous dataset.
 	mutable.Assign(changes)
 	changes = mutable
+
+	if err = base.InferValues(pro, changes); err != nil {
+		return
+	}
 
 	// let's make history, if it exists:
 	changes.PreviousPath = prevPath
