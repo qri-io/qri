@@ -96,12 +96,26 @@ update-changelog:
 
 build-cross-platform:
 	@echo "building qri_windows_amd64"
-	env GOOS=windows GOARCH=amd64 go build -o qri_windows_amd64 .
+	mkdir qri_windows_amd64
+	env GOOS=windows GOARCH=amd64 go build -o qri_windows_amd64/qri .
+	zip -r qri_windows_amd64.zip qri_windows_amd64 && rm -r qri_windows_amd64
 	@echo "building qri_windows_386"
-	env GOOS=windows GOARCH=386 go build -o qri_windows_386 .
+	mkdir qri_windows_386
+	env GOOS=windows GOARCH=386 go build -o qri_windows_386/qri .
+	zip -r qri_windows_386.zip qri_windows_386 && rm -r qri_windows_386
 	@echo "building qri_linux_arm"
-	env GOOS=linux GOARCH=arm go build -o qri_linux_arm .
+	mkdir qri_linux_arm
+	env GOOS=linux GOARCH=arm go build -o qri_linux_arm/qri .
+	zip -r qri_linux_arm.zip qri_linux_arm && rm -r qri_linux_arm
 	@echo "building qri_linux_amd64"
-	env GOOS=linux GOARCH=amd64 go build -o qri_linux_amd64 .
+	mkdir qri_linux_amd64
+	env GOOS=linux GOARCH=amd64 go build -o qri_linux_amd64/qri .
+	zip -r qri_linux_amd64.zip qri_linux_amd64 && rm -r qri_linux_amd64
 	@echo "building qri_linux_386"
-	env GOOS=linux GOARCH=386 go build -o qri_linux_386 .
+	mkdir qri_linux_386
+	env GOOS=linux GOARCH=386 go build -o qri_linux_386/qri .
+	zip -r qri_linux_386.zip qri_linux_386 && rm -r qri_linux_386
+	@echo "building qri_darwin_386"
+	mkdir qri_darwin_386
+	env GOOS=darwin GOARCH=386 go build -o qri_darwin_386/qri .
+	zip -r qri_darwin_386.zip qri_darwin_386 && rm -r qri_darwin_386
