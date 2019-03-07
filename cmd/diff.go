@@ -60,6 +60,7 @@ Each change has a path that locates it within the document`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "pretty", "output format. one of [json,pretty]")
+	cmd.Flags().BoolVar(&o.Summary, "summary", false, "just output the summary")
 
 	return cmd
 }
@@ -72,6 +73,7 @@ type DiffOptions struct {
 	Right    string
 	Selector string
 	Format   string
+	Summary  bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -120,15 +122,19 @@ func (o *DiffOptions) Run() (err error) {
 	// TODO (b5): this reading from a package variable is pretty hacky :/
 	if color.NoColor {
 		stats = deepdiff.FormatPrettyStats(res.Stat)
-		text, err = deepdiff.FormatPretty(res.Diff)
-		if err != nil {
-			return err
+		if !o.Summary {
+			text, err = deepdiff.FormatPretty(res.Diff)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
-		text, err = deepdiff.FormatPrettyColor(res.Diff)
-		if err != nil {
-			return err
+		if !o.Summary {
+			text, err = deepdiff.FormatPrettyColor(res.Diff)
+			if err != nil {
+				return err
+			}
 		}
 	}
 
