@@ -86,7 +86,16 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
 	o.DatasetRequests, err = f.DatasetRequests()
 
-	if o.Selector != "body" {
+	if o.Selector == "body" {
+		// if we have a limit, but not offset, assume an offset of 0
+		if o.Limit != -1 && o.Offset == -1 {
+			o.Offset = 0
+		}
+		// set all to false if limit or offset values are provided
+		if o.Limit != -1 || o.Offset != -1 {
+			o.All = false
+		}
+	} else {
 		if o.Limit != -1 {
 			return fmt.Errorf("can only use --limit flag when getting body")
 		}

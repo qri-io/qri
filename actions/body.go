@@ -45,11 +45,7 @@ func GetBody(node *p2p.QriNode, ds *dataset.Dataset, format dataset.DataFormat, 
 // to the structure specified by out
 func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset int, all bool) (data []byte, err error) {
 	buf := &bytes.Buffer{}
-	// buf, err := dsio.NewEntryBuffer(out)
-	// if err != nil {
-	// 	err = fmt.Errorf("error allocating result buffer: %s", err)
-	// 	return
-	// }
+
 	w, err := dsio.NewEntryWriter(out, buf)
 	if err != nil {
 		return
