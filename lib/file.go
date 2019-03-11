@@ -11,6 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"gopkg.in/yaml.v2"
 )
@@ -118,6 +119,20 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 				return
 			}
 			err = dsutil.UnzipDatasetBytes(data, ds)
+			return
+
+		case ".star":
+			// starlark files are assumed to be a transform script with no additional
+			// tranform component details:
+			ds.Transform = &dataset.Transform{ScriptPath: path}
+			ds.Transform.SetScriptFile(qfs.NewMemfileReader("transform.star", f))
+			return
+
+		case ".html":
+			// html files are assumped to be a viz script with no additional viz
+			// component details
+			ds.Viz = &dataset.Viz{ScriptPath: path}
+			ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", f))
 			return
 
 		default:

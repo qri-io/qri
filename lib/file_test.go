@@ -4,6 +4,8 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/qri-io/dataset"
 )
 
 func TestAbsPath(t *testing.T) {
@@ -47,5 +49,39 @@ func TestAbsPath(t *testing.T) {
 }
 
 func TestReadDatasetFile(t *testing.T) {
+	cases := []struct {
+		description string
+		path        string
+		ds          *dataset.Dataset
+	}{
+		{".star file to transform script",
+			"testdata/tf/transform.star",
+			&dataset.Dataset{
+				Transform: &dataset.Transform{
+					ScriptPath: "testdata/tf/transform.star",
+				},
+			},
+		},
 
+		{".html file to viz script",
+			"testdata/viz/visualization.html",
+			&dataset.Dataset{
+				Viz: &dataset.Viz{
+					ScriptPath: "testdata/viz/visualization.html",
+				},
+			},
+		},
+	}
+
+	for i, c := range cases {
+		got, err := ReadDatasetFile(c.path)
+		if err != nil {
+			t.Errorf("case %d %s unexpected error: %s", i, c.description, err.Error())
+			continue
+		}
+		if err := dataset.CompareDatasets(c.ds, got); err != nil {
+			t.Errorf("case %d %s dataset mismatch: %s", i, c.description, err.Error())
+			continue
+		}
+	}
 }
