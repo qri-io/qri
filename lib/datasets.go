@@ -625,3 +625,26 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	*b = *mf
 	return
 }
+
+// DAGInfo generates a manifest for a dataset path
+func (r *DatasetRequests) DAGInfo(refstr *string, i *dag.Info) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.DAGInfo", refstr, i)
+	}
+
+	ref, err := repo.ParseDatasetRef(*refstr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return
+	}
+
+	var info *dag.Info
+	info, err = actions.NewDAGInfo(r.node, ref.Path)
+	if err != nil {
+		return
+	}
+	*i = *info
+	return
+}
