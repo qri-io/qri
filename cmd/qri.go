@@ -239,6 +239,14 @@ func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	return lib.NewDatasetRequests(o.node, o.rpc), nil
 }
 
+// RemoteRequests generates a lib.RemoteRequests from internal state
+func (o *QriOptions) RemoteRequests() (*lib.RemoteRequests, error) {
+	if err := o.Init(); err != nil {
+		return nil, err
+	}
+	return lib.NewRemoteRequests(o.node, o.rpc), nil
+}
+
 // RegistryRequests generates a lib.RegistryRequests from internal state
 func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
 	if err := o.Init(); err != nil {

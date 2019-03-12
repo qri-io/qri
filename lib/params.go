@@ -66,3 +66,14 @@ func (lp ListParams) Page() util.Page {
 	number = lp.Offset/size + 1
 	return util.NewPage(number, size)
 }
+
+// PushParams holds parameters for pushing daginfo to remotes
+type PushParams struct {
+	Ref        string
+	RemoteName string
+}
+
+// ReceiveParams hold parameters for receiving daginfo's when running as a remote
+type ReceiveParams struct {
+	Body string
+}

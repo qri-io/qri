@@ -53,6 +53,7 @@ peers & swapping data.`,
 
 	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
 	cmd.Flags().BoolVarP(&o.ReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
+	cmd.Flags().BoolVarP(&o.RemoteMode, "remote-mode", "", false, "run qri in remote mode")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
 
 	return cmd
@@ -72,9 +73,10 @@ type ConnectOptions struct {
 	DisableWebapp bool
 	DisableP2P    bool
 
-	Registry string
-	Setup    bool
-	ReadOnly bool
+	Registry   string
+	Setup      bool
+	ReadOnly   bool
+	RemoteMode bool
 
 	Node   *p2p.QriNode
 	Config *config.Config
@@ -132,6 +134,9 @@ func (o *ConnectOptions) Run() (err error) {
 
 	if o.ReadOnly {
 		cfg.API.ReadOnly = true
+	}
+	if o.RemoteMode {
+		cfg.API.RemoteMode = true
 	}
 	if o.DisableP2P {
 		cfg.P2P.Enabled = false

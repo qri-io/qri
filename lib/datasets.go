@@ -284,12 +284,13 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.Publish {
-		var done bool
+		var publishedRef repo.DatasetRef
 		err = r.SetPublishStatus(&SetPublishStatusParams{
-			Ref:               &ref,
+			Ref:               ref.String(),
+			PublishStatus:     true,
 			UpdateRegistry:    true,
 			UpdateRegistryPin: true,
-		}, &done)
+		}, &publishedRef)
 
 		if err != nil {
 			return err
@@ -372,42 +373,52 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
 type SetPublishStatusParams struct {
-	Ref               *repo.DatasetRef
+	Ref               string
+	PublishStatus     bool
 	UpdateRegistry    bool
 	UpdateRegistryPin bool
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, res *bool) (err error) {
+func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.SetPublishStatus", p, res)
+		return r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef)
 	}
 
-	ref := p.Ref
-	res = &ref.Published
-	if err = actions.SetPublishStatus(r.node, ref, ref.Published); err != nil {
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
 		return err
 	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return err
+	}
+
+	ref.Published = p.PublishStatus
+	if err = actions.SetPublishStatus(r.node, &ref, ref.Published); err != nil {
+		return err
+	}
+
+	*publishedRef = ref
 
 	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
 		var done bool
 		rr := NewRegistryRequests(r.node, nil)
 
 		if ref.Published {
-			if err = rr.Publish(ref, &done); err != nil {
+			if err = rr.Publish(&ref, &done); err != nil {
 				return
 			}
 
 			if p.UpdateRegistryPin {
-				return rr.Pin(ref, &done)
+				return rr.Pin(&ref, &done)
 			}
 		} else {
-			if err = rr.Unpublish(ref, &done); err != nil {
+			if err = rr.Unpublish(&ref, &done); err != nil {
 				return
 			}
 
 			if p.UpdateRegistryPin {
-				return rr.Unpin(ref, &done)
+				return rr.Unpin(&ref, &done)
 			}
 		}
 	}

@@ -227,6 +227,11 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	dsh := NewDatasetHandlers(s.qriNode, s.cfg.API.ReadOnly)
 
+	if s.cfg.API.RemoteMode {
+		remh := NewRemoteHandlers(s.qriNode)
+		m.Handle("/dataset", s.middleware(remh.ReceiveHandler))
+	}
+
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
