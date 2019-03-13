@@ -3,10 +3,12 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 
 	"github.com/ghodss/yaml"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 )
@@ -28,21 +30,29 @@ var SaveConfig = func() error {
 
 // LoadConfig loads the global default configuration
 func LoadConfig(streams ioes.IOStreams, path string) (err error) {
-	var cfg *config.Config
-	cfg, err = config.ReadFromFile(path)
-
-	if err == nil && cfg.Profile == nil {
-		err = fmt.Errorf("missing profile")
-		return
+	var data []byte
+	data, err = ioutil.ReadFile(path)
+	if err != nil {
+		return err
 	}
 
-	if err != nil {
-		err = fmt.Errorf(`couldn't read config file. error: %s, path: %s`, err.Error(), path)
-		return
+	fields := make(map[string]interface{})
+	if err = yaml.Unmarshal(data, &fields); err != nil {
+		return err
+	}
+
+	cfg := &config.Config{}
+	if err = base.FillStruct(fields, cfg); err != nil {
+		return err
+	}
+
+	if cfg.Profile == nil {
+		err = fmt.Errorf("missing profile")
+		return err
 	}
 
 	// configure logging straight away
-	if cfg != nil && cfg.Logging != nil {
+	if cfg.Logging != nil {
 		for name, level := range cfg.Logging.Levels {
 			golog.SetLogLevel(name, level)
 		}

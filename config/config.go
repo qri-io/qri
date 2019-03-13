@@ -28,6 +28,7 @@ type Config struct {
 	P2P      *P2P
 	Registry *Registry
 
+	Remotes *Remotes
 	CLI     *CLI
 	API     *API
 	Webapp  *Webapp
@@ -86,20 +87,6 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	return summary
-}
-
-// ReadFromFile reads a YAML configuration file from path
-func ReadFromFile(path string) (cfg *Config, err error) {
-	var data []byte
-
-	data, err = ioutil.ReadFile(path)
-	if err != nil {
-		return cfg, err
-	}
-
-	cfg = &Config{}
-	err = yaml.Unmarshal(data, cfg)
-	return
 }
 
 // WriteToFile encodes a configration to YAML and writes it to path
