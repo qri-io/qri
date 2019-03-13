@@ -108,6 +108,9 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 		case ".json":
 			fields := make(map[string]interface{})
 			if err = json.NewDecoder(f).Decode(&fields); err != nil {
+				if strings.HasPrefix(err.Error(), "json: cannot unmarshal array") {
+					err = fmt.Errorf("json has top-level type \"array\", cannot be a dataset file")
+				}
 				return
 			}
 			err = fillDatasetOrComponent(fields, path, ds)
