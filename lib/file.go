@@ -104,6 +104,14 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 			if err = yaml.Unmarshal(data, fields); err != nil {
 				return
 			}
+
+			// TODO (b5): temp hack to deal with terrible interaction with fill_struct,
+			// we should find a more robust solution to this, enforcing the assumption that all
+			// dataset documents use string keys
+			if sti, ok := fields["structure"].(map[interface{}]interface{}); ok {
+				fields["structure"] = toMapIface(sti)
+			}
+
 			err = fillDatasetOrComponent(fields, path, ds)
 
 		case ".json":
@@ -140,6 +148,27 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 		}
 	}
 	return
+}
+
+func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
+	mapi := map[string]interface{}{}
+	for ikey, val := range i {
+		switch x := val.(type) {
+		case map[interface{}]interface{}:
+			val = toMapIface(x)
+		case []interface{}:
+			for i, v := range x {
+				if mapi, ok := v.(map[interface{}]interface{}); ok {
+					x[i] = toMapIface(mapi)
+				}
+			}
+		}
+
+		if key, ok := ikey.(string); ok {
+			mapi[key] = val
+		}
+	}
+	return mapi
 }
 
 func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (err error) {

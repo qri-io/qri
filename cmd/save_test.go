@@ -157,10 +157,11 @@ func TestSaveRun(t *testing.T) {
 
 		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/Qmcmjcw1onuvWCvM2NZzqDztfp3djpCErcD2zSirmAw65p\nthis dataset has 1 validation errors\n", "", ""},
 
-		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmYQxs2XcB6aFibKxJZtRHxW7ySbHjYS5TBFcWmr89RAYy\nthis dataset has 1 validation errors\n", "", ""},
+		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, "dataset saved: peer/movies@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/map/QmTMqfrua11V8AK3vMB9QeZcZtX5ZB1RNqAdapBWjn2615\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
+		ioReset(in, out, errs)
 		dsr, err := f.DatasetRequests()
 		if err != nil {
 			t.Errorf("case \"%s\", error creating dataset request: %s", c.description, err)
@@ -181,28 +182,23 @@ func TestSaveRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case \"%s\", mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
-			ioReset(in, out, errs)
+			t.Errorf("case '%s', mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
 			continue
 		}
 
 		if libErr, ok := err.(lib.Error); ok {
 			if libErr.Message() != c.msg {
-				t.Errorf("case \"%s\", mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				t.Errorf("case '%s', mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.msg, libErr.Message())
 				continue
 			}
 		} else if c.msg != "" {
-			t.Errorf("case \"%s\", mismatched user-friendly message. Expected: '%s', Got: ''", c.description, c.msg)
-			ioReset(in, out, errs)
+			t.Errorf("case '%s', mismatched user-friendly message. Expected: '%s', Got: ''", c.description, c.msg)
 			continue
 		}
 
-		if c.expect != out.String() {
-			t.Errorf("case \"%s\", output mismatch. Expected: '%s', Got: '%s'", c.description, c.expect, out.String())
-			ioReset(in, out, errs)
+		if c.expect != errs.String() {
+			t.Errorf("case '%s', err output mismatch. Expected: '%s', Got: '%s'", c.description, c.expect, errs.String())
 			continue
 		}
-		ioReset(in, out, errs)
 	}
 }
