@@ -9,11 +9,11 @@ import (
 // RunMigrations checks to see if any migrations runs them
 func RunMigrations(streams ioes.IOStreams, cfg *config.Config) (migrated bool, err error) {
 	if cfg.Revision != config.CurrentConfigRevision {
-		streams.Print("migrating configuration...")
+		streams.PrintErr("migrating configuration...")
 		if err := ZeroToOne(cfg); err != nil {
 			return false, err
 		}
-		streams.Print("done!\n")
+		streams.PrintErr("done!\n")
 		return true, nil
 	}
 	return false, nil

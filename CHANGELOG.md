@@ -1,3 +1,35 @@
+<a name="0.7.2"></a>
+# [0.7.2](https://github.com/qri-io/qri/compare/v0.7.1...v0.7.2) (2019-03-14)
+
+
+### Better piping for `qri save`
+Minor set of fixes aimed at making the command line work better. The biggest command we've fixed is `qri save --dry-run`. Qri now properly routes diagnostic output to `stderr` (things like the spinner, transform exectution, and completion messages), while sending the _result_ of the dry run to `stdout`. This makes the following much more powerful:
+
+`qri save --dry-run --file transform.star me/dataset > dry_run_output.json`
+
+If save works, the `dry_run_output.json` will now be a valid `json` file representing the result of the dry run, and you'll still see progress output in your terminal window. We'll be working to bring this separation of diagnostic & results output to all commands in the near future.
+
+### Run transforms directly with the `--file` flag
+One other small note, if you feed a file that ends in `.star` to `qri save --file`, Qri will assume you mean it to be a transform script, and execute it as such. This cuts out the need for a `dataset.yaml` file, and makes working with transforms a little easier to reason about. If you need to provide configuration details to the transform, you'll still need to create a `dataset.yaml` file & specify your `.star` file there.
+
+
+### Bug Fixes
+
+* **get:** better defaults for get body. ([5631d08](https://github.com/qri-io/qri/commit/5631d08))
+* **stderr:** write save diagnostic output to stderr ([3dac8b8](https://github.com/qri-io/qri/commit/3dac8b8))
+
+
+### Features
+
+* **ReadDatasetFile:** infer .star & .html files to be bare tf & vz components ([89fcba8](https://github.com/qri-io/qri/commit/89fcba8))
+
+
+### BREAKING CHANGES
+
+* **get:** cli body command is now removed
+
+
+
 <a name="0.7.1"></a>
 # [0.7.1](https://github.com/qri-io/qri/compare/v0.7.0...v0.7.1) (2019-03-07)
 

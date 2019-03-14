@@ -50,6 +50,10 @@ build: require-gopath
 	go install
 	@echo "done!"
 
+build-latest:
+	git checkout master && git pull
+	build
+
 update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/qri && git checkout master && git pull && gx install
 	cd $$GOPATH/src/github.com/qri-io/qfs && git checkout master && git pull

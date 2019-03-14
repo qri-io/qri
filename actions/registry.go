@@ -17,7 +17,7 @@ import (
 
 // Publish a dataset to a repo's specified registry
 func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
-	node.LocalStreams.Print("🗼 publishing dataset to registry\n")
+	node.LocalStreams.PrintErr("🗼 publishing dataset to registry\n")
 	r := node.Repo
 	cli, pub, ds, err := dsParams(r, &ref)
 	if err != nil {
@@ -84,18 +84,18 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		return nil
 	}
 
-	node.LocalStreams.Print("✈️  generating dataset manifest\n")
+	node.LocalStreams.PrintErr("✈️  generating dataset manifest\n")
 	mfst, err := NewManifest(node, ref.Path)
 	if err != nil {
 		return err
 	}
 
-	node.LocalStreams.Print("🗼 syncing dataset graph to registry\n")
+	node.LocalStreams.PrintErr("🗼 syncing dataset graph to registry\n")
 	if err = reg.DsyncSend(context.Background(), ng, mfst); err != nil {
 		return err
 	}
 
-	node.LocalStreams.Print("📌 pinning dataset\n")
+	node.LocalStreams.PrintErr("📌 pinning dataset\n")
 	if err = reg.Pin(ref.Path, pk, nil); err != nil {
 		if err == registry.ErrPinsetNotSupported {
 			log.Info("this registry does not support pinning, dataset not pinned.")
@@ -104,13 +104,13 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 		}
 	}
 
-	node.LocalStreams.Print("  done\n")
+	node.LocalStreams.PrintErr("  done\n")
 	return nil
 }
 
 // Unpin reverses the pin process
 func Unpin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
-	node.LocalStreams.Print("📌 unpinning dataset")
+	node.LocalStreams.PrintErr("📌 unpinning dataset")
 	r := node.Repo
 	reg := node.Repo.Registry()
 	if reg == nil {

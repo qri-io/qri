@@ -32,7 +32,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	}
 
 	if dryRun {
-		node.LocalStreams.Print("🏃🏽‍♀️ dry run\n")
+		node.LocalStreams.PrintErr("🏃🏽‍♀️ dry run\n")
 		// dry-runs store to an in-memory repo
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore(), nil)
 		if err != nil {
@@ -50,7 +50,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 			return
 		}
 		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
-		node.LocalStreams.Print("✅ transform complete\n")
+		node.LocalStreams.PrintErr("✅ transform complete\n")
 	}
 
 	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
@@ -163,7 +163,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 				res.Error = err
 				return
 			}
-			node.LocalStreams.Print("🗼 fetched from registry\n")
+			node.LocalStreams.PrintErr("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
 				err := pinner.Pin(ref.Path, true)
 				res.Error = err
@@ -212,9 +212,9 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 // SetPublishStatus configures the publish status of a stored reference
 func SetPublishStatus(node *p2p.QriNode, ref *repo.DatasetRef, published bool) (err error) {
 	if published {
-		node.LocalStreams.Print("📝 listing dataset for p2p discovery\n")
+		node.LocalStreams.PrintErr("📝 listing dataset for p2p discovery\n")
 	} else {
-		node.LocalStreams.Print("unlisting dataset from p2p discovery\n")
+		node.LocalStreams.PrintErr("unlisting dataset from p2p discovery\n")
 	}
 	return base.SetPublishStatus(node.Repo, ref, published)
 }

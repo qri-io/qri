@@ -244,7 +244,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.FilePath != "" {
-		// TODO (b5): handle this with a fs.Filesystem
+		// TODO (b5): handle this with a qfs.Filesystem
 		dsf, err := ReadDatasetFile(p.FilePath)
 		if err != nil {
 			return err
@@ -275,6 +275,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
+	}
+
+	if p.ReturnBody {
+		if err = base.InlineJSONBody(ref.Dataset); err != nil {
+			return err
+		}
 	}
 
 	if p.Publish {

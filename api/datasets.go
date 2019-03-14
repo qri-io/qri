@@ -15,7 +15,6 @@ import (
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -400,43 +399,6 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 	}
 }
 
-// when datasets are created with save/new dataset bodies they can be run with "return body",
-// which populates res.Dataset.Body with a qfs.File of raw data
-// addBodyFile sets the dataset body, converting to JSON for a response the API can understand
-// TODO - make this less bad. this should happen lower and lib Params should be used to set the response
-// body to well-formed JSON
-func addBodyFile(res *repo.DatasetRef) error {
-	file := res.Dataset.BodyFile()
-	if file == nil {
-		log.Error("no body file")
-		return fmt.Errorf("no response body file")
-	}
-
-	if res.Dataset.Structure.Format == dataset.JSONDataFormat.String() {
-		data, err := ioutil.ReadAll(file)
-		if err != nil {
-			return err
-		}
-		res.Dataset.Body = json.RawMessage(data)
-		return nil
-	}
-
-	in := res.Dataset.Structure
-	st := &dataset.Structure{}
-	st.Assign(in, &dataset.Structure{
-		Format: "json",
-		Schema: in.Schema,
-	})
-
-	data, err := actions.ConvertBodyFile(file, in, st, 0, 0, true)
-	if err != nil {
-		log.Errorf("converting body file to JSON: %s", err)
-		return fmt.Errorf("converting body file to JSON: %s", err)
-	}
-	res.Dataset.Body = json.RawMessage(data)
-	return nil
-}
-
 func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 	ref, err := DatasetRefFromPath(r.URL.Path[len("/add"):])
 	if err != nil {
@@ -516,13 +478,6 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	// Don't leak paths across the API, it's possible they contain absolute paths or tmp dirs.
 	res.Dataset.BodyPath = filepath.Base(res.Dataset.BodyPath)
-
-	if p.ReturnBody {
-		if err := addBodyFile(res); err != nil {
-			util.WriteErrResponse(w, http.StatusInternalServerError, err)
-			return
-		}
-	}
 
 	msg := scriptOutput.String()
 	util.WriteMessageResponse(w, msg, res)

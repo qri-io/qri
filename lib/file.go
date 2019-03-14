@@ -11,6 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"gopkg.in/yaml.v2"
 )
@@ -103,6 +104,14 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 			if err = yaml.Unmarshal(data, fields); err != nil {
 				return
 			}
+
+			// TODO (b5): temp hack to deal with terrible interaction with fill_struct,
+			// we should find a more robust solution to this, enforcing the assumption that all
+			// dataset documents use string keys
+			if sti, ok := fields["structure"].(map[interface{}]interface{}); ok {
+				fields["structure"] = toMapIface(sti)
+			}
+
 			err = fillDatasetOrComponent(fields, path, ds)
 
 		case ".json":
@@ -120,11 +129,46 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 			err = dsutil.UnzipDatasetBytes(data, ds)
 			return
 
+		case ".star":
+			// starlark files are assumed to be a transform script with no additional
+			// tranform component details:
+			ds.Transform = &dataset.Transform{ScriptPath: path}
+			ds.Transform.SetScriptFile(qfs.NewMemfileReader("transform.star", f))
+			return
+
+		case ".html":
+			// html files are assumped to be a viz script with no additional viz
+			// component details
+			ds.Viz = &dataset.Viz{ScriptPath: path}
+			ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", f))
+			return
+
 		default:
 			return nil, fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
 		}
 	}
 	return
+}
+
+func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
+	mapi := map[string]interface{}{}
+	for ikey, val := range i {
+		switch x := val.(type) {
+		case map[interface{}]interface{}:
+			val = toMapIface(x)
+		case []interface{}:
+			for i, v := range x {
+				if mapi, ok := v.(map[interface{}]interface{}); ok {
+					x[i] = toMapIface(mapi)
+				}
+			}
+		}
+
+		if key, ok := ikey.(string); ok {
+			mapi[key] = val
+		}
+	}
+	return mapi
 }
 
 func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (err error) {
