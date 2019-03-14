@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
 
 	"github.com/qri-io/dataset"
@@ -148,6 +149,7 @@ func (o *SaveOptions) Run() (err error) {
 		Recall:              o.Recall,
 		ConvertFormatToPrev: o.KeepFormat,
 		Force:               o.Force,
+		ReturnBody:          o.DryRun,
 	}
 
 	if o.Secrets != nil {
@@ -168,9 +170,16 @@ continue?`, true) {
 	}
 
 	o.StopSpinner()
-	printSuccess(o.Out, "dataset saved: %s", res)
+	printSuccess(o.ErrOut, "dataset saved: %s", res)
 	if res.Dataset.Structure.ErrCount > 0 {
-		printWarning(o.Out, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
+		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
+	}
+	if o.DryRun {
+		data, err := json.MarshalIndent(res.Dataset, "", "  ")
+		if err != nil {
+			return err
+		}
+		fmt.Fprint(o.Out, string(data))
 	}
 	return nil
 }

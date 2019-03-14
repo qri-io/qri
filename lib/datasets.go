@@ -277,6 +277,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 
+	if p.ReturnBody {
+		if err = base.InlineJSONBody(ref.Dataset); err != nil {
+			return err
+		}
+	}
+
 	if p.Publish {
 		var done bool
 		err = r.SetPublishStatus(&SetPublishStatusParams{

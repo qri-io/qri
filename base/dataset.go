@@ -2,6 +2,7 @@ package base
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -273,6 +274,73 @@ func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
 		return r.LogEvent(repo.ETDsUnpinned, ref)
 	}
 	return repo.ErrNotPinner
+}
+
+// InlineJSONBody reads the contents dataset.BodyFile() into a json.RawMessage,
+// assigning the result to dataset.Body
+func InlineJSONBody(ds *dataset.Dataset) error {
+	file := ds.BodyFile()
+	if file == nil {
+		log.Error("no body file")
+		return fmt.Errorf("no response body file")
+	}
+
+	if ds.Structure.Format == dataset.JSONDataFormat.String() {
+		data, err := ioutil.ReadAll(file)
+		if err != nil {
+			return err
+		}
+		ds.Body = json.RawMessage(data)
+		return nil
+	}
+
+	in := ds.Structure
+	st := &dataset.Structure{}
+	st.Assign(in, &dataset.Structure{
+		Format: "json",
+		Schema: in.Schema,
+	})
+
+	data, err := ConvertBodyFile(file, in, st, 0, 0, true)
+	if err != nil {
+		log.Errorf("converting body file to JSON: %s", err)
+		return fmt.Errorf("converting body file to JSON: %s", err)
+	}
+
+	ds.Body = json.RawMessage(data)
+	return nil
+}
+
+// ConvertBodyFile takes an input file & structure, and converts a specified selection
+// to the structure specified by out
+func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset int, all bool) (data []byte, err error) {
+	buf := &bytes.Buffer{}
+
+	w, err := dsio.NewEntryWriter(out, buf)
+	if err != nil {
+		return
+	}
+
+	rr, err := dsio.NewEntryReader(in, file)
+	if err != nil {
+		err = fmt.Errorf("error allocating data reader: %s", err)
+		return
+	}
+
+	if !all {
+		rr = &dsio.PagedReader{
+			Reader: rr,
+			Limit:  limit,
+			Offset: offset,
+		}
+	}
+	err = dsio.Copy(rr, w)
+
+	if err := w.Close(); err != nil {
+		return nil, fmt.Errorf("error closing row buffer: %s", err.Error())
+	}
+
+	return buf.Bytes(), nil
 }
 
 // DatasetBodyFile creates a streaming data file from a Dataset using the following precedence:
