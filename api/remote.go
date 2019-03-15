@@ -23,6 +23,7 @@ func NewRemoteHandlers(node *p2p.QriNode) *RemoteHandlers {
 // ReceiveHandler is the endpoint for remotes to receive daginfo
 func (h *RemoteHandlers) ReceiveHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
+		// no "OPTIONS" method here, because browsers should never hit this endpoint
 	case "POST":
 		h.receiveDataset(w, r)
 	default:
