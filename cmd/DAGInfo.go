@@ -47,7 +47,7 @@ func NewDAGInfoCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	// 	},
 	// }
 
-	get.Flags().StringVar(&o.Format, "format", "json", "set output format [json, yaml, cbor]")
+	get.Flags().StringVar(&o.Format, "format", "", "set output format [json, yaml, cbor]")
 	get.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
 	get.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
 
@@ -114,8 +114,37 @@ func (o *DAGInfoOptions) Get() (err error) {
 			}
 		case "yaml":
 			buffer, err = yaml.Marshal(info)
-			// case "cbor":
-			// 	buffer, err = info.MarshalCBOR()
+		// case "cbor":
+		// 	buffer, err = info.MarshalCBOR()
+		default:
+			totalSize := uint64(0)
+			if len(info.Sizes) != 0 {
+				totalSize = info.Sizes[0]
+			}
+			out := ""
+			if o.Label != "" {
+				out += fmt.Sprintf("\nSubDAG at: %s", o.Label)
+			}
+			out += fmt.Sprintf("\nDAG for: %s\n", refstr)
+			if totalSize != 0 {
+				out += fmt.Sprintf("Total Size: %s\n", printByteInfo(int(totalSize)))
+			}
+			if info.Manifest != nil {
+				out += fmt.Sprintf("Block Count: %d\n", len(info.Manifest.Nodes))
+			}
+			if info.Labels != nil {
+				out += fmt.Sprint("Labels:\n")
+			}
+			for label, index := range info.Labels {
+				out += fmt.Sprintf("\t%s:", label)
+				spacesLen := 16 - len(label)
+				for i := 0; i <= spacesLen; i++ {
+					out += fmt.Sprintf(" ")
+				}
+				out += fmt.Sprintf("%s\n", printByteInfo(int(info.Sizes[index])))
+			}
+			buffer = []byte(out)
+
 		}
 		if err != nil {
 			return fmt.Errorf("err encoding daginfo: %s", err)
@@ -128,62 +157,3 @@ func (o *DAGInfoOptions) Get() (err error) {
 
 	return err
 }
-
-// Missing executes the missing command
-// func (o *DAGInfoOptions) Missing() error {
-// 	if o.File == "" {
-// 		return fmt.Errorf("daginfo file is required")
-// 	}
-
-// 	in := &dag.DAGInfo{}
-// 	data, err := ioutil.ReadFile(o.File)
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	switch strings.ToLower(filepath.Ext(o.File)) {
-// 	case ".yaml":
-// 		err = yaml.Unmarshal(data, in)
-// 	case ".json":
-// 		err = json.Unmarshal(data, in)
-// 	case ".cbor":
-// 		// TODO - detect hex input?
-// 		// data, err = hex.DecodeString(string(data))
-// 		// if err != nil {
-// 		//  return err
-// 		// }
-// 		in, err = dag.UnmarshalCBORDAGInfo(data)
-// 	}
-
-// 	if err != nil {
-// 		return err
-// 	}
-
-// 	info := &dag.DAGInfo{}
-// 	if err = o.DatasetRequests.DAGInfoMissing(in, info); err != nil {
-// 		return err
-// 	}
-
-// 	var buffer []byte
-// 	switch strings.ToLower(o.Format) {
-// 	case "json":
-// 		if !o.Pretty {
-// 			buffer, err = json.Marshal(info)
-// 		} else {
-// 			buffer, err = json.MarshalIndent(info, "", " ")
-// 		}
-// 	case "yaml":
-// 		buffer, err = yaml.Marshal(info)
-// 	case "cbor":
-// 		buffer, err = info.MarshalCBOR()
-// 	}
-// 	if err != nil {
-// 		return fmt.Errorf("error encoding daginfo: %s", err)
-// 	}
-// 	if o.Hex {
-// 		buffer = []byte(hex.EncodeToString(buffer))
-// 	}
-// 	_, err = o.Out.Write(buffer)
-
-// 	return err
-// }
