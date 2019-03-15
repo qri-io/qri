@@ -23,9 +23,11 @@ type ArbitrarySetter interface {
 	SetArbitrary(string, interface{}) error
 }
 
-// timeObj and strObj are used for reflect.TypeOf
-var timeObj time.Time
-var strObj string
+var (
+	// timeObj and strObj are used for reflect.TypeOf
+	timeObj time.Time
+	strObj string
+)
 
 // putFieldsToTargetStruct iterates over the fields in the target struct, and assigns each
 // field the value from the `fields` map. Recursively call this for an sub structures. Field
