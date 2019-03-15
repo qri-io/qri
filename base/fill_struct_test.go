@@ -162,6 +162,9 @@ type Collection struct {
 	Age  int
 	IsOn bool
 	Xpos float64
+	Ptr  *int
+	Dict map[string]string
+	List []string
 }
 
 func (c *Collection) SetArbitrary(key string, val interface{}) error {
@@ -315,5 +318,120 @@ func TestFillMetaCitations(t *testing.T) {
 	}
 	if !reflect.DeepEqual(meta, expect) {
 		t.Errorf("expected: c.Keywords should expect: %s, got: %s", expect, meta.Keywords)
+	}
+}
+
+func TestFillMapStringToString(t *testing.T) {
+	jsonData := `{
+  "Dict": {
+    "cat": "meow",
+    "dog": "bark",
+    "eel": "zap"
+  }
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(c.Dict) != 3 {
+		t.Error("expected 3 elements in Dict")
+	}
+	if c.Dict["cat"] != "meow" {
+		t.Error("expected: Dict[\"cat\"] == \"meow\"")
+	}
+}
+
+func TestStringSlice(t *testing.T) {
+	jsonData := `{
+  "List": ["a","b","c"]
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(c.List) != 3 {
+		t.Error("expected 3 elements in List")
+	}
+	if c.List[0] != "a" {
+		t.Error("expected: List[0] == \"a\"")
+	}
+}
+
+func TestNilStringSlice(t *testing.T) {
+	jsonData := `{
+  "List": null
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.List != nil {
+		t.Error("expected null List")
+	}
+}
+
+func TestNilMap(t *testing.T) {
+	jsonData := `{
+  "Dict": null
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Dict != nil {
+		t.Error("expected null Dict")
+	}
+}
+
+func TestNilPointer(t *testing.T) {
+	jsonData := `{
+  "Ptr": null
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Ptr != nil {
+		t.Error("expected null Ptr")
 	}
 }

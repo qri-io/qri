@@ -23,9 +23,11 @@ type ArbitrarySetter interface {
 	SetArbitrary(string, interface{}) error
 }
 
-// timeObj and ifaceObj are used for reflect.TypeOf
-var timeObj time.Time
-var ifaceObj interface{}
+var (
+	// timeObj and strObj are used for reflect.TypeOf
+	timeObj time.Time
+	strObj string
+)
 
 // putFieldsToTargetStruct iterates over the fields in the target struct, and assigns each
 // field the value from the `fields` map. Recursively call this for an sub structures. Field
@@ -61,8 +63,8 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		fieldName := target.Type().Field(i).Name
 		lowerName := strings.ToLower(fieldName)
 
-		val := fields[caseMap[lowerName]]
-		if val == nil {
+		val, ok := fields[caseMap[lowerName]]
+		if !ok {
 			// Nothing to assign to this field, go to next.
 			continue
 		}
@@ -156,23 +158,37 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 		// as what's done for `pointer` below.
 		return fmt.Errorf("unknown struct %s", place.Type())
 	case reflect.Map:
-		m, ok := val.(map[string]interface{})
-		if ok {
-			place.Set(reflect.ValueOf(m))
+		if val == nil {
+			// If map is nil, nothing more to do.
 			return nil
 		}
-		return fmt.Errorf("need type map, value %s", val)
+		m, ok := val.(map[string]interface{})
+		if !ok {
+			return fmt.Errorf("need type map, value %s", val)
+		}
+		// Special case map[string]string, convert values to strings.
+		if place.Type().Elem() == reflect.TypeOf(strObj) {
+			strmap := make(map[string]string)
+			for k, v := range m {
+				strmap[k] = fmt.Sprintf("%s", v)
+			}
+			place.Set(reflect.ValueOf(strmap))
+			return nil
+		}
+		place.Set(reflect.ValueOf(m))
+		return nil
 	case reflect.Slice:
+		if val == nil {
+			// If slice is nil, nothing more to do.
+			return nil
+		}
 		slice, ok := val.([]interface{})
 		if !ok {
 			return fmt.Errorf("need type slice, value %s", val)
 		}
 		// Get size of type of the slice to deserialize.
 		size := len(slice)
-		sliceType := reflect.TypeOf(ifaceObj)
-		if size > 0 {
-			sliceType = place.Type().Elem()
-		}
+		sliceType := place.Type().Elem()
 		// Construct a new, empty slice of the same size.
 		create := reflect.MakeSlice(reflect.SliceOf(sliceType), size, size)
 		// Fill in each element.
@@ -187,6 +203,10 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 		place.Set(create)
 		return nil
 	case reflect.Ptr:
+		if val == nil {
+			// If pointer is nil, nothing more to do.
+			return nil
+		}
 		// Allocate a new pointer for the sub-component to be filled in.
 		alloc := reflect.New(place.Type().Elem())
 		place.Set(alloc)
