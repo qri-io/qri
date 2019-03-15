@@ -622,18 +622,18 @@ func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, 
 		return
 	}
 
-	ref.Published = publish
 	p := &lib.SetPublishStatusParams{
-		Ref:               &ref,
+		Ref:               ref.String(),
+		PublishStatus:     publish,
 		UpdateRegistry:    r.FormValue("no_registry") != "true",
 		UpdateRegistryPin: r.FormValue("no_pin") != "true",
 	}
-	var ok bool
-	if err := h.DatasetRequests.SetPublishStatus(p, &ok); err != nil {
+	var publishedRef repo.DatasetRef
+	if err := h.DatasetRequests.SetPublishStatus(p, &publishedRef); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, ref)
+	util.WriteResponse(w, publishedRef)
 }
 
 func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {

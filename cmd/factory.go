@@ -26,6 +26,7 @@ type Factory interface {
 	ConnectionNode() (*p2p.QriNode, error)
 
 	DatasetRequests() (*lib.DatasetRequests, error)
+	RemoteRequests() (*lib.RemoteRequests, error)
 	RegistryRequests() (*lib.RegistryRequests, error)
 	LogRequests() (*lib.LogRequests, error)
 	ExportRequests() (*lib.ExportRequests, error)
