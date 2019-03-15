@@ -40,6 +40,16 @@ func NewDAGInfo(node *p2p.QriNode, path string) (*dag.Info, error) {
 	return base.NewDAGInfo(node.Context(), node.Repo.Store(), ng, path)
 }
 
+// NewSubDAGInfo generates a SubDAGInfo for a given node at a given label
+func NewSubDAGInfo(node *p2p.QriNode, path, label string) (*dag.Info, error) {
+	ng, err := newNodeGetter(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return base.NewSubDAGInfo(node.Context(), node.Repo.Store(), ng, path, label)
+}
+
 // newNodeGetter generates an ipld.NodeGetter from a QriNode
 func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
 	ipfsn, err := node.IPFSNode()

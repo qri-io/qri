@@ -71,12 +71,19 @@ type DAGInfoOptions struct {
 	Pretty bool
 	Hex    bool
 	File   string
+	Label  string
 
 	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DAGInfoOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		if isDatasetField.MatchString(args[0]) {
+			o.Label = args[0]
+			args = args[1:]
+		}
+	}
 	o.Refs = args
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
@@ -86,8 +93,15 @@ func (o *DAGInfoOptions) Complete(f Factory, args []string) (err error) {
 func (o *DAGInfoOptions) Get() (err error) {
 	info := &dag.Info{}
 	for _, refstr := range o.Refs {
-		if err = o.DatasetRequests.DAGInfo(&refstr, info); err != nil {
-			return err
+		if o.Label != "" {
+			s := &lib.SubDAGParams{RefStr: refstr, Label: o.Label}
+			if err = o.DatasetRequests.SubDAGInfo(s, info); err != nil {
+				return err
+			}
+		} else {
+			if err = o.DatasetRequests.DAGInfo(&refstr, info); err != nil {
+				return err
+			}
 		}
 
 		var buffer []byte

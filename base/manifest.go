@@ -77,3 +77,12 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 	}
 	return info, nil
 }
+
+// NewSubDAGInfo generates a SubDAGInfo for a given node at a given label
+func NewSubDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
+	info, err := NewDAGInfo(ctx, store, ng, path)
+	if err != nil {
+		return nil, err
+	}
+	return info.InfoAtLabel(label)
+}

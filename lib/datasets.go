@@ -626,7 +626,7 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	return
 }
 
-// DAGInfo generates a manifest for a dataset path
+// DAGInfo generates a dag.Info for a dataset path
 func (r *DatasetRequests) DAGInfo(refstr *string, i *dag.Info) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.DAGInfo", refstr, i)
@@ -647,4 +647,32 @@ func (r *DatasetRequests) DAGInfo(refstr *string, i *dag.Info) (err error) {
 	}
 	*i = *info
 	return
+}
+
+// SubDAGParams defines parameters for the SubDAGInfo method
+type SubDAGParams struct {
+	RefStr, Label string
+}
+
+// SubDAGInfo generates a dag.Info for a sub DAG at a label in the original dag.Info
+func (r *DatasetRequests) SubDAGInfo(s *SubDAGParams, i *dag.Info) error {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.SubDAGInfo", s, i)
+	}
+
+	ref, err := repo.ParseDatasetRef(s.RefStr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return err
+	}
+
+	var info *dag.Info
+	info, err = actions.NewSubDAGInfo(r.node, ref.Path, s.Label)
+	if err != nil {
+		return err
+	}
+	*i = *info
+	return nil
 }
