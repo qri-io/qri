@@ -21,8 +21,8 @@ func NewManifest(ctx context.Context, ng ipld.NodeGetter, path string) (*dag.Man
 	return dag.NewManifest(ctx, ng, id)
 }
 
-// NewDAGInfo generates a DAGInfo for a given node
-func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path string) (*dag.Info, error) {
+// NewDAGInfo generates a DAGInfo for a given node. If a label is provided, it gnenerates a sub-DAGInfo at that label.
+func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
 	id, err := cid.Parse(path)
 	if err != nil {
 		return nil, err
@@ -75,14 +75,9 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 			return nil, err
 		}
 	}
-	return info, nil
-}
 
-// NewSubDAGInfo generates a SubDAGInfo for a given node at a given label
-func NewSubDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
-	info, err := NewDAGInfo(ctx, store, ng, path)
-	if err != nil {
-		return nil, err
+	if label != "" {
+		return info.InfoAtLabel(label)
 	}
-	return info.InfoAtLabel(label)
+	return info, nil
 }

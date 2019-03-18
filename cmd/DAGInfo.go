@@ -4,8 +4,6 @@ import (
 	"encoding/hex"
 	"encoding/json"
 	"fmt"
-	// "io/ioutil"
-	// "path/filepath"
 	"strings"
 
 	"github.com/ghodss/yaml"
@@ -93,15 +91,9 @@ func (o *DAGInfoOptions) Complete(f Factory, args []string) (err error) {
 func (o *DAGInfoOptions) Get() (err error) {
 	info := &dag.Info{}
 	for _, refstr := range o.Refs {
-		if o.Label != "" {
-			s := &lib.SubDAGParams{RefStr: refstr, Label: o.Label}
-			if err = o.DatasetRequests.SubDAGInfo(s, info); err != nil {
-				return err
-			}
-		} else {
-			if err = o.DatasetRequests.DAGInfo(&refstr, info); err != nil {
-				return err
-			}
+		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
+		if err = o.DatasetRequests.DAGInfo(s, info); err != nil {
+			return err
 		}
 
 		var buffer []byte

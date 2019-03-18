@@ -626,38 +626,15 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	return
 }
 
-// DAGInfo generates a dag.Info for a dataset path
-func (r *DatasetRequests) DAGInfo(refstr *string, i *dag.Info) (err error) {
-	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.DAGInfo", refstr, i)
-	}
-
-	ref, err := repo.ParseDatasetRef(*refstr)
-	if err != nil {
-		return err
-	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return
-	}
-
-	var info *dag.Info
-	info, err = actions.NewDAGInfo(r.node, ref.Path)
-	if err != nil {
-		return
-	}
-	*i = *info
-	return
-}
-
-// SubDAGParams defines parameters for the SubDAGInfo method
-type SubDAGParams struct {
+// DAGInfoParams defines parameters for the DAGInfo method
+type DAGInfoParams struct {
 	RefStr, Label string
 }
 
-// SubDAGInfo generates a dag.Info for a sub DAG at a label in the original dag.Info
-func (r *DatasetRequests) SubDAGInfo(s *SubDAGParams, i *dag.Info) error {
+// DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
+func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.SubDAGInfo", s, i)
+		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
 	}
 
 	ref, err := repo.ParseDatasetRef(s.RefStr)
@@ -665,14 +642,14 @@ func (r *DatasetRequests) SubDAGInfo(s *SubDAGParams, i *dag.Info) error {
 		return err
 	}
 	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return err
+		return
 	}
 
 	var info *dag.Info
-	info, err = actions.NewSubDAGInfo(r.node, ref.Path, s.Label)
+	info, err = actions.NewDAGInfo(r.node, ref.Path, s.Label)
 	if err != nil {
-		return err
+		return
 	}
 	*i = *info
-	return nil
+	return
 }
