@@ -66,6 +66,7 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/startf && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dag && git checkout master && git pull
+	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/qri
 
 install-deps:

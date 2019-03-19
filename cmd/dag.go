@@ -1,0 +1,311 @@
+package cmd
+
+import (
+	"encoding/hex"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"path/filepath"
+	"strings"
+
+	"github.com/ghodss/yaml"
+	"github.com/qri-io/dag"
+	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/lib"
+	"github.com/spf13/cobra"
+)
+
+// NewDAGCommand creates a new `qri dag` command that generates a manifest for a given
+// dataset reference. Referenced dataset must be stored in local CAFS
+func NewDAGCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
+	o := &DAGOptions{IOStreams: ioStreams}
+	cmd := &cobra.Command{
+		Use:    "dag",
+		Hidden: true,
+		Short:  "directed acyclic graph interaction",
+	}
+
+	manifest := &cobra.Command{
+		Use:    "manifest",
+		Hidden: true,
+		Short:  "dataset manifest interaction",
+	}
+
+	get := &cobra.Command{
+		Use:   "get",
+		Short: "get one or more manifests for a given reference",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Get()
+		},
+	}
+
+	missing := &cobra.Command{
+		Use:   "missing",
+		Short: "list blocks not present in this repo for a given manifest",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Missing()
+		},
+	}
+
+	get.Flags().StringVar(&o.Format, "format", "json", "set output format [json, yaml, cbor]")
+	get.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
+	get.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
+
+	missing.Flags().StringVar(&o.Format, "format", "json", "set output format [json, yaml, cbor]")
+	missing.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
+	missing.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
+	missing.Flags().StringVar(&o.File, "file", "", "manifest file")
+
+	manifest.AddCommand(get, missing)
+
+	info := &cobra.Command{
+		Use:    "info",
+		Hidden: true,
+		Short:  "dataset dag info interaction",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Info()
+		},
+	}
+
+	info.Flags().StringVar(&o.InfoFormat, "format", "", "set output format [json, yaml, cbor]")
+	info.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
+	info.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
+
+	cmd.AddCommand(manifest, info)
+	return cmd
+}
+
+// DAGOptions encapsulates state for the dag command
+type DAGOptions struct {
+	ioes.IOStreams
+
+	Refs       []string
+	Format     string
+	InfoFormat string
+	Pretty     bool
+	Hex        bool
+	File       string
+	Label      string
+
+	DatasetRequests *lib.DatasetRequests
+}
+
+// Complete adds any missing configuration that can only be added just before calling Run
+func (o *DAGOptions) Complete(f Factory, args []string) (err error) {
+	if len(args) > 0 {
+		if isDatasetField.MatchString(args[0]) {
+			o.Label = fullFieldToAbbr(args[0])
+			args = args[1:]
+		}
+	}
+	o.Refs = args
+	o.DatasetRequests, err = f.DatasetRequests()
+	return
+}
+
+// Get executes the manigest get command
+func (o *DAGOptions) Get() (err error) {
+	mf := &dag.Manifest{}
+	for _, refstr := range o.Refs {
+		if err = o.DatasetRequests.Manifest(&refstr, mf); err != nil {
+			return err
+		}
+
+		var buffer []byte
+		switch strings.ToLower(o.Format) {
+		case "json":
+			if !o.Pretty {
+				buffer, err = json.Marshal(mf)
+			} else {
+				buffer, err = json.MarshalIndent(mf, "", " ")
+			}
+		case "yaml":
+			buffer, err = yaml.Marshal(mf)
+		case "cbor":
+			buffer, err = mf.MarshalCBOR()
+		}
+		if err != nil {
+			return fmt.Errorf("err encoding manifest: %s", err)
+		}
+		if o.Hex {
+			buffer = []byte(hex.EncodeToString(buffer))
+		}
+		_, err = o.Out.Write(buffer)
+	}
+
+	return err
+}
+
+// Missing executes the manifest missing command
+func (o *DAGOptions) Missing() error {
+	if o.File == "" {
+		return fmt.Errorf("manifest file is required")
+	}
+
+	in := &dag.Manifest{}
+	data, err := ioutil.ReadFile(o.File)
+	if err != nil {
+		return err
+	}
+
+	switch strings.ToLower(filepath.Ext(o.File)) {
+	case ".yaml":
+		err = yaml.Unmarshal(data, in)
+	case ".json":
+		err = json.Unmarshal(data, in)
+	case ".cbor":
+		// TODO - detect hex input?
+		// data, err = hex.DecodeString(string(data))
+		// if err != nil {
+		// 	return err
+		// }
+		in, err = dag.UnmarshalCBORManifest(data)
+	}
+
+	if err != nil {
+		return err
+	}
+
+	mf := &dag.Manifest{}
+	if err = o.DatasetRequests.ManifestMissing(in, mf); err != nil {
+		return err
+	}
+
+	var buffer []byte
+	switch strings.ToLower(o.InfoFormat) {
+	case "json":
+		if !o.Pretty {
+			buffer, err = json.Marshal(mf)
+		} else {
+			buffer, err = json.MarshalIndent(mf, "", " ")
+		}
+	case "yaml":
+		buffer, err = yaml.Marshal(mf)
+	case "cbor":
+		buffer, err = mf.MarshalCBOR()
+	}
+	if err != nil {
+		return fmt.Errorf("error encoding manifest: %s", err)
+	}
+	if o.Hex {
+		buffer = []byte(hex.EncodeToString(buffer))
+	}
+	_, err = o.Out.Write(buffer)
+
+	return err
+}
+
+// Info executes the dag info command
+func (o *DAGOptions) Info() (err error) {
+	info := &dag.Info{}
+	if len(o.Refs) == 0 {
+		return fmt.Errorf("dataset reference required")
+	}
+
+	for _, refstr := range o.Refs {
+		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
+		if err = o.DatasetRequests.DAGInfo(s, info); err != nil {
+			return err
+		}
+
+		var buffer []byte
+		switch strings.ToLower(o.InfoFormat) {
+		case "json":
+			if !o.Pretty {
+				buffer, err = json.Marshal(info)
+			} else {
+				buffer, err = json.MarshalIndent(info, "", " ")
+			}
+		case "yaml":
+			buffer, err = yaml.Marshal(info)
+		// case "cbor":
+		// 	buffer, err = info.MarshalCBOR()
+		default:
+			totalSize := uint64(0)
+			if len(info.Sizes) != 0 {
+				totalSize = info.Sizes[0]
+			}
+			out := ""
+			if o.Label != "" {
+				out += fmt.Sprintf("\nSubDAG at: %s", abbrFieldToFull(o.Label))
+			}
+			out += fmt.Sprintf("\nDAG for: %s\n", refstr)
+			if totalSize != 0 {
+				out += fmt.Sprintf("Total Size: %s\n", printByteInfo(int(totalSize)))
+			}
+			if info.Manifest != nil {
+				out += fmt.Sprintf("Block Count: %d\n", len(info.Manifest.Nodes))
+			}
+			if info.Labels != nil {
+				out += fmt.Sprint("Labels:\n")
+			}
+			for label, index := range info.Labels {
+				fullField := abbrFieldToFull(label)
+				out += fmt.Sprintf("\t%s:", fullField)
+				spacesLen := 16 - len(fullField)
+				for i := 0; i <= spacesLen; i++ {
+					out += fmt.Sprintf(" ")
+				}
+				out += fmt.Sprintf("%s\n", printByteInfo(int(info.Sizes[index])))
+			}
+			buffer = []byte(out)
+
+		}
+		if err != nil {
+			return fmt.Errorf("err encoding daginfo: %s", err)
+		}
+		if o.Hex {
+			buffer = []byte(hex.EncodeToString(buffer))
+		}
+		_, err = o.Out.Write(buffer)
+	}
+
+	return err
+}
+
+func fullFieldToAbbr(field string) string {
+	switch field {
+	case "commit":
+		return "cm"
+	case "structure":
+		return "st"
+	case "body":
+		return "bd"
+	case "meta":
+		return "md"
+	case "viz":
+		return "vz"
+	case "transform":
+		return "tf"
+	default:
+		return field
+	}
+}
+
+func abbrFieldToFull(abbr string) string {
+	switch abbr {
+	case "cm":
+		return "commit"
+	case "st":
+		return "structure"
+	case "bd":
+		return "body"
+	case "md":
+		return "meta"
+	case "vz":
+		return "viz"
+	case "tf":
+		return "transform"
+	default:
+		return abbr
+	}
+}

@@ -625,3 +625,31 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	*b = *mf
 	return
 }
+
+// DAGInfoParams defines parameters for the DAGInfo method
+type DAGInfoParams struct {
+	RefStr, Label string
+}
+
+// DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
+func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
+	}
+
+	ref, err := repo.ParseDatasetRef(s.RefStr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return
+	}
+
+	var info *dag.Info
+	info, err = actions.NewDAGInfo(r.node, ref.Path, s.Label)
+	if err != nil {
+		return
+	}
+	*i = *info
+	return
+}
