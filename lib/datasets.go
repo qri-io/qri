@@ -174,8 +174,10 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			} else {
 				res.Bytes, err = json.MarshalIndent(value, "", " ")
 			}
-		default:
+		case "yaml", "":
 			res.Bytes, err = yaml.Marshal(value)
+		default:
+			return fmt.Errorf("unknown format: \"%s\"", p.Format)
 		}
 		return err
 	}
