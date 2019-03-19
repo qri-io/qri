@@ -40,37 +40,37 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 	info.Labels = map[string]int{}
 	prefix := store.PathPrefix()
 	if ds.BodyPath != "" {
-		err := info.AddLabelByID("body", dsfs.GetHashBase(ds.BodyPath, prefix))
+		err := info.AddLabelByID("bd", dsfs.GetHashBase(ds.BodyPath, prefix))
 		if err != nil {
 			return nil, err
 		}
 	}
 	if ds.Viz != nil {
-		err := info.AddLabelByID("viz", dsfs.GetHashBase(ds.Viz.Path, prefix))
+		err := info.AddLabelByID("vz", dsfs.GetHashBase(ds.Viz.Path, prefix))
 		if err != nil {
 			return nil, err
 		}
 	}
 	if ds.Transform != nil {
-		err := info.AddLabelByID("transform", dsfs.GetHashBase(ds.Transform.Path, prefix))
+		err := info.AddLabelByID("tf", dsfs.GetHashBase(ds.Transform.Path, prefix))
 		if err != nil {
 			return nil, err
 		}
 	}
 	if ds.Meta != nil {
-		err := info.AddLabelByID("meta", dsfs.GetHashBase(ds.Meta.Path, prefix))
+		err := info.AddLabelByID("md", dsfs.GetHashBase(ds.Meta.Path, prefix))
 		if err != nil {
 			return nil, err
 		}
 	}
 	if ds.Structure != nil {
-		err := info.AddLabelByID("structure", dsfs.GetHashBase(ds.Structure.Path, prefix))
+		err := info.AddLabelByID("st", dsfs.GetHashBase(ds.Structure.Path, prefix))
 		if err != nil {
 			return nil, err
 		}
 	}
 	if ds.Commit != nil {
-		err := info.AddLabelByID("commit", dsfs.GetHashBase(ds.Commit.Path, prefix))
+		err := info.AddLabelByID("cm", dsfs.GetHashBase(ds.Commit.Path, prefix))
 		if err != nil {
 			return nil, err
 		}

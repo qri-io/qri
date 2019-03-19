@@ -103,7 +103,7 @@ type DAGOptions struct {
 func (o *DAGOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
 		if isDatasetField.MatchString(args[0]) {
-			o.Label = args[0]
+			o.Label = fullFieldToAbbr(args[0])
 			args = args[1:]
 		}
 	}
@@ -207,6 +207,10 @@ func (o *DAGOptions) Missing() error {
 // Info executes the dag info command
 func (o *DAGOptions) Info() (err error) {
 	info := &dag.Info{}
+	if len(o.Refs) == 0 {
+		return fmt.Errorf("dataset reference required")
+	}
+
 	for _, refstr := range o.Refs {
 		s := &lib.DAGInfoParams{RefStr: refstr, Label: o.Label}
 		if err = o.DatasetRequests.DAGInfo(s, info); err != nil {
@@ -232,7 +236,7 @@ func (o *DAGOptions) Info() (err error) {
 			}
 			out := ""
 			if o.Label != "" {
-				out += fmt.Sprintf("\nSubDAG at: %s", o.Label)
+				out += fmt.Sprintf("\nSubDAG at: %s", abbrFieldToFull(o.Label))
 			}
 			out += fmt.Sprintf("\nDAG for: %s\n", refstr)
 			if totalSize != 0 {
@@ -245,8 +249,9 @@ func (o *DAGOptions) Info() (err error) {
 				out += fmt.Sprint("Labels:\n")
 			}
 			for label, index := range info.Labels {
-				out += fmt.Sprintf("\t%s:", label)
-				spacesLen := 16 - len(label)
+				fullField := abbrFieldToFull(label)
+				out += fmt.Sprintf("\t%s:", fullField)
+				spacesLen := 16 - len(fullField)
 				for i := 0; i <= spacesLen; i++ {
 					out += fmt.Sprintf(" ")
 				}
@@ -265,4 +270,42 @@ func (o *DAGOptions) Info() (err error) {
 	}
 
 	return err
+}
+
+func fullFieldToAbbr(field string) string {
+	switch field {
+	case "commit":
+		return "cm"
+	case "structure":
+		return "st"
+	case "body":
+		return "bd"
+	case "meta":
+		return "md"
+	case "viz":
+		return "vz"
+	case "transform":
+		return "tf"
+	default:
+		return field
+	}
+}
+
+func abbrFieldToFull(abbr string) string {
+	switch abbr {
+	case "cm":
+		return "commit"
+	case "st":
+		return "structure"
+	case "bd":
+		return "body"
+	case "md":
+		return "meta"
+	case "vz":
+		return "viz"
+	case "tf":
+		return "transform"
+	default:
+		return abbr
+	}
 }
