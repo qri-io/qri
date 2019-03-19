@@ -165,6 +165,12 @@ type Collection struct {
 	Ptr  *int
 	Dict map[string]string
 	List []string
+	Sub  SubElement
+}
+
+type SubElement struct {
+	Num    int
+	Things *map[string]string
 }
 
 func (c *Collection) SetArbitrary(key string, val interface{}) error {
@@ -433,5 +439,60 @@ func TestNilPointer(t *testing.T) {
 
 	if c.Ptr != nil {
 		t.Error("expected null Ptr")
+	}
+}
+
+func TestFillSubSection(t *testing.T) {
+	jsonData := `{
+  "Sub": {
+    "Num": 7
+  }
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = FillStruct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Sub.Num != 7 {
+		t.Errorf("expected: c.Sub.Num should be 7, got: %d", c.Sub.Num)
+	}
+}
+
+func TestFillPointerToMap(t *testing.T) {
+	jsonData := `{
+  "Things": {
+    "a": "apple",
+    "b": "banana"
+  }
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var s SubElement
+	err = FillStruct(data, &s)
+	if err != nil {
+		panic(err)
+	}
+
+	if s.Things == nil {
+		t.Errorf("expected: s.Things should be non-nil")
+	}
+	if (*s.Things)["a"] != "apple" {
+		t.Errorf("expected: s.Things[\"a\"] should be \"apple\"")
+	}
+	if (*s.Things)["b"] != "banana" {
+		t.Errorf("expected: s.Things[\"b\"] should be \"banana\"")
 	}
 }

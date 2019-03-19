@@ -26,7 +26,7 @@ type ArbitrarySetter interface {
 var (
 	// timeObj and strObj are used for reflect.TypeOf
 	timeObj time.Time
-	strObj string
+	strObj  string
 )
 
 // putFieldsToTargetStruct iterates over the fields in the target struct, and assigns each
@@ -154,9 +154,13 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			}
 			return fmt.Errorf("need type time, value %s", val)
 		}
-		// Other struct types are not handled currently. Should probably do the same thing
-		// as what's done for `pointer` below.
-		return fmt.Errorf("unknown struct %s", place.Type())
+		// Struct must be assigned from a map.
+		component, err := toStringMap(val)
+		if err != nil {
+			return err
+		}
+		// Recursion to handle sub-component.
+		return putFieldsToTargetStruct(component, place)
 	case reflect.Map:
 		if val == nil {
 			// If map is nil, nothing more to do.
@@ -211,17 +215,11 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 		alloc := reflect.New(place.Type().Elem())
 		place.Set(alloc)
 		inner := alloc.Elem()
-		// For now, can only point to a struct.
-		if inner.Kind() != reflect.Struct {
-			return fmt.Errorf("can only assign to *struct")
-		}
-		// Struct must be assigned from a map.
-		component, err := toStringMap(val)
+		err := putValueToPlace(val, inner)
 		if err != nil {
 			return err
 		}
-		// Recursion to handle sub-component.
-		return putFieldsToTargetStruct(component, inner)
+		return nil
 	default:
 		return fmt.Errorf("unknown kind %s", place.Kind())
 	}
