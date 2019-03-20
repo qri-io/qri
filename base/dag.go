@@ -54,7 +54,7 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {
-			err := info.AddLabelByID("rendered", dsfs.GetHashBase(ds.Viz.RenderedPath, prefix))
+			err := info.AddLabelByID("rd", dsfs.GetHashBase(ds.Viz.RenderedPath, prefix))
 			if err != nil {
 				return nil, err
 			}
