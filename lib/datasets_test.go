@@ -404,66 +404,92 @@ func TestDatasetRequestsGet(t *testing.T) {
 	moviesBody := mustBeArray(base.ReadEntries(reader))
 
 	cases := []struct {
-		params *GetParams
-		expect string
+		description string
+		params      *GetParams
+		expect      string
 	}{
-		{&GetParams{Path: "peer/ABC@abc"}, "'peer/ABC@abc' is not a valid dataset reference"},
+		{"invalid peer name",
+			&GetParams{Path: "peer/ABC@abc"}, "'peer/ABC@abc' is not a valid dataset reference"},
 
-		{&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)},
+		{"peername with path",
+			&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)},
 			componentToString(setDatasetName(moviesDs, "peer/ABC"), "yaml")},
 
-		{&GetParams{Path: "peer/movies"},
+		{"peername without path",
+			&GetParams{Path: "peer/movies"},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
 
-		{&GetParams{Path: "peer/movies", Format: "json"},
+		{"peername as json format",
+			&GetParams{Path: "peer/movies", Format: "json"},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "json")},
 
-		{&GetParams{Path: "peer/movies", Selector: "commit"},
+		{"commit component",
+			&GetParams{Path: "peer/movies", Selector: "commit"},
 			componentToString(moviesDs.Commit, "yaml")},
 
-		{&GetParams{Path: "peer/movies", Selector: "commit", Format: "json"},
+		{"commit component as json format",
+			&GetParams{Path: "peer/movies", Selector: "commit", Format: "json"},
 			componentToString(moviesDs.Commit, "json")},
 
-		{&GetParams{Path: "peer/movies", Selector: "commit.title"}, "initial commit\n"},
+		{"title field of commit component",
+			&GetParams{Path: "peer/movies", Selector: "commit.title"}, "initial commit\n"},
 
-		{&GetParams{Path: "peer/movies", Selector: "commit.title", Format: "json"}, "\"initial commit\""},
+		{"title field of commit component as json",
+			&GetParams{Path: "peer/movies", Selector: "commit.title", Format: "json"},
+			"\"initial commit\""},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json"}, "[]"},
+		{"title field of commit component as yaml",
+			&GetParams{Path: "peer/movies", Selector: "commit.title", Format: "yaml"},
+			"initial commit\n"},
 
-		{&GetParams{Path: "", Selector: "body", Format: "json"}, "repo: empty dataset reference"},
+		{"title field of commit component as mispelled format",
+			&GetParams{Path: "peer/movies", Selector: "commit.title", Format: "jason"},
+			"unknown format: \"jason\""},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "csv"}, "title,duration\n"},
+		{"body as json",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json"}, "[]"},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+		{"dataset empty",
+			&GetParams{Path: "", Selector: "body", Format: "json"}, "repo: empty dataset reference"},
+
+		{"body as csv",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "csv"}, "title,duration\n"},
+
+		{"body with limit and offfset",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 			Limit: 5, Offset: 0, All: false}, bodyToString(moviesBody[:5])},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+		{"body with invalid limit and offset",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 			Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+		{"body with all flag ignores invalid limit and offset",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 			Limit: -5, Offset: -100, All: true}, bodyToString(moviesBody)},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+		{"body with all flag",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 			Limit: 0, Offset: 0, All: true}, bodyToString(moviesBody)},
 
-		{&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+		{"body with limit and non-zero offset",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 			Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
 	}
 
 	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
+	for _, c := range cases {
 		got := &GetResult{}
 		err := req.Get(c.params, got)
 		if err != nil {
 			if err.Error() != c.expect {
-				t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.expect, err)
+				t.Errorf("case \"%s\": error mismatch: expected: %s, got: %s", c.description, c.expect, err)
 			}
 			continue
 		}
 
 		result := string(got.Bytes)
 		if result != c.expect {
-			t.Errorf("case %d Bytes mismatch: expected:\n\"%s\", got:\n\"%s\"", i, c.expect, result)
+			t.Errorf("case \"%s\": failed, expected:\n\"%s\", got:\n\"%s\"", c.description, c.expect, result)
 		}
 	}
 }
