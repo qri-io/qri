@@ -3,14 +3,14 @@ package base
 import (
 	"bytes"
 	"fmt"
-	"html/template"
 	"io"
 	"io/ioutil"
 	"strings"
 
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
+
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -32,6 +32,9 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offset int
 		log.Debug(err.Error())
 		return nil, err
 	}
+	if err := OpenDataset(r.Filesystem(), ds); err != nil {
+		return nil, err
+	}
 
 	if tmplData != nil {
 		rdr = bytes.NewBuffer(tmplData)
@@ -51,52 +54,62 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offset int
 		rdr = strings.NewReader(DefaultTemplate)
 	}
 
-	tmplBytes, err := ioutil.ReadAll(rdr)
-	if err != nil {
-		return nil, fmt.Errorf("reading template data: %s", err.Error())
-	}
+	ds.Viz.Format = "html"
+	ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", rdr))
 
-	tmpl, err := template.New(tmplName).Parse(string(tmplBytes))
-	if err != nil {
-		return nil, fmt.Errorf("parsing template: %s", err.Error())
-	}
-
-	file, err := dsfs.LoadBody(store, ds)
-	if err != nil {
-		log.Debug(err.Error())
-		return nil, err
-	}
-
-	rr, err := dsio.NewEntryReader(ds.Structure, file)
-	if err != nil {
-		return nil, fmt.Errorf("error allocating data reader: %s", err)
-	}
-
-	if !all {
-		rr = &dsio.PagedReader{Reader: rr, Limit: limit, Offset: offset}
-	}
-	bodyEntries, err := ReadEntries(rr)
+	data, err := dsviz.Render(ds)
 	if err != nil {
 		return nil, err
 	}
 
-	// TODO (b5): repo.DatasetRef should be refactored into this newly expanded DatasetPod,
-	// once that's done these values should be populated by ds.Encode(), removing the need
-	// for these assignments
-	ds.Peername = ref.Peername
-	ds.ProfileID = ref.ProfileID.String()
-	ds.Name = ref.Name
-	if ds.Meta == nil {
-		ds.Meta = &dataset.Meta{}
-	}
+	return ioutil.ReadAll(data)
 
-	ds.Body = bodyEntries
+	// tmplBytes, err := ioutil.ReadAll(rdr)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("reading template data: %s", err.Error())
+	// }
 
-	tmplBuf := &bytes.Buffer{}
-	if err := tmpl.Execute(tmplBuf, ds); err != nil {
-		return nil, err
-	}
-	return tmplBuf.Bytes(), nil
+	// tmpl, err := template.New(tmplName).Parse(string(tmplBytes))
+	// if err != nil {
+	// 	return nil, fmt.Errorf("parsing template: %s", err.Error())
+	// }
+
+	// file, err := dsfs.LoadBody(store, ds)
+	// if err != nil {
+	// 	log.Debug(err.Error())
+	// 	return nil, err
+	// }
+
+	// rr, err := dsio.NewEntryReader(ds.Structure, file)
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error allocating data reader: %s", err)
+	// }
+
+	// if !all {
+	// 	rr = &dsio.PagedReader{Reader: rr, Limit: limit, Offset: offset}
+	// }
+	// bodyEntries, err := ReadEntries(rr)
+	// if err != nil {
+	// 	return nil, err
+	// }
+
+	// // TODO (b5): repo.DatasetRef should be refactored into this newly expanded DatasetPod,
+	// // once that's done these values should be populated by ds.Encode(), removing the need
+	// // for these assignments
+	// ds.Peername = ref.Peername
+	// ds.ProfileID = ref.ProfileID.String()
+	// ds.Name = ref.Name
+	// if ds.Meta == nil {
+	// 	ds.Meta = &dataset.Meta{}
+	// }
+
+	// ds.Body = bodyEntries
+
+	// tmplBuf := &bytes.Buffer{}
+	// if err := tmpl.Execute(tmplBuf, ds); err != nil {
+	// 	return nil, err
+	// }
+	// return tmplBuf.Bytes(), nil
 }
 
 // DefaultTemplate is the template that render will fall back to should no
