@@ -1,4 +1,4 @@
-package base
+package fill
 
 import (
 	"encoding/json"
@@ -10,7 +10,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-func TestFillStruct(t *testing.T) {
+func TestStruct(t *testing.T) {
 	jsonData := `{
   "Name": "test_name",
   "ProfileID": "test_profile_id",
@@ -24,7 +24,7 @@ func TestFillStruct(t *testing.T) {
 	}
 
 	var ds dataset.Dataset
-	err = FillStruct(data, &ds)
+	err = Struct(data, &ds)
 	if err != nil {
 		panic(err)
 	}
@@ -55,7 +55,7 @@ func TestFillCommitTimestamp(t *testing.T) {
 	}
 
 	var ds dataset.Dataset
-	err = FillStruct(data, &ds)
+	err = Struct(data, &ds)
 	if err != nil {
 		panic(err)
 	}
@@ -71,7 +71,7 @@ func TestFillCommitTimestamp(t *testing.T) {
 	}
 }
 
-func TestFillStructInsensitive(t *testing.T) {
+func TestStructInsensitive(t *testing.T) {
 	jsonData := `{
   "name": "test_name",
   "pRoFiLeId": "test_profile_id",
@@ -85,7 +85,7 @@ func TestFillStructInsensitive(t *testing.T) {
 	}
 
 	var ds dataset.Dataset
-	err = FillStruct(data, &ds)
+	err = Struct(data, &ds)
 	if err != nil {
 		panic(err)
 	}
@@ -101,7 +101,7 @@ func TestFillStructInsensitive(t *testing.T) {
 	}
 }
 
-func TestFillStructUnknownFields(t *testing.T) {
+func TestStructUnknownFields(t *testing.T) {
 	jsonData := `{
   "Name": "test_name",
   "ProfileID": "test_profile_id",
@@ -116,7 +116,7 @@ func TestFillStructUnknownFields(t *testing.T) {
 	}
 
 	var ds dataset.Dataset
-	err = FillStruct(data, &ds)
+	err = Struct(data, &ds)
 	if err == nil {
 		t.Errorf("expected: error for unknown field, but no error returned")
 	}
@@ -127,7 +127,7 @@ func TestFillStructUnknownFields(t *testing.T) {
 	}
 }
 
-func TestFillStructYaml(t *testing.T) {
+func TestStructYaml(t *testing.T) {
 	yamlData := `name: test_name
 profileID: test_profile_id
 qri: qri:0
@@ -140,7 +140,7 @@ qri: qri:0
 	}
 
 	var ds dataset.Dataset
-	err = FillStruct(data, &ds)
+	err = Struct(data, &ds)
 	if err != nil {
 		panic(err)
 	}
@@ -195,7 +195,7 @@ func TestFillArbitrarySetter(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -224,7 +224,7 @@ func TestFillBoolean(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -250,7 +250,7 @@ func TestFillFloatingPoint(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -279,7 +279,7 @@ func TestFillMetaKeywords(t *testing.T) {
 	}
 
 	var meta dataset.Meta
-	err = FillStruct(data, &meta)
+	err = Struct(data, &meta)
 	if err != nil {
 		panic(err)
 	}
@@ -308,7 +308,7 @@ func TestFillMetaCitations(t *testing.T) {
 	}
 
 	var meta dataset.Meta
-	err = FillStruct(data, &meta)
+	err = Struct(data, &meta)
 	if err != nil {
 		panic(err)
 	}
@@ -342,7 +342,7 @@ func TestFillMapStringToString(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -366,7 +366,7 @@ func TestStringSlice(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -390,7 +390,7 @@ func TestNilStringSlice(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -411,7 +411,7 @@ func TestNilMap(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -432,7 +432,7 @@ func TestNilPointer(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -456,7 +456,7 @@ func TestFillSubSection(t *testing.T) {
 	}
 
 	var c Collection
-	err = FillStruct(data, &c)
+	err = Struct(data, &c)
 	if err != nil {
 		panic(err)
 	}
@@ -481,7 +481,7 @@ func TestFillPointerToMap(t *testing.T) {
 	}
 
 	var s SubElement
-	err = FillStruct(data, &s)
+	err = Struct(data, &s)
 	if err != nil {
 		panic(err)
 	}

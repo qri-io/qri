@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/fill"
 	"gopkg.in/yaml.v2"
 )
 
@@ -175,24 +175,24 @@ func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
 }
 
 func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (err error) {
-	var fill interface{}
-	fill = ds
+	var target interface{}
+	target = ds
 
 	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) > 3 {
 		switch kindStr[:2] {
 		case "md":
 			ds.Meta = &dataset.Meta{}
-			fill = ds.Meta
+			target = ds.Meta
 		case "cm":
 			ds.Commit = &dataset.Commit{}
-			fill = ds.Commit
+			target = ds.Commit
 		case "st":
 			ds.Structure = &dataset.Structure{}
-			fill = ds.Structure
+			target = ds.Structure
 		}
 	}
 
-	if err = base.FillStruct(fields, fill); err != nil {
+	if err = fill.Struct(fields, target); err != nil {
 		return err
 	}
 	absDatasetPaths(path, ds)

@@ -13,6 +13,20 @@ import (
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
+func TestReadFromFile(t *testing.T) {
+	_, err := ReadFromFile("testdata/default.yaml")
+	if err != nil {
+		t.Errorf("error reading config: %s", err.Error())
+		return
+	}
+
+	_, err = ReadFromFile("foobar")
+	if err == nil {
+		t.Error("expected read from bad path to error")
+		return
+	}
+}
+
 func TestWriteToFile(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "config.yaml")
 	t.Log(path)

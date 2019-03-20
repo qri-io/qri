@@ -1,4 +1,4 @@
-package base
+package fill
 
 import (
 	"fmt"
@@ -7,10 +7,10 @@ import (
 	"time"
 )
 
-// FillStruct fills in the values of an arbitrary structure using an already deserialized
+// Struct fills in the values of an arbitrary structure using an already deserialized
 // map of nested data. Fields names are case-insensitive. Unknown fields are treated as an
 // error, *unless* the output structure implementes the ArbitrarySetter interface.
-func FillStruct(fields map[string]interface{}, output interface{}) error {
+func Struct(fields map[string]interface{}, output interface{}) error {
 	target := reflect.ValueOf(output)
 	if target.Kind() == reflect.Ptr {
 		target = target.Elem()
