@@ -28,6 +28,7 @@
     }
   },
   "viz": {
+    "format": "html",
     "scriptPath": "viz.html"
   }
 }
