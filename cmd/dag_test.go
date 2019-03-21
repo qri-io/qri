@@ -19,6 +19,7 @@ func TestFullFieldToAbbr(t *testing.T) {
 		{"meta", "md"},
 		{"viz", "vz"},
 		{"transform", "tf"},
+		{"rendered", "rd"},
 		{"foo", "foo"},
 	}
 
@@ -30,7 +31,7 @@ func TestFullFieldToAbbr(t *testing.T) {
 	}
 }
 
-func TestAbbrFieldToField(t *testing.T) {
+func TestAbbrFieldToFull(t *testing.T) {
 	cases := []struct {
 		field, exp string
 	}{
@@ -40,6 +41,7 @@ func TestAbbrFieldToField(t *testing.T) {
 		{"md", "meta"},
 		{"vz", "viz"},
 		{"tf", "transform"},
+		{"rd", "rendered"},
 		{"foo", "foo"},
 	}
 
