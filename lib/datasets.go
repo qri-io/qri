@@ -209,6 +209,8 @@ type SaveParams struct {
 	Recall string
 	// force a new commit, even if no changes are detected
 	Force bool
+	// save a rendered version of the template along with the dataset
+	ShouldRender bool
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer
@@ -275,7 +277,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
-	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force)
+	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force, p.ShouldRender)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

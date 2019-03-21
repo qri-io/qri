@@ -177,7 +177,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false)
+	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
 	return
 }
 

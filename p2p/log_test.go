@@ -29,7 +29,7 @@ func TestRequestDatasetLog(t *testing.T) {
 	}
 
 	// add a dataset to tim
-	ref, err := base.CreateDataset(peers[4].Repo, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false)
+	ref, err := base.CreateDataset(peers[4].Repo, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}

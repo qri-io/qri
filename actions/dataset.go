@@ -15,7 +15,7 @@ import (
 )
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev, force bool) (ref repo.DatasetRef, err error) {
+func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev, force, shouldRender bool) (ref repo.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
@@ -86,7 +86,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	// let's make history, if it exists:
 	changes.PreviousPath = prevPath
 
-	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin, force)
+	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin, force, shouldRender)
 }
 
 // UpdateRemoteDataset brings a reference to the latest version, syncing to the

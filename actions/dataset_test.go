@@ -52,7 +52,7 @@ func TestUpdateRemoteDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// run a local update to advance history
-	now0, err := SaveDataset(peers[0], ds, nil, nil, false, true, false, false)
+	now0, err := SaveDataset(peers[0], ds, nil, nil, false, true, false, false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -120,7 +120,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, err := SaveDataset(n, ds, nil, nil, true, false, false, false)
+	ref, err := SaveDataset(n, ds, nil, nil, true, false, false, false, true)
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -143,7 +143,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	ref, err = SaveDataset(n, ds, nil, nil, false, true, false, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false, false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -173,7 +173,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(nil)
 
 	// dryrun should work
-	ref, err = SaveDataset(n, ds, secrets, nil, true, false, false, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, true, false, false, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(nil)
 
 	// test save with transform
-	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, err = SaveDataset(n, ds, nil, nil, false, true, false, false)
+	ref, err = SaveDataset(n, ds, nil, nil, false, true, false, false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -247,7 +247,7 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false, false)
+	ref, err = SaveDataset(n, ds, secrets, nil, false, true, false, false, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,7 +266,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 		},
 	}
 
-	_, err := SaveDataset(n, ds, nil, nil, false, false, false, false)
+	_, err := SaveDataset(n, ds, nil, nil, false, false, false, false, true)
 	expect := "creating a new dataset requires a structure or a body"
 	if err == nil || err.Error() != expect {
 		t.Errorf("expected error, but got %s", err.Error())
