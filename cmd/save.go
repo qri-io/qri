@@ -68,6 +68,7 @@ commit message and title to the save.`,
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate saving a dataset")
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
+	cmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
 
 	return cmd
 }
@@ -89,6 +90,7 @@ type SaveOptions struct {
 	DryRun         bool
 	KeepFormat     bool
 	Force          bool
+	NoRender       bool
 	Secrets        []string
 
 	DatasetRequests *lib.DatasetRequests
@@ -150,6 +152,7 @@ func (o *SaveOptions) Run() (err error) {
 		ConvertFormatToPrev: o.KeepFormat,
 		Force:               o.Force,
 		ReturnBody:          o.DryRun,
+		ShouldRender:        !o.NoRender,
 	}
 
 	if o.Secrets != nil {

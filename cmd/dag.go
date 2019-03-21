@@ -286,6 +286,8 @@ func fullFieldToAbbr(field string) string {
 		return "vz"
 	case "transform":
 		return "tf"
+	case "rendered":
+		return "rd"
 	default:
 		return field
 	}
@@ -305,6 +307,8 @@ func abbrFieldToFull(abbr string) string {
 		return "viz"
 	case "tf":
 		return "transform"
+	case "rd":
+		return "rendered"
 	default:
 		return abbr
 	}

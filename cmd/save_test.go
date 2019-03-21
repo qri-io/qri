@@ -198,6 +198,7 @@ func TestSaveRun(t *testing.T) {
 
 		if c.expect != errs.String() {
 			t.Errorf("case '%s', err output mismatch. Expected: '%s', Got: '%s'", c.description, c.expect, errs.String())
+
 			continue
 		}
 	}

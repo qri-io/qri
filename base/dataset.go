@@ -40,6 +40,11 @@ func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
 			return
 		}
 	}
+	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
+		if err = ds.Viz.OpenRenderedFile(fsys); err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -57,6 +62,11 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
 		if err = ds.Viz.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.RenderedFile() != nil {
+		if err = ds.Viz.RenderedFile().Close(); err != nil {
 			return
 		}
 	}
@@ -117,7 +127,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly, showVersio
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -133,7 +143,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin, force); err != nil {
+	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin, force, shouldRender); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {

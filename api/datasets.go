@@ -452,11 +452,13 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	res := &repo.DatasetRef{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
-		Dataset:             ds,
-		Private:             r.FormValue("private") == "true",
-		DryRun:              r.FormValue("dry_run") == "true",
-		ReturnBody:          r.FormValue("return_body") == "true",
-		Force:               r.FormValue("force") == "true",
+		Dataset:      ds,
+		Private:      r.FormValue("private") == "true",
+		DryRun:       r.FormValue("dry_run") == "true",
+		ReturnBody:   r.FormValue("return_body") == "true",
+		Force:        r.FormValue("force") == "true",
+		ShouldRender: !(r.FormValue("no_render") == "true"),
+
 		ConvertFormatToPrev: true,
 		ScriptOutput:        scriptOutput,
 	}

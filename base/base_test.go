@@ -62,7 +62,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false)
+	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -94,7 +94,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false)
+	ref, err = CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -107,7 +107,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false)
+	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
