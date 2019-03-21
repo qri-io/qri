@@ -22,3 +22,12 @@ func (r *Remotes) Get(name string) (string, bool) {
 	addr, ok := (*r)[name]
 	return addr, ok
 }
+
+// Copy creates a copy of a Remotes struct
+func (r *Remotes) Copy() *Remotes {
+	c := make(map[string]string)
+	for k, v := range *r {
+		c[k] = v
+	}
+	return (*Remotes)(&c)
+}

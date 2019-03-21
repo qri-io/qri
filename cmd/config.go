@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 
-	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -179,8 +178,9 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	profileChanged := false
 
 	for i := 0; i < len(args)-1; i = i + 2 {
-		var value interface{}
 		path := strings.ToLower(args[i])
+		value := args[i+1]
+
 		if ip[path] {
 			ErrExit(o.ErrOut, fmt.Errorf("cannot set path %s", path))
 		}
@@ -196,10 +196,6 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			}
 			profileChanged = true
 		} else {
-			if err = yaml.Unmarshal([]byte(args[i+1]), &value); err != nil {
-				return err
-			}
-
 			if err = lib.Config.Set(path, value); err != nil {
 				return err
 			}

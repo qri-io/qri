@@ -54,8 +54,10 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	// TODO(dlong): Resolve remote name from p.RemoteName instead of using registry's location.
-	location := Config.Registry.Location
+	location, found := Config.Remotes.Get(p.RemoteName)
+	if !found {
+		return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
+	}
 
 	data, err := json.Marshal(dinfo)
 	if err != nil {

@@ -457,23 +457,23 @@ func TestDatasetRequestsGet(t *testing.T) {
 
 		{"body with limit and offfset",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
-			Limit: 5, Offset: 0, All: false}, bodyToString(moviesBody[:5])},
+				Limit: 5, Offset: 0, All: false}, bodyToString(moviesBody[:5])},
 
 		{"body with invalid limit and offset",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
-			Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
+				Limit: -5, Offset: -100, All: false}, "invalid limit / offset settings"},
 
 		{"body with all flag ignores invalid limit and offset",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
-			Limit: -5, Offset: -100, All: true}, bodyToString(moviesBody)},
+				Limit: -5, Offset: -100, All: true}, bodyToString(moviesBody)},
 
 		{"body with all flag",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
-			Limit: 0, Offset: 0, All: true}, bodyToString(moviesBody)},
+				Limit: 0, Offset: 0, All: true}, bodyToString(moviesBody)},
 
 		{"body with limit and non-zero offset",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
-			Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
+				Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
 	}
 
 	req := NewDatasetRequests(node, nil)
