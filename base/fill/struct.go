@@ -1,4 +1,10 @@
-package base
+// Package fill matches arbitrary values to struct fields using reflection
+// fill is case-insensitive.
+// It's primary use is to support decoding data
+// from a number of serialization formats (JSON,YAML,CBOR) into an intermediate
+// map[string]interface{} value which can then be used to "fill" arbitrary struct
+// values
+package fill
 
 import (
 	"fmt"
@@ -7,10 +13,10 @@ import (
 	"time"
 )
 
-// FillStruct fills in the values of an arbitrary structure using an already deserialized
+// Struct fills in the values of an arbitrary structure using an already deserialized
 // map of nested data. Fields names are case-insensitive. Unknown fields are treated as an
-// error, *unless* the output structure implementes the ArbitrarySetter interface.
-func FillStruct(fields map[string]interface{}, output interface{}) error {
+// error, *unless* the output structure implements the ArbitrarySetter interface.
+func Struct(fields map[string]interface{}, output interface{}) error {
 	target := reflect.ValueOf(output)
 	if target.Kind() == reflect.Ptr {
 		target = target.Elem()

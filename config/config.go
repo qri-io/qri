@@ -13,6 +13,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qri/base/fill"
 )
 
 // CurrentConfigRevision is the latest configuration revision configurations
@@ -87,6 +88,26 @@ func (cfg Config) SummaryString() (summary string) {
 	}
 
 	return summary
+}
+
+// ReadFromFile reads a YAML configuration file from path
+func ReadFromFile(path string) (*Config, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+
+	fields := make(map[string]interface{})
+	if err = yaml.Unmarshal(data, &fields); err != nil {
+		return nil, err
+	}
+
+	cfg := &Config{}
+	if err = fill.Struct(fields, cfg); err != nil {
+		return nil, err
+	}
+
+	return cfg, nil
 }
 
 // WriteToFile encodes a configration to YAML and writes it to path
