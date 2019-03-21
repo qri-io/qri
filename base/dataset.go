@@ -40,6 +40,11 @@ func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
 			return
 		}
 	}
+	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
+		if err = ds.Viz.OpenRenderedFile(fsys); err != nil {
+			return
+		}
+	}
 	return
 }
 
@@ -57,6 +62,11 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
 		if err = ds.Viz.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Viz != nil && ds.Viz.RenderedFile() != nil {
+		if err = ds.Viz.RenderedFile().Close(); err != nil {
 			return
 		}
 	}

@@ -155,6 +155,10 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		// `qri get viz.script` loads the visualization script, as a special case
 		res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
 		return err
+	} else if p.Selector == "rendered" && ds.Viz != nil && ds.Viz.RenderedFile() != nil {
+		// `qri get rendered` loads the rendered visualization script, as a special case
+		res.Bytes, err = ioutil.ReadAll(ds.Viz.RenderedFile())
+		return err
 	} else {
 		var value interface{}
 		if p.Selector == "" {

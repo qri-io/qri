@@ -15,6 +15,7 @@ func TestParseRevs(t *testing.T) {
 		{"body", []*Rev{&Rev{"bd", 1}}, ""},
 		{"md", []*Rev{&Rev{"md", 1}}, ""},
 		{"ds", []*Rev{&Rev{"ds", 1}}, ""},
+		{"rd", []*Rev{&Rev{"rd", 1}}, ""},
 		{"1", []*Rev{&Rev{"ds", 1}}, ""},
 		{"2", []*Rev{&Rev{"ds", 2}}, ""},
 		{"3", []*Rev{&Rev{"ds", 3}}, ""},
