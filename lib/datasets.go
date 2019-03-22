@@ -192,8 +192,8 @@ type SaveParams struct {
 	// dataset to create. If both Dataset and FilePath are provided
 	// dataset values will override any values in the document at FilePath
 	Dataset *dataset.Dataset
-	// absolute path or URL to a dataset file or component to load
-	FilePath string
+	// absolute path or URL to the list of dataset files or components to load
+	FilePaths []string
 	// secrets for transform execution
 	Secrets map[string]string
 	// option to make dataset private. private data is not currently implimented,
@@ -230,7 +230,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	ds := p.Dataset
-	if ds == nil && p.FilePath == "" {
+	if ds == nil && len(p.FilePaths) == 0 {
 		return fmt.Errorf("at least one of Dataset, FilePath is required")
 	}
 
@@ -251,9 +251,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds = recall
 	}
 
-	if p.FilePath != "" {
+	if len(p.FilePaths) > 0 {
 		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, err := ReadDatasetFile(p.FilePath)
+		dsf, err := ReadDatasetFiles(p.FilePaths)
 		if err != nil {
 			return err
 		}

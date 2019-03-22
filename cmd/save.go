@@ -57,7 +57,7 @@ commit message and title to the save.`,
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.FilePath, "file", "f", "", "dataset data file (yaml or json)")
+	cmd.Flags().StringSliceVarP(&o.FilePaths, "file", "f", nil, "dataset or component file (yaml or json)")
 	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for save")
 	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for save")
 	cmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
@@ -78,7 +78,7 @@ type SaveOptions struct {
 	ioes.IOStreams
 
 	Ref            string
-	FilePath       string
+	FilePaths      []string
 	BodyPath       string
 	Title          string
 	Message        string
@@ -105,8 +105,10 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	// Make all paths absolute. Especially important if we are running
 	// `qri connect` in a different terminal, and that instance is in a different directory;
 	// that instance won't correctly find the body file we want to load if it's not absolute.
-	if err := lib.AbsPath(&o.FilePath); err != nil {
-		return err
+	for i, _ := range o.FilePaths {
+		if err := lib.AbsPath(&o.FilePaths[i]); err != nil {
+			return err
+		}
 	}
 
 	if err := lib.AbsPath(&o.BodyPath); err != nil {
@@ -128,7 +130,7 @@ func (o *SaveOptions) Run() (err error) {
 	defer o.StopSpinner()
 
 	ref, err := parseCmdLineDatasetRef(o.Ref)
-	if err != nil && o.FilePath == "" {
+	if err != nil && len(o.FilePaths) == 0 {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
@@ -144,7 +146,7 @@ func (o *SaveOptions) Run() (err error) {
 
 	p := &lib.SaveParams{
 		Dataset:             dsp,
-		FilePath:            o.FilePath,
+		FilePaths:           o.FilePaths,
 		Private:             false,
 		Publish:             o.Publish,
 		DryRun:              o.DryRun,

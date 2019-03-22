@@ -58,51 +58,75 @@ func pathKind(path string) string {
 	return "file"
 }
 
-// ReadDatasetFile decodes a dataset document into a Dataset
-func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
-	var (
-		resp *http.Response
-		f    *os.File
-		data []byte
-	)
+// ReadDatasetFiles decodes a dataset document into a Dataset
+func ReadDatasetFiles(pathList []string) (*dataset.Dataset, error) {
+	// If there's only a single file provided, read it and return the dataset.
+	if len(pathList) == 1 {
+		ds, _, err := ReadSingleFile(pathList[0])
+		return ds, err
+	}
 
-	ds = &dataset.Dataset{}
+	// If there's multiple files provided, read each one and merge them. Any exclusive
+	// component is an error, any component showing up multiple times is an error.
+	foundKinds := make(map[string]bool)
+	ds := dataset.Dataset{}
+	for _, p := range pathList {
+		component, kind, err := ReadSingleFile(p)
+		if err != nil {
+			return nil, err
+		}
 
+		if kind == "zip" || kind == "ds" {
+			return nil, fmt.Errorf("")
+		}
+		if _, ok := foundKinds[kind]; ok {
+			return nil, fmt.Errorf("conflict, multiple components of kind %s", kind)
+		}
+		foundKinds[kind] = true
+
+		ds.Assign(component)
+	}
+
+	return &ds, nil
+}
+
+func ReadSingleFile(path string) (*dataset.Dataset, string, error) {
+	ds := dataset.Dataset{}
 	switch pathKind(path) {
 	case "http":
 		// currently the only supported type of file url is a zip archive
-		resp, err = http.Get(path)
+		resp, err := http.Get(path)
 		if err != nil {
-			return
+			return nil, "", err
 		}
-		data, err = ioutil.ReadAll(resp.Body)
+		data, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
-			return
+			return nil, "", err
 		}
 		resp.Body.Close()
-		err = dsutil.UnzipDatasetBytes(data, ds)
-		return
+		err = dsutil.UnzipDatasetBytes(data, &ds)
+		return &ds, "zip", nil
 
 	case "ipfs":
-		return nil, fmt.Errorf("reading dataset files from IPFS currently unsupported")
+		return nil, "", fmt.Errorf("reading dataset files from IPFS currently unsupported")
 
 	case "file":
-		f, err = os.Open(path)
+		f, err := os.Open(path)
 		if err != nil {
-			return
+			return nil, "", err
 		}
 
 		fileExt := strings.ToLower(filepath.Ext(path))
 		switch fileExt {
 		case ".yaml", ".yml":
-			data, err = ioutil.ReadAll(f)
+			data, err := ioutil.ReadAll(f)
 			if err != nil {
-				return
+				return nil, "", err
 			}
 
 			fields := make(map[string]interface{})
 			if err = yaml.Unmarshal(data, fields); err != nil {
-				return
+				return nil, "", err
 			}
 
 			// TODO (b5): temp hack to deal with terrible interaction with fill_struct,
@@ -112,7 +136,8 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 				fields["structure"] = toMapIface(sti)
 			}
 
-			err = fillDatasetOrComponent(fields, path, ds)
+			kind, err := fillDatasetOrComponent(fields, path, &ds)
+			return &ds, kind, err
 
 		case ".json":
 			fields := make(map[string]interface{})
@@ -120,37 +145,39 @@ func ReadDatasetFile(path string) (ds *dataset.Dataset, err error) {
 				if strings.HasPrefix(err.Error(), "json: cannot unmarshal array") {
 					err = fmt.Errorf("json has top-level type \"array\", cannot be a dataset file")
 				}
-				return
+				return nil, "", err
 			}
-			err = fillDatasetOrComponent(fields, path, ds)
+			kind, err := fillDatasetOrComponent(fields, path, &ds)
+			return &ds, kind, err
 
 		case ".zip":
-			data, err = ioutil.ReadAll(f)
+			data, err := ioutil.ReadAll(f)
 			if err != nil {
-				return
+				return nil, "", err
 			}
-			err = dsutil.UnzipDatasetBytes(data, ds)
-			return
+			err = dsutil.UnzipDatasetBytes(data, &ds)
+			return &ds, "zip", err
 
 		case ".star":
 			// starlark files are assumed to be a transform script with no additional
 			// tranform component details:
 			ds.Transform = &dataset.Transform{ScriptPath: path}
 			ds.Transform.SetScriptFile(qfs.NewMemfileReader("transform.star", f))
-			return
+			return &ds, "tf", nil
 
 		case ".html":
 			// html files are assumped to be a viz script with no additional viz
 			// component details
 			ds.Viz = &dataset.Viz{ScriptPath: path}
 			ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", f))
-			return
+			return &ds, "vz", nil
 
 		default:
-			return nil, fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
+			return nil, "", fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
 		}
+	default:
+		return nil, "", fmt.Errorf("error, unknown path kind: \"%s\"", pathKind(path))
 	}
-	return
 }
 
 func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
@@ -174,29 +201,33 @@ func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
 	return mapi
 }
 
-func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (err error) {
+func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (string, error) {
 	var target interface{}
 	target = ds
+	kind := "ds"
 
 	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) > 3 {
 		switch kindStr[:2] {
 		case "md":
 			ds.Meta = &dataset.Meta{}
 			target = ds.Meta
+			kind = "md"
 		case "cm":
 			ds.Commit = &dataset.Commit{}
 			target = ds.Commit
+			kind = "cm"
 		case "st":
 			ds.Structure = &dataset.Structure{}
 			target = ds.Structure
+			kind = "st"
 		}
 	}
 
-	if err = fill.Struct(fields, target); err != nil {
-		return err
+	if err := fill.Struct(fields, target); err != nil {
+		return "", err
 	}
 	absDatasetPaths(path, ds)
-	return nil
+	return kind, nil
 }
 
 // absDatasetPaths converts any relative filepath references in a Dataset to

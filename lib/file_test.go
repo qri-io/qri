@@ -74,7 +74,7 @@ func TestReadDatasetFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		got, err := ReadDatasetFile(c.path)
+		got, err := ReadDatasetFiles([]string{c.path})
 		if err != nil {
 			t.Errorf("case %d %s unexpected error: %s", i, c.description, err.Error())
 			continue
