@@ -412,6 +412,219 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	}
 }
 
+// Test that saving with two components at once will merge them together.
+func TestSaveTwoComponents(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := r.GetPathForDataset(0)
+	actual := r.DatasetMarshalJSON(dsPath)
+
+	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
+	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified formatConfig\n\t- modified schema\n","path":"/ipfs/QmbrZGpqFJZjW8JPZMZUQ8zDRZU3QakGE6hQ9D4tgvZtYx","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Structure: 2 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmZCLadp1c2bhZxTyG8BjnxBmm6vdJvYvyD2myJfTTf8yw","peername":"me","previousPath":"/ipfs/QmdFjgWLL5nGdXLb9383x4dNskxQX84iqm7hPJiBCHij1p","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}}}`
+	if actual != expect {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	}
+}
+
+// Test that save can override just the transform
+func TestSaveThenOverrideTransform(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/tf.star me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := r.GetPathForDataset(0)
+	actual := r.DatasetMarshalJSON(dsPath)
+
+	// This dataset is ds_ten.yaml, with an added transform section
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhDyCTYDEshqscC7LHrmcGMBE7bVX9osY7MfB9RDyJ1J","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmdSqHqEsWjfVcUpko78nsRarQ1Sthj3jGQXvjUBeiGHc5","peername":"me","previousPath":"/ipfs/QmdFjgWLL5nGdXLb9383x4dNskxQX84iqm7hPJiBCHij1p","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.3.1"}}`
+	if actual != expect {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	}
+}
+
+// Test that save can override just the viz
+func TestSaveThenOverrideViz(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/template.html me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := r.GetPathForDataset(0)
+	actual := r.DatasetMarshalJSON(dsPath)
+
+	// This dataset is ds_ten.yaml, with an added viz section
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified format\n\t- modified scriptPath\n","path":"/ipfs/QmZnuxZe5UTiatfuRVx7Uzx4asyoed7MuiP6LaqSSbh8oE","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Viz: 2 changes"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmTJtBq8DuCS2gSU7WpxoCakaXrUEN5GqihxXJmcmbE69R","peername":"me","previousPath":"/ipfs/QmdFjgWLL5nGdXLb9383x4dNskxQX84iqm7hPJiBCHij1p","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmbRzzaJmAzMEGU7GesSVjo7mNsU2C2S18korXVr65gEdT","scriptPath":"/ipfs/QmWpWo8rXG79deNwioeCv9kWZ2fGSSHpqNcKfLGV1bqsS2"}}`
+	if actual != expect {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	}
+}
+
+// Test that save can combine a meta compoent, and a transform, and a viz
+func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read head from the dataset that was saved, as json string.
+	dsPath := r.GetPathForDataset(0)
+	actual := r.DatasetMarshalJSON(dsPath)
+
+	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhDyCTYDEshqscC7LHrmcGMBE7bVX9osY7MfB9RDyJ1J","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmQeentkmogA8FnVFcBCbytYKXbG6Xnrfrkzf9CWntmEBU","peername":"me","previousPath":"/ipfs/QmdFjgWLL5nGdXLb9383x4dNskxQX84iqm7hPJiBCHij1p","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.3.1"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmbRzzaJmAzMEGU7GesSVjo7mNsU2C2S18korXVr65gEdT","scriptPath":"/ipfs/QmWpWo8rXG79deNwioeCv9kWZ2fGSSHpqNcKfLGV1bqsS2"}}`
+	if actual != expect {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	}
+}
+
+// Test that saving a full dataset with a component at the same time is an error
+func TestSaveDatasetWithComponentError(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	if err == nil {
+		t.Errorf("expected error, did not get one")
+	}
+
+	expect := `conflict, cannot save a full dataset with other components`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+// Test that saving with two components of the same kind is an error
+func TestSaveConflictingComponents(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	if err == nil {
+		t.Errorf("expected error, did not get one")
+	}
+
+	expect := `conflict, multiple components of kind "md"`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
 // TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
 // bodies of dataset in more of our test case. That would require extracting some parts out, like
 // pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a

@@ -74,9 +74,9 @@ func TestSaveValidate(t *testing.T) {
 	}
 	for i, c := range cases {
 		opt := &SaveOptions{
-			Ref:      c.ref,
-			FilePath: c.filepath,
-			BodyPath: c.bodypath,
+			Ref:       c.ref,
+			FilePaths: []string{c.filepath},
+			BodyPath:  c.bodypath,
 		}
 
 		err := opt.Validate()
@@ -168,10 +168,15 @@ func TestSaveRun(t *testing.T) {
 			continue
 		}
 
+		pathList := []string{}
+		if c.filepath != "" {
+			pathList = []string{c.filepath}
+		}
+
 		opt := &SaveOptions{
 			IOStreams:       streams,
 			Ref:             c.ref,
-			FilePath:        c.filepath,
+			FilePaths:       pathList,
 			BodyPath:        c.bodypath,
 			Title:           c.title,
 			Message:         c.message,
