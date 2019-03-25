@@ -58,8 +58,10 @@ func pathKind(path string) string {
 	return "file"
 }
 
-// ReadDatasetFiles decodes a dataset document into a Dataset
-func ReadDatasetFiles(pathList []string) (*dataset.Dataset, error) {
+// ReadDatasetFiles reads zero or more files, each representing a dataset or component of a
+// dataset, and deserializes them, merging the results into a single dataset object. It is an
+// error to provide any combination of files whose contents overlap (modify the same component).
+func ReadDatasetFiles(pathList ...string) (*dataset.Dataset, error) {
 	// If there's only a single file provided, read it and return the dataset.
 	if len(pathList) == 1 {
 		ds, _, err := readSingleFile(pathList[0])
@@ -171,6 +173,7 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 			// html files are assumped to be a viz script with no additional viz
 			// component details
 			ds.Viz = &dataset.Viz{ScriptPath: path}
+			ds.Viz.Format = "html"
 			ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", f))
 			return &ds, "vz", nil
 

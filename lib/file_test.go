@@ -67,6 +67,7 @@ func TestReadDatasetFile(t *testing.T) {
 			"testdata/viz/visualization.html",
 			&dataset.Dataset{
 				Viz: &dataset.Viz{
+					Format: "html",
 					ScriptPath: "testdata/viz/visualization.html",
 				},
 			},
@@ -74,7 +75,7 @@ func TestReadDatasetFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		got, err := ReadDatasetFiles([]string{c.path})
+		got, err := ReadDatasetFiles(c.path)
 		if err != nil {
 			t.Errorf("case %d %s unexpected error: %s", i, c.description, err.Error())
 			continue

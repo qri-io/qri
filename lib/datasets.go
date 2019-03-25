@@ -253,7 +253,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 	if len(p.FilePaths) > 0 {
 		// TODO (b5): handle this with a qfs.Filesystem
-		dsf, err := ReadDatasetFiles(p.FilePaths)
+		dsf, err := ReadDatasetFiles(p.FilePaths...)
 		if err != nil {
 			return err
 		}
