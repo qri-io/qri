@@ -62,7 +62,7 @@ func pathKind(path string) string {
 func ReadDatasetFiles(pathList []string) (*dataset.Dataset, error) {
 	// If there's only a single file provided, read it and return the dataset.
 	if len(pathList) == 1 {
-		ds, _, err := ReadSingleFile(pathList[0])
+		ds, _, err := readSingleFile(pathList[0])
 		return ds, err
 	}
 
@@ -71,16 +71,16 @@ func ReadDatasetFiles(pathList []string) (*dataset.Dataset, error) {
 	foundKinds := make(map[string]bool)
 	ds := dataset.Dataset{}
 	for _, p := range pathList {
-		component, kind, err := ReadSingleFile(p)
+		component, kind, err := readSingleFile(p)
 		if err != nil {
 			return nil, err
 		}
 
 		if kind == "zip" || kind == "ds" {
-			return nil, fmt.Errorf("")
+			return nil, fmt.Errorf("conflict, cannot save a full dataset with other components")
 		}
 		if _, ok := foundKinds[kind]; ok {
-			return nil, fmt.Errorf("conflict, multiple components of kind %s", kind)
+			return nil, fmt.Errorf("conflict, multiple components of kind \"%s\"", kind)
 		}
 		foundKinds[kind] = true
 
@@ -90,7 +90,9 @@ func ReadDatasetFiles(pathList []string) (*dataset.Dataset, error) {
 	return &ds, nil
 }
 
-func ReadSingleFile(path string) (*dataset.Dataset, string, error) {
+// readSingleFile reads a single file, either a full dataset or component, and returns it as
+// a dataset and a string specifying the kind of component that was created
+func readSingleFile(path string) (*dataset.Dataset, string, error) {
 	ds := dataset.Dataset{}
 	switch pathKind(path) {
 	case "http":

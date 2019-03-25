@@ -208,10 +208,3 @@ func TestSaveRun(t *testing.T) {
 		}
 	}
 }
-
-// TODO(dlong): Add tests for saving with multiple file compoents. Handle these cases:
-// save with a single file, which is a dataset
-// save with a single file which is only a meta component
-// save with multiple components, meta and structure and title
-// error when saving with a dataset and a meta component
-// error when saving with a zip file and a meta component

@@ -105,7 +105,7 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	// Make all paths absolute. Especially important if we are running
 	// `qri connect` in a different terminal, and that instance is in a different directory;
 	// that instance won't correctly find the body file we want to load if it's not absolute.
-	for i, _ := range o.FilePaths {
+	for i := range o.FilePaths {
 		if err := lib.AbsPath(&o.FilePaths[i]); err != nil {
 			return err
 		}
