@@ -6,10 +6,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"math"
-	"reflect"
-	"strconv"
-	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
@@ -129,102 +125,12 @@ func (cfg Config) WriteToFile(path string) error {
 
 // Get a config value with case.insensitive.dot.separated.paths
 func (cfg Config) Get(path string) (interface{}, error) {
-	v, err := cfg.path(path)
-	if err != nil {
-		return nil, err
-	}
-	return v.Interface(), nil
+	return fill.GetPathValue(path, cfg)
 }
 
 // Set a config value with case.insensitive.dot.separated.paths
 func (cfg *Config) Set(path string, value interface{}) error {
-	v, err := cfg.path(path)
-	if err != nil {
-		return err
-	}
-
-	rv := reflect.ValueOf(value)
-	if rv.Kind() != v.Kind() {
-		// we have one caveat: since json automatically casts all numbers to float64
-		// we need to check if we have a float value trying to be cast to an integer value
-		// if it can be cast as an integer without loss of value, we should allow it
-		if rv.Kind() == reflect.Float64 && v.Kind() == reflect.Int {
-			_, fraction := math.Modf(rv.Float())
-			if fraction == 0 {
-				v.SetInt(int64(rv.Float()))
-				return nil
-			}
-		}
-		return fmt.Errorf("invalid type for config path %s, expected: %s, got: %s", path, v.Kind().String(), rv.Kind().String())
-	}
-
-	// if we can't address this value check to see if it's a map
-	if !v.CanAddr() {
-		parent, base := splitBase(path)
-		if v, _ := cfg.path(parent); v.Kind() == reflect.Map {
-			v.SetMapIndex(reflect.ValueOf(base), rv)
-			return nil
-		}
-	}
-
-	// how to make sure a float doesn't have a decimal, can it be cast to an int
-	switch v.Kind() {
-	case reflect.Int:
-		v.SetInt(rv.Int())
-	case reflect.String:
-		v.SetString(rv.String())
-	case reflect.Bool:
-		v.SetBool(rv.Bool())
-	}
-
-	return nil
-}
-
-func splitBase(path string) (string, string) {
-	components := strings.Split(path, ".")
-	if len(components) > 0 {
-		return strings.Join(components[0:len(components)-1], "."), components[len(components)-1]
-	}
-	return "", ""
-}
-
-func (cfg Config) path(path string) (elem reflect.Value, err error) {
-	elem = reflect.ValueOf(cfg)
-
-	for _, sel := range strings.Split(path, ".") {
-		sel = strings.ToLower(sel)
-
-		if elem.Kind() == reflect.Ptr {
-			elem = elem.Elem()
-		}
-
-		switch elem.Kind() {
-		case reflect.Struct:
-			elem = elem.FieldByNameFunc(func(str string) bool {
-				return strings.ToLower(str) == sel
-			})
-		case reflect.Slice:
-			index, err := strconv.Atoi(sel)
-			if err != nil {
-				return elem, fmt.Errorf("invalid index value: %s", sel)
-			}
-			elem = elem.Index(index)
-		case reflect.Map:
-			for _, key := range elem.MapKeys() {
-				// we only support strings as keys
-				if strings.ToLower(key.String()) == sel {
-					return elem.MapIndex(key), nil
-				}
-			}
-			return elem, fmt.Errorf("invalid config path: %s", path)
-		}
-
-		if elem.Kind() == reflect.Invalid {
-			return elem, fmt.Errorf("invalid config path: %s", path)
-		}
-	}
-
-	return elem, nil
+	return fill.SetPathValue(path, value, cfg)
 }
 
 // ImmutablePaths returns a map of paths that should never be modified
@@ -339,6 +245,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.RPC != nil {
 		res.RPC = cfg.RPC.Copy()
+	}
+	if cfg.Remotes != nil {
+		res.Remotes = cfg.Remotes.Copy()
 	}
 	if cfg.Logging != nil {
 		res.Logging = cfg.Logging.Copy()
