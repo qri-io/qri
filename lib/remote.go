@@ -2,14 +2,22 @@ package lib
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"net/rpc"
 
+	"github.com/qri-io/dag"
+	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+
+	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -48,8 +56,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	// TODO(dlong): Switch to actual dag.Info constructor when it becomes available.
-	dinfo, err := newDagInfoTmp(r.node, ref.Path)
+	dinfo, err := actions.NewDAGInfo(r.node, ref.Path, "")
 	if err != nil {
 		return err
 	}
@@ -76,58 +83,105 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	content, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		panic(err)
-	}
-	// TODO(dlong): Inspect the remote's response, and then perform dsync.
-	fmt.Printf(string(content))
-
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("error code %d", res.StatusCode)
+		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
 	}
+
+	// TODO(dlong): Get a dsync session id from the remote, use it to perform dsync.
+
+	ctx := context.Background()
+
+	ng, err := newNodeGetter(r.node)
+	if err != nil {
+		return err
+	}
+
+	remote := &dsync.HTTPRemote{
+		URL: fmt.Sprintf("%s/dsync", location),
+	}
+
+	send, err := dsync.NewSend(ctx, ng, dinfo.Manifest, remote)
+	if err != nil {
+		return err
+	}
+
+	err = send.Do()
+	if err != nil {
+		return err
+	}
+
+	// TODO(dlong): Pin the data.
 
 	*out = true
 	return nil
 }
 
+// newNodeGetter generates an ipld.NodeGetter from a QriNode
+func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
+	ipfsn, err := node.IPFSNode()
+	if err != nil {
+		return nil, err
+	}
+
+	ng = &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
+	return
+}
+
 // Receive is used to save a dataset when running as a remote. API only, not RPC or command-line.
-func (r *RemoteRequests) Receive(p *ReceiveParams, out *bool) (err error) {
+func (r *RemoteRequests) Receive(p *ReceiveParams, reason *string) (err error) {
 	if r.cli != nil {
 		return fmt.Errorf("receive cannot be called over RPC")
 	}
 
-	dinfo := dagInfoTmp{}
+	dinfo := dag.Info{}
 	err = json.Unmarshal([]byte(p.Body), &dinfo)
 	if err != nil {
 		return err
 	}
 
-	fmt.Printf("Received dag.Info:\n")
-	fmt.Printf(p.Body)
-	fmt.Printf("\n\n")
+	// TODO(dlong): Customization for how to decide to accept the dataset.
+	if !Config.API.RemoteAlwaysAccept {
+		*reason = "not accepting any datasets"
+		return nil
+	}
 
 	var totalSize uint64
 	for _, s := range dinfo.Sizes {
 		totalSize += s
 	}
 
-	// TODO(dlong): Customization for how to decide to accept the dataset.
 	if totalSize >= allowedDagInfoSize {
-		// TODO(dlong): Instead of merely rejecting, return a message about why.
-		*out = false
+		*reason = "dataset size too large"
 		return nil
 	}
 
-	*out = true
+	// TODO(dlong): Generate a dsync session id, store the dag.info associated with that id,
+	// create a callback to invoke once that dsync finishes
+	*reason = ""
 	return nil
 }
 
-// TODO(dlong): Switch to actual dag.Info constructor when it becomes available.
-func newDagInfoTmp(node *p2p.QriNode, path string) (*dagInfoTmp, error) {
-	return &dagInfoTmp{Sizes: []uint64{10, 20, 30}}, nil
-}
+func rejectionReason(r io.Reader) string {
+	text, err := ioutil.ReadAll(r)
+	if err != nil {
+		return "unknown error"
+	}
 
-type dagInfoTmp struct {
-	Sizes []uint64
+	var response map[string]interface{}
+	err = json.Unmarshal(text, &response)
+	if err != nil {
+		return fmt.Sprintf("error unmarshalling: %s", string(text))
+	}
+
+	meta, ok := response["meta"].(map[string]interface{})
+	if !ok {
+		return fmt.Sprintf("error unmarshalling: %s", string(text))
+	}
+
+	errText, ok := meta["error"].(string)
+	if !ok {
+		return fmt.Sprintf("error unmarshalling: %s", string(text))
+	}
+
+	return errText
 }

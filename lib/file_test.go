@@ -67,7 +67,7 @@ func TestReadDatasetFile(t *testing.T) {
 			"testdata/viz/visualization.html",
 			&dataset.Dataset{
 				Viz: &dataset.Viz{
-					Format: "html",
+					Format:     "html",
 					ScriptPath: "testdata/viz/visualization.html",
 				},
 			},

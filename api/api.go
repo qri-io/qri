@@ -14,10 +14,15 @@ import (
 
 	"github.com/datatogether/api/apiutil"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dag"
+	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
+
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
+	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 )
 
 var log = golog.Logger("qriapi")
@@ -233,6 +238,11 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	if s.cfg.API.RemoteMode {
 		remh := NewRemoteHandlers(s.qriNode)
 		m.Handle("/dataset", s.middleware(remh.ReceiveHandler))
+		receivers, err := makeDagReceiver(s.qriNode)
+		if err != nil {
+			panic(err)
+		}
+		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
 	}
 
 	m.Handle("/list", s.middleware(dsh.ListHandler))
@@ -267,4 +277,32 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m
+}
+
+// makeDagReceiver constructs a Receivers (HTTP router) from a qri p2p node
+func makeDagReceiver(node *p2p.QriNode) (*dsync.Receivers, error) {
+	ipfsn, err := node.IPFSNode()
+	if err != nil {
+		return nil, err
+	}
+	ng := &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
+
+	capi, err := newIPFSCoreAPI(node)
+	if err != nil {
+		return nil, err
+	}
+	bapi := capi.Block()
+
+	return dsync.NewReceivers(context.Background(), ng, bapi), nil
+}
+
+// newIPFSCoreAPI constructs a CoreAPI (part of ipfs) from a qri p2p node
+// copied from qri/actions/dag.go
+func newIPFSCoreAPI(node *p2p.QriNode) (capi coreiface.CoreAPI, err error) {
+	ipfsn, err := node.IPFSNode()
+	if err != nil {
+		return nil, err
+	}
+
+	return coreapi.NewCoreAPI(ipfsn), nil
 }

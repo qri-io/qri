@@ -22,17 +22,33 @@ func TestRemote(t *testing.T) {
 	}
 	req := NewRemoteRequests(node, nil)
 
-	var result bool
+	var rejectReason string
+
+	// Reject all dag.Info's
+	Config.API.RemoteAlwaysAccept = false
 	params := ReceiveParams{
 		Body: "{\"Sizes\":[10,20,30]}",
 	}
-	err = req.Receive(&params, &result)
-
+	err = req.Receive(&params, &rejectReason)
 	if err != nil {
 		t.Errorf(err.Error())
 	}
-
-	if !result {
-		t.Errorf("error: Receive returned result false")
+	expect := `not accepting any datasets`
+	if rejectReason != expect {
+		t.Errorf("error: expected: \"%s\", got \"%s\"", expect, rejectReason)
 	}
+
+	// Accept all dag.Info's
+	Config.API.RemoteAlwaysAccept = true
+	params = ReceiveParams{
+		Body: "{\"Sizes\":[10,20,30]}",
+	}
+	err = req.Receive(&params, &rejectReason)
+	if err != nil {
+		t.Errorf(err.Error())
+	}
+	if rejectReason != "" {
+		t.Errorf("expected no error, but got \"%s\"", rejectReason)
+	}
+
 }

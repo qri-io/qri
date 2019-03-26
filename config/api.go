@@ -19,6 +19,8 @@ type API struct {
 	ReadOnly bool `json:"readonly"`
 	// remote mode
 	RemoteMode bool `json:"remotemode"`
+	// remote always accept
+	RemoteAlwaysAccept bool `json:"remotealwaysaccept"`
 	// URLRoot is the base url for this server
 	URLRoot string `json:"urlroot"`
 	// TLS enables https via letsEyncrypt
