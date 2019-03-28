@@ -31,6 +31,8 @@ type API struct {
 	ProxyForceHTTPS bool `json:"proxyforcehttps"`
 	// support CORS signing from a list of origins
 	AllowedOrigins []string `json:"allowedorigins"`
+	// whether to allow requests from addresses other than localhost
+	ServeRemoteTraffic bool `json:"serveremotetraffic"`
 }
 
 // Validate validates all fields of api returning all errors found.

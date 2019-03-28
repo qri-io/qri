@@ -16,7 +16,11 @@ import (
 // that should work just fine on the raw internet (ie not behind a proxy like nginx etc)
 // it'll also redirect http traffic to it's https route counterpart if port 80 is open
 func StartServer(c *config.API, s *http.Server) error {
-	s.Addr = fmt.Sprintf(fmt.Sprintf(":%d", c.Port))
+	if c.ServeRemoteTraffic {
+		s.Addr = fmt.Sprintf(":%d", c.Port)
+	} else {
+		s.Addr = fmt.Sprintf("%s:%d", LocalHostIP, c.Port)
+	}
 	if !c.Enabled || c.Port == 0 {
 		return nil
 	}
