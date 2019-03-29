@@ -140,19 +140,22 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, reason *string) (err error) {
 	}
 
 	// TODO(dlong): Customization for how to decide to accept the dataset.
-	if !Config.API.RemoteAlwaysAccept {
+	if Config.API.RemoteAcceptSizeMax == 0 {
 		*reason = "not accepting any datasets"
 		return nil
 	}
 
-	var totalSize uint64
-	for _, s := range dinfo.Sizes {
-		totalSize += s
-	}
+	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
+	if Config.API.RemoteAcceptSizeMax != -1 {
+		var totalSize uint64
+		for _, s := range dinfo.Sizes {
+			totalSize += s
+		}
 
-	if totalSize >= allowedDagInfoSize {
-		*reason = "dataset size too large"
-		return nil
+		if totalSize >= uint64(Config.API.RemoteAcceptSizeMax) {
+			*reason = "dataset size too large"
+			return nil
+		}
 	}
 
 	// TODO(dlong): Generate a dsync session id, store the dag.info associated with that id,

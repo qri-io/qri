@@ -166,6 +166,8 @@ type Collection struct {
 	Dict map[string]string
 	List []string
 	Sub  SubElement
+	Big  int64
+	Ubig uint64
 }
 
 type SubElement struct {
@@ -260,6 +262,32 @@ func TestFillFloatingPoint(t *testing.T) {
 	}
 	if c.Xpos != 6.283 {
 		t.Errorf("expected: c.Xpos should be 6.283, got: %v", c.Xpos)
+	}
+}
+
+func TestFillInt64(t *testing.T) {
+	jsonData := `{
+  "Big": 1234567890123456789,
+  "Ubig": 9934567890123456789
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Big != 1234567890123456768 {
+		t.Errorf("expected: c.Big should be 1234567890123456768, got: %d", c.Big)
+	}
+	if c.Ubig != 9934567890123456512 {
+		t.Errorf("expected: c.Ubig should be 9934567890123456512, got: %d", c.Ubig)
 	}
 }
 

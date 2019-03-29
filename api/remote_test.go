@@ -15,12 +15,12 @@ func TestRemoteHandlers(t *testing.T) {
 	}
 
 	// Reject all dag.Info's
-	lib.Config.API.RemoteAlwaysAccept = false
+	lib.Config.API.RemoteAcceptSizeMax = 0
 	rh := NewRemoteHandlers(node)
 	runHandlerTestCases(t, "remote reject", rh.ReceiveHandler, testCases, true)
 
 	// Accept all dag.Info's
-	lib.Config.API.RemoteAlwaysAccept = true
+	lib.Config.API.RemoteAcceptSizeMax = -1
 	rh = NewRemoteHandlers(node)
 	runHandlerTestCases(t, "remote accept", rh.ReceiveHandler, testCases, true)
 }

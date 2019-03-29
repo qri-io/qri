@@ -25,7 +25,7 @@ func TestRemote(t *testing.T) {
 	var rejectReason string
 
 	// Reject all dag.Info's
-	Config.API.RemoteAlwaysAccept = false
+	Config.API.RemoteAcceptSizeMax = 0
 	params := ReceiveParams{
 		Body: "{\"Sizes\":[10,20,30]}",
 	}
@@ -39,7 +39,7 @@ func TestRemote(t *testing.T) {
 	}
 
 	// Accept all dag.Info's
-	Config.API.RemoteAlwaysAccept = true
+	Config.API.RemoteAcceptSizeMax = -1
 	params = ReceiveParams{
 		Body: "{\"Sizes\":[10,20,30]}",
 	}

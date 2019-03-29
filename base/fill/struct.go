@@ -120,6 +120,40 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			return nil
 		}
 		return fmt.Errorf("need type int, value %s", val)
+	case reflect.Int64:
+		num, ok := val.(int)
+		if ok {
+			place.SetInt(int64(num))
+			return nil
+		}
+		num64, ok := val.(int64)
+		if ok {
+			place.SetInt(num64)
+			return nil
+		}
+		float64, ok := val.(float64)
+		if ok {
+			place.SetInt(int64(float64))
+			return nil
+		}
+		return fmt.Errorf("need type int64, value %s | %v | %s", val, val, reflect.TypeOf(val))
+	case reflect.Uint64:
+		num, ok := val.(uint)
+		if ok {
+			place.SetUint(uint64(num))
+			return nil
+		}
+		num64, ok := val.(uint64)
+		if ok {
+			place.SetUint(num64)
+			return nil
+		}
+		float64, ok := val.(float64)
+		if ok {
+			place.SetUint(uint64(float64))
+			return nil
+		}
+		return fmt.Errorf("need type uint64, value %s | %v | %s", val, val, reflect.TypeOf(val))
 	case reflect.Float64:
 		num, ok := val.(int)
 		if ok {
