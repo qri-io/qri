@@ -22,6 +22,9 @@ import (
 
 var log = golog.Logger("qriapi")
 
+// LocalHostIP is the IP address for localhost
+const LocalHostIP = "127.0.0.1"
+
 func init() {
 	// We don't use the log package, and the net/rpc package spits out some complaints b/c
 	// a few methods don't conform to the proper signature (comment this out & run 'qri connect' to see errors)
@@ -127,7 +130,7 @@ func (s *Server) ServeRPC() {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.RPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, s.cfg.RPC.Port))
 	if err != nil {
 		log.Infof("RPC listen on port %d error: %s", s.cfg.RPC.Port, err)
 		return
