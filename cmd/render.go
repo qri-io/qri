@@ -77,11 +77,6 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 func (o *RenderOptions) Run() (err error) {
 	var template []byte
 
-	ref, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
 	if o.Template != "" {
 		template, err = ioutil.ReadFile(o.Template)
 		if err != nil {
@@ -90,7 +85,7 @@ func (o *RenderOptions) Run() (err error) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            ref,
+		Ref:            o.Ref,
 		Template:       template,
 		TemplateFormat: "html",
 		All:            o.All,

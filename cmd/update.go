@@ -51,6 +51,7 @@ will error.`,
 	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
 	// cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
+	cmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
 
 	return cmd
 }
@@ -59,13 +60,14 @@ will error.`,
 type UpdateOptions struct {
 	ioes.IOStreams
 
-	Ref     string
-	Title   string
-	Message string
-	Recall  string
-	Publish bool
-	DryRun  bool
-	Secrets []string
+	Ref      string
+	Title    string
+	Message  string
+	Recall   string
+	Publish  bool
+	DryRun   bool
+	NoRender bool
+	Secrets  []string
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -96,12 +98,13 @@ func (o *UpdateOptions) Run() (err error) {
 	defer o.StopSpinner()
 
 	p := &lib.UpdateParams{
-		Ref:        o.Ref,
-		Title:      o.Title,
-		Message:    o.Message,
-		DryRun:     o.DryRun,
-		Publish:    o.Publish,
-		ReturnBody: false,
+		Ref:          o.Ref,
+		Title:        o.Title,
+		Message:      o.Message,
+		DryRun:       o.DryRun,
+		Publish:      o.Publish,
+		ShouldRender: !o.NoRender,
+		ReturnBody:   false,
 	}
 
 	if o.Secrets != nil {

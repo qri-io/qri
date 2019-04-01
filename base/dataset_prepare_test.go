@@ -62,7 +62,7 @@ func TestInferValuesDatasetName(t *testing.T) {
 
 	ds := &dataset.Dataset{}
 	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
-	if err = InferValues(pro, ds); err != nil {
+	if err = InferValues(pro, ds, false); err != nil {
 		t.Error(err)
 	}
 	expectName := "gabba_gabba_heycsv"
@@ -84,7 +84,7 @@ func TestInferValuesStructure(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 
-	if err = InferValues(pro, ds); err != nil {
+	if err = InferValues(pro, ds, false); err != nil {
 		t.Error(err)
 	}
 
@@ -118,7 +118,7 @@ func TestInferValuesSchema(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err = InferValues(pro, ds); err != nil {
+	if err = InferValues(pro, ds, false); err != nil {
 		t.Error(err)
 	}
 
@@ -163,7 +163,7 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err = InferValues(pro, ds); err != nil {
+	if err = InferValues(pro, ds, false); err != nil {
 		t.Error(err)
 	}
 
@@ -179,6 +179,30 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 
 	if expect != actual {
 		t.Errorf("mismatched schema, expected \"%s\", got \"%s\"", expect, actual)
+	}
+}
+
+func TestInferValuesDefaultViz(t *testing.T) {
+	r := newTestRepo(t)
+	pro, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	ds := &dataset.Dataset{
+		Name: "animals",
+		Structure: &dataset.Structure{
+			Format: "csv",
+		},
+	}
+	if err = InferValues(pro, ds, true); err != nil {
+		t.Fatal(err)
+	}
+	if ds.Viz == nil {
+		t.Fatal("expected infer with 'inferViz' flag to create a viz component")
+	}
+	if ds.Viz.Format != "html" {
+		t.Errorf("expected inferred vi format to equal 'html'. got: %s", ds.Viz.Format)
 	}
 }
 

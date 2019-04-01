@@ -33,7 +33,7 @@ func (RenderRequests) CoreRequestsName() string { return "render" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
-	Ref            repo.DatasetRef
+	Ref            string
 	Template       []byte
 	TemplateFormat string
 	All            bool
@@ -46,14 +46,21 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 		return r.cli.Call("RenderRequests.Render", p, res)
 	}
 
-	if err := DefaultSelectedRef(r.repo, &p.Ref); err != nil {
+	var ref repo.DatasetRef
+	if ref, err = repo.ParseDatasetRef(p.Ref); err != nil {
+		return
+	}
+
+	if err = repo.CanonicalizeDatasetRef(r.repo, &ref); err == repo.ErrNotFound {
+		return fmt.Errorf("unknown dataset '%s'", ref.AliasString())
+	} else if err != nil {
 		return err
 	}
 
-	*res, err = base.Render(r.repo, p.Ref, p.Template, p.Limit, p.Offset, p.All)
-	if err == repo.ErrNotFound {
-		return NewError(err, fmt.Sprintf("could not find dataset '%s/%s'", p.Ref.Peername, p.Ref.Name))
+	if err := DefaultSelectedRef(r.repo, &ref); err != nil {
+		return err
 	}
 
+	*res, err = base.Render(r.repo, ref, p.Template, p.Limit, p.Offset, p.All)
 	return err
 }
