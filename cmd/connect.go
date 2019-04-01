@@ -54,6 +54,7 @@ peers & swapping data.`,
 	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
 	cmd.Flags().BoolVarP(&o.ReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
 	cmd.Flags().BoolVarP(&o.RemoteMode, "remote-mode", "", false, "run qri in remote mode")
+	cmd.Flags().Int64VarP(&o.RemoteAcceptSizeMax, "remote-accept-size-max", "", -1, "when running as a remote, max size of dataset to accept, -1 for any size")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
 
 	return cmd
@@ -73,10 +74,11 @@ type ConnectOptions struct {
 	DisableWebapp bool
 	DisableP2P    bool
 
-	Registry   string
-	Setup      bool
-	ReadOnly   bool
-	RemoteMode bool
+	Registry            string
+	Setup               bool
+	ReadOnly            bool
+	RemoteMode          bool
+	RemoteAcceptSizeMax int64
 
 	Node   *p2p.QriNode
 	Config *config.Config
@@ -150,6 +152,8 @@ func (o *ConnectOptions) Run() (err error) {
 	if o.DisableWebapp {
 		cfg.Webapp.Enabled = false
 	}
+
+	cfg.API.RemoteAcceptSizeMax = o.RemoteAcceptSizeMax
 
 	s := api.New(o.Node, &cfg)
 	err = s.Serve()

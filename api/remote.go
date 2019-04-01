@@ -1,6 +1,7 @@
 package api
 
 import (
+	"fmt"
 	"io/ioutil"
 	"net/http"
 
@@ -37,17 +38,17 @@ func (h *RemoteHandlers) receiveDataset(w http.ResponseWriter, r *http.Request) 
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	var result bool
+	var rejectReason string
 	params := lib.ReceiveParams{Body: string(content)}
-	err = h.Receive(&params, &result)
+	err = h.Receive(&params, &rejectReason)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	// TODO(dlong): Perform dsync
-	if result {
-		util.WriteResponse(w, "Accepted")
+	if rejectReason == "" {
+		util.WriteResponse(w, "accepted")
 		return
 	}
-	util.WriteResponse(w, "Denied")
+
+	util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("%s", rejectReason))
 }

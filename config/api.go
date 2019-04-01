@@ -19,6 +19,8 @@ type API struct {
 	ReadOnly bool `json:"readonly"`
 	// remote mode
 	RemoteMode bool `json:"remotemode"`
+	// maximum size of dataset to accept for remote mode
+	RemoteAcceptSizeMax int64 `json:"remoteacceptsizemax"`
 	// URLRoot is the base url for this server
 	URLRoot string `json:"urlroot"`
 	// TLS enables https via letsEyncrypt
