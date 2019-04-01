@@ -120,7 +120,7 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly, showVersio
 		}
 	}
 
-	// TODO: If renames.Renames is non-empty, apply it to r
+	// TODO (dustmop): If renames.Renames is non-empty, apply it to r
 	return
 }
 

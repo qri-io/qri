@@ -312,14 +312,15 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 // UpdateParams defines parameters for the Update command
 // TODO (b5): I think we can merge this into SaveParams
 type UpdateParams struct {
-	Ref        string
-	Title      string
-	Message    string
-	Recall     string
-	Secrets    map[string]string
-	Publish    bool
-	DryRun     bool
-	ReturnBody bool
+	Ref          string
+	Title        string
+	Message      string
+	Recall       string
+	Secrets      map[string]string
+	Publish      bool
+	DryRun       bool
+	ReturnBody   bool
+	ShouldRender bool
 	// optional writer to have transform script record standard output to
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer
@@ -374,6 +375,7 @@ func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
 		DryRun:       p.DryRun,
 		ReturnBody:   p.ReturnBody,
 		ScriptOutput: p.ScriptOutput,
+		ShouldRender: p.ShouldRender,
 	}
 
 	return r.Save(saveParams, res)

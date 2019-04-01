@@ -59,7 +59,7 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 }
 
 // InferValues populates any missing fields that must exist to create a snapshot
-func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
+func InferValues(pro *profile.Profile, ds *dataset.Dataset, inferViz bool) error {
 	// try to pick up a dataset name
 	if ds.Name == "" {
 		ds.Name = varName.CreateVarNameFromString(ds.BodyFile().FileName())
@@ -115,6 +115,10 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil && ds.Transform.IsEmpty() {
 		ds.Transform = nil
+	}
+
+	if inferViz && ds.Viz == nil {
+		AddDefaultViz(ds)
 	}
 
 	return nil

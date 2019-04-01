@@ -23,19 +23,9 @@ func NewRenderHandlers(r repo.Repo) *RenderHandlers {
 
 // RenderHandler renders a given dataset ref
 func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
-	args, err := DatasetRefFromPath(r.URL.Path[len("/render"):])
-	if err != nil {
-		apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	if err = repo.CanonicalizeDatasetRef(h.repo, &args); err != nil {
-		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
 
 	p := &lib.RenderParams{
-		Ref:            args,
+		Ref:            HTTPPathToQriPath(r.URL.Path[len("/render"):]),
 		TemplateFormat: "html",
 		// TODO - parameterize
 		All:    true,
