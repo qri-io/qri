@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 
@@ -24,8 +25,10 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 
 // RemoteRequests encapsulates business logic of remote operation
 type RemoteRequests struct {
-	cli  *rpc.Client
-	node *p2p.QriNode
+	cli        *rpc.Client
+	node       *p2p.QriNode
+	Receivers  *dsync.Receivers
+	SessionIDs map[string]*dag.Info
 }
 
 // NewRemoteRequests creates a RemoteRequests pointer from either a node or an rpc.Client
@@ -34,8 +37,9 @@ func NewRemoteRequests(node *p2p.QriNode, cli *rpc.Client) *RemoteRequests {
 		panic(fmt.Errorf("both repo and client supplied to NewRemoteRequests"))
 	}
 	return &RemoteRequests{
-		cli:  cli,
-		node: node,
+		cli:        cli,
+		node:       node,
+		SessionIDs: make(map[string]*dag.Info),
 	}
 }
 
@@ -87,7 +91,27 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
 	}
 
-	// TODO(dlong): Get a dsync session id from the remote, use it to perform dsync.
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	var bodyResponse map[string]interface{}
+	err = json.Unmarshal(bodyBytes, &bodyResponse)
+	if err != nil {
+		return err
+	}
+
+	dataResponse, ok := bodyResponse["data"].(map[string]interface{})
+	if !ok {
+		return fmt.Errorf("expected: data json")
+	}
+
+	var result ReceiveResult
+	err = fill.Struct(dataResponse, &result)
+	if err != nil {
+		return err
+	}
 
 	ctx := context.Background()
 
@@ -105,7 +129,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	err = send.Do()
+	err = send.PerformSend(result.SessionID, dinfo.Manifest, result.Diff)
 	if err != nil {
 		return err
 	}
@@ -128,10 +152,12 @@ func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
 }
 
 // Receive is used to save a dataset when running as a remote. API only, not RPC or command-line.
-func (r *RemoteRequests) Receive(p *ReceiveParams, reason *string) (err error) {
+func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err error) {
 	if r.cli != nil {
 		return fmt.Errorf("receive cannot be called over RPC")
 	}
+
+	res.Success = false
 
 	dinfo := dag.Info{}
 	err = json.Unmarshal([]byte(p.Body), &dinfo)
@@ -141,7 +167,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, reason *string) (err error) {
 
 	// TODO(dlong): Customization for how to decide to accept the dataset.
 	if Config.API.RemoteAcceptSizeMax == 0 {
-		*reason = "not accepting any datasets"
+		res.RejectReason = "not accepting any datasets"
 		return nil
 	}
 
@@ -153,14 +179,33 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, reason *string) (err error) {
 		}
 
 		if totalSize >= uint64(Config.API.RemoteAcceptSizeMax) {
-			*reason = "dataset size too large"
+			res.RejectReason = "dataset size too large"
 			return nil
 		}
 	}
 
-	// TODO(dlong): Generate a dsync session id, store the dag.info associated with that id,
-	// create a callback to invoke once that dsync finishes
-	*reason = ""
+	if dinfo.Manifest == nil {
+		res.RejectReason = "manifest is nil"
+		return nil
+	}
+
+	if r.Receivers == nil {
+		res.RejectReason = "dag.receivers is nil"
+		return nil
+	}
+
+	sid, diff, err := r.Receivers.ReqSend(dinfo.Manifest)
+	if err != nil {
+		res.RejectReason = fmt.Sprintf("could not begin send: %s", err)
+		return nil
+	}
+
+	// TODO: Timeout for sessionIDs. Add a callback to dsync.Receivers when dsync finishes,
+	// then create a version of the dataset for ds_refs.
+	r.SessionIDs[sid] = &dinfo
+	res.Success = true
+	res.SessionID = sid
+	res.Diff = diff
 	return nil
 }
 

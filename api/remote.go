@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
+	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 )
@@ -16,8 +17,9 @@ type RemoteHandlers struct {
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
-func NewRemoteHandlers(node *p2p.QriNode) *RemoteHandlers {
+func NewRemoteHandlers(node *p2p.QriNode, rec *dsync.Receivers) *RemoteHandlers {
 	req := lib.NewRemoteRequests(node, nil)
+	req.Receivers = rec
 	return &RemoteHandlers{*req}
 }
 
@@ -38,17 +40,18 @@ func (h *RemoteHandlers) receiveDataset(w http.ResponseWriter, r *http.Request) 
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	var rejectReason string
 	params := lib.ReceiveParams{Body: string(content)}
-	err = h.Receive(&params, &rejectReason)
+
+	var result lib.ReceiveResult
+	err = h.Receive(&params, &result)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	if rejectReason == "" {
-		util.WriteResponse(w, "accepted")
+	if result.Success {
+		util.WriteResponse(w, result)
 		return
 	}
 
-	util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("%s", rejectReason))
+	util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("%s", result.RejectReason))
 }

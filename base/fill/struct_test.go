@@ -168,6 +168,7 @@ type Collection struct {
 	Sub  SubElement
 	Big  int64
 	Ubig uint64
+	Pair [2]int
 }
 
 type SubElement struct {
@@ -288,6 +289,57 @@ func TestFillInt64(t *testing.T) {
 	}
 	if c.Ubig != 9934567890123456512 {
 		t.Errorf("expected: c.Ubig should be 9934567890123456512, got: %d", c.Ubig)
+	}
+}
+
+func TestFillArray(t *testing.T) {
+	jsonData := `{
+  "Pair": [3,4]
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(c.Pair) != 2 {
+		t.Errorf("expected: c.Pair should have two elements, got: %d", len(c.Pair))
+	}
+	if c.Pair[0] != 3 {
+		t.Errorf("expected: c.Pair[0] should be 3, got: %d", c.Pair[0])
+	}
+	if c.Pair[1] != 4 {
+		t.Errorf("expected: c.Pair[1] should be 4, got: %d", c.Pair[1])
+	}
+}
+
+func TestFillArrayLengthError(t *testing.T) {
+	jsonData := `{
+  "Pair": [3,4,5]
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err == nil {
+		t.Errorf("expected: error for wrong length, but no error returned")
+	}
+
+	expect := "field Pair: need array of size 2, got size 3"
+	if err.Error() != expect {
+		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
 }
 
