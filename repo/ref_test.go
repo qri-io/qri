@@ -366,8 +366,9 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	lucille := &profile.Profile{ID: profile.ID("a"), Peername: "lucille"}
 	carla := &profile.Profile{ID: profile.ID("b"), Peername: "carla"}
 
+	store := cafs.NewMapstore()
 	memRepo, err := NewMemRepo(lucille,
-		cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
+		store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -428,7 +429,8 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 
 func TestCanonicalizeProfile(t *testing.T) {
 	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}
-	repo, err := NewMemRepo(prof, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
+	store := cafs.NewMapstore()
+	repo, err := NewMemRepo(prof, store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -521,10 +523,11 @@ func TestCanonicalizeProfile(t *testing.T) {
 }
 
 func TestCanonicalizeProfileWithRename(t *testing.T) {
+	store := cafs.NewMapstore()
 	repo, err := NewMemRepo(&profile.Profile{
 		Peername: "lucille",
 		ID:       profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-	}, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
+	}, store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

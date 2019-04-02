@@ -1,1 +1,1 @@
-<html><h2>{{.Peername}}/{{.Name}}</h2><tbody>{{ range .Body }}<tr>{{ range .}}<td>{{ . }}</td>{{ end }}</tr>{{ end }}</tbody></html>
+<html><h2>{{ds.peername}}/{{ds.name}}</h2><tbody>{{ range bodyEntries 0 2 }}<tr>{{ range .}}<td>{{ . }}</td>{{ end }}</tr>{{ end }}</tbody></html>

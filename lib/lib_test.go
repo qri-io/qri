@@ -45,7 +45,8 @@ func init() {
 }
 
 func TestReceivers(t *testing.T) {
-	r, err := repo.NewMemRepo(&profile.Profile{}, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), nil)
+	store := cafs.NewMapstore()
+	r, err := repo.NewMemRepo(&profile.Profile{}, store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return

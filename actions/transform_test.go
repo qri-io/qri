@@ -17,7 +17,8 @@ func TestExecTransform(t *testing.T) {
 	regClient, regServer := regmock.NewMockServer()
 	defer regServer.Close()
 
-	mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), regClient)
+	store := cafs.NewMapstore()
+	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore(), regClient)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

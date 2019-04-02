@@ -97,7 +97,8 @@ func TestDataset(t *testing.T) {
 	rc, _ := mock.NewMockServer()
 
 	rmf := func(t *testing.T) repo.Repo {
-		mr, err := repo.NewMemRepo(testPeerProfile, cafs.NewMapstore(), qfs.NewMemFS(), profile.NewMemStore(), rc)
+		store := cafs.NewMapstore()
+		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore(), rc)
 		if err != nil {
 			panic(err)
 		}

@@ -23,6 +23,10 @@ func NewRenderHandlers(r repo.Repo) *RenderHandlers {
 
 // RenderHandler renders a given dataset ref
 func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
+	if r.Method == "OPTIONS" {
+		apiutil.EmptyOkHandler(w, r)
+		return
+	}
 
 	p := &lib.RenderParams{
 		Ref:            HTTPPathToQriPath(r.URL.Path[len("/render"):]),
