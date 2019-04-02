@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
-	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 
@@ -91,27 +90,11 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
 	}
 
-	bodyBytes, err := ioutil.ReadAll(res.Body)
-	if err != nil {
+	env := struct{Data ReceiveResult}{}
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
 		return err
 	}
-
-	var bodyResponse map[string]interface{}
-	err = json.Unmarshal(bodyBytes, &bodyResponse)
-	if err != nil {
-		return err
-	}
-
-	dataResponse, ok := bodyResponse["data"].(map[string]interface{})
-	if !ok {
-		return fmt.Errorf("expected: data json")
-	}
-
-	var result ReceiveResult
-	err = fill.Struct(dataResponse, &result)
-	if err != nil {
-		return err
-	}
+	res.Body.Close()
 
 	ctx := context.Background()
 
@@ -129,7 +112,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	err = send.PerformSend(result.SessionID, dinfo.Manifest, result.Diff)
+	err = send.PerformSend(env.Data.SessionID, dinfo.Manifest, env.Data.Diff)
 	if err != nil {
 		return err
 	}
