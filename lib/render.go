@@ -36,8 +36,6 @@ type RenderParams struct {
 	Ref            string
 	Template       []byte
 	TemplateFormat string
-	All            bool
-	Limit, Offset  int
 }
 
 // Render executes a template against a template
@@ -61,6 +59,6 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	*res, err = base.Render(r.repo, ref, p.Template, p.Limit, p.Offset, p.All)
+	*res, err = base.Render(r.repo, ref, p.Template)
 	return err
 }
