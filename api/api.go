@@ -237,12 +237,13 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 	if s.cfg.API.RemoteMode {
 		log.Info("This server is running in `remote` mode")
-		remh := NewRemoteHandlers(s.qriNode)
-		m.Handle("/dataset", s.middleware(remh.ReceiveHandler))
 		receivers, err := makeDagReceiver(s.qriNode)
 		if err != nil {
 			panic(err)
 		}
+
+		remh := NewRemoteHandlers(s.qriNode, receivers)
+		m.Handle("/dataset", s.middleware(remh.ReceiveHandler))
 		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
 	}
 

@@ -246,6 +246,36 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 		}
 		place.Set(create)
 		return nil
+	case reflect.Array:
+		if val == nil {
+			// If slice is nil, nothing more to do.
+			return nil
+		}
+		slice, ok := val.([]interface{})
+		if !ok {
+			return fmt.Errorf("need type slice, value %s", val)
+		}
+		// Get size of type of the slice to deserialize.
+		size := len(slice)
+		targetElem := place.Type().Elem()
+		targetSize := place.Type().Len()
+		if size != targetSize {
+			return fmt.Errorf("need array of size %d, got size %d", targetSize, size)
+		}
+		// Construct array of appropriate size and type.
+		arrayType := reflect.ArrayOf(targetSize, targetElem)
+		create := reflect.New(arrayType).Elem()
+		// Fill in each element.
+		for i := 0; i < size; i++ {
+			elem := reflect.Indirect(reflect.New(targetElem))
+			err := putValueToPlace(slice[i], elem)
+			if err != nil {
+				return err
+			}
+			create.Index(i).Set(elem)
+		}
+		place.Set(create)
+		return nil
 	case reflect.Ptr:
 		if val == nil {
 			// If pointer is nil, nothing more to do.

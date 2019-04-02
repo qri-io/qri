@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
+	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -76,4 +77,12 @@ type PushParams struct {
 // ReceiveParams hold parameters for receiving daginfo's when running as a remote
 type ReceiveParams struct {
 	Body string
+}
+
+// ReceiveResult is the result of receiving a posted dataset when running as a remote
+type ReceiveResult struct {
+	Success      bool
+	RejectReason string
+	SessionID    string
+	Diff         *dag.Manifest
 }
