@@ -76,7 +76,10 @@ type PushParams struct {
 
 // ReceiveParams hold parameters for receiving daginfo's when running as a remote
 type ReceiveParams struct {
-	Body string
+	Peername  string
+	Name      string
+	ProfileID profile.ID
+	Dinfo     *dag.Info
 }
 
 // ReceiveResult is the result of receiving a posted dataset when running as a remote
@@ -85,4 +88,9 @@ type ReceiveResult struct {
 	RejectReason string
 	SessionID    string
 	Diff         *dag.Manifest
+}
+
+// CompleteParams holds parameters to send when completing a dsync sent to a remote
+type CompleteParams struct {
+	SessionID string
 }

@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 
@@ -24,10 +25,10 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 
 // RemoteRequests encapsulates business logic of remote operation
 type RemoteRequests struct {
-	cli        *rpc.Client
-	node       *p2p.QriNode
-	Receivers  *dsync.Receivers
-	SessionIDs map[string]*dag.Info
+	cli       *rpc.Client
+	node      *p2p.QriNode
+	Receivers *dsync.Receivers
+	Sessions  map[string]*ReceiveParams
 }
 
 // NewRemoteRequests creates a RemoteRequests pointer from either a node or an rpc.Client
@@ -36,14 +37,19 @@ func NewRemoteRequests(node *p2p.QriNode, cli *rpc.Client) *RemoteRequests {
 		panic(fmt.Errorf("both repo and client supplied to NewRemoteRequests"))
 	}
 	return &RemoteRequests{
-		cli:        cli,
-		node:       node,
-		SessionIDs: make(map[string]*dag.Info),
+		cli:      cli,
+		node:     node,
+		Sessions: make(map[string]*ReceiveParams),
 	}
 }
 
 // CoreRequestsName implements the Requests interface
 func (RemoteRequests) CoreRequestsName() string { return "remote" }
+
+// TODO(dlong): Split this function into smaller steps, move them to actions/ or base/ as
+// appropriate
+
+// TODO(dlong): Add tests
 
 // PushToRemote posts a dagInfo to a remote
 func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
@@ -69,12 +75,23 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
 	}
 
-	data, err := json.Marshal(dinfo)
+	// Post the dataset's dag.Info to the remote.
+	fmt.Printf("Posting to /dsync/push...\n")
+
+	params := ReceiveParams{
+		Peername:  ref.Peername,
+		Name:      ref.Name,
+		ProfileID: ref.ProfileID,
+		Dinfo:     dinfo,
+	}
+
+	data, err := json.Marshal(params)
 	if err != nil {
 		return err
 	}
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/dataset", location), bytes.NewReader(data))
+	dsyncPushURL := fmt.Sprintf("%s/dsync/push", location)
+	req, err := http.NewRequest("POST", dsyncPushURL, bytes.NewReader(data))
 	if err != nil {
 		return err
 	}
@@ -90,13 +107,14 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
 	}
 
-	env := struct{Data ReceiveResult}{}
+	env := struct{ Data ReceiveResult }{}
 	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
 		return err
 	}
 	res.Body.Close()
 
-	ctx := context.Background()
+	// Run dsync to transfer all of the blocks of the dataset.
+	fmt.Printf("Running dsync...\n")
 
 	ng, err := newNodeGetter(r.node)
 	if err != nil {
@@ -107,6 +125,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		URL: fmt.Sprintf("%s/dsync", location),
 	}
 
+	ctx := context.Background()
 	send, err := dsync.NewSend(ctx, ng, dinfo.Manifest, remote)
 	if err != nil {
 		return err
@@ -117,7 +136,36 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	// TODO(dlong): Pin the data.
+	// Finish the send, pin the dataset in IPFS
+	fmt.Printf("Writing dsref and pinning...\n")
+
+	completeParams := CompleteParams{
+		SessionID: env.Data.SessionID,
+	}
+
+	data, err = json.Marshal(completeParams)
+	if err != nil {
+		return err
+	}
+
+	dsyncCompleteURL := fmt.Sprintf("%s/dsync/complete", location)
+	req, err = http.NewRequest("POST", dsyncCompleteURL, bytes.NewReader(data))
+	if err != nil {
+		return err
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	res, err = httpClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
+	}
+
+	// Success!
+	fmt.Printf("Success!\n")
 
 	*out = true
 	return nil
@@ -142,12 +190,6 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 
 	res.Success = false
 
-	dinfo := dag.Info{}
-	err = json.Unmarshal([]byte(p.Body), &dinfo)
-	if err != nil {
-		return err
-	}
-
 	// TODO(dlong): Customization for how to decide to accept the dataset.
 	if Config.API.RemoteAcceptSizeMax == 0 {
 		res.RejectReason = "not accepting any datasets"
@@ -157,7 +199,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
 	if Config.API.RemoteAcceptSizeMax != -1 {
 		var totalSize uint64
-		for _, s := range dinfo.Sizes {
+		for _, s := range p.Dinfo.Sizes {
 			totalSize += s
 		}
 
@@ -167,7 +209,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		}
 	}
 
-	if dinfo.Manifest == nil {
+	if p.Dinfo.Manifest == nil {
 		res.RejectReason = "manifest is nil"
 		return nil
 	}
@@ -177,18 +219,54 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		return nil
 	}
 
-	sid, diff, err := r.Receivers.ReqSend(dinfo.Manifest)
+	sid, diff, err := r.Receivers.ReqSend(p.Dinfo.Manifest)
 	if err != nil {
 		res.RejectReason = fmt.Sprintf("could not begin send: %s", err)
 		return nil
 	}
 
-	// TODO: Timeout for sessionIDs. Add a callback to dsync.Receivers when dsync finishes,
-	// then create a version of the dataset for ds_refs.
-	r.SessionIDs[sid] = &dinfo
+	// TODO: Timeout for sessions. Remove sessions when they complete or timeout
+	r.Sessions[sid] = p
 	res.Success = true
 	res.SessionID = sid
 	res.Diff = diff
+	return nil
+}
+
+// Complete is used to complete a dataset that has been pushed to this remote
+func (r *RemoteRequests) Complete(p *CompleteParams, res *bool) (err error) {
+	sid := p.SessionID
+	session, ok := r.Sessions[sid]
+	if !ok {
+		return fmt.Errorf("session %s not found", sid)
+	}
+
+	if session.Dinfo.Manifest == nil || len(session.Dinfo.Manifest.Nodes) == 0 {
+		return fmt.Errorf("dataset manifest is invalid")
+	}
+
+	path := fmt.Sprintf("/ipfs/%s", session.Dinfo.Manifest.Nodes[0])
+
+	ref := repo.DatasetRef{
+		Peername:  session.Peername,
+		ProfileID: session.ProfileID,
+		Name:      session.Name,
+		Path:      path,
+		Published: true,
+	}
+
+	// Save ref to ds_refs.json
+	err = r.node.Repo.PutRef(ref)
+	if err != nil {
+		return err
+	}
+
+	// Pin the dataset in IPFS
+	err = base.PinDataset(r.node.Repo, ref)
+	if err != nil {
+		return err
+	}
+
 	return nil
 }
 

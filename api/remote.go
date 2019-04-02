@@ -1,8 +1,8 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 
 	util "github.com/datatogether/api/apiutil"
@@ -34,16 +34,26 @@ func (h *RemoteHandlers) ReceiveHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
+// CompleteHandler is the endpoint for remotes when they complete the dsync process
+func (h *RemoteHandlers) CompleteHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	// no "OPTIONS" method here, because browsers should never hit this endpoint
+	case "POST":
+		h.completeDataset(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 func (h *RemoteHandlers) receiveDataset(w http.ResponseWriter, r *http.Request) {
-	content, err := ioutil.ReadAll(r.Body)
-	if err != nil {
+	var params lib.ReceiveParams
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	params := lib.ReceiveParams{Body: string(content)}
 
 	var result lib.ReceiveResult
-	err = h.Receive(&params, &result)
+	err := h.Receive(&params, &result)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -54,4 +64,21 @@ func (h *RemoteHandlers) receiveDataset(w http.ResponseWriter, r *http.Request) 
 	}
 
 	util.WriteErrResponse(w, http.StatusForbidden, fmt.Errorf("%s", result.RejectReason))
+}
+
+func (h *RemoteHandlers) completeDataset(w http.ResponseWriter, r *http.Request) {
+	var params lib.CompleteParams
+	if err := json.NewDecoder(r.Body).Decode(&params); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	var result bool
+	err := h.Complete(&params, &result)
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, "Success")
 }
