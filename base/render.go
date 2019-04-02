@@ -77,7 +77,7 @@ func AddDefaultViz(ds *dataset.Dataset) {
 }
 
 // Render executes a template for a dataset, returning a slice of HTML
-func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte, limit, offset int, all bool) ([]byte, error) {
+func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
 	const tmplName = "template"
 
 	store := r.Store()

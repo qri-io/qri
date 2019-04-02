@@ -43,9 +43,6 @@ provided, Qri will render the dataset with a default template.`,
 
 	cmd.Flags().StringVarP(&o.Template, "template", "t", "", "path to template file")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write output file")
-	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "read all dataset entries (overrides limit, offest)")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 50, "max number of records to read")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "s", 0, "number of records to skip")
 
 	return cmd
 }
@@ -57,9 +54,6 @@ type RenderOptions struct {
 	Ref      string
 	Template string
 	Output   string
-	All      bool
-	Limit    int
-	Offset   int
 
 	RenderRequests *lib.RenderRequests
 }
@@ -88,9 +82,6 @@ func (o *RenderOptions) Run() (err error) {
 		Ref:            o.Ref,
 		Template:       template,
 		TemplateFormat: "html",
-		All:            o.All,
-		Limit:          o.Limit,
-		Offset:         o.Offset,
 	}
 
 	res := []byte{}

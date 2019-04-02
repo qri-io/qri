@@ -31,10 +31,6 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.RenderParams{
 		Ref:            HTTPPathToQriPath(r.URL.Path[len("/render"):]),
 		TemplateFormat: "html",
-		// TODO - parameterize
-		All:    true,
-		Limit:  0,
-		Offset: 0,
 	}
 
 	data := []byte{}
