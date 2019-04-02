@@ -65,7 +65,7 @@ func TestRenderRun(t *testing.T) {
 	// set Default Template to something easier to work with, then
 	// cleanup when test completes
 	prevDefaultTemplate := base.DefaultTemplate
-	base.DefaultTemplate = `<html><h1>{{.Peername}}/{{.Name}}</h1></html>`
+	base.DefaultTemplate = `<html><h1>{{ds.peername}}/{{ds.name}}</h1></html>`
 	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
 
 	f, err := NewTestFactory(nil)
@@ -74,7 +74,7 @@ func TestRenderRun(t *testing.T) {
 		return
 	}
 
-	templateFile := qfs.NewMemfileBytes("template.html", []byte(`<html><h2>{{.Peername}}/{{.Name}}</h2></html>`))
+	templateFile := qfs.NewMemfileBytes("template.html", []byte(`<html><h2>{{ds.peername}}/{{ds.name}}</h2></html>`))
 
 	if err := f.Init(); err != nil {
 		t.Errorf("error initializing: %s", err)
@@ -109,18 +109,14 @@ func TestRenderRun(t *testing.T) {
 		ref      string
 		template string
 		output   string
-		all      bool
-		limit    int
-		offset   int
 		expected string
 		err      string
 		msg      string
 	}{
-		{"", "", "", false, 10, 0, "", repo.ErrEmptyRef.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
-		{"peer/bad_dataset", "", "", false, 10, 0, "", "repo: not found", "could not find dataset 'peer/bad_dataset'"},
-		{"peer/cities", "", "", false, 10, 0, "<html><h1>peer/cities</h1></html>", "", ""},
-		{"peer/cities", "testdata/template.html", "", false, 2, 0, "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
-		{"peer/cities", "testdata/template.html", "", false, 1, 2, "<html><h2>peer/cities</h2><tbody><tr><td>chicago</td><td>300000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
+		{"", "", "", "", repo.ErrEmptyRef.Error(), "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info"},
+		{"peer/bad_dataset", "", "", "", "unknown dataset 'peer/bad_dataset'", ""},
+		{"peer/cities", "", "", "<html><h1>peer/cities</h1></html>", "", ""},
+		{"peer/cities", "testdata/template.html", "", "<html><h2>peer/cities</h2><tbody><tr><td>toronto</td><td>40000000</td><td>55.5</td><td>false</td></tr><tr><td>new york</td><td>8500000</td><td>44.4</td><td>true</td></tr></tbody></html>", "", ""},
 	}
 
 	for i, c := range cases {
@@ -135,9 +131,6 @@ func TestRenderRun(t *testing.T) {
 			Ref:            c.ref,
 			Template:       c.template,
 			Output:         c.output,
-			All:            c.all,
-			Limit:          c.limit,
-			Offset:         c.offset,
 			RenderRequests: rr,
 		}
 

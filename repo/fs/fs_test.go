@@ -28,7 +28,8 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err.Error())
 		}
 
-		r, err := NewRepo(cafs.NewMapstore(), qfs.NewMemFS(), pro, nil, path)
+		store := cafs.NewMapstore()
+		r, err := NewRepo(store, qfs.NewMemFS(store), pro, nil, path)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}

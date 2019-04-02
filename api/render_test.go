@@ -10,6 +10,7 @@ func TestRenderHandler(t *testing.T) {
 
 	cases := []handlerTestCase{
 		{"OPTIONS", "/render", nil},
+		{"GET", "/render/me/movies", nil},
 	}
 
 	h := NewRenderHandlers(r)

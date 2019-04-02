@@ -23,14 +23,16 @@ const profileAID = "QmSMZwvs3n4GBikZ7hKzT17c3bk65FmyZo2JqtJ16swqCv"
 const profileBID = "QmSk46nSD78YiuNojYMS8NW6hSCjH95JajqqzzoychZgef"
 
 func createReposAndLogs() (repo.Repo, repo.Repo, *repo.MemEventLog, *repo.MemEventLog) {
+	aStore := cafs.NewMapstore()
 	aRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileAID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), qfs.NewMemFS(), &profile.MemStore{}, nil)
+	}, aStore, qfs.NewMemFS(aStore), &profile.MemStore{}, nil)
+	bStore := cafs.NewMapstore()
 	bRepo, _ := repo.NewMemRepo(&profile.Profile{
 		ID:       profile.ID(profileBID),
 		Peername: "test-peer-0",
-	}, cafs.NewMapstore(), qfs.NewMemFS(), &profile.MemStore{}, nil)
+	}, bStore, qfs.NewMemFS(bStore), &profile.MemStore{}, nil)
 	aLog := aRepo.MemEventLog
 	bLog := bRepo.MemEventLog
 	return aRepo, bRepo, aLog, bLog

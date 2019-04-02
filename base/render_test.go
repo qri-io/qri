@@ -10,6 +10,7 @@ func TestRender(t *testing.T) {
 
 	_, err := Render(r, ref, nil, 0, 0, true)
 	if err != nil {
+		panic(err)
 		t.Error(err.Error())
 	}
 
