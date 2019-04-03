@@ -1,3 +1,120 @@
+<a name="0.7.3"></a>
+# [0.7.3](https://github.com/qri-io/qri/compare/v0.7.2...v0.7.3) (2019-04-03)
+
+This release is all about 3 Rs:
+* Rendering
+* Remotes
+* `load_dataset`
+
+This release we've focused on improving dataset visualiing, setting the stage with better defaults and a cleaner API for creating custom viz. We think expressing dataset vizualiations as self-contained `html` makes Qri datasets an order of magnitude more useful, and can't wait for you to try it.
+
+Along with the usual bug fixes, a few nice bonuses have landed, like supplying [multiple `--file` args](https://github.com/qri-io/qri/pull/718) to qri save to combine dataset input files, and `qri get rendered` to show rendered viz. Anyway, on to the big stuff:
+
+### Default Rendering ([RFC0011](https://github.com/qri-io/rfcs/blob/master/text/0011-html_viz.md))
+Whenever you create a new dataset version, Qri will now create a default viz component if you don't provide one. Unless run with `--no-render`, Qri will now execute that template, and store the result in a file called `index.html` in your dataset. This makes your dataset _much_ more fun when viewed directly on the d.web, which is outside of Qri entirely.
+
+This is because IPFS HTTP gateways are sensitive to `index.html`. When you use qri to make a dataset, your dataset comes with a self-contained visualization that others can see without downloading Qri at all.
+
+We think this dramatically increases the usefulness of a dataset, and increases the chances that others will want to share & disseminate your work by making your dataset a more-complete offering in the data value chain. These embedded default visualizations drop the time it takes to create a readable dataset to one step.
+
+That being said, we've intentionally made the default visualization rather bland. The reason for this is twofold. First, to keep the file size of the `index.html` small (less than 1KB). Second, we want you to customize it. We'll refine the default template over time, but we hope you'll use viz to tell a story with your data.
+
+Users may understandably want to disable default vizualizations. To achieve this `qri save` and `qri update` have a new flag: `--no-render`. No render will prevent the execution of any viz template. This will save ~1KB per version, at the cost of usability.
+
+### Overhauled HTML Template API ([RFC0011](https://github.com/qri-io/rfcs/blob/master/text/0011-html_viz.md#template-api))
+Keeping with the theme of better viz, we've also taken time to overhaul our template API. Given that this is a public API, we took some time to think about what it would mean to try to render Qri templates _outside_ of our go implementation. While no code does this today, we wanted to make sure it would be easier in the future, so we took steps to define an API that generally avoids use of the go templating `.`, instead presenting a `ds` object with json-case accessors. Taking things like this:
+
+```
+<h1>{{ .Meta.Title }}</h1>
+```
+to this: 
+```
+<h1>{{ ds.meta.title }}</h1>
+```
+
+This change brings the template syntax closer to the way we work with datasets in other places (eg: in `dataset.yaml` files and starlark transform scripts), which should help cut down on the mental overhead of working with a dataset in all these locations. We think this up-front work on our template API will make it easier to start writing custom templates. We don't have docs up yet, but the RFC [reference](https://github.com/qri-io/rfcs/blob/master/text/0011-html_viz.md#reference-level-explanation) section outlines the API in detail.
+
+### Experimental Remote Mode ([RFC0022](https://github.com/qri-io/rfcs/blob/master/text/0022-remotes.md))
+The registry is nice and all, but we need more ways to push data around. In this release we're launching a new expriment called "remotes" that start into this work. Remotes act as a way for any user of Qri to setup their own server that keeps datasets alive, providing availability and ownership over data within a set of nodes that they control.
+
+Currently we consider this feature "advanced only" as it comes with a number of warnings and some special setup configuration. For more info, [check the RFC](https://github.com/qri-io/rfcs/blob/master/text/0022-remotes.md), and if you're interested in running a remote, [hop on discord](https://discordapp.com/invite/etap8Gb) and say "hey I want to run a remote".
+
+
+### Starlark `load_dataset` ([RFC0023](https://github.com/qri-io/rfcs/blob/master/text/0023-starlark_load_dataset.md))
+We've made a breaking API change in Starlark that deprecates `qri.load_dataset_body`, and introduce a new global function: `load_dataset`. This new API makes it clear that `load_dataset` both loads the dataset and declares it as a dependency of this script. This is an important step toward making datasets a first-class citizen in the qri ecosystem. Here's an example of the new syntax:
+
+```python
+load("http.star", "http")
+
+# load a dataset into a variable named "fhv"
+fhv = load_dataset("b5/nyc_for_hire_vehicles")
+
+def download(ctx):
+  # use the fhv dataset to inform an http request
+  vins = ["%s,%s" % (entry['vin'], entry['model_yearl']), for entry in fhv.body()]
+
+  res = http.post("https://vpic.nhtsa.dot.gov/api/vehicles/DecodeVINValuesBatch/", form_body={
+    'format': 'JSON', 
+    'DATA': vins.join(";")
+  })
+
+  return res.json()
+
+def transform(ds, ctx):
+  ds.set_body(ctx.download)
+```
+
+Users who were previously using `qri.load_dataset_body` will need to update their scripts to use the new syntax. The easiest way to do that is by adding a new version to your dataset history with the updated script:
+```
+$ qri get transform.script me/dataset > transform.star
+# make updates to transform.star file & save
+$ qri save --file transform.script me/dataset
+```
+Three easy steps, and your dataset log tells the story of the upgrade.
+
+
+### Bug Fixes
+
+* **api:** Listen on localhost for API and RPC ([04a4500](https://github.com/qri-io/qri/commit/04a4500))
+* **fill_struct:** Work with non-pointer structs and pointers to non-structs ([0d14bac](https://github.com/qri-io/qri/commit/0d14bac))
+* **get:** If format is misspelled, display an error ([b8fcceb](https://github.com/qri-io/qri/commit/b8fcceb))
+* **save:** Better error message when saving with wrong file ([75cb06a](https://github.com/qri-io/qri/commit/75cb06a))
+* **tests:** Save with viz needs html format, update testdata file ([f7cd486](https://github.com/qri-io/qri/commit/f7cd486))
+
+
+### Code Refactoring
+
+* **render:** remove limit, offset, all parmeters ([165abce](https://github.com/qri-io/qri/commit/165abce))
+
+
+### Features
+
+* **cmd/get:** add `rendered` to selector in `qri get` command ([90719a8](https://github.com/qri-io/qri/commit/90719a8))
+* **dag info:** add label for rendered viz output ([7157cd7](https://github.com/qri-io/qri/commit/7157cd7))
+* **daginfo:** add `qri daginfo` command that returns a dag.Info of a dataset ([e4d9e27](https://github.com/qri-io/qri/commit/e4d9e27))
+* **daginfo:** add summary view for `qri daginfo` ([9f9b32f](https://github.com/qri-io/qri/commit/9f9b32f))
+* **dagInfo:** add ability to get a subDag at a specific label ([7a07ee8](https://github.com/qri-io/qri/commit/7a07ee8))
+* **remote:** Beginning of "remote" mode implementation ([49dbef9](https://github.com/qri-io/qri/commit/49dbef9))
+* **remote:** Bump version number, review fixes. ([21a4448](https://github.com/qri-io/qri/commit/21a4448))
+* **remote:** Deserialize response from remote using json.Decode ([2d73e84](https://github.com/qri-io/qri/commit/2d73e84))
+* **remote:** Parse config using FillStruct. Remotes field. ([a2efbf3](https://github.com/qri-io/qri/commit/a2efbf3))
+* **remote:** Retrieve sessionID & diff first, pass both to dsync ([7f3d8bc](https://github.com/qri-io/qri/commit/7f3d8bc))
+* **remote:** Send actual dag.Info to remote, perform dsync ([5cec2de](https://github.com/qri-io/qri/commit/5cec2de))
+* **remote:** Switch to --remote-accept-size-max flag ([b26cbb9](https://github.com/qri-io/qri/commit/b26cbb9))
+* **remotes:** base/fill/PathValue used by Config, to enable Remotes ([4d45dce](https://github.com/qri-io/qri/commit/4d45dce))
+* **remotes:** Complete dsync by writing to ds_refs and pinning ([b47a3e4](https://github.com/qri-io/qri/commit/b47a3e4))
+* **save:** add `no-render` option to `qri save` command ([a8f36b2](https://github.com/qri-io/qri/commit/a8f36b2))
+* **save:** More tests for saving: viz, transform. Update comments. ([91246fe](https://github.com/qri-io/qri/commit/91246fe))
+* **save:** Save a dataset with multiple file arguments ([23735b7](https://github.com/qri-io/qri/commit/23735b7))
+* **save:** Tests for saving datasets with multiple file arguments ([9fe54bc](https://github.com/qri-io/qri/commit/9fe54bc))
+
+
+### BREAKING CHANGES
+
+* **render:** qri render limit, offset, all parameters have been removed
+
+
+
 <a name="0.7.2"></a>
 # [0.7.2](https://github.com/qri-io/qri/compare/v0.7.1...v0.7.2) (2019-03-14)
 
