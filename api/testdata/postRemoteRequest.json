@@ -1,19 +1,24 @@
 {
-    "manifest": {
-        "links":[
-            [0,1]
-        ],
-        "nodes":[
-            "QmAbc123",
-            "QmDef678"
+    "dinfo": {
+        "manifest": {
+            "links": [
+                [
+                    0,
+                    1
+                ]
+            ],
+            "nodes": [
+                "QmAbc123",
+                "QmDef678"
+            ]
+        },
+        "labels": {
+            "bd": 0,
+            "cm": 0,
+            "st": 0
+        },
+        "sizes": [
+            123
         ]
-    },
-    "labels":{
-        "bd":0,
-        "cm":0,
-        "st":0
-    },
-    "sizes":[
-        123
-    ]
+    }
 }
