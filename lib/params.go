@@ -79,7 +79,7 @@ type ReceiveParams struct {
 	Peername  string
 	Name      string
 	ProfileID profile.ID
-	Dinfo     *dag.Info
+	DagInfo   *dag.Info
 }
 
 // ReceiveResult is the result of receiving a posted dataset when running as a remote
