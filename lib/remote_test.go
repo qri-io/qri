@@ -41,7 +41,7 @@ func TestRemote(t *testing.T) {
 	// Reject all dag.Info's
 	Config.API.RemoteAcceptSizeMax = 0
 	params := ReceiveParams{
-		Dinfo: exampleDagInfo,
+		DagInfo: exampleDagInfo,
 	}
 	result := ReceiveResult{}
 	err = req.Receive(&params, &result)
@@ -59,7 +59,7 @@ func TestRemote(t *testing.T) {
 	// Accept all dag.Info's
 	Config.API.RemoteAcceptSizeMax = -1
 	params = ReceiveParams{
-		Dinfo: exampleDagInfo,
+		DagInfo: exampleDagInfo,
 	}
 	result = ReceiveResult{}
 	err = req.Receive(&params, &result)

@@ -65,7 +65,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	dinfo, err := actions.NewDAGInfo(r.node, ref.Path, "")
+	DagInfo, err := actions.NewDAGInfo(r.node, ref.Path, "")
 	if err != nil {
 		return err
 	}
@@ -82,7 +82,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		Peername:  ref.Peername,
 		Name:      ref.Name,
 		ProfileID: ref.ProfileID,
-		Dinfo:     dinfo,
+		DagInfo:   DagInfo,
 	}
 
 	data, err := json.Marshal(params)
@@ -126,12 +126,12 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 	}
 
 	ctx := context.Background()
-	send, err := dsync.NewSend(ctx, ng, dinfo.Manifest, remote)
+	send, err := dsync.NewSend(ctx, ng, DagInfo.Manifest, remote)
 	if err != nil {
 		return err
 	}
 
-	err = send.PerformSend(env.Data.SessionID, dinfo.Manifest, env.Data.Diff)
+	err = send.PerformSend(env.Data.SessionID, DagInfo.Manifest, env.Data.Diff)
 	if err != nil {
 		return err
 	}
@@ -196,14 +196,14 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		return nil
 	}
 
-	if p.Dinfo == nil {
+	if p.DagInfo == nil {
 		return fmt.Errorf("daginfo is required")
 	}
 
 	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
 	if Config.API.RemoteAcceptSizeMax != -1 {
 		var totalSize uint64
-		for _, s := range p.Dinfo.Sizes {
+		for _, s := range p.DagInfo.Sizes {
 			totalSize += s
 		}
 
@@ -213,7 +213,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		}
 	}
 
-	if p.Dinfo.Manifest == nil {
+	if p.DagInfo.Manifest == nil {
 		res.RejectReason = "manifest is nil"
 		return nil
 	}
@@ -223,7 +223,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		return nil
 	}
 
-	sid, diff, err := r.Receivers.ReqSend(p.Dinfo.Manifest)
+	sid, diff, err := r.Receivers.ReqSend(p.DagInfo.Manifest)
 	if err != nil {
 		res.RejectReason = fmt.Sprintf("could not begin send: %s", err)
 		return nil
@@ -245,11 +245,11 @@ func (r *RemoteRequests) Complete(p *CompleteParams, res *bool) (err error) {
 		return fmt.Errorf("session %s not found", sid)
 	}
 
-	if session.Dinfo.Manifest == nil || len(session.Dinfo.Manifest.Nodes) == 0 {
+	if session.DagInfo.Manifest == nil || len(session.DagInfo.Manifest.Nodes) == 0 {
 		return fmt.Errorf("dataset manifest is invalid")
 	}
 
-	path := fmt.Sprintf("/ipfs/%s", session.Dinfo.Manifest.Nodes[0])
+	path := fmt.Sprintf("/ipfs/%s", session.DagInfo.Manifest.Nodes[0])
 
 	ref := repo.DatasetRef{
 		Peername:  session.Peername,
