@@ -4,6 +4,7 @@ import (
 	"math/rand"
 	"testing"
 
+	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -28,12 +29,19 @@ func TestRemote(t *testing.T) {
 	req := NewRemoteRequests(node, nil)
 	req.Receivers = dsync.NewTestReceivers()
 
-	exampleDagInfo := `{"manifest":{"links":[[0,1]],"nodes":["QmAbc123","QmDef678"]},"labels":{"bd":0,"cm":0,"st":0},"sizes":[123]}`
+	exampleDagInfo := &dag.Info{
+		Manifest: &dag.Manifest{
+			Links: [][2]int{{0, 1}},
+			Nodes: []string{"QmAbc123", "QmDef678"},
+		},
+		Labels: map[string]int{"bd": 0, "cm": 0, "st": 0},
+		Sizes:  []uint64{123},
+	}
 
 	// Reject all dag.Info's
 	Config.API.RemoteAcceptSizeMax = 0
 	params := ReceiveParams{
-		Body: exampleDagInfo,
+		Dinfo: exampleDagInfo,
 	}
 	result := ReceiveResult{}
 	err = req.Receive(&params, &result)
@@ -51,7 +59,7 @@ func TestRemote(t *testing.T) {
 	// Accept all dag.Info's
 	Config.API.RemoteAcceptSizeMax = -1
 	params = ReceiveParams{
-		Body: exampleDagInfo,
+		Dinfo: exampleDagInfo,
 	}
 	result = ReceiveResult{}
 	err = req.Receive(&params, &result)

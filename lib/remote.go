@@ -196,6 +196,10 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		return nil
 	}
 
+	if p.Dinfo == nil {
+		return fmt.Errorf("daginfo is required")
+	}
+
 	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
 	if Config.API.RemoteAcceptSizeMax != -1 {
 		var totalSize uint64
