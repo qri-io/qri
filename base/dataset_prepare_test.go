@@ -62,7 +62,7 @@ func TestInferValuesDatasetName(t *testing.T) {
 
 	ds := &dataset.Dataset{}
 	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
-	if err = InferValues(pro, ds, false); err != nil {
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 	expectName := "gabba_gabba_heycsv"
@@ -84,7 +84,7 @@ func TestInferValuesStructure(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
 
-	if err = InferValues(pro, ds, false); err != nil {
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -118,7 +118,7 @@ func TestInferValuesSchema(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err = InferValues(pro, ds, false); err != nil {
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -163,7 +163,7 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("animals.csv",
 		[]byte("Animal,Sound,Weight\ncat,meow,1.4\ndog,bark,3.7\n")))
-	if err = InferValues(pro, ds, false); err != nil {
+	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
 
@@ -182,9 +182,9 @@ func TestInferValuesDontOverwriteSchema(t *testing.T) {
 	}
 }
 
-func TestInferValuesDefaultViz(t *testing.T) {
+func TestMaybeAddDefaultViz(t *testing.T) {
 	r := newTestRepo(t)
-	pro, err := r.Profile()
+	_, err := r.Profile()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -195,14 +195,15 @@ func TestInferValuesDefaultViz(t *testing.T) {
 			Format: "csv",
 		},
 	}
-	if err = InferValues(pro, ds, true); err != nil {
-		t.Fatal(err)
-	}
+	MaybeAddDefaultViz(ds)
 	if ds.Viz == nil {
-		t.Fatal("expected infer with 'inferViz' flag to create a viz component")
+		t.Fatal("expected MaybeAddDefaultViz to create a viz component")
 	}
 	if ds.Viz.Format != "html" {
-		t.Errorf("expected inferred vi format to equal 'html'. got: %s", ds.Viz.Format)
+		t.Errorf("expected default viz format to equal 'html'. got: %s", ds.Viz.Format)
+	}
+	if ds.Viz.ScriptFile().FileName() != "viz.html" {
+		t.Errorf("expected default viz file to equal 'viz.html'. got: %s", ds.Viz.ScriptFile().FileName())
 	}
 }
 
