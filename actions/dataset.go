@@ -79,9 +79,14 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	mutable.Assign(changes)
 	changes = mutable
 
-	// infer missing values, adding a default viz if shouldRender is true
-	if err = base.InferValues(pro, changes, shouldRender); err != nil {
+	// infer missing values
+	if err = base.InferValues(pro, changes); err != nil {
 		return
+	}
+
+	// add a default viz if one is needed
+	if shouldRender {
+		base.MaybeAddDefaultViz(changes)
 	}
 
 	// let's make history, if it exists

@@ -64,16 +64,13 @@ func init() {
 	}
 }
 
-// AddDefaultViz sets a dataset viz component & scriptFile if one isn't
-// specified
-func AddDefaultViz(ds *dataset.Dataset) {
-	if ds.Viz == nil {
-		ds.Viz = &dataset.Viz{Format: "html"}
+// MaybeAddDefaultViz sets a dataset viz component and template if none exists
+func MaybeAddDefaultViz(ds *dataset.Dataset) {
+	if ds.Viz != nil {
+		return
 	}
-
-	if ds.Viz.ScriptFile() == nil {
-		ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", strings.NewReader(DefaultTemplate)))
-	}
+	ds.Viz = &dataset.Viz{Format: "html"}
+	ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", strings.NewReader(DefaultTemplate)))
 }
 
 // Render executes a template for a dataset, returning a slice of HTML
@@ -95,7 +92,7 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
 	ds.Peername = ref.Peername
 	ds.Name = ref.Name
 
-	AddDefaultViz(ds)
+	MaybeAddDefaultViz(ds)
 
 	if tmplData != nil {
 		ds.Viz.SetScriptFile(qfs.NewMemfileBytes(tmplName, tmplData))
