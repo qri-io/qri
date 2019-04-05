@@ -67,6 +67,10 @@ func init() {
 // MaybeAddDefaultViz sets a dataset viz component and template if none exists
 func MaybeAddDefaultViz(ds *dataset.Dataset) {
 	if ds.Viz != nil {
+		// ensure viz defaults to HTML if unspecified
+		if ds.Viz.Format == "" {
+			ds.Viz.Format = "html"
+		}
 		return
 	}
 	ds.Viz = &dataset.Viz{Format: "html"}
