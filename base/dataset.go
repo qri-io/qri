@@ -95,10 +95,9 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly, showVersio
 		res = pub[:i]
 	}
 
-	renames := repo.NewNeedPeernameRenames()
 	for i, ref := range res {
 		// May need to change peername.
-		if err := repo.CanonicalizeProfile(r, &res[i], &renames); err != nil {
+		if err := repo.CanonicalizeProfile(r, &res[i]); err != nil {
 			return nil, fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
@@ -120,7 +119,6 @@ func ListDatasets(r repo.Repo, limit, offset int, RPC, publishedOnly, showVersio
 		}
 	}
 
-	// TODO (dustmop): If renames.Renames is non-empty, apply it to r
 	return
 }
 

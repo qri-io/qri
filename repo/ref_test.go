@@ -1,7 +1,7 @@
 package repo
 
 import (
-	"reflect"
+	//"reflect"
 	"testing"
 
 	"github.com/qri-io/qfs"
@@ -454,9 +454,11 @@ func TestCanonicalizeProfile(t *testing.T) {
 		Name:      "ball",
 	}
 
-	badPeerName := DatasetRef{
+	renamePeerName := DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-		Peername:  "bad_name",
+		Peername:  "lucy",
+		Name:      "ball",
+		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}
 
 	badProfileIDGoodName := DatasetRef{
@@ -478,7 +480,7 @@ func TestCanonicalizeProfile(t *testing.T) {
 		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", DatasetRef{}, ballPeer, ""},
 		{"me/ball", DatasetRef{}, ballPeer, ""},
 		{"", badProfileIDGoodName, lucille, ""},
-		{"", badPeerName, DatasetRef{}, "Peername and ProfileID combination not valid: ProfileID = QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y, Peername = lucille, but was given Peername = bad_name"},
+		{"/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", renamePeerName, ball, ""},
 		{"", DatasetRef{}, DatasetRef{}, ""},
 		// TODO - test CanonicalizeProfile works with canonicalizing peer's datasetRefs as well
 	}
@@ -499,7 +501,7 @@ func TestCanonicalizeProfile(t *testing.T) {
 		}
 		got := &ref
 
-		err = CanonicalizeProfile(repo, got, nil)
+		err = CanonicalizeProfile(repo, got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -519,45 +521,5 @@ func TestCanonicalizeProfile(t *testing.T) {
 				t.Errorf("case %d Path mismatch. expected: '%s', got: '%s'", i, c.expect.Path, got.Path)
 			}
 		}
-	}
-}
-
-func TestCanonicalizeProfileWithRename(t *testing.T) {
-	store := cafs.NewMapstore()
-	repo, err := NewMemRepo(&profile.Profile{
-		Peername: "lucille",
-		ID:       profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-	}, store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
-	if err != nil {
-		t.Errorf("error allocating mem repo: %s", err.Error())
-		return
-	}
-
-	lucy := DatasetRef{
-		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-		Peername:  "lucy",
-		Name:      "ball",
-		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-	}
-
-	renames := NewNeedPeernameRenames()
-	err = CanonicalizeProfile(repo, &lucy, &renames)
-	if err != nil {
-		t.Errorf("error canonicalizing: %s", err.Error())
-		return
-	}
-
-	keys := make([]string, 0)
-	for k := range renames.Renames {
-		keys = append(keys, k)
-	}
-	expect := []string{"lucy"}
-	if !reflect.DeepEqual(keys, expect) {
-		t.Errorf("error, expected keys %s, got %s", expect, keys)
-	}
-	expectVal := "lucille"
-	actualVal := renames.Renames["lucy"]
-	if actualVal != expectVal {
-		t.Errorf("error, expected value %s, got %s", expectVal, actualVal)
 	}
 }
