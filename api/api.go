@@ -20,9 +20,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
-	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 )
 
 var log = golog.Logger("qriapi")
@@ -70,11 +67,11 @@ func (s *Server) Serve() (err error) {
 	go s.ServeRPC()
 	go s.ServeWebapp()
 
-	if node, err := s.qriNode.IPFSNode(); err == nil {
+	if namesys, err := s.qriNode.GetIPFSNamesys(); err == nil {
 		if pinner, ok := s.qriNode.Repo.Store().(cafs.Pinner); ok {
 
 			go func() {
-				if _, err := lib.CheckVersion(context.Background(), node.Namesys, lib.PrevIPNSName, lib.LastPubVerHash); err == lib.ErrUpdateRequired {
+				if _, err := lib.CheckVersion(context.Background(), namesys, lib.PrevIPNSName, lib.LastPubVerHash); err == lib.ErrUpdateRequired {
 					log.Info("This version of qri is out of date, please refer to https://github.com/qri-io/qri/releases/latest for more info")
 				} else if err != nil {
 					log.Infof("error checking for software update: %s", err.Error())
@@ -84,7 +81,7 @@ func (s *Server) Serve() (err error) {
 			go func() {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
 				if lib.Config != nil && lib.Config.Render != nil && lib.Config.Render.TemplateUpdateAddress != "" {
-					if latest, err := lib.CheckVersion(context.Background(), node.Namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+					if latest, err := lib.CheckVersion(context.Background(), namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
 						err := pinner.Pin(latest, true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
@@ -179,13 +176,13 @@ func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	node, err := s.qriNode.IPFSNode()
+	namesys, err := s.qriNode.GetIPFSNamesys()
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no IPFS node present: %s", err.Error()))
 		return
 	}
 
-	p, err := node.Namesys.Resolve(r.Context(), r.URL.Path[len("/ipns/"):])
+	p, err := namesys.Resolve(r.Context(), r.URL.Path[len("/ipns/"):])
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error resolving IPNS Name: %s", err.Error()))
 		return
@@ -284,28 +281,9 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 
 // makeDagReceiver constructs a Receivers (HTTP router) from a qri p2p node
 func makeDagReceiver(node *p2p.QriNode) (*dsync.Receivers, error) {
-	ipfsn, err := node.IPFSNode()
+	capi, err := node.IPFSCoreAPI()
 	if err != nil {
 		return nil, err
 	}
-	ng := &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
-
-	capi, err := newIPFSCoreAPI(node)
-	if err != nil {
-		return nil, err
-	}
-	bapi := capi.Block()
-
-	return dsync.NewReceivers(context.Background(), ng, bapi), nil
-}
-
-// newIPFSCoreAPI constructs a CoreAPI (part of ipfs) from a qri p2p node
-// copied from qri/actions/dag.go
-func newIPFSCoreAPI(node *p2p.QriNode) (capi coreiface.CoreAPI, err error) {
-	ipfsn, err := node.IPFSNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return coreapi.NewCoreAPI(ipfsn), nil
+	return dsync.NewReceivers(context.Background(), dag.NewNodeGetter(capi), capi.Block()), nil
 }

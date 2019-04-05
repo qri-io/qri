@@ -56,13 +56,13 @@ func (s *Server) resolveWebappPath(path *string) {
 		return
 	}
 
-	node, err := s.qriNode.IPFSNode()
+	namesys, err := s.qriNode.GetIPFSNamesys()
 	if err != nil {
 		log.Debugf("no IPFS node present to resolve webapp address: %s", err.Error())
 		return
 	}
 
-	p, err := node.Namesys.Resolve(context.Background(), s.cfg.Webapp.EntrypointUpdateAddress)
+	p, err := namesys.Resolve(context.Background(), s.cfg.Webapp.EntrypointUpdateAddress)
 	if err != nil {
 		log.Infof("error resolving IPNS Name: %s", err.Error())
 		return

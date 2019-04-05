@@ -253,7 +253,7 @@ func (n *QriNode) getPeerInfo(pid peer.ID) (pstore.PeerInfo, error) {
 	}
 
 	// attempt to use ipfs routing table to discover peer
-	ipfsnode, err := n.IPFSNode()
+	ipfsnode, err := n.ipfsNode()
 	if err != nil {
 		log.Debug(err.Error())
 		return pstore.PeerInfo{}, err
