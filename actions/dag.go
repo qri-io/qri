@@ -6,8 +6,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 
 	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
-	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
 )
 
 // NewManifest generates a manifest for a given node
@@ -41,23 +39,10 @@ func NewDAGInfo(node *p2p.QriNode, path, label string) (*dag.Info, error) {
 }
 
 // newNodeGetter generates an ipld.NodeGetter from a QriNode
-func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
-	ipfsn, err := node.IPFSNode()
+func newNodeGetter(node *p2p.QriNode) (ipld.NodeGetter, error) {
+	capi, err := node.IPFSCoreAPI()
 	if err != nil {
 		return nil, err
 	}
-
-	ng = &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
-	return
-}
-
-// newIPFSCoreAPI generates a coreiface.CoreAPI from a QriNode
-// from go-ipfs: "coreapi provides direct access to the core commands in IPFS"
-func newIPFSCoreAPI(node *p2p.QriNode) (capi coreiface.CoreAPI, err error) {
-	ipfsn, err := node.IPFSNode()
-	if err != nil {
-		return nil, err
-	}
-
-	return coreapi.NewCoreAPI(ipfsn), nil
+	return dag.NewNodeGetter(capi), nil
 }

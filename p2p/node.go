@@ -21,6 +21,9 @@ import (
 	libp2p "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p"
 	discovery "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/discovery"
 	core "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
+	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
+	coreiface "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi/interface"
+	namesys "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/namesys"
 	circuit "gx/ipfs/QmVYDvJjiKb9iFEyHxx4i1TJSRBLkQhGb5Fc8XpmDuNCEA/go-libp2p-circuit"
 	net "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
 	host "gx/ipfs/QmdJfsSbKSZnMkfZ1kpopiyB9i3Hd6cp8VKWZmtWPa7Moc/go-libp2p-host"
@@ -242,12 +245,31 @@ func (n *QriNode) echoMessages() {
 	}
 }
 
-// IPFSNode returns the underlying IPFS node if this Qri Node is running on IPFS
-func (n *QriNode) IPFSNode() (*core.IpfsNode, error) {
+// ipfsNode returns the internal IPFS node
+func (n *QriNode) ipfsNode() (*core.IpfsNode, error) {
 	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		return ipfsfs.Node(), nil
 	}
 	return nil, fmt.Errorf("not using IPFS")
+}
+
+// GetIPFSNamesys returns a namesystem from IPFS
+func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
+	ipfsn, err := n.ipfsNode()
+	if err != nil {
+		return nil, err
+	}
+	return ipfsn.Namesys, nil
+}
+
+// IPFSCoreAPI returns a pointer to the core IPFS API
+func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
+	ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore)
+	if !ok {
+		return nil, fmt.Errorf("not using IPFS")
+	}
+	inode := ipfsfs.Node()
+	return coreapi.NewCoreAPI(inode), nil
 }
 
 // ListenAddresses gives the listening addresses of this node on the p2p network as

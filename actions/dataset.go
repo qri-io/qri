@@ -159,7 +159,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 				return
 			}
 
-			capi, err := newIPFSCoreAPI(node)
+			capi, err := node.IPFSCoreAPI()
 			if res.Error != nil {
 				res.Error = err
 				return

@@ -16,9 +16,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
-	"gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core/coreapi"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -116,10 +113,11 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 	// Run dsync to transfer all of the blocks of the dataset.
 	fmt.Printf("Running dsync...\n")
 
-	ng, err := newNodeGetter(r.node)
+	capi, err := r.node.IPFSCoreAPI()
 	if err != nil {
 		return err
 	}
+	ng := dag.NewNodeGetter(capi)
 
 	remote := &dsync.HTTPRemote{
 		URL: fmt.Sprintf("%s/dsync", location),
@@ -169,17 +167,6 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 
 	*out = true
 	return nil
-}
-
-// newNodeGetter generates an ipld.NodeGetter from a QriNode
-func newNodeGetter(node *p2p.QriNode) (ng ipld.NodeGetter, err error) {
-	ipfsn, err := node.IPFSNode()
-	if err != nil {
-		return nil, err
-	}
-
-	ng = &dag.NodeGetter{Dag: coreapi.NewCoreAPI(ipfsn).Dag()}
-	return
 }
 
 // Receive is used to save a dataset when running as a remote. API only, not RPC or command-line.
