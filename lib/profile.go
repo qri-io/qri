@@ -77,7 +77,7 @@ func (r *ProfileRequests) getProfile(idStr, peername string) (pro *profile.Profi
 		ref := &repo.DatasetRef{
 			Peername: peername,
 		}
-		if err = repo.CanonicalizeProfile(r.node.Repo, ref, nil); err != nil {
+		if err = repo.CanonicalizeProfile(r.node.Repo, ref); err != nil {
 			log.Error("error canonicalizing profile", err.Error())
 			return nil, err
 		}

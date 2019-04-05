@@ -23,7 +23,7 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, limit, offset int, RPC
 		ds.ProfileID = pro.ID
 	}
 
-	if err := repo.CanonicalizeProfile(r, ds, nil); err != nil {
+	if err := repo.CanonicalizeProfile(r, ds); err != nil {
 		return nil, fmt.Errorf("error canonicalizing peer: %s", err.Error())
 	}
 
