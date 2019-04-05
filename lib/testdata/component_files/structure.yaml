@@ -1,0 +1,9 @@
+qri: st
+format: json
+schema:
+  type: array
+  items:
+    type: array
+    items:
+    - type: string
+      name: field_1
