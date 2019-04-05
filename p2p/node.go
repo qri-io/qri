@@ -262,7 +262,7 @@ func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
 	return ipfsn.Namesys, nil
 }
 
-// IPFSCoreAPI returns a pointer to the core IPFS API
+// IPFSCoreAPI returns a IPFS API interface instance
 func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
 	ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore)
 	if !ok {
