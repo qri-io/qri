@@ -313,14 +313,19 @@ func (q *Qri) Profiles() *ProfileRequests {
 	return NewProfileRequests(q.node, q.cfg, filepath.Join(q.qriPath, "config.yaml"), q.rpc)
 }
 
-// Searchs provides methods for working with Searchs
-func (q *Qri) Searchs() *SearchRequests {
+// Searches provides methods for working with Search
+func (q *Qri) Searches() *SearchRequests {
 	return NewSearchRequests(q.node, q.rpc)
 }
 
 // Renders provides methods for working with Renders
 func (q *Qri) Renders() *RenderRequests {
 	return NewRenderRequests(q.node.Repo, q.rpc)
+}
+
+// Remotes provides methods for operating Qri as a Remote
+func (q *Qri) Remotes() *RemoteRequests {
+	return NewRemoteRequests(q.node, q.cfg, q.rpc)
 }
 
 // Selections provides methods for working with Selections

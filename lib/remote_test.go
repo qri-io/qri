@@ -19,6 +19,8 @@ func TestRemote(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
+	cfg := config.DefaultConfigForTesting()
+
 	// Set a seed so that the sessionID is deterministic
 	rand.Seed(5678)
 
@@ -26,7 +28,7 @@ func TestRemote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewRemoteRequests(node, nil)
+	req := NewRemoteRequests(node, cfg, nil)
 	req.Receivers = dsync.NewTestReceivers()
 
 	exampleDagInfo := &dag.Info{
@@ -39,7 +41,7 @@ func TestRemote(t *testing.T) {
 	}
 
 	// Reject all dag.Info's
-	Config.API.RemoteAcceptSizeMax = 0
+	cfg.API.RemoteAcceptSizeMax = 0
 	params := ReceiveParams{
 		DagInfo: exampleDagInfo,
 	}
@@ -57,7 +59,7 @@ func TestRemote(t *testing.T) {
 	}
 
 	// Accept all dag.Info's
-	Config.API.RemoteAcceptSizeMax = -1
+	cfg.API.RemoteAcceptSizeMax = -1
 	params = ReceiveParams{
 		DagInfo: exampleDagInfo,
 	}
