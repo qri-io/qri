@@ -170,7 +170,7 @@ It's a quick process, we promise!
 [coc]: https://github.com/qri-io/qri/CODE_OF_CONDUCT.md
 [corporate-cla]: http://code.google.com/legal/corporate-cla-v1.0.html
 [developers]: DEVELOPERS.md
-[developers.setup]: https://github.com/qri-io/qri/README.md#build
+[developers.setup]: DEVELOPERS.md#setup
 [developers.commits]: DEVELOPERS.md#commits
 [developers.rules]: DEVELOPERS.md#rules
 [github-issues]: https://github.com/qri-io/qri/issues
