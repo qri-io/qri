@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -54,7 +55,7 @@ type ExportParams struct {
 func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error) {
 	if p.TargetDir == "" {
 		p.TargetDir = "."
-		if err = AbsPath(&p.TargetDir); err != nil {
+		if err = qfs.AbsPath(&p.TargetDir); err != nil {
 			return err
 		}
 	}
