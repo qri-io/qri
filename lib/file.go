@@ -86,17 +86,17 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 				return nil, "", err
 			}
 
-			fields := make(map[string]interface{})
-			if err = yaml.Unmarshal(data, fields); err != nil {
+			fieldsMapIface := make(map[interface{}]interface{})
+			if err = yaml.Unmarshal(data, fieldsMapIface); err != nil {
 				return nil, "", err
 			}
 
-			// TODO (b5): temp hack to deal with terrible interaction with fill_struct,
-			// we should find a more robust solution to this, enforcing the assumption that all
-			// dataset documents use string keys
-			if sti, ok := fields["structure"].(map[interface{}]interface{}); ok {
-				fields["structure"] = toMapIface(sti)
-			}
+			// TODO (b5): slow. the yaml package we use unmarshals to map[interface{}]interface{}
+			// (because that's what the yaml spec says you should do), so we have to do this extra
+			// recurse/convert step. It shouldn't be *too* big a deal since most use cases don't inline
+			// full dataset bodies into yaml files, but that's not an assumption we should rely on
+			// long term
+			fields := toMapIface(fieldsMapIface)
 
 			kind, err := fillDatasetOrComponent(fields, path, &ds)
 			return &ds, kind, err
@@ -169,7 +169,7 @@ func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *data
 	target = ds
 	kind := "ds"
 
-	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) > 3 {
+	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) >= 2 {
 		switch kindStr[:2] {
 		case "md":
 			ds.Meta = &dataset.Meta{}
