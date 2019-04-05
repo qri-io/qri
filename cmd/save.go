@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -106,12 +107,12 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	// `qri connect` in a different terminal, and that instance is in a different directory;
 	// that instance won't correctly find the body file we want to load if it's not absolute.
 	for i := range o.FilePaths {
-		if err := lib.AbsPath(&o.FilePaths[i]); err != nil {
+		if err := qfs.AbsPath(&o.FilePaths[i]); err != nil {
 			return err
 		}
 	}
 
-	if err := lib.AbsPath(&o.BodyPath); err != nil {
+	if err := qfs.AbsPath(&o.BodyPath); err != nil {
 		return fmt.Errorf("body file: %s", err)
 	}
 

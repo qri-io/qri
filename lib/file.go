@@ -16,48 +16,6 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
-// AbsPath adjusts the provided string to a path lib functions can work with
-// because paths for Qri can come from the local filesystem, an http url, or
-// the distributed web, Absolutizing is a little tricky
-//
-// If lib in put params call for a path, running input through AbsPath before
-// calling a lib function should help reduce errors. calling AbsPath on empty
-// string has no effect
-func AbsPath(path *string) (err error) {
-	if *path == "" {
-		return
-	}
-
-	*path = strings.TrimSpace(*path)
-	p := *path
-
-	// bail on urls and ipfs hashes
-	pk := pathKind(p)
-	if pk == "http" || pk == "ipfs" {
-		return
-	}
-
-	// TODO - perform tilda (~) expansion
-	if filepath.IsAbs(p) {
-		return
-	}
-	*path, err = filepath.Abs(p)
-	return
-}
-
-func pathKind(path string) string {
-	if path == "" {
-		return "none"
-	} else if strings.HasPrefix(path, "http://") || strings.HasPrefix(path, "https://") {
-		return "http"
-	} else if strings.HasPrefix(path, "/ipfs") {
-		return "ipfs"
-	} else if strings.HasPrefix(path, "/map") || strings.HasPrefix(path, "/cafs") {
-		return "cafs"
-	}
-	return "file"
-}
-
 // ReadDatasetFiles reads zero or more files, each representing a dataset or component of a
 // dataset, and deserializes them, merging the results into a single dataset object. It is an
 // error to provide any combination of files whose contents overlap (modify the same component).
@@ -96,7 +54,7 @@ func ReadDatasetFiles(pathList ...string) (*dataset.Dataset, error) {
 // a dataset and a string specifying the kind of component that was created
 func readSingleFile(path string) (*dataset.Dataset, string, error) {
 	ds := dataset.Dataset{}
-	switch pathKind(path) {
+	switch qfs.PathKind(path) {
 	case "http":
 		// currently the only supported type of file url is a zip archive
 		resp, err := http.Get(path)
@@ -114,7 +72,7 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 	case "ipfs":
 		return nil, "", fmt.Errorf("reading dataset files from IPFS currently unsupported")
 
-	case "file":
+	case "local":
 		f, err := os.Open(path)
 		if err != nil {
 			return nil, "", err
@@ -181,7 +139,7 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 			return nil, "", fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
 		}
 	default:
-		return nil, "", fmt.Errorf("error, unknown path kind: \"%s\"", pathKind(path))
+		return nil, "", fmt.Errorf("error, unknown path kind: \"%s\"", qfs.PathKind(path))
 	}
 }
 
@@ -239,13 +197,13 @@ func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *data
 // their absolute counterpart
 func absDatasetPaths(path string, dsp *dataset.Dataset) {
 	base := filepath.Dir(path)
-	if dsp.BodyPath != "" && pathKind(dsp.BodyPath) == "file" && !filepath.IsAbs(dsp.BodyPath) {
+	if dsp.BodyPath != "" && qfs.PathKind(dsp.BodyPath) == "local" && !filepath.IsAbs(dsp.BodyPath) {
 		dsp.BodyPath = filepath.Join(base, dsp.BodyPath)
 	}
-	if dsp.Transform != nil && pathKind(dsp.Transform.ScriptPath) == "file" && !filepath.IsAbs(dsp.Transform.ScriptPath) {
+	if dsp.Transform != nil && qfs.PathKind(dsp.Transform.ScriptPath) == "local" && !filepath.IsAbs(dsp.Transform.ScriptPath) {
 		dsp.Transform.ScriptPath = filepath.Join(base, dsp.Transform.ScriptPath)
 	}
-	if dsp.Viz != nil && pathKind(dsp.Viz.ScriptPath) == "file" && !filepath.IsAbs(dsp.Viz.ScriptPath) {
+	if dsp.Viz != nil && qfs.PathKind(dsp.Viz.ScriptPath) == "local" && !filepath.IsAbs(dsp.Viz.ScriptPath) {
 		dsp.Viz.ScriptPath = filepath.Join(base, dsp.Viz.ScriptPath)
 	}
 }
