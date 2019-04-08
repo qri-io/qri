@@ -1,16 +1,11 @@
 package lib
 
 import (
-	"bytes"
-	"context"
-	"encoding/json"
 	"fmt"
-	"io"
-	"io/ioutil"
-	"net/http"
 	"net/rpc"
+	"sync"
+	"time"
 
-	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
@@ -26,6 +21,7 @@ type RemoteRequests struct {
 	node      *p2p.QriNode
 	Receivers *dsync.Receivers
 	Sessions  map[string]*ReceiveParams
+	lock      sync.Mutex
 }
 
 // NewRemoteRequests creates a RemoteRequests pointer from either a node or an rpc.Client
@@ -43,11 +39,6 @@ func NewRemoteRequests(node *p2p.QriNode, cli *rpc.Client) *RemoteRequests {
 // CoreRequestsName implements the Requests interface
 func (RemoteRequests) CoreRequestsName() string { return "remote" }
 
-// TODO(dlong): Split this function into smaller steps, move them to actions/ or base/ as
-// appropriate
-
-// TODO(dlong): Add tests
-
 // PushToRemote posts a dagInfo to a remote
 func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 	if r.cli != nil {
@@ -62,7 +53,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	DagInfo, err := actions.NewDAGInfo(r.node, ref.Path, "")
+	dagInfo, err := actions.NewDAGInfo(r.node, ref.Path, "")
 	if err != nil {
 		return err
 	}
@@ -72,98 +63,20 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
 	}
 
-	// Post the dataset's dag.Info to the remote.
-	fmt.Printf("Posting to /dsync/push...\n")
-
-	params := ReceiveParams{
-		Peername:  ref.Peername,
-		Name:      ref.Name,
-		ProfileID: ref.ProfileID,
-		DagInfo:   DagInfo,
-	}
-
-	data, err := json.Marshal(params)
+	sessionID, dagDiff, err := actions.DsyncStartPush(r.node, dagInfo, location, &ref)
 	if err != nil {
 		return err
 	}
 
-	dsyncPushURL := fmt.Sprintf("%s/dsync/push", location)
-	req, err := http.NewRequest("POST", dsyncPushURL, bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	httpClient := http.DefaultClient
-	res, err := httpClient.Do(req)
+	err = actions.DsyncSendBlocks(r.node, location, sessionID, dagInfo.Manifest, dagDiff)
 	if err != nil {
 		return err
 	}
 
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
-	}
-
-	env := struct{ Data ReceiveResult }{}
-	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
-		return err
-	}
-	res.Body.Close()
-
-	// Run dsync to transfer all of the blocks of the dataset.
-	fmt.Printf("Running dsync...\n")
-
-	capi, err := r.node.IPFSCoreAPI()
+	err = actions.DsyncCompletePush(r.node, location, sessionID)
 	if err != nil {
 		return err
 	}
-	ng := dag.NewNodeGetter(capi)
-
-	remote := &dsync.HTTPRemote{
-		URL: fmt.Sprintf("%s/dsync", location),
-	}
-
-	ctx := context.Background()
-	send, err := dsync.NewSend(ctx, ng, DagInfo.Manifest, remote)
-	if err != nil {
-		return err
-	}
-
-	err = send.PerformSend(env.Data.SessionID, DagInfo.Manifest, env.Data.Diff)
-	if err != nil {
-		return err
-	}
-
-	// Finish the send, pin the dataset in IPFS
-	fmt.Printf("Writing dsref and pinning...\n")
-
-	completeParams := CompleteParams{
-		SessionID: env.Data.SessionID,
-	}
-
-	data, err = json.Marshal(completeParams)
-	if err != nil {
-		return err
-	}
-
-	dsyncCompleteURL := fmt.Sprintf("%s/dsync/complete", location)
-	req, err = http.NewRequest("POST", dsyncCompleteURL, bytes.NewReader(data))
-	if err != nil {
-		return err
-	}
-	req.Header.Set("Content-Type", "application/json")
-
-	res, err = httpClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("error code %d: %v", res.StatusCode, rejectionReason(res.Body))
-	}
-
-	// Success!
-	fmt.Printf("Success!\n")
 
 	*out = true
 	return nil
@@ -216,8 +129,24 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 		return nil
 	}
 
-	// TODO: Timeout for sessions. Remove sessions when they complete or timeout
+	// Add an entry for this sessionID
+	r.lock.Lock()
 	r.Sessions[sid] = p
+	r.lock.Unlock()
+
+	// Timeout the session
+	timeout := Config.API.RemoteAcceptTimeoutMs * time.Millisecond
+	if timeout == 0 {
+		timeout = time.Second
+	}
+	go func() {
+		time.Sleep(timeout)
+		r.lock.Lock()
+		defer r.lock.Unlock()
+		delete(r.Sessions, sid)
+	}()
+
+	// Sucessful response to the client
 	res.Success = true
 	res.SessionID = sid
 	res.Diff = diff
@@ -258,30 +187,9 @@ func (r *RemoteRequests) Complete(p *CompleteParams, res *bool) (err error) {
 		return err
 	}
 
+	r.lock.Lock()
+	delete(r.Sessions, sid)
+	r.lock.Unlock()
+
 	return nil
-}
-
-func rejectionReason(r io.Reader) string {
-	text, err := ioutil.ReadAll(r)
-	if err != nil {
-		return "unknown error"
-	}
-
-	var response map[string]interface{}
-	err = json.Unmarshal(text, &response)
-	if err != nil {
-		return fmt.Sprintf("error unmarshalling: %s", string(text))
-	}
-
-	meta, ok := response["meta"].(map[string]interface{})
-	if !ok {
-		return fmt.Sprintf("error unmarshalling: %s", string(text))
-	}
-
-	errText, ok := meta["error"].(string)
-	if !ok {
-		return fmt.Sprintf("error unmarshalling: %s", string(text))
-	}
-
-	return errText
 }
