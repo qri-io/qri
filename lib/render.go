@@ -8,28 +8,29 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// RenderRequests encapsulates business logic for this node's
+// RenderMethods execute qri dataset viz components to a visual representation
+type RenderMethods interface {
+	Methods
+	Render(p *RenderParams, res *[]byte) error
+}
+
+// NewRenderMethods creates a RenderMethods from an instance
+func NewRenderMethods(inst Instance) RenderMethods {
+	return renderMethods{
+		cli:  inst.RPC(),
+		repo: inst.Repo(),
+	}
+}
+
+// renderMethods encapsulates business logic for this node's
 // user profile
-type RenderRequests struct {
+type renderMethods struct {
 	cli  *rpc.Client
 	repo repo.Repo
 }
 
-// NewRenderRequests creates a RenderRequests pointer from either a repo
-// or an rpc.Client
-func NewRenderRequests(r repo.Repo, cli *rpc.Client) *RenderRequests {
-	if r != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewRenderRequests"))
-	}
-
-	return &RenderRequests{
-		cli:  cli,
-		repo: r,
-	}
-}
-
-// CoreRequestsName implements the Requets interface
-func (RenderRequests) CoreRequestsName() string { return "render" }
+// MethodsKind implements the Requets interface
+func (renderMethods) MethodsKind() string { return "RenderMethods" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
@@ -39,9 +40,9 @@ type RenderParams struct {
 }
 
 // Render executes a template against a template
-func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
+func (r renderMethods) Render(p *RenderParams, res *[]byte) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RenderRequests.Render", p, res)
+		return r.cli.Call("RenderMethods.Render", p, res)
 	}
 
 	var ref repo.DatasetRef

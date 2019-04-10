@@ -20,33 +20,66 @@ import (
 	"github.com/qri-io/qri/rev"
 )
 
-// DatasetRequests encapsulates business logic for working with Datasets on Qri
-type DatasetRequests struct {
+// DatasetMethods encapsulates all functions for working with datasets, composing
+// dataset read, write, and plumbing operations
+type DatasetMethods interface {
+	Methods
+	DatasetReadMethods
+	DatasetWriteMethods
+	DAGMethods
+}
+
+// DatasetReadMethods defines all read functions that operate on a dataset
+type DatasetReadMethods interface {
+	List(p *ListParams, res *[]repo.DatasetRef) error
+	Get(p *GetParams, res *GetResult) error
+}
+
+// PublishMethods
+type PublishMethods interface {
+	SetPublishStatus(p *SetPublishStatusParams, publishedRef *repo.DatasetRef) error
+}
+
+// DatasetWriteMethods defines all read functions that operate on a dataset
+type DatasetWriteMethods interface {
+	Save(p *SaveParams, res *repo.DatasetRef) error
+	Rename(p *RenameParams, res *repo.DatasetRef) error
+	Remove(p *RemoveParams, res *RemoveResponse) error
+	Add(ref, res *repo.DatasetRef) error
+}
+
+// DAGMethods implements
+// TODO (b5): this whole interface really doesn't belong on to dataset stuff
+// it's generic to DAGs
+type DAGMethods interface {
+	Manifest(refstr *string, m *dag.Manifest) (err error)
+	ManifestMissing(a, b *dag.Manifest) (err error)
+	DAGInfo(s *DAGInfoParams, i *dag.Info) (err error)
+}
+
+// NewDatasetMethods creates a DatasetMethods pointer from either a repo
+// or an rpc.Client
+func NewDatasetMethods(inst Instance) DatasetMethods {
+	return datasetMethods{
+		node: inst.Node(),
+		cli:  inst.RPC(),
+	}
+}
+
+// datasetMethods encapsulates business logic for working with Datasets on Qri
+type datasetMethods struct {
 	cli  *rpc.Client
 	node *p2p.QriNode
 }
 
-// CoreRequestsName implements the Requets interface
-func (DatasetRequests) CoreRequestsName() string { return "datasets" }
-
-// NewDatasetRequests creates a DatasetRequests pointer from either a repo
-// or an rpc.Client
-func NewDatasetRequests(node *p2p.QriNode, cli *rpc.Client) *DatasetRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewDatasetRequests"))
-	}
-
-	return &DatasetRequests{
-		node: node,
-		cli:  cli,
-	}
-}
+// MethodsKind implements the Requets interface
+func (datasetMethods) MethodsKind() string { return "datasets" }
 
 // List returns this repo's datasets
-func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
+func (r datasetMethods) List(p *ListParams, res *[]repo.DatasetRef) error {
 	if r.cli != nil {
 		p.RPC = true
-		return r.cli.Call("DatasetRequests.List", p, res)
+		return r.cli.Call("DatasetMethods.List", p, res)
 	}
 
 	ds := &repo.DatasetRef{
@@ -96,9 +129,9 @@ type GetResult struct {
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
 // then res.Bytes is loaded with the body.
-func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
+func (r datasetMethods) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Get", p, res)
+		return r.cli.Call("DatasetMethods.Get", p, res)
 	}
 	ref := &repo.DatasetRef{}
 
@@ -220,9 +253,9 @@ type SaveParams struct {
 
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
-func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
+func (r datasetMethods) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Save", p, res)
+		return r.cli.Call("DatasetMethods.Save", p, res)
 	}
 
 	if p.Private {
@@ -328,9 +361,9 @@ type UpdateParams struct {
 
 // Update advances a dataset to the latest known version from either a peer or by
 // re-running a transform in the peer's namespace
-func (r *DatasetRequests) Update(p *UpdateParams, res *repo.DatasetRef) error {
+func (r datasetMethods) Update(p *UpdateParams, res *repo.DatasetRef) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Update", p, res)
+		return r.cli.Call("DatasetMethods.Update", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -390,9 +423,9 @@ type SetPublishStatusParams struct {
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *repo.DatasetRef) (err error) {
+func (r datasetMethods) SetPublishStatus(p *SetPublishStatusParams, publishedRef *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef)
+		return r.cli.Call("DatasetMethods.SetPublishStatus", p, publishedRef)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -412,7 +445,7 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 
 	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
 		var done bool
-		rr := NewRegistryRequests(r.node, nil)
+		rr := registryMethods{node: r.node}
 
 		if ref.Published {
 			if err = rr.Publish(&ref, &done); err != nil {
@@ -442,9 +475,9 @@ type RenameParams struct {
 }
 
 // Rename changes a user's given name for a dataset
-func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
+func (r datasetMethods) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Rename", p, res)
+		return r.cli.Call("datasetMethods.Rename", p, res)
 	}
 
 	if p.Current.IsEmpty() {
@@ -477,9 +510,9 @@ type RemoveResponse struct {
 }
 
 // Remove a dataset entirely or remove a certain number of revisions
-func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
+func (r datasetMethods) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Remove", p, res)
+		return r.cli.Call("DatasetMethods.Remove", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -547,9 +580,9 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 }
 
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
+func (r datasetMethods) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Add", ref, res)
+		return r.cli.Call("DatasetMethods.Add", ref, res)
 	}
 
 	err = actions.AddDataset(r.node, ref)
@@ -568,9 +601,9 @@ type ValidateDatasetParams struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
+func (r datasetMethods) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Validate", p, errors)
+		return r.cli.Call("DatasetMethods.Validate", p, errors)
 	}
 
 	if err = DefaultSelectedRef(r.node.Repo, &p.Ref); err != nil {
@@ -599,9 +632,9 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 }
 
 // Manifest generates a manifest for a dataset path
-func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) {
+func (r datasetMethods) Manifest(refstr *string, m *dag.Manifest) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
+		return r.cli.Call("DatasetMethods.Manifest", refstr, m)
 	}
 
 	ref, err := repo.ParseDatasetRef(*refstr)
@@ -622,9 +655,9 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 }
 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
-func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
+func (r datasetMethods) ManifestMissing(a, b *dag.Manifest) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Manifest", a, b)
+		return r.cli.Call("DatasetMethods.Manifest", a, b)
 	}
 
 	var mf *dag.Manifest
@@ -642,9 +675,9 @@ type DAGInfoParams struct {
 }
 
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
-func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
+func (r datasetMethods) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
+		return r.cli.Call("DatasetMethods.DAGInfo", s, i)
 	}
 
 	ref, err := repo.ParseDatasetRef(s.RefStr)

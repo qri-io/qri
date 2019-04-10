@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"fmt"
 	"net/rpc"
 
 	"github.com/qri-io/qri/actions"
@@ -9,27 +8,29 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// LogRequests encapsulates business logic for the log
+type LogMethods interface {
+	Methods
+	Log(params *LogParams, res *[]repo.DatasetRef) error
+}
+
+// NewLogMethods creates a logMethods pointer from either a repo
+// or an rpc.Client
+func NewLogMethods(inst Instance) LogMethods {
+	return &logMethods{
+		node: inst.Node(),
+		cli:  inst.RPC(),
+	}
+}
+
+// logMethods encapsulates business logic for the log
 // of changes to datasets, think "git log"
-type LogRequests struct {
+type logMethods struct {
 	node *p2p.QriNode
 	cli  *rpc.Client
 }
 
-// CoreRequestsName implements the Requets interface
-func (r LogRequests) CoreRequestsName() string { return "log" }
-
-// NewLogRequests creates a LogRequests pointer from either a repo
-// or an rpc.Client
-func NewLogRequests(node *p2p.QriNode, cli *rpc.Client) *LogRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both node and client supplied to NewLogRequests"))
-	}
-	return &LogRequests{
-		node: node,
-		cli:  cli,
-	}
-}
+// MethodsKind implements the Requets interface
+func (r logMethods) MethodsKind() string { return "LogMethods" }
 
 // LogParams defines parameters for the Log method
 type LogParams struct {
@@ -39,9 +40,9 @@ type LogParams struct {
 }
 
 // Log returns the history of changes for a given dataset
-func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error) {
+func (r *logMethods) Log(params *LogParams, res *[]repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("LogRequests.Log", params, res)
+		return r.cli.Call("LogMethods.Log", params, res)
 	}
 
 	ref := params.Ref

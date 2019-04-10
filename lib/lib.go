@@ -4,6 +4,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/gob"
 	"fmt"
 	"net"
@@ -22,6 +23,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
@@ -32,13 +34,6 @@ var log = golog.Logger("lib")
 // VersionNumber is the current version qri
 const VersionNumber = "0.7.4-dev"
 
-// Requests defines a set of library methods
-type Requests interface {
-	// CoreRequestsName confirms participation in the CoreRequests interface while
-	// also giving a human readable string for logging purposes
-	CoreRequestsName() string
-}
-
 func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
 	// registering with the gob package prevents errors when sending them
@@ -47,29 +42,66 @@ func init() {
 	gob.Register(map[string]interface{}{})
 }
 
-// Receivers returns a slice of CoreRequests that defines the full local
+// Instance is the interface that bundles the foundational values of a
+// qri instance.
+type Instance interface {
+	// Context returns the base context this instance is using. Any resources
+	// built from this instance should inherit from this context and obey
+	// calls from the ctx.Done(), releasing any & all resources
+	Context() context.Context
+	// the returned context should tear down the entire instance & cleanup all
+	// resources the instance is currently consuming
+	// Teardown closes the instance by closing the base context
+	Teardown()
+	// Config returns the current configuration for this
+	Config() *config.Config
+	Node() *p2p.QriNode
+	Repo() repo.Repo
+	RPC() *rpc.Client
+}
+
+// WritableInstance is an instance that can be modified
+// instances that allow config changes should implement this interface
+type WritableInstance interface {
+	// SetConfig modifies configuration details
+	SetConfig(*config.Config) error
+}
+
+// ErrNotWritable is a canonical error for try to edit an instance
+// that isn't editable
+var ErrNotWritable = fmt.Errorf("this instance isn't writable")
+
+// Methods is a related set of library functions
+type Methods interface {
+	// MethodsKind confirms participation in the Methods interface while
+	// also giving a human readable string for logging purposes
+	MethodsKind() string
+}
+
+// AllMethods returns a slice of CoreRequests that defines the full local
 // API of lib methods
-func Receivers(node *p2p.QriNode, cfg *config.Config, cfgFilepath string) []Requests {
-	return []Requests{
-		NewDatasetRequests(node, nil),
-		NewRegistryRequests(node, nil),
-		NewLogRequests(node, nil),
-		NewExportRequests(node, nil),
-		NewPeerRequests(node, nil),
-		NewProfileRequests(node, cfg, cfgFilepath, nil),
-		NewSearchRequests(node, nil),
-		NewRenderRequests(node.Repo, nil),
-		NewSelectionRequests(node.Repo, nil),
+func AllMethods(inst Instance) []Methods {
+	return []Methods{
+		// NewDatasetRequests(node, nil),
+		// NewRegistryRequests(node, nil),
+		// NewLogRequests(node, nil),
+		// NewExportRequests(node, nil),
+		// NewPeerRequests(node, nil),
+		// NewProfileRequests(node, cfg, cfgFilepath, nil),
+		// NewSearchRequests(node, nil),
+		// NewRenderRequests(node.Repo, nil),
+		// NewSelectionRequests(node.Repo, nil),
 	}
 }
 
-// QriOptions provides details to New. New will alter QriOptions by applying
+// InstanceOptions provides details to NewInstance.
+// New will alter InstanceOptions by applying
 // any provided Option functions
 // to distinguish "Options" from "Config":
 // * Options contains state that can only be determined at runtime
 // * Config consists only of static values stored in a configuration file
 // Options may override config in specific cases to avoid undefined state
-type QriOptions struct {
+type InstanceOptions struct {
 	Cfg      *config.Config
 	Streams  ioes.IOStreams
 	QriPath  string
@@ -77,12 +109,12 @@ type QriOptions struct {
 }
 
 // Option is a function that manipulates config details when fed to New()
-type Option func(o *QriOptions) error
+type Option func(o *InstanceOptions) error
 
 // OptDefaultQriPath configures the directory to read Qri from, defaulting to
 // "$HOME/.qri", unless the environment variable QRI_PATH is set
 func OptDefaultQriPath() Option {
-	return func(o *QriOptions) error {
+	return func(o *InstanceOptions) error {
 		path := os.Getenv("QRI_PATH")
 		if path == "" {
 			dir, err := homedir.Dir()
@@ -99,7 +131,7 @@ func OptDefaultQriPath() Option {
 // OptDefaultIPFSPath configures the directory to read IPFS from, defaulting to
 // "$HOME/.ipfs", unless the environment variable IPFS_PATH is set
 func OptDefaultIPFSPath() Option {
-	return func(o *QriOptions) error {
+	return func(o *InstanceOptions) error {
 		path := os.Getenv("IPFS_PATH")
 		if path == "" {
 			dir, err := homedir.Dir()
@@ -115,7 +147,7 @@ func OptDefaultIPFSPath() Option {
 
 // OptLoadConfigFile loads a configuration from a given path
 func OptLoadConfigFile(path string) Option {
-	return func(o *QriOptions) (err error) {
+	return func(o *InstanceOptions) (err error) {
 		// default to checking
 		if path == "" && o.QriPath != "" {
 			path = filepath.Join(o.QriPath, "config.yaml")
@@ -134,7 +166,7 @@ func OptLoadConfigFile(path string) Option {
 
 // OptIOStreams sets the input IOStreams
 func OptIOStreams(streams ioes.IOStreams) Option {
-	return func(o *QriOptions) error {
+	return func(o *InstanceOptions) error {
 		o.Streams = streams
 		return nil
 	}
@@ -142,7 +174,7 @@ func OptIOStreams(streams ioes.IOStreams) Option {
 
 // OptStdIOStreams sets treams to std, stdout, & stderr
 func OptStdIOStreams() Option {
-	return func(o *QriOptions) error {
+	return func(o *InstanceOptions) error {
 		o.Streams = ioes.NewStdIOStreams()
 		return nil
 	}
@@ -151,7 +183,7 @@ func OptStdIOStreams() Option {
 // OptCheckConfigMigrations checks for any configuration migrations that may need to be run
 // running & updating config if so
 func OptCheckConfigMigrations(cfgPath string) Option {
-	return func(o *QriOptions) error {
+	return func(o *InstanceOptions) error {
 		// default to checking
 		if cfgPath == "" && o.QriPath != "" {
 			cfgPath = filepath.Join(o.QriPath, "config.yaml")
@@ -175,10 +207,10 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 	}
 }
 
-// New creates a new Qri handle, if no Option funcs are provided, New uses
-// a default set of Option funcs
-func New(opts ...Option) (qri *Qri, err error) {
-	o := &QriOptions{}
+// NewInstance creates a new Qri Instance, if no Option funcs are provided,
+// New uses a default set of Option funcs
+func NewInstance(opts ...Option) (qri Instance, err error) {
+	o := &InstanceOptions{}
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
 		opts = []Option{
@@ -204,6 +236,15 @@ func New(opts ...Option) (qri *Qri, err error) {
 		return
 	}
 
+	ctx, teardown := context.WithCancel(context.Background())
+
+	inst := &instance{
+		ctx:      ctx,
+		teardown: teardown,
+		cfg:      cfg,
+	}
+	qri = inst
+
 	// configure logging straight away
 	if cfg != nil && cfg.Logging != nil {
 		for name, level := range cfg.Logging.Levels {
@@ -216,10 +257,7 @@ func New(opts ...Option) (qri *Qri, err error) {
 		if conn, err := net.Dial("tcp", addr); err != nil {
 			err = nil
 		} else {
-			qri = &Qri{
-				cfg: cfg,
-				rpc: rpc.NewClient(conn),
-			}
+			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}
 	}
@@ -266,69 +304,61 @@ func New(opts ...Option) (qri *Qri, err error) {
 	}
 	node.LocalStreams = o.Streams
 
-	return &Qri{cfg: cfg, node: node, qriPath: o.QriPath}, nil
+	inst.node = node
+	inst.qriPath = o.QriPath
+
+	return
 }
 
-// Qri is a single handle for accessing all of Qri's subsystems
-// create one with New
-type Qri struct {
+// instance implements the (exported) Instance interface
+// create an instance one with NewInstance
+type instance struct {
+	ctx      context.Context
+	teardown context.CancelFunc
+
 	cfg     *config.Config
 	qriPath string
 	node    *p2p.QriNode
 	rpc     *rpc.Client
 }
 
+// Context returns the base context for this instance
+func (inst *instance) Context() context.Context {
+	return inst.ctx
+}
+
 // Config provides methods for manipulating Qri configuration
-func (q *Qri) Config() *Config {
-	return NewConfig(q.cfg, filepath.Join(q.qriPath, "config.yaml"))
+func (inst *instance) Config() *config.Config {
+	return inst.cfg
 }
 
-// Datasets provides methods for working with Datasets
-func (q *Qri) Datasets() *DatasetRequests {
-	return NewDatasetRequests(q.node, q.rpc)
+// SetConfig implements the ConfigSetter interface
+func (inst *instance) SetConfig(cfg *config.Config) error {
+	if inst.qriPath != "" {
+		// TODO (b5): write to config file here
+	}
+	return nil
 }
 
-// Registries provides methods for working with Registries
-func (q *Qri) Registries() *RegistryRequests {
-	return NewRegistryRequests(q.node, q.rpc)
+// Node accesses the instance qri node if one exists
+func (inst *instance) Node() *p2p.QriNode {
+	return inst.node
 }
 
-// Logs provides methods for working with Logs
-func (q *Qri) Logs() *LogRequests {
-	return NewLogRequests(q.node, q.rpc)
+// Repo accesses the instance Repo if one exists
+func (inst *instance) Repo() repo.Repo {
+	if inst.node == nil {
+		return nil
+	}
+	return inst.node.Repo
 }
 
-// Exports provides methods for working with Exports
-func (q *Qri) Exports() *ExportRequests {
-	return NewExportRequests(q.node, q.rpc)
+// RPC accesses the instance RPC client if one exists
+func (inst *instance) RPC() *rpc.Client {
+	return inst.rpc
 }
 
-// Peers provides methods for working with Peers
-func (q *Qri) Peers() *PeerRequests {
-	return NewPeerRequests(q.node, q.rpc)
-}
-
-// Profiles provides methods for working with Profiles
-func (q *Qri) Profiles() *ProfileRequests {
-	return NewProfileRequests(q.node, q.cfg, filepath.Join(q.qriPath, "config.yaml"), q.rpc)
-}
-
-// Searches provides methods for working with Search
-func (q *Qri) Searches() *SearchRequests {
-	return NewSearchRequests(q.node, q.rpc)
-}
-
-// Renders provides methods for working with Renders
-func (q *Qri) Renders() *RenderRequests {
-	return NewRenderRequests(q.node.Repo, q.rpc)
-}
-
-// Remotes provides methods for operating Qri as a Remote
-func (q *Qri) Remotes() *RemoteRequests {
-	return NewRemoteRequests(q.node, q.cfg, q.rpc)
-}
-
-// Selections provides methods for working with Selections
-func (q *Qri) Selections() *SelectionRequests {
-	return NewSelectionRequests(q.node.Repo, q.rpc)
+// Teardown destroys the instance, releasing reserved resources
+func (inst *instance) Teardown() {
+	inst.teardown()
 }

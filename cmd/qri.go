@@ -114,7 +114,7 @@ func (o *QriOptions) Init() (err error) {
 			lib.OptCheckConfigMigrations(""),
 		}
 
-		o.qri, err = lib.New(options...)
+		o.qri, err = lib.NewInstance(options...)
 		if err != nil {
 			return err
 		}

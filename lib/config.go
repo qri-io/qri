@@ -8,31 +8,38 @@ import (
 	"github.com/qri-io/qri/config"
 )
 
-// GetConfigParams are the params needed to format/specify the fields in bytes returned from the GetConfig function
+// ConfigMethods defines functions for working with with Qri configuration
+// details.
+type ConfigMethods interface {
+	Methods
+	GetConfig(p *GetConfigParams, res *[]byte) error
+	SetConfig(update *config.Config, set *bool) error
+}
+
+// NewConfigMethods creates a configuration handle from an instance
+func NewConfigMethods(inst Instance) ConfigMethods {
+	return configHandle{inst: inst}
+}
+
+// GetConfigParams are the params needed to format/specify the fields in bytes
+// returned from the GetConfig function
 type GetConfigParams struct {
+	Field          string
 	WithPrivateKey bool
 	Format         string
 	Concise        bool
-	Field          string
 }
 
-// Config provides read & write methods for configuration details
-type Config struct {
-	cfg      *config.Config
-	filePath string
+type configHandle struct {
+	inst Instance
 }
 
-// NewConfig creates a new configuration object
-func NewConfig(cfg *config.Config, path string) *Config {
-	return &Config{
-		cfg:      cfg,
-		filePath: path,
-	}
-}
+// MethodsKind specifies this is a configuration handle
+func (h configHandle) MethodsKind() string { return "ConfigMethods" }
 
-// Get returns the Config, or one of the specified fields of the Config, as a slice of bytes
-// the bytes can be formatted as json, concise json, or yaml
-func (c *Config) Get(p *GetConfigParams, res *[]byte) error {
+// GetConfig returns the Config, or one of the specified fields of the Config,
+// as a slice of bytes the bytes can be formatted as json, concise json, or yaml
+func (h configHandle) GetConfig(p *GetConfigParams, res *[]byte) error {
 	var (
 		err    error
 		cfg    = &config.Config{}
@@ -40,9 +47,9 @@ func (c *Config) Get(p *GetConfigParams, res *[]byte) error {
 	)
 
 	if !p.WithPrivateKey {
-		cfg = c.cfg.WithoutPrivateValues()
+		cfg = h.inst.Config().WithoutPrivateValues()
 	} else {
-		cfg = c.cfg.Copy()
+		cfg = h.inst.Config().Copy()
 	}
 
 	encode = cfg
@@ -71,17 +78,22 @@ func (c *Config) Get(p *GetConfigParams, res *[]byte) error {
 	return nil
 }
 
-// Set validates, updates and saves the config
-func (c *Config) Set(update *config.Config) error {
-	if err := update.Validate(); err != nil {
+// SetConfig validates, updates and saves the config
+func (h configHandle) SetConfig(update *config.Config, set *bool) (err error) {
+	if err = update.Validate(); err != nil {
 		return fmt.Errorf("error validating config: %s", err)
 	}
 
-	cfg := update.WithPrivateValues(c.cfg)
-	if err := cfg.WriteToFile(c.filePath); err != nil {
-		return err
+	writable, ok := h.inst.(WritableInstance)
+	if !ok {
+		return ErrNotWritable
 	}
-	c.cfg = cfg
 
+	cfg := update.WithPrivateValues(h.inst.Config())
+	if err = writable.SetConfig(cfg); err != nil {
+		return
+	}
+
+	*set = true
 	return nil
 }

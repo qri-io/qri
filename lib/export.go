@@ -21,26 +21,32 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// ExportRequests encapsulates business logic of export operation
-type ExportRequests struct {
+// ExportMethods convert a dataset to various formats
+type ExportMethods interface {
+	Export(p *ExportParams, fileWritten *string) (err error)
+}
+
+// NewExportMethods creates a exportMethods pointer from either a repo
+// or an rpc.Client
+func NewExportMethods(inst Instance) ExportMethods {
+	if node := inst.Node(); node != nil {
+		return exportMethods{node: node}
+	}
+	if cli := inst.RPC(); cli != nil {
+		return exportMethods{cli: cli}
+	}
+
+	panic(fmt.Errorf("cannot create export methods. instance has neither of Node, RPC"))
+}
+
+// exportMethods encapsulates business logic of the export operation
+type exportMethods struct {
 	node *p2p.QriNode
 	cli  *rpc.Client
 }
 
 // CoreRequestsName implements the Requests interface
-func (r ExportRequests) CoreRequestsName() string { return "export" }
-
-// NewExportRequests creates a ExportRequests pointer from either a repo
-// or an rpc.Client
-func NewExportRequests(node *p2p.QriNode, cli *rpc.Client) *ExportRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both node and client supplied to NewExportRequests"))
-	}
-	return &ExportRequests{
-		node: node,
-		cli:  cli,
-	}
-}
+func (r exportMethods) CoreRequestsName() string { return "export" }
 
 // ExportParams defines parameters for the export method
 type ExportParams struct {
@@ -52,7 +58,7 @@ type ExportParams struct {
 }
 
 // Export exports a dataset in the specified format
-func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error) {
+func (r exportMethods) Export(p *ExportParams, fileWritten *string) (err error) {
 	if p.TargetDir == "" {
 		p.TargetDir = "."
 		if err = qfs.AbsPath(&p.TargetDir); err != nil {
@@ -61,7 +67,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	}
 
 	if r.cli != nil {
-		return r.cli.Call("ExportRequests.Export", p, fileWritten)
+		return r.cli.Call("ExportMethods.Export", p, fileWritten)
 	}
 
 	ref := &repo.DatasetRef{}

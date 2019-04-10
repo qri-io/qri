@@ -15,11 +15,11 @@ func TestServeWebapp(t *testing.T) {
 	defer teardown()
 	cfg := config.DefaultConfigForTesting()
 	cfg.Webapp.Enabled = false
-	New(node, cfg).ServeWebapp()
+	New(node, cfg, "").ServeWebapp()
 
 	cfg.Webapp.EntrypointUpdateAddress = ""
 	cfg.Webapp.Enabled = true
-	s := New(node, cfg)
+	s := New(node, cfg, "")
 	go s.ServeWebapp()
 
 	url := fmt.Sprintf("http://localhost:%d", cfg.Webapp.Port)

@@ -18,10 +18,8 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
@@ -44,7 +42,8 @@ func newTestRepoWithNumDatasets(t *testing.T, num int) (r repo.Repo, teardown fu
 	golog.SetLogLevel("qriapi", "error")
 
 	// use a test registry server (with a pinset) & client & client
-	rc, registryServer := regmock.NewMockServerWithNumDatasets(num)
+	// rc, registryServer := regmock.NewMockServerWithNumDatasets(num)
+	rc, _ := regmock.NewMockServerWithNumDatasets(num)
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
@@ -54,23 +53,23 @@ func newTestRepoWithNumDatasets(t *testing.T, num int) (r repo.Repo, teardown fu
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
-	lib.Config = config.DefaultConfigForTesting()
-	lib.Config.Profile = test.ProfileConfig()
-	lib.Config.Registry.Location = registryServer.URL
-	prevSaveConfig := lib.SaveConfig
-	lib.SaveConfig = func() error {
-		p, err := profile.NewProfile(lib.Config.Profile)
-		if err != nil {
-			return err
-		}
-
-		r.SetProfile(p)
-		return err
-	}
+	// TODO (b5): this is going to break tests
+	// cfg := config.DefaultConfigForTesting()
+	// cfg.Profile = test.ProfileConfig()
+	// cfg.Registry.Location = registryServer.URL
+	// prevSaveConfig := lib.SaveConfig
+	// lib.SaveConfig = func() error {
+	// 	p, err := profile.NewProfile(lib.Config.Profile)
+	// 	if err != nil {
+	// 		return err
+	// 	}
+	// 	r.SetProfile(p)
+	// 	return err
+	// }
 
 	teardown = func() {
 		golog.SetLogLevel("qriapi", "info")
-		lib.SaveConfig = prevSaveConfig
+		// lib.SaveConfig = prevSaveConfig
 		dsfs.Timestamp = prevTs
 	}
 
@@ -197,7 +196,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	s := New(node, cfg)
+	s := New(node, cfg, "")
 
 	server := httptest.NewServer(NewServerRoutes(s))
 

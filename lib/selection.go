@@ -7,32 +7,42 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// SelectionRequests encapsulates business logic for the qri search
+// SelectionMethods functions support "selecting" dataset(s), storing state about
+// which datasets to apply other operations to. Selections power the "qri use"
+// CLI command
+type SelectionMethods interface {
+	Methods
+	SetSelectedRefs(sel *[]repo.DatasetRef, done *bool) error
+	SelectedRefs(done *bool, sel *[]repo.DatasetRef) error
+}
+
+// NewSelectionMethods creates a selectionMethods pointer from either a repo
+// or an rpc.Client
+func NewSelectionMethods(inst Instance) SelectionMethods {
+	if repo := inst.Repo(); repo != nil {
+		return selectionMethods{repo: repo}
+	}
+	if cli := inst.RPC(); cli != nil {
+		return selectionMethods{cli: cli}
+	}
+
+	panic(fmt.Errorf("can't create selectino handle. Instance has neither a Repo or RPC CLI"))
+}
+
+// selectionMethods encapsulates business logic for the qri search
 // command
-type SelectionRequests struct {
+type selectionMethods struct {
 	cli  *rpc.Client
 	repo repo.Repo
 }
 
-// NewSelectionRequests creates a SelectionRequests pointer from either a repo
-// or an rpc.Client
-func NewSelectionRequests(r repo.Repo, cli *rpc.Client) *SelectionRequests {
-	if r != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewSelectionRequests"))
-	}
-	return &SelectionRequests{
-		cli:  cli,
-		repo: r,
-	}
-}
-
-// CoreRequestsName implements the requests
-func (r SelectionRequests) CoreRequestsName() string { return "selection" }
+// MethodsKind implements the requests
+func (r selectionMethods) MethodsKind() string { return "SelectionMethods" }
 
 // SetSelectedRefs sets the current set of selected references
-func (r *SelectionRequests) SetSelectedRefs(sel *[]repo.DatasetRef, done *bool) error {
+func (r selectionMethods) SetSelectedRefs(sel *[]repo.DatasetRef, done *bool) error {
 	if r.cli != nil {
-		return r.cli.Call("SelectionRequests.SetSelectedRefs", sel, done)
+		return r.cli.Call("SelectionMethods.SetSelectedRefs", sel, done)
 	}
 
 	if rs, ok := r.repo.(repo.RefSelector); ok {
@@ -42,9 +52,9 @@ func (r *SelectionRequests) SetSelectedRefs(sel *[]repo.DatasetRef, done *bool) 
 }
 
 // SelectedRefs gets the current set of selected references
-func (r *SelectionRequests) SelectedRefs(done *bool, sel *[]repo.DatasetRef) (err error) {
+func (r selectionMethods) SelectedRefs(done *bool, sel *[]repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("SelectionRequests.SelectedRefs", done, sel)
+		return r.cli.Call("SelectionMethods.SelectedRefs", done, sel)
 	}
 
 	if rs, ok := r.repo.(repo.RefSelector); ok {
@@ -58,7 +68,7 @@ func (r *SelectionRequests) SelectedRefs(done *bool, sel *[]repo.DatasetRef) (er
 func DefaultSelectedRefs(r repo.Repo, refs *[]repo.DatasetRef) (err error) {
 	if len(*refs) == 0 {
 		var done bool
-		err = NewSelectionRequests(r, nil).SelectedRefs(&done, refs)
+		err = selectionMethods{repo: r}.SelectedRefs(&done, refs)
 		if err == repo.ErrRefSelectionNotSupported {
 			return nil
 		}
@@ -74,7 +84,7 @@ func DefaultSelectedRef(r repo.Repo, ref *repo.DatasetRef) (err error) {
 			refs = []repo.DatasetRef{}
 		)
 
-		err = NewSelectionRequests(r, nil).SelectedRefs(&done, &refs)
+		err = selectionMethods{repo: r}.SelectedRefs(&done, &refs)
 		if err != nil {
 			if err == repo.ErrRefSelectionNotSupported {
 				return nil

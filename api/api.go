@@ -242,7 +242,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 			panic(err)
 		}
 
-		remh := NewRemoteHandlers(s.qriNode, receivers)
+		remh := NewRemoteHandlers(s.qriNode, s.cfg, receivers)
 		m.Handle("/dsync/push", s.middleware(remh.ReceiveHandler))
 		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
 		m.Handle("/dsync/complete", s.middleware(remh.CompleteHandler))

@@ -13,6 +13,13 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// DiffMethods are methods for generating a change script between two sources
+// of data.
+type DiffMethods interface {
+	Methods
+	Diff(p *DiffParams, res *DiffResponse) error
+}
+
 // Delta is an alias for deepdiff.Delta, abstracting the deepdiff implementation
 // away from packages that depend on lib
 type Delta = deepdiff.Delta
@@ -41,8 +48,14 @@ type DiffResponse struct {
 	Diff []*Delta
 }
 
+// NewDiffMethods creates diff methods from an instance
+func NewDiffMethods(inst Instance) DiffMethods {
+	// for now this is just dataset methods
+	return datasetMethods{node: inst.Node(), cli: inst.RPC()}
+}
+
 // Diff computes the diff of two datasets
-func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
+func (r datasetMethods) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	// absolutize any local paths before a possible trip over RPC to another local process
 	if !repo.IsRefString(p.LeftPath) {
 		if err = qfs.AbsPath(&p.LeftPath); err != nil {
@@ -56,7 +69,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Diff", p, res)
+		return r.cli.Call("DatasetMethods.Diff", p, res)
 	}
 
 	if err = completeDiffRefs(r.node, &p.LeftPath, &p.RightPath); err != nil {
@@ -112,7 +125,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 			return
 		}
 
-		lr := NewLogRequests(node, nil)
+		lr := logMethods{node: node}
 		var res []repo.DatasetRef
 		err = lr.Log(&LogParams{
 			ListParams: ListParams{
@@ -134,7 +147,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 
 // TODO (b5): this is a temporary hack, I'd like to eventually merge this with a
 // bunch of other code, generalizing the types of data qri can work on
-func (r *DatasetRequests) loadDiffData(path, selector string, concise bool) (data interface{}, err error) {
+func (r datasetMethods) loadDiffData(path, selector string, concise bool) (data interface{}, err error) {
 	if repo.IsRefString(path) {
 		getp := &GetParams{
 			Path:     path,
