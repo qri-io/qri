@@ -29,6 +29,7 @@ type TestFactory struct {
 	// generator is a source of cryptographic info
 	generator gen.CryptoGenerator
 
+	inst lib.Instance
 	// Configuration object
 	config *config.Config
 	node   *p2p.QriNode
@@ -70,6 +71,10 @@ func (t TestFactory) Config() (*config.Config, error) {
 	return t.config, nil
 }
 
+func (t TestFactory) Instance() lib.Instance {
+	return t.inst
+}
+
 // IpfsFsPath returns from internal state
 func (t TestFactory) IpfsFsPath() string {
 	return t.ipfsFsPath
@@ -100,6 +105,14 @@ func (t TestFactory) RPC() *rpc.Client {
 	return nil
 }
 
+func (t TestFactory) ConfigRequests() (*lib.ConfigRequests, error) {
+	setCfg := func(*config.Config) error { return nil }
+	if writable, ok := t.inst.(lib.WritableInstance); ok {
+		setCfg = writable.SetConfig
+	}
+	return lib.NewConfigRequests(t.inst.Config(), setCfg, t.inst.RPC()), nil
+}
+
 // DatasetRequests generates a lib.DatasetRequests from internal state
 func (t TestFactory) DatasetRequests() (*lib.DatasetRequests, error) {
 	return lib.NewDatasetRequests(t.node, t.rpc), nil
@@ -107,7 +120,7 @@ func (t TestFactory) DatasetRequests() (*lib.DatasetRequests, error) {
 
 // RemoteRequests generates a lib.RemoteRequests from internal state
 func (t TestFactory) RemoteRequests() (*lib.RemoteRequests, error) {
-	return lib.NewRemoteRequests(t.node, t.rpc), nil
+	return lib.NewRemoteRequests(t.node, t.config, t.rpc), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state
@@ -132,7 +145,11 @@ func (t TestFactory) PeerRequests() (*lib.PeerRequests, error) {
 
 // ProfileRequests generates a lib.ProfileRequests from internal state
 func (t TestFactory) ProfileRequests() (*lib.ProfileRequests, error) {
-	return lib.NewProfileRequests(t.node, t.rpc), nil
+	setCfg := func(*config.Config) error { return nil }
+	if writable, ok := t.inst.(lib.WritableInstance); ok {
+		setCfg = writable.SetConfig
+	}
+	return lib.NewProfileRequests(t.node, t.config, setCfg, t.rpc), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state

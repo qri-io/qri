@@ -6,7 +6,6 @@ import (
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/registry/pinset"
 	"github.com/qri-io/registry/regserver/mock"
@@ -118,7 +117,7 @@ func TestSaveRun(t *testing.T) {
 		return
 	}
 
-	lib.Config = config.DefaultConfigForTesting()
+	// lib.Config = config.DefaultConfigForTesting()
 
 	_, ok := currentPath()
 	if !ok {
