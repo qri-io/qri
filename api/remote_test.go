@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/qri-io/dag/dsync"
-	"github.com/qri-io/qri/lib"
 )
 
 func TestRemoteHandlers(t *testing.T) {
@@ -19,15 +18,16 @@ func TestRemoteHandlers(t *testing.T) {
 		{"POST", "/", mustFile(t, "testdata/postRemoteRequest.json")},
 	}
 
+	cfg, _ := testConfigAndSetter()
 	testReceivers := dsync.NewTestReceivers()
 
 	// Reject all dag.Info's
-	lib.Config.API.RemoteAcceptSizeMax = 0
-	rh := NewRemoteHandlers(node, testReceivers)
+	cfg.API.RemoteAcceptSizeMax = 0
+	rh := NewRemoteHandlers(node, cfg, testReceivers)
 	runHandlerTestCases(t, "remote reject", rh.ReceiveHandler, testCases, true)
 
 	// Accept all dag.Info's
-	lib.Config.API.RemoteAcceptSizeMax = -1
-	rh = NewRemoteHandlers(node, testReceivers)
+	cfg.API.RemoteAcceptSizeMax = -1
+	rh = NewRemoteHandlers(node, cfg, testReceivers)
 	runHandlerTestCases(t, "remote accept", rh.ReceiveHandler, testCases, true)
 }

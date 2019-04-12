@@ -19,8 +19,8 @@ type ProfileHandlers struct {
 }
 
 // NewProfileHandlers allocates a ProfileHandlers pointer
-func NewProfileHandlers(node *p2p.QriNode, readOnly bool) *ProfileHandlers {
-	req := lib.NewProfileRequests(node, nil)
+func NewProfileHandlers(node *p2p.QriNode, cfg *config.Config, setCfg func(*config.Config) error, readOnly bool) *ProfileHandlers {
+	req := lib.NewProfileRequests(node, cfg, setCfg, nil)
 	h := ProfileHandlers{*req, readOnly}
 	return &h
 }
