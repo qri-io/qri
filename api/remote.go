@@ -7,6 +7,7 @@ import (
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 )
@@ -17,8 +18,8 @@ type RemoteHandlers struct {
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
-func NewRemoteHandlers(node *p2p.QriNode, rec *dsync.Receivers) *RemoteHandlers {
-	req := lib.NewRemoteRequests(node, nil)
+func NewRemoteHandlers(node *p2p.QriNode, cfg *config.Config, rec *dsync.Receivers) *RemoteHandlers {
+	req := lib.NewRemoteRequests(node, cfg, nil)
 	req.Receivers = rec
 	return &RemoteHandlers{*req}
 }

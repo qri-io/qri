@@ -24,11 +24,6 @@ import (
 // 	}
 // }
 
-func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) error) {
-	cfg = config.DefaultConfigForTesting()
-	setCfg = func(*config.Config) error { return nil }
-	return
-}
 func TestGetConfig(t *testing.T) {
 	cfg, setCfg := testConfigAndSetter()
 	r := NewConfigRequests(cfg, setCfg, nil)

@@ -42,6 +42,7 @@ func init() {
 type Server struct {
 	// configuration options
 	cfg     *config.Config
+	setCfg  func(*config.Config) error
 	qriNode *p2p.QriNode
 }
 
@@ -50,6 +51,10 @@ func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
 	return &Server{
 		qriNode: node,
 		cfg:     cfg,
+		// TODO (b5): need to move config saving into the configuration struct
+		setCfg: func(c *config.Config) error {
+			return fmt.Errorf("saving config is currently broken")
+		},
 	}
 }
 
@@ -80,21 +85,22 @@ func (s *Server) Serve() (err error) {
 
 			go func() {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-				if lib.Config != nil && lib.Config.Render != nil && lib.Config.Render.TemplateUpdateAddress != "" {
-					if latest, err := lib.CheckVersion(context.Background(), namesys, lib.Config.Render.TemplateUpdateAddress, lib.Config.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+				if s.cfg != nil && s.cfg.Render != nil && s.cfg.Render.TemplateUpdateAddress != "" {
+					if latest, err := lib.CheckVersion(context.Background(), namesys, s.cfg.Render.TemplateUpdateAddress, s.cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
 						err := pinner.Pin(latest, true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
 							return
 						}
-						if err := lib.Config.Set("Render.DefaultTemplateHash", latest); err != nil {
+						if err := s.cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
 							log.Debug("error setting latest hash: %s", err.Error())
 							return
 						}
-						if err := lib.SaveConfig(); err != nil {
-							log.Debug("error saving config hash: %s", err.Error())
-							return
-						}
+						// TODO (b5): restore
+						// if err := lib.SaveConfig(); err != nil {
+						// 	log.Debug("error saving config hash: %s", err.Error())
+						// 	return
+						// }
 						log.Info("auto-updated template hash: %s", latest)
 					}
 				}
@@ -138,7 +144,7 @@ func (s *Server) ServeRPC() {
 		return
 	}
 
-	for _, rcvr := range lib.Receivers(s.qriNode) {
+	for _, rcvr := range lib.Receivers(s.qriNode, s.cfg, s.setCfg) {
 		if err := rpc.Register(rcvr); err != nil {
 			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return
@@ -217,7 +223,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode, s.cfg.API.ReadOnly)
+	proh := NewProfileHandlers(s.qriNode, s.cfg, s.setCfg, s.cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
@@ -239,7 +245,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 			panic(err)
 		}
 
-		remh := NewRemoteHandlers(s.qriNode, receivers)
+		remh := NewRemoteHandlers(s.qriNode, s.cfg, receivers)
 		m.Handle("/dsync/push", s.middleware(remh.ReceiveHandler))
 		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
 		m.Handle("/dsync/complete", s.middleware(remh.CompleteHandler))

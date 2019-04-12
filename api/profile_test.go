@@ -15,6 +15,7 @@ import (
 )
 
 func TestProfileHandler(t *testing.T) {
+	cfg, setCfg := testConfigAndSetter()
 	node, teardown := newTestNode(t)
 	defer teardown()
 
@@ -26,7 +27,7 @@ func TestProfileHandler(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	proh := NewProfileHandlers(node, false)
+	proh := NewProfileHandlers(node, cfg, setCfg, false)
 	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 
 	readOnlyCases := []handlerTestCase{
@@ -73,7 +74,8 @@ func TestProfilePhotoHandler(t *testing.T) {
 		},
 	}
 
-	proh := NewProfileHandlers(node, false)
+	cfg, setCfg := testConfigAndSetter()
+	proh := NewProfileHandlers(node, cfg, setCfg, false)
 
 	for _, c := range cases {
 		name := fmt.Sprintf("Profile Photo Test: %s", c.name)
@@ -122,7 +124,8 @@ func TestProfilePosterHandler(t *testing.T) {
 		},
 	}
 
-	proh := NewProfileHandlers(node, false)
+	cfg, setCfg := testConfigAndSetter()
+	proh := NewProfileHandlers(node, cfg, setCfg, false)
 
 	for _, c := range cases {
 		name := fmt.Sprintf("Profile Poster Test: %s", c.name)

@@ -71,6 +71,12 @@ func testdataPath(path string) string {
 	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
 }
 
+func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) error) {
+	cfg = config.DefaultConfigForTesting()
+	setCfg = func(*config.Config) error { return nil }
+	return
+}
+
 // pulled from actions and base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
