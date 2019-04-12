@@ -25,7 +25,8 @@ func TestListDatasets(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	res, err := ListDatasets(r, 1, 0, false, false, false)
+	// Limit to one
+	res, err := ListDatasets(r, "", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -33,7 +34,8 @@ func TestListDatasets(t *testing.T) {
 		t.Error("expected one dataset response")
 	}
 
-	res, err = ListDatasets(r, 1, 0, false, true, false)
+	// Limit to published datasets
+	res, err = ListDatasets(r, "", 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -46,13 +48,32 @@ func TestListDatasets(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	res, err = ListDatasets(r, 1, 0, false, true, false)
+	// Limit to published datasets, after publishing cities
+	res, err = ListDatasets(r, "", 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
 
 	if len(res) != 1 {
 		t.Error("expected one published dataset response")
+	}
+
+	// Limit to datasets with "city" in their name
+	res, err = ListDatasets(r, "city", 1, 0, false, false, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(res) != 0 {
+		t.Error("expected no datasets with \"city\" in their name")
+	}
+
+	// Limit to datasets with "cit" in their name
+	res, err = ListDatasets(r, "cit", 1, 0, false, false, false)
+	if err != nil {
+		t.Error(err.Error())
+	}
+	if len(res) != 1 {
+		t.Error("expected one dataset with \"cit\" in their name")
 	}
 }
 

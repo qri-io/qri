@@ -63,7 +63,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.Offset = 0
 	}
 
-	replies, err := actions.ListDatasets(r.node, ds, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	replies, err := actions.ListDatasets(r.node, ds, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 
 	*res = replies
 	return err
