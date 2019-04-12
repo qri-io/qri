@@ -69,7 +69,8 @@ func TestDatasetRequestsSave(t *testing.T) {
 		w.Write([]byte(`\\\{"json":"data"}`))
 	}))
 
-	req := NewDatasetRequests(node, nil)
+	inst := &instance{node: node, cfg: config.DefaultConfigForTesting()}
+	req := NewDatasetMethods(inst)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
 	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
@@ -136,16 +137,16 @@ func TestDatasetRequestsSave(t *testing.T) {
 }
 
 func TestDatasetRequestsForceSave(t *testing.T) {
-	node := newTestQriNode(t)
-	ref := addCitiesDataset(t, node)
-	r := NewDatasetRequests(node, nil)
+	inst := newTestInstance(t)
+	ref := addCitiesDataset(t, inst.Node())
+	dsm := NewDatasetMethods(inst)
 
 	res := &repo.DatasetRef{}
-	if err := r.Save(&SaveParams{Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername}}, res); err == nil {
+	if err := dsm.Save(&SaveParams{Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername}}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
-	if err := r.Save(&SaveParams{
+	if err := dsm.Save(&SaveParams{
 		Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername},
 		Force:   true,
 	}, res); err != nil {
@@ -154,9 +155,9 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 }
 
 func TestDatasetRequestsSaveRecall(t *testing.T) {
-	node := newTestQriNode(t)
-	ref := addNowTransformDataset(t, node)
-	r := NewDatasetRequests(node, nil)
+	inst := newTestInstance(t)
+	ref := addNowTransformDataset(t, inst.Node())
+	r := NewDatasetMethods(inst)
 
 	res := &repo.DatasetRef{}
 	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
@@ -195,20 +196,20 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 }
 
 func TestDatasetRequestsSaveZip(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
-	if err != nil {
-		t.Fatalf("error allocating test repo: %s", err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	req := NewDatasetRequests(node, nil)
+	// rc, _ := regmock.NewMockServer()
+	// mr, err := testrepo.NewTestRepo(rc)
+	// if err != nil {
+	// 	t.Fatalf("error allocating test repo: %s", err.Error())
+	// }
+	// node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	// if err != nil {
+	// 	t.Fatal(err.Error())
+	// }
+	dsm := NewDatasetMethods(newTestInstance(t))
 
 	dsp := &dataset.Dataset{Peername: "me"}
 	res := repo.DatasetRef{}
-	err = req.Save(&SaveParams{Dataset: dsp, FilePaths: []string{"testdata/import.zip"}}, &res)
+	err := dsm.Save(&SaveParams{Dataset: dsp, FilePaths: []string{"testdata/import.zip"}}, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -222,22 +223,22 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 }
 
 func TestDatasetRequestsUpdate(t *testing.T) {
-	node := newTestQriNode(t)
+	inst := newTestInstance(t)
 
-	r := NewDatasetRequests(node, nil)
+	dsm := NewDatasetMethods(inst)
 	res := &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: "me/bad_dataset"}, res); err == nil {
+	if err := dsm.Update(&UpdateParams{Ref: "me/bad_dataset"}, res); err == nil {
 		t.Error("expected update to nonexistent dataset to error")
 	}
 
-	ref := addNowTransformDataset(t, node)
+	ref := addNowTransformDataset(t, inst.Node())
 	res = &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), Recall: "tf", ReturnBody: true}, res); err != nil {
+	if err := dsm.Update(&UpdateParams{Ref: ref.AliasString(), Recall: "tf", ReturnBody: true}, res); err != nil {
 		t.Errorf("update error: %s", err)
 	}
 
 	// run a manual save to lose the transform
-	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
+	err := dsm.Save(&SaveParams{Dataset: &dataset.Dataset{
 		Peername: res.Peername,
 		Name:     res.Name,
 		Meta:     &dataset.Meta{Title: "an updated title"},
@@ -247,7 +248,7 @@ func TestDatasetRequestsUpdate(t *testing.T) {
 	}
 
 	// update should grab the transform from 2 commits back
-	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err != nil {
+	if err := dsm.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err != nil {
 		t.Error(err)
 	}
 }
@@ -301,10 +302,11 @@ func TestDatasetRequestsList(t *testing.T) {
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	dsm := NewDatasetMethods(newTestInstanceFromQriNode(node))
+
 	for i, c := range cases {
 		got := []repo.DatasetRef{}
-		err := req.List(c.p, &got)
+		err := dsm.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -355,7 +357,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 		go func(node *p2p.QriNode) {
 			defer wg.Done()
 
-			dsr := NewDatasetRequests(node, nil)
+			dsr := NewDatasetMethods(newTestInstanceFromQriNode(node))
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
 			var res []repo.DatasetRef
 			err := dsr.List(p, &res)
@@ -476,7 +478,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 				Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	req := NewDatasetMethods(newTestInstanceFromQriNode(node))
 	for _, c := range cases {
 		got := &GetResult{}
 		err := req.Get(c.params, got)
@@ -562,7 +564,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			name := datasets[index]
 			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
-			dsr := NewDatasetRequests(node, nil)
+			dsr := NewDatasetMethods(newTestInstanceFromQriNode(node))
 			got := &GetResult{}
 			err = dsr.Get(&GetParams{Path: ref.String()}, got)
 			if err != nil {
@@ -601,7 +603,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "", "dataset 'peer/sitemap' already exists"},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	req := NewDatasetMethods(newTestInstanceFromQriNode(node))
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
@@ -644,7 +646,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		{ref.String(), nil, ""},
 	}
 
-	req := NewDatasetRequests(node, nil)
+	req := NewDatasetMethods(newTestInstanceFromQriNode(node))
 	for i, c := range cases {
 		params := RemoveParams{
 			Ref:      c.ref,
@@ -678,7 +680,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(node, nil)
+	req := NewDatasetMethods(newTestInstanceFromQriNode(node))
 	for i, c := range cases {
 		got := &repo.DatasetRef{}
 		err := req.Add(c.p, got)
@@ -739,7 +741,7 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
 
 				// Build requests for peer1 to peer2.
-				dsr := NewDatasetRequests(p0, nil)
+				dsr := NewDatasetMethods(newTestInstanceFromQriNode(p0))
 				got := &repo.DatasetRef{}
 
 				err := dsr.Add(&ref, got)
@@ -807,7 +809,7 @@ Pirates of the Caribbean: At World's End ,foo
 		t.Fatal(err.Error())
 	}
 
-	req := NewDatasetRequests(node, nil)
+	req := NewDatasetMethods(newTestInstanceFromQriNode(node))
 	for i, c := range cases {
 		got := []jsonschema.ValError{}
 		err := req.Validate(&c.p, &got)

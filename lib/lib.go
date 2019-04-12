@@ -43,14 +43,14 @@ func init() {
 }
 
 // Instance is the interface that bundles the foundational values of a
-// qri instance.
+// qri instance. Instance provides the basis for creating Method constructors,
+// which actually do qri things
+// think of instance as the "core" of the qri ecosystem
 type Instance interface {
 	// Context returns the base context this instance is using. Any resources
 	// built from this instance should inherit from this context and obey
 	// calls from the ctx.Done(), releasing any & all resources
 	Context() context.Context
-	// the returned context should tear down the entire instance & cleanup all
-	// resources the instance is currently consuming
 	// Teardown closes the instance by closing the base context
 	Teardown()
 	// Config returns the current configuration for this

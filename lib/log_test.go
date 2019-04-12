@@ -36,7 +36,8 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{&LogParams{Ref: ref}, []repo.DatasetRef{ref}, ""},
 	}
 
-	req := NewLogRequests(node.(*p2p.QriNode), nil)
+	inst := newTestInstanceFromQriNode(node.(*p2p.QriNode))
+	req := NewLogMethods(inst)
 	for i, c := range cases {
 		got := []repo.DatasetRef{}
 		err := req.Log(c.p, &got)

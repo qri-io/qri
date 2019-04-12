@@ -33,6 +33,7 @@ type DatasetMethods interface {
 type DatasetReadMethods interface {
 	List(p *ListParams, res *[]repo.DatasetRef) error
 	Get(p *GetParams, res *GetResult) error
+	Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) error
 }
 
 // PublishMethods
@@ -43,6 +44,7 @@ type PublishMethods interface {
 // DatasetWriteMethods defines all read functions that operate on a dataset
 type DatasetWriteMethods interface {
 	Save(p *SaveParams, res *repo.DatasetRef) error
+	Update(p *UpdateParams, res *repo.DatasetRef) error
 	Rename(p *RenameParams, res *repo.DatasetRef) error
 	Remove(p *RemoveParams, res *RemoveResponse) error
 	Add(ref, res *repo.DatasetRef) error

@@ -22,7 +22,8 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewDatasetRequests(node, nil)
+	inst := newTestInstanceFromQriNode(node)
+	req := NewDatasetMethods(inst)
 
 	// File 1
 	fp1, err := dstest.BodyFilepath("testdata/jobs_by_automation")
@@ -107,6 +108,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		},
 	}
 
+	diffm := NewDiffMethods(inst)
 	// execute
 	for i, c := range successCases {
 		p := &DiffParams{
@@ -115,7 +117,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			Selector:  c.Selector,
 		}
 		res := &DiffResponse{}
-		err := req.Diff(p, res)
+		err := diffm.Diff(p, res)
 		if err != nil {
 			t.Errorf("%d. %s error: %s", i, c.description, err.Error())
 			continue

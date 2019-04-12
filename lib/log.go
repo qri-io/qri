@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// LogMethods shows a history of dataset versions
 type LogMethods interface {
 	Methods
 	Log(params *LogParams, res *[]repo.DatasetRef) error

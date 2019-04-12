@@ -28,7 +28,7 @@ func TestExport(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewExportRequests(node, nil)
+	req := NewExportMethods(newTestInstanceFromQriNode(node))
 
 	var fileWritten string
 

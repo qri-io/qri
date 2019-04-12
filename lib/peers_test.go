@@ -4,27 +4,19 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/qri-io/qfs"
-	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
-	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry/regclient"
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
-	req := NewPeerRequests(nil, nil)
+	peerm := NewPeerMethods(nil)
 	p := PeerListParams{}
 	got := []*config.ProfilePod{}
-	err := req.List(&p, &got)
+	err := peerm.List(&p, &got)
 	if err == nil {
-		t.Errorf("error: req.List should have failed and returned an error")
+		t.Errorf("error: peerm.List should have failed and returned an error")
 	} else if !strings.HasPrefix(err.Error(), "error: not connected") {
 		t.Errorf("error: unexpected error message: %s", err.Error())
 	}
@@ -48,12 +40,13 @@ func TestPeerRequestsList(t *testing.T) {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
 	}
+	inst := newTestInstance(t)
 
 	// TODO - need to upgrade this to include a mock node
-	req := NewPeerRequests(&p2p.QriNode{Repo: mr}, nil)
+	peerm := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
-		err := req.List(c.p, &got)
+		err := peerm.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -72,11 +65,11 @@ func TestConnectedQriProfiles(t *testing.T) {
 		{100, 0, ""},
 	}
 
-	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := newTestInstance(t)
+	peerm := NewPeerMethods(inst)
 	for i, c := range cases {
 		got := []*config.ProfilePod{}
-		err := req.ConnectedQriProfiles(&c.limit, &got)
+		err := peerm.ConnectedQriProfiles(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -98,11 +91,11 @@ func TestConnectedIPFSPeers(t *testing.T) {
 		{100, 0, ""},
 	}
 
-	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := newTestInstance(t)
+	peerm := NewPeerRequests(inst)
 	for i, c := range cases {
 		got := []string{}
-		err := req.ConnectedIPFSPeers(&c.limit, &got)
+		err := peerm.ConnectedIPFSPeers(&c.limit, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -125,11 +118,11 @@ func TestInfo(t *testing.T) {
 		{PeerInfoParams{ProfileID: profile.IDB58MustDecode("QmY1PxkV9t9RoBwtXHfue1Qf6iYob19nL6rDHuXxooAVZa")}, 0, "repo: not found"},
 	}
 
-	node := newTestQriNode(t)
-	req := NewPeerRequests(node, nil)
+	inst := newTestInstance(t)
+	peerm := NewPeerRequests(inst)
 	for i, c := range cases {
 		got := config.ProfilePod{}
-		err := req.Info(&c.p, &got)
+		err := peerm.Info(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -158,10 +151,10 @@ func TestGetReferences(t *testing.T) {
 		t.Errorf("error creating qri node: %s", err)
 		return
 	}
-	req := NewPeerRequests(node, nil)
+	peerm := NewPeerMethods(newTestInstanceFromQriNode(node))
 	for i, c := range cases {
 		got := []repo.DatasetRef{}
-		err := req.GetReferences(&c.p, &got)
+		err := peerm.GetReferences(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 			continue
@@ -217,57 +210,4 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 	if _, err := p.Decode(); err == nil {
 		t.Error("expected invalid decode to error")
 	}
-}
-
-func newTestQriNode(t *testing.T) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), nil)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).New(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	node := n.(*p2p.QriNode)
-	return node
-}
-
-func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return muxfs.NewMux(map[string]qfs.PathResolver{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  cafsys,
-	})
-}
-
-func newTestQriNodeRegClient(t *testing.T, c *regclient.Client) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).New(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	node := n.(*p2p.QriNode)
-	return node
-}
-
-func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{}, ms, newTestFS(ms), profile.NewMemStore(), nil)
-	if err != nil {
-		return nil, err
-	}
-	p2pconf := config.DefaultP2P()
-	// This Node has P2P disabled.
-	p2pconf.Enabled = false
-	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).NewWithConf(r, p2pconf)
-	if err != nil {
-		return nil, err
-	}
-	node := n.(*p2p.QriNode)
-	return node, err
 }
