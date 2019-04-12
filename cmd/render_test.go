@@ -103,7 +103,7 @@ func TestRenderRun(t *testing.T) {
 		t.Errorf("error setting default template in config: %s", err)
 		return
 	}
-	lib.Config = cfg
+	// lib.Config = cfg
 
 	cases := []struct {
 		ref      string

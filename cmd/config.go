@@ -123,11 +123,19 @@ type ConfigOptions struct {
 	Concise         bool
 	Output          string
 
+	inst            lib.Instance
+	ConfigRequests  *lib.ConfigRequests
 	ProfileRequests *lib.ProfileRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
+	o.inst = f.Instance()
+	o.ConfigRequests, err = f.ConfigRequests()
+	if err != nil {
+		return
+	}
+
 	o.ProfileRequests, err = f.ProfileRequests()
 	return
 }
@@ -146,7 +154,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	var data []byte
 
-	if err = lib.GetConfig(params, &data); err != nil {
+	if err = o.ConfigRequests.GetConfig(params, &data); err != nil {
 		return err
 	}
 
@@ -174,7 +182,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		"profile.thumb":  true,
 	}
 
-	profile := lib.Config.Profile
+	profile := o.inst.Config().Profile
 	profileChanged := false
 
 	for i := 0; i < len(args)-1; i = i + 2 {
@@ -196,12 +204,14 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			}
 			profileChanged = true
 		} else {
-			if err = lib.Config.Set(path, value); err != nil {
+			// TODO (b5): I think this'll resule in configuration not getting set. should investigate
+			if err = o.inst.Config().Set(path, value); err != nil {
 				return err
 			}
 		}
 	}
-	if err = lib.SetConfig(lib.Config); err != nil {
+	var ok bool
+	if err = o.ConfigRequests.SetConfig(o.inst.Config(), &ok); err != nil {
 		return err
 	}
 	if profileChanged {
