@@ -6,13 +6,13 @@ import (
 
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestRemote(t *testing.T) {
+	cfg, _ := testConfigAndSetter()
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {
@@ -22,11 +22,11 @@ func TestRemote(t *testing.T) {
 	// Set a seed so that the sessionID is deterministic
 	rand.Seed(5678)
 
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewRemoteRequests(node, nil)
+	req := NewRemoteRequests(node, cfg, nil)
 	req.Receivers = dsync.NewTestReceivers()
 
 	exampleDagInfo := &dag.Info{
@@ -39,7 +39,7 @@ func TestRemote(t *testing.T) {
 	}
 
 	// Reject all dag.Info's
-	Config.API.RemoteAcceptSizeMax = 0
+	cfg.API.RemoteAcceptSizeMax = 0
 	params := ReceiveParams{
 		DagInfo: exampleDagInfo,
 	}
@@ -57,7 +57,7 @@ func TestRemote(t *testing.T) {
 	}
 
 	// Accept all dag.Info's
-	Config.API.RemoteAcceptSizeMax = -1
+	cfg.API.RemoteAcceptSizeMax = -1
 	params = ReceiveParams{
 		DagInfo: exampleDagInfo,
 	}

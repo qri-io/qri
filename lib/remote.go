@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -17,6 +18,7 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 
 // RemoteRequests encapsulates business logic of remote operation
 type RemoteRequests struct {
+	cfg       *config.Config
 	cli       *rpc.Client
 	node      *p2p.QriNode
 	Receivers *dsync.Receivers
@@ -25,11 +27,12 @@ type RemoteRequests struct {
 }
 
 // NewRemoteRequests creates a RemoteRequests pointer from either a node or an rpc.Client
-func NewRemoteRequests(node *p2p.QriNode, cli *rpc.Client) *RemoteRequests {
+func NewRemoteRequests(node *p2p.QriNode, cfg *config.Config, cli *rpc.Client) *RemoteRequests {
 	if node != nil && cli != nil {
 		panic(fmt.Errorf("both repo and client supplied to NewRemoteRequests"))
 	}
 	return &RemoteRequests{
+		cfg:      cfg,
 		cli:      cli,
 		node:     node,
 		Sessions: make(map[string]*ReceiveParams),
@@ -58,7 +61,7 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return err
 	}
 
-	location, found := Config.Remotes.Get(p.RemoteName)
+	location, found := r.cfg.Remotes.Get(p.RemoteName)
 	if !found {
 		return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
 	}
@@ -91,7 +94,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 	res.Success = false
 
 	// TODO(dlong): Customization for how to decide to accept the dataset.
-	if Config.API.RemoteAcceptSizeMax == 0 {
+	if r.cfg.API.RemoteAcceptSizeMax == 0 {
 		res.RejectReason = "not accepting any datasets"
 		return nil
 	}
@@ -101,13 +104,13 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 	}
 
 	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
-	if Config.API.RemoteAcceptSizeMax != -1 {
+	if r.cfg.API.RemoteAcceptSizeMax != -1 {
 		var totalSize uint64
 		for _, s := range p.DagInfo.Sizes {
 			totalSize += s
 		}
 
-		if totalSize >= uint64(Config.API.RemoteAcceptSizeMax) {
+		if totalSize >= uint64(r.cfg.API.RemoteAcceptSizeMax) {
 			res.RejectReason = "dataset size too large"
 			return nil
 		}
@@ -135,7 +138,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 	r.lock.Unlock()
 
 	// Timeout the session
-	timeout := Config.API.RemoteAcceptTimeoutMs * time.Millisecond
+	timeout := r.cfg.API.RemoteAcceptTimeoutMs * time.Millisecond
 	if timeout == 0 {
 		timeout = time.Second
 	}

@@ -31,12 +31,14 @@ func TestProfileRequestsGet(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+
+	cfg, setCfg := testConfigAndSetter()
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, nil)
+	req := NewProfileRequests(node, cfg, setCfg, nil)
 	for i, c := range cases {
 		got := &config.ProfilePod{}
 		err := req.GetProfile(&c.in, got)
@@ -49,11 +51,7 @@ func TestProfileRequestsGet(t *testing.T) {
 }
 
 func TestProfileRequestsSave(t *testing.T) {
-	prev := SaveConfig
-	SaveConfig = func() error {
-		return nil
-	}
-	defer func() { SaveConfig = prev }()
+	cfg, setCfg := testConfigAndSetter()
 
 	cases := []struct {
 		p   *config.ProfilePod
@@ -74,7 +72,7 @@ func TestProfileRequestsSave(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, nil)
+	req := NewProfileRequests(node, cfg, setCfg, nil)
 	for i, c := range cases {
 		got := &config.ProfilePod{}
 		err := req.SaveProfile(c.p, got)
@@ -87,23 +85,22 @@ func TestProfileRequestsSave(t *testing.T) {
 }
 
 func TestSaveProfile(t *testing.T) {
+	cfg, setCfg := testConfigAndSetter()
+
+	var savedConf config.Config
+	setCfg = func(cfg *config.Config) error {
+		savedConf = *cfg
+		return nil
+	}
+
 	// Mock data for the global Config's Profile, used to create new profile.
 	// TODO: Remove the randomly built Profile that config.DefaultProfile creates.
 	mockID := "QmWu3MKx2B1xxphkSNWxw8TYt41HnXD8R85Kt2UzKzpGH9"
 	mockTime := time.Unix(1234567890, 0)
-	Config.Profile.ID = mockID
-	Config.Profile.Created = mockTime
-	Config.Profile.Updated = mockTime
-	Config.Profile.Peername = "test_mock_peer_name"
-
-	// SaveConfig func replacement, so that it copies the global Config here.
-	var savedConf config.Config
-	prevSaver := SaveConfig
-	SaveConfig = func() error {
-		savedConf = *Config
-		return nil
-	}
-	defer func() { SaveConfig = prevSaver }()
+	cfg.Profile.ID = mockID
+	cfg.Profile.Created = mockTime
+	cfg.Profile.Updated = mockTime
+	cfg.Profile.Peername = "test_mock_peer_name"
 
 	// ProfilePod filled with test data.
 	pro := config.ProfilePod{}
@@ -119,12 +116,12 @@ func TestSaveProfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, nil)
+	req := NewProfileRequests(node, cfg, setCfg, nil)
 	got := config.ProfilePod{}
 	err = req.SaveProfile(&pro, &got)
 	if err != nil {
@@ -135,9 +132,9 @@ func TestSaveProfile(t *testing.T) {
 	if got.PrivKey != "" {
 		log.Errorf("Returned Profile should not have private key: %v", got.PrivKey)
 	}
-	got.PrivKey = savedConf.Profile.PrivKey
+	got.PrivKey = cfg.Profile.PrivKey
 
-	savedConf.Profile.Online = savedConf.P2P.Enabled
+	cfg.Profile.Online = cfg.P2P.Enabled
 
 	// Verify that the saved config matches the returned config (after private key is copied).
 	if !reflect.DeepEqual(*savedConf.Profile, got) {
@@ -195,17 +192,13 @@ func TestSaveProfile(t *testing.T) {
 }
 
 func TestProfileRequestsSetPeername(t *testing.T) {
-	prevSC := SaveConfig
-	SaveConfig = func() error { return nil }
-	defer func() {
-		SaveConfig = prevSC
-	}()
+	cfg, setCfg := testConfigAndSetter()
 
 	reg := regmock.NewMemRegistry()
 	regCli, _ := regmock.NewMockServerRegistry(reg)
 	n := newTestQriNodeRegClient(t, regCli)
 
-	pr := NewProfileRequests(n, nil)
+	pr := NewProfileRequests(n, cfg, setCfg, nil)
 
 	pro, err := n.Repo.Profile()
 	if err != nil {
@@ -236,11 +229,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 }
 
 func TestProfileRequestsSetProfilePhoto(t *testing.T) {
-	prev := SaveConfig
-	SaveConfig = func() error {
-		return nil
-	}
-	defer func() { SaveConfig = prev }()
+	cfg, setCfg := testConfigAndSetter()
 
 	cases := []struct {
 		infile  string
@@ -257,12 +246,12 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, nil)
+	req := NewProfileRequests(node, cfg, setCfg, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -290,11 +279,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 }
 
 func TestProfileRequestsSetPosterPhoto(t *testing.T) {
-	prev := SaveConfig
-	SaveConfig = func() error {
-		return nil
-	}
-	defer func() { SaveConfig = prev }()
+	cfg, setCfg := testConfigAndSetter()
 
 	cases := []struct {
 		infile  string
@@ -311,12 +296,12 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, nil)
+	req := NewProfileRequests(node, cfg, setCfg, nil)
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {

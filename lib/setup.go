@@ -31,8 +31,8 @@ func Setup(p SetupParams) error {
 		}
 	}
 
-	Config = p.Config
-	ConfigFilepath = p.ConfigFilepath
+	// Config = p.Config
+	// ConfigFilepath = p.ConfigFilepath
 	return nil
 }
 

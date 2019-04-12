@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -58,7 +59,8 @@ func TestReceivers(t *testing.T) {
 	}
 
 	node := n.(*p2p.QriNode)
-	reqs := Receivers(node)
+	cfg := config.DefaultConfigForTesting()
+	reqs := Receivers(node, cfg, nil)
 	if len(reqs) != 9 {
 		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 9, len(reqs))
 		return
