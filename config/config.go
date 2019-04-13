@@ -18,14 +18,17 @@ const CurrentConfigRevision = 1
 
 // Config encapsulates all configuration details for qri
 type Config struct {
+	path string
+
 	Revision int
 	Profile  *ProfilePod
 	Repo     *Repo
 	Store    *Store
 	P2P      *P2P
-	Registry *Registry
 
-	Remotes *Remotes
+	Registry *Registry
+	Remotes  *Remotes
+
 	CLI     *CLI
 	API     *API
 	Webapp  *Webapp
@@ -98,12 +101,22 @@ func ReadFromFile(path string) (*Config, error) {
 		return nil, err
 	}
 
-	cfg := &Config{}
+	cfg := &Config{path: path}
 	if err = fill.Struct(fields, cfg); err != nil {
 		return nil, err
 	}
 
 	return cfg, nil
+}
+
+// SetPath assigns unexported filepath to write config to
+func (cfg *Config) SetPath(path string) {
+	cfg.path = path
+}
+
+// Path gives the unexported filepath for a config
+func (cfg Config) Path() string {
+	return cfg.path
 }
 
 // WriteToFile encodes a configration to YAML and writes it to path

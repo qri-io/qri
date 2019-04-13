@@ -71,13 +71,10 @@ https://github.com/qri-io/qri/issues`,
 
 // QriOptions holds the Root Command State
 type QriOptions struct {
-	ioes.IOStreams
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	ipfsFsPath string
-	// generator is source of generating cryptographic info
-	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
 	NoPrompt bool
 	// NoColor disables colorized output

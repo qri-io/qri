@@ -16,6 +16,7 @@ import (
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
@@ -102,14 +103,21 @@ type Requests interface {
 // * Config consists only of static values stored in a configuration file
 // Options may override config in specific cases to avoid undefined state
 type InstanceOptions struct {
-	Cfg      *config.Config
-	Streams  ioes.IOStreams
-	QriPath  string
-	IPFSPath string
+	Ctx     context.Context
+	Cfg     *config.Config
+	Streams ioes.IOStreams
 }
 
 // Option is a function that manipulates config details when fed to New()
 type Option func(o *InstanceOptions) error
+
+// OptBackgroundCtx uses a default base context
+func OptBackgroundCtx() Option {
+	return func(o *InstanceOptions) error {
+		o.Ctx = context.Background()
+		return nil
+	}
+}
 
 // OptDefaultQriPath configures the directory to read Qri from, defaulting to
 // "$HOME/.qri", unless the environment variable QRI_PATH is set
@@ -123,35 +131,39 @@ func OptDefaultQriPath() Option {
 			}
 			path = filepath.Join(dir, ".qri")
 		}
-		o.QriPath = path
+		// o.QriPath = path
 		return nil
 	}
 }
 
 // OptDefaultIPFSPath configures the directory to read IPFS from, defaulting to
 // "$HOME/.ipfs", unless the environment variable IPFS_PATH is set
-func OptDefaultIPFSPath() Option {
-	return func(o *InstanceOptions) error {
-		path := os.Getenv("IPFS_PATH")
-		if path == "" {
-			dir, err := homedir.Dir()
-			if err != nil {
-				return err
-			}
-			path = filepath.Join(dir, ".ipfs")
-		}
-		o.IPFSPath = path
-		return nil
-	}
-}
+// func OptDefaultIPFSPath() Option {
+// 	return func(o *InstanceOptions) error {
+// 		path := os.Getenv("IPFS_PATH")
+// 		if path == "" {
+// 			dir, err := homedir.Dir()
+// 			if err != nil {
+// 				return err
+// 			}
+// 			path = filepath.Join(dir, ".ipfs")
+// 		}
+// 		// o.IPFSPath = path
+// 		return nil
+// 	}
+// }
 
 // OptLoadConfigFile loads a configuration from a given path
 func OptLoadConfigFile(path string) Option {
 	return func(o *InstanceOptions) (err error) {
 		// default to checking
-		if path == "" && o.QriPath != "" {
-			path = filepath.Join(o.QriPath, "config.yaml")
-		} else if path == "" {
+		// if path == "" {
+		// 	path = filepath.Join(o.QriPath, "config.yaml")
+		// } else if path == "" {
+		// return fmt.Errorf("no config path provided")
+		// }
+
+		if path == "" {
 			return fmt.Errorf("no config path provided")
 		}
 
@@ -185,11 +197,11 @@ func OptStdIOStreams() Option {
 func OptCheckConfigMigrations(cfgPath string) Option {
 	return func(o *InstanceOptions) error {
 		// default to checking
-		if cfgPath == "" && o.QriPath != "" {
-			cfgPath = filepath.Join(o.QriPath, "config.yaml")
-		} else if cfgPath == "" {
-			return fmt.Errorf("no config path provided")
-		}
+		// if cfgPath == "" && o.QriPath != "" {
+		// 	cfgPath = filepath.Join(o.QriPath, "config.yaml")
+		// } else if cfgPath == "" {
+		// 	return fmt.Errorf("no config path provided")
+		// }
 
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
@@ -214,9 +226,10 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
 		opts = []Option{
+			OptBackgroundCtx(),
 			OptStdIOStreams(),
-			OptDefaultQriPath(),
-			OptDefaultIPFSPath(),
+			// OptDefaultQriPath(),
+			// OptDefaultIPFSPath(),
 			OptLoadConfigFile(""),
 			OptCheckConfigMigrations(""),
 		}
@@ -236,12 +249,12 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 		return
 	}
 
-	ctx, teardown := context.WithCancel(context.Background())
-
+	ctx, teardown := context.WithCancel(o.Ctx)
 	inst := &instance{
 		ctx:      ctx,
 		teardown: teardown,
 		cfg:      cfg,
+		streams:  o.Streams,
 	}
 	qri = inst
 
@@ -252,6 +265,7 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 		}
 	}
 
+	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
 		if conn, err := net.Dial("tcp", addr); err != nil {
@@ -262,52 +276,93 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 		}
 	}
 
-	var store *ipfs.Filestore
-	fsOpts := []ipfs.Option{
-		func(c *ipfs.StoreCfg) {
-			c.FsRepoPath = o.IPFSPath
-			// c.Online = online
-		},
-		ipfs.OptsFromMap(cfg.Store.Options),
+	if inst.store, err = initStore(cfg); err != nil {
+		return
 	}
-	if store, err = ipfs.NewFilestore(fsOpts...); err != nil {
+	if inst.qfs, err = initFilesystem(cfg, inst.store); err != nil {
+		return
+	}
+	inst.registry = initRegClient(cfg)
+
+	if inst.repo, err = initRepo(cfg, inst.store, inst.registry); err != nil {
 		return
 	}
 
-	var pro *profile.Profile
-	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+	inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P)
+	if err != nil {
 		return
 	}
+	inst.node.LocalStreams = o.Streams
 
-	var rc *regclient.Client
+	return
+}
+
+func initStore(cfg *config.Config) (store cafs.Filestore, err error) {
+	switch cfg.Store.Type {
+	case "ipfs":
+		path := cfg.Store.Path
+		if path == "" && os.Getenv("IPFS_PATH") != "" {
+			path = os.Getenv("IPFS_PATH")
+		} else if path == "" {
+			home, err := homedir.Dir()
+			if err != nil {
+				return nil, fmt.Errorf("creating IPFS store: %s", err)
+			}
+			path = filepath.Join(home, ".ipfs")
+		}
+
+		fsOpts := []ipfs.Option{
+			func(c *ipfs.StoreCfg) {
+				c.FsRepoPath = path
+			},
+			ipfs.OptsFromMap(cfg.Store.Options),
+		}
+		return ipfs.NewFilestore(fsOpts...)
+	case "map":
+		return cafs.NewMapstore(), nil
+	default:
+		return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
+	}
+}
+
+func initRegClient(cfg *config.Config) (rc *regclient.Client) {
 	if cfg.Registry != nil && cfg.Registry.Location != "" {
 		rc = regclient.NewClient(&regclient.Config{
 			Location: cfg.Registry.Location,
 		})
 	}
+	return
+}
 
-	fsys := muxfs.NewMux(map[string]qfs.PathResolver{
+func initRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
+	var pro *profile.Profile
+	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+		return
+	}
+
+	switch cfg.Repo.Type {
+	case "fs":
+		return fsrepo.NewRepo(store, nil, pro, rc, cfg.Repo.Path)
+	case "mem":
+		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore(), rc)
+	default:
+		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
+	}
+}
+
+func initFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
+	mux := map[string]qfs.PathResolver{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  store,
-		"ipfs":  store,
-	})
-
-	repo, err := fsrepo.NewRepo(store, fsys, pro, rc, o.QriPath)
-	if err != nil {
-		return
 	}
 
-	node, err := p2p.NewQriNode(repo, cfg.P2P)
-	if err != nil {
-		return
+	if ipfss, ok := store.(*ipfs.Filestore); ok {
+		mux["ipfs"] = ipfss
 	}
-	node.LocalStreams = o.Streams
 
-	inst.node = node
-	inst.qriPath = o.QriPath
-
-	return
+	fsys := muxfs.NewMux(mux)
+	return fsys, nil
 }
 
 // instance implements the (exported) Instance interface
@@ -316,10 +371,16 @@ type instance struct {
 	ctx      context.Context
 	teardown context.CancelFunc
 
-	cfg     *config.Config
-	qriPath string
-	node    *p2p.QriNode
-	rpc     *rpc.Client
+	cfg *config.Config
+
+	streams  ioes.IOStreams
+	store    cafs.Filestore
+	qfs      qfs.Filesystem
+	registry *regclient.Client
+	repo     repo.Repo
+	node     *p2p.QriNode
+
+	rpc *rpc.Client
 }
 
 // Context returns the base context for this instance
@@ -334,9 +395,9 @@ func (inst *instance) Config() *config.Config {
 
 // SetConfig implements the ConfigSetter interface
 func (inst *instance) SetConfig(cfg *config.Config) (err error) {
-	if inst.qriPath != "" {
-		if err = inst.cfg.WriteToFile(filepath.Join(inst.qriPath, "config.yaml")); err != nil {
-			return err
+	if path := cfg.Path(); path != "" {
+		if err = cfg.WriteToFile(path); err != nil {
+			return
 		}
 	}
 

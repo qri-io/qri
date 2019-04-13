@@ -10,6 +10,7 @@ import (
 type Repo struct {
 	Middleware []string `json:"middleware"`
 	Type       string   `json:"type"`
+	Path       string   `json:"path,omitempty"`
 }
 
 // DefaultRepo creates & returns a new default repo configuration
