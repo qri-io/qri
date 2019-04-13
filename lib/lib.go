@@ -119,39 +119,50 @@ func OptBackgroundCtx() Option {
 	}
 }
 
-// OptDefaultQriPath configures the directory to read Qri from, defaulting to
+// OptSetQriRepoPath configures the directory to read Qri from, defaulting to
 // "$HOME/.qri", unless the environment variable QRI_PATH is set
-func OptDefaultQriPath() Option {
+func OptSetQriRepoPath(path string) Option {
 	return func(o *InstanceOptions) error {
-		path := os.Getenv("QRI_PATH")
-		if path == "" {
-			dir, err := homedir.Dir()
-			if err != nil {
-				return err
+		if o.Cfg.Repo.Type == "fs" && o.Cfg.Repo.Path == "" {
+			if path == "" {
+				path := os.Getenv("QRI_PATH")
+				if path == "" {
+					dir, err := homedir.Dir()
+					if err != nil {
+						return err
+					}
+					path = filepath.Join(dir, ".qri")
+				}
 			}
-			path = filepath.Join(dir, ".qri")
+			o.Cfg.Repo.Path = path
 		}
-		// o.QriPath = path
 		return nil
 	}
 }
 
-// OptDefaultIPFSPath configures the directory to read IPFS from, defaulting to
-// "$HOME/.ipfs", unless the environment variable IPFS_PATH is set
-// func OptDefaultIPFSPath() Option {
-// 	return func(o *InstanceOptions) error {
-// 		path := os.Getenv("IPFS_PATH")
-// 		if path == "" {
-// 			dir, err := homedir.Dir()
-// 			if err != nil {
-// 				return err
-// 			}
-// 			path = filepath.Join(dir, ".ipfs")
-// 		}
-// 		// o.IPFSPath = path
-// 		return nil
-// 	}
-// }
+// OptSetIPFSPath configures the directory to read IPFS from (only if the
+// configured store is IPFS). If the given path is the empty string, default
+// to the standard IPFS config:
+// * IPFS_PATH environment variable if set
+// * if none set: "$HOME/.ipfs"
+func OptSetIPFSPath(path string) Option {
+	return func(o *InstanceOptions) error {
+		if o.Cfg.Store.Type == "ipfs" && o.Cfg.Store.Path == "" {
+			if path == "" {
+				path = os.Getenv("IPFS_PATH")
+				if path == "" {
+					dir, err := homedir.Dir()
+					if err != nil {
+						return err
+					}
+					path = filepath.Join(dir, ".ipfs")
+				}
+			}
+			o.Cfg.Store.Path = path
+		}
+		return nil
+	}
+}
 
 // OptLoadConfigFile loads a configuration from a given path
 func OptLoadConfigFile(path string) Option {
@@ -228,8 +239,8 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 		opts = []Option{
 			OptBackgroundCtx(),
 			OptStdIOStreams(),
-			// OptDefaultQriPath(),
-			// OptDefaultIPFSPath(),
+			OptSetQriRepoPath(""),
+			OptSetIPFSPath(""),
 			OptLoadConfigFile(""),
 			OptCheckConfigMigrations(""),
 		}
@@ -276,20 +287,22 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 		}
 	}
 
-	if inst.store, err = initStore(cfg); err != nil {
+	if inst.store, err = newStore(cfg); err != nil {
 		return
 	}
-	if inst.qfs, err = initFilesystem(cfg, inst.store); err != nil {
+	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
 		return
 	}
-	inst.registry = initRegClient(cfg)
+	inst.registry = newRegClient(cfg)
 
-	if inst.repo, err = initRepo(cfg, inst.store, inst.registry); err != nil {
+	if inst.repo, err = newRepo(cfg, inst.store, inst.registry); err != nil {
 		return
 	}
+	if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
+		qfssetter.SetFilesystem(inst.qfs)
+	}
 
-	inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P)
-	if err != nil {
+	if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
 		return
 	}
 	inst.node.LocalStreams = o.Streams
@@ -297,7 +310,7 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 	return
 }
 
-func initStore(cfg *config.Config) (store cafs.Filestore, err error) {
+func newStore(cfg *config.Config) (store cafs.Filestore, err error) {
 	switch cfg.Store.Type {
 	case "ipfs":
 		path := cfg.Store.Path
@@ -325,7 +338,7 @@ func initStore(cfg *config.Config) (store cafs.Filestore, err error) {
 	}
 }
 
-func initRegClient(cfg *config.Config) (rc *regclient.Client) {
+func newRegClient(cfg *config.Config) (rc *regclient.Client) {
 	if cfg.Registry != nil && cfg.Registry.Location != "" {
 		rc = regclient.NewClient(&regclient.Config{
 			Location: cfg.Registry.Location,
@@ -334,7 +347,7 @@ func initRegClient(cfg *config.Config) (rc *regclient.Client) {
 	return
 }
 
-func initRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
+func newRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -350,7 +363,7 @@ func initRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r
 	}
 }
 
-func initFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
+func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
 	mux := map[string]qfs.PathResolver{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),

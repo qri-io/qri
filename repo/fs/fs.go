@@ -95,6 +95,11 @@ func (r Repo) Filesystem() qfs.Filesystem {
 	return r.fsys
 }
 
+// SetFilesystem implements QFSSetter, currently used during lib contstruction
+func (r *Repo) SetFilesystem(fs qfs.Filesystem) {
+	r.fsys = fs
+}
+
 // Graph returns the graph of dataset objects for this repo
 func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
 	if r.graph == nil {

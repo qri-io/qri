@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"net/rpc"
+	"path/filepath"
 	"sync"
 
 	"github.com/qri-io/ioes"
@@ -71,10 +72,14 @@ https://github.com/qri-io/qri/issues`,
 
 // QriOptions holds the Root Command State
 type QriOptions struct {
+	ioes.IOStreams
+
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
 	ipfsFsPath string
+	// generator is source of generating cryptographic info
+	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
 	NoPrompt bool
 	// NoColor disables colorized output
@@ -99,86 +104,19 @@ func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioSt
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
 	initBody := func() {
-		o.inst, err = lib.NewInstance()
+		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
+		opts := []lib.Option{
+			lib.OptLoadConfigFile(cfgPath),
+			lib.OptBackgroundCtx(),               // build from a new context
+			lib.OptIOStreams(o.IOStreams),        // transfer iostreams down
+			lib.OptSetQriRepoPath(o.qriRepoPath), // supplying the empty string gives sane defaults
+			lib.OptSetIPFSPath(o.ipfsFsPath),     // supplying the empty string gives sane defaults
+			lib.OptCheckConfigMigrations(""),
+		}
+		o.inst, err = lib.NewInstance(opts...)
 	}
 	o.initialized.Do(initBody)
 	return
-	// initBody := func() {
-	// 	cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
-
-	// 	// TODO - need to remove global config state in lib, then remove this
-	// 	lib.ConfigFilepath = cfgPath
-
-	// 	if err = lib.LoadConfig(o.IOStreams, cfgPath); err != nil {
-	// 		return
-	// 	}
-	// 	o.config = lib.Config
-
-	// 	setNoColor(!o.config.CLI.ColorizeOutput || o.NoColor)
-
-	// 	if o.config.RPC.Enabled {
-	// 		addr := fmt.Sprintf(":%d", o.config.RPC.Port)
-	// 		if conn, err := net.Dial("tcp", addr); err != nil {
-	// 			err = nil
-	// 		} else {
-	// 			o.rpc = rpc.NewClient(conn)
-	// 			return
-	// 		}
-	// 	}
-
-	// 	// for now this just checks for an existing config file
-	// 	if _, e := os.Stat(cfgPath); os.IsNotExist(e) {
-	// 		err = fmt.Errorf("no qri repo found, please run `qri setup`")
-	// 		return
-	// 	}
-
-	// 	var store *ipfs.Filestore
-
-	// 	fsOpts := []ipfs.Option{
-	// 		func(cfg *ipfs.StoreCfg) {
-	// 			cfg.FsRepoPath = o.ipfsFsPath
-	// 			// cfg.Online = online
-	// 		},
-	// 		ipfs.OptsFromMap(o.config.Store.Options),
-	// 	}
-
-	// 	store, err = ipfs.NewFilestore(fsOpts...)
-	// 	if err != nil {
-	// 		return
-	// 	}
-
-	// 	var pro *profile.Profile
-	// 	if pro, err = profile.NewProfile(o.config.Profile); err != nil {
-	// 		return
-	// 	}
-
-	// 	var rc *regclient.Client
-	// 	if o.config.Registry != nil && o.config.Registry.Location != "" {
-	// 		rc = regclient.NewClient(&regclient.Config{
-	// 			Location: o.config.Registry.Location,
-	// 		})
-	// 	}
-
-	// 	fsys := muxfs.NewMux(map[string]qfs.PathResolver{
-	// 		"local": localfs.NewFS(),
-	// 		"http":  httpfs.NewFS(),
-	// 		"cafs":  store,
-	// 		"ipfs":  store,
-	// 	})
-
-	// 	o.repo, err = fsrepo.NewRepo(store, fsys, pro, rc, o.qriRepoPath)
-	// 	if err != nil {
-	// 		return
-	// 	}
-
-	// 	o.node, err = p2p.NewQriNode(o.repo, o.config.P2P)
-	// 	if err != nil {
-	// 		return
-	// 	}
-	// 	o.node.LocalStreams = o.IOStreams
-	// }
-	// o.initialized.Do(initBody)
-	// return err
 }
 
 // Instance returns the instance this options is using
