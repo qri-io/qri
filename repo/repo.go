@@ -78,6 +78,14 @@ type Repo interface {
 	Registry() *regclient.Client
 }
 
+// QFSSetter sets a qfs.Filesystem
+// the whole interface is a short-term hack that should only need to be
+// called in one context: when lib is setting up a Repo
+// TODO (b5): either decouple repo & qfs completely, or merge them
+type QFSSetter interface {
+	SetFilesystem(qfs.Filesystem)
+}
+
 // SearchParams encapsulates parameters provided to Searchable.Search
 type SearchParams struct {
 	Q             string

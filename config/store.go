@@ -6,6 +6,7 @@ import "github.com/qri-io/jsonschema"
 type Store struct {
 	Type    string                 `json:"type"`
 	Options map[string]interface{} `json:"options,omitempty"`
+	Path    string                 `json:"path,omitempty"`
 }
 
 // DefaultStore returns a new default Store configuration
@@ -31,7 +32,8 @@ func (cfg Store) Validate() error {
         "description": "Type of store",
         "type": "string",
         "enum": [
-          "ipfs"
+					"ipfs",
+					"map"
         ]
       }
     }

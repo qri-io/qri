@@ -40,7 +40,7 @@ func NewRemoteRequests(node *p2p.QriNode, cfg *config.Config, cli *rpc.Client) *
 }
 
 // CoreRequestsName implements the Requests interface
-func (RemoteRequests) CoreRequestsName() string { return "remote" }
+func (*RemoteRequests) CoreRequestsName() string { return "remote" }
 
 // PushToRemote posts a dagInfo to a remote
 func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
