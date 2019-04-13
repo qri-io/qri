@@ -116,8 +116,6 @@ func TestCommandsIntegration(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	t.Fatal("need to ensure registry configuration is correct")
-
 	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")

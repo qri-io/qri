@@ -49,6 +49,11 @@ func (r *MemRepo) Filesystem() qfs.Filesystem {
 	return r.filesystem
 }
 
+// SetFilesystem implements QFSSetter, currently used during lib contstruction
+func (r *MemRepo) SetFilesystem(fs qfs.Filesystem) {
+	r.filesystem = fs
+}
+
 // PrivateKey returns this repo's private key
 func (r *MemRepo) PrivateKey() crypto.PrivKey {
 	if r.profile == nil {
