@@ -426,14 +426,14 @@ func (inst *instance) Config() *config.Config {
 
 // SetConfig implements the ConfigSetter interface
 func (inst *instance) SetConfig(cfg *config.Config) (err error) {
-	inst.cfg = cfg
 
-	if path := cfg.Path(); path != "" {
+	if path := inst.cfg.Path(); path != "" {
 		if err = cfg.WriteToFile(path); err != nil {
 			return
 		}
 	}
 
+	inst.cfg = cfg
 	return nil
 }
 
