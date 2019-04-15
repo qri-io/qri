@@ -105,12 +105,9 @@ func (t TestFactory) RPC() *rpc.Client {
 	return nil
 }
 
-func (t TestFactory) ConfigRequests() (*lib.ConfigRequests, error) {
-	setCfg := func(*config.Config) error { return nil }
-	if writable, ok := t.inst.(lib.WritableInstance); ok {
-		setCfg = writable.SetConfig
-	}
-	return lib.NewConfigRequests(t.inst.Config(), setCfg, t.inst.RPC()), nil
+// ConfigMethods generates a lib.ConfigMethods from internal state
+func (t TestFactory) ConfigMethods() (lib.ConfigMethods, error) {
+	return lib.NewConfigMethods(t.inst), nil
 }
 
 // DatasetRequests generates a lib.DatasetRequests from internal state
@@ -143,13 +140,9 @@ func (t TestFactory) PeerRequests() (*lib.PeerRequests, error) {
 	return lib.NewPeerRequests(t.node, t.rpc), nil
 }
 
-// ProfileRequests generates a lib.ProfileRequests from internal state
-func (t TestFactory) ProfileRequests() (*lib.ProfileRequests, error) {
-	setCfg := func(*config.Config) error { return nil }
-	if writable, ok := t.inst.(lib.WritableInstance); ok {
-		setCfg = writable.SetConfig
-	}
-	return lib.NewProfileRequests(t.node, t.config, setCfg, t.rpc), nil
+// ProfileMethods generates a lib.ProfileMethods from internal state
+func (t TestFactory) ProfileMethods() (lib.ProfileMethods, error) {
+	return lib.NewProfileMethods(t.inst), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state

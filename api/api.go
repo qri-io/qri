@@ -40,21 +40,18 @@ func init() {
 // Server wraps a qri p2p node, providing traditional access via http
 // Create one with New, start it up with Serve
 type Server struct {
+	lib.Instance
 	// configuration options
 	cfg     *config.Config
-	setCfg  func(*config.Config) error
 	qriNode *p2p.QriNode
 }
 
 // New creates a new qri server from a p2p node & configuration
-func New(node *p2p.QriNode, cfg *config.Config) (s *Server) {
+func New(inst lib.Instance) (s *Server) {
 	return &Server{
-		qriNode: node,
-		cfg:     cfg,
-		// TODO (b5): need to move config saving into the configuration struct
-		setCfg: func(c *config.Config) error {
-			return fmt.Errorf("saving config is currently broken")
-		},
+		Instance: inst,
+		qriNode:  inst.Node(),
+		cfg:      inst.Config(),
 	}
 }
 
@@ -84,24 +81,30 @@ func (s *Server) Serve() (err error) {
 			}()
 
 			go func() {
-				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-				if s.cfg != nil && s.cfg.Render != nil && s.cfg.Render.TemplateUpdateAddress != "" {
-					if latest, err := lib.CheckVersion(context.Background(), namesys, s.cfg.Render.TemplateUpdateAddress, s.cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
-						err := pinner.Pin(latest, true)
-						if err != nil {
-							log.Debug("error pinning template hash: %s", err.Error())
-							return
+				if writable, ok := s.Instance.(lib.WritableInstance); ok {
+					// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
+					if s.cfg != nil && s.cfg.Render != nil && s.cfg.Render.TemplateUpdateAddress != "" {
+						if latest, err := lib.CheckVersion(context.Background(), namesys, s.cfg.Render.TemplateUpdateAddress, s.cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+							err := pinner.Pin(latest, true)
+							if err != nil {
+								log.Debug("error pinning template hash: %s", err.Error())
+								return
+							}
+							if err := s.cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
+								log.Debugf("error setting latest hash: %s", err)
+								return
+							}
+
+							// TODO (b5) - potential bug here: the cfg pointer server is holding may become stale,
+							// causing "reverts" to old values when this SetConfig is called
+							// very unlikely, but a good reason to think through configuration updating
+							if err := writable.SetConfig(s.cfg); err != nil {
+								log.Debugf("error saving configuration: %s", err)
+								return
+							}
+
+							log.Info("updated template hash: %s", latest)
 						}
-						if err := s.cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
-							log.Debug("error setting latest hash: %s", err.Error())
-							return
-						}
-						// TODO (b5): restore
-						// if err := lib.SaveConfig(); err != nil {
-						// 	log.Debug("error saving config hash: %s", err.Error())
-						// 	return
-						// }
-						log.Info("auto-updated template hash: %s", latest)
 					}
 				}
 			}()
@@ -144,7 +147,7 @@ func (s *Server) ServeRPC() {
 		return
 	}
 
-	for _, rcvr := range lib.Receivers(s.qriNode, s.cfg, s.setCfg) {
+	for _, rcvr := range lib.Receivers(s.Instance) {
 		if err := rpc.Register(rcvr); err != nil {
 			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return
@@ -223,7 +226,7 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.qriNode, s.cfg, s.setCfg, s.cfg.API.ReadOnly)
+	proh := NewProfileHandlers(s.Instance, s.cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))

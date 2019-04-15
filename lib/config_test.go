@@ -25,12 +25,14 @@ import (
 // }
 
 func TestGetConfig(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
-	r := NewConfigRequests(cfg, setCfg, nil)
+	cfg := config.DefaultConfigForTesting()
+	// TODO (b5) - hack until we can get better test-instance allocation
+	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	m := NewConfigMethods(inst)
 
 	p := &GetConfigParams{Field: "profile.id", Format: "json"}
 	res := []byte{}
-	if err := r.GetConfig(p, &res); err != nil {
+	if err := m.GetConfig(p, &res); err != nil {
 		t.Error(err.Error())
 	}
 	if !bytes.Equal(res, []byte(`"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"`)) {
@@ -46,42 +48,36 @@ func TestSaveConfigToFile(t *testing.T) {
 
 	cfgPath := path + "/config.yaml"
 	cfg := config.DefaultConfigForTesting()
-	setCfg := func(*config.Config) error {
-		return cfg.WriteToFile(cfgPath)
-	}
-	r := NewConfigRequests(cfg, setCfg, nil)
+	cfg.SetPath(cfgPath)
+	// TODO (b5) - hack until we can get better test-instance allocation
+	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	m := NewConfigMethods(inst)
 
 	var ok bool
-	if err := r.SetConfig(cfg, &ok); err != nil {
+	if err := m.SetConfig(cfg, &ok); err != nil {
 		t.Error(err.Error())
 	}
 }
 
 func TestSetConfig(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
-	r := NewConfigRequests(cfg, setCfg, nil)
+	cfg := config.DefaultConfigForTesting()
+	// TODO (b5) - hack until we can get better test-instance allocation
+	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	m := NewConfigMethods(inst)
 
 	var set bool
 
-	if err := r.SetConfig(&config.Config{}, &set); err == nil {
+	if err := m.SetConfig(&config.Config{}, &set); err == nil {
 		t.Errorf("expected saving empty config to be invalid")
 	}
 
-	// cfg := config.DefaultConfigForTesting()
-	// SaveConfig = func() error { return fmt.Errorf("bad") }
-	// if err := SetConfig(cfg); err == nil {
-	// 	t.Errorf("expected saving error to return")
-	// }
-
-	// SaveConfig = func() error { return nil }
-
 	cfg.Profile.Twitter = "@qri_io"
-	if err := r.SetConfig(cfg, &set); err != nil {
+	if err := m.SetConfig(cfg, &set); err != nil {
 		t.Error(err.Error())
 	}
 	p := &GetConfigParams{Field: "profile.twitter", Format: "json"}
 	res := []byte{}
-	if err := r.GetConfig(p, &res); err != nil {
+	if err := m.GetConfig(p, &res); err != nil {
 		t.Error(err.Error())
 	}
 	if !bytes.Equal(res, []byte(`"@qri_io"`)) {

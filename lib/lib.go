@@ -45,17 +45,21 @@ func init() {
 
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
-func Receivers(node *p2p.QriNode, cfg *config.Config, setCfg func(*config.Config) error) []Requests {
+func Receivers(inst Instance) []Requests {
+	node := inst.Node()
+	r := inst.Repo()
+
 	return []Requests{
 		NewDatasetRequests(node, nil),
 		NewRegistryRequests(node, nil),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),
-		NewProfileRequests(node, cfg, setCfg, nil),
+		NewProfileMethods(inst),
+		NewConfigMethods(inst),
 		NewSearchRequests(node, nil),
-		NewRenderRequests(node.Repo, nil),
-		NewSelectionRequests(node.Repo, nil),
+		NewRenderRequests(r, nil),
+		NewSelectionRequests(r, nil),
 	}
 }
 
@@ -378,6 +382,20 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 	return fsys, nil
 }
 
+// NewInstanceFromConfigAndNode is a temporary solution to create an instance from an
+// already-allocated QriNode & configuration
+// don't write new code that relies on this, instead create a configuration
+// and options that can be fed to NewInstance
+func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) Instance {
+	ctx, teardown := context.WithCancel(context.Background())
+	return &instance{
+		ctx:      ctx,
+		teardown: teardown,
+		cfg:      cfg,
+		node:     node,
+	}
+}
+
 // instance implements the (exported) Instance interface
 // create an instance one with NewInstance
 type instance struct {
@@ -408,13 +426,14 @@ func (inst *instance) Config() *config.Config {
 
 // SetConfig implements the ConfigSetter interface
 func (inst *instance) SetConfig(cfg *config.Config) (err error) {
+	inst.cfg = cfg
+
 	if path := cfg.Path(); path != "" {
 		if err = cfg.WriteToFile(path); err != nil {
 			return
 		}
 	}
 
-	inst.cfg = cfg
 	return nil
 }
 

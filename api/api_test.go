@@ -18,6 +18,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
@@ -204,7 +205,9 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	s := New(node, cfg)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	s := New(inst)
 
 	server := httptest.NewServer(NewServerRoutes(s))
 

@@ -32,16 +32,19 @@ func TestProfileRequestsGet(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
-	cfg, setCfg := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
+
 	for i, c := range cases {
 		got := &config.ProfilePod{}
-		err := req.GetProfile(&c.in, got)
+		err := m.GetProfile(&c.in, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -51,7 +54,7 @@ func TestProfileRequestsGet(t *testing.T) {
 }
 
 func TestProfileRequestsSave(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
 		p   *config.ProfilePod
@@ -67,15 +70,18 @@ func TestProfileRequestsSave(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
+
 	for i, c := range cases {
 		got := &config.ProfilePod{}
-		err := req.SaveProfile(c.p, got)
+		err := m.SaveProfile(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
@@ -85,13 +91,7 @@ func TestProfileRequestsSave(t *testing.T) {
 }
 
 func TestSaveProfile(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
-
-	var savedConf config.Config
-	setCfg = func(cfg *config.Config) error {
-		savedConf = *cfg
-		return nil
-	}
+	cfg := config.DefaultConfigForTesting()
 
 	// Mock data for the global Config's Profile, used to create new profile.
 	// TODO: Remove the randomly built Profile that config.DefaultProfile creates.
@@ -121,9 +121,12 @@ func TestSaveProfile(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
+
 	got := config.ProfilePod{}
-	err = req.SaveProfile(&pro, &got)
+	err = m.SaveProfile(&pro, &got)
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -137,9 +140,9 @@ func TestSaveProfile(t *testing.T) {
 	cfg.Profile.Online = cfg.P2P.Enabled
 
 	// Verify that the saved config matches the returned config (after private key is copied).
-	if !reflect.DeepEqual(*savedConf.Profile, got) {
+	if !reflect.DeepEqual(*cfg.Profile, got) {
 		dmp := diffmatchpatch.New()
-		saved, _ := json.Marshal(*savedConf.Profile)
+		saved, _ := json.Marshal(*cfg.Profile)
 		g, _ := json.Marshal(got)
 		diffs := dmp.DiffMain(string(saved), string(g), false)
 		log.Errorf("Saved Profile does not match returned Profile: %s", dmp.DiffPrettyText(diffs))
@@ -192,15 +195,17 @@ func TestSaveProfile(t *testing.T) {
 }
 
 func TestProfileRequestsSetPeername(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 
 	reg := regmock.NewMemRegistry()
 	regCli, _ := regmock.NewMockServerRegistry(reg)
-	n := newTestQriNodeRegClient(t, regCli)
+	node := newTestQriNodeRegClient(t, regCli)
 
-	pr := NewProfileRequests(n, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
 
-	pro, err := n.Repo.Profile()
+	pro, err := node.Repo.Profile()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -212,7 +217,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	}
 
 	res := &config.ProfilePod{}
-	if err := pr.SaveProfile(pp, res); err != nil {
+	if err := m.SaveProfile(pp, res); err != nil {
 		t.Error(err)
 	}
 
@@ -229,7 +234,7 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 }
 
 func TestProfileRequestsSetProfilePhoto(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
 		infile  string
@@ -251,7 +256,10 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
+
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -265,7 +273,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		}
 
 		res := &config.ProfilePod{}
-		err := req.SetProfilePhoto(p, res)
+		err := m.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
 			continue
@@ -279,7 +287,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 }
 
 func TestProfileRequestsSetPosterPhoto(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 
 	cases := []struct {
 		infile  string
@@ -301,7 +309,10 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	req := NewProfileRequests(node, cfg, setCfg, nil)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := NewInstanceFromConfigAndNode(cfg, node)
+	m := NewProfileMethods(inst)
+
 	for i, c := range cases {
 		p := &FileParams{}
 		if c.infile != "" {
@@ -315,7 +326,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		}
 
 		res := &config.ProfilePod{}
-		err := req.SetProfilePhoto(p, res)
+		err := m.SetProfilePhoto(p, res)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err.Error())
 			continue

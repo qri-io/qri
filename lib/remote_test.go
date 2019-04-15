@@ -6,13 +6,14 @@ import (
 
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestRemote(t *testing.T) {
-	cfg, _ := testConfigAndSetter()
+	cfg := config.DefaultConfigForTesting()
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)
 	if err != nil {

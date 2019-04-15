@@ -3,30 +3,23 @@ package lib
 import (
 	"encoding/json"
 	"fmt"
-	"net/rpc"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/qri/config"
 )
 
-// NewConfigRequests creates a configuration handle from an instance
-func NewConfigRequests(cfg *config.Config, setCfg func(*config.Config) error, cli *rpc.Client) *ConfigRequests {
-	return &ConfigRequests{
-		cfg:    cfg,
-		setCfg: setCfg,
-		cli:    cli,
-	}
+// NewConfigMethods creates a configuration handle from an instance
+func NewConfigMethods(inst Instance) ConfigMethods {
+	return ConfigMethods{Instance: inst}
 }
 
-// ConfigRequests encapsulates changes to a qri configuration
-type ConfigRequests struct {
-	cfg    *config.Config
-	setCfg func(*config.Config) error
-	cli    *rpc.Client
+// ConfigMethods encapsulates changes to a qri configuration
+type ConfigMethods struct {
+	Instance
 }
 
 // CoreRequestsName specifies this is a configuration handle
-func (h ConfigRequests) CoreRequestsName() string { return "config" }
+func (m ConfigMethods) CoreRequestsName() string { return "config" }
 
 // GetConfigParams are the params needed to format/specify the fields in bytes
 // returned from the GetConfig function
@@ -39,14 +32,13 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
-func (h ConfigRequests) GetConfig(p *GetConfigParams, res *[]byte) error {
-	if h.cli != nil {
-		return fmt.Errorf("GetConfig cannot be called over RPC")
+func (m ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
+	if cli := m.RPC(); cli != nil {
+		return cli.Call("ConfigMethods.GetConfig", p, res)
 	}
 
 	var (
-		err    error
-		cfg    = h.cfg
+		cfg    = m.Config()
 		encode interface{}
 	)
 
@@ -83,20 +75,22 @@ func (h ConfigRequests) GetConfig(p *GetConfigParams, res *[]byte) error {
 }
 
 // SetConfig validates, updates and saves the config
-func (h ConfigRequests) SetConfig(update *config.Config, set *bool) (err error) {
-	if h.cli != nil {
-		return fmt.Errorf("SetConfig cannot be called over RPC")
+func (m ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
+	if cli := m.RPC(); cli != nil {
+		return cli.Call("ConfigMethods.SetConfig", update, set)
 	}
 
 	if err = update.Validate(); err != nil {
 		return fmt.Errorf("error validating config: %s", err)
 	}
 
-	cfg := update.WithPrivateValues(h.cfg)
-	if err = h.setCfg(cfg); err != nil {
-		return
+	writable, ok := m.Instance.(WritableInstance)
+	if !ok {
+		return ErrNotWritable
 	}
 
+	cfg := update.WithPrivateValues(m.Config())
+
 	*set = true
-	return nil
+	return writable.SetConfig(cfg)
 }

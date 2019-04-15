@@ -123,20 +123,20 @@ type ConfigOptions struct {
 	Concise         bool
 	Output          string
 
-	inst            lib.Instance
-	ConfigRequests  *lib.ConfigRequests
-	ProfileRequests *lib.ProfileRequests
+	inst           lib.Instance
+	ConfigMethods  lib.ConfigMethods
+	ProfileMethods lib.ProfileMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ConfigOptions) Complete(f Factory) (err error) {
 	o.inst = f.Instance()
-	o.ConfigRequests, err = f.ConfigRequests()
+	o.ConfigMethods, err = f.ConfigMethods()
 	if err != nil {
 		return
 	}
 
-	o.ProfileRequests, err = f.ProfileRequests()
+	o.ProfileMethods, err = f.ProfileMethods()
 	return
 }
 
@@ -154,7 +154,7 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 	var data []byte
 
-	if err = o.ConfigRequests.GetConfig(params, &data); err != nil {
+	if err = o.ConfigMethods.GetConfig(params, &data); err != nil {
 		return err
 	}
 
@@ -194,7 +194,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		}
 
 		if photoPaths[path] {
-			if err = setPhotoPath(o.ProfileRequests, path, args[i+1]); err != nil {
+			if err = setPhotoPath(o.ProfileMethods, path, args[i+1]); err != nil {
 				return err
 			}
 		} else if strings.HasPrefix(path, profilePrefix) {
@@ -211,12 +211,12 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 		}
 	}
 	var ok bool
-	if err = o.ConfigRequests.SetConfig(o.inst.Config(), &ok); err != nil {
+	if err = o.ConfigMethods.SetConfig(o.inst.Config(), &ok); err != nil {
 		return err
 	}
 	if profileChanged {
 		var res config.ProfilePod
-		if err = o.ProfileRequests.SaveProfile(profile, &res); err != nil {
+		if err = o.ProfileMethods.SaveProfile(profile, &res); err != nil {
 			return err
 		}
 	}
@@ -225,7 +225,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	return nil
 }
 
-func setPhotoPath(req *lib.ProfileRequests, proppath, filepath string) error {
+func setPhotoPath(m lib.ProfileMethods, proppath, filepath string) error {
 	f, err := loadFileIfPath(filepath)
 	if err != nil {
 		return err
@@ -239,11 +239,11 @@ func setPhotoPath(req *lib.ProfileRequests, proppath, filepath string) error {
 
 	switch proppath {
 	case "profile.photo", "profile.thumb":
-		if err := req.SetProfilePhoto(p, res); err != nil {
+		if err := m.SetProfilePhoto(p, res); err != nil {
 			return err
 		}
 	case "profile.poster":
-		if err := req.SetPosterPhoto(p, res); err != nil {
+		if err := m.SetPosterPhoto(p, res); err != nil {
 			return err
 		}
 	default:
