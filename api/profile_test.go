@@ -12,12 +12,19 @@ import (
 	"testing"
 
 	"github.com/beme/abide"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 )
 
 func TestProfileHandler(t *testing.T) {
-	cfg, setCfg := testConfigAndSetter()
 	node, teardown := newTestNode(t)
 	defer teardown()
+
+	cfg := config.DefaultConfigForTesting()
+	// newTestNode uses a different profile. assign here so instance config.Profile
+	// node config.Profile match
+	pro, _ := node.Repo.Profile()
+	cfg.Profile, _ = pro.Encode()
 
 	cases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
@@ -27,7 +34,9 @@ func TestProfileHandler(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	proh := NewProfileHandlers(node, cfg, setCfg, false)
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	proh := NewProfileHandlers(inst, false)
 	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 
 	readOnlyCases := []handlerTestCase{
@@ -74,8 +83,15 @@ func TestProfilePhotoHandler(t *testing.T) {
 		},
 	}
 
-	cfg, setCfg := testConfigAndSetter()
-	proh := NewProfileHandlers(node, cfg, setCfg, false)
+	cfg := config.DefaultConfigForTesting()
+	// newTestNode uses a different profile. assign here so instance config.Profile
+	// node config.Profile match
+	pro, _ := node.Repo.Profile()
+	cfg.Profile, _ = pro.Encode()
+
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	proh := NewProfileHandlers(inst, false)
 
 	for _, c := range cases {
 		name := fmt.Sprintf("Profile Photo Test: %s", c.name)
@@ -124,8 +140,15 @@ func TestProfilePosterHandler(t *testing.T) {
 		},
 	}
 
-	cfg, setCfg := testConfigAndSetter()
-	proh := NewProfileHandlers(node, cfg, setCfg, false)
+	cfg := config.DefaultConfigForTesting()
+	// newTestNode uses a different profile. assign here so instance config.Profile
+	// node config.Profile match
+	pro, _ := node.Repo.Profile()
+	cfg.Profile, _ = pro.Encode()
+
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	proh := NewProfileHandlers(inst, false)
 
 	for _, c := range cases {
 		name := fmt.Sprintf("Profile Poster Test: %s", c.name)

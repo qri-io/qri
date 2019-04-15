@@ -60,21 +60,18 @@ func TestReceivers(t *testing.T) {
 
 	node := n.(*p2p.QriNode)
 	cfg := config.DefaultConfigForTesting()
-	reqs := Receivers(node, cfg, nil)
-	if len(reqs) != 9 {
-		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 9, len(reqs))
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := &instance{node: node, cfg: cfg}
+
+	reqs := Receivers(inst)
+	if len(reqs) != 10 {
+		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", 10, len(reqs))
 		return
 	}
 }
 
 func testdataPath(path string) string {
 	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
-}
-
-func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) error) {
-	cfg = config.DefaultConfigForTesting()
-	setCfg = func(*config.Config) error { return nil }
-	return
 }
 
 // pulled from actions and base packages

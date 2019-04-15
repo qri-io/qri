@@ -214,16 +214,13 @@ func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
 	return lib.NewPeerRequests(nil, o.inst.RPC()), nil
 }
 
-// ProfileRequests generates a lib.ProfileRequests from internal state
-func (o *QriOptions) ProfileRequests() (*lib.ProfileRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
+// ProfileMethods generates a lib.ProfileMethods from internal state
+func (o *QriOptions) ProfileMethods() (m lib.ProfileMethods, err error) {
+	if err = o.Init(); err != nil {
+		return
 	}
-	setCfg := func(*config.Config) error { return nil }
-	if writable, ok := o.inst.(lib.WritableInstance); ok {
-		setCfg = writable.SetConfig
-	}
-	return lib.NewProfileRequests(o.inst.Node(), o.inst.Config(), setCfg, o.inst.RPC()), nil
+
+	return lib.NewProfileMethods(o.inst), nil
 }
 
 // SelectionRequests creates a lib.SelectionRequests from internal state
@@ -250,14 +247,11 @@ func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
 	return lib.NewRenderRequests(o.inst.Repo(), o.inst.RPC()), nil
 }
 
-// ConfigRequests generates a lib.ConfigRequests from internal state
-func (o *QriOptions) ConfigRequests() (*lib.ConfigRequests, error) {
-	if err := o.Init(); err != nil {
-		return nil, err
+// ConfigMethods generates a lib.ConfigMethods from internal state
+func (o *QriOptions) ConfigMethods() (m lib.ConfigMethods, err error) {
+	if err = o.Init(); err != nil {
+		return
 	}
-	var setCfg func(*config.Config) error
-	if writable, ok := o.inst.(lib.WritableInstance); ok {
-		setCfg = writable.SetConfig
-	}
-	return lib.NewConfigRequests(o.inst.Config(), setCfg, o.inst.RPC()), nil
+
+	return lib.NewConfigMethods(o.inst), nil
 }

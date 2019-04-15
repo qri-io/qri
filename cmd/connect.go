@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/api"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 )
@@ -155,7 +156,12 @@ func (o *ConnectOptions) Run() (err error) {
 
 	cfg.API.RemoteAcceptSizeMax = o.RemoteAcceptSizeMax
 
-	s := api.New(o.Node, &cfg)
+	// TODO (b5) - we should instead embed an Instance in ConnectOptions,
+	// that'll require doing config manipulation *before* lib.NewInstance is called
+	// but will cause weird behaviour on config update...
+	inst := lib.NewInstanceFromConfigAndNode(&cfg, o.Node)
+
+	s := api.New(inst)
 	err = s.Serve()
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil

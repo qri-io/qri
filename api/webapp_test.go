@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 )
 
 func TestServeWebapp(t *testing.T) {
@@ -15,11 +16,13 @@ func TestServeWebapp(t *testing.T) {
 	defer teardown()
 	cfg := config.DefaultConfigForTesting()
 	cfg.Webapp.Enabled = false
-	New(node, cfg).ServeWebapp()
+	// TODO (b5) - hack until tests have better instance-generation primitives
+	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	New(inst).ServeWebapp()
 
 	cfg.Webapp.EntrypointUpdateAddress = ""
 	cfg.Webapp.Enabled = true
-	s := New(node, cfg)
+	s := New(inst)
 	go s.ServeWebapp()
 
 	url := fmt.Sprintf("http://localhost:%d", cfg.Webapp.Port)

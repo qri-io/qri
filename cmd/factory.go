@@ -26,14 +26,14 @@ type Factory interface {
 	RPC() *rpc.Client
 	ConnectionNode() (*p2p.QriNode, error)
 
-	ConfigRequests() (*lib.ConfigRequests, error)
+	ConfigMethods() (lib.ConfigMethods, error)
 	DatasetRequests() (*lib.DatasetRequests, error)
 	RemoteRequests() (*lib.RemoteRequests, error)
 	RegistryRequests() (*lib.RegistryRequests, error)
 	LogRequests() (*lib.LogRequests, error)
 	ExportRequests() (*lib.ExportRequests, error)
 	PeerRequests() (*lib.PeerRequests, error)
-	ProfileRequests() (*lib.ProfileRequests, error)
+	ProfileMethods() (lib.ProfileMethods, error)
 	SearchRequests() (*lib.SearchRequests, error)
 	RenderRequests() (*lib.RenderRequests, error)
 	SelectionRequests() (*lib.SelectionRequests, error)
