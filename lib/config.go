@@ -84,13 +84,8 @@ func (m ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
 		return fmt.Errorf("error validating config: %s", err)
 	}
 
-	writable, ok := m.Instance.(WritableInstance)
-	if !ok {
-		return ErrNotWritable
-	}
-
 	cfg := update.WithPrivateValues(m.Config())
 
 	*set = true
-	return writable.SetConfig(cfg)
+	return m.ChangeConfig(cfg)
 }

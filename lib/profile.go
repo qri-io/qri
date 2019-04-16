@@ -105,11 +105,6 @@ func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod
 	cfg := m.Config()
 	r := m.Repo()
 
-	writable, ok := m.Instance.(WritableInstance)
-	if !ok {
-		return ErrNotWritable
-	}
-
 	if p.Peername != cfg.Profile.Peername && p.Peername != "" {
 		// TODO - should ProfileMethods be allocated with a configuration? How should this work in relation to
 		// RPC requests?
@@ -161,7 +156,7 @@ func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod
 		res.Online = cfg.P2P.Enabled
 	}
 
-	return writable.SetConfig(cfg)
+	return m.ChangeConfig(cfg)
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
@@ -207,11 +202,6 @@ func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) e
 
 	if p.Data == nil {
 		return fmt.Errorf("file is required")
-	}
-
-	writable, ok := m.Instance.(WritableInstance)
-	if !ok {
-		return ErrNotWritable
 	}
 
 	// TODO - make the reader be a sizefile to avoid this double-read
@@ -264,7 +254,7 @@ func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) e
 
 	*res = *pp
 
-	return writable.SetConfig(cfg)
+	return m.ChangeConfig(cfg)
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
@@ -300,11 +290,6 @@ func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) er
 
 	if p.Data == nil {
 		return fmt.Errorf("file is required")
-	}
-
-	writable, ok := m.Instance.(WritableInstance)
-	if !ok {
-		return ErrNotWritable
 	}
 
 	r := m.Repo()
@@ -358,5 +343,5 @@ func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) er
 
 	*res = *pp
 
-	return writable.SetConfig(cfg)
+	return m.ChangeConfig(cfg)
 }

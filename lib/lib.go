@@ -45,11 +45,11 @@ func init() {
 
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
-func Receivers(inst Instance) []Requests {
+func Receivers(inst Instance) []Methods {
 	node := inst.Node()
 	r := inst.Repo()
 
-	return []Requests{
+	return []Methods{
 		NewDatasetRequests(node, nil),
 		NewRegistryRequests(node, nil),
 		NewLogRequests(node, nil),
@@ -76,26 +76,20 @@ type Instance interface {
 	Teardown()
 	// Config returns the current configuration for this
 	Config() *config.Config
+	// ChangeConfig modifies the configuration details of this instance
+	// TODO (b5): changes to configuration need to update the runtime Instance
+	// and derived methods
+	ChangeConfig(*config.Config) error
 	Node() *p2p.QriNode
 	Repo() repo.Repo
 	RPC() *rpc.Client
 }
 
-// WritableInstance is an instance that can be modified
-// instances that allow config changes should implement this interface
-type WritableInstance interface {
-	// SetConfig modifies configuration details
-	SetConfig(*config.Config) error
-}
-
-// ErrNotWritable is a canonical error for try to edit an instance
-// that isn't editable
-var ErrNotWritable = fmt.Errorf("this instance isn't writable")
-
-// Requests defines a set of library methods
-type Requests interface {
+// Methods is a related set of library functions
+type Methods interface {
 	// CoreRequestsName confirms participation in the CoreRequests interface while
 	// also giving a human readable string for logging purposes
+	// TODO (b5): rename this interface to "MethodsName", or remove entirely
 	CoreRequestsName() string
 }
 
@@ -424,8 +418,8 @@ func (inst *instance) Config() *config.Config {
 	return inst.cfg
 }
 
-// SetConfig implements the ConfigSetter interface
-func (inst *instance) SetConfig(cfg *config.Config) (err error) {
+// ChangeConfig implements the ConfigSetter interface
+func (inst *instance) ChangeConfig(cfg *config.Config) (err error) {
 
 	if path := inst.cfg.Path(); path != "" {
 		if err = cfg.WriteToFile(path); err != nil {
