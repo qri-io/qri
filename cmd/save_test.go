@@ -117,8 +117,6 @@ func TestSaveRun(t *testing.T) {
 		return
 	}
 
-	// lib.Config = config.DefaultConfigForTesting()
-
 	_, ok := currentPath()
 	if !ok {
 		t.Errorf("error getting path to current folder")

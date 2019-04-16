@@ -76,30 +76,28 @@ func (s Server) Serve() (err error) {
 			}()
 
 			go func() {
-				if writable, ok := s.Instance.(lib.WritableInstance); ok {
-					// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-					if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
-						if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
-							err := pinner.Pin(latest, true)
-							if err != nil {
-								log.Debug("error pinning template hash: %s", err.Error())
-								return
-							}
-							if err := cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
-								log.Debugf("error setting latest hash: %s", err)
-								return
-							}
-
-							// TODO (b5) - potential bug here: the cfg pointer server is holding may become stale,
-							// causing "reverts" to old values when this SetConfig is called
-							// very unlikely, but a good reason to think through configuration updating
-							if err := writable.SetConfig(cfg); err != nil {
-								log.Debugf("error saving configuration: %s", err)
-								return
-							}
-
-							log.Info("updated template hash: %s", latest)
+				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
+				if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
+					if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+						err := pinner.Pin(latest, true)
+						if err != nil {
+							log.Debug("error pinning template hash: %s", err.Error())
+							return
 						}
+						if err := cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
+							log.Debugf("error setting latest hash: %s", err)
+							return
+						}
+
+						// TODO (b5) - potential bug here: the cfg pointer server is holding may become stale,
+						// causing "reverts" to old values when this ChangeConfig is called
+						// very unlikely, but a good reason to think through configuration updating
+						if err := s.ChangeConfig(cfg); err != nil {
+							log.Debugf("error saving configuration: %s", err)
+							return
+						}
+
+						log.Info("updated template hash: %s", latest)
 					}
 				}
 			}()
