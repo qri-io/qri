@@ -9,14 +9,15 @@ import (
 )
 
 // ServeWebapp launches a webapp server on s.cfg.Webapp.Port
-func (s *Server) ServeWebapp() {
-	if !s.cfg.Webapp.Enabled || s.cfg.Webapp.Port == 0 {
+func (s Server) ServeWebapp() {
+	cfg := s.Config()
+	if !cfg.Webapp.Enabled || cfg.Webapp.Port == 0 {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", s.cfg.Webapp.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf(":%d", cfg.Webapp.Port))
 	if err != nil {
-		log.Infof("Webapp listen on port %d error: %s", s.cfg.Webapp.Port, err)
+		log.Infof("Webapp listen on port %d error: %s", cfg.Webapp.Port, err)
 		return
 	}
 
@@ -33,7 +34,7 @@ func (s *Server) ServeWebapp() {
 // and serves it up as a traditional HTTP endpoint, transparently redirecting requests
 // for [prefix]/foo.js to [CAFS Hash]/foo.js
 // prefix is the path prefix that should be stripped from the request URL.Path
-func (s *Server) FrontendHandler(prefix string) http.Handler {
+func (s Server) FrontendHandler(prefix string) http.Handler {
 	// TODO - refactor these next two lines. This kicks off a goroutine that checks a IPNS dns entry
 	// for the latest hash of the webapp and overwrites with that hash on completion. Problems:
 	// * it's mutating its input parameter
@@ -41,7 +42,7 @@ func (s *Server) FrontendHandler(prefix string) http.Handler {
 	// * there's no error handling,
 	// * and really the data could be owned by Server and initialized by it,
 	//   as there's nothing that necessitates it being within FrontendHandler.
-	var webappPath = s.cfg.Webapp.EntrypointHash
+	var webappPath = s.Config().Webapp.EntrypointHash
 	go s.resolveWebappPath(&webappPath)
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -50,19 +51,21 @@ func (s *Server) FrontendHandler(prefix string) http.Handler {
 	})
 }
 
-func (s *Server) resolveWebappPath(path *string) {
-	if s.cfg.Webapp.EntrypointUpdateAddress == "" {
+func (s Server) resolveWebappPath(path *string) {
+	node := s.Node()
+	cfg := s.Config()
+	if cfg.Webapp.EntrypointUpdateAddress == "" {
 		log.Debug("no entrypoint update address specified for update checking")
 		return
 	}
 
-	namesys, err := s.qriNode.GetIPFSNamesys()
+	namesys, err := node.GetIPFSNamesys()
 	if err != nil {
 		log.Debugf("no IPFS node present to resolve webapp address: %s", err.Error())
 		return
 	}
 
-	p, err := namesys.Resolve(context.Background(), s.cfg.Webapp.EntrypointUpdateAddress)
+	p, err := namesys.Resolve(context.Background(), cfg.Webapp.EntrypointUpdateAddress)
 	if err != nil {
 		log.Infof("error resolving IPNS Name: %s", err.Error())
 		return
@@ -75,6 +78,6 @@ func (s *Server) resolveWebappPath(path *string) {
 }
 
 // WebappTemplateHandler renders the home page
-func (s *Server) WebappTemplateHandler(w http.ResponseWriter, r *http.Request) {
-	renderTemplate(s.cfg.Webapp, w, "webapp")
+func (s Server) WebappTemplateHandler(w http.ResponseWriter, r *http.Request) {
+	renderTemplate(s.Config().Webapp, w, "webapp")
 }
