@@ -17,7 +17,6 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 )
@@ -41,24 +40,20 @@ func init() {
 // Create one with New, start it up with Serve
 type Server struct {
 	lib.Instance
-	// configuration options
-	cfg     *config.Config
-	qriNode *p2p.QriNode
 }
 
 // New creates a new qri server from a p2p node & configuration
-func New(inst lib.Instance) (s *Server) {
-	return &Server{
-		Instance: inst,
-		qriNode:  inst.Node(),
-		cfg:      inst.Config(),
-	}
+func New(inst lib.Instance) (s Server) {
+	return Server{Instance: inst}
 }
 
 // Serve starts the server. It will block while the server is running
-func (s *Server) Serve() (err error) {
-	if err = s.qriNode.GoOnline(); err != nil {
-		fmt.Println("serving error", s.cfg.P2P.Enabled)
+func (s Server) Serve() (err error) {
+	node := s.Node()
+	cfg := s.Config()
+
+	if err = node.GoOnline(); err != nil {
+		fmt.Println("serving error", cfg.P2P.Enabled)
 		return
 	}
 
@@ -69,8 +64,8 @@ func (s *Server) Serve() (err error) {
 	go s.ServeRPC()
 	go s.ServeWebapp()
 
-	if namesys, err := s.qriNode.GetIPFSNamesys(); err == nil {
-		if pinner, ok := s.qriNode.Repo.Store().(cafs.Pinner); ok {
+	if namesys, err := node.GetIPFSNamesys(); err == nil {
+		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
 
 			go func() {
 				if _, err := lib.CheckVersion(context.Background(), namesys, lib.PrevIPNSName, lib.LastPubVerHash); err == lib.ErrUpdateRequired {
@@ -83,14 +78,14 @@ func (s *Server) Serve() (err error) {
 			go func() {
 				if writable, ok := s.Instance.(lib.WritableInstance); ok {
 					// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
-					if s.cfg != nil && s.cfg.Render != nil && s.cfg.Render.TemplateUpdateAddress != "" {
-						if latest, err := lib.CheckVersion(context.Background(), namesys, s.cfg.Render.TemplateUpdateAddress, s.cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
+					if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
+						if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
 							err := pinner.Pin(latest, true)
 							if err != nil {
 								log.Debug("error pinning template hash: %s", err.Error())
 								return
 							}
-							if err := s.cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
+							if err := cfg.Set("Render.DefaultTemplateHash", latest); err != nil {
 								log.Debugf("error setting latest hash: %s", err)
 								return
 							}
@@ -98,7 +93,7 @@ func (s *Server) Serve() (err error) {
 							// TODO (b5) - potential bug here: the cfg pointer server is holding may become stale,
 							// causing "reverts" to old values when this SetConfig is called
 							// very unlikely, but a good reason to think through configuration updating
-							if err := writable.SetConfig(s.cfg); err != nil {
+							if err := writable.SetConfig(cfg); err != nil {
 								log.Debugf("error saving configuration: %s", err)
 								return
 							}
@@ -113,37 +108,38 @@ func (s *Server) Serve() (err error) {
 	}
 
 	info := "\n📡  Success! You are now connected to the d.web. Here's your connection details:\n"
-	info += s.cfg.SummaryString()
+	info += cfg.SummaryString()
 	info += "IPFS Addresses:"
-	for _, a := range s.qriNode.EncapsulatedAddresses() {
+	for _, a := range node.EncapsulatedAddresses() {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
 	info += "\n\n"
 
-	s.qriNode.LocalStreams.Print(info)
+	node.LocalStreams.Print(info)
 
-	if s.cfg.API.DisconnectAfter != 0 {
-		log.Infof("disconnecting after %d seconds", s.cfg.API.DisconnectAfter)
+	if cfg.API.DisconnectAfter != 0 {
+		log.Infof("disconnecting after %d seconds", cfg.API.DisconnectAfter)
 		go func(s *http.Server, t int) {
 			<-time.After(time.Second * time.Duration(t))
 			log.Infof("disconnecting")
 			s.Close()
-		}(server, s.cfg.API.DisconnectAfter)
+		}(server, cfg.API.DisconnectAfter)
 	}
 
 	// http.ListenAndServe will not return unless there's an error
-	return StartServer(s.cfg.API, server)
+	return StartServer(cfg.API, server)
 }
 
 // ServeRPC checks for a configured RPC port, and registers a listner if so
-func (s *Server) ServeRPC() {
-	if !s.cfg.RPC.Enabled || s.cfg.RPC.Port == 0 {
+func (s Server) ServeRPC() {
+	cfg := s.Config()
+	if !cfg.RPC.Enabled || cfg.RPC.Port == 0 {
 		return
 	}
 
-	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, s.cfg.RPC.Port))
+	listener, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, cfg.RPC.Port))
 	if err != nil {
-		log.Infof("RPC listen on port %d error: %s", s.cfg.RPC.Port, err)
+		log.Infof("RPC listen on port %d error: %s", cfg.RPC.Port, err)
 		return
 	}
 
@@ -160,7 +156,7 @@ func (s *Server) ServeRPC() {
 
 // HandleIPFSPath responds to IPFS Hash requests with raw data
 func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.API.ReadOnly {
+	if s.Config().API.ReadOnly {
 		readOnlyResponse(w, "/ipfs/")
 		return
 	}
@@ -168,8 +164,8 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 	s.fetchCAFSPath(r.URL.Path, w, r)
 }
 
-func (s *Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
-	file, err := s.qriNode.Repo.Store().Get(path)
+func (s Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
+	file, err := s.Node().Repo.Store().Get(path)
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -179,13 +175,14 @@ func (s *Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Reque
 }
 
 // HandleIPNSPath resolves an IPNS entry
-func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
-	if s.cfg.API.ReadOnly {
+func (s Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
+	node := s.Node()
+	if s.Config().API.ReadOnly {
 		readOnlyResponse(w, "/ipns/")
 		return
 	}
 
-	namesys, err := s.qriNode.GetIPFSNamesys()
+	namesys, err := node.GetIPFSNamesys()
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("no IPFS node present: %s", err.Error()))
 		return
@@ -197,7 +194,7 @@ func (s *Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := s.qriNode.Repo.Store().Get(p.String())
+	file, err := node.Repo.Store().Get(p.String())
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -219,36 +216,41 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
-func NewServerRoutes(s *Server) *http.ServeMux {
+func NewServerRoutes(s Server) *http.ServeMux {
+	node := s.Node()
+	cfg := s.Config()
+
 	m := http.NewServeMux()
 
 	m.Handle("/status", s.middleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
-	proh := NewProfileHandlers(s.Instance, s.cfg.API.ReadOnly)
+	proh := NewProfileHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/me", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile", s.middleware(proh.ProfileHandler))
 	m.Handle("/profile/photo", s.middleware(proh.ProfilePhotoHandler))
 	m.Handle("/profile/poster", s.middleware(proh.PosterHandler))
 
-	ph := NewPeerHandlers(s.qriNode, s.cfg.API.ReadOnly)
+	ph := NewPeerHandlers(node, cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
 
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(s.qriNode, s.cfg.API.ReadOnly)
+	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)
 
-	if s.cfg.API.RemoteMode {
+	if cfg.API.RemoteMode {
 		log.Info("This server is running in `remote` mode")
-		receivers, err := makeDagReceiver(s.qriNode)
+		receivers, err := makeDagReceiver(node)
 		if err != nil {
 			panic(err)
 		}
 
-		remh := NewRemoteHandlers(s.qriNode, s.cfg, receivers)
+		// TODO (b5): this should be refactored to use an instance:
+		// remh := NewRemoteHandlers(s.inst, receivers)
+		remh := NewRemoteHandlers(node, cfg, receivers)
 		m.Handle("/dsync/push", s.middleware(remh.ReceiveHandler))
 		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
 		m.Handle("/dsync/complete", s.middleware(remh.CompleteHandler))
@@ -269,17 +271,17 @@ func NewServerRoutes(s *Server) *http.ServeMux {
 	m.Handle("/publish/", s.middleware(dsh.PublishHandler))
 	m.Handle("/update/", s.middleware(dsh.UpdateHandler))
 
-	renderh := NewRenderHandlers(s.qriNode.Repo)
+	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 
-	lh := NewLogHandlers(s.qriNode)
+	lh := NewLogHandlers(node)
 	m.Handle("/history/", s.middleware(lh.LogHandler))
 
-	rgh := NewRegistryHandlers(s.qriNode)
+	rgh := NewRegistryHandlers(node)
 	m.Handle("/registry/datasets", s.middleware(rgh.RegistryDatasetsHandler))
 	m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
 
-	sh := NewSearchHandlers(s.qriNode)
+	sh := NewSearchHandlers(node)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	rh := NewRootHandler(dsh, ph)

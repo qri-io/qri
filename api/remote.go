@@ -14,14 +14,14 @@ import (
 
 // RemoteHandlers wraps a request struct to interface with http.HandlerFunc
 type RemoteHandlers struct {
-	lib.RemoteRequests
+	*lib.RemoteRequests
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
 func NewRemoteHandlers(node *p2p.QriNode, cfg *config.Config, rec *dsync.Receivers) *RemoteHandlers {
 	req := lib.NewRemoteRequests(node, cfg, nil)
 	req.Receivers = rec
-	return &RemoteHandlers{*req}
+	return &RemoteHandlers{req}
 }
 
 // ReceiveHandler is the endpoint for remotes to receive daginfo

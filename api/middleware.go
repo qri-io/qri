@@ -10,14 +10,14 @@ import (
 )
 
 // middleware handles request logging
-func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
+func (s Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		log.Infof("%s %s %s", r.Method, r.URL.Path, time.Now())
 
 		// If this server is operating behind a proxy, but we still want to force
 		// users to use https, cfg.ProxyForceHttps == true will listen for the common
 		// X-Forward-Proto & redirect to https
-		if s.cfg.API.ProxyForceHTTPS {
+		if s.Config().API.ProxyForceHTTPS {
 			if r.Header.Get("X-Forwarded-Proto") == "http" {
 				w.Header().Set("Connection", "close")
 				url := "https://" + r.Host + r.URL.String()
@@ -42,13 +42,13 @@ func (s *Server) middleware(handler http.HandlerFunc) http.HandlerFunc {
 }
 
 func (s *Server) readOnlyCheck(r *http.Request) bool {
-	return !s.cfg.API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
+	return !s.Config().API.ReadOnly || r.Method == "GET" || r.Method == "OPTIONS"
 }
 
 // addCORSHeaders adds CORS header info for whitelisted servers
 func (s *Server) addCORSHeaders(w http.ResponseWriter, r *http.Request) {
 	origin := r.Header.Get("Origin")
-	for _, o := range s.cfg.API.AllowedOrigins {
+	for _, o := range s.Config().API.AllowedOrigins {
 		if origin == o {
 			w.Header().Set("Access-Control-Allow-Origin", origin)
 			w.Header().Set("Access-Control-Allow-Methods", "GET, PUT, POST, DELETE, OPTIONS")
