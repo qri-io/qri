@@ -29,7 +29,7 @@ type TestFactory struct {
 	// generator is a source of cryptographic info
 	generator gen.CryptoGenerator
 
-	inst lib.Instance
+	inst *lib.Instance
 	// Configuration object
 	config *config.Config
 	node   *p2p.QriNode
@@ -71,7 +71,7 @@ func (t TestFactory) Config() (*config.Config, error) {
 	return t.config, nil
 }
 
-func (t TestFactory) Instance() lib.Instance {
+func (t TestFactory) Instance() *lib.Instance {
 	return t.inst
 }
 

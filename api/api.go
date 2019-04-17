@@ -39,11 +39,11 @@ func init() {
 // Server wraps a qri p2p node, providing traditional access via http
 // Create one with New, start it up with Serve
 type Server struct {
-	lib.Instance
+	*lib.Instance
 }
 
 // New creates a new qri server from a p2p node & configuration
-func New(inst lib.Instance) (s Server) {
+func New(inst *lib.Instance) (s Server) {
 	return Server{Instance: inst}
 }
 

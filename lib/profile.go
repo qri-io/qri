@@ -17,7 +17,7 @@ import (
 // ProfileMethods encapsulates business logic for this node's
 // user profile
 type ProfileMethods struct {
-	Instance
+	inst *Instance
 }
 
 // CoreRequestsName implements the Request interface
@@ -25,18 +25,18 @@ func (ProfileMethods) CoreRequestsName() string { return "profile" }
 
 // NewProfileMethods creates a ProfileMethods pointer from either a repo
 // or an rpc.Client
-func NewProfileMethods(inst Instance) ProfileMethods {
-	return ProfileMethods{Instance: inst}
+func NewProfileMethods(inst *Instance) ProfileMethods {
+	return ProfileMethods{inst: inst}
 }
 
 // GetProfile get's this node's peer profile
 func (m ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error) {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.GetProfile", in, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.GetProfile", in, res)
 	}
 
 	var pro *profile.Profile
-	r := m.Repo()
+	r := m.inst.repo
 
 	// TODO - this is a carry-over from when GetProfile only supported getting
 	if res.ID == "" && res.Peername == "" {
@@ -49,7 +49,7 @@ func (m ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error)
 		return err
 	}
 
-	cfg := m.Config()
+	cfg := m.inst.cfg
 	// TODO (b5) - this isn't the right way to check if you're online
 	if cfg != nil && cfg.P2P != nil {
 		pro.Online = cfg.P2P.Enabled
@@ -95,15 +95,15 @@ func (m ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *pr
 
 // SaveProfile stores changes to this peer's editable profile
 func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod) error {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.SaveProfile", p, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.SaveProfile", p, res)
 	}
 	if p == nil {
 		return fmt.Errorf("profile required for update")
 	}
 
-	cfg := m.Config()
-	r := m.Repo()
+	cfg := m.inst.cfg
+	r := m.inst.repo
 
 	if p.Peername != cfg.Profile.Peername && p.Peername != "" {
 		// TODO - should ProfileMethods be allocated with a configuration? How should this work in relation to
@@ -156,16 +156,17 @@ func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod
 		res.Online = cfg.P2P.Enabled
 	}
 
-	return m.ChangeConfig(cfg)
+	// return m.ChangeConfig(cfg)
+	return nil
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
 func (m ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err error) {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.ProfilePhoto", req, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.ProfilePhoto", req, res)
 	}
 
-	r := m.Repo()
+	r := m.inst.repo
 
 	pro, e := m.getProfile(r, req.ID, req.Peername)
 	if e != nil {
@@ -194,11 +195,11 @@ type FileParams struct {
 
 // SetProfilePhoto changes this peer's profile image
 func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.SetProfilePhoto", p, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.SetProfilePhoto", p, res)
 	}
 
-	r := m.Repo()
+	r := m.inst.repo
 
 	if p.Data == nil {
 		return fmt.Errorf("file is required")
@@ -230,7 +231,7 @@ func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) e
 
 	res.Photo = path
 	res.Thumb = path
-	cfg := m.Config()
+	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.photo", path)
 	// TODO - resize photo for thumb
 	cfg.Set("profile.thumb", path)
@@ -254,16 +255,17 @@ func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) e
 
 	*res = *pp
 
-	return m.ChangeConfig(cfg)
+	// return m.ChangeConfig(cfg)
+	return nil
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
 func (m ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.PostPhoto", req, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.PostPhoto", req, res)
 	}
 
-	r := m.Repo()
+	r := m.inst.repo
 	pro, e := m.getProfile(r, req.ID, req.Peername)
 	if e != nil {
 		return e
@@ -284,15 +286,15 @@ func (m ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err er
 
 // SetPosterPhoto changes this peer's poster image
 func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ProfileMethods.SetPosterPhoto", p, res)
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ProfileMethods.SetPosterPhoto", p, res)
 	}
 
 	if p.Data == nil {
 		return fmt.Errorf("file is required")
 	}
 
-	r := m.Repo()
+	r := m.inst.repo
 
 	// TODO - make the reader be a sizefile to avoid this double-read
 	data, err := ioutil.ReadAll(p.Data)
@@ -321,7 +323,7 @@ func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) er
 	}
 
 	res.Poster = path
-	cfg := m.Config()
+	cfg := m.inst.cfg.Copy()
 	cfg.Set("profile.poster", path)
 
 	pro, err := profile.NewProfile(cfg.Profile)
@@ -343,5 +345,5 @@ func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) er
 
 	*res = *pp
 
-	return m.ChangeConfig(cfg)
+	return m.inst.ChangeConfig(cfg)
 }
