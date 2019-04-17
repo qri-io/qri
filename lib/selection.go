@@ -7,8 +7,8 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// SelectionRequests encapsulates business logic for the qri search
-// command
+// SelectionRequests encapsulates business logic for the qri use command
+// TODO (b5): switch to using an Instance instead of separate fields
 type SelectionRequests struct {
 	cli  *rpc.Client
 	repo repo.Repo

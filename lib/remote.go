@@ -17,6 +17,7 @@ import (
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 
 // RemoteRequests encapsulates business logic of remote operation
+// TODO (b5): switch to using an Instance instead of separate fields
 type RemoteRequests struct {
 	cfg       *config.Config
 	cli       *rpc.Client

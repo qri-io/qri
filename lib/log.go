@@ -11,6 +11,7 @@ import (
 
 // LogRequests encapsulates business logic for the log
 // of changes to datasets, think "git log"
+// TODO (b5): switch to using an Instance instead of separate fields
 type LogRequests struct {
 	node *p2p.QriNode
 	cli  *rpc.Client
