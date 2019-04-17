@@ -11,6 +11,7 @@ import (
 	"net/rpc"
 	"os"
 	"path/filepath"
+	"strings"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -30,7 +31,17 @@ import (
 	"github.com/qri-io/registry/regclient"
 )
 
-var log = golog.Logger("lib")
+var (
+	// defaultQriLocation is where qri data defaults to storing. The keyword $HOME
+	// (and only $HOME) will be replaced with the current user home directory
+	defaultQriLocation = "$HOME/.qri"
+	// defaultIPFSLocation is where qri data defaults to looking for / setting up
+	// IPFS. The keyword $HOME will be replaced with the current user home
+	// directory. only $HOME is replaced (no other $ env vars).
+	defaultIPFSLocation = "$HOME/.ipfs"
+
+	log = golog.Logger("lib")
+)
 
 // VersionNumber is the current version qri
 const VersionNumber = "0.7.4-dev"
@@ -87,10 +98,10 @@ type InstanceOptions struct {
 // Option is a function that manipulates config details when fed to New()
 type Option func(o *InstanceOptions) error
 
-// OptBackgroundCtx uses a default base context
-func OptBackgroundCtx() Option {
+// OptCtx sets the base context to use for this instance
+func OptCtx(ctx context.Context) Option {
 	return func(o *InstanceOptions) error {
-		o.Ctx = context.Background()
+		o.Ctx = ctx
 		return nil
 	}
 }
@@ -98,20 +109,33 @@ func OptBackgroundCtx() Option {
 // OptSetQriRepoPath configures the directory to read Qri from, defaulting to
 // "$HOME/.qri", unless the environment variable QRI_PATH is set
 func OptSetQriRepoPath(path string) Option {
-	return func(o *InstanceOptions) error {
+	return func(o *InstanceOptions) (err error) {
 		if o.Cfg.Repo.Type == "fs" && o.Cfg.Repo.Path == "" {
 			if path == "" {
-				path := os.Getenv("QRI_PATH")
-				if path == "" {
-					dir, err := homedir.Dir()
-					if err != nil {
-						return err
-					}
-					path = filepath.Join(dir, ".qri")
-				}
+				path, err = defaultQriPath()
 			}
 			o.Cfg.Repo.Path = path
 		}
+		return nil
+	}
+}
+
+func defaultQriPath() (path string, err error) {
+	path = os.Getenv("QRI_PATH")
+	if path == "" {
+		var dir string
+		if dir, err = homedir.Dir(); err != nil {
+			return "", err
+		}
+		path = strings.Replace(defaultQriLocation, "$HOME", dir, 1)
+	}
+	return
+}
+
+// OptConfig supplies a configuration directly
+func OptConfig(cfg *config.Config) Option {
+	return func(o *InstanceOptions) error {
+		o.Cfg = cfg
 		return nil
 	}
 }
@@ -131,7 +155,7 @@ func OptSetIPFSPath(path string) Option {
 					if err != nil {
 						return err
 					}
-					path = filepath.Join(dir, ".ipfs")
+					path = strings.Replace(defaultIPFSLocation, "$HOME", dir, 1)
 				}
 			}
 			o.Cfg.Store.Path = path
@@ -140,18 +164,16 @@ func OptSetIPFSPath(path string) Option {
 	}
 }
 
-// OptLoadConfigFile loads a configuration from a given path
+// OptLoadConfigFile loads a configuration from a given path, if no path string
+// is provided, default to looking for a file called config.yaml in the default
+// qri path
 func OptLoadConfigFile(path string) Option {
 	return func(o *InstanceOptions) (err error) {
-		// default to checking
-		// if path == "" {
-		// 	path = filepath.Join(o.QriPath, "config.yaml")
-		// } else if path == "" {
-		// return fmt.Errorf("no config path provided")
-		// }
-
 		if path == "" {
-			return fmt.Errorf("no config path provided")
+			if path, err = defaultQriPath(); err != nil {
+				return
+			}
+			path = filepath.Join(path, "config.yaml")
 		}
 
 		if _, e := os.Stat(path); os.IsNotExist(e) {
@@ -209,15 +231,16 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs
 func NewInstance(opts ...Option) (qri *Instance, err error) {
-	o := &InstanceOptions{}
+	o := &InstanceOptions{
+		Ctx: context.Background(),
+	}
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
 		opts = []Option{
-			OptBackgroundCtx(),
 			OptStdIOStreams(),
+			OptLoadConfigFile(""),
 			OptSetQriRepoPath(""),
 			OptSetIPFSPath(""),
-			OptLoadConfigFile(""),
 			OptCheckConfigMigrations(""),
 		}
 	}
