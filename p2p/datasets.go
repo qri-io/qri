@@ -18,6 +18,7 @@ const listMax = 30
 
 // DatasetsListParams encapsulates options for requesting datasets
 type DatasetsListParams struct {
+	Term   string
 	Limit  int
 	Offset int
 }
@@ -70,7 +71,7 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 			dlp.Limit = listMax
 		}
 
-		refs, err := base.ListDatasets(n.Repo, dlp.Limit, dlp.Offset, false, true, false)
+		refs, err := base.ListDatasets(n.Repo, dlp.Term, dlp.Limit, dlp.Offset, false, true, false)
 		if err != nil {
 			log.Error(err)
 			return

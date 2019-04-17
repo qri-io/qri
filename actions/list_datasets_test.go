@@ -10,7 +10,7 @@ func TestListDatasets(t *testing.T) {
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, 1, 0, false, false, false)
+	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -27,7 +27,7 @@ func TestListDatasetsNotFound(t *testing.T) {
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	_, err := ListDatasets(node, &repo.DatasetRef{Peername: "not_found"}, 1, 0, false, false, false)
+	_, err := ListDatasets(node, &repo.DatasetRef{Peername: "not_found"}, "", 1, 0, false, false, false)
 	if err == nil {
 		t.Error("expected to get error")
 	}
@@ -41,7 +41,7 @@ func TestListDatasetsWithVersions(t *testing.T) {
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, 1, 0, false, false, true)
+	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}

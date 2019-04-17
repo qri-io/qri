@@ -17,6 +17,7 @@ const DefaultPageSize = 100
 // TODO - rename this to PageParams.
 type ListParams struct {
 	ProfileID profile.ID
+	Term      string
 	Peername  string
 	OrderBy   string
 	Limit     int
