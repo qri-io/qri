@@ -42,6 +42,7 @@ https://github.com/qri-io/qri/issues`,
 		NewAddCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
 		NewConnectCommand(opt, ioStreams),
+		NewDaemonizeCommand(opt, ioStreams),
 		NewDAGCommand(opt, ioStreams),
 		NewDiffCommand(opt, ioStreams),
 		NewExportCommand(opt, ioStreams),
@@ -253,4 +254,12 @@ func (o *QriOptions) ConfigMethods() (m lib.ConfigMethods, err error) {
 	}
 
 	return lib.NewConfigMethods(o.inst), nil
+}
+
+// DaemonizeRequests generates a lib.DaemonizeRequests from internal state
+func (o *QriOptions) DaemonizeRequests() (*lib.DaemonizeRequests, error) {
+	if err := o.Init(); err != nil {
+		return nil, err
+	}
+	return lib.NewDaemonizeRequests(o.inst.Node(), o.inst.RPC()), nil
 }

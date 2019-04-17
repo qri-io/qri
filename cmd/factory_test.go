@@ -160,6 +160,11 @@ func (t TestFactory) RenderRequests() (*lib.RenderRequests, error) {
 	return lib.NewRenderRequests(t.repo, t.rpc), nil
 }
 
+// DaemonizeRequests generates a lib.DaemonizeRequests from internal state
+func (t TestFactory) DaemonizeRequests() (*lib.DaemonizeRequests, error) {
+	return lib.NewDaemonizeRequests(t.node, t.rpc), nil
+}
+
 func TestEnvPathFactory(t *testing.T) {
 	//Needed to clean up changes after the test has finished running
 	prevQRIPath := os.Getenv("QRI_PATH")
