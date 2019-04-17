@@ -45,7 +45,7 @@ func init() {
 
 // Receivers returns a slice of CoreRequests that defines the full local
 // API of lib methods
-func Receivers(inst Instance) []Methods {
+func Receivers(inst *Instance) []Methods {
 	node := inst.Node()
 	r := inst.Repo()
 
@@ -61,28 +61,6 @@ func Receivers(inst Instance) []Methods {
 		NewRenderRequests(r, nil),
 		NewSelectionRequests(r, nil),
 	}
-}
-
-// Instance is the interface that bundles the foundational values of a
-// qri instance. Instance provides the basis for creating Method constructors,
-// which actually do qri things
-// think of instance as the "core" of the qri ecosystem
-type Instance interface {
-	// Context returns the base context this instance is using. Any resources
-	// built from this instance should inherit from this context and obey
-	// calls from the ctx.Done(), releasing any & all resources
-	Context() context.Context
-	// Teardown closes the instance by closing the base context
-	Teardown()
-	// Config returns the current configuration for this
-	Config() *config.Config
-	// ChangeConfig modifies the configuration details of this instance
-	// TODO (b5): changes to configuration need to update the runtime Instance
-	// and derived methods
-	ChangeConfig(*config.Config) error
-	Node() *p2p.QriNode
-	Repo() repo.Repo
-	RPC() *rpc.Client
 }
 
 // Methods is a related set of library functions
@@ -230,7 +208,7 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs
-func NewInstance(opts ...Option) (qri Instance, err error) {
+func NewInstance(opts ...Option) (qri *Instance, err error) {
 	o := &InstanceOptions{}
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
@@ -259,7 +237,7 @@ func NewInstance(opts ...Option) (qri Instance, err error) {
 	}
 
 	ctx, teardown := context.WithCancel(o.Ctx)
-	inst := &instance{
+	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
 		cfg:      cfg,
@@ -380,19 +358,30 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 // already-allocated QriNode & configuration
 // don't write new code that relies on this, instead create a configuration
 // and options that can be fed to NewInstance
-func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) Instance {
+func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instance {
 	ctx, teardown := context.WithCancel(context.Background())
-	return &instance{
+	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
 		cfg:      cfg,
 		node:     node,
 	}
+
+	if node != nil && node.Repo != nil {
+		inst.repo = node.Repo
+		inst.store = node.Repo.Store()
+		inst.qfs = node.Repo.Filesystem()
+	}
+
+	return inst
 }
 
-// instance implements the (exported) Instance interface
-// create an instance one with NewInstance
-type instance struct {
+// Instance bundles the foundational values qri relies on, including a qri
+// configuration, p2p node, and base context.
+// An instance wraps required state for for "Method" constructors, which
+// contain qri business logic. Think of instance as the "core" of the qri
+// ecosystem create one with NewInstance
+type Instance struct {
 	ctx      context.Context
 	teardown context.CancelFunc
 
@@ -409,17 +398,17 @@ type instance struct {
 }
 
 // Context returns the base context for this instance
-func (inst *instance) Context() context.Context {
+func (inst *Instance) Context() context.Context {
 	return inst.ctx
 }
 
 // Config provides methods for manipulating Qri configuration
-func (inst *instance) Config() *config.Config {
+func (inst *Instance) Config() *config.Config {
 	return inst.cfg
 }
 
 // ChangeConfig implements the ConfigSetter interface
-func (inst *instance) ChangeConfig(cfg *config.Config) (err error) {
+func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
 
 	if path := inst.cfg.Path(); path != "" {
 		if err = cfg.WriteToFile(path); err != nil {
@@ -432,12 +421,12 @@ func (inst *instance) ChangeConfig(cfg *config.Config) (err error) {
 }
 
 // Node accesses the instance qri node if one exists
-func (inst *instance) Node() *p2p.QriNode {
+func (inst *Instance) Node() *p2p.QriNode {
 	return inst.node
 }
 
 // Repo accesses the instance Repo if one exists
-func (inst *instance) Repo() repo.Repo {
+func (inst *Instance) Repo() repo.Repo {
 	if inst.node == nil {
 		return nil
 	}
@@ -445,11 +434,11 @@ func (inst *instance) Repo() repo.Repo {
 }
 
 // RPC accesses the instance RPC client if one exists
-func (inst *instance) RPC() *rpc.Client {
+func (inst *Instance) RPC() *rpc.Client {
 	return inst.rpc
 }
 
 // Teardown destroys the instance, releasing reserved resources
-func (inst *instance) Teardown() {
+func (inst *Instance) Teardown() {
 	inst.teardown()
 }

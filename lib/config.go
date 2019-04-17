@@ -8,18 +8,30 @@ import (
 	"github.com/qri-io/qri/config"
 )
 
-// NewConfigMethods creates a configuration handle from an instance
-func NewConfigMethods(inst Instance) ConfigMethods {
-	return ConfigMethods{Instance: inst}
+// ConfigMethods encapsulates changes to a qri configuration
+type ConfigMethods interface {
+	// CoreRequestsName specifies participation in the methods interface
+	// TODO (b5): update func name when change happens
+	CoreRequestsName() string
+	// GetConfig returns the Config, or one of the specified fields of the Config,
+	// as a slice of bytes the bytes can be formatted as json, concise json, or yaml
+	GetConfig(p *GetConfigParams, res *[]byte) (err error)
+	// SetConfig validates, updates and saves the config
+	SetConfig(update *config.Config, set *bool) (err error)
 }
 
-// ConfigMethods encapsulates changes to a qri configuration
-type ConfigMethods struct {
-	Instance
+// NewConfigMethods creates a configuration handle from an instance
+func NewConfigMethods(inst *Instance) ConfigMethods {
+	return configMethods{inst: inst}
+}
+
+// configMethods is the private implementation of ConfigMethods
+type configMethods struct {
+	inst *Instance
 }
 
 // CoreRequestsName specifies this is a configuration handle
-func (m ConfigMethods) CoreRequestsName() string { return "config" }
+func (m configMethods) CoreRequestsName() string { return "config" }
 
 // GetConfigParams are the params needed to format/specify the fields in bytes
 // returned from the GetConfig function
@@ -32,13 +44,13 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
-func (m ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ConfigMethods.GetConfig", p, res)
+func (m configMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ConfigMethods.GetConfig", p, res)
 	}
 
 	var (
-		cfg    = m.Config()
+		cfg    = m.inst.cfg
 		encode interface{}
 	)
 
@@ -75,17 +87,18 @@ func (m ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 }
 
 // SetConfig validates, updates and saves the config
-func (m ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
-	if cli := m.RPC(); cli != nil {
-		return cli.Call("ConfigMethods.SetConfig", update, set)
+func (m configMethods) SetConfig(update *config.Config, set *bool) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("ConfigMethods.SetConfig", update, set)
 	}
 
 	if err = update.Validate(); err != nil {
 		return fmt.Errorf("error validating config: %s", err)
 	}
 
-	cfg := update.WithPrivateValues(m.Config())
+	cfg := update.WithPrivateValues(m.inst.cfg)
 
 	*set = true
-	return m.ChangeConfig(cfg)
+
+	return m.inst.ChangeConfig(cfg)
 }

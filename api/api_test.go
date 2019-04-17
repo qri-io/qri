@@ -89,6 +89,13 @@ func testConfigAndSetter() (cfg *config.Config, setCfg func(*config.Config) erro
 	return
 }
 
+func newTestInstanceWithProfileFromNode(node *p2p.QriNode) *lib.Instance {
+	cfg := config.DefaultConfigForTesting()
+	pro, _ := node.Repo.Profile()
+	cfg.Profile, _ = pro.Encode()
+	return lib.NewInstanceFromConfigAndNode(cfg, node)
+}
+
 func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
 	r, teardown = newTestRepoWithNumDatasets(t, num)

@@ -60,8 +60,7 @@ func TestReceivers(t *testing.T) {
 
 	node := n.(*p2p.QriNode)
 	cfg := config.DefaultConfigForTesting()
-	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := &instance{node: node, cfg: cfg}
+	inst := &Instance{node: node, cfg: cfg}
 
 	reqs := Receivers(inst)
 	if len(reqs) != 10 {

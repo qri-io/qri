@@ -123,7 +123,7 @@ type ConfigOptions struct {
 	Concise         bool
 	Output          string
 
-	inst           lib.Instance
+	inst           *lib.Instance
 	ConfigMethods  lib.ConfigMethods
 	ProfileMethods lib.ProfileMethods
 }

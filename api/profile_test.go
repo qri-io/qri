@@ -20,12 +20,6 @@ func TestProfileHandler(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	cfg := config.DefaultConfigForTesting()
-	// newTestNode uses a different profile. assign here so instance config.Profile
-	// node config.Profile match
-	pro, _ := node.Repo.Profile()
-	cfg.Profile, _ = pro.Encode()
-
 	cases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
@@ -34,8 +28,7 @@ func TestProfileHandler(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	// TODO (b5) - hack until tests have better instance-generation primitives
-	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
+	inst := newTestInstanceWithProfileFromNode(node)
 	proh := NewProfileHandlers(inst, false)
 	runHandlerTestCases(t, "profile", proh.ProfileHandler, cases, true)
 

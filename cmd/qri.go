@@ -87,7 +87,7 @@ type QriOptions struct {
 	// path to configuration object
 	ConfigPath string
 
-	inst        lib.Instance
+	inst        *lib.Instance
 	initialized sync.Once
 }
 
@@ -120,7 +120,7 @@ func (o *QriOptions) Init() (err error) {
 }
 
 // Instance returns the instance this options is using
-func (o *QriOptions) Instance() lib.Instance {
+func (o *QriOptions) Instance() *lib.Instance {
 	if err := o.Init(); err != nil {
 		return nil
 	}
