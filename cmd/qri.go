@@ -107,7 +107,6 @@ func (o *QriOptions) Init() (err error) {
 		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 		opts := []lib.Option{
 			lib.OptLoadConfigFile(cfgPath),
-			lib.OptBackgroundCtx(),        // build from a new context
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams down
 			lib.OptSetQriRepoPath(o.qriRepoPath),
 			lib.OptSetIPFSPath(o.ipfsFsPath),

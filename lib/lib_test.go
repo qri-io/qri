@@ -3,8 +3,10 @@ package lib
 import (
 	"encoding/base64"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -13,6 +15,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
+	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -43,6 +46,69 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 	}
 	testPeerProfile.PrivKey = privKey
+}
+
+func TestNewInstance(t *testing.T) {
+	var err error
+	cfg := config.DefaultConfigForTesting()
+	cfg.Store.Type = "map"
+	cfg.Repo.Type = "mem"
+
+	got, err := NewInstance(OptConfig(cfg))
+	if err != nil {
+		t.Error(err)
+		return
+	}
+
+	expect := &Instance{
+		cfg: cfg,
+	}
+
+	if err = CompareInstances(got, expect); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestNewDefaultInstance(t *testing.T) {
+	prevQriEnvLocation, prevIPFSEnvLocation := os.Getenv("QRI_PATH"), os.Getenv("IPFS_PATH")
+	prevDefaultQriLocation, prevDefaultIPFSLocation := defaultQriLocation, defaultIPFSLocation
+
+	os.Setenv("QRI_PATH", "")
+	os.Setenv("IPFS_PATH", "")
+
+	tempDir, err := ioutil.TempDir(os.TempDir(), "TestNewDefaultInstance")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defaultQriLocation, defaultIPFSLocation = tempDir, tempDir
+
+	defer func() {
+		defaultQriLocation, defaultIPFSLocation = prevDefaultQriLocation, prevDefaultIPFSLocation
+		os.Setenv("QRI_PATH", prevQriEnvLocation)
+		os.Setenv("IPFS_PATH", prevIPFSEnvLocation)
+		os.RemoveAll(tempDir)
+	}()
+
+	testCrypto := libtest.NewTestCrypto()
+	if err = testCrypto.GenerateEmptyIpfsRepo(tempDir, ""); err != nil {
+		t.Fatal(err)
+	}
+
+	config.DefaultConfigForTesting().WriteToFile(filepath.Join(defaultQriLocation, "config.yaml"))
+
+	_, err = NewInstance()
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+func CompareInstances(a, b *Instance) error {
+	if !reflect.DeepEqual(a.cfg, b.cfg) {
+		return fmt.Errorf("config mismatch")
+	}
+
+	// TODO (b5): compare all instance fields
+	return nil
 }
 
 func TestReceivers(t *testing.T) {

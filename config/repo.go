@@ -41,7 +41,8 @@ func (cfg Repo) Validate() error {
         "description": "Type of repository",
         "type": "string",
         "enum": [
-          "fs"
+          "fs",
+          "mem"
         ]
       }
     }
