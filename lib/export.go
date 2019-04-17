@@ -22,6 +22,7 @@ import (
 )
 
 // ExportRequests encapsulates business logic of export operation
+// TODO (b5): switch to using an Instance instead of separate fields
 type ExportRequests struct {
 	node *p2p.QriNode
 	cli  *rpc.Client

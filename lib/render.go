@@ -10,6 +10,7 @@ import (
 
 // RenderRequests encapsulates business logic for this node's
 // user profile
+// TODO (b5): switch to using an Instance instead of separate fields
 type RenderRequests struct {
 	cli  *rpc.Client
 	repo repo.Repo

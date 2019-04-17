@@ -18,6 +18,7 @@ import (
 
 // PeerRequests encapsulates business logic for methods
 // relating to peer-to-peer interaction
+// TODO (b5): switch to using an Instance instead of separate fields
 type PeerRequests struct {
 	qriNode *p2p.QriNode
 	cli     *rpc.Client

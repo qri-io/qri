@@ -10,6 +10,7 @@ import (
 )
 
 // RegistryRequests defines business logic for working with registries
+// TODO (b5): switch to using an Instance instead of separate fields
 type RegistryRequests struct {
 	node *p2p.QriNode
 	cli  *rpc.Client

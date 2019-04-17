@@ -9,8 +9,8 @@ import (
 	"github.com/qri-io/registry/regclient"
 )
 
-// SearchRequests encapsulates business logic for the qri search
-// command
+// SearchRequests encapsulates business logic for the qri search command
+// TODO (b5): switch to using an Instance instead of separate fields
 type SearchRequests struct {
 	cli  *rpc.Client
 	node *p2p.QriNode

@@ -21,6 +21,7 @@ import (
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
+// TODO (b5): switch to using an Instance instead of separate fields
 type DatasetRequests struct {
 	cli  *rpc.Client
 	node *p2p.QriNode
