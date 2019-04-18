@@ -403,7 +403,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 // configuration, p2p node, and base context.
 // An instance wraps required state for for "Method" constructors, which
 // contain qri business logic. Think of instance as the "core" of the qri
-// ecosystem create one with NewInstance
+// ecosystem. Create an Instance pointer with NewInstance
 type Instance struct {
 	ctx      context.Context
 	teardown context.CancelFunc
