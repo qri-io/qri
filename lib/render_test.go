@@ -69,7 +69,7 @@ func TestRenderRequestsRender(t *testing.T) {
 			&RenderParams{
 				Ref:      "me/movies",
 				Template: []byte("{{ .BadTemplateBooPlzFail }}"),
-			}, nil, `template: index.html:1:3: executing "index.html" at <.BadTemplateBooPlzFa...>: can't evaluate field BadTemplateBooPlzFail in type *dataset.Dataset`},
+			}, nil, `template: index.html:1:3: executing "index.html" at <.BadTemplateBooPlzFail>: can't evaluate field BadTemplateBooPlzFail in type *dataset.Dataset`},
 		{"override with corrupt template",
 			&RenderParams{
 				Ref:      "me/movies",

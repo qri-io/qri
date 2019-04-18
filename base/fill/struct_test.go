@@ -403,7 +403,7 @@ func TestFillMetaCitations(t *testing.T) {
 		},
 	}
 	if !reflect.DeepEqual(meta, expect) {
-		t.Errorf("expected: c.Keywords should expect: %s, got: %s", expect, meta.Keywords)
+		t.Errorf("expected: c.Keywords should expect: %s, got: %s", expect.Keywords, meta.Keywords)
 	}
 }
 
