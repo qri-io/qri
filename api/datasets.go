@@ -666,7 +666,7 @@ func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-	util.WriteResponse(w, ref)
+	util.WriteResponse(w, res)
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {
