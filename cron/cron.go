@@ -254,7 +254,7 @@ func (c *Cron) Unschedule(name string) error {
 // MemJobStore is an in-memory implementation of the JobStore interface
 // Jobs stored in MemJobStore can be persisted for the duration of a process
 // at the longest.
-// MemJobStore is save for concurrent use
+// MemJobStore is safe for concurrent use
 type MemJobStore struct {
 	lock sync.Mutex
 	jobs jobs
