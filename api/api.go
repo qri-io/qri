@@ -143,7 +143,7 @@ func (s Server) ServeRPC() {
 
 	for _, rcvr := range lib.Receivers(s.Instance) {
 		if err := rpc.Register(rcvr); err != nil {
-			log.Infof("error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
+			log.Errorf("cannot start RPC: error registering RPC receiver %s: %s", rcvr.CoreRequestsName(), err.Error())
 			return
 		}
 	}
