@@ -20,7 +20,7 @@ type ProfileHandlers struct {
 // NewProfileHandlers allocates a ProfileHandlers pointer
 func NewProfileHandlers(inst *lib.Instance, readOnly bool) *ProfileHandlers {
 	h := ProfileHandlers{
-		ProfileMethods: lib.NewProfileMethods(inst),
+		ProfileMethods: *lib.NewProfileMethods(inst),
 		ReadOnly:       readOnly,
 	}
 	return &h

@@ -25,12 +25,12 @@ func (ProfileMethods) CoreRequestsName() string { return "profile" }
 
 // NewProfileMethods creates a ProfileMethods pointer from either a repo
 // or an rpc.Client
-func NewProfileMethods(inst *Instance) ProfileMethods {
-	return ProfileMethods{inst: inst}
+func NewProfileMethods(inst *Instance) *ProfileMethods {
+	return &ProfileMethods{inst: inst}
 }
 
 // GetProfile get's this node's peer profile
-func (m ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error) {
+func (m *ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.GetProfile", in, res)
 	}
@@ -65,7 +65,7 @@ func (m ProfileMethods) GetProfile(in *bool, res *config.ProfilePod) (err error)
 	return nil
 }
 
-func (m ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *profile.Profile, err error) {
+func (m *ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *profile.Profile, err error) {
 	var id profile.ID
 	if idStr == "" {
 		ref := &repo.DatasetRef{
@@ -94,7 +94,7 @@ func (m ProfileMethods) getProfile(r repo.Repo, idStr, peername string) (pro *pr
 }
 
 // SaveProfile stores changes to this peer's editable profile
-func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod) error {
+func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.SaveProfile", p, res)
 	}
@@ -161,7 +161,7 @@ func (m ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePod
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
-func (m ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err error) {
+func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.ProfilePhoto", req, res)
 	}
@@ -194,7 +194,7 @@ type FileParams struct {
 }
 
 // SetProfilePhoto changes this peer's profile image
-func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
+func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.SetProfilePhoto", p, res)
 	}
@@ -260,7 +260,7 @@ func (m ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) e
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
-func (m ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
+func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.PostPhoto", req, res)
 	}
@@ -285,7 +285,7 @@ func (m ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err er
 }
 
 // SetPosterPhoto changes this peer's poster image
-func (m ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
+func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.SetPosterPhoto", p, res)
 	}

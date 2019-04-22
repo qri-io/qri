@@ -214,7 +214,7 @@ func (o *QriOptions) PeerRequests() (*lib.PeerRequests, error) {
 }
 
 // ProfileMethods generates a lib.ProfileMethods from internal state
-func (o *QriOptions) ProfileMethods() (m lib.ProfileMethods, err error) {
+func (o *QriOptions) ProfileMethods() (m *lib.ProfileMethods, err error) {
 	if err = o.Init(); err != nil {
 		return
 	}
@@ -247,7 +247,7 @@ func (o *QriOptions) RenderRequests() (*lib.RenderRequests, error) {
 }
 
 // ConfigMethods generates a lib.ConfigMethods from internal state
-func (o *QriOptions) ConfigMethods() (m lib.ConfigMethods, err error) {
+func (o *QriOptions) ConfigMethods() (m *lib.ConfigMethods, err error) {
 	if err = o.Init(); err != nil {
 		return
 	}

@@ -15,8 +15,8 @@ type ConfigMethods struct {
 
 
 // NewConfigMethods creates a configuration handle from an instance
-func NewConfigMethods(inst *Instance) ConfigMethods {
-	return ConfigMethods{inst: inst}
+func NewConfigMethods(inst *Instance) *ConfigMethods {
+	return &ConfigMethods{inst: inst}
 }
 
 // CoreRequestsName specifies this is a configuration handle
@@ -33,7 +33,7 @@ type GetConfigParams struct {
 
 // GetConfig returns the Config, or one of the specified fields of the Config,
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
-func (m ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
+func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ConfigMethods.GetConfig", p, res)
 	}
@@ -76,7 +76,7 @@ func (m ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 }
 
 // SetConfig validates, updates and saves the config
-func (m ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
+func (m *ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ConfigMethods.SetConfig", update, set)
 	}
