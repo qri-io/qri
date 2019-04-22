@@ -1,5 +1,6 @@
 GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
 define GOPACKAGES 
+golang.org/x/text \
 github.com/briandowns/spinner \
 github.com/datatogether/api/apiutil \
 github.com/fatih/color \
