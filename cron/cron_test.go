@@ -109,7 +109,8 @@ func CompareJobs(a, b *Job) error {
 	if a.Periodicity != b.Periodicity {
 		return fmt.Errorf("Periodicity mismatch. %s != %s", a.Name, b.Name)
 	}
-	if !a.LastRun.Equal(b.LastRun) {
+	// use unix comparisons to ignore millisecond & nanosecond precision errors
+	if a.LastRun.Unix() != b.LastRun.Unix() {
 		return fmt.Errorf("LastRun mismatch. %s != %s", a.LastRun, b.LastRun)
 	}
 	if a.Type != b.Type {
@@ -156,7 +157,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Fatal(err)
 		}
 		if len(jobs) != 1 {
-			t.Errorf("expected default get to return inserted job")
+			t.Fatal("expected default get to return inserted job")
 		}
 		if err := CompareJobs(jobOne, jobs[0]); err != nil {
 			t.Errorf("stored job mistmatch: %s", err)
