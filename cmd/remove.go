@@ -64,8 +64,7 @@ type RemoveOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 	o.Args = args
-	o.DatasetRequests, err = f.DatasetRequests()
-	if err != nil {
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return err
 	}
 	if o.All {

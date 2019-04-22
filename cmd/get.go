@@ -84,7 +84,9 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 	o.Refs = args
-	o.DatasetRequests, err = f.DatasetRequests()
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return
+	}
 
 	if o.Selector == "body" {
 		// if we have a limit, but not offset, assume an offset of 0
