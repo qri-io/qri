@@ -224,8 +224,9 @@ func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Reque
 
 func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	ref := HTTPPathToQriPath(r.URL.Path[len("/export"):])
+	// default is zipped
+	zipped := r.FormValue("zipped") != "false"
 	format := r.FormValue("format")
-	zipped := r.FormValue("zipped") == "true"
 	tmpDir, err := ioutil.TempDir(os.TempDir(), "api_export")
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -241,7 +242,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 		return
 	}
 
-	f, err := os.Open(fileWritten)
+	f, err := os.Open(filepath.Join(tmpDir, fileWritten))
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -253,7 +254,7 @@ func (h *DatasetHandlers) zipDatasetHandler(w http.ResponseWriter, r *http.Reque
 	}
 
 	w.Header().Set("Content-Type", extensionToMimeType(path.Ext(fileWritten)))
-	w.Header().Set("Content-Disposition", fileWritten)
+	w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", path.Base(fileWritten)))
 	w.Write(bytes)
 }
 
@@ -303,6 +304,11 @@ func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Re
 	}
 }
 
+// TODO (ramfox): we have two places where `get` is happening, here and at root.go
+// we should deprecate the `/me` endpoint (and this handler)
+// and have the root check to see if `me` is the peername
+// if we are in read-only mode, we should error,
+// otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
 		Path: HTTPPathToQriPath(r.URL.Path),
