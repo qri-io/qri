@@ -278,9 +278,11 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
-		if conn, err := net.Dial("tcp", addr); err != nil {
-			err = nil
-		} else {
+		log.Infof("Dialing rpc address %s", addr)
+		conn, err := net.Dial("tcp", addr)
+		if err == nil {
+			// we have a connection
+			log.Infof("Connected over rpc")
 			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}

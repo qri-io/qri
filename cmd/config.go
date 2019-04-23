@@ -124,8 +124,8 @@ type ConfigOptions struct {
 	Output          string
 
 	inst           *lib.Instance
-	ConfigMethods  lib.ConfigMethods
-	ProfileMethods lib.ProfileMethods
+	ConfigMethods  *lib.ConfigMethods
+	ProfileMethods *lib.ProfileMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -225,7 +225,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 	return nil
 }
 
-func setPhotoPath(m lib.ProfileMethods, proppath, filepath string) error {
+func setPhotoPath(m *lib.ProfileMethods, proppath, filepath string) error {
 	f, err := loadFileIfPath(filepath)
 	if err != nil {
 		return err

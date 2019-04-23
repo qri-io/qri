@@ -65,7 +65,9 @@ type PublishOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
-	o.DatasetRequests, err = f.DatasetRequests()
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return err
+	}
 	o.RemoteRequests, err = f.RemoteRequests()
 	return
 }
