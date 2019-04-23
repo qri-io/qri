@@ -10,6 +10,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
@@ -100,10 +101,10 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 
 	if p.Output == "" || isDirectory(p.Output) {
 		// If output is blank or a directory, derive filename from repo name and commit timestamp.
-		ts := ds.Commit.Timestamp
-		timeText := fmt.Sprintf("%04d-%02d-%02d-%02d-%02d-%02d", ts.Year(), ts.Month(), ts.Day(),
-			ts.Hour(), ts.Minute(), ts.Second())
-		baseName := fmt.Sprintf("%s-%s_-_%s.%s", ds.Peername, ds.Name, timeText, format)
+		baseName, err := GenerateFilename(ds, format)
+		if err != nil {
+			return err
+		}
 		*fileWritten = path.Join(p.Output, baseName)
 	} else {
 		// If output filename is not blank, check that the file extension matches the format. Or
@@ -266,4 +267,23 @@ func isDirectory(path string) bool {
 func replaceExt(filename, newExt string) string {
 	ext := path.Ext(filename)
 	return filename[:len(filename)-len(ext)] + newExt
+}
+
+// GenerateFilename takes a dataset and generates a filename
+// if no timestamp exists, it will default to the empty time.Time
+// in the form [peername]-[datasetName]_-_[timestamp].[format]
+func GenerateFilename(ds *dataset.Dataset, format string) (string, error) {
+	ts := time.Time{}
+	if ds.Commit != nil {
+		ts = ds.Commit.Timestamp
+	}
+	if format == "" {
+		if ds.Structure == nil || ds.Structure.Format == "" {
+			return "", fmt.Errorf("no format specified and no format present in the dataset Structure")
+		}
+		format = ds.Structure.Format
+	}
+	timeText := fmt.Sprintf("%04d-%02d-%02d-%02d-%02d-%02d", ts.Year(), ts.Month(), ts.Day(),
+		ts.Hour(), ts.Minute(), ts.Second())
+	return fmt.Sprintf("%s-%s_-_%s.%s", ds.Peername, ds.Name, timeText, format), nil
 }
