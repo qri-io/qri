@@ -8,9 +8,17 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-
+	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qfs"
 )
+
+func mustRepeatingInterval(s string) iso8601.RepeatingInterval {
+	ri, err := iso8601.ParseRepeatingInterval(s)
+	if err != nil {
+		panic(err)
+	}
+	return ri
+}
 
 func TestCronDataset(t *testing.T) {
 	updateCount := 0
@@ -42,7 +50,7 @@ func TestCronDataset(t *testing.T) {
 	defer cancel()
 
 	cron := NewCronInterval(&MemJobStore{}, runner, time.Millisecond*50)
-	cron.ScheduleDataset(ds, nil)
+	cron.ScheduleDataset(ds, "", nil)
 
 	if err := cron.Start(ctx); err != nil {
 		t.Fatal(err)
@@ -146,7 +154,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 
 		jobOne := &Job{
 			Name:        "job_one",
-			Periodicity: "R/PT1H",
+			Periodicity: mustRepeatingInterval("R/PT1H"),
 			Type:        JTDataset,
 		}
 		if err = store.PutJob(jobOne); err != nil {
@@ -165,7 +173,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 
 		jobTwo := &Job{
 			Name:        "job two",
-			Periodicity: "R/P3M",
+			Periodicity: mustRepeatingInterval("R/P3M"),
 			Type:        JTShellScript,
 			LastRun:     time.Date(2001, 1, 1, 1, 1, 1, 1, time.UTC),
 		}
@@ -231,17 +239,18 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 	})
 
 	t.Run("TestJobStoreValidPut", func(t *testing.T) {
+		r1h := mustRepeatingInterval("R/PT1H")
 		bad := []struct {
 			description string
 			job         *Job
 		}{
 			{"empty", &Job{}},
-			{"no name", &Job{Periodicity: "R/PT1H", Type: JTDataset}},
+			{"no name", &Job{Periodicity: r1h, Type: JTDataset}},
 			{"no periodicity", &Job{Name: "some_name", Type: JTDataset}},
-			{"no type", &Job{Name: "some_name", Periodicity: "R/PT1H"}},
+			{"no type", &Job{Name: "some_name", Periodicity: r1h}},
 
-			{"invalid periodicity", &Job{Name: "some_name", Periodicity: "wat", Type: JTDataset}},
-			{"invalid JobType", &Job{Name: "some_name", Periodicity: "R/PT1H", Type: JobType("huh")}},
+			{"invalid periodicity", &Job{Name: "some_name", Type: JTDataset}},
+			{"invalid JobType", &Job{Name: "some_name", Periodicity: r1h, Type: JobType("huh")}},
 		}
 
 		store := newStore()

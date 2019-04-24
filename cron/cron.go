@@ -14,6 +14,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qfs"
 )
 
@@ -31,26 +32,18 @@ var (
 // Job represents a "cron job" that can be scheduled for repeated execution at
 // a specified Periodicity (time interval)
 type Job struct {
-	// Name of the Job
-	Name      string
-	Type      JobType
-	LastRun   time.Time
-	LastError string
-	// an ISO 8601 periodicity string
-	Periodicity string
+	Name        string
+	Type        JobType
+	LastRun     time.Time
+	LastError   string
+	Periodicity iso8601.RepeatingInterval
 	Secrets     map[string]string
 }
 
 // NextExec returns the next time execution horizion. If job periodicity is
-// improperly configuged, the returned time will be maxTime, causing the job
-// to never execute (or at least, not execute this century)
+// improperly configured, the returned time will be zero
 func (job *Job) NextExec() time.Time {
-	// check if job needs running
-	d := dataset.AccuralDuration(job.Periodicity)
-	if d == 0 {
-		return maxTime
-	}
-	return job.LastRun.Add(d)
+	return job.Periodicity.After(job.LastRun)
 }
 
 // ReadJobs are functions for fetching a set of jobs. ReadJobs defines canoncial
@@ -126,11 +119,9 @@ func ValidateJob(job *Job) error {
 	if job.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	if job.Periodicity == "" {
+	zero := iso8601.RepeatingInterval{}
+	if job.Periodicity == zero {
 		return fmt.Errorf("period is required")
-	}
-	if dataset.AccuralDuration(job.Periodicity) == 0 {
-		return fmt.Errorf("periodicity '%s' is invalid", job.Periodicity)
 	}
 	if job.Type != JTDataset && job.Type != JTShellScript {
 		return fmt.Errorf("invalid job type: %s", job.Type)
@@ -216,32 +207,46 @@ func (c *Cron) maybeRunJob(ctx context.Context, job *Job) {
 }
 
 // ScheduleDataset adds a dataset to the cron scheduler
-func (c *Cron) ScheduleDataset(ds *dataset.Dataset, secrets map[string]string) (*Job, error) {
-	if ds.Meta == nil {
+func (c *Cron) ScheduleDataset(ds *dataset.Dataset, periodicity string, secrets map[string]string) (*Job, error) {
+	if periodicity == "" && ds.Meta != nil && ds.Meta.AccrualPeriodicity != "" {
+		periodicity = ds.Meta.AccrualPeriodicity
+	}
+
+	if periodicity == "" {
 		return nil, fmt.Errorf("scheduling dataset updates requires a meta component with accrualPeriodicity set")
+	}
+
+	p, err := iso8601.ParseRepeatingInterval(periodicity)
+	if err != nil {
+		return nil, err
 	}
 
 	job := &Job{
 		// TODO (b5) - dataset.Dataset needs an Alias() method:
 		Name:        fmt.Sprintf("%s/%s", ds.Peername, ds.Name),
-		Periodicity: ds.Meta.AccrualPeriodicity,
+		Periodicity: p,
 		Type:        JTDataset,
 		Secrets:     secrets,
 	}
 
-	err := c.store.PutJob(job)
+	err = c.store.PutJob(job)
 	return job, err
 }
 
 // ScheduleShellScript adds a shell script job type to the dataset
 func (c *Cron) ScheduleShellScript(f qfs.File, periodicity string) (*Job, error) {
+	p, err := iso8601.ParseRepeatingInterval(periodicity)
+	if err != nil {
+		return nil, err
+	}
+
 	job := &Job{
 		Name:        f.FullPath(),
-		Periodicity: periodicity,
+		Periodicity: p,
 		Type:        JTShellScript,
 	}
 
-	err := c.store.PutJob(job)
+	err = c.store.PutJob(job)
 	return job, err
 }
 
