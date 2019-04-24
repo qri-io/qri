@@ -587,6 +587,18 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	download := r.FormValue("download") == "true"
+	format := "json"
+	if download {
+		format = r.FormValue("format")
+	}
+	// if download is not set, and format is set, make sure the user knows that
+	// setting format won't do anything
+	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("the format must be json if used without the download parameter"))
+		return
+	}
+
 	limit, err := util.ReqParamInt("limit", r)
 	if err != nil {
 		limit = defaultDataLimit
@@ -600,7 +612,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 	p := &lib.GetParams{
 		Path:     d.String(),
-		Format:   "json",
+		Format:   format,
 		Selector: "body",
 		Limit:    limit,
 		Offset:   offset,
@@ -610,6 +622,17 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	result := &lib.GetResult{}
 	if err := h.Get(p, result); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if download {
+		filename, err := lib.GenerateFilename(result.Dataset, p.Format)
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		w.Header().Set("Content-Type", extensionToMimeType("."+p.Format))
+		w.Header().Set("Content-Disposition", fmt.Sprintf("attachment; filename=%s", filename))
+		w.Write(result.Bytes)
 		return
 	}
 

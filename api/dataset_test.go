@@ -50,6 +50,7 @@ func TestDatasetHandlers(t *testing.T) {
 	bodyCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/body/me/family_relationships", nil},
+		{"GET", "/body/me/family_relationships?download=true", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases, true)
