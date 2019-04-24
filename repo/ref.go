@@ -371,13 +371,14 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	if ref.Name == "" {
 		ref.Name = got.Name
 	}
-	if ref.Peername == "" {
+	if ref.Peername == "" || ref.Peername != got.Peername {
 		ref.Peername = got.Peername
 	}
 	ref.Published = got.Published
-	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name || ref.Peername != got.Peername {
+	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name {
 		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 	}
+
 	return nil
 }
 
