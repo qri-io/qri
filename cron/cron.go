@@ -11,11 +11,13 @@ import (
 	"sync"
 	"time"
 
+	flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qfs"
+	cron "github.com/qri-io/qri/cron/cron_fbs"
 )
 
 var (
@@ -28,23 +30,6 @@ var (
 	// consumption reasons, making a check every 15 minutes a reasonable default
 	DefaultCheckInterval = time.Minute * 15
 )
-
-// Job represents a "cron job" that can be scheduled for repeated execution at
-// a specified Periodicity (time interval)
-type Job struct {
-	Name        string
-	Type        JobType
-	LastRun     time.Time
-	LastError   string
-	Periodicity iso8601.RepeatingInterval
-	Secrets     map[string]string
-}
-
-// NextExec returns the next time execution horizion. If job periodicity is
-// improperly configured, the returned time will be zero
-func (job *Job) NextExec() time.Time {
-	return job.Periodicity.After(job.LastRun)
-}
 
 // ReadJobs are functions for fetching a set of jobs. ReadJobs defines canoncial
 // behavior for listing & fetching jobs
@@ -107,6 +92,9 @@ const (
 type JobStore interface {
 	// JobStores must implement the ReadJobs interface for fetching stored jobs
 	ReadJobs
+	// PutJob places one or more jobs in the store. Putting a job who's name
+	// already exists must overwrite the previous job, making all job names unique
+	PutJobs(...*Job) error
 	// PutJob places a job in the store. Putting a job who's name already exists
 	// must overwrite the previous job, making all job names unique
 	PutJob(*Job) error
@@ -298,6 +286,32 @@ func (s *MemJobStore) Job(name string) (*Job, error) {
 	return nil, fmt.Errorf("not found")
 }
 
+// PutJobs places one or more jobs in the store. Putting a job who's name
+// already exists must overwrite the previous job, making all job names unique
+func (s *MemJobStore) PutJobs(js ...*Job) error {
+	s.lock.Lock()
+	defer func() {
+		sort.Sort(s.jobs)
+		s.lock.Unlock()
+	}()
+
+	for _, job := range js {
+		if err := ValidateJob(job); err != nil {
+			return err
+		}
+
+		for i, j := range s.jobs {
+			if job.Name == j.Name {
+				s.jobs[i] = job
+				return nil
+			}
+		}
+
+		s.jobs = append(s.jobs, job)
+	}
+	return nil
+}
+
 // PutJob places a job in the store. If the job name matches the name of a job
 // that already exists, it will be overwritten with the new job
 func (s *MemJobStore) PutJob(job *Job) error {
@@ -354,3 +368,40 @@ func (js jobs) Less(i, j int) bool {
 	return js[i].LastRun.After(js[j].LastRun)
 }
 func (js jobs) Swap(i, j int) { js[i], js[j] = js[j], js[i] }
+
+func (js jobs) MarshalFb() []byte {
+	builder := flatbuffers.NewBuilder(0)
+	count := len(js)
+	offsets := make([]flatbuffers.UOffsetT, count)
+	for i, j := range js {
+		offsets[i] = j.MarshalFb(builder)
+	}
+
+	cron.JobsStartListVector(builder, count)
+	for i := count - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
+	}
+	jsvo := builder.EndVector(count)
+
+	cron.JobsStart(builder)
+	cron.JobsAddList(builder, jsvo)
+	off := cron.JobsEnd(builder)
+
+	builder.Finish(off)
+	return builder.FinishedBytes()
+}
+
+func unmarshalJobsFb(data []byte) (js jobs, err error) {
+	jsFb := cron.GetRootAsJobs(data, 0)
+	dec := &cron.Job{}
+	js = make(jobs, jsFb.ListLength())
+	for i := 0; i < jsFb.ListLength(); i++ {
+		jsFb.List(dec, i)
+		js[i] = &Job{}
+		if err := js[i].UnmarshalFb(dec); err != nil {
+			return nil, err
+		}
+	}
+
+	return js, nil
+}
