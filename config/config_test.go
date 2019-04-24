@@ -97,7 +97,7 @@ func TestConfigGet(t *testing.T) {
 	}{
 		{"foo", nil, "path: \"foo\" not found"},
 		{"p2p.enabled", true, ""},
-		{"p2p.QriBootstrapAddrs.foo", nil, "strconv.ParseInt: parsing \"foo\": invalid syntax"},
+		{"p2p.QriBootstrapAddrs.foo", nil, "need int, got string: \"foo\""},
 		{"p2p.QriBootstrapAddrs.0", cfg.P2P.QriBootstrapAddrs[0], ""},
 		{"logging.levels.qriapi", cfg.Logging.Levels["qriapi"], ""},
 		{"logging.levels.foo", nil, "invalid path: \"logging.levels.foo\""},
@@ -126,7 +126,7 @@ func TestConfigSet(t *testing.T) {
 		{"foo", nil, "path: \"foo\" not found"},
 		{"p2p.enabled", false, ""},
 		{"p2p.qribootstrapaddrs.0", "wahoo", ""},
-		{"p2p.qribootstrapaddrs.0", false, "invalid type for path \"p2p.qribootstrapaddrs.0\": expected string, got bool"},
+		{"p2p.qribootstrapaddrs.0", false, "at p2p.qribootstrapaddrs.0: need string, got bool: false"},
 		{"logging.levels.qriapi", "debug", ""},
 	}
 

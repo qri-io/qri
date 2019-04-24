@@ -21,7 +21,9 @@ func Struct(fields map[string]interface{}, output interface{}) error {
 	if target.Kind() == reflect.Ptr {
 		target = target.Elem()
 	}
-	return putFieldsToTargetStruct(fields, target)
+	collector := NewErrorCollector()
+	putFieldsToTargetStruct(fields, target, collector)
+	return collector.AsSingleError()
 }
 
 // ArbitrarySetter should be implemented by structs that can store arbitrary fields in a private map.
@@ -39,14 +41,11 @@ var (
 // field the value from the `fields` map. Recursively call this for an sub structures. Field
 // names are treated as case-insensitive. Return any errors found during this process, or nil if
 // there are no errors.
-func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value) error {
+func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value, collector *ErrorCollector) {
 	if target.Kind() != reflect.Struct {
-		return fmt.Errorf("can only put fields to a struct")
+		collector.Add(fmt.Errorf("can only put fields to a struct"))
+		return
 	}
-
-	// Collect errors that occur in this single call, at the end of the function, join them
-	// using newlines, if any exist.
-	errs := make([]string, 0)
 
 	// Collect real key names used by the `fields` map.
 	realKeys := make([]string, 0)
@@ -75,11 +74,14 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 			continue
 		}
 		usedKeys[caseMap[lowerName]] = true
-
-		err := putValueToPlace(val, target.Field(i))
-		if err != nil {
-			errs = append(errs, fmt.Sprintf("field %s: %s", fieldName, err.Error()))
+		if val == nil {
+			// Don't try and assign a nil value.
+			continue
 		}
+
+		collector.PushField(fieldName)
+		putValueToPlace(val, target.Field(i), collector)
+		collector.PopField()
 	}
 
 	// If the target struct is able, assign unknown keys to it.
@@ -96,17 +98,133 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 				continue
 			}
 			// Otherwise, unknown fields are an error.
-			errs = append(errs, fmt.Sprintf("field \"%s\" not found in target", k))
+			collector.Add(fmt.Errorf("path \"%s\": not found in destination struct", k))
 		}
 	}
-
-	if len(errs) == 0 {
-		return nil
-	}
-	return fmt.Errorf("%s", strings.Join(errs, "\n"))
 }
 
-func putValueToPlace(val interface{}, place reflect.Value) error {
+// putValueToPlace stores the val at the place, recusively if necessary
+func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorCollector) {
+	switch place.Kind() {
+	case reflect.Struct:
+		// Specially handle time.Time, represented as a string, which needs to be parsed.
+		if place.Type() == reflect.TypeOf(timeObj) {
+			timeText, ok := val.(string)
+			if ok {
+				ts, err := time.Parse(time.RFC3339, timeText)
+				if err != nil {
+					err = fmt.Errorf("could not parse time: \"%s\"", timeText)
+					collector.Add(err)
+				} else {
+					place.Set(reflect.ValueOf(ts))
+				}
+				return
+			}
+			err := &FieldError{Want: "time", Got: reflect.TypeOf(val).Name(), Val: val}
+			collector.Add(err)
+			return
+		}
+		// Struct must be assigned from a map.
+		component, err := toStringMap(val)
+		if collector.Add(err) {
+			return
+		}
+		// Recursion to handle sub-component.
+		putFieldsToTargetStruct(component, place, collector)
+	case reflect.Map:
+		if val == nil {
+			// If map is nil, nothing more to do.
+			return
+		}
+		m, ok := val.(map[string]interface{})
+		if !ok {
+			collector.Add(&FieldError{Want: "map", Got: reflect.TypeOf(val).Name(), Val: val})
+			return
+		}
+		// Special case map[string]string, convert values to strings.
+		if place.Type().Elem() == reflect.TypeOf(strObj) {
+			strmap := make(map[string]string)
+			for k, v := range m {
+				strmap[k] = fmt.Sprintf("%s", v)
+			}
+			place.Set(reflect.ValueOf(strmap))
+			return
+		}
+		place.Set(reflect.ValueOf(m))
+		return
+	case reflect.Slice:
+		if val == nil {
+			// If slice is nil, nothing more to do.
+			return
+		}
+		slice, ok := val.([]interface{})
+		if !ok {
+			collector.Add(fmt.Errorf("need type slice, value %s", val))
+			return
+		}
+		// Get size of type of the slice to deserialize.
+		size := len(slice)
+		sliceType := place.Type().Elem()
+		// Construct a new, empty slice of the same size.
+		create := reflect.MakeSlice(reflect.SliceOf(sliceType), size, size)
+		// Fill in each element.
+		for i := 0; i < size; i++ {
+			elem := reflect.Indirect(reflect.New(sliceType))
+			collector.PushField(fmt.Sprintf("%d", i))
+			putValueToPlace(slice[i], elem, collector)
+			collector.PopField()
+			create.Index(i).Set(elem)
+		}
+		place.Set(create)
+		return
+	case reflect.Array:
+		if val == nil {
+			// If slice is nil, nothing more to do.
+			return
+		}
+		slice, ok := val.([]interface{})
+		if !ok {
+			collector.Add(fmt.Errorf("need type slice, value %s", val))
+			return
+		}
+		// Get size of type of the slice to deserialize.
+		size := len(slice)
+		targetElem := place.Type().Elem()
+		targetSize := place.Type().Len()
+		if size != targetSize {
+			collector.Add(fmt.Errorf("need array of size %d, got size %d", targetSize, size))
+			return
+		}
+		// Construct array of appropriate size and type.
+		arrayType := reflect.ArrayOf(targetSize, targetElem)
+		create := reflect.New(arrayType).Elem()
+		// Fill in each element.
+		for i := 0; i < size; i++ {
+			elem := reflect.Indirect(reflect.New(targetElem))
+			putValueToPlace(slice[i], elem, collector)
+			create.Index(i).Set(elem)
+		}
+		place.Set(create)
+		return
+	case reflect.Ptr:
+		if val == nil {
+			// If pointer is nil, nothing more to do.
+			return
+		}
+		// Allocate a new pointer for the sub-component to be filled in.
+		alloc := reflect.New(place.Type().Elem())
+		place.Set(alloc)
+		inner := alloc.Elem()
+		putValueToPlace(val, inner, collector)
+		return
+	default:
+		collector.Add(putValueToUnit(val, place))
+		return
+	}
+}
+
+// putValueToUnit stores the val at the place, as long as it is a unitary (non-compound) type
+func putValueToUnit(val interface{}, place reflect.Value) error {
 	switch place.Kind() {
 	case reflect.Int:
 		num, ok := val.(int)
@@ -119,7 +237,7 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			place.SetInt(int64(numFloat))
 			return nil
 		}
-		return fmt.Errorf("need type int, value %s", val)
+		return &FieldError{Want: "int", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.Int64:
 		num, ok := val.(int)
 		if ok {
@@ -136,7 +254,7 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			place.SetInt(int64(float64))
 			return nil
 		}
-		return fmt.Errorf("need type int64, value %s | %v | %s", val, val, reflect.TypeOf(val))
+		return &FieldError{Want: "int64", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.Uint64:
 		num, ok := val.(uint)
 		if ok {
@@ -153,7 +271,7 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			place.SetUint(uint64(float64))
 			return nil
 		}
-		return fmt.Errorf("need type uint64, value %s | %v | %s", val, val, reflect.TypeOf(val))
+		return &FieldError{Want: "uint64", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.Float64:
 		num, ok := val.(int)
 		if ok {
@@ -165,131 +283,21 @@ func putValueToPlace(val interface{}, place reflect.Value) error {
 			place.SetFloat(numFloat)
 			return nil
 		}
-		return fmt.Errorf("need type string, value %s", val)
+		return &FieldError{Want: "float64", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.String:
 		text, ok := val.(string)
 		if ok {
 			place.SetString(text)
 			return nil
 		}
-		return fmt.Errorf("need type string, value %s", val)
+		return &FieldError{Want: "string", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.Bool:
 		b, ok := val.(bool)
 		if ok {
 			place.SetBool(b)
 			return nil
 		}
-		return fmt.Errorf("need type string, value %s", val)
-	case reflect.Struct:
-		// Specially handle time.Time, represented as a string, which needs to be parsed.
-		if place.Type() == reflect.TypeOf(timeObj) {
-			timeText, ok := val.(string)
-			if ok {
-				ts, err := time.Parse(time.RFC3339, timeText)
-				if err == nil {
-					place.Set(reflect.ValueOf(ts))
-					return nil
-				}
-				return err
-			}
-			return fmt.Errorf("need type time, value %s", val)
-		}
-		// Struct must be assigned from a map.
-		component, err := toStringMap(val)
-		if err != nil {
-			return err
-		}
-		// Recursion to handle sub-component.
-		return putFieldsToTargetStruct(component, place)
-	case reflect.Map:
-		if val == nil {
-			// If map is nil, nothing more to do.
-			return nil
-		}
-		m, ok := val.(map[string]interface{})
-		if !ok {
-			return fmt.Errorf("need type map, value %s", val)
-		}
-		// Special case map[string]string, convert values to strings.
-		if place.Type().Elem() == reflect.TypeOf(strObj) {
-			strmap := make(map[string]string)
-			for k, v := range m {
-				strmap[k] = fmt.Sprintf("%s", v)
-			}
-			place.Set(reflect.ValueOf(strmap))
-			return nil
-		}
-		place.Set(reflect.ValueOf(m))
-		return nil
-	case reflect.Slice:
-		if val == nil {
-			// If slice is nil, nothing more to do.
-			return nil
-		}
-		slice, ok := val.([]interface{})
-		if !ok {
-			return fmt.Errorf("need type slice, value %s", val)
-		}
-		// Get size of type of the slice to deserialize.
-		size := len(slice)
-		sliceType := place.Type().Elem()
-		// Construct a new, empty slice of the same size.
-		create := reflect.MakeSlice(reflect.SliceOf(sliceType), size, size)
-		// Fill in each element.
-		for i := 0; i < size; i++ {
-			elem := reflect.Indirect(reflect.New(sliceType))
-			err := putValueToPlace(slice[i], elem)
-			if err != nil {
-				return err
-			}
-			create.Index(i).Set(elem)
-		}
-		place.Set(create)
-		return nil
-	case reflect.Array:
-		if val == nil {
-			// If slice is nil, nothing more to do.
-			return nil
-		}
-		slice, ok := val.([]interface{})
-		if !ok {
-			return fmt.Errorf("need type slice, value %s", val)
-		}
-		// Get size of type of the slice to deserialize.
-		size := len(slice)
-		targetElem := place.Type().Elem()
-		targetSize := place.Type().Len()
-		if size != targetSize {
-			return fmt.Errorf("need array of size %d, got size %d", targetSize, size)
-		}
-		// Construct array of appropriate size and type.
-		arrayType := reflect.ArrayOf(targetSize, targetElem)
-		create := reflect.New(arrayType).Elem()
-		// Fill in each element.
-		for i := 0; i < size; i++ {
-			elem := reflect.Indirect(reflect.New(targetElem))
-			err := putValueToPlace(slice[i], elem)
-			if err != nil {
-				return err
-			}
-			create.Index(i).Set(elem)
-		}
-		place.Set(create)
-		return nil
-	case reflect.Ptr:
-		if val == nil {
-			// If pointer is nil, nothing more to do.
-			return nil
-		}
-		// Allocate a new pointer for the sub-component to be filled in.
-		alloc := reflect.New(place.Type().Elem())
-		place.Set(alloc)
-		inner := alloc.Elem()
-		err := putValueToPlace(val, inner)
-		if err != nil {
-			return err
-		}
-		return nil
+		return &FieldError{Want: "bool", Got: reflect.TypeOf(val).Name(), Val: val}
 	default:
 		return fmt.Errorf("unknown kind %s", place.Kind())
 	}

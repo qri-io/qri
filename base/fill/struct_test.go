@@ -33,10 +33,34 @@ func TestStruct(t *testing.T) {
 		t.Errorf("expected: ds.Name should be \"test_name\", got: %s", ds.Name)
 	}
 	if ds.ProfileID != "test_profile_id" {
-		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.Name)
+		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.ProfileID)
 	}
 	if ds.Qri != "qri:0" {
 		t.Errorf("expected: ds.Qri should be \"qri:0\", got: %s", ds.Qri)
+	}
+}
+
+func TestInvalidTarget(t *testing.T) {
+	jsonData := `{
+  "Name": "test_name",
+  "ProfileID": "test_profile_id",
+  "Qri": "qri:0"
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var n int
+	err = Struct(data, &n)
+	expect := "can only put fields to a struct"
+	if err == nil {
+		t.Fatalf("expected: error for unknown field, but no error returned")
+	}
+	if err.Error() != expect {
+		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
 }
 
@@ -71,6 +95,31 @@ func TestFillCommitTimestamp(t *testing.T) {
 	}
 }
 
+func TestFillInvalidTimestamp(t *testing.T) {
+	jsonData := `{
+  "Name": "test_commit_timestamp",
+  "Commit": {
+    "Timestamp": "1999-03__1T19:30:00.000Z"
+  }
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var ds dataset.Dataset
+	err = Struct(data, &ds)
+	expect := "at Commit.Timestamp: could not parse time: \"1999-03__1T19:30:00.000Z\""
+	if err == nil {
+		t.Fatalf("expected: error for unknown field, but no error returned")
+	}
+	if err.Error() != expect {
+		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
 func TestStructInsensitive(t *testing.T) {
 	jsonData := `{
   "name": "test_name",
@@ -94,7 +143,37 @@ func TestStructInsensitive(t *testing.T) {
 		t.Errorf("expected: ds.Name should be \"test_name\", got: %s", ds.Name)
 	}
 	if ds.ProfileID != "test_profile_id" {
-		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.Name)
+		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.ProfileID)
+	}
+	if ds.Qri != "qri:0" {
+		t.Errorf("expected: ds.Qri should be \"qri:0\", got: %s", ds.Qri)
+	}
+}
+
+func TestStructBlankValue(t *testing.T) {
+	jsonData := `{
+  "Name": "test_name",
+  "ProfileID": null,
+  "Qri": "qri:0"
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var ds dataset.Dataset
+	err = Struct(data, &ds)
+	if err != nil {
+		panic(err)
+	}
+
+	if ds.Name != "test_name" {
+		t.Errorf("expected: ds.Name should be \"test_name\", got: %s", ds.Name)
+	}
+	if ds.ProfileID != "" {
+		t.Errorf("expected: ds.ProfileID should be \"\", got: %s", ds.ProfileID)
 	}
 	if ds.Qri != "qri:0" {
 		t.Errorf("expected: ds.Qri should be \"qri:0\", got: %s", ds.Qri)
@@ -121,7 +200,7 @@ func TestStructUnknownFields(t *testing.T) {
 		t.Errorf("expected: error for unknown field, but no error returned")
 	}
 
-	expect := "field \"Unknown\" not found in target"
+	expect := "path \"Unknown\": not found in destination struct"
 	if err.Error() != expect {
 		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -149,7 +228,7 @@ qri: qri:0
 		t.Errorf("expected: ds.Name should be \"test_name\", got: %s", ds.Name)
 	}
 	if ds.ProfileID != "test_profile_id" {
-		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.Name)
+		t.Errorf("expected: ds.ProfileID should be \"test_profile_id\", got: %s", ds.ProfileID)
 	}
 	if ds.Qri != "qri:0" {
 		t.Errorf("expected: ds.Qri should be \"qri:0\", got: %s", ds.Qri)
@@ -337,7 +416,7 @@ func TestFillArrayLengthError(t *testing.T) {
 		t.Errorf("expected: error for wrong length, but no error returned")
 	}
 
-	expect := "field Pair: need array of size 2, got size 3"
+	expect := "at Pair: need array of size 2, got size 3"
 	if err.Error() != expect {
 		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -519,6 +598,78 @@ func TestNilPointer(t *testing.T) {
 
 	if c.Ptr != nil {
 		t.Error("expected null Ptr")
+	}
+}
+
+func TestFillErrorMessageOnWrongType(t *testing.T) {
+	jsonData := `{
+  "Age": "abc"
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err == nil {
+		t.Errorf("expected error, did not get an error")
+	}
+	expect := `at Age: need int, got string: "abc"`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+func TestFillErrorMessageOnWrongSubfield(t *testing.T) {
+	jsonData := `{
+  "Sub": {
+    "Num": false
+  }
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err == nil {
+		t.Errorf("expected error, did not get an error")
+	}
+	expect := `at Sub.Num: need int, got bool: false`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+func TestFillMulitpleErrors(t *testing.T) {
+	jsonData := `{
+  "Age": "abc",
+  "Sub": {
+    "Num": false
+  }
+}`
+
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err == nil {
+		t.Errorf("expected error, did not get an error")
+	}
+	expect := `at Age: need int, got string: "abc"
+at Sub.Num: need int, got bool: false`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
 	}
 }
 
