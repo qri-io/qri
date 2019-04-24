@@ -63,6 +63,14 @@ paths:
   "/body/{datasetRef}":
     parameters:
     - "$ref": "#/x-components/parameters/datasetRef"
+    - description: returns the body as a stream of data
+      in: query
+      name: download
+      type: boolean
+    - description: format should only be set when used with the download flag. This allows you to export the body of the dataset in a different format. Options are json, xlsx, csv, cbor
+      in: query
+      name: format
+      type: string
     get:
       produces:
       - application/json
@@ -99,7 +107,7 @@ paths:
           schema:
             "$ref": "#/definitions/Error"
       operationId: getBody
-      summary: Get a dataset's body
+      summary: Get a dataset's body. By default (with no parameters), the body will be returned as paginated json.
   "/connect/{address}":
     parameters:
     - in: path
@@ -221,6 +229,14 @@ paths:
   "/export/{datasetRef}":
     parameters:
     - "$ref": "#/x-components/parameters/datasetRef"
+    - description: defaults to true. When true, data payload is a zipped file.
+      in: query
+      name: zipped
+      type: boolean
+    - description: format the dataset should be converted to. Options are json, yaml, xlsx
+      in: query
+      name: format
+      type: string
     get:
       produces:
       - application/zip
@@ -245,7 +261,7 @@ paths:
           schema:
             "$ref": "#/definitions/Error"
       operationId: zipDataset
-      summary: Export a dataset header and body as a zip
+      summary: Export the entire dataset as a zip (by default)
   "/history/{datasetRef}":
     parameters:
     - "$ref": "#/x-components/parameters/datasetRef"
