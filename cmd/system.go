@@ -4,6 +4,7 @@ package cmd
 
 import (
 	"fmt"
+	"strings"
 
 	"golang.org/x/sys/unix"
 )
@@ -33,6 +34,10 @@ func ensureLargeNumOpenFiles() {
 
 	err = unix.Setrlimit(unix.RLIMIT_NOFILE, &rLimit)
 	if err != nil {
+		if strings.Contains(err.Error(), "operation not permitted") {
+			// If permission was denied, just ignore the error silently.
+			return
+		}
 		fmt.Printf("error setting max open files limit: %s\n", err)
 		return
 	}
