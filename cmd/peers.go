@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"os/exec"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
@@ -218,9 +220,8 @@ func (o *PeersOptions) List() (err error) {
 			printSuccess(o.Out, "%d.\t%s", i+1, p)
 		}
 	} else {
-
 		// if we don't have an RPC client, assume we're not connected
-		if o.UsingRPC && !o.Cached {
+		if !o.UsingRPC && !o.Cached {
 			printInfo(o.Out, "qri not connected, listing cached peers")
 			o.Cached = true
 		}
@@ -235,10 +236,31 @@ func (o *PeersOptions) List() (err error) {
 			return err
 		}
 
+		if o.Cached {
+			// if cached, print to less
+			// because the list of peers is non deterministic
+			// it make sense to try out printing to less here
+			// where limit and offset don't mean as much
+			buf := bytes.Buffer{}
+			fmt.Fprintln(&buf, "Cached Qri Peers List:\n")
+			for i, peer := range res {
+				printPeerInfoNoColor(&buf, i, peer)
+			}
+			less := exec.Command("less")
+			less.Stdin = &buf
+			less.Stdout = o.Out
+
+			if err := less.Run(); err != nil {
+				return err
+			}
+			return nil
+		}
+
 		fmt.Fprintln(o.Out, "")
 		for i, peer := range res {
 			printPeerInfo(o.Out, i, peer)
 		}
+
 	}
 	return nil
 }
