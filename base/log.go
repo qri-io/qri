@@ -23,18 +23,16 @@ func DatasetLog(r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDataset
 		}
 		ref.Dataset = ds
 
-		offset--
-		if offset > 0 {
-			continue
-		}
+		if offset <= 0 {
+			rlog = append(rlog, ref)
 
-		rlog = append(rlog, ref)
-
-		limit--
-		if limit == 0 || ref.Dataset.PreviousPath == "" {
-			break
+			limit--
+			if limit == 0 || ref.Dataset.PreviousPath == "" {
+				break
+			}
 		}
 		ref.Path = ref.Dataset.PreviousPath
+		offset--
 	}
 
 	return rlog, nil
