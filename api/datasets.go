@@ -277,6 +277,8 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args := lib.ListParamsFromRequest(r)
 	args.OrderBy = "created"
 
+	args.Term = r.FormValue("term")
+
 	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
