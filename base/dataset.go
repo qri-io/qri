@@ -110,6 +110,15 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 		}
 		res = pub[:i]
 	}
+	// if offset is too high, return empty list
+	if offset >= len(res) {
+		return res[:0], nil
+	}
+	res = res[offset:]
+
+	if limit < len(res) {
+		res = res[:limit]
+	}
 
 	for i, ref := range res {
 		// May need to change peername.
