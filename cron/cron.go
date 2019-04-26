@@ -5,19 +5,19 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io/ioutil"
+	"net/http"
 	"os/exec"
 	"path/filepath"
-	"sort"
-	"sync"
 	"time"
 
-	flatbuffers "github.com/google/flatbuffers/go"
+	// flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qfs"
-	cron "github.com/qri-io/qri/cron/cron_fbs"
+	cronfb "github.com/qri-io/qri/cron/cron_fbs"
 )
 
 var (
@@ -31,17 +31,13 @@ var (
 	DefaultCheckInterval = time.Minute * 15
 )
 
-// ReadJobs are functions for fetching a set of jobs. ReadJobs defines canoncial
-// behavior for listing & fetching jobs
-type ReadJobs interface {
-	// Jobs should return the set of jobs sorted in reverse-chronological order
-	// (newest first order) of the last time they were run. When two LastRun times
-	// are equal, Jobs should alpha sort the names
-	// passing a limit and offset of 0 must return the entire list of stored jobs
-	Jobs(offset, limit int) ([]*Job, error)
-	// Job gets a job by it's name. All job names in a set must be unique. It's
-	// the job of the set backing ReadJobs functions to enforce uniqueness
-	Job(name string) (*Job, error)
+// Scheduler is the "generic" interface for the Cron Scheduler, it's implemented
+// by both Cron and HTTPClient for easier RPC communication
+type Scheduler interface {
+	Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
+	ScheduleDataset(ctx context.Context, ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (*Job, error)
+	ScheduleShellScript(ctx context.Context, f qfs.File, periodicity string, opts *ShellScriptOptions) (*Job, error)
+	Unschedule(ctx context.Context, name string) error
 }
 
 // RunJobFunc is a function for executing a job. Cron takes care of scheduling
@@ -71,52 +67,6 @@ func LocalShellScriptRunner(basepath string) RunJobFunc {
 	}
 }
 
-// JobType is a type for distinguishing between two different kinds of jobs
-// JobType should be used as a shorthand for defining how to execute a job
-type JobType string
-
-const (
-	// JTDataset indicates a job that runs "qri update" on a dataset specified
-	// by Job Name. The job periodicity is determined by the specified dataset's
-	// Meta.AccrualPeriodicity field. LastRun should closely match the datasets's
-	// latest Commit.Timestamp value
-	JTDataset JobType = "dataset"
-	// JTShellScript represents a shell script to be run locally, which might
-	// update one or more datasets. A non-zero exit code from shell script
-	// indicates the job failed to execute properly
-	JTShellScript JobType = "shell"
-)
-
-// JobStore handles the persistence of Job details. JobStore implementations
-// must be safe for concurrent use
-type JobStore interface {
-	// JobStores must implement the ReadJobs interface for fetching stored jobs
-	ReadJobs
-	// PutJob places one or more jobs in the store. Putting a job who's name
-	// already exists must overwrite the previous job, making all job names unique
-	PutJobs(...*Job) error
-	// PutJob places a job in the store. Putting a job who's name already exists
-	// must overwrite the previous job, making all job names unique
-	PutJob(*Job) error
-	// DeleteJob removes a job from the store
-	DeleteJob(name string) error
-}
-
-// ValidateJob confirms a Job contains valid details for scheduling
-func ValidateJob(job *Job) error {
-	if job.Name == "" {
-		return fmt.Errorf("name is required")
-	}
-	zero := iso8601.RepeatingInterval{}
-	if job.Periodicity == zero {
-		return fmt.Errorf("period is required")
-	}
-	if job.Type != JTDataset && job.Type != JTShellScript {
-		return fmt.Errorf("invalid job type: %s", job.Type)
-	}
-	return nil
-}
-
 // NewCron creates a Cron with the default check interval
 func NewCron(js JobStore, runner RunJobFunc) *Cron {
 	return NewCronInterval(js, runner, DefaultCheckInterval)
@@ -139,17 +89,20 @@ type Cron struct {
 	runner   RunJobFunc
 }
 
-// assert cron implements ReadJobs at compile time
+// assert Cron implements ReadJobs at compile time
 var _ ReadJobs = (*Cron)(nil)
 
+// assert Cron is a Scheduler at compile time
+var _ Scheduler = (*Cron)(nil)
+
 // Jobs proxies to the underlying store for reading jobs
-func (c *Cron) Jobs(offset, limit int) ([]*Job, error) {
-	return c.store.Jobs(offset, limit)
+func (c *Cron) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
+	return c.store.Jobs(ctx, offset, limit)
 }
 
 // Job proxies to the underlying store for reading a job by name
-func (c *Cron) Job(name string) (*Job, error) {
-	return c.store.Job(name)
+func (c *Cron) Job(ctx context.Context, name string) (*Job, error) {
+	return c.store.Job(ctx, name)
 }
 
 // Start initiates the check loop, looking for updates to execute once at every
@@ -161,7 +114,7 @@ func (c *Cron) Start(ctx context.Context) error {
 		select {
 		case <-t.C:
 			go func() {
-				jobs, err := c.store.Jobs(0, 0)
+				jobs, err := c.store.Jobs(ctx, 0, 0)
 				if err != nil {
 					log.Errorf("getting jobs from store: %s", err)
 					return
@@ -179,23 +132,37 @@ func (c *Cron) Start(ctx context.Context) error {
 
 func (c *Cron) maybeRunJob(ctx context.Context, job *Job) {
 	if time.Now().After(job.NextExec()) {
-		in := &bytes.Buffer{}
-		out := &bytes.Buffer{}
-		err := &bytes.Buffer{}
-		streams := ioes.NewIOStreams(in, out, err)
-
-		if err := c.runner(ctx, streams, job); err != nil {
-			job.LastError = err.Error()
-		} else {
-			job.LastError = ""
-		}
-		job.LastRun = time.Now()
-		c.store.PutJob(job)
+		c.runJob(ctx, job)
 	}
 }
 
+func (c *Cron) runJob(ctx context.Context, job *Job) {
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	err := &bytes.Buffer{}
+	streams := ioes.NewIOStreams(in, out, err)
+
+	if err := c.runner(ctx, streams, job); err != nil {
+		job.LastError = err.Error()
+	} else {
+		job.LastError = ""
+	}
+	job.LastRun = time.Now()
+	c.store.PutJob(ctx, job)
+}
+
 // ScheduleDataset adds a dataset to the cron scheduler
-func (c *Cron) ScheduleDataset(ds *dataset.Dataset, periodicity string, secrets map[string]string) (*Job, error) {
+func (c *Cron) ScheduleDataset(ctx context.Context, ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (*Job, error) {
+	job, err := datasetToJob(ds, periodicity, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.store.PutJob(ctx, job)
+	return job, err
+}
+
+func datasetToJob(ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (job *Job, err error) {
 	if periodicity == "" && ds.Meta != nil && ds.Meta.AccrualPeriodicity != "" {
 		periodicity = ds.Meta.AccrualPeriodicity
 	}
@@ -209,199 +176,122 @@ func (c *Cron) ScheduleDataset(ds *dataset.Dataset, periodicity string, secrets 
 		return nil, err
 	}
 
-	job := &Job{
+	job = &Job{
 		// TODO (b5) - dataset.Dataset needs an Alias() method:
 		Name:        fmt.Sprintf("%s/%s", ds.Peername, ds.Name),
 		Periodicity: p,
 		Type:        JTDataset,
-		Secrets:     secrets,
 	}
+	if opts != nil {
+		job.Options = opts
+	}
+	err = job.Validate()
 
-	err = c.store.PutJob(job)
-	return job, err
+	return
 }
 
 // ScheduleShellScript adds a shell script job type to the dataset
-func (c *Cron) ScheduleShellScript(f qfs.File, periodicity string) (*Job, error) {
+func (c *Cron) ScheduleShellScript(ctx context.Context, f qfs.File, periodicity string, opts *ShellScriptOptions) (*Job, error) {
+	job, err := shellScriptToJob(f, periodicity, opts)
+	if err != nil {
+		return nil, err
+	}
+
+	err = c.store.PutJob(ctx, job)
+	return job, err
+}
+
+func shellScriptToJob(f qfs.File, periodicity string, opts *ShellScriptOptions) (job *Job, err error) {
 	p, err := iso8601.ParseRepeatingInterval(periodicity)
 	if err != nil {
 		return nil, err
 	}
 
-	job := &Job{
+	job = &Job{
 		Name:        f.FullPath(),
 		Periodicity: p,
 		Type:        JTShellScript,
 	}
+	if opts != nil {
+		job.Options = opts
+	}
+	err = job.Validate()
 
-	err = c.store.PutJob(job)
-	return job, err
+	return
 }
 
 // Unschedule removes a job from the cron scheduler, cancelling any future
 // job executions
-func (c *Cron) Unschedule(name string) error {
-	return c.store.DeleteJob(name)
+func (c *Cron) Unschedule(ctx context.Context, name string) error {
+	return c.store.DeleteJob(ctx, name)
 }
 
-// MemJobStore is an in-memory implementation of the JobStore interface
-// Jobs stored in MemJobStore can be persisted for the duration of a process
-// at the longest.
-// MemJobStore is safe for concurrent use
-type MemJobStore struct {
-	lock sync.Mutex
-	jobs jobs
-}
-
-// Jobs lists jobs currently in the store
-func (s *MemJobStore) Jobs(offset, limit int) ([]*Job, error) {
-	if limit <= 0 {
-		limit = len(s.jobs)
+// ServeHTTP spins up an HTTP server at the specified address
+func (c *Cron) ServeHTTP(addr string) error {
+	s := &http.Server{
+		Addr:    addr,
+		Handler: newCronRoutes(c),
 	}
+	return s.ListenAndServe()
+}
 
-	jobs := make([]*Job, limit)
-	added := 0
-	for i, job := range s.jobs {
-		if i < offset {
-			continue
-		} else if added == limit {
-			break
+func newCronRoutes(c *Cron) http.Handler {
+
+	m := http.NewServeMux()
+	m.HandleFunc("/", c.statusHandler)
+	m.HandleFunc("/jobs", c.jobsHandler)
+	m.HandleFunc("/run", c.runHandler)
+
+	return m
+}
+
+func (c *Cron) statusHandler(w http.ResponseWriter, r *http.Request) {
+	w.WriteHeader(http.StatusOK)
+}
+
+func (c *Cron) jobsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "GET":
+		js, err := c.Jobs(r.Context(), 0, 0)
+		if err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			return
 		}
 
-		jobs[added] = job
-		added++
-	}
-	return jobs[:added], nil
-}
+		w.Write(jobs(js).FlatbufferBytes())
+		return
 
-// Job gets job details from the store by name
-func (s *MemJobStore) Job(name string) (*Job, error) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-	for _, job := range s.jobs {
-		if job.Name == name {
-			return job, nil
-		}
-	}
-	return nil, fmt.Errorf("not found")
-}
-
-// PutJobs places one or more jobs in the store. Putting a job who's name
-// already exists must overwrite the previous job, making all job names unique
-func (s *MemJobStore) PutJobs(js ...*Job) error {
-	s.lock.Lock()
-	defer func() {
-		sort.Sort(s.jobs)
-		s.lock.Unlock()
-	}()
-
-	for _, job := range js {
-		if err := ValidateJob(job); err != nil {
-			return err
+	case "POST":
+		data, err := ioutil.ReadAll(r.Body)
+		if err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			return
 		}
 
-		for i, j := range s.jobs {
-			if job.Name == j.Name {
-				s.jobs[i] = job
-				return nil
-			}
+		j := cronfb.GetRootAsJob(data, 0)
+		job := &Job{}
+		if err := job.UnmarshalFlatbuffer(j); err != nil {
+			w.WriteHeader(http.StatusBadRequest)
+			w.Write([]byte(err.Error()))
 		}
 
-		s.jobs = append(s.jobs, job)
-	}
-	return nil
-}
+		if err := c.store.PutJob(r.Context(), job); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
+		}
 
-// PutJob places a job in the store. If the job name matches the name of a job
-// that already exists, it will be overwritten with the new job
-func (s *MemJobStore) PutJob(job *Job) error {
-	if err := ValidateJob(job); err != nil {
-		return err
-	}
-
-	s.lock.Lock()
-	defer func() {
-		sort.Sort(s.jobs)
-		s.lock.Unlock()
-	}()
-
-	for i, j := range s.jobs {
-		if job.Name == j.Name {
-			s.jobs[i] = job
-			return nil
+	case "DELETE":
+		name := r.FormValue("name")
+		if err := c.Unschedule(r.Context(), name); err != nil {
+			w.WriteHeader(http.StatusInternalServerError)
+			w.Write([]byte(err.Error()))
+			return
 		}
 	}
 
-	s.jobs = append(s.jobs, job)
-	return nil
 }
 
-// DeleteJob removes a job from the store by name. deleting a non-existent job
-// won't return an error
-func (s *MemJobStore) DeleteJob(name string) error {
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	for i, j := range s.jobs {
-		if j.Name == name {
-			if i+1 == len(s.jobs) {
-				s.jobs = s.jobs[:i]
-				break
-			}
-
-			s.jobs = append(s.jobs[:i], s.jobs[i+1:]...)
-			break
-		}
-	}
-	return nil
-}
-
-// jobs is a list of jobs that implements the sort.Interface, sorting a list
-// of jobs in reverse-chronological-then-alphabetical order
-type jobs []*Job
-
-func (js jobs) Len() int { return len(js) }
-func (js jobs) Less(i, j int) bool {
-	if js[i].LastRun.Equal(js[j].LastRun) {
-		return js[i].Name < js[j].Name
-	}
-	return js[i].LastRun.After(js[j].LastRun)
-}
-func (js jobs) Swap(i, j int) { js[i], js[j] = js[j], js[i] }
-
-func (js jobs) MarshalFb() []byte {
-	builder := flatbuffers.NewBuilder(0)
-	count := len(js)
-	offsets := make([]flatbuffers.UOffsetT, count)
-	for i, j := range js {
-		offsets[i] = j.MarshalFb(builder)
-	}
-
-	cron.JobsStartListVector(builder, count)
-	for i := count - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(offsets[i])
-	}
-	jsvo := builder.EndVector(count)
-
-	cron.JobsStart(builder)
-	cron.JobsAddList(builder, jsvo)
-	off := cron.JobsEnd(builder)
-
-	builder.Finish(off)
-	return builder.FinishedBytes()
-}
-
-func unmarshalJobsFb(data []byte) (js jobs, err error) {
-	jsFb := cron.GetRootAsJobs(data, 0)
-	dec := &cron.Job{}
-	js = make(jobs, jsFb.ListLength())
-	for i := 0; i < jsFb.ListLength(); i++ {
-		jsFb.List(dec, i)
-		js[i] = &Job{}
-		if err := js[i].UnmarshalFb(dec); err != nil {
-			return nil, err
-		}
-	}
-
-	return js, nil
+func (c *Cron) runHandler(w http.ResponseWriter, r *http.Request) {
+	c.runJob(r.Context(), nil)
 }

@@ -34,15 +34,19 @@ func (rcv *Job) Name() []byte {
 	return nil
 }
 
-func (rcv *Job) Type() []byte {
+func (rcv *Job) Type() JobType {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+		return rcv._tab.GetInt8(o + rcv._tab.Pos)
 	}
-	return nil
+	return 0
 }
 
-func (rcv *Job) LastRun() []byte {
+func (rcv *Job) MutateType(n JobType) bool {
+	return rcv._tab.MutateInt8Slot(6, n)
+}
+
+func (rcv *Job) Periodicity() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -50,7 +54,7 @@ func (rcv *Job) LastRun() []byte {
 	return nil
 }
 
-func (rcv *Job) LastError() []byte {
+func (rcv *Job) LastRun() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -58,7 +62,7 @@ func (rcv *Job) LastError() []byte {
 	return nil
 }
 
-func (rcv *Job) Periodicity() []byte {
+func (rcv *Job) LastError() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -66,49 +70,50 @@ func (rcv *Job) Periodicity() []byte {
 	return nil
 }
 
-func (rcv *Job) Secrets(obj *Secret, j int) bool {
+func (rcv *Job) OptionsType() byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
+		return rcv._tab.GetByte(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Job) MutateOptionsType(n byte) bool {
+	return rcv._tab.MutateByteSlot(14, n)
+}
+
+func (rcv *Job) Options(obj *flatbuffers.Table) bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
+	if o != 0 {
+		rcv._tab.Union(obj, o)
 		return true
 	}
 	return false
 }
 
-func (rcv *Job) SecretsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
 func JobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(6)
+	builder.StartObject(7)
 }
 func JobAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-func JobAddType(builder *flatbuffers.Builder, type_ flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(type_), 0)
-}
-func JobAddLastRun(builder *flatbuffers.Builder, lastRun flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(lastRun), 0)
-}
-func JobAddLastError(builder *flatbuffers.Builder, lastError flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(lastError), 0)
+func JobAddType(builder *flatbuffers.Builder, type_ int8) {
+	builder.PrependInt8Slot(1, type_, 0)
 }
 func JobAddPeriodicity(builder *flatbuffers.Builder, periodicity flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(periodicity), 0)
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(periodicity), 0)
 }
-func JobAddSecrets(builder *flatbuffers.Builder, secrets flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(secrets), 0)
+func JobAddLastRun(builder *flatbuffers.Builder, lastRun flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(lastRun), 0)
 }
-func JobStartSecretsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
+func JobAddLastError(builder *flatbuffers.Builder, lastError flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(lastError), 0)
+}
+func JobAddOptionsType(builder *flatbuffers.Builder, optionsType byte) {
+	builder.PrependByteSlot(5, optionsType, 0)
+}
+func JobAddOptions(builder *flatbuffers.Builder, options flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(options), 0)
 }
 func JobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

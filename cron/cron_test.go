@@ -2,7 +2,6 @@ package cron
 
 import (
 	"context"
-	"fmt"
 	"testing"
 	"time"
 
@@ -50,7 +49,7 @@ func TestCronDataset(t *testing.T) {
 	defer cancel()
 
 	cron := NewCronInterval(&MemJobStore{}, runner, time.Millisecond*50)
-	cron.ScheduleDataset(ds, "", nil)
+	cron.ScheduleDataset(ctx, ds, "", nil)
 
 	if err := cron.Start(ctx); err != nil {
 		t.Fatal(err)
@@ -86,7 +85,7 @@ func TestCronShellScript(t *testing.T) {
 	defer cancel()
 
 	cron := NewCron(&MemJobStore{}, runner)
-	_, err := cron.ScheduleShellScript(qfs.NewMemfileBytes("test.sh", nil), "R/P1W")
+	_, err := cron.ScheduleShellScript(ctx, qfs.NewMemfileBytes("test.sh", nil), "R/P1W", nil)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -103,165 +102,64 @@ func TestCronShellScript(t *testing.T) {
 	}
 }
 
-func TestMemStore(t *testing.T) {
-	newStore := func() JobStore {
-		return &MemJobStore{}
-	}
-	RunJobStoreTests(t, newStore)
-}
+func TestCronHTTP(t *testing.T) {
+	s := &MemJobStore{}
 
-func CompareJobs(a, b *Job) error {
-	if a.Name != b.Name {
-		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
-	}
-	if a.Periodicity != b.Periodicity {
-		return fmt.Errorf("Periodicity mismatch. %s != %s", a.Name, b.Name)
-	}
-	// use unix comparisons to ignore millisecond & nanosecond precision errors
-	if a.LastRun.Unix() != b.LastRun.Unix() {
-		return fmt.Errorf("LastRun mismatch. %s != %s", a.LastRun, b.LastRun)
-	}
-	if a.Type != b.Type {
-		return fmt.Errorf("Type mistmatch. %s != %s", a.Type, b.Type)
-	}
-	return nil
-}
-
-func CompareJobSlices(a, b []*Job) error {
-	if len(a) != len(b) {
-		return fmt.Errorf("length mistmatch: %d != %d", len(a), len(b))
+	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
+		return nil
 	}
 
-	for i, jobA := range a {
-		if err := CompareJobs(jobA, b[i]); err != nil {
-			return fmt.Errorf("job index %d mistmatch: %s", i, err)
-		}
+	cr := NewCron(s, runner)
+	// TODO (b5) - how do we keep this from being a leaking goroutine?
+	go cr.ServeHTTP(":7897")
+
+	cliCtx := context.Background()
+	cli := HTTPClient{Addr: ":7897"}
+	jobs, err := cli.Jobs(cliCtx, 0, 0)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(jobs) != 0 {
+		t.Error("expected 0 jobs")
 	}
 
-	return nil
-}
+	ds := &dataset.Dataset{
+		Peername: "b5",
+		Name:     "libp2p_node_count",
+		Commit: &dataset.Commit{
+			// last update was Jan 1 2019
+			Timestamp: time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
+		},
+		Meta: &dataset.Meta{
+			// update once a week
+			AccrualPeriodicity: "R/P1W",
+		},
+	}
 
-func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
-	t.Run("JobStoreTest", func(t *testing.T) {
-		store := newStore()
-		jobs, err := store.Jobs(0, 100)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if len(jobs) != 0 {
-			t.Errorf("expected new store to contain no jobs")
-		}
+	dsJob, err := cli.ScheduleDataset(cliCtx, ds, "", nil)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-		jobOne := &Job{
-			Name:        "job_one",
-			Periodicity: mustRepeatingInterval("R/PT1H"),
-			Type:        JTDataset,
-		}
-		if err = store.PutJob(jobOne); err != nil {
-			t.Errorf("putting job one: %s", err)
-		}
+	jobs, err = cli.Jobs(cliCtx, 0, 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-		if jobs, err = store.Jobs(0, 0); err != nil {
-			t.Fatal(err)
-		}
-		if len(jobs) != 1 {
-			t.Fatal("expected default get to return inserted job")
-		}
-		if err := CompareJobs(jobOne, jobs[0]); err != nil {
-			t.Errorf("stored job mistmatch: %s", err)
-		}
+	if len(jobs) != 1 {
+		t.Error("expected len of jobs to equal 1")
+	}
 
-		jobTwo := &Job{
-			Name:        "job two",
-			Periodicity: mustRepeatingInterval("R/P3M"),
-			Type:        JTShellScript,
-			LastRun:     time.Date(2001, 1, 1, 1, 1, 1, 1, time.UTC),
-		}
-		if err = store.PutJob(jobTwo); err != nil {
-			t.Errorf("putting job one: %s", err)
-		}
+	if err := cli.Unschedule(cliCtx, dsJob.Name); err != nil {
+		t.Fatal(err)
+	}
 
-		if jobs, err = store.Jobs(0, 0); err != nil {
-			t.Fatal(err)
-		}
-		expect := []*Job{jobTwo, jobOne}
-		if err := CompareJobSlices(expect, jobs); err != nil {
-			t.Error(err)
-		}
+	jobs, err = cli.Jobs(cliCtx, 0, 0)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
 
-		updatedJobOne := &Job{
-			Name:        jobOne.Name,
-			Periodicity: jobOne.Periodicity,
-			Type:        jobOne.Type,
-			LastRun:     time.Date(2002, 1, 1, 1, 1, 1, 1, time.UTC),
-		}
-		if err = store.PutJob(updatedJobOne); err != nil {
-			t.Errorf("putting job one: %s", err)
-		}
-
-		if jobs, err = store.Jobs(1, 1); err != nil {
-			t.Fatal(err)
-		}
-		if len(jobs) != 1 {
-			t.Fatal("expected limit 1 length to equal 1")
-		}
-		if err = CompareJobs(jobTwo, jobs[0]); err != nil {
-			t.Error(err)
-		}
-
-		job, err := store.Job(updatedJobOne.Name)
-		if err != nil {
-			t.Fatal(err)
-		}
-		if err = CompareJobs(updatedJobOne, job); err != nil {
-			t.Error(err)
-		}
-
-		if err = store.DeleteJob(updatedJobOne.Name); err != nil {
-			t.Error(err)
-		}
-		if err = store.DeleteJob(jobTwo.Name); err != nil {
-			t.Error(err)
-		}
-
-		if jobs, err = store.Jobs(0, 0); err != nil {
-			t.Fatal(err)
-		}
-		if len(jobs) != 0 {
-			t.Error("expected deleted jobs to equal zero")
-		}
-
-		if dest, ok := store.(qfs.Destroyer); ok {
-			if err := dest.Destroy(); err != nil {
-				t.Log(err)
-			}
-		}
-	})
-
-	t.Run("TestJobStoreValidPut", func(t *testing.T) {
-		r1h := mustRepeatingInterval("R/PT1H")
-		bad := []struct {
-			description string
-			job         *Job
-		}{
-			{"empty", &Job{}},
-			{"no name", &Job{Periodicity: r1h, Type: JTDataset}},
-			{"no periodicity", &Job{Name: "some_name", Type: JTDataset}},
-			{"no type", &Job{Name: "some_name", Periodicity: r1h}},
-
-			{"invalid periodicity", &Job{Name: "some_name", Type: JTDataset}},
-			{"invalid JobType", &Job{Name: "some_name", Periodicity: r1h, Type: JobType("huh")}},
-		}
-
-		store := newStore()
-		for i, c := range bad {
-			if err := store.PutJob(c.job); err == nil {
-				t.Errorf("bad case %d %s: expected error, got nil", i, c.description)
-			}
-		}
-	})
-
-	t.Run("TestJobStoreConcurrentUse", func(t *testing.T) {
-		t.Skip("TODO (b5)")
-	})
+	if len(jobs) != 0 {
+		t.Error("expected len of jobs to equal 0")
+	}
 }

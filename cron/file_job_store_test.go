@@ -1,6 +1,7 @@
 package cron
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -15,12 +16,13 @@ func TestFbJobStore(t *testing.T) {
 	}
 	defer os.RemoveAll(tmp)
 	newStore := func() JobStore {
-		return NewFbFileJobStore(filepath.Join(tmp, "jobs.dat"))
+		return NewFlatbufferJobStore(filepath.Join(tmp, "jobs.dat"))
 	}
 	RunJobStoreTests(t, newStore)
 }
 
 func BenchmarkFbJobStore(b *testing.B) {
+	ctx := context.Background()
 	js := make(jobs, 1000)
 	for i := range js {
 		js[i] = &Job{
@@ -34,15 +36,17 @@ func BenchmarkFbJobStore(b *testing.B) {
 	if err != nil {
 		b.Fatal(err)
 	}
-	
+
 	defer os.RemoveAll(tmp)
-	store := NewFbFileJobStore(filepath.Join(tmp, "jobs.dat"))
+	store := NewFlatbufferJobStore(filepath.Join(tmp, "jobs.dat"))
+
+	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		if err := store.PutJobs(js...); err != nil {
+		if err := store.PutJobs(ctx, js...); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := store.Jobs(0, 0); err != nil {
+		if _, err := store.Jobs(ctx, 0, 0); err != nil {
 			b.Fatal(err)
 		}
 	}
