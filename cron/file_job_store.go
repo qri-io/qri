@@ -1,35 +1,31 @@
 package cron
 
 import (
-	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
 	"sync"
-
-	"github.com/ugorji/go/codec"
 )
 
-// NewFileJobStore creates a job store that persists to a CBOR file
-// specified at path
-func NewFileJobStore(path string) JobStore {
-	return &FileJobStore{
+// NewFlatbufferJobStore creates a job store that persists to a file
+func NewFlatbufferJobStore(path string) JobStore {
+	return &FlatbufferJobStore{
 		path: path,
 	}
 }
 
-// FileJobStore is a jobstore implementation that saves to a CBOR file
-// Jobs stored in FileJobStore can be persisted for the duration of a process
-// at the longest.
-// FileJobStore is safe for concurrent use
-type FileJobStore struct {
+// FlatbufferJobStore is a jobstore implementation that saves to a file of
+// flatbuffer bytes.
+// FlatbufferJobStore is safe for concurrent use
+type FlatbufferJobStore struct {
 	lock sync.Mutex
 	path string
 }
 
 // Jobs lists jobs currently in the store
-func (s *FileJobStore) Jobs(offset, limit int) ([]*Job, error) {
+func (s *FlatbufferJobStore) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -57,34 +53,21 @@ func (s *FileJobStore) Jobs(offset, limit int) ([]*Job, error) {
 	return ss[:added], nil
 }
 
-func (s *FileJobStore) handle() codec.Handle {
-	return &codec.CborHandle{
-		// Need to use RFC3339 timestamps to preserve as much precision as possible
-		TimeRFC3339: true,
-	}
-}
-
-func (s *FileJobStore) loadJobs() (js jobs, err error) {
-	f, err := os.Open(s.path)
+func (s *FlatbufferJobStore) loadJobs() (js jobs, err error) {
+	data, err := ioutil.ReadFile(s.path)
 	if os.IsNotExist(err) {
 		return jobs{}, nil
 	}
 
-	js = jobs{}
-	err = codec.NewDecoder(f, s.handle()).Decode(&js)
-	return
+	return unmarshalJobsFlatbuffer(data)
 }
 
-func (s *FileJobStore) saveJobs(jobs []*Job) error {
-	buf := &bytes.Buffer{}
-	if err := codec.NewEncoder(buf, s.handle()).Encode(jobs); err != nil {
-		return err
-	}
-	return ioutil.WriteFile(s.path, buf.Bytes(), os.ModePerm)
+func (s *FlatbufferJobStore) saveJobs(js jobs) error {
+	return ioutil.WriteFile(s.path, js.FlatbufferBytes(), os.ModePerm)
 }
 
 // Job gets job details from the store by name
-func (s *FileJobStore) Job(name string) (*Job, error) {
+func (s *FlatbufferJobStore) Job(ctx context.Context, name string) (*Job, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -103,7 +86,7 @@ func (s *FileJobStore) Job(name string) (*Job, error) {
 
 // PutJobs places one or more jobs in the store. Putting a job who's name
 // already exists must overwrite the previous job, making all job names unique
-func (s *FileJobStore) PutJobs(add ...*Job) error {
+func (s *FlatbufferJobStore) PutJobs(ctx context.Context, add ...*Job) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -113,7 +96,7 @@ func (s *FileJobStore) PutJobs(add ...*Job) error {
 	}
 
 	for _, job := range add {
-		if err := ValidateJob(job); err != nil {
+		if err := job.Validate(); err != nil {
 			return err
 		}
 
@@ -133,8 +116,8 @@ func (s *FileJobStore) PutJobs(add ...*Job) error {
 
 // PutJob places a job in the store. If the job name matches the name of a job
 // that already exists, it will be overwritten with the new job
-func (s *FileJobStore) PutJob(job *Job) error {
-	if err := ValidateJob(job); err != nil {
+func (s *FlatbufferJobStore) PutJob(ctx context.Context, job *Job) error {
+	if err := job.Validate(); err != nil {
 		return err
 	}
 
@@ -162,7 +145,7 @@ func (s *FileJobStore) PutJob(job *Job) error {
 
 // DeleteJob removes a job from the store by name. deleting a non-existent job
 // won't return an error
-func (s *FileJobStore) DeleteJob(name string) error {
+func (s *FlatbufferJobStore) DeleteJob(ctx context.Context, name string) error {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -186,6 +169,6 @@ func (s *FileJobStore) DeleteJob(name string) error {
 }
 
 // Destroy removes the path entirely
-func (s *FileJobStore) Destroy() error {
+func (s *FlatbufferJobStore) Destroy() error {
 	return os.Remove(s.path)
 }
