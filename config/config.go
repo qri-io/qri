@@ -25,6 +25,7 @@ type Config struct {
 	Repo     *Repo
 	Store    *Store
 	P2P      *P2P
+	Update   *Update
 
 	Registry *Registry
 	Remotes  *Remotes
@@ -53,11 +54,14 @@ func DefaultConfig() *Config {
 		Profile:  DefaultProfile(),
 		Repo:     DefaultRepo(),
 		Store:    DefaultStore(),
+		P2P:      DefaultP2P(),
+		Update:   DefaultUpdate(),
+
 		Registry: DefaultRegistry(),
+		// default to no configured remotes
 
 		CLI:     DefaultCLI(),
 		API:     DefaultAPI(),
-		P2P:     DefaultP2P(),
 		Webapp:  DefaultWebapp(),
 		RPC:     DefaultRPC(),
 		Logging: DefaultLogging(),
@@ -68,6 +72,8 @@ func DefaultConfig() *Config {
 
 // SummaryString creates a pretty string summarizing the
 // configuration, useful for log output
+// TODO (b5): this summary string doesn't confirm these services are actually
+// running. we should move this elsewhere
 func (cfg Config) SummaryString() (summary string) {
 	summary = "\n"
 	if cfg.Profile != nil {
@@ -174,6 +180,10 @@ func validate(rs *jsonschema.RootSchema, s interface{}) error {
 	return nil
 }
 
+type validator interface {
+	Validate() error
+}
+
 // Validate validates each section of the config struct,
 // returning the first error
 func (cfg Config) Validate() error {
@@ -199,31 +209,27 @@ func (cfg Config) Validate() error {
 		return err
 	}
 
-	if err := cfg.Profile.Validate(); err != nil {
-		return err
+	validators := []validator{
+		cfg.Profile,
+		cfg.Repo,
+		cfg.Store,
+		cfg.P2P,
+		cfg.CLI,
+		cfg.API,
+		cfg.Webapp,
+		cfg.RPC,
+		cfg.Update,
+		cfg.Logging,
 	}
-	if err := cfg.Repo.Validate(); err != nil {
-		return err
+	for _, val := range validators {
+		if val != nil {
+			if err := val.Validate(); err != nil {
+				return err
+			}
+		}
 	}
-	if err := cfg.Store.Validate(); err != nil {
-		return err
-	}
-	if err := cfg.P2P.Validate(); err != nil {
-		return err
-	}
-	if err := cfg.CLI.Validate(); err != nil {
-		return err
-	}
-	if err := cfg.API.Validate(); err != nil {
-		return err
-	}
-	if err := cfg.Webapp.Validate(); err != nil {
-		return err
-	}
-	if err := cfg.RPC.Validate(); err != nil {
-		return err
-	}
-	return cfg.Logging.Validate()
+
+	return nil
 }
 
 // Copy returns a deep copy of the Config struct
@@ -243,6 +249,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.P2P != nil {
 		res.P2P = cfg.P2P.Copy()
+	}
+	if cfg.Update != nil {
+		res.Update = cfg.Update.Copy()
 	}
 	if cfg.Registry != nil {
 		res.Registry = cfg.Registry.Copy()
