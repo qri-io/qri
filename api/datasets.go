@@ -583,6 +583,8 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	listParams := lib.ListParamsFromRequest(r)
+
 	err = repo.CanonicalizeDatasetRef(h.repo, &d)
 	if err != nil && err != repo.ErrNotFound {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -601,24 +603,13 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	limit, err := util.ReqParamInt("limit", r)
-	if err != nil {
-		limit = defaultDataLimit
-		err = nil
-	}
-	offset, err := util.ReqParamInt("offset", r)
-	if err != nil {
-		offset = 0
-		err = nil
-	}
-
 	p := &lib.GetParams{
 		Path:     d.String(),
 		Format:   format,
 		Selector: "body",
-		Limit:    limit,
-		Offset:   offset,
-		All:      r.FormValue("all") == "true" && limit == defaultDataLimit && offset == 0,
+		Limit:    listParams.Limit,
+		Offset:   listParams.Offset,
+		All:      r.FormValue("all") == "true" && listParams.Limit == defaultDataLimit && listParams.Offset == 0,
 	}
 
 	result := &lib.GetResult{}
