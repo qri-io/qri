@@ -59,6 +59,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	util.WritePageResponse(w, res, r, params.Page())
+	if err := util.WritePageResponse(w, res, r, params.Page()); err != nil {
+		log.Infof("error list dataset history response: %s", err.Error())
+	}
 }
