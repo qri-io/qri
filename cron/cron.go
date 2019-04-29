@@ -4,19 +4,12 @@ package cron
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/ioutil"
 	"net/http"
-	"os/exec"
-	"path/filepath"
 	"time"
 
-	// flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/iso8601"
-	"github.com/qri-io/qfs"
 	cronfb "github.com/qri-io/qri/cron/cron_fbs"
 )
 
@@ -33,8 +26,7 @@ var (
 // by both Cron and HTTPClient for easier RPC communication
 type Scheduler interface {
 	Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
-	ScheduleDataset(ctx context.Context, ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (*Job, error)
-	ScheduleShellScript(ctx context.Context, f qfs.File, periodicity string, opts *ShellScriptOptions) (*Job, error)
+	Schedule(ctx context.Context, job *Job) error
 	Unschedule(ctx context.Context, name string) error
 }
 
@@ -42,28 +34,6 @@ type Scheduler interface {
 // job execution, and delegates the work of executing a job to a RunJobFunc
 // implementation.
 type RunJobFunc func(ctx context.Context, streams ioes.IOStreams, job *Job) error
-
-// LocalShellScriptRunner creates a script runner anchored at a local path
-// The runner it wires operating sytsem command in/out/errour to the iostreams
-// provided by RunJobFunc. All paths are in relation to the provided base path
-// Commands are executed with access to the same enviornment variables as the
-// process the runner is executing in
-// The executing command blocks until completion
-func LocalShellScriptRunner(basepath string) RunJobFunc {
-	return func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
-		path := job.Name
-		if qfs.PathKind(job.Name) == "local" {
-			path = filepath.Join(basepath, path)
-		}
-
-		cmd := exec.Command(path)
-		cmd.Dir = basepath
-		cmd.Stderr = streams.ErrOut
-		cmd.Stdout = streams.Out
-		cmd.Stdin = streams.In
-		return cmd.Run()
-	}
-}
 
 // NewCron creates a Cron with the default check interval
 func NewCron(js JobStore, runner RunJobFunc) *Cron {
@@ -149,73 +119,13 @@ func (c *Cron) runJob(ctx context.Context, job *Job) {
 	c.store.PutJob(ctx, job)
 }
 
-// ScheduleDataset adds a dataset to the cron scheduler
-func (c *Cron) ScheduleDataset(ctx context.Context, ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (*Job, error) {
-	job, err := datasetToJob(ds, periodicity, opts)
-	if err != nil {
-		return nil, err
+// Schedule add a job to the cron scheduler
+func (c *Cron) Schedule(ctx context.Context, job *Job) error {
+	if err := job.Validate(); err != nil {
+		return err
 	}
 
-	err = c.store.PutJob(ctx, job)
-	return job, err
-}
-
-func datasetToJob(ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (job *Job, err error) {
-	if periodicity == "" && ds.Meta != nil && ds.Meta.AccrualPeriodicity != "" {
-		periodicity = ds.Meta.AccrualPeriodicity
-	}
-
-	if periodicity == "" {
-		return nil, fmt.Errorf("scheduling dataset updates requires a meta component with accrualPeriodicity set")
-	}
-
-	p, err := iso8601.ParseRepeatingInterval(periodicity)
-	if err != nil {
-		return nil, err
-	}
-
-	job = &Job{
-		// TODO (b5) - dataset.Dataset needs an Alias() method:
-		Name:        fmt.Sprintf("%s/%s", ds.Peername, ds.Name),
-		Periodicity: p,
-		Type:        JTDataset,
-	}
-	if opts != nil {
-		job.Options = opts
-	}
-	err = job.Validate()
-
-	return
-}
-
-// ScheduleShellScript adds a shell script job type to the dataset
-func (c *Cron) ScheduleShellScript(ctx context.Context, f qfs.File, periodicity string, opts *ShellScriptOptions) (*Job, error) {
-	job, err := shellScriptToJob(f, periodicity, opts)
-	if err != nil {
-		return nil, err
-	}
-
-	err = c.store.PutJob(ctx, job)
-	return job, err
-}
-
-func shellScriptToJob(f qfs.File, periodicity string, opts *ShellScriptOptions) (job *Job, err error) {
-	p, err := iso8601.ParseRepeatingInterval(periodicity)
-	if err != nil {
-		return nil, err
-	}
-
-	job = &Job{
-		Name:        f.FullPath(),
-		Periodicity: p,
-		Type:        JTShellScript,
-	}
-	if opts != nil {
-		job.Options = opts
-	}
-	err = job.Validate()
-
-	return
+	return c.store.PutJob(ctx, job)
 }
 
 // Unschedule removes a job from the cron scheduler, cancelling any future

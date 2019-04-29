@@ -5,10 +5,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/iso8601"
-	"github.com/qri-io/qfs"
 )
 
 func mustRepeatingInterval(s string) iso8601.RepeatingInterval {
@@ -21,24 +19,17 @@ func mustRepeatingInterval(s string) iso8601.RepeatingInterval {
 
 func TestCronDataset(t *testing.T) {
 	updateCount := 0
-	ds := &dataset.Dataset{
-		Peername: "b5",
-		Name:     "libp2p_node_count",
-		Commit: &dataset.Commit{
-			// last update was Jan 1 2019
-			Timestamp: time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
-		},
-		Meta: &dataset.Meta{
-			// update once a week
-			AccrualPeriodicity: "R/P1W",
-		},
+	job := &Job{
+		Name:        "b5/libp2p_node_count",
+		Type:        JTDataset,
+		Periodicity: mustRepeatingInterval("R/P1W"),
 	}
 
 	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
 		switch job.Type {
 		case JTDataset:
 			updateCount++
-			ds.Commit.Timestamp = time.Now()
+			// ds.Commit.Timestamp = time.Now()
 			return nil
 		}
 		t.Fatalf("runner called with invalid job: %v", job)
@@ -49,7 +40,9 @@ func TestCronDataset(t *testing.T) {
 	defer cancel()
 
 	cron := NewCronInterval(&MemJobStore{}, runner, time.Millisecond*50)
-	cron.ScheduleDataset(ctx, ds, "", nil)
+	if err := cron.Schedule(ctx, job); err != nil {
+		t.Fatal(err)
+	}
 
 	if err := cron.Start(ctx); err != nil {
 		t.Fatal(err)
@@ -70,6 +63,12 @@ func TestCronShellScript(t *testing.T) {
 
 	updateCount := 0
 
+	job := &Job{
+		Name:        "foo.sh",
+		Type:        JTShellScript,
+		Periodicity: mustRepeatingInterval("R/P1W"),
+	}
+
 	scriptRunner := LocalShellScriptRunner("testdata")
 	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
 		switch job.Type {
@@ -85,8 +84,7 @@ func TestCronShellScript(t *testing.T) {
 	defer cancel()
 
 	cron := NewCron(&MemJobStore{}, runner)
-	_, err := cron.ScheduleShellScript(ctx, qfs.NewMemfileBytes("test.sh", nil), "R/P1W", nil)
-	if err != nil {
+	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
 
@@ -109,12 +107,21 @@ func TestCronHTTP(t *testing.T) {
 		return nil
 	}
 
+	cliCtx := context.Background()
+	cli := HTTPClient{Addr: ":7897"}
+	if err := cli.Ping(); err != ErrUnreachable {
+		t.Error("expected ping to server that is off to return ErrUnreachable")
+	}
+
 	cr := NewCron(s, runner)
 	// TODO (b5) - how do we keep this from being a leaking goroutine?
 	go cr.ServeHTTP(":7897")
 
-	cliCtx := context.Background()
-	cli := HTTPClient{Addr: ":7897"}
+	time.Sleep(time.Millisecond * 100)
+	if err := cli.Ping(); err != nil {
+		t.Errorf("expected ping to active server to not fail. got: %s", err)
+	}
+
 	jobs, err := cli.Jobs(cliCtx, 0, 0)
 	if err != nil {
 		t.Fatal(err)
@@ -123,21 +130,14 @@ func TestCronHTTP(t *testing.T) {
 		t.Error("expected 0 jobs")
 	}
 
-	ds := &dataset.Dataset{
-		Peername: "b5",
-		Name:     "libp2p_node_count",
-		Commit: &dataset.Commit{
-			// last update was Jan 1 2019
-			Timestamp: time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
-		},
-		Meta: &dataset.Meta{
-			// update once a week
-			AccrualPeriodicity: "R/P1W",
-		},
+	dsJob := &Job{
+		Name:        "b5/libp2p_node_count",
+		Type:        JTDataset,
+		Periodicity: mustRepeatingInterval("R/P1W"),
+		LastRun:     time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
-	dsJob, err := cli.ScheduleDataset(cliCtx, ds, "", nil)
-	if err != nil {
+	if err = cli.Schedule(cliCtx, dsJob); err != nil {
 		t.Fatal(err.Error())
 	}
 

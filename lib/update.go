@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"path/filepath"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
@@ -43,46 +42,62 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
 	}
 
-	var (
-		job *cron.Job
-		// this context is scoped to the scheduling request. currently not cancellable
-		// because our lib methods don't accept a context themselves
-		ctx = context.Background()
-	)
+	job, err := m.jobFromScheduleParams(in)
+	if err != nil {
+		return nil
+	}
+	*out = *job
 
-	if possibleShellScript(in.Name) {
-		job, err = m.inst.cron.ScheduleShellScript(ctx, qfs.NewMemfileBytes(in.Name, nil), in.Periodicity, nil)
-		*out = *job
-		return
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	var ctx = context.Background()
+
+	// TODO (b5) - parse update options & submit them here
+	return m.inst.cron.Schedule(ctx, job)
+}
+
+func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
+	if base.PossibleShellScript(p.Name) {
+		return base.ShellScriptToJob(qfs.NewMemfileBytes(p.Name, nil), p.Periodicity, nil)
 	}
 
 	var ref repo.DatasetRef
-	if ref, err = repo.ParseDatasetRef(in.Name); err != nil {
+	if ref, err = repo.ParseDatasetRef(p.Name); err != nil {
 		return
 	}
 	if err = repo.CanonicalizeDatasetRef(m.inst.Repo(), &ref); err != nil {
-		return err
+		return
 	}
 	if err = base.ReadDataset(m.inst.Repo(), &ref); err != nil {
-		return err
+		return
 	}
 
-	// TODO (b5) - parse update options & submit them here
-	job, err = m.inst.cron.ScheduleDataset(ctx, ref.Dataset, in.Periodicity, nil)
-	return
-}
-
-// TODO (b5) - deal with platforms that don't use '.sh' as a script extension (windows?)
-func possibleShellScript(path string) bool {
-	return filepath.Ext(path) == ".sh"
+	return base.DatasetToJob(ref.Dataset, p.Periodicity, nil)
 }
 
 func (m *UpdateMethods) Unschedule(name *string, unscheduled *bool) error {
-	return fmt.Errorf("not finished")
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	var ctx = context.Background()
+
+	return m.inst.cron.Unschedule(ctx, *name)
 }
 
-func (m *UpdateMethods) List(name *string, unscheduled *bool) error {
-	return fmt.Errorf("not finished")
+func (m *UpdateMethods) List(name *string, jobs *[]*Job) error {
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	var ctx = context.Background()
+
+	list, err := m.inst.cron.Jobs(ctx, 0, 0)
+	if err != nil {
+		return err
+	}
+
+	*jobs = list
+	return nil
 }
 
 func (m *UpdateMethods) Log(name *string, unscheduled *bool) error {
@@ -125,9 +140,13 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		}
 		*res = repo.DatasetRef{}
 		err = m.runDatasetUpdate(updateParams, res)
+
 	case cron.JTShellScript:
-		runner := cron.LocalShellScriptRunner(m.ScriptsPath)
+		runner := base.LocalShellScriptRunner(m.ScriptsPath)
 		err = runner(m.inst.ctx, m.inst.streams, p)
+
+	default:
+		return fmt.Errorf("unrecognized update type: %s", p.Type)
 	}
 
 	if err != nil {

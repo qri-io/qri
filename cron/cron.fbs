@@ -10,8 +10,10 @@ table StringMapVal {
   val:string;
 }
 
+// TODO (b5): I think it would be smarter to remove all knoweldge from cron 
+// about what exactly is being scheduled, but we would need a go implementation
+// of flexbuffers to do that properly, so let's leave this in for now
 union Options { DatasetOptions, ShellScriptOptions }
-
 
 table DatasetOptions {
 	commitTitle:string;
