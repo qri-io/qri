@@ -34,6 +34,10 @@ webapp:
   analyticstoken: ""
   entrypointupdateaddress: /ipns/webapp.qri.io
   entrypointhash: QmYDkLrvzDpzDzKeLD3okiQUzSL1ksNsfYU6ZwRYYn8ViS
+update:
+  type: fs
+  daemonize: true
+  address: "127.0.0.1:2506"
 rpc:
   enabled: true
   port: 2504

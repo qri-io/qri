@@ -85,6 +85,11 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc
 	return r, nil
 }
 
+// Path returns the path to the root of the repo directory
+func (r Repo) Path() string {
+	return string(r.basepath)
+}
+
 // Store returns the underlying cafs.Filestore driving this repo
 func (r Repo) Store() cafs.Filestore {
 	return r.store

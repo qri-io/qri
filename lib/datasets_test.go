@@ -220,38 +220,6 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 		t.Fatalf("Expected 'Test Repo', got '%s'", res.Dataset.Meta.Title)
 	}
 }
-
-func TestDatasetRequestsUpdate(t *testing.T) {
-	node := newTestQriNode(t)
-
-	r := NewDatasetRequests(node, nil)
-	res := &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: "me/bad_dataset"}, res); err == nil {
-		t.Error("expected update to nonexistent dataset to error")
-	}
-
-	ref := addNowTransformDataset(t, node)
-	res = &repo.DatasetRef{}
-	if err := r.Update(&UpdateParams{Ref: ref.AliasString(), Recall: "tf", ReturnBody: true}, res); err != nil {
-		t.Errorf("update error: %s", err)
-	}
-
-	// run a manual save to lose the transform
-	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
-		Peername: res.Peername,
-		Name:     res.Name,
-		Meta:     &dataset.Meta{Title: "an updated title"},
-	}}, res)
-	if err != nil {
-		t.Error("save failed")
-	}
-
-	// update should grab the transform from 2 commits back
-	if err := r.Update(&UpdateParams{Ref: res.AliasString(), ReturnBody: true}, res); err != nil {
-		t.Error(err)
-	}
-}
-
 func TestDatasetRequestsList(t *testing.T) {
 	var (
 		movies, counter, cities, craigslist, sitemap repo.DatasetRef
