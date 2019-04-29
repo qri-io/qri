@@ -8,14 +8,8 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-var DefaultPeerListLimit = 200
-
 // ListPeers lists Peers on the qri network
 func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
-
-	if limit <= 0 {
-		limit = DefaultPeerListLimit
-	}
 
 	r := node.Repo
 	user, err := r.Profile()

@@ -57,6 +57,10 @@ func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) (err e
 		return fmt.Errorf("error: not connected, run `qri connect` in another window")
 	}
 
+	if p.Limit <= 0 {
+		p.Limit = DefaultPageSize
+	}
+
 	*res, err = actions.ListPeers(d.qriNode, p.Limit, p.Offset, !p.Cached)
 	return err
 }
