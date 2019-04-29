@@ -18,7 +18,7 @@ func TestListPeers(t *testing.T) {
 
 	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
-	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 5)
+	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 6)
 	if err != nil {
 		t.Fatalf("error creating network: %s", err.Error())
 	}
