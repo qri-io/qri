@@ -141,8 +141,9 @@ You must have ` + "`qri connect`" + ` running in another terminal.`,
 
 	list.Flags().BoolVarP(&o.Cached, "cached", "c", false, "show peers that aren't online, but previously seen")
 	list.Flags().StringVarP(&o.Network, "network", "n", "", "specify network to show peers from [ipfs]")
-	list.Flags().IntVarP(&o.Limit, "limit", "l", 200, "limit max number of peers to show")
-	list.Flags().IntVarP(&o.Offset, "offset", "s", 0, "number of peers to skip during listing")
+	// TODO (ramfox): when we determine the best way to order and paginate peers, restore!
+	// list.Flags().IntVar(&o.PageSize, "page-size", 200, "max page size number of peers to show, default 200")
+	// list.Flags().IntVar(&o.Page, "page", 1, "page number of peers, default 1")
 
 	cmd.AddCommand(info, list, connect, disconnect)
 
@@ -158,8 +159,8 @@ type PeersOptions struct {
 	Format   string
 	Cached   bool
 	Network  string
-	Limit    int
-	Offset   int
+	PageSize int
+	Page     int
 
 	UsingRPC     bool
 	PeerRequests *lib.PeerRequests
@@ -210,9 +211,13 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
+
+	// convert Page and PageSize to Limit and Offset
+	listParams := lib.NewListParams("", o.Page, o.PageSize)
+
 	if o.Network == "ipfs" {
 		res := []string{}
-		if err := o.PeerRequests.ConnectedIPFSPeers(&o.Limit, &res); err != nil {
+		if err := o.PeerRequests.ConnectedIPFSPeers(&listParams.Limit, &res); err != nil {
 			return err
 		}
 
@@ -227,8 +232,8 @@ func (o *PeersOptions) List() (err error) {
 		}
 
 		p := &lib.PeerListParams{
-			Limit:  o.Limit,
-			Offset: o.Offset,
+			Limit:  listParams.Limit,
+			Offset: listParams.Offset,
 			Cached: o.Cached,
 		}
 		res := []*config.ProfilePod{}
@@ -242,7 +247,7 @@ func (o *PeersOptions) List() (err error) {
 			// it make sense to try out printing to less here
 			// where limit and offset don't mean as much
 			buf := bytes.Buffer{}
-			fmt.Fprintln(&buf, "Cached Qri Peers List:\n")
+			fmt.Fprintln(&buf, "Cached Qri Peers List:")
 			for i, peer := range res {
 				printPeerInfoNoColor(&buf, i, peer)
 			}

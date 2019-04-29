@@ -38,8 +38,8 @@ Any dataset that has been published to the registry is available for search.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
+	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
+	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 
 	return cmd
 }
@@ -51,9 +51,8 @@ type SearchOptions struct {
 	Query          string
 	SearchRequests *lib.SearchRequests
 	Format         string
-	// TODO: add support for specifying limit and offset
-	Limit  int
-	Offset int
+	PageSize       int
+	Page           int
 	// Reindex bool
 }
 
@@ -81,10 +80,13 @@ func (o *SearchOptions) Run() (err error) {
 
 	// TODO: add reindex option back in
 
+	// convert Page and PageSize to Limit and Offset
+	listParams := lib.NewListParams("", o.Page, o.PageSize)
+
 	p := &lib.SearchParams{
 		QueryString: o.Query,
-		Limit:       o.Limit,
-		Offset:      o.Offset,
+		Limit:       listParams.Limit,
+		Offset:      listParams.Offset,
 	}
 
 	results := []lib.SearchResult{}

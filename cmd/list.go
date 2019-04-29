@@ -51,8 +51,8 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
+	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
+	cmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
@@ -65,8 +65,8 @@ type ListOptions struct {
 	ioes.IOStreams
 
 	Format          string
-	Limit           int
-	Offset          int
+	PageSize        int
+	Page            int
 	Term            string
 	Peername        string
 	Published       bool
@@ -87,12 +87,15 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the list command
 func (o *ListOptions) Run() (err error) {
 
+	// convert Page and PageSize to Limit and Offset
+	listParams := lib.NewListParams("", o.Page, o.PageSize)
+
 	refs := []repo.DatasetRef{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
-		Limit:           o.Limit,
-		Offset:          o.Offset,
+		Limit:           listParams.Limit,
+		Offset:          listParams.Offset,
 		Published:       o.Published,
 		ShowNumVersions: o.ShowNumVersions,
 	}
