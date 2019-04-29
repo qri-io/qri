@@ -33,11 +33,12 @@ func (h *SearchHandlers) SearchHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
-	// p := util.PageFromRequest(r)
+
+	listParams := lib.ListParamsFromRequest(r)
 	sp := &lib.SearchParams{
 		QueryString: r.FormValue("q"),
-		Limit:       100,
-		Offset:      0,
+		Limit:       listParams.Limit,
+		Offset:      listParams.Offset,
 	}
 
 	if r.Header.Get("Content-Type") == "application/json" {
