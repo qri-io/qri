@@ -4,18 +4,20 @@ import "github.com/qri-io/jsonschema"
 
 // Update configures a Remote Procedure Call (Update) listener
 type Update struct {
-	Daemonize bool `json:"daemonize"`
-	Port      int  `json:"port"`
+	Type      string `json:"type"`
+	Daemonize bool   `json:"daemonize"`
+	Address   string `json:"address"`
 }
 
-// DefaultUpdatePort is local the port Update serves on by default
-var DefaultUpdatePort = 2506
+// DefaultUpdateAddress is the local address Update serves on by default
+var DefaultUpdateAddress = "127.0.0.1:2506"
 
 // DefaultUpdate creates a new default Update configuration
 func DefaultUpdate() *Update {
 	return &Update{
+		Type:      "fs",
 		Daemonize: true,
-		Port:      DefaultUpdatePort,
+		Address:   DefaultUpdateAddress,
 	}
 }
 
@@ -27,15 +29,20 @@ func (cfg Update) Validate() error {
     "title": "Update",
     "description": "The Update configuration",
     "type": "object",
-    "required": ["daemonize", "port"],
+    "required": ["type", "daemonize", "address"],
     "properties": {
+      "type": {
+        "description": "class of cron store",
+        "enum": ["mem", "fs"],
+        "type": "string"
+      },
       "deamonize": {
         "description": "When true, the update service starts as a daemonized process",
         "type": "boolean"
       },
-      "port": {
-        "description": "port update service will listen for rpc calls",
-        "type": "integer"
+      "address": {
+        "description": "address service will listen and dial on for inter-process communication",
+        "type": "string"
       }
     }
   }`)
@@ -45,8 +52,9 @@ func (cfg Update) Validate() error {
 // Copy makes a deep copy of the Update struct
 func (cfg *Update) Copy() *Update {
 	res := &Update{
+		Type:      cfg.Type,
 		Daemonize: cfg.Daemonize,
-		Port:      cfg.Port,
+		Address:   cfg.Address,
 	}
 
 	return res

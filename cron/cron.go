@@ -22,8 +22,6 @@ import (
 
 var (
 	log = golog.Logger("cron")
-	// max time represents is a date far in the future
-	maxTime = time.Date(9999, 12, 31, 23, 59, 59, 9999, time.UTC)
 	// DefaultCheckInterval is the frequency cron will check all stored jobs
 	// for scheduled updates without any additional configuration. Qri recommends
 	// not running updates more than once an hour for performance and storage

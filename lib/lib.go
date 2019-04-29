@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
+	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
@@ -291,6 +292,10 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
+	if inst.cron, err = newCron(cfg, filepath.Base(cfg.Path()), opts); err != nil {
+		return
+	}
+
 	if inst.store, err = newStore(cfg); err != nil {
 		return
 	}
@@ -382,6 +387,44 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 	return fsys, nil
 }
 
+func newCron(cfg *config.Config, repoPath string, opts []Option) (cron.Scheduler, error) {
+	cli := cron.HTTPClient{Addr: cfg.Update.Address}
+	err := cli.Ping()
+	if err == nil {
+		return cli, nil
+	} else if err != cron.ErrUnreachable {
+		// at this point something is up with the cron server, still return a cli
+		// so we can issue commands like restart
+		return cli, err
+	}
+
+	// at this point err must be cron.ErrUnreachable, which means it's time to
+	// spin up a new cron service
+	err = nil
+
+	var js cron.JobStore
+	switch cfg.Update.Type {
+	case "fs":
+		js = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+	case "mem":
+		js = &cron.MemJobStore{}
+	default:
+		return nil, fmt.Errorf("unknown cron type: %s", cfg.Update.Type)
+	}
+
+	newInst := func(ctx context.Context, streams ioes.IOStreams) (*Instance, error) {
+		opts = append([]Option{
+			OptCtx(ctx),
+			OptIOStreams(streams),
+		}, opts...)
+		return NewInstance(opts...)
+	}
+
+	scriptsPath := filepath.Join(repoPath, "/cron")
+
+	return cron.NewCron(js, newUpdateRunner(newInst, scriptsPath)), nil
+}
+
 // NewInstanceFromConfigAndNode is a temporary solution to create an instance from an
 // already-allocated QriNode & configuration
 // don't write new code that relies on this, instead create a configuration
@@ -421,6 +464,7 @@ type Instance struct {
 	registry *regclient.Client
 	repo     repo.Repo
 	node     *p2p.QriNode
+	cron     cron.Scheduler
 
 	rpc *rpc.Client
 }
@@ -455,10 +499,12 @@ func (inst *Instance) Node() *p2p.QriNode {
 
 // Repo accesses the instance Repo if one exists
 func (inst *Instance) Repo() repo.Repo {
-	if inst.node == nil {
-		return nil
+	if inst.repo != nil {
+		return inst.repo
+	} else if inst.node != nil {
+		return inst.node.Repo
 	}
-	return inst.node.Repo
+	return nil
 }
 
 // RPC accesses the instance RPC client if one exists
@@ -470,3 +516,18 @@ func (inst *Instance) RPC() *rpc.Client {
 func (inst *Instance) Teardown() {
 	inst.teardown()
 }
+
+// // path returns the root path this instance is operating from if such a
+// // directory exists (eg: in-memory repos have no path)
+// func (inst *Instance) ensureRepoPath(path ...string) string {
+// 	if fsr, ok := inst.Repo().(*fsrepo.Repo); ok {
+// 		return fsr.Path()
+// 	}
+
+// 	path := filepath.Join(base, "update")
+// 	if err := os.MkdirAll(path); err != nil {
+// 		return "", err
+// 	}
+
+// 	return ""
+// }

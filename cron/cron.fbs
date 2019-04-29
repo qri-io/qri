@@ -53,4 +53,12 @@ table Jobs {
 	list:[Job];
 }
 
+// setting file_identifier adds a "magic number" to bytes 4-7 to use as a
+// sanity check for a "Qri FlatBuffer File"
+file_identifier "QFBF";
+
+// for our use this is mainly an annotation. this file extension for a 
+// "qri flatbuffer" file should be .qfb
+file_extension "qfb"
+
 root_type Jobs;

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"net/http"
+	"strings"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/qri-io/dataset"
@@ -21,6 +22,34 @@ type HTTPClient struct {
 
 // assert HTTPClient is a Scheduler at compile time
 var _ Scheduler = (*HTTPClient)(nil)
+
+// ErrUnreachable defines errors where the server cannot be reached
+// TODO (b5): consider moving this to qfs
+var ErrUnreachable = fmt.Errorf("cannot establish a connection to the server")
+
+// Ping confirms client can dial the server, if a connection cannot be
+// established at all, Ping will return ErrUnreachable, all other errors
+// will
+func (c HTTPClient) Ping() error {
+	res, err := http.Get(fmt.Sprintf("http://%s", c.Addr))
+	if err != nil {
+		msg := strings.ToLower(err.Error())
+
+		// TODO (b5): a number of errors constitute a service being "unreachable",
+		// we should make a more exhaustive assessment. common errors already covered:
+		// "connect: Connection refused"
+		// "dial tcp: lookup [url] no such host"
+		if strings.Contains(msg, "refused") || strings.Contains(msg, "no such host") {
+			return ErrUnreachable
+		}
+		return err
+	}
+
+	if res.StatusCode == http.StatusOK {
+		return nil
+	}
+	return resError(res)
+}
 
 // Jobs lists jobs by querying an HTTP server
 func (c HTTPClient) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
@@ -86,7 +115,7 @@ func (c HTTPClient) Unschedule(ctx context.Context, name string) error {
 		return err
 	}
 
-	return c.resError(res)
+	return resError(res)
 }
 
 func (c HTTPClient) postJob(job *Job) error {
@@ -100,10 +129,10 @@ func (c HTTPClient) postJob(job *Job) error {
 		return err
 	}
 
-	return c.resError(res)
+	return resError(res)
 }
 
-func (c HTTPClient) resError(res *http.Response) error {
+func resError(res *http.Response) error {
 	if res.StatusCode == 200 {
 		return nil
 	}

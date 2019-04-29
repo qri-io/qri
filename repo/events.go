@@ -41,6 +41,8 @@ const (
 	ETDsAdded = EventType("ds_added")
 	// ETTransformExecuted represents running a transformation
 	ETTransformExecuted = EventType("tf_executed")
+	// ETCronJobRan is a cron job that's executed
+	ETCronJobRan = EventType("cron_job_ran")
 )
 
 // MemEventLog is an in-memory implementation of the
