@@ -18,14 +18,15 @@ var (
 	// DefaultCheckInterval is the frequency cron will check all stored jobs
 	// for scheduled updates without any additional configuration. Qri recommends
 	// not running updates more than once an hour for performance and storage
-	// consumption reasons, making a check every 15 minutes a reasonable default
-	DefaultCheckInterval = time.Minute * 15
+	// consumption reasons, making a check every minute a reasonable default
+	DefaultCheckInterval = time.Minute
 )
 
 // Scheduler is the "generic" interface for the Cron Scheduler, it's implemented
 // by both Cron and HTTPClient for easier RPC communication
 type Scheduler interface {
 	Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
+	Job(ctx context.Context, name string) (*Job, error)
 	Schedule(ctx context.Context, job *Job) error
 	Unschedule(ctx context.Context, name string) error
 }
@@ -77,21 +78,27 @@ func (c *Cron) Job(ctx context.Context, name string) (*Job, error) {
 // iteration of the configured check interval.
 // Start blocks until the passed context completes
 func (c *Cron) Start(ctx context.Context) error {
+	check := func() {
+		log.Debugf("running check")
+		jobs, err := c.store.Jobs(ctx, 0, 0)
+		if err != nil {
+			log.Errorf("getting jobs from store: %s", err)
+			return
+		}
+
+		for _, job := range jobs {
+			go c.maybeRunJob(ctx, job)
+		}
+	}
+
+	// initial call to check
+	go check()
+
 	t := time.NewTicker(c.interval)
 	for {
 		select {
 		case <-t.C:
-			go func() {
-				jobs, err := c.store.Jobs(ctx, 0, 0)
-				if err != nil {
-					log.Errorf("getting jobs from store: %s", err)
-					return
-				}
-
-				for _, job := range jobs {
-					go c.maybeRunJob(ctx, job)
-				}
-			}()
+			go check()
 		case <-ctx.Done():
 			return nil
 		}
@@ -105,14 +112,20 @@ func (c *Cron) maybeRunJob(ctx context.Context, job *Job) {
 }
 
 func (c *Cron) runJob(ctx context.Context, job *Job) {
+	log.Debugf("run job: %s", job.Name)
 	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
 	err := &bytes.Buffer{}
 	streams := ioes.NewIOStreams(in, out, err)
 
+	ctx, cleanup := context.WithCancel(ctx)
+	defer cleanup()
+
 	if err := c.runner(ctx, streams, job); err != nil {
+		log.Debugf("run job: %s error: %s", job.Name, err.Error())
 		job.LastError = err.Error()
 	} else {
+		log.Debugf("run job: %s success", job.Name)
 		job.LastError = ""
 	}
 	job.LastRun = time.Now()

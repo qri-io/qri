@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -11,47 +13,104 @@ import (
 func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UpdateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "update",
-		Short: "add/create the lastest version of a dataset",
-		Long: `
-Update fast-forwards your dataset to the latest known version. If the dataset
-is not in your namespace (i.e. dataset name doesn't start with your peername), 
-update will ask the peer for any new versions and download them. Updating a peer
-dataset accepts no arguments other than the dataset name and --dry-run flag.
-
-**For peer update to work, the peer must be online at the time. We know this is
-irritating, we're working on a solution.**
-
-Calling update on a dataset in your namespace will advance your dataset by 
-re-running any specified transform script, creating a new version of your 
-dataset in the process. If your dataset doesn't have a transform script, update 
-will error.`,
-		Example: `  # get the freshest version of a dataset from a peer
-  qri update other_person/dataset
-
-  # update your local dataset by re-running the dataset transform
-  qri update me/dataset_with_transform
-
-  # supply secrets to an update, publish on successful run
-  qri update me/dataset_with_transform -p --secrets=keyboard,cat`,
+		Use:     "update",
+		Short:   "schedule dataset updates",
+		Long:    ``,
+		Example: ``,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+	}
+
+	scheduleCmd := &cobra.Command{
+		Use:   "schedule",
+		Short: "schedule an update",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Run()
+			return o.Schedule(args)
+		},
+	}
+	unscheduleCmd := &cobra.Command{
+		Use:   "unschedule",
+		Short: "unschedule an update",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Unschedule(args)
+		},
+	}
+	listCmd := &cobra.Command{
+		Use:   "list",
+		Short: "list scheduled updates",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.List()
+		},
+	}
+	logCmd := &cobra.Command{
+		Use:   "log",
+		Short: "show log of dataset updates",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.Log()
+		},
+	}
+	startServiceCmd := &cobra.Command{
+		Use:   "service-start",
+		Short: "start update daemon",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.StartService()
+		},
+	}
+	stopServiceCmd := &cobra.Command{
+		Use:   "service-stop",
+		Short: "stop update daemon",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.StopService()
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for update")
-	cmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for update")
-	cmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history, only 'tf' applies when updating")
-	cmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	// cmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
-	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
-	cmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
+	runCmd := &cobra.Command{
+		Use:   "run",
+		Short: "excute an update immideately",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.RunUpdate(args)
+		},
+	}
+
+	runCmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for update")
+	runCmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for update")
+	runCmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history, only 'tf' applies when updating")
+	runCmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	// runCmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
+	runCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
+	runCmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
+
+	cmd.AddCommand(
+		scheduleCmd,
+		unscheduleCmd,
+		listCmd,
+		logCmd,
+		startServiceCmd,
+		stopServiceCmd,
+		runCmd,
+	)
 
 	return cmd
 }
@@ -69,7 +128,8 @@ type UpdateOptions struct {
 	NoRender bool
 	Secrets  []string
 
-	DatasetRequests *lib.DatasetRequests
+	inst *lib.Instance
+	m    *lib.UpdateMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -77,7 +137,8 @@ func (o *UpdateOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) == 1 {
 		o.Ref = args[0]
 	}
-	o.DatasetRequests, err = f.DatasetRequests()
+	o.inst = f.Instance()
+	o.m = lib.NewUpdateMethods(o.inst)
 	return
 }
 
@@ -92,37 +153,119 @@ func (o *UpdateOptions) Validate() error {
 	return nil
 }
 
-// Run executes the update command
-func (o *UpdateOptions) Run() (err error) {
+func (o *UpdateOptions) Schedule(args []string) (err error) {
+	if len(args) < 1 {
+		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
+	}
+	p := &lib.ScheduleParams{
+		Name: args[0],
+	}
+	if len(args) > 1 {
+		p.Periodicity = args[1]
+	}
+
+	res := &lib.Job{}
+	if err := o.m.Schedule(p, res); err != nil {
+		return err
+	}
+
+	printSuccess(o.IOStreams.ErrOut, "update scheduled, next update: %s\n", res.NextExec())
+	return nil
+}
+
+func (o *UpdateOptions) Unschedule(args []string) (err error) {
+	if len(args) < 1 {
+		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
+	}
+
+	var (
+		name = args[0]
+		res  bool
+	)
+	if err := o.m.Unschedule(&name, &res); err != nil {
+		return err
+	}
+
+	printSuccess(o.IOStreams.ErrOut, "unscheduled %s\n", args[0])
+	return nil
+}
+
+func (o *UpdateOptions) List() (err error) {
+
+	p := &lib.ListParams{
+		// TODO (b5) - finish
+		Limit:  100,
+		Offset: 0,
+	}
+	res := []*lib.Job{}
+	if err = o.m.List(p, &res); err != nil {
+		return
+	}
+
+	for i, j := range res {
+		num := p.Offset + i + 1
+		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, j.Name, j.Type, j.NextExec())
+	}
+
+	return
+}
+
+func (o *UpdateOptions) Log() (err error) {
+	return fmt.Errorf("not finished")
+}
+
+func (o *UpdateOptions) StartService() (err error) {
+	var in, out bool
+	return o.m.StartService(&in, &out)
+}
+
+func (o *UpdateOptions) StopService() (err error) {
+	return fmt.Errorf("not finished")
+}
+
+// RunUpdate executes an update
+func (o *UpdateOptions) RunUpdate(args []string) (err error) {
+	if len(args) < 1 {
+		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
+	}
+	// 	p := &lib.UpdateParams{
+	// 		Ref:          o.Ref,
+	// 		Title:        o.Title,
+	// 		Message:      o.Message,
+	// 		DryRun:       o.DryRun,
+	// 		Publish:      o.Publish,
+	// 		ShouldRender: !o.NoRender,
+	// 		ReturnBody:   false,
+	// 	}
+
+	// 	if o.Secrets != nil {
+	// 		secretsMsg := `
+	// Warning: You are providing secrets to a dataset transformation.
+	// Never provide secrets to a transformation you do not trust.
+	// continue?`
+	// 		if !confirm(o.Out, o.In, secretsMsg, true) {
+	// 			return
+	// 		}
+
+	// 		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
+	// 			return err
+	// 		}
+	// 	}
+	var (
+		name = args[0]
+		job  = &lib.Job{}
+	)
+
+	if err = o.m.Job(&name, job); err != nil {
+		// TODO (b5) - shouldn't require the job be scheduled to execute
+		return err
+	}
+
 	o.StartSpinner()
 	defer o.StopSpinner()
 
-	p := &lib.UpdateParams{
-		Ref:          o.Ref,
-		Title:        o.Title,
-		Message:      o.Message,
-		DryRun:       o.DryRun,
-		Publish:      o.Publish,
-		ShouldRender: !o.NoRender,
-		ReturnBody:   false,
-	}
-
-	if o.Secrets != nil {
-		secretsMsg := `
-Warning: You are providing secrets to a dataset transformation.
-Never provide secrets to a transformation you do not trust.
-continue?`
-		if !confirm(o.Out, o.In, secretsMsg, true) {
-			return
-		}
-
-		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
-			return err
-		}
-	}
-
 	res := &repo.DatasetRef{}
-	if err := o.DatasetRequests.Update(p, res); err != nil {
+	if err := o.m.Run(job, res); err != nil {
 		return err
 	}
 

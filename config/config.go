@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"reflect"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/jsonschema"
@@ -222,7 +223,7 @@ func (cfg Config) Validate() error {
 		cfg.Logging,
 	}
 	for _, val := range validators {
-		if val != nil {
+		if !reflect.ValueOf(val).IsNil() {
 			if err := val.Validate(); err != nil {
 				return err
 			}

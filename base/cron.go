@@ -61,6 +61,7 @@ func DatasetToJob(ds *dataset.Dataset, periodicity string, opts *cron.DatasetOpt
 		Name:        fmt.Sprintf("%s/%s", ds.Peername, ds.Name),
 		Periodicity: p,
 		Type:        cron.JTDataset,
+		LastRun:     ds.Commit.Timestamp,
 	}
 	if opts != nil {
 		job.Options = opts
