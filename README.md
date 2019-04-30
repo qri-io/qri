@@ -48,7 +48,7 @@
 | Question | Answer |
 |--------|-------|
 | "I want to learn about Qri" | [Read the official documentation](https://qri.io/docs/) |
-| "I want to download Qri" | [Download Qri](https://qri.io/download) |
+| "I want to download Qri" | [Download Qri](https://qri.io/download) or `brew install qri-io/qri/qri` |
 | "I have a question" | [Create an issue](https://github.com/qri-io/qri/issues) and use the label 'question' |
 | "I found a bug" | [Create an issue](https://github.com/qri-io/qri/issues) and use the label 'bug' |
 | "I want to help build the Qri backend" | [Read the Contributing guides](https://github.com/qri-io/qri/blob/master/CONTRIBUTOR.md) |
@@ -106,6 +106,46 @@ The following packages are not under Qri, but are important dependencies, so we 
 ### Building From Source
 
 To build qri you'll need the [go programming language](https://golang.org) on your machine.
+
+Building then depends upon your operating system:
+
+#### Mac OSX
+
+Having `go` installed is enough, proceed to <a href="#building">building</a>.
+
+#### Windows
+
+We recommend using [msys2](https://www.msys2.org/) as your shell.
+
+In msys2, add `go` to your `PATH`. Install `git` by using `pacman`:
+
+```shell
+pacman -S git
+```
+
+Enable [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
+
+Once these steps are complete, proceed to <a href="#building">building</a>.
+
+#### Linux
+
+On a Raspberry PI, you'll need to increase your swap file size in order to build. Normal desktop and server linux OSes should be fine to proceed to <a href="#building">building</a>.
+
+To increase your swapfile size, first turn off the swapfile:
+
+```
+sudo dphys-swapfile swapoff
+```
+
+Then edit `/etc/dphys-swapfile` as root and set `CONF_SWAPSIZE` to 1024.
+
+Finally turn on the swapfile again:
+
+```
+sudo dphys-swapfile swapon
+```
+
+#### Building
 
 ```shell
 $ go get github.com/qri-io/qri
