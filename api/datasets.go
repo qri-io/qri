@@ -684,10 +684,11 @@ func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := &repo.DatasetRef{}
-	if err := h.DatasetRequests.Update(p, res); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
+	// TODO (b5) - finish
+	// if err := h.DatasetRequests.Update(p, res); err != nil {
+	// 	util.WriteErrResponse(w, http.StatusInternalServerError, err)
+	// 	return
+	// }
 	util.WriteResponse(w, res)
 }
 

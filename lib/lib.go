@@ -72,6 +72,7 @@ func Receivers(inst *Instance) []Methods {
 		NewSearchRequests(node, nil),
 		NewRenderRequests(r, nil),
 		NewSelectionRequests(r, nil),
+		NewUpdateMethods(inst),
 	}
 }
 
@@ -279,6 +280,10 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
+	if inst.cron, err = newCron(cfg, filepath.Dir(cfg.Path()), opts); err != nil {
+		return
+	}
+
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
@@ -292,11 +297,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
-	if inst.cron, err = newCron(cfg, filepath.Base(cfg.Path()), opts); err != nil {
-		return
-	}
-
-	if inst.store, err = newStore(cfg); err != nil {
+	if inst.store, err = newStore(o.Ctx, cfg); err != nil {
 		return
 	}
 	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
@@ -319,7 +320,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 	return
 }
 
-func newStore(cfg *config.Config) (store cafs.Filestore, err error) {
+func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, err error) {
 	switch cfg.Store.Type {
 	case "ipfs":
 		path := cfg.Store.Path
@@ -335,6 +336,7 @@ func newStore(cfg *config.Config) (store cafs.Filestore, err error) {
 
 		fsOpts := []ipfs.Option{
 			func(c *ipfs.StoreCfg) {
+				c.Ctx = ctx
 				c.FsRepoPath = path
 			},
 			ipfs.OptsFromMap(cfg.Store.Options),
@@ -388,11 +390,17 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 }
 
 func newCron(cfg *config.Config, repoPath string, opts []Option) (cron.Scheduler, error) {
+	if cfg.Update == nil {
+		cfg.Update = config.DefaultUpdate()
+	}
+
 	cli := cron.HTTPClient{Addr: cfg.Update.Address}
 	err := cli.Ping()
+
 	if err == nil {
 		return cli, nil
 	} else if err != cron.ErrUnreachable {
+		log.Errorf("initializing cron: %s", err.Error())
 		// at this point something is up with the cron server, still return a cli
 		// so we can issue commands like restart
 		return cli, err
@@ -413,6 +421,11 @@ func newCron(cfg *config.Config, repoPath string, opts []Option) (cron.Scheduler
 	}
 
 	newInst := func(ctx context.Context, streams ioes.IOStreams) (*Instance, error) {
+		log.Debug("cron create new instance")
+		go func() {
+			<-ctx.Done()
+			log.Debug("cron close instance")
+		}()
 		opts = append([]Option{
 			OptCtx(ctx),
 			OptIOStreams(streams),

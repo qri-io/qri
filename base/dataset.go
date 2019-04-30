@@ -284,6 +284,8 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 		if e != nil {
 			return e
 		}
+		ds.Name = ref.Name
+		ds.Peername = ref.Peername
 		ref.Dataset = ds
 		return
 	}

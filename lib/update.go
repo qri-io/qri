@@ -24,6 +24,10 @@ type UpdateMethods struct {
 	ScriptsPath string
 }
 
+func (u *UpdateMethods) CoreRequestsName() string {
+	return "update"
+}
+
 // Job aliases a cron.Job, removing the need to import the cron package to work
 // with lib.UpdateMethods
 type Job = cron.Job
@@ -85,19 +89,32 @@ func (m *UpdateMethods) Unschedule(name *string, unscheduled *bool) error {
 	return m.inst.cron.Unschedule(ctx, *name)
 }
 
-func (m *UpdateMethods) List(name *string, jobs *[]*Job) error {
+func (m *UpdateMethods) List(p *ListParams, jobs *[]*Job) error {
 	// this context is scoped to the scheduling request. currently not cancellable
 	// because our lib methods don't accept a context themselves
 	// TODO (b5): refactor RPC communication to use context
 	var ctx = context.Background()
 
-	list, err := m.inst.cron.Jobs(ctx, 0, 0)
+	list, err := m.inst.cron.Jobs(ctx, p.Offset, p.Limit)
 	if err != nil {
 		return err
 	}
 
 	*jobs = list
 	return nil
+}
+
+func (m *UpdateMethods) Job(name *string, job *Job) (err error) {
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	var ctx = context.Background()
+
+	var res *Job
+	res, err = m.inst.cron.Job(ctx, *name)
+	*job = *res
+
+	return
 }
 
 func (m *UpdateMethods) Log(name *string, unscheduled *bool) error {
@@ -225,6 +242,7 @@ func (m *UpdateMethods) runDatasetUpdate(p *UpdateParams, res *repo.DatasetRef) 
 
 func newUpdateRunner(newInst func(ctx context.Context, streams ioes.IOStreams) (*Instance, error), scriptsPath string) cron.RunJobFunc {
 	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) (err error) {
+		log.Infof("running update: %s", job.Name)
 		var inst *Instance
 		inst, err = newInst(ctx, streams)
 		if err != nil {
