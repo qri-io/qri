@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -81,12 +82,12 @@ func (o *SearchOptions) Run() (err error) {
 	// TODO: add reindex option back in
 
 	// convert Page and PageSize to Limit and Offset
-	listParams := lib.NewListParams("", o.Page, o.PageSize)
+	page := util.NewPage(o.Page, o.PageSize)
 
 	p := &lib.SearchParams{
 		QueryString: o.Query,
-		Limit:       listParams.Limit,
-		Offset:      listParams.Offset,
+		Limit:       page.Limit(),
+		Offset:      page.Offset(),
 	}
 
 	results := []lib.SearchResult{}

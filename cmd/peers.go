@@ -4,8 +4,10 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
 	"os/exec"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -213,11 +215,12 @@ func (o *PeersOptions) Info() (err error) {
 func (o *PeersOptions) List() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
-	listParams := lib.NewListParams("", o.Page, o.PageSize)
+	page := util.NewPage(o.Page, o.PageSize)
 
 	if o.Network == "ipfs" {
 		res := []string{}
-		if err := o.PeerRequests.ConnectedIPFSPeers(&listParams.Limit, &res); err != nil {
+		limit := page.Limit()
+		if err := o.PeerRequests.ConnectedIPFSPeers(&limit, &res); err != nil {
 			return err
 		}
 
@@ -232,8 +235,8 @@ func (o *PeersOptions) List() (err error) {
 		}
 
 		p := &lib.PeerListParams{
-			Limit:  listParams.Limit,
-			Offset: listParams.Offset,
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
 			Cached: o.Cached,
 		}
 		res := []*config.ProfilePod{}
@@ -241,21 +244,26 @@ func (o *PeersOptions) List() (err error) {
 			return err
 		}
 
-		if o.Cached {
-			// if cached, print to less
-			// because the list of peers is non deterministic
-			// it make sense to try out printing to less here
-			// where limit and offset don't mean as much
+		// If the length of the peers list is greater then 25
+		// send the output to a terminal pager
+		if len(res) > 25 {
+			// TODO (ramfox): This is POSIX specific, need to expand!
+			envPager := os.Getenv("PAGER")
+			if envPager == "" {
+				envPager = "less"
+			}
+
 			buf := bytes.Buffer{}
-			fmt.Fprintln(&buf, "Cached Qri Peers List:")
+			pager := exec.Command(envPager)
+			pager.Stdin = &buf
+			pager.Stdout = o.Out
+
+			fmt.Fprintln(&buf, "")
 			for i, peer := range res {
 				printPeerInfoNoColor(&buf, i, peer)
 			}
-			less := exec.Command("less")
-			less.Stdin = &buf
-			less.Stdout = o.Out
 
-			if err := less.Run(); err != nil {
+			if err := pager.Run(); err != nil {
 				return err
 			}
 			return nil

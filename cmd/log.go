@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -80,14 +81,14 @@ func (o *LogOptions) Run() error {
 	}
 
 	// convert Page and PageSize to Limit and Offset
-	listParams := lib.NewListParams("", o.Page, o.PageSize)
+	page := util.NewPage(o.Page, o.PageSize)
 
 	p := &lib.LogParams{
 		Ref: ref,
 		ListParams: lib.ListParams{
 			Peername: ref.Peername,
-			Limit:    listParams.Limit,
-			Offset:   listParams.Offset,
+			Limit:    page.Limit(),
+			Offset:   page.Offset(),
 		},
 	}
 

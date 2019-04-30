@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -88,14 +89,14 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 func (o *ListOptions) Run() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
-	listParams := lib.NewListParams("", o.Page, o.PageSize)
+	page := util.NewPage(o.Page, o.PageSize)
 
 	refs := []repo.DatasetRef{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
-		Limit:           listParams.Limit,
-		Offset:          listParams.Offset,
+		Limit:           page.Limit(),
+		Offset:          page.Offset(),
 		Published:       o.Published,
 		ShowNumVersions: o.ShowNumVersions,
 	}

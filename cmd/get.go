@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -123,15 +124,15 @@ func (o *GetOptions) Run() (err error) {
 	}
 
 	// convert Page and PageSize to Limit and Offset
-	listParams := lib.NewListParams("", o.Page, o.PageSize)
+	page := util.NewPage(o.Page, o.PageSize)
 
 	p := lib.GetParams{
 		Path:     path,
 		Selector: o.Selector,
 		Format:   o.Format,
 		Concise:  o.Concise,
-		Offset:   listParams.Offset,
-		Limit:    listParams.Limit,
+		Offset:   page.Offset(),
+		Limit:    page.Limit(),
 		All:      o.All,
 	}
 	res := lib.GetResult{}
