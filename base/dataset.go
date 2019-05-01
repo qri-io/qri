@@ -112,7 +112,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 	}
 	// if offset is too high, return empty list
 	if offset >= len(res) {
-		return res[:0], nil
+		return []repo.DatasetRef{}, nil
 	}
 	res = res[offset:]
 

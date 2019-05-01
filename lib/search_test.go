@@ -35,9 +35,6 @@ func TestSearch(t *testing.T) {
 		err         string
 	}{
 		{"search datasets - 'cities'", &SearchParams{"cities", 0, 100}, 3, ""},
-		// {"search datasets - 'cities'", &SearchParams{"cities", 0, 2}, 2, ""},
-		// {"search datasets - 'cities'", &SearchParams{"cities", 2, 2}, 1, ""},
-		// {"search datasets - 'cities'", &SearchParams{"cities", 4, 2}, 0, ""},
 	}
 
 	for _, c := range cases {

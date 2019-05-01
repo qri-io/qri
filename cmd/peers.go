@@ -227,55 +227,39 @@ func (o *PeersOptions) List() (err error) {
 		for i, p := range res {
 			printSuccess(o.Out, "%d.\t%s", i+1, p)
 		}
-	} else {
-		// if we don't have an RPC client, assume we're not connected
-		if !o.UsingRPC && !o.Cached {
-			printInfo(o.Out, "qri not connected, listing cached peers")
-			o.Cached = true
-		}
-
-		p := &lib.PeerListParams{
-			Limit:  page.Limit(),
-			Offset: page.Offset(),
-			Cached: o.Cached,
-		}
-		res := []*config.ProfilePod{}
-		if err = o.PeerRequests.List(p, &res); err != nil {
-			return err
-		}
-
-		// If the length of the peers list is greater then 25
-		// send the output to a terminal pager
-		if len(res) > 25 {
-			// TODO (ramfox): This is POSIX specific, need to expand!
-			envPager := os.Getenv("PAGER")
-			if envPager == "" {
-				envPager = "less"
-			}
-
-			buf := bytes.Buffer{}
-			pager := exec.Command(envPager)
-			pager.Stdin = &buf
-			pager.Stdout = o.Out
-
-			fmt.Fprintln(&buf, "")
-			for i, peer := range res {
-				printPeerInfoNoColor(&buf, i, peer)
-			}
-
-			if err := pager.Run(); err != nil {
-				return err
-			}
-			return nil
-		}
-
-		fmt.Fprintln(o.Out, "")
-		for i, peer := range res {
-			printPeerInfo(o.Out, i, peer)
-		}
-
 	}
-	return nil
+	// if we don't have an RPC client, assume we're not connected
+	if !o.UsingRPC && !o.Cached {
+		printInfo(o.Out, "qri not connected, listing cached peers")
+		o.Cached = true
+	}
+
+	p := &lib.PeerListParams{
+		Limit:  page.Limit(),
+		Offset: page.Offset(),
+		Cached: o.Cached,
+	}
+	res := []*config.ProfilePod{}
+	if err = o.PeerRequests.List(p, &res); err != nil {
+		return err
+	}
+
+	// TODO (ramfox): This is POSIX specific, need to expand!
+	envPager := os.Getenv("PAGER")
+	if envPager == "" {
+		envPager = "less"
+	}
+
+	buf := bytes.Buffer{}
+	pager := exec.Command(envPager)
+	pager.Stdin = &buf
+	pager.Stdout = o.Out
+
+	fmt.Fprintln(&buf, "")
+	for i, peer := range res {
+		printPeerInfoNoColor(&buf, i, peer)
+	}
+	return pager.Run()
 }
 
 // Connect attempts to connect to a peer

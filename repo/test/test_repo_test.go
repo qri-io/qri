@@ -40,8 +40,8 @@ func TestNewMemRepoFromDir(t *testing.T) {
 	}
 }
 
-func TestNewTestRepoForLog(t *testing.T) {
-	repo, log, err := NewTestRepoForLog(nil)
+func TestNewTestRepoWithHistory(t *testing.T) {
+	repo, log, err := NewTestRepoWithHistory(nil)
 	if err != nil {
 		t.Fatal(err)
 	}
