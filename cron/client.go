@@ -83,27 +83,10 @@ func (c HTTPClient) Job(ctx context.Context, name string) (*Job, error) {
 	return nil, fmt.Errorf("not finished")
 }
 
+// Schedule adds a job to the cron scheduler via an HTTP request
 func (c HTTPClient) Schedule(ctx context.Context, job *Job) error {
 	return c.postJob(job)
 }
-
-// // ScheduleDataset adds a dataset job by querying an HTTP server
-// func (c HTTPClient) ScheduleDataset(ctx context.Context, ds *dataset.Dataset, periodicity string, opts *DatasetOptions) (*Job, error) {
-// 	job, err := datasetToJob(ds, periodicity, opts)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return job, c.postJob(job)
-// }
-
-// // ScheduleShellScript adds a shellscript job by querying an HTTP server
-// func (c HTTPClient) ScheduleShellScript(ctx context.Context, f qfs.File, periodicity string, opts *ShellScriptOptions) (*Job, error) {
-// 	job, err := shellScriptToJob(f, periodicity, opts)
-// 	if err != nil {
-// 		return nil, err
-// 	}
-// 	return job, c.postJob(job)
-// }
 
 // Unschedule removes a job from scheduling
 func (c HTTPClient) Unschedule(ctx context.Context, name string) error {

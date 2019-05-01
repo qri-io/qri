@@ -24,7 +24,8 @@ type UpdateMethods struct {
 	ScriptsPath string
 }
 
-func (u *UpdateMethods) CoreRequestsName() string {
+// CoreRequestsName specifies this is a Methods object
+func (m *UpdateMethods) CoreRequestsName() string {
 	return "update"
 }
 
@@ -40,7 +41,7 @@ type ScheduleParams struct {
 	// TODO (b5) - options support
 }
 
-// Schedule
+// Schedule creates a job and adds it to the scheduler
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
@@ -80,6 +81,7 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 	return base.DatasetToJob(ref.Dataset, p.Periodicity, nil)
 }
 
+// Unschedule removes a job from the scheduler by name
 func (m *UpdateMethods) Unschedule(name *string, unscheduled *bool) error {
 	// this context is scoped to the scheduling request. currently not cancellable
 	// because our lib methods don't accept a context themselves
@@ -89,6 +91,7 @@ func (m *UpdateMethods) Unschedule(name *string, unscheduled *bool) error {
 	return m.inst.cron.Unschedule(ctx, *name)
 }
 
+// List gets scheduled jobs
 func (m *UpdateMethods) List(p *ListParams, jobs *[]*Job) error {
 	// this context is scoped to the scheduling request. currently not cancellable
 	// because our lib methods don't accept a context themselves
@@ -104,6 +107,7 @@ func (m *UpdateMethods) List(p *ListParams, jobs *[]*Job) error {
 	return nil
 }
 
+// Job gets a job by name
 func (m *UpdateMethods) Job(name *string, job *Job) (err error) {
 	// this context is scoped to the scheduling request. currently not cancellable
 	// because our lib methods don't accept a context themselves
@@ -117,10 +121,13 @@ func (m *UpdateMethods) Job(name *string, job *Job) (err error) {
 	return
 }
 
+// Log shows the history of job execution
 func (m *UpdateMethods) Log(name *string, unscheduled *bool) error {
+	// TODO (b5)
 	return fmt.Errorf("not finished")
 }
 
+// StartService ensures the scheduler is running
 func (m *UpdateMethods) StartService(in, out *bool) error {
 	local, ok := m.inst.cron.(*cron.Cron)
 	if !ok {
@@ -134,12 +141,16 @@ func (m *UpdateMethods) StartService(in, out *bool) error {
 	return nil
 }
 
+// StopService halts the scheduler
 func (m *UpdateMethods) StopService(in, out *bool) error {
+	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
 
+// RestartService uses shell commands to restart the scheduler service
 func (m *UpdateMethods) RestartService(in, out *bool) error {
-	return nil
+	// TODO (b5):
+	return fmt.Errorf("not finished")
 }
 
 // Run advances a dataset to the latest known version from either a peer or by
