@@ -30,6 +30,7 @@ func Publish(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
 	ds.Path = ref.Path
+	ds.ProfileID = ref.ProfileID.String()
 	preview := subset.Preview(ds)
 
 	return cli.PutDataset(ds.Peername, ds.Name, preview, pub)

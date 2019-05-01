@@ -289,37 +289,42 @@ func TestDatasetRequestsList(t *testing.T) {
 	}
 
 	cases := []struct {
-		p   *ListParams
-		res []repo.DatasetRef
-		err string
+		description string
+		p           *ListParams
+		res         []repo.DatasetRef
+		err         string
 	}{
-		{&ListParams{OrderBy: "", Limit: 1, Offset: 0}, nil, ""},
-		{&ListParams{OrderBy: "chaos", Limit: 1, Offset: -50}, nil, ""},
-		{&ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{&ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{&ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - empty (default)", &ListParams{}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []repo.DatasetRef{cities, counter}, ""},
+		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []repo.DatasetRef{craigslist, movies}, ""},
+		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []repo.DatasetRef{sitemap}, ""},
+		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []repo.DatasetRef{}, ""},
+		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
 		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
 	}
 
 	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
+	for _, c := range cases {
 		got := []repo.DatasetRef{}
 		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
 			continue
 		}
 
 		if c.err == "" && c.res != nil {
 			if len(c.res) != len(got) {
-				t.Errorf("case %d response length mismatch. expected %d, got: %d", i, len(c.res), len(got))
+				t.Errorf("case '%s' response length mismatch. expected %d, got: %d", c.description, len(c.res), len(got))
 				continue
 			}
 
 			for j, expect := range c.res {
 				if err := repo.CompareDatasetRef(expect, got[j]); err != nil {
-					t.Errorf("case %d expected dataset error. index %d mismatch: %s", i, j, err.Error())
+					t.Errorf("case '%s' expected dataset error. index %d mismatch: %s", c.description, j, err.Error())
 					continue
 				}
 			}

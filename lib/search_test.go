@@ -28,23 +28,30 @@ func TestSearch(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// Case 0 - request with expected result
-	i := 0
-	p := &SearchParams{"cities", 0, 100}
-	numResults := 3
-	errString := ""
-
-	// make request 0
-	req := NewSearchRequests(node, nil)
-
-	got := &[]SearchResult{}
-	err = req.Search(p, got)
-
-	if !(err == nil && errString == "" || err != nil && err.Error() == errString) {
-		t.Errorf("case %d error mismatch: expected: %s, got: %s", i, errString, err)
+	cases := []struct {
+		description string
+		params      *SearchParams
+		numResults  int
+		err         string
+	}{
+		{"search datasets - 'cities'", &SearchParams{"cities", 0, 100}, 3, ""},
+		// {"search datasets - 'cities'", &SearchParams{"cities", 0, 2}, 2, ""},
+		// {"search datasets - 'cities'", &SearchParams{"cities", 2, 2}, 1, ""},
+		// {"search datasets - 'cities'", &SearchParams{"cities", 4, 2}, 0, ""},
 	}
 
-	if len(*got) != numResults {
-		t.Errorf("case %d result count mismatch: expected: %d results, got: %d", i, numResults, len(*got))
+	for _, c := range cases {
+		req := NewSearchRequests(node, nil)
+
+		got := &[]SearchResult{}
+		err = req.Search(c.params, got)
+
+		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+			t.Errorf("case '%s' error mismatch: expected: %s, got: %s", c.description, c.err, err)
+		}
+
+		if len(*got) != c.numResults {
+			t.Errorf("case '%s' result count mismatch: expected: %d results, got: %d", c.description, c.numResults, len(*got))
+		}
 	}
 }
