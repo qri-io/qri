@@ -105,8 +105,8 @@ func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 	return
 }
 
-// NewTestRepoWithHistory generates a repository with a dataset that has a history, usable for testing purposes
-func NewTestRepoWithHistory(rc *regclient.Client) (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
+// NewTestRepoForLog generates a repository with a dataset that has a history, usable for testing purposes
+func NewTestRepoForLog(rc *regclient.Client) (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	mr, err = NewEmptyTestRepo(rc)
