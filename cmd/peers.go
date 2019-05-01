@@ -1,9 +1,13 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"os"
+	"os/exec"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
@@ -139,8 +143,9 @@ You must have ` + "`qri connect`" + ` running in another terminal.`,
 
 	list.Flags().BoolVarP(&o.Cached, "cached", "c", false, "show peers that aren't online, but previously seen")
 	list.Flags().StringVarP(&o.Network, "network", "n", "", "specify network to show peers from [ipfs]")
-	list.Flags().IntVarP(&o.Limit, "limit", "l", 200, "limit max number of peers to show")
-	list.Flags().IntVarP(&o.Offset, "offset", "s", 0, "number of peers to skip during listing")
+	// TODO (ramfox): when we determine the best way to order and paginate peers, restore!
+	// list.Flags().IntVar(&o.PageSize, "page-size", 200, "max page size number of peers to show, default 200")
+	// list.Flags().IntVar(&o.Page, "page", 1, "page number of peers, default 1")
 
 	cmd.AddCommand(info, list, connect, disconnect)
 
@@ -156,8 +161,8 @@ type PeersOptions struct {
 	Format   string
 	Cached   bool
 	Network  string
-	Limit    int
-	Offset   int
+	PageSize int
+	Page     int
 
 	UsingRPC     bool
 	PeerRequests *lib.PeerRequests
@@ -208,39 +213,53 @@ func (o *PeersOptions) Info() (err error) {
 
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
+
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
+
 	if o.Network == "ipfs" {
 		res := []string{}
-		if err := o.PeerRequests.ConnectedIPFSPeers(&o.Limit, &res); err != nil {
+		limit := page.Limit()
+		if err := o.PeerRequests.ConnectedIPFSPeers(&limit, &res); err != nil {
 			return err
 		}
 
 		for i, p := range res {
 			printSuccess(o.Out, "%d.\t%s", i+1, p)
 		}
-	} else {
-
-		// if we don't have an RPC client, assume we're not connected
-		if o.UsingRPC && !o.Cached {
-			printInfo(o.Out, "qri not connected, listing cached peers")
-			o.Cached = true
-		}
-
-		p := &lib.PeerListParams{
-			Limit:  o.Limit,
-			Offset: o.Offset,
-			Cached: o.Cached,
-		}
-		res := []*config.ProfilePod{}
-		if err = o.PeerRequests.List(p, &res); err != nil {
-			return err
-		}
-
-		fmt.Fprintln(o.Out, "")
-		for i, peer := range res {
-			printPeerInfo(o.Out, i, peer)
-		}
 	}
-	return nil
+	// if we don't have an RPC client, assume we're not connected
+	if !o.UsingRPC && !o.Cached {
+		printInfo(o.Out, "qri not connected, listing cached peers")
+		o.Cached = true
+	}
+
+	p := &lib.PeerListParams{
+		Limit:  page.Limit(),
+		Offset: page.Offset(),
+		Cached: o.Cached,
+	}
+	res := []*config.ProfilePod{}
+	if err = o.PeerRequests.List(p, &res); err != nil {
+		return err
+	}
+
+	// TODO (ramfox): This is POSIX specific, need to expand!
+	envPager := os.Getenv("PAGER")
+	if envPager == "" {
+		envPager = "less"
+	}
+
+	buf := bytes.Buffer{}
+	pager := exec.Command(envPager)
+	pager.Stdin = &buf
+	pager.Stdout = o.Out
+
+	fmt.Fprintln(&buf, "")
+	for i, peer := range res {
+		printPeerInfoNoColor(&buf, i, peer)
+	}
+	return pager.Run()
 }
 
 // Connect attempts to connect to a peer

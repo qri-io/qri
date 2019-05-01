@@ -181,6 +181,19 @@ func printPeerInfo(w io.Writer, i int, p *config.ProfilePod) {
 	fmt.Fprintln(w, "")
 }
 
+func printPeerInfoNoColor(w io.Writer, i int, p *config.ProfilePod) {
+	if p.Online {
+		fmt.Fprintf(w, "%s | %s\n", p.Peername, "online")
+	} else {
+		fmt.Fprintf(w, "%s\n", p.Peername)
+	}
+	fmt.Fprintf(w, "profile ID: %s\n", p.ID)
+	if len(p.NetworkAddrs) > 0 {
+		fmt.Fprintf(w, "address:    %s\n", p.NetworkAddrs[0])
+	}
+	fmt.Fprintln(w, "")
+}
+
 func printResults(w io.Writer, r *dataset.Structure, data []byte, format dataset.DataFormat) {
 	switch format {
 	case dataset.JSONDataFormat:

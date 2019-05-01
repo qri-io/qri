@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -38,6 +39,8 @@ Any dataset that has been published to the registry is available for search.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
+	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
+	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 
 	return cmd
 }
@@ -49,9 +52,8 @@ type SearchOptions struct {
 	Query          string
 	SearchRequests *lib.SearchRequests
 	Format         string
-	// TODO: add support for specifying limit and offset
-	// Limit int
-	// Offset int
+	PageSize       int
+	Page           int
 	// Reindex bool
 }
 
@@ -74,16 +76,18 @@ func (o *SearchOptions) Validate() error {
 
 // Run executes the search command
 func (o *SearchOptions) Run() (err error) {
-	// TODO - spinner is failing tests
-	// o.StartSpinner()
-	// defer o.StopSpinner()
+	o.StartSpinner()
+	defer o.StopSpinner()
 
 	// TODO: add reindex option back in
 
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
+
 	p := &lib.SearchParams{
 		QueryString: o.Query,
-		Limit:       100,
-		Offset:      0,
+		Limit:       page.Limit(),
+		Offset:      page.Offset(),
 	}
 
 	results := []lib.SearchResult{}

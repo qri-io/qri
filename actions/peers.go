@@ -10,6 +10,7 @@ import (
 
 // ListPeers lists Peers on the qri network
 func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
+
 	r := node.Repo
 	user, err := r.Profile()
 	if err != nil {
@@ -34,11 +35,15 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 		return nil, fmt.Errorf("error listing peers: %s", err.Error())
 	}
 
-	if len(ps) == 0 {
+	if len(ps) == 0 || offset >= len(ps) {
 		return []*config.ProfilePod{}, nil
 	}
 
 	for _, pro := range ps {
+		if offset > 0 {
+			offset--
+			continue
+		}
 		if len(peers) >= limit {
 			break
 		}

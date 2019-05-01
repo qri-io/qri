@@ -181,7 +181,7 @@ func TestCommandsIntegration(t *testing.T) {
 		// "qri registry unpublish me/movies",
 		// "qri registry publish me/movies",
 		"qri rename me/movies me/movie",
-		"qri get body --limit=1 --format=cbor me/movie",
+		"qri get body --page-size=1 --format=cbor me/movie",
 		"qri validate me/movie",
 		"qri remove me/movie --revisions=all",
 		fmt.Sprintf("qri export --blank -o=%s/blank_dataset.yaml", path),

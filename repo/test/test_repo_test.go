@@ -39,3 +39,31 @@ func TestNewMemRepoFromDir(t *testing.T) {
 		t.Errorf("expected %d datasets. got %d", expectRefCount, c)
 	}
 }
+
+func TestNewTestRepoWithHistory(t *testing.T) {
+	repo, log, err := NewTestRepoWithHistory(nil)
+	if err != nil {
+		t.Fatal(err)
+	}
+	c, err := repo.RefCount()
+	if err != nil {
+		t.Error(err.Error())
+		return
+	}
+	// there is only one ref that does not have a previous path:
+	expectRefCount := 1
+	if c != expectRefCount {
+		t.Errorf("expected %d datasets, got %d", expectRefCount, c)
+	}
+
+	expectLogCount := 5
+	if len(log) != expectLogCount {
+		t.Errorf("expected %d datasets, got %d", expectLogCount, len(log))
+	}
+
+	for i, ref := range log {
+		if ref.Name != "logtest" {
+			t.Errorf("index %d, expected all datasets to have name 'logtest', got '%s'", i, ref.Name)
+		}
+	}
+}

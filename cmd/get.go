@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"regexp"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -49,8 +50,8 @@ dataset and its fields.`,
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
 	cmd.Flags().BoolVar(&o.Concise, "concise", false, "print output without indentation, only applies to json format")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", -1, "for body, limit how many entries to get")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "s", -1, "for body, offset at which to get entries")
+	cmd.Flags().IntVar(&o.PageSize, "page-size", -1, "for body, limit how many entries to get per page")
+	cmd.Flags().IntVar(&o.Page, "page", -1, "for body, page at which to get entries")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
 
 	return cmd
@@ -65,9 +66,9 @@ type GetOptions struct {
 	Format   string
 	Concise  bool
 
-	Limit  int
-	Offset int
-	All    bool
+	Page     int
+	PageSize int
+	All      bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -89,20 +90,20 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if o.Selector == "body" {
-		// if we have a limit, but not offset, assume an offset of 0
-		if o.Limit != -1 && o.Offset == -1 {
-			o.Offset = 0
+		// if we have a PageSize, but not Page, assume an Page of 1
+		if o.PageSize != -1 && o.Page == -1 {
+			o.Page = 1
 		}
-		// set all to false if limit or offset values are provided
-		if o.Limit != -1 || o.Offset != -1 {
+		// set all to false if PageSize or Page values are provided
+		if o.PageSize != -1 || o.Page != -1 {
 			o.All = false
 		}
 	} else {
-		if o.Limit != -1 {
-			return fmt.Errorf("can only use --limit flag when getting body")
+		if o.PageSize != -1 {
+			return fmt.Errorf("can only use --page-size flag when getting body")
 		}
-		if o.Offset != -1 {
-			return fmt.Errorf("can only use --offset flag when getting body")
+		if o.Page != -1 {
+			return fmt.Errorf("can only use --page flag when getting body")
 		}
 		if !o.All {
 			return fmt.Errorf("can only use --all flag when getting body")
@@ -122,13 +123,16 @@ func (o *GetOptions) Run() (err error) {
 		}
 	}
 
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
+
 	p := lib.GetParams{
 		Path:     path,
 		Selector: o.Selector,
 		Format:   o.Format,
 		Concise:  o.Concise,
-		Offset:   o.Offset,
-		Limit:    o.Limit,
+		Offset:   page.Offset(),
+		Limit:    page.Limit(),
 		All:      o.All,
 	}
 	res := lib.GetResult{}

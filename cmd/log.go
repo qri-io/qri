@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -37,8 +38,8 @@ working backwards in time.`,
 	}
 
 	// cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
-	cmd.Flags().IntVarP(&o.Limit, "limit", "l", 25, "limit results, default 25")
-	cmd.Flags().IntVarP(&o.Offset, "offset", "o", 0, "offset results, default 0")
+	cmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
+	cmd.Flags().IntVar(&o.Page, "page", 1, "page number of results, default 1")
 
 	return cmd
 }
@@ -47,9 +48,9 @@ working backwards in time.`,
 type LogOptions struct {
 	ioes.IOStreams
 
-	Limit  int
-	Offset int
-	Ref    string
+	PageSize int
+	Page     int
+	Ref      string
 
 	LogRequests *lib.LogRequests
 }
@@ -79,12 +80,15 @@ func (o *LogOptions) Run() error {
 		return err
 	}
 
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
+
 	p := &lib.LogParams{
 		Ref: ref,
 		ListParams: lib.ListParams{
 			Peername: ref.Peername,
-			Limit:    o.Limit,
-			Offset:   o.Offset,
+			Limit:    page.Limit(),
+			Offset:   page.Offset(),
 		},
 	}
 

@@ -97,10 +97,44 @@ func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 		if err != nil {
 			return nil, err
 		}
-
-		if err = createDataset(mr, tc); err != nil {
+		if _, err := createDataset(mr, tc); err != nil {
 			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
 		}
+	}
+
+	return
+}
+
+// NewTestRepoWithHistory generates a repository with a dataset that has a history, usable for testing purposes
+func NewTestRepoWithHistory(rc *regclient.Client) (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
+	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
+
+	mr, err = NewEmptyTestRepo(rc)
+	if err != nil {
+		return
+	}
+
+	gopath := os.Getenv("GOPATH")
+	prevPath := ""
+	for _, k := range datasets {
+		tc, err := dstest.NewTestCaseFromDir(fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, k))
+		if err != nil {
+			return nil, nil, err
+		}
+		tc.Input.Name = "logtest"
+		tc.Input.PreviousPath = prevPath
+		ref, err := createDataset(mr, tc)
+		if err != nil {
+			return nil, nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
+		}
+		prevPath = ref.Path
+		refs = append(refs, ref)
+	}
+
+	// return refs with the first ref as the head of the log
+	for i := len(refs)/2 - 1; i >= 0; i-- {
+		opp := len(refs) - 1 - i
+		refs[i], refs[opp] = refs[opp], refs[i]
 	}
 
 	return
@@ -136,7 +170,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return r, err
 	}
 
-	if err := createDataset(r, tc); err != nil {
+	if _, err := createDataset(r, tc); err != nil {
 		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
 	}
 	return r, nil
@@ -150,7 +184,7 @@ func pkgPath(paths ...string) string {
 // it's tempting to use actions.Dataset.CreateDataset here, but we can't b/c import cycle :/
 // this version of createDataset doesn't run transforms or prepare viz. Test cases
 // should be designed to avoid requiring Tranforms be run or Viz be prepped
-func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
+func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err error) {
 	var (
 		ds  = tc.Input
 		pro *profile.Profile
@@ -177,7 +211,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (err error) {
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	_, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
+	ref, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
 	return
 }
 
@@ -202,7 +236,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	for _, c := range tc {
-		if err := createDataset(mr, c); err != nil {
+		if _, err := createDataset(mr, c); err != nil {
 			return mr, pk, err
 		}
 	}
