@@ -529,18 +529,3 @@ func (inst *Instance) RPC() *rpc.Client {
 func (inst *Instance) Teardown() {
 	inst.teardown()
 }
-
-// // path returns the root path this instance is operating from if such a
-// // directory exists (eg: in-memory repos have no path)
-// func (inst *Instance) ensureRepoPath(path ...string) string {
-// 	if fsr, ok := inst.Repo().(*fsrepo.Repo); ok {
-// 		return fsr.Path()
-// 	}
-
-// 	path := filepath.Join(base, "update")
-// 	if err := os.MkdirAll(path); err != nil {
-// 		return "", err
-// 	}
-
-// 	return ""
-// }

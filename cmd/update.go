@@ -62,26 +62,6 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			return o.Log()
 		},
 	}
-	startServiceCmd := &cobra.Command{
-		Use:   "service-start",
-		Short: "start update daemon",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
-				return err
-			}
-			return o.StartService()
-		},
-	}
-	stopServiceCmd := &cobra.Command{
-		Use:   "service-stop",
-		Short: "stop update daemon",
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
-				return err
-			}
-			return o.StopService()
-		},
-	}
 
 	runCmd := &cobra.Command{
 		Use:   "run",
@@ -102,14 +82,41 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	runCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
 	runCmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
 
+	serviceCmd := &cobra.Command{
+		Use:   "service",
+		Short: "control qri update daemon",
+	}
+
+	startServiceCmd := &cobra.Command{
+		Use:   "start",
+		Short: "start update daemon",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.StartService()
+		},
+	}
+	stopServiceCmd := &cobra.Command{
+		Use:   "stop",
+		Short: "stop update daemon",
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.StopService()
+		},
+	}
+
+	serviceCmd.AddCommand(startServiceCmd, stopServiceCmd)
+
 	cmd.AddCommand(
 		scheduleCmd,
 		unscheduleCmd,
 		listCmd,
 		logCmd,
-		startServiceCmd,
-		stopServiceCmd,
 		runCmd,
+		serviceCmd,
 	)
 
 	return cmd
@@ -128,8 +135,8 @@ type UpdateOptions struct {
 	NoRender bool
 	Secrets  []string
 
-	inst *lib.Instance
-	m    *lib.UpdateMethods
+	inst          *lib.Instance
+	updateMethods *lib.UpdateMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -138,19 +145,8 @@ func (o *UpdateOptions) Complete(f Factory, args []string) (err error) {
 		o.Ref = args[0]
 	}
 	o.inst = f.Instance()
-	o.m = lib.NewUpdateMethods(o.inst)
+	o.updateMethods = lib.NewUpdateMethods(o.inst)
 	return
-}
-
-// Validate checks that all user input is valid
-func (o *UpdateOptions) Validate() error {
-	if o.Ref == "" {
-		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
-	}
-	if o.Recall != "" && o.Recall != "tf" && o.Recall != "transform" {
-		return lib.NewError(lib.ErrBadArgs, "only 'tf' or 'transform' are valid recall values when updating")
-	}
-	return nil
 }
 
 func (o *UpdateOptions) Schedule(args []string) (err error) {
@@ -165,7 +161,7 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 	}
 
 	res := &lib.Job{}
-	if err := o.m.Schedule(p, res); err != nil {
+	if err := o.updateMethods.Schedule(p, res); err != nil {
 		return err
 	}
 
@@ -182,7 +178,7 @@ func (o *UpdateOptions) Unschedule(args []string) (err error) {
 		name = args[0]
 		res  bool
 	)
-	if err := o.m.Unschedule(&name, &res); err != nil {
+	if err := o.updateMethods.Unschedule(&name, &res); err != nil {
 		return err
 	}
 
@@ -198,7 +194,7 @@ func (o *UpdateOptions) List() (err error) {
 		Offset: 0,
 	}
 	res := []*lib.Job{}
-	if err = o.m.List(p, &res); err != nil {
+	if err = o.updateMethods.List(p, &res); err != nil {
 		return
 	}
 
@@ -216,7 +212,7 @@ func (o *UpdateOptions) Log() (err error) {
 
 func (o *UpdateOptions) StartService() (err error) {
 	var in, out bool
-	return o.m.StartService(&in, &out)
+	return o.updateMethods.StartService(&in, &out)
 }
 
 func (o *UpdateOptions) StopService() (err error) {
@@ -228,6 +224,15 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	if len(args) < 1 {
 		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
 	}
+
+	// if o.Ref == "" {
+	// 	return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
+	// }
+	// if o.Recall != "" && o.Recall != "tf" && o.Recall != "transform" {
+	// 	return lib.NewError(lib.ErrBadArgs, "only 'tf' or 'transform' are valid recall values when updating")
+	// }
+	// return nil
+
 	// 	p := &lib.UpdateParams{
 	// 		Ref:          o.Ref,
 	// 		Title:        o.Title,
@@ -256,7 +261,7 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 		job  = &lib.Job{}
 	)
 
-	if err = o.m.Job(&name, job); err != nil {
+	if err = o.updateMethods.Job(&name, job); err != nil {
 		// TODO (b5) - shouldn't require the job be scheduled to execute
 		return err
 	}
@@ -265,7 +270,7 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	defer o.StopSpinner()
 
 	res := &repo.DatasetRef{}
-	if err := o.m.Run(job, res); err != nil {
+	if err := o.updateMethods.Run(job, res); err != nil {
 		return err
 	}
 
