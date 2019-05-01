@@ -146,6 +146,48 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	fmt.Fprintf(w, "\n")
 }
 
+type ref repo.DatasetRef
+
+func (r ref) String() string {
+	w := &bytes.Buffer{}
+	white := color.New(color.FgWhite).SprintFunc()
+	// cyan := color.New(color.FgCyan).SprintFunc()
+	blue := color.New(color.FgBlue).SprintFunc()
+	ds := r.Dataset
+	dsr := repo.DatasetRef(r)
+
+	fmt.Fprintf(w, "%s\n", white(dsr.AliasString()))
+	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
+		fmt.Fprintf(w, "%s\n", blue(ds.Meta.Title))
+	}
+	if r.Path != "" {
+		fmt.Fprintf(w, "%s\n", r.Path)
+	}
+	if ds != nil && ds.Structure != nil {
+		fmt.Fprintf(w, "%s", printByteInfo(ds.Structure.Length))
+		if ds.Structure.Entries == 1 {
+			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
+		} else {
+			fmt.Fprintf(w, ", %d entries", ds.Structure.Entries)
+		}
+		if ds.Structure.ErrCount == 1 {
+			fmt.Fprintf(w, ", %d error", ds.Structure.ErrCount)
+		} else {
+			fmt.Fprintf(w, ", %d errors", ds.Structure.ErrCount)
+		}
+		if ds.NumVersions == 0 {
+			// nothing
+		} else if ds.NumVersions == 1 {
+			fmt.Fprintf(w, ", %d version", ds.NumVersions)
+		} else {
+			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
+		}
+	}
+
+	fmt.Fprintf(w, "\n")
+	return w.String()
+}
+
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
 	white := color.New(color.FgWhite).SprintFunc()
 	green := color.New(color.FgGreen).SprintFunc()

@@ -120,9 +120,11 @@ func (o *ListOptions) Run() (err error) {
 
 	switch o.Format {
 	case "":
-		for i, ref := range refs {
-			printDatasetRefInfo(o.Out, i+1, ref)
+		items := make([]fmt.Stringer, len(refs))
+		for i, r := range refs {
+			items[i] = ref(r)
 		}
+		printItems(o.Out, items)
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(refs, "", "  ")
 		if err != nil {

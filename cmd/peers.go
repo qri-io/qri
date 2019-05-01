@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 
@@ -211,11 +212,36 @@ func (o *PeersOptions) Info() (err error) {
 	return
 }
 
+type peer config.ProfilePod
+
+func (p peer) String() string {
+	w := &bytes.Buffer{}
+	if p.Online {
+		fmt.Fprintf(w, "%s | %s\n", p.Peername, "online")
+	} else {
+		fmt.Fprintf(w, "%s\n", p.Peername)
+	}
+	fmt.Fprintf(w, "profile ID: %s\n", p.ID)
+	if len(p.NetworkAddrs) > 0 {
+		fmt.Fprintf(w, "address:    %s\n", p.NetworkAddrs[0])
+	}
+	fmt.Fprintln(w, "")
+	return w.String()
+}
+
+type stringer string
+
+func (s stringer) String() string {
+	return string(s) + "\n"
+}
+
 // List shows a list of peers
 func (o *PeersOptions) List() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
+
+	var items []fmt.Stringer
 
 	if o.Network == "ipfs" {
 		res := []string{}
@@ -224,42 +250,74 @@ func (o *PeersOptions) List() (err error) {
 			return err
 		}
 
+		items = make([]fmt.Stringer, len(res))
 		for i, p := range res {
-			printSuccess(o.Out, "%d.\t%s", i+1, p)
+			items[i] = stringer(p)
+		}
+	} else {
+		// if we don't have an RPC client, assume we're not connected
+		if !o.UsingRPC && !o.Cached {
+			printInfo(o.Out, "qri not connected, listing cached peers")
+			o.Cached = true
+		}
+
+		p := &lib.PeerListParams{
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
+			Cached: o.Cached,
+		}
+		res := []*config.ProfilePod{}
+		if err = o.PeerRequests.List(p, &res); err != nil {
+			return err
+		}
+
+		items = make([]fmt.Stringer, len(res))
+		for i, p := range res {
+			items[i] = peer(*p)
 		}
 	}
-	// if we don't have an RPC client, assume we're not connected
-	if !o.UsingRPC && !o.Cached {
-		printInfo(o.Out, "qri not connected, listing cached peers")
-		o.Cached = true
-	}
 
-	p := &lib.PeerListParams{
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
-		Cached: o.Cached,
-	}
-	res := []*config.ProfilePod{}
-	if err = o.PeerRequests.List(p, &res); err != nil {
-		return err
-	}
+	return printItems(o.Out, items)
+}
 
+func printItems(w io.Writer, items []fmt.Stringer) error {
 	// TODO (ramfox): This is POSIX specific, need to expand!
 	envPager := os.Getenv("PAGER")
 	if envPager == "" {
 		envPager = "less"
 	}
 
-	buf := bytes.Buffer{}
+	buf := &bytes.Buffer{}
 	pager := exec.Command(envPager)
-	pager.Stdin = &buf
-	pager.Stdout = o.Out
+	pager.Stdin = buf
+	pager.Stdout = w
 
-	fmt.Fprintln(&buf, "")
-	for i, peer := range res {
-		printPeerInfoNoColor(&buf, i, peer)
+	prefix := []byte("    ")
+	for i, item := range items {
+		buf.WriteString(fmtItem(i+1, item.String(), prefix))
 	}
+
 	return pager.Run()
+}
+
+func fmtItem(i int, item string, prefix []byte) string {
+	var res []byte
+	bol := true
+	b := []byte(item)
+	d := []byte(fmt.Sprintf("%d", i))
+	prefix1 := append(d, prefix[len(d):]...)
+	for i, c := range b {
+		if bol && c != '\n' {
+			if i == 0 {
+				res = append(res, prefix1...)
+			} else {
+				res = append(res, prefix...)
+			}
+		}
+		res = append(res, c)
+		bol = c == '\n'
+	}
+	return string(res)
 }
 
 // Connect attempts to connect to a peer
