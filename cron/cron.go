@@ -132,7 +132,7 @@ func (c *Cron) runJob(ctx context.Context, job *Job) {
 	c.store.PutJob(ctx, job)
 }
 
-// Schedule add a job to the cron scheduler
+// Schedule adds a job to the cron scheduler
 func (c *Cron) Schedule(ctx context.Context, job *Job) error {
 	if err := job.Validate(); err != nil {
 		return err

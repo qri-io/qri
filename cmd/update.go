@@ -149,6 +149,7 @@ func (o *UpdateOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// Schedule adds a job to the update scheduler
 func (o *UpdateOptions) Schedule(args []string) (err error) {
 	if len(args) < 1 {
 		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
@@ -169,6 +170,7 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 	return nil
 }
 
+// Unschedule removes a job from the scheduler
 func (o *UpdateOptions) Unschedule(args []string) (err error) {
 	if len(args) < 1 {
 		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
@@ -186,6 +188,7 @@ func (o *UpdateOptions) Unschedule(args []string) (err error) {
 	return nil
 }
 
+// List shows scheduled update jobs
 func (o *UpdateOptions) List() (err error) {
 
 	p := &lib.ListParams{
@@ -206,20 +209,25 @@ func (o *UpdateOptions) List() (err error) {
 	return
 }
 
+// Log shows a history of job events
 func (o *UpdateOptions) Log() (err error) {
+	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
 
+// StartService ensures the update service is running
 func (o *UpdateOptions) StartService() (err error) {
 	var in, out bool
 	return o.updateMethods.StartService(&in, &out)
 }
 
+// StopService halts the update scheduler service
 func (o *UpdateOptions) StopService() (err error) {
+	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
 
-// RunUpdate executes an update
+// RunUpdate executes an update immideately
 func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	if len(args) < 1 {
 		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
