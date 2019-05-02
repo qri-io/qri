@@ -4,7 +4,6 @@ import (
 	"reflect"
 	"testing"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -33,11 +32,8 @@ func TestDatasetRequestsDiff(t *testing.T) {
 
 	dsRef1 := repo.DatasetRef{}
 	initParams := &SaveParams{
-		Dataset: &dataset.Dataset{
-			Peername: "me",
-			Name:     "jobs_ranked_by_automation_prob",
-			BodyPath: fp1,
-		},
+		Ref:      "me/jobs_ranked_by_automation_prob",
+		BodyPath: fp1,
 	}
 	err = req.Save(initParams, &dsRef1)
 	if err != nil {
@@ -53,11 +49,8 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	}
 	dsRef2 := repo.DatasetRef{}
 	initParams = &SaveParams{
-		Dataset: &dataset.Dataset{
-			Peername: "me",
-			Name:     "jobs_ranked_by_automation_prob",
-			BodyPath: fp2,
-		},
+		Ref:      "me/jobs_ranked_by_automation_prob",
+		BodyPath: fp2,
 	}
 	err = req.Save(initParams, &dsRef2)
 	if err != nil {

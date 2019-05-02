@@ -4,8 +4,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strconv"
 	"strings"
 	"sync"
@@ -47,7 +49,6 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	// TODO: Needed for TestCases for `new`, see below.
 	jobsBodyPath, err := dstest.BodyFilepath("testdata/jobs_by_automation")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -69,6 +70,13 @@ func TestDatasetRequestsSave(t *testing.T) {
 		w.Write([]byte(`\\\{"json":"data"}`))
 	}))
 
+	citiesMetaOnePath := tempDatasetFile(t, "*-cities_meta_1.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "updated name of movies dataset"}})
+	citiesMetaTwoPath := tempDatasetFile(t, "*-cities_meta_2.json", &dataset.Dataset{Meta: &dataset.Meta{Description: "Description, b/c bodies are the same thing"}})
+	defer func() {
+		os.RemoveAll(citiesMetaOnePath)
+		os.RemoveAll(citiesMetaTwoPath)
+	}()
+
 	req := NewDatasetRequests(node, nil)
 
 	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
@@ -78,21 +86,41 @@ func TestDatasetRequestsSave(t *testing.T) {
 		t.Errorf("private flag error mismatch: expected: '%s', got: '%s'", privateErrMsg, err.Error())
 	}
 
-	cases := []struct {
-		dataset *dataset.Dataset
-		res     *dataset.Dataset
-		err     string
+	good := []struct {
+		description string
+		params      SaveParams
+		res         *repo.DatasetRef
+	}{
+		{"body file", SaveParams{Ref: "me/jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil},
+		{"meta set title", SaveParams{Ref: "me/cities", FilePaths: []string{citiesMetaOnePath}}, nil},
+		{"meta set description, supply same body", SaveParams{Ref: "me/cities", FilePaths: []string{citiesMetaTwoPath}, BodyPath: s.URL + "/body.csv"}, nil},
+	}
+
+	for i, c := range good {
+		got := &repo.DatasetRef{}
+		err := req.Save(&c.params, got)
+		if err != nil {
+			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
+			continue
+		}
+
+		if got != nil && c.res != nil {
+			expect := c.res.Dataset
+			gotDs := got.Dataset
+			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
+				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
+				continue
+			}
+		}
+	}
+
+	bad := []struct {
+		description string
+		params      SaveParams
+		err         string
 	}{
 
-		// {&dataset.Dataset{
-		// 	Structure: &dataset.StructurePod{Schema: map[string]interface{}{"type": "string"}},
-		// 	BodyPath:  jobsBodyPath,
-		// }, nil, "invalid dataset: structure: format is required"},
-		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{}}, nil, ""},
-
-		// {nil, nil, "at least one of Dataset, DatasetPath is required"},
-		// TODO - restore
-		{&dataset.Dataset{}, nil, "name is required"},
+		{"emtpy params", SaveParams{}, "repo: empty dataset reference"},
 		// {&dataset.Dataset{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		// {&dataset.Dataset{Peername: "bad", Name: "path", Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		// {&dataset.Dataset{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
@@ -100,39 +128,30 @@ func TestDatasetRequestsSave(t *testing.T) {
 		// {&dataset.Dataset{Peername: "me", Name: "cities", BodyPath: "http://localhost:999999/bad/url"}, nil, "fetching body url: Get http://localhost:999999/bad/url: dial tcp: address 999999: invalid port"},
 		// {&dataset.Dataset{Name: "bad name", BodyPath: jobsBodyPath}, nil, "invalid name: error: illegal name 'bad name', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
 		// {&dataset.Dataset{BodyPath: jobsBodyPath, Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
-		{&dataset.Dataset{Peername: "me", Name: "bad", BodyPath: badDataS.URL + "/data.json"}, nil, "determining dataset structure: invalid json data"},
-		{&dataset.Dataset{Name: "jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil, ""},
-		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Title: "updated name of movies dataset"}}, nil, ""},
-		{&dataset.Dataset{Peername: "me", Name: "cities", Meta: &dataset.Meta{Description: "Description, b/c bodies are the same thing"}, BodyPath: s.URL + "/body.csv"}, nil, ""},
+		{"", SaveParams{Ref: "me/bad", BodyPath: badDataS.URL + "/data.json"}, "determining dataset structure: invalid json data"},
 	}
 
-	for i, c := range cases {
+	for i, c := range bad {
 		got := &repo.DatasetRef{}
-		err := req.Save(&SaveParams{Dataset: c.dataset}, got)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Fatalf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			// t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
+		err := req.Save(&c.params, got)
+		if err == nil {
+			t.Errorf("case %d: '%s' returned no error", i, c.description)
 		}
-
-		if got != nil && c.res != nil {
-			expect := c.res
-			// expect := &dataset.Dataset{}
-			// if err := expect.Decode(c.res); err != nil {
-			// 	t.Errorf("case %d error decoding expect dataset: %s", i, err.Error())
-			// 	continue
-			// }
-			gotDs := got.Dataset
-			// if err := gotDs.Decode(got.Dataset); err != nil {
-			// 	t.Errorf("case %d error decoding got dataset: %s", i, err.Error())
-			// 	continue
-			// }
-			if err := dataset.CompareDatasets(expect, gotDs); err != nil {
-				t.Errorf("case %d ds mistmatch: %s", i, err.Error())
-				continue
-			}
+		if err.Error() != c.err {
+			t.Errorf("case %d: '%s' error mismatch. expected:\n'%s'\ngot:\n'%s'", i, c.description, c.err, err.Error())
 		}
 	}
+}
+
+func tempDatasetFile(t *testing.T, fileName string, ds *dataset.Dataset) (path string) {
+	f, err := ioutil.TempFile("", fileName)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := json.NewEncoder(f).Encode(ds); err != nil {
+		t.Fatal(err)
+	}
+	return f.Name()
 }
 
 func TestDatasetRequestsForceSave(t *testing.T) {
@@ -141,13 +160,13 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	r := NewDatasetRequests(node, nil)
 
 	res := &repo.DatasetRef{}
-	if err := r.Save(&SaveParams{Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername}}, res); err == nil {
+	if err := r.Save(&SaveParams{Ref: ref.AliasString()}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
 
 	if err := r.Save(&SaveParams{
-		Dataset: &dataset.Dataset{Name: ref.Name, Peername: ref.Peername},
-		Force:   true,
+		Ref:   ref.AliasString(),
+		Force: true,
 	}, res); err != nil {
 		t.Errorf("expected empty save with flag to not error. got: %s", err.Error())
 	}
@@ -158,34 +177,34 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 	ref := addNowTransformDataset(t, node)
 	r := NewDatasetRequests(node, nil)
 
+	metaOnePath := tempDatasetFile(t, "*-meta.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "an updated title"}})
+	metaTwoPath := tempDatasetFile(t, "*-meta-2.json", &dataset.Dataset{Meta: &dataset.Meta{Title: "new title!"}})
+	defer func() {
+		os.RemoveAll(metaOnePath)
+		os.RemoveAll(metaTwoPath)
+	}()
+
 	res := &repo.DatasetRef{}
-	err := r.Save(&SaveParams{Dataset: &dataset.Dataset{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Meta:     &dataset.Meta{Title: "an updated title"},
-	}, ReturnBody: true}, res)
+	err := r.Save(&SaveParams{
+		Ref:        ref.AliasString(),
+		FilePaths:  []string{metaOnePath},
+		ReturnBody: true}, res)
 	if err != nil {
-		t.Error("save failed")
+		t.Error(err.Error())
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.Dataset{
-			Peername: ref.Peername,
-			Name:     ref.Name,
-			Meta:     &dataset.Meta{Title: "an updated title"},
-		},
-		Recall: "wut"}, res)
+		Ref:       ref.AliasString(),
+		FilePaths: []string{metaOnePath},
+		Recall:    "wut"}, res)
 	if err == nil {
 		t.Error("expected bad recall to error")
 	}
 
 	err = r.Save(&SaveParams{
-		Dataset: &dataset.Dataset{
-			Peername: ref.Peername,
-			Name:     ref.Name,
-			Meta:     &dataset.Meta{Title: "new title!"},
-		},
-		Recall: "tf"}, res)
+		Ref:       ref.AliasString(),
+		FilePaths: []string{metaTwoPath},
+		Recall:    "tf"}, res)
 	if err != nil {
 		t.Error(err)
 	}
@@ -206,9 +225,10 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 	req := NewDatasetRequests(node, nil)
 
-	dsp := &dataset.Dataset{Peername: "me"}
 	res := repo.DatasetRef{}
-	err = req.Save(&SaveParams{Dataset: dsp, FilePaths: []string{"testdata/import.zip"}}, &res)
+	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
+	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
+	err = req.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, &res)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

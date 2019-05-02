@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
@@ -245,19 +244,9 @@ func (m *UpdateMethods) runDatasetUpdate(p *UpdateParams, res *repo.DatasetRef) 
 	}
 
 	saveParams := &SaveParams{
-		Dataset: &dataset.Dataset{
-			Name:      ref.Name,
-			Peername:  ref.Peername,
-			ProfileID: ref.ProfileID.String(),
-			Path:      ref.Path,
-			Commit: &dataset.Commit{
-				Title:   p.Title,
-				Message: p.Message,
-			},
-			Transform: &dataset.Transform{
-				Secrets: p.Secrets,
-			},
-		},
+		Ref:          p.Ref,
+		Title:        p.Title,
+		Message:      p.Message,
 		Recall:       p.Recall,
 		Secrets:      p.Secrets,
 		Publish:      p.Publish,

@@ -190,9 +190,17 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
-	// dataset to create. If both Dataset and FilePath are provided
-	// dataset values will override any values in the document at FilePath
+	// dataset supplies params directly, all other param fields override values
+	// supplied by dataset
 	Dataset *dataset.Dataset
+	// dataset reference string, the name to save to
+	Ref string
+	// commit title, defaults to a generated string based on diff
+	Title string
+	// commit message, defaults to blank
+	Message string
+	// path to body data
+	BodyPath string
 	// absolute path or URL to the list of dataset files or components to load
 	FilePaths []string
 	// secrets for transform execution
@@ -230,9 +238,27 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
-	ds := p.Dataset
-	if ds == nil && len(p.FilePaths) == 0 {
-		return fmt.Errorf("at least one of Dataset, FilePath is required")
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - attempt to canonicalize the ref here so users can
+	// run save from hash references, but only to tip for now
+
+	ds := &dataset.Dataset{
+		Name:     ref.Name,
+		Peername: ref.Peername,
+		BodyPath: p.BodyPath,
+		Commit: &dataset.Commit{
+			Title:   p.Title,
+			Message: p.Message,
+		},
+	}
+
+	if p.Dataset != nil {
+		p.Dataset.Assign(ds)
+		ds = p.Dataset
 	}
 
 	if p.Recall != "" {
@@ -280,7 +306,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
-	ref, err := actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force, p.ShouldRender)
+	ref, err = actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force, p.ShouldRender)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

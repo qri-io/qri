@@ -14,9 +14,8 @@ func TestHistoryHandlers(t *testing.T) {
 
 	res := &repo.DatasetRef{}
 	p := &lib.SaveParams{
+		Ref: "me/cities",
 		Dataset: &dataset.Dataset{
-			Peername: "me",
-			Name:     "cities",
 			Meta: &dataset.Meta{
 				Title: "Updated Title",
 			},

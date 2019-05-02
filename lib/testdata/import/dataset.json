@@ -1,0 +1,33 @@
+{
+  "commit": {
+    "author": {
+      "id": "QmToKnXMGB3qrZXG1ZUWLWFsrDUZ3Vvzi5ZRCDwVFRpdJb"
+    },
+    "message": "Test Data Generated",
+    "qri": "cm:0",
+    "signature": "FGUnKJ+l/zYYhDU9IQuk/yqnb3haPNGH3HUTSsCT4k7Sr4sd3x0qgnvbTVtUtHDwlGvhI9AGCNefMYjhBLLjFWTyxRjd/iNQBLAw6+CLu0sbaWgcR2XhCjPbAOzib1EojqTn9BSR6GyQggKRD4XCLuTdZNENWpngq21i2WLyt3t3qCzefLkG06AkVj3Jtv2m7l7bDSmD1q07NIl6LTDsGRWpwo6sppqQYjCtr1Z+mXF2kYoh9QdmiKmTIGPs/EjDqLJ2Nhe2veEpd/h5w3D08WAo/vI5NaddozA98wPGKrwvnF2h6CYWE7W5+kQNkU1TygjZc4yfTwKfQO/I0JgZVQ==",
+    "timestamp": "2018-10-08T22:40:08.3506385Z",
+    "title": "Test Title"
+  },
+  "bodyPath": "/ipfs/QmVtXU9BxSdG45Ex7Metwmge27oF5thB5kdCGu4dSYnLoz",
+  "meta": {
+    "keywords": [
+      "repo",
+      "data"
+    ],
+    "qri": "md:0",
+    "title": "Test Repo"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "Qmd4kX1yXMmDFJ3KGFPRtsXsg9ZWfFg5dSa8PDxyt6hssU",
+    "entries": 3,
+    "errCount": 0,
+    "format": "json",
+    "length": 45,
+    "qri": "st:0",
+    "schema": {
+      "type": "array"
+    }
+  }
+}
