@@ -677,7 +677,7 @@ func (h DatasetHandlers) updateHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p := &lib.UpdateParams{
+	p := &lib.SaveParams{
 		Ref:        ref.String(),
 		Title:      r.FormValue("title"),
 		Message:    r.FormValue("message"),

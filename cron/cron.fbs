@@ -16,8 +16,8 @@ table StringMapVal {
 union Options { DatasetOptions, ShellScriptOptions }
 
 table DatasetOptions {
-	commitTitle:string;
-	commitMessage:string;
+	title:string;
+	message:string;
 	bodyPath:string;
 	filePaths:[string];
 	recall:string;
@@ -26,7 +26,7 @@ table DatasetOptions {
 	strict:bool;
 	force:bool;
 	convertFormatToPrev:bool;
-	noRender:bool;
+	shouldRender:bool;
 
 	config:[StringMapVal];
 	secrets:[StringMapVal];
@@ -61,6 +61,6 @@ file_identifier "QFBF";
 
 // for our use this is mainly an annotation. this file extension for a 
 // "qri flatbuffer" file should be .qfb
-file_extension "qfb"
+file_extension "qfb";
 
 root_type Jobs;
