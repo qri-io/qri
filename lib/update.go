@@ -3,7 +3,6 @@ package lib
 import (
 	"context"
 	"fmt"
-	"io"
 	"os"
 	"path/filepath"
 
@@ -49,7 +48,8 @@ type ScheduleParams struct {
 	Name        string
 	Periodicity string
 
-	// TODO (b5) - options support
+	// SaveParams only applies to dataset saves
+	SaveParams *SaveParams
 }
 
 // Schedule creates a job and adds it to the scheduler
@@ -96,7 +96,23 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 		return
 	}
 
-	return base.DatasetToJob(ref.Dataset, p.Periodicity, nil)
+	o := &cron.DatasetOptions{
+		Title:     p.SaveParams.Title,
+		Message:   p.SaveParams.Message,
+		Recall:    p.SaveParams.Recall,
+		BodyPath:  p.SaveParams.BodyPath,
+		FilePaths: p.SaveParams.FilePaths,
+		Publish:   p.SaveParams.Publish,
+		// Strict:              p.SaveParams.Strict,
+		Force:               p.SaveParams.Force,
+		ConvertFormatToPrev: p.SaveParams.ConvertFormatToPrev,
+		ShouldRender:        p.SaveParams.ShouldRender,
+		Secrets:             p.SaveParams.Secrets,
+		// TODO (b5) not fully supported yet:
+		// Config: p.SaveParams.
+	}
+
+	return base.DatasetToJob(ref.Dataset, p.Periodicity, o)
 }
 
 // Unschedule removes a job from the scheduler by name
@@ -180,12 +196,30 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 
 	switch p.Type {
 	case cron.JTDataset:
-		updateParams := &UpdateParams{
+		params := &SaveParams{
 			Ref: p.Name,
-			// TODO (b5): fill in params from job Options
+		}
+		if o, ok := p.Options.(*cron.DatasetOptions); ok {
+			params = &SaveParams{
+				Ref:                 p.Name,
+				Title:               o.Title,
+				Message:             o.Message,
+				Recall:              o.Recall,
+				BodyPath:            o.BodyPath,
+				FilePaths:           o.FilePaths,
+				Publish:             o.Publish,
+				Force:               o.Force,
+				ConvertFormatToPrev: o.ConvertFormatToPrev,
+				ShouldRender:        o.ShouldRender,
+				Secrets:             o.Secrets,
+
+				// TODO (b5) not fully supported yet:
+				// Strict: o.Strict,
+				// Config: o.Config
+			}
 		}
 		*res = repo.DatasetRef{}
-		err = m.runDatasetUpdate(updateParams, res)
+		err = m.runDatasetUpdate(params, res)
 
 	case cron.JTShellScript:
 		runner := base.LocalShellScriptRunner(m.scriptsPath)
@@ -203,24 +237,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 	return m.inst.Repo().LogEvent(repo.ETCronJobRan, *res)
 }
 
-// UpdateParams defines parameters for the Update command
-// TODO (b5): I think we can merge this into SaveParams
-type UpdateParams struct {
-	Ref          string
-	Title        string
-	Message      string
-	Recall       string
-	Secrets      map[string]string
-	Publish      bool
-	DryRun       bool
-	ReturnBody   bool
-	ShouldRender bool
-	// optional writer to have transform script record standard output to
-	// note: this won't work over RPC, only on local calls
-	ScriptOutput io.Writer
-}
-
-func (m *UpdateMethods) runDatasetUpdate(p *UpdateParams, res *repo.DatasetRef) error {
+func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) error {
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err

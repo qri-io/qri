@@ -139,17 +139,17 @@ func (o *ShellScriptOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) fla
 
 // DatasetOptions encapsulates options passed to `qri save`
 type DatasetOptions struct {
-	CommitTitle   string
-	CommitMessage string
-	Recall        string
-	BodyPath      string
-	FilePaths     []string
+	Title     string
+	Message   string
+	Recall    string
+	BodyPath  string
+	FilePaths []string
 
 	Publish             bool
 	Strict              bool
 	Force               bool
 	ConvertFormatToPrev bool
-	NoRender            bool
+	ShouldRender        bool
 
 	Config  map[string]string
 	Secrets map[string]string
@@ -157,8 +157,8 @@ type DatasetOptions struct {
 
 // MarshalFlatbuffer writes to a builder
 func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	commitTitle := builder.CreateString(o.CommitTitle)
-	commitMessage := builder.CreateString(o.CommitMessage)
+	commitTitle := builder.CreateString(o.Title)
+	commitMessage := builder.CreateString(o.Message)
 	recall := builder.CreateString(o.Recall)
 	bodyPath := builder.CreateString(o.BodyPath)
 
@@ -179,8 +179,8 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 	// TODO (b5) - encode config & secrets
 
 	cronfb.DatasetOptionsStart(builder)
-	cronfb.DatasetOptionsAddCommitTitle(builder, commitTitle)
-	cronfb.DatasetOptionsAddCommitMessage(builder, commitMessage)
+	cronfb.DatasetOptionsAddTitle(builder, commitTitle)
+	cronfb.DatasetOptionsAddMessage(builder, commitMessage)
 	cronfb.DatasetOptionsAddRecall(builder, recall)
 	cronfb.DatasetOptionsAddBodyPath(builder, bodyPath)
 	if nFilePaths != 0 {
@@ -191,7 +191,7 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 	cronfb.DatasetOptionsAddStrict(builder, o.Strict)
 	cronfb.DatasetOptionsAddForce(builder, o.Force)
 	cronfb.DatasetOptionsAddConvertFormatToPrev(builder, o.ConvertFormatToPrev)
-	cronfb.DatasetOptionsAddNoRender(builder, o.NoRender)
+	cronfb.DatasetOptionsAddShouldRender(builder, o.ShouldRender)
 
 	return cronfb.DatasetOptionsEnd(builder)
 }

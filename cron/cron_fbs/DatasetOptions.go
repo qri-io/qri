@@ -26,7 +26,7 @@ func (rcv *DatasetOptions) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *DatasetOptions) CommitTitle() []byte {
+func (rcv *DatasetOptions) Title() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -34,7 +34,7 @@ func (rcv *DatasetOptions) CommitTitle() []byte {
 	return nil
 }
 
-func (rcv *DatasetOptions) CommitMessage() []byte {
+func (rcv *DatasetOptions) Message() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -123,7 +123,7 @@ func (rcv *DatasetOptions) MutateConvertFormatToPrev(n bool) bool {
 	return rcv._tab.MutateBoolSlot(20, n)
 }
 
-func (rcv *DatasetOptions) NoRender() bool {
+func (rcv *DatasetOptions) ShouldRender() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -131,7 +131,7 @@ func (rcv *DatasetOptions) NoRender() bool {
 	return false
 }
 
-func (rcv *DatasetOptions) MutateNoRender(n bool) bool {
+func (rcv *DatasetOptions) MutateShouldRender(n bool) bool {
 	return rcv._tab.MutateBoolSlot(22, n)
 }
 
@@ -178,11 +178,11 @@ func (rcv *DatasetOptions) SecretsLength() int {
 func DatasetOptionsStart(builder *flatbuffers.Builder) {
 	builder.StartObject(12)
 }
-func DatasetOptionsAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(commitTitle), 0)
+func DatasetOptionsAddTitle(builder *flatbuffers.Builder, title flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(title), 0)
 }
-func DatasetOptionsAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(commitMessage), 0)
+func DatasetOptionsAddMessage(builder *flatbuffers.Builder, message flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(message), 0)
 }
 func DatasetOptionsAddBodyPath(builder *flatbuffers.Builder, bodyPath flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(bodyPath), 0)
@@ -208,8 +208,8 @@ func DatasetOptionsAddForce(builder *flatbuffers.Builder, force bool) {
 func DatasetOptionsAddConvertFormatToPrev(builder *flatbuffers.Builder, convertFormatToPrev bool) {
 	builder.PrependBoolSlot(8, convertFormatToPrev, false)
 }
-func DatasetOptionsAddNoRender(builder *flatbuffers.Builder, noRender bool) {
-	builder.PrependBoolSlot(9, noRender, false)
+func DatasetOptionsAddShouldRender(builder *flatbuffers.Builder, shouldRender bool) {
+	builder.PrependBoolSlot(9, shouldRender, false)
 }
 func DatasetOptionsAddConfig(builder *flatbuffers.Builder, config flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(config), 0)
