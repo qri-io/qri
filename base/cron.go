@@ -23,7 +23,8 @@ func LocalShellScriptRunner(basepath string) cron.RunJobFunc {
 	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
 		path := job.Name
 		if qfs.PathKind(job.Name) == "local" {
-			path = filepath.Join(basepath, path)
+			// TODO (b5) - need to first check that path can't be found
+			// path = filepath.Join(basepath, path)
 		}
 
 		cmd := exec.Command(path)

@@ -63,6 +63,7 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 		rpc:    nil,
 		config: cfg,
 		node:   tnode.(*p2p.QriNode),
+		inst:   lib.NewInstanceFromConfigAndNode(cfg, tnode.(*p2p.QriNode)),
 	}, nil
 }
 

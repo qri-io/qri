@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"os"
+	"path/filepath"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/repo"
@@ -15,13 +18,22 @@ import (
 
 // NewUpdateMethods creates a configuration handle from an instance
 func NewUpdateMethods(inst *Instance) *UpdateMethods {
-	return &UpdateMethods{inst: inst}
+	m := &UpdateMethods{
+		inst:        inst,
+		scriptsPath: filepath.Join(inst.QriPath(), "update_scripts"),
+	}
+
+	if err := os.MkdirAll(m.scriptsPath, os.ModePerm); err != nil {
+		log.Error("creating update scripts directory: %s", err.Error())
+	}
+
+	return m
 }
 
 // UpdateMethods enapsulates logic for scheduled updates
 type UpdateMethods struct {
 	inst        *Instance
-	ScriptsPath string
+	scriptsPath string
 }
 
 // CoreRequestsName specifies this is a Methods object
@@ -43,6 +55,12 @@ type ScheduleParams struct {
 
 // Schedule creates a job and adds it to the scheduler
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
+	if base.PossibleShellScript(in.Name) {
+		if err = qfs.AbsPath(&in.Name); err != nil {
+			return
+		}
+	}
+
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
 	}
@@ -64,6 +82,7 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 
 func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
 	if base.PossibleShellScript(p.Name) {
+		// TODO (b5) - confirm file exists & is executable
 		return base.ShellScriptToJob(qfs.NewMemfileBytes(p.Name, nil), p.Periodicity, nil)
 	}
 
@@ -170,7 +189,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		err = m.runDatasetUpdate(updateParams, res)
 
 	case cron.JTShellScript:
-		runner := base.LocalShellScriptRunner(m.ScriptsPath)
+		runner := base.LocalShellScriptRunner(m.scriptsPath)
 		err = runner(m.inst.ctx, m.inst.streams, p)
 
 	default:
@@ -214,10 +233,10 @@ func (m *UpdateMethods) runDatasetUpdate(p *UpdateParams, res *repo.DatasetRef) 
 		return err
 	}
 
-	// if !base.InLocalNamespace(m.inst.Repo(), &ref) {
-	// 	*res, err = actions.UpdateRemoteDataset(m.node, &ref, true)
-	// 	return err
-	// }
+	if !base.InLocalNamespace(m.inst.Repo(), &ref) {
+		*res, err = actions.UpdateRemoteDataset(m.inst.Node(), &ref, true)
+		return err
+	}
 
 	// default to recalling transfrom scripts for local updates
 	// TODO (b5): not sure if this should be here or in client libraries
@@ -261,7 +280,6 @@ func newUpdateRunner(newInst func(ctx context.Context, streams ioes.IOStreams) (
 		}
 
 		m := NewUpdateMethods(inst)
-		m.ScriptsPath = scriptsPath
 		res := &repo.DatasetRef{}
 		return m.Run(job, res)
 	}
