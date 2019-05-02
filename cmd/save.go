@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
@@ -78,12 +77,14 @@ commit message and title to the save.`,
 type SaveOptions struct {
 	ioes.IOStreams
 
-	Ref            string
-	FilePaths      []string
-	BodyPath       string
-	Title          string
-	Message        string
-	Recall         string
+	Ref       string
+	FilePaths []string
+	BodyPath  string
+	Recall    string
+
+	Title   string
+	Message string
+
 	Passive        bool
 	Rescursive     bool
 	ShowValidation bool
@@ -130,23 +131,18 @@ func (o *SaveOptions) Run() (err error) {
 	o.StartSpinner()
 	defer o.StopSpinner()
 
+	// TODO (b5): cmd should never need to parse a dataset reference
 	ref, err := parseCmdLineDatasetRef(o.Ref)
 	if err != nil && len(o.FilePaths) == 0 {
 		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
 	}
 
-	dsp := &dataset.Dataset{
-		Name:     ref.Name,
-		Peername: ref.Peername,
-		BodyPath: o.BodyPath,
-		Commit: &dataset.Commit{
-			Title:   o.Title,
-			Message: o.Message,
-		},
-	}
-
 	p := &lib.SaveParams{
-		Dataset:             dsp,
+		Ref:      ref.AliasString(),
+		BodyPath: o.BodyPath,
+		Title:    o.Title,
+		Message:  o.Message,
+
 		FilePaths:           o.FilePaths,
 		Private:             false,
 		Publish:             o.Publish,

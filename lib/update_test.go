@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"os"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -24,15 +25,21 @@ func TestDatasetMethodsRun(t *testing.T) {
 		t.Errorf("update error: %s", err)
 	}
 
+	metaPath := tempDatasetFile(t, "*-methods-meta.json", &dataset.Dataset{
+		Meta: &dataset.Meta{Title: "an updated title"},
+	})
+	defer func() {
+		os.RemoveAll(metaPath)
+	}()
+
 	dsm := NewDatasetRequests(inst.node, nil)
 	// run a manual save to lose the transform
-	err := dsm.Save(&SaveParams{Dataset: &dataset.Dataset{
-		Peername: res.Peername,
-		Name:     res.Name,
-		Meta:     &dataset.Meta{Title: "an updated title"},
-	}}, res)
+	err := dsm.Save(&SaveParams{
+		Ref:       res.AliasString(),
+		FilePaths: []string{metaPath},
+	}, res)
 	if err != nil {
-		t.Error("save failed")
+		t.Error(err)
 	}
 
 	// update should grab the transform from 2 commits back

@@ -457,9 +457,19 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
+	// TODO (b5) - this should probably be handled by lib
+	// DatasetMethods.Save should fold the provided dataset values *then* attempt
+	// to extract a valid dataset reference from the resulting dataset,
+	// and use that as a save target.
+	ref := repo.DatasetRef{
+		Name:     ds.Name,
+		Peername: ds.Peername,
+	}
+
 	res := &repo.DatasetRef{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
+		Ref:          ref.AliasString(),
 		Dataset:      ds,
 		Private:      r.FormValue("private") == "true",
 		DryRun:       r.FormValue("dry_run") == "true",
