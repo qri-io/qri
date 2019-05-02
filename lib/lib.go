@@ -529,3 +529,12 @@ func (inst *Instance) RPC() *rpc.Client {
 func (inst *Instance) Teardown() {
 	inst.teardown()
 }
+
+// QriPath returns the path to where qri is operating from on the local filesystem
+// there are situations where this will be a temporary directory
+func (inst *Instance) QriPath() string {
+	if inst.cfg != nil && inst.cfg.Repo != nil && inst.cfg.Repo.Path != "" {
+		return inst.cfg.Repo.Path
+	}
+	return os.TempDir()
+}
