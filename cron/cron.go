@@ -36,17 +36,20 @@ type Scheduler interface {
 // implementation.
 type RunJobFunc func(ctx context.Context, streams ioes.IOStreams, job *Job) error
 
+// RunJobFactory is a function that returns a runner
+type RunJobFactory func(ctx context.Context) (runner RunJobFunc)
+
 // NewCron creates a Cron with the default check interval
-func NewCron(js JobStore, runner RunJobFunc) *Cron {
-	return NewCronInterval(js, runner, DefaultCheckInterval)
+func NewCron(js JobStore, factory RunJobFactory) *Cron {
+	return NewCronInterval(js, factory, DefaultCheckInterval)
 }
 
 // NewCronInterval creates a Cron with a custom check interval
-func NewCronInterval(js JobStore, runner RunJobFunc, checkInterval time.Duration) *Cron {
+func NewCronInterval(js JobStore, factory RunJobFactory, checkInterval time.Duration) *Cron {
 	return &Cron{
 		store:    js,
 		interval: checkInterval,
-		runner:   runner,
+		factory:  factory,
 	}
 }
 
@@ -55,7 +58,7 @@ func NewCronInterval(js JobStore, runner RunJobFunc, checkInterval time.Duration
 type Cron struct {
 	store    JobStore
 	interval time.Duration
-	runner   RunJobFunc
+	factory  RunJobFactory
 }
 
 // assert Cron implements ReadJobs at compile time
@@ -78,7 +81,11 @@ func (c *Cron) Job(ctx context.Context, name string) (*Job, error) {
 // iteration of the configured check interval.
 // Start blocks until the passed context completes
 func (c *Cron) Start(ctx context.Context) error {
-	check := func() {
+	check := func(ctx context.Context) {
+		now := time.Now()
+		ctx, cleanup := context.WithCancel(ctx)
+		defer cleanup()
+
 		log.Debugf("running check")
 		jobs, err := c.store.Jobs(ctx, 0, 0)
 		if err != nil {
@@ -86,46 +93,52 @@ func (c *Cron) Start(ctx context.Context) error {
 			return
 		}
 
+		run := []*Job{}
 		for _, job := range jobs {
-			go c.maybeRunJob(ctx, job)
+			if now.After(job.NextExec()) {
+				run = append(run, job)
+			}
+		}
+
+		if len(run) > 0 {
+			log.Errorf("found %d job(s) to run", len(run))
+			runner := c.factory(ctx)
+			for _, job := range run {
+				// TODO (b5) - if we want things like per-job timeout, we should create
+				// a new job-scoped context here
+				c.runJob(ctx, job, runner)
+			}
+		} else {
+			log.Errorf("no jobs to run")
 		}
 	}
 
 	// initial call to check
-	go check()
+	go check(ctx)
 
 	t := time.NewTicker(c.interval)
 	for {
 		select {
 		case <-t.C:
-			go check()
+			go check(ctx)
 		case <-ctx.Done():
 			return nil
 		}
 	}
 }
 
-func (c *Cron) maybeRunJob(ctx context.Context, job *Job) {
-	if time.Now().After(job.NextExec()) {
-		c.runJob(ctx, job)
-	}
-}
-
-func (c *Cron) runJob(ctx context.Context, job *Job) {
+func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 	log.Debugf("run job: %s", job.Name)
 	in := &bytes.Buffer{}
 	out := &bytes.Buffer{}
 	err := &bytes.Buffer{}
 	streams := ioes.NewIOStreams(in, out, err)
 
-	ctx, cleanup := context.WithCancel(ctx)
-	defer cleanup()
-
-	if err := c.runner(ctx, streams, job); err != nil {
-		log.Debugf("run job: %s error: %s", job.Name, err.Error())
+	if err := runner(ctx, streams, job); err != nil {
+		log.Errorf("run job: %s error: %s", job.Name, err.Error())
 		job.LastError = err.Error()
 	} else {
-		log.Debugf("run job: %s success", job.Name)
+		log.Errorf("run job: %s success", job.Name)
 		job.LastError = ""
 	}
 	job.LastRun = time.Now()
@@ -214,5 +227,8 @@ func (c *Cron) jobsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (c *Cron) runHandler(w http.ResponseWriter, r *http.Request) {
-	c.runJob(r.Context(), nil)
+	// TODO (b5): implement an HTTP run handler
+	w.WriteHeader(http.StatusTooEarly)
+	w.Write([]byte("not finished"))
+	// c.runJob(r.Context(), nil)
 }

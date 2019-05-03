@@ -5,8 +5,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"io/ioutil"
-	stdlog "log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -31,7 +29,7 @@ func init() {
 	// a few methods don't conform to the proper signature (comment this out & run 'qri connect' to see errors)
 	// so we're disabling the log package for now. This is potentially very stupid.
 	// TODO (b5): remove dep on net/rpc package entirely
-	stdlog.SetOutput(ioutil.Discard)
+	// stdlog.SetOutput(ioutil.Discard)
 
 	golog.SetLogLevel("qriapi", "info")
 }

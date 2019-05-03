@@ -116,9 +116,19 @@ func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
 
 		LastRun:   lastRun,
 		LastError: string(j.LastError()),
-
-		// TODO (b5) - deserializeOptions
 	}
+
+	unionTable := new(flatbuffers.Table)
+	if j.Options(unionTable) {
+		if j.OptionsType() == cronfb.OptionsDatasetOptions {
+			fbOpts := &cronfb.DatasetOptions{}
+			fbOpts.Init(unionTable.Bytes, unionTable.Pos)
+			opts := &DatasetOptions{}
+			opts.UnmarshalFlatbuffer(fbOpts)
+			job.Options = opts
+		}
+	}
+
 	return nil
 }
 
@@ -194,4 +204,29 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 	cronfb.DatasetOptionsAddShouldRender(builder, o.ShouldRender)
 
 	return cronfb.DatasetOptionsEnd(builder)
+}
+
+// UnmarshalFlatbuffer reads flatbuffer data into DatasetOptions
+func (o *DatasetOptions) UnmarshalFlatbuffer(fbo *cronfb.DatasetOptions) {
+	o.Title = string(fbo.Title())
+	o.Message = string(fbo.Message())
+	o.Recall = string(fbo.Recall())
+	o.BodyPath = string(fbo.BodyPath())
+
+	if fbo.FilePathsLength() > 0 {
+		o.FilePaths = make([]string, fbo.FilePathsLength())
+		for i := range o.FilePaths {
+			o.FilePaths[i] = string(fbo.FilePaths(i))
+		}
+	}
+
+	o.Publish = fbo.Publish()
+	o.Strict = fbo.Strict()
+	o.Force = fbo.Force()
+	o.ConvertFormatToPrev = fbo.ConvertFormatToPrev()
+	o.ShouldRender = fbo.ShouldRender()
+
+	// TODO (b5): unmarshal secrets & config:
+	// Config  map[string]string
+	// Secrets map[string]string
 }

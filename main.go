@@ -7,9 +7,11 @@
 package main
 
 import (
+	// "github.com/pkg/profile"
 	"github.com/qri-io/qri/cmd"
 )
 
 func main() {
+	// defer profile.Start(profile.MemProfile).Stop()
 	cmd.Execute()
 }
