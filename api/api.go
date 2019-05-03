@@ -237,8 +237,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)
-
 	if cfg.API.RemoteMode {
 		log.Info("This server is running in `remote` mode")
 		receivers, err := makeDagReceiver(node)
@@ -254,6 +252,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 		m.Handle("/dsync/complete", s.middleware(remh.CompleteHandler))
 	}
 
+	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
@@ -267,7 +266,15 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
 	m.Handle("/publish/", s.middleware(dsh.PublishHandler))
-	m.Handle("/update/", s.middleware(dsh.UpdateHandler))
+
+	uh := UpdateHandlers{
+		UpdateMethods: lib.NewUpdateMethods(s.Instance),
+		ReadOnly:      cfg.API.ReadOnly,
+	}
+	m.Handle("/update", s.middleware(uh.UpdatesHandler))
+	m.Handle("/update/run", s.middleware(uh.RunHandler))
+	m.Handle("/update/log", s.middleware(uh.LogHandler))
+	m.Handle("/update/service", s.middleware(uh.ServiceHandler))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

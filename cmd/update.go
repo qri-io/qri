@@ -87,28 +87,38 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Short: "control qri update daemon",
 	}
 
-	startServiceCmd := &cobra.Command{
+	serviceStatusCmd := &cobra.Command{
+		Use:   "status",
+		Short: "show update daemon status",
+		RunE: func(c *cobra.Command, args []string) error {
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			return o.ServiceStatus()
+		},
+	}
+	serviceStartCmd := &cobra.Command{
 		Use:   "start",
 		Short: "start update daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.StartService()
+			return o.ServiceStart()
 		},
 	}
-	stopServiceCmd := &cobra.Command{
+	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
 		Short: "stop update daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.StopService()
+			return o.ServiceStop()
 		},
 	}
 
-	serviceCmd.AddCommand(startServiceCmd, stopServiceCmd)
+	serviceCmd.AddCommand(serviceStartCmd, serviceStopCmd, serviceStatusCmd)
 
 	cmd.AddCommand(
 		scheduleCmd,
@@ -215,14 +225,20 @@ func (o *UpdateOptions) Log() (err error) {
 	return fmt.Errorf("not finished")
 }
 
-// StartService ensures the update service is running
-func (o *UpdateOptions) StartService() (err error) {
-	var in, out bool
-	return o.updateMethods.StartService(&in, &out)
+// ServiceStatus gets the current status of the update daemon
+func (o *UpdateOptions) ServiceStatus() error {
+	// TODO (b5):
+	return fmt.Errorf("not finished")
 }
 
-// StopService halts the update scheduler service
-func (o *UpdateOptions) StopService() (err error) {
+// ServiceStart ensures the update service is running
+func (o *UpdateOptions) ServiceStart() (err error) {
+	var in, out bool
+	return o.updateMethods.ServiceStart(&in, &out)
+}
+
+// ServiceStop halts the update scheduler service
+func (o *UpdateOptions) ServiceStop() (err error) {
 	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
@@ -230,40 +246,9 @@ func (o *UpdateOptions) StopService() (err error) {
 // RunUpdate executes an update immideately
 func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	if len(args) < 1 {
-		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
+		return lib.NewError(lib.ErrBadArgs, "please provide the name of an update to run")
 	}
 
-	// if o.Ref == "" {
-	// 	return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
-	// }
-	// if o.Recall != "" && o.Recall != "tf" && o.Recall != "transform" {
-	// 	return lib.NewError(lib.ErrBadArgs, "only 'tf' or 'transform' are valid recall values when updating")
-	// }
-	// return nil
-
-	// 	p := &lib.UpdateParams{
-	// 		Ref:          o.Ref,
-	// 		Title:        o.Title,
-	// 		Message:      o.Message,
-	// 		DryRun:       o.DryRun,
-	// 		Publish:      o.Publish,
-	// 		ShouldRender: !o.NoRender,
-	// 		ReturnBody:   false,
-	// 	}
-
-	// 	if o.Secrets != nil {
-	// 		secretsMsg := `
-	// Warning: You are providing secrets to a dataset transformation.
-	// Never provide secrets to a transformation you do not trust.
-	// continue?`
-	// 		if !confirm(o.Out, o.In, secretsMsg, true) {
-	// 			return
-	// 		}
-
-	// 		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
-	// 			return err
-	// 		}
-	// 	}
 	var (
 		name = args[0]
 		job  = &lib.Job{}
