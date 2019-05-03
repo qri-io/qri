@@ -1,9 +1,12 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
+	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -52,6 +55,10 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			return o.List()
 		},
 	}
+
+	listCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
+	listCmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
+
 	logCmd := &cobra.Command{
 		Use:   "log",
 		Short: "show log of dataset updates",
@@ -78,9 +85,13 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	runCmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for update")
 	runCmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history, only 'tf' applies when updating")
 	runCmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
-	// runCmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish this dataset to the registry")
+	runCmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish successful update to the registry")
 	runCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
 	runCmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
+	runCmd.Flags().StringSliceVarP(&o.FilePaths, "file", "f", nil, "dataset or component file (yaml or json)")
+	runCmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
+	runCmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
+	runCmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
 
 	serviceCmd := &cobra.Command{
 		Use:   "service",
@@ -101,10 +112,10 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Use:   "start",
 		Short: "start update daemon",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
-				return err
-			}
-			return o.ServiceStart()
+			// warning: need to be very careful to *not* initialize an instance here
+			// which is usually done by calling complete to trigger initialization
+			// from the passed-in factory.
+			return o.ServiceStart(ioStreams, f.QriRepoPath())
 		},
 	}
 	serviceStopCmd := &cobra.Command{
@@ -136,14 +147,23 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type UpdateOptions struct {
 	ioes.IOStreams
 
-	Ref      string
-	Title    string
-	Message  string
-	Recall   string
-	Publish  bool
-	DryRun   bool
-	NoRender bool
-	Secrets  []string
+	Ref     string
+	Title   string
+	Message string
+
+	BodyPath  string
+	FilePaths []string
+	Recall    string
+
+	Publish    bool
+	DryRun     bool
+	NoRender   bool
+	Force      bool
+	KeepFormat bool
+	Secrets    []string
+
+	Page     int
+	PageSize int
 
 	inst          *lib.Instance
 	updateMethods *lib.UpdateMethods
@@ -165,7 +185,8 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
 	}
 	p := &lib.ScheduleParams{
-		Name: args[0],
+		Name:       args[0],
+		SaveParams: o.saveParams(),
 	}
 	if len(args) > 1 {
 		p.Periodicity = args[1]
@@ -232,9 +253,28 @@ func (o *UpdateOptions) ServiceStatus() error {
 }
 
 // ServiceStart ensures the update service is running
-func (o *UpdateOptions) ServiceStart() (err error) {
-	var in, out bool
-	return o.updateMethods.ServiceStart(&in, &out)
+func (o *UpdateOptions) ServiceStart(ioStreams ioes.IOStreams, repoPath string) (err error) {
+	ctx := context.Background()
+
+	cfgPath := filepath.Join(repoPath, "config.yaml")
+	cfg, err := config.ReadFromFile(cfgPath)
+	if err != nil {
+		return err
+	}
+	if cfg.Update == nil {
+		cfg.Update = config.DefaultUpdate()
+	}
+
+	qriPath, ipfsPath := EnvPathFactory()
+	opts := []lib.Option{
+		lib.OptLoadConfigFile(cfgPath),
+		lib.OptIOStreams(ioStreams), // transfer iostreams down
+		lib.OptSetQriRepoPath(qriPath),
+		lib.OptSetIPFSPath(ipfsPath),
+		lib.OptCheckConfigMigrations(""),
+	}
+
+	return lib.UpdateServiceStart(ctx, repoPath, cfg.Update, opts)
 }
 
 // ServiceStop halts the update scheduler service
@@ -251,13 +291,10 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 
 	var (
 		name = args[0]
-		job  = &lib.Job{}
+		job  = &lib.Job{
+			Name: name,
+		}
 	)
-
-	if err = o.updateMethods.Job(&name, job); err != nil {
-		// TODO (b5) - shouldn't require the job be scheduled to execute
-		return err
-	}
 
 	o.StartSpinner()
 	defer o.StopSpinner()
@@ -269,4 +306,27 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 
 	printSuccess(o.Out, "updated dataset %s", res.AliasString())
 	return nil
+}
+
+func (o *UpdateOptions) saveParams() *lib.SaveParams {
+	p := &lib.SaveParams{
+		Ref:                 o.Ref,
+		Title:               o.Title,
+		Message:             o.Message,
+		BodyPath:            o.BodyPath,
+		FilePaths:           o.FilePaths,
+		Recall:              o.Recall,
+		Publish:             o.Publish,
+		DryRun:              o.DryRun,
+		ShouldRender:        !o.NoRender,
+		Force:               o.Force,
+		ConvertFormatToPrev: o.KeepFormat,
+	}
+
+	if sec, err := parseSecrets(o.Secrets...); err != nil {
+		log.Errorf("invalid secrets: %s", err.Error())
+	} else {
+		p.Secrets = sec
+	}
+	return p
 }

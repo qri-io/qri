@@ -25,21 +25,23 @@ func TestCronDataset(t *testing.T) {
 		Periodicity: mustRepeatingInterval("R/P1W"),
 	}
 
-	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
-		switch job.Type {
-		case JTDataset:
-			updateCount++
-			// ds.Commit.Timestamp = time.Now()
+	factory := func(outer context.Context) RunJobFunc {
+		return func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
+			switch job.Type {
+			case JTDataset:
+				updateCount++
+				// ds.Commit.Timestamp = time.Now()
+				return nil
+			}
+			t.Fatalf("runner called with invalid job: %v", job)
 			return nil
 		}
-		t.Fatalf("runner called with invalid job: %v", job)
-		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCronInterval(&MemJobStore{}, runner, time.Millisecond*50)
+	cron := NewCronInterval(&MemJobStore{}, factory, time.Millisecond*50)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -70,21 +72,23 @@ func TestCronShellScript(t *testing.T) {
 	}
 
 	// scriptRunner := LocalShellScriptRunner("testdata")
-	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
-		switch job.Type {
-		case JTShellScript:
-			updateCount++
-			// return scriptRunner(ctx, streams, job)
+	factory := func(outer context.Context) RunJobFunc {
+		return func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
+			switch job.Type {
+			case JTShellScript:
+				updateCount++
+				// return scriptRunner(ctx, streams, job)
+				return nil
+			}
+			t.Fatalf("runner called with invalid job: %v", job)
 			return nil
 		}
-		t.Fatalf("runner called with invalid job: %v", job)
-		return nil
 	}
 
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCron(&MemJobStore{}, runner)
+	cron := NewCron(&MemJobStore{}, factory)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -104,8 +108,10 @@ func TestCronShellScript(t *testing.T) {
 func TestCronHTTP(t *testing.T) {
 	s := &MemJobStore{}
 
-	runner := func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
-		return nil
+	factory := func(context.Context) RunJobFunc {
+		return func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
+			return nil
+		}
 	}
 
 	cliCtx := context.Background()
@@ -114,7 +120,7 @@ func TestCronHTTP(t *testing.T) {
 		t.Error("expected ping to server that is off to return ErrUnreachable")
 	}
 
-	cr := NewCron(s, runner)
+	cr := NewCron(s, factory)
 	// TODO (b5) - how do we keep this from being a leaking goroutine?
 	go cr.ServeHTTP(":7897")
 

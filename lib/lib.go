@@ -27,7 +27,7 @@ import (
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/fs"
+	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regclient"
 )
@@ -420,22 +420,22 @@ func newCron(cfg *config.Config, repoPath string, opts []Option) (cron.Scheduler
 		return nil, fmt.Errorf("unknown cron type: %s", cfg.Update.Type)
 	}
 
-	newInst := func(ctx context.Context, streams ioes.IOStreams) (*Instance, error) {
+	newInst := func(ctx context.Context) (*Instance, error) {
 		log.Debug("cron create new instance")
 		go func() {
 			<-ctx.Done()
 			log.Debug("cron close instance")
 		}()
+
 		opts = append([]Option{
 			OptCtx(ctx),
-			OptIOStreams(streams),
 		}, opts...)
 		return NewInstance(opts...)
 	}
 
-	scriptsPath := filepath.Join(repoPath, "/cron")
+	// scriptsPath := filepath.Join(repoPath, "/cron")
 
-	return cron.NewCron(js, newUpdateRunner(newInst, scriptsPath)), nil
+	return cron.NewCron(js, newUpdateFactory(newInst)), nil
 }
 
 // NewInstanceFromConfigAndNode is a temporary solution to create an instance from an

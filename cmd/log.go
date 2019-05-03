@@ -57,10 +57,6 @@ type LogOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
-	if f.RPC() != nil {
-		return usingRPCError("log")
-	}
-
 	if len(args) > 0 {
 		o.Ref = args[0]
 	}

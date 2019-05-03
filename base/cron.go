@@ -13,6 +13,56 @@ import (
 	"github.com/qri-io/qri/cron"
 )
 
+// DatasetSaveRunner returns a cron.RunFunc that invokes the "qri save" command
+func DatasetSaveRunner(basepath string) cron.RunJobFunc {
+	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
+		args := []string{"save", job.Name}
+
+		if o, ok := job.Options.(*cron.DatasetOptions); ok {
+			if o.Title != "" {
+				args = append(args, fmt.Sprintf(`--title="%s"`, o.Title))
+			}
+			if o.Message != "" {
+				args = append(args, fmt.Sprintf(`--message="%s"`, o.Message))
+			}
+			if o.Recall != "" {
+				args = append(args, fmt.Sprintf(`--recall="%s"`, o.Recall))
+			}
+			if o.BodyPath != "" {
+				args = append(args, fmt.Sprintf(`--body="%s"`, o.BodyPath))
+			}
+			if len(o.FilePaths) > 0 {
+				for _, path := range o.FilePaths {
+					args = append(args, fmt.Sprintf(`--file="%s"`, path))
+				}
+			}
+
+			// TODO (b5) - config and secrets
+
+			boolFlags := map[string]bool{
+				"--publish":     o.Publish,
+				"--strict":      o.Strict,
+				"--force":       o.Force,
+				"--keep-format": o.ConvertFormatToPrev,
+				"--no-render":   !o.ShouldRender,
+			}
+			for flag, use := range boolFlags {
+				if use {
+					args = append(args, flag)
+				}
+			}
+
+		}
+
+		cmd := exec.Command("qri", args...)
+		// cmd.Dir = basepath
+		cmd.Stderr = streams.ErrOut
+		cmd.Stdout = streams.Out
+		cmd.Stdin = streams.In
+		return cmd.Run()
+	}
+}
+
 // LocalShellScriptRunner creates a script runner anchored at a local path
 // The runner it wires operating sytsem command in/out/errour to the iostreams
 // provided by RunJobFunc. All paths are in relation to the provided base path
@@ -28,7 +78,7 @@ func LocalShellScriptRunner(basepath string) cron.RunJobFunc {
 		}
 
 		cmd := exec.Command(path)
-		cmd.Dir = basepath
+		// cmd.Dir = basepath
 		cmd.Stderr = streams.ErrOut
 		cmd.Stdout = streams.Out
 		cmd.Stdin = streams.In

@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/repo"
 )
@@ -75,6 +76,10 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 	// because our lib methods don't accept a context themselves
 	// TODO (b5): refactor RPC communication to use context
 	var ctx = context.Background()
+
+	if m.inst.cron == nil {
+		return fmt.Errorf("update service not available")
+	}
 
 	// TODO (b5) - parse update options & submit them here
 	return m.inst.cron.Schedule(ctx, job)
@@ -151,7 +156,9 @@ func (m *UpdateMethods) Job(name *string, job *Job) (err error) {
 
 	var res *Job
 	res, err = m.inst.cron.Job(ctx, *name)
-	*job = *res
+	if err == nil {
+		*job = *res
+	}
 
 	return
 }
@@ -175,6 +182,54 @@ type ServiceStatus struct {
 // ServiceStatus reports status of the cron daemon
 func (m *UpdateMethods) ServiceStatus(in *bool, out *ServiceStatus) error {
 	return fmt.Errorf("not finished")
+}
+
+// UpdateServiceStart starts the update service
+func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.Update, opts []Option) error {
+	if updateCfg == nil {
+		updateCfg = config.DefaultUpdate()
+	}
+
+	cli := cron.HTTPClient{Addr: updateCfg.Address}
+	if err := cli.Ping(); err == nil {
+		return fmt.Errorf("service already running")
+	}
+
+	var js cron.JobStore
+	switch updateCfg.Type {
+	case "fs":
+		js = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+	case "mem":
+		js = &cron.MemJobStore{}
+	default:
+		return fmt.Errorf("unknown cron type: %s", updateCfg.Type)
+	}
+
+	newInst := func(ctx context.Context) (*Instance, error) {
+		log.Error("cron create new instance")
+		go func() {
+			<-ctx.Done()
+			log.Error("cron close instance")
+		}()
+
+		opts = append([]Option{
+			OptCtx(ctx),
+		}, opts...)
+		return NewInstance(opts...)
+	}
+
+	// logsPath := filepath.Join(repoPath, "/cron")
+	svc := cron.NewCron(js, newUpdateFactory(newInst))
+
+	log.Debug("starting update service")
+
+	go func() {
+		if err := svc.ServeHTTP(updateCfg.Address); err != nil {
+			log.Errorf("starting cron http server: %s", err)
+		}
+	}()
+
+	return svc.Start(ctx)
 }
 
 // ServiceStart ensures the scheduler is running
@@ -292,17 +347,33 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 	return dsr.Save(saveParams, res)
 }
 
-func newUpdateRunner(newInst func(ctx context.Context, streams ioes.IOStreams) (*Instance, error), scriptsPath string) cron.RunJobFunc {
-	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) (err error) {
-		log.Infof("running update: %s", job.Name)
-		var inst *Instance
-		inst, err = newInst(ctx, streams)
-		if err != nil {
-			return err
-		}
+func newUpdateFactory(newInst func(ctx context.Context) (*Instance, error)) func(context.Context) cron.RunJobFunc {
+	return func(ctx context.Context) cron.RunJobFunc {
+		// note (b5): we'd like to one day be able to run scripts like this, creating
+		// an in-process instance when one or more jobs need running, but context cancellation
+		// & resource cleanup needs to be *perfect* before this can happen. We're not there yet.
+		// inst, err := newInst(ctx)
 
-		m := NewUpdateMethods(inst)
-		res := &repo.DatasetRef{}
-		return m.Run(job, res)
+		return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
+			// if err != nil {
+			// 	return err
+			// }
+			log.Errorf("running update: %s", job.Name)
+
+			switch job.Type {
+			case cron.JTDataset:
+				// When in-process instances are a thing, do this:
+				// m := NewUpdateMethods(inst)
+				// res := &repo.DatasetRef{}
+				// return m.Run(job, res)
+				runner := base.DatasetSaveRunner("")
+				return runner(ctx, streams, job)
+			case cron.JTShellScript:
+				runner := base.LocalShellScriptRunner("")
+				return runner(ctx, streams, job)
+			default:
+				return fmt.Errorf("unrecognized update type: %s", job.Type)
+			}
+		}
 	}
 }
