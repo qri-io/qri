@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
@@ -22,7 +23,7 @@ func NewUpdateMethods(inst *Instance) *UpdateMethods {
 	}
 
 	if err := os.MkdirAll(m.scriptsPath, os.ModePerm); err != nil {
-		log.Error("creating update scripts directory: %s", err.Error())
+		log.Errorf("creating update scripts directory: %s", err.Error())
 	}
 
 	return m
@@ -161,8 +162,23 @@ func (m *UpdateMethods) Log(name *string, unscheduled *bool) error {
 	return fmt.Errorf("not finished")
 }
 
-// StartService ensures the scheduler is running
-func (m *UpdateMethods) StartService(in, out *bool) error {
+// ServiceStatus describes the current state of a service
+type ServiceStatus struct {
+	Name       string
+	Running    bool
+	Daemonized bool // if true this service is scheduled
+	Started    *time.Time
+	Address    string
+	Metrics    map[string]interface{}
+}
+
+// ServiceStatus reports status of the cron daemon
+func (m *UpdateMethods) ServiceStatus(in *bool, out *ServiceStatus) error {
+	return fmt.Errorf("not finished")
+}
+
+// ServiceStart ensures the scheduler is running
+func (m *UpdateMethods) ServiceStart(in, out *bool) error {
 	local, ok := m.inst.cron.(*cron.Cron)
 	if !ok {
 		return fmt.Errorf("service already running")
@@ -175,14 +191,14 @@ func (m *UpdateMethods) StartService(in, out *bool) error {
 	return nil
 }
 
-// StopService halts the scheduler
-func (m *UpdateMethods) StopService(in, out *bool) error {
+// ServiceStop halts the scheduler
+func (m *UpdateMethods) ServiceStop(in, out *bool) error {
 	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
 
-// RestartService uses shell commands to restart the scheduler service
-func (m *UpdateMethods) RestartService(in, out *bool) error {
+// ServiceRestart uses shell commands to restart the scheduler service
+func (m *UpdateMethods) ServiceRestart(in, out *bool) error {
 	// TODO (b5):
 	return fmt.Errorf("not finished")
 }
