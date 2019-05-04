@@ -41,7 +41,7 @@ func TestCronDataset(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCronInterval(&MemJobStore{}, factory, time.Millisecond*50)
+	cron := NewCronInterval(&MemJobStore{}, &MemJobStore{}, factory, time.Millisecond*50)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -88,7 +88,7 @@ func TestCronShellScript(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCron(&MemJobStore{}, factory)
+	cron := NewCron(&MemJobStore{}, &MemJobStore{}, factory)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -107,6 +107,7 @@ func TestCronShellScript(t *testing.T) {
 
 func TestCronHTTP(t *testing.T) {
 	s := &MemJobStore{}
+	l := &MemJobStore{}
 
 	factory := func(context.Context) RunJobFunc {
 		return func(ctx context.Context, streams ioes.IOStreams, job *Job) error {
@@ -120,7 +121,7 @@ func TestCronHTTP(t *testing.T) {
 		t.Error("expected ping to server that is off to return ErrUnreachable")
 	}
 
-	cr := NewCron(s, factory)
+	cr := NewCron(s, l, factory)
 	// TODO (b5) - how do we keep this from being a leaking goroutine?
 	go cr.ServeHTTP(":7897")
 
@@ -138,10 +139,10 @@ func TestCronHTTP(t *testing.T) {
 	}
 
 	dsJob := &Job{
-		Name:        "b5/libp2p_node_count",
-		Type:        JTDataset,
-		Periodicity: mustRepeatingInterval("R/P1W"),
-		LastRun:     time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
+		Name:         "b5/libp2p_node_count",
+		Type:         JTDataset,
+		Periodicity:  mustRepeatingInterval("R/P1W"),
+		LastRunStart: time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	if err = cli.Schedule(cliCtx, dsJob); err != nil {

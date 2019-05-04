@@ -195,34 +195,20 @@ func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.
 		return fmt.Errorf("service already running")
 	}
 
-	var js cron.JobStore
+	var jobStore, logStore cron.JobStore
 	switch updateCfg.Type {
 	case "fs":
-		js = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+		logStore = cron.NewFlatbufferJobStore(repoPath + "/logs.qfb")
 	case "mem":
-		js = &cron.MemJobStore{}
+		jobStore = &cron.MemJobStore{}
+		logStore = &cron.MemJobStore{}
 	default:
 		return fmt.Errorf("unknown cron type: %s", updateCfg.Type)
 	}
 
-	newInst := func(ctx context.Context) (*Instance, error) {
-		log.Error("cron create new instance")
-		go func() {
-			<-ctx.Done()
-			log.Error("cron close instance")
-		}()
-
-		opts = append([]Option{
-			OptCtx(ctx),
-		}, opts...)
-		return NewInstance(opts...)
-	}
-
-	// logsPath := filepath.Join(repoPath, "/cron")
-	svc := cron.NewCron(js, newUpdateFactory(newInst))
-
+	svc := cron.NewCron(jobStore, logStore, updateFactory)
 	log.Debug("starting update service")
-
 	go func() {
 		if err := svc.ServeHTTP(updateCfg.Address); err != nil {
 			log.Errorf("starting cron http server: %s", err)
@@ -293,8 +279,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		err = m.runDatasetUpdate(params, res)
 
 	case cron.JTShellScript:
-		runner := base.LocalShellScriptRunner(m.scriptsPath)
-		err = runner(m.inst.ctx, m.inst.streams, p)
+		return base.JobToCmd(m.inst.streams, p).Run()
 
 	default:
 		return fmt.Errorf("unrecognized update type: %s", p.Type)
@@ -347,33 +332,30 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 	return dsr.Save(saveParams, res)
 }
 
-func newUpdateFactory(newInst func(ctx context.Context) (*Instance, error)) func(context.Context) cron.RunJobFunc {
-	return func(ctx context.Context) cron.RunJobFunc {
-		// note (b5): we'd like to one day be able to run scripts like this, creating
-		// an in-process instance when one or more jobs need running, but context cancellation
-		// & resource cleanup needs to be *perfect* before this can happen. We're not there yet.
-		// inst, err := newInst(ctx)
+// note (b5): we'd like to one day be able to run scripts like this, creating
+// an in-process instance when one or more jobs need running, but context cancellation
+// & resource cleanup needs to be *perfect* before this can happen. We're not there yet.
+// func newUpdateFactory(newInst func(ctx context.Context) (*Instance, error)) func(context.Context) cron.RunJobFunc {
+//   return func(ctx context.Context) cron.RunJobFunc {
+//    inst, err := newInst(ctx)
+func updateFactory(context.Context) cron.RunJobFunc {
+	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
+		// if err != nil {
+		// 	return err
+		// }
 
-		return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
-			// if err != nil {
-			// 	return err
-			// }
-			log.Errorf("running update: %s", job.Name)
+		// When in-process instances are a thing, do something like this:
+		// if job.Type == cron.JTDataset {
+		// m := NewUpdateMethods(inst)
+		// res := &repo.DatasetRef{}
+		// return m.Run(job, res)
+		// }
 
-			switch job.Type {
-			case cron.JTDataset:
-				// When in-process instances are a thing, do this:
-				// m := NewUpdateMethods(inst)
-				// res := &repo.DatasetRef{}
-				// return m.Run(job, res)
-				runner := base.DatasetSaveRunner("")
-				return runner(ctx, streams, job)
-			case cron.JTShellScript:
-				runner := base.LocalShellScriptRunner("")
-				return runner(ctx, streams, job)
-			default:
-				return fmt.Errorf("unrecognized update type: %s", job.Type)
-			}
+		log.Errorf("running update: %s", job.Name)
+		cmd := base.JobToCmd(streams, job)
+		if cmd == nil {
+			return fmt.Errorf("unrecognized update type: %s", job.Type)
 		}
+		return nil
 	}
 }

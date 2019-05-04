@@ -280,7 +280,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
-	if inst.cron, err = newCron(cfg, filepath.Dir(cfg.Path()), opts); err != nil {
+	if inst.cron, err = newCron(cfg, inst.QriPath()); err != nil {
 		return
 	}
 
@@ -389,53 +389,31 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 	return fsys, nil
 }
 
-func newCron(cfg *config.Config, repoPath string, opts []Option) (cron.Scheduler, error) {
-	if cfg.Update == nil {
-		cfg.Update = config.DefaultUpdate()
+func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
+	updateCfg := cfg.Update
+	if updateCfg == nil {
+		updateCfg = config.DefaultUpdate()
 	}
 
-	cli := cron.HTTPClient{Addr: cfg.Update.Address}
-	err := cli.Ping()
-
-	if err == nil {
+	cli := cron.HTTPClient{Addr: updateCfg.Address}
+	if err := cli.Ping(); err == nil {
 		return cli, nil
-	} else if err != cron.ErrUnreachable {
-		log.Errorf("initializing cron: %s", err.Error())
-		// at this point something is up with the cron server, still return a cli
-		// so we can issue commands like restart
-		return cli, err
 	}
 
-	// at this point err must be cron.ErrUnreachable, which means it's time to
-	// spin up a new cron service
-	err = nil
-
-	var js cron.JobStore
-	switch cfg.Update.Type {
+	var jobStore, logStore cron.JobStore
+	switch updateCfg.Type {
 	case "fs":
-		js = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
+		logStore = cron.NewFlatbufferJobStore(repoPath + "/logs.qfb")
 	case "mem":
-		js = &cron.MemJobStore{}
+		jobStore = &cron.MemJobStore{}
+		logStore = &cron.MemJobStore{}
 	default:
-		return nil, fmt.Errorf("unknown cron type: %s", cfg.Update.Type)
+		return nil, fmt.Errorf("unknown cron type: %s", updateCfg.Type)
 	}
 
-	newInst := func(ctx context.Context) (*Instance, error) {
-		log.Debug("cron create new instance")
-		go func() {
-			<-ctx.Done()
-			log.Debug("cron close instance")
-		}()
-
-		opts = append([]Option{
-			OptCtx(ctx),
-		}, opts...)
-		return NewInstance(opts...)
-	}
-
-	// scriptsPath := filepath.Join(repoPath, "/cron")
-
-	return cron.NewCron(js, newUpdateFactory(newInst)), nil
+	svc := cron.NewCron(jobStore, logStore, updateFactory)
+	return svc, nil
 }
 
 // NewInstanceFromConfigAndNode is a temporary solution to create an instance from an
