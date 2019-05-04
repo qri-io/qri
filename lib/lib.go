@@ -48,6 +48,11 @@ var (
 const VersionNumber = "0.7.4-dev"
 
 func init() {
+	// TODO (b5): for now this ensures that `qri update service start`
+	// actually prints something. `qri update service start` should print
+	// some basic details AND obey the config.log.levels.cron value
+	golog.SetLogLevel("cron", "debug")
+
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
 	// registering with the gob package prevents errors when sending them
 	// over net/rpc calls.

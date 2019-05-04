@@ -2,6 +2,7 @@ package cron
 
 import (
 	"fmt"
+	"path/filepath"
 	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -76,7 +77,7 @@ func (job *Job) NextExec() time.Time {
 
 // LogName returns a canonical name string from a timestamp and job pointer
 func (job *Job) LogName() string {
-	return fmt.Sprintf("%d-%s", job.LastRunStart.Unix(), job.Name)
+	return fmt.Sprintf("%d-%s", job.LastRunStart.Unix(), filepath.Base(job.Name))
 }
 
 // Copy creates a deep copy of a job

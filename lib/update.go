@@ -198,8 +198,8 @@ func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.
 	var jobStore, logStore cron.JobStore
 	switch updateCfg.Type {
 	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
-		logStore = cron.NewFlatbufferJobStore(repoPath + "/logs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(repoPath + "/cron_jobs.qfb")
+		logStore = cron.NewFlatbufferJobStore(repoPath + "/cron_logs.qfb")
 	case "mem":
 		jobStore = &cron.MemJobStore{}
 		logStore = &cron.MemJobStore{}
@@ -356,6 +356,6 @@ func updateFactory(context.Context) cron.RunJobFunc {
 		if cmd == nil {
 			return fmt.Errorf("unrecognized update type: %s", job.Type)
 		}
-		return nil
+		return cmd.Run()
 	}
 }
