@@ -165,12 +165,14 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 	streams := ioes.NewDiscardIOStreams()
 	if lfc, ok := c.log.(LogFileCreator); ok {
 		if file, logPath, err := lfc.CreateLogFile(job); err == nil {
+			log.Debugf("using log file: %s", logPath)
 			defer file.Close()
-			streams.Out = file
-			streams.ErrOut = file
+			streams = ioes.NewIOStreams(nil, file, file)
 			job.LogFilePath = logPath
 		}
 	}
+
+	streams.ErrOut.Write([]byte(fmt.Sprintf("%s %s\n", job.LastRunStart, job.Name)))
 
 	if err := runner(ctx, streams, job); err != nil {
 		log.Errorf("run job: %s error: %s", job.Name, err.Error())
@@ -188,6 +190,7 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 		log.Error(err)
 	}
 
+	job.Name = job.LogName()
 	if err := c.log.PutJob(ctx, job); err != nil {
 		log.Error(err)
 	}
@@ -344,7 +347,7 @@ func (c *Cron) loggedJobFileHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Cron) runHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO (b5): implement an HTTP run handler
-	w.WriteHeader(http.StatusTooEarly)
+	w.WriteHeader(http.StatusInternalServerError)
 	w.Write([]byte("not finished"))
 	// c.runJob(r.Context(), nil)
 }

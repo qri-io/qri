@@ -67,7 +67,6 @@ func datasetSaveCmd(streams ioes.IOStreams, job *cron.Job) *exec.Cmd {
 	}
 
 	cmd := exec.Command("qri", args...)
-	// cmd.Dir = basepath
 	cmd.Stderr = streams.ErrOut
 	cmd.Stdout = streams.Out
 	cmd.Stdin = streams.In

@@ -158,6 +158,11 @@ func TestCronHTTP(t *testing.T) {
 		t.Error("expected len of jobs to equal 1")
 	}
 
+	_, err = cli.Job(cliCtx, jobs[0].Name)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
 	if err := cli.Unschedule(cliCtx, dsJob.Name); err != nil {
 		t.Fatal(err)
 	}

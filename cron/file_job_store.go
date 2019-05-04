@@ -181,7 +181,7 @@ func (s *FlatbufferJobStore) CreateLogFile(j *Job) (f io.WriteCloser, path strin
 	if logsDir, err = s.logsDir(); err != nil {
 		return
 	}
-	path = filepath.Join(logsDir, j.LogName())
+	path = filepath.Join(logsDir, j.LogName()+".log")
 
 	f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
 	return
