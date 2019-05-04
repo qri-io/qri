@@ -41,11 +41,14 @@ func (jt JobType) Enum() int8 {
 // a specified Periodicity (time interval)
 type Job struct {
 	Name        string
+	Path        string
 	Type        JobType
 	Periodicity iso8601.RepeatingInterval
 
-	LastRun   time.Time
-	LastError string
+	LastRunStart time.Time
+	LastRunStop  time.Time
+	LastError    string
+	LogFilePath  string
 
 	Options Options
 }
@@ -68,16 +71,51 @@ func (job *Job) Validate() error {
 // NextExec returns the next time execution horizion. If job periodicity is
 // improperly configured, the returned time will be zero
 func (job *Job) NextExec() time.Time {
-	return job.Periodicity.After(job.LastRun)
+	return job.Periodicity.After(job.LastRunStart)
+}
+
+// LogName returns a canonical name string from a timestamp and job pointer
+func (job *Job) LogName() string {
+	return fmt.Sprintf("%d-%s", job.LastRunStart.Unix(), job.Name)
+}
+
+// Copy creates a deep copy of a job
+func (job *Job) Copy() *Job {
+	cp := &Job{
+		Name:         job.Name,
+		Path:         job.Path,
+		Type:         job.Type,
+		Periodicity:  job.Periodicity,
+		LastRunStart: job.LastRunStart,
+		LastRunStop:  job.LastRunStop,
+		LastError:    job.LastError,
+		LogFilePath:  job.LogFilePath,
+	}
+
+	if job.Options != nil {
+		cp.Options = job.Options
+	}
+
+	return cp
+}
+
+// FlatbufferBytes formats a job as a flatbuffer byte slice
+func (job *Job) FlatbufferBytes() []byte {
+	builder := flatbuffers.NewBuilder(0)
+	off := job.MarshalFlatbuffer(builder)
+	builder.Finish(off)
+	return builder.FinishedBytes()
 }
 
 // MarshalFlatbuffer writes a job to a builder
 func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	name := builder.CreateString(job.Name)
-	// typ := builder.CreateString(string(job.Type))
+	path := builder.CreateString(job.Path)
 
-	lastRun := builder.CreateString(job.LastRun.Format(time.RFC3339))
+	lastRunStart := builder.CreateString(job.LastRunStart.Format(time.RFC3339))
+	lastRunStop := builder.CreateString(job.LastRunStop.Format(time.RFC3339))
 	lastError := builder.CreateString(job.LastError)
+	logPath := builder.CreateString(job.LogFilePath)
 	p := builder.CreateString(job.Periodicity.String())
 
 	var opts flatbuffers.UOffsetT
@@ -87,10 +125,14 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 
 	cronfb.JobStart(builder)
 	cronfb.JobAddName(builder, name)
+	cronfb.JobAddPath(builder, path)
+
 	cronfb.JobAddType(builder, job.Type.Enum())
-	cronfb.JobAddLastRun(builder, lastRun)
-	cronfb.JobAddLastError(builder, lastError)
 	cronfb.JobAddPeriodicity(builder, p)
+	cronfb.JobAddLastRunStart(builder, lastRunStart)
+	cronfb.JobAddLastRunStop(builder, lastRunStop)
+	cronfb.JobAddLastError(builder, lastError)
+	cronfb.JobAddLogFilePath(builder, logPath)
 	if opts != 0 {
 		cronfb.JobAddOptions(builder, opts)
 	}
@@ -99,7 +141,12 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 
 // UnmarshalFlatbuffer decodes a job from a flatbuffer
 func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
-	lastRun, err := time.Parse(time.RFC3339, string(j.LastRun()))
+	lastRunStart, err := time.Parse(time.RFC3339, string(j.LastRunStart()))
+	if err != nil {
+		return err
+	}
+
+	lastRunStop, err := time.Parse(time.RFC3339, string(j.LastRunStop()))
 	if err != nil {
 		return err
 	}
@@ -111,11 +158,14 @@ func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
 
 	*job = Job{
 		Name:        string(j.Name()),
+		Path:        string(j.Path()),
 		Type:        JobType(cronfb.EnumNamesJobType[j.Type()]),
 		Periodicity: p,
 
-		LastRun:   lastRun,
-		LastError: string(j.LastError()),
+		LastRunStart: lastRunStart,
+		LastRunStop:  lastRunStop,
+		LastError:    string(j.LastError()),
+		LogFilePath:  string(j.LogFilePath()),
 	}
 
 	unionTable := new(flatbuffers.Table)

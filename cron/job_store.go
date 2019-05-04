@@ -3,6 +3,7 @@ package cron
 import (
 	"context"
 	"fmt"
+	"io"
 	"sort"
 	"sync"
 
@@ -36,6 +37,13 @@ type JobStore interface {
 	PutJob(context.Context, *Job) error
 	// DeleteJob removes a job from the store
 	DeleteJob(ctx context.Context, name string) error
+}
+
+// LogFileCreator is an interface for generating log files to write to,
+// JobStores should implement this interface
+type LogFileCreator interface {
+	// CreateLogFile returns a file to write output to
+	CreateLogFile(job *Job) (f io.WriteCloser, path string, err error)
 }
 
 // MemJobStore is an in-memory implementation of the JobStore interface
@@ -156,10 +164,10 @@ type jobs []*Job
 
 func (js jobs) Len() int { return len(js) }
 func (js jobs) Less(i, j int) bool {
-	if js[i].LastRun.Equal(js[j].LastRun) {
+	if js[i].LastRunStart.Equal(js[j].LastRunStart) {
 		return js[i].Name < js[j].Name
 	}
-	return js[i].LastRun.After(js[j].LastRun)
+	return js[i].LastRunStart.After(js[j].LastRunStart)
 }
 func (js jobs) Swap(i, j int) { js[i], js[j] = js[j], js[i] }
 

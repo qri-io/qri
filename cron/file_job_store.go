@@ -3,8 +3,10 @@ package cron
 import (
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"sort"
 	"sync"
 )
@@ -168,7 +170,31 @@ func (s *FlatbufferJobStore) DeleteJob(ctx context.Context, name string) error {
 	return s.saveJobs(js)
 }
 
+const logsDirName = "logs"
+
+// CreateLogFile creates an in-memory log file
+func (s *FlatbufferJobStore) CreateLogFile(j *Job) (f io.WriteCloser, path string, err error) {
+	s.lock.Lock()
+	defer s.lock.Unlock()
+
+	var logsDir string
+	if logsDir, err = s.logsDir(); err != nil {
+		return
+	}
+	path = filepath.Join(logsDir, j.LogName())
+
+	f, err = os.OpenFile(path, os.O_APPEND|os.O_WRONLY|os.O_CREATE, 0644)
+	return
+}
+
+func (s *FlatbufferJobStore) logsDir() (string, error) {
+	path := filepath.Join(filepath.Dir(s.path), logsDirName)
+	err := os.MkdirAll(path, os.ModePerm)
+	return path, err
+}
+
 // Destroy removes the path entirely
 func (s *FlatbufferJobStore) Destroy() error {
+	os.RemoveAll(filepath.Join(filepath.Dir(s.path), logsDirName))
 	return os.Remove(s.path)
 }

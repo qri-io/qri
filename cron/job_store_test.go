@@ -48,10 +48,10 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 		}
 
 		jobTwo := &Job{
-			Name:        "job two",
-			Periodicity: mustRepeatingInterval("R/P3M"),
-			Type:        JTShellScript,
-			LastRun:     time.Date(2001, 1, 1, 1, 1, 1, 1, time.UTC),
+			Name:         "job two",
+			Periodicity:  mustRepeatingInterval("R/P3M"),
+			Type:         JTShellScript,
+			LastRunStart: time.Date(2001, 1, 1, 1, 1, 1, 1, time.UTC),
 		}
 		if err = store.PutJob(ctx, jobTwo); err != nil {
 			t.Errorf("putting job one: %s", err)
@@ -66,10 +66,10 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 		}
 
 		updatedJobOne := &Job{
-			Name:        jobOne.Name,
-			Periodicity: jobOne.Periodicity,
-			Type:        jobOne.Type,
-			LastRun:     time.Date(2002, 1, 1, 1, 1, 1, 1, time.UTC),
+			Name:         jobOne.Name,
+			Periodicity:  jobOne.Periodicity,
+			Type:         jobOne.Type,
+			LastRunStart: time.Date(2002, 1, 1, 1, 1, 1, 1, time.UTC),
 		}
 		if err = store.PutJob(ctx, updatedJobOne); err != nil {
 			t.Errorf("putting job one: %s", err)

@@ -30,9 +30,12 @@ func CompareJobs(a, b *Job) error {
 		return fmt.Errorf("Periodicity mismatch. %s != %s", a.Name, b.Name)
 	}
 	// use unix comparisons to ignore millisecond & nanosecond precision errors
-	if a.LastRun.Unix() != b.LastRun.Unix() {
-		return fmt.Errorf("LastRun mismatch. %s != %s", a.LastRun, b.LastRun)
+	if a.LastRunStart.Unix() != b.LastRunStart.Unix() {
+		return fmt.Errorf("LastRunStart mismatch. %s != %s", a.LastRunStart, b.LastRunStart)
 	}
+
+	// TODO (b5): compare other fields
+
 	if a.Type != b.Type {
 		return fmt.Errorf("Type mistmatch. %s != %s", a.Type, b.Type)
 	}

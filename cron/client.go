@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"net/http"
 	"strings"
@@ -46,16 +47,119 @@ func (c HTTPClient) Ping() error {
 	if res.StatusCode == http.StatusOK {
 		return nil
 	}
-	return resError(res)
+	return maybeErrorResponse(res)
 }
 
 // Jobs lists jobs by querying an HTTP server
 func (c HTTPClient) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
-	res, err := http.Get(fmt.Sprintf("http://%s/jobs?offset=%d&limit=&%d", c.Addr, offset, limit))
+	res, err := http.Get(fmt.Sprintf("http://%s/jobs?offset=%d&limit=%d", c.Addr, offset, limit))
 	if err != nil {
 		return nil, err
 	}
 
+	return decodeJobsResponse(res)
+}
+
+// Job gets a job by querying an HTTP server
+func (c HTTPClient) Job(ctx context.Context, name string) (*Job, error) {
+	res, err := http.Get(fmt.Sprintf("http://%s/job?name=%s", c.Addr, name))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		return decodeJobResponse(res)
+	}
+
+	return nil, maybeErrorResponse(res)
+}
+
+// Schedule adds a job to the cron scheduler via an HTTP request
+func (c HTTPClient) Schedule(ctx context.Context, job *Job) error {
+	return c.postJob(job)
+}
+
+// Unschedule removes a job from scheduling
+func (c HTTPClient) Unschedule(ctx context.Context, name string) error {
+	req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/jobs?name=%s", c.Addr, name), nil)
+	if err != nil {
+		return err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	return maybeErrorResponse(res)
+}
+
+// Logs gives a log of executed jobs
+func (c HTTPClient) Logs(ctx context.Context, offset, limit int) ([]*Job, error) {
+	res, err := http.Get(fmt.Sprintf("http://%s/logs?offset=%d&limit=%d", c.Addr, offset, limit))
+	if err != nil {
+		return nil, err
+	}
+
+	return decodeJobsResponse(res)
+}
+
+// LoggedJob returns a single executed job by job.LogName
+func (c HTTPClient) LoggedJob(ctx context.Context, logName string) (*Job, error) {
+	res, err := http.Get(fmt.Sprintf("http://%s/log?log_name=%s", c.Addr, logName))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		return decodeJobResponse(res)
+	}
+
+	return nil, maybeErrorResponse(res)
+}
+
+// LoggedJobFile returns a reader for a file at the given name
+func (c HTTPClient) LoggedJobFile(ctx context.Context, logName string) (io.ReadCloser, error) {
+	res, err := http.Get(fmt.Sprintf("http://%s/log/output?log_name=%s", c.Addr, logName))
+	if err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode == 200 {
+		return res.Body, nil
+	}
+
+	return nil, maybeErrorResponse(res)
+}
+
+func (c HTTPClient) postJob(job *Job) error {
+	builder := flatbuffers.NewBuilder(0)
+	off := job.MarshalFlatbuffer(builder)
+	builder.Finish(off)
+	body := bytes.NewReader(builder.FinishedBytes())
+
+	res, err := http.Post(fmt.Sprintf("http://%s/jobs", c.Addr), "", body)
+	if err != nil {
+		return err
+	}
+
+	return maybeErrorResponse(res)
+}
+
+func maybeErrorResponse(res *http.Response) error {
+	if res.StatusCode == 200 {
+		return nil
+	}
+
+	errData, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return err
+	}
+
+	return fmt.Errorf(string(errData))
+}
+
+func decodeJobsResponse(res *http.Response) ([]*Job, error) {
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -78,54 +182,15 @@ func (c HTTPClient) Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
 	return jobs, nil
 }
 
-// Job gets a job by querying an HTTP server
-func (c HTTPClient) Job(ctx context.Context, name string) (*Job, error) {
-	return nil, fmt.Errorf("not finished")
-}
-
-// Schedule adds a job to the cron scheduler via an HTTP request
-func (c HTTPClient) Schedule(ctx context.Context, job *Job) error {
-	return c.postJob(job)
-}
-
-// Unschedule removes a job from scheduling
-func (c HTTPClient) Unschedule(ctx context.Context, name string) error {
-	req, err := http.NewRequest("DELETE", fmt.Sprintf("http://%s/jobs?name=%s", c.Addr, name), nil)
+func decodeJobResponse(res *http.Response) (*Job, error) {
+	defer res.Body.Close()
+	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
-	res, err := http.DefaultClient.Do(req)
-	if err != nil {
-		return err
-	}
-
-	return resError(res)
-}
-
-func (c HTTPClient) postJob(job *Job) error {
-	builder := flatbuffers.NewBuilder(0)
-	off := job.MarshalFlatbuffer(builder)
-	builder.Finish(off)
-	body := bytes.NewReader(builder.FinishedBytes())
-
-	res, err := http.Post(fmt.Sprintf("http://%s/jobs", c.Addr), "", body)
-	if err != nil {
-		return err
-	}
-
-	return resError(res)
-}
-
-func resError(res *http.Response) error {
-	if res.StatusCode == 200 {
-		return nil
-	}
-
-	errData, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return err
-	}
-
-	return fmt.Errorf(string(errData))
+	js := cronfb.GetRootAsJob(data, 0)
+	dec := &Job{}
+	err = dec.UnmarshalFlatbuffer(js)
+	return dec, err
 }

@@ -10,7 +10,7 @@ table StringMapVal {
   val:string;
 }
 
-// TODO (b5): I think it would be smarter to remove all knoweldge from cron 
+// TODO (b5): I think it would be smarter to remove all details from cron 
 // about what exactly is being scheduled, but we would need a go implementation
 // of flexbuffers to do that properly, so let's leave this in for now
 union Options { DatasetOptions, ShellScriptOptions }
@@ -38,11 +38,14 @@ table ShellScriptOptions {
 
 table Job {
   name:string;
+	path:string;
 	type:JobType;
 	periodicity:string;
 
-	lastRun:string;
+	lastRunStart:string;
+	lastRunStop:string;
 	lastError:string;
+	logFilePath:string;
 
 	options:Options;
 }
