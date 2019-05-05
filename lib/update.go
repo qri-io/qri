@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"path/filepath"
 	"time"
@@ -154,19 +155,43 @@ func (m *UpdateMethods) Job(name *string, job *Job) (err error) {
 	// TODO (b5): refactor RPC communication to use context
 	var ctx = context.Background()
 
-	var res *Job
-	res, err = m.inst.cron.Job(ctx, *name)
-	if err == nil {
-		*job = *res
+	res, err := m.inst.cron.Job(ctx, *name)
+	if err != nil {
+		return err
 	}
 
-	return
+	*job = *res
+	return nil
 }
 
-// Log shows the history of job execution
-func (m *UpdateMethods) Log(name *string, unscheduled *bool) error {
-	// TODO (b5)
-	return fmt.Errorf("not finished")
+// Logs shows the history of job execution
+func (m *UpdateMethods) Logs(p *ListParams, res *[]*Job) error {
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	var ctx = context.Background()
+
+	jobs, err := m.inst.cron.Logs(ctx, p.Offset, p.Limit)
+	if err != nil {
+		return err
+	}
+
+	*res = jobs
+	return nil
+}
+
+// LogFile reads log file data for a given logName
+func (m *UpdateMethods) LogFile(logName *string, data *[]byte) error {
+	f, err := m.inst.cron.LoggedJobFile(context.Background(), *logName)
+	if err != nil {
+		return err
+	}
+
+	defer f.Close()
+	res, err := ioutil.ReadAll(f)
+	*data = res
+
+	return err
 }
 
 // ServiceStatus describes the current state of a service

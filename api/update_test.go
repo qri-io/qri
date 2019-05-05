@@ -37,7 +37,7 @@ func TestUpdateHandlers(t *testing.T) {
 	logCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 	}
-	runHandlerTestCases(t, "update log", h.LogHandler, logCases, false)
+	runHandlerTestCases(t, "update log", h.LogsHandler, logCases, false)
 
 	runUpdateCases := []handlerMimeMultipartTestCase{
 		{"OPTIONS", "/update/run", nil, nil},

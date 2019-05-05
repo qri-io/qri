@@ -2,11 +2,12 @@
 package cron
 
 import (
+	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"net/http"
+	"os"
 	"time"
 
 	apiutil "github.com/datatogether/api/apiutil"
@@ -103,9 +104,18 @@ func (c *Cron) LoggedJob(ctx context.Context, logName string) (*Job, error) {
 
 // LoggedJobFile returns a reader for a file at the given name
 func (c *Cron) LoggedJobFile(ctx context.Context, logName string) (io.ReadCloser, error) {
-	// reader := c.log.
-	// TODO (b5):
-	return nil, fmt.Errorf("not finished")
+	job, err := c.log.Job(ctx, logName)
+	if err != nil {
+		return nil, err
+	}
+
+	if job.LogFilePath == "" {
+		return ioutil.NopCloser(&bytes.Buffer{}), nil
+	}
+
+	// TODO (b5): if logs are being stored somewhere other than local this'll break
+	// we should add an OpenLogFile method to LogFileCreator & rename the interface
+	return os.Open(job.LogFilePath)
 }
 
 // Start initiates the check loop, looking for updates to execute once at every
@@ -171,8 +181,6 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 			job.LogFilePath = logPath
 		}
 	}
-
-	streams.ErrOut.Write([]byte(fmt.Sprintf("%s %s\n", job.LastRunStart, job.Name)))
 
 	if err := runner(ctx, streams, job); err != nil {
 		log.Errorf("run job: %s error: %s", job.Name, err.Error())
