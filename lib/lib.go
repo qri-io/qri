@@ -408,8 +408,8 @@ func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
 	var jobStore, logStore cron.JobStore
 	switch updateCfg.Type {
 	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(repoPath + "/jobs.qfb")
-		logStore = cron.NewFlatbufferJobStore(repoPath + "/logs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(repoPath + "/cron_jobs.qfb")
+		logStore = cron.NewFlatbufferJobStore(repoPath + "/cron_logs.qfb")
 	case "mem":
 		jobStore = &cron.MemJobStore{}
 		logStore = &cron.MemJobStore{}

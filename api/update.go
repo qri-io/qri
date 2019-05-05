@@ -94,9 +94,43 @@ func (h UpdateHandlers) unscheduleUpdateHandler(w http.ResponseWriter, r *http.R
 	}
 }
 
-// LogHandler shows the log of previously run updates
-func (h *UpdateHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
-	util.WriteErrResponse(w, http.StatusNotFound, fmt.Errorf("not finished"))
+// LogsHandler shows the log of previously run updates
+func (h *UpdateHandlers) LogsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.logsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *UpdateHandlers) logsHandler(w http.ResponseWriter, r *http.Request) {
+	args := lib.ListParamsFromRequest(r)
+	res := []*lib.Job{}
+	if err := h.Logs(&args, &res); err != nil {
+		log.Errorf("listing update logs: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
+		log.Errorf("list jobs response: %s", err.Error())
+	}
+}
+
+// LogFileHandler fetches log output file data
+func (h *UpdateHandlers) LogFileHandler(w http.ResponseWriter, r *http.Request) {
+	name := r.FormValue("log_name")
+	data := []byte{}
+	if err := h.LogFile(&name, &data); err != nil {
+		log.Errorf("getting update log file: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	w.WriteHeader(http.StatusOK)
+	w.Write(data)
 }
 
 // RunHandler brings a dataset to the latest version

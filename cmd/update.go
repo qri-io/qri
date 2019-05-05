@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"path/filepath"
 
+	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
@@ -46,8 +47,9 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 	listCmd := &cobra.Command{
-		Use:   "list",
-		Short: "list scheduled updates",
+		Use:     "list",
+		Aliases: []string{"ls"},
+		Short:   "list scheduled updates",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -56,19 +58,23 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
-	listCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 	listCmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
+	listCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 
-	logCmd := &cobra.Command{
-		Use:   "log",
-		Short: "show log of dataset updates",
+	logsCmd := &cobra.Command{
+		Use:     "logs",
+		Aliases: []string{"log"},
+		Short:   "show log of dataset updates",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Log()
+			return o.Logs(args)
 		},
 	}
+
+	logsCmd.Flags().IntVar(&o.Page, "page", 1, "page number results, default 1")
+	logsCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 
 	runCmd := &cobra.Command{
 		Use:   "run",
@@ -135,7 +141,7 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		scheduleCmd,
 		unscheduleCmd,
 		listCmd,
-		logCmd,
+		logsCmd,
 		runCmd,
 		serviceCmd,
 	)
@@ -221,11 +227,11 @@ func (o *UpdateOptions) Unschedule(args []string) (err error) {
 
 // List shows scheduled update jobs
 func (o *UpdateOptions) List() (err error) {
-
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
 	p := &lib.ListParams{
-		// TODO (b5) - finish
-		Limit:  100,
-		Offset: 0,
+		Offset: page.Offset(),
+		Limit:  page.Limit(),
 	}
 	res := []*lib.Job{}
 	if err = o.updateMethods.List(p, &res); err != nil {
@@ -240,10 +246,41 @@ func (o *UpdateOptions) List() (err error) {
 	return
 }
 
-// Log shows a history of job events
-func (o *UpdateOptions) Log() (err error) {
-	// TODO (b5):
-	return fmt.Errorf("not finished")
+// Logs shows a history of job events
+func (o *UpdateOptions) Logs(args []string) (err error) {
+	if len(args) == 1 {
+		return o.LogFile(args[0])
+	}
+
+	// convert Page and PageSize to Limit and Offset
+	page := util.NewPage(o.Page, o.PageSize)
+	p := &lib.ListParams{
+		Offset: page.Offset(),
+		Limit:  page.Limit(),
+	}
+
+	res := []*lib.Job{}
+	if err = o.updateMethods.Logs(p, &res); err != nil {
+		return
+	}
+
+	for i, j := range res {
+		num := p.Offset + i + 1
+		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, j.Name, j.Type, j.NextExec())
+	}
+
+	return nil
+}
+
+// LogFile prints a log output file
+func (o *UpdateOptions) LogFile(logName string) error {
+	data := []byte{}
+	if err := o.updateMethods.LogFile(&logName, &data); err != nil {
+		return err
+	}
+
+	o.Out.Write(data)
+	return nil
 }
 
 // ServiceStatus gets the current status of the update daemon

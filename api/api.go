@@ -271,7 +271,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	}
 	m.Handle("/update", s.middleware(uh.UpdatesHandler))
 	m.Handle("/update/run", s.middleware(uh.RunHandler))
-	m.Handle("/update/log", s.middleware(uh.LogHandler))
+	m.Handle("/update/logs", s.middleware(uh.LogsHandler))
+	m.Handle("/update/logs/file", s.middleware(uh.LogFileHandler))
 	m.Handle("/update/service", s.middleware(uh.ServiceHandler))
 
 	renderh := NewRenderHandlers(node.Repo)
