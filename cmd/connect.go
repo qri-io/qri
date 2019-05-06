@@ -5,9 +5,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/api"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 	"github.com/spf13/cobra"
 )
 
@@ -40,17 +38,12 @@ peers & swapping data.`,
 		},
 	}
 
-	cmd.Flags().IntVarP(&o.APIPort, "api-port", "", 0, "port to start api on")
-	cmd.Flags().IntVarP(&o.RPCPort, "rpc-port", "", 0, "port to start rpc listener on")
-	cmd.Flags().IntVarP(&o.WebappPort, "webapp-port", "", 0, "port to serve webapp on")
 	cmd.Flags().IntVarP(&o.DisconnectAfter, "disconnect-after", "", 0, "duration to keep connected in seconds, 0 means run indefinitely")
 
 	cmd.Flags().BoolVarP(&o.DisableAPI, "disable-api", "", false, "disables api, overrides the api-port flag")
 	cmd.Flags().BoolVarP(&o.DisableRPC, "disable-rpc", "", false, "disables rpc, overrides the rpc-port flag")
 	cmd.Flags().BoolVarP(&o.DisableWebapp, "disable-webapp", "", false, "disables webapp, overrides the webapp-port flag")
-	cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disables webapp, overrides the webapp-port flag")
-	// TODO - not yet supported
-	// cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disable peer-2-peer networking")
+	cmd.Flags().BoolVarP(&o.DisableP2P, "disable-p2p", "", false, "disables p2p, overrides the webapp-port flag")
 
 	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
 	cmd.Flags().BoolVarP(&o.ReadOnly, "read-only", "", false, "run qri in read-only mode, limits the api endpoints")
@@ -65,9 +58,6 @@ peers & swapping data.`,
 type ConnectOptions struct {
 	ioes.IOStreams
 
-	APIPort         int
-	RPCPort         int
-	WebappPort      int
 	DisconnectAfter int
 
 	DisableAPI    bool
@@ -81,8 +71,7 @@ type ConnectOptions struct {
 	RemoteMode          bool
 	RemoteAcceptSizeMax int64
 
-	Node   *p2p.QriNode
-	Config *config.Config
+	inst *lib.Instance
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -109,59 +98,61 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 	if err = f.Init(); err != nil {
 		return err
 	}
-	o.Node, err = f.ConnectionNode()
-	if err != nil {
+
+	// TODO (b5): remove this. it's currently here just to report the nice error
+	if _, err = f.ConnectionNode(); err != nil {
 		return fmt.Errorf("%s, is `qri connect` already running?", err)
 	}
-	o.Config, err = f.Config()
+
+	o.inst = f.Instance()
 	return
+}
+
+// ConfigFlagIsSet returns true if any connact flags that are also available as config value are set
+// TODO (b5) - need a proper test for this
+func (o *ConnectOptions) ConfigFlagIsSet() bool {
+	return o.DisconnectAfter != 0 || o.RemoteAcceptSizeMax != 0 || o.ReadOnly || o.RemoteMode || o.DisableP2P || o.DisableAPI || o.DisableRPC || o.DisableWebapp
 }
 
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() (err error) {
-	cfg := *o.Config
+	flagSet := o.ConfigFlagIsSet()
 
-	if o.APIPort != 0 {
-		cfg.API.Port = o.APIPort
-	}
-	if o.RPCPort != 0 {
-		cfg.RPC.Port = o.RPCPort
-	}
-	if o.WebappPort != 0 {
-		cfg.Webapp.Port = o.WebappPort
+	if flagSet {
+		cfg := o.inst.Config().Copy()
+
+		if o.DisconnectAfter != 0 {
+			cfg.API.DisconnectAfter = o.DisconnectAfter
+		}
+		if o.ReadOnly {
+			cfg.API.ReadOnly = true
+		}
+		if o.RemoteMode {
+			cfg.API.RemoteMode = true
+		}
+		if o.DisableP2P {
+			cfg.P2P.Enabled = false
+		}
+		if o.DisableAPI {
+			cfg.API.Enabled = false
+		}
+		if o.DisableRPC {
+			cfg.RPC.Enabled = false
+		}
+		if o.DisableWebapp {
+			cfg.Webapp.Enabled = false
+		}
+
+		cfg.API.RemoteAcceptSizeMax = o.RemoteAcceptSizeMax
+
+		// TODO (b5) - this is actually modifying config details & saving them
+		// flags should be ephemeral configuration changes
+		if err := o.inst.ChangeConfig(cfg); err != nil {
+			log.Error(err)
+		}
 	}
 
-	if o.DisconnectAfter != 0 {
-		cfg.API.DisconnectAfter = o.DisconnectAfter
-	}
-
-	if o.ReadOnly {
-		cfg.API.ReadOnly = true
-	}
-	if o.RemoteMode {
-		cfg.API.RemoteMode = true
-	}
-	if o.DisableP2P {
-		cfg.P2P.Enabled = false
-	}
-	if o.DisableAPI {
-		cfg.API.Enabled = false
-	}
-	if o.DisableRPC {
-		cfg.RPC.Enabled = false
-	}
-	if o.DisableWebapp {
-		cfg.Webapp.Enabled = false
-	}
-
-	cfg.API.RemoteAcceptSizeMax = o.RemoteAcceptSizeMax
-
-	// TODO (b5) - we should instead embed an Instance in ConnectOptions,
-	// that'll require doing config manipulation *before* lib.NewInstance is called
-	// but will cause weird behaviour on config update...
-	inst := lib.NewInstanceFromConfigAndNode(&cfg, o.Node)
-
-	s := api.New(inst)
+	s := api.New(o.inst)
 	err = s.Serve()
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil
