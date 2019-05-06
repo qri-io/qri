@@ -7,9 +7,9 @@ import (
 	"time"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 
 	crypto "gx/ipfs/QmPvyPwuCgJ7pDmrKDxRtsScJgBaM5h4EpRL2qQJsmXf4n/go-libp2p-crypto"
@@ -152,7 +152,7 @@ func (n *QriNode) GoOnline() (err error) {
 	// on the ipfs node's p2p connections.
 	if ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore); ok {
 		if !ipfsfs.Online() {
-			if err := ipfsfs.GoOnline(); err != nil {
+			if err := ipfsfs.GoOnline(n.ctx); err != nil {
 				return err
 			}
 		}
