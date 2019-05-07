@@ -65,6 +65,19 @@ responsible for executing your scheduled updates is currently active.
 			return o.Schedule(args)
 		},
 	}
+
+	scheduleCmd.Flags().StringVarP(&o.Title, "title", "t", "", "title of commit message for update")
+	scheduleCmd.Flags().StringVarP(&o.Message, "message", "m", "", "commit message for update")
+	scheduleCmd.Flags().StringVarP(&o.Recall, "recall", "", "", "restore revisions from dataset history, only 'tf' applies when updating")
+	scheduleCmd.Flags().StringSliceVar(&o.Secrets, "secrets", nil, "transform secrets as comma separated key,value,key,value,... sequence")
+	scheduleCmd.Flags().BoolVarP(&o.Publish, "publish", "p", false, "publish successful update to the registry")
+	scheduleCmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate updating a dataset")
+	scheduleCmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
+	scheduleCmd.Flags().StringSliceVarP(&o.FilePaths, "file", "f", nil, "dataset or component file (yaml or json)")
+	scheduleCmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
+	scheduleCmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
+	scheduleCmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
+
 	unscheduleCmd := &cobra.Command{
 		Use:   "unschedule",
 		Short: "unschedule an update",

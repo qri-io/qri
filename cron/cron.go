@@ -6,14 +6,11 @@ import (
 	"context"
 	"io"
 	"io/ioutil"
-	"net/http"
 	"os"
 	"time"
 
-	apiutil "github.com/datatogether/api/apiutil"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
-	cronfb "github.com/qri-io/qri/cron/cron_fbs"
 )
 
 var (
@@ -170,7 +167,7 @@ func (c *Cron) Start(ctx context.Context) error {
 
 func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 	log.Debugf("run job: %s", job.Name)
-	job.LastRunStart = time.Now()
+	job.LastRunStart = time.Now().In(time.UTC)
 
 	streams := ioes.NewDiscardIOStreams()
 	if lfc, ok := c.log.(LogFileCreator); ok {
@@ -189,7 +186,7 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 		log.Debugf("run job: %s success", job.Name)
 		job.LastError = ""
 	}
-	job.LastRunStop = time.Now()
+	job.LastRunStop = time.Now().In(time.UTC)
 
 	// the updated job that goes to the schedule store shouldn't have a log path
 	scheduleJob := job.Copy()
@@ -217,145 +214,4 @@ func (c *Cron) Schedule(ctx context.Context, job *Job) error {
 // job executions
 func (c *Cron) Unschedule(ctx context.Context, name string) error {
 	return c.schedule.DeleteJob(ctx, name)
-}
-
-// ServeHTTP spins up an HTTP server at the specified address
-func (c *Cron) ServeHTTP(addr string) error {
-	s := &http.Server{
-		Addr:    addr,
-		Handler: newCronRoutes(c),
-	}
-	return s.ListenAndServe()
-}
-
-func newCronRoutes(c *Cron) http.Handler {
-
-	m := http.NewServeMux()
-	m.HandleFunc("/", c.statusHandler)
-	m.HandleFunc("/jobs", c.jobsHandler)
-	m.HandleFunc("/job", c.jobHandler)
-	m.HandleFunc("/logs", c.logsHandler)
-	m.HandleFunc("/log", c.loggedJobHandler)
-	m.HandleFunc("/log/output", c.loggedJobFileHandler)
-	m.HandleFunc("/run", c.runHandler)
-
-	return m
-}
-
-func (c *Cron) statusHandler(w http.ResponseWriter, r *http.Request) {
-	w.WriteHeader(http.StatusOK)
-}
-
-func (c *Cron) jobsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "GET":
-		// TODO (b5): handle these errors, but they'll default to 0 so it's mainly
-		// for reporting when we're given odd values
-		offset, _ := apiutil.ReqParamInt("offset", r)
-		limit, _ := apiutil.ReqParamInt("limit", r)
-
-		js, err := c.Jobs(r.Context(), offset, limit)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(jobs(js).FlatbufferBytes())
-		return
-
-	case "POST":
-		data, err := ioutil.ReadAll(r.Body)
-		if err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			return
-		}
-
-		j := cronfb.GetRootAsJob(data, 0)
-		job := &Job{}
-		if err := job.UnmarshalFlatbuffer(j); err != nil {
-			w.WriteHeader(http.StatusBadRequest)
-			w.Write([]byte(err.Error()))
-			return
-		}
-
-		if err := c.schedule.PutJob(r.Context(), job); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-
-	case "DELETE":
-		name := r.FormValue("name")
-		if err := c.Unschedule(r.Context(), name); err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			w.Write([]byte(err.Error()))
-			return
-		}
-	}
-
-}
-
-func (c *Cron) jobHandler(w http.ResponseWriter, r *http.Request) {
-	name := r.FormValue("name")
-	job, err := c.Job(r.Context(), name)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.Write(job.FlatbufferBytes())
-}
-
-func (c *Cron) logsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-
-	case "GET":
-		// TODO (b5): handle these errors, but they'll default to 0 so it's mainly
-		// for reporting when we're given odd values
-		offset, _ := apiutil.ReqParamInt("offset", r)
-		limit, _ := apiutil.ReqParamInt("limit", r)
-
-		log, err := c.Logs(r.Context(), offset, limit)
-		if err != nil {
-			w.WriteHeader(http.StatusInternalServerError)
-			return
-		}
-
-		w.Write(jobs(log).FlatbufferBytes())
-		return
-
-	}
-}
-
-func (c *Cron) loggedJobHandler(w http.ResponseWriter, r *http.Request) {
-	logName := r.FormValue("log_name")
-	job, err := c.LoggedJob(r.Context(), logName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	w.Write(job.FlatbufferBytes())
-}
-
-func (c *Cron) loggedJobFileHandler(w http.ResponseWriter, r *http.Request) {
-	logName := r.FormValue("log_name")
-	f, err := c.LoggedJobFile(r.Context(), logName)
-	if err != nil {
-		w.WriteHeader(http.StatusInternalServerError)
-		w.Write([]byte(err.Error()))
-		return
-	}
-
-	io.Copy(w, f)
-	return
-}
-
-func (c *Cron) runHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO (b5): implement an HTTP run handler
-	w.WriteHeader(http.StatusInternalServerError)
-	w.Write([]byte("not finished"))
-	// c.runJob(r.Context(), nil)
 }

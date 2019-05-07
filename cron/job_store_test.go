@@ -65,6 +65,25 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Error(err)
 		}
 
+		jobThree := &Job{
+			Name:        "job_three",
+			Periodicity: mustRepeatingInterval("R/PT1H"),
+			Type:        JTDataset,
+			Options: &DatasetOptions{
+				Title: "hallo",
+			},
+		}
+		if err = store.PutJob(ctx, jobThree); err != nil {
+			t.Errorf("putting job three: %s", err)
+		}
+		gotJobThree, err := store.Job(ctx, jobThree.Name)
+		if err != nil {
+			t.Errorf("getting jobThree: %s", err)
+		}
+		if err := CompareJobs(jobThree, gotJobThree); err != nil {
+			t.Error(err)
+		}
+
 		updatedJobOne := &Job{
 			Name:         jobOne.Name,
 			Periodicity:  jobOne.Periodicity,
@@ -97,6 +116,9 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Error(err)
 		}
 		if err = store.DeleteJob(ctx, jobTwo.Name); err != nil {
+			t.Error(err)
+		}
+		if err = store.DeleteJob(ctx, jobThree.Name); err != nil {
 			t.Error(err)
 		}
 
