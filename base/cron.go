@@ -32,20 +32,20 @@ func datasetSaveCmd(streams ioes.IOStreams, job *cron.Job) *exec.Cmd {
 
 	if o, ok := job.Options.(*cron.DatasetOptions); ok {
 		if o.Title != "" {
-			args = append(args, fmt.Sprintf(`--title="%s"`, o.Title))
+			args = append(args, fmt.Sprintf(`--title=%s`, o.Title))
 		}
 		if o.Message != "" {
-			args = append(args, fmt.Sprintf(`--message="%s"`, o.Message))
+			args = append(args, fmt.Sprintf(`--message=%s`, o.Message))
 		}
 		if o.Recall != "" {
-			args = append(args, fmt.Sprintf(`--recall="%s"`, o.Recall))
+			args = append(args, fmt.Sprintf(`--recall=%s`, o.Recall))
 		}
 		if o.BodyPath != "" {
-			args = append(args, fmt.Sprintf(`--body="%s"`, o.BodyPath))
+			args = append(args, fmt.Sprintf(`--body=%s`, o.BodyPath))
 		}
 		if len(o.FilePaths) > 0 {
 			for _, path := range o.FilePaths {
-				args = append(args, fmt.Sprintf(`--file="%s"`, path))
+				args = append(args, fmt.Sprintf(`--file=%s`, path))
 			}
 		}
 
