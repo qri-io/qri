@@ -1,11 +1,26 @@
 package cron
 
 import (
+	"fmt"
 	"testing"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	cronfb "github.com/qri-io/qri/cron/cron_fbs"
 )
+
+func CompareJobSlices(a, b []*Job) error {
+	if len(a) != len(b) {
+		return fmt.Errorf("length mistmatch: %d != %d", len(a), len(b))
+	}
+
+	for i, jobA := range a {
+		if err := CompareJobs(jobA, b[i]); err != nil {
+			return fmt.Errorf("job index %d mistmatch: %s", i, err)
+		}
+	}
+
+	return nil
+}
 
 func TestJobsFlatbuffer(t *testing.T) {
 	jorbs := jobs{

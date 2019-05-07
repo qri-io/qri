@@ -8,23 +8,12 @@ import (
 	cronfb "github.com/qri-io/qri/cron/cron_fbs"
 )
 
-func CompareJobSlices(a, b []*Job) error {
-	if len(a) != len(b) {
-		return fmt.Errorf("length mistmatch: %d != %d", len(a), len(b))
-	}
-
-	for i, jobA := range a {
-		if err := CompareJobs(jobA, b[i]); err != nil {
-			return fmt.Errorf("job index %d mistmatch: %s", i, err)
-		}
-	}
-
-	return nil
-}
-
 func CompareJobs(a, b *Job) error {
 	if a.Name != b.Name {
 		return fmt.Errorf("Name mismatch. %s != %s", a.Name, b.Name)
+	}
+	if a.Alias != b.Alias {
+		return fmt.Errorf("Alias: %s != %s", a.Alias, b.Alias)
 	}
 	if a.Periodicity != b.Periodicity {
 		return fmt.Errorf("Periodicity mismatch. %s != %s", a.Name, b.Name)

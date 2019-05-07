@@ -42,7 +42,7 @@ func (jt JobType) Enum() int8 {
 // a specified Periodicity (time interval)
 type Job struct {
 	Name        string                    `json:"name"`
-	Path        string                    `json:"path"`
+	Alias       string                    `json:"alias"`
 	Type        JobType                   `json:"type"`
 	Periodicity iso8601.RepeatingInterval `json:"periodicity"`
 
@@ -84,7 +84,7 @@ func (job *Job) LogName() string {
 func (job *Job) Copy() *Job {
 	cp := &Job{
 		Name:         job.Name,
-		Path:         job.Path,
+		Alias:        job.Alias,
 		Type:         job.Type,
 		Periodicity:  job.Periodicity,
 		LastRunStart: job.LastRunStart,
@@ -111,7 +111,7 @@ func (job *Job) FlatbufferBytes() []byte {
 // MarshalFlatbuffer writes a job to a builder
 func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	name := builder.CreateString(job.Name)
-	path := builder.CreateString(job.Path)
+	alias := builder.CreateString(job.Alias)
 
 	lastRunStart := builder.CreateString(job.LastRunStart.Format(time.RFC3339))
 	lastRunStop := builder.CreateString(job.LastRunStop.Format(time.RFC3339))
@@ -126,7 +126,7 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 
 	cronfb.JobStart(builder)
 	cronfb.JobAddName(builder, name)
-	cronfb.JobAddPath(builder, path)
+	cronfb.JobAddAlias(builder, alias)
 
 	cronfb.JobAddType(builder, job.Type.Enum())
 	cronfb.JobAddPeriodicity(builder, p)
@@ -169,7 +169,7 @@ func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
 
 	*job = Job{
 		Name:        string(j.Name()),
-		Path:        string(j.Path()),
+		Alias:       string(j.Alias()),
 		Type:        JobType(cronfb.EnumNamesJobType[j.Type()]),
 		Periodicity: p,
 
