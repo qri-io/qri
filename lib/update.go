@@ -57,9 +57,23 @@ type ScheduleParams struct {
 
 // Schedule creates a job and adds it to the scheduler
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
+
+	// Make all paths absolute. this must happen *before* any possible RPC call
 	if base.PossibleShellScript(in.Name) {
 		if err = qfs.AbsPath(&in.Name); err != nil {
 			return
+		}
+	}
+
+	if in.SaveParams != nil {
+		for i := range in.SaveParams.FilePaths {
+			if err := qfs.AbsPath(&in.SaveParams.FilePaths[i]); err != nil {
+				return err
+			}
+		}
+
+		if err := qfs.AbsPath(&in.SaveParams.BodyPath); err != nil {
+			return fmt.Errorf("body file: %s", err)
 		}
 	}
 
@@ -82,7 +96,6 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		return fmt.Errorf("update service not available")
 	}
 
-	// TODO (b5) - parse update options & submit them here
 	return m.inst.cron.Schedule(ctx, job)
 }
 

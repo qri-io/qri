@@ -41,17 +41,17 @@ func (jt JobType) Enum() int8 {
 // Job represents a "cron job" that can be scheduled for repeated execution at
 // a specified Periodicity (time interval)
 type Job struct {
-	Name        string
-	Path        string
-	Type        JobType
-	Periodicity iso8601.RepeatingInterval
+	Name        string                    `json:"name"`
+	Path        string                    `json:"path"`
+	Type        JobType                   `json:"type"`
+	Periodicity iso8601.RepeatingInterval `json:"periodicity"`
 
-	LastRunStart time.Time
-	LastRunStop  time.Time
-	LastError    string
-	LogFilePath  string
+	LastRunStart time.Time `json:"lastRunStart"`
+	LastRunStop  time.Time `json:"lastRunStop"`
+	LastError    string    `json:"lastError"`
+	LogFilePath  string    `json:"logFilePath"`
 
-	Options Options
+	Options Options `json:"options"`
 }
 
 // Validate confirms a Job contains valid details for scheduling
@@ -134,10 +134,20 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 	cronfb.JobAddLastRunStop(builder, lastRunStop)
 	cronfb.JobAddLastError(builder, lastError)
 	cronfb.JobAddLogFilePath(builder, logPath)
+	cronfb.JobAddOptionsType(builder, job.fbOptionsType())
 	if opts != 0 {
 		cronfb.JobAddOptions(builder, opts)
 	}
 	return cronfb.JobEnd(builder)
+}
+
+func (job *Job) fbOptionsType() byte {
+	switch job.Options.(type) {
+	case *DatasetOptions:
+		return cronfb.OptionsDatasetOptions
+	default:
+		return 0 // will fire for nil case
+	}
 }
 
 // UnmarshalFlatbuffer decodes a job from a flatbuffer
@@ -223,8 +233,8 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 	recall := builder.CreateString(o.Recall)
 	bodyPath := builder.CreateString(o.BodyPath)
 
-	nFilePaths := len(o.FilePaths)
 	var filePaths flatbuffers.UOffsetT
+	nFilePaths := len(o.FilePaths)
 	if nFilePaths != 0 {
 		offsets := make([]flatbuffers.UOffsetT, nFilePaths)
 		for i, fp := range o.FilePaths {
@@ -237,22 +247,67 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 		filePaths = builder.EndVector(nFilePaths)
 	}
 
-	// TODO (b5) - encode config & secrets
+	var config flatbuffers.UOffsetT
+	nConfigs := len(o.Config)
+	if nConfigs > 0 {
+		offsets := make([]flatbuffers.UOffsetT, nConfigs)
+		i := 0
+		for key, val := range o.Config {
+			kOff := builder.CreateString(key)
+			vOff := builder.CreateString(val)
+
+			cronfb.StringMapValStart(builder)
+			cronfb.StringMapValAddKey(builder, kOff)
+			cronfb.StringMapValAddVal(builder, vOff)
+			offsets[i] = cronfb.StringMapValEnd(builder)
+			i++
+		}
+
+		cronfb.DatasetOptionsStartConfigVector(builder, nConfigs)
+		for i := nConfigs - 1; i >= 0; i-- {
+			builder.PrependUOffsetT(offsets[i])
+		}
+		config = builder.EndVector(nConfigs)
+	}
+
+	var secrets flatbuffers.UOffsetT
+	nSecrets := len(o.Secrets)
+	if nSecrets > 0 {
+		offsets := make([]flatbuffers.UOffsetT, nSecrets)
+		i := 0
+		for key, val := range o.Secrets {
+			kOff := builder.CreateString(key)
+			vOff := builder.CreateString(val)
+
+			cronfb.StringMapValStart(builder)
+			cronfb.StringMapValAddKey(builder, kOff)
+			cronfb.StringMapValAddVal(builder, vOff)
+			offsets[i] = cronfb.StringMapValEnd(builder)
+			i++
+		}
+
+		cronfb.DatasetOptionsStartSecretsVector(builder, len(offsets))
+		for i := nSecrets - 1; i >= 0; i-- {
+			builder.PrependUOffsetT(offsets[i])
+		}
+		secrets = builder.EndVector(nSecrets)
+	}
 
 	cronfb.DatasetOptionsStart(builder)
 	cronfb.DatasetOptionsAddTitle(builder, commitTitle)
 	cronfb.DatasetOptionsAddMessage(builder, commitMessage)
 	cronfb.DatasetOptionsAddRecall(builder, recall)
 	cronfb.DatasetOptionsAddBodyPath(builder, bodyPath)
-	if nFilePaths != 0 {
-		cronfb.DatasetOptionsAddFilePaths(builder, filePaths)
-	}
 
 	cronfb.DatasetOptionsAddPublish(builder, o.Publish)
 	cronfb.DatasetOptionsAddStrict(builder, o.Strict)
 	cronfb.DatasetOptionsAddForce(builder, o.Force)
 	cronfb.DatasetOptionsAddConvertFormatToPrev(builder, o.ConvertFormatToPrev)
 	cronfb.DatasetOptionsAddShouldRender(builder, o.ShouldRender)
+
+	cronfb.DatasetOptionsAddFilePaths(builder, filePaths)
+	cronfb.DatasetOptionsAddConfig(builder, config)
+	cronfb.DatasetOptionsAddSecrets(builder, secrets)
 
 	return cronfb.DatasetOptionsEnd(builder)
 }
@@ -280,4 +335,23 @@ func (o *DatasetOptions) UnmarshalFlatbuffer(fbo *cronfb.DatasetOptions) {
 	// TODO (b5): unmarshal secrets & config:
 	// Config  map[string]string
 	// Secrets map[string]string
+	if fbo.ConfigLength() > 0 {
+		o.Config = map[string]string{}
+		var val cronfb.StringMapVal
+		for i := 0; i < fbo.ConfigLength(); i++ {
+			if fbo.Config(&val, i) {
+				o.Config[string(val.Key())] = string(val.Val())
+			}
+		}
+	}
+
+	if fbo.SecretsLength() > 0 {
+		o.Secrets = map[string]string{}
+		var val cronfb.StringMapVal
+		for i := 0; i < fbo.SecretsLength(); i++ {
+			if fbo.Secrets(&val, i) {
+				o.Secrets[string(val.Key())] = string(val.Val())
+			}
+		}
+	}
 }
