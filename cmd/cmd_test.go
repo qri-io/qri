@@ -657,6 +657,44 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	}
 }
 
+// Test that calling `get_body` will retrieve the body of the previous version.
+func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_save_transform_get_body")
+	defer r.Delete()
+
+	cmdR := r.CreateCommandRunner()
+	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_two.json me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner()
+	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read body from the dataset that was created with the transform
+	dsPath := r.GetPathForDataset(0)
+	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.json")
+
+	// This body is body_two.json, with the numbers in the second column increased by 1.
+	expectBody := `[["Avatar",179],["Pirates of the Caribbean: At World's End",170]]`
+	if actualBody != expectBody {
+		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actualBody, expectBody)
+	}
+}
+
 // TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
 // bodies of dataset in more of our test case. That would require extracting some parts out, like
 // pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a

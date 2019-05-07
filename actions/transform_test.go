@@ -27,11 +27,13 @@ func TestExecTransform(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ds := &dataset.Dataset{
+	prev := &dataset.Dataset{
 		Structure: &dataset.Structure{
 			Format: "json",
 			Schema: dataset.BaseSchemaArray,
 		},
+	}
+	next := &dataset.Dataset{
 		Transform: &dataset.Transform{
 			Syntax:  "starlark",
 			Config:  map[string]interface{}{"foo": "config"},
@@ -45,9 +47,9 @@ def transform(ds,ctx):
 	ctx.get_secret("bar")
 	ds.set_body([1,2,3])
 	`)
-	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", data))
+	next.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", data))
 
-	if err := ExecTransform(node, ds, nil, nil); err != nil {
+	if err := ExecTransform(node, next, prev, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }

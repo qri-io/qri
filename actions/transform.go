@@ -39,7 +39,7 @@ please adjust either the transform script or remove the supplied '%s'`, path[0],
 }
 
 // ExecTransform executes a designated transformation
-func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, scriptOut io.Writer, mutateCheck func(...string) error) error {
+func ExecTransform(node *p2p.QriNode, ds, prev *dataset.Dataset, scriptOut io.Writer, mutateCheck func(...string) error) error {
 	if ds.Transform == nil {
 		return fmt.Errorf("no transform provided")
 	}
@@ -64,7 +64,7 @@ func ExecTransform(node *p2p.QriNode, ds *dataset.Dataset, scriptOut io.Writer, 
 		setSecrets,
 	}
 
-	if err := startf.ExecScript(ds, configs...); err != nil {
+	if err := startf.ExecScript(ds, prev, configs...); err != nil {
 		return err
 	}
 

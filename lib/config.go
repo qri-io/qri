@@ -13,7 +13,6 @@ type ConfigMethods struct {
 	inst *Instance
 }
 
-
 // NewConfigMethods creates a configuration handle from an instance
 func NewConfigMethods(inst *Instance) *ConfigMethods {
 	return &ConfigMethods{inst: inst}
