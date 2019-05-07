@@ -38,7 +38,7 @@ table ShellScriptOptions {
 
 table Job {
   name:string;
-	path:string;
+	alias:string;
 	type:JobType;
 	periodicity:string;
 

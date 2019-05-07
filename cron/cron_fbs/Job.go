@@ -34,7 +34,7 @@ func (rcv *Job) Name() []byte {
 	return nil
 }
 
-func (rcv *Job) Path() []byte {
+func (rcv *Job) Alias() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -121,8 +121,8 @@ func JobStart(builder *flatbuffers.Builder) {
 func JobAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
 }
-func JobAddPath(builder *flatbuffers.Builder, path flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(path), 0)
+func JobAddAlias(builder *flatbuffers.Builder, alias flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(alias), 0)
 }
 func JobAddType(builder *flatbuffers.Builder, type_ int8) {
 	builder.PrependInt8Slot(2, type_, 0)
