@@ -181,6 +181,9 @@ func OptLoadConfigFile(path string) Option {
 		}
 
 		o.Cfg, err = config.ReadFromFile(path)
+		if err != nil {
+			return err
+		}
 		return nil
 	}
 }
