@@ -46,7 +46,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		mutateCheck := mutatedComponentsFunc(changes)
 
 		changes.Transform.Secrets = secrets
-		if err = ExecTransform(node, changes, scriptOut, mutateCheck); err != nil {
+		if err = ExecTransform(node, changes, prev, scriptOut, mutateCheck); err != nil {
 			return
 		}
 		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
