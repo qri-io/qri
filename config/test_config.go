@@ -10,6 +10,7 @@ func DefaultConfigForTesting() *Config {
 	cfg := DefaultConfig()
 	cfg.P2P.PrivKey = info.EncodedPrivKey
 	cfg.P2P.PeerID = info.EncodedPeerID
+	cfg.Profile.Peername = "default_profile_for_testing"
 	cfg.Profile.PrivKey = info.EncodedPrivKey
 	cfg.Profile.ID = info.EncodedPeerID
 	return cfg

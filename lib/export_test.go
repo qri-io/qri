@@ -11,6 +11,7 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
@@ -18,6 +19,9 @@ import (
 )
 
 func TestExport(t *testing.T) {
+	prevTs := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Time{} }
+	defer func() { dsfs.Timestamp = prevTs }()
 
 	rc, _ := regmock.NewMockServer()
 	mr, err := testrepo.NewTestRepo(rc)

@@ -17,7 +17,7 @@ import (
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
