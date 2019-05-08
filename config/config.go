@@ -223,6 +223,11 @@ func (cfg Config) Validate() error {
 		cfg.Logging,
 	}
 	for _, val := range validators {
+		// we need to check here because we're potentially calling methods on nil
+		// values that don't handle a nil receiver gracefully.
+		// https://tour.golang.org/methods/12
+		// https://groups.google.com/forum/#!topic/golang-nuts/wnH302gBa4I/discussion
+		// TODO (b5) - make validate methods handle being nil
 		if !reflect.ValueOf(val).IsNil() {
 			if err := val.Validate(); err != nil {
 				return err

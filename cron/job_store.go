@@ -11,11 +11,11 @@ import (
 // ReadJobs are functions for fetching a set of jobs. ReadJobs defines canoncial
 // behavior for listing & fetching jobs
 type ReadJobs interface {
-	// Jobs should return the set of jobs sorted in reverse-chronological order
+	// ListJobs should return the set of jobs sorted in reverse-chronological order
 	// (newest first order) of the last time they were run. When two LastRun times
 	// are equal, Jobs should alpha sort the names
 	// passing a limit and offset of 0 must return the entire list of stored jobs
-	Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
+	ListJobs(ctx context.Context, offset, limit int) ([]*Job, error)
 	// Job gets a job by it's name. All job names in a set must be unique. It's
 	// the job of the set backing ReadJobs functions to enforce uniqueness
 	Job(ctx context.Context, name string) (*Job, error)
@@ -52,25 +52,23 @@ type MemJobStore struct {
 	jobs jobs
 }
 
-// Jobs lists jobs currently in the store
-func (s *MemJobStore) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
-	if limit <= 0 {
+// ListJobs lists jobs currently in the store
+func (s *MemJobStore) ListJobs(ctx context.Context, offset, limit int) ([]*Job, error) {
+	if limit < 0 {
 		limit = len(s.jobs)
 	}
 
-	jobs := make([]*Job, limit)
-	added := 0
+	jobs := make([]*Job, 0, limit)
 	for i, job := range s.jobs {
 		if i < offset {
 			continue
-		} else if added == limit {
+		} else if len(jobs) == limit {
 			break
 		}
 
-		jobs[added] = job
-		added++
+		jobs = append(jobs, job)
 	}
-	return jobs[:added], nil
+	return jobs, nil
 }
 
 // Job gets job details from the store by name
@@ -85,7 +83,7 @@ func (s *MemJobStore) Job(ctx context.Context, name string) (*Job, error) {
 	return nil, fmt.Errorf("not found")
 }
 
-// PutJobs places one or more jobs in the store. Putting a job who's name
+// PutJobs places one or more jobs in the store. Putting a job whose name
 // already exists must overwrite the previous job, making all job names unique
 func (s *MemJobStore) PutJobs(ctx context.Context, js ...*Job) error {
 	s.lock.Lock()

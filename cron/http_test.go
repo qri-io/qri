@@ -33,7 +33,7 @@ func TestCronHTTP(t *testing.T) {
 		t.Errorf("expected ping to active server to not fail. got: %s", err)
 	}
 
-	jobs, err := cli.Jobs(cliCtx, 0, 0)
+	jobs, err := cli.ListJobs(cliCtx, 0, -1)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -52,7 +52,7 @@ func TestCronHTTP(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	jobs, err = cli.Jobs(cliCtx, 0, 0)
+	jobs, err = cli.ListJobs(cliCtx, 0, -1)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -70,7 +70,7 @@ func TestCronHTTP(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	jobs, err = cli.Jobs(cliCtx, 0, 0)
+	jobs, err = cli.ListJobs(cliCtx, 0, -1)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

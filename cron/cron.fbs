@@ -52,7 +52,8 @@ table Job {
 
 // flatbuffers don't (currently) support using a vector as a root type
 // in an ideal world we'd just `root_type [Job]`, wrapping in this table
-// skips the problem and gives us the option to store "store global" state.
+// skips the problem and gives us the option to keep state scoped to the
+// entire store
 // issue: https://github.com/google/flatbuffers/issues/4854
 table Jobs {
 	list:[Job];

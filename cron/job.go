@@ -54,12 +54,16 @@ type Job struct {
 	Options Options `json:"options"`
 }
 
+// zero is a "constant" representing an empty repeating interval
+// TODO (b5) - add a IsZero methods to iso8601 structs
+var zero iso8601.RepeatingInterval
+
 // Validate confirms a Job contains valid details for scheduling
 func (job *Job) Validate() error {
 	if job.Name == "" {
 		return fmt.Errorf("name is required")
 	}
-	zero := iso8601.RepeatingInterval{}
+
 	if job.Periodicity == zero {
 		return fmt.Errorf("period is required")
 	}
@@ -69,7 +73,7 @@ func (job *Job) Validate() error {
 	return nil
 }
 
-// NextExec returns the next time execution horizion. If job periodicity is
+// NextExec returns the next time execution horizon. If job periodicity is
 // improperly configured, the returned time will be zero
 func (job *Job) NextExec() time.Time {
 	return job.Periodicity.After(job.LastRunStart)
@@ -209,6 +213,7 @@ func (o *ShellScriptOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) fla
 }
 
 // DatasetOptions encapsulates options passed to `qri save`
+// TODO (b5) - we should contribute flexbuffer support for golang & remove this entirely
 type DatasetOptions struct {
 	Title     string
 	Message   string

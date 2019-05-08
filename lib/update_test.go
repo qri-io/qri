@@ -71,14 +71,14 @@ func TestUpdateMethods(t *testing.T) {
 	}
 
 	res := []*Job{}
-	if err := m.Logs(&ListParams{Limit: 0, Offset: 0}, &res); err != nil {
+	if err := m.Logs(&ListParams{Offset: 0, Limit: -1}, &res); err != nil {
 		t.Fatal(err)
 	}
 	if len(res) != 1 {
 		t.Errorf("expected 1 log entry, got: %d", len(res))
 	}
 
-	if err := m.List(&ListParams{Limit: 0, Offset: 0}, &res); err != nil {
+	if err := m.List(&ListParams{Offset: 0, Limit: -1}, &res); err != nil {
 		t.Fatal(err)
 	}
 	if len(res) != 2 {
