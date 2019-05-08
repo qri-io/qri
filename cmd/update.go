@@ -305,7 +305,7 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 		return err
 	}
 
-	printSuccess(o.IOStreams.ErrOut, "update scheduled, next update: %s\n", res.NextExec())
+	printSuccess(o.ErrOut, "update scheduled, next update: %s\n", res.NextExec())
 	return nil
 }
 
@@ -323,7 +323,7 @@ func (o *UpdateOptions) Unschedule(args []string) (err error) {
 		return err
 	}
 
-	printSuccess(o.IOStreams.ErrOut, "unscheduled %s\n", args[0])
+	printSuccess(o.ErrOut, "update unscheduled: %s\n", args[0])
 	return nil
 }
 

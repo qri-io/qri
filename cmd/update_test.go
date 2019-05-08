@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -52,6 +54,74 @@ func TestUpdateComplete(t *testing.T) {
 			continue
 		}
 		ioReset(in, out, errs)
+	}
+}
+
+func TestUpdateMethods(t *testing.T) {
+	t.Skip("can't run this because some other test is spinning up an RPC server & not closing it")
+	if err := confirmUpdateServiceNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	streams, in, out, errs := ioes.NewTestIOStreams()
+	setNoColor(true)
+
+	cfg := config.DefaultConfigForTesting().Copy()
+	cfg.Update = &config.Update{Type: "mem"}
+	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
+	cfg.Store = &config.Store{Type: "map"}
+
+	inst, err := lib.NewInstance(lib.OptConfig(cfg), lib.OptIOStreams(streams))
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	o := &UpdateOptions{
+		IOStreams:     streams,
+		Page:          1,
+		PageSize:      25,
+		inst:          inst,
+		updateMethods: lib.NewUpdateMethods(inst),
+	}
+
+	ioReset(in, out, errs)
+	if err := o.Schedule([]string{"testdata/hello.sh", "R/PT1S"}); err != nil {
+		t.Error(err)
+	}
+
+	expErrOutContains := "update scheduled, next update: 0001-01-01 00:00:01 +0000 UTC\n"
+	if !strings.Contains(errs.String(), expErrOutContains) {
+		t.Errorf("schedule response mismatch. expected errOut:\n%s\ngot:\n%s", expErrOutContains, errs.String())
+	}
+
+	ioReset(in, out, errs)
+	if err := o.List(); err != nil {
+		t.Error(err)
+	}
+	listStdOutContains := "shell | 0001-01-01 00:00:01 +0000 UTC"
+	if !strings.Contains(out.String(), listStdOutContains) {
+		t.Errorf("list response mismatch. stdOut doesn't contain:\n%s\ngot:\n%s", listStdOutContains, out.String())
+	}
+
+	// TODO (b5) - need to actually run an update here that generates a log entry
+	// ideally by manually calling o.Run
+
+	ioReset(in, out, errs)
+	if err := o.Logs([]string{}); err != nil {
+		t.Error(err)
+	}
+	logsStdOut := "" // should be empty b/c this test runs no updates
+	if logsStdOut != out.String() {
+		t.Errorf("logs response mismatch. expected errOut:\n%s\ngot:\n%s", logsStdOut, out.String())
+	}
+
+	ioReset(in, out, errs)
+	if err := o.Unschedule([]string{"testdata/hello.sh"}); err != nil {
+		t.Error(err)
+	}
+	unscheduleErrOutContains := "update unscheduled"
+	if !strings.Contains(errs.String(), unscheduleErrOutContains) {
+		t.Errorf("logs response mismatch. errOut doesn't contain:\n%s\ngot:\n%s", unscheduleErrOutContains, errs.String())
 	}
 }
 
