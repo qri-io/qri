@@ -26,8 +26,8 @@ type FlatbufferJobStore struct {
 	path string
 }
 
-// Jobs lists jobs currently in the store
-func (s *FlatbufferJobStore) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
+// ListJobs lists jobs currently in the store
+func (s *FlatbufferJobStore) ListJobs(ctx context.Context, offset, limit int) ([]*Job, error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 
@@ -36,23 +36,21 @@ func (s *FlatbufferJobStore) Jobs(ctx context.Context, offset, limit int) ([]*Jo
 		return nil, err
 	}
 
-	if limit <= 0 {
+	if limit < 0 {
 		limit = len(js)
 	}
 
-	ss := make([]*Job, limit)
-	added := 0
+	ss := make([]*Job, 0, limit)
 	for i, job := range js {
 		if i < offset {
 			continue
-		} else if added == limit {
+		} else if len(ss) == limit {
 			break
 		}
 
-		ss[added] = job
-		added++
+		ss = append(ss, job)
 	}
-	return ss[:added], nil
+	return ss, nil
 }
 
 func (s *FlatbufferJobStore) loadJobs() (js jobs, err error) {
@@ -97,15 +95,18 @@ func (s *FlatbufferJobStore) PutJobs(ctx context.Context, add ...*Job) error {
 		return err
 	}
 
+ADD:
 	for _, job := range add {
 		if err := job.Validate(); err != nil {
 			return err
 		}
 
+		// TODO (b5) - avoid  O(n^2) ish complexity here using a better backing
+		// data structure
 		for i, j := range js {
 			if job.Name == j.Name {
 				js[i] = job
-				return nil
+				continue ADD
 			}
 		}
 
@@ -119,30 +120,7 @@ func (s *FlatbufferJobStore) PutJobs(ctx context.Context, add ...*Job) error {
 // PutJob places a job in the store. If the job name matches the name of a job
 // that already exists, it will be overwritten with the new job
 func (s *FlatbufferJobStore) PutJob(ctx context.Context, job *Job) error {
-	if err := job.Validate(); err != nil {
-		return err
-	}
-
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
-	js, err := s.loadJobs()
-	if err != nil {
-		return err
-	}
-
-	for i, j := range js {
-		if job.Name == j.Name {
-			js[i] = job
-
-			sort.Sort(js)
-			return s.saveJobs(js)
-		}
-	}
-
-	js = append(js, job)
-	sort.Sort(js)
-	return s.saveJobs(js)
+	return s.PutJobs(ctx, job)
 }
 
 // DeleteJob removes a job from the store by name. deleting a non-existent job
@@ -172,7 +150,7 @@ func (s *FlatbufferJobStore) DeleteJob(ctx context.Context, name string) error {
 
 const logsDirName = "logs"
 
-// CreateLogFile creates an in-memory log file
+// CreateLogFile creates a log file in the specified logs directory
 func (s *FlatbufferJobStore) CreateLogFile(j *Job) (f io.WriteCloser, path string, err error) {
 	s.lock.Lock()
 	defer s.lock.Unlock()

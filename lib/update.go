@@ -155,7 +155,7 @@ func (m *UpdateMethods) List(p *ListParams, jobs *[]*Job) error {
 	// TODO (b5): refactor RPC communication to use context
 	var ctx = context.Background()
 
-	list, err := m.inst.cron.Jobs(ctx, p.Offset, p.Limit)
+	list, err := m.inst.cron.ListJobs(ctx, p.Offset, p.Limit)
 	if err != nil {
 		return err
 	}
@@ -187,7 +187,7 @@ func (m *UpdateMethods) Logs(p *ListParams, res *[]*Job) error {
 	// TODO (b5): refactor RPC communication to use context
 	var ctx = context.Background()
 
-	jobs, err := m.inst.cron.Logs(ctx, p.Offset, p.Limit)
+	jobs, err := m.inst.cron.ListLogs(ctx, p.Offset, p.Limit)
 	if err != nil {
 		return err
 	}
@@ -198,7 +198,7 @@ func (m *UpdateMethods) Logs(p *ListParams, res *[]*Job) error {
 
 // LogFile reads log file data for a given logName
 func (m *UpdateMethods) LogFile(logName *string, data *[]byte) error {
-	f, err := m.inst.cron.LoggedJobFile(context.Background(), *logName)
+	f, err := m.inst.cron.LogFile(context.Background(), *logName)
 	if err != nil {
 		return err
 	}
@@ -351,26 +351,14 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 		return err
 	}
 
-	// default to recalling transfrom scripts for local updates
+	// default to recalling transform scripts for local updates
 	// TODO (b5): not sure if this should be here or in client libraries
 	if p.Recall == "" {
 		p.Recall = "tf"
 	}
 
-	saveParams := &SaveParams{
-		Ref:          p.Ref,
-		Title:        p.Title,
-		Message:      p.Message,
-		Recall:       p.Recall,
-		Secrets:      p.Secrets,
-		Publish:      p.Publish,
-		DryRun:       p.DryRun,
-		ReturnBody:   p.ReturnBody,
-		ScriptOutput: p.ScriptOutput,
-	}
-
 	dsr := NewDatasetRequests(m.inst.node, m.inst.rpc)
-	return dsr.Save(saveParams, res)
+	return dsr.Save(p, res)
 }
 
 // note (b5): we'd like to one day be able to run scripts like this, creating

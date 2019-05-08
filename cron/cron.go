@@ -25,8 +25,8 @@ var (
 // Scheduler is the generic interface for the Cron Scheduler, it's implemented
 // by both Cron and HTTPClient for easier RPC communication
 type Scheduler interface {
-	// Jobs lists currently scheduled jobs
-	Jobs(ctx context.Context, offset, limit int) ([]*Job, error)
+	// ListJobs lists currently scheduled jobs
+	ListJobs(ctx context.Context, offset, limit int) ([]*Job, error)
 	// Job gets a single scheduled job by name
 	Job(ctx context.Context, name string) (*Job, error)
 
@@ -35,12 +35,12 @@ type Scheduler interface {
 	// Unschedule removes a job from the scheduler
 	Unschedule(ctx context.Context, name string) error
 
-	// Logs gives a log of executed jobs
-	Logs(ctx context.Context, offset, limit int) ([]*Job, error)
-	// LoggedJob returns a single executed job by job.LogName
-	LoggedJob(ctx context.Context, logName string) (*Job, error)
+	// ListLogs gives a log of executed jobs
+	ListLogs(ctx context.Context, offset, limit int) ([]*Job, error)
+	// Log returns a single executed job by job.LogName
+	Log(ctx context.Context, logName string) (*Job, error)
 	// JobLogFile returns a reader for a file at the given name
-	LoggedJobFile(ctx context.Context, logName string) (io.ReadCloser, error)
+	LogFile(ctx context.Context, logName string) (io.ReadCloser, error)
 }
 
 // RunJobFunc is a function for executing a job. Cron takes care of scheduling
@@ -79,9 +79,9 @@ type Cron struct {
 // assert Cron is a Scheduler at compile time
 var _ Scheduler = (*Cron)(nil)
 
-// Jobs proxies to the schedule store for reading jobs
-func (c *Cron) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
-	return c.schedule.Jobs(ctx, offset, limit)
+// ListJobs proxies to the schedule store for reading jobs
+func (c *Cron) ListJobs(ctx context.Context, offset, limit int) ([]*Job, error) {
+	return c.schedule.ListJobs(ctx, offset, limit)
 }
 
 // Job proxies to the schedule store for reading a job by name
@@ -89,18 +89,18 @@ func (c *Cron) Job(ctx context.Context, name string) (*Job, error) {
 	return c.schedule.Job(ctx, name)
 }
 
-// Logs returns a list of jobs that have been executed
-func (c *Cron) Logs(ctx context.Context, offset, limit int) ([]*Job, error) {
-	return c.log.Jobs(ctx, offset, limit)
+// ListLogs returns a list of jobs that have been executed
+func (c *Cron) ListLogs(ctx context.Context, offset, limit int) ([]*Job, error) {
+	return c.log.ListJobs(ctx, offset, limit)
 }
 
-// LoggedJob gives a specific Job by logged job name
-func (c *Cron) LoggedJob(ctx context.Context, logName string) (*Job, error) {
+// Log gives a specific Job by logged job name
+func (c *Cron) Log(ctx context.Context, logName string) (*Job, error) {
 	return c.log.Job(ctx, logName)
 }
 
-// LoggedJobFile returns a reader for a file at the given name
-func (c *Cron) LoggedJobFile(ctx context.Context, logName string) (io.ReadCloser, error) {
+// LogFile returns a reader for a file at the given name
+func (c *Cron) LogFile(ctx context.Context, logName string) (io.ReadCloser, error) {
 	job, err := c.log.Job(ctx, logName)
 	if err != nil {
 		return nil, err
@@ -125,7 +125,7 @@ func (c *Cron) Start(ctx context.Context) error {
 		defer cleanup()
 
 		log.Debugf("running check")
-		jobs, err := c.schedule.Jobs(ctx, 0, 0)
+		jobs, err := c.schedule.ListJobs(ctx, 0, -1)
 		if err != nil {
 			log.Errorf("getting jobs from store: %s", err)
 			return

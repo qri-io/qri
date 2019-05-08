@@ -20,7 +20,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 
 	t.Run("JobStoreTest", func(t *testing.T) {
 		store := newStore()
-		jobs, err := store.Jobs(ctx, 0, 100)
+		jobs, err := store.ListJobs(ctx, 0, -1)
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -37,7 +37,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Errorf("putting job one: %s", err)
 		}
 
-		if jobs, err = store.Jobs(ctx, 0, 0); err != nil {
+		if jobs, err = store.ListJobs(ctx, 0, -1); err != nil {
 			t.Fatal(err)
 		}
 		if len(jobs) != 1 {
@@ -57,7 +57,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Errorf("putting job one: %s", err)
 		}
 
-		if jobs, err = store.Jobs(ctx, 0, 0); err != nil {
+		if jobs, err = store.ListJobs(ctx, 0, -1); err != nil {
 			t.Fatal(err)
 		}
 		expect := []*Job{jobTwo, jobOne}
@@ -94,7 +94,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Errorf("putting job one: %s", err)
 		}
 
-		if jobs, err = store.Jobs(ctx, 1, 1); err != nil {
+		if jobs, err = store.ListJobs(ctx, 1, 1); err != nil {
 			t.Fatal(err)
 		}
 		if len(jobs) != 1 {
@@ -122,7 +122,7 @@ func RunJobStoreTests(t *testing.T, newStore func() JobStore) {
 			t.Error(err)
 		}
 
-		if jobs, err = store.Jobs(ctx, 0, 0); err != nil {
+		if jobs, err = store.ListJobs(ctx, 0, -1); err != nil {
 			t.Fatal(err)
 		}
 		if len(jobs) != 0 {

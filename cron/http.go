@@ -28,8 +28,7 @@ var _ Scheduler = (*HTTPClient)(nil)
 var ErrUnreachable = fmt.Errorf("cannot establish a connection to the server")
 
 // Ping confirms client can dial the server, if a connection cannot be
-// established at all, Ping will return ErrUnreachable, all other errors
-// will
+// established at all, Ping will return ErrUnreachable
 func (c HTTPClient) Ping() error {
 	res, err := http.Get(fmt.Sprintf("http://%s", c.Addr))
 	if err != nil {
@@ -51,14 +50,14 @@ func (c HTTPClient) Ping() error {
 	return maybeErrorResponse(res)
 }
 
-// Jobs lists jobs by querying an HTTP server
-func (c HTTPClient) Jobs(ctx context.Context, offset, limit int) ([]*Job, error) {
+// ListJobs  jobs by querying an HTTP server
+func (c HTTPClient) ListJobs(ctx context.Context, offset, limit int) ([]*Job, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/jobs?offset=%d&limit=%d", c.Addr, offset, limit))
 	if err != nil {
 		return nil, err
 	}
 
-	return decodeJobsResponse(res)
+	return decodeListJobsResponse(res)
 }
 
 // Job gets a job by querying an HTTP server
@@ -95,18 +94,18 @@ func (c HTTPClient) Unschedule(ctx context.Context, name string) error {
 	return maybeErrorResponse(res)
 }
 
-// Logs gives a log of executed jobs
-func (c HTTPClient) Logs(ctx context.Context, offset, limit int) ([]*Job, error) {
+// ListLogs gives a log of executed jobs
+func (c HTTPClient) ListLogs(ctx context.Context, offset, limit int) ([]*Job, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/logs?offset=%d&limit=%d", c.Addr, offset, limit))
 	if err != nil {
 		return nil, err
 	}
 
-	return decodeJobsResponse(res)
+	return decodeListJobsResponse(res)
 }
 
-// LoggedJob returns a single executed job by job.LogName
-func (c HTTPClient) LoggedJob(ctx context.Context, logName string) (*Job, error) {
+// Log returns a single executed job by job.LogName
+func (c HTTPClient) Log(ctx context.Context, logName string) (*Job, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/log?log_name=%s", c.Addr, logName))
 	if err != nil {
 		return nil, err
@@ -119,8 +118,8 @@ func (c HTTPClient) LoggedJob(ctx context.Context, logName string) (*Job, error)
 	return nil, maybeErrorResponse(res)
 }
 
-// LoggedJobFile returns a reader for a file at the given name
-func (c HTTPClient) LoggedJobFile(ctx context.Context, logName string) (io.ReadCloser, error) {
+// LogFile returns a reader for a file at the given name
+func (c HTTPClient) LogFile(ctx context.Context, logName string) (io.ReadCloser, error) {
 	res, err := http.Get(fmt.Sprintf("http://%s/log/output?log_name=%s", c.Addr, logName))
 	if err != nil {
 		return nil, err
@@ -160,7 +159,7 @@ func maybeErrorResponse(res *http.Response) error {
 	return fmt.Errorf(string(errData))
 }
 
-func decodeJobsResponse(res *http.Response) ([]*Job, error) {
+func decodeListJobsResponse(res *http.Response) ([]*Job, error) {
 	defer res.Body.Close()
 	data, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -231,7 +230,7 @@ func (c *Cron) jobsHandler(w http.ResponseWriter, r *http.Request) {
 		offset, _ := apiutil.ReqParamInt("offset", r)
 		limit, _ := apiutil.ReqParamInt("limit", r)
 
-		js, err := c.Jobs(r.Context(), offset, limit)
+		js, err := c.ListJobs(r.Context(), offset, limit)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -293,7 +292,7 @@ func (c *Cron) logsHandler(w http.ResponseWriter, r *http.Request) {
 		offset, _ := apiutil.ReqParamInt("offset", r)
 		limit, _ := apiutil.ReqParamInt("limit", r)
 
-		log, err := c.Logs(r.Context(), offset, limit)
+		log, err := c.ListLogs(r.Context(), offset, limit)
 		if err != nil {
 			w.WriteHeader(http.StatusInternalServerError)
 			return
@@ -307,7 +306,7 @@ func (c *Cron) logsHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Cron) loggedJobHandler(w http.ResponseWriter, r *http.Request) {
 	logName := r.FormValue("log_name")
-	job, err := c.LoggedJob(r.Context(), logName)
+	job, err := c.Log(r.Context(), logName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))
@@ -319,7 +318,7 @@ func (c *Cron) loggedJobHandler(w http.ResponseWriter, r *http.Request) {
 
 func (c *Cron) loggedJobFileHandler(w http.ResponseWriter, r *http.Request) {
 	logName := r.FormValue("log_name")
-	f, err := c.LoggedJobFile(r.Context(), logName)
+	f, err := c.LogFile(r.Context(), logName)
 	if err != nil {
 		w.WriteHeader(http.StatusInternalServerError)
 		w.Write([]byte(err.Error()))

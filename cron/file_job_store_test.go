@@ -46,7 +46,7 @@ func BenchmarkFbJobStore(b *testing.B) {
 		if err := store.PutJobs(ctx, js...); err != nil {
 			b.Fatal(err)
 		}
-		if _, err := store.Jobs(ctx, 0, 0); err != nil {
+		if _, err := store.ListJobs(ctx, 0, -1); err != nil {
 			b.Fatal(err)
 		}
 	}

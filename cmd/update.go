@@ -104,11 +104,11 @@ scheduled updates.
 with the most immediate update.
 	`,
 		Example: `  list the upcoming updates:
-	$ qri update list
-	1. b5/my_dataset
+  $ qri update list
+  1. b5/my_dataset
   dataset | 2019-05-08 16:19:23 -0400 EDT
-	
-	2. b5/my_next_dataset
+
+  2. b5/my_next_dataset
   dataset | 2019-05-09 16:19:23 -0400 EDT
 
 	`,
@@ -135,28 +135,17 @@ Using the name of a specific log as a parameter gives you the output of that
 update.
 	`,
 		Example: `  list the log of previous updates:
-	$ qri update logs
-	1. 1557173933-my_dataset
-	  dataset | 2019-05-06 16:19:23 -0400 EDT
+  $ qri update logs
+  1. 1557173933-my_dataset
+  dataset | 2019-05-06 16:19:23 -0400 EDT
 
-	2. 1557173585-my_dataset
-	  dataset | 2019-05-06 16:13:35 -0400 EDT
+  2. 1557173585-my_dataset
+  dataset | 2019-05-06 16:13:35 -0400 EDT
+  ...
 
-	3. 1557173525-my_dataset
-	  dataset | 2019-05-06 16:12:35 -0400 EDT
-
-	4. 1557173465-my_dataset
-	  dataset | 2019-05-06 16:11:35 -0400 EDT
-
-	5. 1557173405-my_dataset
-	  dataset | 2019-05-06 16:10:35 -0400 EDT
-
-	6. 1557173345-my_dataset
-	  dataset | 2019-05-06 16:09:35 -0400 EDT
-
-	get the output of one specific update:
-	$ qri update log 1557173933-my_dataset
-	dataset saved: b5/my_dataset@MSN9/ipfs/BntM
+  get the output of one specific update:
+  $ qri update log 1557173933-my_dataset
+  dataset saved: b5/my_dataset@MSN9/ipfs/BntM
 	`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
@@ -171,14 +160,14 @@ update.
 
 	runCmd := &cobra.Command{
 		Use:   "run",
-		Short: "excute an update immediately",
+		Short: "execute an update immediately",
 		Long: `Run allows you to execute an update immediately, rather then wait for
 its scheduled time. Run uses the same parameters as the Save command, but
 but assumes you want to recall the most recent transform in the dataset.
 	`,
 		Example: `  run an update
-	$ qri update run b5/my_dataset
-	⠋ 🤖  running transform...
+  $ qri update run b5/my_dataset
+  🤖  running transform...
   ✅ transform complete
   dataset saved: b5/my_dataset@MSN9/ipfs/2BntM
 
@@ -351,9 +340,9 @@ func (o *UpdateOptions) List() (err error) {
 		return
 	}
 
-	for i, j := range res {
+	for i, job := range res {
 		num := p.Offset + i + 1
-		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, j.Name, j.Type, j.NextExec())
+		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, job.Name, job.Type, job.NextExec())
 	}
 
 	return
@@ -377,9 +366,9 @@ func (o *UpdateOptions) Logs(args []string) (err error) {
 		return
 	}
 
-	for i, j := range res {
+	for i, job := range res {
 		num := p.Offset + i + 1
-		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, j.Name, j.Type, j.NextExec())
+		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, job.Name, job.Type, job.NextExec())
 	}
 
 	return nil
@@ -433,7 +422,7 @@ func (o *UpdateOptions) ServiceStop() (err error) {
 	return fmt.Errorf("not finished")
 }
 
-// RunUpdate executes an update immideately
+// RunUpdate executes an update immediately
 func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	if len(args) < 1 {
 		return lib.NewError(lib.ErrBadArgs, "please provide the name of an update to run")
