@@ -11,7 +11,7 @@ import (
 )
 
 func TestConnect(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
+	if err := confirmUpdateServiceNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}
 

@@ -296,7 +296,6 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		conn, err := net.Dial("tcp", addr)
 		if err == nil {
 			// we have a connection
-			log.Infof("Connected over rpc")
 			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}

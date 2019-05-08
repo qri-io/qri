@@ -47,7 +47,7 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 		return
 	}
 
-	cfg := config.DefaultConfigForTesting()
+	cfg := config.DefaultConfigForTesting().Copy()
 	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P)
 	if err != nil {
 		return

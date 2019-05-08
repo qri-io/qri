@@ -14,7 +14,7 @@ import (
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/repo/gen"
@@ -34,6 +34,16 @@ func confirmQriNotRunning() error {
 	l, err := net.Listen("tcp", fmt.Sprintf(":%d", config.DefaultAPIPort))
 	if err != nil {
 		return fmt.Errorf("it looks like a qri server is already running on port %d, please close before running tests", config.DefaultAPIPort)
+	}
+
+	l.Close()
+	return nil
+}
+
+func confirmUpdateServiceNotRunning() error {
+	l, err := net.Listen("tcp", config.DefaultUpdateAddress)
+	if err != nil {
+		return fmt.Errorf("it looks like a qri update service is already running on port %d, please close before running tests", config.DefaultAPIPort)
 	}
 
 	l.Close()
@@ -739,7 +749,7 @@ func NewTestRepoRoot(t *testing.T, prefix string) TestRepoRoot {
 		t.Fatal(err)
 	}
 	// Create empty config.yaml into the test repo.
-	cfg := config.DefaultConfigForTesting()
+	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = "test_peer"
 	err = cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
 	if err != nil {
