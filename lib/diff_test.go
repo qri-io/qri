@@ -3,7 +3,9 @@ package lib
 import (
 	"reflect"
 	"testing"
+	"time"
 
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -12,7 +14,10 @@ import (
 )
 
 func TestDatasetRequestsDiff(t *testing.T) {
-	// rc, _ := regmock.NewMockServer()
+	prevTs := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Time{} }
+	defer func() { dsfs.Timestamp = prevTs }()
+
 	mr, err := testrepo.NewTestRepo(nil)
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())

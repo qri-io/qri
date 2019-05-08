@@ -12,7 +12,6 @@ import (
 	"strings"
 	"sync"
 	"testing"
-	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
@@ -25,18 +24,12 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/rev"
 	regmock "github.com/qri-io/registry/regserver/mock"
 )
-
-func init() {
-	dsfs.Timestamp = func() time.Time {
-		return time.Time{}
-	}
-}
 
 func TestDatasetRequestsSave(t *testing.T) {
 	rc, _ := regmock.NewMockServer()

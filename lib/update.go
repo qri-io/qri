@@ -83,7 +83,7 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 
 	job, err := m.jobFromScheduleParams(in)
 	if err != nil {
-		return nil
+		return err
 	}
 	*out = *job
 
@@ -116,20 +116,23 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 		return
 	}
 
-	o := &cron.DatasetOptions{
-		Title:     p.SaveParams.Title,
-		Message:   p.SaveParams.Message,
-		Recall:    p.SaveParams.Recall,
-		BodyPath:  p.SaveParams.BodyPath,
-		FilePaths: p.SaveParams.FilePaths,
-		Publish:   p.SaveParams.Publish,
-		// Strict:              p.SaveParams.Strict,
-		Force:               p.SaveParams.Force,
-		ConvertFormatToPrev: p.SaveParams.ConvertFormatToPrev,
-		ShouldRender:        p.SaveParams.ShouldRender,
-		Secrets:             p.SaveParams.Secrets,
-		// TODO (b5) not fully supported yet:
-		// Config: p.SaveParams.
+	var o *cron.DatasetOptions
+	if p.SaveParams != nil {
+		o = &cron.DatasetOptions{
+			Title:     p.SaveParams.Title,
+			Message:   p.SaveParams.Message,
+			Recall:    p.SaveParams.Recall,
+			BodyPath:  p.SaveParams.BodyPath,
+			FilePaths: p.SaveParams.FilePaths,
+			Publish:   p.SaveParams.Publish,
+			// Strict:              p.SaveParams.Strict,
+			Force:               p.SaveParams.Force,
+			ConvertFormatToPrev: p.SaveParams.ConvertFormatToPrev,
+			ShouldRender:        p.SaveParams.ShouldRender,
+			Secrets:             p.SaveParams.Secrets,
+			// TODO (b5) not fully supported yet:
+			// Config: p.SaveParams.
+		}
 	}
 
 	return base.DatasetToJob(ref.Dataset, p.Periodicity, o)
@@ -389,7 +392,7 @@ func updateFactory(context.Context) cron.RunJobFunc {
 		// return m.Run(job, res)
 		// }
 
-		log.Errorf("running update: %s", job.Name)
+		log.Debugf("running update: %s", job.Name)
 		cmd := base.JobToCmd(streams, job)
 		if cmd == nil {
 			return fmt.Errorf("unrecognized update type: %s", job.Type)
