@@ -7,6 +7,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"os"
@@ -42,7 +43,10 @@ func Execute() {
 
 	ensureLargeNumOpenFiles()
 
-	root := NewQriCommand(EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
+	// root context
+	ctx := context.Background()
+
+	root := NewQriCommand(ctx, EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
 	// If the subcommand hits an error, don't show usage or the error, since we'll show
 	// the error message below, on our own. Usage is still shown if the subcommand
 	// is missing command-line arguments.

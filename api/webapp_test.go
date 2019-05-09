@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -11,6 +12,8 @@ import (
 )
 
 func TestServeWebapp(t *testing.T) {
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
 
 	node, teardown := newTestNode(t)
 	defer teardown()
@@ -18,12 +21,12 @@ func TestServeWebapp(t *testing.T) {
 	cfg.Webapp.Enabled = false
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
-	New(inst).ServeWebapp()
+	New(inst).ServeWebapp(ctx)
 
 	cfg.Webapp.EntrypointUpdateAddress = ""
 	cfg.Webapp.Enabled = true
 	s := New(inst)
-	go s.ServeWebapp()
+	go s.ServeWebapp(ctx)
 
 	url := fmt.Sprintf("http://localhost:%d", cfg.Webapp.Port)
 	res, err := http.Get(url)

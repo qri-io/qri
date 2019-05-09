@@ -96,8 +96,6 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		return fmt.Errorf("update service not available")
 	}
 
-	fmt.Printf("%#v\n", m.inst.cron)
-
 	return m.inst.cron.Schedule(ctx, job)
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 // ServeWebapp launches a webapp server on s.cfg.Webapp.Port
-func (s Server) ServeWebapp() {
+func (s Server) ServeWebapp(ctx context.Context) {
 	cfg := s.Config()
 	if !cfg.Webapp.Enabled || cfg.Webapp.Port == 0 {
 		return
@@ -26,6 +26,13 @@ func (s Server) ServeWebapp() {
 	m.Handle("/webapp/", s.FrontendHandler("/webapp"))
 
 	webappserver := &http.Server{Handler: m}
+
+	go func() {
+		<-ctx.Done()
+		log.Info("clsing webapp server")
+		webappserver.Close()
+	}()
+
 	webappserver.Serve(listener)
 	return
 }

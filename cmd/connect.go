@@ -153,7 +153,7 @@ func (o *ConnectOptions) Run() (err error) {
 	}
 
 	s := api.New(o.inst)
-	err = s.Serve()
+	err = s.Serve(o.inst.Context())
 	if err != nil && err.Error() == "http: Server closed" {
 		return nil
 	}

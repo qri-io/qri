@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"fmt"
 	"net/rpc"
 	"path/filepath"
@@ -15,7 +16,7 @@ import (
 )
 
 // NewQriCommand represents the base command when called without any subcommands
-func NewQriCommand(pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
+func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
@@ -30,10 +31,8 @@ https://github.com/qri-io/qri/issues`,
 	}
 
 	qriPath, ipfsPath := pf()
-	opt := NewQriOptions(qriPath, ipfsPath, generator, ioStreams)
+	opt := NewQriOptions(ctx, qriPath, ipfsPath, generator, ioStreams)
 
-	// TODO: write a test that verifies this works with our new yaml config
-	// RootCmd.PersistentFlags().StringVar(&cfgFile, "config", "", "config file (default is $QRI_PATH/config.yaml)")
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
@@ -74,6 +73,10 @@ https://github.com/qri-io/qri/issues`,
 type QriOptions struct {
 	ioes.IOStreams
 
+	// TODO (b5) - this context should be refactored away, prefering to pass
+	// this stored context object down through function calls
+	ctx context.Context
+
 	// QriRepoPath is the path to the QRI repository
 	qriRepoPath string
 	// IpfsFsPath is the path to the IPFS repo
@@ -92,11 +95,12 @@ type QriOptions struct {
 }
 
 // NewQriOptions creates an options object
-func NewQriOptions(qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
+func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
+		IOStreams:   ioStreams,
+		ctx:         ctx,
 		qriRepoPath: qriPath,
 		ipfsFsPath:  ipfsPath,
-		IOStreams:   ioStreams,
 		generator:   generator,
 	}
 }
@@ -107,7 +111,8 @@ func (o *QriOptions) Init() (err error) {
 		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 		opts := []lib.Option{
 			lib.OptLoadConfigFile(cfgPath),
-			lib.OptIOStreams(o.IOStreams), // transfer iostreams down
+			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
+			lib.OptCtx(o.ctx),             // transfer request context to instance
 			lib.OptSetQriRepoPath(o.qriRepoPath),
 			lib.OptSetIPFSPath(o.ipfsFsPath),
 			lib.OptCheckConfigMigrations(""),

@@ -5,6 +5,8 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"io/ioutil"
+	stdlog "log"
 	"net"
 	"net/http"
 	"net/rpc"
@@ -29,7 +31,7 @@ func init() {
 	// a few methods don't conform to the proper signature (comment this out & run 'qri connect' to see errors)
 	// so we're disabling the log package for now. This is potentially very stupid.
 	// TODO (b5): remove dep on net/rpc package entirely
-	// stdlog.SetOutput(ioutil.Discard)
+	stdlog.SetOutput(ioutil.Discard)
 
 	golog.SetLogLevel("qriapi", "info")
 }
@@ -46,7 +48,7 @@ func New(inst *lib.Instance) (s Server) {
 }
 
 // Serve starts the server. It will block while the server is running
-func (s Server) Serve() (err error) {
+func (s Server) Serve(ctx context.Context) (err error) {
 	node := s.Node()
 	cfg := s.Config()
 
@@ -59,8 +61,8 @@ func (s Server) Serve() (err error) {
 	mux := NewServerRoutes(s)
 	server.Handler = mux
 
-	go s.ServeRPC()
-	go s.ServeWebapp()
+	go s.ServeRPC(ctx)
+	go s.ServeWebapp(ctx)
 
 	if namesys, err := node.GetIPFSNamesys(); err == nil {
 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
@@ -122,12 +124,18 @@ func (s Server) Serve() (err error) {
 		}(server, cfg.API.DisconnectAfter)
 	}
 
+	go func() {
+		<-ctx.Done()
+		log.Info("shutting down")
+		server.Close()
+	}()
+
 	// http.ListenAndServe will not return unless there's an error
 	return StartServer(cfg.API, server)
 }
 
 // ServeRPC checks for a configured RPC port, and registers a listner if so
-func (s Server) ServeRPC() {
+func (s Server) ServeRPC(ctx context.Context) {
 	cfg := s.Config()
 	if !cfg.RPC.Enabled || cfg.RPC.Port == 0 {
 		return
@@ -145,6 +153,12 @@ func (s Server) ServeRPC() {
 			return
 		}
 	}
+
+	go func() {
+		<-ctx.Done()
+		log.Info("closing RPC")
+		listener.Close()
+	}()
 
 	rpc.Accept(listener)
 	return
