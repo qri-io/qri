@@ -163,7 +163,6 @@ func TestSearchRun(t *testing.T) {
 var textSearchResponse = `showing 3 results for 'test'
 1   ramfox/test
 
-
 2   b5/test
     /ipfs/QmPi5wrPsY4xPwy2oRr7NRZyfFxTeupfmnrVDubzoABLNP
     18 KBs, 7 entries, 0 errors

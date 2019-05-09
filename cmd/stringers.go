@@ -11,6 +11,7 @@ import (
 
 type peerStringer config.ProfilePod
 
+// String assumes that Peername and ID are present
 func (p peerStringer) String() string {
 	w := &bytes.Buffer{}
 	name := color.New(color.FgGreen, color.Bold).SprintFunc()
@@ -20,9 +21,18 @@ func (p peerStringer) String() string {
 	} else {
 		fmt.Fprintf(w, "%s\n", name(p.Peername))
 	}
-	fmt.Fprintf(w, "profile ID: %s\n", p.ID)
-	if len(p.NetworkAddrs) > 0 {
-		fmt.Fprintf(w, "address:    %s\n", p.NetworkAddrs[0])
+	fmt.Fprintf(w, "Profile ID: %s\n", p.ID)
+	plural := "es"
+	spacer := "              "
+	if len(p.NetworkAddrs) <= 1 {
+		plural = ""
+	}
+	for i, addr := range p.NetworkAddrs {
+		if i == 0 {
+			fmt.Fprintf(w, "Address%s:    %s\n", plural, addr)
+			continue
+		}
+		fmt.Fprintf(w, "%s%s\n", spacer, addr)
 	}
 	fmt.Fprintln(w, "")
 	return w.String()
@@ -36,6 +46,7 @@ func (s stringer) String() string {
 
 type refStringer repo.DatasetRef
 
+// String assumes Peername and Name are present
 func (r refStringer) String() string {
 	w := &bytes.Buffer{}
 	title := color.New(color.FgGreen, color.Bold).SprintFunc()
@@ -43,15 +54,15 @@ func (r refStringer) String() string {
 	ds := r.Dataset
 	dsr := repo.DatasetRef(r)
 
-	fmt.Fprintf(w, "%s\n", title(dsr.AliasString()))
+	fmt.Fprintf(w, "%s", title(dsr.AliasString()))
 	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
-		fmt.Fprintf(w, "%s\n", ds.Meta.Title)
+		fmt.Fprintf(w, "\n%s", ds.Meta.Title)
 	}
 	if r.Path != "" {
-		fmt.Fprintf(w, "%s\n", path(r.Path))
+		fmt.Fprintf(w, "\n%s", path(r.Path))
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Fprintf(w, "%s", printByteInfo(ds.Structure.Length))
+		fmt.Fprintf(w, "\n%s", printByteInfo(ds.Structure.Length))
 		if ds.Structure.Entries == 1 {
 			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
 		} else {
@@ -77,18 +88,19 @@ func (r refStringer) String() string {
 
 type logStringer repo.DatasetRef
 
+// String assumes Path, Peername, Timestamp and Title are present
 func (r logStringer) String() string {
 	w := &bytes.Buffer{}
 	// title := color.New(color.Bold).Sprintfunc()
 	path := color.New(color.FgGreen).SprintFunc()
 	dsr := repo.DatasetRef(r)
 
-	fmt.Fprintf(w, "%s%s\n", path("path:   "), path(dsr.Path))
+	fmt.Fprintf(w, "%s\n", path("path:   "+dsr.Path))
 	fmt.Fprintf(w, "Author: %s\n", dsr.Peername)
 	fmt.Fprintf(w, "Date:   %s\n", dsr.Dataset.Commit.Timestamp.Format("Jan _2 15:04:05"))
-	fmt.Fprintf(w, "\n\t%s\n", dsr.Dataset.Commit.Title)
+	fmt.Fprintf(w, "\n    %s\n", dsr.Dataset.Commit.Title)
 	if dsr.Dataset.Commit.Message != "" {
-		fmt.Fprintf(w, "\t%s\n", dsr.Dataset.Commit.Message)
+		fmt.Fprintf(w, "    %s\n", dsr.Dataset.Commit.Message)
 	}
 
 	fmt.Fprintf(w, "\n")
