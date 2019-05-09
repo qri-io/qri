@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io"
 	"os"
+	"os/exec"
 	"strings"
 
 	"github.com/fatih/color"
@@ -62,6 +63,55 @@ func printErr(w io.Writer, err error, params ...interface{}) {
 
 func printNotYetFinished(cmd *cobra.Command) {
 	color.Yellow("%s command is not yet implemented", cmd.Name())
+}
+
+func printItems(w io.Writer, items []fmt.Stringer) (err error) {
+	buf := &bytes.Buffer{}
+	prefix := []byte("    ")
+	for i, item := range items {
+		buf.WriteString(fmtItem(i+1, item.String(), prefix))
+	}
+	return printToPager(w, buf)
+}
+
+func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
+	// TODO (ramfox): This is POSIX specific, need to expand!
+	envPager := os.Getenv("PAGER")
+	// check if more exist, use it
+	// check if less exists, use it
+	if envPager == "" {
+		envPager = "more"
+	}
+	pager := exec.Command(envPager, "-R")
+	pager.Stdin = buf
+	pager.Stdout = w
+	err = pager.Run()
+	if err != nil {
+		// sensible default: if something goes wrong printing to the
+		// pager, just print the results to the given io.Writer
+		fmt.Fprintln(w, buf.String())
+	}
+	return
+}
+
+func fmtItem(i int, item string, prefix []byte) string {
+	var res []byte
+	bol := true
+	b := []byte(item)
+	d := []byte(fmt.Sprintf("%d", i))
+	prefix1 := append(d, prefix[len(d):]...)
+	for i, c := range b {
+		if bol && c != '\n' {
+			if i == 0 {
+				res = append(res, prefix1...)
+			} else {
+				res = append(res, prefix...)
+			}
+		}
+		res = append(res, c)
+		bol = c == '\n'
+	}
+	return string(res)
 }
 
 func printByteInfo(n int) string {
@@ -144,48 +194,6 @@ func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
 	}
 
 	fmt.Fprintf(w, "\n")
-}
-
-type ref repo.DatasetRef
-
-func (r ref) String() string {
-	w := &bytes.Buffer{}
-	white := color.New(color.FgWhite).SprintFunc()
-	// cyan := color.New(color.FgCyan).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	ds := r.Dataset
-	dsr := repo.DatasetRef(r)
-
-	fmt.Fprintf(w, "%s\n", white(dsr.AliasString()))
-	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
-		fmt.Fprintf(w, "%s\n", blue(ds.Meta.Title))
-	}
-	if r.Path != "" {
-		fmt.Fprintf(w, "%s\n", r.Path)
-	}
-	if ds != nil && ds.Structure != nil {
-		fmt.Fprintf(w, "%s", printByteInfo(ds.Structure.Length))
-		if ds.Structure.Entries == 1 {
-			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
-		} else {
-			fmt.Fprintf(w, ", %d entries", ds.Structure.Entries)
-		}
-		if ds.Structure.ErrCount == 1 {
-			fmt.Fprintf(w, ", %d error", ds.Structure.ErrCount)
-		} else {
-			fmt.Fprintf(w, ", %d errors", ds.Structure.ErrCount)
-		}
-		if ds.NumVersions == 0 {
-			// nothing
-		} else if ds.NumVersions == 1 {
-			fmt.Fprintf(w, ", %d version", ds.NumVersions)
-		} else {
-			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
-		}
-	}
-
-	fmt.Fprintf(w, "\n")
-	return w.String()
 }
 
 func printSearchResult(w io.Writer, i int, result lib.SearchResult) {
