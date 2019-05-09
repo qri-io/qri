@@ -5,7 +5,9 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -153,6 +155,36 @@ func TestLogStringer(t *testing.T) {
 		logStr := logStringer(*c.log).String()
 		if c.expect != logStr {
 			t.Errorf("case '%s', expected: '%s', got'%s'", c.description, c.expect, logStr)
+		}
+	}
+}
+
+func TestJobStringer(t *testing.T) {
+	setNoColor(false)
+	time := time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC)
+	p, err := iso8601.ParseRepeatingInterval("R/P1D")
+	if err != nil {
+		t.Error(err)
+	}
+
+	cases := []struct {
+		description string
+		job         *lib.Job
+		expect      string
+	}{
+		{"JobStringer - all fields",
+			&lib.Job{
+				Name:         "Job",
+				Type:         "dataset",
+				Periodicity:  p,
+				LastRunStart: time,
+			}, "\u001b[1mJob\u001b[0m\ndataset | 2001-01-02 01:01:01.000000001 +0000 UTC\n\n",
+		},
+	}
+	for _, c := range cases {
+		jobStr := jobStringer(*c.job).String()
+		if c.expect != jobStr {
+			t.Errorf("case '%s', expected: '%s', got'%s'", c.description, c.expect, jobStr)
 		}
 	}
 }

@@ -6,6 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -89,11 +90,11 @@ func (r refStringer) String() string {
 type logStringer repo.DatasetRef
 
 // String assumes Path, Peername, Timestamp and Title are present
-func (r logStringer) String() string {
+func (l logStringer) String() string {
 	w := &bytes.Buffer{}
 	// title := color.New(color.Bold).Sprintfunc()
 	path := color.New(color.FgGreen).SprintFunc()
-	dsr := repo.DatasetRef(r)
+	dsr := repo.DatasetRef(l)
 
 	fmt.Fprintf(w, "%s\n", path("path:   "+dsr.Path))
 	fmt.Fprintf(w, "Author: %s\n", dsr.Peername)
@@ -104,5 +105,16 @@ func (r logStringer) String() string {
 	}
 
 	fmt.Fprintf(w, "\n")
+	return w.String()
+}
+
+type jobStringer cron.Job
+
+// String assumes Name, Type, Periodicity, and LastRunStart are present
+func (j jobStringer) String() string {
+	w := &bytes.Buffer{}
+	name := color.New(color.Bold).SprintFunc()
+	time := j.Periodicity.After(j.LastRunStart)
+	fmt.Fprintf(w, "%s\n%s | %s\n\n", name(j.Name), j.Type, time)
 	return w.String()
 }

@@ -81,7 +81,7 @@ func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
 			}
 		}
 	}
-	pager := exec.Command("/bin/sh", "-c", envPager, "-R")
+	pager := exec.Command("/bin/sh", "-c", envPager+" -R")
 	pager.Stdin = buf
 	pager.Stdout = w
 	err = pager.Run()
