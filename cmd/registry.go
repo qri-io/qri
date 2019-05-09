@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -190,12 +192,13 @@ func (o *RegistryOptions) Status() error {
 
 		err = o.RegistryRequests.GetDataset(&ref, &res)
 		o.StopSpinner()
-
 		if err != nil {
 			printInfo(o.Out, "%s is not on this registry", ref.String())
 		}
+		fmt.Printf("\n%+v\n", ref)
 		if ref.Dataset != nil {
-			printDatasetRefInfo(o.Out, -1, ref)
+			refStr := refStringer(ref)
+			fmt.Fprint(o.Out, refStr.String())
 		}
 	}
 

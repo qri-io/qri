@@ -262,7 +262,8 @@ func (o *PeersOptions) Connect() (err error) {
 	}
 
 	printSuccess(o.Out, "successfully connected to %s:\n", res.Peername)
-	printPeerInfo(o.Out, 0, res)
+	peer := peerStringer(*res)
+	fmt.Fprint(o.Out, peer.String())
 	return nil
 }
 
