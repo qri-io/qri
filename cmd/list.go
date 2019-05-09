@@ -124,14 +124,16 @@ func (o *ListOptions) Run() (err error) {
 		for i, r := range refs {
 			items[i] = refStringer(r)
 		}
-		return printItems(o.Out, items)
+		printItems(o.Out, items)
+		return nil
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(refs, "", "  ")
 		if err != nil {
 			return err
 		}
 		buf := bytes.NewBuffer(data)
-		return printToPager(o.Out, buf)
+		printToPager(o.Out, buf)
+		return nil
 	default:
 		return fmt.Errorf("unrecognized format: %s", o.Format)
 	}

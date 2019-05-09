@@ -138,5 +138,6 @@ func (o *DiffOptions) Run() (err error) {
 		}
 	}
 	buf := bytes.NewBuffer([]byte(stats + "\n" + text))
-	return printToPager(o.Out, buf)
+	printToPager(o.Out, buf)
+	return
 }

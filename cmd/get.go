@@ -143,5 +143,6 @@ func (o *GetOptions) Run() (err error) {
 
 	buf := bytes.NewBuffer(res.Bytes)
 	buf.Write([]byte{'\n'})
-	return printToPager(o.Out, buf)
+	printToPager(o.Out, buf)
+	return
 }

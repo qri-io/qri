@@ -250,7 +250,8 @@ func (o *PeersOptions) List() (err error) {
 		}
 	}
 
-	return printItems(o.Out, items)
+	printItems(o.Out, items)
+	return
 }
 
 // Connect attempts to connect to a peer
