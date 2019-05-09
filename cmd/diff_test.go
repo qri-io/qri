@@ -92,10 +92,10 @@ func TestDiffRun(t *testing.T) {
 		},
 	}
 
-	for i, c := range cases {
+	for _, c := range cases {
 		dsr, err := f.DatasetRequests()
 		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
+			t.Errorf("case %s, error creating dataset request: %s", c.description, err)
 			continue
 		}
 
@@ -105,25 +105,25 @@ func TestDiffRun(t *testing.T) {
 
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
+			t.Errorf("case %s, mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
 			ioReset(in, out, errs)
 			continue
 		}
 
 		if libErr, ok := err.(lib.Error); ok {
 			if libErr.Message() != c.errMsg {
-				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.errMsg, libErr.Message())
+				t.Errorf("case %s, mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.errMsg, libErr.Message())
 				ioReset(in, out, errs)
 				continue
 			}
 		} else if c.errMsg != "" {
-			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.errMsg)
+			t.Errorf("case %s, mismatched user-friendly message. Expected: '%s', Got: ''", c.description, c.errMsg)
 			ioReset(in, out, errs)
 			continue
 		}
 
 		if c.stdout != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.stdout, out.String())
+			t.Errorf("case %s, output mismatch. Expected: '%s', Got: '%s'", c.description, c.stdout, out.String())
 			ioReset(in, out, errs)
 			continue
 		}

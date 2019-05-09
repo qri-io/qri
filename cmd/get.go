@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
 	"regexp"
 
@@ -140,11 +141,8 @@ func (o *GetOptions) Run() (err error) {
 		return err
 	}
 
-	_, err = o.Out.Write(res.Bytes)
-	if err != nil {
-		return err
-	}
-	// commands should always be newline-terminiated, which isn't included in res.Bytes
-	_, err = o.Out.Write([]byte{'\n'})
-	return err
+	buf := bytes.NewBuffer(res.Bytes)
+	buf.Write([]byte{'\n'})
+	printToPager(o.Out, buf)
+	return
 }

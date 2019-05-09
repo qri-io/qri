@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"runtime"
 	"testing"
 )
 
@@ -24,6 +25,17 @@ func TestPrintByteInfo(t *testing.T) {
 		if got != c.expect {
 			t.Errorf("case %d expect != got: %s != %s", i, c.expect, got)
 			continue
+		}
+	}
+}
+
+func TestDoesCommandExist(t *testing.T) {
+	if runtime.GOOS == "darwin" || runtime.GOOS == "linux" {
+		if doesCommandExist("ls") == false {
+			t.Error("ls command does not exist!")
+		}
+		if doesCommandExist("ls111") == true {
+			t.Error("ls111 command should not exist!")
 		}
 	}
 }

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -96,22 +98,11 @@ func (o *LogOptions) Run() error {
 		return err
 	}
 
-	for _, ref := range refs {
-		printSuccess(o.Out, "%s - %s\n\t%s\n", ref.Dataset.Commit.Timestamp.Format("Jan _2 15:04:05"), ref.Path, ref.Dataset.Commit.Title)
+	items := make([]fmt.Stringer, len(refs))
+	for i, r := range refs {
+		items[i] = logStringer(r)
 	}
 
-	// outformat := cmd.Flag("format").Value.String()
-	// switch outformat {
-	// case "":
-	//  for _, ref := range refs {
-	//    printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
-	//  }
-	// case dataset.JSONDataFormat.String():
-	//  data, err := json.MarshalIndent(refs, "", "  ")
-	//  ExitIfErr(o.ErrOut, err)
-	//  fmt.Printf("%s\n", string(data))
-	// default:
-	//  ErrExit(o.ErrOut, fmt.Errorf("unrecognized format: %s", outformat))
-	// }
+	printItems(o.Out, items)
 	return nil
 }

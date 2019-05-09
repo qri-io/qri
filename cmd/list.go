@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 
@@ -87,7 +88,6 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the list command
 func (o *ListOptions) Run() (err error) {
-
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
@@ -120,15 +120,20 @@ func (o *ListOptions) Run() (err error) {
 
 	switch o.Format {
 	case "":
-		for i, ref := range refs {
-			printDatasetRefInfo(o.Out, i+1, ref)
+		items := make([]fmt.Stringer, len(refs))
+		for i, r := range refs {
+			items[i] = refStringer(r)
 		}
+		printItems(o.Out, items)
+		return nil
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(refs, "", "  ")
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.Out, "%s\n", string(data))
+		buf := bytes.NewBuffer(data)
+		printToPager(o.Out, buf)
+		return nil
 	default:
 		return fmt.Errorf("unrecognized format: %s", o.Format)
 	}

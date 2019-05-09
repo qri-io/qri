@@ -340,11 +340,11 @@ func (o *UpdateOptions) List() (err error) {
 		return
 	}
 
-	for i, job := range res {
-		num := p.Offset + i + 1
-		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, job.Name, job.Type, job.NextExec())
+	items := make([]fmt.Stringer, len(res))
+	for i, r := range res {
+		items[i] = jobStringer(*r)
 	}
-
+	printItems(o.Out, items)
 	return
 }
 
@@ -366,12 +366,12 @@ func (o *UpdateOptions) Logs(args []string) (err error) {
 		return
 	}
 
-	for i, job := range res {
-		num := p.Offset + i + 1
-		printInfo(o.Out, "%d. %s\n  %s | %s\n", num, job.Name, job.Type, job.NextExec())
+	items := make([]fmt.Stringer, len(res))
+	for i, r := range res {
+		items[i] = jobStringer(*r)
 	}
-
-	return nil
+	printItems(o.Out, items)
+	return
 }
 
 // LogFile prints a log output file

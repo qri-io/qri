@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
@@ -66,7 +68,8 @@ func (o *AddOptions) Run(args []string) error {
 			return err
 		}
 
-		printDatasetRefInfo(o.Out, 1, res)
+		refStr := refStringer(res)
+		fmt.Fprintf(o.Out, "\n%s", refStr.String())
 		printInfo(o.Out, "Successfully added dataset %s", ref)
 	}
 

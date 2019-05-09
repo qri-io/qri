@@ -1,11 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 	"fmt"
-	"os"
-	"os/exec"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/ghodss/yaml"
@@ -217,6 +214,8 @@ func (o *PeersOptions) List() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
+	var items []fmt.Stringer
+
 	if o.Network == "ipfs" {
 		res := []string{}
 		limit := page.Limit()
@@ -224,42 +223,35 @@ func (o *PeersOptions) List() (err error) {
 			return err
 		}
 
+		items = make([]fmt.Stringer, len(res))
 		for i, p := range res {
-			printSuccess(o.Out, "%d.\t%s", i+1, p)
+			items[i] = stringer(p)
+		}
+	} else {
+		// if we don't have an RPC client, assume we're not connected
+		if !o.UsingRPC && !o.Cached {
+			printInfo(o.Out, "qri not connected, listing cached peers")
+			o.Cached = true
+		}
+
+		p := &lib.PeerListParams{
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
+			Cached: o.Cached,
+		}
+		res := []*config.ProfilePod{}
+		if err = o.PeerRequests.List(p, &res); err != nil {
+			return err
+		}
+
+		items = make([]fmt.Stringer, len(res))
+		for i, p := range res {
+			items[i] = peerStringer(*p)
 		}
 	}
-	// if we don't have an RPC client, assume we're not connected
-	if !o.UsingRPC && !o.Cached {
-		printInfo(o.Out, "qri not connected, listing cached peers")
-		o.Cached = true
-	}
 
-	p := &lib.PeerListParams{
-		Limit:  page.Limit(),
-		Offset: page.Offset(),
-		Cached: o.Cached,
-	}
-	res := []*config.ProfilePod{}
-	if err = o.PeerRequests.List(p, &res); err != nil {
-		return err
-	}
-
-	// TODO (ramfox): This is POSIX specific, need to expand!
-	envPager := os.Getenv("PAGER")
-	if envPager == "" {
-		envPager = "less"
-	}
-
-	buf := bytes.Buffer{}
-	pager := exec.Command(envPager)
-	pager.Stdin = &buf
-	pager.Stdout = o.Out
-
-	fmt.Fprintln(&buf, "")
-	for i, peer := range res {
-		printPeerInfoNoColor(&buf, i, peer)
-	}
-	return pager.Run()
+	printItems(o.Out, items)
+	return
 }
 
 // Connect attempts to connect to a peer
@@ -271,7 +263,8 @@ func (o *PeersOptions) Connect() (err error) {
 	}
 
 	printSuccess(o.Out, "successfully connected to %s:\n", res.Peername)
-	printPeerInfo(o.Out, 0, res)
+	peer := peerStringer(*res)
+	fmt.Fprint(o.Out, peer.String())
 	return nil
 }
 
