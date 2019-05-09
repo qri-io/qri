@@ -195,7 +195,7 @@ func (o *RegistryOptions) Status() error {
 		if err != nil {
 			printInfo(o.Out, "%s is not on this registry", ref.String())
 		}
-		fmt.Printf("\n%+v\n", ref)
+
 		if ref.Dataset != nil {
 			refStr := refStringer(ref)
 			fmt.Fprint(o.Out, refStr.String())
