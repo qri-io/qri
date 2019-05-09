@@ -2,6 +2,7 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"log"
 	"os"
@@ -15,10 +16,12 @@ import (
 func main() {
 	lastArg := os.Args[len(os.Args)-1]
 
+	ctx := context.Background()
+
 	switch lastArg {
 	case "completions":
 		fmt.Printf("generating completions file...")
-		root := cmd.NewQriCommand(cmd.EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
+		root := cmd.NewQriCommand(ctx, cmd.EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
 		root.GenBashCompletionFile("out.sh")
 		fmt.Println("done")
 	case "docs":
@@ -27,7 +30,7 @@ func main() {
 		if err := os.MkdirAll(path, os.ModePerm); err != nil {
 			log.Fatal(err)
 		}
-		root := cmd.NewQriCommand(cmd.EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
+		root := cmd.NewQriCommand(ctx, cmd.EnvPathFactory, gen.NewCryptoSource(), ioes.NewStdIOStreams())
 		err := doc.GenMarkdownTree(root, path)
 		if err != nil {
 			log.Fatal(err)

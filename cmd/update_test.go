@@ -58,7 +58,7 @@ func TestUpdateComplete(t *testing.T) {
 }
 
 func TestUpdateMethods(t *testing.T) {
-	t.Skip("can't run this because some other test is spinning up an RPC server & not closing it")
+	// t.Skip("can't run this because some other test is spinning up an RPC server & not closing it")
 	if err := confirmUpdateServiceNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}

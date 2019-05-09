@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -11,7 +12,7 @@ import (
 )
 
 func TestConnect(t *testing.T) {
-	if err := confirmUpdateServiceNotRunning(); err != nil {
+	if err := confirmQriNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}
 
@@ -32,7 +33,10 @@ func TestConnect(t *testing.T) {
 
 	cmd := "qri connect --setup --registry=" + registryServer.URL + " --disconnect-after=1"
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	root := NewQriCommand(NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	root := NewQriCommand(ctx, NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
 
 	defer func() {
 		if e := recover(); e != nil {
