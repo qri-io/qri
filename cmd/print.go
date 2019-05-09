@@ -67,10 +67,19 @@ func printItems(w io.Writer, items []fmt.Stringer) (err error) {
 func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
 	// TODO (ramfox): This is POSIX specific, need to expand!
 	envPager := os.Getenv("PAGER")
-	// check if more exist, use it
-	// check if less exists, use it
-	if envPager == "" {
+	if ok := doesCommandExist(envPager); !ok {
+		// if PAGER does not exist, check to see if 'more' is available on this machine
 		envPager = "more"
+		if ok := doesCommandExist(envPager); !ok {
+			// if 'more' does not exist, check to see if 'less' is available on this machine
+			envPager = "less"
+			if ok := doesCommandExist(envPager); !ok {
+				// sensible default: if none of these commands exist
+				// just print the results to the given io.Writer
+				fmt.Fprintln(w, buf.String())
+				return nil
+			}
+		}
 	}
 	pager := exec.Command(envPager, "-R")
 	pager.Stdin = buf
@@ -224,4 +233,15 @@ func usingRPCError(cmdName string) error {
 	return fmt.Errorf(`sorry, we can't run the '%s' command while 'qri connect' is running
 we know this is super irritating, and it'll be fixed in the future. 
 In the meantime please close qri and re-run this command`, cmdName)
+}
+
+func doesCommandExist(cmdName string) bool {
+	if cmdName == "" {
+		return false
+	}
+	cmd := exec.Command("command", "-v", cmdName)
+	if err := cmd.Run(); err != nil {
+		return false
+	}
+	return true
 }
