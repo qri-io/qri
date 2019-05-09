@@ -104,19 +104,4 @@ func (o *LogOptions) Run() error {
 	}
 
 	return printItems(o.Out, items)
-
-	// outformat := cmd.Flag("format").Value.String()
-	// switch outformat {
-	// case "":
-	//  for _, ref := range refs {
-	//    printInfo("%s\t\t\t: %s", ref.Name, ref.Path)
-	//  }
-	// case dataset.JSONDataFormat.String():
-	//  data, err := json.MarshalIndent(refs, "", "  ")
-	//  ExitIfErr(o.ErrOut, err)
-	//  fmt.Printf("%s\n", string(data))
-	// default:
-	//  ErrExit(o.ErrOut, fmt.Errorf("unrecognized format: %s", outformat))
-	// }
-	// return nil
 }

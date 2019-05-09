@@ -1,13 +1,16 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
+	"strings"
 
 	util "github.com/datatogether/api/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -100,18 +103,51 @@ func (o *SearchOptions) Run() (err error) {
 	switch o.Format {
 	case "":
 		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)
+		items := make([]fmt.Stringer, len(results))
 		for i, result := range results {
-			printSearchResult(o.Out, i, result)
+			ref, err := searchResultToRef(&result)
+			if err != nil {
+				return err
+			}
+			items[i] = refStringer(*ref)
 		}
+		o.StopSpinner()
+		return printItems(o.Out, items)
 
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(results, "", "  ")
 		if err != nil {
 			return err
 		}
-		fmt.Fprintf(o.Out, "%s\n", string(data))
+		buf := bytes.NewBuffer(data)
+		o.StopSpinner()
+		printToPager(o.Out, buf)
 	default:
 		return fmt.Errorf("unrecognized format: %s", o.Format)
 	}
 	return nil
+}
+
+func searchResultToRef(result *lib.SearchResult) (*repo.DatasetRef, error) {
+	ref := &repo.DatasetRef{
+		Dataset: &dataset.Dataset{},
+	}
+	raw, err := json.Marshal(result.Value)
+	if err != nil {
+		return nil, err
+	}
+	if err = json.Unmarshal(raw, ref.Dataset); err != nil {
+		return nil, err
+	}
+	ref.Path = ref.Dataset.Path
+
+	id := strings.Split(result.ID, "/")
+	if len(id) != 2 {
+		ref.Peername = ref.Dataset.Peername
+		ref.Name = ref.Dataset.Name
+		return ref, nil
+	}
+	ref.Peername = id[0]
+	ref.Name = id[1]
+	return ref, nil
 }

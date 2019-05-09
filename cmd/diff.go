@@ -1,8 +1,8 @@
 package cmd
 
 import (
+	"bytes"
 	"encoding/json"
-	"fmt"
 
 	"github.com/fatih/color"
 	"github.com/qri-io/deepdiff"
@@ -137,9 +137,6 @@ func (o *DiffOptions) Run() (err error) {
 			}
 		}
 	}
-
-	fmt.Fprintf(o.Out, stats+"\n")
-	fmt.Fprint(o.Out, text)
-
-	return nil
+	buf := bytes.NewBuffer([]byte(stats + "\n" + text))
+	return printToPager(o.Out, buf)
 }

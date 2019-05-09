@@ -161,14 +161,17 @@ func TestSearchRun(t *testing.T) {
 }
 
 var textSearchResponse = `showing 3 results for 'test'
-1. ramfox/test
+1   ramfox/test
 
-2. b5/test
-   18 KBs, 7 entries, 0 errors
 
-3. EDGI/fib_6
-   Fibonacci(6)
-   7 bytes, 6 entries, 0 errors
+2   b5/test
+    /ipfs/QmPi5wrPsY4xPwy2oRr7NRZyfFxTeupfmnrVDubzoABLNP
+    18 KBs, 7 entries, 0 errors
+
+3   EDGI/fib_6
+    Fibonacci(6)
+    /ipfs/QmS6jJSEJYxZvCeo8cZqzVa7Ybu9yNQeFYfNZAHxM4eyDK
+    7 bytes, 6 entries, 0 errors
 
 `
 
@@ -258,5 +261,4 @@ var jsonSearchResponse = `[
       }
     }
   }
-]
-`
+]`
