@@ -6,6 +6,7 @@ import (
 	"io"
 	"os"
 	"os/exec"
+	"runtime"
 	"strings"
 
 	"github.com/fatih/color"
@@ -81,7 +82,14 @@ func printToPager(w io.Writer, buf *bytes.Buffer) (err error) {
 			}
 		}
 	}
-	pager := exec.Command("/bin/sh", "-c", envPager+" -R")
+	pager := &exec.Cmd{}
+	os := runtime.GOOS
+	if os == "linux" {
+		pager = exec.Command("/bin/sh", "-c", envPager, "-R")
+	} else {
+		pager = exec.Command("/bin/sh", "-c", envPager+" -R")
+	}
+
 	pager.Stdin = buf
 	pager.Stdout = w
 	err = pager.Run()
