@@ -117,7 +117,7 @@ func TestRefStringer(t *testing.T) {
 
 func TestLogStringer(t *testing.T) {
 	setNoColor(false)
-	time := time.Unix(0, 0)
+	time := time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC)
 	cases := []struct {
 		description string
 		log         *repo.DatasetRef
@@ -134,7 +134,7 @@ func TestLogStringer(t *testing.T) {
 						Message:   "commit message",
 					},
 				},
-			}, "\u001b[32mpath:   /network/hash\u001b[0m\nAuthor: peer\nDate:   Dec 31 19:00:00\n\n    commit title\n    commit message\n\n",
+			}, "\u001b[32mpath:   /network/hash\u001b[0m\nAuthor: peer\nDate:   Jan  1 01:01:01\n\n    commit title\n    commit message\n\n",
 		},
 		{"LogStringer - no message",
 			&repo.DatasetRef{
@@ -146,7 +146,7 @@ func TestLogStringer(t *testing.T) {
 						Title:     "commit title",
 					},
 				},
-			}, "\u001b[32mpath:   /network/hash\u001b[0m\nAuthor: peer\nDate:   Dec 31 19:00:00\n\n    commit title\n\n",
+			}, "\u001b[32mpath:   /network/hash\u001b[0m\nAuthor: peer\nDate:   Jan  1 01:01:01\n\n    commit title\n\n",
 		},
 	}
 	for _, c := range cases {
