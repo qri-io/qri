@@ -101,8 +101,7 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 
 func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
 	if update.PossibleShellScript(p.Name) {
-		// TODO (b5) - confirm file exists & is executable
-		return update.ShellScriptToJob(qfs.NewMemfileBytes(p.Name, nil), p.Periodicity, nil)
+		return update.ShellScriptToJob(p.Name, p.Periodicity, nil)
 	}
 
 	var ref repo.DatasetRef

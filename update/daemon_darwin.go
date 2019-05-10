@@ -12,16 +12,16 @@ import (
 	"github.com/mitchellh/go-homedir"
 )
 
-// CopyFile copies a file from the source to the destination path
-func CopyFile(src, dst string) error {
+// copyFile copies a file from the source to the destination path
+func copyFile(src, dst string) error {
 	content, err := ioutil.ReadFile(src)
 	if err != nil {
-		return fmt.Errorf("CopyFile, error reading from %s: %s", src, err.Error())
+		return fmt.Errorf("reading from %s: %s", src, err.Error())
 	}
 
 	err = ioutil.WriteFile(dst, content, os.ModePerm)
 	if err != nil {
-		return fmt.Errorf("CopyFile, error writing to %s: %s", dst, err.Error())
+		return fmt.Errorf("writing to %s: %s", dst, err.Error())
 	}
 
 	return nil
@@ -98,7 +98,7 @@ func daemonInstall() error {
 		return err
 	}
 	// Copy it to the reliable location in the qri base directory
-	err = CopyFile(thisBin, qriBin)
+	err = copyFile(thisBin, qriBin)
 	if err != nil {
 		return err
 	}
