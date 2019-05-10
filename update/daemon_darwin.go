@@ -63,8 +63,8 @@ const updateDaemonPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 </plist>
 `
 
-// DaemonInstall installs the daemon in a platform specific manner
-func DaemonInstall() error {
+// daemonInstall installs the daemon in a platform specific manner
+func daemonInstall() error {
 	home, err := homedir.Dir()
 	if err != nil {
 		return err
@@ -128,8 +128,8 @@ func DaemonInstall() error {
 	return nil
 }
 
-// DaemonHelp installs the daemon in a platform specific manner
-func DaemonHelp() error {
+// daemonHelp installs the daemon in a platform specific manner
+func daemonHelp() error {
 	fmt.Printf(`Usage: qri daemon [action]
 action can be "install", "uninstall", "show"
 qri daemon install   - Install the daemon so it is always running
@@ -139,8 +139,8 @@ qri daemon show      - Show details information about the daemon
 	return nil
 }
 
-// DaemonUninstall uninstalls the daemon in a platform specific manner
-func DaemonUninstall() error {
+// daemonUninstall uninstalls the daemon in a platform specific manner
+func daemonUninstall() error {
 	home, err := homedir.Dir()
 	if err != nil {
 		return err
@@ -174,8 +174,8 @@ func DaemonUninstall() error {
 	return nil
 }
 
-// DaemonShow shows details about the daemon in a platform specific manner
-func DaemonShow() error {
+// daemonShow shows details about the daemon in a platform specific manner
+func daemonShow() (string, error) {
 	// Execute the launchctl command to list details around the daemon
 	cmdProgram := "launchctl"
 	cmdArgs := []string{"list", updateDaemonPlistName}
@@ -189,14 +189,13 @@ func DaemonShow() error {
 
 	// Handle error message from launchctl
 	if strings.Contains(stderr.String(), "Could not find service") {
-		return fmt.Errorf("qri daemon not running")
+		return "", fmt.Errorf("qri daemon not running")
 	}
 
 	// Handle other errors from command execution
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	fmt.Printf(stdout.String())
-	return nil
+	return stdout.String(), nil
 }
