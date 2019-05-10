@@ -11,7 +11,7 @@ import (
 
 	apiutil "github.com/datatogether/api/apiutil"
 	flatbuffers "github.com/google/flatbuffers/go"
-	cronfb "github.com/qri-io/qri/cron/cron_fbs"
+	cronfb "github.com/qri-io/qri/update/cron/cron_fbs"
 )
 
 // HTTPClient implements the Scheduler interface over HTTP, talking to a

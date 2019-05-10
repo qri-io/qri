@@ -12,9 +12,9 @@ import (
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/update"
+	"github.com/qri-io/qri/update/cron"
 )
 
 // NewUpdateMethods creates a configuration handle from an instance

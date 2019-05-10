@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/cron"
+	"github.com/qri-io/qri/update/cron"
 )
 
 var log = golog.Logger("update")

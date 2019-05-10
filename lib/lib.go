@@ -24,12 +24,12 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
-	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/update"
+	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/registry/regclient"
 )
 

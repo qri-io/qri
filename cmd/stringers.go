@@ -6,7 +6,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/cron"
+	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/qri/repo"
 )
 

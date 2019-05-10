@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/cron"
+	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/qri/repo"
 )
 

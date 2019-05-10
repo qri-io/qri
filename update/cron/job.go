@@ -7,7 +7,7 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/qri-io/iso8601"
-	cronfb "github.com/qri-io/qri/cron/cron_fbs"
+	cronfb "github.com/qri-io/qri/update/cron/cron_fbs"
 )
 
 // JobType is a type for distinguishing between two different kinds of jobs
