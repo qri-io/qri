@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	flatbuffers "github.com/google/flatbuffers/go"
-	cronfb "github.com/qri-io/qri/cron/cron_fbs"
+	cronfb "github.com/qri-io/qri/update/cron/cron_fbs"
 )
 
 func CompareJobs(a, b *Job) error {
