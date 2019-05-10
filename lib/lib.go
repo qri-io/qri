@@ -26,10 +26,10 @@ import (
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/update"
 	"github.com/qri-io/registry/regclient"
 )
 
@@ -52,7 +52,7 @@ func init() {
 	// TODO (b5): for now this ensures that `qri update service start`
 	// actually prints something. `qri update service start` should print
 	// some basic details AND obey the config.log.levels.cron value
-	golog.SetLogLevel("cron", "debug")
+	// golog.SetLogLevel("cron", "debug")
 
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
 	// registering with the gob package prevents errors when sending them

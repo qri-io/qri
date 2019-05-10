@@ -99,9 +99,22 @@ func TestUpdateMethods(t *testing.T) {
 }
 
 func TestUpdateServiceStart(t *testing.T) {
+	inst := &Instance{}
+	m := NewUpdateMethods(inst)
+
 	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(time.Second/4))
 	defer done()
-	if err := UpdateServiceStart(ctx, "", &config.Update{Type: "mem"}, false); err != nil {
+
+	p := &UpdateServiceStartParams{
+		Ctx:       ctx,
+		Daemonize: false,
+
+		RepoPath:  "",
+		UpdateCfg: &config.Update{Type: "mem"},
+	}
+
+	var res bool
+	if err := m.ServiceStart(p, &res); err != nil {
 		t.Fatal(err)
 	}
 }

@@ -224,7 +224,7 @@ updating process initiates.`,
 		},
 	}
 
-	serviceStartCmd.Flags().BoolVarP(&o.Daemonize, "deamonize", "d", false, "keep update running")
+	serviceStartCmd.Flags().BoolVarP(&o.Daemonize, "daemonize", "d", false, "start service as an operating system daemon")
 
 	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
@@ -391,12 +391,19 @@ func (o *UpdateOptions) LogFile(logName string) error {
 
 // ServiceStatus gets the current status of the update daemon
 func (o *UpdateOptions) ServiceStatus() error {
-	// TODO (b5):
-	return fmt.Errorf("not finished")
+	var in bool
+	res := &lib.ServiceStatus{}
+	if err := o.updateMethods.ServiceStatus(&in, res); err != nil {
+		return err
+	}
+
+	fmt.Fprint(o.Out, res.Name)
+	return nil
 }
 
 // ServiceStart ensures the update service is running
 func (o *UpdateOptions) ServiceStart(ioStreams ioes.IOStreams, repoPath string) (err error) {
+	var res bool
 	ctx := context.Background()
 
 	cfgPath := filepath.Join(repoPath, "config.yaml")
@@ -408,13 +415,20 @@ func (o *UpdateOptions) ServiceStart(ioStreams ioes.IOStreams, repoPath string) 
 		cfg.Update = config.DefaultUpdate()
 	}
 
-	return lib.UpdateServiceStart(ctx, repoPath, cfg.Update, o.Daemonize)
+	p := &lib.UpdateServiceStartParams{
+		Ctx:       ctx,
+		Daemonize: o.Daemonize,
+
+		UpdateCfg: cfg.Update,
+		RepoPath:  repoPath,
+	}
+	return o.updateMethods.ServiceStart(p, &res)
 }
 
 // ServiceStop halts the update scheduler service
 func (o *UpdateOptions) ServiceStop() (err error) {
-	// TODO (b5):
-	return fmt.Errorf("not finished")
+	var in, out bool
+	return o.updateMethods.ServiceStop(&in, &out)
 }
 
 // RunUpdate executes an update immediately

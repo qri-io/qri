@@ -59,7 +59,7 @@ type ScheduleParams struct {
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
 
 	// Make all paths absolute. this must happen *before* any possible RPC call
-	if base.PossibleShellScript(in.Name) {
+	if update.PossibleShellScript(in.Name) {
 		if err = qfs.AbsPath(&in.Name); err != nil {
 			return
 		}
@@ -100,9 +100,9 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 }
 
 func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
-	if base.PossibleShellScript(p.Name) {
+	if update.PossibleShellScript(p.Name) {
 		// TODO (b5) - confirm file exists & is executable
-		return base.ShellScriptToJob(qfs.NewMemfileBytes(p.Name, nil), p.Periodicity, nil)
+		return update.ShellScriptToJob(qfs.NewMemfileBytes(p.Name, nil), p.Periodicity, nil)
 	}
 
 	var ref repo.DatasetRef
@@ -135,7 +135,7 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 		}
 	}
 
-	return base.DatasetToJob(ref.Dataset, p.Periodicity, o)
+	return update.DatasetToJob(ref.Dataset, p.Periodicity, o)
 }
 
 // Unschedule removes a job from the scheduler by name
@@ -220,38 +220,49 @@ type ServiceStatus struct {
 	Metrics    map[string]interface{}
 }
 
-// ServiceStatus reports status of the cron daemon
+// ServiceStatus reports status of the update daemon
 func (m *UpdateMethods) ServiceStatus(in *bool, out *ServiceStatus) error {
-	return fmt.Errorf("not finished")
-}
-
-// UpdateServiceStart starts the update service
-func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.Update, deamonize bool) error {
-	if updateCfg == nil {
-		updateCfg = config.DefaultUpdate()
-	}
-
-	return update.Start(ctx, repoPath, updateCfg, deamonize)
-}
-
-// ServiceStart ensures the scheduler is running
-func (m *UpdateMethods) ServiceStart(in, out *bool) error {
-	local, ok := m.inst.cron.(*cron.Cron)
-	if !ok {
-		return fmt.Errorf("service already running")
-	}
-
-	ctx := context.Background()
-	if err := local.Start(ctx); err != nil {
+	res, err := update.Status()
+	if err != nil {
 		return err
+	}
+
+	*out = ServiceStatus{
+		Name: res,
 	}
 	return nil
 }
 
+// UpdateServiceStartParams configures startup
+type UpdateServiceStartParams struct {
+	Ctx       context.Context
+	Daemonize bool
+
+	// TODO (b5): I'm really not a fan of passing these configuration-derived
+	// bits as parameters. Ideally this would come from the underlying instance
+	// these are needed because lib.NewInstance creates a cron client
+	// that intereferes with the start service process. We're currently getting
+	// around this by avoiding calls to lib.NewInstance, or passing in resulting
+	// params when called. We should clean this up.
+	RepoPath  string
+	UpdateCfg *config.Update
+}
+
+// ServiceStart ensures the scheduler is running
+func (m *UpdateMethods) ServiceStart(p *UpdateServiceStartParams, started *bool) error {
+	// TODO (b5) - these work when the API is running
+	if p.RepoPath == "" && m.inst != nil {
+		p.RepoPath = m.inst.QriPath()
+	}
+	if p.UpdateCfg == nil && m.inst != nil {
+		p.UpdateCfg = m.inst.Config().Update
+	}
+	return update.Start(p.Ctx, p.RepoPath, p.UpdateCfg, p.Daemonize)
+}
+
 // ServiceStop halts the scheduler
 func (m *UpdateMethods) ServiceStop(in, out *bool) error {
-	// TODO (b5):
-	return fmt.Errorf("not finished")
+	return update.StopDaemon()
 }
 
 // ServiceRestart uses shell commands to restart the scheduler service
@@ -295,7 +306,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		err = m.runDatasetUpdate(params, res)
 
 	case cron.JTShellScript:
-		return base.JobToCmd(m.inst.streams, p).Run()
+		return update.JobToCmd(m.inst.streams, p).Run()
 
 	default:
 		return fmt.Errorf("unrecognized update type: %s", p.Type)

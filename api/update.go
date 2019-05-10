@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"net/http"
@@ -190,8 +191,13 @@ func (h UpdateHandlers) ServiceHandler(w http.ResponseWriter, r *http.Request) {
 			return
 		}
 	case "POST":
-		res := false
-		if err := h.ServiceStart(&in, &res); err != nil {
+		daemonize, _ := util.ReqParamBool("daemonize", r)
+		var res bool
+		p := &lib.UpdateServiceStartParams{
+			Ctx:       context.Background(),
+			Daemonize: daemonize,
+		}
+		if err := h.ServiceStart(p, &res); err != nil {
 			log.Errorf("starting service: %s", err)
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
