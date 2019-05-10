@@ -223,6 +223,9 @@ updating process initiates.`,
 			return o.ServiceStart(ioStreams, f.QriRepoPath())
 		},
 	}
+
+	serviceStartCmd.Flags().BoolVarP(&o.Daemonize, "deamonize", "d", false, "keep update running")
+
 	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
 		Short: "stop update daemon",
@@ -270,8 +273,9 @@ type UpdateOptions struct {
 	KeepFormat bool
 	Secrets    []string
 
-	Page     int
-	PageSize int
+	Daemonize bool
+	Page      int
+	PageSize  int
 
 	inst          *lib.Instance
 	updateMethods *lib.UpdateMethods
@@ -404,16 +408,7 @@ func (o *UpdateOptions) ServiceStart(ioStreams ioes.IOStreams, repoPath string) 
 		cfg.Update = config.DefaultUpdate()
 	}
 
-	qriPath, ipfsPath := EnvPathFactory()
-	opts := []lib.Option{
-		lib.OptLoadConfigFile(cfgPath),
-		lib.OptIOStreams(ioStreams), // transfer iostreams down
-		lib.OptSetQriRepoPath(qriPath),
-		lib.OptSetIPFSPath(ipfsPath),
-		lib.OptCheckConfigMigrations(""),
-	}
-
-	return lib.UpdateServiceStart(ctx, repoPath, cfg.Update, opts)
+	return lib.UpdateServiceStart(ctx, repoPath, cfg.Update, o.Daemonize)
 }
 
 // ServiceStop halts the update scheduler service

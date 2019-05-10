@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
@@ -416,7 +417,7 @@ func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
 		return nil, fmt.Errorf("unknown cron type: %s", updateCfg.Type)
 	}
 
-	svc := cron.NewCron(jobStore, logStore, updateFactory)
+	svc := cron.NewCron(jobStore, logStore, update.Factory)
 	return svc, nil
 }
 

@@ -8,13 +8,13 @@ import (
 	"path/filepath"
 	"time"
 
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/cron"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/update"
 )
 
 // NewUpdateMethods creates a configuration handle from an instance
@@ -226,37 +226,12 @@ func (m *UpdateMethods) ServiceStatus(in *bool, out *ServiceStatus) error {
 }
 
 // UpdateServiceStart starts the update service
-func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.Update, opts []Option) error {
+func UpdateServiceStart(ctx context.Context, repoPath string, updateCfg *config.Update, deamonize bool) error {
 	if updateCfg == nil {
 		updateCfg = config.DefaultUpdate()
 	}
 
-	cli := cron.HTTPClient{Addr: updateCfg.Address}
-	if err := cli.Ping(); err == nil {
-		return fmt.Errorf("service already running")
-	}
-
-	var jobStore, logStore cron.JobStore
-	switch updateCfg.Type {
-	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(repoPath + "/cron_jobs.qfb")
-		logStore = cron.NewFlatbufferJobStore(repoPath + "/cron_logs.qfb")
-	case "mem":
-		jobStore = &cron.MemJobStore{}
-		logStore = &cron.MemJobStore{}
-	default:
-		return fmt.Errorf("unknown cron type: %s", updateCfg.Type)
-	}
-
-	svc := cron.NewCron(jobStore, logStore, updateFactory)
-	log.Debug("starting update service")
-	go func() {
-		if err := svc.ServeHTTP(updateCfg.Address); err != nil {
-			log.Errorf("starting cron http server: %s", err)
-		}
-	}()
-
-	return svc.Start(ctx)
+	return update.Start(ctx, repoPath, updateCfg, deamonize)
 }
 
 // ServiceStart ensures the scheduler is running
@@ -359,32 +334,4 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 
 	dsr := NewDatasetRequests(m.inst.node, m.inst.rpc)
 	return dsr.Save(p, res)
-}
-
-// note (b5): we'd like to one day be able to run scripts like this, creating
-// an in-process instance when one or more jobs need running, but context cancellation
-// & resource cleanup needs to be *perfect* before this can happen. We're not there yet.
-// func newUpdateFactory(newInst func(ctx context.Context) (*Instance, error)) func(context.Context) cron.RunJobFunc {
-//   return func(ctx context.Context) cron.RunJobFunc {
-//    inst, err := newInst(ctx)
-func updateFactory(context.Context) cron.RunJobFunc {
-	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
-		// if err != nil {
-		// 	return err
-		// }
-
-		// When in-process instances are a thing, do something like this:
-		// if job.Type == cron.JTDataset {
-		// m := NewUpdateMethods(inst)
-		// res := &repo.DatasetRef{}
-		// return m.Run(job, res)
-		// }
-
-		log.Debugf("running update: %s", job.Name)
-		cmd := base.JobToCmd(streams, job)
-		if cmd == nil {
-			return fmt.Errorf("unrecognized update type: %s", job.Type)
-		}
-		return cmd.Run()
-	}
 }
