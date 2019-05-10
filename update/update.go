@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/iso8601"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/cron"
 )
@@ -196,14 +195,16 @@ func DatasetToJob(ds *dataset.Dataset, periodicity string, opts *cron.DatasetOpt
 }
 
 // ShellScriptToJob turns a shell script into cron.Job
-func ShellScriptToJob(f qfs.File, periodicity string, opts *cron.ShellScriptOptions) (job *cron.Job, err error) {
+func ShellScriptToJob(path string, periodicity string, opts *cron.ShellScriptOptions) (job *cron.Job, err error) {
 	p, err := iso8601.ParseRepeatingInterval(periodicity)
 	if err != nil {
 		return nil, err
 	}
 
+	// TODO (b5) - confirm file exists & is executable
+
 	job = &cron.Job{
-		Name:        f.FullPath(),
+		Name:        path,
 		Periodicity: p,
 		Type:        cron.JTShellScript,
 	}
