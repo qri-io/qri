@@ -11,6 +11,7 @@ github.com/qri-io/doggos \
 github.com/qri-io/deepdiff \
 github.com/qri-io/dsdiff \
 github.com/qri-io/varName \
+github.com/qri-io/iso8601 \
 github.com/sergi/go-diff/diffmatchpatch \
 github.com/sirupsen/logrus \
 github.com/spf13/cobra \
@@ -20,7 +21,8 @@ github.com/ugorji/go/codec \
 github.com/beme/abide \
 github.com/ghodss/yaml \
 github.com/qri-io/ioes \
-github.com/pkg/errors
+github.com/pkg/errors \
+github.com/google/flatbuffers/go
 endef
 
 define GX_DEP_PACKAGES 
