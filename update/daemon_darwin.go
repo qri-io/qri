@@ -48,7 +48,7 @@ const updateDaemonPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
-      <string><![CDATA[/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin]]></string>
+      <string><![CDATA[/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$QRIHOME/bin]]></string>
     </dict>
     <key>WorkingDirectory</key>
     <string>$QRIHOME/root/</string>
@@ -128,17 +128,6 @@ func daemonInstall() error {
 	return nil
 }
 
-// daemonHelp installs the daemon in a platform specific manner
-func daemonHelp() error {
-	fmt.Printf(`Usage: qri daemon [action]
-action can be "install", "uninstall", "show"
-qri daemon install   - Install the daemon so it is always running
-qri daemon uninstall - Uninstall the daemon
-qri daemon show      - Show details information about the daemon
-`)
-	return nil
-}
-
 // daemonUninstall uninstalls the daemon in a platform specific manner
 func daemonUninstall() error {
 	home, err := homedir.Dir()
@@ -162,7 +151,7 @@ func daemonUninstall() error {
 
 	// Handle error message from launchctl
 	if strings.Contains(stderr.String(), "Could not find specified service") {
-		return fmt.Errorf("qri daemon not installed, cannot uninstall")
+		return fmt.Errorf("update daemon not installed, cannot uninstall")
 	}
 
 	// Handle other errors from command execution
@@ -189,7 +178,7 @@ func daemonShow() (string, error) {
 
 	// Handle error message from launchctl
 	if strings.Contains(stderr.String(), "Could not find service") {
-		return "", fmt.Errorf("qri daemon not running")
+		return "", fmt.Errorf("update daemon not running")
 	}
 
 	// Handle other errors from command execution

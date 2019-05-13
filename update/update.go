@@ -23,8 +23,8 @@ func Start(ctx context.Context, repoPath string, updateCfg *config.Update, daemo
 		updateCfg = config.DefaultUpdate()
 	}
 
-	cli := cron.HTTPClient{Addr: updateCfg.Address}
-	if err := cli.Ping(); err == nil {
+	httpCli := cron.HTTPClient{Addr: updateCfg.Address}
+	if err := httpCli.Ping(); err == nil {
 		return fmt.Errorf("service already running")
 	}
 

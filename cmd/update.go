@@ -224,7 +224,7 @@ updating process initiates.`,
 		},
 	}
 
-	serviceStartCmd.Flags().BoolVarP(&o.Daemonize, "daemonize", "d", false, "start service as an operating system daemon")
+	serviceStartCmd.Flags().BoolVarP(&o.Daemonize, "daemonize", "d", false, "start service as as a long-lived daemon")
 
 	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
