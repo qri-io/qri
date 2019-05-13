@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"time"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
@@ -256,11 +257,21 @@ func (m *UpdateMethods) ServiceStart(p *UpdateServiceStartParams, started *bool)
 	if p.UpdateCfg == nil && m.inst != nil {
 		p.UpdateCfg = m.inst.Config().Update
 	}
+
+	if !p.Daemonize {
+		// TODO (b5): for now this ensures that `qri update service start`
+		// actually prints something. `qri update service start` should print
+		// some basic details AND obey the config.log.levels.cron value
+		golog.SetLogLevel("cron", "debug")
+	}
+
+	*started = true
 	return update.Start(p.Ctx, p.RepoPath, p.UpdateCfg, p.Daemonize)
 }
 
 // ServiceStop halts the scheduler
 func (m *UpdateMethods) ServiceStop(in, out *bool) error {
+	*out = true
 	return update.StopDaemon()
 }
 
