@@ -3,6 +3,8 @@ package repo
 import (
 	"encoding/base64"
 	"fmt"
+	"os"
+	"strings"
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -35,6 +37,42 @@ func init() {
 	testPeerProfile.PrivKey = privKey
 }
 
-func TestRepoPath(t *testing.T) {
-	t.Skip("TODO (b5)")
+func TestPath(t *testing.T) {
+	prevQriEnvLocation := os.Getenv("QRI_PATH")
+	os.Setenv("QRI_PATH", "")
+	defer func() {
+		os.Setenv("QRI_PATH", prevQriEnvLocation)
+	}()
+
+	got, err := Path("")
+	if err != nil {
+		t.Error(err)
+	}
+	if !strings.Contains(got, ".qri") {
+		t.Errorf("expected default path to contain '.qri', got: '%s'", got)
+	}
+
+	if got, err = Path("foo"); err != nil {
+		t.Error(err)
+	}
+	if got != "foo" {
+		t.Errorf("override path mismatch. expected: '%s', got: '%s'", "foo", got)
+	}
+
+	envPath := "/this/is/the/qri/repo/path"
+	os.Setenv("QRI_PATH", envPath)
+	if got, err = Path(""); err != nil {
+		t.Error(err)
+	}
+
+	if got != envPath {
+		t.Errorf("env path mismatch. expected '%s', got '%s'", envPath, got)
+	}
+
+	if got, err = Path("foo"); err != nil {
+		t.Error(err)
+	}
+	if got != "foo" {
+		t.Errorf("override path mismatch. expected: '%s', got: '%s'", "foo", got)
+	}
 }
