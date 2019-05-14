@@ -148,7 +148,7 @@ func (s *FlatbufferJobStore) DeleteJob(ctx context.Context, name string) error {
 	return s.saveJobs(js)
 }
 
-const logsDirName = "logs"
+const logsDirName = "logfiles"
 
 // CreateLogFile creates a log file in the specified logs directory
 func (s *FlatbufferJobStore) CreateLogFile(j *Job) (f io.WriteCloser, path string, err error) {

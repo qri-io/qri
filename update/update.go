@@ -4,6 +4,7 @@ package update
 import (
 	"context"
 	"fmt"
+	"os"
 	"os/exec"
 	"path/filepath"
 
@@ -17,6 +18,18 @@ import (
 
 var log = golog.Logger("update")
 
+// RepoDirName is the directory within repo to store update data
+// using the default path, it'll work out to $HOME/.qri/update
+const RepoDirName = "update"
+
+// Path returns a directory within a repo for storing data related to the update
+// service. update data is stored in a directory called "update"
+func Path(repoPath string) (path string, err error) {
+	path = filepath.Join(repoPath, RepoDirName)
+	err = os.MkdirAll(path, os.ModePerm)
+	return
+}
+
 // Start starts the update service
 func Start(ctx context.Context, repoPath string, updateCfg *config.Update, daemonize bool) error {
 	if updateCfg == nil {
@@ -29,15 +42,15 @@ func Start(ctx context.Context, repoPath string, updateCfg *config.Update, daemo
 	}
 
 	if daemonize {
-		return daemonInstall()
+		return daemonInstall(repoPath)
 	}
 
 	return start(ctx, repoPath, updateCfg)
 }
 
 // StopDaemon checks for a running daemon, uninstalling it if one exists
-func StopDaemon() error {
-	return daemonUninstall()
+func StopDaemon(repoPath string) error {
+	return daemonUninstall(repoPath)
 }
 
 // Status returns the status details of the update service
@@ -46,11 +59,16 @@ func Status() (string, error) {
 }
 
 func start(ctx context.Context, repoPath string, updateCfg *config.Update) error {
+	path, err := Path(repoPath)
+	if err != nil {
+		return err
+	}
+
 	var jobStore, logStore cron.JobStore
 	switch updateCfg.Type {
 	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(repoPath + "/cron_jobs.qfb")
-		logStore = cron.NewFlatbufferJobStore(repoPath + "/cron_logs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(filepath.Join(path, "jobs.qfb"))
+		logStore = cron.NewFlatbufferJobStore(filepath.Join(path, "logs.qfb"))
 	case "mem":
 		jobStore = &cron.MemJobStore{}
 		logStore = &cron.MemJobStore{}

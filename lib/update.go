@@ -4,11 +4,8 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
-	"os"
-	"path/filepath"
 	"time"
 
-	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
@@ -21,12 +18,7 @@ import (
 // NewUpdateMethods creates a configuration handle from an instance
 func NewUpdateMethods(inst *Instance) *UpdateMethods {
 	m := &UpdateMethods{
-		inst:        inst,
-		scriptsPath: filepath.Join(inst.RepoPath(), "update_scripts"),
-	}
-
-	if err := os.MkdirAll(m.scriptsPath, os.ModePerm); err != nil {
-		log.Errorf("creating update scripts directory: %s", err.Error())
+		inst: inst,
 	}
 
 	return m
@@ -34,8 +26,7 @@ func NewUpdateMethods(inst *Instance) *UpdateMethods {
 
 // UpdateMethods enapsulates logic for scheduled updates
 type UpdateMethods struct {
-	inst        *Instance
-	scriptsPath string
+	inst *Instance
 }
 
 // CoreRequestsName specifies this is a Methods object
@@ -259,10 +250,7 @@ func (m *UpdateMethods) ServiceStart(p *UpdateServiceStartParams, started *bool)
 	}
 
 	if !p.Daemonize {
-		// TODO (b5): for now this ensures that `qri update service start`
-		// actually prints something. `qri update service start` should print
-		// some basic details AND obey the config.log.levels.cron value
-		golog.SetLogLevel("cron", "debug")
+		log.Info("starting update service")
 	}
 
 	*started = true
@@ -272,7 +260,7 @@ func (m *UpdateMethods) ServiceStart(p *UpdateServiceStartParams, started *bool)
 // ServiceStop halts the scheduler
 func (m *UpdateMethods) ServiceStop(in, out *bool) error {
 	*out = true
-	return update.StopDaemon()
+	return update.StopDaemon(m.inst.RepoPath())
 }
 
 // ServiceRestart uses shell commands to restart the scheduler service

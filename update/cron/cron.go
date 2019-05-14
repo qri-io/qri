@@ -139,7 +139,7 @@ func (c *Cron) Start(ctx context.Context) error {
 		}
 
 		if len(run) > 0 {
-			log.Debugf("found %d job(s) to run", len(run))
+			log.Infof("running %d job(s)", len(run))
 			runner := c.factory(ctx)
 			for _, job := range run {
 				// TODO (b5) - if we want things like per-job timeout, we should create

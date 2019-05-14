@@ -147,30 +147,6 @@ func OptSetIPFSPath(path string) Option {
 	}
 }
 
-// OptLoadConfigFile loads a configuration from a given path, if no path string
-// is provided, default to looking for a file called config.yaml in the default
-// qri path
-// func OptLoadConfigFile(path string) Option {
-// 	return func(o *InstanceOptions) (err error) {
-// 		if path == "" {
-// 			if path, err = defaultQriPath(); err != nil {
-// 				return
-// 			}
-// 			path = filepath.Join(path, "config.yaml")
-// 		}
-
-// 		if _, e := os.Stat(path); os.IsNotExist(e) {
-// 			return fmt.Errorf("no qri repo found, please run `qri setup`")
-// 		}
-
-// 		o.Cfg, err = config.ReadFromFile(path)
-// 		if err != nil {
-// 			return err
-// 		}
-// 		return nil
-// 	}
-// }
-
 // OptIOStreams sets the input IOStreams
 func OptIOStreams(streams ioes.IOStreams) Option {
 	return func(o *InstanceOptions) error {
@@ -405,11 +381,16 @@ func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
 		return cli, nil
 	}
 
+	path, err := update.Path(repoPath)
+	if err != nil {
+		return nil, err
+	}
+
 	var jobStore, logStore cron.JobStore
 	switch updateCfg.Type {
 	case "fs":
-		jobStore = cron.NewFlatbufferJobStore(repoPath + "/cron_jobs.qfb")
-		logStore = cron.NewFlatbufferJobStore(repoPath + "/cron_logs.qfb")
+		jobStore = cron.NewFlatbufferJobStore(filepath.Join(path, "jobs.qfb"))
+		logStore = cron.NewFlatbufferJobStore(filepath.Join(path, "logs.qfb"))
 	case "mem":
 		jobStore = &cron.MemJobStore{}
 		logStore = &cron.MemJobStore{}
