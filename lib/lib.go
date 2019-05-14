@@ -106,15 +106,6 @@ func OptCtx(ctx context.Context) Option {
 	}
 }
 
-// // OptSetQriRepoPath configures the directory to read Qri from, defaulting to
-// // "$HOME/.qri", unless the environment variable QRI_PATH is set
-// func OptSetQriRepoPath(path string) Option {
-// 	return func(o *InstanceOptions) (err error) {
-// 		o.RepoPath, err = repo.Path(path)
-// 		return
-// 	}
-// }
-
 // OptConfig supplies a configuration directly
 func OptConfig(cfg *config.Config) Option {
 	return func(o *InstanceOptions) error {
