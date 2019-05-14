@@ -570,7 +570,8 @@ type DataResponse struct {
 	Data json.RawMessage `json:"data"`
 }
 
-func makeGetBodyParams(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
+// getParamsFromRequest creates getParams from a request. It's currently only used for paginating dataset bodies
+func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
 	listParams := lib.ListParamsFromRequest(r)
 	download := r.FormValue("download") == "true"
 	format := "json"
@@ -629,7 +630,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	p, err := makeGetBodyParams(r, h.ReadOnly, d.String())
+	p, err := getParamsFromRequest(r, h.ReadOnly, d.String())
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
