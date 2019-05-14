@@ -563,15 +563,58 @@ func loadFileIfPath(path string) (file *os.File, err error) {
 	return os.Open(path)
 }
 
-// default number of entries to limit to when reading
-// TODO - should move this into lib
-const defaultDataLimit = 100
-
 // DataResponse is the struct used to respond to api requests made to the /data endpoint
 // It is necessary because we need to include the 'path' field in the response
 type DataResponse struct {
 	Path string          `json:"path"`
 	Data json.RawMessage `json:"data"`
+}
+
+// getParamsFromRequest creates getParams from a request. It's currently only used for paginating dataset bodies
+func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.GetParams, error) {
+	listParams := lib.ListParamsFromRequest(r)
+	download := r.FormValue("download") == "true"
+	format := "json"
+	if download {
+		format = r.FormValue("format")
+	}
+	// if download is not set, and format is set, make sure the user knows that
+	// setting format won't do anything
+	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
+		return nil, fmt.Errorf("the format must be json if used without the download parameter")
+	}
+
+	p := &lib.GetParams{
+		Path:     path,
+		Format:   format,
+		Selector: "body",
+		Limit:    listParams.Limit,
+		Offset:   listParams.Offset,
+		All:      r.FormValue("all") == "true" && !readOnly,
+	}
+
+	if !readOnly {
+		offset, offsetErr := util.ReqParamInt("offset", r)
+		limit, limitErr := util.ReqParamInt("limit", r)
+
+		if offsetErr == nil || limitErr == nil {
+			if limitErr != nil {
+				limit = util.DEFAULT_PAGE_SIZE
+			}
+			if offsetErr != nil {
+				offset = 0
+			}
+			p.Limit = limit
+			p.Offset = offset
+			if limit == -1 && offset == 0 {
+				p.All = true
+			}
+		}
+		// if we request all explicitly, or if offset is zero and limit is -1
+		// return all rows
+		p.All = r.FormValue("all") == "true" || (p.Offset == 0 && p.Limit == -1)
+	}
+	return p, nil
 }
 
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
@@ -581,33 +624,16 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	listParams := lib.ListParamsFromRequest(r)
-
 	err = repo.CanonicalizeDatasetRef(h.repo, &d)
 	if err != nil && err != repo.ErrNotFound {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	download := r.FormValue("download") == "true"
-	format := "json"
-	if download {
-		format = r.FormValue("format")
-	}
-	// if download is not set, and format is set, make sure the user knows that
-	// setting format won't do anything
-	if !download && r.FormValue("format") != "" && r.FormValue("format") != "json" {
-		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("the format must be json if used without the download parameter"))
+	p, err := getParamsFromRequest(r, h.ReadOnly, d.String())
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
-	}
-
-	p := &lib.GetParams{
-		Path:     d.String(),
-		Format:   format,
-		Selector: "body",
-		Limit:    listParams.Limit,
-		Offset:   listParams.Offset,
-		All:      r.FormValue("all") == "true" && listParams.Limit == defaultDataLimit && listParams.Offset == 0,
 	}
 
 	result := &lib.GetResult{}
@@ -615,6 +641,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+	download := r.FormValue("download") == "true"
 	if download {
 		filename, err := lib.GenerateFilename(result.Dataset, p.Format)
 		if err != nil {
