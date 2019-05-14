@@ -42,16 +42,16 @@ const updateDaemonPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
     <key>StartInterval</key>
     <integer>20</integer>
     <key>StandardErrorPath</key>
-    <string>$QRIHOME/logs/stderr.log</string>
+    <string>$UPDATEHOME/service.log</string>
     <key>StandardOutPath</key>
-    <string>$QRIHOME/logs/stdout.log</string>
+    <string>$UPDATEHOME/service.log</string>
     <key>EnvironmentVariables</key>
     <dict>
       <key>PATH</key>
       <string><![CDATA[/usr/local/bin:/usr/local/sbin:/usr/bin:/bin:/usr/sbin:/sbin:$QRIHOME/bin]]></string>
     </dict>
     <key>WorkingDirectory</key>
-    <string>$QRIHOME/root/</string>
+    <string>$UPDATEHOME/root/</string>
     <key>ProgramArguments</key>
     <array>
       <string>$QRIBIN</string>
@@ -64,31 +64,36 @@ const updateDaemonPlistTemplate = `<?xml version="1.0" encoding="UTF-8"?>
 `
 
 // daemonInstall installs the daemon in a platform specific manner
-func daemonInstall() error {
+func daemonInstall(repoPath string) error {
 	home, err := homedir.Dir()
 	if err != nil {
 		return err
 	}
 
-	// Get the path to the qri base directory
-	qriPath := os.Getenv("QRI_PATH")
-	if qriPath == "" {
-		qriPath = filepath.Join(home, ".qri")
+	updatePath, err := Path(repoPath)
+	if err != nil {
+		return err
 	}
-	// Get the path to a reliable location where the qri binary can be found
-	qriBin := filepath.Join(qriPath, "bin", "qri")
 
-	// Create directories in the qri base directory: bin/, root/, and logs/
-	err = os.Mkdir(filepath.Join(qriPath, "bin"), os.ModePerm)
-	if err != nil && !strings.Contains(err.Error(), "file exists") {
+	// Get the path to a reliable location where the qri binary can be found
+	qriBin := filepath.Join(repoPath, "bin", "qri")
+
+	// Create bin in the qri repo: bin/
+	err = os.Mkdir(filepath.Join(repoPath, "bin"), os.ModePerm)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	err = os.Mkdir(filepath.Join(qriPath, "root"), os.ModePerm)
-	if err != nil && !strings.Contains(err.Error(), "file exists") {
+
+	// ensure .qri/update/root/ as the update service root execution directory
+	// note this is for the service process, not the scripts a service runs
+	err = os.Mkdir(filepath.Join(updatePath, "root"), os.ModePerm)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
-	err = os.Mkdir(filepath.Join(qriPath, "logs"), os.ModePerm)
-	if err != nil && !strings.Contains(err.Error(), "file exists") {
+
+	// create .qri/update/logs/
+	err = os.Mkdir(filepath.Join(updatePath, "logs"), os.ModePerm)
+	if err != nil && !os.IsExist(err) {
 		return err
 	}
 
@@ -105,7 +110,8 @@ func daemonInstall() error {
 
 	// Replace variables in the template
 	content := updateDaemonPlistTemplate
-	content = strings.Replace(content, "$QRIHOME", qriPath, -1)
+	content = strings.Replace(content, "$QRIHOME", repoPath, -1)
+	content = strings.Replace(content, "$UPDATEHOME", updatePath, -1)
 	content = strings.Replace(content, "$QRIBIN", qriBin, -1)
 	// Write it to the LaunchAgents directory
 	plistFilename := filepath.Join(home, fmt.Sprintf("Library/LaunchAgents/%s", updateDaemonPlistName))
@@ -129,7 +135,7 @@ func daemonInstall() error {
 }
 
 // daemonUninstall uninstalls the daemon in a platform specific manner
-func daemonUninstall() error {
+func daemonUninstall(repoPath string) error {
 	home, err := homedir.Dir()
 	if err != nil {
 		return err

@@ -13,12 +13,12 @@ func daemonHelp() error {
 }
 
 // daemonInstall is a stub for platforms that cannot yet install daemons
-func daemonInstall() error {
+func daemonInstall(repoPath string) error {
 	return fmt.Errorf("cannot install daemon on platform: %s", runtime.GOOS)
 }
 
 // daemonUninstall is a stub for platforms that cannot yet uninstall daemons
-func daemonUninstall() error {
+func daemonUninstall(repoPath string) error {
 	return fmt.Errorf("cannot uninstall daemon on platform: %s", runtime.GOOS)
 }
 
