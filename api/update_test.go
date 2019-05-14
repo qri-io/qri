@@ -1,6 +1,8 @@
 package api
 
 import (
+	"io/ioutil"
+	"os"
 	"testing"
 
 	"github.com/qri-io/qri/config"
@@ -8,11 +10,17 @@ import (
 )
 
 func TestUpdateHandlers(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "update_handlers")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	cfg := config.DefaultConfigForTesting()
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
-	inst, err := lib.NewInstance(
+	inst, err := lib.NewInstance(tmpDir,
 		lib.OptConfig(cfg),
 	)
 	if err != nil {

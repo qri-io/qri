@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"io/ioutil"
 	"os"
 	"testing"
 	"time"
@@ -9,17 +10,23 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/update/cron"
 )
 
 func TestUpdateMethods(t *testing.T) {
+	tmpDir, err := ioutil.TempDir("", "update_methods")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
+
 	cfg := config.DefaultConfigForTesting()
 	cfg.Update = &config.Update{Type: "mem"}
 	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
 	cfg.Store = &config.Store{Type: "map"}
 
-	inst, err := NewInstance(OptConfig(cfg), OptIOStreams(ioes.NewDiscardIOStreams()))
+	inst, err := NewInstance(tmpDir, OptConfig(cfg), OptIOStreams(ioes.NewDiscardIOStreams()))
 	if err != nil {
 		t.Fatal(err)
 	}

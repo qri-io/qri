@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"io/ioutil"
+	"os"
 	"strings"
 	"testing"
 
@@ -58,10 +60,15 @@ func TestUpdateComplete(t *testing.T) {
 }
 
 func TestUpdateMethods(t *testing.T) {
-	// t.Skip("can't run this because some other test is spinning up an RPC server & not closing it")
 	if err := confirmUpdateServiceNotRunning(); err != nil {
 		t.Skip(err.Error())
 	}
+
+	tmpDir, err := ioutil.TempDir("", "update_methods")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(tmpDir)
 
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
@@ -71,7 +78,7 @@ func TestUpdateMethods(t *testing.T) {
 	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
 	cfg.Store = &config.Store{Type: "map"}
 
-	inst, err := lib.NewInstance(lib.OptConfig(cfg), lib.OptIOStreams(streams))
+	inst, err := lib.NewInstance(tmpDir, lib.OptConfig(cfg), lib.OptIOStreams(streams))
 	if err != nil {
 		t.Fatal(err)
 	}

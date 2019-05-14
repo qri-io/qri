@@ -54,7 +54,7 @@ func TestNewInstance(t *testing.T) {
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
-	got, err := NewInstance(OptConfig(cfg))
+	got, err := NewInstance(os.TempDir(), OptConfig(cfg))
 	if err != nil {
 		t.Error(err)
 		return
@@ -71,7 +71,7 @@ func TestNewInstance(t *testing.T) {
 
 func TestNewDefaultInstance(t *testing.T) {
 	prevQriEnvLocation, prevIPFSEnvLocation := os.Getenv("QRI_PATH"), os.Getenv("IPFS_PATH")
-	prevDefaultQriLocation, prevDefaultIPFSLocation := defaultQriLocation, defaultIPFSLocation
+	prevDefaultQriLocation, prevDefaultIPFSLocation := repo.DefaultQriLocation, defaultIPFSLocation
 
 	os.Setenv("QRI_PATH", "")
 	os.Setenv("IPFS_PATH", "")
@@ -80,10 +80,10 @@ func TestNewDefaultInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defaultQriLocation, defaultIPFSLocation = tempDir, tempDir
+	repo.DefaultQriLocation, defaultIPFSLocation = tempDir, tempDir
 
 	defer func() {
-		defaultQriLocation, defaultIPFSLocation = prevDefaultQriLocation, prevDefaultIPFSLocation
+		repo.DefaultQriLocation, defaultIPFSLocation = prevDefaultQriLocation, prevDefaultIPFSLocation
 		os.Setenv("QRI_PATH", prevQriEnvLocation)
 		os.Setenv("IPFS_PATH", prevIPFSEnvLocation)
 		os.RemoveAll(tempDir)
@@ -94,9 +94,9 @@ func TestNewDefaultInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config.DefaultConfigForTesting().WriteToFile(filepath.Join(defaultQriLocation, "config.yaml"))
+	config.DefaultConfigForTesting().WriteToFile(filepath.Join(repo.DefaultQriLocation, "config.yaml"))
 
-	_, err = NewInstance()
+	_, err = NewInstance("")
 	if err != nil {
 		t.Fatal(err)
 	}

@@ -5,8 +5,11 @@ package repo
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
@@ -14,6 +17,10 @@ import (
 )
 
 var (
+	// DefaultQriLocation is where qri data defaults to storing. The keyword $HOME
+	// (and only $HOME) will be replaced with the current user home directory
+	DefaultQriLocation = "$HOME/.qri"
+
 	// ErrNotFound is the err implementers should return when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
 	// ErrPeerIDRequired is for when a peerID is missing-but-expected
@@ -95,4 +102,24 @@ type SearchParams struct {
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
 	Search(p SearchParams) ([]DatasetRef, error)
+}
+
+// Path returns the location of a qri repo root, the specified directory must
+// be both readable and writable
+func Path(override string) (path string, err error) {
+	if override != "" {
+		path = override
+	} else {
+		path = os.Getenv("QRI_PATH")
+	}
+
+	if path == "" {
+		var dir string
+		if dir, err = homedir.Dir(); err != nil {
+			return "", err
+		}
+		path = strings.Replace(DefaultQriLocation, "$HOME", dir, 1)
+	}
+
+	return
 }
