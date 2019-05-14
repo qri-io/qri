@@ -3,8 +3,9 @@ package repo
 import (
 	"encoding/base64"
 	"fmt"
+	"testing"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -32,4 +33,8 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 	}
 	testPeerProfile.PrivKey = privKey
+}
+
+func TestRepoPath(t *testing.T) {
+	t.Skip("TODO (b5)")
 }

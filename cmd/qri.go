@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"net/rpc"
-	"path/filepath"
 	"sync"
 
 	"github.com/qri-io/ioes"
@@ -108,16 +107,13 @@ func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.
 // Init will initialize the internal state
 func (o *QriOptions) Init() (err error) {
 	initBody := func() {
-		cfgPath := filepath.Join(o.qriRepoPath, "config.yaml")
 		opts := []lib.Option{
-			lib.OptLoadConfigFile(cfgPath),
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 			lib.OptCtx(o.ctx),             // transfer request context to instance
-			lib.OptSetQriRepoPath(o.qriRepoPath),
 			lib.OptSetIPFSPath(o.ipfsFsPath),
 			lib.OptCheckConfigMigrations(""),
 		}
-		o.inst, err = lib.NewInstance(opts...)
+		o.inst, err = lib.NewInstance(o.qriRepoPath, opts...)
 	}
 	o.initialized.Do(initBody)
 	return

@@ -22,7 +22,7 @@ import (
 func NewUpdateMethods(inst *Instance) *UpdateMethods {
 	m := &UpdateMethods{
 		inst:        inst,
-		scriptsPath: filepath.Join(inst.QriPath(), "update_scripts"),
+		scriptsPath: filepath.Join(inst.RepoPath(), "update_scripts"),
 	}
 
 	if err := os.MkdirAll(m.scriptsPath, os.ModePerm); err != nil {
@@ -252,7 +252,7 @@ type UpdateServiceStartParams struct {
 func (m *UpdateMethods) ServiceStart(p *UpdateServiceStartParams, started *bool) error {
 	// TODO (b5) - these work when the API is running
 	if p.RepoPath == "" && m.inst != nil {
-		p.RepoPath = m.inst.QriPath()
+		p.RepoPath = m.inst.RepoPath()
 	}
 	if p.UpdateCfg == nil && m.inst != nil {
 		p.UpdateCfg = m.inst.Config().Update

@@ -34,9 +34,6 @@ import (
 )
 
 var (
-	// defaultQriLocation is where qri data defaults to storing. The keyword $HOME
-	// (and only $HOME) will be replaced with the current user home directory
-	defaultQriLocation = "$HOME/.qri"
 	// defaultIPFSLocation is where qri data defaults to looking for / setting up
 	// IPFS. The keyword $HOME will be replaced with the current user home
 	// directory. only $HOME is replaced (no other $ env vars).
@@ -109,31 +106,14 @@ func OptCtx(ctx context.Context) Option {
 	}
 }
 
-// OptSetQriRepoPath configures the directory to read Qri from, defaulting to
-// "$HOME/.qri", unless the environment variable QRI_PATH is set
-func OptSetQriRepoPath(path string) Option {
-	return func(o *InstanceOptions) (err error) {
-		if o.Cfg.Repo.Type == "fs" && o.Cfg.Repo.Path == "" {
-			if path == "" {
-				path, err = defaultQriPath()
-			}
-			o.Cfg.Repo.Path = path
-		}
-		return nil
-	}
-}
-
-func defaultQriPath() (path string, err error) {
-	path = os.Getenv("QRI_PATH")
-	if path == "" {
-		var dir string
-		if dir, err = homedir.Dir(); err != nil {
-			return "", err
-		}
-		path = strings.Replace(defaultQriLocation, "$HOME", dir, 1)
-	}
-	return
-}
+// // OptSetQriRepoPath configures the directory to read Qri from, defaulting to
+// // "$HOME/.qri", unless the environment variable QRI_PATH is set
+// func OptSetQriRepoPath(path string) Option {
+// 	return func(o *InstanceOptions) (err error) {
+// 		o.RepoPath, err = repo.Path(path)
+// 		return
+// 	}
+// }
 
 // OptConfig supplies a configuration directly
 func OptConfig(cfg *config.Config) Option {
@@ -170,26 +150,26 @@ func OptSetIPFSPath(path string) Option {
 // OptLoadConfigFile loads a configuration from a given path, if no path string
 // is provided, default to looking for a file called config.yaml in the default
 // qri path
-func OptLoadConfigFile(path string) Option {
-	return func(o *InstanceOptions) (err error) {
-		if path == "" {
-			if path, err = defaultQriPath(); err != nil {
-				return
-			}
-			path = filepath.Join(path, "config.yaml")
-		}
+// func OptLoadConfigFile(path string) Option {
+// 	return func(o *InstanceOptions) (err error) {
+// 		if path == "" {
+// 			if path, err = defaultQriPath(); err != nil {
+// 				return
+// 			}
+// 			path = filepath.Join(path, "config.yaml")
+// 		}
 
-		if _, e := os.Stat(path); os.IsNotExist(e) {
-			return fmt.Errorf("no qri repo found, please run `qri setup`")
-		}
+// 		if _, e := os.Stat(path); os.IsNotExist(e) {
+// 			return fmt.Errorf("no qri repo found, please run `qri setup`")
+// 		}
 
-		o.Cfg, err = config.ReadFromFile(path)
-		if err != nil {
-			return err
-		}
-		return nil
-	}
-}
+// 		o.Cfg, err = config.ReadFromFile(path)
+// 		if err != nil {
+// 			return err
+// 		}
+// 		return nil
+// 	}
+// }
 
 // OptIOStreams sets the input IOStreams
 func OptIOStreams(streams ioes.IOStreams) Option {
@@ -236,16 +216,25 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs
-func NewInstance(opts ...Option) (qri *Instance, err error) {
+func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
+	repoPath, err = repo.Path(repoPath)
+	if err != nil {
+		return
+	}
+
 	o := &InstanceOptions{
 		Ctx: context.Background(),
 	}
+
+	// attempt to load a base configuration from repoPath
+	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
+		return
+	}
+
 	if len(opts) == 0 {
 		// default to a standard composition of Option funcs
 		opts = []Option{
 			OptStdIOStreams(),
-			OptLoadConfigFile(""),
-			OptSetQriRepoPath(""),
 			OptSetIPFSPath(""),
 			OptCheckConfigMigrations(""),
 		}
@@ -258,10 +247,14 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 
 	cfg := o.Cfg
 	if cfg == nil {
-		err = fmt.Errorf("no configuration details provided")
+		// for qri to function properly, we at bare minimum need a configuration file
+		// because Qri can operate purely in memory, this is a little more convoluted
+		// than it seems at first, but if at this point we don't have a configuration pointer
+		// we know one couldn't be loaded from repoPath, and a configuration wasn't
+		// provided through Options, so qri needs to be set up
+		err = fmt.Errorf("no qri repo found, please run `qri setup`")
 		return
-	}
-	if err = cfg.Validate(); err != nil {
+	} else if err = cfg.Validate(); err != nil {
 		return
 	}
 
@@ -269,6 +262,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
+		repoPath: repoPath,
 		cfg:      cfg,
 		streams:  o.Streams,
 	}
@@ -281,7 +275,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
-	if inst.cron, err = newCron(cfg, inst.QriPath()); err != nil {
+	if inst.cron, err = newCron(cfg, inst.repoPath); err != nil {
 		return
 	}
 
@@ -305,7 +299,7 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 	}
 	inst.registry = newRegClient(cfg)
 
-	if inst.repo, err = newRepo(cfg, inst.store, inst.registry); err != nil {
+	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.registry); err != nil {
 		return
 	}
 	if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
@@ -318,6 +312,17 @@ func NewInstance(opts ...Option) (qri *Instance, err error) {
 	inst.node.LocalStreams = o.Streams
 
 	return
+}
+
+// TODO (b5): this is a repo layout assertion, move to repo package
+func loadRepoConfig(repoPath string) (*config.Config, error) {
+	path := filepath.Join(repoPath, "config.yaml")
+
+	if _, e := os.Stat(path); os.IsNotExist(e) {
+		return nil, nil
+	}
+
+	return config.ReadFromFile(path)
 }
 
 func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, err error) {
@@ -358,7 +363,7 @@ func newRegClient(cfg *config.Config) (rc *regclient.Client) {
 	return
 }
 
-func newRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
+func newRepo(path string, cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -366,7 +371,7 @@ func newRepo(cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r 
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, nil, pro, rc, cfg.Repo.Path)
+		return fsrepo.NewRepo(store, nil, pro, rc, path)
 	case "mem":
 		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore(), rc)
 	default:
@@ -447,7 +452,8 @@ type Instance struct {
 	ctx      context.Context
 	teardown context.CancelFunc
 
-	cfg *config.Config
+	repoPath string
+	cfg      *config.Config
 
 	streams  ioes.IOStreams
 	store    cafs.Filestore
@@ -508,11 +514,12 @@ func (inst *Instance) Teardown() {
 	inst.teardown()
 }
 
-// QriPath returns the path to where qri is operating from on the local filesystem
+// RepoPath returns the path to the directory qri is operating from
 // there are situations where this will be a temporary directory
-func (inst *Instance) QriPath() string {
-	if inst.cfg != nil && inst.cfg.Repo != nil && inst.cfg.Repo.Path != "" {
-		return inst.cfg.Repo.Path
+func (inst *Instance) RepoPath() string {
+	if inst.repoPath == "" {
+		return os.TempDir()
 	}
-	return os.TempDir()
+
+	return inst.repoPath
 }
