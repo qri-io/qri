@@ -258,12 +258,12 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 		offsets := make([]flatbuffers.UOffsetT, nConfigs)
 		i := 0
 		for key, val := range o.Config {
-			kOff := builder.CreateString(key)
-			vOff := builder.CreateString(val)
+			keyOff := builder.CreateString(key)
+			valOff := builder.CreateString(val)
 
 			cronfb.StringMapValStart(builder)
-			cronfb.StringMapValAddKey(builder, kOff)
-			cronfb.StringMapValAddVal(builder, vOff)
+			cronfb.StringMapValAddKey(builder, keyOff)
+			cronfb.StringMapValAddVal(builder, valOff)
 			offsets[i] = cronfb.StringMapValEnd(builder)
 			i++
 		}
@@ -281,12 +281,12 @@ func (o *DatasetOptions) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuf
 		offsets := make([]flatbuffers.UOffsetT, nSecrets)
 		i := 0
 		for key, val := range o.Secrets {
-			kOff := builder.CreateString(key)
-			vOff := builder.CreateString(val)
+			keyOff := builder.CreateString(key)
+			valOff := builder.CreateString(val)
 
 			cronfb.StringMapValStart(builder)
-			cronfb.StringMapValAddKey(builder, kOff)
-			cronfb.StringMapValAddVal(builder, vOff)
+			cronfb.StringMapValAddKey(builder, keyOff)
+			cronfb.StringMapValAddVal(builder, valOff)
 			offsets[i] = cronfb.StringMapValEnd(builder)
 			i++
 		}
