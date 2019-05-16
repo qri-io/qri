@@ -35,6 +35,8 @@ https://github.com/qri-io/qri/issues`,
 	cmd.SetUsageTemplate(rootUsageTemplate)
 	cmd.PersistentFlags().BoolVarP(&opt.NoPrompt, "no-prompt", "", false, "disable all interactive prompts")
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
+	cmd.PersistentFlags().StringVar(&opt.RepoPath, "repo", qriPath, "provide a path to load qri from")
+	cmd.PersistentFlags().StringVar(&opt.IpfsPath, "ipfs-path", ipfsPath, "override IPFS path location")
 
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
@@ -76,10 +78,10 @@ type QriOptions struct {
 	// this stored context object down through function calls
 	ctx context.Context
 
-	// QriRepoPath is the path to the QRI repository
-	qriRepoPath string
-	// IpfsFsPath is the path to the IPFS repo
-	ipfsFsPath string
+	// path to the QRI repository directory
+	RepoPath string
+	// custom path to IPFS repo
+	IpfsPath string
 	// generator is source of generating cryptographic info
 	generator gen.CryptoGenerator
 	// NoPrompt Disables all promt messages
@@ -96,11 +98,11 @@ type QriOptions struct {
 // NewQriOptions creates an options object
 func NewQriOptions(ctx context.Context, qriPath, ipfsPath string, generator gen.CryptoGenerator, ioStreams ioes.IOStreams) *QriOptions {
 	return &QriOptions{
-		IOStreams:   ioStreams,
-		ctx:         ctx,
-		qriRepoPath: qriPath,
-		ipfsFsPath:  ipfsPath,
-		generator:   generator,
+		IOStreams: ioStreams,
+		ctx:       ctx,
+		RepoPath:  qriPath,
+		IpfsPath:  ipfsPath,
+		generator: generator,
 	}
 }
 
@@ -109,10 +111,10 @@ func (o *QriOptions) Init() (err error) {
 	initBody := func() {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-			lib.OptSetIPFSPath(o.ipfsFsPath),
+			lib.OptSetIPFSPath(o.IpfsPath),
 			lib.OptCheckConfigMigrations(""),
 		}
-		o.inst, err = lib.NewInstance(o.ctx, o.qriRepoPath, opts...)
+		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
 	}
 	o.initialized.Do(initBody)
 	return
@@ -136,12 +138,12 @@ func (o *QriOptions) Config() (*config.Config, error) {
 
 // IpfsFsPath returns from internal state
 func (o *QriOptions) IpfsFsPath() string {
-	return o.ipfsFsPath
+	return o.IpfsPath
 }
 
 // QriRepoPath returns from internal state
 func (o *QriOptions) QriRepoPath() string {
-	return o.qriRepoPath
+	return o.RepoPath
 }
 
 // CryptoGenerator returns a resource for generating cryptographic info
