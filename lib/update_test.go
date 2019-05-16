@@ -26,7 +26,7 @@ func TestUpdateMethods(t *testing.T) {
 	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
 	cfg.Store = &config.Store{Type: "map"}
 
-	inst, err := NewInstance(tmpDir, OptConfig(cfg), OptIOStreams(ioes.NewDiscardIOStreams()))
+	inst, err := NewInstance(context.Background(), tmpDir, OptConfig(cfg), OptIOStreams(ioes.NewDiscardIOStreams()))
 	if err != nil {
 		t.Fatal(err)
 	}

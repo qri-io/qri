@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
@@ -54,7 +55,7 @@ func TestNewInstance(t *testing.T) {
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
-	got, err := NewInstance(os.TempDir(), OptConfig(cfg))
+	got, err := NewInstance(context.Background(), os.TempDir(), OptConfig(cfg))
 	if err != nil {
 		t.Error(err)
 		return
@@ -68,7 +69,7 @@ func TestNewInstance(t *testing.T) {
 		t.Error(err)
 	}
 
-	if _, err = NewInstance(""); err == nil {
+	if _, err = NewInstance(context.Background(), ""); err == nil {
 		t.Error("expected NewInstance to error when provided no repo path")
 	}
 }
@@ -100,7 +101,7 @@ func TestNewDefaultInstance(t *testing.T) {
 	cfg.Store.Path = tempDir
 	cfg.WriteToFile(filepath.Join(tempDir, "config.yaml"))
 
-	_, err = NewInstance(tempDir)
+	_, err = NewInstance(context.Background(), tempDir)
 	if err != nil {
 		t.Fatal(err)
 	}
