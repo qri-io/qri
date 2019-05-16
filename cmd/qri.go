@@ -109,11 +109,10 @@ func (o *QriOptions) Init() (err error) {
 	initBody := func() {
 		opts := []lib.Option{
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
-			lib.OptCtx(o.ctx),             // transfer request context to instance
 			lib.OptSetIPFSPath(o.ipfsFsPath),
 			lib.OptCheckConfigMigrations(""),
 		}
-		o.inst, err = lib.NewInstance(o.qriRepoPath, opts...)
+		o.inst, err = lib.NewInstance(o.ctx, o.qriRepoPath, opts...)
 	}
 	o.initialized.Do(initBody)
 	return

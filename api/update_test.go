@@ -1,6 +1,7 @@
 package api
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"testing"
@@ -20,7 +21,7 @@ func TestUpdateHandlers(t *testing.T) {
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
 
-	inst, err := lib.NewInstance(tmpDir,
+	inst, err := lib.NewInstance(context.Background(), tmpDir,
 		lib.OptConfig(cfg),
 	)
 	if err != nil {

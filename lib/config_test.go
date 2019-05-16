@@ -8,22 +8,6 @@ import (
 	"github.com/qri-io/qri/config"
 )
 
-// func TestLoadConfig(t *testing.T) {
-// 	path, err := ioutil.TempDir("", "config_tests")
-// 	if err != nil {
-// 		t.Fatal(err.Error())
-// 	}
-// 	defer os.RemoveAll(path)
-// 	cfgPath := path + "/config.yaml"
-
-// 	if err := config.DefaultConfigForTesting().WriteToFile(cfgPath); err != nil {
-// 		t.Fatal(err.Error())
-// 	}
-// 	if err := LoadConfig(ioes.NewDiscardIOStreams(), cfgPath); err != nil {
-// 		t.Error(err.Error())
-// 	}
-// }
-
 func TestGetConfig(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 	// TODO (b5) - hack until we can get better test-instance allocation

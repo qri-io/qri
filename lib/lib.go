@@ -90,21 +90,12 @@ type Methods interface {
 // * Config consists only of static values stored in a configuration file
 // Options may override config in specific cases to avoid undefined state
 type InstanceOptions struct {
-	Ctx     context.Context
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 }
 
 // Option is a function that manipulates config details when fed to New()
 type Option func(o *InstanceOptions) error
-
-// OptCtx sets the base context to use for this instance
-func OptCtx(ctx context.Context) Option {
-	return func(o *InstanceOptions) error {
-		o.Ctx = ctx
-		return nil
-	}
-}
 
 // OptConfig supplies a configuration directly
 func OptConfig(cfg *config.Config) Option {
@@ -176,14 +167,12 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs
-func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
+func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
 	}
 
-	o := &InstanceOptions{
-		Ctx: context.Background(),
-	}
+	o := &InstanceOptions{}
 
 	// attempt to load a base configuration from repoPath
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
@@ -215,7 +204,7 @@ func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
 		return
 	}
 
-	ctx, teardown := context.WithCancel(o.Ctx)
+	ctx, teardown := context.WithCancel(ctx)
 	inst := &Instance{
 		ctx:      ctx,
 		teardown: teardown,
@@ -248,7 +237,7 @@ func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
 		}
 	}
 
-	if inst.store, err = newStore(o.Ctx, cfg); err != nil {
+	if inst.store, err = newStore(ctx, cfg); err != nil {
 		return
 	}
 	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
@@ -271,7 +260,7 @@ func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
 	return
 }
 
-// TODO (b5): this is a repo layout assertion, move to repo package
+// TODO (b5): this is a repo layout assertion, move to repo package?
 func loadRepoConfig(repoPath string) (*config.Config, error) {
 	path := filepath.Join(repoPath, "config.yaml")
 

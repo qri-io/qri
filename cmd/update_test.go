@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"io/ioutil"
 	"os"
 	"strings"
@@ -78,7 +79,7 @@ func TestUpdateMethods(t *testing.T) {
 	cfg.Repo = &config.Repo{Type: "mem", Middleware: []string{}}
 	cfg.Store = &config.Store{Type: "map"}
 
-	inst, err := lib.NewInstance(tmpDir, lib.OptConfig(cfg), lib.OptIOStreams(streams))
+	inst, err := lib.NewInstance(context.Background(), tmpDir, lib.OptConfig(cfg), lib.OptIOStreams(streams))
 	if err != nil {
 		t.Fatal(err)
 	}
