@@ -77,6 +77,7 @@ responsible for executing your scheduled updates is currently active.
 	scheduleCmd.Flags().StringVarP(&o.BodyPath, "body", "", "", "path to file or url of data to add as dataset contents")
 	scheduleCmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	scheduleCmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
+	scheduleCmd.Flags().StringVar(&o.RepoPath, "use-repo", "", "experiment. run update on behalf of another repo")
 
 	unscheduleCmd := &cobra.Command{
 		Use:   "unschedule",
@@ -277,6 +278,10 @@ type UpdateOptions struct {
 	Page      int
 	PageSize  int
 
+	// specifies custom repo location when scheduling a job,
+	// should only be set if --repo persistent flag is set
+	RepoPath string
+
 	inst          *lib.Instance
 	updateMethods *lib.UpdateMethods
 }
@@ -299,6 +304,7 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 	p := &lib.ScheduleParams{
 		Name:       args[0],
 		SaveParams: o.saveParams(),
+		RepoPath:   o.RepoPath,
 	}
 	if len(args) > 1 {
 		p.Periodicity = args[1]

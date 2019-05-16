@@ -6,8 +6,8 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/update/cron"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/update/cron"
 )
 
 type peerStringer config.ProfilePod
@@ -115,6 +115,10 @@ func (j jobStringer) String() string {
 	w := &bytes.Buffer{}
 	name := color.New(color.Bold).SprintFunc()
 	time := j.Periodicity.After(j.LastRunStart)
-	fmt.Fprintf(w, "%s\n%s | %s\n\n", name(j.Name), j.Type, time)
+	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), j.Type, time)
+	if j.RepoPath != "" {
+		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
+	}
+	fmt.Fprintf(w, "\n")
 	return w.String()
 }

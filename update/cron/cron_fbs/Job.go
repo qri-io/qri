@@ -115,8 +115,16 @@ func (rcv *Job) Options(obj *flatbuffers.Table) bool {
 	return false
 }
 
+func (rcv *Job) RepoPath() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func JobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(10)
+	builder.StartObject(11)
 }
 func JobAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -147,6 +155,9 @@ func JobAddOptionsType(builder *flatbuffers.Builder, optionsType byte) {
 }
 func JobAddOptions(builder *flatbuffers.Builder, options flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(options), 0)
+}
+func JobAddRepoPath(builder *flatbuffers.Builder, repoPath flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(repoPath), 0)
 }
 func JobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

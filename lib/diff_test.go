@@ -100,7 +100,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		{"diff local csv & json file",
 			"testdata/now_tf/input.dataset.json", "testdata/jobs_by_automation/body.csv",
 			"",
-			&DiffStat{Left: 17, Right: 156, LeftWeight: 250, RightWeight: 3897, Inserts: 156, Updates: 0, Deletes: 156, Moves: 0},
+			&DiffStat{Left: 10, Right: 156, LeftWeight: 162, RightWeight: 3897, Inserts: 156, Updates: 0, Deletes: 156, Moves: 0},
 			2,
 		},
 	}

@@ -118,6 +118,10 @@ func JobToCmd(streams ioes.IOStreams, job *cron.Job) *exec.Cmd {
 func datasetSaveCmd(streams ioes.IOStreams, job *cron.Job) *exec.Cmd {
 	args := []string{"save", job.Name}
 
+	if job.RepoPath != "" {
+		args = append(args, fmt.Sprintf(`--repo=%s`, job.RepoPath))
+	}
+
 	if o, ok := job.Options.(*cron.DatasetOptions); ok {
 		if o.Title != "" {
 			args = append(args, fmt.Sprintf(`--title=%s`, o.Title))

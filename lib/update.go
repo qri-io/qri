@@ -42,6 +42,7 @@ type Job = cron.Job
 type ScheduleParams struct {
 	Name        string
 	Periodicity string
+	RepoPath    string
 
 	// SaveParams only applies to dataset saves
 	SaveParams *SaveParams
@@ -100,10 +101,27 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 	if ref, err = repo.ParseDatasetRef(p.Name); err != nil {
 		return
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.Repo(), &ref); err != nil {
+
+	r := m.inst.Repo()
+
+	// if the job specifies a foreign repo path, create a temporary instance to read foreign dataset.
+	// TODO (b5) - this currently should require the repo in question not be used via a file lock
+	// it should then be upgraded to operate over RPC if the lock is held by a process
+	if p.RepoPath != "" && p.RepoPath != m.inst.RepoPath() {
+		var finst *Instance
+		ctx, done := context.WithCancel(m.inst.Context())
+		defer done()
+
+		if finst, err = NewInstance(ctx, p.RepoPath); err != nil {
+			return
+		}
+		r = finst.Repo()
+	}
+
+	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
 		return
 	}
-	if err = base.ReadDataset(m.inst.Repo(), &ref); err != nil {
+	if err = base.ReadDataset(r, &ref); err != nil {
 		return
 	}
 

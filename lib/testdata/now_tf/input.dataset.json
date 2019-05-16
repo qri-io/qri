@@ -9,15 +9,5 @@
     "qri": "md:0",
     "title": "example transform"
   },
-  "transform": {},
-  "structure": {
-    "qri": "st:0",
-    "format": "json",
-    "schema": {
-      "type": "array",
-      "items": {
-        "type": "integer"
-      }
-    }
-  }
+  "transform": {}
 }

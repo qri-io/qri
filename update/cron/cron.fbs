@@ -48,6 +48,8 @@ table Job {
 	logFilePath:string;
 
 	options:Options;
+
+	repoPath:string; // path to repository to execute job as
 }
 
 // flatbuffers don't (currently) support using a vector as a root type
@@ -60,7 +62,9 @@ table Jobs {
 }
 
 // setting file_identifier adds a "magic number" to bytes 4-7 to use as a
-// sanity check for a "Qri FlatBuffer File"
+// sanity check for a "Qri FlatBuffer File". As our use of flatbuffers grows
+// this file identifier should remain as the top level identifier for all
+// qri flatbuffer schemas
 file_identifier "QFBF";
 
 // for our use this is mainly an annotation. this file extension for a 

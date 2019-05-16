@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/registry/regserver/mock"
@@ -159,7 +159,6 @@ func TestSaveDataset(t *testing.T) {
 			Title:   "add transform script",
 			Message: "adding an append-only transform script",
 		},
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 		Transform: &dataset.Transform{
 			Syntax: "starlark",
 			Config: map[string]interface{}{
@@ -186,7 +185,6 @@ func TestSaveDataset(t *testing.T) {
 			Title:   "add transform script",
 			Message: "adding an append-only transform script",
 		},
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 		Transform: &dataset.Transform{
 			Syntax: "starlark",
 			Config: map[string]interface{}{
