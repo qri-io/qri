@@ -158,13 +158,6 @@ func OptStdIOStreams() Option {
 // running & updating config if so
 func OptCheckConfigMigrations(cfgPath string) Option {
 	return func(o *InstanceOptions) error {
-		// default to checking
-		// if cfgPath == "" && o.QriPath != "" {
-		// 	cfgPath = filepath.Join(o.QriPath, "config.yaml")
-		// } else if cfgPath == "" {
-		// 	return fmt.Errorf("no config path provided")
-		// }
-
 		if o.Cfg == nil {
 			return fmt.Errorf("no config file to check for migrations")
 		}
@@ -184,9 +177,8 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs
 func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
-	repoPath, err = repo.Path(repoPath)
-	if err != nil {
-		return
+	if repoPath == "" {
+		return nil, fmt.Errorf("repo path is required")
 	}
 
 	o := &InstanceOptions{
@@ -214,11 +206,9 @@ func NewInstance(repoPath string, opts ...Option) (qri *Instance, err error) {
 
 	cfg := o.Cfg
 	if cfg == nil {
-		// for qri to function properly, we at bare minimum need a configuration file
-		// because Qri can operate purely in memory, this is a little more convoluted
-		// than it seems at first, but if at this point we don't have a configuration pointer
-		// we know one couldn't be loaded from repoPath, and a configuration wasn't
-		// provided through Options, so qri needs to be set up
+		// If at this point we don't have a configuration pointer one couldn't be
+		// loaded from repoPath, and a configuration wasn't provided through Options,
+		// so qri needs to be set up
 		err = fmt.Errorf("no qri repo found, please run `qri setup`")
 		return
 	} else if err = cfg.Validate(); err != nil {
@@ -448,6 +438,11 @@ func (inst *Instance) Config() *config.Config {
 	return inst.cfg
 }
 
+// RepoPath returns the path to the directory qri is operating from
+func (inst *Instance) RepoPath() string {
+	return inst.repoPath
+}
+
 // ChangeConfig implements the ConfigSetter interface
 func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
 
@@ -484,14 +479,4 @@ func (inst *Instance) RPC() *rpc.Client {
 // Teardown destroys the instance, releasing reserved resources
 func (inst *Instance) Teardown() {
 	inst.teardown()
-}
-
-// RepoPath returns the path to the directory qri is operating from
-// there are situations where this will be a temporary directory
-func (inst *Instance) RepoPath() string {
-	if inst.repoPath == "" {
-		return os.TempDir()
-	}
-
-	return inst.repoPath
 }

@@ -67,24 +67,26 @@ func TestNewInstance(t *testing.T) {
 	if err = CompareInstances(got, expect); err != nil {
 		t.Error(err)
 	}
+
+	if _, err = NewInstance(""); err == nil {
+		t.Error("expected NewInstance to error when provided no repo path")
+	}
 }
 
 func TestNewDefaultInstance(t *testing.T) {
-	prevQriEnvLocation, prevIPFSEnvLocation := os.Getenv("QRI_PATH"), os.Getenv("IPFS_PATH")
-	prevDefaultQriLocation, prevDefaultIPFSLocation := repo.DefaultQriLocation, defaultIPFSLocation
+	prevIPFSEnvLocation := os.Getenv("IPFS_PATH")
+	prevDefaultIPFSLocation := defaultIPFSLocation
 
-	os.Setenv("QRI_PATH", "")
 	os.Setenv("IPFS_PATH", "")
 
 	tempDir, err := ioutil.TempDir(os.TempDir(), "TestNewDefaultInstance")
 	if err != nil {
 		t.Fatal(err)
 	}
-	repo.DefaultQriLocation, defaultIPFSLocation = tempDir, tempDir
+	defaultIPFSLocation = tempDir
 
 	defer func() {
-		repo.DefaultQriLocation, defaultIPFSLocation = prevDefaultQriLocation, prevDefaultIPFSLocation
-		os.Setenv("QRI_PATH", prevQriEnvLocation)
+		defaultIPFSLocation = prevDefaultIPFSLocation
 		os.Setenv("IPFS_PATH", prevIPFSEnvLocation)
 		os.RemoveAll(tempDir)
 	}()
@@ -94,9 +96,11 @@ func TestNewDefaultInstance(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	config.DefaultConfigForTesting().WriteToFile(filepath.Join(repo.DefaultQriLocation, "config.yaml"))
+	cfg := config.DefaultConfigForTesting()
+	cfg.Store.Path = tempDir
+	cfg.WriteToFile(filepath.Join(tempDir, "config.yaml"))
 
-	_, err = NewInstance("")
+	_, err = NewInstance(tempDir)
 	if err != nil {
 		t.Fatal(err)
 	}
