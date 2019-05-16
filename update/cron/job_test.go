@@ -27,6 +27,10 @@ func CompareJobs(a, b *Job) error {
 		return fmt.Errorf("Type mistmatch. %s != %s", a.Type, b.Type)
 	}
 
+	if a.RepoPath != b.RepoPath {
+		return fmt.Errorf("RepoPath mistmatch. %s != %s", a.RepoPath, b.RepoPath)
+	}
+
 	if err := CompareOptions(a.Options, b.Options); err != nil {
 		return fmt.Errorf("Options: %s", err)
 	}

@@ -51,6 +51,8 @@ type Job struct {
 	LastError    string    `json:"lastError"`
 	LogFilePath  string    `json:"logFilePath"`
 
+	RepoPath string `json:"repoPath"`
+
 	Options Options `json:"options"`
 }
 
@@ -95,6 +97,7 @@ func (job *Job) Copy() *Job {
 		LastRunStop:  job.LastRunStop,
 		LastError:    job.LastError,
 		LogFilePath:  job.LogFilePath,
+		RepoPath:     job.RepoPath,
 	}
 
 	if job.Options != nil {
@@ -121,6 +124,7 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 	lastRunStop := builder.CreateString(job.LastRunStop.Format(time.RFC3339))
 	lastError := builder.CreateString(job.LastError)
 	logPath := builder.CreateString(job.LogFilePath)
+	repoPath := builder.CreateString(job.RepoPath)
 	p := builder.CreateString(job.Periodicity.String())
 
 	var opts flatbuffers.UOffsetT
@@ -138,6 +142,7 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 	cronfb.JobAddLastRunStop(builder, lastRunStop)
 	cronfb.JobAddLastError(builder, lastError)
 	cronfb.JobAddLogFilePath(builder, logPath)
+	cronfb.JobAddRepoPath(builder, repoPath)
 	cronfb.JobAddOptionsType(builder, job.fbOptionsType())
 	if opts != 0 {
 		cronfb.JobAddOptions(builder, opts)
@@ -181,6 +186,7 @@ func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
 		LastRunStop:  lastRunStop,
 		LastError:    string(j.LastError()),
 		LogFilePath:  string(j.LogFilePath()),
+		RepoPath:     string(j.RepoPath()),
 	}
 
 	unionTable := new(flatbuffers.Table)
