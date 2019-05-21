@@ -21,9 +21,10 @@ func (s Server) ServeWebapp(ctx context.Context) {
 		return
 	}
 
-	m := http.NewServeMux()
-	m.Handle("/", s.middleware(s.WebappTemplateHandler))
-	m.Handle("/webapp/", s.FrontendHandler("/webapp"))
+	m := webappMuxer{
+		template: s.middleware(s.WebappTemplateHandler),
+		webapp:   s.FrontendHandler("/webapp"),
+	}
 
 	webappserver := &http.Server{Handler: m}
 
@@ -35,6 +36,19 @@ func (s Server) ServeWebapp(ctx context.Context) {
 
 	webappserver.Serve(listener)
 	return
+}
+
+type webappMuxer struct {
+	webapp, template http.Handler
+}
+
+func (h webappMuxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if strings.HasPrefix(r.URL.Path, "/webapp") {
+		h.webapp.ServeHTTP(w, r)
+		return
+	}
+
+	h.template.ServeHTTP(w, r)
 }
 
 // FrontendHandler resolves the current webapp hash, (fetching the compiled frontend in the process)

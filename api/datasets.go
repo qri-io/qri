@@ -342,23 +342,7 @@ func (h *DatasetHandlers) diffHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	env := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code": http.StatusOK,
-			"stat": res.Stat,
-		},
-		"data": res.Diff,
-	}
-
-	resData, err := json.Marshal(env)
-	if err != nil {
-		http.Error(w, err.Error(), http.StatusInternalServerError)
-		return
-	}
-
-	w.Header().Set("Content-Type", "application/json")
-	w.WriteHeader(http.StatusOK)
-	w.Write(resData)
+	util.WritePageResponse(w, res, r, util.Page{})
 }
 
 func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request) {
