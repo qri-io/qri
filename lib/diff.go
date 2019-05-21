@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -37,8 +38,10 @@ type DiffParams struct {
 
 // DiffResponse is the result of a call to diff
 type DiffResponse struct {
-	Stat *DiffStat
-	Diff []*Delta
+	Stat *DiffStat   `json:"stat,omitempty"`
+	Diff []*Delta    `json:"diff,omitempty"`
+	A    interface{} `json:"b,omitempty"`
+	B    interface{} `json:"a,omitempty"`
 }
 
 // Diff computes the diff of two datasets
@@ -71,11 +74,15 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		return
 	}
 
+	ctx := context.Background()
+
 	_res := DiffResponse{
 		Stat: &deepdiff.Stats{},
+		A:    leftData,
+		B:    rightData,
 	}
 
-	if _res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
+	if _res.Diff, err = deepdiff.Diff(ctx, leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
 		return
 	}
 
