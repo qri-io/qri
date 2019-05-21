@@ -86,17 +86,10 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 				return nil, "", err
 			}
 
-			fieldsMapIface := make(map[interface{}]interface{})
-			if err = yaml.Unmarshal(data, fieldsMapIface); err != nil {
+			fields := make(map[string]interface{})
+			if err = yaml.Unmarshal(data, fields); err != nil {
 				return nil, "", err
 			}
-
-			// TODO (b5): slow. the yaml package we use unmarshals to map[interface{}]interface{}
-			// (because that's what the yaml spec says you should do), so we have to do this extra
-			// recurse/convert step. It shouldn't be *too* big a deal since most use cases don't inline
-			// full dataset bodies into yaml files, but that's not an assumption we should rely on
-			// long term
-			fields := toMapIface(fieldsMapIface)
 
 			kind, err := fillDatasetOrComponent(fields, path, &ds)
 			return &ds, kind, err
@@ -141,27 +134,6 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 	default:
 		return nil, "", fmt.Errorf("error, unknown path kind: \"%s\"", qfs.PathKind(path))
 	}
-}
-
-func toMapIface(i map[interface{}]interface{}) map[string]interface{} {
-	mapi := map[string]interface{}{}
-	for ikey, val := range i {
-		switch x := val.(type) {
-		case map[interface{}]interface{}:
-			val = toMapIface(x)
-		case []interface{}:
-			for i, v := range x {
-				if mapi, ok := v.(map[interface{}]interface{}); ok {
-					x[i] = toMapIface(mapi)
-				}
-			}
-		}
-
-		if key, ok := ikey.(string); ok {
-			mapi[key] = val
-		}
-	}
-	return mapi
 }
 
 func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *dataset.Dataset) (string, error) {

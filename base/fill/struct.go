@@ -125,8 +125,9 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 			return
 		}
 		// Struct must be assigned from a map.
-		component, err := toStringMap(val)
-		if collector.Add(err) {
+		component := toStringMap(val)
+		if component == nil {
+			collector.Add(fmt.Errorf("could not convert to map[string]"))
 			return
 		}
 		// Recursion to handle sub-component.
@@ -136,21 +137,36 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 			// If map is nil, nothing more to do.
 			return
 		}
-		m, ok := val.(map[string]interface{})
-		if !ok {
-			collector.Add(&FieldError{Want: "map", Got: reflect.TypeOf(val).Name(), Val: val})
-			return
-		}
-		// Special case map[string]string, convert values to strings.
-		if place.Type().Elem() == reflect.TypeOf(strObj) {
-			strmap := make(map[string]string)
-			for k, v := range m {
-				strmap[k] = fmt.Sprintf("%s", v)
+		ms, ok := val.(map[string]interface{})
+		if ok {
+			// Special case map[string]string, convert values to strings.
+			if place.Type().Elem() == reflect.TypeOf(strObj) {
+				strmap := make(map[string]string)
+				for k, v := range ms {
+					strmap[k] = fmt.Sprintf("%s", v)
+				}
+				place.Set(reflect.ValueOf(strmap))
+				return
 			}
-			place.Set(reflect.ValueOf(strmap))
+			place.Set(reflect.ValueOf(ms))
 			return
 		}
-		place.Set(reflect.ValueOf(m))
+		mi, ok := val.(map[interface{}]interface{})
+		if ok {
+			// Special case map[string]string, convert values to strings.
+			if place.Type().Elem() == reflect.TypeOf(strObj) {
+				strmap := make(map[string]string)
+				for k, v := range mi {
+					strmap[fmt.Sprintf("%s", k)] = fmt.Sprintf("%s", v)
+				}
+				place.Set(reflect.ValueOf(strmap))
+				return
+			}
+			place.Set(reflect.ValueOf(ensureMapsHaveStringKeys(mi)))
+			return
+		}
+		// Error due to not being able to convert.
+		collector.Add(&FieldError{Want: "map", Got: reflect.TypeOf(val).Name(), Val: val})
 		return
 	case reflect.Slice:
 		if val == nil {
@@ -298,6 +314,14 @@ func putValueToUnit(val interface{}, place reflect.Value) error {
 			return nil
 		}
 		return &FieldError{Want: "bool", Got: reflect.TypeOf(val).Name(), Val: val}
+	case reflect.Interface:
+		imap, ok := val.(map[interface{}]interface{})
+		if ok {
+			place.Set(reflect.ValueOf(ensureMapsHaveStringKeys(imap)))
+			return nil
+		}
+		place.Set(reflect.ValueOf(val))
+		return nil
 	default:
 		return fmt.Errorf("unknown kind %s", place.Kind())
 	}
@@ -306,20 +330,36 @@ func putValueToUnit(val interface{}, place reflect.Value) error {
 // toStringMap converts the input to a map[string] if able. This is needed because, while JSON
 // correctly deserializes sub structures to map[string], YAML instead deserializes to
 // map[interface{}]interface{}, so we need to manually convert this case to map[string].
-func toStringMap(val interface{}) (map[string]interface{}, error) {
-	m, ok := val.(map[string]interface{})
+func toStringMap(obj interface{}) map[string]interface{} {
+	m, ok := obj.(map[string]interface{})
 	if ok {
-		return m, nil
+		return m
 	}
-	imap, ok := val.(map[interface{}]interface{})
+	imap, ok := obj.(map[interface{}]interface{})
 	if ok {
-		convert := make(map[string]interface{})
-		for k, v := range imap {
-			convert[fmt.Sprintf("%v", k)] = v
+		return ensureMapsHaveStringKeys(imap)
+	}
+	return nil
+}
+
+// ensureMapsHaveStringKeys will recursively convert map's key to be strings. This will allow us
+// to serialize back into JSON.
+func ensureMapsHaveStringKeys(imap map[interface{}]interface{}) map[string]interface{} {
+	build := make(map[string]interface{})
+	for k, v := range imap {
+		switch x := v.(type) {
+		case map[interface{}]interface{}:
+			v = ensureMapsHaveStringKeys(x)
+		case []interface{}:
+			for i, elem := range x {
+				if inner, ok := elem.(map[interface{}]interface{}); ok {
+					x[i] = ensureMapsHaveStringKeys(inner)
+				}
+			}
 		}
-		return convert, nil
+		build[fmt.Sprintf("%s", k)] = v
 	}
-	return nil, fmt.Errorf("could not convert to map[string]")
+	return build
 }
 
 // getArbitrarySetter returns a ArbitrarySetter if the target implements it.
