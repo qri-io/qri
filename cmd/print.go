@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/fatih/color"
+	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 )
 
 const (
@@ -41,7 +41,7 @@ func printSuccess(w io.Writer, msg string, params ...interface{}) {
 }
 
 func printInfo(w io.Writer, msg string, params ...interface{}) {
-	fmt.Fprintln(w, color.New(color.FgWhite).Sprintf(msg, params...))
+	fmt.Fprintln(w, fmt.Sprintf(msg, params...))
 }
 
 func printWarning(w io.Writer, msg string, params ...interface{}) {
@@ -166,43 +166,6 @@ func printByteInfo(n int) string {
 	return fmt.Sprintf("%v %s", length.value, length.name)
 }
 
-func printDatasetRefInfo(w io.Writer, i int, ref repo.DatasetRef) {
-	white := color.New(color.FgWhite).SprintFunc()
-	cyan := color.New(color.FgCyan).SprintFunc()
-	blue := color.New(color.FgBlue).SprintFunc()
-	ds := ref.Dataset
-
-	fmt.Fprintf(w, "%s  %s\n", cyan(i), white(ref.AliasString()))
-	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
-		fmt.Fprintf(w, "    %s\n", blue(ds.Meta.Title))
-	}
-	if ref.Path != "" {
-		fmt.Fprintf(w, "    %s\n", ref.Path)
-	}
-	if ds != nil && ds.Structure != nil {
-		fmt.Fprintf(w, "    %s", printByteInfo(ds.Structure.Length))
-		if ds.Structure.Entries == 1 {
-			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
-		} else {
-			fmt.Fprintf(w, ", %d entries", ds.Structure.Entries)
-		}
-		if ds.Structure.ErrCount == 1 {
-			fmt.Fprintf(w, ", %d error", ds.Structure.ErrCount)
-		} else {
-			fmt.Fprintf(w, ", %d errors", ds.Structure.ErrCount)
-		}
-		if ds.NumVersions == 0 {
-			// nothing
-		} else if ds.NumVersions == 1 {
-			fmt.Fprintf(w, ", %d version", ds.NumVersions)
-		} else {
-			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
-		}
-	}
-
-	fmt.Fprintf(w, "\n")
-}
-
 func prompt(w io.Writer, r io.Reader, msg string) string {
 	var input string
 	printInfo(w, msg)
@@ -252,4 +215,29 @@ func doesCommandExist(cmdName string) bool {
 		return false
 	}
 	return true
+}
+
+func printDiff(w io.Writer, res *lib.DiffResponse, summaryOnly bool) (err error) {
+	var stats, text string
+	// TODO (b5): this reading from a package variable is pretty hacky :/
+	if color.NoColor {
+		stats = deepdiff.FormatPrettyStats(res.Stat)
+		if !summaryOnly {
+			text, err = deepdiff.FormatPretty(res.Diff)
+			if err != nil {
+				return err
+			}
+		}
+	} else {
+		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
+		if !summaryOnly {
+			text, err = deepdiff.FormatPrettyColor(res.Diff)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	buf := bytes.NewBuffer([]byte(stats + "\n" + text))
+	printToPager(w, buf)
+	return nil
 }

@@ -1,11 +1,8 @@
 package cmd
 
 import (
-	"bytes"
 	"encoding/json"
 
-	"github.com/fatih/color"
-	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -101,16 +98,14 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the diff command
 func (o *DiffOptions) Run() (err error) {
-	var stats, text string
-
 	p := &lib.DiffParams{
 		LeftPath:  o.Left,
 		RightPath: o.Right,
 		Selector:  o.Selector,
 	}
 
-	res := lib.DiffResponse{}
-	if err = o.DatasetRequests.Diff(p, &res); err != nil {
+	res := &lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, res); err != nil {
 		return err
 	}
 
@@ -119,25 +114,5 @@ func (o *DiffOptions) Run() (err error) {
 		return
 	}
 
-	// TODO (b5): this reading from a package variable is pretty hacky :/
-	if color.NoColor {
-		stats = deepdiff.FormatPrettyStats(res.Stat)
-		if !o.Summary {
-			text, err = deepdiff.FormatPretty(res.Diff)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
-		if !o.Summary {
-			text, err = deepdiff.FormatPrettyColor(res.Diff)
-			if err != nil {
-				return err
-			}
-		}
-	}
-	buf := bytes.NewBuffer([]byte(stats + "\n" + text))
-	printToPager(o.Out, buf)
-	return
+	return printDiff(o.Out, res, o.Summary)
 }
