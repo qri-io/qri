@@ -124,7 +124,7 @@ func (o *ListOptions) Run() (err error) {
 		for i, r := range refs {
 			items[i] = refStringer(r)
 		}
-		printItems(o.Out, items)
+		printItems(o.Out, items, page.Offset())
 		return nil
 	case dataset.JSONDataFormat.String():
 		data, err := json.MarshalIndent(refs, "", "  ")

@@ -103,6 +103,6 @@ func (o *LogOptions) Run() error {
 		items[i] = logStringer(r)
 	}
 
-	printItems(o.Out, items)
+	printItems(o.Out, items, page.Offset())
 	return nil
 }

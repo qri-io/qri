@@ -250,7 +250,7 @@ func (o *PeersOptions) List() (err error) {
 		}
 	}
 
-	printItems(o.Out, items)
+	printItems(o.Out, items, page.Offset())
 	return
 }
 

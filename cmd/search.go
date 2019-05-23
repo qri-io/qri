@@ -112,7 +112,7 @@ func (o *SearchOptions) Run() (err error) {
 			items[i] = refStringer(*ref)
 		}
 		o.StopSpinner()
-		printItems(o.Out, items)
+		printItems(o.Out, items, page.Offset())
 		return nil
 
 	case dataset.JSONDataFormat.String():
