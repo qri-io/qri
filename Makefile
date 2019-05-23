@@ -2,7 +2,7 @@ GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
 define GOPACKAGES 
 github.com/360EntSecGroup-Skylar/excelize \
 github.com/briandowns/spinner \
-github.com/qri-io/apiutil \
+github.com/dustin/go-humanize \
 github.com/fatih/color \
 github.com/olekukonko/tablewriter \
 github.com/qri-io/apiutil \

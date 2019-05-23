@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 
+	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -63,7 +64,7 @@ func (r refStringer) String() string {
 		fmt.Fprintf(w, "\n%s", path(r.Path))
 	}
 	if ds != nil && ds.Structure != nil {
-		fmt.Fprintf(w, "\n%s", printByteInfo(ds.Structure.Length))
+		fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(ds.Structure.Length)))
 		if ds.Structure.Entries == 1 {
 			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
 		} else {

@@ -14,18 +14,6 @@ import (
 	"github.com/qri-io/qri/lib"
 )
 
-const (
-	bite = 1 << (10 * iota)
-	kilobyte
-	megabyte
-	gigabyte
-	terabyte
-	petabyte
-	exabyte
-	zettabyte
-	yottabyte
-)
-
 var noPrompt = false
 
 func setNoColor(noColor bool) {
@@ -121,51 +109,6 @@ func fmtItem(i int, item string, prefix []byte) string {
 		bol = c == '\n'
 	}
 	return string(res)
-}
-
-func printByteInfo(n int) string {
-	// Use 64-bit ints to support platforms on which int is not large enough to represent
-	// the constants below (exabyte, petabyte, etc). For example: Raspberry Pi running arm6.
-	l := int64(n)
-	length := struct {
-		name  string
-		value int64
-	}{"", 0}
-
-	switch {
-	// yottabyte and zettabyte overflow int
-	// case l > yottabyte:
-	//  length.name = "YB"
-	//  length.value = l / yottabyte
-	// case l > zettabyte:
-	//  length.name = "ZB"
-	//  length.value = l / zettabyte
-	case l >= exabyte:
-		length.name = "EB"
-		length.value = l / exabyte
-	case l >= petabyte:
-		length.name = "PB"
-		length.value = l / petabyte
-	case l >= terabyte:
-		length.name = "TB"
-		length.value = l / terabyte
-	case l >= gigabyte:
-		length.name = "GB"
-		length.value = l / gigabyte
-	case l >= megabyte:
-		length.name = "MB"
-		length.value = l / megabyte
-	case l >= kilobyte:
-		length.name = "KB"
-		length.value = l / kilobyte
-	default:
-		length.name = "byte"
-		length.value = l
-	}
-	if length.value != 1 {
-		length.name += "s"
-	}
-	return fmt.Sprintf("%v %s", length.value, length.name)
 }
 
 func prompt(w io.Writer, r io.Reader, msg string) string {
