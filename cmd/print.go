@@ -56,11 +56,13 @@ func printErr(w io.Writer, err error, params ...interface{}) {
 	fmt.Fprintln(w, color.New(color.FgRed).Sprintf(err.Error(), params...))
 }
 
-func printItems(w io.Writer, items []fmt.Stringer) (err error) {
+// print a slice of stringer items to io.Writer as an indented & numbered list
+// offset specifies the number of items that have been skipped, index is 1-based
+func printItems(w io.Writer, items []fmt.Stringer, offset int) (err error) {
 	buf := &bytes.Buffer{}
 	prefix := []byte("    ")
 	for i, item := range items {
-		buf.WriteString(fmtItem(i+1, item.String(), prefix))
+		buf.WriteString(fmtItem(i+1+offset, item.String(), prefix))
 	}
 	return printToPager(w, buf)
 }

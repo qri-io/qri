@@ -354,7 +354,7 @@ func (o *UpdateOptions) List() (err error) {
 	for i, r := range res {
 		items[i] = jobStringer(*r)
 	}
-	printItems(o.Out, items)
+	printItems(o.Out, items, page.Offset())
 	return
 }
 
@@ -380,7 +380,7 @@ func (o *UpdateOptions) Logs(args []string) (err error) {
 	for i, r := range res {
 		items[i] = jobStringer(*r)
 	}
-	printItems(o.Out, items)
+	printItems(o.Out, items, page.Offset())
 	return
 }
 
