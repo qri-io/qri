@@ -253,6 +253,7 @@ type Collection struct {
 type SubElement struct {
 	Num    int
 	Things *map[string]string
+	Any    interface{}
 }
 
 func (c *Collection) SetArbitrary(key string, val interface{}) error {
@@ -725,5 +726,180 @@ func TestFillPointerToMap(t *testing.T) {
 	}
 	if (*s.Things)["b"] != "banana" {
 		t.Errorf("expected: s.Things[\"b\"] should be \"banana\"")
+	}
+}
+
+func TestFillInterface(t *testing.T) {
+	// Any can be a float
+	jsonData := `{
+  "Any": 123.4
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var s SubElement
+	err = Struct(data, &s)
+	if err != nil {
+		panic(err)
+	}
+
+	if s.Any != 123.4 {
+		t.Errorf("expected: s.Any should be 123, got %v of %s", s.Any, reflect.TypeOf(s.Any))
+	}
+
+	// Any can be a string
+	jsonData = `{
+  "Any": "abc"
+}`
+	data = make(map[string]interface{})
+	err = json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	s = SubElement{}
+	err = Struct(data, &s)
+	if err != nil {
+		panic(err)
+	}
+
+	if s.Any != "abc" {
+		t.Errorf("expected: s.Any should be \"abc\", got %v of %s", s.Any, reflect.TypeOf(s.Any))
+	}
+}
+
+func TestFillYamlFields(t *testing.T) {
+	yamlData := `
+name: abc
+age: 42
+xpos: 3.51
+big: 1234567890123456
+`
+	data := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(yamlData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Name != "abc" {
+		t.Errorf("expected: c.Name should be \"abc\", got: %s", c.Name)
+	}
+	if c.Age != 42 {
+		t.Errorf("expected: c.Name should be 42, got: %d", c.Age)
+	}
+	if c.Xpos != 3.51 {
+		t.Errorf("expected: c.Xpos should be 3.51, got: %f", c.Xpos)
+	}
+	if c.Big != 1234567890123456 {
+		t.Errorf("expected: c.Big should be 1234567890123456, got: %d", c.Big)
+	}
+}
+
+func TestFillYamlMap(t *testing.T) {
+	yamlData := `
+name: more
+dict:
+  a: apple
+  b: banana
+sub:
+  num: 7
+  things:
+    c: cat
+    d: dog
+`
+	data := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(yamlData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Name != "more" {
+		t.Errorf("expected: c.Name should be \"abc\", got: %s", c.Name)
+	}
+	if len(c.Dict) != 2 {
+		t.Errorf("expected: len(c.Dict) should be 2, got: %d", len(c.Dict))
+	}
+	if c.Dict["a"] != "apple" {
+		t.Errorf("expected: c.Dict[\"a\"] should be \"apple\", got: %s", c.Dict["a"])
+	}
+	if c.Dict["b"] != "banana" {
+		t.Errorf("expected: c.Dict[\"b\"] should be \"banana\", got: %s", c.Dict["b"])
+	}
+
+	if c.Sub.Num != 7 {
+		t.Errorf("expected: c.Sub.Num should be 7, got: %d", c.Sub.Num)
+	}
+	if len(*c.Sub.Things) != 2 {
+		t.Errorf("expected: len(c.Sub.Things) should be 2, got: %d", len(*c.Sub.Things))
+	}
+	if (*c.Sub.Things)["c"] != "cat" {
+		t.Errorf("expected: c.Sub.Things[\"c\"] should be \"cat\", got: %s", (*c.Sub.Things)["c"])
+	}
+	if (*c.Sub.Things)["d"] != "dog" {
+		t.Errorf("expected: c.Sub.Things[\"d\"] should be \"dog\", got: %s", (*c.Sub.Things)["d"])
+	}
+}
+
+func TestFillYamlMapsHaveStringKeys(t *testing.T) {
+	yamlData := `
+name: schema
+sub:
+  any:
+    type: object
+    inner:
+      e: eel
+      f: frog
+`
+	data := make(map[string]interface{})
+	err := yaml.Unmarshal([]byte(yamlData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Name != "schema" {
+		t.Errorf("expected: c.Name should be \"schema\", got: %s", c.Name)
+	}
+	m, ok := c.Sub.Any.(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected: c.Sub.Any should be a map[string]interface{}, got: %s",
+			reflect.TypeOf(c.Sub.Any))
+	}
+	if m["type"] != "object" {
+		t.Errorf("expected: c.Sub.Any[\"type\"] should be \"object\", got: %d", m["type"])
+	}
+
+	// This is asserting that maps within data structures also have string keys, despite
+	// the fact that YAML deserialized this, and YAML always uses interface{} keys.
+	m, ok = m["inner"].(map[string]interface{})
+	if !ok {
+		t.Fatalf("expected: Inner should be a map[string]interface{}, got: %s",
+			reflect.TypeOf(m["inner"]))
+	}
+	if m["e"] != "eel" {
+		t.Errorf("expected: c.Sub.Any[\"e\"] should be \"eel\", got: %d", m["e"])
+	}
+	if m["f"] != "frog" {
+		t.Errorf("expected: c.Sub.Any[\"f\"] should be \"frog\", got: %d", m["f"])
 	}
 }
