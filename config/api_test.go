@@ -14,20 +14,31 @@ func TestAPIValidate(t *testing.T) {
 
 func TestAPICopy(t *testing.T) {
 	cases := []struct {
-		api *API
+		description string
+		api         *API
 	}{
-		{DefaultAPI()},
+		{"default", DefaultAPI()},
+		{"ensure boolean values copy", &API{
+			Enabled:            true,
+			ReadOnly:           true,
+			RemoteMode:         true,
+			TLS:                true,
+			ProxyForceHTTPS:    true,
+			ServeRemoteTraffic: true,
+		}},
 	}
 	for i, c := range cases {
 		cpy := c.api.Copy()
 		if !reflect.DeepEqual(cpy, c.api) {
-			t.Errorf("API Copy test case %v, api structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.api)
+			t.Errorf("API Copy test case %d '%s', api structs are not equal: \ncopy: %v, \noriginal: %v", i, c.description, cpy, c.api)
 			continue
 		}
-		cpy.AllowedOrigins[0] = ""
-		if reflect.DeepEqual(cpy, c.api) {
-			t.Errorf("API Copy test case %v, editing one api struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.api)
-			continue
+		if cpy.AllowedOrigins != nil {
+			cpy.AllowedOrigins[0] = ""
+			if reflect.DeepEqual(cpy, c.api) {
+				t.Errorf("API Copy test case %d '%s', editing one api struct should not affect the other: \ncopy: %v, \noriginal: %v", i, c.description, cpy, c.api)
+				continue
+			}
 		}
 	}
 }

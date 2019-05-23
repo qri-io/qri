@@ -107,13 +107,15 @@ func DefaultAPI() *API {
 // Copy returns a deep copy of an API struct
 func (a *API) Copy() *API {
 	res := &API{
-		Enabled:         a.Enabled,
-		Port:            a.Port,
-		ReadOnly:        a.ReadOnly,
-		URLRoot:         a.URLRoot,
-		TLS:             a.TLS,
-		DisconnectAfter: a.DisconnectAfter,
-		ProxyForceHTTPS: a.ProxyForceHTTPS,
+		Enabled:            a.Enabled,
+		Port:               a.Port,
+		ReadOnly:           a.ReadOnly,
+		RemoteMode:         a.RemoteMode,
+		URLRoot:            a.URLRoot,
+		TLS:                a.TLS,
+		DisconnectAfter:    a.DisconnectAfter,
+		ProxyForceHTTPS:    a.ProxyForceHTTPS,
+		ServeRemoteTraffic: a.ServeRemoteTraffic,
 	}
 	if a.AllowedOrigins != nil {
 		res.AllowedOrigins = make([]string, len(a.AllowedOrigins))
