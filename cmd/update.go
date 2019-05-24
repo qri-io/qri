@@ -378,7 +378,7 @@ func (o *UpdateOptions) Logs(args []string) (err error) {
 
 	items := make([]fmt.Stringer, len(res))
 	for i, r := range res {
-		items[i] = jobStringer(*r)
+		items[i] = finishedJobStringer(*r)
 	}
 	printItems(o.Out, items, page.Offset())
 	return

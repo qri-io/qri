@@ -3,6 +3,7 @@ package cmd
 import (
 	"bytes"
 	"fmt"
+	"strings"
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
@@ -122,4 +123,41 @@ func (j jobStringer) String() string {
 	}
 	fmt.Fprintf(w, "\n")
 	return w.String()
+}
+
+type finishedJobStringer cron.Job
+
+// String assumes Name, Type, LastRunStart and ExitStatus are present
+func (j finishedJobStringer) String() string {
+	w := &bytes.Buffer{}
+	name := color.New(color.Bold, color.FgGreen).SprintFunc()
+	msg := ""
+	if j.LastError != "" {
+		msg = oneLiner(j.LastError, 40)
+		name = color.New(color.Bold, color.FgRed).SprintFunc()
+		if j.LastError == "no changes to save" {
+			name = color.New(color.Bold, color.Faint).SprintFunc()
+		}
+	} else {
+		if j.Type == cron.JTDataset {
+			msg = "dataset updated"
+		} else if j.Type == cron.JTShellScript {
+			msg = "script ran successfully"
+		}
+	}
+
+	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), humanize.Time(j.LastRunStart), msg)
+	if j.RepoPath != "" {
+		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
+	}
+	fmt.Fprintf(w, "\n")
+	return w.String()
+}
+
+func oneLiner(str string, maxLen int) string {
+	str = strings.Split(str, "\n")[0]
+	if len(str) > maxLen-3 {
+		str = str[:maxLen-3] + "..."
+	}
+	return str
 }
