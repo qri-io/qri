@@ -103,33 +103,63 @@ The following packages are not under Qri, but are important dependencies, so we 
 | `ipfs` | [![ipfs version](https://img.shields.io/badge/ipfs-v0.4.17-blue.svg)](https://github.com/ipfs/go-ipfs/) |
 
 <a id="build"></a>
-### Building From Source
+## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org) on your machine.
+To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.11 to build qri.
 
 Building then depends upon your operating system:
 
-#### Mac OSX
+### Mac OSX
 
 Having `go` installed is enough, proceed to <a href="#building">building</a>.
 
-#### Windows
+### Windows
 
-We recommend using [msys2](https://www.msys2.org/) as your shell.
+Unfortunately, we do not have distributable single exe releases of `qri` yet, but those are planned. For now, you will need to build `qri` from source.
 
-In msys2, add `go` to your `PATH`. Install `git` by using `pacman`:
+To start, make sure that you have enabled [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
+
+You should not need to Run As Administrator to build or run `qri`. We do not recommend using administrator to run `qri`.
+
+#### Shell
+
+For your shell, we recommend using [msys2](https://www.msys2.org/). Other shells, such as `cmd`, `Powershell`, or `cygwin` may also be usable, but `msys2` makes it easy to install our required dependencies. IPFS also recommends `msys2`, and `qri` is built on top of IPFS.
+
+#### Dependencies
+
+Building depends upon having `git` and `make` installed. If using `msys2`, you can easily install these by using the package manager "pacman". In a shell, type:
 
 ```shell
-pacman -S git
+pacman -S git make
 ```
 
-Enable [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
+Assuming you've also installed `go` using the official Windows installer linked above, you will also need to add `go` to your `PATH` by modifying your environment variable.
+
+#### Environment variables
+
+To set Environment variables, open Windows Settings, and search for "Environment variables". This will open System Properties -> Advanced; on this dialog click "Environment Variables...". Here you can edit `PATH` by adding a new entry. The value of `PATH` is multiple locations on your file system, separated by a semi-colon (;) character. Using the list based editor will insert these semi-colons for you.
+
+Alternatively, you can assign environment variables by modifying `.bash_profile` in `msys2`. Lookup bash documentation for more information on this approach.
+
+You will also need to set your `GOPATH` using these same methods. Read the next section for more information.
+
+#### Go workspaces
+
+If you are new to developing `go`, you should know that `go` prefers to work a bit differently than most languages. Please read this guide [How to Write Go Code](https://golang.org/doc/code.html), so that you understand how to create a workspace. Once you have your workspace decided upon, set your `GOPATH` and `PATH` variables setup as described in that guide.
+
+Let's say, for example, that your workspace lives at "c:\Users\me\go", and `go` was installed at "c:\Go". Then you should have your `GOPATH` be equal to "c:\Users\me\go" and your `PATH` something like "...;c:\Go;$GOPATH\bin".
 
 Once these steps are complete, proceed to <a href="#building">building</a>.
 
-#### Linux
+### Linux
 
 On a Raspberry PI, you'll need to increase your swap file size in order to build. Normal desktop and server linux OSes should be fine to proceed to <a href="#building">building</a>.
+
+One symptom of having not enough swap space is the `go install` command producing an error message ending with:
+
+```
+link: signal: killed
+```
 
 To increase your swapfile size, first turn off the swapfile:
 
@@ -145,20 +175,31 @@ Finally turn on the swapfile again:
 sudo dphys-swapfile swapon
 ```
 
-#### Building
+Otherwise linux machines with reduced memory will have other ways to increase their swap file sizes. Check documentation for your particular machine.
+
+### Building
+
+In your shell, navigate to your `go` workspace, and get the source code for this repository.
 
 ```shell
-$ go get github.com/qri-io/qri
-$ cd $GOPATH/src/github.com/qri-io/qri
+$ cd $GOPATH
+$ mkdir -p src/github.com/qri-io
+$ cd src/github.com/qri-io
+$ git clone https://github.com/qri-io/qri
+```
+
+Now enter this main source repo and build:
+
+```shell
+$ cd qri
 $ make build
 $ go install
 ```
 
-If you are building from source by cloning the repo, make sure to clone the repo to your go path: `$GOPATH/src/github.com/qri-io/qri`.
-
 The `make build` command will have a lot of output. That's good! Its means it's working :)
 
 It'll take a minute, but once everything's finished a new binary `qri` will appear in the `$GOPATH/bin` directory. You should be able to run:
+
 ```shell
 $ qri help
 ```
