@@ -248,6 +248,8 @@ type Collection struct {
 	Big  int64
 	Ubig uint64
 	Pair [2]int
+	Cat  string `json:"kitten"`
+	Dog  string `json:"puppy,omitempty"`
 }
 
 type SubElement struct {
@@ -671,6 +673,50 @@ func TestFillMulitpleErrors(t *testing.T) {
 at Sub.Num: need int, got bool: false`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+func TestFillAttrName(t *testing.T) {
+	jsonData := `{
+  "kitten": "meow",
+  "puppy": "bark"
+}`
+
+	// json Unmarshal will look at field tags to get json keys
+	var c Collection
+	err := json.Unmarshal([]byte(jsonData), &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Cat != "meow" {
+		t.Errorf("exepcted: c.Cat should be \"meow\", got %s", c.Cat)
+	}
+	if c.Dog != "bark" {
+		t.Errorf("exepcted: c.Dog should be \"bark\", got %s", c.Dog)
+	}
+
+	// fill Struct should do the same thing, looking at field tags
+	data := make(map[string]interface{})
+	err = json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	c = Collection{}
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if c.Cat != "meow" {
+		t.Errorf("exepcted: c.Cat should be \"meow\", got %s", c.Cat)
+	}
+	if c.Dog != "bark" {
+		t.Errorf("exepcted: c.Dog should be \"bark\", got %s", c.Dog)
+	}
+	if len(c.More) != 0 {
+		t.Errorf("expected: no unused keys, got %v", c.More)
 	}
 }
 

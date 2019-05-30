@@ -1,9 +1,8 @@
-// Package fill matches arbitrary values to struct fields using reflection
-// fill is case-insensitive.
-// It's primary use is to support decoding data
-// from a number of serialization formats (JSON,YAML,CBOR) into an intermediate
-// map[string]interface{} value which can then be used to "fill" arbitrary struct
-// values
+// Package fill assigns arbitrary values to struct fields using reflection.
+// "fill" is case-insensitive, and obeys the "json" field tag if present.
+// It's primary use is to support decoding data from a number of serialization
+// formats (JSON,YAML,CBOR) into an intermediate map[string]interface{} value
+// which can then be used to "fill" arbitrary struct values
 package fill
 
 import (
@@ -67,6 +66,15 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		// Lowercase the key in order to make matching case-insensitive.
 		fieldName := target.Type().Field(i).Name
 		lowerName := strings.ToLower(fieldName)
+		fieldTag := target.Type().Field(i).Tag
+		if fieldTag != "" && fieldTag.Get("json") != "" {
+			jsonName := fieldTag.Get("json")
+			pos := strings.Index(jsonName, ",")
+			if pos != -1 {
+				jsonName = jsonName[:pos]
+			}
+			lowerName = strings.ToLower(jsonName)
+		}
 
 		val, ok := fields[caseMap[lowerName]]
 		if !ok {
