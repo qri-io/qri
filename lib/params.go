@@ -71,8 +71,9 @@ func (lp ListParams) Page() util.Page {
 
 // PushParams holds parameters for pushing daginfo to remotes
 type PushParams struct {
-	Ref        string
-	RemoteName string
+	Ref           string
+	RemoteName    string
+	PinOnComplete bool
 }
 
 // ReceiveParams hold parameters for receiving daginfo's when running as a remote

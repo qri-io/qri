@@ -1,50 +1,35 @@
 package lib
 
 import (
+	"context"
 	"fmt"
-	"net/rpc"
-	"sync"
 	"time"
 
-	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 
-// RemoteRequests encapsulates business logic of remote operation
+// RemoteMethods encapsulates business logic of remote operation
 // TODO (b5): switch to using an Instance instead of separate fields
-type RemoteRequests struct {
-	cfg       *config.Config
-	cli       *rpc.Client
-	node      *p2p.QriNode
-	Receivers *dsync.Receivers
-	Sessions  map[string]*ReceiveParams
-	lock      sync.Mutex
+type RemoteMethods struct {
+	inst *Instance
 }
 
-// NewRemoteRequests creates a RemoteRequests pointer from either a node or an rpc.Client
-func NewRemoteRequests(node *p2p.QriNode, cfg *config.Config, cli *rpc.Client) *RemoteRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewRemoteRequests"))
-	}
-	return &RemoteRequests{
-		cfg:      cfg,
-		cli:      cli,
-		node:     node,
-		Sessions: make(map[string]*ReceiveParams),
+// NewRemoteMethods creates a RemoteMethods pointer from either a node or an rpc.Client
+func NewRemoteMethods(inst *Instance) *RemoteMethods {
+	return &RemoteMethods{
+		inst: inst,
 	}
 }
 
 // CoreRequestsName implements the Requests interface
-func (*RemoteRequests) CoreRequestsName() string { return "remote" }
+func (*RemoteMethods) CoreRequestsName() string { return "remote" }
 
 // PushToRemote posts a dagInfo to a remote
-func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
+func (r *RemoteMethods) PushToRemote(p *PushParams, out *bool) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.PushToRemote", p, out)
 	}
@@ -67,27 +52,36 @@ func (r *RemoteRequests) PushToRemote(p *PushParams, out *bool) error {
 		return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
 	}
 
-	sessionID, dagDiff, err := actions.DsyncStartPush(r.node, dagInfo, location, &ref)
+	push, err := r.inst.dsync.NewPushManifest(dagInfo.Manifest, location, PushParams.Pin)
 	if err != nil {
-		return err
+		return nil
 	}
 
-	err = actions.DsyncSendBlocks(r.node, location, sessionID, dagInfo.Manifest, dagDiff)
-	if err != nil {
-		return err
+	if err := push.Do(context.Background()); err != nil {
+		return nil
 	}
 
-	err = actions.DsyncCompletePush(r.node, location, sessionID)
-	if err != nil {
-		return err
-	}
+	// sessionID, dagDiff, err := actions.DsyncStartPush(r.node, dagInfo, location, &ref)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = actions.DsyncSendBlocks(r.node, location, sessionID, dagInfo.Manifest, dagDiff)
+	// if err != nil {
+	// 	return err
+	// }
+
+	// err = actions.DsyncCompletePush(r.node, location, sessionID)
+	// if err != nil {
+	// 	return err
+	// }
 
 	*out = true
 	return nil
 }
 
 // Receive is used to save a dataset when running as a remote. API only, not RPC or command-line.
-func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err error) {
+func (r *RemoteMethods) Receive(p *ReceiveParams, res *ReceiveResult) (err error) {
 	if r.cli != nil {
 		return fmt.Errorf("receive cannot be called over RPC")
 	}
@@ -158,7 +152,7 @@ func (r *RemoteRequests) Receive(p *ReceiveParams, res *ReceiveResult) (err erro
 }
 
 // Complete is used to complete a dataset that has been pushed to this remote
-func (r *RemoteRequests) Complete(p *CompleteParams, res *bool) (err error) {
+func (r *RemoteMethods) Complete(p *CompleteParams, res *bool) (err error) {
 	sid := p.SessionID
 	session, ok := r.Sessions[sid]
 	if !ok {

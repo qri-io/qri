@@ -27,7 +27,9 @@ func TestRemote(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewRemoteRequests(node, cfg, nil)
+	
+	inst := &Instance{ node: node, cfg: cfg }
+	req := NewRemoteMethods(inst)
 	req.Receivers = dsync.NewTestReceivers()
 
 	exampleDagInfo := &dag.Info{

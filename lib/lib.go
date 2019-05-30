@@ -16,6 +16,8 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
+	"github.com/qri-io/dag"
+	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -70,6 +72,11 @@ func Receivers(inst *Instance) []Methods {
 		NewConfigMethods(inst),
 		NewSearchRequests(node, nil),
 		NewRenderRequests(r, nil),
+<<<<<<< HEAD
+=======
+		NewSelectionRequests(r, nil),
+		NewRemoteMethods(inst),
+>>>>>>> refactor(dsync): incorporate dsync updates
 		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
 	}
@@ -266,6 +273,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 	inst.node.LocalStreams = o.Streams
 
+	capi, err := inst.node.IPFSCoreAPI()
+	if err != nil {
+		return err
+	}
+	inst.dsync = dsync.New(dag.NewNodeGetter(capi), capi.Block())
+
 	return
 }
 
@@ -439,6 +452,7 @@ type Instance struct {
 	repo     repo.Repo
 	node     *p2p.QriNode
 	cron     cron.Scheduler
+	dsync    *dsync.Dsync
 
 	rpc *rpc.Client
 }
