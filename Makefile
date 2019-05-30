@@ -39,7 +39,23 @@ ifndef GOPATH
 	$(error $$GOPATH must be set. plz check: https://github.com/golang/go/wiki/SettingGOPATH)
 endif
 
-build: require-gopath
+require-goversion:
+	$(eval minver := go1.11)
+# Get the version of the current go binary
+	$(eval havever := $(shell go version | awk '{print $$3}'))
+# Magic happens. Sort using "." as the tab, keyed by groups of numbers,
+# take the smallest.
+	$(eval match := $(shell echo "$(minver)\n$(havever)" | sort -t '.' -k 1,1 -k 2,2 -g -r | head -n 1))
+# If the minimum version either matches exactly what we have, or does not match
+# the result of the magic sort above, we're okay. Otherwise, our binary's
+# version isn't good enough: error.
+	@if [ "$(havever)" != "$(minver)" ]; then \
+		if [ "$(match)" == "$(minver)" ]; then \
+			echo "Error: invalid go version $(havever), need $(minver)"; exit 1; \
+		fi; \
+	fi;
+
+build: require-gopath require-goversion
 	@echo "\n1/5 install non-gx deps:\n"
 	go get -v -u $(GOPACKAGES)
 	@echo "\n2/5 install gx:\n"
