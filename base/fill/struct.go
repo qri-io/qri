@@ -67,6 +67,15 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 		// Lowercase the key in order to make matching case-insensitive.
 		fieldName := target.Type().Field(i).Name
 		lowerName := strings.ToLower(fieldName)
+		fieldTag := target.Type().Field(i).Tag
+		if fieldTag != "" && fieldTag.Get("json") != "" {
+			jsonName := fieldTag.Get("json")
+			pos := strings.Index(jsonName, ",")
+			if pos != -1 {
+				jsonName = jsonName[:pos]
+			}
+			lowerName = strings.ToLower(jsonName)
+		}
 
 		val, ok := fields[caseMap[lowerName]]
 		if !ok {
