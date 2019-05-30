@@ -1,9 +1,8 @@
-// Package fill matches arbitrary values to struct fields using reflection
-// fill is case-insensitive.
-// It's primary use is to support decoding data
-// from a number of serialization formats (JSON,YAML,CBOR) into an intermediate
-// map[string]interface{} value which can then be used to "fill" arbitrary struct
-// values
+// Package fill assigns arbitrary values to struct fields using reflection.
+// "fill" is case-insensitive, and obeys the "json" field tag if present.
+// It's primary use is to support decoding data from a number of serialization
+// formats (JSON,YAML,CBOR) into an intermediate map[string]interface{} value
+// which can then be used to "fill" arbitrary struct values
 package fill
 
 import (
