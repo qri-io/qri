@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"regexp"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
