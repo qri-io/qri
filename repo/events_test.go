@@ -43,8 +43,8 @@ func compareEvents(a, b *Event) error {
 	if !a.Ref.Equal(b.Ref) {
 		return fmt.Errorf("ref mismatch. %s != %s", a.Ref, b.Ref)
 	}
-	if a.PeerID != b.PeerID {
-		return fmt.Errorf("peerID mismatch: %s != %s", a.PeerID, b.PeerID)
+	if a.PeerIDString != b.PeerIDString {
+		return fmt.Errorf("peerID mismatch: %s != %s", a.PeerIDString, b.PeerIDString)
 	}
 	if !reflect.DeepEqual(a.Params, b.Params) {
 		return fmt.Errorf("params mismatch")

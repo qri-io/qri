@@ -16,11 +16,11 @@ type EventLog interface {
 
 // Event is a list of details for logging a query
 type Event struct {
-	Time   time.Time
-	Type   EventType
-	Ref    DatasetRef
-	PeerID peer.ID
-	Params interface{}
+	Time         time.Time
+	Type         EventType
+	Ref          DatasetRef
+	PeerIDString string
+	Params       interface{}
 }
 
 // EventType classifies types of events that can be logged
@@ -66,11 +66,11 @@ func (log *MemEventLog) LogEvent(t EventType, ref DatasetRef) error {
 // TODO: Update LogEvent to work like this, update callers.
 func (log *MemEventLog) LogEventDetails(t EventType, when int64, peerID peer.ID, ref DatasetRef, params interface{}) error {
 	e := &Event{
-		Time:   time.Unix(when, 0),
-		Type:   t,
-		Ref:    ref,
-		PeerID: peerID,
-		Params: params,
+		Time:         time.Unix(when, 0),
+		Type:         t,
+		Ref:          ref,
+		PeerIDString: peerID.String(),
+		Params:       params,
 	}
 	logs := append([]*Event{e}, *log...)
 	sort.Slice(logs, func(i, j int) bool { return logs[i].Time.After(logs[j].Time) })

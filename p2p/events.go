@@ -35,11 +35,16 @@ func (n *QriNode) RequestEventsList(pid peer.ID, p EventsParams) ([]*repo.Event,
 	req = req.WithHeaders("phase", "request")
 
 	replies := make(chan Message)
-	n.SendMessage(req, replies, pid)
+	if err = n.SendMessage(req, replies, pid); err != nil {
+		return nil, err
+	}
 
 	res := <-replies
 	events := []*repo.Event{}
 	err = json.Unmarshal(res.Body, &events)
+	if err != nil {
+		log.Error(err)
+	}
 
 	return events, err
 }
