@@ -2,13 +2,13 @@ package p2p
 
 import (
 	"context"
+	"math"
 	"math/rand"
 
-	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	ipfscore "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/core"
-	math2 "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/thirdparty/math2"
+	"github.com/ipfs/go-ipfs/core/bootstrap"
+	peer "github.com/libp2p/go-libp2p-peer"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // Bootstrap samples a subset of peers & requests their peers list
@@ -41,7 +41,7 @@ func (n *QriNode) Bootstrap(boostrapAddrs []string, boostrapPeers chan pstore.Pe
 // BootstrapIPFS connects this node to standard ipfs nodes for file exchange
 func (n *QriNode) BootstrapIPFS() {
 	if node, err := n.ipfsNode(); err == nil {
-		if err := node.Bootstrap(ipfscore.DefaultBootstrapConfig); err != nil {
+		if err := node.Bootstrap(bootstrap.DefaultBootstrapConfig); err != nil {
 			log.Errorf("IPFS bootsrap error: %s", err.Error())
 		}
 	}
@@ -95,7 +95,7 @@ func toPeerInfos(addrs []ma.Multiaddr) []pstore.PeerInfo {
 
 // randomSubsetOfPeers samples up to max from a slice of PeerInfos
 func randomSubsetOfPeers(in []pstore.PeerInfo, max int) []pstore.PeerInfo {
-	n := math2.IntMin(max, len(in))
+	n := int(math.Min(float64(max), float64(len(in))))
 	var out []pstore.PeerInfo
 	for _, val := range rand.Perm(len(in)) {
 		out = append(out, in[val])

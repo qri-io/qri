@@ -1,8 +1,8 @@
 package p2p
 
 import (
-	ma "gx/ipfs/QmT4U94DnD8FRfqr21obWY32HLM5VExccPKMjQHofeYqr9/go-multiaddr"
-	net "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-net"
+	ma "github.com/multiformats/go-multiaddr"
 )
 
 // a no-op implimentation of the Notifee interface

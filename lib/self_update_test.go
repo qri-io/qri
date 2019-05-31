@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	namesys "gx/ipfs/QmUJYo4etAQqFfSS2rarFAE97eNGB8ej64YkRT2SmsYD4r/go-ipfs/namesys"
+	namesys "github.com/ipfs/go-ipfs/namesys"
 )
 
 func TestCheckVersion(t *testing.T) {

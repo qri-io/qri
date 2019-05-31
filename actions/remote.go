@@ -64,7 +64,7 @@ func DsyncSendBlocks(node *p2p.QriNode, location, sessionID string, manifest, di
 	if err != nil {
 		return err
 	}
-	ng := dag.NewNodeGetter(capi)
+	ng := dag.NewNodeGetter(capi.Dag())
 
 	remote := &dsync.HTTPRemote{
 		URL: fmt.Sprintf("%s/dsync", location),

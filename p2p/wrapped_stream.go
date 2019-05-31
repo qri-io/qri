@@ -3,9 +3,9 @@ package p2p
 import (
 	"bufio"
 
-	multicodec "gx/ipfs/QmU4qokxecGJBZPGmc4D9g2HdTyo8CPqUoZ2gwXKsQxqc9/go-multicodec"
-	json "gx/ipfs/QmU4qokxecGJBZPGmc4D9g2HdTyo8CPqUoZ2gwXKsQxqc9/go-multicodec/json"
-	net "gx/ipfs/QmXuRkCR7BNQa9uqfpTiFWsTQLzmTWYg91Ja1w95gnqb6u/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-net"
+	multicodec "github.com/multiformats/go-multicodec"
+	json "github.com/multiformats/go-multicodec/json"
 )
 
 // HandlerFunc is the signature of a function that can handle p2p messages

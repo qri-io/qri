@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/profile"
 
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // MtProfile is a peer info message

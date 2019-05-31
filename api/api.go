@@ -314,5 +314,5 @@ func makeDagReceiver(node *p2p.QriNode) (*dsync.Receivers, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dsync.NewReceivers(context.Background(), dag.NewNodeGetter(capi), capi.Block()), nil
+	return dsync.NewReceivers(context.Background(), dag.NewNodeGetter(capi.Dag()), capi.Block()), nil
 }
