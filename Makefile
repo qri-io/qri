@@ -1,6 +1,6 @@
 GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
 define GOPACKAGES 
-golang.org/x/text \
+github.com/360EntSecGroup-Skylar/excelize \
 github.com/briandowns/spinner \
 github.com/qri-io/apiutil \
 github.com/fatih/color \
@@ -13,6 +13,9 @@ github.com/qri-io/deepdiff \
 github.com/qri-io/dsdiff \
 github.com/qri-io/varName \
 github.com/qri-io/iso8601 \
+github.com/qri-io/ioes \
+github.com/qri-io/starlib \
+github.com/ipfs/go-datastore \
 github.com/sergi/go-diff/diffmatchpatch \
 github.com/sirupsen/logrus \
 github.com/spf13/cobra \
@@ -21,16 +24,20 @@ github.com/theckman/go-flock \
 github.com/ugorji/go/codec \
 github.com/beme/abide \
 github.com/ghodss/yaml \
-github.com/qri-io/ioes \
+github.com/PuerkitoBio/goquery \
 github.com/pkg/errors \
-github.com/google/flatbuffers/go
+github.com/google/flatbuffers/go \
+github.com/ipfs/go-log \
+golang.org/x/text \
+go.starlark.net/starlark \
+go.starlark.net/repl \
+go.starlark.net/resolve 
 endef
 
 define GX_DEP_PACKAGES 
 github.com/qri-io/registry/regclient \
 github.com/qri-io/dag \
-github.com/qri-io/qfs \
-github.com/qri-io/startf
+github.com/qri-io/qfs
 endef
 
 default: build
@@ -83,7 +90,6 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/deepdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dsdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/startf && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dag && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull

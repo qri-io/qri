@@ -1,6 +1,6 @@
 .DS_Store
 .dataset
 .qri
-qri
+/qri
 node_modules
 coverage.txt
