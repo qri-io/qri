@@ -1,9 +1,9 @@
 [![Qri](https://img.shields.io/badge/made%20by-qri-magenta.svg?style=flat-square)](https://qri.io)
-[![GoDoc](https://godoc.org/github.com/qri-io/startf?status.svg)](http://godoc.org/github.com/qri-io/startf)
+[![GoDoc](https://godoc.org/github.com/qri-io/qri/startf?status.svg)](http://godoc.org/github.com/qri-io/qri/startf)
 [![License](https://img.shields.io/github/license/qri-io/startf.svg?style=flat-square)](./LICENSE)
 [![Codecov](https://img.shields.io/codecov/c/github/qri-io/startf.svg?style=flat-square)](https://codecov.io/gh/qri-io/startf)
 [![CI](https://img.shields.io/circleci/project/github/qri-io/startf.svg?style=flat-square)](https://circleci.com/gh/qri-io/startf)
-[![Go Report Card](https://goreportcard.com/badge/github.com/qri-io/startf)](https://goreportcard.com/report/github.com/qri-io/startf)
+[![Go Report Card](https://goreportcard.com/badge/github.com/qri-io/qri/startf)](https://goreportcard.com/report/github.com/qri-io/qri/startf)
 
 # Qri Starlark Transformation Syntax
 
@@ -26,10 +26,10 @@ If you're mainly interested in learning how to write starlark transformations, o
 The easiest way to see starlark transformations in action is to use [qri](https://github.com/qri-io/qri). This `startf` package powers all the starlark stuff in qri. Assuming you have the [go programming language](https://golang.org/) the following should work from a terminal:
 ```shell
 # get this package
-$ go get github.com/qri-io/startf
+$ go get github.com/qri-io/qri/startf
 
 # navigate to package
-$ cd $GOPATH/src/github.com/qri-io/startf
+$ cd $GOPATH/src/github.com/qri-io/qri/startf
 
 # run tests
 

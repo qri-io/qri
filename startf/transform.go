@@ -14,9 +14,9 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/starlib"
-	skyctx "github.com/qri-io/startf/context"
-	skyds "github.com/qri-io/startf/ds"
-	skyqri "github.com/qri-io/startf/qri"
+	skyctx "github.com/qri-io/qri/startf/context"
+	skyds "github.com/qri-io/qri/startf/ds"
+	skyqri "github.com/qri-io/qri/startf/qri"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )

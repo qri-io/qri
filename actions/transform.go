@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/startf"
+	"github.com/qri-io/qri/startf"
 )
 
 func mutatedComponentsFunc(dsp *dataset.Dataset) func(path ...string) error {

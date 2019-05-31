@@ -29,8 +29,7 @@ endef
 define GX_DEP_PACKAGES 
 github.com/qri-io/registry/regclient \
 github.com/qri-io/dag \
-github.com/qri-io/qfs \
-github.com/qri-io/startf
+github.com/qri-io/qfs
 endef
 
 default: build
@@ -83,7 +82,7 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/deepdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dsdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/startf && git checkout master && git pull
+	cd $$GOPATH/src/github.com/qri-io/qri/startf && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dag && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull
