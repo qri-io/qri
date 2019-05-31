@@ -5,7 +5,7 @@ import (
 	"net/http"
 	"strings"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"

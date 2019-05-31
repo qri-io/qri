@@ -6,7 +6,7 @@ import (
 	"net/http"
 	"time"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 )
 
 // middleware handles request logging

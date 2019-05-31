@@ -12,7 +12,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qri/lib"
@@ -599,7 +599,7 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 
 		if offsetErr == nil || limitErr == nil {
 			if limitErr != nil {
-				limit = util.DEFAULT_PAGE_SIZE
+				limit = util.DefaultPageSize
 			}
 			if offsetErr != nil {
 				offset = 0

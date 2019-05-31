@@ -3,7 +3,7 @@ package api
 import (
 	"net/http"
 
-	"github.com/datatogether/api/apiutil"
+	"github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )

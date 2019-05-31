@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"strings"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"

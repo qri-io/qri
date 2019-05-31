@@ -5,7 +5,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	util "github.com/datatogether/api/apiutil"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/repo"
 )
