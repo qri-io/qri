@@ -82,7 +82,7 @@ func TestRefStringer(t *testing.T) {
 						Title: "Dataset Title",
 					},
 				},
-			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n1 byte, 1 entry, 1 error, 1 version\n\n",
+			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n1 B, 1 entry, 1 error, 1 version\n\n",
 		},
 		{"RefStringer - all fields, plural",
 			&repo.DatasetRef{
@@ -100,7 +100,7 @@ func TestRefStringer(t *testing.T) {
 						Title: "Dataset Title",
 					},
 				},
-			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n10 bytes, 10 entries, 10 errors, 10 versions\n\n",
+			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n10 B, 10 entries, 10 errors, 10 versions\n\n",
 		},
 		{"RefStringer - only peername & name",
 			&repo.DatasetRef{

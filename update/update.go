@@ -2,11 +2,14 @@
 package update
 
 import (
+	"bytes"
 	"context"
 	"fmt"
+	"io"
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
@@ -92,11 +95,22 @@ func Factory(context.Context) cron.RunJobFunc {
 	return func(ctx context.Context, streams ioes.IOStreams, job *cron.Job) error {
 		log.Debugf("running update: %s", job.Name)
 
+		var errBuf *bytes.Buffer
+		// if the job type is a dataset, error output is semi-predictable
+		// write to a buffer for better error reporting
+		if job.Type == cron.JTDataset {
+			errBuf = &bytes.Buffer{}
+			teedErrOut := io.MultiWriter(streams.ErrOut, errBuf)
+			streams = ioes.NewIOStreams(streams.In, streams.Out, teedErrOut)
+		}
+
 		cmd := JobToCmd(streams, job)
 		if cmd == nil {
 			return fmt.Errorf("unrecognized update type: %s", job.Type)
 		}
-		return cmd.Run()
+
+		err := cmd.Run()
+		return processJobError(job, errBuf, err)
 	}
 }
 
@@ -155,7 +169,6 @@ func datasetSaveCmd(streams ioes.IOStreams, job *cron.Job) *exec.Cmd {
 				args = append(args, flag)
 			}
 		}
-
 	}
 
 	cmd := exec.Command("qri", args...)
@@ -235,4 +248,21 @@ func ShellScriptToJob(path string, periodicity string, opts *cron.ShellScriptOpt
 	}
 	err = job.Validate()
 	return
+}
+
+func processJobError(job *cron.Job, errOut *bytes.Buffer, err error) error {
+	if err == nil {
+		return nil
+	}
+
+	if job.Type == cron.JTDataset && errOut != nil {
+		// TODO (b5) - this should be a little more stringent :(
+		if strings.Contains(errOut.String(), "no changes to save") {
+			// TODO (b5) - this should be a concrete error declared in dsfs:
+			// dsfs.ErrNoChanges
+			return fmt.Errorf("no changes to save")
+		}
+	}
+
+	return err
 }

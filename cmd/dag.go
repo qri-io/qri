@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/dustin/go-humanize"
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/ioes"
@@ -240,7 +241,7 @@ func (o *DAGOptions) Info() (err error) {
 			}
 			out += fmt.Sprintf("\nDAG for: %s\n", refstr)
 			if totalSize != 0 {
-				out += fmt.Sprintf("Total Size: %s\n", printByteInfo(int(totalSize)))
+				out += fmt.Sprintf("Total Size: %s\n", humanize.Bytes(totalSize))
 			}
 			if info.Manifest != nil {
 				out += fmt.Sprintf("Block Count: %d\n", len(info.Manifest.Nodes))
@@ -255,7 +256,7 @@ func (o *DAGOptions) Info() (err error) {
 				for i := 0; i <= spacesLen; i++ {
 					out += fmt.Sprintf(" ")
 				}
-				out += fmt.Sprintf("%s\n", printByteInfo(int(info.Sizes[index])))
+				out += fmt.Sprintf("%s\n", humanize.Bytes(info.Sizes[index]))
 			}
 			buffer = []byte(out)
 

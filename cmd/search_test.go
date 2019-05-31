@@ -165,12 +165,12 @@ var textSearchResponse = `showing 3 results for 'test'
 
 2   b5/test
     /ipfs/QmPi5wrPsY4xPwy2oRr7NRZyfFxTeupfmnrVDubzoABLNP
-    18 KBs, 7 entries, 0 errors
+    19 kB, 7 entries, 0 errors
 
 3   EDGI/fib_6
     Fibonacci(6)
     /ipfs/QmS6jJSEJYxZvCeo8cZqzVa7Ybu9yNQeFYfNZAHxM4eyDK
-    7 bytes, 6 entries, 0 errors
+    7 B, 6 entries, 0 errors
 
 `
 
