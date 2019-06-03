@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/starlib/testdata"
 	repoTest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/starlib"
 	"go.starlark.net/starlark"
@@ -168,10 +169,11 @@ func testQriNode(t *testing.T) *p2p.QriNode {
 }
 
 func testModuleLoader(t *testing.T) func(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
+	assertLoader := testdata.NewLoader(nil, "")
 	return func(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
 		starlarktest.SetReporter(thread, t)
 		if module == "assert.star" {
-			return starlarktest.LoadAssertModule()
+			return assertLoader(thread, module)
 		}
 		return starlib.Loader(thread, module)
 	}

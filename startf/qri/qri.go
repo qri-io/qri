@@ -2,6 +2,7 @@ package qri
 
 import (
 	"fmt"
+	"sync"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/p2p"
@@ -12,6 +13,11 @@ import (
 // ModuleName defines the expected name for this module when used
 // in starlark's load() function, eg: load('qri.star', 'qri')
 const ModuleName = "qri.star"
+
+var (
+	once      sync.Once
+	qriModule starlark.StringDict
+)
 
 // NewModule creates a new qri module instance
 func NewModule(node *p2p.QriNode) *Module {
