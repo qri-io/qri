@@ -9,6 +9,7 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
+	"sync"
 	"os"
 	"path/filepath"
 	"strings"
@@ -271,6 +272,19 @@ func loadRepoConfig(repoPath string) (*config.Config, error) {
 	return config.ReadFromFile(path)
 }
 
+var (
+	pluginLoadLock sync.Once
+	pluginLoadError error
+)
+
+func loadPluginsOnce(path string) error {
+	body := func() {
+		pluginLoadError = ipfs.LoadPlugins(path)
+	}
+	pluginLoadLock.Do(body)
+	return pluginLoadError
+}
+
 func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, err error) {
 	switch cfg.Store.Type {
 	case "ipfs":
@@ -283,6 +297,10 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 				return nil, fmt.Errorf("creating IPFS store: %s", err)
 			}
 			path = filepath.Join(home, ".ipfs")
+		}
+
+		if err := loadPluginsOnce(path); err != nil {
+			return nil, err
 		}
 
 		fsOpts := []ipfs.Option{

@@ -88,7 +88,6 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/dataset && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/varName && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/deepdiff && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/dsdiff && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/jsonschema && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/starlib && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dag && git checkout master && git pull

@@ -47,6 +47,11 @@ func init() {
 		panic(fmt.Errorf("error unmarshaling private key: %s", err.Error()))
 	}
 	testPeerProfile.PrivKey = privKey
+
+	// call LoadPlugins once with the empty string b/c we only rely on standard
+	if err := loadPluginsOnce(""); err != nil {
+		panic(err)
+	}
 }
 
 func TestNewInstance(t *testing.T) {
