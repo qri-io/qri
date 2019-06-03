@@ -137,6 +137,4 @@ func (o *ListOptions) Run() (err error) {
 	default:
 		return fmt.Errorf("unrecognized format: %s", o.Format)
 	}
-
-	return nil
 }

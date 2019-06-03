@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/qri/repo"
 
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 // MtEvents is a message to announce added / removed datasets to the network
@@ -35,11 +35,16 @@ func (n *QriNode) RequestEventsList(pid peer.ID, p EventsParams) ([]*repo.Event,
 	req = req.WithHeaders("phase", "request")
 
 	replies := make(chan Message)
-	n.SendMessage(req, replies, pid)
+	if err = n.SendMessage(req, replies, pid); err != nil {
+		return nil, err
+	}
 
 	res := <-replies
 	events := []*repo.Event{}
 	err = json.Unmarshal(res.Body, &events)
+	if err != nil {
+		log.Error(err)
+	}
 
 	return events, err
 }

@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"sync"
 
-	"gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-peer"
 )
 
 // ErrNotFound is the not found err for the profile package

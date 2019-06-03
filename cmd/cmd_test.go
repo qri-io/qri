@@ -22,7 +22,7 @@ import (
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
 
-	golog "gx/ipfs/QmZChCsSt8DctjceaL56Eibc29CVQq4dGKRXC5JRZ6Ppae/go-log"
+	golog "github.com/ipfs/go-log"
 )
 
 func init() {

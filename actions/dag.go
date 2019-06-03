@@ -5,7 +5,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 
-	ipld "gx/ipfs/QmR7TcHkR9nxkUorfi8XMTAMLUK7GiP64TWWBzY3aacc1o/go-ipld-format"
+	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // NewManifest generates a manifest for a given node
@@ -44,5 +44,5 @@ func newNodeGetter(node *p2p.QriNode) (ipld.NodeGetter, error) {
 	if err != nil {
 		return nil, err
 	}
-	return dag.NewNodeGetter(capi), nil
+	return dag.NewNodeGetter(capi.Dag()), nil
 }

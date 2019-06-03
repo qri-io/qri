@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	peer "gx/ipfs/QmTRhk7cgjUf2gfQ3p2M9KPECNZEW9XUrmHcFCgog4cPgB/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-peer"
 )
 
 func init() {
@@ -43,8 +43,8 @@ func compareEvents(a, b *Event) error {
 	if !a.Ref.Equal(b.Ref) {
 		return fmt.Errorf("ref mismatch. %s != %s", a.Ref, b.Ref)
 	}
-	if a.PeerID != b.PeerID {
-		return fmt.Errorf("peerID mismatch: %s != %s", a.PeerID, b.PeerID)
+	if a.PeerIDString != b.PeerIDString {
+		return fmt.Errorf("peerID mismatch: %s != %s", a.PeerIDString, b.PeerIDString)
 	}
 	if !reflect.DeepEqual(a.Params, b.Params) {
 		return fmt.Errorf("params mismatch")

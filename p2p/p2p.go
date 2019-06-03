@@ -6,8 +6,8 @@ import (
 
 	golog "github.com/ipfs/go-log"
 
-	identify "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/protocol/identify"
-	protocol "gx/ipfs/QmZNkThpqfVXs9GNbexPrfBbXSLNYeKrE7jwFM2oqHbyqN/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-protocol"
+	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 
 var log = golog.Logger("qrip2p")

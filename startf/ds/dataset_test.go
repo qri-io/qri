@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarktest"
@@ -191,16 +192,7 @@ func TestFile(t *testing.T) {
 
 // load implements the 'load' operation as used in the evaluator tests.
 func newLoader() func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-	return func(thread *starlark.Thread, module string) (starlark.StringDict, error) {
-		switch module {
-		case ModuleName:
-			return LoadModule()
-		case "assert.star":
-			return starlarktest.LoadAssertModule()
-		}
-
-		return nil, fmt.Errorf("invalid module")
-	}
+	return testdata.NewLoader(LoadModule, ModuleName)
 }
 
 func csvDataset() *Dataset {

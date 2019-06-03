@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"time"
 
-	pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
-	discovery "gx/ipfs/QmUDTcnDp2WssbmiDLC6aYurUeyt7QeRakHUQMxA2mZ5iB/go-libp2p/p2p/discovery"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 )
 
 // StartDiscovery initiates peer discovery, allocating a discovery
