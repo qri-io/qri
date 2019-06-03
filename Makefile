@@ -1,51 +1,5 @@
-GOFILES = $(shell find . -name '*.go' -not -path './vendor/*')
-define GOPACKAGES 
-github.com/360EntSecGroup-Skylar/excelize \
-github.com/briandowns/spinner \
-github.com/dustin/go-humanize \
-github.com/fatih/color \
-github.com/olekukonko/tablewriter \
-github.com/qri-io/apiutil \
-github.com/qri-io/bleve \
-github.com/qri-io/dataset \
-github.com/qri-io/doggos \
-github.com/qri-io/deepdiff \
-github.com/qri-io/dsdiff \
-github.com/qri-io/varName \
-github.com/qri-io/iso8601 \
-github.com/qri-io/ioes \
-github.com/qri-io/starlib \
-github.com/ipfs/go-datastore \
-github.com/sergi/go-diff/diffmatchpatch \
-github.com/sirupsen/logrus \
-github.com/spf13/cobra \
-github.com/spf13/cobra/doc \
-github.com/theckman/go-flock \
-github.com/ugorji/go/codec \
-github.com/beme/abide \
-github.com/ghodss/yaml \
-github.com/PuerkitoBio/goquery \
-github.com/pkg/errors \
-github.com/google/flatbuffers/go \
-github.com/ipfs/go-log \
-golang.org/x/text \
-go.starlark.net/starlark \
-go.starlark.net/repl \
-go.starlark.net/resolve 
-endef
-
-define GX_DEP_PACKAGES 
-github.com/qri-io/registry/regclient \
-github.com/qri-io/dag \
-github.com/qri-io/qfs
-endef
 
 default: build
-
-require-gopath:
-ifndef GOPATH
-	$(error $$GOPATH must be set. plz check: https://github.com/golang/go/wiki/SettingGOPATH)
-endif
 
 require-goversion:
 	$(eval minver := go1.11)
@@ -63,19 +17,8 @@ require-goversion:
 		fi; \
 	fi;
 
-build: require-gopath require-goversion
-	@echo "\n1/5 install non-gx deps:\n"
-	go get -v -u $(GOPACKAGES)
-	@echo "\n2/5 install gx:\n"
-	go get -v -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
-	@echo "\n3/5 install gx deps:\n"
-	$$GOPATH/bin/gx install
-	@echo ""
-	@echo "\n4/5 install gx dep-packages:\n"
-	go get $(GX_DEP_PACKAGES)
-	@echo "\n5/5 build & install qri:\n"
+build: require-goversion
 	go install
-	@echo "done!"
 
 build-latest:
 	git checkout master && git pull
@@ -94,18 +37,6 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/qri
 
-install-deps:
-	go get -v -u $(GOPACKAGES)
-
-install-gx:
-	go get -v -u github.com/whyrusleeping/gx github.com/whyrusleeping/gx-go
-
-install-gx-deps:
-	gx install
-
-install-gx-dep-packages:
-	go get -v $(GX_DEP_PACKAGES)
-
 workdir:
 	mkdir -p workdir
 
@@ -113,7 +44,7 @@ lint:
 	golint ./...
 
 test:
-	go test ./...
+	go test ./... -v --coverprofile=coverage.txt --covermode=atomic
 
 test-all-coverage:
 	./.circleci/cover.test.sh

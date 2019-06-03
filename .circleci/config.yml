@@ -3,47 +3,34 @@ jobs:
   build:
     working_directory: /go/src/github.com/qri-io/qri
     docker:
-      - image: circleci/golang:1.11.1
+      - image: circleci/golang:1.12
         environment:
-          GOLANG_ENV: test
-          PORT: 3000
+          GO111MODULE: "on"
     environment:
       TEST_RESULTS: /tmp/test-results
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
-      - run: go get github.com/jstemmer/go-junit-report golang.org/x/lint/golint github.com/jinzhu/copier
+      - restore_cache:
+          key: dependency-cache-{{ checksum "go.sum" }}
+      - run: 
+          name: Get CI Deps
+          command: go get github.com/jstemmer/go-junit-report golang.org/x/lint/golint
       - run:
-          name: Run Lint Tests
+          name: Lint
           command: golint -set_exit_status ./...
       - run:
-          name: Install non-gx deps
-          command: make install-deps
-      - restore_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
-      - run:
-          name: Install gx
-          command: >
-            go get
-            github.com/whyrusleeping/gx
-            github.com/whyrusleeping/gx-go
-      - run:
-          name: Install gx deps
-          command: >
-            gx install
-      - run:
-          name: Install gx-dependant packages
-          command: >
-            make install-gx-dep-packages
-      - save_cache:
-          key: dependency-cache-{{ checksum "package.json" }}
-          paths:
-            - /go/src/gx/
+          name: Go Vet
+          command: go vet ./...
       - run:
           name: Run Tests
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
-            ./.circleci/cover.test.sh | tee ${TEST_RESULTS}/go-test.out
+            make test | tee ${TEST_RESULTS}/go-test.out
+      - save_cache:
+          key: dependency-cache-{{ checksum "go.sum" }}
+          paths:
+            - /go/pkg/mod
       - run:
           name: Publish coverage info to codecov.io
           command: bash <(curl -s https://codecov.io/bash)
