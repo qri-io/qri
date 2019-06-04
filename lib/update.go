@@ -50,7 +50,6 @@ type ScheduleParams struct {
 
 // Schedule creates a job and adds it to the scheduler
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
-
 	// Make all paths absolute. this must happen *before* any possible RPC call
 	if update.PossibleShellScript(in.Name) {
 		if err = qfs.AbsPath(&in.Name); err != nil {
@@ -71,14 +70,14 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 	}
 
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
+		return fmt.Errorf("apologies, we currently can't schedule updates while `qri connect` is running")
+		// return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
 	}
 
 	job, err := m.jobFromScheduleParams(in)
 	if err != nil {
 		return err
 	}
-	*out = *job
 
 	// this context is scoped to the scheduling request. currently not cancellable
 	// because our lib methods don't accept a context themselves
@@ -89,7 +88,10 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		return fmt.Errorf("update service not available")
 	}
 
-	return m.inst.cron.Schedule(ctx, job)
+	err = m.inst.cron.Schedule(ctx, job)
+	*out = *job
+	log.Errorf("%#v", job)
+	return err
 }
 
 func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
