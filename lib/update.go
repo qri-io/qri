@@ -90,7 +90,6 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 
 	err = m.inst.cron.Schedule(ctx, job)
 	*out = *job
-	log.Errorf("%#v", job)
 	return err
 }
 

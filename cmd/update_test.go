@@ -106,7 +106,9 @@ func TestUpdateMethods(t *testing.T) {
 	if err := o.List(); err != nil {
 		t.Error(err)
 	}
-	listStdOutContains := "shell | 0001-01-01 00:00:01 +0000 UTC"
+	
+	// TODO (b5) - wee note on TestJobStringer, we should be testing times by setting local timezones
+	listStdOutContains := "| shell"
 	if !strings.Contains(out.String(), listStdOutContains) {
 		t.Errorf("list response mismatch. stdOut doesn't contain:\n%s\ngot:\n%s", listStdOutContains, out.String())
 	}

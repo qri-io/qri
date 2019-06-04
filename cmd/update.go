@@ -351,8 +351,13 @@ func (o *UpdateOptions) List() (err error) {
 	}
 
 	items := make([]fmt.Stringer, len(res))
-	for i, r := range res {
-		items[i] = jobStringer(*r)
+	// iterate in reverse to show upcoming items first
+	// TODO (b5) - this will have wierd interaction with pagination,
+	// should use a more proper fix
+	j := 0
+	for i := len(res) - 1; i >= 0; i-- {
+		items[j] = jobStringer(*res[i])
+		j++
 	}
 	printItems(o.Out, items, page.Offset())
 	return

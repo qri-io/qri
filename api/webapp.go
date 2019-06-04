@@ -29,7 +29,7 @@ func (s Server) ServeWebapp(ctx context.Context) {
 
 	go func() {
 		<-ctx.Done()
-		log.Info("clsing webapp server")
+		log.Info("closing webapp server")
 		webappserver.Close()
 	}()
 

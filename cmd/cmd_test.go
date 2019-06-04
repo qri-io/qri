@@ -21,7 +21,6 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
-
 	golog "github.com/ipfs/go-log"
 )
 
