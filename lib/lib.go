@@ -9,10 +9,10 @@ import (
 	"fmt"
 	"net"
 	"net/rpc"
-	"sync"
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
@@ -44,7 +44,7 @@ var (
 )
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.7.4-dev"
+const VersionNumber = "0.8.0"
 
 func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
@@ -273,7 +273,7 @@ func loadRepoConfig(repoPath string) (*config.Config, error) {
 }
 
 var (
-	pluginLoadLock sync.Once
+	pluginLoadLock  sync.Once
 	pluginLoadError error
 )
 
