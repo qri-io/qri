@@ -3,7 +3,7 @@ package actions
 import (
 	"fmt"
 
-	"github.com/qri-io/dsdiff"
+	"github.com/qri-io/dataset/dsdiff"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )

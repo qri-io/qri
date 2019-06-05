@@ -4,34 +4,17 @@ go 1.12
 
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
-	github.com/blevesearch/bleve v0.7.0 // indirect
 	github.com/boltdb/bolt v1.3.1 // indirect
-	github.com/datatogether/api v0.0.0-20190430172217-099c1f4ac8bf
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
-	github.com/ipfs/go-block-format v0.0.2
-	github.com/ipfs/go-blockservice v0.0.3
 	github.com/ipfs/go-cid v0.0.2
-	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-ipfs v0.4.21
-	github.com/ipfs/go-ipfs-blockstore v0.0.1
-	github.com/ipfs/go-ipfs-chunker v0.0.1
-	github.com/ipfs/go-ipfs-cmds v0.0.8
-	github.com/ipfs/go-ipfs-config v0.0.3
-	github.com/ipfs/go-ipfs-exchange-offline v0.0.1
-	github.com/ipfs/go-ipfs-files v0.0.3
-	github.com/ipfs/go-ipfs-posinfo v0.0.1
-	github.com/ipfs/go-ipfs-util v0.0.1
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/go-merkledag v0.0.3
-	github.com/ipfs/go-mfs v0.0.7
-	github.com/ipfs/go-path v0.0.4
-	github.com/ipfs/go-unixfs v0.0.6
 	github.com/ipfs/interface-go-ipfs-core v0.0.8
-	github.com/jbenet/go-base58 v0.0.0-20150317085156-6237cf65f3a6
 	github.com/libp2p/go-libp2p v0.0.28
 	github.com/libp2p/go-libp2p-circuit v0.0.8
 	github.com/libp2p/go-libp2p-connmgr v0.0.6
@@ -53,7 +36,6 @@ require (
 	github.com/qri-io/dataset v0.1.1
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
-	github.com/qri-io/dsdiff v0.1.1
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1

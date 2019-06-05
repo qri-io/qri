@@ -1,3 +1,128 @@
+<a name="0.8.0"></a>
+# [0.8.0](https://github.com/qri-io/qri/compare/v0.7.3...v0.8.0) (2019-06-05)
+
+Version 0.8.0 is our best-effort to close out the first set of public features.
+
+## Automatic Updates ([RFC0024](https://github.com/qri-io/rfcs/blob/master/text/0024-scheduled-updates.md))
+Qri can now keep your data up to date for you.  0.8.0 overhauls `qri update` into a service that schedules & runs updates in the background on your computer. Qri runs datasets and maintains a log of changes.
+
+### schedule shell scripts
+Scheduling datasets that have starlark transforms is the ideal workflow in terms of portability, but a new set of use cases open by adding the capacity to schedule & execute shell scripts within the same cron environment. 
+
+## Starlark changes
+We've made two major changes, and one small API-breaking change. Bad news first:
+
+### `ds.set_body` has different optional arguments
+`ds.set_body(csv_string, raw=True, data_format="csv")` is now `ds.set_body(csv_string, parse_as="csv")`. We think think this makes more sense, and that the previous API was confusing enough that we needed to completely deprecate it. Any prior transform scripts that used `raw` or `data_format` arguments will need to update.
+
+### new beautiful soup-like HTML package
+Our `html` package is difficult to use, and we plan to deprecate it in a future release. In it's place we've introduced `bsoup`, a new package that implements parts of the [beautiful soup 4 api](https://www.crummy.com/software/BeautifulSoup/bs4). It's _much_ easier use, and will be familiar to anyone coming from the world of python.
+
+
+### the "ds" passed to a transform is now the previous dataset version
+The `ds` that's passed to is now the existing dataset, awaiting transformation. For technical reasons, `ds` used to be a blank dataset. In this version we've addressed those issues, which makes examining the current state a dataset possible without any extra `load_dataset` work. This  makes things like append-only datasets a one-liner:
+
+```python
+def transform(ds,ctx):
+  ds.set_body(ds.get_body().append(["new row"]))
+```
+
+### CLI uses '$PAGER' on POSIX systems
+Lots of Qri output is, well, long, so we now check for the presence of the `$PAGER` environment variable and use it to show "scrolling" data where appropriate. While we're at it we've cleaned up  output to make things a little more readable. Windows should be unaffected by this change. If you ever want to _avoid_ pagination, I find the easiest way to do so is by piping to `cat`. For example:
+```
+$ qri ls | cat
+```
+Happy paging!
+
+### Switch to go modules
+Our project has now switched entirely to using go modules. In the process we've deprecated `gx`, the distributed package manager we formerly used to fetch qri dependencies. This should dramatically simplify the process of building Qri from source by bringing dependency management into alignment with idiomatic go practices.
+
+### Dataset Strict mode
+`dataset.structure` has a new boolean field: `strict`. If `strict` is `true`, a dataset _must_ pass validation against the specified schema in order to save. When a dataset Dataset is in strict mode, Qri can assume that all data in the body is valid. Being able to make this assumption will allow us to provide additional functionality and performance speedups in the future. If your dataset has no errors, be sure to set `strict` to `true`.
+
+
+
+### Bug Fixes
+
+* **`doesCommandExist`:** fix to `exec.Command` ([4319db3](https://github.com/qri-io/qri/commit/4319db3))
+* **`printToPager`:** different syntax needed for different systems ([86644a0](https://github.com/qri-io/qri/commit/86644a0))
+* **api/export:** `/export/` api endpoint now sends data! ([7718b26](https://github.com/qri-io/qri/commit/7718b26))
+* **api/list:** fix/add pagination for api `/list` endpoint ([6187c09](https://github.com/qri-io/qri/commit/6187c09))
+* **base:** cron dataset command shouldn't use quotes in args ([d0568dc](https://github.com/qri-io/qri/commit/d0568dc))
+* **base.DatasetLog:** fix limit and offset logic ([f7b042d](https://github.com/qri-io/qri/commit/f7b042d))
+* **base.ListDataset:** add offset and limit to base.ListDataset ([dab742a](https://github.com/qri-io/qri/commit/dab742a))
+* **base/log:** fix error that didn't check if PreviousPath exists before loading it ([748e58b](https://github.com/qri-io/qri/commit/748e58b))
+* **canonicalize:** Correct peername when profileID matches ([affc3c3](https://github.com/qri-io/qri/commit/affc3c3))
+* **cmd:** don't use FgWhite, breaks light-colored termimals ([32b8793](https://github.com/qri-io/qri/commit/32b8793))
+* **cmd:** listing page 2 starts numbering at the offset ([b37d186](https://github.com/qri-io/qri/commit/b37d186))
+* **cmd/get:** must catch `DatasetRequest` error ([f200acc](https://github.com/qri-io/qri/commit/f200acc))
+* **config:** Check err when parsing config to avoid segfault ([f88e6e6](https://github.com/qri-io/qri/commit/f88e6e6))
+* **config:** fix api.Copy not copying all fields ([4f30f9f](https://github.com/qri-io/qri/commit/4f30f9f))
+* **config:** make setter actually write file ([12230e3](https://github.com/qri-io/qri/commit/12230e3))
+* **connect:** use lib.NewInstance with qri connect ([3fc3de4](https://github.com/qri-io/qri/commit/3fc3de4))
+* **cron:** connect cron to log file, actually run returned command in lib ([41c9366](https://github.com/qri-io/qri/commit/41c9366))
+* **docs:** Building on windows, rpi, and brew install instructions ([8953591](https://github.com/qri-io/qri/commit/8953591))
+* **events:** event PeerIDs serialize properly to strings ([7f4a23e](https://github.com/qri-io/qri/commit/7f4a23e))
+* **fill.Struct:** If present, use field tag as the field name ([432da1d](https://github.com/qri-io/qri/commit/432da1d))
+* **linux:** Ignore errors from setting rlimit, needs root on linux ([02108a9](https://github.com/qri-io/qri/commit/02108a9))
+* **list:** qri list new command-line interface ([daf2b70](https://github.com/qri-io/qri/commit/daf2b70))
+* **Makefile:** Require go version 1.11 ([0cc2f9b](https://github.com/qri-io/qri/commit/0cc2f9b))
+* **p2p:** Improve comment for IPFSCoreAPI accessor ([aec34c5](https://github.com/qri-io/qri/commit/aec34c5))
+* **p2p:** pass missing context to ipfsfs.GoOnline ([43a4b2e](https://github.com/qri-io/qri/commit/43a4b2e))
+* **peers:** add default limit to peers, fix test ([fe8f6d8](https://github.com/qri-io/qri/commit/fe8f6d8))
+* **ref:** CanonicalizeProfile just handles renames all the time ([be1736b](https://github.com/qri-io/qri/commit/be1736b))
+* **render:** supply default 'html' format if none exists ([2b82b41](https://github.com/qri-io/qri/commit/2b82b41))
+* **repo/test:** fix rebase mistake, func should be named `NewTestRepoWithHistory` ([a39a6ae](https://github.com/qri-io/qri/commit/a39a6ae))
+* **transform:** Pass prev dataset to ExecScript ([6ff666c](https://github.com/qri-io/qri/commit/6ff666c))
+* **update:** fix update run missing type assignment, absolutize paths ([11ec50c](https://github.com/qri-io/qri/commit/11ec50c))
+* **vet:** fix go vet error ([8f46850](https://github.com/qri-io/qri/commit/8f46850))
+* plumb context into network methods ([fb036e3](https://github.com/qri-io/qri/commit/fb036e3))
+
+
+### Code Refactoring
+
+* **cmd:** change `limit` and `offset` flags to `page` and `page-size` ([62d5da8](https://github.com/qri-io/qri/commit/62d5da8))
+* **lib.AbsPath:** deprecate lib.AbsPath, use qfs.AbsPath ([112362a](https://github.com/qri-io/qri/commit/112362a))
+
+
+### Features
+
+* **/list/:** add `term` param to `/list/` api, for local dataset search ([f66f857](https://github.com/qri-io/qri/commit/f66f857))
+* **api:** add update endpoints ([f5f2024](https://github.com/qri-io/qri/commit/f5f2024))
+* **base/fill:** Overhaul error handling ([1deb967](https://github.com/qri-io/qri/commit/1deb967))
+* **cmd:** add --repo and --ipfs-path flags ([1711f30](https://github.com/qri-io/qri/commit/1711f30))
+* **cmd:** overhaul update command ([4218a28](https://github.com/qri-io/qri/commit/4218a28))
+* **config:** add update configuration details ([5786d68](https://github.com/qri-io/qri/commit/5786d68))
+* **cron:** add cron package for scheduling dataset updates ([7b38164](https://github.com/qri-io/qri/commit/7b38164))
+* **cron:** add flatbuffer HTTP api server & client ([50388e5](https://github.com/qri-io/qri/commit/50388e5))
+* **cron:** add incrementing job.RunNumber, refactor job field names ([5f6b403](https://github.com/qri-io/qri/commit/5f6b403))
+* **cron:** store dataset SaveParams as job options ([df629a7](https://github.com/qri-io/qri/commit/df629a7))
+* **cron:** store logs and files of stdout logs ([a9f3c52](https://github.com/qri-io/qri/commit/a9f3c52))
+* **cron.FbStore:** store cron jobs as flatbuffers ([755186d](https://github.com/qri-io/qri/commit/755186d))
+* **cron.file:** FileJobStore for saving jobs to a backing CBOR file ([9d4de77](https://github.com/qri-io/qri/commit/9d4de77))
+* **fill.Struct:** Support interface{} fields, require map string keys ([46166d1](https://github.com/qri-io/qri/commit/46166d1))
+* **instance:** instroduce Instance, deprecate global config ([53a8e4b](https://github.com/qri-io/qri/commit/53a8e4b))
+* **lib:** sew initial cron service into lib ([5e8a871](https://github.com/qri-io/qri/commit/5e8a871))
+* **peers:** fix limit/offset bugs, add sending output to `less` when listing peer cache ([2e623db](https://github.com/qri-io/qri/commit/2e623db))
+* **update:** add update log command and api endpoints ([56c4840](https://github.com/qri-io/qri/commit/56c4840))
+* **update:** build out update package API, use it ([3004fd8](https://github.com/qri-io/qri/commit/3004fd8))
+* **update:** cleanup CLI output ([fa2ebad](https://github.com/qri-io/qri/commit/fa2ebad))
+* **update:** detect and report 'no changes' on dataset jobs ([ae63512](https://github.com/qri-io/qri/commit/ae63512))
+* **update:** experimental support for multi-repo updates with --use-repo ([9ae8d44](https://github.com/qri-io/qri/commit/9ae8d44))
+* **update:** introduce update package & update daemon ([dc6066c](https://github.com/qri-io/qri/commit/dc6066c))
+* **update:** support updates via shell scripts ([c94edd8](https://github.com/qri-io/qri/commit/c94edd8))
+
+
+### BREAKING CHANGES
+
+* **cron:** Field names of cron.Job have been refactored, which will break repo/update/logs.qfb and repo/update/jobs.qfb files. Delete them to fix.. This will only affect users who have been building from source between releases.
+* **connect:** "qri connect" no longer has flags for setting port numbers
+* **api:** /update endpoint is moved to /update/run
+* **cmd:** On the cli, all `limit` and `offset` flags have been changed to `page` and `page-size`.
+* **lib.AbsPath:** lib.AbsPath is removed, use github.com/qri-io/qfs.AbsPath instead
+
+
+
 <a name="0.7.3"></a>
 # [0.7.3](https://github.com/qri-io/qri/compare/v0.7.2...v0.7.3) (2019-04-03)
 
