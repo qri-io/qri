@@ -227,6 +227,25 @@ type SaveParams struct {
 	ScriptOutput io.Writer
 }
 
+// AbsolutizePaths converts any relative path references to their absolute
+// variations, safe to call on a nil instance
+func (p *SaveParams) AbsolutizePaths() error {
+	if p == nil {
+		return nil
+	}
+
+	for i := range p.FilePaths {
+		if err := qfs.AbsPath(&p.FilePaths[i]); err != nil {
+			return err
+		}
+	}
+
+	if err := qfs.AbsPath(&p.BodyPath); err != nil {
+		return fmt.Errorf("body file: %s", err)
+	}
+	return nil
+}
+
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {

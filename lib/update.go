@@ -57,20 +57,14 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		}
 	}
 
-	if in.SaveParams != nil {
-		for i := range in.SaveParams.FilePaths {
-			if err := qfs.AbsPath(&in.SaveParams.FilePaths[i]); err != nil {
-				return err
-			}
-		}
-
-		if err := qfs.AbsPath(&in.SaveParams.BodyPath); err != nil {
-			return fmt.Errorf("body file: %s", err)
-		}
+	if err = in.SaveParams.AbsolutizePaths(); err != nil {
+		return err
 	}
 
 	if m.inst.rpc != nil {
 		return fmt.Errorf("apologies, we currently can't schedule updates while `qri connect` is running")
+		// TODO (b5) - this returns error EOF when run. need to figure out why. I suspect it's b/c
+		// job contains an interface field: Options
 		// return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
 	}
 
@@ -291,6 +285,20 @@ func (m *UpdateMethods) ServiceRestart(in, out *bool) error {
 // Run advances a dataset to the latest known version from either a peer or by
 // re-running a transform in the peer's namespace
 func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
+	// Make all paths absolute. this must happen *before* any possible RPC call
+	if update.PossibleShellScript(p.Name) {
+		if err = qfs.AbsPath(&p.Name); err != nil {
+			return
+		}
+		p.Type = cron.JTShellScript
+	} else {
+		p.Type = cron.JTDataset
+	}
+
+	if err := absolutizeJobFilepaths(p); err != nil {
+		return err
+	}
+
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("UpdateMethods.Run", p, res)
 	}
@@ -325,6 +333,8 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 	case cron.JTShellScript:
 		return update.JobToCmd(m.inst.streams, p).Run()
 
+	case cron.JobType(""):
+		return fmt.Errorf("update requires a job type to run")
 	default:
 		return fmt.Errorf("unrecognized update type: %s", p.Type)
 	}
@@ -335,6 +345,20 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 
 	// TODO (b5): expand event logging interface to support storing additional details
 	return m.inst.Repo().LogEvent(repo.ETCronJobRan, *res)
+}
+
+func absolutizeJobFilepaths(j *Job) error {
+	if o, ok := j.Options.(*cron.DatasetOptions); ok {
+	if err := qfs.AbsPath(&o.BodyPath); err != nil {
+		return err
+	}
+	for i := range o.FilePaths {
+		if err := qfs.AbsPath(&o.FilePaths[i]); err != nil {
+			return err
+		}
+	}
+}
+	return nil
 }
 
 func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) error {

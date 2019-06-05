@@ -107,10 +107,10 @@ with the most immediate update.
 		Example: `  list the upcoming updates:
   $ qri update list
   1. b5/my_dataset
-  dataset | 2019-05-08 16:19:23 -0400 EDT
+  in 4 hours 4:19PM | dataset
 
   2. b5/my_next_dataset
-  dataset | 2019-05-09 16:19:23 -0400 EDT
+  in 2 days 5:22PM | dataset
 
 	`,
 		RunE: func(cmd *cobra.Command, args []string) error {
@@ -138,10 +138,10 @@ update.
 		Example: `  list the log of previous updates:
   $ qri update logs
   1. 1557173933-my_dataset
-  dataset | 2019-05-06 16:19:23 -0400 EDT
+  1 day ago | no changes to save
 
   2. 1557173585-my_dataset
-  dataset | 2019-05-06 16:13:35 -0400 EDT
+  1 day ago | no changes to save
   ...
 
   get the output of one specific update:
