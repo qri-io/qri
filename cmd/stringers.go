@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
@@ -116,8 +117,9 @@ type jobStringer cron.Job
 func (j jobStringer) String() string {
 	w := &bytes.Buffer{}
 	name := color.New(color.Bold).SprintFunc()
-	time := j.Periodicity.After(j.LastRunStart)
-	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), j.Type, time)
+	t := j.Periodicity.After(j.LastRunStart)
+	relTime := humanize.RelTime(time.Now().In(time.UTC), t, "", "")
+	fmt.Fprintf(w, "%s\nin %sat %s | %s\n", name(j.Name), relTime, t.In(time.Now().Location()).Format(time.Kitchen), j.Type)
 	if j.RepoPath != "" {
 		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
 	}
