@@ -3,10 +3,69 @@ package cron
 import (
 	"fmt"
 	"testing"
+	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	cronfb "github.com/qri-io/qri/update/cron/cron_fbs"
 )
+
+func TestDatasetOptionsFlatbuffer(t *testing.T) {
+	src := &DatasetOptions{
+		Title:     "A_Title",
+		Message:   "A_Message",
+		Recall:    "A_Recall",
+		BodyPath:  "A_BodyPath",
+		FilePaths: []string{"a", "b", "c"},
+
+		Publish:             true,
+		Strict:              true,
+		Force:               true,
+		ConvertFormatToPrev: true,
+		ShouldRender:        true,
+
+		Config:  map[string]string{"a": "a"},
+		Secrets: map[string]string{"b": "b"},
+	}
+
+	builder := flatbuffers.NewBuilder(0)
+	off := src.MarshalFlatbuffer(builder)
+	if off == 0 {
+		t.Errorf("expected returned offset to not equal zero")
+	}
+	builder.Finish(off)
+
+	cronOpts := cronfb.GetRootAsDatasetOptions(builder.FinishedBytes(), 0)
+
+	got := &DatasetOptions{}
+	got.UnmarshalFlatbuffer(cronOpts)
+
+	if err := CompareDatasetOptions(src, got); err != nil {
+		t.Error(err)
+	}
+}
+
+func TestJobCopy(t *testing.T) {
+	a := &Job{
+		Name:         "name",
+		Alias:        "alias",
+		Type:         JobType("FOO"),
+		Periodicity:  mustRepeatingInterval("R/P1W"),
+		PrevRunStart: time.Now(),
+		RunNumber:    1234567890,
+		RunStart:     time.Now(),
+		RunStop:      time.Now(),
+		RunError:     "oh noes it broke",
+		LogFilePath:  "such filepath",
+		RepoPath:     "such repo path",
+		Options: &DatasetOptions{
+			FilePaths: []string{"the", "file", "paths"},
+		},
+	}
+
+	if err := CompareJobs(a, a.Copy()); err != nil {
+		t.Errorf("copy mismatch: %s", err)
+	}
+}
 
 func CompareJobs(a, b *Job) error {
 	if a.Name != b.Name {
@@ -19,8 +78,22 @@ func CompareJobs(a, b *Job) error {
 		return fmt.Errorf("Periodicity mismatch. %s != %s", a.Name, b.Name)
 	}
 	// use unix comparisons to ignore millisecond & nanosecond precision errors
-	if a.LastRunStart.Unix() != b.LastRunStart.Unix() {
-		return fmt.Errorf("LastRunStart mismatch. %s != %s", a.LastRunStart, b.LastRunStart)
+	if a.PrevRunStart.Unix() != b.PrevRunStart.Unix() {
+		return fmt.Errorf("RunStart mismatch. %s != %s", a.PrevRunStart, b.PrevRunStart)
+	}
+
+	if a.RunNumber != b.RunNumber {
+		return fmt.Errorf("RunNumber mismatch. %d != %d", a.RunNumber, b.RunNumber)
+	}
+	// use unix comparisons to ignore millisecond & nanosecond precision errors
+	if a.RunStart.Unix() != b.RunStart.Unix() {
+		return fmt.Errorf("RunStart mismatch. %s != %s", a.RunStart, b.RunStart)
+	}
+	if a.RunStop.Unix() != b.RunStop.Unix() {
+		return fmt.Errorf("RunStop mismatch. %s != %s", a.RunStop, b.RunStop)
+	}
+	if a.RunError != b.RunError {
+		return fmt.Errorf("RunError mismatch. %s != %s", a.RunError, b.RunError)
 	}
 
 	if a.Type != b.Type {
@@ -57,41 +130,6 @@ func CompareOptions(a, b Options) error {
 
 	// TODO (b5) - more option comparison
 	return fmt.Errorf("TODO - can't compare option types: %#v %#v", a, b)
-}
-
-func TestDatasetOptionsFlatbuffer(t *testing.T) {
-	src := &DatasetOptions{
-		Title:     "A_Title",
-		Message:   "A_Message",
-		Recall:    "A_Recall",
-		BodyPath:  "A_BodyPath",
-		FilePaths: []string{"a", "b", "c"},
-
-		Publish:             true,
-		Strict:              true,
-		Force:               true,
-		ConvertFormatToPrev: true,
-		ShouldRender:        true,
-
-		Config:  map[string]string{"a": "a"},
-		Secrets: map[string]string{"b": "b"},
-	}
-
-	builder := flatbuffers.NewBuilder(0)
-	off := src.MarshalFlatbuffer(builder)
-	if off == 0 {
-		t.Errorf("expected returned offset to not equal zero")
-	}
-	builder.Finish(off)
-
-	cronOpts := cronfb.GetRootAsDatasetOptions(builder.FinishedBytes(), 0)
-
-	got := &DatasetOptions{}
-	got.UnmarshalFlatbuffer(cronOpts)
-
-	if err := CompareDatasetOptions(src, got); err != nil {
-		t.Error(err)
-	}
 }
 
 func CompareDatasetOptions(a, b *DatasetOptions) error {

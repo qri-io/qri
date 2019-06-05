@@ -4,6 +4,7 @@ package cron
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -151,9 +152,6 @@ func (c *Cron) Start(ctx context.Context) error {
 		}
 	}
 
-	// initial call to check
-	go check(ctx)
-
 	t := time.NewTicker(c.interval)
 	for {
 		select {
@@ -167,7 +165,7 @@ func (c *Cron) Start(ctx context.Context) error {
 
 func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 	log.Debugf("run job: %s", job.Name)
-	job.LastRunStart = time.Now().In(time.UTC)
+	job.RunStart = time.Now().In(time.UTC)
 
 	streams := ioes.NewDiscardIOStreams()
 	if lfc, ok := c.log.(LogFileCreator); ok {
@@ -181,16 +179,21 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 
 	if err := runner(ctx, streams, job); err != nil {
 		log.Errorf("run job: %s error: %s", job.Name, err.Error())
-		job.LastError = err.Error()
+		job.RunError = err.Error()
 	} else {
 		log.Debugf("run job: %s success", job.Name)
-		job.LastError = ""
+		job.RunError = ""
 	}
-	job.LastRunStop = time.Now().In(time.UTC)
+	job.RunStop = time.Now().In(time.UTC)
+	job.RunNumber++
 
 	// the updated job that goes to the schedule store shouldn't have a log path
 	scheduleJob := job.Copy()
 	scheduleJob.LogFilePath = ""
+	scheduleJob.RunStart = time.Time{}
+	scheduleJob.RunStop = time.Time{}
+	scheduleJob.PrevRunStart = job.RunStart
+	fmt.Println("", scheduleJob.PrevRunStart)
 	if err := c.schedule.PutJob(ctx, scheduleJob); err != nil {
 		log.Error(err)
 	}
@@ -206,6 +209,8 @@ func (c *Cron) Schedule(ctx context.Context, job *Job) error {
 	if err := job.Validate(); err != nil {
 		return err
 	}
+
+	// TODO (b5) - check for prior job & inherit the previous run number
 
 	return c.schedule.PutJob(ctx, job)
 }

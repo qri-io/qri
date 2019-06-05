@@ -37,14 +37,16 @@ table ShellScriptOptions {
 }
 
 table Job {
-  name:string;
+	name:string;
 	alias:string;
 	type:JobType;
 	periodicity:string;
+	prevRunStart:string;
 
-	lastRunStart:string;
-	lastRunStop:string;
-	lastError:string;
+	runNumber:long; // int64 value
+	runStart:string;
+	runStop:string;
+	runError:string;
 	logFilePath:string;
 
 	options:Options;

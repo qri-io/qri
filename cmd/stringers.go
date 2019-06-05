@@ -113,11 +113,11 @@ func (l logStringer) String() string {
 
 type jobStringer cron.Job
 
-// String assumes Name, Type, Periodicity, and LastRunStart are present
+// String assumes Name, Type, Periodicity, and PrevRunStart are present
 func (j jobStringer) String() string {
 	w := &bytes.Buffer{}
 	name := color.New(color.Bold).SprintFunc()
-	t := j.Periodicity.After(j.LastRunStart)
+	t := j.Periodicity.After(j.PrevRunStart)
 	relTime := humanize.RelTime(time.Now().In(time.UTC), t, "", "")
 	fmt.Fprintf(w, "%s\nin %sat %s | %s\n", name(j.Name), relTime, t.In(time.Now().Location()).Format(time.Kitchen), j.Type)
 	if j.RepoPath != "" {
@@ -129,15 +129,15 @@ func (j jobStringer) String() string {
 
 type finishedJobStringer cron.Job
 
-// String assumes Name, Type, LastRunStart and ExitStatus are present
+// String assumes Name, Type, PrevRunStart and ExitStatus are present
 func (j finishedJobStringer) String() string {
 	w := &bytes.Buffer{}
 	name := color.New(color.Bold, color.FgGreen).SprintFunc()
 	msg := ""
-	if j.LastError != "" {
-		msg = oneLiner(j.LastError, 40)
+	if j.RunError != "" {
+		msg = oneLiner(j.RunError, 40)
 		name = color.New(color.Bold, color.FgRed).SprintFunc()
-		if j.LastError == "no changes to save" {
+		if j.RunError == "no changes to save" {
 			name = color.New(color.Bold, color.Faint).SprintFunc()
 		}
 	} else {
@@ -148,7 +148,7 @@ func (j finishedJobStringer) String() string {
 		}
 	}
 
-	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), humanize.Time(j.LastRunStart), msg)
+	fmt.Fprintf(w, "%s\n%s | %s\n", name(j.Name), humanize.Time(j.PrevRunStart), msg)
 	if j.RepoPath != "" {
 		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
 	}

@@ -42,10 +42,10 @@ func TestCronHTTP(t *testing.T) {
 	}
 
 	dsJob := &Job{
-		Name:         "b5/libp2p_node_count",
-		Type:         JTDataset,
-		Periodicity:  mustRepeatingInterval("R/P1W"),
-		LastRunStart: time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
+		Name:        "b5/libp2p_node_count",
+		Type:        JTDataset,
+		Periodicity: mustRepeatingInterval("R/P1W"),
+		RunStart:    time.Date(2019, 1, 1, 0, 0, 0, 0, time.UTC),
 	}
 
 	if err = cli.Schedule(cliCtx, dsJob); err != nil {

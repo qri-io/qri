@@ -182,7 +182,7 @@ func TestJobStringer(t *testing.T) {
 				Name:         "Job",
 				Type:         "dataset",
 				Periodicity:  p,
-				LastRunStart: time,
+				PrevRunStart: time,
 			}, "\u001b[1mJob\u001b[0m\n",
 		},
 	}

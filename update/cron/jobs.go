@@ -11,10 +11,10 @@ type jobs []*Job
 
 func (js jobs) Len() int { return len(js) }
 func (js jobs) Less(i, j int) bool {
-	if js[i].LastRunStart.Equal(js[j].LastRunStart) {
+	if js[i].RunStart.Equal(js[j].RunStart) {
 		return js[i].Name < js[j].Name
 	}
-	return js[i].LastRunStart.After(js[j].LastRunStart)
+	return js[i].RunStart.After(js[j].RunStart)
 }
 func (js jobs) Swap(i, j int) { js[i], js[j] = js[j], js[i] }
 

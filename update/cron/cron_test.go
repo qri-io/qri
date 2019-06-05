@@ -30,7 +30,6 @@ func TestCronDataset(t *testing.T) {
 			switch job.Type {
 			case JTDataset:
 				updateCount++
-				// ds.Commit.Timestamp = time.Now()
 				return nil
 			}
 			t.Fatalf("runner called with invalid job: %v", job)
@@ -41,7 +40,8 @@ func TestCronDataset(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCronInterval(&MemJobStore{}, &MemJobStore{}, factory, time.Millisecond*50)
+	logJobStore := &MemJobStore{}
+	cron := NewCronInterval(&MemJobStore{}, logJobStore, factory, time.Millisecond*50)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -55,6 +55,30 @@ func TestCronDataset(t *testing.T) {
 	expectedUpdateCount := 1
 	if expectedUpdateCount != updateCount {
 		t.Errorf("update ran wrong number of times. expected: %d, got: %d", expectedUpdateCount, updateCount)
+	}
+
+	logs, err := logJobStore.ListJobs(ctx, 0, -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 {
+		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(logs))
+	}
+
+	got := logs[0]
+
+	expect := &Job{
+		Name:        "b5/libp2p_node_count",
+		Type:        JTDataset,
+		Periodicity: mustRepeatingInterval("R/P1W"),
+
+		RunNumber: 1,
+		RunStart:  got.RunStart,
+		RunStop:   got.RunStop,
+	}
+
+	if CompareJobs(expect, got); err != nil {
+		t.Errorf("log job mismatch: %s", err)
 	}
 }
 
@@ -77,7 +101,6 @@ func TestCronShellScript(t *testing.T) {
 			switch job.Type {
 			case JTShellScript:
 				updateCount++
-				// return scriptRunner(ctx, streams, job)
 				return nil
 			}
 			t.Fatalf("runner called with invalid job: %v", job)
@@ -88,7 +111,8 @@ func TestCronShellScript(t *testing.T) {
 	ctx, cancel := context.WithTimeout(context.Background(), time.Millisecond*500)
 	defer cancel()
 
-	cron := NewCron(&MemJobStore{}, &MemJobStore{}, factory)
+	logJobStore := &MemJobStore{}
+	cron := NewCron(&MemJobStore{}, logJobStore, factory)
 	if err := cron.Schedule(ctx, job); err != nil {
 		t.Fatal(err)
 	}
@@ -102,5 +126,29 @@ func TestCronShellScript(t *testing.T) {
 	expectedUpdateCount := 1
 	if expectedUpdateCount != updateCount {
 		t.Errorf("update ran wrong number of times. expected: %d, got: %d", expectedUpdateCount, updateCount)
+	}
+
+	logs, err := logJobStore.ListJobs(ctx, 0, -1)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(logs) != 1 {
+		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(logs))
+	}
+
+	got := logs[0]
+
+	expect := &Job{
+		Name:        "foo.sh",
+		Type:        JTShellScript,
+		Periodicity: mustRepeatingInterval("R/P1W"),
+
+		RunNumber: 1,
+		RunStart:  got.RunStart,
+		RunStop:   got.RunStop,
+	}
+
+	if CompareJobs(expect, got); err != nil {
+		t.Errorf("log job mismatch: %s", err)
 	}
 }

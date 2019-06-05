@@ -40,20 +40,28 @@ func (jt JobType) Enum() int8 {
 
 // Job represents a "cron job" that can be scheduled for repeated execution at
 // a specified Periodicity (time interval)
+//
+// a Job struct has one of three "run" states, which describe it's position in
+// the execution lifecycle:
+// * unexected: job.RunStart.IsZero() && job.RunStop.IsZero()
+// * executing: !job.RunStart.IsZero() && job.RunStop.IsZero()
+// * completed: !job.RunStart.IsZero() && !job.RunStop.IsZero()
 type Job struct {
-	Name        string                    `json:"name"`
-	Alias       string                    `json:"alias"`
-	Type        JobType                   `json:"type"`
-	Periodicity iso8601.RepeatingInterval `json:"periodicity"`
+	Name         string                    `json:"name"`
+	Alias        string                    `json:"alias"`
+	Type         JobType                   `json:"type"`
+	Periodicity  iso8601.RepeatingInterval `json:"periodicity"`
+	PrevRunStart time.Time                 `json:"lastRunStart,omitempty"`
 
-	LastRunStart time.Time `json:"lastRunStart"`
-	LastRunStop  time.Time `json:"lastRunStop"`
-	LastError    string    `json:"lastError"`
-	LogFilePath  string    `json:"logFilePath"`
+	RunNumber   int64     `json:"runNumber,omitempty"`
+	RunStart    time.Time `json:"runStart,omitempty"`
+	RunStop     time.Time `json:"runStop,omitempty"`
+	RunError    string    `json:"runError,omitempty"`
+	LogFilePath string    `json:"logFilePath,omitempty"`
 
-	RepoPath string `json:"repoPath"`
+	RepoPath string `json:"repoPath,omitempty"`
 
-	Options Options `json:"options"`
+	Options Options `json:"options,omitempty"`
 }
 
 // zero is a "constant" representing an empty repeating interval
@@ -78,26 +86,30 @@ func (job *Job) Validate() error {
 // NextExec returns the next time execution horizon. If job periodicity is
 // improperly configured, the returned time will be zero
 func (job *Job) NextExec() time.Time {
-	return job.Periodicity.After(job.LastRunStart)
+	return job.Periodicity.After(job.PrevRunStart)
 }
 
-// LogName returns a canonical name string from a timestamp and job pointer
+// LogName returns a canonical name string for a job that's executed and saved
+// to a logging system
 func (job *Job) LogName() string {
-	return fmt.Sprintf("%d-%s", job.LastRunStart.Unix(), filepath.Base(job.Name))
+	return fmt.Sprintf("%d-%s", job.RunNumber, filepath.Base(job.Name))
 }
 
-// Copy creates a deep copy of a job
+// Copy creates a copy of a job
 func (job *Job) Copy() *Job {
 	cp := &Job{
 		Name:         job.Name,
 		Alias:        job.Alias,
 		Type:         job.Type,
 		Periodicity:  job.Periodicity,
-		LastRunStart: job.LastRunStart,
-		LastRunStop:  job.LastRunStop,
-		LastError:    job.LastError,
-		LogFilePath:  job.LogFilePath,
-		RepoPath:     job.RepoPath,
+		PrevRunStart: job.PrevRunStart,
+
+		RunNumber:   job.RunNumber,
+		RunStart:    job.RunStart,
+		RunStop:     job.RunStop,
+		RunError:    job.RunError,
+		LogFilePath: job.LogFilePath,
+		RepoPath:    job.RepoPath,
 	}
 
 	if job.Options != nil {
@@ -120,9 +132,10 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 	name := builder.CreateString(job.Name)
 	alias := builder.CreateString(job.Alias)
 
-	lastRunStart := builder.CreateString(job.LastRunStart.Format(time.RFC3339))
-	lastRunStop := builder.CreateString(job.LastRunStop.Format(time.RFC3339))
-	lastError := builder.CreateString(job.LastError)
+	prevRunStart := builder.CreateString(job.PrevRunStart.Format(time.RFC3339))
+	runStart := builder.CreateString(job.RunStart.Format(time.RFC3339))
+	runStop := builder.CreateString(job.RunStop.Format(time.RFC3339))
+	lastError := builder.CreateString(job.RunError)
 	logPath := builder.CreateString(job.LogFilePath)
 	repoPath := builder.CreateString(job.RepoPath)
 	p := builder.CreateString(job.Periodicity.String())
@@ -138,9 +151,12 @@ func (job *Job) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOff
 
 	cronfb.JobAddType(builder, job.Type.Enum())
 	cronfb.JobAddPeriodicity(builder, p)
-	cronfb.JobAddLastRunStart(builder, lastRunStart)
-	cronfb.JobAddLastRunStop(builder, lastRunStop)
-	cronfb.JobAddLastError(builder, lastError)
+	cronfb.JobAddPrevRunStart(builder, prevRunStart)
+
+	cronfb.JobAddRunNumber(builder, job.RunNumber)
+	cronfb.JobAddRunStart(builder, runStart)
+	cronfb.JobAddRunStop(builder, runStop)
+	cronfb.JobAddRunError(builder, lastError)
 	cronfb.JobAddLogFilePath(builder, logPath)
 	cronfb.JobAddRepoPath(builder, repoPath)
 	cronfb.JobAddOptionsType(builder, job.fbOptionsType())
@@ -161,12 +177,15 @@ func (job *Job) fbOptionsType() byte {
 
 // UnmarshalFlatbuffer decodes a job from a flatbuffer
 func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
-	lastRunStart, err := time.Parse(time.RFC3339, string(j.LastRunStart()))
+	prevRunStart, err := time.Parse(time.RFC3339, string(j.PrevRunStart()))
 	if err != nil {
 		return err
 	}
-
-	lastRunStop, err := time.Parse(time.RFC3339, string(j.LastRunStop()))
+	runStart, err := time.Parse(time.RFC3339, string(j.RunStart()))
+	if err != nil {
+		return err
+	}
+	runStop, err := time.Parse(time.RFC3339, string(j.RunStop()))
 	if err != nil {
 		return err
 	}
@@ -177,16 +196,18 @@ func (job *Job) UnmarshalFlatbuffer(j *cronfb.Job) error {
 	}
 
 	*job = Job{
-		Name:        string(j.Name()),
-		Alias:       string(j.Alias()),
-		Type:        JobType(cronfb.EnumNamesJobType[j.Type()]),
-		Periodicity: p,
+		Name:         string(j.Name()),
+		Alias:        string(j.Alias()),
+		Type:         JobType(cronfb.EnumNamesJobType[j.Type()]),
+		Periodicity:  p,
+		PrevRunStart: prevRunStart,
 
-		LastRunStart: lastRunStart,
-		LastRunStop:  lastRunStop,
-		LastError:    string(j.LastError()),
-		LogFilePath:  string(j.LogFilePath()),
-		RepoPath:     string(j.RepoPath()),
+		RunNumber:   j.RunNumber(),
+		RunStart:    runStart,
+		RunStop:     runStop,
+		RunError:    string(j.RunError()),
+		LogFilePath: string(j.LogFilePath()),
+		RepoPath:    string(j.RepoPath()),
 	}
 
 	unionTable := new(flatbuffers.Table)
