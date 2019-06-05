@@ -15,11 +15,14 @@ import (
 )
 
 func TestUpdateMethods(t *testing.T) {
+	prevDci := cron.DefaultCheckInterval
 	tmpDir, err := ioutil.TempDir("", "update_methods")
 	if err != nil {
 		t.Fatal(err)
+		cron.DefaultCheckInterval = prevDci
 	}
 	defer os.RemoveAll(tmpDir)
+	cron.DefaultCheckInterval = time.Millisecond * 500
 
 	cfg := config.DefaultConfigForTesting()
 	cfg.Update = &config.Update{Type: "mem"}
@@ -37,7 +40,7 @@ func TestUpdateMethods(t *testing.T) {
 		// this'll create type ShellScript with the .sh extension
 		Name: "testdata/hello.sh",
 		// run one time after one second
-		Periodicity: "R1/PT1S",
+		Periodicity: "R1/PT10S",
 	}
 	shellRes := &Job{}
 	if err := m.Schedule(shellJob, shellRes); err != nil {
@@ -71,7 +74,7 @@ func TestUpdateMethods(t *testing.T) {
 
 	// run the service for one second to generate updates
 	// sorry tests, y'all gotta run a little slower :/
-	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(time.Second))
+	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(time.Second * 2))
 	defer done()
 	if err := inst.cron.(*cron.Cron).Start(ctx); err != nil {
 		t.Fatal(err)

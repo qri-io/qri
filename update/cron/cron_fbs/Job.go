@@ -62,7 +62,7 @@ func (rcv *Job) Periodicity() []byte {
 	return nil
 }
 
-func (rcv *Job) LastRunStart() []byte {
+func (rcv *Job) PrevRunStart() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -70,15 +70,19 @@ func (rcv *Job) LastRunStart() []byte {
 	return nil
 }
 
-func (rcv *Job) LastRunStop() []byte {
+func (rcv *Job) RunNumber() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
-	return nil
+	return 0
 }
 
-func (rcv *Job) LastError() []byte {
+func (rcv *Job) MutateRunNumber(n int64) bool {
+	return rcv._tab.MutateInt64Slot(14, n)
+}
+
+func (rcv *Job) RunStart() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -86,7 +90,7 @@ func (rcv *Job) LastError() []byte {
 	return nil
 }
 
-func (rcv *Job) LogFilePath() []byte {
+func (rcv *Job) RunStop() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -94,8 +98,24 @@ func (rcv *Job) LogFilePath() []byte {
 	return nil
 }
 
-func (rcv *Job) OptionsType() byte {
+func (rcv *Job) RunError() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *Job) LogFilePath() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *Job) OptionsType() byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.GetByte(o + rcv._tab.Pos)
 	}
@@ -103,11 +123,11 @@ func (rcv *Job) OptionsType() byte {
 }
 
 func (rcv *Job) MutateOptionsType(n byte) bool {
-	return rcv._tab.MutateByteSlot(20, n)
+	return rcv._tab.MutateByteSlot(24, n)
 }
 
 func (rcv *Job) Options(obj *flatbuffers.Table) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		rcv._tab.Union(obj, o)
 		return true
@@ -116,7 +136,7 @@ func (rcv *Job) Options(obj *flatbuffers.Table) bool {
 }
 
 func (rcv *Job) RepoPath() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -124,7 +144,7 @@ func (rcv *Job) RepoPath() []byte {
 }
 
 func JobStart(builder *flatbuffers.Builder) {
-	builder.StartObject(11)
+	builder.StartObject(13)
 }
 func JobAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -138,26 +158,32 @@ func JobAddType(builder *flatbuffers.Builder, type_ int8) {
 func JobAddPeriodicity(builder *flatbuffers.Builder, periodicity flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(periodicity), 0)
 }
-func JobAddLastRunStart(builder *flatbuffers.Builder, lastRunStart flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(lastRunStart), 0)
+func JobAddPrevRunStart(builder *flatbuffers.Builder, prevRunStart flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(prevRunStart), 0)
 }
-func JobAddLastRunStop(builder *flatbuffers.Builder, lastRunStop flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(lastRunStop), 0)
+func JobAddRunNumber(builder *flatbuffers.Builder, runNumber int64) {
+	builder.PrependInt64Slot(5, runNumber, 0)
 }
-func JobAddLastError(builder *flatbuffers.Builder, lastError flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(lastError), 0)
+func JobAddRunStart(builder *flatbuffers.Builder, runStart flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(runStart), 0)
+}
+func JobAddRunStop(builder *flatbuffers.Builder, runStop flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(runStop), 0)
+}
+func JobAddRunError(builder *flatbuffers.Builder, runError flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(runError), 0)
 }
 func JobAddLogFilePath(builder *flatbuffers.Builder, logFilePath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(logFilePath), 0)
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(logFilePath), 0)
 }
 func JobAddOptionsType(builder *flatbuffers.Builder, optionsType byte) {
-	builder.PrependByteSlot(8, optionsType, 0)
+	builder.PrependByteSlot(10, optionsType, 0)
 }
 func JobAddOptions(builder *flatbuffers.Builder, options flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(options), 0)
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(options), 0)
 }
 func JobAddRepoPath(builder *flatbuffers.Builder, repoPath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(10, flatbuffers.UOffsetT(repoPath), 0)
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(repoPath), 0)
 }
 func JobEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
