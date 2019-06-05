@@ -152,9 +152,6 @@ func (c *Cron) Start(ctx context.Context) error {
 		}
 	}
 
-	// initial call to check
-	// go check(ctx)
-
 	t := time.NewTicker(c.interval)
 	for {
 		select {
@@ -213,7 +210,7 @@ func (c *Cron) Schedule(ctx context.Context, job *Job) error {
 		return err
 	}
 
-	// TODO (b5) - check for proir job & inhert the previous run number
+	// TODO (b5) - check for prior job & inherit the previous run number
 
 	return c.schedule.PutJob(ctx, job)
 }
