@@ -95,7 +95,8 @@ type InstanceOptions struct {
 	Streams ioes.IOStreams
 }
 
-// Option is a function that manipulates config details when fed to New()
+// Option is a function that manipulates config details when fed to New(). Fields on
+// the o parameter may be null, functions cannot assume the Config is non-null.
 type Option func(o *InstanceOptions) error
 
 // OptConfig supplies a configuration directly
@@ -113,6 +114,9 @@ func OptConfig(cfg *config.Config) Option {
 // * if none set: "$HOME/.ipfs"
 func OptSetIPFSPath(path string) Option {
 	return func(o *InstanceOptions) error {
+		if o.Cfg == nil {
+			return fmt.Errorf("no config file to set IPFS path on")
+		}
 		if o.Cfg.Store.Type == "ipfs" && o.Cfg.Store.Path == "" {
 			if path == "" {
 				path = os.Getenv("IPFS_PATH")
@@ -167,7 +171,8 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 }
 
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
-// New uses a default set of Option funcs
+// New uses a default set of Option funcs. Any Option functions passed to this
+// function must check whether their fields are nil or not.
 func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Instance, err error) {
 	if repoPath == "" {
 		return nil, fmt.Errorf("repo path is required")
