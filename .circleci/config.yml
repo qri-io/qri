@@ -8,6 +8,8 @@ jobs:
           GO111MODULE: "on"
     environment:
       TEST_RESULTS: /tmp/test-results
+    # resource_class requires a paid circleci plan:
+    resource_class: medium+
     steps:
       - checkout
       - run: mkdir -p $TEST_RESULTS
