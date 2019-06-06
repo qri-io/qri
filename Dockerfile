@@ -1,7 +1,9 @@
-FROM golang:1.11.1
+FROM golang:1.12.4
 LABEL maintainer="sparkle_pony_2000@qri.io"
 
 ADD . /go/src/github.com/qri-io/qri
+
+ENV GO111MODULE=on
 
 # run build
 RUN cd /go/src/github.com/qri-io/qri && make build
