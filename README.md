@@ -186,12 +186,12 @@ $ cd src/github.com/qri-io
 $ git clone https://github.com/qri-io/qri
 ```
 
-Now enter this main source repo and build:
+Now enter this main source repo, make sure (go modules)[https://github.com/golang/go/wiki/Modules] are enabled, and finally build:
 
 ```shell
 $ cd qri
+$ export GO111MODULE=on
 $ make build
-$ go install
 ```
 
 The `make build` command will have a lot of output. That's good! Its means it's working :)
