@@ -282,7 +282,7 @@ var (
 	pluginLoadError error
 )
 
-func loadPluginsOnce(path string) error {
+func loadIPFSPluginsOnce(path string) error {
 	body := func() {
 		pluginLoadError = ipfs.LoadPlugins(path)
 	}
@@ -304,7 +304,7 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 			path = filepath.Join(home, ".ipfs")
 		}
 
-		if err := loadPluginsOnce(path); err != nil {
+		if err := loadIPFSPluginsOnce(path); err != nil {
 			return nil, err
 		}
 

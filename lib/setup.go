@@ -26,6 +26,17 @@ func Setup(p SetupParams) error {
 	}
 
 	if p.SetupIPFS {
+		// need to load plugins before attempting to configure IPFS, flatfs is
+		// specified as part of the default IPFS configuration, but all flatfs
+		// code is loaded as a plugin.  ¯\_(ツ)_/¯
+		//
+		// This works without anything present in the /.ipfs/plugins/ directory b/c
+		// the default plugin set is complied into go-ipfs (and subsequently, the
+		// qri binary) by default
+		if err := loadIPFSPluginsOnce(p.IPFSFsPath); err != nil {
+			return err
+		}
+
 		if err := actions.InitIPFS(p.IPFSFsPath, p.SetupIPFSConfigData, p.Generator); err != nil {
 			return err
 		}

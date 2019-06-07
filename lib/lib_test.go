@@ -49,7 +49,8 @@ func init() {
 	testPeerProfile.PrivKey = privKey
 
 	// call LoadPlugins once with the empty string b/c we only rely on standard
-	if err := loadPluginsOnce(""); err != nil {
+	// plugin set
+	if err := loadIPFSPluginsOnce(""); err != nil {
 		panic(err)
 	}
 }
