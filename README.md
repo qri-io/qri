@@ -103,7 +103,7 @@ The following packages are not under Qri, but are important dependencies, so we 
 <a id="build"></a>
 ## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.11 to build qri.
+To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.12 to build qri.
 
 Building then depends upon your operating system:
 
