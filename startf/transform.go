@@ -13,10 +13,10 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/starlib"
 	skyctx "github.com/qri-io/qri/startf/context"
 	skyds "github.com/qri-io/qri/startf/ds"
 	skyqri "github.com/qri-io/qri/startf/qri"
+	"github.com/qri-io/starlib"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
@@ -164,13 +164,16 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 		return err
 	}
 
+	ds := skyds.NewDataset(t.prev, t.checkFunc)
+	ds.SetMutable(t.next)
+
 	funcs, err := t.specialFuncs()
 	if err != nil {
 		return err
 	}
 
 	for name, fn := range funcs {
-		val, err := fn(t, thread, ctx)
+		val, err := fn(t, thread, ds, ctx)
 
 		if err != nil {
 			if evalErr, ok := err.(*starlark.EvalError); ok {
@@ -182,7 +185,7 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 		ctx.SetResult(name, val)
 	}
 
-	err = callTransformFunc(t, thread, ctx)
+	err = callTransformFunc(t, thread, ds, ctx)
 	if evalErr, ok := err.(*starlark.EvalError); ok {
 		return fmt.Errorf(evalErr.Backtrace())
 	}
@@ -247,9 +250,9 @@ func (t *transform) specialFuncs() (defined map[string]specialFunc, err error) {
 	return
 }
 
-type specialFunc func(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error)
+type specialFunc func(t *transform, thread *starlark.Thread, ds *skyds.Dataset, ctx *skyctx.Context) (result starlark.Value, err error)
 
-func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (result starlark.Value, err error) {
+func callDownloadFunc(t *transform, thread *starlark.Thread, ds *skyds.Dataset, ctx *skyctx.Context) (result starlark.Value, err error) {
 	httpGuard.EnableNtwk()
 	defer httpGuard.DisableNtwk()
 	t.print("📡 running download...\n")
@@ -262,10 +265,10 @@ func callDownloadFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context
 		return starlark.None, err
 	}
 
-	return starlark.Call(thread, download, starlark.Tuple{ctx.Struct()}, nil)
+	return starlark.Call(thread, download, starlark.Tuple{ds.Methods(), ctx.Struct()}, nil)
 }
 
-func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Context) (err error) {
+func callTransformFunc(t *transform, thread *starlark.Thread, ds *skyds.Dataset, ctx *skyctx.Context) (err error) {
 	var transform *starlark.Function
 	if transform, err = t.globalFunc("transform"); err != nil {
 		if err == ErrNotDefined {
@@ -275,9 +278,7 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 	}
 	t.print("🤖  running transform...\n")
 
-	d := skyds.NewDataset(t.prev, t.checkFunc)
-	d.SetMutable(t.next)
-	if _, err = starlark.Call(thread, transform, starlark.Tuple{d.Methods(), ctx.Struct()}, nil); err != nil {
+	if _, err = starlark.Call(thread, transform, starlark.Tuple{ds.Methods(), ctx.Struct()}, nil); err != nil {
 		return err
 	}
 	return nil
