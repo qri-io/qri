@@ -1,7 +1,7 @@
 package lib
 
 import (
-	"context"
+	// "context"
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
@@ -74,15 +74,13 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		return
 	}
 
-	ctx := context.Background()
-
 	_res := DiffResponse{
 		Stat: &deepdiff.Stats{},
 		A:    leftData,
 		B:    rightData,
 	}
 
-	if _res.Diff, err = deepdiff.Diff(ctx, leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
+	if _res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
 		return
 	}
 
@@ -157,7 +155,6 @@ func (r *DatasetRequests) loadDiffData(path, selector string, concise bool) (dat
 		err = json.Unmarshal(res.Bytes, &data)
 		return
 	}
-
 	file, err := r.node.Repo.Filesystem().Get(path)
 	if err != nil {
 		return nil, err
