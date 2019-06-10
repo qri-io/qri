@@ -1299,10 +1299,49 @@ components:
           schema:
             type: object
             properties:
-              data:
-                type: string
-              meta:
-                $ref: '#/components/schemas/MetaResponse'
+        properties:
+          data:
+            type: object
+            properties:
+              a: 
+                $ref: '#/components/schemas/Dataset'
+              b:
+                $ref: '#/components/schemas/Dataset'
+              diff:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    type:
+                      type: string
+                    value: 
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        type:
+                          type: string
+              stat:
+                type: object
+                properties:
+                  deletes:
+                    type: integer
+                  inserts:
+                    type: integer
+                  leftNodes:
+                    type: integer
+                  leftWeight:
+                    type: integer
+                  rightNodes: 
+                    type: integer
+                  rightWeight:
+                    type: integer
+                  updates:
+                    type: integer
+          meta:
+            $ref: '#/components/schemas/MetaResponse'
     ZipResponse:
       description: Zip Response
       content:
