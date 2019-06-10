@@ -6,7 +6,6 @@ import (
 
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
 )
 
 func TestDiffComplete(t *testing.T) {
@@ -66,33 +65,23 @@ func TestDiffRun(t *testing.T) {
 		return
 	}
 
-	cases := []struct {
+	good := []struct {
 		description string
 		opt         *DiffOptions
 		stdout      string
-		err         string
-		errMsg      string
 	}{
-		{"diff with no options",
-			&DiffOptions{},
-			"",
-			"repo: empty dataset reference",
-			"",
-		},
 		{"diff two dataset metas",
 			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta"},
 			"0 elements. 0 inserts. 0 deletes. 1 update.\n\n~ title: \"example city data\"\n",
-			"", "",
 		},
 		{"diff json output",
 			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta", Format: "json"},
 			`[{"type":"update","path":"/title","value":"example city data","originalValue":"example movie data"}]
 `,
-			"", "",
 		},
 	}
 
-	for _, c := range cases {
+	for _, c := range good {
 		dsr, err := f.DatasetRequests()
 		if err != nil {
 			t.Errorf("case %s, error creating dataset request: %s", c.description, err)
@@ -103,21 +92,8 @@ func TestDiffRun(t *testing.T) {
 		opt.IOStreams = streams
 		opt.DatasetRequests = dsr
 
-		err = opt.Run()
-		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
-			t.Errorf("case %s, mismatched error. Expected: '%s', Got: '%v'", c.description, c.err, err)
-			ioReset(in, out, errs)
-			continue
-		}
-
-		if libErr, ok := err.(lib.Error); ok {
-			if libErr.Message() != c.errMsg {
-				t.Errorf("case %s, mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.errMsg, libErr.Message())
-				ioReset(in, out, errs)
-				continue
-			}
-		} else if c.errMsg != "" {
-			t.Errorf("case %s, mismatched user-friendly message. Expected: '%s', Got: ''", c.description, c.errMsg)
+		if err = opt.Run(); err != nil {
+			t.Errorf("case %s unexpected error: %s", c.description, err)
 			ioReset(in, out, errs)
 			continue
 		}
@@ -126,6 +102,40 @@ func TestDiffRun(t *testing.T) {
 			t.Errorf("case %s, output mismatch. Expected: '%s', Got: '%s'", c.description, c.stdout, out.String())
 			ioReset(in, out, errs)
 			continue
+		}
+		ioReset(in, out, errs)
+	}
+
+	bad := []struct {
+		opt *DiffOptions
+		err string
+	}{
+		{
+			&DiffOptions{},
+			"repo: empty dataset reference",
+		},
+	}
+
+	for _, c := range bad {
+		dsr, err := f.DatasetRequests()
+		if err != nil {
+			t.Errorf("case %s, error creating dataset request: %s", c.err, err)
+			continue
+		}
+
+		opt := c.opt
+		opt.IOStreams = streams
+		opt.DatasetRequests = dsr
+
+		err = opt.Run()
+
+		if err == nil {
+			t.Errorf("expected: '%s', got no error", c.err)
+			ioReset(in, out, errs)
+			continue
+		}
+		if c.err != err.Error() {
+			t.Errorf("error mismatch. expected: '%s', got: '%s'", c.err, err.Error())
 		}
 		ioReset(in, out, errs)
 	}

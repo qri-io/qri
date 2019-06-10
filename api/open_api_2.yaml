@@ -204,14 +204,9 @@ paths:
           type: object
       responses:
         '200':
-          description: Diff between two datasets
+          description: diff
           schema:
-            properties:
-              data:
-                type: string
-              meta:
-                "$ref": "#/definitions/MetaResponse"
-            type: object
+            "$ref": "#/definitions/Diff"
         '403':
           description: Forbidden
           schema:
@@ -1389,6 +1384,48 @@ definitions:
   Datetime:
     format: date-time
     type: string
+  Diff:
+    description:
+      A diff contains all the info you need to transform one dataset to another.
+    properties:
+      a: 
+        "$ref": "#/definitions/Dataset"
+      b:
+        "$ref": "#/definitions/Dataset"
+      diff:
+        type: array
+        items:
+          type: object
+          properties:
+            path:
+              type: string
+            type:
+              type: string
+            value: 
+              type: object
+              properties:
+                title:
+                  type: string
+                type:
+                  type: string
+      stat:
+        type: object
+        properties:
+          deletes:
+            type: integer
+          inserts:
+            type: integer
+          leftNodes:
+            type: integer
+          leftWeight:
+            type: integer
+          rightNodes: 
+            type: integer
+          rightWeight:
+            type: integer
+          updates:
+            type: integer
+    type: object
   Email:
     format: email
     type: string
@@ -1791,7 +1828,45 @@ x-components:
       schema:
         properties:
           data:
-            type: string
+            type: object
+            properties:
+              a: 
+                "$ref": "#/definitions/Dataset"
+              b:
+                "$ref": "#/definitions/Dataset"
+              diff:
+                type: array
+                items:
+                  type: object
+                  properties:
+                    path:
+                      type: string
+                    type:
+                      type: string
+                    value: 
+                      type: object
+                      properties:
+                        title:
+                          type: string
+                        type:
+                          type: string
+              stat:
+                type: object
+                properties:
+                  deletes:
+                    type: integer
+                  inserts:
+                    type: integer
+                  leftNodes:
+                    type: integer
+                  leftWeight:
+                    type: integer
+                  rightNodes: 
+                    type: integer
+                  rightWeight:
+                    type: integer
+                  updates:
+                    type: integer
           meta:
             "$ref": "#/definitions/MetaResponse"
         type: object
