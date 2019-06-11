@@ -3,8 +3,10 @@ package actions
 import (
 	"fmt"
 	"io"
+	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -119,10 +121,12 @@ func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	if !ref.Complete() {
-		if local, err := ResolveDatasetRef(node, ref); err != nil {
+		// TODO (ramfox): we should check to see if the dataset already exists locally
+		// unfortunately, because of the nature of the ipfs filesystem commands, we don't
+		// know if files we fetch are local only or possibly coming from the network.
+		// instead, for now, let's just always try to add
+		if _, err := ResolveDatasetRef(node, ref); err != nil {
 			return err
-		} else if local {
-			return fmt.Errorf("error: dataset %s already exists in repo", ref)
 		}
 	}
 
@@ -207,11 +211,55 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return fmt.Errorf("add failed: %s", err.Error())
 	}
 
-	if err = node.Repo.PutRef(*ref); err != nil {
-		log.Debug(err.Error())
-		return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
+	prevRef, err := node.Repo.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	if err != nil && err == repo.ErrNotFound {
+		if err = node.Repo.PutRef(*ref); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error putting dataset in repo: %s", err.Error())
+		}
+		return nil
+	}
+	if err != nil {
+		return err
 	}
 
+	prevRef.Dataset, err = dsfs.LoadDataset(node.Repo.Store(), prevRef.Path)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error loading repo dataset: %s", prevRef.Path)
+	}
+
+	ref.Dataset, err = dsfs.LoadDataset(node.Repo.Store(), ref.Path)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error loading added dataset: %s", ref.Path)
+	}
+
+	return ReplaceRefIfMoreRecent(node, &prevRef, ref)
+}
+
+// ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
+// it is more recent then the ref currently in the refstore
+func ReplaceRefIfMoreRecent(node *p2p.QriNode, prev, curr *repo.DatasetRef) error {
+	var (
+		prevTime time.Time
+		currTime time.Time
+	)
+	if curr == nil || curr.Dataset == nil || curr.Dataset.Commit == nil {
+		return fmt.Errorf("added dataset ref is not fully dereferenced")
+	}
+	currTime = curr.Dataset.Commit.Timestamp
+	if prev == nil || prev.Dataset == nil || prev.Dataset.Commit == nil {
+		return fmt.Errorf("previous dataset ref is not fully derefernced")
+	}
+	prevTime = prev.Dataset.Commit.Timestamp
+
+	if prevTime.Before(currTime) || prevTime.Equal(currTime) {
+		if err := node.Repo.PutRef(*curr); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error putting dataset name in repo: %s", err.Error())
+		}
+	}
 	return nil
 }
 
