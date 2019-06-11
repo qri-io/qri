@@ -107,14 +107,18 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
 					convert byte count to kb/mb/etc string
 				{{ title }}
 					give the title of a dataset
-				{{ block "stylesheet" . }}
+				{{ isType $val "type" }}
+					return true or false if the type of $val matches the given type string
+					possible type values are "string", "object", "array", "boolean", "number"
+				{{ block "stylesheet" . }}{{ end }}
 					minimal inline stylesheet used by the standard viz
-				{{ block "header" . }}
+				{{ block "header" . }}{{ end }}
 					"title" info about a dataset
-				{{ block "summary" . }}
+				{{ block "summary" . }}{{ end }}
 					html block of basic dataset info
-				{{ block "citation" . }}
+				{{ block "citation" . }}{{ end }}
 					html citation block, uses styles defined in stylesheet
+
 	*/
 	const tmplName = "template"
 
