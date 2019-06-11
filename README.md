@@ -137,6 +137,8 @@ Assuming you've also installed `go` using the official Windows installer linked 
 
 To set Environment variables, open Windows Settings, and search for "Environment variables". This will open System Properties -> Advanced; on this dialog click "Environment Variables...". Here you can edit `PATH` by adding a new entry. The value of `PATH` is multiple locations on your file system, separated by a semi-colon (;) character. Using the list based editor will insert these semi-colons for you.
 
+Due to how msys2 treats the `PATH` variable, you also need to add a new environment variable `MSYS2_PATH_TYPE`, with the value `inherit`, using the same procedure.
+
 Alternatively, you can assign environment variables by modifying `.bash_profile` in `msys2`. Lookup bash documentation for more information on this approach.
 
 You will also need to set your `GOPATH` using these same methods. Read the next section for more information.
@@ -186,7 +188,7 @@ $ cd src/github.com/qri-io
 $ git clone https://github.com/qri-io/qri
 ```
 
-Now enter this main source repo, make sure (go modules)[https://github.com/golang/go/wiki/Modules] are enabled, and finally build:
+Now enter this main source repo, make sure [go modules](https://github.com/golang/go/wiki/Modules) are enabled, and finally build:
 
 ```shell
 $ cd qri
