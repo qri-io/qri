@@ -1,3 +1,23 @@
+<a name="v0.8.1"></a>
+# [v0.8.1](https://github.com/qri-io/qri/compare/v0.8.0...v) (2019-06-11)
+
+This patch release fixes a small-but-critical bug that prevented `qri setup` from working. A few other fixes & bumps made it in, but the main goal was restoring `qri setup` so folks can, you know, set qri up.
+
+### Bug Fixes
+
+* **config:** lib.NewInstance option func must check for nil pointers ([69537ce](https://github.com/qri-io/qri/commit/69537ce))
+* **lib/diff:** adjust deepdiff.Diff params ([62a13eb](https://github.com/qri-io/qri/commit/62a13eb))
+* **setup:** load plugins before attempting to setup IPFS ([#795](https://github.com/qri-io/qri/issues/795)) ([69c5fda](https://github.com/qri-io/qri/commit/69c5fda))
+* **startf:** bump version number to 0.8.1 ([e27466a](https://github.com/qri-io/qri/commit/e27466a))
+
+
+### Features
+
+* **diff:** return source data in diff response ([d3eae83](https://github.com/qri-io/qri/commit/d3eae83))
+* **diff:** return source data in diff response ([d1d2da5](https://github.com/qri-io/qri/commit/d1d2da5))
+
+
+
 <a name="0.8.0"></a>
 # [0.8.0](https://github.com/qri-io/qri/compare/v0.7.3...v0.8.0) (2019-06-05)
 
