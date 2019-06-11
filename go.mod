@@ -33,7 +33,7 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.1.0
-	github.com/qri-io/dataset v0.1.1
+	github.com/qri-io/dataset v0.1.2
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
@@ -41,7 +41,7 @@ require (
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.0
 	github.com/qri-io/registry v0.1.0
-	github.com/qri-io/starlib v0.4.0
+	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/spf13/cobra v0.0.4

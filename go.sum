@@ -598,6 +598,8 @@ github.com/qri-io/dag v0.1.0/go.mod h1:kd8vIdnTFlqfUdRrY3NghUuyqJCOFePHIuX4GdHf9
 github.com/qri-io/dataset v0.0.0-20190516191825-5a7de4a0f2d4/go.mod h1:JF7Gsqd+3LU7lmOriBRtNVJ0HkciNX6aVjoMAM3bOdA=
 github.com/qri-io/dataset v0.1.1 h1:BiOaxMD2LLY/c6Fn/6HdITmkX9xEBBG9Jz4X6ud8CxY=
 github.com/qri-io/dataset v0.1.1/go.mod h1:iLbXBiN11Mf1gr8R+40arhqtbZOEMbhjDtGXPi2JLRQ=
+github.com/qri-io/dataset v0.1.2 h1:9s9k+I8yE8FXlXhobMEoiBtMA7IKJFfjACGowKrmFWI=
+github.com/qri-io/dataset v0.1.2/go.mod h1:iLbXBiN11Mf1gr8R+40arhqtbZOEMbhjDtGXPi2JLRQ=
 github.com/qri-io/deepdiff v0.1.0 h1:1VXd/ePPrSrq4GRINC4YxmoPHuuLufg2ujMKvvEWsDc=
 github.com/qri-io/deepdiff v0.1.0/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
@@ -617,6 +619,8 @@ github.com/qri-io/registry v0.1.0 h1:e4BBcVCfim++7Y0HI9DTKWzeSjNiBqXrKzs62M/GAHw
 github.com/qri-io/registry v0.1.0/go.mod h1:sSsNnCZPmyG3IGOisEzTeIEwzCXunLpFsnKS16DKw/c=
 github.com/qri-io/starlib v0.4.0 h1:jsq4lZuqTVY+rqGuV5T3YZd5BbgqmRMi00QY+crXn8U=
 github.com/qri-io/starlib v0.4.0/go.mod h1:JapoWfwTbokzzGktLGV4671KiMnLDmJYtVJfZHhh2c4=
+github.com/qri-io/starlib v0.4.1 h1:aXcKv4p8WRoGElC+ZpfyKMP1OmT2KP5+iISPfXJXk6M=
+github.com/qri-io/starlib v0.4.1/go.mod h1:JapoWfwTbokzzGktLGV4671KiMnLDmJYtVJfZHhh2c4=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=
 github.com/qri-io/varName v0.1.0/go.mod h1:IGWuuGOHhLJ9ZZg28C/+oMYm1QYP+pAorNZKQpdXhxQ=
 github.com/rcrowley/go-metrics v0.0.0-20141108142129-dee209f2455f/go.mod h1:bCqnVzQkZxMG4s8nGwiZ5l3QUCyqpo9Y+/ZMZ9VjZe4=
