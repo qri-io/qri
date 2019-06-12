@@ -16,6 +16,13 @@ import (
 // falling back to a network call if one isn't found
 // TODO - this looks small now, but in the future we may consider
 // reinforcing p2p network with registry lookups
+// TODO (ramfox) - Canonicalizing a Dataset with no errors is not a good enough tell to see
+// if a dataset is local or not, we have to actually attempt to load it.
+// however, if we are connected to a network, we cannot fully reason if a file
+// is local or from the network. We need to build tools that allow us better
+// control over local only and network actions. Once we have those, we can attempt
+// to load the dataset locally, if it error with DatasetNotFound, or something similar
+// we will know that the dataset does not exist locally
 func ResolveDatasetRef(node *p2p.QriNode, ref *repo.DatasetRef) (local bool, err error) {
 	if err := repo.CanonicalizeDatasetRef(node.Repo, ref); err == nil && ref.Path != "" {
 		return true, nil

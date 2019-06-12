@@ -79,4 +79,8 @@ build-cross-platform:
 	@echo "building qri_darwin_386"
 	mkdir qri_darwin_386
 	env GOOS=darwin GOARCH=386 go build -o qri_darwin_386/qri .
-	zip -r qri_darwin_386.zip qri_darwin_386 && rm -r qri_darwin_386
+	zip -r qri_darwin_386.zip qri_darwin_386 && rm -r qri_darwin_386	
+	@echo "building qri_darwin_amd64"
+	mkdir qri_darwin_amd64
+	env GOOS=darwin GOARCH=amd64 go build -o qri_darwin_amd64/qri .
+	zip -r qri_darwin_amd64.zip qri_darwin_amd64 && rm -r qri_darwin_amd64

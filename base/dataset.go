@@ -228,7 +228,7 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
 	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
 	// more correctly in line with what's actually required.
-	_, err = fetcher.Fetch(cafs.SourceAny, key)
+	_, err = fetcher.Fetch(cafs.SourceAny, path)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
 	}
