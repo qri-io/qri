@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/qri-io/ioes"
 	libtest "github.com/qri-io/qri/lib/test"
@@ -31,9 +32,9 @@ func TestConnect(t *testing.T) {
 	}
 	defer os.RemoveAll(path)
 
-	cmd := "qri connect --setup --registry=" + registryServer.URL + " --disconnect-after=1"
+	cmd := "qri connect --setup --registry=" + registryServer.URL
 	streams, _, _, _ := ioes.NewTestIOStreams()
-	ctx, done := context.WithCancel(context.Background())
+	ctx, done := context.WithTimeout(context.Background(), time.Second)
 	defer done()
 
 	root := NewQriCommand(ctx, NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
