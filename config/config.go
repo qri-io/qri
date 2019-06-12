@@ -243,7 +243,9 @@ func (cfg *Config) Copy() *Config {
 	res := &Config{
 		Revision: cfg.Revision,
 	}
-
+	if cfg.path != "" {
+		res.path = cfg.path
+	}
 	if cfg.Profile != nil {
 		res.Profile = cfg.Profile.Copy()
 	}
