@@ -51,51 +51,54 @@ func (h webappMuxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 	h.template.ServeHTTP(w, r)
 }
 
-// FrontendHandler resolves the current webapp hash, (fetching the compiled frontend in the process)
+// FrontendHandler fetches the compiled frontend webapp using its hash
 // and serves it up as a traditional HTTP endpoint, transparently redirecting requests
 // for [prefix]/foo.js to [CAFS Hash]/foo.js
 // prefix is the path prefix that should be stripped from the request URL.Path
 func (s Server) FrontendHandler(prefix string) http.Handler {
-	// TODO - refactor these next two lines. This kicks off a goroutine that checks a IPNS dns entry
-	// for the latest hash of the webapp and overwrites with that hash on completion. Problems:
-	// * it's mutating its input parameter
-	// * it has a race condition with the code below
+	// TODO -
 	// * there's no error handling,
 	// * and really the data could be owned by Server and initialized by it,
-	//   as there's nothing that necessitates it being within FrontendHandler.
-	var webappPath = s.Config().Webapp.EntrypointHash
-	go s.resolveWebappPath(&webappPath)
-
+	//   as there's nothing that necessitates updating the webapp within FrontendHandler.
+	if err := s.resolveWebappPath(); err != nil {
+		log.Errorf("error resolving webapp path: %s", err)
+	}
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		path := fmt.Sprintf("%s%s", webappPath, strings.TrimPrefix(r.URL.Path, prefix))
+		path := fmt.Sprintf("%s%s", s.Config().Webapp.EntrypointHash, strings.TrimPrefix(r.URL.Path, prefix))
+		log.Info("fetching webapp off the distributed web...")
 		s.fetchCAFSPath(path, w, r)
+		log.Info("done fetching webapp!")
 	})
 }
 
-func (s Server) resolveWebappPath(path *string) {
+// resolveWebappPath resolved the current webapp hash
+func (s Server) resolveWebappPath() error {
 	node := s.Node()
 	cfg := s.Config()
 	if cfg.Webapp.EntrypointUpdateAddress == "" {
 		log.Debug("no entrypoint update address specified for update checking")
-		return
+		return nil
 	}
 
 	namesys, err := node.GetIPFSNamesys()
 	if err != nil {
 		log.Debugf("no IPFS node present to resolve webapp address: %s", err.Error())
-		return
+		return nil
 	}
 
 	p, err := namesys.Resolve(context.Background(), cfg.Webapp.EntrypointUpdateAddress)
 	if err != nil {
-		log.Infof("error resolving IPNS Name: %s", err.Error())
-		return
+		return fmt.Errorf("error resolving IPNS Name: %s", err.Error())
 	}
-	if *path != p.String() {
-		log.Infof("updating webapp to version: %s", p.String())
+	updatedPath := p.String()
+	if updatedPath != cfg.Webapp.EntrypointHash {
+		log.Infof("updated webapp path to version: %s", updatedPath)
+		cfg.Set("webapp.entrypointhash", updatedPath)
+		if err := s.ChangeConfig(cfg); err != nil {
+			return fmt.Errorf("error updating config: %s", err)
+		}
 	}
-
-	*path = p.String()
+	return nil
 }
 
 // WebappTemplateHandler renders the home page
