@@ -6,6 +6,7 @@ import (
 	"regexp"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
@@ -42,6 +43,10 @@ dataset and its fields.`,
 			"group": "dataset",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
+			// Special case for --pretty, check if it was passed vs if the default was used.
+			if cmd.Flags().Changed("pretty") {
+				o.HasPretty = true
+			}
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
@@ -50,7 +55,7 @@ dataset and its fields.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json, yaml]")
-	cmd.Flags().BoolVar(&o.Concise, "concise", false, "print output without indentation, only applies to json format")
+	cmd.Flags().BoolVar(&o.Pretty, "pretty", false, "whether to print output with indentation, only for json format")
 	cmd.Flags().IntVar(&o.PageSize, "page-size", -1, "for body, limit how many entries to get per page")
 	cmd.Flags().IntVar(&o.Page, "page", -1, "for body, page at which to get entries")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", true, "for body, whether to get all entries")
@@ -65,11 +70,13 @@ type GetOptions struct {
 	Refs     []string
 	Selector string
 	Format   string
-	Concise  bool
 
 	Page     int
 	PageSize int
 	All      bool
+
+	Pretty    bool
+	HasPretty bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -124,17 +131,25 @@ func (o *GetOptions) Run() (err error) {
 		}
 	}
 
+	// Pretty maps to a key in the FormatConfig map.
+	var fc dataset.FormatConfig
+	if o.HasPretty {
+		opt := dataset.JSONOptions{Options: make(map[string]interface{})}
+		opt.Options["pretty"] = o.Pretty
+		fc = &opt
+	}
+
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
 	p := lib.GetParams{
-		Path:     path,
-		Selector: o.Selector,
-		Format:   o.Format,
-		Concise:  o.Concise,
-		Offset:   page.Offset(),
-		Limit:    page.Limit(),
-		All:      o.All,
+		Path:         path,
+		Selector:     o.Selector,
+		Format:       o.Format,
+		FormatConfig: fc,
+		Offset:       page.Offset(),
+		Limit:        page.Limit(),
+		All:          o.All,
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err != nil {

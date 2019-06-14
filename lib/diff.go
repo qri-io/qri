@@ -140,12 +140,12 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 // TODO (b5): this is a temporary hack, I'd like to eventually merge this with a
 // bunch of other code, generalizing the types of data qri can work on
 func (r *DatasetRequests) loadDiffData(path, selector string, concise bool) (data interface{}, err error) {
+	// TODO: Use concise
 	if repo.IsRefString(path) {
 		getp := &GetParams{
 			Path:     path,
 			Format:   "json",
 			Selector: selector,
-			Concise:  concise,
 			All:      true,
 		}
 		res := &GetResult{}

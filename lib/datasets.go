@@ -80,7 +80,6 @@ type GetParams struct {
 
 	Selector string
 
-	Concise       bool
 	Limit, Offset int
 	All           bool
 }
@@ -174,10 +173,18 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		}
 		switch p.Format {
 		case "json":
-			if p.Concise {
-				res.Bytes, err = json.Marshal(value)
-			} else {
+			// Pretty defaults to true for the dataset head, unless explicitly set in the config.
+			pretty := true
+			if p.FormatConfig != nil {
+				pvalue, ok := p.FormatConfig.Map()["pretty"].(bool)
+				if ok {
+					pretty = pvalue
+				}
+			}
+			if pretty {
 				res.Bytes, err = json.MarshalIndent(value, "", " ")
+			} else {
+				res.Bytes, err = json.Marshal(value)
 			}
 		case "yaml", "":
 			res.Bytes, err = yaml.Marshal(value)
