@@ -92,10 +92,6 @@ type ValidateOptions struct {
 
 // Complete adds any configuration that can only be added just before calling Run
 func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
-	if f.RPC() != nil {
-		return usingRPCError("validate")
-	}
-
 	if len(args) != 0 {
 		o.Ref = args[0]
 	}
