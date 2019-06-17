@@ -33,7 +33,7 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.1.0
-	github.com/qri-io/dataset v0.1.2
+	github.com/qri-io/dataset v0.1.3-0.20190617151150-bd20b1913ba5
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0

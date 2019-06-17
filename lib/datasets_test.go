@@ -389,6 +389,9 @@ func TestDatasetRequestsGet(t *testing.T) {
 	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
 	moviesBody := mustBeArray(base.ReadEntries(reader))
 
+	prettyJSONConfig, _ := dataset.NewJSONOptions(map[string]interface{}{"pretty": true})
+	nonprettyJSONConfig, _ := dataset.NewJSONOptions(map[string]interface{}{"pretty": false})
+
 	cases := []struct {
 		description string
 		params      *GetParams
@@ -460,6 +463,15 @@ func TestDatasetRequestsGet(t *testing.T) {
 		{"body with limit and non-zero offset",
 			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
 				Limit: 2, Offset: 10, All: false}, bodyToString(moviesBody[10:12])},
+
+		{"head non-pretty json",
+			&GetParams{Path: "peer/movies", Format: "json", FormatConfig: nonprettyJSONConfig},
+			componentToString(setDatasetName(moviesDs, "peer/movies"), "non-pretty json")},
+
+		{"body pretty json",
+			&GetParams{Path: "peer/movies", Selector: "body", Format: "json",
+				FormatConfig: prettyJSONConfig, Limit: 3, Offset: 0, All: false},
+			bodyToPrettyString(moviesBody[:3])},
 	}
 
 	req := NewDatasetRequests(node, nil)
@@ -495,6 +507,12 @@ func componentToString(component interface{}, format string) string {
 			return err.Error()
 		}
 		return string(bytes)
+	case "non-pretty json":
+		bytes, err := json.Marshal(component)
+		if err != nil {
+			return err.Error()
+		}
+		return string(bytes)
 	case "yaml":
 		bytes, err := yaml.Marshal(component)
 		if err != nil {
@@ -508,6 +526,14 @@ func componentToString(component interface{}, format string) string {
 
 func bodyToString(component interface{}) string {
 	bytes, err := json.Marshal(component)
+	if err != nil {
+		return err.Error()
+	}
+	return string(bytes)
+}
+
+func bodyToPrettyString(component interface{}) string {
+	bytes, err := json.MarshalIndent(component, "", " ")
 	if err != nil {
 		return err.Error()
 	}

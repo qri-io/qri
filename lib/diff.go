@@ -31,7 +31,6 @@ type DiffParams struct {
 
 	Selector string
 
-	Concise       bool
 	Limit, Offset int
 	All           bool
 }
@@ -67,10 +66,10 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	var leftData, rightData interface{}
-	if leftData, err = r.loadDiffData(p.LeftPath, p.Selector, p.Concise); err != nil {
+	if leftData, err = r.loadDiffData(p.LeftPath, p.Selector); err != nil {
 		return
 	}
-	if rightData, err = r.loadDiffData(p.RightPath, p.Selector, p.Concise); err != nil {
+	if rightData, err = r.loadDiffData(p.RightPath, p.Selector); err != nil {
 		return
 	}
 
@@ -139,8 +138,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 
 // TODO (b5): this is a temporary hack, I'd like to eventually merge this with a
 // bunch of other code, generalizing the types of data qri can work on
-func (r *DatasetRequests) loadDiffData(path, selector string, concise bool) (data interface{}, err error) {
-	// TODO: Use concise
+func (r *DatasetRequests) loadDiffData(path, selector string) (data interface{}, err error) {
 	if repo.IsRefString(path) {
 		getp := &GetParams{
 			Path:     path,
