@@ -356,6 +356,17 @@ func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset in
 		return
 	}
 
+	// TODO(dlong): Kind of a hacky one-off. Generalize this for other format options.
+	if out.DataFormat() == dataset.JSONDataFormat {
+		ok, pretty := out.FormatConfig["pretty"].(bool)
+		if ok && pretty {
+			w, err = dsio.NewJSONPrettyWriter(out, buf, " ")
+		}
+	}
+	if err != nil {
+		return
+	}
+
 	rr, err := dsio.NewEntryReader(in, file)
 	if err != nil {
 		err = fmt.Errorf("error allocating data reader: %s", err)
