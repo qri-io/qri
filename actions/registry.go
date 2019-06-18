@@ -111,7 +111,7 @@ func Pin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 
 // Unpin reverses the pin process
 func Unpin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
-	node.LocalStreams.PrintErr("📌 unpinning dataset")
+	node.LocalStreams.PrintErr("📌 unpinning dataset\n")
 	r := node.Repo
 	reg := node.Repo.Registry()
 	if reg == nil {
