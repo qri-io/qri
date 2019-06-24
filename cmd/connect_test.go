@@ -46,7 +46,7 @@ func TestConnect(t *testing.T) {
 		}
 	}()
 
-	_, err := executeCommand(root, cmd)
+	err := executeCommand(root, cmd)
 	if err != nil {
 		t.Errorf("unexpected error executing command\n%s\n%s", cmd, err.Error())
 		return

@@ -60,21 +60,17 @@ func confirmUpdateServiceNotRunning() error {
 	return nil
 }
 
-func executeCommand(root *cobra.Command, cmd string) (output string, err error) {
+func executeCommand(root *cobra.Command, cmd string) error {
 	cmd = strings.TrimPrefix(cmd, "qri ")
 	// WARNING - currently doesn't support quoted strings as input
 	args := strings.Split(cmd, " ")
-	_, output, err = executeCommandC(root, args...)
-	return output, err
+	return executeCommandC(root, args...)
 }
 
-func executeCommandC(root *cobra.Command, args ...string) (c *cobra.Command, output string, err error) {
-	buf := &bytes.Buffer{}
-	root.SetOutput(buf)
+func executeCommandC(root *cobra.Command, args ...string) (err error) {
 	root.SetArgs(args)
-
-	c, err = root.ExecuteC()
-	return c, buf.String(), err
+	_, err = root.ExecuteC()
+	return err
 }
 
 const moviesCSVData = `movie_title,duration
@@ -224,7 +220,7 @@ func TestCommandsIntegration(t *testing.T) {
 				}
 			}()
 
-			_, er := executeCommand(root, command)
+			er := executeCommand(root, command)
 			if er != nil {
 				fmt.Println(er)
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, er.Error())
@@ -252,7 +248,7 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 	// TODO: If TestRepoRoot is moved to a different package, pass it an a parameter to this
 	// function.
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_movies")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -285,25 +281,25 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri remove me/test_movies --revisions=2")
+	err = executeCommand(cmdR, "qri remove me/test_movies --revisions=2")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -336,25 +332,25 @@ func TestRemoveAllRevisionsLongForm(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri remove me/test_movies --revisions=all")
+	err = executeCommand(cmdR, "qri remove me/test_movies --revisions=all")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -379,25 +375,25 @@ func TestRemoveAllRevisionsShortForm(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri remove me/test_movies --all")
+	err = executeCommand(cmdR, "qri remove me/test_movies --all")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -428,13 +424,13 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -469,13 +465,13 @@ func TestSaveTwoComponents(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -511,13 +507,13 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/tf.star me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf.star me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -552,13 +548,13 @@ func TestSaveThenOverrideViz(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/template.html me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/template.html me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -593,13 +589,13 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -634,7 +630,7 @@ func TestSaveDatasetWithComponentError(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
 	if err == nil {
 		t.Errorf("expected error, did not get one")
 	}
@@ -664,13 +660,13 @@ func TestSaveConflictingComponents(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
 	if err == nil {
 		t.Errorf("expected error, did not get one")
 	}
@@ -700,13 +696,13 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	err := executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
 	expect := `error saving: no changes detected`
 	if err == nil {
 		t.Errorf("expected error: did not get one")
@@ -735,13 +731,13 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 	defer done()
 
 	cmdR := r.CreateCommandRunner(ctx)
-	_, err := executeCommand(cmdR, "qri save --body=testdata/movies/body_two.json me/test_ds")
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_two.json me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	_, err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -754,6 +750,67 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 	expectBody := `[["Avatar",179],["Pirates of the Caribbean: At World's End",170]]`
 	if actualBody != expectBody {
 		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actualBody, expectBody)
+	}
+}
+
+// Test that we can compare bodies of different dataset revisions.
+func TestDiffRevisions(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_diff_revisions")
+	defer r.Delete()
+
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	cmdR := r.CreateCommandRunner(ctx)
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri diff body me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := r.GetOutput()
+	expect := `+30 elements. 30 inserts. 0 deletes. 0 updates.
+
++ 18: ["Dragonfly ",104]
++ 19: ["The Black Dahlia ",121]
++ 20: ["Flyboys ",140]
++ 21: ["The Last Castle ",131]
++ 22: ["Supernova ",91]
++ 23: ["Winter's Tale ",118]
++ 24: ["The Mortal Instruments: City of Bones ",130]
++ 25: ["Meet Dave ",90]
++ 26: ["Dark Water ",103]
++ 27: ["Edtv ",122]
+`
+	if output != expect {
+		t.Errorf("error, did not match actual:\n\"%v\"\nexpect:\n\"%v\"\n", output, expect)
 	}
 }
 
@@ -772,6 +829,7 @@ type TestRepoRoot struct {
 	qriPath     string
 	pathFactory PathFactory
 	testCrypto  gen.CryptoGenerator
+	streams     ioes.IOStreams
 	t           *testing.T
 }
 
@@ -826,8 +884,16 @@ func (r *TestRepoRoot) Delete() {
 
 // CreateCommandRunner returns a cobra runable command.
 func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
-	streams, _, _, _ := ioes.NewTestIOStreams()
-	return NewQriCommand(ctx, r.pathFactory, r.testCrypto, streams)
+	r.streams, _, _, _ = ioes.NewTestIOStreams()
+	return NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
+}
+
+func (r *TestRepoRoot) GetOutput() string {
+	buffer, ok := r.streams.Out.(*bytes.Buffer)
+	if ok {
+		return buffer.String()
+	}
+	return ""
 }
 
 // GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
