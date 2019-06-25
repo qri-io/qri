@@ -155,12 +155,17 @@ func (o *SaveOptions) Run() (err error) {
 	}
 
 	if o.Secrets != nil {
-		if !confirm(o.Out, o.In, `
+		// Stop the spinner so the user can see the prompt, and the answer they type will
+		// not be erased. Output the message to error stream in case stdout is captured.
+		o.StopSpinner()
+		if !confirm(o.ErrOut, o.In, `
 Warning: You are providing secrets to a dataset transformation.
 Never provide secrets to a transformation you do not trust.
 continue?`, true) {
 			return
 		}
+		// Restart the spinner.
+		o.StartSpinner()
 		if p.Secrets, err = parseSecrets(o.Secrets...); err != nil {
 			return err
 		}
