@@ -1,3 +1,59 @@
+# [](https://github.com/qri-io/qri/compare/v0.8.1...v) (2019-06-25)
+
+
+Version 0.8.2 is a patch release that improves qri's command-line client in numerous small ways
+
+## Webapp
+* Multiple problems were fixed around webapp fetching, saving, and pinning. The general end-user experience was also improved by allowing the frontend to show an interstitial screen while the backend was fetching the webapp.
+
+## Stdout / stderr usage
+* Many related issues around stdout and stderr usage were fixed, such as missing endlines being added, and prompts meant to always be seen were moved to stderr.
+
+## Misc
+* `qri get` gained a flag `--pretty` to pretty-print json.
+* `qri save` with the strict flag set will produce an error if it fails to validate
+* `qri add` can use a full reference to specify which version to add
+
+
+### Bug Fixes
+
+* **add:** add specific versions of a dataset using the full reference ([4b1e562](https://github.com/qri-io/qri/commit/4b1e562))
+* **config:** `config.Copy()` copies over the path ([2fd3420](https://github.com/qri-io/qri/commit/2fd3420))
+* **secrets:** Write secrets warning to stderr instead of stdout ([b43a4b7](https://github.com/qri-io/qri/commit/b43a4b7))
+* **unpublish:** Add endline when printing message ([#810](https://github.com/qri-io/qri/issues/810)) ([0ced201](https://github.com/qri-io/qri/commit/0ced201))
+* **validate:** Allow validate to run when connected ([#808](https://github.com/qri-io/qri/issues/808)) ([dedc0c5](https://github.com/qri-io/qri/commit/dedc0c5))
+* **webapp:** resolve webapp path before passing path to the handler ([f38dcf4](https://github.com/qri-io/qri/commit/f38dcf4))
+* **webapp loading:** pin webapp from dweb, send temporary script if loading ([4fb2921](https://github.com/qri-io/qri/commit/4fb2921))
+
+
+### Code Refactoring
+
+* **cmd:** remove ephemeral `qri connect` flags ([8620aa0](https://github.com/qri-io/qri/commit/8620aa0))
+
+
+### Features
+
+* **pretty:** Pretty flag for get command ([b6f579b](https://github.com/qri-io/qri/commit/b6f579b))
+
+
+### BREAKING CHANGES
+
+* **cmd:** removes:
+
+`--disconnect-after`
+`--disable-api`
+`--disable-rpc`
+`--disable-webapp`
+`--disable-p2p`
+`--read-only`
+`--remote-mode`
+
+These can be configured instead by using the `qri config` command
+
+Removing these temporary flags let's us better reason about the state of the config at any time, as well as helps us be confident that at any time we are not saving over our config with false information.
+
+
+
 <a name="v0.8.1"></a>
 # [v0.8.1](https://github.com/qri-io/qri/compare/v0.8.0...v) (2019-06-11)
 

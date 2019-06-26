@@ -44,7 +44,7 @@ var (
 )
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.8.2-dev"
+const VersionNumber = "0.8.2"
 
 func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
