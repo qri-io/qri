@@ -16,6 +16,17 @@ import (
 // FileSelectedRefs stores selection, is copied from github.com/qri-io/qri/repo/fs/files.go
 const FileSelectedRefs = "/selected_refs.json"
 
+// PwdSelection checks the current working directory for a `.qri_ref` file
+// if one is present it reads and returns the value as a selection
+func PwdSelection() string {
+	data, err := ioutil.ReadFile(".qri_ref")
+	if err != nil {
+		return ""
+	}
+
+	return string(data)
+}
+
 // NewUseCommand creates a new `qri search` command that searches for datasets
 func NewUseCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UseOptions{IOStreams: ioStreams}
