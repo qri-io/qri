@@ -1,0 +1,57 @@
+// IDL file for cron service
+namespace log_fbs;
+
+// setting file_identifier adds a "magic number" to bytes 4-7 to use as a
+// sanity check for a "Qri FlatBuffer File". As our use of flatbuffers grows
+// this file identifier should remain as the top level identifier for all
+// qri flatbuffer schemas
+file_identifier "QFBF";
+
+// for our use this is mainly an annotation. this file extension for a 
+// "qri flatbuffer" file should be .qfb
+file_extension "qfb";
+
+
+table Suggestion {
+  index:int;
+  timestamp:string;
+  text:string;
+  subject:string;
+  type:string;
+  closed:bool;
+}
+
+
+enum OpType:byte {
+  unknown = 0,
+  merge,
+  acl_update,
+  peer_update,
+  peer_delete,
+  dataset_commit,
+  dataset_delete,
+  suggestion_update,
+  suggestion_delete
+}
+
+
+table Operation {
+  index:int;
+  type:OpType;
+  author:string;
+  subject:string;
+  prev:string;
+  note:string;
+}
+
+table AccessControl {
+
+}
+
+
+table Log {
+	operations:[Operation];
+  secret:string;
+}
+
+root_type Logs;
