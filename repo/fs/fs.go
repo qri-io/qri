@@ -2,7 +2,6 @@
 package fsrepo
 
 import (
-	"encoding/json"
 	"fmt"
 	"os"
 
@@ -33,10 +32,9 @@ type Repo struct {
 
 	profile *profile.Profile
 
-	store        cafs.Filestore
-	fsys         qfs.Filesystem
-	selectedRefs []repo.DatasetRef
-	graph        map[string]*dsgraph.Node
+	store cafs.Filestore
+	fsys  qfs.Filesystem
+	graph map[string]*dsgraph.Node
 
 	profiles *ProfileStore
 	index    search.Index
@@ -162,25 +160,6 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 // UpdateSearchIndex refreshes this repos search index
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 	return search.IndexRepo(r, r.index)
-}
-
-// SetSelectedRefs sets the current reference selection
-func (r *Repo) SetSelectedRefs(sel []repo.DatasetRef) error {
-	return r.saveFile(sel, FileSelectedRefs)
-}
-
-// SelectedRefs gives the current reference selection
-func (r *Repo) SelectedRefs() ([]repo.DatasetRef, error) {
-	data, err := r.readBytes(FileSelectedRefs)
-	if err != nil {
-		return nil, nil
-	}
-	res := []repo.DatasetRef{}
-	if err = json.Unmarshal(data, &res); err != nil {
-		return nil, nil
-	}
-
-	return res, nil
 }
 
 // Profiles returns this repo's Peers implementation

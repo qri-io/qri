@@ -146,11 +146,6 @@ func (t TestFactory) ProfileMethods() (*lib.ProfileMethods, error) {
 	return lib.NewProfileMethods(t.inst), nil
 }
 
-// SelectionRequests creates a lib.SelectionRequests from internal state
-func (t TestFactory) SelectionRequests() (*lib.SelectionRequests, error) {
-	return lib.NewSelectionRequests(t.repo, t.rpc), nil
-}
-
 // SearchRequests generates a lib.SearchRequests from internal state
 func (t TestFactory) SearchRequests() (*lib.SearchRequests, error) {
 	return lib.NewSearchRequests(t.node, t.rpc), nil

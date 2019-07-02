@@ -70,7 +70,6 @@ func Receivers(inst *Instance) []Methods {
 		NewConfigMethods(inst),
 		NewSearchRequests(node, nil),
 		NewRenderRequests(r, nil),
-		NewSelectionRequests(r, nil),
 		NewUpdateMethods(inst),
 	}
 }

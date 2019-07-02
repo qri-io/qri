@@ -104,6 +104,8 @@ func (o *DiffOptions) Run() (err error) {
 		Selector:  o.Selector,
 	}
 
+	// TODO(dlong): Reenable `use` functionality for this command.
+
 	res := &lib.DiffResponse{}
 	if err = o.DatasetRequests.Diff(p, res); err != nil {
 		return err

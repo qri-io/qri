@@ -63,9 +63,6 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		return
 	}
 
-	// need selected refs for tests
-	mr.SetSelectedRefs([]repo.DatasetRef{dsRef2})
-
 	successCases := []struct {
 		description string
 		Left, Right string
@@ -81,12 +78,6 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		},
 		{"fill left path from history",
 			"", dsRef2.AliasString(),
-			"",
-			&DiffStat{Left: 42, Right: 44, LeftWeight: 2570, RightWeight: 2807, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
-			8,
-		},
-		{"populate from selected references",
-			"", "",
 			"",
 			&DiffStat{Left: 42, Right: 44, LeftWeight: 2570, RightWeight: 2807, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
 			8,

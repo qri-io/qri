@@ -56,10 +56,6 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	if err := DefaultSelectedRef(r.repo, &ref); err != nil {
-		return err
-	}
-
 	*res, err = base.Render(r.repo, ref, p.Template)
 	return err
 }

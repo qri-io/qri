@@ -127,6 +127,8 @@ func (o *ValidateOptions) Run() (err error) {
 		}
 	}
 
+	// TODO(dlong): Reenable `use` functionality for this command. Also, change Ref to a string.
+
 	p := &lib.ValidateDatasetParams{
 		Ref: ref,
 		// TODO: restore

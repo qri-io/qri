@@ -92,7 +92,15 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-	o.Refs = args
+	o.Refs = make([]string, 0, len(args))
+	for i := range args {
+		var ref string
+		ref, err = GetDatasetRefString(f, args, i)
+		if err != nil {
+			return
+		}
+		o.Refs = append(o.Refs, ref)
+	}
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return
 	}
@@ -123,14 +131,6 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the get command
 func (o *GetOptions) Run() (err error) {
-	var path string
-	if len(o.Refs) > 0 {
-		path = o.Refs[0]
-		if err != nil {
-			return err
-		}
-	}
-
 	// Pretty maps to a key in the FormatConfig map.
 	var fc dataset.FormatConfig
 	if o.HasPretty {
@@ -142,6 +142,11 @@ func (o *GetOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
+	var path string
+	if len(o.Refs) > 0 {
+		// TODO(dlong): Restore ability to `get` from multiple datasets at once.
+		path = o.Refs[0]
+	}
 	p := lib.GetParams{
 		Path:         path,
 		Selector:     o.Selector,

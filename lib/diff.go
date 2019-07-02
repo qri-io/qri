@@ -88,30 +88,16 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 }
 
 func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
-	// Handle `qri use` to get the current default dataset.
-	// only if left & right are both empty
+	// fail if neither argument is given
 	if *left == "" && *right == "" {
-		refs := []repo.DatasetRef{}
-		if err = DefaultSelectedRefs(node.Repo, &refs); err != nil {
-			return
-		}
-		switch len(refs) {
-		case 0:
-			// do nothing
-		case 1:
-			// if one ref is specified, compare with previous version, so we'll put it in right
-			// for further processing below
-			*right = refs[0].String()
-		case 2:
-			*left, *right = refs[0].String(), refs[1].String()
-		default:
-			return fmt.Errorf("too many refs selected with `qri use` to perform diff. max is 2. have: %d", len(refs))
-		}
+		return repo.ErrEmptyRef
 	}
-
 	// fill in left side from previous path if left isn't set & right is a ref string with history
 	if *right != "" && *left == "" && repo.IsRefString(*right) {
 		var ref repo.DatasetRef
+		if *right == "" {
+			return repo.ErrEmptyRef
+		}
 		if ref, err = repo.ParseDatasetRef(*right); err != nil {
 			return
 		}

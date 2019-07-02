@@ -93,11 +93,6 @@ func (r *RegistryRequests) GetDataset(ref *repo.DatasetRef, res *repo.DatasetRef
 		return r.cli.Call("DatasetRequests.Get", ref, res)
 	}
 
-	// Handle `qri use` to get the current default dataset
-	if err := DefaultSelectedRef(r.node.Repo, ref); err != nil {
-		return err
-	}
-
 	if err := actions.RegistryDataset(r.node, ref); err != nil {
 		return err
 	}
