@@ -19,12 +19,12 @@ func (log Log) Put(op Op) Log {
 	clk := log.Clock()
 
 	if op.Tick == clk {
-		merge := Op{
-			Type: OpTypeMerge,
-			Tick: clk + 1,
-		}
+		// merge := Op{
+		// 	Type: OpTypeMerge,
+		// 	Tick: clk + 1,
+		// }
 		return Log{
-			Ops:    append(log.Ops, op, merge),
+			Ops:    append(log.Ops, op),
 			Secret: log.Secret,
 		}
 	} else if op.Tick > clk {
@@ -37,16 +37,17 @@ func (log Log) Put(op Op) Log {
 	// TODO (b5) - iterate from the end of the slice instead
 	for i, o := range log.Ops {
 		if op.Tick == o.Tick {
-			merge := Op{
-				Type: OpTypeMerge,
-				Tick: op.Tick + 1,
-			}
+			// merge := Op{
+			// 	Type: OpTypeMerge,
+			// 	Tick: op.Tick + 1,
+			// }
 			updated := log.Ops[i:]
 			for j, _ := range updated {
 				updated[j].Tick++
 			}
 			return Log{
-				Ops:    append(log.Ops[:i], append([]Op{op, merge}, updated...)...),
+				Ops:    append(log.Ops[:i], append([]Op{op}, updated...)...),
+				// Ops:    append(log.Ops[:i], append([]Op{op, merge}, updated...)...),
 				Secret: log.Secret,
 			}
 		} else if op.Tick < o.Tick {
@@ -83,7 +84,7 @@ func (log Log) State() LogState {
 	for _, op := range log.Ops {
 		switch op.Type {
 		case OpTypeMerge:
-			s.Merges++
+			// s.Merges++
 		case OpTypeDatasetCommit:
 			s.Commits = append(s.Commits, op)
 		case OpTypeSuggestionUpdate:
