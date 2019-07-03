@@ -98,7 +98,8 @@ func (o *UseOptions) Run() (err error) {
 	if o.List {
 		refs, err = readFile(fileSelectionPath)
 		if err != nil {
-			return err
+			// File not exist, or can't parse: not an error, just don't show anything.
+			return nil
 		}
 	} else if o.Clear {
 		err := writeFile(fileSelectionPath, refs)

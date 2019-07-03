@@ -92,15 +92,9 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-	o.Refs = make([]string, 0, len(args))
-	for i := range args {
-		var ref string
-		ref, err = GetDatasetRefString(f, args, i)
-		if err != nil {
-			return
-		}
-		o.Refs = append(o.Refs, ref)
-	}
+	// TODO(dlong): Add tests to cmd_test for `use`.
+	o.Refs = make([]string, 1)
+	o.Refs[0], err = GetDatasetRefString(f, args, 0)
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return
 	}
