@@ -12,7 +12,7 @@ func NewPublishCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &PublishOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "publish",
-		Short: "set dataset publicity",
+		Short: "Set dataset publicity",
 		Long: `Publish makes your dataset available to others. While online, peers that connect 
 to you can only see datasets and versions that you've published. Publishing a 
 dataset always makes all previous history entries available, and any updates
