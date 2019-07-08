@@ -18,7 +18,7 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UpdateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "schedule dataset updates",
+		Short: "Schedule dataset updates",
 		Long: `The qri update commands allow you to schedule automatic,
 periodic udates to your dataset. It also allows you to start & stop the
 updating daemon, to view the log of past updates and list of upcoming
@@ -32,7 +32,7 @@ updates.
 
 	scheduleCmd := &cobra.Command{
 		Use:   "schedule",
-		Short: "schedule an update",
+		Short: "Schedule an update",
 		Long: `Schedule a dataset using all the same flags as the save command,
 except you must provide a periodicity (or have a periodicity set in your 
 dataset's Meta component. The given periodicity must be in the ISO 8601
@@ -81,7 +81,7 @@ responsible for executing your scheduled updates is currently active.
 
 	unscheduleCmd := &cobra.Command{
 		Use:   "unschedule",
-		Short: "unschedule an update",
+		Short: "Unschedule an update",
 		Long: `Unscheduling an update removes that dataset from the list of
 scheduled updates.
 	`,
@@ -100,7 +100,7 @@ scheduled updates.
 	listCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "list scheduled updates",
+		Short:   "List scheduled updates",
 		Long: `Update list gives you a view into the upcoming scheduled updates, starting
 with the most immediate update.
 	`,
@@ -127,7 +127,7 @@ with the most immediate update.
 	logsCmd := &cobra.Command{
 		Use:     "logs",
 		Aliases: []string{"log"},
-		Short:   "show log of dataset updates",
+		Short:   "Show log of dataset updates",
 		Long: `Update logs shows the log of the updates that have already run,
 starting with the most recent. The log includes a timestamped name, the type of
 update that occured (dataset or shell), and the time it occured.
@@ -161,7 +161,7 @@ update.
 
 	runCmd := &cobra.Command{
 		Use:   "run",
-		Short: "execute an update immediately",
+		Short: "Execute an update immediately",
 		Long: `Run allows you to execute an update immediately, rather then wait for
 its scheduled time. Run uses the same parameters as the Save command, but
 but assumes you want to recall the most recent transform in the dataset.
@@ -195,14 +195,14 @@ but assumes you want to recall the most recent transform in the dataset.
 
 	serviceCmd := &cobra.Command{
 		Use:   "service",
-		Short: "control qri update daemon",
+		Short: "Control qri update daemon",
 		Long: `The qri service commands allow you to start, stop, and check the 
 status of update daemon that executes the dataset updates.`,
 	}
 
 	serviceStatusCmd := &cobra.Command{
 		Use:   "status",
-		Short: "show update daemon status",
+		Short: "Show update daemon status",
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -212,7 +212,7 @@ status of update daemon that executes the dataset updates.`,
 	}
 	serviceStartCmd := &cobra.Command{
 		Use:   "start",
-		Short: "start update daemon",
+		Short: "Start update daemon",
 		Long: `Use the "qri update service start" command to begin the process 
 responsible for executing your scheduled updates. Any updates that were
 scheduled before the update daemon has started will be run as soon as the 
@@ -229,7 +229,7 @@ updating process initiates.`,
 
 	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
-		Short: "stop update daemon",
+		Short: "Stop update daemon",
 		Long: `Use the "qri update service stop" command to end the process 
 responsible for executing your scheduled updates. With this process terminated,
 your scheduled updates will not run.`,
