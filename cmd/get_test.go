@@ -22,13 +22,14 @@ func TestGetComplete(t *testing.T) {
 		refs     []string
 		err      string
 	}{
-		{[]string{}, "", []string{}, ""},
+		{[]string{}, "", []string{""}, ""},
 		{[]string{"one arg"}, "", []string{"one arg"}, ""},
 		{[]string{"commit", "peer/ds"}, "commit", []string{"peer/ds"}, ""},
 		{[]string{"commit.author", "peer/ds"}, "commit.author", []string{"peer/ds"}, ""},
-		{[]string{"peer/ds_two", "peer/ds"}, "", []string{"peer/ds_two", "peer/ds"}, ""},
-		{[]string{"foo", "peer/ds"}, "", []string{"foo", "peer/ds"}, ""},
-		{[]string{"structure"}, "structure", []string{}, ""},
+		// TODO(dlong): Fix tests when `qri get` can be passed multiple arguments.
+		//{[]string{"peer/ds_two", "peer/ds"}, "", []string{"peer/ds_two", "peer/ds"}, ""},
+		//{[]string{"foo", "peer/ds"}, "", []string{"foo", "peer/ds"}, ""},
+		{[]string{"structure"}, "structure", []string{""}, ""},
 		{[]string{"peer/human_body_facts"}, "", []string{"peer/human_body_facts"}, ""},
 	}
 

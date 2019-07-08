@@ -60,8 +60,9 @@ type RenderOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) > 0 {
-		o.Ref = args[0]
+	o.Ref, err = GetDatasetRefString(f, args, 0)
+	if err != nil {
+		return err
 	}
 	o.RenderRequests, err = f.RenderRequests()
 	return

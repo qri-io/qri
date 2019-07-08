@@ -14,11 +14,10 @@ type MemRepo struct {
 	*MemRefstore
 	*MemEventLog
 
-	store        cafs.Filestore
-	filesystem   qfs.Filesystem
-	graph        map[string]*dsgraph.Node
-	refCache     *MemRefstore
-	selectedRefs []DatasetRef
+	store      cafs.Filestore
+	filesystem qfs.Filesystem
+	graph      map[string]*dsgraph.Node
+	refCache   *MemRefstore
 
 	profile  *profile.Profile
 	profiles profile.Store
@@ -81,17 +80,6 @@ func (r *MemRepo) Profile() (*profile.Profile, error) {
 func (r *MemRepo) SetProfile(p *profile.Profile) error {
 	r.profile = p
 	return nil
-}
-
-// SetSelectedRefs sets the current reference selection
-func (r *MemRepo) SetSelectedRefs(sel []DatasetRef) error {
-	r.selectedRefs = sel
-	return nil
-}
-
-// SelectedRefs gives the current reference selection
-func (r *MemRepo) SelectedRefs() ([]DatasetRef, error) {
-	return r.selectedRefs, nil
 }
 
 // Profiles gives this repo's Peer interface implementation

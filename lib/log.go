@@ -45,9 +45,6 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 		return r.cli.Call("LogRequests.Log", params, res)
 	}
 	ref := params.Ref
-	if err = DefaultSelectedRef(r.node.Repo, &ref); err != nil {
-		return
-	}
 
 	// ensure valid limit value
 	if params.Limit <= 0 {

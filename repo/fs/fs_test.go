@@ -13,8 +13,6 @@ import (
 	"github.com/qri-io/qri/repo/test"
 )
 
-var _ repo.RefSelector = (*Repo)(nil)
-
 func TestRepo(t *testing.T) {
 	path := filepath.Join(os.TempDir(), "qri_repo_test")
 

@@ -1,6 +1,8 @@
 package cmd
 
 import (
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -48,13 +50,6 @@ func TestUseComplete(t *testing.T) {
 			ioReset(in, out, errs)
 			continue
 		}
-
-		if opt.SelectionRequests == nil {
-			t.Errorf("case %d, opt.SelectionRequests not set.", i)
-			ioReset(in, out, errs)
-			continue
-		}
-		ioReset(in, out, errs)
 	}
 }
 
@@ -100,7 +95,20 @@ func TestUseRun(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	tmpdir := filepath.Join(os.TempDir(), "qri_use_test")
+	//clean up if previous cleanup failed
+	if _, err := os.Stat(tmpdir); os.IsNotExist(err) {
+		if err := os.RemoveAll(tmpdir); err != nil {
+			t.Fatalf("failed to cleanup from previous test execution: %s", err.Error())
+		}
+	}
+	if err := os.MkdirAll(tmpdir, os.ModePerm); err != nil {
+		t.Errorf("error creating test path: %s", err.Error())
+		return
+	}
+	defer os.RemoveAll(tmpdir)
+
+	_, err := NewTestFactory(nil)
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -121,18 +129,12 @@ func TestUseRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		slr, err := f.SelectionRequests()
-		if err != nil {
-			t.Errorf("case %d, error creating dataset request: %s", i, err)
-			continue
-		}
-
 		opt := &UseOptions{
-			IOStreams:         streams,
-			Refs:              c.refs,
-			List:              c.list,
-			Clear:             c.clear,
-			SelectionRequests: slr,
+			IOStreams:   streams,
+			Refs:        c.refs,
+			List:        c.list,
+			Clear:       c.clear,
+			QriRepoPath: tmpdir,
 		}
 
 		err = opt.Run()

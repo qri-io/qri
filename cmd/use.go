@@ -1,13 +1,20 @@
 package cmd
 
 import (
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
+
+// FileSelectedRefs stores selection, is copied from github.com/qri-io/qri/repo/fs/files.go
+const FileSelectedRefs = "/selected_refs.json"
 
 // NewUseCommand creates a new `qri search` command that searches for datasets
 func NewUseCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
@@ -62,13 +69,13 @@ type UseOptions struct {
 	List  bool
 	Clear bool
 
-	SelectionRequests *lib.SelectionRequests
+	QriRepoPath string
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *UseOptions) Complete(f Factory, args []string) (err error) {
+	o.QriRepoPath = f.QriRepoPath()
 	o.Refs = args
-	o.SelectionRequests, err = f.SelectionRequests()
 	return
 }
 
@@ -85,16 +92,22 @@ func (o *UseOptions) Validate() error {
 
 // Run executes the search command
 func (o *UseOptions) Run() (err error) {
-	var (
-		refs []repo.DatasetRef
-		res  bool
-	)
+	var refs []repo.DatasetRef
+	fileSelectionPath := filepath.Join(o.QriRepoPath, FileSelectedRefs)
 
 	if o.List {
-		if err = o.SelectionRequests.SelectedRefs(&res, &refs); err != nil {
+		refs, err = readFile(fileSelectionPath)
+		if err != nil {
+			// File not exist, or can't parse: not an error, just don't show anything.
+			return nil
+		}
+	} else if o.Clear {
+		err := writeFile(fileSelectionPath, refs)
+		if err != nil {
 			return err
 		}
-	} else if len(o.Refs) > 0 || o.Clear {
+		printInfo(o.Out, "cleared selected datasets")
+	} else if len(o.Refs) > 0 {
 		for _, refstr := range o.Refs {
 			ref, err := repo.ParseDatasetRef(refstr)
 			if err != nil {
@@ -103,13 +116,9 @@ func (o *UseOptions) Run() (err error) {
 			refs = append(refs, ref)
 		}
 
-		if err = o.SelectionRequests.SetSelectedRefs(&refs, &res); err != nil {
+		err := writeFile(fileSelectionPath, refs)
+		if err != nil {
 			return err
-		}
-
-		if len(refs) == 0 {
-			printInfo(o.Out, "cleared selected datasets")
-			return nil
 		}
 	}
 
@@ -117,4 +126,63 @@ func (o *UseOptions) Run() (err error) {
 		fmt.Fprintln(o.Out, ref.String())
 	}
 	return nil
+}
+
+// GetDatasetRefString returns the arg at the index, or otherwise the first selected reference
+func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
+	if index < len(args) {
+		return args[index], nil
+	}
+	refs, err := DefaultSelectedRefList(f)
+	if err != nil {
+		return "", err
+	}
+	if len(refs) == 0 {
+		// If selected_refs.json is empty or doesn't exist, not an error.
+		return "", nil
+	}
+	return refs[0], nil
+}
+
+// DefaultSelectedRefList returns the list of currently selected dataset references
+func DefaultSelectedRefList(f Factory) ([]string, error) {
+	fileSelectionPath := filepath.Join(f.QriRepoPath(), FileSelectedRefs)
+
+	refs, err := readFile(fileSelectionPath)
+	if err != nil {
+		// If selected_refs.json is empty or doesn't exist, not an error.
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	res := make([]string, 0, len(refs))
+	for _, r := range refs {
+		res = append(res, r.String())
+	}
+
+	return res, nil
+}
+
+// writeFile serializes the list of refs to a file at path
+func writeFile(path string, refs []repo.DatasetRef) error {
+	data, err := json.Marshal(refs)
+	if err != nil {
+		return err
+	}
+	return ioutil.WriteFile(path, data, os.ModePerm)
+}
+
+// readFile deserializes a list of refs from a file at path
+func readFile(path string) ([]repo.DatasetRef, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, err
+	}
+	res := []repo.DatasetRef{}
+	if err = json.Unmarshal(data, &res); err != nil {
+		return nil, err
+	}
+	return res, nil
 }

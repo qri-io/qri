@@ -66,19 +66,14 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		return r.cli.Call("ExportRequests.Export", p, fileWritten)
 	}
 
-	ref := &repo.DatasetRef{}
 	if p.Ref == "" {
-		// Handle `qri use` to get the current default dataset.
-		if err = DefaultSelectedRef(r.node.Repo, ref); err != nil {
-			return err
-		}
-	} else {
-		*ref, err = repo.ParseDatasetRef(p.Ref)
-		if err != nil {
-			return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
-		}
+		return repo.ErrEmptyRef
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
 		return err
 	}
 

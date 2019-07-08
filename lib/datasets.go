@@ -103,15 +103,11 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ref := &repo.DatasetRef{}
 
 	if p.Path == "" {
-		// Handle `qri use` to get the current default dataset.
-		if err = DefaultSelectedRef(r.node.Repo, ref); err != nil {
-			return
-		}
-	} else {
-		*ref, err = repo.ParseDatasetRef(p.Path)
-		if err != nil {
-			return fmt.Errorf("'%s' is not a valid dataset reference", p.Path)
-		}
+		return repo.ErrEmptyRef
+	}
+	*ref, err = repo.ParseDatasetRef(p.Path)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid dataset reference", p.Path)
 	}
 	if err = repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
 		return
@@ -552,10 +548,6 @@ type ValidateDatasetParams struct {
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
-	}
-
-	if err = DefaultSelectedRef(r.node.Repo, &p.Ref); err != nil {
-		return
 	}
 
 	// TODO: restore validating data from a URL
