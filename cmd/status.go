@@ -2,23 +2,23 @@ package cmd
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
+	"io"
 	"io/ioutil"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
-	"github.com/qri-io/fill"
 )
 
-// NewStatusCommand creates new `qri status` command that statuss datasets for the local peer & others
+// NewStatusCommand creates a `qri status` command that compares working directory to prev version
 func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &StatusOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "status",
-		Aliases: []string{"ls"},
-		Short:   "Show current dataset status",
-		Long: ``,
+		Short:   "Show status of working directory",
+		Long:    ``,
 		Example: ``,
 		Annotations: map[string]string{
 			"group": "dataset",
@@ -31,8 +31,6 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.Flags().StringVarP(&o.Format, "format", "f", "", "set output format [json]")
-
 	return cmd
 }
 
@@ -40,7 +38,6 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type StatusOptions struct {
 	ioes.IOStreams
 
-	Format          string
 	Selection string
 
 	DatasetRequests *lib.DatasetRequests
@@ -48,9 +45,10 @@ type StatusOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
-	o.Selection = PwdSelection()
-	if o.Selection == "" {
-		return fmt.Errorf("this is not a qri directory")
+	var ok bool
+	ok, o.Selection = GetLinkedFilesysRef()
+	if !ok {
+		return fmt.Errorf("this is not a linked working directory")
 	}
 	o.DatasetRequests, err = f.DatasetRequests()
 	return
@@ -64,19 +62,63 @@ func (o *StatusOptions) Run() (err error) {
 	}
 	res := lib.GetResult{}
 	if err = o.DatasetRequests.Get(&p, &res); err != nil {
-		return err
+		printErr(o.ErrOut, fmt.Errorf("no previous version of this dataset"))
+		printErr(o.ErrOut, fmt.Errorf("meta.json has modifications"))
+		printErr(o.ErrOut, fmt.Errorf("schema.json has modifications"))
+		// TODO(dlong): Output status of body
+		printSuccess(o.ErrOut, "run `qri save` to commit a new version")
+		return nil
 	}
 
-	dirData, err := ioutil.ReadFile("dataset.yaml")
+	isWorkingDirClean := true
+
+	// Check status of meta component
+	clean, err := checkCleanStatus(o.ErrOut, "meta.json", res.Dataset.Meta)
+	isWorkingDirClean = isWorkingDirClean && clean
 	if err != nil {
 		return err
 	}
 
-	if !bytes.Equal(res.Bytes, dirData) {
-		printErr(o.ErrOut, fmt.Errorf("dataset.yaml has been modified"))
-		return nil
+	// Check status of schema component
+	clean, err = checkCleanStatus(o.ErrOut, "schema.json", res.Dataset.Structure.Schema)
+	isWorkingDirClean = isWorkingDirClean && clean
+	if err != nil {
+		return err
 	}
 
-	printSuccess(o.ErrOut, "working directory clean!")
+	// TODO(dlong): Check status of body
+
+	// Done, are we clean?
+	if isWorkingDirClean {
+		printSuccess(o.ErrOut, "working directory clean!")
+	} else {
+		printSuccess(o.ErrOut, "run `qri save` to commit a new version")
+	}
 	return nil
+}
+
+func checkCleanStatus(w io.Writer, localFilename string, component interface{}) (bool, error) {
+	localData, err := ioutil.ReadFile(localFilename)
+	if err != nil {
+		return false, err
+	}
+	// Cleanup a bit.
+	// TODO(dlong): Ignore whitespace changes, by parsing to a map[string] then reserializing.
+	if localData[len(localData)-1] == '\n' {
+		localData = localData[:len(localData)-1]
+	}
+
+	compData, err := json.MarshalIndent(component, "", " ")
+	if err != nil {
+		return false, err
+	}
+	if compData[len(compData)-1] == '\n' {
+		compData = compData[:len(compData)-1]
+	}
+
+	if !bytes.Equal(localData, compData) {
+		printErr(w, fmt.Errorf("%s has modifications", localFilename))
+		return false, nil
+	}
+	return true, nil
 }
