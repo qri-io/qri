@@ -32,6 +32,10 @@ func printInfo(w io.Writer, msg string, params ...interface{}) {
 	fmt.Fprintln(w, fmt.Sprintf(msg, params...))
 }
 
+func printInfoNoEndline(w io.Writer, msg string, params ...interface{}) {
+	fmt.Fprintf(w, fmt.Sprintf(msg, params...))
+}
+
 func printWarning(w io.Writer, msg string, params ...interface{}) {
 	fmt.Fprintln(w, color.New(color.FgYellow).Sprintf(msg, params...))
 }
@@ -113,7 +117,7 @@ func fmtItem(i int, item string, prefix []byte) string {
 
 func prompt(w io.Writer, r io.Reader, msg string) string {
 	var input string
-	printInfo(w, msg)
+	printInfoNoEndline(w, msg)
 	fmt.Fscanln(r, &input)
 	return strings.TrimSpace(input)
 }

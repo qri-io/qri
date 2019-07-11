@@ -3,7 +3,10 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
@@ -93,6 +96,7 @@ type SaveOptions struct {
 	KeepFormat     bool
 	Force          bool
 	NoRender       bool
+	IsLinkedRef    bool
 	Secrets        []string
 
 	DatasetRequests *lib.DatasetRequests
@@ -100,8 +104,61 @@ type SaveOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) > 0 {
-		o.Ref = args[0]
+	o.Ref, err = GetDatasetRefString(f, args, 0)
+	_, o.IsLinkedRef = GetLinkedFilesysRef()
+
+	if o.IsLinkedRef {
+		// Determine format of the body.
+		format := ""
+		if _, err = os.Stat("body.csv"); !os.IsNotExist(err) {
+			format = "csv"
+		} else if _, err = os.Stat("body.json"); !os.IsNotExist(err) {
+			format = "json"
+		}
+		if format == "" {
+			return fmt.Errorf("could not find either body.csv or body.json")
+		}
+		o.BodyPath = fmt.Sprintf("body.%s", format)
+
+		// Read schema.
+		schema := map[string]interface{}{}
+		data, err := ioutil.ReadFile("schema.json")
+		if err != nil {
+			return err
+		}
+		if err = json.Unmarshal(data, &schema); err != nil {
+			return err
+		}
+		delete(schema, "qri")
+
+		// Create tmp structure.json
+		st := dataset.Structure{
+			Qri:    "st:0",
+			Format: format,
+			Schema: schema,
+		}
+		data, err = json.Marshal(st)
+		if err != nil {
+			return err
+		}
+		tmpfile, err := ioutil.TempFile("", "example")
+		if err != nil {
+			return err
+		}
+		//defer os.Remove(tmpfile.Name())
+		if _, err := tmpfile.Write(data); err != nil {
+			return err
+		}
+		if err := tmpfile.Close(); err != nil {
+			return err
+		}
+		structureFilename := tmpfile.Name() + ".json"
+		if err = os.Rename(tmpfile.Name(), structureFilename); err != nil {
+			return err
+		}
+		// TODO: Cleanup structureFilename
+
+		o.FilePaths = []string{"meta.json", structureFilename}
 	}
 
 	// Make all paths absolute. Especially important if we are running
@@ -187,6 +244,12 @@ continue?`, true) {
 			return err
 		}
 		fmt.Fprint(o.Out, string(data))
+	}
+	if o.IsLinkedRef {
+		err = ioutil.WriteFile(QriRefFilename, []byte(res.String()), os.ModePerm)
+		if err != nil {
+			return err
+		}
 	}
 	return nil
 }

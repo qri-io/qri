@@ -112,7 +112,7 @@ func (o *ExportOptions) Run() error {
 }
 
 const blankYamlDataset = `# This file defines a qri dataset. Change this file, save it, then from a terminal run:
-# $ qri add --file=dataset.yaml
+# $ qri save --file=dataset.yaml
 # For more info check out https://qri.io/docs
 
 # Name is a short name for working with this dataset without spaces for example:
