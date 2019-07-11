@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
 
@@ -79,7 +80,7 @@ func (o *InitOptions) Run() (err error) {
 	if err != nil {
 		return err
 	}
-	suggestDataset := filepath.Base(pwd)
+	suggestDataset := varName.CreateVarNameFromString(filepath.Base(pwd))
 
 	// Process flags for inputs, prompt for any that were not provided.
 	var dsName, dsFormat string

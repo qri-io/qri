@@ -46,7 +46,7 @@ type StatusOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 	var ok bool
-	ok, o.Selection = GetLinkedFilesysRef()
+	o.Selection, ok = GetLinkedFilesysRef()
 	if !ok {
 		return fmt.Errorf("this is not a linked working directory")
 	}

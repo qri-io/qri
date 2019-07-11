@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -138,7 +139,7 @@ func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
 		return args[index], nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
-	ok, data := GetLinkedFilesysRef()
+	data, ok := GetLinkedFilesysRef()
 	if ok {
 		return data, nil
 	}
@@ -156,12 +157,12 @@ func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
 
 // GetLinkedFilesysRef returns whether the current directory is linked to a dataset in your repo,
 // and the reference to that dataset.
-func GetLinkedFilesysRef() (bool, string) {
+func GetLinkedFilesysRef() (string, bool) {
 	data, err := ioutil.ReadFile(QriRefFilename)
 	if err == nil {
-		return true, string(data)
+		return strings.TrimSpace(string(data)), true
 	}
-	return false, ""
+	return "", false
 }
 
 // DefaultSelectedRefList returns the list of currently selected dataset references

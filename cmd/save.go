@@ -105,7 +105,7 @@ type SaveOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref, err = GetDatasetRefString(f, args, 0)
-	o.IsLinkedRef, _ = GetLinkedFilesysRef()
+	_, o.IsLinkedRef = GetLinkedFilesysRef()
 
 	if o.IsLinkedRef {
 		// Determine format of the body.
