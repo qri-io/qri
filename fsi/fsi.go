@@ -15,10 +15,24 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"strings"
 	"sync"
 
 	"github.com/qri-io/qri/repo"
 )
+
+// QriRefFilename links the current working folder to a dataset by containing a ref to it.
+const QriRefFilename = ".qri-ref"
+
+// GetLinkedFilesysRef returns whether the current directory is linked to a
+// dataset in your repo, and the reference to that dataset.
+func GetLinkedFilesysRef(dir string) (string, bool) {
+	data, err := ioutil.ReadFile(QriRefFilename)
+	if err == nil {
+		return strings.TrimSpace(string(data)), true
+	}
+	return "", false
+}
 
 // FSI is a repo-side struct for coordinating file system integration
 type FSI struct {

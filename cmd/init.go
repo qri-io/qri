@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
@@ -55,7 +56,7 @@ func (o *InitOptions) Complete(f Factory) (err error) {
 
 // Run executes the `init` command
 func (o *InitOptions) Run() (err error) {
-	if _, err := os.Stat(QriRefFilename); !os.IsNotExist(err) {
+	if _, err := os.Stat(fsi.QriRefFilename); !os.IsNotExist(err) {
 		return fmt.Errorf("working directory is already linked, .qri-ref exists")
 	}
 	if _, err := os.Stat("meta.json"); !os.IsNotExist(err) {
@@ -115,8 +116,8 @@ func (o *InitOptions) Run() (err error) {
 	}
 
 	// Create the link file, containing the dataset reference.
-	if err = ioutil.WriteFile(QriRefFilename, []byte(ref), os.ModePerm); err != nil {
-		return fmt.Errorf("creating %s file: %s", QriRefFilename, err)
+	if err = ioutil.WriteFile(fsi.QriRefFilename, []byte(ref), os.ModePerm); err != nil {
+		return fmt.Errorf("creating %s file: %s", fsi.QriRefFilename, err)
 	}
 
 	// Create a skeleton meta.json file.

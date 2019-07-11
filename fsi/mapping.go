@@ -48,7 +48,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 		componentNameViz:       &dataset.Viz{},
 
 		// TODO (b5) - deal with dataset bodies
-		// componentNameBody: &dataset,
+		componentNameBody: nil,
 	}
 
 	extensions := map[string]decoderFactory{
@@ -73,9 +73,11 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 			filename := fmt.Sprintf("%s%s", cmpName, ext)
 			path := filepath.Join(dir, filename)
 			if f, e := os.Open(path); e == nil {
-				if err = mkDec(f).Decode(cmp); err != nil {
-					err = fmt.Errorf("reading %s: %s", filename, err)
-					return ds, mapping, err
+				if cmpName != componentNameBody {
+					if err = mkDec(f).Decode(cmp); err != nil {
+						err = fmt.Errorf("reading %s: %s", filename, err)
+						return ds, mapping, err
+					}
 				}
 
 				if err = addMapping(cmpName, path); err != nil {
@@ -135,8 +137,8 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 					ds.Viz = cmp.(*dataset.Viz)
 				case componentNameTransform:
 					ds.Transform = cmp.(*dataset.Transform)
-
-					// case componentNameBody:
+				case componentNameBody:
+						ds.BodyPath = path
 					// 	ds.Body = cmp.(*dataset.Body)
 					// 	// TODO (b5) -
 				}
