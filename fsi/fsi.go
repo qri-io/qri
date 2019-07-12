@@ -169,6 +169,9 @@ func (fsi *FSI) load() (links, error) {
 
 	data, err := ioutil.ReadFile(fsi.linksPath)
 	if err != nil {
+		if os.IsNotExist(err) {
+			return links{}, nil
+		}
 		return nil, err
 	}
 

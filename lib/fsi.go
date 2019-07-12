@@ -72,3 +72,16 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	*res, err = fsint.Status(*dir)
 	return err
 }
+
+
+// AlisStatus checks for any modifications or errors in a dataset alias
+func (m *FSIMethods) AliasStatus(alias *string, res *[]StatusItem) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	*res, err = fsint.AliasStatus(*alias)
+	return err
+}

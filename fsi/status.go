@@ -30,6 +30,22 @@ type StatusItem struct {
 	Message    string
 }
 
+// AliasStatus returns the status for a given dataset alias
+func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
+	links, err := fsi.load()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, l := range links {
+		if l.Alias == alias {
+			return fsi.Status(l.Path)
+		}
+	}
+
+	return nil, fmt.Errorf("alias not found: %s", alias)
+}
+
 // Status reads the diff status from the current working directory
 func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	refStr, ok := GetLinkedFilesysRef(dir)
