@@ -68,6 +68,20 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 		return nil
 	}
 
+	// HACK: Detect body format.
+	bodyFormat := ""
+	if _, err = os.Stat("body.csv"); !os.IsNotExist(err) {
+		bodyFormat = "csv"
+		ds.BodyPath = "body.csv"
+	}
+	if _, err = os.Stat("body.json"); !os.IsNotExist(err) {
+		if bodyFormat == "csv" {
+			// Conflict: both body.csv and body.json
+		}
+		bodyFormat = "json"
+		ds.BodyPath = "body.json"
+	}
+
 	for cmpName, cmp := range components {
 		for ext, mkDec := range extensions {
 			filename := fmt.Sprintf("%s%s", cmpName, ext)
@@ -133,12 +147,17 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 						ds.Structure = &dataset.Structure{}
 					}
 					ds.Structure.Schema = *cmp.(*map[string]interface{})
+					if ds.Structure.Format == "" {
+						ds.Structure.Format = bodyFormat
+					}
 				case componentNameViz:
 					ds.Viz = cmp.(*dataset.Viz)
 				case componentNameTransform:
 					ds.Transform = cmp.(*dataset.Transform)
 				case componentNameBody:
-					ds.BodyPath = path
+					if ds.BodyPath == "" {
+						ds.BodyPath = path
+					}
 					// 	ds.Body = cmp.(*dataset.Body)
 					// 	// TODO (b5) -
 				}

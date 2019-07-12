@@ -116,7 +116,7 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	_, o.IsLinkedRef = fsi.GetLinkedFilesysRef(o.pwd)
 
 	if o.IsLinkedRef {
-
+		o.FSIMethods = lib.NewFSIMethods(f.Instance())
 		o.fsids, _, err = fsi.ReadDir(o.pwd)
 		if err != nil {
 			return err
