@@ -28,7 +28,7 @@ const QriRefFilename = ".qri-ref"
 // GetLinkedFilesysRef returns whether the current directory is linked to a
 // dataset in your repo, and the reference to that dataset.
 func GetLinkedFilesysRef(dir string) (string, bool) {
-	data, err := ioutil.ReadFile(QriRefFilename)
+	data, err := ioutil.ReadFile(filepath.Join(dir, QriRefFilename))
 	if err == nil {
 		return strings.TrimSpace(string(data)), true
 	}
@@ -68,12 +68,14 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 		return "", err
 	}
 
+	fmt.Println(dirPath, refStr)
+
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return "", err
 	}
 
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
 		return ref.String(), err
 	}
 

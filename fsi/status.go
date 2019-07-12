@@ -59,10 +59,20 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		return nil, err
 	}
 
-	stored, err := dsfs.LoadDataset(fsi.repo.Store(), ref.Path)
-	if err != nil {
-		return nil, err
+	var stored *dataset.Dataset
+	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		if err == repo.ErrNotFound {
+			// no dataset, compare to an empty ds
+			stored = &dataset.Dataset{}
+		} else {
+			return nil, err
+		}
+	} else {
+		if stored, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+			return nil, err
+		}
 	}
+
 	// stored.DropDerivedValues()
 
 	ds, mapping, err := ReadDir(dir)

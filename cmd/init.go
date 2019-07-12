@@ -138,7 +138,7 @@ func (o *InitOptions) Run() (err error) {
 	// Create the link file, containing the dataset reference.
 	lnkp := &lib.LinkParams{
 		Dir: pwd,
-		Ref: o.Link,
+		Ref: ref,
 	}
 	lnkres := ""
 	if err = o.FSIMethods.CreateLink(lnkp, &lnkres); err != nil {
