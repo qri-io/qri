@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	util "github.com/qri-io/apiutil"
 	"github.com/ghodss/yaml"
+	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"

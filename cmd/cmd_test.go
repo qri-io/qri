@@ -13,6 +13,7 @@ import (
 	"testing"
 	"time"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
@@ -21,7 +22,6 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
-	golog "github.com/ipfs/go-log"
 )
 
 func init() {

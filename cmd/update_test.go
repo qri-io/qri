@@ -106,7 +106,7 @@ func TestUpdateMethods(t *testing.T) {
 	if err := o.List(); err != nil {
 		t.Error(err)
 	}
-	
+
 	// TODO (b5) - wee note on TestJobStringer, we should be testing times by setting local timezones
 	listStdOutContains := "| shell"
 	if !strings.Contains(out.String(), listStdOutContains) {

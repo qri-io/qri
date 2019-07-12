@@ -12,8 +12,8 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/qri-io/apiutil"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"

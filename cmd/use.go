@@ -135,7 +135,7 @@ func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
 	if index < len(args) {
 		return args[index], nil
 	}
-	
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return "", err

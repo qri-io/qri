@@ -108,7 +108,7 @@ type SaveOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref, err = GetDatasetRefString(f, args, 0)
-	
+
 	wd, err := os.Getwd()
 	if err != nil {
 		return err

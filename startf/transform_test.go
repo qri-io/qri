@@ -12,9 +12,9 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/starlib/testdata"
 	repoTest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/starlib"
+	"github.com/qri-io/starlib/testdata"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarktest"
 )

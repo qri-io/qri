@@ -9,8 +9,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )

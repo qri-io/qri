@@ -75,7 +75,9 @@ func (o *StatusOptions) Run() (err error) {
 	}
 
 	for _, si := range res {
-		printErr(o.ErrOut, fmt.Errorf("%s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+		if si.Type != "unmodified" {
+			printErr(o.ErrOut, fmt.Errorf("%s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+		}
 	}
 
 	return nil

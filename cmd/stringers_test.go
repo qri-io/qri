@@ -175,7 +175,7 @@ func TestJobStringer(t *testing.T) {
 	cases := []struct {
 		description string
 		job         *lib.Job
-		contains      string
+		contains    string
 	}{
 		{"JobStringer - all fields",
 			&lib.Job{

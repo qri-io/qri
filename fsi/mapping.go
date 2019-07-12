@@ -138,7 +138,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 				case componentNameTransform:
 					ds.Transform = cmp.(*dataset.Transform)
 				case componentNameBody:
-						ds.BodyPath = path
+					ds.BodyPath = path
 					// 	ds.Body = cmp.(*dataset.Body)
 					// 	// TODO (b5) -
 				}

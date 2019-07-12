@@ -2,29 +2,27 @@ package fsi
 
 import (
 	"bytes"
-	"fmt"
 	"encoding/json"
+	"fmt"
 
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/repo"
 	// "github.com/qri-io/dataset/validate"
 )
 
-
-type StatusType string
-
 var (
-	STAdd StatusType = "add"
-	STChange StatusType = "modified"
-	STRemove StatusType = "remove"
+	STUnmodified = "unmodified"
+	STAdd        = "add"
+	STChange     = "modified"
+	STRemove     = "remove"
 )
 
 type StatusItem struct {
 	SourceFile string
-	Path string
-	Type StatusType
-	Message string
+	Path       string
+	Type       string
+	Message    string
 }
 
 // Status reads the diff status from the current working directory
@@ -54,11 +52,11 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	// }
 
 	for path, sourceFilepath := range mapping {
-		if cmp := getComponent(stored, path);cmp == nil {
+		if cmp := getComponent(stored, path); cmp == nil {
 			change := StatusItem{
 				SourceFile: sourceFilepath,
-				Path: path,
-				Type: STAdd,
+				Path:       path,
+				Type:       STAdd,
 			}
 			changes = append(changes, change)
 		} else {
@@ -73,8 +71,15 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 			if !bytes.Equal(srcData, wdData) {
 				change := StatusItem{
 					SourceFile: sourceFilepath,
-					Path: path,
-					Type: STChange,
+					Path:       path,
+					Type:       STChange,
+				}
+				changes = append(changes, change)
+			} else {
+				change := StatusItem{
+					SourceFile: sourceFilepath,
+					Path:       path,
+					Type:       STUnmodified,
 				}
 				changes = append(changes, change)
 			}
