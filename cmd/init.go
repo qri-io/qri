@@ -7,7 +7,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
@@ -33,8 +32,9 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
-	cmd.PersistentFlags().StringVar(&o.Name, "name", "", "name of the dataset")
-	cmd.PersistentFlags().StringVar(&o.Format, "format", "", "format of dataset")
+	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
+	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
+	cmd.Flags().StringVar(&o.Link, "link", "", "link this directory to an existing dataset")
 
 	return cmd
 }
@@ -43,19 +43,43 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type InitOptions struct {
 	ioes.IOStreams
 
-	Name            string
-	Format          string
+	Name   string
+	Format string
+	Link   string
+
 	DatasetRequests *lib.DatasetRequests
+	FSIMethods      *lib.FSIMethods
 }
 
 // Complete completes a dataset reference
 func (o *InitOptions) Complete(f Factory) (err error) {
-	o.DatasetRequests, err = f.DatasetRequests()
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return err
+	}
+	o.FSIMethods, err = f.FSIMethods()
 	return err
 }
 
 // Run executes the `init` command
 func (o *InitOptions) Run() (err error) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	if o.Link != "" {
+		p := &lib.LinkParams{
+			Dir: pwd,
+			Ref: o.Link,
+		}
+		res := ""
+		err = o.FSIMethods.CreateLink(p, &res)
+		if err == nil {
+			printSuccess(o.ErrOut, "created link: %s", res)
+		}
+		return err
+	}
+
 	if _, err := os.Stat(fsi.QriRefFilename); !os.IsNotExist(err) {
 		return fmt.Errorf("working directory is already linked, .qri-ref exists")
 	}
@@ -77,10 +101,6 @@ func (o *InitOptions) Run() (err error) {
 	}
 
 	// Suggestion for the dataset name defaults to the name of the current directory.
-	pwd, err := os.Getwd()
-	if err != nil {
-		return err
-	}
 	suggestDataset := varName.CreateVarNameFromString(filepath.Base(pwd))
 
 	// Process flags for inputs, prompt for any that were not provided.
@@ -116,25 +136,31 @@ func (o *InitOptions) Run() (err error) {
 	}
 
 	// Create the link file, containing the dataset reference.
-	if err = ioutil.WriteFile(fsi.QriRefFilename, []byte(ref), os.ModePerm); err != nil {
-		return fmt.Errorf("creating %s file: %s", fsi.QriRefFilename, err)
+	lnkp := &lib.LinkParams{
+		Dir: pwd,
+		Ref: o.Link,
 	}
-
-	// Create a skeleton meta.json file.
-	meta := dataset.Meta{
-		Qri:         "md:0",
-		Citations:   []*dataset.Citation{},
-		Description: "enter description here",
-		Title:       "enter title here",
-		HomeURL:     "enter home URL here",
-		Keywords:    []string{"example"},
-	}
-	data, err := json.MarshalIndent(meta, "", " ")
-	if err := ioutil.WriteFile("meta.json", data, os.ModePerm); err != nil {
+	lnkres := ""
+	if err = o.FSIMethods.CreateLink(lnkp, &lnkres); err != nil {
 		return err
 	}
 
-	var schema map[string]interface{}
+	// Create a skeleton meta.json file.
+	metaSkeleton := []byte(`{
+		"title": "",
+		"description": "",
+		"keywords": [],
+		"homeURL": ""
+	}
+	`)
+	if err := ioutil.WriteFile("meta.json", metaSkeleton, os.ModePerm); err != nil {
+		return err
+	}
+
+	var (
+		schema map[string]interface{}
+		data   []byte
+	)
 	if dsFormat == "csv" {
 		schema = map[string]interface{}{
 			"type": "array",

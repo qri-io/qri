@@ -146,6 +146,11 @@ func (t TestFactory) ProfileMethods() (*lib.ProfileMethods, error) {
 	return lib.NewProfileMethods(t.inst), nil
 }
 
+// FSIMethods generates a lib.FSIMethods from internal state
+func (t TestFactory) FSIMethods() (*lib.FSIMethods, error) {
+	return lib.NewFSIMethods(t.inst), nil
+}
+
 // SearchRequests generates a lib.SearchRequests from internal state
 func (t TestFactory) SearchRequests() (*lib.SearchRequests, error) {
 	return lib.NewSearchRequests(t.node, t.rpc), nil

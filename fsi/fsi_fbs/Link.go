@@ -26,7 +26,7 @@ func (rcv *Link) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Link) Ref() []byte {
+func (rcv *Link) Path() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -34,7 +34,7 @@ func (rcv *Link) Ref() []byte {
 	return nil
 }
 
-func (rcv *Link) Path() []byte {
+func (rcv *Link) Ref() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -42,14 +42,25 @@ func (rcv *Link) Path() []byte {
 	return nil
 }
 
-func LinkStart(builder *flatbuffers.Builder) {
-	builder.StartObject(2)
+func (rcv *Link) Alias() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
 }
-func LinkAddRef(builder *flatbuffers.Builder, ref flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(ref), 0)
+
+func LinkStart(builder *flatbuffers.Builder) {
+	builder.StartObject(3)
 }
 func LinkAddPath(builder *flatbuffers.Builder, path flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(path), 0)
+	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(path), 0)
+}
+func LinkAddRef(builder *flatbuffers.Builder, ref flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(ref), 0)
+}
+func LinkAddAlias(builder *flatbuffers.Builder, alias flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(alias), 0)
 }
 func LinkEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

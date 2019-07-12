@@ -4,10 +4,12 @@ namespace fsi_fbs;
 
 
 table Link {
-  // reference flatbuffer
-  ref: string;
   // path is the primary path connected to this dataset
   path: string;
+  // current full dataset reference
+  ref: string;
+  // reference alias
+  alias: string;
 }
 
 // flatbuffers don't (currently) support using a vector as a root type

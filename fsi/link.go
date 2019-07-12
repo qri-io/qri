@@ -8,6 +8,12 @@ import (
 // links is a list of links
 type links []*Link
 
+// Remove deletes an entry from the list of links at an index
+func (ls links) Remove(i int) links {
+  ls[i] = ls[len(ls)-1]
+  return ls[:len(ls)-1]
+}
+
 // FlatbufferBytes turns links into a byte slice of flatbuffer data
 func (ls links) FlatbufferBytes() []byte {
 	builder := flatbuffers.NewBuilder(0)
@@ -49,8 +55,9 @@ func unmarshalLinksFlatbuffer(data []byte) (ls links, err error) {
 
 // Link is a connection between a path and a dataset reference
 type Link struct {
-	Ref  string
-	Path string
+	Ref   string
+	Path  string
+	Alias string
 }
 
 // FlatbufferBytes formats a link as a flatbuffer byte slice
@@ -65,18 +72,21 @@ func (link *Link) FlatbufferBytes() []byte {
 func (link *Link) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	ref := builder.CreateString(link.Ref)
 	path := builder.CreateString(link.Path)
+	alias := builder.CreateString(link.Alias)
 
 	fsifb.LinkStart(builder)
 	fsifb.LinkAddRef(builder, ref)
 	fsifb.LinkAddPath(builder, path)
+	fsifb.LinkAddAlias(builder, alias)
 	return fsifb.LinkEnd(builder)
 }
 
 // UnmarshalFlatbuffer decodes a job from a flatbuffer
 func (link *Link) UnmarshalFlatbuffer(l *fsifb.Link) error {
 	*link = Link{
-		Ref:  string(l.Ref()),
-		Path: string(l.Path()),
+		Ref:   string(l.Ref()),
+		Path:  string(l.Path()),
+		Alias: string(l.Alias()),
 	}
 	return nil
 }

@@ -12,11 +12,12 @@
 package fsi
 
 import (
-	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"strings"
 	"sync"
+	"fmt"
 
 	"github.com/qri-io/qri/repo"
 )
@@ -32,6 +33,12 @@ func GetLinkedFilesysRef(dir string) (string, bool) {
 		return strings.TrimSpace(string(data)), true
 	}
 	return "", false
+}
+
+// RepoPath returns the standard path to an FSI file for a given file-system
+// repo location
+func RepoPath(repoPath string) string {
+	return filepath.Join(repoPath, "fsi.qfb")
 }
 
 // FSI is a repo-side struct for coordinating file system integration
@@ -51,26 +58,109 @@ func NewFSI(r repo.Repo, path string) *FSI {
 
 // Links returns a list of linked datasets and their connected directories
 func (fsi *FSI) Links() ([]*Link, error) {
-	return nil, fmt.Errorf("TODO")
+	return fsi.load()
 }
 
-// Link connects a directory
-func (fsi *FSI) Link(dirPath, refStr string) error {
+// CreateLink connects a directory
+func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	links, err := fsi.load()
 	if err != nil {
-		return err
+		return "", err
 	}
 
-	l := &Link{Ref: refStr, Path: dirPath}
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return "", err
+	}
+
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return ref.String(), err
+	}
+
+	alias := ref.AliasString()
+
+	for _, l := range links {
+		if l.Alias == alias {
+			err = fmt.Errorf("'%s' is already linked to %s", alias, l.Path)
+			return "", err
+		}
+	}
+
+	l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString() }
 	links = append(links, l)
 
-	return fsi.save(links)
+	if err = writeLinkFile(dirPath, ref.String()); err != nil {
+		return "", err
+	}
+
+	return ref.String(), fsi.save(links)
+}
+
+// UpdateLink changes an existing link entry
+func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
+	links, err := fsi.load()
+	if err != nil {
+		return "", err
+	}
+
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return "", err
+	}
+
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return ref.String(), err
+	}
+
+	alias := ref.AliasString()
+
+	for i, l := range links {
+		if l.Alias == alias {
+			l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString() }
+			links[i] = l
+			return ref.String(), fsi.save(links)
+		}
+	}
+
+	if err = writeLinkFile(dirPath, ref.String()); err != nil {
+		return "", err
+	}
+
+	return "", fmt.Errorf("%s is not linked", ref)
 }
 
 // Unlink breaks the connection between a directory and a
-func (fsi *FSI) Unlink(dirPath, ref string) error {
+func (fsi *FSI) Unlink(dirPath, refStr string) (string, error) {
+	links, err := fsi.load()
+	if err != nil {
+		return "", err
+	}
 
-	return nil
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return "", err
+	}
+
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return ref.String(), err
+	}
+
+	alias := ref.AliasString()
+
+	for i, l := range links {
+		if l.Alias == alias {
+			links = links.Remove(i)
+			
+			if err = removeLinkFile(dirPath); err != nil {
+				return "", err
+			}
+
+			return "", fsi.save(links)
+		}
+	}
+
+
+	return "", fmt.Errorf("%s is not linked", ref)
 }
 
 func (fsi *FSI) load() (links, error) {
@@ -90,6 +180,15 @@ func (fsi *FSI) save(ls links) error {
 	defer fsi.lock.Unlock()
 
 	data := ls.FlatbufferBytes()
-
 	return ioutil.WriteFile(fsi.linksPath, data, os.ModePerm)
+}
+
+func writeLinkFile(dir, linkstr string) error {
+	dir = filepath.Join(dir, QriRefFilename)
+	return ioutil.WriteFile(dir, []byte(linkstr), os.ModePerm)
+}
+
+func removeLinkFile(dir string) error {
+	dir = filepath.Join(dir, QriRefFilename)
+	return os.Remove(dir)
 }

@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/qri-io/dataset"
@@ -100,28 +99,25 @@ type SaveOptions struct {
 	IsLinkedRef    bool
 	Secrets        []string
 
+	pwd   string
 	fsids *dataset.Dataset
 
 	DatasetRequests *lib.DatasetRequests
+	FSIMethods      *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref, err = GetDatasetRefString(f, args, 0)
 
-	wd, err := os.Getwd()
-	if err != nil {
+	if o.pwd, err = os.Getwd(); err != nil {
 		return err
 	}
-	_, o.IsLinkedRef = fsi.GetLinkedFilesysRef(wd)
+	_, o.IsLinkedRef = fsi.GetLinkedFilesysRef(o.pwd)
 
 	if o.IsLinkedRef {
-		wd, err := os.Getwd()
-		if err != nil {
-			return err
-		}
 
-		o.fsids, _, err = fsi.ReadDir(wd)
+		o.fsids, _, err = fsi.ReadDir(o.pwd)
 		if err != nil {
 			return err
 		}
@@ -212,11 +208,17 @@ continue?`, true) {
 		}
 		fmt.Fprint(o.Out, string(data))
 	}
-	if o.IsLinkedRef {
-		err = ioutil.WriteFile(fsi.QriRefFilename, []byte(res.String()), os.ModePerm)
-		if err != nil {
+
+	if o.IsLinkedRef && !o.DryRun {
+		p := &lib.LinkParams{
+			Dir: o.pwd,
+			Ref: res.String(),
+		}
+		res := ""
+		if err = o.FSIMethods.UpdateLink(p, &res); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

@@ -12,12 +12,17 @@ import (
 )
 
 var (
+	// STUnmodified is "no status"
 	STUnmodified = "unmodified"
+	// STAdd is an added component
 	STAdd        = "add"
+	// STChange is a modified component
 	STChange     = "modified"
+	// STRemove is a removed component, currently not really supported?
 	STRemove     = "remove"
 )
 
+// StatusItem is a component that has status representation on the filesystem
 type StatusItem struct {
 	SourceFile string
 	Path       string
