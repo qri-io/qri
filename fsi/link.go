@@ -10,8 +10,8 @@ type links []*Link
 
 // Remove deletes an entry from the list of links at an index
 func (ls links) Remove(i int) links {
-  ls[i] = ls[len(ls)-1]
-  return ls[:len(ls)-1]
+	ls[i] = ls[len(ls)-1]
+	return ls[:len(ls)-1]
 }
 
 // FlatbufferBytes turns links into a byte slice of flatbuffer data

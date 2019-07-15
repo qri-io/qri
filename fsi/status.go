@@ -15,11 +15,11 @@ var (
 	// STUnmodified is "no status"
 	STUnmodified = "unmodified"
 	// STAdd is an added component
-	STAdd        = "add"
+	STAdd = "add"
 	// STChange is a modified component
-	STChange     = "modified"
+	STChange = "modified"
 	// STRemove is a removed component, currently not really supported?
-	STRemove     = "remove"
+	STRemove = "remove"
 )
 
 // StatusItem is a component that has status representation on the filesystem
@@ -76,6 +76,9 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	// stored.DropDerivedValues()
 
 	ds, mapping, err := ReadDir(dir)
+	if err != nil {
+		return nil, err
+	}
 	// ds.DropDerivedValues()
 
 	// if err = validate.Dataset(ds); err != nil {

@@ -12,12 +12,12 @@
 package fsi
 
 import (
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"strings"
 	"sync"
-	"fmt"
 
 	"github.com/qri-io/qri/repo"
 )
@@ -68,8 +68,6 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 		return "", err
 	}
 
-	fmt.Println(dirPath, refStr)
-
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return "", err
@@ -78,17 +76,27 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
 		return ref.String(), err
 	}
-
+	// Not doing this will result in an invalid reference, if given a reference to a dataset
+	// without an commit, such as a freshly `qri init`ed directory that hasn't been saved.
+	if ref.Path == "" {
+		ref.ProfileID = ""
+	}
 	alias := ref.AliasString()
 
-	for _, l := range links {
+	for i, l := range links {
 		if l.Alias == alias {
-			err = fmt.Errorf("'%s' is already linked to %s", alias, l.Path)
-			return "", err
+			// There is already a link for this dataset, see if that link still exists.
+			targetPath := filepath.Join(l.Path, QriRefFilename)
+			if _, err := os.Stat(targetPath); !os.IsNotExist(err) {
+				return "", fmt.Errorf("'%s' is already linked to %s", alias, l.Path)
+			}
+			// Link was removed from the file system, update the links collection.
+			links = links.Remove(i)
+			break
 		}
 	}
 
-	l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString() }
+	l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString()}
 	links = append(links, l)
 
 	if err = writeLinkFile(dirPath, ref.String()); err != nil {
@@ -118,17 +126,17 @@ func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
 
 	for i, l := range links {
 		if l.Alias == alias {
-			l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString() }
+			l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString()}
 			links[i] = l
-			return ref.String(), fsi.save(links)
+			fsi.save(links)
+			break
 		}
 	}
 
 	if err = writeLinkFile(dirPath, ref.String()); err != nil {
 		return "", err
 	}
-
-	return "", fmt.Errorf("%s is not linked", ref)
+	return ref.String(), err
 }
 
 // Unlink breaks the connection between a directory and a
@@ -152,7 +160,7 @@ func (fsi *FSI) Unlink(dirPath, refStr string) (string, error) {
 	for i, l := range links {
 		if l.Alias == alias {
 			links = links.Remove(i)
-			
+
 			if err = removeLinkFile(dirPath); err != nil {
 				return "", err
 			}
@@ -160,7 +168,6 @@ func (fsi *FSI) Unlink(dirPath, refStr string) (string, error) {
 			return "", fsi.save(links)
 		}
 	}
-
 
 	return "", fmt.Errorf("%s is not linked", ref)
 }

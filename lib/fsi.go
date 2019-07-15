@@ -73,8 +73,7 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	return err
 }
 
-
-// AlisStatus checks for any modifications or errors in a dataset alias
+// AliasStatus checks for any modifications or errors in a dataset alias
 func (m *FSIMethods) AliasStatus(alias *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
