@@ -6,9 +6,9 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -16,9 +16,6 @@ import (
 
 // FileSelectedRefs stores selection, is copied from github.com/qri-io/qri/repo/fs/files.go
 const FileSelectedRefs = "/selected_refs.json"
-
-// QriRefFilename links the current working folder to a dataset by containing a ref to it.
-const QriRefFilename = ".qri-ref"
 
 // NewUseCommand creates a new `qri search` command that searches for datasets
 func NewUseCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
@@ -138,8 +135,13 @@ func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
 	if index < len(args) {
 		return args[index], nil
 	}
+
+	wd, err := os.Getwd()
+	if err != nil {
+		return "", err
+	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
-	data, ok := GetLinkedFilesysRef()
+	data, ok := fsi.GetLinkedFilesysRef(wd)
 	if ok {
 		return data, nil
 	}
@@ -153,16 +155,6 @@ func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
 		return "", nil
 	}
 	return refs[0], nil
-}
-
-// GetLinkedFilesysRef returns whether the current directory is linked to a dataset in your repo,
-// and the reference to that dataset.
-func GetLinkedFilesysRef() (string, bool) {
-	data, err := ioutil.ReadFile(QriRefFilename)
-	if err == nil {
-		return strings.TrimSpace(string(data)), true
-	}
-	return "", false
 }
 
 // DefaultSelectedRefList returns the list of currently selected dataset references

@@ -12,8 +12,8 @@ import (
 	"net/rpc"
 	"time"
 
-	"github.com/qri-io/apiutil"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"
@@ -288,6 +288,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/update/logs", s.middleware(uh.LogsHandler))
 	m.Handle("/update/logs/file", s.middleware(uh.LogFileHandler))
 	m.Handle("/update/service", s.middleware(uh.ServiceHandler))
+
+	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
+	m.Handle("/dsstatus/", s.middleware(fsih.StatusHandler))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

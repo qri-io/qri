@@ -1,0 +1,7 @@
+{
+  "format" : "csv",
+  "formatConfig" : {
+    "lazyQuotes" : true,
+    "variadicRows" : true
+  }
+}

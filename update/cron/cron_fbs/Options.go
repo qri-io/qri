@@ -3,15 +3,15 @@
 package cron_fbs
 
 type Options = byte
+
 const (
-	OptionsNONE Options = 0
-	OptionsDatasetOptions Options = 1
+	OptionsNONE               Options = 0
+	OptionsDatasetOptions     Options = 1
 	OptionsShellScriptOptions Options = 2
 )
 
 var EnumNamesOptions = map[Options]string{
-	OptionsNONE:"NONE",
-	OptionsDatasetOptions:"DatasetOptions",
-	OptionsShellScriptOptions:"ShellScriptOptions",
+	OptionsNONE:               "NONE",
+	OptionsDatasetOptions:     "DatasetOptions",
+	OptionsShellScriptOptions: "ShellScriptOptions",
 }
-

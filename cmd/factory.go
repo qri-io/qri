@@ -36,6 +36,7 @@ type Factory interface {
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchRequests() (*lib.SearchRequests, error)
 	RenderRequests() (*lib.RenderRequests, error)
+	FSIMethods() (*lib.FSIMethods, error)
 }
 
 // PathFactory is a function that returns paths to qri & ipfs repos

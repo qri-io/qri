@@ -74,7 +74,7 @@ func TestUpdateMethods(t *testing.T) {
 
 	// run the service for one second to generate updates
 	// sorry tests, y'all gotta run a little slower :/
-	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(time.Second * 2))
+	ctx, done := context.WithDeadline(context.Background(), time.Now().Add(time.Second*2))
 	defer done()
 	if err := inst.cron.(*cron.Cron).Start(ctx); err != nil {
 		t.Fatal(err)

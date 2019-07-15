@@ -10,6 +10,7 @@ require (
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
+	github.com/google/go-cmp v0.2.0
 	github.com/ipfs/go-cid v0.0.2
 	github.com/ipfs/go-ipfs v0.4.21
 	github.com/ipfs/go-ipld-format v0.0.2

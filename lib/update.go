@@ -349,15 +349,15 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 
 func absolutizeJobFilepaths(j *Job) error {
 	if o, ok := j.Options.(*cron.DatasetOptions); ok {
-	if err := qfs.AbsPath(&o.BodyPath); err != nil {
-		return err
-	}
-	for i := range o.FilePaths {
-		if err := qfs.AbsPath(&o.FilePaths[i]); err != nil {
+		if err := qfs.AbsPath(&o.BodyPath); err != nil {
 			return err
 		}
+		for i := range o.FilePaths {
+			if err := qfs.AbsPath(&o.FilePaths[i]); err != nil {
+				return err
+			}
+		}
 	}
-}
 	return nil
 }
 

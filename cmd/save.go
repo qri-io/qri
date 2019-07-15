@@ -3,12 +3,12 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -99,66 +99,28 @@ type SaveOptions struct {
 	IsLinkedRef    bool
 	Secrets        []string
 
+	pwd   string
+	fsids *dataset.Dataset
+
 	DatasetRequests *lib.DatasetRequests
+	FSIMethods      *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	o.Ref, err = GetDatasetRefString(f, args, 0)
-	_, o.IsLinkedRef = GetLinkedFilesysRef()
+
+	if o.pwd, err = os.Getwd(); err != nil {
+		return err
+	}
+	_, o.IsLinkedRef = fsi.GetLinkedFilesysRef(o.pwd)
 
 	if o.IsLinkedRef {
-		// Determine format of the body.
-		format := ""
-		if _, err = os.Stat("body.csv"); !os.IsNotExist(err) {
-			format = "csv"
-		} else if _, err = os.Stat("body.json"); !os.IsNotExist(err) {
-			format = "json"
-		}
-		if format == "" {
-			return fmt.Errorf("could not find either body.csv or body.json")
-		}
-		o.BodyPath = fmt.Sprintf("body.%s", format)
-
-		// Read schema.
-		schema := map[string]interface{}{}
-		data, err := ioutil.ReadFile("schema.json")
+		o.FSIMethods = lib.NewFSIMethods(f.Instance())
+		o.fsids, _, err = fsi.ReadDir(o.pwd)
 		if err != nil {
 			return err
 		}
-		if err = json.Unmarshal(data, &schema); err != nil {
-			return err
-		}
-		delete(schema, "qri")
-
-		// Create tmp structure.json
-		st := dataset.Structure{
-			Qri:    "st:0",
-			Format: format,
-			Schema: schema,
-		}
-		data, err = json.Marshal(st)
-		if err != nil {
-			return err
-		}
-		tmpfile, err := ioutil.TempFile("", "example")
-		if err != nil {
-			return err
-		}
-		//defer os.Remove(tmpfile.Name())
-		if _, err := tmpfile.Write(data); err != nil {
-			return err
-		}
-		if err := tmpfile.Close(); err != nil {
-			return err
-		}
-		structureFilename := tmpfile.Name() + ".json"
-		if err = os.Rename(tmpfile.Name(), structureFilename); err != nil {
-			return err
-		}
-		// TODO: Cleanup structureFilename
-
-		o.FilePaths = []string{"meta.json", structureFilename}
 	}
 
 	// Make all paths absolute. Especially important if we are running
@@ -200,6 +162,7 @@ func (o *SaveOptions) Run() (err error) {
 		Title:    o.Title,
 		Message:  o.Message,
 
+		Dataset:             o.fsids,
 		FilePaths:           o.FilePaths,
 		Private:             false,
 		Publish:             o.Publish,
@@ -245,11 +208,17 @@ continue?`, true) {
 		}
 		fmt.Fprint(o.Out, string(data))
 	}
-	if o.IsLinkedRef {
-		err = ioutil.WriteFile(QriRefFilename, []byte(res.String()), os.ModePerm)
-		if err != nil {
+
+	if o.IsLinkedRef && !o.DryRun {
+		p := &lib.LinkParams{
+			Dir: o.pwd,
+			Ref: res.String(),
+		}
+		res := ""
+		if err = o.FSIMethods.UpdateLink(p, &res); err != nil {
 			return err
 		}
 	}
+
 	return nil
 }

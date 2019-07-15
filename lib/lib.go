@@ -71,6 +71,7 @@ func Receivers(inst *Instance) []Methods {
 		NewSearchRequests(node, nil),
 		NewRenderRequests(r, nil),
 		NewUpdateMethods(inst),
+		NewFSIMethods(inst),
 	}
 }
 

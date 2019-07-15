@@ -9,8 +9,8 @@ import (
 	"net/http"
 	"strings"
 
-	apiutil "github.com/qri-io/apiutil"
 	flatbuffers "github.com/google/flatbuffers/go"
+	apiutil "github.com/qri-io/apiutil"
 	cronfb "github.com/qri-io/qri/update/cron/cron_fbs"
 )
 
