@@ -814,6 +814,42 @@ func TestDiffRevisions(t *testing.T) {
 	}
 }
 
+// Test that diffing a dataset with only one version produces an error
+func TestDiffOnlyOneRevision(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_diff_only_one")
+	defer r.Delete()
+
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	cmdR := r.CreateCommandRunner(ctx)
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri diff body me/test_movies")
+	if err == nil {
+		t.Errorf("expected error, did not get one")
+	}
+
+	expect := `dataset has only one version, nothing to diff against`
+	if err.Error() != expect {
+		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
 // TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
 // bodies of dataset in more of our test case. That would require extracting some parts out, like
 // pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a

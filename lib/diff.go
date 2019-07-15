@@ -114,7 +114,13 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		if err != nil {
 			return
 		}
-		if len(res) > 1 {
+
+		if len(res) == 0 {
+			// NOTE: This shouldn't be possible.
+			return fmt.Errorf("dataset has no versions, nothing to diff against")
+		} else if len(res) == 1 {
+			return fmt.Errorf("dataset has only one version, nothing to diff against")
+		} else {
 			*left = res[1].String()
 		}
 	}
