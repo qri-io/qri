@@ -37,7 +37,7 @@ func SetPathValue(path string, val interface{}, output interface{}) error {
 	target, field, err := findTargetAtPath(steps, target)
 	if err != nil {
 		if err == ErrNotFound {
-			return fmt.Errorf("path: \"%s\" not found", path)
+			return fmt.Errorf("at \"%s\": path not found", path)
 		}
 		collector.Add(err)
 		return collector.AsSingleError()
@@ -66,9 +66,9 @@ func GetPathValue(path string, input interface{}) (interface{}, error) {
 	target, field, err := findTargetAtPath(steps, target)
 	if err != nil {
 		if err == ErrNotFound {
-			return nil, fmt.Errorf("path: \"%s\" not found", path)
+			return nil, fmt.Errorf("at \"%s\": path not found", path)
 		}
-		return nil, err
+		return nil, fmt.Errorf("at \"%s\": %s", path, err)
 	}
 	if field == "" {
 		return target.Interface(), nil
@@ -78,7 +78,7 @@ func GetPathValue(path string, input interface{}) (interface{}, error) {
 	if lookup.IsValid() {
 		return lookup.Interface(), nil
 	}
-	return nil, fmt.Errorf("invalid path: \"%s\"", path)
+	return nil, fmt.Errorf("at \"%s\": invalid path", path)
 }
 
 func findTargetAtPath(steps []string, place reflect.Value) (reflect.Value, string, error) {

@@ -55,7 +55,7 @@ func TestInvalidTarget(t *testing.T) {
 
 	var n int
 	err = Struct(data, &n)
-	expect := "can only put fields to a struct"
+	expect := `can only assign fields to a struct`
 	if err == nil {
 		t.Fatalf("expected: error for unknown field, but no error returned")
 	}
@@ -111,7 +111,7 @@ func TestFillInvalidTimestamp(t *testing.T) {
 
 	var ds dataset.Dataset
 	err = Struct(data, &ds)
-	expect := "at Commit.Timestamp: could not parse time: \"1999-03__1T19:30:00.000Z\""
+	expect := `at "Commit.Timestamp": could not parse time: "1999-03__1T19:30:00.000Z"`
 	if err == nil {
 		t.Fatalf("expected: error for unknown field, but no error returned")
 	}
@@ -200,7 +200,7 @@ func TestStructUnknownFields(t *testing.T) {
 		t.Errorf("expected: error for unknown field, but no error returned")
 	}
 
-	expect := "path \"Unknown\": not found in destination struct"
+	expect := `at "Unknown": not found in struct dataset.Dataset`
 	if err.Error() != expect {
 		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -419,7 +419,7 @@ func TestFillArrayLengthError(t *testing.T) {
 		t.Errorf("expected: error for wrong length, but no error returned")
 	}
 
-	expect := "at Pair: need array of size 2, got size 3"
+	expect := `at "Pair": need array of size 2, got size 3`
 	if err.Error() != expect {
 		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -620,7 +620,7 @@ func TestFillErrorMessageOnWrongType(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, did not get an error")
 	}
-	expect := `at Age: need int, got string: "abc"`
+	expect := `at "Age": need int, got string: "abc"`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -644,7 +644,7 @@ func TestFillErrorMessageOnWrongSubfield(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, did not get an error")
 	}
-	expect := `at Sub.Num: need int, got bool: false`
+	expect := `at "Sub.Num": need int, got bool: false`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
 	}
@@ -669,8 +669,8 @@ func TestFillMulitpleErrors(t *testing.T) {
 	if err == nil {
 		t.Errorf("expected error, did not get an error")
 	}
-	expect := `at Age: need int, got string: "abc"
-at Sub.Num: need int, got bool: false`
+	expect := `at "Age": need int, got string: "abc"
+at "Sub.Num": need int, got bool: false`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
 	}

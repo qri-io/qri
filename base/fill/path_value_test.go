@@ -61,7 +61,7 @@ func TestFillPathValue(t *testing.T) {
 
 	c = Collection{}
 	err = SetPathValue("ison", 123, &c)
-	expect := "at ison: need bool, got int: 123"
+	expect := `at "ison": need bool, got int: 123`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -71,7 +71,7 @@ func TestFillPathValue(t *testing.T) {
 
 	c = Collection{}
 	err = SetPathValue("ison", "abc", &c)
-	expect = "at ison: need bool, got string: \"abc\""
+	expect = `at "ison": need bool, got string: "abc"`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -90,7 +90,7 @@ func TestFillPathValue(t *testing.T) {
 
 	c = Collection{}
 	err = SetPathValue("not_found", "missing", &c)
-	expect = "path: \"not_found\" not found"
+	expect = `at "not_found": path not found`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -102,7 +102,7 @@ func TestFillPathValue(t *testing.T) {
 
 	c = Collection{}
 	err = SetPathValue("list.2", "abc", &c)
-	expect = "at list.2: index outside of range: 2, len is 0"
+	expect = `at "list.2": index outside of range: 2, len is 0`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -113,7 +113,7 @@ func TestFillPathValue(t *testing.T) {
 	c = Collection{}
 	c.List = make([]string, 4)
 	err = SetPathValue("list.2", 123, &c)
-	expect = "at list.2: need string, got int: 123"
+	expect = `at "list.2": need string, got int: 123`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -175,7 +175,7 @@ func TestFillPathValue(t *testing.T) {
 	// Error
 	c = Collection{}
 	err = SetPathValue("sub.num", "abc", &c)
-	expect = "at sub.num: need int, got string: \"abc\""
+	expect = `at "sub.num": need int, got string: "abc"`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -210,7 +210,7 @@ func TestGetPathValue(t *testing.T) {
 	}
 
 	val, err = GetPathValue("not_found", &c)
-	expect := "path: \"not_found\" not found"
+	expect := `at "not_found": path not found`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -219,7 +219,7 @@ func TestGetPathValue(t *testing.T) {
 	}
 
 	val, err = GetPathValue("dict.missing_key", &c)
-	expect = "invalid path: \"dict.missing_key\""
+	expect = `at "dict.missing_key": invalid path`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}
@@ -236,7 +236,7 @@ func TestGetPathValue(t *testing.T) {
 	}
 
 	val, err = GetPathValue("list.invalid", &c)
-	expect = "need int, got string: \"invalid\""
+	expect = `at "list.invalid": need int, got string: "invalid"`
 	if err == nil {
 		t.Fatalf("expected: error \"%s\", got no error", expect)
 	}

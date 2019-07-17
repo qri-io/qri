@@ -25,7 +25,7 @@ func (c *ErrorCollector) Add(err error) bool {
 		return false
 	}
 	if len(c.fields) > 0 {
-		c.errs = append(c.errs, fmt.Errorf("at %s: %s", strings.Join(c.fields, "."), err.Error()))
+		c.errs = append(c.errs, fmt.Errorf("at \"%s\": %s", strings.Join(c.fields, "."), err.Error()))
 		return true
 	}
 	c.errs = append(c.errs, err)

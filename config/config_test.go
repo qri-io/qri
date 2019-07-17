@@ -95,12 +95,12 @@ func TestConfigGet(t *testing.T) {
 		expect interface{}
 		err    string
 	}{
-		{"foo", nil, "path: \"foo\" not found"},
+		{"foo", nil, "at \"foo\": path not found"},
 		{"p2p.enabled", true, ""},
-		{"p2p.QriBootstrapAddrs.foo", nil, "need int, got string: \"foo\""},
+		{"p2p.QriBootstrapAddrs.foo", nil, "at \"p2p.QriBootstrapAddrs.foo\": need int, got string: \"foo\""},
 		{"p2p.QriBootstrapAddrs.0", cfg.P2P.QriBootstrapAddrs[0], ""},
 		{"logging.levels.qriapi", cfg.Logging.Levels["qriapi"], ""},
-		{"logging.levels.foo", nil, "invalid path: \"logging.levels.foo\""},
+		{"logging.levels.foo", nil, "at \"logging.levels.foo\": invalid path"},
 	}
 
 	for i, c := range cases {
@@ -123,10 +123,10 @@ func TestConfigSet(t *testing.T) {
 		value interface{}
 		err   string
 	}{
-		{"foo", nil, "path: \"foo\" not found"},
+		{"foo", nil, "at \"foo\": path not found"},
 		{"p2p.enabled", false, ""},
 		{"p2p.qribootstrapaddrs.0", "wahoo", ""},
-		{"p2p.qribootstrapaddrs.0", false, "at p2p.qribootstrapaddrs.0: need string, got bool: false"},
+		{"p2p.qribootstrapaddrs.0", false, "at \"p2p.qribootstrapaddrs.0\": need string, got bool: false"},
 		{"logging.levels.qriapi", "debug", ""},
 	}
 
