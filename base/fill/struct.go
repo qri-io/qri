@@ -42,7 +42,7 @@ var (
 // there are no errors.
 func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value, collector *ErrorCollector) {
 	if target.Kind() != reflect.Struct {
-		collector.Add(fmt.Errorf("can only put fields to a struct"))
+		collector.Add(fmt.Errorf("can only assign fields to a struct"))
 		return
 	}
 
@@ -106,7 +106,7 @@ func putFieldsToTargetStruct(fields map[string]interface{}, target reflect.Value
 				continue
 			}
 			// Otherwise, unknown fields are an error.
-			collector.Add(fmt.Errorf("path \"%s\": not found in destination struct", k))
+			collector.Add(fmt.Errorf("at \"%s\": not found in struct %s", k, target.Type()))
 		}
 	}
 }
