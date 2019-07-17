@@ -44,8 +44,8 @@ func TestSaveComplete(t *testing.T) {
 			continue
 		}
 
-		if c.expect != opt.Ref {
-			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Ref)
+		if c.expect != opt.Refs.Ref() {
+			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Refs.Ref())
 			ioReset(in, out, errs)
 			continue
 		}
@@ -73,7 +73,7 @@ func TestSaveValidate(t *testing.T) {
 	}
 	for i, c := range cases {
 		opt := &SaveOptions{
-			Ref:       c.ref,
+			Refs:      NewExplicitRefSelect(c.ref),
 			FilePaths: []string{c.filepath},
 			BodyPath:  c.bodypath,
 		}
@@ -173,7 +173,7 @@ func TestSaveRun(t *testing.T) {
 
 		opt := &SaveOptions{
 			IOStreams:       streams,
-			Ref:             c.ref,
+			Refs:            NewExplicitRefSelect(c.ref),
 			FilePaths:       pathList,
 			BodyPath:        c.bodypath,
 			Title:           c.title,

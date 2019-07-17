@@ -190,3 +190,11 @@ func printDiff(w io.Writer, res *lib.DiffResponse, summaryOnly bool) (err error)
 	printToPager(w, buf)
 	return nil
 }
+
+func printRefSelect(w io.Writer, refset *RefSelect) {
+	if refset.IsExplicit() {
+		return
+	}
+	printInfo(w, refset.String())
+	fmt.Fprintln(w, "")
+}
