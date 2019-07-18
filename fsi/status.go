@@ -24,10 +24,10 @@ var (
 
 // StatusItem is a component that has status representation on the filesystem
 type StatusItem struct {
-	SourceFile string
-	Path       string
-	Type       string
-	Message    string
+	SourceFile string `json:"sourceFile"`
+	Path       string `json:"path"`
+	Type       string `json:"type"`
+	Message    string `json:"message"`
 }
 
 // AliasStatus returns the status for a given dataset alias
