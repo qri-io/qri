@@ -18,8 +18,8 @@ var (
 	STAdd = "add"
 	// STChange is a modified component
 	STChange = "modified"
-	// STRemove is a removed component, currently not really supported?
-	STRemove = "remove"
+	// STRemoved is a removed component, currently not really supported?
+	STRemoved = "removed"
 )
 
 // StatusItem is a component that has status representation on the filesystem
@@ -73,20 +73,36 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		}
 	}
 
-	// stored.DropDerivedValues()
+	stored.DropDerivedValues()
 
 	ds, mapping, err := ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
-	// ds.DropDerivedValues()
+	ds.DropDerivedValues()
 
 	// if err = validate.Dataset(ds); err != nil {
 	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
 	// }
 
+	storedComponents := dsComponents(stored)
+
+	for cmpName := range storedComponents {
+		// when reporting deletes, ignore "bound" components that must/must-not
+		// exist based on external conditions
+		if cmpName != componentNameStructure && cmpName != componentNameCommit {
+			if _, ok := mapping[cmpName]; !ok {
+				change := StatusItem{
+					Path: cmpName,
+					Type: STRemoved,
+				}
+				changes = append(changes, change)
+			}
+		}
+	}
+
 	for path, sourceFilepath := range mapping {
-		if cmp := getComponent(stored, path); cmp == nil {
+		if cmp := dsComponent(stored, path); cmp == nil {
 			change := StatusItem{
 				SourceFile: sourceFilepath,
 				Path:       path,
@@ -98,7 +114,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 			if err != nil {
 				return nil, err
 			}
-			wdData, err := json.Marshal(getComponent(ds, path))
+			wdData, err := json.Marshal(dsComponent(ds, path))
 			if err != nil {
 				return nil, err
 			}
@@ -123,7 +139,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	return changes, nil
 }
 
-func getComponent(ds *dataset.Dataset, cmpName string) interface{} {
+func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {
 	switch cmpName {
 	case componentNameCommit:
 		return ds.Commit
@@ -148,4 +164,27 @@ func getComponent(ds *dataset.Dataset, cmpName string) interface{} {
 	default:
 		return nil
 	}
+}
+
+// dsComponents returns the components of a dataset as a map of component_name: value
+func dsComponents(ds *dataset.Dataset) map[string]interface{} {
+	components := map[string]interface{}{}
+	cmpNames := []string{
+		componentNameCommit,
+		componentNameDataset,
+		componentNameMeta,
+		componentNameSchema,
+		componentNameBody,
+		componentNameStructure,
+		componentNameTransform,
+		componentNameViz,
+	}
+
+	for _, cmpName := range cmpNames {
+		if cmp := dsComponent(ds, cmpName); cmp != nil {
+			components[cmpName] = cmp
+		}
+	}
+
+	return components
 }
