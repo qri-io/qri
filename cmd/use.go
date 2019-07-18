@@ -8,7 +8,6 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -127,55 +126,6 @@ func (o *UseOptions) Run() (err error) {
 		fmt.Fprintln(o.Out, ref.String())
 	}
 	return nil
-}
-
-// GetDatasetRefString returns the arg at the index, or otherwise the first selected reference
-func GetDatasetRefString(f Factory, args []string, index int) (string, error) {
-	// If reference is specified by the user provide command-line arguments, use that reference.
-	if index < len(args) {
-		return args[index], nil
-	}
-
-	wd, err := os.Getwd()
-	if err != nil {
-		return "", err
-	}
-	// If in a working directory that is linked to a dataset, use that link's reference.
-	data, ok := fsi.GetLinkedFilesysRef(wd)
-	if ok {
-		return data, nil
-	}
-	// Find what `use` is referencing and use that.
-	refs, err := DefaultSelectedRefList(f)
-	if err != nil {
-		return "", err
-	}
-	if len(refs) == 0 {
-		// If selected_refs.json is empty or doesn't exist, not an error.
-		return "", nil
-	}
-	return refs[0], nil
-}
-
-// DefaultSelectedRefList returns the list of currently selected dataset references
-func DefaultSelectedRefList(f Factory) ([]string, error) {
-	fileSelectionPath := filepath.Join(f.QriRepoPath(), FileSelectedRefs)
-
-	refs, err := readFile(fileSelectionPath)
-	if err != nil {
-		// If selected_refs.json is empty or doesn't exist, not an error.
-		if os.IsNotExist(err) {
-			return nil, nil
-		}
-		return nil, err
-	}
-
-	res := make([]string, 0, len(refs))
-	for _, r := range refs {
-		res = append(res, r.String())
-	}
-
-	return res, nil
 }
 
 // writeFile serializes the list of refs to a file at path

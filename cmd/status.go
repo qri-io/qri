@@ -2,11 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -37,48 +35,46 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type StatusOptions struct {
 	ioes.IOStreams
 
-	Selection string
-	Dir       string
+	Refs *RefSelect
+	Dir  string
 
 	FSIMethods *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
-	var ok bool
-
-	o.Dir, err = os.Getwd()
+	o.Refs, err = GetLinkedRefSelect()
 	if err != nil {
 		return err
 	}
-
-	o.Selection, ok = fsi.GetLinkedFilesysRef(o.Dir)
-	if !ok {
-		return fmt.Errorf("this is not a linked working directory")
-	}
-
 	o.FSIMethods, err = f.FSIMethods()
 	return
 }
 
 // Run executes the status command
 func (o *StatusOptions) Run() (err error) {
+	printRefSelect(o.Out, o.Refs)
+
 	res := []lib.StatusItem{}
 	if err := o.FSIMethods.Status(&o.Dir, &res); err != nil {
 		printErr(o.ErrOut, err)
 		return nil
 	}
 
-	if len(res) == 0 {
-		printSuccess(o.ErrOut, "working directory clean!")
-		return nil
-	}
-
+	clean := true
+	valid := true
 	for _, si := range res {
 		if si.Type != "unmodified" {
-			printErr(o.ErrOut, fmt.Errorf("%s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+			printErr(o.Out, fmt.Errorf("%s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+			clean = false
 		}
+		// TODO(dlong): Validate each file / component, set `valid` to false if any problems exist
 	}
 
+	if clean {
+		printSuccess(o.Out, "working directory clean")
+	} else if valid {
+		printSuccess(o.Out, "run `qri save` to commit this dataset")
+	}
 	return nil
 }

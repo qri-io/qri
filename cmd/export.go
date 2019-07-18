@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -52,7 +53,7 @@ new dataset, use --blank.`,
 type ExportOptions struct {
 	ioes.IOStreams
 
-	Ref    string
+	Refs   *RefSelect
 	Blank  bool
 	Output string
 	Format string
@@ -64,9 +65,10 @@ type ExportOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref, err = GetDatasetRefString(f, args, 0)
-	if err != nil {
-		return err
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+		if err != repo.ErrEmptyRef {
+			return err
+		}
 	}
 	if f.RPC() != nil {
 		return usingRPCError("export")
@@ -95,7 +97,7 @@ func (o *ExportOptions) Run() error {
 	}
 
 	p := &lib.ExportParams{
-		Ref:    o.Ref,
+		Ref:    o.Refs.Ref(),
 		Output: path,
 		Format: format,
 		Zipped: o.Zipped,

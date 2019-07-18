@@ -50,8 +50,8 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	lp.Peername = args.Peername
 
 	params := &lib.LogParams{
+		Ref:        args.String(),
 		ListParams: lp,
-		Ref:        args,
 	}
 
 	res := []repo.DatasetRef{}

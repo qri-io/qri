@@ -21,6 +21,8 @@ func TestHistoryRequestsLog(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
+	firstRef := refs[0].String()
+
 	cases := []struct {
 		description string
 		p           *LogParams
@@ -30,15 +32,15 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - empty",
 			&LogParams{}, nil, "repo: empty dataset reference"},
 		{"log list - bad path",
-			&LogParams{Ref: repo.DatasetRef{Path: "/badpath"}}, nil, "node is not online and no registry is configured"},
+			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
 		{"log list - default",
-			&LogParams{Ref: refs[0]}, refs, ""},
+			&LogParams{Ref: firstRef}, refs, ""},
 		{"log list - offset 0 limit 3",
-			&LogParams{Ref: refs[0], ListParams: ListParams{Offset: 0, Limit: 3}}, refs[:3], ""},
+			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 0, Limit: 3}}, refs[:3], ""},
 		{"log list - offset 3 limit 3",
-			&LogParams{Ref: refs[0], ListParams: ListParams{Offset: 3, Limit: 3}}, refs[3:], ""},
+			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, refs[3:], ""},
 		{"log list - offset 6 limit 3",
-			&LogParams{Ref: refs[0], ListParams: ListParams{Offset: 6, Limit: 3}}, []repo.DatasetRef{}, ""},
+			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, []repo.DatasetRef{}, ""},
 	}
 
 	req := NewLogRequests(node, nil)

@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qri/lib"
 )
 
-
 // FSIHandlers connects HTTP requests to the FSI subsystem
 type FSIHandlers struct {
 	lib.FSIMethods
@@ -19,10 +18,9 @@ type FSIHandlers struct {
 func NewFSIHandlers(inst *lib.Instance, readOnly bool) FSIHandlers {
 	return FSIHandlers{
 		FSIMethods: *lib.NewFSIMethods(inst),
-		ReadOnly: readOnly,
+		ReadOnly:   readOnly,
 	}
 }
-
 
 // StatusHandler is the endpoint for getting the status of a linked dataset
 func (h *FSIHandlers) StatusHandler(w http.ResponseWriter, r *http.Request) {

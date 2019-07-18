@@ -43,8 +43,8 @@ func TestRenderComplete(t *testing.T) {
 			continue
 		}
 
-		if c.expect != opt.Ref {
-			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Ref)
+		if c.expect != opt.Refs.Ref() {
+			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Refs.Ref())
 			ioReset(in, out, errs)
 			continue
 		}
@@ -127,7 +127,7 @@ func TestRenderRun(t *testing.T) {
 
 		opt := &RenderOptions{
 			IOStreams:      streams,
-			Ref:            c.ref,
+			Refs:           NewExplicitRefSelect(c.ref),
 			Template:       c.template,
 			Output:         c.output,
 			RenderRequests: rr,

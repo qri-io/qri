@@ -67,7 +67,7 @@ dataset and its fields.`,
 type GetOptions struct {
 	ioes.IOStreams
 
-	Refs     []string
+	Refs     *RefSelect
 	Selector string
 	Format   string
 
@@ -86,16 +86,17 @@ var isDatasetField = regexp.MustCompile("(?i)^(commit|cm|structure|st|body|bd|me
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return
+	}
+
 	if len(args) > 0 {
 		if isDatasetField.MatchString(args[0]) {
 			o.Selector = args[0]
 			args = args[1:]
 		}
 	}
-	// TODO(dlong): Add tests to cmd_test for `use`.
-	o.Refs = make([]string, 1)
-	o.Refs[0], err = GetDatasetRefString(f, args, 0)
-	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
 		return
 	}
 
@@ -125,6 +126,8 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the get command
 func (o *GetOptions) Run() (err error) {
+	printRefSelect(o.Out, o.Refs)
+
 	// Pretty maps to a key in the FormatConfig map.
 	var fc dataset.FormatConfig
 	if o.HasPretty {
@@ -135,14 +138,9 @@ func (o *GetOptions) Run() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
-
-	var path string
-	if len(o.Refs) > 0 {
-		// TODO(dlong): Restore ability to `get` from multiple datasets at once.
-		path = o.Refs[0]
-	}
+	// TODO(dlong): Restore ability to `get` from multiple datasets at once.
 	p := lib.GetParams{
-		Path:         path,
+		Path:         o.Refs.Ref(),
 		Selector:     o.Selector,
 		Format:       o.Format,
 		FormatConfig: fc,

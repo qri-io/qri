@@ -51,7 +51,7 @@ provided, Qri will render the dataset with a default template.`,
 type RenderOptions struct {
 	ioes.IOStreams
 
-	Ref      string
+	Refs     *RefSelect
 	Template string
 	Output   string
 
@@ -60,11 +60,12 @@ type RenderOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref, err = GetDatasetRefString(f, args, 0)
-	if err != nil {
+	if o.RenderRequests, err = f.RenderRequests(); err != nil {
 		return err
 	}
-	o.RenderRequests, err = f.RenderRequests()
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+		return err
+	}
 	return
 }
 
@@ -80,7 +81,7 @@ func (o *RenderOptions) Run() (err error) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            o.Ref,
+		Ref:            o.Refs.Ref(),
 		Template:       template,
 		TemplateFormat: "html",
 	}

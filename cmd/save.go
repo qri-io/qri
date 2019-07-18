@@ -3,7 +3,6 @@ package cmd
 import (
 	"encoding/json"
 	"fmt"
-	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
@@ -80,7 +79,7 @@ commit message and title to the save.`,
 type SaveOptions struct {
 	ioes.IOStreams
 
-	Ref       string
+	Refs      *RefSelect
 	FilePaths []string
 	BodyPath  string
 	Recall    string
@@ -96,7 +95,6 @@ type SaveOptions struct {
 	KeepFormat     bool
 	Force          bool
 	NoRender       bool
-	IsLinkedRef    bool
 	Secrets        []string
 
 	pwd   string
@@ -108,18 +106,18 @@ type SaveOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref, err = GetDatasetRefString(f, args, 0)
-
-	if o.pwd, err = os.Getwd(); err != nil {
-		return err
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return
 	}
-	_, o.IsLinkedRef = fsi.GetLinkedFilesysRef(o.pwd)
 
-	if o.IsLinkedRef {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+		return
+	}
+	if o.Refs.IsLinked() {
 		o.FSIMethods = lib.NewFSIMethods(f.Instance())
-		o.fsids, _, err = fsi.ReadDir(o.pwd)
+		o.fsids, _, err = fsi.ReadDir(o.Refs.Dir())
 		if err != nil {
-			return err
+			return
 		}
 	}
 
@@ -127,8 +125,8 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	// `qri connect` in a different terminal, and that instance is in a different directory;
 	// that instance won't correctly find the body file we want to load if it's not absolute.
 	for i := range o.FilePaths {
-		if err := qfs.AbsPath(&o.FilePaths[i]); err != nil {
-			return err
+		if err = qfs.AbsPath(&o.FilePaths[i]); err != nil {
+			return
 		}
 	}
 
@@ -136,8 +134,7 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("body file: %s", err)
 	}
 
-	o.DatasetRequests, err = f.DatasetRequests()
-	return
+	return nil
 }
 
 // Validate checks that all user input is valid
@@ -147,13 +144,15 @@ func (o *SaveOptions) Validate() error {
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
+	printRefSelect(o.Out, o.Refs)
+
 	o.StartSpinner()
 	defer o.StopSpinner()
 
 	// TODO (b5): cmd should never need to parse a dataset reference
-	ref, err := parseCmdLineDatasetRef(o.Ref)
+	ref, err := parseCmdLineDatasetRef(o.Refs.Ref())
 	if err != nil && len(o.FilePaths) == 0 {
-		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Ref+"'")
+		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Refs.Ref()+"'")
 	}
 
 	p := &lib.SaveParams{
@@ -209,9 +208,9 @@ continue?`, true) {
 		fmt.Fprint(o.Out, string(data))
 	}
 
-	if o.IsLinkedRef && !o.DryRun {
+	if o.Refs.IsLinked() && !o.DryRun {
 		p := &lib.LinkParams{
-			Dir: o.pwd,
+			Dir: o.Refs.Dir(),
 			Ref: res.String(),
 		}
 		res := ""

@@ -46,8 +46,8 @@ func TestGetComplete(t *testing.T) {
 			continue
 		}
 
-		if !testSliceEqual(c.refs, opt.Refs) {
-			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.refs, opt.Refs)
+		if !testSliceEqual(c.refs, opt.Refs.RefList()) {
+			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.refs, opt.Refs.RefList())
 			ioReset(in, out, errs)
 			continue
 		}
