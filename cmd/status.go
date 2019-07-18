@@ -5,6 +5,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -64,8 +65,14 @@ func (o *StatusOptions) Run() (err error) {
 	clean := true
 	valid := true
 	for _, si := range res {
-		if si.Type != "unmodified" {
-			printErr(o.Out, fmt.Errorf("%s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+		switch si.Type {
+		case fsi.STRemoved:
+			printErr(o.Out, fmt.Errorf("  %s:  %s", si.Type, si.Path))
+			clean = false
+		case fsi.STUnmodified:
+			// noop
+		default:
+			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
 			clean = false
 		}
 		// TODO(dlong): Validate each file / component, set `valid` to false if any problems exist
@@ -74,7 +81,7 @@ func (o *StatusOptions) Run() (err error) {
 	if clean {
 		printSuccess(o.Out, "working directory clean")
 	} else if valid {
-		printSuccess(o.Out, "run `qri save` to commit this dataset")
+		printSuccess(o.Out, "\nrun `qri save` to commit this dataset")
 	}
 	return nil
 }

@@ -4,11 +4,9 @@ go 1.12
 
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
-	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.2.0
 	github.com/ipfs/go-cid v0.0.2
@@ -34,7 +32,7 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.1.0
-	github.com/qri-io/dataset v0.1.3-0.20190617151150-bd20b1913ba5
+	github.com/qri-io/dataset v0.1.3-0.20190710190340-f9ddda73d9dd
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
