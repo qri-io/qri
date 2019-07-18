@@ -36,7 +36,7 @@ func NewLogRequests(node *p2p.QriNode, cli *rpc.Client) *LogRequests {
 type LogParams struct {
 	ListParams
 	// Reference to data to fetch history for
-	Ref repo.DatasetRef
+	Ref string
 }
 
 // Log returns the history of changes for a given dataset
@@ -44,7 +44,17 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 	if r.cli != nil {
 		return r.cli.Call("LogRequests.Log", params, res)
 	}
-	ref := params.Ref
+
+	if params.Ref == "" {
+		return repo.ErrEmptyRef
+	}
+	ref, err := repo.ParseDatasetRef(params.Ref)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid dataset reference", params.Ref)
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return
+	}
 
 	// ensure valid limit value
 	if params.Limit <= 0 {

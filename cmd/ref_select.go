@@ -3,9 +3,11 @@ package cmd
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 	"strings"
 
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/repo"
 )
 
 // RefSelect represents zero or more references, either explicitly provided or implied
@@ -22,6 +24,7 @@ func NewExplicitRefSelect(ref string) *RefSelect {
 
 // NewLinkedDirectoryRefSelect returns a single reference implied by a linked directory
 func NewLinkedDirectoryRefSelect(ref, dir string) *RefSelect {
+	// Remove the path from the reference, want just peername/ds_name
 	pos := strings.Index(ref, "@")
 	if pos != -1 {
 		ref = ref[:pos]
@@ -73,7 +76,11 @@ func (r *RefSelect) String() string {
 	return fmt.Sprintf("%s dataset [%s]", r.kind, r.ref)
 }
 
-// GetCurrentRefSelect returns the current reference selection
+// GetCurrentRefSelect returns the current reference selection. This could be explicitly provided
+// as command-line arguments, or could be determined by being in a linked directory, or could be
+// selected by the `use` command. This order is also the precendence, from most important to least.
+// This is the recommended method for command-line commands to get references, unless they have a
+// special way of interacting with datasets (for example, `qri status`).
 func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, error) {
 	// TODO(dlong): Respect `allowed`, number of refs the command uses. -1 means any.
 	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
@@ -82,23 +89,20 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, err
 		return NewExplicitRefSelect(args[0]), nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
-	dir, err := os.Getwd()
+	refs, err := GetLinkedRefSelect()
 	if err == nil {
-		ref, ok := fsi.GetLinkedFilesysRef(dir)
-		if ok {
-			return NewLinkedDirectoryRefSelect(ref, dir), nil
-		}
+		return refs, nil
 	}
 	// Find what `use` is referencing and use that.
-	refs, err := DefaultSelectedRefList(f)
+	selected, err := DefaultSelectedRefList(f)
 	if err != nil {
 		return nil, err
 	}
-	if len(refs) == 1 {
-		return NewUsingRefSelect(refs[0]), nil
+	if len(selected) == 1 {
+		return NewUsingRefSelect(selected[0]), nil
 	}
-	// Empty refset
-	return nil, fmt.Errorf("empty dataset reference")
+	// Empty refselect
+	return nil, repo.ErrEmptyRef
 }
 
 // GetLinkedRefSelect returns the current reference selection only if it is a linked directory
@@ -111,6 +115,27 @@ func GetLinkedRefSelect() (*RefSelect, error) {
 			return NewLinkedDirectoryRefSelect(ref, dir), nil
 		}
 	}
-	// Empty refset
-	return nil, fmt.Errorf("empty dataset reference")
+	// Empty refselect
+	return nil, repo.ErrEmptyRef
+}
+
+// DefaultSelectedRefList returns the list of currently `use`ing dataset references
+func DefaultSelectedRefList(f Factory) ([]string, error) {
+	fileSelectionPath := filepath.Join(f.QriRepoPath(), FileSelectedRefs)
+
+	refs, err := readFile(fileSelectionPath)
+	if err != nil {
+		// If selected_refs.json is empty or doesn't exist, not an error.
+		if os.IsNotExist(err) {
+			return nil, nil
+		}
+		return nil, err
+	}
+
+	res := make([]string, 0, len(refs))
+	for _, r := range refs {
+		res = append(res, r.String())
+	}
+
+	return res, nil
 }

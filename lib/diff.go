@@ -94,22 +94,19 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 	}
 	// fill in left side from previous path if left isn't set & right is a ref string with history
 	if *right != "" && *left == "" && repo.IsRefString(*right) {
-		var ref repo.DatasetRef
 		if *right == "" {
 			return repo.ErrEmptyRef
 		}
-		if ref, err = repo.ParseDatasetRef(*right); err != nil {
-			return
-		}
+		ref := *right
 
 		lr := NewLogRequests(node, nil)
 		var res []repo.DatasetRef
 		err = lr.Log(&LogParams{
+			Ref: ref,
 			ListParams: ListParams{
 				Limit:  10,
 				Offset: 0,
 			},
-			Ref: ref,
 		}, &res)
 		if err != nil {
 			return

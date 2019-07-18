@@ -52,15 +52,14 @@ type LogOptions struct {
 
 	PageSize int
 	Page     int
-	Ref      string
+	Refs     *RefSelect
 
 	LogRequests *lib.LogRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
-	o.Ref, err = GetDatasetRefString(f, args, 0)
-	if err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 		return err
 	}
 	o.LogRequests, err = f.LogRequests()
@@ -70,25 +69,19 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the log command
 func (o *LogOptions) Run() error {
 
-	ref, err := repo.ParseDatasetRef(o.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return err
-	}
-
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
 
 	p := &lib.LogParams{
-		Ref: ref,
+		Ref: o.Refs.Ref(),
 		ListParams: lib.ListParams{
-			Peername: ref.Peername,
-			Limit:    page.Limit(),
-			Offset:   page.Offset(),
+			Limit:  page.Limit(),
+			Offset: page.Offset(),
 		},
 	}
 
 	refs := []repo.DatasetRef{}
-	if err = o.LogRequests.Log(p, &refs); err != nil {
+	if err := o.LogRequests.Log(p, &refs); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "please provide a dataset reference")
 		}
