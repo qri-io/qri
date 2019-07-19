@@ -71,7 +71,7 @@ func (o *StatusOptions) Run() (err error) {
 			clean = false
 		case fsi.STUnmodified:
 			// noop
-		default:
+		case fsi.STAdd, fsi.STChange:
 			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
 			clean = false
 		}

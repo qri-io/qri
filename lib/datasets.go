@@ -209,8 +209,8 @@ type SaveParams struct {
 	FilePaths []string
 	// secrets for transform execution
 	Secrets map[string]string
-	// Replace writes the entire given dataset as a new snapshot instead of 
-	// applying save params as agumentations to the existing history
+	// Replace writes the entire given dataset as a new snapshot instead of
+	// applying save params as augmentations to the existing history
 	Replace bool
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
@@ -333,12 +333,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	switches := actions.SaveDatasetSwitches{
-		Replace: p.Replace,
-		DryRun: p.DryRun,
-		Pin: true, 
-		ConvertFormatToPrev: p.ConvertFormatToPrev, 
-		Force: p.Force, 
-		ShouldRender: p.ShouldRender,
+		Replace:             p.Replace,
+		DryRun:              p.DryRun,
+		Pin:                 true,
+		ConvertFormatToPrev: p.ConvertFormatToPrev,
+		Force:               p.Force,
+		ShouldRender:        p.ShouldRender,
 	}
 	ref, err = actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {

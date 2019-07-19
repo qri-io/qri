@@ -16,16 +16,15 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
-// SaveDatasetSwitches provides togglable flags to SaveDataset that control 
+// SaveDatasetSwitches provides toggleable flags to SaveDataset that control
 // save behaviour
-// dryRun, pin, convertFormatToPrev, force, shouldRender bool
 type SaveDatasetSwitches struct {
-	Replace bool // 
-	DryRun bool
-	Pin bool
+	Replace             bool //
+	DryRun              bool
+	Pin                 bool
 	ConvertFormatToPrev bool
-	Force bool
-	ShouldRender bool
+	Force               bool
+	ShouldRender        bool
 }
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
@@ -35,7 +34,6 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		pro      *profile.Profile
 		r        = node.Repo
 	)
-
 
 	prev, mutable, prevPath, err := base.PrepareDatasetSave(r, changes.Peername, changes.Name)
 	if err != nil {
@@ -91,7 +89,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	}
 
 	if !sw.Replace {
-		// apply the changes to the previous dataset.
+		// Treat the changes as a set of patches applied to the previous dataset
 		mutable.Assign(changes)
 		changes = mutable
 	}
