@@ -4,12 +4,36 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"sort"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
 	// "github.com/qri-io/dataset/validate"
 )
+
+// statusItems is a slice of component Status, used for sorting
+type statusItems []StatusItem
+
+// componentOrder is the canonical order for components. values are negative
+// such that they will report less than a nonexistent key, which will return 0
+// and report after specified keys
+var componentOrder = map[string]int{
+	"dataset":   -8,
+	"commit":    -7,
+	"meta":      -6,
+	"structure": -5,
+	"schema":    -4,
+	"viz":       -3,
+	"transform": -2,
+	"body":      -1,
+}
+
+func (si statusItems) Len() int      { return len(si) }
+func (si statusItems) Swap(i, j int) { si[i], si[j] = si[j], si[i] }
+func (si statusItems) Less(i, j int) bool {
+	return componentOrder[si[i].Component] < componentOrder[si[j].Component]
+}
 
 var (
 	// STUnmodified is "no status"
@@ -25,7 +49,7 @@ var (
 // StatusItem is a component that has status representation on the filesystem
 type StatusItem struct {
 	SourceFile string `json:"sourceFile"`
-	Path       string `json:"path"`
+	Component  string `json:"component"`
 	Type       string `json:"type"`
 	Message    string `json:"message"`
 }
@@ -93,8 +117,8 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit {
 			if _, ok := mapping[cmpName]; !ok {
 				change := StatusItem{
-					Path: cmpName,
-					Type: STRemoved,
+					Component: cmpName,
+					Type:      STRemoved,
 				}
 				changes = append(changes, change)
 			}
@@ -105,7 +129,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		if cmp := dsComponent(stored, path); cmp == nil {
 			change := StatusItem{
 				SourceFile: sourceFilepath,
-				Path:       path,
+				Component:  path,
 				Type:       STAdd,
 			}
 			changes = append(changes, change)
@@ -121,14 +145,14 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 			if !bytes.Equal(srcData, wdData) {
 				change := StatusItem{
 					SourceFile: sourceFilepath,
-					Path:       path,
+					Component:  path,
 					Type:       STChange,
 				}
 				changes = append(changes, change)
 			} else {
 				change := StatusItem{
 					SourceFile: sourceFilepath,
-					Path:       path,
+					Component:  path,
 					Type:       STUnmodified,
 				}
 				changes = append(changes, change)
@@ -136,6 +160,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		}
 	}
 
+	sort.Sort(statusItems(changes))
 	return changes, nil
 }
 
