@@ -86,9 +86,8 @@ type SaveOptions struct {
 
 	Title   string
 	Message string
-
-	Passive        bool
-	Rescursive     bool
+	
+	Replace        bool
 	ShowValidation bool
 	Publish        bool
 	DryRun         bool

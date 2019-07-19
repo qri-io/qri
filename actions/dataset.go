@@ -16,13 +16,26 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 )
 
+// SaveDatasetSwitches provides togglable flags to SaveDataset that control 
+// save behaviour
+// dryRun, pin, convertFormatToPrev, force, shouldRender bool
+type SaveDatasetSwitches struct {
+	Replace bool // 
+	DryRun bool
+	Pin bool
+	ConvertFormatToPrev bool
+	Force bool
+	ShouldRender bool
+}
+
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, dryRun, pin, convertFormatToPrev, force, shouldRender bool) (ref repo.DatasetRef, err error) {
+func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
 		r        = node.Repo
 	)
+
 
 	prev, mutable, prevPath, err := base.PrepareDatasetSave(r, changes.Peername, changes.Name)
 	if err != nil {
@@ -33,7 +46,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		return
 	}
 
-	if dryRun {
+	if sw.DryRun {
 		node.LocalStreams.PrintErr("🏃🏽‍♀️ dry run\n")
 		// dry-runs store to an in-memory repo
 		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore(), nil)
@@ -61,7 +74,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	}
 
 	if changes.BodyFile() != nil && prev.Structure != nil && changes.Structure != nil && prev.Structure.Format != changes.Structure.Format {
-		if convertFormatToPrev {
+		if sw.ConvertFormatToPrev {
 			var f qfs.File
 			f, err = base.ConvertBodyFormat(changes.BodyFile(), changes.Structure, prev.Structure)
 			if err != nil {
@@ -77,9 +90,11 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		}
 	}
 
-	// apply the changes to the previous dataset.
-	mutable.Assign(changes)
-	changes = mutable
+	if !sw.Replace {
+		// apply the changes to the previous dataset.
+		mutable.Assign(changes)
+		changes = mutable
+	}
 
 	// infer missing values
 	if err = base.InferValues(pro, changes); err != nil {
@@ -87,14 +102,14 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	}
 
 	// add a default viz if one is needed
-	if shouldRender {
+	if sw.ShouldRender {
 		base.MaybeAddDefaultViz(changes)
 	}
 
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
-	return base.CreateDataset(r, node.LocalStreams, changes, prev, dryRun, pin, force, shouldRender)
+	return base.CreateDataset(r, node.LocalStreams, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
 }
 
 // UpdateRemoteDataset brings a reference to the latest version, syncing to the
