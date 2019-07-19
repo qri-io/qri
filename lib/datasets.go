@@ -196,6 +196,7 @@ type SaveParams struct {
 	// dataset supplies params directly, all other param fields override values
 	// supplied by dataset
 	Dataset *dataset.Dataset
+
 	// dataset reference string, the name to save to
 	Ref string
 	// commit title, defaults to a generated string based on diff
@@ -208,6 +209,9 @@ type SaveParams struct {
 	FilePaths []string
 	// secrets for transform execution
 	Secrets map[string]string
+	// Replace writes the entire given dataset as a new snapshot instead of 
+	// applying save params as agumentations to the existing history
+	Replace bool
 	// option to make dataset private. private data is not currently implimented,
 	// see https://github.com/qri-io/qri/issues/291 for updates
 	Private bool
@@ -328,7 +332,15 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
-	ref, err = actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, p.DryRun, true, p.ConvertFormatToPrev, p.Force, p.ShouldRender)
+	switches := actions.SaveDatasetSwitches{
+		Replace: p.Replace,
+		DryRun: p.DryRun,
+		Pin: true, 
+		ConvertFormatToPrev: p.ConvertFormatToPrev, 
+		Force: p.Force, 
+		ShouldRender: p.ShouldRender,
+	}
+	ref, err = actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

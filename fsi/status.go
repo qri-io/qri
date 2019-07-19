@@ -90,7 +90,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	for cmpName := range storedComponents {
 		// when reporting deletes, ignore "bound" components that must/must-not
 		// exist based on external conditions
-		if cmpName != componentNameStructure && cmpName != componentNameCommit {
+		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit {
 			if _, ok := mapping[cmpName]; !ok {
 				change := StatusItem{
 					Path: cmpName,
