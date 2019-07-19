@@ -12,6 +12,25 @@ import (
 	// "github.com/qri-io/dataset/validate"
 )
 
+var (
+	// STUnmodified is "no status"
+	STUnmodified = "unmodified"
+	// STAdd is an added component
+	STAdd = "add"
+	// STChange is a modified component
+	STChange = "modified"
+	// STRemoved is a removed component
+	STRemoved = "removed"
+)
+
+// StatusItem is a component that has status representation on the filesystem
+type StatusItem struct {
+	SourceFile string `json:"sourceFile"`
+	Component  string `json:"component"`
+	Type       string `json:"type"`
+	Message    string `json:"message"`
+}
+
 // statusItems is a slice of component Status, used for sorting
 type statusItems []StatusItem
 
@@ -33,25 +52,6 @@ func (si statusItems) Len() int      { return len(si) }
 func (si statusItems) Swap(i, j int) { si[i], si[j] = si[j], si[i] }
 func (si statusItems) Less(i, j int) bool {
 	return componentOrder[si[i].Component] < componentOrder[si[j].Component]
-}
-
-var (
-	// STUnmodified is "no status"
-	STUnmodified = "unmodified"
-	// STAdd is an added component
-	STAdd = "add"
-	// STChange is a modified component
-	STChange = "modified"
-	// STRemoved is a removed component, currently not really supported?
-	STRemoved = "removed"
-)
-
-// StatusItem is a component that has status representation on the filesystem
-type StatusItem struct {
-	SourceFile string `json:"sourceFile"`
-	Component  string `json:"component"`
-	Type       string `json:"type"`
-	Message    string `json:"message"`
 }
 
 // AliasStatus returns the status for a given dataset alias
