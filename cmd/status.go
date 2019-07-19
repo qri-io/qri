@@ -67,12 +67,12 @@ func (o *StatusOptions) Run() (err error) {
 	for _, si := range res {
 		switch si.Type {
 		case fsi.STRemoved:
-			printErr(o.Out, fmt.Errorf("  %s:  %s", si.Type, si.Path))
+			printErr(o.Out, fmt.Errorf("  %s:  %s", si.Type, si.Component))
 			clean = false
 		case fsi.STUnmodified:
 			// noop
 		default:
-			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Path, filepath.Base(si.SourceFile)))
+			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
 			clean = false
 		}
 		// TODO(dlong): Validate each file / component, set `valid` to false if any problems exist
