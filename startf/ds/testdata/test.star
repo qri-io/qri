@@ -18,7 +18,6 @@ exp = {
   'schema': {
     'type': 'array'
   },
-  'errCount': 0,  
   'format': 'json', 
   'qri': 'st:0'
 }
