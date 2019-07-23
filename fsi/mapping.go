@@ -70,19 +70,31 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 
 	// HACK: Detect body format.
 	bodyFormat := ""
-	if _, err = os.Stat("body.csv"); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(dir, "body.csv")); !os.IsNotExist(err) {
 		bodyFormat = "csv"
-		ds.BodyPath = "body.csv"
 	}
-	if _, err = os.Stat("body.json"); !os.IsNotExist(err) {
+	if _, err = os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
 		if bodyFormat == "csv" {
-			// Conflict: both body.csv and body.json
+			return ds, mapping, fmt.Errorf("body.csv and body.json both exist")
 		}
 		bodyFormat = "json"
-		ds.BodyPath = "body.json"
 	}
 
-	for cmpName, cmp := range components {
+	bodyFilename := ""
+	if bodyFormat != "" {
+		bodyFilename = fmt.Sprintf("body.%s", bodyFormat)
+		if err = addMapping(componentNameBody, bodyFilename); err != nil {
+			return ds, mapping, err
+		}
+		if ds.BodyPath == "" {
+			ds.BodyPath = filepath.Join(dir, bodyFilename)
+		}
+	}
+
+	// Iterate components in a deterministic order, from highest priority to lowest.
+	for i := 0; i < len(componentListOrder); i++ {
+		cmpName := componentListOrder[i]
+		cmp := components[cmpName]
 		for ext, mkDec := range extensions {
 			filename := fmt.Sprintf("%s%s", cmpName, ext)
 			path := filepath.Join(dir, filename)
@@ -92,10 +104,9 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 						err = fmt.Errorf("reading %s: %s", filename, err)
 						return ds, mapping, err
 					}
-				}
-
-				if err = addMapping(cmpName, path); err != nil {
-					return ds, mapping, err
+					if err = addMapping(cmpName, path); err != nil {
+						return ds, mapping, err
+					}
 				}
 
 				switch cmpName {
@@ -158,8 +169,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 					if ds.BodyPath == "" {
 						ds.BodyPath = path
 					}
-					// 	ds.Body = cmp.(*dataset.Body)
-					// 	// TODO (b5) -
 				}
 			}
 		}

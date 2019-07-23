@@ -40,6 +40,7 @@ https://github.com/qri-io/qri/issues`,
 
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
+		NewCheckoutCommand(opt, ioStreams),
 		NewConfigCommand(opt, ioStreams),
 		NewConnectCommand(opt, ioStreams),
 		NewDAGCommand(opt, ioStreams),
