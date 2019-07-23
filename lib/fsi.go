@@ -17,6 +17,20 @@ func NewFSIMethods(inst *Instance) *FSIMethods {
 // CoreRequestsName specifies this is a fsi handle
 func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 
+// FSILink is a file-system-integration link between
+type FSILink = fsi.Link
+
+// Links lists all fsi links
+func (m *FSIMethods) Links(p *bool, res *[]*FSILink) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.Links", p, res)
+	}
+
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	*res, err = fsint.Links()
+	return err
+}
+
 // LinkParams encapsulate parameters to the link method
 type LinkParams struct {
 	Dir string
