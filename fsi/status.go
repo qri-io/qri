@@ -263,8 +263,8 @@ func (fsi *FSI) StoredStatus(refStr string) (changes []StatusItem, err error) {
 	for cmpName := range dsComponents(stored) {
 		si := StatusItem{
 			SourceFile: "repo",
-			Component: cmpName,
-			Type: STUnmodified,
+			Component:  cmpName,
+			Type:       STUnmodified,
 		}
 		changes = append(changes, si)
 	}

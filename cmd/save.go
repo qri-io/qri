@@ -86,7 +86,7 @@ type SaveOptions struct {
 
 	Title   string
 	Message string
-	
+
 	Replace        bool
 	ShowValidation bool
 	Publish        bool
