@@ -84,3 +84,15 @@ func (m *FSIMethods) AliasStatus(alias *string, res *[]StatusItem) (err error) {
 	*res, err = fsint.AliasStatus(*alias)
 	return err
 }
+
+// StoredStatus returns a status-like report of a dataset reference
+func (m *FSIMethods) StoredStatus(ref *string, res *[]StatusItem) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	*res, err = fsint.StoredStatus(*ref)
+	return err
+}
