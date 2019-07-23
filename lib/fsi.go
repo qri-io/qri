@@ -1,6 +1,8 @@
 package lib
 
 import (
+	"path/filepath"
+	
 	"github.com/qri-io/qri/fsi"
 )
 
@@ -39,8 +41,16 @@ type LinkParams struct {
 
 // CreateLink creates a connection between a working drirectory and a dataset history
 func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
+	// absolutize path name
+	path, err := filepath.Abs(p.Dir)
+	if err != nil {
+		return err
+	}
+
+	p.Dir = path
+
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Link", p, res)
+		return m.inst.rpc.Call("FSIMethods.CreateLink", p, res)
 	}
 
 	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
@@ -51,7 +61,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 // UpdateLink creates a connection between a working drirectory and a dataset history
 func (m *FSIMethods) UpdateLink(p *LinkParams, res *string) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Link", p, res)
+		return m.inst.rpc.Call("FSIMethods.UpdateLink", p, res)
 	}
 
 	// TODO (b5) - inst should have an fsi instance
