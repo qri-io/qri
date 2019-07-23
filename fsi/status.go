@@ -271,7 +271,7 @@ func (fsi *FSI) StoredStatus(refStr string) (changes []StatusItem, err error) {
 		}
 	}
 
-	for cmpName := range dsComponents(stored) {
+	for cmpName := range dsAllComponents(stored) {
 		si := StatusItem{
 			SourceFile: "repo",
 			Component:  cmpName,
