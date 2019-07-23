@@ -75,6 +75,17 @@ func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
 		return nil, err
 	}
 
+	ref, err := repo.ParseDatasetRef(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return nil, err
+	}
+
+	alias = ref.AliasString()
+
 	for _, l := range links {
 		if l.Alias == alias {
 			return fsi.Status(l.Path)
