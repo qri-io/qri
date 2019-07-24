@@ -53,7 +53,7 @@ func TestUpdateRemoteDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// run a local update to advance history
-	now0, err := SaveDataset(peers[0], ds, nil, nil, SaveDatasetSwitches{ Pin: true, ShouldRender: true })
+	now0, err := SaveDataset(peers[0], ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -122,7 +122,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ DryRun: true, ShouldRender: true })
+	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -145,7 +145,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ Pin: true, ShouldRender: true })
+	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -174,7 +174,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(nil)
 
 	// dryrun should work
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{ DryRun: true, ShouldRender: true })
+	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -200,7 +200,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.Transform.OpenScriptFile(nil)
 
 	// test save with transform
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{ Pin: true, ShouldRender: true })
+	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -219,7 +219,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ Pin: true, ShouldRender: true })
+	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -247,7 +247,7 @@ func TestSaveDataset(t *testing.T) {
 		t.Error(err)
 	}
 
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{ Pin: true, ShouldRender: true })
+	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -266,7 +266,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 		},
 	}
 
-	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ ShouldRender: true })
+	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ShouldRender: true})
 	expect := "creating a new dataset requires a structure or a body"
 	if err == nil || err.Error() != expect {
 		t.Errorf("expected error, but got %s", err.Error())
@@ -285,22 +285,21 @@ func TestSaveDatasetReplace(t *testing.T) {
 		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-	
 
 	// test save
-	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ Pin: true })
+	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true})
 	if err != nil {
 		t.Error(err)
 	}
 
 	ds = &dataset.Dataset{
-		Peername: "me",
-		Name:     "test_save",
+		Peername:  "me",
+		Name:      "test_save",
 		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "object"}},
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte(`{"foo":"bar"}`)))
 
-	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ Replace: true, Pin: true })
+	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Replace: true, Pin: true})
 	if err != nil {
 		t.Error(err)
 	}

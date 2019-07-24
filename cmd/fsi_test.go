@@ -75,7 +75,7 @@ func TestInitStatusSave(t *testing.T) {
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -169,7 +169,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 
 working directory clean
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -190,7 +190,7 @@ working directory clean
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -214,7 +214,7 @@ run ` + "`qri save`" + ` to commit this dataset
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }

@@ -291,6 +291,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/dsstatus/", s.middleware(fsih.StatusHandler))
+	m.Handle("/fsilinks/", s.middleware(fsih.LinksHandler))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

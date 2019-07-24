@@ -55,3 +55,29 @@ func (h *FSIHandlers) statusHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	util.WriteResponse(w, res)
 }
+
+// LinksHandler is the endpoint for getting the list of fsi-linked datasets
+func (h *FSIHandlers) LinksHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/fsilinks")
+			return
+		}
+		h.linksHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *FSIHandlers) linksHandler(w http.ResponseWriter, r *http.Request) {
+	p := false
+	res := []*lib.FSILink{}
+	if err := h.Links(&p, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error listing links: %s", err.Error()))
+		return
+	}
+	util.WriteResponse(w, res)
+}

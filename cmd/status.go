@@ -25,6 +25,9 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
+			if !o.Refs.IsLinked() {
+				return o.RunForeign()
+			}
 			return o.Run()
 		},
 	}
@@ -37,27 +40,28 @@ type StatusOptions struct {
 	ioes.IOStreams
 
 	Refs *RefSelect
-	Dir  string
 
 	FSIMethods *lib.FSIMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
-	o.Refs, err = GetLinkedRefSelect()
+	o.Refs, err = GetCurrentRefSelect(f, args, 1)
 	if err != nil {
 		return err
 	}
+
 	o.FSIMethods, err = f.FSIMethods()
 	return
 }
 
 // Run executes the status command
 func (o *StatusOptions) Run() (err error) {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	res := []lib.StatusItem{}
-	if err := o.FSIMethods.Status(&o.Dir, &res); err != nil {
+	dir := o.Refs.Dir()
+	if err := o.FSIMethods.Status(&dir, &res); err != nil {
 		printErr(o.ErrOut, err)
 		return nil
 	}
@@ -83,5 +87,24 @@ func (o *StatusOptions) Run() (err error) {
 	} else if valid {
 		printSuccess(o.Out, "\nrun `qri save` to commit this dataset")
 	}
+	return nil
+}
+
+// RunForeign returns status on a non-fsi-linked reference
+func (o *StatusOptions) RunForeign() (err error) {
+	printInfo(o.ErrOut, "using foreign dataset reference: %s", o.Refs.Ref())
+	printRefSelect(o.ErrOut, o.Refs)
+
+	res := []lib.StatusItem{}
+	ref := o.Refs.Ref()
+	if err := o.FSIMethods.StoredStatus(&ref, &res); err != nil {
+		printErr(o.ErrOut, err)
+		return nil
+	}
+
+	for _, si := range res {
+		printInfo(o.Out, fmt.Sprintf("  %s", si.Component))
+	}
+
 	return nil
 }

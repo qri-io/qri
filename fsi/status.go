@@ -75,13 +75,24 @@ func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
 		return nil, err
 	}
 
+	ref, err := repo.ParseDatasetRef(alias)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return nil, err
+	}
+
+	alias = ref.AliasString()
+
 	for _, l := range links {
 		if l.Alias == alias {
 			return fsi.Status(l.Path)
 		}
 	}
 
-	return nil, fmt.Errorf("alias not found: %s", alias)
+	return fsi.StoredStatus(alias)
 }
 
 // Status reads the diff status from the current working directory
@@ -237,6 +248,40 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 
 	sort.Sort(statusItems(changes))
 	return changes, nil
+}
+
+// StoredStatus loads a dataset & presents it in a status-like format
+func (fsi *FSI) StoredStatus(refStr string) (changes []StatusItem, err error) {
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return nil, err
+	}
+
+	var stored *dataset.Dataset
+	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		if err == repo.ErrNotFound {
+			// no dataset, compare to an empty ds
+			stored = &dataset.Dataset{}
+		} else {
+			return nil, err
+		}
+	} else {
+		if stored, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+			return nil, err
+		}
+	}
+
+	for cmpName := range dsAllComponents(stored) {
+		si := StatusItem{
+			SourceFile: "repo",
+			Component:  cmpName,
+			Type:       STUnmodified,
+		}
+		changes = append(changes, si)
+	}
+
+	sort.Sort(statusItems(changes))
+	return changes, err
 }
 
 func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {

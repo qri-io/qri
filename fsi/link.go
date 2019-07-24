@@ -55,9 +55,9 @@ func unmarshalLinksFlatbuffer(data []byte) (ls links, err error) {
 
 // Link is a connection between a path and a dataset reference
 type Link struct {
-	Ref   string
-	Path  string
-	Alias string
+	Ref   string `json:"ref"`
+	Path  string `json:"path"`
+	Alias string `json:"alias"`
 }
 
 // FlatbufferBytes formats a link as a flatbuffer byte slice
