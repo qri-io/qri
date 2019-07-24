@@ -32,10 +32,11 @@ var (
 // a map of component names to the files they came from. Files can be specified
 // in either JSON or YAML format. It is an error to specify any component more
 // than once
-func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err error) {
+func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, problems map[string]string, err error) {
 	mapping = map[string]string{}
 	ds = &dataset.Dataset{}
 	schema := map[string]interface{}{}
+	problems = nil
 
 	components := map[string]interface{}{
 		componentNameDataset: ds,
@@ -75,7 +76,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 	}
 	if _, err = os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
 		if bodyFormat == "csv" {
-			return ds, mapping, fmt.Errorf("body.csv and body.json both exist")
+			return ds, mapping, problems, fmt.Errorf("body.csv and body.json both exist")
 		}
 		bodyFormat = "json"
 	}
@@ -84,7 +85,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 	if bodyFormat != "" {
 		bodyFilename = fmt.Sprintf("body.%s", bodyFormat)
 		if err = addMapping(componentNameBody, bodyFilename); err != nil {
-			return ds, mapping, err
+			return ds, mapping, problems, err
 		}
 		if ds.BodyPath == "" {
 			ds.BodyPath = filepath.Join(dir, bodyFilename)
@@ -101,11 +102,14 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 			if f, e := os.Open(path); e == nil {
 				if cmpName != componentNameBody {
 					if err = mkDec(f).Decode(cmp); err != nil {
-						err = fmt.Errorf("reading %s: %s", filename, err)
-						return ds, mapping, err
+						if problems == nil {
+							problems = make(map[string]string)
+						}
+						problems[cmpName] = filename
+						continue
 					}
 					if err = addMapping(cmpName, path); err != nil {
-						return ds, mapping, err
+						return ds, mapping, problems, err
 					}
 				}
 
@@ -178,7 +182,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, err er
 		err = ErrNoDatasetFiles
 	}
 
-	return ds, mapping, err
+	return ds, mapping, problems, err
 }
 
 type decoderFactory func(io.Reader) decoder

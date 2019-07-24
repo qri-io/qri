@@ -113,10 +113,14 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 	if o.Refs.IsLinked() {
+		var problems map[string]string
 		o.FSIMethods = lib.NewFSIMethods(f.Instance())
-		o.fsids, _, err = fsi.ReadDir(o.Refs.Dir())
+		o.fsids, _, problems, err = fsi.ReadDir(o.Refs.Dir())
 		if err != nil {
 			return
+		}
+		if problems != nil {
+			return fmt.Errorf("cannot save, dataset has errors")
 		}
 	}
 
