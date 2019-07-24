@@ -2,7 +2,7 @@ package lib
 
 import (
 	"path/filepath"
-	
+
 	"github.com/qri-io/qri/fsi"
 )
 

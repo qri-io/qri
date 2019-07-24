@@ -920,7 +920,11 @@ func (r *TestRepoRoot) Delete() {
 
 // CreateCommandRunner returns a cobra runable command.
 func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
-	r.streams, _, _, _ = ioes.NewTestIOStreams()
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	r.streams = ioes.NewIOStreams(in, out, out)
+	setNoColor(true)
+
 	return NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
 }
 
