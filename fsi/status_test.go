@@ -52,7 +52,7 @@ func TestStatusValid(t *testing.T) {
 	for _, ch := range changes {
 		actual += strings.Replace(fmt.Sprintf("%s", ch), paths.firstDir, ".", 1)
 	}
-	expect := `{./commit.json commit modified }{./meta.json meta modified }{./schema.json schema add }{./structure.json structure modified }{./transform.json transform modified }{./viz.json viz modified }`
+	expect := `{./commit.json commit add }{./meta.json meta add }{./schema.json schema add }{./structure.json structure add }{./transform.json transform add }{./viz.json viz add }{body.csv body add }`
 	if actual != expect {
 		t.Errorf("status error didn't match, actual: %s, expect: %s", actual, expect)
 	}

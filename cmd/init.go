@@ -34,7 +34,6 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
 	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
-	cmd.Flags().StringVar(&o.Link, "link", "", "link this directory to an existing dataset")
 
 	return cmd
 }
@@ -45,7 +44,6 @@ type InitOptions struct {
 
 	Name   string
 	Format string
-	Link   string
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -64,19 +62,6 @@ func (o *InitOptions) Complete(f Factory) (err error) {
 func (o *InitOptions) Run() (err error) {
 	pwd, err := os.Getwd()
 	if err != nil {
-		return err
-	}
-
-	if o.Link != "" {
-		p := &lib.LinkParams{
-			Dir: pwd,
-			Ref: o.Link,
-		}
-		res := ""
-		err = o.FSIMethods.CreateLink(p, &res)
-		if err == nil {
-			printSuccess(o.ErrOut, "created link: %s", res)
-		}
 		return err
 	}
 
