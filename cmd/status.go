@@ -78,6 +78,10 @@ func (o *StatusOptions) Run() (err error) {
 		case fsi.STAdd, fsi.STChange:
 			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
 			clean = false
+		case fsi.STParseError:
+			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
+			clean = false
+			valid = false
 		}
 		// TODO(dlong): Validate each file / component, set `valid` to false if any problems exist
 	}
@@ -86,6 +90,8 @@ func (o *StatusOptions) Run() (err error) {
 		printSuccess(o.Out, "working directory clean")
 	} else if valid {
 		printSuccess(o.Out, "\nrun `qri save` to commit this dataset")
+	} else {
+		printErr(o.Out, fmt.Errorf("\nfix these problems before saving this dataset"))
 	}
 	return nil
 }

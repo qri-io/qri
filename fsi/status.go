@@ -24,6 +24,8 @@ var (
 	STChange = "modified"
 	// STRemoved is a removed component
 	STRemoved = "removed"
+	// STParseError is a component that didn't parse
+	STParseError = "parse_error"
 )
 
 // StatusItem is a component that has status representation on the filesystem
@@ -127,7 +129,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	stored.Transform = nil
 	stored.Peername = ""
 
-	working, mapping, err := ReadDir(dir)
+	working, mapping, problems, err := ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
@@ -143,6 +145,20 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		// when reporting deletes, ignore "bound" components that must/must-not
 		// exist based on external conditions
 		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit && cmpName != componentNameViz {
+
+			if problems != nil {
+				// Problems is nil unless some components have errors.
+				if cmpFilename, ok := problems[cmpName]; ok {
+					change := StatusItem{
+						SourceFile: cmpFilename,
+						Component:  cmpName,
+						Type:       STParseError,
+					}
+					changes = append(changes, change)
+					continue
+				}
+			}
+
 			cmp := dsComponent(stored, cmpName)
 			// If the component was not in the previous version, it can't have been removed.
 			if cmp == nil {

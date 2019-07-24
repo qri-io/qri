@@ -16,7 +16,7 @@ func TestReadDir(t *testing.T) {
 
 	for _, c := range good {
 		t.Run(fmt.Sprintf("good: %s", filepath.Base(c.path)), func(t *testing.T) {
-			_, _, err := ReadDir(c.path)
+			_, _, _, err := ReadDir(c.path)
 			if err != nil {
 				t.Errorf("expected no error. got: %s", err)
 			}
@@ -34,7 +34,7 @@ func TestReadDir(t *testing.T) {
 
 	for _, c := range bad {
 		t.Run(fmt.Sprintf("bad: %s", filepath.Base(c.path)), func(t *testing.T) {
-			_, _, err := ReadDir(c.path)
+			_, _, _, err := ReadDir(c.path)
 			t.Log(err)
 			if err == nil {
 				t.Errorf("expected error. got: %s", err)
