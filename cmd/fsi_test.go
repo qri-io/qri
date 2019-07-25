@@ -2,14 +2,17 @@ package cmd
 
 import (
 	"context"
+	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"sort"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset/dsfs"
 )
 
 // Test using "init" to create a new linked directory, using status to see the added files,
@@ -515,6 +518,126 @@ fix these problems before saving this dataset
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
+}
+
+// Test status at specific versions
+func TestStatusAtVersion(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	r := NewTestRepoRoot(t, "qri_test_status_at_version")
+	defer r.Delete()
+
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	// Add a version with just a body
+	cmdR := r.CreateCommandRunner(ctx)
+	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_two.json me/status_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ref1 := parseRefFromSave(r.GetOutput())
+
+	// Add a meta
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml me/status_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ref2 := parseRefFromSave(r.GetOutput())
+
+	// Change the meta
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_another.yaml me/status_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ref3 := parseRefFromSave(r.GetOutput())
+
+	// Change the body
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_four.json me/status_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ref4 := parseRefFromSave(r.GetOutput())
+
+	// Status for the first version of the dataset, both body and schema were added.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, fmt.Sprintf("qri status %s", ref1))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := r.GetOutput()
+	expect := `  schema: add
+  body: add
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Status for the second version, meta added.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, fmt.Sprintf("qri status %s", ref2))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output = r.GetOutput()
+	expect = `  meta: add
+  schema: unmodified
+  body: unmodified
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Status for the third version, meta modified.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, fmt.Sprintf("qri status %s", ref3))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output = r.GetOutput()
+	expect = `  meta: modified
+  schema: unmodified
+  body: unmodified
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Status for the fourth version, body modified.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, fmt.Sprintf("qri status %s", ref4))
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output = r.GetOutput()
+	expect = `  meta: unmodified
+  schema: unmodified
+  body: modified
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
+func parseRefFromSave(output string) string {
+	pos := strings.Index(output, "saved: ")
+	ref := output[pos+7:]
+	return strings.TrimSpace(ref)
 }
 
 func cmpTextLines(left, right string) string {

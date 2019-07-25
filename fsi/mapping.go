@@ -32,8 +32,8 @@ var (
 // a map of component names to the files they came from. Files can be specified
 // in either JSON or YAML format. It is an error to specify any component more
 // than once
-func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, problems map[string]string, err error) {
-	mapping = map[string]string{}
+func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, problems map[string]string, err error) {
+	fileMap = map[string]string{}
 	ds = &dataset.Dataset{}
 	schema := map[string]interface{}{}
 	problems = nil
@@ -58,14 +58,14 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, proble
 		".yml":  newYAMLDecoder,
 	}
 
-	addMapping := func(cmpName, path string) error {
-		if cmpPath, exists := mapping[cmpName]; exists {
+	addFile := func(cmpName, path string) error {
+		if cmpPath, exists := fileMap[cmpName]; exists {
 			cmpPath = filepath.Base(cmpPath)
 			path = filepath.Base(path)
 			return fmt.Errorf(`%s is defined in two places: %s and %s. please remove one`, cmpName, cmpPath, path)
 		}
 
-		mapping[cmpName] = path
+		fileMap[cmpName] = path
 		return nil
 	}
 
@@ -76,7 +76,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, proble
 	}
 	if _, err = os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
 		if bodyFormat == "csv" {
-			return ds, mapping, problems, fmt.Errorf("body.csv and body.json both exist")
+			return ds, fileMap, problems, fmt.Errorf("body.csv and body.json both exist")
 		}
 		bodyFormat = "json"
 	}
@@ -84,8 +84,8 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, proble
 	bodyFilename := ""
 	if bodyFormat != "" {
 		bodyFilename = fmt.Sprintf("body.%s", bodyFormat)
-		if err = addMapping(componentNameBody, bodyFilename); err != nil {
-			return ds, mapping, problems, err
+		if err = addFile(componentNameBody, bodyFilename); err != nil {
+			return ds, fileMap, problems, err
 		}
 		if ds.BodyPath == "" {
 			ds.BodyPath = filepath.Join(dir, bodyFilename)
@@ -108,45 +108,45 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, proble
 						problems[cmpName] = filename
 						continue
 					}
-					if err = addMapping(cmpName, path); err != nil {
-						return ds, mapping, problems, err
+					if err = addFile(cmpName, path); err != nil {
+						return ds, fileMap, problems, err
 					}
 				}
 
 				switch cmpName {
 				case componentNameDataset:
 					if ds.Commit != nil {
-						if err = addMapping(componentNameCommit, path); err != nil {
+						if err = addFile(componentNameCommit, path); err != nil {
 							return
 						}
 					}
 					if ds.Meta != nil {
-						if err = addMapping(componentNameMeta, path); err != nil {
+						if err = addFile(componentNameMeta, path); err != nil {
 							return
 						}
 					}
 					if ds.Structure != nil {
-						if err = addMapping(componentNameStructure, path); err != nil {
+						if err = addFile(componentNameStructure, path); err != nil {
 							return
 						}
 						if ds.Structure.Schema != nil {
-							if err = addMapping(componentNameSchema, path); err != nil {
+							if err = addFile(componentNameSchema, path); err != nil {
 								return
 							}
 						}
 					}
 					if ds.Viz != nil {
-						if err = addMapping(componentNameViz, path); err != nil {
+						if err = addFile(componentNameViz, path); err != nil {
 							return
 						}
 					}
 					if ds.Transform != nil {
-						if err = addMapping(componentNameTransform, path); err != nil {
+						if err = addFile(componentNameTransform, path); err != nil {
 							return
 						}
 					}
 					if ds.Body != nil {
-						if err = addMapping(componentNameBody, path); err != nil {
+						if err = addFile(componentNameBody, path); err != nil {
 							return
 						}
 					}
@@ -178,11 +178,11 @@ func ReadDir(dir string) (ds *dataset.Dataset, mapping map[string]string, proble
 		}
 	}
 
-	if len(mapping) == 0 {
+	if len(fileMap) == 0 {
 		err = ErrNoDatasetFiles
 	}
 
-	return ds, mapping, problems, err
+	return ds, fileMap, problems, err
 }
 
 type decoderFactory func(io.Reader) decoder
