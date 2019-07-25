@@ -98,6 +98,8 @@ func (o *StatusOptions) Run() (err error) {
 
 // RunAtVersion displays status for a reference at a specific version
 func (o *StatusOptions) RunAtVersion() (err error) {
+	printRefSelect(o.ErrOut, o.Refs)
+
 	res := []lib.StatusItem{}
 	ref := o.Refs.Ref()
 	if err := o.FSIMethods.StoredStatus(&ref, &res); err != nil {

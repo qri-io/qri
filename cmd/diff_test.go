@@ -71,11 +71,18 @@ func TestDiffRun(t *testing.T) {
 		stdout      string
 	}{
 		{"diff two dataset metas",
-			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta"},
+			&DiffOptions{
+				Refs:     NewListOfRefSelects([]string{"me/movies", "me/cities"}),
+				Selector: "meta",
+			},
 			"0 elements. 0 inserts. 0 deletes. 1 update.\n\n~ title: \"example city data\"\n",
 		},
 		{"diff json output",
-			&DiffOptions{Left: "me/movies", Right: "me/cities", Selector: "meta", Format: "json"},
+			&DiffOptions{
+				Refs:     NewListOfRefSelects([]string{"me/movies", "me/cities"}),
+				Selector: "meta",
+				Format:   "json",
+			},
 			`[{"type":"update","path":"/title","value":"example city data","originalValue":"example movie data"}]
 `,
 		},
@@ -124,6 +131,7 @@ func TestDiffRun(t *testing.T) {
 		}
 
 		opt := c.opt
+		opt.Refs = NewListOfRefSelects([]string{})
 		opt.IOStreams = streams
 		opt.DatasetRequests = dsr
 
