@@ -3,6 +3,7 @@ package api
 import (
 	"fmt"
 	"net/http"
+	"encoding/json"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
@@ -110,4 +111,45 @@ func (h *FSIHandlers) datasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteResponse(w, ref)
+}
+
+// BodyHandler reads an fsi-linked dataset body
+func (h *FSIHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		if h.ReadOnly {
+			readOnlyResponse(w, "/fsi/body")
+			return
+		}
+		h.bodyHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *FSIHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
+	ref, err := DatasetRefFromPath(r.URL.Path[len("/fsi/body"):])
+	if err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+		return
+	}
+	listParams := lib.ListParamsFromRequest(r)
+
+
+	p := &lib.FSIBodyParams{
+		Path: ref.String(),
+		Format: "json",
+		Limit:    listParams.Limit,
+		Offset:   listParams.Offset,
+		All:      r.FormValue("all") == "true",
+	}
+	res := []byte{}
+	if err := h.FSIDatasetBody(p, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, json.RawMessage(res))
 }

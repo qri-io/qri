@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
@@ -219,4 +220,41 @@ func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) erro
 
 	*res = ref
 	return nil
+}
+
+// FSIBodyParams defines parameters for looking up the body of a dataset
+// This structure is based on GetParams.
+// TODO (@b5) - refactor this away. It's too much like other things
+type FSIBodyParams struct {
+	// Path to get, this will often be a dataset reference like me/dataset
+	Path string
+
+	Format       string
+	FormatConfig dataset.FormatConfig
+
+	Offset, Limit int
+	All           bool
+}
+
+// FSIDatasetBody grabs the body of a dataset
+func (m *FSIMethods) FSIDatasetBody(p *FSIBodyParams, res *[]byte) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.FSIDatasetBody", p, res)
+	}
+
+	df, err := dataset.ParseDataFormatString(p.Format)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+
+	link, err := fsint.RefLink(p.Path)
+	if err != nil {
+		return err
+	}
+
+	*res, err = fsi.GetBody(link.Path, df, p.FormatConfig, p.Offset, p.Limit, p.All)
+	return err
 }
