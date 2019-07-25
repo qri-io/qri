@@ -6,8 +6,8 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base"
 )
 
 // GetBody is an FSI version of actions.GetBody
@@ -17,7 +17,7 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		return nil, err
 	}
 
-	bodyPath, ok :=  mapping["body"]
+	bodyPath, ok := mapping["body"]
 	if !ok {
 		return nil, fmt.Errorf("no body found")
 	}
@@ -26,7 +26,7 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	if err != nil {
 		return nil, err
 	}
-	
+
 	defer f.Close()
 	file := qfs.NewMemfileReader(filepath.Base(bodyPath), f)
 

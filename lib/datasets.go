@@ -329,6 +329,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+		log.Debugf("open ds error: %s", err.Error())
 		return
 	}
 
