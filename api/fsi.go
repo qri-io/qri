@@ -232,3 +232,36 @@ func (h *FSIHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 	util.WriteResponse(w, res)
 }
+
+// InitHandler creates a new FSI-linked dataset
+func (h *FSIHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
+	if h.ReadOnly {
+		readOnlyResponse(w, "/fsi/init")
+		return
+	}
+
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.initHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *FSIHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
+	p := &lib.InitFSIDatasetParams{
+		Filepath: r.FormValue("filepath"),
+		Name:     r.FormValue("name"),
+		Format:   r.FormValue("format"),
+	}
+
+	var name string
+	if err := h.InitDataset(p, &name); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, map[string]string{"ref": name})
+}
