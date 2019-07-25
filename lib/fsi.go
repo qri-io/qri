@@ -258,3 +258,18 @@ func (m *FSIMethods) FSIDatasetBody(p *FSIBodyParams, res *[]byte) error {
 	*res, err = fsi.GetBody(link.Path, df, p.FormatConfig, p.Offset, p.Limit, p.All)
 	return err
 }
+
+// InitFSIDatasetParams proxies parameters to initialization
+type InitFSIDatasetParams = fsi.InitParams
+
+// InitDataset creates a new dataset and FSI link
+func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.InitDataset", p, name)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	*name, err = fsint.InitDataset(*p)
+	return err
+}
