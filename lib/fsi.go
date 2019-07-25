@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
@@ -187,7 +186,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for
-func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *dataset.Dataset) error {
+func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
 	}
@@ -200,11 +199,24 @@ func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *dataset.Dataset) erro
 		return err
 	}
 
+	ref, err := link.ParsedRef()
+	if err != nil {
+		return err
+	}
+
 	ds, _, _, err := fsi.ReadDir(link.Path)
 	if err != nil {
 		return err
 	}
 
-	*res = *ds
+	// TODO (b5) - these transient fields should probably be set by fsi.ReadDir
+	ds.Peername = ref.Peername
+	ds.Name = ref.Name
+	ds.Path = link.Path
+	ds.PreviousPath = ref.Path
+	ref.Path = link.Path
+	ref.Dataset = ds
+
+	*res = ref
 	return nil
 }

@@ -5,7 +5,6 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -105,11 +104,10 @@ func (h *FSIHandlers) datasetHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	str := ref.String()
-	ds := &dataset.Dataset{}
-	if err := h.FSIDatasetForRef(&str, ds); err != nil {
+	if err := h.FSIDatasetForRef(&str, &ref); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, ds)
+	util.WriteResponse(w, ref)
 }

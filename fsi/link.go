@@ -3,6 +3,7 @@ package fsi
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
 	fsifb "github.com/qri-io/qri/fsi/fsi_fbs"
+	"github.com/qri-io/qri/repo"
 )
 
 // links is a list of links
@@ -58,6 +59,11 @@ type Link struct {
 	Ref   string `json:"ref"`
 	Path  string `json:"path"`
 	Alias string `json:"alias"`
+}
+
+// ParsedRef returns a dataset reference derived from link contents
+func (link *Link) ParsedRef() (repo.DatasetRef, error) {
+	return repo.ParseDatasetRef(link.Ref)
 }
 
 // FlatbufferBytes formats a link as a flatbuffer byte slice
