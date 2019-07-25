@@ -180,3 +180,23 @@ func allCSVRows(file qfs.File) (recs []interface{}, err error) {
 	}
 	return recs, nil
 }
+
+// MergeDiffs merges a list of DiffResponses into another, adding component names to each path
+func (r *DatasetRequests) MergeDiffs(merged *DiffResponse, inputs []DiffResponse, comps []string) (err error) {
+	merged.Stat = &DiffStat{}
+	for i, inp := range inputs {
+		merged.Stat.Left += inp.Stat.Left
+		merged.Stat.Right += inp.Stat.Right
+		merged.Stat.LeftWeight += inp.Stat.LeftWeight
+		merged.Stat.RightWeight += inp.Stat.RightWeight
+		merged.Stat.Inserts += inp.Stat.Inserts
+		merged.Stat.Updates += inp.Stat.Updates
+		merged.Stat.Deletes += inp.Stat.Deletes
+		merged.Stat.Moves += inp.Stat.Moves
+		for j, d := range inp.Diff {
+			inp.Diff[j].Path = comps[i] + "/" + d.Path
+		}
+		merged.Diff = append(merged.Diff, inp.Diff...)
+	}
+	return nil
+}

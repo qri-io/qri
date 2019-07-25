@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"encoding/json"
+	"os"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -36,7 +37,7 @@ Each change has a path that locates it within the document`,
 
   diff dataset body against it's last version
   $ qri diff body me/annual_pop
-  
+
   diff two dataset meta sections:
   $ qri diff meta me/population_2016 me/population_2017
 
@@ -66,8 +67,7 @@ Each change has a path that locates it within the document`,
 type DiffOptions struct {
 	ioes.IOStreams
 
-	Left     string
-	Right    string
+	Refs     *RefSelect
 	Selector string
 	Format   string
 	Summary  bool
@@ -83,28 +83,30 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 			args = args[1:]
 		}
 	}
-
-	if len(args) > 1 {
-		o.Left = args[0]
-		o.Right = args[1]
-	}
-	if len(args) == 1 {
-		o.Right = args[0]
-	}
-
 	o.DatasetRequests, err = f.DatasetRequests()
+
+	if o.Refs, err = GetCurrentRefSelect(f, args, 2); err != nil {
+		return
+	}
 	return
 }
 
 // Run executes the diff command
 func (o *DiffOptions) Run() (err error) {
+	printRefSelect(o.Out, o.Refs)
+
 	p := &lib.DiffParams{
-		LeftPath:  o.Left,
-		RightPath: o.Right,
-		Selector:  o.Selector,
+		Selector: o.Selector,
 	}
 
-	// TODO(dlong): Reenable `use` functionality for this command.
+	if o.Refs.IsLinked() {
+		return o.RunLinkedFilesys(p)
+	} else if len(o.Refs.RefList()) == 1 {
+		p.RightPath = o.Refs.Ref()
+	} else if len(o.Refs.RefList()) == 2 {
+		p.LeftPath = o.Refs.RefList()[0]
+		p.RightPath = o.Refs.RefList()[1]
+	}
 
 	res := &lib.DiffResponse{}
 	if err = o.DatasetRequests.Diff(p, res); err != nil {
@@ -117,4 +119,55 @@ func (o *DiffOptions) Run() (err error) {
 	}
 
 	return printDiff(o.Out, res, o.Summary)
+}
+
+// RunLinkedFilesys executes diff against a linked directory
+func (o *DiffOptions) RunLinkedFilesys(p *lib.DiffParams) (err error) {
+	responses := []lib.DiffResponse{}
+	components := []string{}
+
+	// TODO(dlong): Move to FSI.
+
+	// Meta component.
+	p.LeftPath = o.Refs.Ref()
+	p.RightPath = "meta.json"
+	p.Selector = "meta"
+	res := lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, &res); err != nil {
+		return err
+	}
+	responses = append(responses, res)
+	components = append(components, "meta")
+
+	// Body component.
+	if _, err = os.Stat("body.csv"); !os.IsNotExist(err) {
+		p.RightPath = "body.csv"
+	}
+	if _, err = os.Stat("body.json"); !os.IsNotExist(err) {
+		p.RightPath = "body.json"
+	}
+	p.Selector = "body"
+	res = lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, &res); err != nil {
+		return err
+	}
+	responses = append(responses, res)
+	components = append(components, "body")
+
+	// Schema component.
+	p.LeftPath = o.Refs.Ref()
+	p.RightPath = "schema.json"
+	p.Selector = "structure.schema"
+	res = lib.DiffResponse{}
+	if err = o.DatasetRequests.Diff(p, &res); err != nil {
+		return err
+	}
+	responses = append(responses, res)
+	components = append(components, "schema")
+
+	mergedResponse := lib.DiffResponse{}
+	if err = o.DatasetRequests.MergeDiffs(&mergedResponse, responses, components); err != nil {
+		return err
+	}
+	return printDiff(o.Out, &mergedResponse, o.Summary)
 }

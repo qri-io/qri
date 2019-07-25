@@ -13,13 +13,33 @@ import (
 // RefSelect represents zero or more references, either explicitly provided or implied
 type RefSelect struct {
 	kind string
-	ref  string
+	refs []string
 	dir  string
 }
 
+// A notice on UI language used here. When a user has run the `qri use` command to select a
+// dataset ref to run commands on, the text sent to standard output should begin with:
+//
+// using dataset [peername/dataset_name]
+//
+// In contrast, when a user is running a command within a working directory that is linked to a
+// dataset, the text sent to standard output shall begin with:
+//
+// for dataset [peername/dataset_name]
+//
+// That is, "using" is to `use`, as "for" is to `qri-ref`. In all other caes (an explicit dataset
+// ref provided on the command line) neither of these phrases should be displayed. This way, the
+// user can tell at a glance what dataset is being used, and the reason for why is was selected.
+// The `kind` field on RefSelect controls what of these kinds of references is being used.
+
 // NewExplicitRefSelect returns a single explicitly provided reference
 func NewExplicitRefSelect(ref string) *RefSelect {
-	return &RefSelect{ref: ref}
+	return &RefSelect{refs: []string{ref}}
+}
+
+// NewListOfRefSelects returns a list of explicitly provided references
+func NewListOfRefSelects(refs []string) *RefSelect {
+	return &RefSelect{refs: refs}
 }
 
 // NewLinkedDirectoryRefSelect returns a single reference implied by a linked directory
@@ -29,12 +49,12 @@ func NewLinkedDirectoryRefSelect(ref, dir string) *RefSelect {
 	if pos != -1 {
 		ref = ref[:pos]
 	}
-	return &RefSelect{kind: "for", ref: ref, dir: dir}
+	return &RefSelect{kind: "for", refs: []string{ref}, dir: dir}
 }
 
 // NewUsingRefSelect returns a single reference implied by the use command
 func NewUsingRefSelect(ref string) *RefSelect {
-	return &RefSelect{kind: "using", ref: ref}
+	return &RefSelect{kind: "using", refs: []string{ref}}
 }
 
 // IsExplicit returns whether the reference is explicit
@@ -49,10 +69,10 @@ func (r *RefSelect) IsLinked() bool {
 
 // Ref returns the reference as a string
 func (r *RefSelect) Ref() string {
-	if r == nil {
+	if r == nil || len(r.refs) == 0 {
 		return ""
 	}
-	return r.ref
+	return r.refs[0]
 }
 
 // RefList returns a list of all references
@@ -60,7 +80,7 @@ func (r *RefSelect) RefList() []string {
 	if r == nil {
 		return []string{""}
 	}
-	return []string{r.ref}
+	return r.refs
 }
 
 // Dir returns the directory of a linked directory reference
@@ -73,7 +93,7 @@ func (r *RefSelect) String() string {
 	if r.IsExplicit() {
 		return ""
 	}
-	return fmt.Sprintf("%s dataset [%s]", r.kind, r.ref)
+	return fmt.Sprintf("%s dataset [%s]", r.kind, strings.Join(r.refs, ", "))
 }
 
 // GetCurrentRefSelect returns the current reference selection. This could be explicitly provided
