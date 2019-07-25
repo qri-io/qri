@@ -11,6 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
 	// "github.com/qri-io/dataset/validate"
 )
@@ -129,19 +130,33 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	stored.Transform = nil
 	stored.Peername = ""
 
-	working, mapping, problems, err := ReadDir(dir)
+	working, fileMap, problems, err := ReadDir(dir)
 	if err != nil {
 		return nil, err
 	}
 	working.DropDerivedValues()
 
+	// Set body file from local filesystem.
+	if bodyFilename, ok := fileMap[componentNameBody]; ok {
+		bf, err := os.Open(filepath.Join(dir, bodyFilename))
+		if err != nil {
+			return nil, err
+		}
+		working.SetBodyFile(qfs.NewMemfileReader(bodyFilename, bf))
+	}
+
+	return fsi.CalculateStateTransition(stored, working, fileMap, problems)
+}
+
+// CalculateStateTransition calculates the differences between two versions of a dataset.
+func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, problems map[string]string) (changes []StatusItem, err error) {
 	// if err = validate.Dataset(ds); err != nil {
 	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
 	// }
 
-	storedComponents := dsAllComponents(stored)
+	prevComponents := dsAllComponents(prev)
 
-	for cmpName := range storedComponents {
+	for cmpName := range prevComponents {
 		// when reporting deletes, ignore "bound" components that must/must-not
 		// exist based on external conditions
 		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit && cmpName != componentNameViz {
@@ -159,12 +174,12 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 				}
 			}
 
-			cmp := dsComponent(stored, cmpName)
+			cmp := dsComponent(prev, cmpName)
 			// If the component was not in the previous version, it can't have been removed.
 			if cmp == nil {
 				continue
 			}
-			if _, ok := mapping[cmpName]; !ok {
+			if _, ok := fileMap[cmpName]; !ok {
 				change := StatusItem{
 					Component: cmpName,
 					Type:      STRemoved,
@@ -181,12 +196,12 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 			continue
 		}
 
-		localFilepath, ok := mapping[path]
+		localFilepath, ok := fileMap[path]
 		if !ok {
 			continue
 		}
 
-		if cmp := dsComponent(stored, path); cmp == nil {
+		if cmp := dsComponent(prev, path); cmp == nil {
 			change := StatusItem{
 				SourceFile: localFilepath,
 				Component:  path,
@@ -195,17 +210,17 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 			changes = append(changes, change)
 		} else {
 
-			var storedData []byte
-			var workData []byte
+			var prevData []byte
+			var nextData []byte
 			if path == componentNameBody {
 				// Getting data for the body works differently.
-				if err = stored.OpenBodyFile(fsi.repo.Filesystem()); err != nil {
+				if err = prev.OpenBodyFile(fsi.repo.Filesystem()); err != nil {
 					return nil, err
 				}
-				storedBody := stored.BodyFile()
-				if storedBody == nil {
+				prevBody := prev.BodyFile()
+				if prevBody == nil {
 					// Handle the case where there's no previous version. Body is "add"ed, do
-					// not attempt to read the non-existent stored body.
+					// not attempt to read the non-existent body.
 					change := StatusItem{
 						SourceFile: localFilepath,
 						Component:  path,
@@ -215,36 +230,40 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 					continue
 				} else {
 					// Read body of previous version.
-					defer storedBody.Close()
-					storedData, err = ioutil.ReadAll(storedBody)
+					defer prevBody.Close()
+					prevData, err = ioutil.ReadAll(prevBody)
 					if err != nil {
 						return nil, err
 					}
 				}
 
-				workingBody, err := os.Open(filepath.Join(dir, localFilepath))
-				if err != nil {
+				// Getting data for the body works differently.
+				if err = next.OpenBodyFile(fsi.repo.Filesystem()); err != nil {
 					return nil, err
 				}
-				defer workingBody.Close()
-
-				workData, err = ioutil.ReadAll(workingBody)
-				if err != nil {
-					return nil, err
+				nextBody := next.BodyFile()
+				// TODO(dlong): Handle case where neither version has a body / body is removed.
+				if nextBody != nil {
+					// Read body of next version.
+					defer nextBody.Close()
+					nextData, err = ioutil.ReadAll(nextBody)
+					if err != nil {
+						return nil, err
+					}
 				}
 			} else {
-				storedData, err = json.Marshal(cmp)
+				prevData, err = json.Marshal(cmp)
 				if err != nil {
 					return nil, err
 				}
 
-				workData, err = json.Marshal(dsComponent(working, path))
+				nextData, err = json.Marshal(dsComponent(next, path))
 				if err != nil {
 					return nil, err
 				}
 			}
 
-			if !bytes.Equal(storedData, workData) {
+			if !bytes.Equal(prevData, nextData) {
 				change := StatusItem{
 					SourceFile: localFilepath,
 					Component:  path,
@@ -273,31 +292,34 @@ func (fsi *FSI) StoredStatus(refStr string) (changes []StatusItem, err error) {
 		return nil, err
 	}
 
-	var stored *dataset.Dataset
+	var next, prev *dataset.Dataset
 	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		if err == repo.ErrNotFound {
-			// no dataset, compare to an empty ds
-			stored = &dataset.Dataset{}
-		} else {
-			return nil, err
-		}
+		return nil, err
+	}
+	if next, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+		return nil, err
+	}
+
+	prevPath := next.PreviousPath
+	if prevPath == "" {
+		prev = &dataset.Dataset{}
 	} else {
-		if stored, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+		if prev, err = dsfs.LoadDataset(fsi.repo.Store(), prevPath); err != nil {
 			return nil, err
 		}
 	}
 
-	for cmpName := range dsAllComponents(stored) {
-		si := StatusItem{
-			SourceFile: "repo",
-			Component:  cmpName,
-			Type:       STUnmodified,
-		}
-		changes = append(changes, si)
+	fileMap := make(map[string]string)
+	if next.Meta != nil {
+		fileMap["meta"] = "meta"
 	}
-
-	sort.Sort(statusItems(changes))
-	return changes, err
+	if next.BodyPath != "" || next.BodyFile() != nil {
+		fileMap["body"] = "body"
+	}
+	if next.Structure != nil && next.Structure.Schema != nil {
+		fileMap["schema"] = "schema"
+	}
+	return fsi.CalculateStateTransition(prev, next, fileMap, nil)
 }
 
 func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {

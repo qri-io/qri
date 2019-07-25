@@ -26,7 +26,7 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 				return err
 			}
 			if !o.Refs.IsLinked() {
-				return o.RunForeign()
+				return o.RunAtVersion()
 			}
 			return o.Run()
 		},
@@ -96,11 +96,8 @@ func (o *StatusOptions) Run() (err error) {
 	return nil
 }
 
-// RunForeign returns status on a non-fsi-linked reference
-func (o *StatusOptions) RunForeign() (err error) {
-	printInfo(o.ErrOut, "using foreign dataset reference: %s", o.Refs.Ref())
-	printRefSelect(o.ErrOut, o.Refs)
-
+// RunAtVersion displays status for a reference at a specific version
+func (o *StatusOptions) RunAtVersion() (err error) {
 	res := []lib.StatusItem{}
 	ref := o.Refs.Ref()
 	if err := o.FSIMethods.StoredStatus(&ref, &res); err != nil {
@@ -109,7 +106,7 @@ func (o *StatusOptions) RunForeign() (err error) {
 	}
 
 	for _, si := range res {
-		printInfo(o.Out, fmt.Sprintf("  %s", si.Component))
+		printInfo(o.Out, fmt.Sprintf("  %s: %s", si.Component, si.Type))
 	}
 
 	return nil

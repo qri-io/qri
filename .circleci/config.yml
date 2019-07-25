@@ -7,6 +7,7 @@ jobs:
         environment:
           GO111MODULE: "on"
           GOPROXY: "https://proxy.golang.org"
+          GOSUMDB: "off"
     environment:
       TEST_RESULTS: /tmp/test-results
     # resource_class requires a paid circleci plan:
