@@ -48,7 +48,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 		componentNameTransform: &dataset.Transform{},
 		componentNameViz:       &dataset.Viz{},
 
-		// TODO (b5) - deal with dataset bodies
 		componentNameBody: nil,
 	}
 

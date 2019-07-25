@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
@@ -83,7 +84,8 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 
 	// TODO (b5) - inst should have an fsi instance
 	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
-	*res, err = fsint.Unlink(p.Dir, p.Ref)
+	err = fsint.Unlink(p.Dir, p.Ref)
+
 	return err
 }
 
@@ -182,4 +184,27 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	// Write components of the dataset to the dataset.
 	err = fsint.WriteComponents(ds, p.Dir)
 	return err
+}
+
+// FSIDatasetForRef reads an fsi-linked dataset for
+func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *dataset.Dataset) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+
+	link, err := fsint.RefLink(*refStr)
+	if err != nil {
+		return err
+	}
+
+	ds, _, _, err := fsi.ReadDir(link.Path)
+	if err != nil {
+		return err
+	}
+
+	*res = *ds
+	return nil
 }

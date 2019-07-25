@@ -24,10 +24,13 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// QriRefFilename links the current working folder to a dataset by containing a ref to it.
+// QriRefFilename is the name of the file that links a folder to a dataset.
+// The file contains a dataset reference that declares the link
+// ref files are the authoritative definition of weather a folder is linked
+// or not
 const QriRefFilename = ".qri-ref"
 
-// GetLinkedFilesysRef returns whether the current directory is linked to a
+// GetLinkedFilesysRef returns whether a directory is linked to a
 // dataset in your repo, and the reference to that dataset.
 func GetLinkedFilesysRef(dir string) (string, bool) {
 	data, err := ioutil.ReadFile(filepath.Join(dir, QriRefFilename))
@@ -61,6 +64,33 @@ func NewFSI(r repo.Repo, path string) *FSI {
 // Links returns a list of linked datasets and their connected directories
 func (fsi *FSI) Links() ([]*Link, error) {
 	return fsi.load()
+}
+
+// RefLink returns a link for a given dataset reference
+func (fsi *FSI) RefLink(refStr string) (*Link, error) {
+	links, err := fsi.load()
+	if err != nil {
+		return nil, err
+	}
+
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return nil, err
+	}
+
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
+		return nil, err
+	}
+
+	alias := ref.AliasString()
+
+	for _, l := range links {
+		if l.Alias == alias {
+			return l, nil
+		}
+	}
+
+	return nil, repo.ErrNotFound
 }
 
 // CreateLink connects a directory
@@ -141,37 +171,37 @@ func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
 	return ref.String(), err
 }
 
-// Unlink breaks the connection between a directory and a
-func (fsi *FSI) Unlink(dirPath, refStr string) (string, error) {
-	links, err := fsi.load()
-	if err != nil {
-		return "", err
-	}
-
+// Unlink breaks the connection between a directory and a dataset
+func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		return ref.String(), err
+		return err
 	}
 
 	alias := ref.AliasString()
+
+	links, err := fsi.load()
+	if err != nil {
+		return err
+	}
 
 	for i, l := range links {
 		if l.Alias == alias {
 			links = links.Remove(i)
 
 			if err = removeLinkFile(dirPath); err != nil {
-				return "", err
+				return err
 			}
 
-			return "", fsi.save(links)
+			return fsi.save(links)
 		}
 	}
 
-	return "", fmt.Errorf("%s is not linked", ref)
+	return fmt.Errorf("%s is not linked", ref)
 }
 
 // WriteComponents writes components of the dataset to the given path, as individual files.
