@@ -66,11 +66,6 @@ func (r *MemRepo) RefCache() Refstore {
 	return r.refCache
 }
 
-// Graph gives the graph of objects in this repo
-func (r *MemRepo) Graph() (map[string]*dsgraph.Node, error) {
-	return Graph(r)
-}
-
 // Profile returns the peer profile for this repository
 func (r *MemRepo) Profile() (*profile.Profile, error) {
 	return r.profile, nil

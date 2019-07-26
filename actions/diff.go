@@ -19,20 +19,12 @@ func DiffDatasets(node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool
 	if err = DatasetHead(node, &leftRef); err != nil {
 		return
 	}
-	dsLeft, e := leftRef.DecodeDataset()
-	if e != nil {
-		err = e
-		return
-	}
+	dsLeft := leftRef.Dataset
 
 	if err = DatasetHead(node, &rightRef); err != nil {
 		return
 	}
-	dsRight, e := rightRef.DecodeDataset()
-	if e != nil {
-		err = e
-		return
-	}
+	dsRight := rightRef.Dataset
 
 	diffs = make(map[string]*dsdiff.SubDiff)
 	if all {

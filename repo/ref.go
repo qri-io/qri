@@ -31,24 +31,6 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
-// ProfileRef encapsulates a reference to a peer profile
-// It's main job is to connect peernames / profile ID's to profiles
-type ProfileRef struct {
-	Peername  string     `json:"peername,omitempty"`
-	ProfileID profile.ID `json:"profileID,omitempty"`
-	// Profile data
-	Profile *profile.Profile
-}
-
-// String implements the Stringer interface for PeerRef
-func (r ProfileRef) String() (s string) {
-	s = r.Peername
-	if r.ProfileID.String() != "" {
-		s += "@" + r.ProfileID.String()
-	}
-	return
-}
-
 var isRefString = regexp.MustCompile(`^((\w+)\/(\w+)){0,1}(@(\w*)(\/\w{0,4}\/\w+)){0,1}$`)
 
 // IsRefString checks to see if a reference is a valid dataset ref string
@@ -76,15 +58,6 @@ type DatasetRef struct {
 	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 	// Published indicates whether this reference is listed as an available dataset
 	Published bool `json:"published"`
-}
-
-// DecodeDataset returns a dataset.Dataset from the stored CodingDataset field
-// TODO (b5): remove this entirely
-func (r DatasetRef) DecodeDataset() (*dataset.Dataset, error) {
-	if r.Dataset == nil {
-		return nil, nil
-	}
-	return r.Dataset, nil
 }
 
 // String implements the Stringer interface for DatasetRef
