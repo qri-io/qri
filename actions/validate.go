@@ -40,13 +40,7 @@ func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (er
 			return
 		}
 
-		ds, e := ref.DecodeDataset()
-		if e != nil {
-			log.Debug(e.Error())
-			err = e
-			return
-		}
-
+		ds := ref.Dataset
 		st = ds.Structure
 	} else if body == nil {
 		err = fmt.Errorf("cannot find dataset: %s", ref)
@@ -95,12 +89,7 @@ func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (er
 	}
 
 	if data == nil && ref.Dataset != nil {
-		ds, e := ref.DecodeDataset()
-		if e != nil {
-			log.Debug(e.Error())
-			err = fmt.Errorf("error loading dataset data: %s", e.Error())
-			return
-		}
+		ds := ref.Dataset
 
 		f, e := dsfs.LoadBody(node.Repo.Store(), ds)
 		if e != nil {
