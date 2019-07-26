@@ -77,12 +77,21 @@ func (h *FSIHandlers) statusHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	alias := ref.AliasString()
 	res := []lib.StatusItem{}
-	if err = h.AliasStatus(&alias, &res); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
-		return
+	if ref.Path != "" {
+		refStr := ref.String()
+		if err = h.StoredStatus(&refStr, &res); err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			return
+		}
+	} else {
+		alias := ref.AliasString()
+		if err = h.AliasStatus(&alias, &res); err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			return
+		}
 	}
+
 	util.WriteResponse(w, res)
 }
 
