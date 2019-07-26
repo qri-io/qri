@@ -197,14 +197,13 @@ func (h *FSIHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	ds := ref.Dataset
-	// ds.Assign(fds)
+	ds.Assign(fds)
 
 	path := ds.Path
 	bodyPath := ds.BodyPath
 
 	if ds.Transform != nil && ds.Transform.ScriptPath != "" {
 		ds.Transform.ScriptPath = filepath.Join(path, ds.Transform.ScriptPath)
-		fmt.Println(ds.Transform)
 	}
 	if ds.Viz != nil && ds.Viz.ScriptPath != "" {
 		ds.Viz.ScriptPath = filepath.Join(path, ds.Viz.ScriptPath)
@@ -213,9 +212,6 @@ func (h *FSIHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	ds.Path = ""
 	ds.PreviousPath = ""
 	ds.BodyPath = ""
-
-	fmt.Println(path, ds.BodyPath)
-	fmt.Printf("%#v\n", ds)
 
 	p := &lib.SaveParams{
 		Ref:      ref.AliasString(),
