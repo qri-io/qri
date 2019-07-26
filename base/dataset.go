@@ -27,21 +27,25 @@ import (
 func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
 	if ds.BodyFile() == nil {
 		if err = ds.OpenBodyFile(fsys); err != nil {
+			log.Debug(err)
 			return
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
 		if err = ds.Transform.OpenScriptFile(fsys); err != nil {
+			log.Debug(err)
 			return
 		}
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
 		if err = ds.Viz.OpenScriptFile(fsys); err != nil {
+			log.Debug(err)
 			return
 		}
 	}
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
 		if err = ds.Viz.OpenRenderedFile(fsys); err != nil {
+			log.Debug(err)
 			return
 		}
 	}

@@ -218,3 +218,41 @@ func TestUpdateLink(t *testing.T) {
 		t.Errorf("error: link did not match, actual: %s, expect: %s", link, expect)
 	}
 }
+
+func TestRefLink(t *testing.T) {
+	paths := NewTmpPaths()
+	defer paths.Close()
+
+	fsi := NewFSI(paths.testRepo, paths.fsiLinkFile)
+
+	// TODO (b5) - tying canonicalization to FSI is making us do phony stuff like
+	// this to trick name resolution, should we just make fsi as a subsystem
+	// require resolved references?
+	refStr := "me/test_ds@/ipfs/QmExample"
+
+	_, err := fsi.RefLink(refStr)
+	if err != repo.ErrNotFound {
+		t.Errorf("expected link to non-existen ref to return not found. got: %s", err)
+	}
+
+	if _, err = fsi.CreateLink(paths.firstDir, "me/test_ds"); err != nil {
+		t.Fatalf("error creating link: %s", err.Error())
+	}
+
+	link, err := fsi.RefLink(refStr)
+	if err != nil {
+		t.Errorf("unexpected error fetching linked ref: %s", err)
+	}
+
+	if paths.firstDir != link.Path {
+		t.Errorf("link path mismatch. expected: %s got: %s", paths.firstDir, link.Path)
+	}
+
+	if err = fsi.Unlink(link.Path, refStr); err != nil {
+		t.Errorf("error dropping link: %s", err)
+	}
+
+	if _, err := fsi.RefLink(refStr); err != repo.ErrNotFound {
+		t.Errorf("expected unknown ref to return errNotFound. got: %s", err)
+	}
+}

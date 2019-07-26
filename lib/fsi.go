@@ -5,6 +5,7 @@ import (
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
@@ -83,7 +84,8 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 
 	// TODO (b5) - inst should have an fsi instance
 	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
-	*res, err = fsint.Unlink(p.Dir, p.Ref)
+	err = fsint.Unlink(p.Dir, p.Ref)
+
 	return err
 }
 
@@ -181,5 +183,93 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 
 	// Write components of the dataset to the dataset.
 	err = fsint.WriteComponents(ds, p.Dir)
+	return err
+}
+
+// FSIDatasetForRef reads an fsi-linked dataset for
+func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+
+	link, err := fsint.RefLink(*refStr)
+	if err != nil {
+		return err
+	}
+
+	ref, err := link.ParsedRef()
+	if err != nil {
+		return err
+	}
+
+	ds, _, _, err := fsi.ReadDir(link.Path)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - these transient fields should probably be set by fsi.ReadDir
+	ds.Peername = ref.Peername
+	ds.Name = ref.Name
+	ds.Path = link.Path
+	ds.PreviousPath = ref.Path
+	ref.Path = link.Path
+	ref.Dataset = ds
+
+	*res = ref
+	return nil
+}
+
+// FSIBodyParams defines parameters for looking up the body of a dataset
+// This structure is based on GetParams.
+// TODO (@b5) - refactor this away. It's too much like other things
+type FSIBodyParams struct {
+	// Path to get, this will often be a dataset reference like me/dataset
+	Path string
+
+	Format       string
+	FormatConfig dataset.FormatConfig
+
+	Offset, Limit int
+	All           bool
+}
+
+// FSIDatasetBody grabs the body of a dataset
+func (m *FSIMethods) FSIDatasetBody(p *FSIBodyParams, res *[]byte) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.FSIDatasetBody", p, res)
+	}
+
+	df, err := dataset.ParseDataFormatString(p.Format)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+
+	link, err := fsint.RefLink(p.Path)
+	if err != nil {
+		return err
+	}
+
+	*res, err = fsi.GetBody(link.Path, df, p.FormatConfig, p.Offset, p.Limit, p.All)
+	return err
+}
+
+// InitFSIDatasetParams proxies parameters to initialization
+type InitFSIDatasetParams = fsi.InitParams
+
+// InitDataset creates a new dataset and FSI link
+func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.InitDataset", p, name)
+	}
+
+	// TODO (b5) - inst should have an fsi instance
+	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	*name, err = fsint.InitDataset(*p)
 	return err
 }
