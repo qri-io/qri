@@ -103,7 +103,7 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 
 // IndexRepo calculates an index for a given repository
 func IndexRepo(r repo.Repo, i bleve.Index) error {
-	refs, err := r.References(-1, 0)
+	refs, err := r.References(0, -1)
 	if err != nil {
 		return err
 	}

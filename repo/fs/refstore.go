@@ -120,7 +120,7 @@ func (n Refstore) DeleteRef(del repo.DatasetRef) error {
 }
 
 // References gives a set of dataset references from the store
-func (n Refstore) References(limit, offset int) ([]repo.DatasetRef, error) {
+func (n Refstore) References(offset, limit int) ([]repo.DatasetRef, error) {
 	names, err := n.names()
 	if err != nil {
 		return nil, err

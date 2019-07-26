@@ -85,7 +85,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 	if err != nil {
 		return nil, err
 	}
-	res, err = r.References(num, 0)
+	res, err = r.References(0, num)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())

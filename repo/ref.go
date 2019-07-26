@@ -26,7 +26,7 @@ type Refstore interface {
 	// DeleteRef removes a reference from the store
 	DeleteRef(ref DatasetRef) error
 	// References returns a set of references from the store
-	References(limit, offset int) ([]DatasetRef, error)
+	References(offset, limit int) ([]DatasetRef, error)
 	// RefCount returns the number of references in the store
 	RefCount() (int, error)
 }
