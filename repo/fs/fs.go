@@ -103,19 +103,6 @@ func (r *Repo) SetFilesystem(fs qfs.Filesystem) {
 	r.fsys = fs
 }
 
-// Graph returns the graph of dataset objects for this repo
-func (r *Repo) Graph() (map[string]*dsgraph.Node, error) {
-	if r.graph == nil {
-		nodes, err := repo.Graph(r)
-		if err != nil {
-			log.Debug(err.Error())
-			return nil, err
-		}
-		r.graph = nodes
-	}
-	return r.graph, nil
-}
-
 // Profile gives this repo's peer profile
 func (r *Repo) Profile() (*profile.Profile, error) {
 	return r.profile, nil
