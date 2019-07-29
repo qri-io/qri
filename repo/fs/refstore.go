@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"os"
 	"sort"
+	"os"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -26,69 +26,74 @@ type Refstore struct {
 }
 
 // PutRef adds a reference to the store
-func (n Refstore) PutRef(p repo.DatasetRef) (err error) {
-	var ds *dataset.Dataset
-	p.Dataset = nil
+func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
+	var (
+		ds *dataset.Dataset
+		refs repo.Refs
+	)
 
-	if p.ProfileID == "" {
+	// remove dataset reference, refstores only store reference details
+	r.Dataset = nil
+
+	if r.ProfileID == "" {
 		return repo.ErrPeerIDRequired
-	} else if p.Name == "" {
+	} else if r.Name == "" {
 		return repo.ErrNameRequired
-	} else if p.Path == "" {
+	} else if r.Path == "" && r.FSIPath == "" {
 		return repo.ErrPathRequired
-	} else if p.Peername == "" {
+	} else if r.Peername == "" {
 		return repo.ErrPeernameRequired
 	}
 
-	names, err := n.names()
-	if err != nil {
+	if refs, err = rs.refs(); err != nil {
 		return err
 	}
 
 	matched := false
-	for i, ref := range names {
-		if ref.Match(p) {
+	for i, ref := range refs {
+		if ref.Match(r) {
 			matched = true
-			names[i] = p
+			refs[i] = r
 		}
 	}
 
 	if !matched {
-		names = append(names, p)
+		refs = append(refs, r)
 	}
 
-	if n.store != nil {
-		ds, err = dsfs.LoadDataset(n.store, p.Path)
-		if err != nil {
+	if rs.store != nil && r.Path != "" {
+		if ds, err = dsfs.LoadDataset(rs.store, r.Path);  err != nil {
 			return err
 		}
+
+		// TODO (b5) - move this up into base package
+		// search really needs to become a first-class operation
+		if rs.index != nil {
+			batch := rs.index.NewBatch()
+			err = batch.Index(r.Path, ds)
+			if err != nil {
+				log.Debug(err.Error())
+				return err
+			}
+			err = rs.index.Batch(batch)
+			if err != nil {
+				log.Debug(err.Error())
+				return err
+			}
+		}
+
 	}
 
-	// TODO - move this up into base package
-	if n.index != nil {
-		batch := n.index.NewBatch()
-		err = batch.Index(p.Path, ds)
-		if err != nil {
-			log.Debug(err.Error())
-			return err
-		}
-		err = n.index.Batch(batch)
-		if err != nil {
-			log.Debug(err.Error())
-			return err
-		}
-	}
-
-	return n.save(names)
+	return rs.save(refs)
 }
 
 // GetRef completes a partially-known reference
-func (n Refstore) GetRef(get repo.DatasetRef) (repo.DatasetRef, error) {
-	names, err := n.names()
+func (rs Refstore) GetRef(get repo.DatasetRef) (repo.DatasetRef, error) {
+	refs, err := rs.refs()
 	if err != nil {
 		return repo.DatasetRef{}, err
 	}
-	for _, ref := range names {
+	for _, ref := range refs {
 		if ref.Match(get) {
 			return ref, nil
 		}
@@ -97,106 +102,92 @@ func (n Refstore) GetRef(get repo.DatasetRef) (repo.DatasetRef, error) {
 }
 
 // DeleteRef removes a name from the store
-func (n Refstore) DeleteRef(del repo.DatasetRef) error {
-	names, err := n.names()
+func (rs Refstore) DeleteRef(del repo.DatasetRef) error {
+	refs, err := rs.refs()
 	if err != nil {
 		return err
 	}
 
-	for i, ref := range names {
+	for i, ref := range refs {
 		if ref.Match(del) {
-			if ref.Path != "" && n.index != nil {
-				if err := n.index.Delete(ref.Path); err != nil {
+			// TODO (b5) - this is search index handling, move this up into base
+			if ref.Path != "" && rs.index != nil {
+				if err := rs.index.Delete(ref.Path); err != nil {
 					log.Debug(err.Error())
 					return err
 				}
 			}
-			names = append(names[:i], names[i+1:]...)
+			refs = append(refs[:i], refs[i+1:]...)
 			break
 		}
 	}
 
-	return n.save(names)
+	return rs.save(refs)
 }
 
 // References gives a set of dataset references from the store
-func (n Refstore) References(offset, limit int) ([]repo.DatasetRef, error) {
-	names, err := n.names()
+func (rs Refstore) References(offset, limit int) ([]repo.DatasetRef, error) {
+	refs, err := rs.refs()
 	if err != nil {
 		return nil, err
 	}
-	res := make([]repo.DatasetRef, limit)
-	for i, ref := range names {
+	res := make(repo.Refs, limit)
+	for i, ref := range refs {
 		if i < offset {
 			continue
 		}
 		if i-offset == limit {
-			return res, nil
+			return []repo.DatasetRef(res), nil
 		}
 		res[i-offset] = ref
 	}
-	return res[:len(names)-offset], nil
+	return res[:len(refs)-offset], nil
 }
 
 // RefCount returns the size of the Refstore
-func (n Refstore) RefCount() (int, error) {
-	names, err := n.names()
+func (rs Refstore) RefCount() (int, error) {
+	// TODO (b5) - there's no need to unmarshal here
+	// could just read the length of the flatbuffer ref vector
+	refs, err := rs.refs()
 	if err != nil {
 		log.Debug(err.Error())
 		return 0, err
 	}
-	return len(names), nil
+	return len(refs), nil
 }
 
-func (n *Refstore) names() ([]repo.DatasetRef, error) {
-	data, err := ioutil.ReadFile(n.filepath(n.file))
+func (rs *Refstore) refs() (repo.Refs, error) {
+	data, err := ioutil.ReadFile(rs.filepath(rs.file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			// empty is ok
-			return []repo.DatasetRef{}, nil
+			return repo.Refs{}, nil
+		}
+		log.Debug(err.Error())
+		return nil, fmt.Errorf("error loading references: %s", err.Error())
+	}
+
+	return repo.UnmarshalRefsFlatbuffer(data)
+}
+
+func (rs *Refstore) jsonRefs() (repo.Refs, error) {
+	data, err := ioutil.ReadFile(rs.filepath(rs.file))
+	if err != nil {
+		if os.IsNotExist(err) {
+			// empty is ok
+			return repo.Refs{}, nil
 		}
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading names: %s", err.Error())
 	}
 
-	refs := []repo.DatasetRef{}
-	if err := json.Unmarshal(data, &refs); err != nil {
-
-		prevns := []string{}
-		if err := json.Unmarshal(data, &prevns); err != nil {
-			log.Debug(err.Error())
-			return nil, fmt.Errorf("error unmarshaling names: %s", err.Error())
-		}
-
-		ns := make([]repo.DatasetRef, len(refs))
-		for i, rs := range prevns {
-			ref, err := repo.ParseDatasetRef(rs)
-			if err != nil {
-				return nil, err
-			}
-			ns[i] = ref
-		}
-
-		return ns, nil
-	}
-
-	return refs, nil
+	refs := repo.Refs{}
+	err = json.Unmarshal(data, &refs)
+	return refs, err
 }
 
-func (n *Refstore) save(ns []repo.DatasetRef) error {
-	rs := refs(ns)
-	sort.Sort(rs)
-	return n.saveFile(rs, FileRefstore)
+func (rs *Refstore) save(refs repo.Refs) error {
+	sort.Sort(refs)
+	path := rs.basepath.filepath(rs.file)
+	return ioutil.WriteFile(path, refs.FlatbufferBytes(), os.ModePerm)
 }
-
-// refs is a slice of dataset refs that implements the sort interface
-type refs []repo.DatasetRef
-
-// Len returns the length of refs
-func (r refs) Len() int { return len(r) }
-
-// Less returns true if i comes before j
-func (r refs) Less(i, j int) bool { return r[i].AliasString() < r[j].AliasString() }
-
-// Swap flips the positions of i and j
-func (r refs) Swap(i, j int) { r[i], r[j] = r[j], r[i] }

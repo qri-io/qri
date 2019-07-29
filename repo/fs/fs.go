@@ -6,7 +6,7 @@ import (
 	"os"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -60,7 +60,7 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc
 		fsys:     fsys,
 		basepath: bp,
 
-		Refstore: Refstore{basepath: bp, store: store, file: FileRefstore},
+		Refstore: Refstore{basepath: bp, store: store, file: FileRefs},
 		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: NewProfileStore(bp),
@@ -71,6 +71,10 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
 		r.index = index
 		r.Refstore.index = index
+	}
+
+	if _, err := maybeCreateFlatbufferRefsFile(base); err != nil {
+		return nil, err
 	}
 
 	// add our own profile to the store if it doesn't already exist.

@@ -108,6 +108,12 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
 		return ref.String(), err
 	}
+
+	ref.FSIPath = dirPath
+	if err := fsi.repo.PutRef(ref); err != nil {
+		return ref.String(), err
+	}
+
 	// Not doing this will result in an invalid reference, if given a reference to a dataset
 	// without an commit, such as a freshly `qri init`ed directory that hasn't been saved.
 	if ref.Path == "" {
@@ -154,6 +160,11 @@ func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
 		return ref.String(), err
 	}
 
+	ref.FSIPath = dirPath
+	if err := fsi.repo.PutRef(ref); err != nil {
+		return ref.String(), err
+	}
+
 	alias := ref.AliasString()
 
 	for i, l := range links {
@@ -179,6 +190,11 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	}
 
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return err
+	}
+
+	ref.FSIPath = ""
+	if err := fsi.repo.PutRef(ref); err != nil {
 		return err
 	}
 

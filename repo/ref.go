@@ -5,10 +5,12 @@ import (
 	"regexp"
 	"strings"
 
+	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo/profile"
+	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
 
 // Refstore keeps a collection of dataset references, Refstores require complete
@@ -54,10 +56,12 @@ type DatasetRef struct {
 	Name string `json:"name,omitempty"`
 	// Content-addressed path for this dataset
 	Path string `json:"path,omitempty"`
-	// Dataset is a pointer to the dataset being referenced
-	Dataset *dataset.Dataset `json:"dataset,omitempty"`
+	// FSIPath is this dataset's link to the local filesystem if one exists
+	FSIPath string `json:"fsiPath,omitempty"`
 	// Published indicates whether this reference is listed as an available dataset
 	Published bool `json:"published"`
+	// Dataset is a pointer to the dataset being referenced
+	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 }
 
 // String implements the Stringer interface for DatasetRef
@@ -444,4 +448,48 @@ func CompareDatasetRef(a, b DatasetRef) error {
 		return fmt.Errorf("Published mismatch: %t != %t", a.Published, b.Published)
 	}
 	return nil
+}
+
+// FlatbufferBytes formats a ref as a flatbuffer byte slice
+func (r DatasetRef) FlatbufferBytes() []byte {
+	builder := flatbuffers.NewBuilder(0)
+	off := r.MarshalFlatbuffer(builder)
+	builder.Finish(off)
+	return builder.FinishedBytes()
+}
+
+// MarshalFlatbuffer writes a ref to a builder
+func (r DatasetRef) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	peername := builder.CreateString(r.Peername)
+	profileID := builder.CreateString(r.ProfileID.String())
+	name := builder.CreateString(r.Name)
+	path := builder.CreateString(r.Path)
+	fsiPath := builder.CreateString(r.FSIPath)
+
+	repofb.DatasetRefStart(builder)
+	repofb.DatasetRefAddPeername(builder, peername)
+	repofb.DatasetRefAddProfileID(builder, profileID)
+	repofb.DatasetRefAddName(builder, name)
+	repofb.DatasetRefAddPath(builder, path)
+	repofb.DatasetRefAddFsiPath(builder, fsiPath)
+	repofb.DatasetRefAddPublished(builder, r.Published)
+	return repofb.DatasetRefEnd(builder)
+}
+
+// UnmarshalFlatbuffer decodes a job from a flatbuffer
+func (r *DatasetRef) UnmarshalFlatbuffer(rfb *repofb.DatasetRef) (err error) {
+
+	*r = DatasetRef{
+		Peername:  string(rfb.Peername()),
+		Name:      string(rfb.Name()),
+		Path:      string(rfb.Path()),
+		FSIPath:   string(rfb.FsiPath()),
+		Published: rfb.Published(),
+	}
+
+	if pidstr := string(rfb.ProfileID()); pidstr != "" {
+		r.ProfileID, err = profile.IDB58Decode(pidstr)
+	}
+
+	return err
 }

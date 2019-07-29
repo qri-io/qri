@@ -1,12 +1,13 @@
 package repo
 
 import (
-	//"reflect"
 	"testing"
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/google/go-cmp/cmp"
+	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
 
 func TestIsRefString(t *testing.T) {
@@ -522,5 +523,22 @@ func TestCanonicalizeProfile(t *testing.T) {
 				t.Errorf("case %d Path mismatch. expected: '%s', got: '%s'", i, c.expect.Path, got.Path)
 			}
 		}
+	}
+}
+
+func TestDatasetRefFlatbuffer(t *testing.T) {
+	src := &DatasetRef{
+		Name: "le_reference",
+		Path: "/une/path",
+	}
+
+	data := src.FlatbufferBytes()
+	dsr := repofb.GetRootAsDatasetRef(data, 0)
+
+	got := &DatasetRef{}
+	got.UnmarshalFlatbuffer(dsr)
+
+	if diff := cmp.Diff(src, got); diff != "" {
+		t.Errorf("compare link mismatch(-want +got):\n%s", diff)
 	}
 }

@@ -1,4 +1,4 @@
-// IDL file for cron service
+// IDL file for fsi service
 
 namespace fsi_fbs;
 
