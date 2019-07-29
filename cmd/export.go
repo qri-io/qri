@@ -108,7 +108,7 @@ func (o *ExportOptions) Run() error {
 		return err
 	}
 
-	fmt.Printf("dataset exported to \"%s\"\n", fileWritten)
+	fmt.Fprintf(o.Out, "dataset exported to \"%s\"\n", fileWritten)
 
 	return nil
 }
