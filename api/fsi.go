@@ -45,9 +45,13 @@ func (h *FSIHandlers) LinksHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h *FSIHandlers) linksHandler(w http.ResponseWriter, r *http.Request) {
-	p := false
-	res := []*lib.FSILink{}
-	if err := h.Links(&p, &res); err != nil {
+	page := util.PageFromRequest(r)
+	p := &lib.ListParams{
+		Limit:  page.Limit(),
+		Offset: page.Offset(),
+	}
+	res := []repo.DatasetRef{}
+	if err := h.LinkedRefs(p, &res); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error listing links: %s", err.Error()))
 		return
 	}

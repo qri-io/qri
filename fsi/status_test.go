@@ -34,7 +34,7 @@ func TestStatusValid(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo, paths.fsiLinkFile)
+	fsi := NewFSI(paths.testRepo)
 	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -62,7 +62,7 @@ func TestStatusInvalidDataset(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo, paths.fsiLinkFile)
+	fsi := NewFSI(paths.testRepo)
 	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -85,7 +85,7 @@ func TestStatusInvalidMeta(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo, paths.fsiLinkFile)
+	fsi := NewFSI(paths.testRepo)
 	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -108,7 +108,7 @@ func TestStatusNotFound(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo, paths.fsiLinkFile)
+	fsi := NewFSI(paths.testRepo)
 	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())

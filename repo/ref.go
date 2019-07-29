@@ -58,10 +58,10 @@ type DatasetRef struct {
 	Path string `json:"path,omitempty"`
 	// FSIPath is this dataset's link to the local filesystem if one exists
 	FSIPath string `json:"fsiPath,omitempty"`
-	// Published indicates whether this reference is listed as an available dataset
-	Published bool `json:"published"`
 	// Dataset is a pointer to the dataset being referenced
 	Dataset *dataset.Dataset `json:"dataset,omitempty"`
+	// Published indicates whether this reference is listed as an available dataset
+	Published bool `json:"published"`
 }
 
 // String implements the Stringer interface for DatasetRef

@@ -15,7 +15,7 @@ func (r *MemRefstore) PutRef(put DatasetRef) error {
 		return ErrPeernameRequired
 	} else if put.Name == "" {
 		return ErrNameRequired
-	} else if put.Path == "" {
+	} else if put.Path == "" && put.FSIPath == "" {
 		return ErrPathRequired
 	}
 
