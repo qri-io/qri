@@ -156,8 +156,7 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 		res.Online = cfg.P2P.Enabled
 	}
 
-	// return m.ChangeConfig(cfg)
-	return nil
+	return m.inst.ChangeConfig(cfg)
 }
 
 // ProfilePhoto fetches the byte slice of a given user's profile photo
@@ -255,8 +254,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 
 	*res = *pp
 
-	// return m.ChangeConfig(cfg)
-	return nil
+	return m.inst.ChangeConfig(cfg)
 }
 
 // PosterPhoto fetches the byte slice of a given user's poster photo
