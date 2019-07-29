@@ -29,7 +29,7 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &repo.DatasetRef{Name: name, Peername: peername}
-	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound {
+	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound || lookup.Path == "" {
 		return &dataset.Dataset{}, &dataset.Dataset{}, "", nil
 	}
 
