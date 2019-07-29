@@ -209,12 +209,12 @@ func TestCommandsIntegration(t *testing.T) {
 	defer done()
 
 	root := NewQriCommand(ctx, NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
+	root.SetOutput(ioutil.Discard)
 
 	for i, command := range commands {
 		func() {
 			defer func() {
 				if e := recover(); e != nil {
-					fmt.Println(e)
 					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, command, e)
 					return
 				}
@@ -222,7 +222,6 @@ func TestCommandsIntegration(t *testing.T) {
 
 			er := executeCommand(root, command)
 			if er != nil {
-				fmt.Println(er)
 				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, er.Error())
 				return
 			}
@@ -925,7 +924,9 @@ func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	r.streams = ioes.NewIOStreams(in, out, out)
 	setNoColor(true)
 
-	return NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
+	cmd := NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
+	cmd.SetOutput(out)
+	return cmd
 }
 
 func (r *TestRepoRoot) GetOutput() string {
