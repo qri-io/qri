@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/rev"
@@ -75,6 +76,8 @@ type GetParams struct {
 	// Path to get, this will often be a dataset reference like me/dataset
 	Path string
 
+	// read from a filesystem link instead of stored version
+	UseFSI       bool
 	Format       string
 	FormatConfig dataset.FormatConfig
 
@@ -86,6 +89,7 @@ type GetParams struct {
 
 // GetResult combines data with it's hashed path
 type GetResult struct {
+	Ref     *repo.DatasetRef `json:"ref"`
 	Dataset *dataset.Dataset `json:"data"`
 	Bytes   []byte           `json:"bytes"`
 }
@@ -113,12 +117,24 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		return
 	}
 
-	ds, err := dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
-	if err != nil {
-		return fmt.Errorf("error loading dataset")
+	var ds *dataset.Dataset
+	if p.UseFSI {
+		if ref.FSIPath == "" {
+			return fmt.Errorf("%s is not linked to the filesystem", ref.AliasString())
+		}
+		if ds, _, _, err = fsi.ReadDir(ref.FSIPath); err != nil {
+			return fmt.Errorf("loading linked dataset: %s", err)
+		}
+	} else {
+		ds, err = dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %s", err)
+		}
 	}
+
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
+	res.Ref = ref
 	res.Dataset = ds
 
 	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
@@ -135,9 +151,15 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			return err
 		}
 
-		bufData, err := actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-		if err != nil {
-			return err
+		var bufData []byte
+		if p.UseFSI {
+			if bufData, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All); err != nil {
+				return err
+			}
+		} else {
+			if bufData, err = actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+				return err
+			}
 		}
 
 		res.Bytes = bufData
@@ -209,6 +231,17 @@ type SaveParams struct {
 	FilePaths []string
 	// secrets for transform execution
 	Secrets map[string]string
+	// optional writer to have transform script record standard output to
+	// note: this won't work over RPC, only on local calls
+	ScriptOutput io.Writer
+
+	// load FSI-linked dataset before saving. anything provided in the Dataset
+	// field and any param field will override the FSI dataset
+	// read & write FSI should almost always be used in tandem, either setting
+	// both to true or leaving both false
+	ReadFSI bool
+	// true save will write the dataset to the designated
+	WriteFSI bool
 	// Replace writes the entire given dataset as a new snapshot instead of
 	// applying save params as augmentations to the existing history
 	Replace bool
@@ -229,9 +262,6 @@ type SaveParams struct {
 	Force bool
 	// save a rendered version of the template along with the dataset
 	ShouldRender bool
-	// optional writer to have transform script record standard output to
-	// note: this won't work over RPC, only on local calls
-	ScriptOutput io.Writer
 }
 
 // AbsolutizePaths converts any relative path references to their absolute
@@ -269,10 +299,28 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 
-	// TODO (b5) - attempt to canonicalize the ref here so users can
-	// run save from hash references, but only to tip for now
+	ds := &dataset.Dataset{}
 
-	ds := &dataset.Dataset{
+	if p.ReadFSI {
+		if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+			return err
+		}
+		if ref.FSIPath == "" {
+			return fmt.Errorf("%s is not linked to the filesystem", ref.AliasString())
+		}
+
+		var problems map[string]string
+		ds, _, problems, err = fsi.ReadDir(ref.FSIPath)
+		if err != nil {
+			return
+		}
+		if problems != nil {
+			return fmt.Errorf("cannot save, dataset has errors")
+		}
+	}
+
+	// add param-supplied changes
+	ds.Assign(&dataset.Dataset{
 		Name:     ref.Name,
 		Peername: ref.Peername,
 		BodyPath: p.BodyPath,
@@ -280,7 +328,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			Title:   p.Title,
 			Message: p.Message,
 		},
-	}
+	})
 
 	if p.Dataset != nil {
 		p.Dataset.Assign(ds)
@@ -333,6 +381,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
+	// TODO (b5) - this should be integrated into actions.SaveDataset
+	fsiPath := ref.FSIPath
+
 	switches := actions.SaveDatasetSwitches{
 		Replace:             p.Replace,
 		DryRun:              p.DryRun,
@@ -345,6 +396,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
+	}
+
+	// TODO (b5) - this should be integrated into actions.SaveDataset
+	if fsiPath != "" {
+		ref.FSIPath = fsiPath
+		if err = r.node.Repo.PutRef(ref); err != nil {
+			return err
+		}
 	}
 
 	if p.ReturnBody {
@@ -368,6 +427,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	*res = ref
+
+	if p.WriteFSI {
+		fsi.WriteComponents(res.Dataset, ref.FSIPath)
+	}
 	return nil
 }
 

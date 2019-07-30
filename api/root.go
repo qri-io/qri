@@ -51,7 +51,8 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := lib.GetParams{
-		Path: ref.String(),
+		Path:   ref.String(),
+		UseFSI: r.FormValue("fsi") == "true",
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
@@ -70,6 +71,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
+		FSIPath:   res.Ref.FSIPath,
 		Dataset:   res.Dataset,
 	}
 

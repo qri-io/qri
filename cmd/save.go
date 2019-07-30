@@ -4,10 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -87,6 +85,7 @@ type SaveOptions struct {
 	Title   string
 	Message string
 
+	UsingFSI       bool
 	Replace        bool
 	ShowValidation bool
 	Publish        bool
@@ -95,9 +94,6 @@ type SaveOptions struct {
 	Force          bool
 	NoRender       bool
 	Secrets        []string
-
-	pwd   string
-	fsids *dataset.Dataset
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -112,17 +108,8 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
 		return
 	}
-	if o.Refs.IsLinked() {
-		var problems map[string]string
-		o.FSIMethods = lib.NewFSIMethods(f.Instance())
-		o.fsids, _, problems, err = fsi.ReadDir(o.Refs.Dir())
-		if err != nil {
-			return
-		}
-		if problems != nil {
-			return fmt.Errorf("cannot save, dataset has errors")
-		}
-	}
+
+	o.UsingFSI = o.Refs.IsLinked()
 
 	// Make all paths absolute. Especially important if we are running
 	// `qri connect` in a different terminal, and that instance is in a different directory;
@@ -164,7 +151,8 @@ func (o *SaveOptions) Run() (err error) {
 		Title:    o.Title,
 		Message:  o.Message,
 
-		Dataset:             o.fsids,
+		ReadFSI:             o.UsingFSI,
+		WriteFSI:            o.UsingFSI,
 		FilePaths:           o.FilePaths,
 		Private:             false,
 		Publish:             o.Publish,
@@ -200,26 +188,16 @@ continue?`, true) {
 
 	o.StopSpinner()
 	printSuccess(o.ErrOut, "dataset saved: %s", res)
-	if res.Dataset.Structure.ErrCount > 0 {
+	if res.Dataset.Structure != nil && res.Dataset.Structure.ErrCount > 0 {
 		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
 	}
+
 	if o.DryRun {
 		data, err := json.MarshalIndent(res.Dataset, "", "  ")
 		if err != nil {
 			return err
 		}
 		fmt.Fprint(o.Out, string(data))
-	}
-
-	if o.Refs.IsLinked() && !o.DryRun {
-		p := &lib.LinkParams{
-			Dir: o.Refs.Dir(),
-			Ref: res.String(),
-		}
-		res := ""
-		if err = o.FSIMethods.UpdateLink(p, &res); err != nil {
-			return err
-		}
 	}
 
 	return nil

@@ -228,3 +228,97 @@ func (yd yamlDecoder) Decode(v interface{}) error {
 
 	return json.Unmarshal(jsonData, v)
 }
+
+// WriteComponents writes components of the dataset to the given path, as individual files.
+func WriteComponents(ds *dataset.Dataset, dirPath string) error {
+	// Get individual meta and schema components.
+	meta := ds.Meta
+	ds.Meta = nil
+	schema := ds.Structure.Schema
+	ds.Structure.Schema = nil
+
+	// Body format to use later.
+	bodyFormat := ds.Structure.Format
+
+	// Structure is kept in the dataset.
+	ds.Structure.Format = ""
+	ds.Structure.Qri = ""
+
+	// Commit, viz, transform are never written as individual files.
+	ds.Commit = nil
+	ds.Viz = nil
+	ds.Transform = nil
+
+	// Meta component.
+	if meta != nil {
+		meta.DropDerivedValues()
+		if !meta.IsEmpty() {
+			data, err := json.MarshalIndent(meta, "", " ")
+			if err != nil {
+				return err
+			}
+			err = ioutil.WriteFile(filepath.Join(dirPath, "meta.json"), data, os.ModePerm)
+			if err != nil {
+				return err
+			}
+		}
+	}
+
+	// Schema component.
+	if len(schema) > 0 {
+		data, err := json.MarshalIndent(schema, "", " ")
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(filepath.Join(dirPath, "schema.json"), data, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Body component.
+	bf := ds.BodyFile()
+	if bf != nil {
+		data, err := ioutil.ReadAll(bf)
+		if err != nil {
+			return err
+		}
+		ds.BodyPath = ""
+		var bodyFilename string
+		switch bodyFormat {
+		case "csv":
+			bodyFilename = "body.csv"
+		case "json":
+			bodyFilename = "body.json"
+		default:
+			return fmt.Errorf("unknown body format: %s", bodyFormat)
+		}
+		err = ioutil.WriteFile(filepath.Join(dirPath, bodyFilename), data, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Dataset (everything else).
+	ds.DropDerivedValues()
+	// TODO(dlong): Should more of these move to DropDerivedValues?
+	ds.Qri = ""
+	ds.Name = ""
+	ds.Peername = ""
+	ds.PreviousPath = ""
+	if ds.Structure != nil && ds.Structure.IsEmpty() {
+		ds.Structure = nil
+	}
+	if !ds.IsEmpty() {
+		data, err := json.MarshalIndent(ds, "", " ")
+		if err != nil {
+			return err
+		}
+		err = ioutil.WriteFile(filepath.Join(dirPath, "dataset.json"), data, os.ModePerm)
+		if err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

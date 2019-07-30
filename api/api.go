@@ -232,7 +232,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	m := http.NewServeMux()
 
-	m.Handle("/status", s.middleware(HealthCheckHandler))
+	m.Handle("/health", s.middleware(HealthCheckHandler))
 	m.Handle("/ipfs/", s.middleware(s.HandleIPFSPath))
 	m.Handle("/ipns/", s.middleware(s.HandleIPNSPath))
 
@@ -290,12 +290,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/update/service", s.middleware(uh.ServiceHandler))
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle("/dsstatus/", s.middleware(fsih.StatusHandler))
-	m.Handle("/fsilinks/", s.middleware(fsih.LinksHandler))
-	m.Handle("/fsi/", s.middleware(fsih.DatasetHandler))
-	m.Handle("/fsi/body/", s.middleware(fsih.BodyHandler))
-	m.Handle("/fsi/save/", s.middleware(fsih.SaveHandler))
-	m.Handle("/fsi/init/", s.middleware(fsih.InitHandler))
+	m.Handle("/status/", s.middleware(fsih.StatusHandler))
+	m.Handle("/init/", s.middleware(fsih.InitHandler))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
