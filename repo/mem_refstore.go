@@ -15,7 +15,7 @@ func (r *MemRefstore) PutRef(put DatasetRef) error {
 		return ErrPeernameRequired
 	} else if put.Name == "" {
 		return ErrNameRequired
-	} else if put.Path == "" {
+	} else if put.Path == "" && put.FSIPath == "" {
 		return ErrPathRequired
 	}
 
@@ -58,7 +58,7 @@ func (r *MemRefstore) DeleteRef(del DatasetRef) error {
 }
 
 // References grabs a set of names from the Store's namespace
-func (r MemRefstore) References(limit, offset int) ([]DatasetRef, error) {
+func (r MemRefstore) References(offset, limit int) ([]DatasetRef, error) {
 	res := make([]DatasetRef, limit)
 	for i, ref := range r {
 		if i < offset {

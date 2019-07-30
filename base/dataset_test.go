@@ -104,7 +104,7 @@ func TestCreateDataset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	refs, err := r.References(10, 0)
+	refs, err := r.References(0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -122,7 +122,7 @@ func TestCreateDataset(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	refs, err = r.References(10, 0)
+	refs, err = r.References(0, 10)
 	if err != nil {
 		t.Fatal(err)
 	}

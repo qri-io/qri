@@ -132,9 +132,9 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	pages := count
 	pageSize := count / pages
 	for i := 0; i <= pages; i++ {
-		res, err := r.References(pageSize, i*pageSize)
+		res, err := r.References(i*pageSize, pageSize)
 		if err != nil {
-			t.Errorf("repo.References(%d,%d): %s", pageSize, i*pageSize, err.Error())
+			t.Errorf("repo.References(%d,%d): %s", i*pageSize, pageSize, err.Error())
 			return
 		}
 		names = append(names, res...)

@@ -29,7 +29,7 @@ func (n *QriNode) RequestDatasetsList(pid peer.ID, p DatasetsListParams) ([]repo
 
 	if pid == n.ID {
 		// requesting self isn't a network operation
-		return n.Repo.References(p.Limit, p.Offset)
+		return n.Repo.References(p.Offset, p.Limit)
 	}
 
 	if !n.Online {

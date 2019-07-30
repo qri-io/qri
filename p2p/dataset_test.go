@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -24,7 +24,7 @@ func TestRequestDatasetInfo(t *testing.T) {
 
 	refs := []repo.DatasetRef{}
 	for _, c := range peers {
-		if rs, err := c.Repo.References(10, 0); err == nil {
+		if rs, err := c.Repo.References(0, 10); err == nil {
 			refs = append(refs, rs...)
 		}
 	}

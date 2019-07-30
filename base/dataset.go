@@ -85,7 +85,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 	if err != nil {
 		return nil, err
 	}
-	res, err = r.References(num, 0)
+	res, err = r.References(0, num)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error getting dataset list: %s", err.Error())
@@ -130,21 +130,23 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 			return nil, fmt.Errorf("error canonicalizing dataset peername: %s", err.Error())
 		}
 
-		ds, err := dsfs.LoadDataset(store, ref.Path)
-		if err != nil {
-			return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
-		}
-		res[i].Dataset = ds
-		if RPC {
-			res[i].Dataset.Structure.Schema = nil
-		}
-
-		if showVersions {
-			dsVersions, err := DatasetLog(r, ref, 0, 0, false)
+		if ref.Path != "" {
+			ds, err := dsfs.LoadDataset(store, ref.Path)
 			if err != nil {
-				return nil, err
+				return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
-			res[i].Dataset.NumVersions = len(dsVersions)
+			res[i].Dataset = ds
+			if RPC {
+				res[i].Dataset.Structure.Schema = nil
+			}
+
+			if showVersions {
+				dsVersions, err := DatasetLog(r, ref, 0, 0, false)
+				if err != nil {
+					return nil, err
+				}
+				res[i].Dataset.NumVersions = len(dsVersions)
+			}
 		}
 	}
 

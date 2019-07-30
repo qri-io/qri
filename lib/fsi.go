@@ -25,17 +25,14 @@ func NewFSIMethods(inst *Instance) *FSIMethods {
 // CoreRequestsName specifies this is a fsi handle
 func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 
-// FSILink is a file-system-integration link between
-type FSILink = fsi.Link
-
-// Links lists all fsi links
-func (m *FSIMethods) Links(p *bool, res *[]*FSILink) (err error) {
+// LinkedRefs lists all fsi links
+func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]repo.DatasetRef) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.Links", p, res)
+		return m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res)
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
-	*res, err = fsint.Links()
+	fsint := fsi.NewFSI(m.inst.repo)
+	*res, err = fsint.LinkedRefs(p.Offset, p.Limit)
 	return err
 }
 
@@ -59,7 +56,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.CreateLink", p, res)
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*res, err = fsint.CreateLink(p.Dir, p.Ref)
 	return err
 }
@@ -71,7 +68,7 @@ func (m *FSIMethods) UpdateLink(p *LinkParams, res *string) (err error) {
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*res, err = fsint.UpdateLink(p.Dir, p.Ref)
 	return err
 }
@@ -83,7 +80,7 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	err = fsint.Unlink(p.Dir, p.Ref)
 
 	return err
@@ -99,7 +96,7 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*res, err = fsint.Status(*dir)
 	return err
 }
@@ -111,7 +108,7 @@ func (m *FSIMethods) AliasStatus(alias *string, res *[]StatusItem) (err error) {
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*res, err = fsint.AliasStatus(*alias)
 	return err
 }
@@ -123,7 +120,7 @@ func (m *FSIMethods) StoredStatus(ref *string, res *[]StatusItem) (err error) {
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*res, err = fsint.StoredStatus(*ref)
 	return err
 }
@@ -169,7 +166,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
@@ -182,30 +179,26 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Write components of the dataset to the dataset.
-	err = fsint.WriteComponents(ds, p.Dir)
+	err = fsi.WriteComponents(ds, p.Dir)
 	return err
 }
 
-// FSIDatasetForRef reads an fsi-linked dataset for
+// FSIDatasetForRef reads an fsi-linked dataset for a given reference string
 func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
-
-	link, err := fsint.RefLink(*refStr)
+	ref, err := repo.ParseDatasetRef(*refStr)
 	if err != nil {
 		return err
 	}
 
-	ref, err := link.ParsedRef()
-	if err != nil {
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
 		return err
 	}
 
-	ds, _, _, err := fsi.ReadDir(link.Path)
+	ds, _, _, err := fsi.ReadDir(ref.FSIPath)
 	if err != nil {
 		return err
 	}
@@ -213,9 +206,8 @@ func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) erro
 	// TODO (b5) - these transient fields should probably be set by fsi.ReadDir
 	ds.Peername = ref.Peername
 	ds.Name = ref.Name
-	ds.Path = link.Path
+	ds.Path = ref.FSIPath
 	ds.PreviousPath = ref.Path
-	ref.Path = link.Path
 	ref.Dataset = ds
 
 	*res = ref
@@ -247,15 +239,16 @@ func (m *FSIMethods) FSIDatasetBody(p *FSIBodyParams, res *[]byte) error {
 		return err
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
-
-	link, err := fsint.RefLink(p.Path)
+	ref, err := repo.ParseDatasetRef(p.Path)
 	if err != nil {
 		return err
 	}
 
-	*res, err = fsi.GetBody(link.Path, df, p.FormatConfig, p.Offset, p.Limit, p.All)
+	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
+		return err
+	}
+
+	*res, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All)
 	return err
 }
 
@@ -269,7 +262,7 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err err
 	}
 
 	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo, fsi.RepoPath(m.inst.repoPath))
+	fsint := fsi.NewFSI(m.inst.repo)
 	*name, err = fsint.InitDataset(*p)
 	return err
 }

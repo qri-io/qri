@@ -32,7 +32,7 @@ func TestRegistryRequests(t *testing.T) {
 		return
 	}
 
-	refs, err := mr.References(30, 0)
+	refs, err := mr.References(0, 30)
 	if err != nil {
 		t.Fatalf("error getting namespace: %s", err.Error())
 	}

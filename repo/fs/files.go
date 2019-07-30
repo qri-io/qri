@@ -43,8 +43,11 @@ const (
 	FileDatasets
 	// FileEventLogs is a log of all queries in order they're run
 	FileEventLogs
-	// FileRefstore is a file for the user's local namespace
-	FileRefstore
+	// FileJSONRefs is a file for the user's local namespace
+	// No longer in use
+	FileJSONRefs
+	// FileRefs is a flatbuffer file of this repo's dataset references
+	FileRefs
 	// FilePeers holds peer repositories
 	// Ideally this won't stick around for long
 	FilePeers
@@ -65,7 +68,8 @@ var paths = map[File]string{
 	FileConfig:         "/config.json",
 	FileDatasets:       "/datasets.json",
 	FileEventLogs:      "/events.json",
-	FileRefstore:       "/ds_refs.json",
+	FileJSONRefs:       "/ds_refs.json",
+	FileRefs:           "/refs.fbs",
 	FilePeers:          "/peers.json",
 	FileAnalytics:      "/analytics.json",
 	FileSearchIndex:    "/index.bleve",

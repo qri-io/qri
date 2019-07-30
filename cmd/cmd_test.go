@@ -19,6 +19,7 @@ import (
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
@@ -939,31 +940,24 @@ func (r *TestRepoRoot) GetOutput() string {
 
 // GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
 func (r *TestRepoRoot) GetPathForDataset(index int) string {
-	dsRefs := filepath.Join(r.qriPath, "ds_refs.json")
-	file, err := os.Open(dsRefs)
+	dsRefs := filepath.Join(r.qriPath, "refs.fbs")
+
+	data, err := ioutil.ReadFile(dsRefs)
 	if err != nil {
 		r.t.Fatal(err)
 	}
 
-	bytes, err := ioutil.ReadAll(file)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	var result []map[string]interface{}
-	err = json.Unmarshal([]byte(bytes), &result)
+	refs, err := repo.UnmarshalRefsFlatbuffer(data)
 	if err != nil {
 		r.t.Fatal(err)
 	}
 
 	// If dataset doesn't exist, return an empty string for the path.
-	if len(result) == 0 {
+	if len(refs) == 0 {
 		return ""
 	}
 
-	var dsPath string
-	dsPath = result[index]["path"].(string)
-	return dsPath
+	return refs[index].Path
 }
 
 // ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.

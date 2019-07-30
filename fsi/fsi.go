@@ -57,49 +57,37 @@ type FSI struct {
 }
 
 // NewFSI creates an FSI instance from a path to a links flatbuffer file
-func NewFSI(r repo.Repo, path string) *FSI {
-	return &FSI{linksPath: path, repo: r}
+func NewFSI(r repo.Repo) *FSI {
+	return &FSI{repo: r}
 }
 
-// Links returns a list of linked datasets and their connected directories
-func (fsi *FSI) Links() ([]*Link, error) {
-	return fsi.load()
-}
-
-// RefLink returns a link for a given dataset reference
-func (fsi *FSI) RefLink(refStr string) (*Link, error) {
-	links, err := fsi.load()
+// LinkedRefs returns a list of linked datasets and their connected directories
+func (fsi *FSI) LinkedRefs(offset, limit int) ([]repo.DatasetRef, error) {
+	// TODO (b5) - figure out a better pagination / querying strategy here
+	allRefs, err := fsi.repo.References(offset, 100000)
 	if err != nil {
 		return nil, err
 	}
 
-	ref, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return nil, err
-	}
-
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
-		return nil, err
-	}
-
-	alias := ref.AliasString()
-
-	for _, l := range links {
-		if l.Alias == alias {
-			return l, nil
+	var refs []repo.DatasetRef
+	for _, ref := range allRefs {
+		if ref.FSIPath != "" {
+			if offset > 0 {
+				offset--
+				continue
+			}
+			refs = append(refs, ref)
+		}
+		if len(refs) == limit {
+			return refs, nil
 		}
 	}
 
-	return nil, repo.ErrNotFound
+	return refs, nil
 }
 
 // CreateLink connects a directory
 func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
-	links, err := fsi.load()
-	if err != nil {
-		return "", err
-	}
-
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return "", err
@@ -108,43 +96,31 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
 		return ref.String(), err
 	}
-	// Not doing this will result in an invalid reference, if given a reference to a dataset
-	// without an commit, such as a freshly `qri init`ed directory that hasn't been saved.
-	if ref.Path == "" {
-		ref.ProfileID = ""
-	}
-	alias := ref.AliasString()
 
-	for i, l := range links {
-		if l.Alias == alias {
+	if stored, err := fsi.repo.GetRef(ref); err == nil {
+		if stored.FSIPath != "" {
 			// There is already a link for this dataset, see if that link still exists.
-			targetPath := filepath.Join(l.Path, QriRefFilename)
-			if _, err := os.Stat(targetPath); !os.IsNotExist(err) {
-				return "", fmt.Errorf("'%s' is already linked to %s", alias, l.Path)
+			targetPath := filepath.Join(stored.FSIPath, QriRefFilename)
+			if _, err := os.Stat(targetPath); err == nil {
+				return "", fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
 			}
-			// Link was removed from the file system, update the links collection.
-			links = links.Remove(i)
-			break
 		}
 	}
 
-	l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString()}
-	links = append(links, l)
-
-	if err = writeLinkFile(dirPath, ref.String()); err != nil {
+	ref.FSIPath = dirPath
+	if err = fsi.repo.PutRef(ref); err != nil {
 		return "", err
 	}
 
-	return ref.String(), fsi.save(links)
+	if err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
+		return "", err
+	}
+
+	return ref.AliasString(), err
 }
 
 // UpdateLink changes an existing link entry
 func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
-	links, err := fsi.load()
-	if err != nil {
-		return "", err
-	}
-
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return "", err
@@ -154,20 +130,8 @@ func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
 		return ref.String(), err
 	}
 
-	alias := ref.AliasString()
-
-	for i, l := range links {
-		if l.Alias == alias {
-			l := &Link{Path: dirPath, Ref: ref.String(), Alias: ref.AliasString()}
-			links[i] = l
-			fsi.save(links)
-			break
-		}
-	}
-
-	if err = writeLinkFile(dirPath, ref.String()); err != nil {
-		return "", err
-	}
+	ref.FSIPath = dirPath
+	err = fsi.repo.PutRef(ref)
 	return ref.String(), err
 }
 
@@ -182,30 +146,12 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 		return err
 	}
 
-	alias := ref.AliasString()
-
-	links, err := fsi.load()
-	if err != nil {
-		return err
-	}
-
-	for i, l := range links {
-		if l.Alias == alias {
-			links = links.Remove(i)
-
-			if err = removeLinkFile(dirPath); err != nil {
-				return err
-			}
-
-			return fsi.save(links)
-		}
-	}
-
-	return fmt.Errorf("%s is not linked", ref)
+	ref.FSIPath = ""
+	return fsi.repo.PutRef(ref)
 }
 
 // WriteComponents writes components of the dataset to the given path, as individual files.
-func (fsi *FSI) WriteComponents(ds *dataset.Dataset, dirPath string) error {
+func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	// Get individual meta and schema components.
 	meta := ds.Meta
 	ds.Meta = nil
@@ -298,27 +244,17 @@ func (fsi *FSI) WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	return nil
 }
 
-func (fsi *FSI) load() (links, error) {
-	fsi.lock.Lock()
-	defer fsi.lock.Unlock()
-
-	data, err := ioutil.ReadFile(fsi.linksPath)
+func (fsi *FSI) getRepoRef(refStr string) (ref repo.DatasetRef, err error) {
+	ref, err = repo.ParseDatasetRef(refStr)
 	if err != nil {
-		if os.IsNotExist(err) {
-			return links{}, nil
-		}
-		return nil, err
+		return ref, err
 	}
 
-	return unmarshalLinksFlatbuffer(data)
-}
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		return ref, err
+	}
 
-func (fsi *FSI) save(ls links) error {
-	fsi.lock.Lock()
-	defer fsi.lock.Unlock()
-
-	data := ls.FlatbufferBytes()
-	return ioutil.WriteFile(fsi.linksPath, data, os.ModePerm)
+	return fsi.repo.GetRef(ref)
 }
 
 func writeLinkFile(dir, linkstr string) error {

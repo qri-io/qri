@@ -73,29 +73,16 @@ func (si statusItems) Less(i, j int) bool {
 
 // AliasStatus returns the status for a given dataset alias
 func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
-	links, err := fsi.load()
+	ref, err := fsi.getRepoRef(alias)
 	if err != nil {
 		return nil, err
 	}
 
-	ref, err := repo.ParseDatasetRef(alias)
-	if err != nil {
-		return nil, err
+	if ref.FSIPath != "" {
+		return fsi.Status(ref.FSIPath)
 	}
 
-	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		return nil, err
-	}
-
-	alias = ref.AliasString()
-
-	for _, l := range links {
-		if l.Alias == alias {
-			return fsi.Status(l.Path)
-		}
-	}
-
-	return fsi.StoredStatus(alias)
+	return fsi.StoredStatus(ref.String())
 }
 
 // Status reads the diff status from the current working directory
@@ -106,19 +93,11 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		return nil, err
 	}
 
-	ref, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return nil, err
-	}
-
 	var stored *dataset.Dataset
-	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		if err == repo.ErrNotFound {
-			// no dataset, compare to an empty ds
-			stored = &dataset.Dataset{}
-		} else {
-			return nil, err
-		}
+	ref, err := fsi.getRepoRef(refStr)
+	if ref.Path == "" {
+		// no dataset, compare to an empty ds
+		stored = &dataset.Dataset{}
 	} else {
 		if stored, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
 			return nil, err
