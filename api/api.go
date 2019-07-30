@@ -290,8 +290,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/update/service", s.middleware(uh.ServiceHandler))
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
-	m.Handle("/status/", s.middleware(fsih.StatusHandler))
-	m.Handle("/init/", s.middleware(fsih.InitHandler))
+	m.Handle("/status/", s.middleware(fsih.StatusHandler("/status")))
+	m.Handle("/init/", s.middleware(fsih.InitHandler("/init")))
+	m.Handle("/checkout/", s.middleware(fsih.CheckoutHandler("/checkout")))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

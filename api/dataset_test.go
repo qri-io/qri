@@ -8,7 +8,7 @@ import (
 )
 
 func TestDatasetHandlers(t *testing.T) {
-	node, teardown := newTestNode(t)
+	node, teardown := newTestNodeWithNumDatasets(t, 2)
 	defer teardown()
 
 	s := newMockDataServer(t)
