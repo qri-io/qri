@@ -136,7 +136,7 @@ func TestCommandsIntegration(t *testing.T) {
 	_, registryServer := regmock.NewMockServer()
 
 	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	fmt.Printf("test filepath: %s\n", path)
+	// fmt.Printf("test filepath: %s\n", path)
 
 	//clean up if previous cleanup failed
 	if _, err := os.Stat(path); os.IsNotExist(err) {

@@ -188,9 +188,10 @@ continue?`, true) {
 
 	o.StopSpinner()
 	printSuccess(o.ErrOut, "dataset saved: %s", res)
-	if res.Dataset.Structure.ErrCount > 0 {
+	if res.Dataset.Structure != nil && res.Dataset.Structure.ErrCount > 0 {
 		printWarning(o.ErrOut, fmt.Sprintf("this dataset has %d validation errors", res.Dataset.Structure.ErrCount))
 	}
+
 	if o.DryRun {
 		data, err := json.MarshalIndent(res.Dataset, "", "  ")
 		if err != nil {

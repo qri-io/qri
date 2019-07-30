@@ -256,7 +256,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		{"POST", "/registry/", 403},
 
 		// active endpoints:
-		{"GET", "/status", 200},
+		{"GET", "/health", 200},
 		{"GET", "/list/peer", 200},
 		// Cannot test connect endpoint until we have peers in this test suite
 		// {"GET", "/connect/QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", 200},
