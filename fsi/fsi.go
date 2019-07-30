@@ -70,14 +70,13 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]repo.DatasetRef, error) {
 	}
 
 	var refs []repo.DatasetRef
-	skipped := 0
 	for _, ref := range allRefs {
 		if ref.FSIPath != "" {
-			if skipped > offset {
-				skipped++
-			} else {
-				refs = append(refs, ref)
+			if offset > 0 {
+				offset--
+				continue
 			}
+			refs = append(refs, ref)
 		}
 		if len(refs) == limit {
 			return refs, nil
@@ -109,7 +108,9 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	}
 
 	ref.FSIPath = dirPath
-	err = fsi.repo.PutRef(ref)
+	if err = fsi.repo.PutRef(ref); err != nil {
+		return "", err
+	}
 
 	if err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
 		return "", err
