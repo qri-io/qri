@@ -315,6 +315,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
+		FSIPath:   res.Ref.FSIPath,
 		Dataset:   res.Dataset,
 	}
 	util.WriteResponse(w, ref)

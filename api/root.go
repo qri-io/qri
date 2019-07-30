@@ -71,8 +71,8 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
-		// TODO (b5) - gotta get FSI path from canonicalized ref here
-		Dataset: res.Dataset,
+		FSIPath:   res.Ref.FSIPath,
+		Dataset:   res.Dataset,
 	}
 
 	util.WriteResponse(w, ref)

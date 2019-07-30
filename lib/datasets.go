@@ -89,6 +89,7 @@ type GetParams struct {
 
 // GetResult combines data with it's hashed path
 type GetResult struct {
+	Ref     *repo.DatasetRef `json:"ref"`
 	Dataset *dataset.Dataset `json:"data"`
 	Bytes   []byte           `json:"bytes"`
 }
@@ -133,6 +134,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
+	res.Ref = ref
 	res.Dataset = ds
 
 	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
