@@ -448,6 +448,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		ReturnBody:   r.FormValue("return_body") == "true",
 		Force:        r.FormValue("force") == "true",
 		ShouldRender: !(r.FormValue("no_render") == "true"),
+		ReadFSI:      r.FormValue("fsi") == "true",
+		WriteFSI:     r.FormValue("fsi") == "true",
 
 		ConvertFormatToPrev: true,
 		ScriptOutput:        scriptOutput,

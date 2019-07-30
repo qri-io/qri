@@ -303,14 +303,6 @@ func isBase58Multihash(hash string) bool {
 // in the local repo, still do the work of handling aliases, but return a repo.ErrNotFound
 // error, which callers can respond to by possibly contacting remote repos.
 func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
-	// when operating over RPC there's a good chance we won't have a repo, in that
-	// case we're going to have to rely on the other end of the wire to do canonicalization
-	// TODO - think carefully about placement of reference parsing, possibly moving
-	// this into lib functions.
-	// if r == nil {
-	// 	return nil
-	// }
-
 	if ref.IsEmpty() {
 		return ErrEmptyRef
 	}
@@ -328,6 +320,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return err
 	}
 
+	// TODO (b5) - this is the assign pattern, refactor into a method on DatasetRef
 	if ref.Path == "" {
 		ref.Path = got.Path
 	}
@@ -341,6 +334,9 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		ref.Peername = got.Peername
 	}
 	ref.Published = got.Published
+	if ref.FSIPath == "" {
+		ref.FSIPath = got.FSIPath
+	}
 	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name {
 		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 	}

@@ -62,7 +62,9 @@ func (r refStringer) String() string {
 	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
 		fmt.Fprintf(w, "\n%s", ds.Meta.Title)
 	}
-	if r.Path != "" {
+	if r.FSIPath != "" {
+		fmt.Fprintf(w, "\nlinked: %s", path(r.FSIPath))
+	} else if r.Path != "" {
 		fmt.Fprintf(w, "\n%s", path(r.Path))
 	}
 	if ds != nil && ds.Structure != nil {
