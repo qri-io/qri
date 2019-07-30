@@ -68,7 +68,7 @@ func (h *FSIHandlers) statusHandler(w http.ResponseWriter, r *http.Request) {
 // InitHandler creates a new FSI-linked dataset
 func (h *FSIHandlers) InitHandler(w http.ResponseWriter, r *http.Request) {
 	if h.ReadOnly {
-		readOnlyResponse(w, "/fsi/init")
+		readOnlyResponse(w, "/init")
 		return
 	}
 
@@ -96,4 +96,36 @@ func (h *FSIHandlers) initHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	util.WriteResponse(w, map[string]string{"ref": name})
+}
+
+// CheckoutHandler invokes checkout via an API call
+func (h *FSIHandlers) CheckoutHandler(w http.ResponseWriter, r *http.Request) {
+	if h.ReadOnly {
+		readOnlyResponse(w, "/checkout")
+		return
+	}
+
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "POST":
+		h.checkoutHandler(w, r)
+	default:
+		util.NotFoundHandler(w,r)
+	}
+}
+
+func (h *FSIHandlers) checkoutHandler(w http.ResponseWriter, r *http.Request) {
+	p := &lib.CheckoutParams{
+		Dir: r.FormValue("dir"),
+		Ref: r.FormValue("ref"),
+	}
+
+	var res string
+	if err := h.Checkout(p, &res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, p)
 }
