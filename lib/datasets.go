@@ -76,6 +76,8 @@ type GetParams struct {
 	// Path to get, this will often be a dataset reference like me/dataset
 	Path string
 
+	// read from a filesystem link instead of stored version
+	UseFSI       bool
 	Format       string
 	FormatConfig dataset.FormatConfig
 
@@ -114,10 +116,21 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		return
 	}
 
-	ds, err := dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
-	if err != nil {
-		return fmt.Errorf("error loading dataset")
+	var ds *dataset.Dataset
+	if p.UseFSI {
+		if ref.FSIPath == "" {
+			return fmt.Errorf("%s is not linked to the filesystem", ref.AliasString())
+		}
+		if ds, _, _, err = fsi.ReadDir(ref.FSIPath); err != nil {
+			return fmt.Errorf("loading linked dataset: %s", err)
+		}
+	} else {
+		ds, err = dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %s", err)
+		}
 	}
+
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
 	res.Dataset = ds
@@ -136,9 +149,15 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			return err
 		}
 
-		bufData, err := actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All)
-		if err != nil {
-			return err
+		var bufData []byte
+		if p.UseFSI {
+			if bufData, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All); err != nil {
+				return err
+			}
+		} else {
+			if bufData, err = actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+				return err
+			}
 		}
 
 		res.Bytes = bufData

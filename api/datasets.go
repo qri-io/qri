@@ -301,7 +301,8 @@ func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Re
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Path: HTTPPathToQriPath(r.URL.Path),
+		Path:   HTTPPathToQriPath(r.URL.Path),
+		UseFSI: r.FormValue("fsi") == "true",
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
@@ -574,6 +575,7 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 		Path:     path,
 		Format:   format,
 		Selector: "body",
+		UseFSI:   r.FormValue("fsi") == "true",
 		Limit:    listParams.Limit,
 		Offset:   listParams.Offset,
 		All:      r.FormValue("all") == "true" && !readOnly,
@@ -610,13 +612,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	err = repo.CanonicalizeDatasetRef(h.repo, &d)
-	if err != nil && err != repo.ErrNotFound {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	p, err := getParamsFromRequest(r, h.ReadOnly, d.String())
+	p, err := getParamsFromRequest(r, h.ReadOnly, d.AliasString())
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return

@@ -142,6 +142,7 @@ func (o *GetOptions) Run() (err error) {
 	p := lib.GetParams{
 		Path:         o.Refs.Ref(),
 		Selector:     o.Selector,
+		UseFSI:       o.Refs.IsLinked(),
 		Format:       o.Format,
 		FormatConfig: fc,
 		Offset:       page.Offset(),
