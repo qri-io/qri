@@ -105,6 +105,11 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 							problems = make(map[string]string)
 						}
 						problems[cmpName] = filename
+						// Don't treat this parse failure as an error, only as a "problem" to
+						// display in `status`. This prevents the entire function from returning
+						// an error in the case that no other components are checked after this
+						// one.
+						err = nil
 						continue
 					}
 					if err = addFile(cmpName, path); err != nil {

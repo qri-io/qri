@@ -520,6 +520,74 @@ fix these problems before saving this dataset
 	}
 }
 
+// Test that parse errors are also properly shown for schema.
+func TestStatusParseErrorForSchema(t *testing.T) {
+	if err := confirmQriNotRunning(); err != nil {
+		t.Skip(err.Error())
+	}
+
+	r := NewTestRepoRoot(t, "qri_test_status_parse_error_for_schema")
+	defer r.Delete()
+
+	ctx, done := context.WithCancel(context.Background())
+	defer done()
+
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	rootPath, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Save a dataset containing a body.json and meta component
+	cmdR := r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/ten_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Change to a temporary directory.
+	os.Chdir(rootPath)
+	defer os.Chdir(pwd)
+
+	// Checkout the newly created dataset.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri checkout me/ten_movies")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	workPath := filepath.Join(rootPath, "ten_movies")
+	os.Chdir(workPath)
+	defer os.Chdir(pwd)
+
+	// Modify the meta.json so that it fails to parse.
+	if err = ioutil.WriteFile("schema.json", []byte(`{"type":`), os.ModePerm); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Status, check that status shows the parse error.
+	cmdR = r.CreateCommandRunner(ctx)
+	err = executeCommand(cmdR, "qri status")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := r.GetOutput()
+	expect := `for dataset [test_peer/ten_movies]
+
+  parse_error: schema (source: schema.json)
+
+fix these problems before saving this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
 // Test status at specific versions
 func TestStatusAtVersion(t *testing.T) {
 	if err := confirmQriNotRunning(); err != nil {
