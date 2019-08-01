@@ -77,9 +77,17 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 
-	// TODO (b5): remove this. it's currently here just to report the nice error
-	if _, err = f.ConnectionNode(); err != nil {
+	// This fails whenever `qri connect` runs but another instance of `qri connect` is already
+	// running. If early in the connection process, this call to ConnectionNode will return an
+	// error. If later in the process, ConnectionNode will return without error but also with
+	// no node allocated. Without this check, later code will fail or segfault, might as well
+	// fail early.
+	n, err := f.ConnectionNode()
+	if err != nil {
 		return fmt.Errorf("%s, is `qri connect` already running?", err)
+	}
+	if n == nil {
+		return fmt.Errorf("Cannot serve without a node (`qri connect` already running?)")
 	}
 
 	o.inst = f.Instance()
@@ -88,7 +96,6 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() (err error) {
-
 	s := api.New(o.inst)
 	err = s.Serve(o.inst.Context())
 	if err != nil && err.Error() == "http: Server closed" {
