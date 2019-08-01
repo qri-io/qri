@@ -133,6 +133,21 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
 	// }
 
+	// Problems is nil unless some components have errors
+	if problems != nil {
+		for i := 0; i < len(componentListOrder); i++ {
+			cmpName := componentListOrder[i]
+			if cmpFilename, ok := problems[cmpName]; ok {
+				change := StatusItem{
+					SourceFile: cmpFilename,
+					Component:  cmpName,
+					Type:       STParseError,
+				}
+				changes = append(changes, change)
+			}
+		}
+	}
+
 	prevComponents := dsAllComponents(prev)
 
 	for cmpName := range prevComponents {
@@ -140,15 +155,9 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 		// exist based on external conditions
 		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit && cmpName != componentNameViz {
 
+			// Skip adding `removed` messages if we already added `problem` for this component.
 			if problems != nil {
-				// Problems is nil unless some components have errors.
-				if cmpFilename, ok := problems[cmpName]; ok {
-					change := StatusItem{
-						SourceFile: cmpFilename,
-						Component:  cmpName,
-						Type:       STParseError,
-					}
-					changes = append(changes, change)
+				if _, ok := problems[cmpName]; ok {
 					continue
 				}
 			}
@@ -178,6 +187,18 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 		localFilepath, ok := fileMap[path]
 		if !ok {
 			continue
+		}
+
+		// Special case: if the schema had a parse error, skip checking the structure. Otherwise,
+		// the structure will be shown as "modified".
+		// TODO(dlong): Handle the case where structure actually does have changes but schema
+		// has a parse error.
+		if problems != nil {
+			if path == componentNameStructure {
+				if _, ok := problems[componentNameSchema]; ok {
+					continue
+				}
+			}
 		}
 
 		if cmp := dsComponent(prev, path); cmp == nil {
