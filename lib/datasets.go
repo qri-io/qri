@@ -613,10 +613,10 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 // ValidateDatasetParams defines parameters for dataset
 // data validation
 type ValidateDatasetParams struct {
-	Ref repo.DatasetRef
+	Ref string
 	// URL          string
-	DataFilename string
-	Data         io.Reader
+	BodyFilename string
+	Body         io.Reader
 	Schema       io.Reader
 }
 
@@ -630,20 +630,28 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
 	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
 	// }
-	if p.Ref.IsEmpty() && p.Data == nil && p.Schema == nil {
-		// err = fmt.Errorf("please provide a dataset name, or a supply the --body and --schema flags with file paths")
+	if p.Ref == "" && p.Body == nil && p.Schema == nil {
 		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
 	}
 
 	var body, schema qfs.File
-	if p.Data != nil {
-		body = qfs.NewMemfileReader(p.DataFilename, p.Data)
+	if p.Body != nil {
+		body = qfs.NewMemfileReader(p.BodyFilename, p.Body)
 	}
+
 	if p.Schema != nil {
 		schema = qfs.NewMemfileReader("schema.json", p.Schema)
 	}
 
-	*errors, err = actions.Validate(r.node, p.Ref, body, schema)
+	var ref repo.DatasetRef
+	if p.Ref != "" {
+		ref, err = repo.ParseDatasetRef(p.Ref)
+		if err != nil {
+			return err
+		}
+	}
+
+	*errors, err = actions.Validate(r.node, ref, body, schema)
 	return
 }
 

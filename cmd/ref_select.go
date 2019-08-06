@@ -25,12 +25,18 @@ type RefSelect struct {
 // In contrast, when a user is running a command within a working directory that is linked to a
 // dataset, the text sent to standard output shall begin with:
 //
-// for dataset [peername/dataset_name]
+// for linked dataset [peername/dataset_name]
 //
-// That is, "using" is to `use`, as "for" is to `qri-ref`. In all other caes (an explicit dataset
-// ref provided on the command line) neither of these phrases should be displayed. This way, the
-// user can tell at a glance what dataset is being used, and the reason for why is was selected.
-// The `kind` field on RefSelect controls what of these kinds of references is being used.
+// That is, "using" is to `use`, as "for linked" is to `qri-ref`. In all other cases (an
+// explicit dataset ref provided on the command line) neither of these phrases should be
+// displayed. This way, the user can tell at a glance what dataset is being used, and the reason
+// for why is was selected. The `kind` field on RefSelect controls which of these kinds of
+// references is being used.
+
+// NewEmptyRefSelect returns an empty reference selection
+func NewEmptyRefSelect() *RefSelect {
+	return &RefSelect{refs: []string{}}
+}
 
 // NewExplicitRefSelect returns a single explicitly provided reference
 func NewExplicitRefSelect(ref string) *RefSelect {
@@ -49,7 +55,7 @@ func NewLinkedDirectoryRefSelect(ref, dir string) *RefSelect {
 	if pos != -1 {
 		ref = ref[:pos]
 	}
-	return &RefSelect{kind: "for", refs: []string{ref}, dir: dir}
+	return &RefSelect{kind: "for linked", refs: []string{ref}, dir: dir}
 }
 
 // NewUsingRefSelect returns a single reference implied by the use command

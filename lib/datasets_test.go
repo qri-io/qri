@@ -802,12 +802,12 @@ Pirates of the Caribbean: At World's End ,foo
 		numErrors int
 		err       string
 	}{
-		{ValidateDatasetParams{Ref: repo.DatasetRef{}}, 0, "bad arguments provided"},
-		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me"}}, 0, "cannot find dataset: peer@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},
-		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}}, 4, ""},
-		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Data: dataf, DataFilename: "data.csv"}, 1, ""},
-		{ValidateDatasetParams{Ref: repo.DatasetRef{Peername: "me", Name: "movies"}, Schema: schemaf}, 4, ""},
-		{ValidateDatasetParams{Schema: schemaf2, DataFilename: "data.csv", Data: dataf2}, 1, ""},
+		{ValidateDatasetParams{Ref: ""}, 0, "bad arguments provided"},
+		{ValidateDatasetParams{Ref: "me"}, 0, "cannot find dataset: peer@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},
+		{ValidateDatasetParams{Ref: "me/movies"}, 4, ""},
+		{ValidateDatasetParams{Ref: "me/movies", Body: dataf, BodyFilename: "data.csv"}, 1, ""},
+		{ValidateDatasetParams{Ref: "me/movies", Schema: schemaf}, 4, ""},
+		{ValidateDatasetParams{Schema: schemaf2, BodyFilename: "data.csv", Body: dataf2}, 1, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo(nil)

@@ -26,7 +26,7 @@ var (
 	// STRemoved is a removed component
 	STRemoved = "removed"
 	// STParseError is a component that didn't parse
-	STParseError = "parse_error"
+	STParseError = "parse error"
 )
 
 // StatusItem is a component that has status representation on the filesystem

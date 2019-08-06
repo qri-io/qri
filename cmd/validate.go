@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/jsonschema"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -71,7 +72,7 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 
 	// TODO: restore
 	// cmd.Flags().StringVarP(&o.URL, "url", "u", "", "url to file to initialize from")
-	cmd.Flags().StringVarP(&o.Filepath, "body", "b", "", "data file to initialize from")
+	cmd.Flags().StringVarP(&o.BodyFilepath, "body", "b", "", "body file to validate")
 	cmd.Flags().StringVarP(&o.SchemaFilepath, "schema", "", "", "json schema file to use for validation")
 
 	return cmd
@@ -81,65 +82,86 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 type ValidateOptions struct {
 	ioes.IOStreams
 
-	Ref            string
-	Filepath       string
+	Refs           *RefSelect
+	BodyFilepath   string
 	SchemaFilepath string
 	URL            string
-	// validateDsPassive        bool
 
 	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any configuration that can only be added just before calling Run
 func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) != 0 {
-		o.Ref = args[0]
+	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return
 	}
 
-	o.DatasetRequests, err = f.DatasetRequests()
+	o.Refs, err = GetCurrentRefSelect(f, args, 1)
+	if err == repo.ErrEmptyRef {
+		// It is not an error to call validate without a dataset reference. Might be
+		// validating a body file against a schema file directly.
+		o.Refs = NewEmptyRefSelect()
+		err = nil
+	}
 	return
 }
 
 // Run executes the run command
 func (o *ValidateOptions) Run() (err error) {
 	var (
-		dataFile, schemaFile *os.File
-		ref                  repo.DatasetRef
+		bodyFile, schemaFile *os.File
 	)
-	// TODO - this is failing output tests
-	// o.StartSpinner()
-	// defer o.StopSpinner()
 
-	ref, err = repo.ParseDatasetRef(o.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
-		return lib.NewError(err, fmt.Sprintf("%s must be in correct DatasetRef format, [peername]/[datatset_name]", o.Ref))
-	}
+	printRefSelect(o.Out, o.Refs)
 
-	if o.Filepath != "" {
-		if dataFile, err = loadFileIfPath(o.Filepath); err != nil {
-			return lib.NewError(err, fmt.Sprintf("error opening body file: could not %s", err))
+	o.StartSpinner()
+	defer o.StopSpinner()
+
+	if o.Refs.IsLinked() {
+		if o.BodyFilepath == "" {
+			// TODO(dlong): FSI should determine the filename by looking for each known file
+			// extension.
+			if _, err := os.Stat("body.json"); !os.IsNotExist(err) {
+				o.BodyFilepath = "body.json"
+			}
+			if _, err := os.Stat("body.csv"); !os.IsNotExist(err) {
+				o.BodyFilepath = "body.csv"
+			}
+			if err = qfs.AbsPath(&o.BodyFilepath); err != nil {
+				return err
+			}
+		}
+		if o.SchemaFilepath == "" {
+			o.SchemaFilepath = "schema.json"
+			if err = qfs.AbsPath(&o.SchemaFilepath); err != nil {
+				return err
+			}
 		}
 	}
 
+	if o.BodyFilepath != "" {
+		if bodyFile, err = loadFileIfPath(o.BodyFilepath); err != nil {
+			return lib.NewError(err, fmt.Sprintf("error opening body file: could not %s", err))
+		}
+	}
 	if o.SchemaFilepath != "" {
 		if schemaFile, err = loadFileIfPath(o.SchemaFilepath); err != nil {
 			return lib.NewError(err, fmt.Sprintf("error opening schema file: could not %s", err))
 		}
 	}
 
-	// TODO(dlong): Reenable `use` functionality for this command. Also, change Ref to a string.
-
+	ref := o.Refs.Ref()
 	p := &lib.ValidateDatasetParams{
 		Ref: ref,
 		// TODO: restore
 		// URL:          addDsURL,
-		DataFilename: filepath.Base(o.Filepath),
+		BodyFilename: filepath.Base(o.BodyFilepath),
 	}
 
 	// this is because passing nil to interfaces is bad
 	// see: https://golang.org/doc/faq#nil_error
-	if dataFile != nil {
-		p.Data = dataFile
+	if bodyFile != nil {
+		p.Body = bodyFile
 	}
 	if schemaFile != nil {
 		p.Schema = schemaFile
