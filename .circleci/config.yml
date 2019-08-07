@@ -21,12 +21,6 @@ jobs:
           name: Get CI Deps
           command: go get github.com/jstemmer/go-junit-report golang.org/x/lint/golint
       - run:
-          name: Lint
-          command: golint -set_exit_status ./...
-      - run:
-          name: Go Vet
-          command: go vet ./...
-      - run:
           name: Run Tests
           command: |
             trap "go-junit-report <${TEST_RESULTS}/go-test.out > ${TEST_RESULTS}/go-test-report.xml" EXIT
