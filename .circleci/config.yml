@@ -19,7 +19,7 @@ jobs:
           key: dependency-cache-{{ checksum "go.sum" }}
       - run: 
           name: Get CI Deps
-          command: go get github.com/jstemmer/go-junit-report golang.org/x/lint/golint
+          command: go get github.com/jstemmer/go-junit-report
       - run:
           name: Run Tests
           command: |
