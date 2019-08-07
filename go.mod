@@ -4,6 +4,8 @@ go 1.12
 
 replace github.com/golangci/lint-1 v0.0.0-20180610141402-ee948d087217 => github.com/golangci/lint-1 v0.0.0-20190420132249-ee948d087217
 
+replace github.com/golangci/gofmt v0.0.0-20181105071733-0b8337e80d98 => github.com/golangci/gofmt v0.0.0-20181222123516-0b8337e80d98
+
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/dustin/go-humanize v1.0.0
