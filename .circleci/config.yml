@@ -6,7 +6,7 @@ jobs:
       - image: circleci/golang:latest
         environment:
           GO111MODULE: "on"
-          GOPROXY: "https://proxy.golang.org"
+          GOPROXY: direct
           GOSUMDB: "off"
     environment:
       TEST_RESULTS: /tmp/test-results
