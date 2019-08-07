@@ -7,6 +7,8 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
@@ -135,8 +137,9 @@ func (m *FSIMethods) StatusAtVersion(ref *string, res *[]StatusItem) (err error)
 
 // CheckoutParams provides parameters to the Checkout method.
 type CheckoutParams struct {
-	Dir string
-	Ref string
+	Dir       string
+	Ref       string
+	Component string
 }
 
 // Checkout method writes a dataset to a directory as individual files.
@@ -186,9 +189,65 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return err
 	}
 
-	// Write components of the dataset to the dataset.
+	// Write components of the dataset to the working directory.
 	err = fsi.WriteComponents(ds, p.Dir)
 	return err
+}
+
+// CheckoutHistoric method TODO
+func (m *FSIMethods) CheckoutHistoric(p *CheckoutParams, out *string) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.CheckoutHistoric", p, out)
+	}
+
+	if p.Ref == "" {
+		return repo.ErrEmptyRef
+	}
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
+	}
+	if err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref); err != nil {
+		return
+	}
+
+	ds, err := dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
+	if err != nil {
+		return fmt.Errorf("loading dataset: %s", err)
+	}
+
+	if err = base.OpenDataset(m.inst.node.Repo.Filesystem(), ds); err != nil {
+		return
+	}
+
+	var history dataset.Dataset
+	history.Structure = &dataset.Structure{}
+	history.Structure.Format = ds.Structure.Format
+	if p.Component == "meta" {
+		history.Meta = &dataset.Meta{}
+		history.Meta.Assign(ds.Meta)
+	} else if p.Component == "schema" {
+		return fmt.Errorf("TODO: Implement \"%s\"", p.Component)
+	} else if p.Component == "body" {
+		df, err := dataset.ParseDataFormatString(history.Structure.Format)
+		if err != nil {
+			return err
+		}
+		fcfg, err := dataset.ParseFormatConfigMap(df, map[string]interface{}{})
+		if err != nil {
+			return err
+		}
+		bufData, err := actions.GetBody(m.inst.node, ds, df, fcfg, -1, -1, true)
+		if err != nil {
+			return err
+		}
+		history.SetBodyFile(qfs.NewMemfileBytes("body", bufData))
+	} else {
+		return fmt.Errorf("TODO: Implement \"%s\"", p.Component)
+	}
+
+	// Write components of the dataset to the working directory.
+	return fsi.WriteComponents(&history, p.Dir)
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for a given reference string
