@@ -16,6 +16,8 @@ replace github.com/golangci/go-tools v0.0.0-20180109140146-af6baa5dc196 => githu
 
 replace github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
 
+replace mvdan.cc/unparam v0.0.0-20190124213536-fbb59629db34 => mvdan.cc/unparam v0.0.0-20190209190245-fbb59629db34
+
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/dustin/go-humanize v1.0.0
