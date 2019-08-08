@@ -4,11 +4,114 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"testing"
 )
 
-func TestRefSelect(t *testing.T) {
+func TestBasicRefSelect(t *testing.T) {
+	refs := NewEmptyRefSelect()
+	if refs.Ref() != "" {
+		t.Errorf("expected ref \"\", got %s", refs.Ref())
+	}
+	if strings.Join(refs.RefList(), ",") != "" {
+		t.Errorf("expected ref list \"\", got %s", refs.RefList())
+	}
+	if refs.String() != "" {
+		t.Errorf("expected ref string \"\", got %s", refs.String())
+	}
+	if refs.Dir() != "" {
+		t.Errorf("expected ref dir \"\", got %s", refs.Dir())
+	}
+	if !refs.IsExplicit() {
+		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
+	}
+	if refs.IsLinked() {
+		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
+	}
+
+	refs = NewExplicitRefSelect("peername/test_ds")
+	if refs.Ref() != "peername/test_ds" {
+		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
+	}
+	if strings.Join(refs.RefList(), ",") != "peername/test_ds" {
+		t.Errorf("expected ref list \"peername/test_ds\", got %s", refs.RefList())
+	}
+	if refs.String() != "" {
+		t.Errorf("expected ref string \"\", got %s", refs.String())
+	}
+	if refs.Dir() != "" {
+		t.Errorf("expected ref dir \"\", got %s", refs.Dir())
+	}
+	if !refs.IsExplicit() {
+		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
+	}
+	if refs.IsLinked() {
+		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
+	}
+
+	refs = NewListOfRefSelects([]string{"peername/test_ds", "peername/another_ds"})
+	if refs.Ref() != "peername/test_ds" {
+		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
+	}
+	if strings.Join(refs.RefList(), ",") != "peername/test_ds,peername/another_ds" {
+		t.Errorf("expected ref list \"peername/test_ds,peername/another_ds\", got %s", refs.RefList())
+	}
+	if refs.String() != "" {
+		t.Errorf("expected ref string \"\", got %s", refs.String())
+	}
+	if refs.Dir() != "" {
+		t.Errorf("expected ref dir \"\", got %s", refs.Dir())
+	}
+	if !refs.IsExplicit() {
+		t.Errorf("expected ref isExplict true, got %t", refs.IsExplicit())
+	}
+	if refs.IsLinked() {
+		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
+	}
+
+	refs = NewLinkedDirectoryRefSelect("peername/test_ds", "path/to/test_ds")
+	if refs.Ref() != "peername/test_ds" {
+		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
+	}
+	if strings.Join(refs.RefList(), ",") != "peername/test_ds" {
+		t.Errorf("expected ref list \"peername/test_ds\", got %s", refs.RefList())
+	}
+	if refs.String() != "for linked dataset [peername/test_ds]" {
+		t.Errorf("expected ref string \"for linked dataset [peername/test_ds]\", got %s", refs.String())
+	}
+	if refs.Dir() != "path/to/test_ds" {
+		t.Errorf("expected ref dir \"path/to/test_ds\", got %s", refs.Dir())
+	}
+	if refs.IsExplicit() {
+		t.Errorf("expected ref isExplict false, got %t", refs.IsExplicit())
+	}
+	if !refs.IsLinked() {
+		t.Errorf("expected ref isLinked true, got %t", refs.IsLinked())
+	}
+
+	refs = NewUsingRefSelect("peername/test_ds")
+	if refs.Ref() != "peername/test_ds" {
+		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
+	}
+	if strings.Join(refs.RefList(), ",") != "peername/test_ds" {
+		t.Errorf("expected ref list \"peername/test_ds\", got %s", refs.RefList())
+	}
+	if refs.String() != "using dataset [peername/test_ds]" {
+		t.Errorf("expected ref string \"using dataset [peername/test_ds]\", got %s", refs.String())
+	}
+	if refs.Dir() != "" {
+		t.Errorf("expected ref dir \"\", got %s", refs.Dir())
+	}
+	if refs.IsExplicit() {
+		t.Errorf("expected ref isExplict false, got %t", refs.IsExplicit())
+	}
+	if refs.IsLinked() {
+		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
+	}
+}
+
+func TestGetCurrentRefSelect(t *testing.T) {
 	f, err := NewTestFactory(nil)
 	if err != nil {
 		t.Fatalf(err.Error())

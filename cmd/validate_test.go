@@ -20,7 +20,7 @@ func TestValidateComplete(t *testing.T) {
 
 	cases := []struct {
 		args           []string
-		filepath       string
+		bodyFilepath   string
 		schemaFilepath string
 		expect         string
 		err            string
@@ -33,7 +33,7 @@ func TestValidateComplete(t *testing.T) {
 	for i, c := range cases {
 		opt := &ValidateOptions{
 			IOStreams:      streams,
-			Filepath:       c.filepath,
+			BodyFilepath:   c.bodyFilepath,
 			SchemaFilepath: c.schemaFilepath,
 		}
 		opt.Complete(f, c.args)
@@ -44,8 +44,8 @@ func TestValidateComplete(t *testing.T) {
 			continue
 		}
 
-		if c.expect != opt.Ref {
-			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Ref)
+		if c.expect != opt.Refs.Ref() {
+			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Refs.Ref())
 			ioReset(in, out, errs)
 			continue
 		}
@@ -77,22 +77,23 @@ func TestValidateRun(t *testing.T) {
 	}
 
 	cases := []struct {
+		description    string
 		ref            string
-		filePath       string
+		bodyFilePath   string
 		schemaFilePath string
 		url            string
 		expected       string
 		err            string
 		msg            string
 	}{
-		{"", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
+		{"bad args", "", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
 		// TODO: add back when we again support validating from a URL
 		// {"", "", "", "url", "", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
-		{"peer/movies", "", "", "", movieOutput, "", ""},
-		{"peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
-		{"", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
-		{"", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open " + path + "/bad/schema_filepath: no such file or directory", "error opening schema file: could not open " + path + "/bad/schema_filepath: no such file or directory"},
-		{"", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
+		{"movie problems", "peer/movies", "", "", "", movieOutput, "", ""},
+		{"dataset not found", "peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", ""},
+		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
+		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open " + path + "/bad/schema_filepath: no such file or directory", "error opening schema file: could not open " + path + "/bad/schema_filepath: no such file or directory"},
+		{"validate successfully", "", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
 		// TODO: pull from url
 	}
 
@@ -105,8 +106,8 @@ func TestValidateRun(t *testing.T) {
 
 		opt := &ValidateOptions{
 			IOStreams:       streams,
-			Ref:             c.ref,
-			Filepath:        c.filePath,
+			Refs:            NewExplicitRefSelect(c.ref),
+			BodyFilepath:    c.bodyFilePath,
 			SchemaFilepath:  c.schemaFilePath,
 			URL:             c.url,
 			DatasetRequests: dsr,

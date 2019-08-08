@@ -70,7 +70,7 @@ func TestInitStatusSave(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/brand_new]
+	expect := `for linked dataset [test_peer/brand_new]
 
   add: meta (source: meta.json)
   add: schema (source: schema.json)
@@ -99,11 +99,11 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/brand_new]
+	expect = `for linked dataset [test_peer/brand_new]
 
 working directory clean
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
@@ -168,7 +168,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/two_movies]
+	expect := `for linked dataset [test_peer/two_movies]
 
 working directory clean
 `
@@ -187,7 +187,7 @@ working directory clean
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/two_movies]
+	expect = `for linked dataset [test_peer/two_movies]
 
   modified: body (source: body.json)
 
@@ -210,7 +210,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/two_movies]
+	expect = `for linked dataset [test_peer/two_movies]
 
   add: meta (source: meta.json)
   modified: body (source: body.json)
@@ -281,11 +281,11 @@ func TestCheckoutWithStructure(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/ten_movies]
+	expect := `for linked dataset [test_peer/ten_movies]
 
 working directory clean
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -300,13 +300,13 @@ working directory clean
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -323,14 +323,14 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: meta (source: meta.json)
   modified: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -347,14 +347,14 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = r.GetOutput()
-	expect = `for dataset [test_peer/ten_movies]
+	expect = `for linked dataset [test_peer/ten_movies]
 
   removed:  meta
   modified: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
@@ -418,11 +418,11 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/more_movies]
+	expect := `for linked dataset [test_peer/more_movies]
 
 working directory clean
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
@@ -440,14 +440,14 @@ working directory clean
 
 	output = r.GetOutput()
 	// TODO(dlong): structure/dataset.json should not be marked as `modified`
-	expect = `for dataset [test_peer/more_movies]
+	expect = `for linked dataset [test_peer/more_movies]
 
   modified: structure (source: dataset.json)
   modified: schema (source: schema.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
-	if diff := cmpTextLines(output, expect); diff != "" {
+	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
@@ -509,9 +509,9 @@ func TestStatusParseError(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/bad_movies]
+	expect := `for linked dataset [test_peer/bad_movies]
 
-  parse_error: meta (source: meta.json)
+  parse error: meta (source: meta.json)
 
 fix these problems before saving this dataset
 `
@@ -577,9 +577,9 @@ func TestStatusParseErrorForSchema(t *testing.T) {
 	}
 
 	output := r.GetOutput()
-	expect := `for dataset [test_peer/ten_movies]
+	expect := `for linked dataset [test_peer/ten_movies]
 
-  parse_error: schema (source: schema.json)
+  parse error: schema (source: schema.json)
 
 fix these problems before saving this dataset
 `
