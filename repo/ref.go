@@ -341,6 +341,10 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 	}
 
+	if got.Path == "" {
+		return ErrNoHistory
+	}
+
 	return nil
 }
 

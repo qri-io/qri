@@ -55,7 +55,12 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	res := []repo.DatasetRef{}
-	if err := h.Log(params, &res); err != nil {
+	err = h.Log(params, &res)
+	if err == repo.ErrNoHistory {
+		NoHistoryErrResponse(w)
+		return
+	}
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

@@ -20,6 +20,8 @@ var (
 
 	// ErrNotFound is the err implementers should return when stuff isn't found
 	ErrNotFound = fmt.Errorf("repo: not found")
+	// ErrNoHistory is the err implementers should return when no versions exist in history
+	ErrNoHistory = fmt.Errorf("repo: no history")
 	// ErrPeerIDRequired is for when a peerID is missing-but-expected
 	ErrPeerIDRequired = fmt.Errorf("repo: peerID is required")
 	// ErrPeernameRequired is for when a peername is missing-but-expected

@@ -25,3 +25,18 @@ func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef, published bool) error {
 	ref.Published = published
 	return r.PutRef(*ref)
 }
+
+func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*repo.DatasetRef, error) {
+	if path == "" {
+		return nil, repo.ErrEmptyRef
+	}
+	ref, err := repo.ParseDatasetRef(path)
+	if err != nil {
+		return nil, err
+	}
+	err = repo.CanonicalizeDatasetRef(r, &ref)
+	if err == repo.ErrNoHistory && !allowFSI {
+		return nil, err
+	}
+	return &ref, nil
+}
