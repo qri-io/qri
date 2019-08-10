@@ -607,13 +607,8 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 }
 
 func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
-	d, err := DatasetRefFromPath(r.URL.Path[len("/body"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	p, err := getParamsFromRequest(r, h.ReadOnly, d.AliasString())
+	refStr := HTTPPathToQriPath(r.URL.Path[len("/body/"):])
+	p, err := getParamsFromRequest(r, h.ReadOnly, refStr)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
@@ -624,6 +619,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
 	download := r.FormValue("download") == "true"
 	if download {
 		filename, err := lib.GenerateFilename(result.Dataset, p.Format)
@@ -638,8 +634,13 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	page := util.PageFromRequest(r)
+	path := result.Dataset.BodyPath
+	if p.UseFSI {
+		path = result.Dataset.Path
+	}
+
 	dataResponse := DataResponse{
-		Path: result.Dataset.BodyPath,
+		Path: path,
 		Data: json.RawMessage(result.Bytes),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
