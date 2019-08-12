@@ -74,7 +74,7 @@ func (si statusItems) Less(i, j int) bool {
 // AliasStatus returns the status for a given dataset alias
 func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
 	ref, err := fsi.getRepoRef(alias)
-	if err != nil {
+	if err != nil && err != repo.ErrNoHistory {
 		return nil, err
 	}
 

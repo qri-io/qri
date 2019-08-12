@@ -620,10 +620,6 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 	result := &lib.GetResult{}
 	err = h.Get(p, result)
-	if err == repo.ErrNoHistory {
-		NoHistoryErrResponse(w)
-		return
-	}
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

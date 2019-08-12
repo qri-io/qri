@@ -106,7 +106,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 
 	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
-	if err != nil {
+	if err != nil && err != repo.ErrNoHistory {
 		return err
 	}
 
