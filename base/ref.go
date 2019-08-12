@@ -36,7 +36,7 @@ func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*repo.DatasetRef, er
 	}
 	err = repo.CanonicalizeDatasetRef(r, &ref)
 	if err == repo.ErrNoHistory && !allowFSI {
-		return &ref, err
+		return nil, err
 	}
 	return &ref, nil
 }
