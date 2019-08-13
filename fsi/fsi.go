@@ -85,8 +85,8 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNotFound {
+	err = repo.CanonicalizeDatasetRef(fsi.repo, &ref)
+	if err != nil && err != repo.ErrNotFound && err != repo.ErrNoHistory {
 		return ref.String(), err
 	}
 

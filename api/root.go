@@ -56,6 +56,10 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
+	if err == repo.ErrNotFound {
+		util.NotFoundHandler(w, r)
+		return
+	}
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

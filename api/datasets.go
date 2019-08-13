@@ -692,8 +692,8 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 	util.WriteResponse(w, json.RawMessage(data))
 }
 
-// NotFoundHandler is a HTTP 422 response (Unprocessable Entity)
+// NoHistoryErrResponse is a HTTP 422 response (Unprocessable Entity)
 func NoHistoryErrResponse(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusNotFound)
+	w.WriteHeader(http.StatusUnprocessableEntity)
 	w.Write([]byte(`{ "meta": { "code": 422, "error": "no history" }, "data": null }`))
 }

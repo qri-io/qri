@@ -89,7 +89,8 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 // StatusItem is an alias for an fsi.StatusItem
 type StatusItem = fsi.StatusItem
 
-// Status checks for any modifications or errors in a linked directory
+// Status checks for any modifications or errors in a linked directory against its previous
+// version in the repo. Must only be called if FSI is enabled for this dataset.
 func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.Status", dir, res)
@@ -101,27 +102,34 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	return err
 }
 
-// AliasStatus checks for any modifications or errors in a dataset alias
-func (m *FSIMethods) AliasStatus(alias *string, res *[]StatusItem) (err error) {
+// StatusForAlias receives an alias for a dataset that must be linked to the filesystem, and checks
+// the status of its current working directory. It is an error to call this for a reference that
+// is not linked.
+func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
 	}
 
 	// TODO (b5) - inst should have an fsi instance
 	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.AliasStatus(*alias)
+	dir, err := fsint.AliasToLinkedDir(*alias)
+	if err != nil {
+		return err
+	}
+	*res, err = fsint.Status(dir)
 	return err
 }
 
-// StoredStatus returns a status-like report of a dataset reference
-func (m *FSIMethods) StoredStatus(ref *string, res *[]StatusItem) (err error) {
+// StatusAtVersion gets changes that happened at a particular version in the history of the given
+// dataset reference. Not used for FSI.
+func (m *FSIMethods) StatusAtVersion(ref *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
 	}
 
 	// TODO (b5) - inst should have an fsi instance
 	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.StoredStatus(*ref)
+	*res, err = fsint.StatusAtVersion(*ref)
 	return err
 }
 
