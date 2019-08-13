@@ -207,7 +207,7 @@ func (cfg Config) Validate() error {
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {
-		return err
+		return fmt.Errorf("config validation error: %s", err)
 	}
 
 	validators := []validator{

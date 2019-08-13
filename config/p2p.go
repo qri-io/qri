@@ -41,7 +41,7 @@ type P2P struct {
 	// ProfileReplication determines what to do when this peer sees messages
 	// broadcast by it's own profile (from another peer instance). setting
 	// ProfileReplication == "full" will cause this peer to automatically pin
-	// any data that is verifyably posted by the same peer
+	// any data that is verifiably posted by the same peer
 	ProfileReplication string `json:"profilereplication"`
 
 	// list of addresses to bootsrap qri peers on

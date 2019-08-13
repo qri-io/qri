@@ -65,12 +65,12 @@ func NewProfile(p *config.ProfilePod) (pro *Profile, err error) {
 func (p *Profile) Decode(sp *config.ProfilePod) error {
 	id, err := IDB58Decode(sp.ID)
 	if err != nil {
-		return err
+		return fmt.Errorf("parsing profile.ID \"%s\": %s", sp.ID, err)
 	}
 
 	t, err := ParseType(sp.Type)
 	if err != nil {
-		return err
+		return fmt.Errorf("parsing profileType \"%s\": %s", sp.Type, err)
 	}
 
 	pids := make([]peer.ID, len(sp.PeerIDs))
