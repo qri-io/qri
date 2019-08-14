@@ -115,7 +115,10 @@ func OptConfig(cfg *config.Config) Option {
 func OptSetIPFSPath(path string) Option {
 	return func(o *InstanceOptions) error {
 		if o.Cfg == nil {
-			return fmt.Errorf("no config file to set IPFS path on")
+			return fmt.Errorf("config is nil, can't set IPFS path")
+		}
+		if o.Cfg.Store == nil {
+			return fmt.Errorf("config.Store is nil, can't check type")
 		}
 		if o.Cfg.Store.Type == "ipfs" && o.Cfg.Store.Path == "" {
 			if path == "" {
@@ -228,7 +231,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.cron, err = newCron(cfg, inst.repoPath); err != nil {
-		return
+		return nil, fmt.Errorf("newCron: %s", err)
 	}
 
 	// check if we're operating over RPC
@@ -244,15 +247,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.store, err = newStore(ctx, cfg); err != nil {
-		return
+		return nil, fmt.Errorf("newStore: %s", err)
 	}
 	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
-		return
+		return nil, fmt.Errorf("newFilesystem: %s", err)
 	}
 	inst.registry = newRegClient(cfg)
 
 	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.registry); err != nil {
-		return
+		return nil, fmt.Errorf("newRepo: %s", err)
 	}
 	if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
 		qfssetter.SetFilesystem(inst.qfs)
