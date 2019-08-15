@@ -307,6 +307,10 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
 	if err != nil {
+		if err == repo.ErrNoHistory {
+			NoHistoryErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -616,6 +620,10 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 	result := &lib.GetResult{}
 	if err := h.Get(p, result); err != nil {
+		if err == repo.ErrNoHistory {
+			NoHistoryErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -681,4 +689,10 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 		return
 	}
 	util.WriteResponse(w, json.RawMessage(data))
+}
+
+// NoHistoryErrResponse is a HTTP 422 response (Unprocessable Entity)
+func NoHistoryErrResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	w.Write([]byte(`{ "meta": { "code": 422, "error": "no history" }, "data": null }`))
 }

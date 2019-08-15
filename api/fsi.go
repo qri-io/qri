@@ -6,6 +6,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 )
 
 // FSIHandlers connects HTTP requests to the FSI subsystem
@@ -47,6 +48,7 @@ func (h *FSIHandlers) StatusHandler(routePrefix string) http.HandlerFunc {
 
 func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		useFSI := r.FormValue("fsi") == "true"
 		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
@@ -54,20 +56,28 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		res := []lib.StatusItem{}
-		if ref.Path != "" {
-			refStr := ref.String()
-			if err = h.StoredStatus(&refStr, &res); err != nil {
-				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
-				return
-			}
-		} else {
+		if useFSI {
 			alias := ref.AliasString()
-			if err = h.AliasStatus(&alias, &res); err != nil {
+			err := h.StatusForAlias(&alias, &res)
+			// Won't return ErrNoHistory.
+			if err != nil {
 				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
 				return
 			}
+			util.WriteResponse(w, res)
+			return
 		}
 
+		refStr := ref.String()
+		err = h.StatusAtVersion(&refStr, &res)
+		if err != nil {
+			if err == repo.ErrNoHistory {
+				NoHistoryErrResponse(w)
+				return
+			}
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			return
+		}
 		util.WriteResponse(w, res)
 	}
 }

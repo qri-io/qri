@@ -102,7 +102,7 @@ func (o *StatusOptions) RunAtVersion() (err error) {
 
 	res := []lib.StatusItem{}
 	ref := o.Refs.Ref()
-	if err := o.FSIMethods.StoredStatus(&ref, &res); err != nil {
+	if err := o.FSIMethods.StatusAtVersion(&ref, &res); err != nil {
 		printErr(o.ErrOut, err)
 		return nil
 	}

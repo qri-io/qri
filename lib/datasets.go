@@ -104,17 +104,10 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
-	ref := &repo.DatasetRef{}
 
-	if p.Path == "" {
-		return repo.ErrEmptyRef
-	}
-	*ref, err = repo.ParseDatasetRef(p.Path)
+	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
 	if err != nil {
-		return fmt.Errorf("'%s' is not a valid dataset reference", p.Path)
-	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
-		return
+		return err
 	}
 
 	var ds *dataset.Dataset
@@ -302,7 +295,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ds := &dataset.Dataset{}
 
 	if p.ReadFSI {
-		if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref)
+		if err != nil && err != repo.ErrNoHistory {
 			return err
 		}
 		if ref.FSIPath == "" {

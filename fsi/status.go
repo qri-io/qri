@@ -71,21 +71,19 @@ func (si statusItems) Less(i, j int) bool {
 	return componentOrder[si[i].Component] < componentOrder[si[j].Component]
 }
 
-// AliasStatus returns the status for a given dataset alias
-func (fsi *FSI) AliasStatus(alias string) (changes []StatusItem, err error) {
+// AliasToLinkedDir converts the given dataset alias to the FSI path it is linked to.
+func (fsi *FSI) AliasToLinkedDir(alias string) (string, error) {
 	ref, err := fsi.getRepoRef(alias)
-	if err != nil {
-		return nil, err
+	if err != nil && err != repo.ErrNoHistory {
+		return "", err
 	}
-
-	if ref.FSIPath != "" {
-		return fsi.Status(ref.FSIPath)
+	if ref.FSIPath == "" {
+		return "", fmt.Errorf("StatusForAlias may only be used with linked datasets")
 	}
-
-	return fsi.StoredStatus(ref.String())
+	return ref.FSIPath, nil
 }
 
-// Status reads the diff status from the current working directory
+// Status compares status of the current working directory against the dataset's last version
 func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	refStr, ok := GetLinkedFilesysRef(dir)
 	if !ok {
@@ -285,8 +283,8 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 	return changes, nil
 }
 
-// StoredStatus loads a dataset & presents it in a status-like format
-func (fsi *FSI) StoredStatus(refStr string) (changes []StatusItem, err error) {
+// StatusAtVersion gets changes that happened at a particular version in a dataset's history.
+func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error) {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return nil, err
