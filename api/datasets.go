@@ -306,11 +306,11 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
-	if err == repo.ErrNoHistory {
-		NoHistoryErrResponse(w)
-		return
-	}
 	if err != nil {
+		if err == repo.ErrNoHistory {
+			NoHistoryErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -619,12 +619,11 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	result := &lib.GetResult{}
-	err = h.Get(p, result)
-	if err == repo.ErrNoHistory {
-		NoHistoryErrResponse(w)
-		return
-	}
-	if err != nil {
+	if err := h.Get(p, result); err != nil {
+		if err == repo.ErrNoHistory {
+			NoHistoryErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

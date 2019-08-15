@@ -56,18 +56,7 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 		}
 
 		res := []lib.StatusItem{}
-		if !useFSI {
-			refStr := ref.String()
-			err = h.StatusAtVersion(&refStr, &res)
-			if err == repo.ErrNoHistory {
-				NoHistoryErrResponse(w)
-				return
-			}
-			if err != nil {
-				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
-				return
-			}
-		} else {
+		if useFSI {
 			alias := ref.AliasString()
 			err := h.StatusForAlias(&alias, &res)
 			// Won't return ErrNoHistory.
@@ -75,8 +64,20 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 				util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
 				return
 			}
+			util.WriteResponse(w, res)
+			return
 		}
 
+		refStr := ref.String()
+		err = h.StatusAtVersion(&refStr, &res)
+		if err != nil {
+			if err == repo.ErrNoHistory {
+				NoHistoryErrResponse(w)
+				return
+			}
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			return
+		}
 		util.WriteResponse(w, res)
 	}
 }
