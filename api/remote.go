@@ -6,21 +6,18 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/dag/dsync"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 )
 
 // RemoteHandlers wraps a request struct to interface with http.HandlerFunc
 type RemoteHandlers struct {
-	*lib.RemoteRequests
+	*lib.RemoteMethods
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
-func NewRemoteHandlers(node *p2p.QriNode, cfg *config.Config, rec *dsync.Receivers) *RemoteHandlers {
-	req := lib.NewRemoteRequests(node, cfg, nil)
-	req.Receivers = rec
+func NewRemoteHandlers(inst *lib.Instance) *RemoteHandlers {
+	req := lib.NewRemoteMethods(inst)
+	// req.Receivers = rec
 	return &RemoteHandlers{req}
 }
 

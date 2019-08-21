@@ -178,12 +178,12 @@ func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	return lib.NewDatasetRequests(o.inst.Node(), o.inst.RPC()), nil
 }
 
-// RemoteRequests generates a lib.RemoteRequests from internal state
-func (o *QriOptions) RemoteRequests() (*lib.RemoteRequests, error) {
+// RemoteMethods generates a lib.RemoteMethods from internal state
+func (o *QriOptions) RemoteMethods() (*lib.RemoteMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewRemoteRequests(o.inst.Node(), o.inst.Config(), o.inst.RPC()), nil
+	return lib.NewRemoteMethods(o.inst), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state

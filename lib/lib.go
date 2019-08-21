@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	ipfs "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
@@ -72,11 +73,6 @@ func Receivers(inst *Instance) []Methods {
 		NewConfigMethods(inst),
 		NewSearchRequests(node, nil),
 		NewRenderRequests(r, nil),
-<<<<<<< HEAD
-=======
-		NewSelectionRequests(r, nil),
-		NewRemoteMethods(inst),
->>>>>>> refactor(dsync): incorporate dsync updates
 		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
 	}
@@ -269,16 +265,17 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
+		log.Error("intializaing p2p:", err.Error())
 		return
 	}
 	inst.node.LocalStreams = o.Streams
 
 	capi, err := inst.node.IPFSCoreAPI()
 	if err != nil {
-		return err
+		return
 	}
-	inst.dsync = dsync.New(dag.NewNodeGetter(capi), capi.Block())
 
+	inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block())
 	return
 }
 
@@ -332,6 +329,16 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 			ipfs.OptsFromMap(cfg.Store.Options),
 		}
 		return ipfs.NewFilestore(fsOpts...)
+	case "ipfs_http":
+		urli, ok := cfg.Store.Options["url"]
+		if !ok {
+			return nil, fmt.Errorf("ipfs_http store requires 'url' option")
+		}
+		urlStr, ok := urli.(string)
+		if !ok {
+			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
+		}
+		return ipfs_http.New(urlStr)
 	case "map":
 		return cafs.NewMapstore(), nil
 	default:

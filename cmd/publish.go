@@ -59,7 +59,7 @@ type PublishOptions struct {
 	RemoteName string
 
 	DatasetRequests *lib.DatasetRequests
-	RemoteRequests  *lib.RemoteRequests
+	RemoteMethods   *lib.RemoteMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -68,7 +68,7 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return err
 	}
-	o.RemoteRequests, err = f.RemoteRequests()
+	o.RemoteMethods, err = f.RemoteMethods()
 	return
 }
 
@@ -82,7 +82,7 @@ func (o *PublishOptions) Run() error {
 				RemoteName: o.RemoteName,
 			}
 			var res bool
-			if err := o.RemoteRequests.PushToRemote(&p, &res); err != nil {
+			if err := o.RemoteMethods.PushToRemote(&p, &res); err != nil {
 				return err
 			}
 			// TODO(dlong): Check if the operation succeeded or failed. Perform dsync.
