@@ -163,7 +163,7 @@ func (r *RemoteMethods) Receive(p *ReceiveParams, res *ReceiveResult) (err error
 	// res.Success = true
 	// res.SessionID = sid
 	// res.Diff = diff
-	return nil
+	// return nil
 }
 
 // Complete is used to complete a dataset that has been pushed to this remote
@@ -206,7 +206,7 @@ func (r *RemoteMethods) Complete(p *CompleteParams, res *bool) (err error) {
 	// delete(r.Sessions, sid)
 	// r.lock.Unlock()
 
-	return nil
+	// return nil
 }
 
 func remoteDsyncDest(cfg *config.Config, name string) (dst string, err error) {
