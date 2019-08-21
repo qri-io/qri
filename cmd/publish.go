@@ -75,30 +75,24 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
 	for _, ref := range o.Refs {
-		if o.RemoteName != "" {
-			// Publish for a "Remote".
-			p := lib.PushParams{
-				Ref:        ref,
-				RemoteName: o.RemoteName,
-			}
-			var res bool
-			if err := o.RemoteMethods.PushToRemote(&p, &res); err != nil {
-				return err
-			}
-			// TODO(dlong): Check if the operation succeeded or failed. Perform dsync.
-			return nil
+		p := lib.PushParams{
+			Ref:        ref,
+			RemoteName: o.RemoteName,
+		}
+		var res bool
+		if err := o.RemoteMethods.PushToRemote(&p, &res); err != nil {
+			return err
 		}
 
-		// Publish for the legacy Registry server.
-		p := lib.SetPublishStatusParams{
-			Ref:               ref,
-			PublishStatus:     !o.Unpublish,
-			UpdateRegistry:    !o.NoRegistry,
-			UpdateRegistryPin: !o.NoPin,
+		// mark dataset as listed on p2p
+		// TODO (b5) - make this a flag on lib.PushToRemote
+		setPub := lib.SetPublishStatusParams{
+			Ref:           ref,
+			PublishStatus: !o.Unpublish,
 		}
 
 		var publishedRef repo.DatasetRef
-		if err := o.DatasetRequests.SetPublishStatus(&p, &publishedRef); err != nil {
+		if err := o.DatasetRequests.SetPublishStatus(&setPub, &publishedRef); err != nil {
 			return err
 		}
 		printInfo(o.Out, "published dataset %s", publishedRef)

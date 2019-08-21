@@ -1,9 +1,15 @@
 package lib
 
 import (
-	// "context"
+	"context"
+	"encoding/base64"
 	"fmt"
-	// "time"
+	"time"
+
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/multiformats/go-multihash"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -30,49 +36,57 @@ func (r *RemoteMethods) PushToRemote(p *PushParams, out *bool) error {
 		return r.inst.rpc.Call("DatasetRequests.PushToRemote", p, out)
 	}
 
-	// TODO (b5) - restore!
-	return fmt.Errorf("need to restore RemoteMethods.PushToRemote")
-	// ref, err := repo.ParseDatasetRef(p.Ref)
-	// if err != nil {
-	// 	return err
-	// }
-	// if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
-	// 	return err
-	// }
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
+		return err
+	}
 
-	// dagInfo, err := actions.NewDAGInfo(r.inst.Node(), ref.Path, "")
-	// if err != nil {
-	// 	return err
-	// }
+	cfg := r.inst.Config()
+	dst, err := remoteDsyncDest(cfg, p.RemoteName)
+	if err != nil {
+		return err
+	}
 
-	// location, found := r.cfg.Remotes.Get(p.RemoteName)
-	// if !found {
-	// 	return fmt.Errorf("remote name \"%s\" not found", p.RemoteName)
-	// }
+	log.Debugf("publishing %s to %s", ref.Path, dst)
+	push, err := r.inst.dsync.NewPush(ref.Path, dst, true)
+	if err != nil {
+		return err
+	}
 
-	// push, err := r.inst.dsync.NewPushManifest(dagInfo.Manifest, location, PushParams.Pin)
-	// if err != nil {
-	// 	return nil
-	// }
+	params, err := sigParams(r.inst, ref.Path)
+	if err != nil {
+		return err
+	}
 
-	// if err := push.Do(context.Background()); err != nil {
-	// 	return nil
-	// }
+	params["peername"] = ref.Peername
+	params["name"] = ref.Name
+	push.SetMeta(params)
 
-	// sessionID, dagDiff, err := actions.DsyncStartPush(r.inst.Node(), dagInfo, location, &ref)
-	// if err != nil {
-	// 	return err
-	// }
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
 
-	// err = actions.DsyncSendBlocks(r.inst.Node(), location, sessionID, dagInfo.Manifest, dagDiff)
-	// if err != nil {
-	// 	return err
-	// }
+	go func() {
+		updates := push.Updates()
+		for {
+			select {
+			case update := <-updates:
+				fmt.Printf("%d/%d blocks transferred\n", update.CompletedBlocks(), len(update))
+				if update.Complete() {
+					fmt.Println("done!")
+				}
+			case <-ctx.Done():
+				// don't leak goroutines
+				return
+			}
+		}
+	}()
 
-	// err = actions.DsyncCompletePush(r.inst.Node(), location, sessionID)
-	// if err != nil {
-	// 	return err
-	// }
+	if err = push.Do(ctx); err != nil {
+		return err
+	}
 
 	*out = true
 	return nil
@@ -193,4 +207,69 @@ func (r *RemoteMethods) Complete(p *CompleteParams, res *bool) (err error) {
 	// r.lock.Unlock()
 
 	return nil
+}
+
+func remoteDsyncDest(cfg *config.Config, name string) (dst string, err error) {
+	if name == "" {
+		if cfg.Registry.Location != "" {
+			return cfg.Registry.Location + "/dsync", nil
+		}
+		return "", fmt.Errorf("no registry specifiied to use as default remote")
+	}
+
+	if dst, found := cfg.Remotes.Get(name); found {
+		return dst, nil
+	}
+
+	return "", fmt.Errorf(`remote name "%s" not found`, name)
+}
+
+func sigParams(inst *Instance, cidStr string) (map[string]string, error) {
+	pk := inst.Repo().PrivateKey()
+	pid, err := calcPeerID(pk)
+	if err != nil {
+		return nil, err
+	}
+
+	now := fmt.Sprintf("%d", time.Now().In(time.UTC).Unix())
+	rss := requestSigningString(now, pid, cidStr)
+
+	b64Sig, err := signString(pk, rss)
+	if err != nil {
+		return nil, err
+	}
+
+	return map[string]string{
+		"peerId":    pid,
+		"timestamp": now,
+		"cid":       cidStr,
+		"signature": b64Sig,
+	}, nil
+}
+
+func requestSigningString(timestamp, peerID, cidStr string) string {
+	return fmt.Sprintf("%s.%s.%s", timestamp, peerID, cidStr)
+}
+
+func signString(privKey crypto.PrivKey, str string) (b64Sig string, err error) {
+	sigbytes, err := privKey.Sign([]byte(str))
+	if err != nil {
+		return "", fmt.Errorf("error signing %s", err.Error())
+	}
+
+	return base64.StdEncoding.EncodeToString(sigbytes), nil
+}
+
+func calcPeerID(privKey crypto.PrivKey) (string, error) {
+	pubkeybytes, err := privKey.GetPublic().Bytes()
+	if err != nil {
+		return "", fmt.Errorf("error getting pubkey bytes: %s", err.Error())
+	}
+
+	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
+	if err != nil {
+		return "", fmt.Errorf("error summing pubkey: %s", err.Error())
+	}
+
+	return mh.B58String(), nil
 }

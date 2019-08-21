@@ -3,12 +3,6 @@ module github.com/qri-io/qri
 go 1.12
 
 replace (
-	github.com/qri-io/dag => /Users/b5/go/src/github.com/qri-io/dag
-	github.com/qri-io/qfs => /Users/b5/go/src/github.com/qri-io/qfs
-	github.com/qri-io/registry => /Users/b5/go/src/github.com/qri-io/registry
-)
-
-replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead
 	github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6
@@ -48,15 +42,15 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
-	github.com/qri-io/dag v0.1.1-0.20190605213518-cb095ea6b6d9
+	github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb
 	github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.0
-	github.com/qri-io/registry v0.1.0
+	github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1
+	github.com/qri-io/registry v0.1.1-0.20190821172252-31ae2dc091d2
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0

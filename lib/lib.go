@@ -270,12 +270,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 	inst.node.LocalStreams = o.Streams
 
-	capi, err := inst.node.IPFSCoreAPI()
-	if err != nil {
-		return
+	if capi, err := inst.node.IPFSCoreAPI(); err == nil {
+		inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block())
 	}
 
-	inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block())
 	return
 }
 
