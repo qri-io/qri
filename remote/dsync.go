@@ -1,15 +1,15 @@
 package remote
 
 import (
-	"fmt"
 	"context"
+	"fmt"
 
+	"github.com/qri-io/dag"
+	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/dag"
-	"github.com/qri-io/dag/dsync"
 )
 
 // DsyncConfigFunc takes a qri configuration & returns a function that
@@ -31,29 +31,29 @@ func DsyncConfigFunc(cfg *config.Config, node *p2p.QriNode) func(*dsync.Config) 
 func newPreCheckHook(cfg *config.Config, node *p2p.QriNode) dsync.Hook {
 	return func(ctx context.Context, info dag.Info, meta map[string]string) error {
 		// TODO(dlong): Customization for how to decide to accept the dataset.
-	if cfg.API.RemoteAcceptSizeMax == 0 {
-		return fmt.Errorf("not accepting any datasets")
-	}
-
-	// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
-	if cfg.API.RemoteAcceptSizeMax != -1 {
-		var totalSize uint64
-		for _, s := range info.Sizes {
-			totalSize += s
+		if cfg.API.RemoteAcceptSizeMax == 0 {
+			return fmt.Errorf("not accepting any datasets")
 		}
 
-		if totalSize >= uint64(cfg.API.RemoteAcceptSizeMax) {
-			return fmt.Errorf("dataset size too large")
-		}
-	}
+		// If size is -1, accept any size of dataset. Otherwise, check if the size is allowed.
+		if cfg.API.RemoteAcceptSizeMax != -1 {
+			var totalSize uint64
+			for _, s := range info.Sizes {
+				totalSize += s
+			}
 
-		return nil 
+			if totalSize >= uint64(cfg.API.RemoteAcceptSizeMax) {
+				return fmt.Errorf("dataset size too large")
+			}
+		}
+
+		return nil
 	}
 }
 
 func newFinalCheckHook(cfg *config.Config, node *p2p.QriNode) dsync.Hook {
 	return func(ctx context.Context, info dag.Info, meta map[string]string) error {
-		return nil 
+		return nil
 	}
 }
 
@@ -66,10 +66,10 @@ func newOnCompleteHook(cfg *config.Config, node *p2p.QriNode) dsync.Hook {
 		}
 
 		ref := &repo.DatasetRef{
-			Peername: meta["peername"],
-			Name: meta["name"],
+			Peername:  meta["peername"],
+			Name:      meta["name"],
 			ProfileID: pid,
-			Path: meta["path"],
+			Path:      meta["path"],
 		}
 
 		if err := repo.CanonicalizeDatasetRef(node.Repo, ref); err != nil {

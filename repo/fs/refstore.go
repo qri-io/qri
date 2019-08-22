@@ -4,8 +4,8 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
-	"sort"
 	"os"
+	"sort"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -28,7 +28,7 @@ type Refstore struct {
 // PutRef adds a reference to the store
 func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
 	var (
-		ds *dataset.Dataset
+		ds   *dataset.Dataset
 		refs repo.Refs
 	)
 
@@ -62,7 +62,7 @@ func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
 	}
 
 	if rs.store != nil && r.Path != "" {
-		if ds, err = dsfs.LoadDataset(rs.store, r.Path);  err != nil {
+		if ds, err = dsfs.LoadDataset(rs.store, r.Path); err != nil {
 			return err
 		}
 

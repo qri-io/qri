@@ -3,10 +3,10 @@ package repo
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/google/go-cmp/cmp"
 	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
 

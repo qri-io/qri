@@ -1,4 +1,4 @@
-// Package implements syncronization between qri instances
+// Package remote implements syncronization between qri instances
 package remote
 
 import (
@@ -10,18 +10,18 @@ import (
 	"strings"
 	"time"
 
+	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
-	golog "github.com/ipfs/go-log"
 )
 
 var log = golog.Logger("remote")
 
-// Address extracts the address of a remote from a configuration for a given 
+// Address extracts the address of a remote from a configuration for a given
 // remote name
 func Address(cfg *config.Config, name string) (addr string, err error) {
 	if name == "" {
@@ -139,7 +139,7 @@ func sigParams(pk crypto.PrivKey, ref repo.DatasetRef) (map[string]string, error
 	return map[string]string{
 		"peername":  ref.Peername,
 		"name":      ref.Name,
-		"profileId":    pid,
+		"profileId": pid,
 		"path":      ref.Path,
 
 		"timestamp": now,

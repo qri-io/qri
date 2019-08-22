@@ -42,6 +42,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
+	github.com/qri-io/cloud/backend v0.0.0-20190822124545-3b318b6ef149 // indirect
 	github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb
 	github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71
 	github.com/qri-io/deepdiff v0.1.0
