@@ -676,6 +676,7 @@ github.com/qri-io/cloud/backend v0.0.0-20190820221453-0a4e4c66bd51 h1:0OVB3kLaAJ
 github.com/qri-io/cloud/backend v0.0.0-20190820221453-0a4e4c66bd51/go.mod h1:xNITz39TewMN7NvY/QKqJG35CVJgg8b1AapUz9YIyAE=
 github.com/qri-io/compare v0.1.0 h1:A/MRx3uEnJ/iMjfJY1VOqH9CYs9zFSEYaFVeXuGfmis=
 github.com/qri-io/compare v0.1.0/go.mod h1:i/tVuDGRXVxhuZ8ZUieF23u6rQ6wLGJl7KKWpoMRaTE=
+github.com/qri-io/dag v0.1.0 h1:RFCZt7QFg1QYbaFmoZfTCgqdEfNoT1mH92ZEGnDgevU=
 github.com/qri-io/dag v0.1.0/go.mod h1:kd8vIdnTFlqfUdRrY3NghUuyqJCOFePHIuX4GdHf93U=
 github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb h1:3bG6FoZMFA3P5fKm+NJ0GobP6ouZtY76mRIkHxib3mY=
 github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb/go.mod h1:fKeo73hNNv3OtQYGt4yLd1d6n2+ImaXAm9CeTxpmjIc=

@@ -29,6 +29,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
@@ -271,7 +272,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	inst.node.LocalStreams = o.Streams
 
 	if capi, err := inst.node.IPFSCoreAPI(); err == nil {
-		inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block())
+		inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block(), remote.DsyncConfigFunc(cfg, inst.node))
 	}
 
 	return
@@ -493,6 +494,11 @@ func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
 // Node accesses the instance qri node if one exists
 func (inst *Instance) Node() *p2p.QriNode {
 	return inst.node
+}
+
+// Dsync accesses the instance Dsync if one exists
+func (inst *Instance) Dsync() *dsync.Dsync {
+	return inst.dsync
 }
 
 // Repo accesses the instance Repo if one exists
