@@ -29,6 +29,9 @@ func (*RemoteMethods) CoreRequestsName() string { return "remote" }
 type PublicationParams struct {
 	Ref        string
 	RemoteName string
+	// All indicates all versions of a dataset amd the dataset namespace should
+	// be either published or removed
+	All bool
 }
 
 // Publish posts a dataset version to a remote

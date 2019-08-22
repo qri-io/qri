@@ -250,8 +250,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 		log.Info("This server is running in `remote` mode")
 
 		remh := NewRemoteHandlers(s.Instance)
+		m.Handle("/remote/publish", s.middleware(remh.PublicationRequestsHandler))
 		m.Handle("/remote/dsync", s.middleware(remh.DsyncHandler))
-		m.Handle("/remote/publish", s.middleware(remh.PublicationHandler))
+		m.Handle("/remote/datasets", s.middleware(remh.DatasetsHandler))
 	}
 
 	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)

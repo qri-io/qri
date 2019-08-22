@@ -15,9 +15,11 @@ replace (
 
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
+	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
+	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.3.0
 	github.com/ipfs/go-cid v0.0.2
@@ -42,8 +44,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
-	github.com/qri-io/cloud/backend v0.0.0-20190822124545-3b318b6ef149 // indirect
-	github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb
+	github.com/qri-io/dag v0.1.1-0.20190821195822-f898d15dd12b
 	github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0

@@ -26,7 +26,7 @@ var log = golog.Logger("remote")
 func Address(cfg *config.Config, name string) (addr string, err error) {
 	if name == "" {
 		if cfg.Registry.Location != "" {
-			return cfg.Registry.Location + "/dsync", nil
+			return cfg.Registry.Location, nil
 		}
 		return "", fmt.Errorf("no registry specifiied to use as default remote")
 	}
@@ -41,7 +41,7 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 // PushDataset pushes the contents of a dataset to a remote
 func PushDataset(ctx context.Context, dsync *dsync.Dsync, pk crypto.PrivKey, ref repo.DatasetRef, remoteAddr string) error {
 	log.Debugf("pushing dataset %s to %s", ref.Path, remoteAddr)
-	push, err := dsync.NewPush(ref.Path, remoteAddr, true)
+	push, err := dsync.NewPush(ref.Path, remoteAddr+"/remote/dsync", true)
 	if err != nil {
 		return err
 	}
@@ -73,7 +73,7 @@ func PushDataset(ctx context.Context, dsync *dsync.Dsync, pk crypto.PrivKey, ref
 
 // RemoveDataset asks a remote to remove a dataset
 func RemoveDataset(ctx context.Context, pk crypto.PrivKey, ref repo.DatasetRef, remoteAddr string) error {
-	log.Debugf("removing dataset %s from %s", ref.Path, remoteAddr)
+	log.Debugf("requesting remove dataset %s from remote %s", ref.Path, remoteAddr)
 	params, err := sigParams(pk, ref)
 	if err != nil {
 		return err
@@ -119,6 +119,12 @@ func removeDatasetHTTP(ctx context.Context, params map[string]string, remoteAddr
 	}
 
 	return nil
+}
+
+// HandleRemoveDataset handles requests to remove a dataset
+func HandleRemoveDataset(ctx context.Context, r repo.Repo, params map[string]string) error {
+	// TODO (b5):
+	return fmt.Errorf("not yet implemented: removing dataset revisions")
 }
 
 func sigParams(pk crypto.PrivKey, ref repo.DatasetRef) (map[string]string, error) {
