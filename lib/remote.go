@@ -13,12 +13,19 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 // TODO (b5): switch to using an Instance instead of separate fields
 type RemoteMethods struct {
 	inst *Instance
+	cli  *remote.Client
 }
 
 // NewRemoteMethods creates a RemoteMethods pointer from either a node or an rpc.Client
 func NewRemoteMethods(inst *Instance) *RemoteMethods {
+	cli, err := remote.NewClient(inst.node)
+	if err != nil {
+		panic(err)
+	}
+
 	return &RemoteMethods{
 		inst: inst,
+		cli:  cli,
 	}
 }
 
@@ -56,7 +63,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, out *bool) error {
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
-	if err = remote.PushDataset(ctx, r.inst.dsync, r.inst.Repo().PrivateKey(), ref, addr); err != nil {
+	if err = r.cli.PushDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 
@@ -86,7 +93,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *bool) error {
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
-	if err := remote.RemoveDataset(ctx, r.inst.Repo().PrivateKey(), ref, addr); err != nil {
+	if err := r.cli.RemoveDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 

@@ -3,7 +3,6 @@ package config
 import (
 	"fmt"
 	"reflect"
-	"time"
 
 	"github.com/qri-io/jsonschema"
 )
@@ -18,12 +17,6 @@ type API struct {
 	Port int `json:"port"`
 	// read-only mode
 	ReadOnly bool `json:"readonly"`
-	// remote mode
-	RemoteMode bool `json:"remotemode"`
-	// maximum size of dataset to accept for remote mode
-	RemoteAcceptSizeMax int64 `json:"remoteacceptsizemax"`
-	// timeout for remote sessions, in milliseconds
-	RemoteAcceptTimeoutMs time.Duration `json:"remoteaccepttimeoutms"`
 	// URLRoot is the base url for this server
 	URLRoot string `json:"urlroot"`
 	// TLS enables https via letsEyncrypt
@@ -110,7 +103,6 @@ func (a *API) Copy() *API {
 		Enabled:            a.Enabled,
 		Port:               a.Port,
 		ReadOnly:           a.ReadOnly,
-		RemoteMode:         a.RemoteMode,
 		URLRoot:            a.URLRoot,
 		TLS:                a.TLS,
 		DisconnectAfter:    a.DisconnectAfter,

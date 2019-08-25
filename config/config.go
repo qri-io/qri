@@ -30,6 +30,7 @@ type Config struct {
 
 	Registry *Registry
 	Remotes  *Remotes
+	Remote   *Remote
 
 	CLI     *CLI
 	API     *API
@@ -275,6 +276,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.RPC != nil {
 		res.RPC = cfg.RPC.Copy()
+	}
+	if cfg.Remote != nil {
+		res.Remote = cfg.Remote.Copy()
 	}
 	if cfg.Remotes != nil {
 		res.Remotes = cfg.Remotes.Copy()

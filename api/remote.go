@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -18,7 +17,7 @@ type RemoteHandlers struct {
 func NewRemoteHandlers(inst *lib.Instance) *RemoteHandlers {
 	return &RemoteHandlers{
 		RemoteMethods: lib.NewRemoteMethods(inst),
-		DsyncHandler:  dsync.HTTPRemoteHandler(inst.Dsync()),
+		DsyncHandler:  inst.Remote().DsyncHTTPHandler(),
 	}
 }
 
@@ -55,7 +54,7 @@ func (h *RemoteHandlers) PublicationRequestsHandler(w http.ResponseWriter, r *ht
 // DatasetsHandler handles requests to a remote that change publication
 // status
 func (h *RemoteHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO (bt) -
+	// TODO (b5) -
 	switch r.Method {
 	default:
 		util.NotFoundHandler(w, r)

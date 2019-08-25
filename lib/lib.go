@@ -16,8 +16,6 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
-	"github.com/qri-io/dag"
-	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -97,6 +95,8 @@ type Methods interface {
 type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
+	// use OptRemoteOptions to set this
+	remoteOptsFunc func(*remote.Options)
 }
 
 // Option is a function that manipulates config details when fed to New(). Fields on
@@ -173,6 +173,16 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 		if migrated {
 			return o.Cfg.WriteToFile(cfgPath)
 		}
+		return nil
+	}
+}
+
+// OptRemoteOptions provides options to the instance remote
+// the provided configuration function is called with the Qri configuration-derived
+// remote settings applied, allowing partial-overrides.
+func OptRemoteOptions(fn func(opt *remote.Options)) Option {
+	return func(o *InstanceOptions) error {
+		o.remoteOptsFunc = fn
 		return nil
 	}
 }
@@ -271,8 +281,15 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 	inst.node.LocalStreams = o.Streams
 
-	if capi, err := inst.node.IPFSCoreAPI(); err == nil {
-		inst.dsync, err = dsync.New(dag.NewNodeGetter(capi.Dag()), capi.Block(), remote.DsyncConfigFunc(cfg, inst.node))
+	if cfg.Remote != nil && cfg.Remote.Enabled {
+		if o.remoteOptsFunc == nil {
+			o.remoteOptsFunc = func(*remote.Options) {}
+		}
+
+		if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, o.remoteOptsFunc); err != nil {
+			log.Error("intializing remote:", err.Error())
+			return
+		}
 	}
 
 	return
@@ -458,7 +475,7 @@ type Instance struct {
 	repo     repo.Repo
 	node     *p2p.QriNode
 	cron     cron.Scheduler
-	dsync    *dsync.Dsync
+	remote   *remote.Remote
 
 	rpc *rpc.Client
 }
@@ -496,11 +513,6 @@ func (inst *Instance) Node() *p2p.QriNode {
 	return inst.node
 }
 
-// Dsync accesses the instance Dsync if one exists
-func (inst *Instance) Dsync() *dsync.Dsync {
-	return inst.dsync
-}
-
 // Repo accesses the instance Repo if one exists
 func (inst *Instance) Repo() repo.Repo {
 	if inst.repo != nil {
@@ -514,6 +526,11 @@ func (inst *Instance) Repo() repo.Repo {
 // RPC accesses the instance RPC client if one exists
 func (inst *Instance) RPC() *rpc.Client {
 	return inst.rpc
+}
+
+// Remote accesses the remote subsystem if one exists
+func (inst *Instance) Remote() *remote.Remote {
+	return inst.remote
 }
 
 // Teardown destroys the instance, releasing reserved resources
