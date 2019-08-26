@@ -254,10 +254,10 @@ func NewServerRoutes(s Server) *http.ServeMux {
 		// this route is a _client request_, not a remote handler.
 		m.Handle("/remote/publish", s.middleware(remh.PublicationRequestsHandler))
 		m.Handle("/remote/dsync", s.middleware(remh.DsyncHandler))
-		m.Handle("/remote/datasets", s.middleware(remh.DatasetsHandler))
+		m.Handle("/remote/refs", s.middleware(remh.RefsHandler))
 	}
 
-	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)
+	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))

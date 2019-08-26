@@ -44,7 +44,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
-	github.com/qri-io/dag v0.1.1-0.20190821195822-f898d15dd12b
+	github.com/qri-io/dag v0.1.1-0.20190826121154-bee27f6db672
 	github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
@@ -52,7 +52,7 @@ require (
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1
-	github.com/qri-io/registry v0.1.1-0.20190821172252-31ae2dc091d2
+	github.com/qri-io/registry v0.1.1-0.20190826161556-72cfd08eea32
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0

@@ -25,7 +25,7 @@ func TestRemoteCopy(t *testing.T) {
 			t.Errorf("Remote Copy test case %v, remote structs are not equal: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
 			continue
 		}
-		cpy.Enabled = false
+		cpy.Enabled = true
 		if reflect.DeepEqual(cpy, c.remote) {
 			t.Errorf("Remote Copy test case %v, editing one remote struct should not affect the other: \ncopy: %v, \noriginal: %v", i, cpy, c.remote)
 			continue

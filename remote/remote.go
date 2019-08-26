@@ -3,6 +3,7 @@ package remote
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -31,9 +32,11 @@ type Options struct {
 	// this is a chance to inspect dataset contents before confirming
 	AcceptPushFinalCheck Hook
 	// called after successfully publishing a dataset version
-	DatasetPublished Hook
+	DatasetPushed Hook
 	// called when a client has unpublished a dataset version
-	DatasetUnpublished Hook
+	DatasetRemoved Hook
+	// called when a client pulls a dataset
+	DatasetPulled Hook
 }
 
 // Remote receives requests from other qri nodes to perform actions on their
@@ -48,8 +51,9 @@ type Remote struct {
 
 	acceptPushPreCheck   Hook
 	acceptPushFinalCheck Hook
-	datasetPublished     Hook
-	datasetUnpublished   Hook
+	datasetPushed        Hook
+	datasetRemoved       Hook
+	datasetPulled        Hook
 }
 
 // NewRemote creates a remote
@@ -67,8 +71,9 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 
 		acceptPushPreCheck:   o.AcceptPushPreCheck,
 		acceptPushFinalCheck: o.AcceptPushFinalCheck,
-		datasetPublished:     o.DatasetPublished,
-		datasetUnpublished:   o.DatasetUnpublished,
+		datasetPushed:        o.DatasetPushed,
+		datasetRemoved:       o.DatasetRemoved,
+		datasetPulled:        o.DatasetPulled,
 	}
 
 	capi, err := node.IPFSCoreAPI()
@@ -86,15 +91,28 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 			dsyncConfig.Libp2pHost = host
 		}
 
+		dsyncConfig.AllowRemoves = cfg.AllowRemoves
 		dsyncConfig.RequireAllBlocks = cfg.RequireAllBlocks
 		dsyncConfig.PinAPI = capi.Pin()
 
-		dsyncConfig.PreCheck = r.preCheckHook
-		dsyncConfig.FinalCheck = r.pushFinalCheckHook
-		dsyncConfig.OnComplete = r.onCompleteHook
+		dsyncConfig.PushPreCheck = r.pushPreCheck
+		dsyncConfig.PushFinalCheck = r.pushFinalCheck
+		dsyncConfig.PushComplete = r.pushComplete
+		dsyncConfig.RemoveCheck = r.removeCheck
+		dsyncConfig.GetDagInfoCheck = r.getDagInfo
 	})
 
 	return r, err
+}
+
+// ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
+func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*repo.DatasetRef, error) {
+	ref := &repo.DatasetRef{
+		Peername: peername,
+		Name:     name,
+	}
+	err := repo.CanonicalizeDatasetRef(r.node.Repo, ref)
+	return ref, err
 }
 
 // RemoveDataset handles requests to remove a dataset
@@ -103,7 +121,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	return fmt.Errorf("not yet implemented: removing dataset revisions")
 }
 
-func (r *Remote) preCheckHook(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.acceptSizeMax == 0 {
 		return fmt.Errorf("not accepting any datasets")
 	}
@@ -135,7 +153,7 @@ func (r *Remote) preCheckHook(ctx context.Context, info dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) pushFinalCheckHook(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) pushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.acceptPushFinalCheck != nil {
 		ref, err := r.refFromMeta(meta)
 		if err != nil {
@@ -149,7 +167,7 @@ func (r *Remote) pushFinalCheckHook(ctx context.Context, info dag.Info, meta map
 	return nil
 }
 
-func (r *Remote) onCompleteHook(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
 	ref, err := r.refFromMeta(meta)
 	if err != nil {
 		return err
@@ -163,8 +181,8 @@ func (r *Remote) onCompleteHook(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
-	if r.datasetPublished != nil {
-		if err = r.datasetPublished(ctx, ref); err != nil {
+	if r.datasetPushed != nil {
+		if err = r.datasetPushed(ctx, ref); err != nil {
 			return err
 		}
 	}
@@ -173,6 +191,34 @@ func (r *Remote) onCompleteHook(ctx context.Context, info dag.Info, meta map[str
 	// TODO (b5) - this could overwrite any FSI links & other ref details,
 	// need to investigate
 	return r.node.Repo.PutRef(ref)
+}
+
+func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+	ref, err := r.refFromMeta(meta)
+	if err != nil {
+		return err
+	}
+
+	if r.datasetRemoved != nil {
+		if err = r.datasetRemoved(ctx, ref); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (r *Remote) getDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
+	ref, err := r.refFromMeta(meta)
+	if err != nil {
+		return err
+	}
+
+	if r.datasetPulled != nil {
+		if err = r.datasetPulled(ctx, ref); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (r *Remote) refFromMeta(meta map[string]string) (repo.DatasetRef, error) {
@@ -194,4 +240,41 @@ func (r *Remote) refFromMeta(meta map[string]string) (repo.DatasetRef, error) {
 // DsyncHTTPHandler provides an http handler for dsync
 func (r *Remote) DsyncHTTPHandler() http.HandlerFunc {
 	return dsync.HTTPRemoteHandler(r.dsync)
+}
+
+// RefsHTTPHandler handles requests for dataset references
+func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		switch req.Method {
+		case "GET":
+			ref := &repo.DatasetRef{
+				Peername: req.FormValue("peername"),
+				Name:     req.FormValue("name"),
+			}
+			if err := repo.CanonicalizeDatasetRef(r.node.Repo, ref); err != nil {
+				w.WriteHeader(http.StatusNotFound)
+				w.Write([]byte(err.Error()))
+				return
+			}
+
+			res, err := json.Marshal(ref)
+			if err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+
+			w.Header().Set("Content-Type", "application/json")
+			w.WriteHeader(http.StatusOK)
+			w.Write(res)
+			return
+		case "DELETE":
+			// TODO (b5) - handle delete
+			w.WriteHeader(http.StatusNotImplemented)
+			w.Write([]byte("haven't implemented deletes over HTTP yet"))
+			return
+		default:
+			w.WriteHeader(http.StatusNotFound)
+		}
+	}
 }

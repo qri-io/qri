@@ -24,8 +24,10 @@ import (
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
 // TODO (b5): switch to using an Instance instead of separate fields
 type DatasetRequests struct {
+	// TODO (b5) - remove cli & node fields in favour of inst accessors:
 	cli  *rpc.Client
 	node *p2p.QriNode
+	inst *Instance
 }
 
 // CoreRequestsName implements the Requets interface
@@ -33,14 +35,22 @@ func (DatasetRequests) CoreRequestsName() string { return "datasets" }
 
 // NewDatasetRequests creates a DatasetRequests pointer from either a repo
 // or an rpc.Client
+//
+// Deprecated. use NewDatasetRequestsInstance
 func NewDatasetRequests(node *p2p.QriNode, cli *rpc.Client) *DatasetRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewDatasetRequests"))
-	}
-
 	return &DatasetRequests{
 		node: node,
 		cli:  cli,
+	}
+}
+
+// NewDatasetRequestsInstance creates a DatasetRequests pointer from a qri
+// instance
+func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
+	return &DatasetRequests{
+		node: inst.Node(),
+		cli:  inst.RPC(),
+		inst: inst,
 	}
 }
 
@@ -599,7 +609,12 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 		return r.cli.Call("DatasetRequests.Add", ref, res)
 	}
 
-	err = actions.AddDataset(r.node, ref)
+	defaultAddr := ""
+	if r.inst != nil && r.inst.registry != nil {
+		defaultAddr = r.inst.cfg.Registry.Location
+	}
+
+	err = actions.AddDataset(r.node, r.inst.RemoteClient(), defaultAddr, ref)
 	*res = *ref
 	return err
 }

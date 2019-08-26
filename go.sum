@@ -639,6 +639,8 @@ github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb h1:3bG6FoZMFA3P5fKm+N
 github.com/qri-io/dag v0.1.1-0.20190821171124-e312fd37a7cb/go.mod h1:fKeo73hNNv3OtQYGt4yLd1d6n2+ImaXAm9CeTxpmjIc=
 github.com/qri-io/dag v0.1.1-0.20190821195822-f898d15dd12b h1:U3epwnnXu8v1X17uVMAAVVDSFTSFe2/sPRIfNyo/e6M=
 github.com/qri-io/dag v0.1.1-0.20190821195822-f898d15dd12b/go.mod h1:fKeo73hNNv3OtQYGt4yLd1d6n2+ImaXAm9CeTxpmjIc=
+github.com/qri-io/dag v0.1.1-0.20190826121154-bee27f6db672 h1:lffPwiWc+YttNLrpDsNAV9tDXfCqO7zXhXbbgaGBRmE=
+github.com/qri-io/dag v0.1.1-0.20190826121154-bee27f6db672/go.mod h1:t/iMfcZ/eyEhF/doiga4ff2wn8fy10FGBsiztFdFjYU=
 github.com/qri-io/dataset v0.0.0-20190516191825-5a7de4a0f2d4/go.mod h1:JF7Gsqd+3LU7lmOriBRtNVJ0HkciNX6aVjoMAM3bOdA=
 github.com/qri-io/dataset v0.1.1 h1:BiOaxMD2LLY/c6Fn/6HdITmkX9xEBBG9Jz4X6ud8CxY=
 github.com/qri-io/dataset v0.1.1/go.mod h1:iLbXBiN11Mf1gr8R+40arhqtbZOEMbhjDtGXPi2JLRQ=
@@ -664,6 +666,8 @@ github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1 h1:4wV9IFa9YC4mC+XC9U
 github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1/go.mod h1:rshAoUDPjd1yo7WuqWvc7T+ciNeX0+/KD2Li3mLdZhE=
 github.com/qri-io/registry v0.1.1-0.20190821172252-31ae2dc091d2 h1:xXB3ERwtReNI3MlKXdhKNiXCj4fiwiCmnKwWTpK79lA=
 github.com/qri-io/registry v0.1.1-0.20190821172252-31ae2dc091d2/go.mod h1:aKH1Jd5+UD5kdBov8VW1SMeJTr6gzlwEx3yKXEk0M4Y=
+github.com/qri-io/registry v0.1.1-0.20190826161556-72cfd08eea32 h1:wRqRxuLfo1dMq4WTXNKCtx8i4DMM4p6cFZRJPoyZcpg=
+github.com/qri-io/registry v0.1.1-0.20190826161556-72cfd08eea32/go.mod h1:BcCFCFY0eCNuCKTq/X9GfGiygTMd/IEDEdE9OKKL1kg=
 github.com/qri-io/starlib v0.4.1 h1:aXcKv4p8WRoGElC+ZpfyKMP1OmT2KP5+iISPfXJXk6M=
 github.com/qri-io/starlib v0.4.1/go.mod h1:JapoWfwTbokzzGktLGV4671KiMnLDmJYtVJfZHhh2c4=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=

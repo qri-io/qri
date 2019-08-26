@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -19,7 +20,7 @@ import (
 // SaveDatasetSwitches provides toggleable flags to SaveDataset that control
 // save behaviour
 type SaveDatasetSwitches struct {
-	Replace             bool //
+	Replace             bool
 	DryRun              bool
 	Pin                 bool
 	ConvertFormatToPrev bool
@@ -132,13 +133,13 @@ func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
-func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
+func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (err error) {
 	if !ref.Complete() {
 		// TODO (ramfox): we should check to see if the dataset already exists locally
 		// unfortunately, because of the nature of the ipfs filesystem commands, we don't
 		// know if files we fetch are local only or possibly coming from the network.
 		// instead, for now, let's just always try to add
-		if _, err := ResolveDatasetRef(node, ref); err != nil {
+		if _, err := ResolveDatasetRef(node, rc, remoteAddr, ref); err != nil {
 			return err
 		}
 	}
@@ -151,8 +152,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	responses := make(chan addResponse)
 	tasks := 0
 
-	rc := node.Repo.Registry()
-	if rc != nil {
+	if rc != nil && remoteAddr != "" {
 		tasks++
 
 		refCopy := &repo.DatasetRef{
@@ -170,19 +170,7 @@ func AddDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 				responses <- res
 			}()
 
-			ng, err := newNodeGetter(node)
-			if err != nil {
-				res.Error = err
-				return
-			}
-
-			capi, err := node.IPFSCoreAPI()
-			if res.Error != nil {
-				res.Error = err
-				return
-			}
-
-			if err := rc.DsyncFetch(node.Context(), ref.Path, ng, capi.Block()); err != nil {
+			if err := rc.PullDataset(node.Context(), ref, remoteAddr); err != nil {
 				res.Error = err
 				return
 			}

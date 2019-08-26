@@ -31,9 +31,9 @@ type DatasetHandlers struct {
 }
 
 // NewDatasetHandlers allocates a DatasetHandlers pointer
-func NewDatasetHandlers(node *p2p.QriNode, readOnly bool) *DatasetHandlers {
-	req := lib.NewDatasetRequests(node, nil)
-	h := DatasetHandlers{*req, node, node.Repo, readOnly}
+func NewDatasetHandlers(inst *lib.Instance, readOnly bool) *DatasetHandlers {
+	req := lib.NewDatasetRequestsInstance(inst)
+	h := DatasetHandlers{*req, inst.Node(), inst.Node().Repo, readOnly}
 	return &h
 }
 

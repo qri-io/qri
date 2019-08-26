@@ -99,3 +99,21 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *bool) error {
 
 	return nil
 }
+
+// PullDataset fetches a dataset ref from a remote
+func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
+	if r.inst.rpc != nil {
+		return r.inst.rpc.Call("DatasetRequests.Unpublish", p, res)
+	}
+
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	err = r.cli.PullDataset(ctx, &ref, p.RemoteName)
+	return err
+}

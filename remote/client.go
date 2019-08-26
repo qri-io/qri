@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/url"
@@ -101,9 +102,24 @@ func (c *Client) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAdd
 }
 
 // PullDataset fetches a dataset from a remote source
-func (c *Client) PullDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
-	// c.ds.NewPull()
-	return nil
+func (c *Client) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+	if ref.Path == "" {
+		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
+			return err
+		}
+	}
+
+	params, err := sigParams(c.pk, *ref)
+	if err != nil {
+		return err
+	}
+
+	pull, err := c.ds.NewPull(ref.Path, remoteAddr, params)
+	if err != nil {
+		return err
+	}
+
+	return pull.Do(ctx)
 }
 
 // RemoveDataset asks a remote to remove a dataset
@@ -122,6 +138,50 @@ func (c *Client) RemoveDataset(ctx context.Context, ref repo.DatasetRef, remoteA
 	}
 }
 
+// ResolveHeadRef asks a remote to complete a dataset reference, adding the
+// latest-known path value
+func (c *Client) ResolveHeadRef(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+	switch addressType(remoteAddr) {
+	case "http":
+		return resolveHeadRefHTTP(ctx, ref, remoteAddr)
+	default:
+		return fmt.Errorf("dataset name resolution currently only works over HTTP")
+	}
+}
+
+func resolveHeadRefHTTP(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+	u, err := url.Parse(remoteAddr)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - need to document this convention
+	u.Path = "/remote/refs"
+
+	q := u.Query()
+	q.Set("peername", ref.Peername)
+	q.Set("name", ref.Name)
+	u.RawQuery = q.Encode()
+
+	req, err := http.NewRequest("GET", u.String(), nil)
+	if err != nil {
+		return err
+	}
+
+	req = req.WithContext(ctx)
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return fmt.Errorf("failed to remove dataset from remote")
+	}
+
+	return json.NewDecoder(res.Body).Decode(ref)
+}
+
 func removeDatasetHTTP(ctx context.Context, params map[string]string, remoteAddr string) error {
 	u, err := url.Parse(remoteAddr)
 	if err != nil {
@@ -129,7 +189,7 @@ func removeDatasetHTTP(ctx context.Context, params map[string]string, remoteAddr
 	}
 
 	// TODO (b5) - need to document this convention
-	u.Path = "/remote/datasets"
+	u.Path = "/remote/refs"
 
 	q := u.Query()
 	for key, val := range params {

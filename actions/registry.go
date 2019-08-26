@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/subset"
@@ -136,7 +136,6 @@ func Unpin(node *p2p.QriNode, ref repo.DatasetRef) (err error) {
 	}
 
 	return reg.Unpin(ref.Path, pk)
-
 }
 
 // RegistryList gets a list of the published datasets of a repo's specific registry

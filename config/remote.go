@@ -17,6 +17,8 @@ type Remote struct {
 	AcceptTimeoutMs time.Duration `json:"accepttimeoutms"`
 	// require clients pushing blocks to send all blocks
 	RequireAllBlocks bool `json:"requireallblocks"`
+	// allow clients to request unpins for their own pushes
+	AllowRemoves bool `json:"allowremoves"`
 }
 
 // Validate validates all fields of render returning all errors found.
@@ -42,6 +44,13 @@ func (cfg Remote) Validate() error {
 
 // Copy returns a deep copy of the Remote struct
 func (cfg *Remote) Copy() *Remote {
-	res := &Remote{}
+	res := &Remote{
+		Enabled:          cfg.Enabled,
+		AcceptSizeMax:    cfg.AcceptSizeMax,
+		AcceptTimeoutMs:  cfg.AcceptTimeoutMs,
+		RequireAllBlocks: cfg.RequireAllBlocks,
+		AllowRemoves:     cfg.AllowRemoves,
+	}
+
 	return res
 }

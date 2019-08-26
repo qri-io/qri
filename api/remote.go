@@ -11,6 +11,7 @@ import (
 type RemoteHandlers struct {
 	*lib.RemoteMethods
 	DsyncHandler http.HandlerFunc
+	RefsHandler  http.HandlerFunc
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
@@ -18,6 +19,7 @@ func NewRemoteHandlers(inst *lib.Instance) *RemoteHandlers {
 	return &RemoteHandlers{
 		RemoteMethods: lib.NewRemoteMethods(inst),
 		DsyncHandler:  inst.Remote().DsyncHTTPHandler(),
+		RefsHandler:   inst.Remote().RefsHTTPHandler(),
 	}
 }
 
@@ -46,16 +48,6 @@ func (h *RemoteHandlers) PublicationRequestsHandler(w http.ResponseWriter, r *ht
 
 		util.WriteResponse(w, "ok")
 		return
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
-// DatasetsHandler handles requests to a remote that change publication
-// status
-func (h *RemoteHandlers) DatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	// TODO (b5) -
-	switch r.Method {
 	default:
 		util.NotFoundHandler(w, r)
 	}

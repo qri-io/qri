@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"reflect"
+	"time"
 
 	"github.com/qri-io/jsonschema"
 )
@@ -17,6 +18,18 @@ type API struct {
 	Port int `json:"port"`
 	// read-only mode
 	ReadOnly bool `json:"readonly"`
+	// remote mode
+	//
+	// Deprecated: use config.Remote instead
+	RemoteMode bool `json:"remotemode"`
+	// maximum size of dataset to accept for remote mode
+	//
+	// Deprecated: use config.Remote instead
+	RemoteAcceptSizeMax int64 `json:"remoteacceptsizemax"`
+	// timeout for remote sessions, in milliseconds
+	//
+	// Deprecated: use config.Remote instead
+	RemoteAcceptTimeoutMs time.Duration `json:"remoteaccepttimeoutms"`
 	// URLRoot is the base url for this server
 	URLRoot string `json:"urlroot"`
 	// TLS enables https via letsEyncrypt
