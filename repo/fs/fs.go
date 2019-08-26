@@ -27,7 +27,7 @@ func init() {
 type Repo struct {
 	basepath
 
-	Refstore
+	repo.Refstore
 	EventLog
 
 	profile *profile.Profile
@@ -70,7 +70,9 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
 		r.index = index
-		r.Refstore.index = index
+		if fsRefstore, ok := r.Refstore.(Refstore); ok {
+			fsRefstore.index = index
+		}
 	}
 
 	if _, err := maybeCreateFlatbufferRefsFile(base); err != nil {

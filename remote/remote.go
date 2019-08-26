@@ -222,16 +222,15 @@ func (r *Remote) getDagInfo(ctx context.Context, into dag.Info, meta map[string]
 }
 
 func (r *Remote) refFromMeta(meta map[string]string) (repo.DatasetRef, error) {
-	pid, err := profile.IDB58Decode(meta["profileId"])
-	if err != nil {
-		return repo.DatasetRef{}, err
-	}
 
 	ref := repo.DatasetRef{
-		Peername:  meta["peername"],
-		Name:      meta["name"],
-		ProfileID: pid,
-		Path:      meta["path"],
+		Peername: meta["peername"],
+		Name:     meta["name"],
+		Path:     meta["path"],
+	}
+
+	if pid, err := profile.IDB58Decode(meta["profileId"]); err == nil {
+		ref.ProfileID = pid
 	}
 
 	return ref, nil

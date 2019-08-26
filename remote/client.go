@@ -5,6 +5,7 @@ import (
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
@@ -114,7 +115,7 @@ func (c *Client) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAd
 		return err
 	}
 
-	pull, err := c.ds.NewPull(ref.Path, remoteAddr, params)
+	pull, err := c.ds.NewPull(ref.Path, remoteAddr+"/remote/dsync", params)
 	if err != nil {
 		return err
 	}
@@ -176,7 +177,8 @@ func resolveHeadRefHTTP(ctx context.Context, ref *repo.DatasetRef, remoteAddr st
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return fmt.Errorf("failed to remove dataset from remote")
+		errMsg, _ := ioutil.ReadAll(res.Body)
+		return fmt.Errorf("resolving dataset ref from remote failed: %s", string(errMsg))
 	}
 
 	return json.NewDecoder(res.Body).Decode(ref)

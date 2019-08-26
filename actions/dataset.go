@@ -134,6 +134,7 @@ func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
 func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (err error) {
+	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
 	if !ref.Complete() {
 		// TODO (ramfox): we should check to see if the dataset already exists locally
 		// unfortunately, because of the nature of the ipfs filesystem commands, we don't

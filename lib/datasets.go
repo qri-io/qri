@@ -610,7 +610,7 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	}
 
 	defaultAddr := ""
-	if r.inst != nil && r.inst.registry != nil {
+	if r.inst != nil && r.inst.cfg.Registry != nil {
 		defaultAddr = r.inst.cfg.Registry.Location
 	}
 

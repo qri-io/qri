@@ -175,7 +175,7 @@ func (o *QriOptions) DatasetRequests() (*lib.DatasetRequests, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewDatasetRequests(o.inst.Node(), o.inst.RPC()), nil
+	return lib.NewDatasetRequestsInstance(o.inst), nil
 }
 
 // RemoteMethods generates a lib.RemoteMethods from internal state
