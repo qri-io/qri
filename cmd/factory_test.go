@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 // TestFactory is an implementation of the Factory interface for testing purposes

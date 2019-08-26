@@ -7,8 +7,8 @@ import (
 
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
-	"github.com/qri-io/registry"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	"github.com/qri-io/qri/registry"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestSetupTeardown(t *testing.T) {

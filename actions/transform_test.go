@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestExecTransform(t *testing.T) {

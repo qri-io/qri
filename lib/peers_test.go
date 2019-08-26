@@ -15,7 +15,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {

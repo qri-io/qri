@@ -28,7 +28,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/rev"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestDatasetRequestsSave(t *testing.T) {

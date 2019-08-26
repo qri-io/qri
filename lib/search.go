@@ -6,7 +6,7 @@ import (
 
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 // SearchRequests encapsulates business logic for the qri search command

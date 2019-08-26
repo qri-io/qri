@@ -22,7 +22,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 // base64-encoded Test Private Key, decoded in init

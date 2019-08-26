@@ -15,7 +15,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestExport(t *testing.T) {

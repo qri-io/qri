@@ -419,10 +419,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if p.Publish {
 		var publishedRef repo.DatasetRef
 		err = r.SetPublishStatus(&SetPublishStatusParams{
-			Ref:               ref.String(),
-			PublishStatus:     true,
-			UpdateRegistry:    true,
-			UpdateRegistryPin: true,
+			Ref:           ref.String(),
+			PublishStatus: true,
+			// UpdateRegistry:    true,
+			// UpdateRegistryPin: true,
 		}, &publishedRef)
 
 		if err != nil {
@@ -440,10 +440,10 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
 type SetPublishStatusParams struct {
-	Ref               string
-	PublishStatus     bool
-	UpdateRegistry    bool
-	UpdateRegistryPin bool
+	Ref           string
+	PublishStatus bool
+	// UpdateRegistry    bool
+	// UpdateRegistryPin bool
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
@@ -467,28 +467,28 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 
 	*publishedRef = ref
 
-	if p.UpdateRegistry && r.node.Repo.Registry() != nil {
-		var done bool
-		rr := NewRegistryRequests(r.node, nil)
+	// if p.UpdateRegistry && r.node.Repo.Registry() != nil {
+	// 	var done bool
+	// 	rr := NewRegistryRequests(r.node, nil)
 
-		if ref.Published {
-			if err = rr.Publish(&ref, &done); err != nil {
-				return
-			}
+	// 	if ref.Published {
+	// 		if err = rr.Publish(&ref, &done); err != nil {
+	// 			return
+	// 		}
 
-			if p.UpdateRegistryPin {
-				return rr.Pin(&ref, &done)
-			}
-		} else {
-			if err = rr.Unpublish(&ref, &done); err != nil {
-				return
-			}
+	// 		if p.UpdateRegistryPin {
+	// 			return rr.Pin(&ref, &done)
+	// 		}
+	// 	} else {
+	// 		if err = rr.Unpublish(&ref, &done); err != nil {
+	// 			return
+	// 		}
 
-			if p.UpdateRegistryPin {
-				return rr.Unpin(&ref, &done)
-			}
-		}
-	}
+	// 		if p.UpdateRegistryPin {
+	// 			return rr.Unpin(&ref, &done)
+	// 		}
+	// 	}
+	// }
 
 	return
 }

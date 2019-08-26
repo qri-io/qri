@@ -33,7 +33,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 var (

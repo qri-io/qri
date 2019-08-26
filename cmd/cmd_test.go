@@ -21,7 +21,7 @@ import (
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/spf13/cobra"
 )
 

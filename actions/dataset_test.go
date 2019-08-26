@@ -14,7 +14,7 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regserver/mock"
+	"github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestUpdateRemoteDataset(t *testing.T) {

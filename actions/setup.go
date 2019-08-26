@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 // ErrHandleTaken is for when a peername is already taken
