@@ -4,7 +4,6 @@ package cron
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -193,7 +192,6 @@ func (c *Cron) runJob(ctx context.Context, job *Job, runner RunJobFunc) {
 	scheduleJob.RunStart = time.Time{}
 	scheduleJob.RunStop = time.Time{}
 	scheduleJob.PrevRunStart = job.RunStart
-	fmt.Println("", scheduleJob.PrevRunStart)
 	if err := c.schedule.PutJob(ctx, scheduleJob); err != nil {
 		log.Error(err)
 	}

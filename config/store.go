@@ -33,6 +33,7 @@ func (cfg Store) Validate() error {
         "type": "string",
         "enum": [
 					"ipfs",
+					"ipfs_http",
 					"map"
         ]
       }

@@ -384,6 +384,6 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 		p.Recall = "tf"
 	}
 
-	dsr := NewDatasetRequests(m.inst.node, m.inst.rpc)
+	dsr := NewDatasetRequestsInstance(m.inst)
 	return dsr.Save(p, res)
 }

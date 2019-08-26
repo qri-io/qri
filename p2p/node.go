@@ -13,7 +13,6 @@ import (
 	"github.com/qri-io/qri/repo"
 
 	core "github.com/ipfs/go-ipfs/core"
-	"github.com/ipfs/go-ipfs/core/coreapi"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	libp2p "github.com/libp2p/go-libp2p"
@@ -262,14 +261,17 @@ func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
 	return ipfsn.Namesys, nil
 }
 
+// note: both ipfs_filestore and ipfs_http have this method
+type ipfsApier interface {
+	IPFSCoreAPI() coreiface.CoreAPI
+}
+
 // IPFSCoreAPI returns a IPFS API interface instance
 func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
-	ipfsfs, ok := n.Repo.Store().(*ipfs_filestore.Filestore)
-	if !ok {
-		return nil, fmt.Errorf("not using IPFS")
+	if apier, ok := n.Repo.Store().(ipfsApier); ok {
+		return apier.IPFSCoreAPI(), nil
 	}
-	inode := ipfsfs.Node()
-	return coreapi.NewCoreAPI(inode)
+	return nil, fmt.Errorf("not using IPFS")
 }
 
 // ListenAddresses gives the listening addresses of this node on the p2p network as

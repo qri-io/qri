@@ -166,7 +166,8 @@ func TestServerRoutes(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	h := NewRootHandler(NewDatasetHandlers(node, false), NewPeerHandlers(node, false))
+	inst := newTestInstanceWithProfileFromNode(node)
+	h := NewRootHandler(NewDatasetHandlers(inst, false), NewPeerHandlers(node, false))
 	rootCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},

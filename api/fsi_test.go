@@ -87,7 +87,7 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected ref to be \"peer/test_ds\", got \"%s\"", ref)
 	}
 
-	dsHandler := NewDatasetHandlers(node, false)
+	dsHandler := NewDatasetHandlers(inst, false)
 
 	// Dataset with no history
 	actualStatusCode, actualBody := APICall("/peer/test_ds", dsHandler.GetHandler)

@@ -59,7 +59,7 @@ type PublishOptions struct {
 	RemoteName string
 
 	DatasetRequests *lib.DatasetRequests
-	RemoteRequests  *lib.RemoteRequests
+	RemoteMethods   *lib.RemoteMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -68,40 +68,41 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return err
 	}
-	o.RemoteRequests, err = f.RemoteRequests()
+	o.RemoteMethods, err = f.RemoteMethods()
 	return
 }
 
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
 	for _, ref := range o.Refs {
-		if o.RemoteName != "" {
-			// Publish for a "Remote".
-			p := lib.PushParams{
-				Ref:        ref,
-				RemoteName: o.RemoteName,
-			}
-			var res bool
-			if err := o.RemoteRequests.PushToRemote(&p, &res); err != nil {
-				return err
-			}
-			// TODO(dlong): Check if the operation succeeded or failed. Perform dsync.
-			return nil
-		}
-
-		// Publish for the legacy Registry server.
-		p := lib.SetPublishStatusParams{
-			Ref:               ref,
-			PublishStatus:     !o.Unpublish,
-			UpdateRegistry:    !o.NoRegistry,
-			UpdateRegistryPin: !o.NoPin,
+		// mark dataset as listed on p2p
+		// TODO (b5) - make this a flag on lib.PushToRemote
+		setPub := lib.SetPublishStatusParams{
+			Ref:           ref,
+			PublishStatus: !o.Unpublish,
 		}
 
 		var publishedRef repo.DatasetRef
-		if err := o.DatasetRequests.SetPublishStatus(&p, &publishedRef); err != nil {
+		if err := o.DatasetRequests.SetPublishStatus(&setPub, &publishedRef); err != nil {
 			return err
 		}
-		printInfo(o.Out, "published dataset %s", publishedRef)
+
+		p := lib.PublicationParams{
+			Ref:        ref,
+			RemoteName: o.RemoteName,
+		}
+		var res bool
+		if o.Unpublish {
+			if err := o.RemoteMethods.Unpublish(&p, &res); err != nil {
+				return err
+			}
+			printInfo(o.Out, "unpublished dataset %s", publishedRef)
+		} else {
+			if err := o.RemoteMethods.Publish(&p, &res); err != nil {
+				return err
+			}
+			printInfo(o.Out, "published dataset %s", publishedRef)
+		}
 	}
 	return nil
 }

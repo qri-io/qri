@@ -20,12 +20,14 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	ipfs "github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
@@ -61,7 +63,7 @@ func Receivers(inst *Instance) []Methods {
 	r := inst.Repo()
 
 	return []Methods{
-		NewDatasetRequests(node, nil),
+		NewDatasetRequestsInstance(inst),
 		NewRegistryRequests(node, nil),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
@@ -93,6 +95,8 @@ type Methods interface {
 type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
+	// use OptRemoteOptions to set this
+	remoteOptsFunc func(*remote.Options)
 }
 
 // Option is a function that manipulates config details when fed to New(). Fields on
@@ -173,6 +177,16 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 	}
 }
 
+// OptRemoteOptions provides options to the instance remote
+// the provided configuration function is called with the Qri configuration-derived
+// remote settings applied, allowing partial-overrides.
+func OptRemoteOptions(fn func(opt *remote.Options)) Option {
+	return func(o *InstanceOptions) error {
+		o.remoteOptsFunc = fn
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -185,6 +199,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	// attempt to load a base configuration from repoPath
 	if o.Cfg, err = loadRepoConfig(repoPath); err != nil {
+		log.Error("loading config: %s", err)
 		return
 	}
 
@@ -231,30 +246,34 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.cron, err = newCron(cfg, inst.repoPath); err != nil {
+		log.Error("initializing cron:", err.Error())
 		return nil, fmt.Errorf("newCron: %s", err)
 	}
 
 	// check if we're operating over RPC
 	if cfg.RPC.Enabled {
 		addr := fmt.Sprintf(":%d", cfg.RPC.Port)
-		log.Infof("Dialing rpc address %s", addr)
 		conn, err := net.Dial("tcp", addr)
 		if err == nil {
 			// we have a connection
+			log.Debugf("using RPC address %s", addr)
 			inst.rpc = rpc.NewClient(conn)
 			return qri, err
 		}
 	}
 
 	if inst.store, err = newStore(ctx, cfg); err != nil {
+		log.Error("intializing store:", err.Error())
 		return nil, fmt.Errorf("newStore: %s", err)
 	}
 	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
+		log.Error("intializing filesystem:", err.Error())
 		return nil, fmt.Errorf("newFilesystem: %s", err)
 	}
 	inst.registry = newRegClient(cfg)
 
 	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.registry); err != nil {
+		log.Error("intializing repo:", err.Error())
 		return nil, fmt.Errorf("newRepo: %s", err)
 	}
 	if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
@@ -262,9 +281,30 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
+		log.Error("intializing p2p:", err.Error())
 		return
 	}
 	inst.node.LocalStreams = o.Streams
+
+	if cfg.Remote != nil && cfg.Remote.Enabled {
+		if o.remoteOptsFunc == nil {
+			o.remoteOptsFunc = func(*remote.Options) {}
+		}
+
+		if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, o.remoteOptsFunc); err != nil {
+			log.Error("intializing remote:", err.Error())
+			return
+		}
+	}
+
+	if inst.node != nil {
+		if _, e := inst.node.IPFSCoreAPI(); e == nil {
+			if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
+				log.Error("initializing remote client:", err.Error())
+				return
+			}
+		}
+	}
 
 	return
 }
@@ -319,6 +359,16 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 			ipfs.OptsFromMap(cfg.Store.Options),
 		}
 		return ipfs.NewFilestore(fsOpts...)
+	case "ipfs_http":
+		urli, ok := cfg.Store.Options["url"]
+		if !ok {
+			return nil, fmt.Errorf("ipfs_http store requires 'url' option")
+		}
+		urlStr, ok := urli.(string)
+		if !ok {
+			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
+		}
+		return ipfs_http.New(urlStr)
 	case "map":
 		return cafs.NewMapstore(), nil
 	default:
@@ -440,6 +490,9 @@ type Instance struct {
 	node     *p2p.QriNode
 	cron     cron.Scheduler
 
+	remote       *remote.Remote
+	remoteClient *remote.Client
+
 	rpc *rpc.Client
 }
 
@@ -473,11 +526,17 @@ func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
 
 // Node accesses the instance qri node if one exists
 func (inst *Instance) Node() *p2p.QriNode {
+	if inst == nil {
+		return nil
+	}
 	return inst.node
 }
 
 // Repo accesses the instance Repo if one exists
 func (inst *Instance) Repo() repo.Repo {
+	if inst == nil {
+		return nil
+	}
 	if inst.repo != nil {
 		return inst.repo
 	} else if inst.node != nil {
@@ -488,7 +547,26 @@ func (inst *Instance) Repo() repo.Repo {
 
 // RPC accesses the instance RPC client if one exists
 func (inst *Instance) RPC() *rpc.Client {
+	if inst == nil {
+		return nil
+	}
 	return inst.rpc
+}
+
+// Remote accesses the remote subsystem if one exists
+func (inst *Instance) Remote() *remote.Remote {
+	if inst == nil {
+		return nil
+	}
+	return inst.remote
+}
+
+// RemoteClient exposes the instance client for making requests to remotes
+func (inst *Instance) RemoteClient() *remote.Client {
+	if inst == nil {
+		return nil
+	}
+	return inst.remoteClient
 }
 
 // Teardown destroys the instance, releasing reserved resources

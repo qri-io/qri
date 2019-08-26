@@ -14,11 +14,8 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/apiutil"
-	"github.com/qri-io/dag"
-	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 )
 
 var log = golog.Logger("qriapi")
@@ -249,22 +246,18 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
-	if cfg.API.RemoteMode {
+	if cfg.Remote != nil && cfg.Remote.Enabled {
 		log.Info("This server is running in `remote` mode")
-		receivers, err := makeDagReceiver(node)
-		if err != nil {
-			panic(err)
-		}
 
-		// TODO (b5): this should be refactored to use an instance:
-		// remh := NewRemoteHandlers(s.inst, receivers)
-		remh := NewRemoteHandlers(node, cfg, receivers)
-		m.Handle("/dsync/push", s.middleware(remh.ReceiveHandler))
-		m.Handle("/dsync", s.middleware(receivers.HTTPHandler()))
-		m.Handle("/dsync/complete", s.middleware(remh.CompleteHandler))
+		remh := NewRemoteHandlers(s.Instance)
+		// TODO (b5) - this publish handler should replace /publish/, added below
+		// this route is a _client request_, not a remote handler.
+		m.Handle("/remote/publish", s.middleware(remh.PublicationRequestsHandler))
+		m.Handle("/remote/dsync", s.middleware(remh.DsyncHandler))
+		m.Handle("/remote/refs", s.middleware(remh.RefsHandler))
 	}
 
-	dsh := NewDatasetHandlers(node, cfg.API.ReadOnly)
+	dsh := NewDatasetHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/list", s.middleware(dsh.ListHandler))
 	m.Handle("/list/", s.middleware(dsh.PeerListHandler))
 	m.Handle("/save", s.middleware(dsh.SaveHandler))
@@ -311,13 +304,4 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 
 	return m
-}
-
-// makeDagReceiver constructs a Receivers (HTTP router) from a qri p2p node
-func makeDagReceiver(node *p2p.QriNode) (*dsync.Receivers, error) {
-	capi, err := node.IPFSCoreAPI()
-	if err != nil {
-		return nil, err
-	}
-	return dsync.NewReceivers(context.Background(), dag.NewNodeGetter(capi.Dag()), capi.Block()), nil
 }

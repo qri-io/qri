@@ -28,7 +28,7 @@ type Factory interface {
 
 	ConfigMethods() (*lib.ConfigMethods, error)
 	DatasetRequests() (*lib.DatasetRequests, error)
-	RemoteRequests() (*lib.RemoteRequests, error)
+	RemoteMethods() (*lib.RemoteMethods, error)
 	RegistryRequests() (*lib.RegistryRequests, error)
 	LogRequests() (*lib.LogRequests, error)
 	ExportRequests() (*lib.ExportRequests, error)

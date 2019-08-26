@@ -14,7 +14,8 @@ func TestDatasetHandlers(t *testing.T) {
 	s := newMockDataServer(t)
 	defer s.Close()
 
-	h := NewDatasetHandlers(node, false)
+	inst := newTestInstanceWithProfileFromNode(node)
+	h := NewDatasetHandlers(inst, false)
 
 	listCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

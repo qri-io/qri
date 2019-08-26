@@ -32,7 +32,7 @@ func TestUpdateRemoteDataset(t *testing.T) {
 	connectMapStores(peers)
 
 	now := addNowTransformDataset(t, peers[0])
-	if err := AddDataset(peers[1], &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
+	if err := AddDataset(peers[1], nil, "", &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
 		t.Error(err)
 	}
 
@@ -70,7 +70,7 @@ func TestUpdateRemoteDataset(t *testing.T) {
 func TestAddDataset(t *testing.T) {
 	node := newTestNode(t)
 
-	if err := AddDataset(node, &repo.DatasetRef{Peername: "foo", Name: "bar"}); err == nil {
+	if err := AddDataset(node, nil, "", &repo.DatasetRef{Peername: "foo", Name: "bar"}); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
@@ -89,7 +89,7 @@ func TestAddDataset(t *testing.T) {
 
 	connectMapStores(peers)
 	p2Pro, _ := peers[1].Repo.Profile()
-	if err := AddDataset(peers[0], &repo.DatasetRef{Peername: p2Pro.Peername, Name: "cities"}); err != nil {
+	if err := AddDataset(peers[0], nil, "", &repo.DatasetRef{Peername: p2Pro.Peername, Name: "cities"}); err != nil {
 		t.Error(err.Error())
 	}
 }

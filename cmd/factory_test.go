@@ -117,8 +117,8 @@ func (t TestFactory) DatasetRequests() (*lib.DatasetRequests, error) {
 }
 
 // RemoteRequests generates a lib.RemoteRequests from internal state
-func (t TestFactory) RemoteRequests() (*lib.RemoteRequests, error) {
-	return lib.NewRemoteRequests(t.node, t.config, t.rpc), nil
+func (t TestFactory) RemoteMethods() (*lib.RemoteMethods, error) {
+	return lib.NewRemoteMethods(t.inst), nil
 }
 
 // RegistryRequests generates a lib.RegistryRequests from internal state

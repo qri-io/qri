@@ -20,6 +20,9 @@ func TestUpdateHandlers(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 	cfg.Store.Type = "map"
 	cfg.Repo.Type = "mem"
+	cfg.Logging.Levels = map[string]string{
+		"lib": "debug",
+	}
 
 	inst, err := lib.NewInstance(context.Background(), tmpDir,
 		lib.OptConfig(cfg),

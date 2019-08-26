@@ -7,8 +7,9 @@ import (
 )
 
 // DatasetLog fetches the history of changes to a dataset
+// TODO (b5) - implement remote log fetching
 func DatasetLog(node *p2p.QriNode, ref repo.DatasetRef, limit, offset int) (rlog []repo.DatasetRef, err error) {
-	local, err := ResolveDatasetRef(node, &ref)
+	local, err := ResolveDatasetRef(node, nil, "", &ref)
 	if err != nil {
 		return
 	}
