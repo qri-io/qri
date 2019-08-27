@@ -112,7 +112,7 @@ func TestBasicRefSelect(t *testing.T) {
 }
 
 func TestGetCurrentRefSelect(t *testing.T) {
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

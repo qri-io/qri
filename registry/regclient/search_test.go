@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qri/registry/regserver/handlers"
 )
 
-func TestSearchRequests(t *testing.T) {
+func TestSearchMethods(t *testing.T) {
 
 	reg := registry.Registry{
 		Profiles: registry.NewMemProfiles(),

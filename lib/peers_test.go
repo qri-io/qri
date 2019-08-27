@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/qri/registry/regclient"
 )
 
 func TestPeerRequestsListNoConnection(t *testing.T) {
@@ -43,7 +42,7 @@ func TestPeerRequestsList(t *testing.T) {
 		// TODO - need a test that confirms that this node's identity is never present in peers list
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Errorf("error allocating test repo: %s", err.Error())
 		return
@@ -221,7 +220,7 @@ func TestPeerConnectionsParamsPod(t *testing.T) {
 
 func newTestQriNode(t *testing.T) *p2p.QriNode {
 	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -241,23 +240,9 @@ func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 	})
 }
 
-func newTestQriNodeRegClient(t *testing.T, c *regclient.Client) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), c)
-	if err != nil {
-		t.Fatal(err)
-	}
-	n, err := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode).New(r)
-	if err != nil {
-		t.Fatal(err)
-	}
-	node := n.(*p2p.QriNode)
-	return node
-}
-
 func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
 	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{}, ms, newTestFS(ms), profile.NewMemStore(), nil)
+	r, err := repo.NewMemRepo(&profile.Profile{}, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		return nil, err
 	}

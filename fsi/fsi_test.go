@@ -23,7 +23,7 @@ type TmpPaths struct {
 
 // NewTmpPaths constructs a new TmpPaths object.
 func NewTmpPaths() *TmpPaths {
-	testRepo, err := testrepo.NewTestRepo(nil)
+	testRepo, err := testrepo.NewTestRepo()
 	if err != nil {
 		panic(err)
 	}

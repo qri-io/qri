@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/registry/regclient"
 )
 
 var (
@@ -71,17 +70,12 @@ type Repo interface {
 	// SetProfile sets this repo's current profile. Profiles must contain a private key
 	SetProfile(*profile.Profile) error
 	// PrivateKey hands over this repo's private key
-	// TODO - this is needed to create action structs, any way we can make this
-	// privately-negotiated or created at init?
 	PrivateKey() crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
 	// TODO - should rename this to "profiles" to separate from the networking
 	// concept of a peer
 	Profiles() profile.Store
-	// Registry returns a client for interacting with a federated registry
-	// if one exists, otherwise nil
-	Registry() *regclient.Client
 }
 
 // QFSSetter sets a qfs.Filesystem

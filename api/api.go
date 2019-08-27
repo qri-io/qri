@@ -294,7 +294,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	// rgh := NewRegistryHandlers(node)
 	// m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
 
-	sh := NewSearchHandlers(node)
+	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
 	rh := NewRootHandler(dsh, ph)

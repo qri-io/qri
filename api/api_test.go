@@ -22,7 +22,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func init() {
@@ -38,13 +37,12 @@ func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 
-	rc, _ := regmock.NewMockServer()
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	if r, err = test.NewTestRepo(rc); err != nil {
+	if r, err = test.NewTestRepo(); err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
@@ -178,7 +176,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo(nil)
+	r, err := test.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

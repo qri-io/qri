@@ -8,6 +8,8 @@ func TestSearchHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
+	inst := newTestInstanceWithProfileFromNode(node)
+
 	searchCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		// TODO (b5): lol wut Get requests don't have bodies
@@ -15,6 +17,6 @@ func TestSearchHandlers(t *testing.T) {
 		{"DELETE", "/", nil},
 	}
 
-	proh := NewSearchHandlers(node)
+	proh := NewSearchHandlers(inst)
 	runHandlerTestCases(t, "search", proh.SearchHandler, searchCases, true)
 }

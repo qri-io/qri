@@ -8,7 +8,7 @@ import (
 
 func TestNewTestRepo(t *testing.T) {
 	rmf := func(t *testing.T) (repo.Repo, func()) {
-		mr, err := NewEmptyTestRepo(nil)
+		mr, err := NewEmptyTestRepo()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -41,7 +41,7 @@ func TestNewMemRepoFromDir(t *testing.T) {
 }
 
 func TestNewTestRepoWithHistory(t *testing.T) {
-	repo, log, err := NewTestRepoWithHistory(nil)
+	repo, log, err := NewTestRepoWithHistory()
 	if err != nil {
 		t.Fatal(err)
 	}

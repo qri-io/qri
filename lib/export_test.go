@@ -15,7 +15,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	testrepo "github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestExport(t *testing.T) {
@@ -23,8 +22,7 @@ func TestExport(t *testing.T) {
 	dsfs.Timestamp = func() time.Time { return time.Time{} }
 	defer func() { dsfs.Timestamp = prevTs }()
 
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

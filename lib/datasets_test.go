@@ -28,12 +28,10 @@ import (
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/rev"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestDatasetRequestsSave(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -207,8 +205,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 }
 
 func TestDatasetRequestsSaveZip(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -238,7 +235,7 @@ func TestDatasetRequestsList(t *testing.T) {
 		movies, counter, cities, craigslist, sitemap repo.DatasetRef
 	)
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 		return
@@ -364,8 +361,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -592,8 +588,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsRename(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -631,8 +626,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 }
 
 func TestDatasetRequestsRemove(t *testing.T) {
-	rc, _ := regmock.NewMockServer()
-	mr, err := testrepo.NewTestRepo(rc)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -681,7 +675,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "node is not online and no registry is configured"},
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -810,7 +804,7 @@ Pirates of the Caribbean: At World's End ,foo
 		{ValidateDatasetParams{Schema: schemaf2, BodyFilename: "data.csv", Body: dataf2}, 1, ""},
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

@@ -7,7 +7,7 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -19,8 +19,6 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/registry/regclient"
-	"github.com/qri-io/qri/registry/regserver/mock"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -76,9 +74,8 @@ func connectMapStores(peers []*p2p.QriNode) {
 }
 
 func newTestNode(t *testing.T) *p2p.QriNode {
-	rc, _ := mock.NewMockServer()
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), rc)
+	mr, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -95,19 +92,6 @@ func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 		"http":  httpfs.NewFS(),
 		"cafs":  cafsys,
 	})
-}
-
-func newTestNodeRegClient(t *testing.T, cli *regclient.Client) *p2p.QriNode {
-	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, ms, newTestFS(ms), profile.NewMemStore(), cli)
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return node
 }
 
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {

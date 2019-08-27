@@ -14,7 +14,6 @@ import (
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestUpdateRemoteDataset(t *testing.T) {
@@ -95,11 +94,9 @@ func TestAddDataset(t *testing.T) {
 }
 
 func TestDataset(t *testing.T) {
-	rc, _ := mock.NewMockServer()
-
 	rmf := func(t *testing.T) repo.Repo {
 		store := cafs.NewMapstore()
-		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore(), rc)
+		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
 		if err != nil {
 			panic(err)
 		}

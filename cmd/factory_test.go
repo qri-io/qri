@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/qri/registry/regclient"
 )
 
 // TestFactory is an implementation of the Factory interface for testing purposes
@@ -41,8 +40,8 @@ type TestFactory struct {
 // with an optional registry client. In tests users can create mock registry
 // servers and pass in a client connected to that mock, or omit the registry
 // client entirely for testing without a designated registry
-func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
-	repo, err := test.NewTestRepo(c)
+func NewTestFactory() (tf TestFactory, err error) {
+	repo, err := test.NewTestRepo()
 	if err != nil {
 		return
 	}
@@ -151,9 +150,9 @@ func (t TestFactory) FSIMethods() (*lib.FSIMethods, error) {
 	return lib.NewFSIMethods(t.inst), nil
 }
 
-// SearchRequests generates a lib.SearchRequests from internal state
-func (t TestFactory) SearchRequests() (*lib.SearchRequests, error) {
-	return lib.NewSearchRequests(t.node, t.rpc), nil
+// SearchMethods generates a lib.SearchMethods from internal state
+func (t TestFactory) SearchMethods() (*lib.SearchMethods, error) {
+	return lib.NewSearchMethods(t.inst), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

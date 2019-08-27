@@ -228,12 +228,12 @@ func (o *QriOptions) ProfileMethods() (m *lib.ProfileMethods, err error) {
 	return lib.NewProfileMethods(o.inst), nil
 }
 
-// SearchRequests generates a lib.SearchRequests from internal state
-func (o *QriOptions) SearchRequests() (*lib.SearchRequests, error) {
+// SearchMethods generates a lib.SearchMethods from internal state
+func (o *QriOptions) SearchMethods() (*lib.SearchMethods, error) {
 	if err := o.Init(); err != nil {
 		return nil, err
 	}
-	return lib.NewSearchRequests(o.inst.Node(), o.inst.RPC()), nil
+	return lib.NewSearchMethods(o.inst), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

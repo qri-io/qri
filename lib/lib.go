@@ -27,13 +27,13 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
-	"github.com/qri-io/qri/registry/regclient"
 )
 
 var (
@@ -70,7 +70,7 @@ func Receivers(inst *Instance) []Methods {
 		NewPeerRequests(node, nil),
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),
-		NewSearchRequests(node, nil),
+		NewSearchMethods(inst),
 		NewRenderRequests(r, nil),
 		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
@@ -272,7 +272,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 	inst.registry = newRegClient(cfg)
 
-	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.registry); err != nil {
+	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store); err != nil {
 		log.Error("intializing repo:", err.Error())
 		return nil, fmt.Errorf("newRepo: %s", err)
 	}
@@ -385,7 +385,7 @@ func newRegClient(cfg *config.Config) (rc *regclient.Client) {
 	return
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
+func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -393,9 +393,9 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, rc *regclien
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, nil, pro, rc, path)
+		return fsrepo.NewRepo(store, nil, pro, path)
 	case "mem":
-		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore(), rc)
+		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore())
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -482,16 +482,16 @@ type Instance struct {
 	repoPath string
 	cfg      *config.Config
 
-	streams  ioes.IOStreams
-	store    cafs.Filestore
-	qfs      qfs.Filesystem
-	registry *regclient.Client
-	repo     repo.Repo
-	node     *p2p.QriNode
-	cron     cron.Scheduler
+	streams ioes.IOStreams
+	store   cafs.Filestore
+	qfs     qfs.Filesystem
+	repo    repo.Repo
+	node    *p2p.QriNode
+	cron    cron.Scheduler
 
 	remote       *remote.Remote
 	remoteClient *remote.Client
+	registry     *regclient.Client
 
 	rpc *rpc.Client
 }
@@ -504,11 +504,6 @@ func (inst *Instance) Context() context.Context {
 // Config provides methods for manipulating Qri configuration
 func (inst *Instance) Config() *config.Config {
 	return inst.cfg
-}
-
-// RepoPath returns the path to the directory qri is operating from
-func (inst *Instance) RepoPath() string {
-	return inst.repoPath
 }
 
 // ChangeConfig implements the ConfigSetter interface
@@ -543,6 +538,14 @@ func (inst *Instance) Repo() repo.Repo {
 		return inst.node.Repo
 	}
 	return nil
+}
+
+// RepoPath returns the path to the directory qri is operating from
+func (inst *Instance) RepoPath() string {
+	if inst == nil {
+		return ""
+	}
+	return inst.repoPath
 }
 
 // RPC accesses the instance RPC client if one exists

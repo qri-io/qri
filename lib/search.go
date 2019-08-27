@@ -2,34 +2,24 @@ package lib
 
 import (
 	"fmt"
-	"net/rpc"
 
-	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/registry/regclient"
+	"github.com/qri-io/qri/repo"
 )
 
-// SearchRequests encapsulates business logic for the qri search command
+// SearchMethods encapsulates business logic for the qri search command
 // TODO (b5): switch to using an Instance instead of separate fields
-type SearchRequests struct {
-	cli  *rpc.Client
-	node *p2p.QriNode
+type SearchMethods struct {
+	inst *Instance
 }
 
-// NewSearchRequests creates a SearchRequests pointer from either a repo
-// or an rpc.Client
-func NewSearchRequests(node *p2p.QriNode, cli *rpc.Client) *SearchRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both node and client supplied to NewSearchRequests"))
-	}
-	return &SearchRequests{
-		cli:  cli,
-		node: node,
-	}
+// NewSearchMethods creates SearchMethods from a qri Instance
+func NewSearchMethods(inst *Instance) *SearchMethods {
+	return &SearchMethods{inst: inst}
 }
 
 // CoreRequestsName implements the requests
-func (sr SearchRequests) CoreRequestsName() string { return "search" }
+func (m SearchMethods) CoreRequestsName() string { return "search" }
 
 // SearchParams defines paremeters for the search Method
 type SearchParams struct {
@@ -45,15 +35,15 @@ type SearchResult struct {
 }
 
 // Search queries for items on qri related to given parameters
-func (sr *SearchRequests) Search(p *SearchParams, results *[]SearchResult) error {
-	if sr.cli != nil {
-		return sr.cli.Call("SearchRequests.Search", p, results)
+func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("SearchMethods.Search", p, results)
 	}
 	if p == nil {
 		return fmt.Errorf("error: search params cannot be nil")
 	}
 
-	reg := sr.node.Repo.Registry()
+	reg := m.inst.registry
 	if reg == nil {
 		return repo.ErrNoRegistry
 	}

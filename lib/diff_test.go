@@ -18,7 +18,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	dsfs.Timestamp = func() time.Time { return time.Time{} }
 	defer func() { dsfs.Timestamp = prevTs }()
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

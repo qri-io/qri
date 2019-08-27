@@ -106,9 +106,7 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 	r := m.inst.repo
 
 	if p.Peername != cfg.Profile.Peername && p.Peername != "" {
-		// TODO - should ProfileMethods be allocated with a configuration? How should this work in relation to
-		// RPC requests?
-		if reg := r.Registry(); reg != nil {
+		if reg := m.inst.registry; reg != nil {
 			current, err := profile.NewProfile(cfg.Profile)
 			if err != nil {
 				return err
