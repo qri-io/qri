@@ -178,22 +178,6 @@ func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) 
 	}
 }
 
-// PublishHandler works with dataset publicity
-func (h *DatasetHandlers) PublishHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		h.listPublishedHandler(w, r)
-	case "POST":
-		h.publishHandler(w, r, true)
-	case "DELETE":
-		h.publishHandler(w, r, false)
-	default:
-		util.NotFoundHandler(w, r)
-	}
-}
-
 // ZipDatasetHandler is the endpoint for getting a zip archive of a dataset
 func (h *DatasetHandlers) ZipDatasetHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -266,22 +250,6 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 	args.OrderBy = "created"
 
 	args.Term = r.FormValue("term")
-
-	res := []repo.DatasetRef{}
-	if err := h.List(&args, &res); err != nil {
-		log.Infof("error listing datasets: %s", err.Error())
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	if err := util.WritePageResponse(w, res, r, args.Page()); err != nil {
-		log.Infof("error list datasests response: %s", err.Error())
-	}
-}
-
-func (h *DatasetHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParamsFromRequest(r)
-	args.OrderBy = "created"
-	args.Published = true
 
 	res := []repo.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
@@ -654,27 +622,6 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
 		log.Infof("error writing response: %s", err.Error())
 	}
-}
-
-func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, publish bool) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/publish"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-
-	p := &lib.SetPublishStatusParams{
-		Ref:           ref.String(),
-		PublishStatus: publish,
-		// UpdateRegistry:    r.FormValue("no_registry") != "true",
-		// UpdateRegistryPin: r.FormValue("no_pin") != "true",
-	}
-	var publishedRef repo.DatasetRef
-	if err := h.DatasetRequests.SetPublishStatus(p, &publishedRef); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, publishedRef)
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {

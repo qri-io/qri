@@ -5,8 +5,21 @@ import (
 	"testing"
 )
 
-func TestRemoteHandlers(t *testing.T) {
-	t.Skip("TODO (b5) - restore tests")
+func TestRemoteClientHandlers(t *testing.T) {
+	node, teardown := newTestNodeWithNumDatasets(t, 2)
+	defer teardown()
+
+	inst := newTestInstanceWithProfileFromNode(node)
+	h := NewRemoteClientHandlers(inst, false)
+
+	publishCases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"GET", "/publish/", nil},
+		{"POST", "/publish/me/cities", nil},
+		{"DELETE", "/publish/me/cities", nil},
+	}
+	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases, true)
+
 	// node, teardown := newTestNode(t)
 	// defer teardown()
 

@@ -242,17 +242,13 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	ph := NewPeerHandlers(node, cfg.API.ReadOnly)
 	m.Handle("/peers", s.middleware(ph.PeersHandler))
 	m.Handle("/peers/", s.middleware(ph.PeerHandler))
-
 	m.Handle("/connect/", s.middleware(ph.ConnectToPeerHandler))
 	m.Handle("/connections", s.middleware(ph.ConnectionsHandler))
 
 	if cfg.Remote != nil && cfg.Remote.Enabled {
-		log.Info("This server is running in `remote` mode")
+		log.Info("running in `remote` mode")
 
 		remh := NewRemoteHandlers(s.Instance)
-		// TODO (b5) - this publish handler should replace /publish/, added below
-		// this route is a _client request_, not a remote handler.
-		m.Handle("/remote/publish", s.middleware(remh.PublicationRequestsHandler))
 		m.Handle("/remote/dsync", s.middleware(remh.DsyncHandler))
 		m.Handle("/remote/refs", s.middleware(remh.RefsHandler))
 	}
@@ -270,7 +266,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
-	m.Handle("/publish/", s.middleware(dsh.PublishHandler))
+
+	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
+	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
 
 	uh := UpdateHandlers{
 		UpdateMethods: lib.NewUpdateMethods(s.Instance),
