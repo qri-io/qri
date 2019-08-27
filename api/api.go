@@ -293,7 +293,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/registry/profile/new", s.middleware(rch.CreateProfileHandler))
-	m.Handle("/registry/profile/keys", s.middleware(rch.ProveProfileKeyHandler))
+	m.Handle("/registry/profile/prove", s.middleware(rch.ProveProfileKeyHandler))
 
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))

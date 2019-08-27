@@ -20,6 +20,9 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// ErrNoRemoteClient is returned when no client is allocated
+var ErrNoRemoteClient = fmt.Errorf("not configured to make remote requests")
+
 // Address extracts the address of a remote from a configuration for a given
 // remote name
 func Address(cfg *config.Config, name string) (addr string, err error) {
@@ -71,6 +74,9 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 
 // PushDataset pushes the contents of a dataset to a remote
 func (c *Client) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
 	log.Debugf("pushing dataset %s to %s", ref.Path, remoteAddr)
 	push, err := c.ds.NewPush(ref.Path, remoteAddr+"/remote/dsync", true)
 	if err != nil {
@@ -104,6 +110,10 @@ func (c *Client) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAdd
 
 // PullDataset fetches a dataset from a remote source
 func (c *Client) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
 	if ref.Path == "" {
 		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
 			return err
@@ -125,6 +135,10 @@ func (c *Client) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAd
 
 // RemoveDataset asks a remote to remove a dataset
 func (c *Client) RemoveDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
 	log.Debugf("requesting remove dataset %s from remote %s", ref.Path, remoteAddr)
 	params, err := sigParams(c.pk, ref)
 	if err != nil {
@@ -142,6 +156,10 @@ func (c *Client) RemoveDataset(ctx context.Context, ref repo.DatasetRef, remoteA
 // ResolveHeadRef asks a remote to complete a dataset reference, adding the
 // latest-known path value
 func (c *Client) ResolveHeadRef(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
 	switch addressType(remoteAddr) {
 	case "http":
 		return resolveHeadRefHTTP(ctx, ref, remoteAddr)

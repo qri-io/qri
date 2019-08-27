@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"net/rpc"
 	"os"
 	"path/filepath"
@@ -63,6 +64,46 @@ func NewTestFactory() (tf TestFactory, err error) {
 		config: cfg,
 		node:   tnode.(*p2p.QriNode),
 		inst:   lib.NewInstanceFromConfigAndNode(cfg, tnode.(*p2p.QriNode)),
+	}, nil
+}
+
+// NewTestFactoryInstanceOptions is an experimental test factory that allows
+// instance configuration overrides
+// TODO (b5) - I'm not confident this works perfectly at the moment. Let's add
+// more tests to lib.NewInstance before using everywhere
+func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err error) {
+	repo, err := test.NewTestRepo()
+	if err != nil {
+		return
+	}
+
+	cfg := config.DefaultConfigForTesting().Copy()
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P)
+	if err != nil {
+		return
+	}
+
+	opts = append([]lib.Option{
+		lib.OptConfig(cfg),
+		lib.OptQriNode(tnode.(*p2p.QriNode)),
+	}, opts...)
+
+	inst, err := lib.NewInstance(context.Background(), "repo", opts...)
+	if err != nil {
+		return TestFactory{}, err
+	}
+
+	return TestFactory{
+		IOStreams:   ioes.NewDiscardIOStreams(),
+		qriRepoPath: "",
+		ipfsFsPath:  "",
+		generator:   libtest.NewTestCrypto(),
+
+		repo:   repo,
+		rpc:    nil,
+		config: cfg,
+		node:   tnode.(*p2p.QriNode),
+		inst:   inst,
 	}, nil
 }
 

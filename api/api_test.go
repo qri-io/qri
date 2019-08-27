@@ -195,8 +195,6 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 	inst := lib.NewInstanceFromConfigAndNode(cfg, node)
 	s := New(inst)
 
-	t.Skip("TODO (b5) - RE ENABLE")
-
 	server := httptest.NewServer(NewServerRoutes(s))
 
 	cases := []struct {

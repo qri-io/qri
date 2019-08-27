@@ -1,14 +1,23 @@
 package api
 
 import (
+	"context"
 	"testing"
+
+	"github.com/qri-io/qri/lib"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestSearchHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	inst := newTestInstanceWithProfileFromNode(node)
+	rc, _ := regmock.NewMockServer()
+
+	inst, err := lib.NewInstance(context.Background(), "", lib.OptQriNode(node), lib.OptRegistryClient(rc))
+	if err != nil {
+		t.Fatal()
+	}
 
 	searchCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

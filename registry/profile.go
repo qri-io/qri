@@ -16,7 +16,7 @@ type Profile struct {
 	Created  time.Time
 	Username string
 	Email    string
-	Password string
+	Password string `json:",omitempty"`
 
 	ProfileID string
 	PublicKey string
