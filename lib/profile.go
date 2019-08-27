@@ -111,7 +111,7 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 				return err
 			}
 
-			if _, err := reg.PutProfile(&registry.Profile{ Username: p.Peername }, current.PrivKey); err != nil {
+			if _, err := reg.PutProfile(&registry.Profile{Username: p.Peername}, current.PrivKey); err != nil {
 				return err
 			}
 		}

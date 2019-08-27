@@ -9,9 +9,9 @@ import (
 
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )

@@ -57,7 +57,7 @@ func TestProfileRequests(t *testing.T) {
 	err = c.GetProfile(p)
 	if err == nil {
 		t.Errorf("expected empty get to error")
-	} else if err.Error() != "error 404: " {
+	} else if err.Error() != "registry: " {
 		t.Errorf("error mistmatch. expected: %s, got: %s", "error 404: ", err.Error())
 	}
 

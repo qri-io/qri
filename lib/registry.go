@@ -20,7 +20,9 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 	}
 
 	pro, err := m.registry.CreateProfile(p, m.repo.PrivateKey())
-	*p = *pro
+	if pro != nil {
+		*p = *pro
+	}
 	return err
 }
 
@@ -32,6 +34,8 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 	}
 
 	pro, err := m.registry.ProveProfileKey(p, m.repo.PrivateKey())
-	*p = *pro
+	if pro != nil {
+		*p = *pro
+	}
 	return err
 }

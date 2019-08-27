@@ -40,17 +40,21 @@ func TestSetupTeardown(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	if reg.Profiles.Len() != 1 {
-		t.Errorf("expected registry to have one profile. got: %d", reg.Profiles.Len())
+	length, err := reg.Profiles.Len()
+	if err != nil {
+		t.Fatal(err)
 	}
-	reg.Profiles.SortedRange(func(key string, profile *registry.Profile) bool {
+	if length != 1 {
+		t.Errorf("expected registry to have one profile. got: %d", length)
+	}
+	reg.Profiles.SortedRange(func(key string, profile *registry.Profile) (bool, error) {
 		if profile.Username != params.Config.Profile.Peername {
-			t.Error("")
+			t.Errorf("username mismatch. profile.Username: %s, config.Peername: %s", profile.Username, params.Config.Profile.Peername)
 		}
-		return false
+		return true, nil
 	})
 
-	err := Teardown(TeardownParams{
+	err = Teardown(TeardownParams{
 		Config:         params.Config,
 		ConfigFilepath: params.ConfigFilepath,
 		QriRepoPath:    path,

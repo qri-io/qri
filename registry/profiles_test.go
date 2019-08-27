@@ -104,20 +104,25 @@ func TestProfilesSortedRange(t *testing.T) {
 		}
 	}
 
-	if ps.Len() != len(usernames) {
+	l, err := ps.Len()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if l != len(usernames) {
 		t.Errorf("expected len to equal username length")
 		return
 	}
 
 	for iter := 0; iter < 100; iter++ {
 		i := 0
-		ps.SortedRange(func(key string, p *Profile) bool {
+		ps.SortedRange(func(key string, p *Profile) (bool, error) {
 			if usernames[i] != p.Username {
 				t.Errorf("iter: %d sorted index %d mismatch. expected: %s, got: %s", iter, i, usernames[i], p.Username)
-				return true
+				return true, nil
 			}
 			i++
-			return false
+			return false, nil
 		})
 		break
 	}

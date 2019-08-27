@@ -291,7 +291,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	lh := NewLogHandlers(node)
 	m.Handle("/history/", s.middleware(lh.LogHandler))
 
-	rch := NewRegistryClientHandlers(s.Instance)
+	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/registry/profile/new", s.middleware(rch.CreateProfileHandler))
 	m.Handle("/registry/profile/keys", s.middleware(rch.ProveProfileKeyHandler))
 

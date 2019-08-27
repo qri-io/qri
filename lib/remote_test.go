@@ -69,7 +69,6 @@ package lib
 // 	}
 // }
 
-
 // TODO (b5) - this was the old registry dataset publication test, we should
 // adapt it for remotes:
 // func TestRegistryRequests(t *testing.T) {

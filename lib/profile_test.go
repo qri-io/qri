@@ -224,15 +224,19 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 		t.Error(err)
 	}
 
-	if reg.Profiles.Len() != 1 {
-		t.Errorf("expected a profile to be in the registry. got: %d", reg.Profiles.Len())
+	length, err := reg.Profiles.Len()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if length != 1 {
+		t.Errorf("expected a profile to be in the registry. got: %d", length)
 	}
 
-	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) bool {
+	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) (bool, error) {
 		if pro.Username != "keyboard_cat" {
 			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Username)
 		}
-		return true
+		return false, nil
 	})
 }
 

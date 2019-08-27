@@ -27,7 +27,7 @@ func TestSearch(t *testing.T) {
 		resStatus   int
 	}{
 		// TODO (b5) - restore
-		// {"GET", "/search", "application/json", &registry.SearchParams{Q: "abc", Limit: 0, Offset: 100}, 400},
+		// {"GET", "/registry/search", "application/json", &registry.SearchParams{Q: "abc", Limit: 0, Offset: 100}, 400},
 	}
 
 	for i, c := range cases {

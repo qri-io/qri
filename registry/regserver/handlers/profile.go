@@ -29,20 +29,27 @@ func NewProfilesHandler(profiles registry.Profiles) http.HandlerFunc {
 			}
 
 			for _, pro := range ps {
-				profiles.Store(pro.Username, pro)
+				profiles.Create(pro.Username, pro)
 			}
 			fallthrough
 		case "GET":
-			ps := make([]*registry.Profile, profiles.Len())
+
+			l, err := profiles.Len()
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+			}
+			ps := make([]*registry.Profile, l)
 
 			i := 0
-			profiles.SortedRange(func(key string, p *registry.Profile) bool {
+			profiles.SortedRange(func(key string, p *registry.Profile) (bool, error) {
 				ps[i] = p
 				i++
-				return false
+				return true, nil
 			})
 
 			apiutil.WriteResponse(w, ps)
+		default:
+			apiutil.NotFoundHandler(w, r)
 		}
 	}
 }
@@ -66,20 +73,24 @@ func NewProfileHandler(profiles registry.Profiles) http.HandlerFunc {
 
 		switch r.Method {
 		case "GET":
-			var ok bool
+			var err error
 			if p.Username != "" {
-				p, ok = profiles.Load(p.Username)
+				p, err = profiles.Load(p.Username)
 			} else {
-				profiles.Range(func(handle string, profile *registry.Profile) bool {
+				var ok bool
+				err = profiles.Range(func(_ string, profile *registry.Profile) (bool, error) {
 					if profile.ProfileID == p.ProfileID || profile.PublicKey == p.PublicKey {
 						p = profile
 						ok = true
-						return true
+						return true, nil
 					}
-					return false
+					return false, nil
 				})
+				if !ok {
+					err = registry.ErrNotFound
+				}
 			}
-			if !ok {
+			if err != nil {
 				apiutil.NotFoundHandler(w, r)
 				return
 			}

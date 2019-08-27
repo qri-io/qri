@@ -17,7 +17,9 @@ func (c Client) GetProfile(p *registry.Profile) error {
 	if err != nil {
 		return err
 	}
-	*p = *pro
+	if pro != nil {
+		*p = *pro
+	}
 	return nil
 }
 
@@ -91,7 +93,7 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 		return nil, err
 	}
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/profile", c.cfg.Location), bytes.NewReader(data))
+	req, err := http.NewRequest(method, fmt.Sprintf("%s/registry/profile", c.cfg.Location), bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
@@ -122,7 +124,6 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 		if strings.Contains(env.Meta.Error, "taken") {
 			return nil, registry.ErrUsernameTaken
 		}
-
 		return nil, fmt.Errorf("registry: %s", env.Meta.Error)
 	}
 

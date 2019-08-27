@@ -50,15 +50,15 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 	m.HandleFunc("/", HealthCheckHandler)
 
 	if ps := reg.Profiles; ps != nil {
-		m.HandleFunc("/profile", logReq(NewProfileHandler(ps)))
-		m.HandleFunc("/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
+		m.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
+		m.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
 	}
 
 	if s := reg.Search; s != nil {
-		m.HandleFunc("/search", logReq(NewSearchHandler(s)))
+		m.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
 	}
 	if rs := reg.Reputations; rs != nil {
-		m.HandleFunc("/reputation", (logReq(NewReputationHandler(rs))))
+		m.HandleFunc("/registry/reputation", (logReq(NewReputationHandler(rs))))
 	}
 
 	return m

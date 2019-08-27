@@ -44,6 +44,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.5
+	github.com/prometheus/common v0.4.0
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.1.1-0.20190826121154-bee27f6db672

@@ -110,8 +110,8 @@ func TestSearchRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"test", "", textSearchResponse, "", ""},
-		{"test", "json", jsonSearchResponse, "", ""},
+		{"test", "", textSearchResponse, "no configured registry", ""},
+		{"test", "json", jsonSearchResponse, "no configured registry", ""},
 	}
 
 	for i, c := range cases {

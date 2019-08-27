@@ -8,7 +8,7 @@ import (
 )
 
 var (
-	// nowFunc is an internal function for getting timestamps
+	// nowFunc is an ps function for getting timestamps
 	nowFunc = func() time.Time { return time.Now() }
 )
 
@@ -20,35 +20,38 @@ var (
 // dataset manipulation operations
 type Profiles interface {
 	// Len returns the number of records in the set
-	Len() int
+	Len() (int, error)
 	// Load fetches a profile from the list by key
-	Load(key string) (value *Profile, ok bool)
+	Load(key string) (value *Profile, err error)
 	// Range calls an iteration fuction on each element in the map until
 	// the end of the list is reached or iter returns true
-	Range(iter func(key string, p *Profile) (brk bool))
+	Range(iter func(key string, p *Profile) (kontinue bool, err error)) error
 	// SortedRange is like range but with deterministic key ordering
-	SortedRange(iter func(key string, p *Profile) (brk bool))
+	SortedRange(iter func(key string, p *Profile) (kontinue bool, err error)) error
 
-	// Store adds an entry, bypassing the register process
+	// Create adds an entry, bypassing the register process
 	// store is only exported for administrative use cases.
 	// most of the time callers should use Register instead
-	Store(key string, value *Profile)
-	// Delete removes a record from the set at key
+	Create(key string, value *Profile) error
+	// Update modifies an existing profile
+	Update(key string, value *Profile) error
+	// Delete removes a profile from the set at key
 	// Delete is only exported for administrative use cases.
 	// most of the time callers should use Deregister instead
-	Delete(key string)
+	Delete(key string) error
 }
 
 // RegisterProfile adds a profile to the list if it's valid and the desired handle isn't taken
-func RegisterProfile(store Profiles, p *Profile) error {
-	if err := p.Validate(); err != nil {
+func RegisterProfile(store Profiles, p *Profile) (err error) {
+	if err = p.Validate(); err != nil {
 		return err
 	}
-	if err := p.Verify(); err != nil {
+	if err = p.Verify(); err != nil {
 		return err
 	}
 
-	if pro, ok := store.Load(p.Username); ok {
+	pro, err := store.Load(p.Username)
+	if err == nil {
 		// if peer is registring a name they already own, we're good
 		if pro.ProfileID == p.ProfileID {
 			return nil
@@ -57,25 +60,34 @@ func RegisterProfile(store Profiles, p *Profile) error {
 	}
 
 	prev := ""
-	store.Range(func(key string, profile *Profile) bool {
+	store.Range(func(key string, profile *Profile) (bool, error) {
 		if profile.ProfileID == p.ProfileID {
 			prev = key
-			return true
+			return true, nil
 		}
-		return false
+		return false, nil
 	})
 
 	if prev != "" {
-		store.Delete(prev)
+		if err = store.Delete(prev); err != nil {
+			return err
+		}
 	}
 
-	store.Store(p.Username, &Profile{
-		Username:  p.Username,
-		Created:   nowFunc(),
-		ProfileID: p.ProfileID,
-		PublicKey: p.PublicKey,
-	})
-	return nil
+	p.Created = time.Now()
+	return store.Create(p.Username, p)
+}
+
+// UpdateProfile alters profile data
+func UpdateProfile(store Profiles, p *Profile) (err error) {
+	if err = p.Validate(); err != nil {
+		return err
+	}
+	if err = p.Verify(); err != nil {
+		return err
+	}
+
+	return store.Update(p.Username, p)
 }
 
 // DeregisterProfile removes a profile from the registry if it exists
@@ -96,69 +108,101 @@ func DeregisterProfile(store Profiles, p *Profile) error {
 // heavily inspired by sync.Map
 type MemProfiles struct {
 	sync.RWMutex
-	internal map[string]*Profile
+	ps map[string]*Profile
 }
+
+var _ Profiles = (*MemProfiles)(nil)
 
 // NewMemProfiles allocates a new *MemProfiles map
 func NewMemProfiles() *MemProfiles {
 	return &MemProfiles{
-		internal: make(map[string]*Profile),
+		ps: make(map[string]*Profile),
 	}
 }
 
 // Len returns the number of records in the map
-func (ps *MemProfiles) Len() int {
-	return len(ps.internal)
+func (ps *MemProfiles) Len() (int, error) {
+	return len(ps.ps), nil
 }
 
 // Load fetches a profile from the list by key
-func (ps *MemProfiles) Load(key string) (value *Profile, ok bool) {
+func (ps *MemProfiles) Load(key string) (value *Profile, err error) {
 	ps.RLock()
-	result, ok := ps.internal[key]
+	result, ok := ps.ps[key]
 	ps.RUnlock()
-	return result, ok
+
+	if !ok {
+		return nil, ErrNotFound
+	}
+
+	return result, nil
 }
 
 // Range calls an iteration fuction on each element in the map until
 // the end of the list is reached or iter returns true
-func (ps *MemProfiles) Range(iter func(key string, p *Profile) (brk bool)) {
+func (ps *MemProfiles) Range(iter func(key string, p *Profile) (kontinue bool, err error)) (err error) {
 	ps.RLock()
 	defer ps.RUnlock()
-	for key, p := range ps.internal {
-		if iter(key, p) {
+	var kontinue bool
+
+	for key, p := range ps.ps {
+		kontinue, err = iter(key, p)
+		if err != nil {
+			return err
+		}
+		if !kontinue {
 			break
 		}
 	}
+
+	return nil
 }
 
 // SortedRange is like range but with deterministic key ordering
-func (ps *MemProfiles) SortedRange(iter func(key string, p *Profile) (brk bool)) {
+func (ps *MemProfiles) SortedRange(iter func(key string, p *Profile) (kontinue bool, err error)) (err error) {
 	ps.RLock()
 	defer ps.RUnlock()
-	keys := make([]string, len(ps.internal))
+	keys := make([]string, len(ps.ps))
 	i := 0
-	for key := range ps.internal {
+	for key := range ps.ps {
 		keys[i] = key
 		i++
 	}
 	sort.StringSlice(keys).Sort()
+
+	var kontinue bool
 	for _, key := range keys {
-		if iter(key, ps.internal[key]) {
+		kontinue, err = iter(key, ps.ps[key])
+		if err != nil {
+			return err
+		}
+		if !kontinue {
 			break
 		}
 	}
+	return nil
 }
 
 // Delete removes a record from MemProfiles at key
-func (ps *MemProfiles) Delete(key string) {
+func (ps *MemProfiles) Delete(key string) error {
 	ps.Lock()
-	delete(ps.internal, key)
+	delete(ps.ps, key)
 	ps.Unlock()
+	return nil
 }
 
-// Store adds an entry
-func (ps *MemProfiles) Store(key string, value *Profile) {
+// Create adds a profile
+func (ps *MemProfiles) Create(key string, value *Profile) error {
 	ps.Lock()
-	ps.internal[key] = value
+	ps.ps[key] = value
 	ps.Unlock()
+	return nil
+}
+
+// Update modifies an existing profile
+func (ps *MemProfiles) Update(key string, value *Profile) error {
+	ps.Lock()
+	ps.ps[key] = value
+	ps.Unlock()
+	return nil
 }

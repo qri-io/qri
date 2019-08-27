@@ -30,7 +30,7 @@ func (c Client) doJSONReputationReq(method string, rep *registry.Reputation) (*r
 		return nil, err
 	}
 
-	req, err := http.NewRequest(method, fmt.Sprintf("%s/reputation", c.cfg.Location), bytes.NewReader(data))
+	req, err := http.NewRequest(method, fmt.Sprintf("%s/registry/reputation", c.cfg.Location), bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}

@@ -92,38 +92,37 @@ func TestProfile(t *testing.T) {
 
 	cases := []struct {
 		method      string
-		endpoint    string
 		contentType string
 		profile     *registry.Profile
 		resStatus   int
 		res         *env
 	}{
-		{"OPTIONS", "/profile", "", nil, http.StatusBadRequest, nil},
-		{"OPTIONS", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"OPTIONS", "/profile", "application/json", &registry.Profile{Username: "foo"}, http.StatusNotFound, nil},
-		{"POST", "/profile", "", nil, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username}, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID}, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", p1, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Username: b5.Username}, http.StatusOK, &env{Data: b5}},
-		{"GET", "/profile", "application/json", &registry.Profile{Username: "b5"}, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Username: "b6"}, http.StatusNotFound, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{ProfileID: b5.ProfileID}, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{ProfileID: "fooooo"}, http.StatusNotFound, nil},
-		{"POST", "/profile", "application/json", p1, http.StatusOK, nil},
-		{"POST", "/profile", "application/json", p2, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", p1Rename, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Username: b6.Username}, http.StatusOK, &env{Data: b6}},
-		{"DELETE", "/profile", "", p1Rename, http.StatusBadRequest, nil},
-		{"DELETE", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"DELETE", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
-		{"DELETE", "/profile", "application/json", p1Rename, http.StatusOK, nil},
+		{"OPTIONS", "", nil, http.StatusBadRequest, nil},
+		{"OPTIONS", "application/json", nil, http.StatusBadRequest, nil},
+		{"OPTIONS", "application/json", &registry.Profile{Username: "foo"}, http.StatusNotFound, nil},
+		{"POST", "", nil, http.StatusBadRequest, nil},
+		{"POST", "application/json", nil, http.StatusBadRequest, nil},
+		{"POST", "application/json", &registry.Profile{Username: p1.Username}, http.StatusBadRequest, nil},
+		{"POST", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID}, http.StatusBadRequest, nil},
+		{"POST", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
+		{"POST", "application/json", p1, http.StatusOK, nil},
+		{"GET", "application/json", &registry.Profile{Username: b5.Username}, http.StatusOK, &env{Data: b5}},
+		{"GET", "application/json", &registry.Profile{Username: "b5"}, http.StatusOK, nil},
+		{"GET", "application/json", &registry.Profile{Username: "b6"}, http.StatusNotFound, nil},
+		{"GET", "application/json", &registry.Profile{ProfileID: b5.ProfileID}, http.StatusOK, nil},
+		{"GET", "application/json", &registry.Profile{ProfileID: "fooooo"}, http.StatusNotFound, nil},
+		{"POST", "application/json", p1, http.StatusOK, nil},
+		{"POST", "application/json", p2, http.StatusBadRequest, nil},
+		{"POST", "application/json", p1Rename, http.StatusOK, nil},
+		{"GET", "application/json", &registry.Profile{Username: b6.Username}, http.StatusOK, &env{Data: b6}},
+		{"DELETE", "", p1Rename, http.StatusBadRequest, nil},
+		{"DELETE", "application/json", nil, http.StatusBadRequest, nil},
+		{"DELETE", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
+		{"DELETE", "application/json", p1Rename, http.StatusOK, nil},
 	}
 
 	for i, c := range cases {
-		req, err := http.NewRequest(c.method, fmt.Sprintf("%s%s", s.URL, c.endpoint), nil)
+		req, err := http.NewRequest(c.method, fmt.Sprintf("%s/registry/profile", s.URL), nil)
 		if err != nil {
 			t.Errorf("case %d error creating request: %s", i, err.Error())
 			continue
@@ -209,13 +208,13 @@ func TestProfiles(t *testing.T) {
 		resStatus   int
 		res         *env
 	}{
-		{"GET", "/profiles", "", nil, http.StatusOK, &env{}},
-		{"POST", "/profile", "application/json", p1, http.StatusOK, nil},
-		{"GET", "/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{b5}}},
-		{"POST", "/profile", "application/json", p1Rename, http.StatusOK, nil},
-		{"GET", "/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{b6}}},
-		{"DELETE", "/profile", "application/json", p1Rename, http.StatusOK, nil},
-		{"GET", "/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{}}},
+		{"GET", "/registry/profiles", "", nil, http.StatusOK, &env{}},
+		{"POST", "/registry/profile", "application/json", p1, http.StatusOK, nil},
+		{"GET", "/registry/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{b5}}},
+		{"POST", "/registry/profile", "application/json", p1Rename, http.StatusOK, nil},
+		{"GET", "/registry/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{b6}}},
+		{"DELETE", "/registry/profile", "application/json", p1Rename, http.StatusOK, nil},
+		{"GET", "/registry/profiles", "", nil, http.StatusOK, &env{Data: []*registry.Profile{}}},
 	}
 
 	for i, c := range cases {

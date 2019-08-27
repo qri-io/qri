@@ -54,14 +54,14 @@ func TestReputation(t *testing.T) {
 		resStatus   int
 		reputation  *registry.Reputation
 	}{
-		{"BAD_METHOD", "/reputation", "", "", http.StatusBadRequest, nil},
-		{"BAD_METHOD", "/reputation", "application/json", "", http.StatusBadRequest, nil},
-		{"BAD_METHOD", "/reputation", "application/json", "my_id", http.StatusNotFound, nil},
-		{"GET", "/reputation", "", "", http.StatusBadRequest, nil},
-		{"GET", "/reputation", "application/json", "", http.StatusBadRequest, nil},
-		{"GET", "/reputation", "application/json", "freshRep", http.StatusOK, freshRep},
-		{"GET", "/reputation", "application/json", "badRep", http.StatusOK, badRep},
-		{"GET", "/reputation", "application/json", "goodRep", http.StatusOK, goodRep},
+		{"BAD_METHOD", "/registry/reputation", "", "", http.StatusBadRequest, nil},
+		{"BAD_METHOD", "/registry/reputation", "application/json", "", http.StatusBadRequest, nil},
+		{"BAD_METHOD", "/registry/reputation", "application/json", "my_id", http.StatusNotFound, nil},
+		{"GET", "/registry/reputation", "", "", http.StatusBadRequest, nil},
+		{"GET", "/registry/reputation", "application/json", "", http.StatusBadRequest, nil},
+		{"GET", "/registry/reputation", "application/json", "freshRep", http.StatusOK, freshRep},
+		{"GET", "/registry/reputation", "application/json", "badRep", http.StatusOK, badRep},
+		{"GET", "/registry/reputation", "application/json", "goodRep", http.StatusOK, goodRep},
 	}
 
 	for i, c := range cases {

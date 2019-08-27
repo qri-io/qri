@@ -37,4 +37,6 @@ var (
 	ErrUsernameTaken = fmt.Errorf("username is taken")
 	// ErrNoRegistry represents the lack of a configured registry
 	ErrNoRegistry = fmt.Errorf("no registry is configured")
+	// ErrNotFound represents a missing record
+	ErrNotFound = fmt.Errorf("not found")
 )
