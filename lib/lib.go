@@ -64,7 +64,7 @@ func Receivers(inst *Instance) []Methods {
 
 	return []Methods{
 		NewDatasetRequestsInstance(inst),
-		NewRegistryRequests(node, nil),
+		RegistryClientMethods(*inst),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),

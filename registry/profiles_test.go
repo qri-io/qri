@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 )
 
 func TestRegisterProfile(t *testing.T) {
@@ -17,7 +17,7 @@ func TestRegisterProfile(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	p, err := ProfileFromPrivateKey("key0", key0)
+	p, err := ProfileFromPrivateKey(&Profile{Username: "key0"}, key0)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -29,7 +29,7 @@ func TestRegisterProfile(t *testing.T) {
 		t.Error(err.Error())
 		return
 	}
-	p2, err := ProfileFromPrivateKey("key0", key1)
+	p2, err := ProfileFromPrivateKey(&Profile{Username: "key0"}, key1)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -41,7 +41,7 @@ func TestRegisterProfile(t *testing.T) {
 		return
 	}
 
-	p3, err := ProfileFromPrivateKey("renamed", key0)
+	p3, err := ProfileFromPrivateKey(&Profile{Username: "renamed"}, key0)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -51,15 +51,15 @@ func TestRegisterProfile(t *testing.T) {
 		p   *Profile
 		err string
 	}{
-		{&Profile{Handle: "a"}, "profileID is required"},
-		{&Profile{ProfileID: p.ProfileID, Handle: p.Handle, Signature: p.Signature, PublicKey: "bad_data"}, "publickey base64 encoding: illegal base64 data at input byte 3"},
-		{&Profile{ProfileID: p.ProfileID, Handle: p.Handle, Signature: p.Signature, PublicKey: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid publickey: unexpected EOF"},
-		{&Profile{ProfileID: p.ProfileID, Handle: p.Handle, PublicKey: p.PublicKey, Signature: "bad_data"}, "signature base64 encoding: illegal base64 data at input byte 3"},
-		{&Profile{ProfileID: p.ProfileID, Handle: p.Handle, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid signature: malformed signature: no header magic"},
-		{&Profile{ProfileID: p.ProfileID, Handle: p.Handle, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString(mismatchSig)}, "mismatched signature"},
+		{&Profile{Username: "a"}, "profileID is required"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: "bad_data"}, "publickey base64 encoding: illegal base64 data at input byte 3"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, Signature: p.Signature, PublicKey: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid publickey: unexpected EOF"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: "bad_data"}, "signature base64 encoding: illegal base64 data at input byte 3"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString([]byte("bad_data"))}, "invalid signature: malformed signature: no header magic"},
+		{&Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString(mismatchSig)}, "mismatched signature"},
 		{p, ""},
-		{p, ""}, // check that peer can double-register their own handle without err
-		{p2, "handle 'key0' is taken"},
+		{p, ""}, // check that peer can double-register their own username without err
+		{p2, "username 'key0' is taken"},
 		{p3, ""},
 	}
 
@@ -73,7 +73,7 @@ func TestRegisterProfile(t *testing.T) {
 	if err := DeregisterProfile(ps, &Profile{}); err == nil {
 		t.Error("invalid profile should error")
 	}
-	if err := DeregisterProfile(ps, &Profile{ProfileID: p.ProfileID, Handle: p.Handle, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString(mismatchSig)}); err == nil {
+	if err := DeregisterProfile(ps, &Profile{ProfileID: p.ProfileID, Username: p.Username, PublicKey: p.PublicKey, Signature: base64.StdEncoding.EncodeToString(mismatchSig)}); err == nil {
 		t.Error("unverifiable profile should error")
 	}
 	if err := DeregisterProfile(ps, p2); err != nil {
@@ -85,14 +85,14 @@ func TestProfilesSortedRange(t *testing.T) {
 	ps := NewMemProfiles()
 
 	src := rand.New(rand.NewSource(0))
-	handles := []string{"a", "b", "c"}
-	for _, handle := range handles {
+	usernames := []string{"a", "b", "c"}
+	for _, username := range usernames {
 		pkey, _, err := crypto.GenerateSecp256k1Key(src)
 		if err != nil {
 			t.Error(err.Error())
 			return
 		}
-		p, err := ProfileFromPrivateKey(handle, pkey)
+		p, err := ProfileFromPrivateKey(&Profile{Username: username}, pkey)
 		if err != nil {
 			t.Error(err.Error())
 			return
@@ -104,16 +104,16 @@ func TestProfilesSortedRange(t *testing.T) {
 		}
 	}
 
-	if ps.Len() != len(handles) {
-		t.Errorf("expected len to equal handle length")
+	if ps.Len() != len(usernames) {
+		t.Errorf("expected len to equal username length")
 		return
 	}
 
 	for iter := 0; iter < 100; iter++ {
 		i := 0
 		ps.SortedRange(func(key string, p *Profile) bool {
-			if handles[i] != p.Handle {
-				t.Errorf("iter: %d sorted index %d mismatch. expected: %s, got: %s", iter, i, handles[i], p.Handle)
+			if usernames[i] != p.Username {
+				t.Errorf("iter: %d sorted index %d mismatch. expected: %s, got: %s", iter, i, usernames[i], p.Username)
 				return true
 			}
 			i++

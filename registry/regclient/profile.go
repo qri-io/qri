@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -21,24 +21,63 @@ func (c Client) GetProfile(p *registry.Profile) error {
 	return nil
 }
 
-// PutProfile adds a profile to the registry
-func (c Client) PutProfile(handle string, privKey crypto.PrivKey) error {
-	p, err := registry.ProfileFromPrivateKey(handle, privKey)
-	if err != nil {
-		return err
+// CreateProfile creates a user profile, associating a public key in the process
+func (c *Client) CreateProfile(p *registry.Profile, pk crypto.PrivKey) (*registry.Profile, error) {
+	if c == nil {
+		return nil, registry.ErrNoRegistry
 	}
-	_, err = c.doJSONProfileReq("POST", p)
-	return err
+
+	// TODO (b5) - pass full profile
+	pro, err := registry.ProfileFromPrivateKey(p, pk)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doJSONProfileReq("POST", pro)
+}
+
+// ProveProfileKey associates a public key with a profile by proving this user
+// can sign messages with the private key
+func (c *Client) ProveProfileKey(p *registry.Profile, pk crypto.PrivKey) (*registry.Profile, error) {
+	if c == nil {
+		return nil, registry.ErrNoRegistry
+	}
+
+	// TODO (b5) - pass full profile
+	pro, err := registry.ProfileFromPrivateKey(p, pk)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doJSONProfileReq("POST", pro)
+}
+
+// PutProfile adds a profile to the registry
+func (c *Client) PutProfile(p *registry.Profile, privKey crypto.PrivKey) (*registry.Profile, error) {
+	if c == nil {
+		return nil, registry.ErrNoRegistry
+	}
+
+	p, err := registry.ProfileFromPrivateKey(p, privKey)
+	if err != nil {
+		return nil, err
+	}
+
+	return c.doJSONProfileReq("POST", p)
 }
 
 // DeleteProfile removes a profile from the registry
-func (c Client) DeleteProfile(handle string, privKey crypto.PrivKey) error {
-	p, err := registry.ProfileFromPrivateKey(handle, privKey)
+func (c *Client) DeleteProfile(p *registry.Profile, privKey crypto.PrivKey) error {
+	if c == nil {
+		return registry.ErrNoRegistry
+	}
+
+	p, err := registry.ProfileFromPrivateKey(p, privKey)
 	if err != nil {
 		return err
 	}
 	_, err = c.doJSONProfileReq("DELETE", p)
-	return nil
+	return err
 }
 
 // doJSONProfileReq is a common wrapper for /profile endpoint requests
@@ -80,7 +119,11 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 	}
 
 	if res.StatusCode != http.StatusOK {
-		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
+		if strings.Contains(env.Meta.Error, "taken") {
+			return nil, registry.ErrUsernameTaken
+		}
+
+		return nil, fmt.Errorf("registry: %s", env.Meta.Error)
 	}
 
 	return env.Data, nil

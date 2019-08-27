@@ -44,7 +44,7 @@ func TestSetupTeardown(t *testing.T) {
 		t.Errorf("expected registry to have one profile. got: %d", reg.Profiles.Len())
 	}
 	reg.Profiles.SortedRange(func(key string, profile *registry.Profile) bool {
-		if profile.Handle != params.Config.Profile.Peername {
+		if profile.Username != params.Config.Profile.Peername {
 			t.Error("")
 		}
 		return false

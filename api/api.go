@@ -291,8 +291,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	lh := NewLogHandlers(node)
 	m.Handle("/history/", s.middleware(lh.LogHandler))
 
-	// rgh := NewRegistryHandlers(node)
-	// m.Handle("/registry/", s.middleware(rgh.RegistryHandler))
+	rch := NewRegistryClientHandlers(s.Instance)
+	m.Handle("/registry/profile/new", s.middleware(rch.CreateProfileHandler))
+	m.Handle("/registry/profile/keys", s.middleware(rch.ProveProfileKeyHandler))
 
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))

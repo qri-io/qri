@@ -29,7 +29,7 @@ func NewProfilesHandler(profiles registry.Profiles) http.HandlerFunc {
 			}
 
 			for _, pro := range ps {
-				profiles.Store(pro.Handle, pro)
+				profiles.Store(pro.Username, pro)
 			}
 			fallthrough
 		case "GET":
@@ -67,8 +67,8 @@ func NewProfileHandler(profiles registry.Profiles) http.HandlerFunc {
 		switch r.Method {
 		case "GET":
 			var ok bool
-			if p.Handle != "" {
-				p, ok = profiles.Load(p.Handle)
+			if p.Username != "" {
+				p, ok = profiles.Load(p.Username)
 			} else {
 				profiles.Range(func(handle string, profile *registry.Profile) bool {
 					if profile.ProfileID == p.ProfileID || profile.PublicKey == p.PublicKey {

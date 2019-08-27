@@ -32,6 +32,9 @@ type Registry struct {
 	Indexer     Indexer
 }
 
-// ErrPinsetNotSupported is a cannonical error for a repository that does not
-// support pinning
-var ErrPinsetNotSupported = fmt.Errorf("pinset is not supported")
+var (
+	// ErrUsernameTaken is for when a peername is already taken
+	ErrUsernameTaken = fmt.Errorf("username is taken")
+	// ErrNoRegistry represents the lack of a configured registry
+	ErrNoRegistry = fmt.Errorf("no registry is configured")
+)

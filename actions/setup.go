@@ -9,12 +9,7 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo/gen"
-	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/registry/regclient"
 )
-
-// ErrHandleTaken is for when a peername is already taken
-var ErrHandleTaken = fmt.Errorf("handle is taken")
 
 // Setup provisions a new qri instance
 func Setup(repoPath, cfgPath string, cfg *config.Config, register bool) error {
@@ -22,23 +17,22 @@ func Setup(repoPath, cfgPath string, cfg *config.Config, register bool) error {
 		return fmt.Errorf("invalid configuration: %s", err.Error())
 	}
 
-	if register && cfg.Registry != nil {
-		pro, err := profile.NewProfile(cfg.Profile)
-		if err != nil {
-			return err
-		}
+	// TODO (b5) - we'll need to add a choose-password-for-qri-cloud to do
+	// signup for this
+	// if register && cfg.Registry != nil {
+	// 	pro, err := profile.NewProfile(cfg.Profile)
+	// 	if err != nil {
+	// 		return err
+	// 	}
 
-		reg := regclient.NewClient(&regclient.Config{
-			Location: cfg.Registry.Location,
-		})
+	// 	reg := regclient.NewClient(&regclient.Config{
+	// 		Location: cfg.Registry.Location,
+	// 	})
 
-		if err := reg.PutProfile(pro.Peername, pro.PrivKey); err != nil {
-			if strings.Contains(err.Error(), "taken") {
-				return ErrHandleTaken
-			}
-			return err
-		}
-	}
+	// 	if _, err := reg.PutProfile(pro, pro.PrivKey); err != nil {
+	// 		return err
+	// 	}
+	// }
 
 	if err := os.MkdirAll(repoPath, os.ModePerm); err != nil {
 		return fmt.Errorf("error creating qri repo directory: %s, path: %s", err.Error(), repoPath)
@@ -78,23 +72,8 @@ func InitIPFS(path string, cfgData []byte, g gen.CryptoGenerator) error {
 	return nil
 }
 
-// Teardown reverses the setup process, destroying a user's privateKey
-// and removing local qri data
+// Teardown reverses the setup process
 func Teardown(repoPath string, cfg *config.Config) error {
-	if cfg.Registry != nil {
-		pro, err := profile.NewProfile(cfg.Profile)
-		if err != nil {
-			return err
-		}
-
-		reg := regclient.NewClient(&regclient.Config{
-			Location: cfg.Registry.Location,
-		})
-
-		if err := reg.DeleteProfile(pro.Peername, pro.PrivKey); err != nil {
-			return err
-		}
-	}
 
 	return os.RemoveAll(repoPath)
 }

@@ -1,20 +1,30 @@
 package api
 
 import (
+	"net/http"
+
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 )
 
-// RegistryHandlers wraps a requests struct to interface with http.HandlerFunc
-type RegistryHandlers struct {
-	lib.RegistryRequests
-	repo repo.Repo
+// RegistryClientHandlers wraps a requests struct to interface with http.HandlerFunc
+type RegistryClientHandlers struct {
+	lib.RegistryClientMethods
 }
 
-// NewRegistryHandlers allocates a RegistryHandlers pointer
-func NewRegistryHandlers(node *p2p.QriNode) *RegistryHandlers {
-	req := lib.NewRegistryRequests(node, nil)
-	h := RegistryHandlers{*req, node.Repo}
+// NewRegistryClientHandlers allocates a RegistryClientHandlers pointer
+func NewRegistryClientHandlers(inst *lib.Instance) *RegistryClientHandlers {
+	m := lib.RegistryClientMethods(*inst)
+	h := RegistryClientHandlers{m}
 	return &h
+}
+
+// CreateProfileHandler creates a profile, associating it with a private key
+func (h *RegistryClientHandlers) CreateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO (b5)
+}
+
+// ProveProfileKeyHandler proves a user controls both a registry profile and a
+// new keypair
+func (h *RegistryClientHandlers) ProveProfileKeyHandler(w http.ResponseWriter, r *http.Request) {
+	// TODO (b5)
 }

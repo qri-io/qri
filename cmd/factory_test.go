@@ -120,9 +120,9 @@ func (t TestFactory) RemoteMethods() (*lib.RemoteMethods, error) {
 	return lib.NewRemoteMethods(t.inst), nil
 }
 
-// RegistryRequests generates a lib.RegistryRequests from internal state
-func (t TestFactory) RegistryRequests() (*lib.RegistryRequests, error) {
-	return lib.NewRegistryRequests(t.node, t.rpc), nil
+// RegistryClientMethods generates a lib.RegistryClientMethods from internal state
+func (t TestFactory) RegistryClientMethods() (lib.RegistryClientMethods, error) {
+	return lib.RegistryClientMethods(*t.inst), nil
 }
 
 // LogRequests generates a lib.LogRequests from internal state

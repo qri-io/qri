@@ -32,7 +32,10 @@ func init() {
 }
 
 func TestProfileRequests(t *testing.T) {
-	handle := "b5"
+	input := &registry.Profile{
+		Username: "b5",
+	}
+
 	reg := registry.Registry{
 		Profiles: registry.NewMemProfiles(),
 		Search:   &registry.MockSearch{},
@@ -58,7 +61,7 @@ func TestProfileRequests(t *testing.T) {
 		t.Errorf("error mistmatch. expected: %s, got: %s", "error 404: ", err.Error())
 	}
 
-	err = c.PutProfile(handle, pk1)
+	_, err = c.PutProfile(input, pk1)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -67,11 +70,11 @@ func TestProfileRequests(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if p.Handle != handle {
-		t.Errorf("expected handle to equal %s, got: %s", handle, p.Handle)
+	if p.Username != input.Username {
+		t.Errorf("expected username to equal %s, got: %s", input.Username, p.Username)
 	}
 
-	err = c.DeleteProfile(handle, pk1)
+	err = c.DeleteProfile(input, pk1)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -187,12 +187,12 @@ func (o *QriOptions) RemoteMethods() (*lib.RemoteMethods, error) {
 	return lib.NewRemoteMethods(o.inst), nil
 }
 
-// RegistryRequests generates a lib.RegistryRequests from internal state
-func (o *QriOptions) RegistryRequests() (*lib.RegistryRequests, error) {
+// RegistryClientMethods generates a lib.RegistryClientMethods from internal state
+func (o *QriOptions) RegistryClientMethods() (lib.RegistryClientMethods, error) {
 	if err := o.Init(); err != nil {
-		return nil, err
+		return lib.RegistryClientMethods(*o.inst), err
 	}
-	return lib.NewRegistryRequests(o.inst.Node(), o.inst.RPC()), nil
+	return lib.RegistryClientMethods(*o.inst), nil
 }
 
 // LogRequests generates a lib.LogRequests from internal state

@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/multiformats/go-multihash"
 )
 
@@ -13,17 +13,20 @@ import (
 // I'm toying with the idea of using "handle" instead of "peername",
 // so it's "handle" here for now
 type Profile struct {
+	Created  time.Time
+	Username string
+	Email    string
+	Password string
+
 	ProfileID string
-	Handle    string
-	Signature string `json:",omitempty"`
-	PublicKey string `json:",omitempty"`
-	Created   time.Time
+	PublicKey string
+	Signature string
 }
 
 // Validate is a sanity check that all required values are present
 func (p *Profile) Validate() error {
-	if p.Handle == "" {
-		return fmt.Errorf("handle is required")
+	if p.Username == "" {
+		return fmt.Errorf("username is required")
 	}
 	if p.ProfileID == "" {
 		return fmt.Errorf("profileID is required")
@@ -41,18 +44,15 @@ func (p *Profile) Validate() error {
 // Registree's must prove they have control of the private key by signing the desired handle,
 // which is validated with a provided public key. Public key, handle, and date of
 func (p *Profile) Verify() error {
-	return verify(p.PublicKey, p.Signature, []byte(p.Handle))
+	return verify(p.PublicKey, p.Signature, []byte(p.Username))
 }
 
 // ProfileFromPrivateKey generates a profile struct from a private key & desired profile handle
 // It adds all the necessary components to pass profiles.Register, creating base64-encoded
 // PublicKey & Signature, and base58-encoded ProfileID
-func ProfileFromPrivateKey(handle string, privKey crypto.PrivKey) (*Profile, error) {
-	p := &Profile{
-		Handle: handle,
-	}
+func ProfileFromPrivateKey(p *Profile, privKey crypto.PrivKey) (*Profile, error) {
 
-	sigbytes, err := privKey.Sign([]byte(p.Handle))
+	sigbytes, err := privKey.Sign([]byte(p.Username))
 	if err != nil {
 		return nil, fmt.Errorf("error signing %s", err.Error())
 	}

@@ -53,19 +53,19 @@ func init() {
 func TestProfile(t *testing.T) {
 	s := httptest.NewServer(NewRoutes(registry.Registry{Profiles: registry.NewMemProfiles()}))
 
-	p1, err := registry.ProfileFromPrivateKey("b5", privKey1)
+	p1, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "b5"}, privKey1)
 	if err != nil {
 		t.Errorf("error generating profile: %s", err.Error())
 		return
 	}
 
-	p2, err := registry.ProfileFromPrivateKey("b5", privKey2)
+	p2, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "b5"}, privKey2)
 	if err != nil {
 		t.Errorf("error generating profile: %s", err.Error())
 		return
 	}
 
-	p1Rename, err := registry.ProfileFromPrivateKey("b6", privKey1)
+	p1Rename, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "b6"}, privKey1)
 	if err != nil {
 		t.Errorf("error generating profile: %s", err.Error())
 		return
@@ -80,13 +80,13 @@ func TestProfile(t *testing.T) {
 
 	b5 := &registry.Profile{
 		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		Handle:    "b5",
+		Username:  "b5",
 		PublicKey: "CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAE=",
 	}
 
 	b6 := &registry.Profile{
 		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		Handle:    "b6",
+		Username:  "b6",
 		PublicKey: "CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAE=",
 	}
 
@@ -100,25 +100,25 @@ func TestProfile(t *testing.T) {
 	}{
 		{"OPTIONS", "/profile", "", nil, http.StatusBadRequest, nil},
 		{"OPTIONS", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"OPTIONS", "/profile", "application/json", &registry.Profile{Handle: "foo"}, http.StatusNotFound, nil},
+		{"OPTIONS", "/profile", "application/json", &registry.Profile{Username: "foo"}, http.StatusNotFound, nil},
 		{"POST", "/profile", "", nil, http.StatusBadRequest, nil},
 		{"POST", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Handle: p1.Handle}, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Handle: p1.Handle, ProfileID: p1.ProfileID}, http.StatusBadRequest, nil},
-		{"POST", "/profile", "application/json", &registry.Profile{Handle: p1.Handle, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
+		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username}, http.StatusBadRequest, nil},
+		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID}, http.StatusBadRequest, nil},
+		{"POST", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
 		{"POST", "/profile", "application/json", p1, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Handle: b5.Handle}, http.StatusOK, &env{Data: b5}},
-		{"GET", "/profile", "application/json", &registry.Profile{Handle: "b5"}, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Handle: "b6"}, http.StatusNotFound, nil},
+		{"GET", "/profile", "application/json", &registry.Profile{Username: b5.Username}, http.StatusOK, &env{Data: b5}},
+		{"GET", "/profile", "application/json", &registry.Profile{Username: "b5"}, http.StatusOK, nil},
+		{"GET", "/profile", "application/json", &registry.Profile{Username: "b6"}, http.StatusNotFound, nil},
 		{"GET", "/profile", "application/json", &registry.Profile{ProfileID: b5.ProfileID}, http.StatusOK, nil},
 		{"GET", "/profile", "application/json", &registry.Profile{ProfileID: "fooooo"}, http.StatusNotFound, nil},
 		{"POST", "/profile", "application/json", p1, http.StatusOK, nil},
 		{"POST", "/profile", "application/json", p2, http.StatusBadRequest, nil},
 		{"POST", "/profile", "application/json", p1Rename, http.StatusOK, nil},
-		{"GET", "/profile", "application/json", &registry.Profile{Handle: b6.Handle}, http.StatusOK, &env{Data: b6}},
+		{"GET", "/profile", "application/json", &registry.Profile{Username: b6.Username}, http.StatusOK, &env{Data: b6}},
 		{"DELETE", "/profile", "", p1Rename, http.StatusBadRequest, nil},
 		{"DELETE", "/profile", "application/json", nil, http.StatusBadRequest, nil},
-		{"DELETE", "/profile", "application/json", &registry.Profile{Handle: p1.Handle, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
+		{"DELETE", "/profile", "application/json", &registry.Profile{Username: p1.Username, ProfileID: p1.ProfileID, Signature: p1.Signature}, http.StatusBadRequest, nil},
 		{"DELETE", "/profile", "application/json", p1Rename, http.StatusOK, nil},
 	}
 
@@ -158,8 +158,8 @@ func TestProfile(t *testing.T) {
 			// 	t.Errorf("case %d reponse body mismatch. expected %d, got: %d", i, len(e.Data), len(c.res.Data))
 			// 	continue
 			// }
-			if e.Data.Handle != c.res.Data.Handle {
-				t.Errorf("case %d reponse handle mismatch. expected %s, got: %s", i, e.Data.Handle, c.res.Data.Handle)
+			if e.Data.Username != c.res.Data.Username {
+				t.Errorf("case %d reponse username mismatch. expected %s, got: %s", i, e.Data.Username, c.res.Data.Username)
 			}
 
 			// TODO - check each response for profile matches
@@ -170,13 +170,13 @@ func TestProfile(t *testing.T) {
 func TestProfiles(t *testing.T) {
 	s := httptest.NewServer(NewRoutes(registry.Registry{Profiles: registry.NewMemProfiles()}))
 
-	p1, err := registry.ProfileFromPrivateKey("b5", privKey1)
+	p1, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "b5"}, privKey1)
 	if err != nil {
 		t.Errorf("error generating profile: %s", err.Error())
 		return
 	}
 
-	p1Rename, err := registry.ProfileFromPrivateKey("b6", privKey1)
+	p1Rename, err := registry.ProfileFromPrivateKey(&registry.Profile{Username: "b6"}, privKey1)
 	if err != nil {
 		t.Errorf("error generating profile: %s", err.Error())
 		return
@@ -191,13 +191,13 @@ func TestProfiles(t *testing.T) {
 
 	b5 := &registry.Profile{
 		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		Handle:    "b5",
+		Username:  "b5",
 		PublicKey: "CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAE=",
 	}
 
 	b6 := &registry.Profile{
 		ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-		Handle:    "b6",
+		Username:  "b6",
 		PublicKey: "CAASpgIwggEiMA0GCSqGSIb3DQEBAQUAA4IBDwAwggEKAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAE=",
 	}
 

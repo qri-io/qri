@@ -48,12 +48,12 @@ func RegisterProfile(store Profiles, p *Profile) error {
 		return err
 	}
 
-	if pro, ok := store.Load(p.Handle); ok {
+	if pro, ok := store.Load(p.Username); ok {
 		// if peer is registring a name they already own, we're good
 		if pro.ProfileID == p.ProfileID {
 			return nil
 		}
-		return fmt.Errorf("handle '%s' is taken", p.Handle)
+		return fmt.Errorf("username '%s' is taken", p.Username)
 	}
 
 	prev := ""
@@ -69,8 +69,8 @@ func RegisterProfile(store Profiles, p *Profile) error {
 		store.Delete(prev)
 	}
 
-	store.Store(p.Handle, &Profile{
-		Handle:    p.Handle,
+	store.Store(p.Username, &Profile{
+		Username:  p.Username,
 		Created:   nowFunc(),
 		ProfileID: p.ProfileID,
 		PublicKey: p.PublicKey,
@@ -88,7 +88,7 @@ func DeregisterProfile(store Profiles, p *Profile) error {
 		return err
 	}
 
-	store.Delete(p.Handle)
+	store.Delete(p.Username)
 	return nil
 }
 

@@ -149,14 +149,14 @@ of your dataset from the registry`,
 // RegistryOptions encapsulates state for the registry command & subcommands
 type RegistryOptions struct {
 	ioes.IOStreams
-	Refs             []string
-	RegistryRequests *lib.RegistryRequests
+	Refs                  []string
+	RegistryClientMethods lib.RegistryClientMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
-	o.RegistryRequests, err = f.RegistryRequests()
+	o.RegistryClientMethods, err = f.RegistryClientMethods()
 	return
 }
 
@@ -172,7 +172,7 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // 			return err
 // 		}
 
-// 		if err = o.RegistryRequests.Publish(&ref, &res); err != nil {
+// 		if err = o.RegistryClientMethods.Publish(&ref, &res); err != nil {
 // 			return err
 // 		}
 // 		printInfo(o.Out, "published dataset %s", ref)
@@ -192,7 +192,7 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // 			return err
 // 		}
 
-// 		err = o.RegistryRequests.GetDataset(&ref, &res)
+// 		err = o.RegistryClientMethods.GetDataset(&ref, &res)
 // 		o.StopSpinner()
 // 		if err != nil {
 // 			printInfo(o.Out, "%s is not on this registry", ref.String())
@@ -219,7 +219,7 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // 			return err
 // 		}
 
-// 		if err = o.RegistryRequests.Unpublish(&ref, &res); err != nil {
+// 		if err = o.RegistryClientMethods.Unpublish(&ref, &res); err != nil {
 // 			return err
 // 		}
 // 		printInfo(o.Out, "unpublished dataset %s", ref)
@@ -239,7 +239,7 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // 			return err
 // 		}
 
-// 		if err = o.RegistryRequests.Pin(&ref, &res); err != nil {
+// 		if err = o.RegistryClientMethods.Pin(&ref, &res); err != nil {
 // 			return err
 // 		}
 // 		printInfo(o.Out, "pinned dataset %s", ref)
@@ -259,7 +259,7 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 // 			return err
 // 		}
 
-// 		if err = o.RegistryRequests.Unpin(&ref, &res); err != nil {
+// 		if err = o.RegistryClientMethods.Unpin(&ref, &res); err != nil {
 // 			return err
 // 		}
 // 		printInfo(o.Out, "unpinned dataset %s", ref)

@@ -229,8 +229,8 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	}
 
 	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) bool {
-		if pro.Handle != "keyboard_cat" {
-			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Handle)
+		if pro.Username != "keyboard_cat" {
+			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Username)
 		}
 		return true
 	})

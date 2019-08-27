@@ -1,31 +1,37 @@
 package lib
 
 import (
-	"fmt"
-	"net/rpc"
-
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/registry"
 )
 
-// RegistryRequests defines business logic for working with registries
-// TODO (b5): switch to using an Instance instead of separate fields
-type RegistryRequests struct {
-	node *p2p.QriNode
-	cli  *rpc.Client
-}
+// RegistryClientMethods defines business logic for working with registries
+type RegistryClientMethods Instance
 
 // CoreRequestsName implements the Requests interface
-func (RegistryRequests) CoreRequestsName() string { return "registry" }
+func (RegistryClientMethods) CoreRequestsName() string { return "registry" }
 
-// NewRegistryRequests creates a RegistryRequests pointer from either a repo
-// or an rpc.Client
-func NewRegistryRequests(node *p2p.QriNode, cli *rpc.Client) *RegistryRequests {
-	if node != nil && cli != nil {
-		panic(fmt.Errorf("both repo and client supplied to NewRegistryRequests"))
+// RegistryProfile is a user profile as stored on a registry
+type RegistryProfile = registry.Profile
+
+// CreateProfile creates a profile
+func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err error) {
+	if m.rpc != nil {
+		return m.rpc.Call("RegistryClientMethods.CreateProfile", p, ok)
 	}
 
-	return &RegistryRequests{
-		node: node,
-		cli:  cli,
+	pro, err := m.registry.CreateProfile(p, m.repo.PrivateKey())
+	*p = *pro
+	return err
+}
+
+// ProveProfileKey asserts to a registry that this user has control of a
+// specified private key
+func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) error {
+	if m.rpc != nil {
+		return m.rpc.Call("RegistryClientMethods.CreateProfile", p, ok)
 	}
+
+	pro, err := m.registry.ProveProfileKey(p, m.repo.PrivateKey())
+	*p = *pro
+	return err
 }
