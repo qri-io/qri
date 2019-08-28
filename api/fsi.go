@@ -163,3 +163,50 @@ func (h *FSIHandlers) checkoutHandler(routePrefix string) http.HandlerFunc {
 		util.WriteResponse(w, res)
 	}
 }
+
+// RestoreHandler invokes restore via an API call
+func (h *FSIHandlers) RestoreHandler(routePrefix string) http.HandlerFunc {
+	handleRestore := h.restoreHandler(routePrefix)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, routePrefix)
+			return
+		}
+
+		switch r.Method {
+		case "OPTIONS":
+			util.EmptyOkHandler(w, r)
+		case "POST":
+			handleRestore(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) restoreHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			return
+		}
+
+		// Add the path for the version to restore
+		ref.Path = r.FormValue("path")
+
+		p := &lib.RestoreParams{
+			Dir:       r.FormValue("dir"),
+			Ref:       ref.String(),
+			Component: r.FormValue("component"),
+		}
+
+		var res string
+		if err := h.Restore(p, &res); err != nil {
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		util.WriteResponse(w, res)
+	}
+}

@@ -300,7 +300,7 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 		case "json":
 			bodyFilename = "body.json"
 		default:
-			return fmt.Errorf("unknown body format: \"%s\"", bodyFormat)
+			return fmt.Errorf(`unknown body format: "%s"`, bodyFormat)
 		}
 		err = ioutil.WriteFile(filepath.Join(dirPath, bodyFilename), data, os.ModePerm)
 		if err != nil {
