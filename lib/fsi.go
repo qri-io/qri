@@ -147,6 +147,9 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.Checkout", p, out)
 	}
 
+	// TODO(dlong): Fail if Dir is "", should be required to specify a location. Should probably
+	// only allow absolute paths. Add tests.
+
 	// If directory exists, error.
 	if _, err = os.Stat(p.Dir); !os.IsNotExist(err) {
 		return fmt.Errorf("directory with name \"%s\" already exists", p.Dir)
@@ -217,6 +220,13 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 		return
 	}
 
+	// Directory to write components to can be determined from FSIPath of ref.
+	if p.Dir == "" && ref.FSIPath != "" {
+		p.Dir = ref.FSIPath
+	}
+	// TODO(dlong): Perhaps disallow empty Dir (without FSIPath override), since relative
+	// paths cause problems. Test using `qri connect`.
+
 	ds, err := dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
 	if err != nil {
 		return fmt.Errorf("loading dataset: %s", err)
@@ -229,12 +239,18 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	var history dataset.Dataset
 	history.Structure = &dataset.Structure{}
 	history.Structure.Format = ds.Structure.Format
-	if p.Component == "meta" {
+	if p.Component == "" {
+		// Entire dataset.
+		history.Assign(ds)
+	} else if p.Component == "meta" {
+		// Meta component.
 		history.Meta = &dataset.Meta{}
 		history.Meta.Assign(ds.Meta)
 	} else if p.Component == "schema" || p.Component == "structure.schema" {
+		// Schema is not a "real" component, is short for the structure's schema.
 		history.Structure.Schema = ds.Structure.Schema
 	} else if p.Component == "body" {
+		// Body of the dataset.
 		df, err := dataset.ParseDataFormatString(history.Structure.Format)
 		if err != nil {
 			return err

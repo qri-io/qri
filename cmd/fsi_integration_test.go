@@ -16,8 +16,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO(dlong): In a future commit, rename this file to fsi_integration_test.go
-
 // FSITestRunner holds test info for fsi integration tests, for convenient cleanup.
 type FSITestRunner struct {
 	RepoRoot    *TestRepoRoot
@@ -60,7 +58,7 @@ func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
 }
 
 // Delete cleans up after a FSITestRunner is done being used.
-func (fr* FSITestRunner) Delete() {
+func (fr *FSITestRunner) Delete() {
 	os.Chdir(fr.Pwd)
 	if fr.WorkPath != "" {
 		defer os.RemoveAll(fr.WorkPath)
@@ -495,6 +493,7 @@ func TestStatusAtVersion(t *testing.T) {
 	fr := NewFSITestRunner(t, "qri_test_status_at_version")
 	defer fr.Delete()
 
+	// First version has only a body
 	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json me/status_ver")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -670,6 +669,82 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = fr.GetCommandOutput()
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
+// Test restoring previous version
+func TestRestorePreviousVersion(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_restore_prev_version")
+	defer fr.Delete()
+
+	// First version has only a body
+	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json me/prev_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_ = parseRefFromSave(fr.GetCommandOutput())
+
+	// Add a meta
+	err = fr.ExecCommand("qri save --file=testdata/movies/meta_override.yaml me/prev_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	ref2 := parseRefFromSave(fr.GetCommandOutput())
+
+	// Change the meta
+	err = fr.ExecCommand("qri save --file=testdata/movies/meta_another.yaml me/prev_ver")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_ = parseRefFromSave(fr.GetCommandOutput())
+
+	fr.ChdirToRoot()
+
+	// Checkout the newly created dataset.
+	if err := fr.ExecCommand("qri checkout me/prev_ver"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	_ = fr.ChdirToWorkDir("prev_ver")
+
+	// Verify that the status is clean
+	if err = fr.ExecCommand(fmt.Sprintf("qri status")); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/prev_ver"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Read meta.json, contains the contents of meta_another.yaml
+	metaContents, err := ioutil.ReadFile("meta.json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	expectContents := "{\n \"qri\": \"md:0\",\n \"title\": \"yet another title\"\n}"
+	if diff := cmp.Diff(expectContents, string(metaContents)); diff != "" {
+		t.Errorf("meta.json contents (-want +got):\n%s", diff)
+	}
+
+	// TODO(dlong): Handle full dataset paths, including peername and dataset name.
+
+	pos := strings.Index(ref2, "/ipfs/")
+	path := ref2[pos:]
+
+	// Restore the previous version
+	if err = fr.ExecCommand(fmt.Sprintf("qri restore %s", path)); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Read meta.json, due to restore, it has the old data from meta_override.yaml
+	metaContents, err = ioutil.ReadFile("meta.json")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	expectContents = "{\n \"qri\": \"md:0\",\n \"title\": \"different title\"\n}"
+	if diff := cmp.Diff(expectContents, string(metaContents)); diff != "" {
+		t.Errorf("meta.json contents (-want +got):\n%s", diff)
 	}
 }
 
