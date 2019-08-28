@@ -239,15 +239,19 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	// Get individual meta and schema components.
 	meta := ds.Meta
 	ds.Meta = nil
-	schema := ds.Structure.Schema
-	ds.Structure.Schema = nil
 
-	// Body format to use later.
-	bodyFormat := ds.Structure.Format
+	var bodyFormat string
+	var schema map[string]interface{}
+	if ds.Structure != nil {
+		schema = ds.Structure.Schema
+		ds.Structure.Schema = nil
 
-	// Structure is kept in the dataset.
-	ds.Structure.Format = ""
-	ds.Structure.Qri = ""
+		bodyFormat = ds.Structure.Format
+
+		// Structure is kept in the dataset.
+		ds.Structure.Format = ""
+		ds.Structure.Qri = ""
+	}
 
 	// Commit, viz, transform are never written as individual files.
 	ds.Commit = nil
@@ -296,7 +300,7 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 		case "json":
 			bodyFilename = "body.json"
 		default:
-			return fmt.Errorf("unknown body format: %s", bodyFormat)
+			return fmt.Errorf("unknown body format: \"%s\"", bodyFormat)
 		}
 		err = ioutil.WriteFile(filepath.Join(dirPath, bodyFilename), data, os.ModePerm)
 		if err != nil {

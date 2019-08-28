@@ -930,6 +930,7 @@ func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	return cmd
 }
 
+// GetOutput returns the output from the previously executed command.
 func (r *TestRepoRoot) GetOutput() string {
 	buffer, ok := r.streams.Out.(*bytes.Buffer)
 	if ok {

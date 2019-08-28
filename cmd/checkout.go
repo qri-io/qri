@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/varName"
 	"github.com/spf13/cobra"
 )
 
@@ -16,14 +17,16 @@ func NewCheckoutCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &CheckoutOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:     "checkout",
-		Short:   "checkout created a linked directory and writes dataset files to that directory",
+		Short:   "checkout creates a linked directory and writes dataset files to that directory",
 		Long:    ``,
 		Example: ``,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o.Complete(f, args)
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
 			return o.Run()
 		},
 	}
@@ -35,29 +38,34 @@ func NewCheckoutCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type CheckoutOptions struct {
 	ioes.IOStreams
 
-	Args []string
+	Refs *RefSelect
 
 	FSIMethods *lib.FSIMethods
 }
 
-// Complete completes a the command
+// Complete configures the checkout command
 func (o *CheckoutOptions) Complete(f Factory, args []string) (err error) {
-	o.Args = args
+	o.Refs, err = GetCurrentRefSelect(f, args, 1)
+	if err != nil {
+		return err
+	}
 	o.FSIMethods, err = f.FSIMethods()
 	return err
 }
 
 // Run executes the `checkout` command
 func (o *CheckoutOptions) Run() (err error) {
-	// TODO: Finalize UI for command-line checkout command.
-	ref := o.Args[0]
+	if !o.Refs.IsExplicit() {
+		return fmt.Errorf("checkout requires an explicitly provided dataset ref")
+	}
+	ref := o.Refs.Ref()
 
 	// Derive directory name from the dataset name.
 	pos := strings.Index(ref, "/")
 	if pos == -1 {
 		return fmt.Errorf("expect '/' in dataset ref")
 	}
-	folderName := ref[pos+1:]
+	folderName := varName.CreateVarNameFromString(ref[pos+1:])
 
 	if err = qfs.AbsPath(&folderName); err != nil {
 		return err
@@ -68,7 +76,6 @@ func (o *CheckoutOptions) Run() (err error) {
 	if err != nil {
 		return err
 	}
-
 	printSuccess(o.Out, "created and linked working directory %s for existing dataset", folderName)
 	return nil
 }
