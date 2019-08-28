@@ -51,7 +51,7 @@ func (c *Client) ProveProfileKey(p *registry.Profile, pk crypto.PrivKey) (*regis
 		return nil, err
 	}
 
-	return c.doJSONProfileReq("POST", pro)
+	return c.doJSONProfileReq("PUT", pro)
 }
 
 // PutProfile adds a profile to the registry

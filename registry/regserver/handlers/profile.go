@@ -94,8 +94,13 @@ func NewProfileHandler(profiles registry.Profiles) http.HandlerFunc {
 				apiutil.NotFoundHandler(w, r)
 				return
 			}
-		case "PUT", "POST":
+		case "POST":
 			if err := registry.RegisterProfile(profiles, p); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+				return
+			}
+		case "PUT":
+			if err := registry.UpdateProfile(profiles, p); err != nil {
 				apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 				return
 			}
