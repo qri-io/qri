@@ -466,30 +466,6 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 	}
 
 	*publishedRef = ref
-
-	// if p.UpdateRegistry && r.node.Repo.Registry() != nil {
-	// 	var done bool
-	// 	rr := NewRegistryRequests(r.node, nil)
-
-	// 	if ref.Published {
-	// 		if err = rr.Publish(&ref, &done); err != nil {
-	// 			return
-	// 		}
-
-	// 		if p.UpdateRegistryPin {
-	// 			return rr.Pin(&ref, &done)
-	// 		}
-	// 	} else {
-	// 		if err = rr.Unpublish(&ref, &done); err != nil {
-	// 			return
-	// 		}
-
-	// 		if p.UpdateRegistryPin {
-	// 			return rr.Unpin(&ref, &done)
-	// 		}
-	// 	}
-	// }
-
 	return
 }
 

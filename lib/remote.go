@@ -3,6 +3,7 @@ package lib
 import (
 	"context"
 
+	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 )
@@ -37,9 +38,9 @@ type PublicationParams struct {
 }
 
 // Publish posts a dataset version to a remote
-func (r *RemoteMethods) Publish(p *PublicationParams, out *bool) error {
+func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("DatasetRequests.Publish", p, out)
+		return r.inst.rpc.Call("DatasetRequests.Publish", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -49,6 +50,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, out *bool) error {
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
+	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -62,12 +64,12 @@ func (r *RemoteMethods) Publish(p *PublicationParams, out *bool) error {
 		return err
 	}
 
-	*out = true
-	return nil
+	res.Published = true
+	return actions.SetPublishStatus(r.inst.node, res, res.Published)
 }
 
 // Unpublish asks a remote to remove a dataset
-func (r *RemoteMethods) Unpublish(p *PublicationParams, res *bool) error {
+func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("DatasetRequests.Unpublish", p, res)
 	}
@@ -79,6 +81,8 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *bool) error {
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
+
+	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -92,7 +96,8 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *bool) error {
 		return err
 	}
 
-	return nil
+	res.Published = false
+	return actions.SetPublishStatus(r.inst.node, res, res.Published)
 }
 
 // PullDataset fetches a dataset ref from a remote
