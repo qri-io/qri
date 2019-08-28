@@ -70,12 +70,14 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO (b5) - why is this necessary?
 	ref = repo.DatasetRef{
 		Peername:  res.Dataset.Peername,
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
 		FSIPath:   res.Ref.FSIPath,
+		Published: res.Ref.Published,
 		Dataset:   res.Dataset,
 	}
 
