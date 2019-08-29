@@ -5,11 +5,10 @@ import (
 	"io"
 	"io/ioutil"
 	"net/http"
-	"strings"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -106,18 +105,13 @@ func (m *ProfileMethods) SaveProfile(p *config.ProfilePod, res *config.ProfilePo
 	r := m.inst.repo
 
 	if p.Peername != cfg.Profile.Peername && p.Peername != "" {
-		// TODO - should ProfileMethods be allocated with a configuration? How should this work in relation to
-		// RPC requests?
-		if reg := r.Registry(); reg != nil {
+		if reg := m.inst.registry; reg != nil {
 			current, err := profile.NewProfile(cfg.Profile)
 			if err != nil {
 				return err
 			}
 
-			if err := reg.PutProfile(p.Peername, current.PrivKey); err != nil {
-				if strings.Contains(err.Error(), "taken") {
-					return actions.ErrHandleTaken
-				}
+			if _, err := reg.PutProfile(&registry.Profile{Username: p.Peername}, current.PrivKey); err != nil {
 				return err
 			}
 		}

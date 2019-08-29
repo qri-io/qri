@@ -19,9 +19,9 @@ import (
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
-	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/spf13/cobra"
 )
 

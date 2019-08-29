@@ -7,14 +7,14 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/registry/regclient"
+	"github.com/qri-io/qri/registry/regclient"
 )
 
 func TestSearchComplete(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -49,8 +49,8 @@ func TestSearchComplete(t *testing.T) {
 			continue
 		}
 
-		if opt.SearchRequests == nil {
-			t.Errorf("case %d, opt.SearchRequests not set.", i)
+		if opt.SearchMethods == nil {
+			t.Errorf("case %d, opt.SearchMethods not set.", i)
 			ioReset(in, out, errs)
 			continue
 		}
@@ -100,7 +100,7 @@ func TestSearchRun(t *testing.T) {
 	}))
 	rc := regclient.NewClient(&regclient.Config{Location: server.URL})
 
-	f, err := NewTestFactory(rc)
+	f, err := NewTestFactoryInstanceOptions(lib.OptRegistryClient(rc))
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -118,17 +118,17 @@ func TestSearchRun(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		sr, err := f.SearchRequests()
+		sr, err := f.SearchMethods()
 		if err != nil {
 			t.Errorf("case %d, error creating dataset request: %s", i, err)
 			continue
 		}
 
 		opt := &SearchOptions{
-			IOStreams:      streams,
-			Query:          c.query,
-			Format:         c.format,
-			SearchRequests: sr,
+			IOStreams:     streams,
+			Query:         c.query,
+			Format:        c.format,
+			SearchMethods: sr,
 		}
 
 		err = opt.Run()

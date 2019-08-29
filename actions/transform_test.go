@@ -10,15 +10,11 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func TestExecTransform(t *testing.T) {
-	regClient, regServer := regmock.NewMockServer()
-	defer regServer.Close()
-
 	store := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore(), regClient)
+	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

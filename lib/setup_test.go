@@ -7,8 +7,7 @@ import (
 
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
-	"github.com/qri-io/registry"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestSetupTeardown(t *testing.T) {
@@ -40,15 +39,22 @@ func TestSetupTeardown(t *testing.T) {
 		t.Error(err.Error())
 	}
 
-	if reg.Profiles.Len() != 1 {
-		t.Errorf("expected registry to have one profile. got: %d", reg.Profiles.Len())
-	}
-	reg.Profiles.SortedRange(func(key string, profile *registry.Profile) bool {
-		if profile.Handle != params.Config.Profile.Peername {
-			t.Error("")
-		}
-		return false
-	})
+	// TODO (b5) - registry flow is now different, we should implement a new
+	// command "qri registry auth" that mimics what qri desktop is doing on
+	// the command line
+	// length, err := reg.Profiles.Len()
+	// if err != nil {
+	// 	t.Fatal(err)
+	// }
+	// if length != 1 {
+	// 	t.Errorf("expected registry to have one profile. got: %d", length)
+	// }
+	// reg.Profiles.SortedRange(func(key string, profile *registry.Profile) (bool, error) {
+	// 	if profile.Username != params.Config.Profile.Peername {
+	// 		t.Errorf("username mismatch. profile.Username: %s, config.Peername: %s", profile.Username, params.Config.Profile.Peername)
+	// 	}
+	// 	return true, nil
+	// })
 
 	err := Teardown(TeardownParams{
 		Config:         params.Config,

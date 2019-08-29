@@ -1,144 +1,80 @@
 package api
 
 import (
-	"fmt"
+	"encoding/json"
 	"net/http"
-	"strings"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 )
 
-// RegistryHandlers wraps a requests struct to interface with http.HandlerFunc
-type RegistryHandlers struct {
-	lib.RegistryRequests
-	repo repo.Repo
+// RegistryClientHandlers wraps a requests struct to interface with http.HandlerFunc
+type RegistryClientHandlers struct {
+	lib.RegistryClientMethods
+	readOnly bool
 }
 
-// NewRegistryHandlers allocates a RegistryHandlers pointer
-func NewRegistryHandlers(node *p2p.QriNode) *RegistryHandlers {
-	req := lib.NewRegistryRequests(node, nil)
-	h := RegistryHandlers{*req, node.Repo}
-	return &h
-}
-
-// RegistryHandler is the endpoint to call to the registry
-func (h *RegistryHandlers) RegistryHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		// get a dataset if it is published, error if not
-		h.registryDatasetHandler(w, r)
-	case "POST", "PUT":
-		// publish a dataset to the registry
-		h.publishRegistryHandler(w, r)
-	case "DELETE":
-		// unpublish a dataset from the registry
-		h.unpublishRegistryHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
+// NewRegistryClientHandlers allocates a RegistryClientHandlers pointer
+func NewRegistryClientHandlers(inst *lib.Instance, readOnly bool) *RegistryClientHandlers {
+	h := &RegistryClientHandlers{
+		RegistryClientMethods: lib.RegistryClientMethods(*inst),
+		readOnly:              readOnly,
 	}
+	return h
 }
 
-// RegistryDatasetsHandler is the endpoint to get the list of dataset summaries
-// available on the registry
-func (h *RegistryHandlers) RegistryDatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		// returns list of published datasets on the registry
-		h.listRegistryDatasetsHandler(w, r)
-	default:
-		util.NotFoundHandler(w, r)
+// CreateProfileHandler creates a profile, associating it with a private key
+func (h *RegistryClientHandlers) CreateProfileHandler(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly {
+		readOnlyResponse(w, "/registry/profiles/new")
+		return
 	}
-}
 
-// RegistryDatasetHandler is the endpoint to get a dataset summary
-// from the registry
-func (h *RegistryHandlers) RegistryDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	switch r.Method {
-	case "OPTIONS":
-		util.EmptyOkHandler(w, r)
-	case "GET":
-		// returns a registry dataset
-		h.registryDatasetHandler(w, r)
-	default:
+	if r.Method != "POST" {
 		util.NotFoundHandler(w, r)
+		return
 	}
-}
 
-func (h *RegistryHandlers) publishRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
+	p := &lib.RegistryProfile{}
+	ok := false
+	err := json.NewDecoder(r.Body).Decode(p)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	var res bool
-	if err = h.RegistryRequests.Publish(&ref, &res); err != nil {
+
+	err = h.CreateProfile(p, &ok)
+	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, fmt.Sprintf("published dataset %s", ref))
+	util.WriteResponse(w, p)
 }
 
-func (h *RegistryHandlers) unpublishRegistryHandler(w http.ResponseWriter, r *http.Request) {
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry"):])
-	if err != nil {
+// ProveProfileKeyHandler proves a user controls both a registry profile and a
+// new keypair
+func (h *RegistryClientHandlers) ProveProfileKeyHandler(w http.ResponseWriter, r *http.Request) {
+	if h.readOnly {
+		readOnlyResponse(w, "/registry/profiles/prove")
+	}
+
+	if r.Method != "POST" {
+		util.NotFoundHandler(w, r)
+		return
+	}
+
+	p := &lib.RegistryProfile{}
+	ok := false
+	if err := json.NewDecoder(r.Body).Decode(p); err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, err)
 		return
 	}
-	var res bool
-	if err = h.RegistryRequests.Unpublish(&ref, &res); err != nil {
+
+	if err := h.ProveProfileKey(p, &ok); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
-	util.WriteResponse(w, fmt.Sprintf("unpublished dataset %s", ref))
-}
-
-func (h *RegistryHandlers) listRegistryDatasetsHandler(w http.ResponseWriter, r *http.Request) {
-	args := lib.ListParamsFromRequest(r)
-	params := &lib.RegistryListParams{
-		Limit:  args.Limit,
-		Offset: args.Offset,
-	}
-	var res bool
-	if err := h.RegistryRequests.List(params, &res); err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting list of datasets available on the registry: %s", err))
-		return
-	}
-
-	if err := util.WritePageResponse(w, params.Refs, r, args.Page()); err != nil {
-		log.Infof("error listing registry datasets: %s", err.Error())
-	}
-}
-
-func (h *RegistryHandlers) registryDatasetHandler(w http.ResponseWriter, r *http.Request) {
-	res := &repo.DatasetRef{}
-	ref, err := DatasetRefFromPath(r.URL.Path[len("/registry/"):])
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusBadRequest, err)
-		return
-	}
-	if err = repo.CanonicalizeDatasetRef(h.repo, &ref); err != nil && err != repo.ErrNotFound {
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-
-	err = h.RegistryRequests.GetDataset(&ref, res)
-	if err != nil {
-		// If error was that the dataset wasn't found, send back 404 Not Found.
-		if strings.HasPrefix(err.Error(), "error 404") {
-			util.NotFoundHandler(w, r)
-			return
-		}
-		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-		return
-	}
-	util.WriteResponse(w, res)
+	util.WriteResponse(w, p)
 }

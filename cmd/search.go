@@ -52,12 +52,13 @@ Any dataset that has been published to the registry is available for search.`,
 type SearchOptions struct {
 	ioes.IOStreams
 
-	Query          string
-	SearchRequests *lib.SearchRequests
-	Format         string
-	PageSize       int
-	Page           int
+	Query    string
+	Format   string
+	PageSize int
+	Page     int
 	// Reindex bool
+
+	SearchMethods *lib.SearchMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -65,7 +66,7 @@ func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) != 0 {
 		o.Query = args[0]
 	}
-	o.SearchRequests, err = f.SearchRequests()
+	o.SearchMethods, err = f.SearchMethods()
 	return
 }
 
@@ -95,7 +96,7 @@ func (o *SearchOptions) Run() (err error) {
 
 	results := []lib.SearchResult{}
 
-	if err = o.SearchRequests.Search(p, &results); err != nil {
+	if err = o.SearchMethods.Search(p, &results); err != nil {
 		return err
 	}
 

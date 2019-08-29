@@ -11,7 +11,7 @@ func TestRenameComplete(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -101,7 +101,7 @@ func TestRenameRun(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

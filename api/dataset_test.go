@@ -71,14 +71,6 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "export", h.ZipDatasetHandler, exportCases, true)
 
-	publishCases := []handlerTestCase{
-		{"OPTIONS", "/", nil},
-		{"GET", "/publish/", nil},
-		{"POST", "/publish/me/cities", nil},
-		{"DELETE", "/publish/me/cities", nil},
-	}
-	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases, true)
-
 	// TODO: Perhaps add an option to runHandlerTestCases to set Content-Type, then combin, truee
 	// `runHandlerZipPostTestCases` with `runHandlerTestCases`, true.
 	unpackCases := []handlerTestCase{

@@ -18,14 +18,9 @@ type RemoteMethods struct {
 
 // NewRemoteMethods creates a RemoteMethods pointer from either a node or an rpc.Client
 func NewRemoteMethods(inst *Instance) *RemoteMethods {
-	cli, err := remote.NewClient(inst.node)
-	if err != nil {
-		panic(err)
-	}
-
 	return &RemoteMethods{
 		inst: inst,
-		cli:  cli,
+		cli:  inst.remoteClient,
 	}
 }
 

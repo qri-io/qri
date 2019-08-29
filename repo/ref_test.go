@@ -368,8 +368,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	carla := &profile.Profile{ID: profile.ID("b"), Peername: "carla"}
 
 	store := cafs.NewMapstore()
-	memRepo, err := NewMemRepo(lucille,
-		store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
+	memRepo, err := NewMemRepo(lucille, store, qfs.NewMemFS(store), profile.NewMemStore())
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return
@@ -432,7 +431,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 func TestCanonicalizeProfile(t *testing.T) {
 	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y")}
 	store := cafs.NewMapstore()
-	repo, err := NewMemRepo(prof, store, qfs.NewMemFS(store), profile.NewMemStore(), nil)
+	repo, err := NewMemRepo(prof, store, qfs.NewMemFS(store), profile.NewMemStore())
 	if err != nil {
 		t.Errorf("error allocating mem repo: %s", err.Error())
 		return

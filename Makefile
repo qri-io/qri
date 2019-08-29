@@ -27,7 +27,7 @@ build-latest:
 update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/qri && git checkout master && git pull && gx install
 	cd $$GOPATH/src/github.com/qri-io/qfs && git checkout master && git pull
-	cd $$GOPATH/src/github.com/qri-io/registry && git checkout master && git pull
+	cd $$GOPATH/src/github.com/qri-io/qri/registry && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/dataset && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/varName && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/deepdiff && git checkout master && git pull

@@ -10,10 +10,10 @@ import (
 
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/registry"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry"
-	regmock "github.com/qri-io/registry/regserver/mock"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
 
@@ -27,7 +27,7 @@ func TestProfileRequestsGet(t *testing.T) {
 		// {false, nil, ""},
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -66,7 +66,7 @@ func TestProfileRequestsSave(t *testing.T) {
 		// TODO - moar tests
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -112,7 +112,7 @@ func TestSaveProfile(t *testing.T) {
 	pro.Twitter = "test_twitter"
 
 	// Save the ProfilePod.
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -198,11 +198,14 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 
 	reg := regmock.NewMemRegistry()
-	regCli, _ := regmock.NewMockServerRegistry(reg)
-	node := newTestQriNodeRegClient(t, regCli)
+	node := newTestQriNode(t)
 
 	// TODO (b5) - hack until tests have better instance-generation primitives
 	inst := NewInstanceFromConfigAndNode(cfg, node)
+
+	regCli, _ := regmock.NewMockServerRegistry(reg)
+	inst.registry = regCli
+
 	m := NewProfileMethods(inst)
 
 	pro, err := node.Repo.Profile()
@@ -221,15 +224,19 @@ func TestProfileRequestsSetPeername(t *testing.T) {
 		t.Error(err)
 	}
 
-	if reg.Profiles.Len() != 1 {
-		t.Errorf("expected a profile to be in the registry. got: %d", reg.Profiles.Len())
+	length, err := reg.Profiles.Len()
+	if err != nil {
+		t.Fatal(err)
+	}
+	if length != 1 {
+		t.Errorf("expected a profile to be in the registry. got: %d", length)
 	}
 
-	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) bool {
-		if pro.Handle != "keyboard_cat" {
-			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Handle)
+	reg.Profiles.SortedRange(func(key string, pro *registry.Profile) (bool, error) {
+		if pro.Username != "keyboard_cat" {
+			t.Errorf("expected handle to be %s. got: %s", "keyboard_cat", pro.Username)
 		}
-		return true
+		return false, nil
 	})
 }
 
@@ -247,7 +254,7 @@ func TestProfileRequestsSetProfilePhoto(t *testing.T) {
 		{"testdata/rico_400x400.jpg", "/map/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
@@ -300,7 +307,7 @@ func TestProfileRequestsSetPosterPhoto(t *testing.T) {
 		{"testdata/rico_poster_1500x500.jpg", "/map/QmdJgfxj4rocm88PLeEididS7V2cc9nQosA46RpvAnWvDL", ""},
 	}
 
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

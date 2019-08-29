@@ -156,7 +156,7 @@ func TestGetMetaWithPrev(t *testing.T) {
 }
 
 func testQriNode(t *testing.T) *p2p.QriNode {
-	mr, err := repoTest.NewTestRepo(nil)
+	mr, err := repoTest.NewTestRepo()
 	if err != nil {
 		t.Fatal(err)
 	}

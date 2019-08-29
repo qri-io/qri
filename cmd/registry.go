@@ -5,7 +5,6 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -56,7 +55,8 @@ $ qri config set registry.location ""`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Status()
+			// return o.Status()
+			return fmt.Errorf("TODO (b5) = restore")
 		},
 	}
 
@@ -79,7 +79,8 @@ Datasets are by default published to the registry when they are created.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Publish()
+			// return o.Publish()
+			return fmt.Errorf("TODO (b5) = restore")
 		},
 	}
 
@@ -100,7 +101,8 @@ This dataset will no longer show up in search results.`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Unpublish()
+			// return o.Unpublish()
+			return fmt.Errorf("TODO (b5) = restore")
 		},
 	}
 
@@ -117,7 +119,8 @@ others to download on the d.web`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Pin()
+			// return o.Pin()
+			return fmt.Errorf("TODO (b5) = restore")
 		},
 	}
 
@@ -134,7 +137,8 @@ of your dataset from the registry`,
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			return o.Unpin()
+			// return o.Unpin()
+			return fmt.Errorf("TODO (b5) = restore")
 		},
 	}
 
@@ -145,122 +149,120 @@ of your dataset from the registry`,
 // RegistryOptions encapsulates state for the registry command & subcommands
 type RegistryOptions struct {
 	ioes.IOStreams
-
-	Refs []string
-
-	RegistryRequests *lib.RegistryRequests
+	Refs                  []string
+	RegistryClientMethods lib.RegistryClientMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
-	o.RegistryRequests, err = f.RegistryRequests()
+	o.RegistryClientMethods, err = f.RegistryClientMethods()
 	return
 }
 
-// Publish executes the publish command
-func (o *RegistryOptions) Publish() error {
-	var res bool
-	o.StartSpinner()
-	defer o.StopSpinner()
+// // Publish executes the publish command
+// func (o *RegistryOptions) Publish() error {
+// 	var res bool
+// 	o.StartSpinner()
+// 	defer o.StopSpinner()
 
-	for _, arg := range o.Refs {
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil {
-			return err
-		}
+// 	for _, arg := range o.Refs {
+// 		ref, err := repo.ParseDatasetRef(arg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if err = o.RegistryRequests.Publish(&ref, &res); err != nil {
-			return err
-		}
-		printInfo(o.Out, "published dataset %s", ref)
-	}
-	return nil
-}
+// 		if err = o.RegistryClientMethods.Publish(&ref, &res); err != nil {
+// 			return err
+// 		}
+// 		printInfo(o.Out, "published dataset %s", ref)
+// 	}
+// 	return nil
+// }
 
-// Status gets the status of a dataset reference on the registry
-func (o *RegistryOptions) Status() error {
-	for _, arg := range o.Refs {
-		o.StartSpinner()
+// // Status gets the status of a dataset reference on the registry
+// func (o *RegistryOptions) Status() error {
+// 	for _, arg := range o.Refs {
+// 		o.StartSpinner()
 
-		res := repo.DatasetRef{}
+// 		res := repo.DatasetRef{}
 
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil {
-			return err
-		}
+// 		ref, err := repo.ParseDatasetRef(arg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		err = o.RegistryRequests.GetDataset(&ref, &res)
-		o.StopSpinner()
-		if err != nil {
-			printInfo(o.Out, "%s is not on this registry", ref.String())
-		}
+// 		err = o.RegistryClientMethods.GetDataset(&ref, &res)
+// 		o.StopSpinner()
+// 		if err != nil {
+// 			printInfo(o.Out, "%s is not on this registry", ref.String())
+// 		}
 
-		if ref.Dataset != nil {
-			refStr := refStringer(ref)
-			fmt.Fprint(o.Out, refStr.String())
-		}
-	}
+// 		if ref.Dataset != nil {
+// 			refStr := refStringer(ref)
+// 			fmt.Fprint(o.Out, refStr.String())
+// 		}
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
-// Unpublish executes the unpublish command
-func (o *RegistryOptions) Unpublish() error {
-	var res bool
-	o.StartSpinner()
-	defer o.StopSpinner()
+// // Unpublish executes the unpublish command
+// func (o *RegistryOptions) Unpublish() error {
+// 	var res bool
+// 	o.StartSpinner()
+// 	defer o.StopSpinner()
 
-	for _, arg := range o.Refs {
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil {
-			return err
-		}
+// 	for _, arg := range o.Refs {
+// 		ref, err := repo.ParseDatasetRef(arg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if err = o.RegistryRequests.Unpublish(&ref, &res); err != nil {
-			return err
-		}
-		printInfo(o.Out, "unpublished dataset %s", ref)
-	}
-	return nil
-}
+// 		if err = o.RegistryClientMethods.Unpublish(&ref, &res); err != nil {
+// 			return err
+// 		}
+// 		printInfo(o.Out, "unpublished dataset %s", ref)
+// 	}
+// 	return nil
+// }
 
-// Pin executes the pin command
-func (o *RegistryOptions) Pin() error {
-	var res bool
-	o.StartSpinner()
-	defer o.StopSpinner()
+// // Pin executes the pin command
+// func (o *RegistryOptions) Pin() error {
+// 	var res bool
+// 	o.StartSpinner()
+// 	defer o.StopSpinner()
 
-	for _, arg := range o.Refs {
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil {
-			return err
-		}
+// 	for _, arg := range o.Refs {
+// 		ref, err := repo.ParseDatasetRef(arg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if err = o.RegistryRequests.Pin(&ref, &res); err != nil {
-			return err
-		}
-		printInfo(o.Out, "pinned dataset %s", ref)
-	}
-	return nil
-}
+// 		if err = o.RegistryClientMethods.Pin(&ref, &res); err != nil {
+// 			return err
+// 		}
+// 		printInfo(o.Out, "pinned dataset %s", ref)
+// 	}
+// 	return nil
+// }
 
-// Unpin executes the unpin command
-func (o *RegistryOptions) Unpin() error {
-	var res bool
-	o.StartSpinner()
-	defer o.StopSpinner()
+// // Unpin executes the unpin command
+// func (o *RegistryOptions) Unpin() error {
+// 	var res bool
+// 	o.StartSpinner()
+// 	defer o.StopSpinner()
 
-	for _, arg := range o.Refs {
-		ref, err := repo.ParseDatasetRef(arg)
-		if err != nil {
-			return err
-		}
+// 	for _, arg := range o.Refs {
+// 		ref, err := repo.ParseDatasetRef(arg)
+// 		if err != nil {
+// 			return err
+// 		}
 
-		if err = o.RegistryRequests.Unpin(&ref, &res); err != nil {
-			return err
-		}
-		printInfo(o.Out, "unpinned dataset %s", ref)
-	}
-	return nil
-}
+// 		if err = o.RegistryClientMethods.Unpin(&ref, &res); err != nil {
+// 			return err
+// 		}
+// 		printInfo(o.Out, "unpinned dataset %s", ref)
+// 	}
+// 	return nil
+// }

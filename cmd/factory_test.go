@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"net/rpc"
 	"os"
 	"path/filepath"
@@ -16,7 +17,6 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/registry/regclient"
 )
 
 // TestFactory is an implementation of the Factory interface for testing purposes
@@ -41,8 +41,8 @@ type TestFactory struct {
 // with an optional registry client. In tests users can create mock registry
 // servers and pass in a client connected to that mock, or omit the registry
 // client entirely for testing without a designated registry
-func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
-	repo, err := test.NewTestRepo(c)
+func NewTestFactory() (tf TestFactory, err error) {
+	repo, err := test.NewTestRepo()
 	if err != nil {
 		return
 	}
@@ -64,6 +64,46 @@ func NewTestFactory(c *regclient.Client) (tf TestFactory, err error) {
 		config: cfg,
 		node:   tnode.(*p2p.QriNode),
 		inst:   lib.NewInstanceFromConfigAndNode(cfg, tnode.(*p2p.QriNode)),
+	}, nil
+}
+
+// NewTestFactoryInstanceOptions is an experimental test factory that allows
+// instance configuration overrides
+// TODO (b5) - I'm not confident this works perfectly at the moment. Let's add
+// more tests to lib.NewInstance before using everywhere
+func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err error) {
+	repo, err := test.NewTestRepo()
+	if err != nil {
+		return
+	}
+
+	cfg := config.DefaultConfigForTesting().Copy()
+	tnode, err := p2p.NewTestableQriNode(repo, cfg.P2P)
+	if err != nil {
+		return
+	}
+
+	opts = append([]lib.Option{
+		lib.OptConfig(cfg),
+		lib.OptQriNode(tnode.(*p2p.QriNode)),
+	}, opts...)
+
+	inst, err := lib.NewInstance(context.Background(), "repo", opts...)
+	if err != nil {
+		return TestFactory{}, err
+	}
+
+	return TestFactory{
+		IOStreams:   ioes.NewDiscardIOStreams(),
+		qriRepoPath: "",
+		ipfsFsPath:  "",
+		generator:   libtest.NewTestCrypto(),
+
+		repo:   repo,
+		rpc:    nil,
+		config: cfg,
+		node:   tnode.(*p2p.QriNode),
+		inst:   inst,
 	}, nil
 }
 
@@ -121,9 +161,9 @@ func (t TestFactory) RemoteMethods() (*lib.RemoteMethods, error) {
 	return lib.NewRemoteMethods(t.inst), nil
 }
 
-// RegistryRequests generates a lib.RegistryRequests from internal state
-func (t TestFactory) RegistryRequests() (*lib.RegistryRequests, error) {
-	return lib.NewRegistryRequests(t.node, t.rpc), nil
+// RegistryClientMethods generates a lib.RegistryClientMethods from internal state
+func (t TestFactory) RegistryClientMethods() (lib.RegistryClientMethods, error) {
+	return lib.RegistryClientMethods(*t.inst), nil
 }
 
 // LogRequests generates a lib.LogRequests from internal state
@@ -151,9 +191,9 @@ func (t TestFactory) FSIMethods() (*lib.FSIMethods, error) {
 	return lib.NewFSIMethods(t.inst), nil
 }
 
-// SearchRequests generates a lib.SearchRequests from internal state
-func (t TestFactory) SearchRequests() (*lib.SearchRequests, error) {
-	return lib.NewSearchRequests(t.node, t.rpc), nil
+// SearchMethods generates a lib.SearchMethods from internal state
+func (t TestFactory) SearchMethods() (*lib.SearchMethods, error) {
+	return lib.NewSearchMethods(t.inst), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

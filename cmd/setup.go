@@ -9,9 +9,9 @@ import (
 
 	"github.com/qri-io/doggos"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/spf13/cobra"
 )
@@ -194,7 +194,7 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 	for {
 		err := lib.Setup(p)
 		if err != nil {
-			if err == actions.ErrHandleTaken {
+			if err == registry.ErrUsernameTaken {
 				printWarning(o.Out, "peername '%s' already taken", cfg.Profile.Peername)
 				cfg.Profile.Peername = inputText(o.Out, o.In, "choose a peername:", doggos.DoggoNick(cfg.Profile.ID))
 				continue

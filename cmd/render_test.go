@@ -14,7 +14,7 @@ func TestRenderComplete(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -68,7 +68,7 @@ func TestRenderRun(t *testing.T) {
 	base.DefaultTemplate = `<html><h1>{{ds.peername}}/{{ds.name}}</h1></html>`
 	defer func() { base.DefaultTemplate = prevDefaultTemplate }()
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

@@ -27,13 +27,13 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
-	"github.com/qri-io/registry/regclient"
 )
 
 var (
@@ -64,13 +64,13 @@ func Receivers(inst *Instance) []Methods {
 
 	return []Methods{
 		NewDatasetRequestsInstance(inst),
-		NewRegistryRequests(node, nil),
+		RegistryClientMethods(*inst),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),
-		NewSearchRequests(node, nil),
+		NewSearchMethods(inst),
 		NewRenderRequests(r, nil),
 		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
@@ -95,6 +95,13 @@ type Methods interface {
 type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
+
+	node      *p2p.QriNode
+	repo      repo.Repo
+	store     cafs.Filestore
+	qfs       qfs.Filesystem
+	regclient *regclient.Client
+
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
 }
@@ -187,6 +194,31 @@ func OptRemoteOptions(fn func(opt *remote.Options)) Option {
 	}
 }
 
+// OptQriNode configures bring-your-own qri node
+func OptQriNode(node *p2p.QriNode) Option {
+	return func(o *InstanceOptions) error {
+		o.node = node
+		if o.node.Repo != nil && o.repo == nil {
+			o.repo = o.node.Repo
+		}
+		if o.node.Repo.Store() != nil {
+			o.store = o.node.Repo.Store()
+		}
+		if o.node.Repo.Filesystem() != nil {
+			o.qfs = o.node.Repo.Filesystem()
+		}
+		return nil
+	}
+}
+
+// OptRegistryClient overrides any configured registry client
+func OptRegistryClient(cli *regclient.Client) Option {
+	return func(o *InstanceOptions) error {
+		o.regclient = cli
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -234,7 +266,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		teardown: teardown,
 		repoPath: repoPath,
 		cfg:      cfg,
+
+		node:     o.node,
 		streams:  o.Streams,
+		registry: o.regclient,
 	}
 	qri = inst
 
@@ -262,45 +297,63 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if inst.store, err = newStore(ctx, cfg); err != nil {
-		log.Error("intializing store:", err.Error())
-		return nil, fmt.Errorf("newStore: %s", err)
-	}
-	if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
-		log.Error("intializing filesystem:", err.Error())
-		return nil, fmt.Errorf("newFilesystem: %s", err)
-	}
-	inst.registry = newRegClient(cfg)
-
-	if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.registry); err != nil {
-		log.Error("intializing repo:", err.Error())
-		return nil, fmt.Errorf("newRepo: %s", err)
-	}
-	if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
-		qfssetter.SetFilesystem(inst.qfs)
-	}
-
-	if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
-		log.Error("intializing p2p:", err.Error())
-		return
-	}
-	inst.node.LocalStreams = o.Streams
-
-	if cfg.Remote != nil && cfg.Remote.Enabled {
-		if o.remoteOptsFunc == nil {
-			o.remoteOptsFunc = func(*remote.Options) {}
+	if o.store != nil {
+		inst.store = o.store
+	} else if inst.store == nil {
+		if inst.store, err = newStore(ctx, cfg); err != nil {
+			log.Error("intializing store:", err.Error())
+			return nil, fmt.Errorf("newStore: %s", err)
 		}
+	}
 
-		if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, o.remoteOptsFunc); err != nil {
-			log.Error("intializing remote:", err.Error())
+	if o.qfs != nil {
+		inst.qfs = o.qfs
+	} else if inst.qfs == nil {
+		if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
+			log.Error("intializing filesystem:", err.Error())
+			return nil, fmt.Errorf("newFilesystem: %s", err)
+		}
+	}
+
+	if inst.registry == nil {
+		inst.registry = newRegClient(cfg)
+	}
+
+	if o.repo != nil {
+		inst.repo = o.repo
+	} else if inst.repo == nil {
+		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store); err != nil {
+			log.Error("intializing repo:", err.Error())
+			return nil, fmt.Errorf("newRepo: %s", err)
+		}
+		if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
+			qfssetter.SetFilesystem(inst.qfs)
+		}
+	}
+	if inst.node == nil {
+		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
+			log.Error("intializing p2p:", err.Error())
 			return
 		}
 	}
 
 	if inst.node != nil {
+		inst.node.LocalStreams = o.Streams
+
 		if _, e := inst.node.IPFSCoreAPI(); e == nil {
 			if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
 				log.Error("initializing remote client:", err.Error())
+				return
+			}
+		}
+
+		if cfg.Remote != nil && cfg.Remote.Enabled {
+			if o.remoteOptsFunc == nil {
+				o.remoteOptsFunc = func(*remote.Options) {}
+			}
+
+			if inst.remote, err = remote.NewRemote(inst.node, cfg.Remote, o.remoteOptsFunc); err != nil {
+				log.Error("intializing remote:", err.Error())
 				return
 			}
 		}
@@ -385,7 +438,7 @@ func newRegClient(cfg *config.Config) (rc *regclient.Client) {
 	return
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, rc *regclient.Client) (r repo.Repo, err error) {
+func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -393,9 +446,9 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, rc *regclien
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, nil, pro, rc, path)
+		return fsrepo.NewRepo(store, nil, pro, path)
 	case "mem":
-		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore(), rc)
+		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore())
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
@@ -482,16 +535,16 @@ type Instance struct {
 	repoPath string
 	cfg      *config.Config
 
-	streams  ioes.IOStreams
-	store    cafs.Filestore
-	qfs      qfs.Filesystem
-	registry *regclient.Client
-	repo     repo.Repo
-	node     *p2p.QriNode
-	cron     cron.Scheduler
+	streams ioes.IOStreams
+	store   cafs.Filestore
+	qfs     qfs.Filesystem
+	repo    repo.Repo
+	node    *p2p.QriNode
+	cron    cron.Scheduler
 
 	remote       *remote.Remote
 	remoteClient *remote.Client
+	registry     *regclient.Client
 
 	rpc *rpc.Client
 }
@@ -504,11 +557,6 @@ func (inst *Instance) Context() context.Context {
 // Config provides methods for manipulating Qri configuration
 func (inst *Instance) Config() *config.Config {
 	return inst.cfg
-}
-
-// RepoPath returns the path to the directory qri is operating from
-func (inst *Instance) RepoPath() string {
-	return inst.repoPath
 }
 
 // ChangeConfig implements the ConfigSetter interface
@@ -543,6 +591,14 @@ func (inst *Instance) Repo() repo.Repo {
 		return inst.node.Repo
 	}
 	return nil
+}
+
+// RepoPath returns the path to the directory qri is operating from
+func (inst *Instance) RepoPath() string {
+	if inst == nil {
+		return ""
+	}
+	return inst.repoPath
 }
 
 // RPC accesses the instance RPC client if one exists

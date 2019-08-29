@@ -22,7 +22,6 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/registry/regserver/mock"
 )
 
 func init() {
@@ -30,10 +29,6 @@ func init() {
 }
 
 func newTestRepo(t *testing.T) (r repo.Repo, teardown func()) {
-	return newTestRepoWithNumDatasets(t, 0)
-}
-
-func newTestRepoWithNumDatasets(t *testing.T, num int) (r repo.Repo, teardown func()) {
 	var err error
 	if err = confirmQriNotRunning(); err != nil {
 		t.Fatal(err.Error())
@@ -42,31 +37,14 @@ func newTestRepoWithNumDatasets(t *testing.T, num int) (r repo.Repo, teardown fu
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 
-	// use a test registry server (with a pinset) & client & client
-	// rc, registryServer := regmock.NewMockServerWithNumDatasets(num)
-	rc, _ := regmock.NewMockServerWithNumDatasets(num)
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	if r, err = test.NewTestRepo(rc); err != nil {
+	if r, err = test.NewTestRepo(); err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
-
-	// lib.Config = config.DefaultConfigForTesting()
-	// lib.Config.Profile = test.ProfileConfig()
-	// lib.Config.Registry.Location = registryServer.URL
-	// prevSaveConfig := lib.SaveConfig
-	// lib.SaveConfig = func() error {
-	// 	p, err := profile.NewProfile(lib.Config.Profile)
-	// 	if err != nil {
-	// 		return err
-	// 	}
-
-	// 	r.SetProfile(p)
-	// 	return err
-	// }
 
 	teardown = func() {
 		golog.SetLogLevel("qriapi", "info")
@@ -96,9 +74,10 @@ func newTestInstanceWithProfileFromNode(node *p2p.QriNode) *lib.Instance {
 	return lib.NewInstanceFromConfigAndNode(cfg, node)
 }
 
+// TODO (b5) - num param is no longer in use, refactor this function away
 func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
-	r, teardown = newTestRepoWithNumDatasets(t, num)
+	r, teardown = newTestRepo(t)
 	node, err := p2p.NewQriNode(r, config.DefaultP2PForTesting())
 	if err != nil {
 		t.Fatal(err.Error())
@@ -198,7 +177,7 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 
 	client := &http.Client{}
 
-	r, err := test.NewTestRepo(nil)
+	r, err := test.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

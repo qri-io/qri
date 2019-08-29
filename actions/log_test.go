@@ -10,7 +10,7 @@ import (
 )
 
 func TestDatasetLog(t *testing.T) {
-	mr, err := testrepo.NewTestRepo(nil)
+	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}

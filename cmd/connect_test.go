@@ -9,7 +9,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	libtest "github.com/qri-io/qri/lib/test"
-	regmock "github.com/qri-io/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestConnect(t *testing.T) {

@@ -48,7 +48,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	if sw.DryRun {
 		node.LocalStreams.PrintErr("🏃🏽‍♀️ dry run\n")
 		// dry-runs store to an in-memory repo
-		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore(), nil)
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore())
 		if err != nil {
 			return
 		}

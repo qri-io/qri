@@ -14,7 +14,7 @@ func TestUseComplete(t *testing.T) {
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
-	f, err := NewTestFactory(nil)
+	f, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return
@@ -108,7 +108,7 @@ func TestUseRun(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
-	_, err := NewTestFactory(nil)
+	_, err := NewTestFactory()
 	if err != nil {
 		t.Errorf("error creating new test factory: %s", err)
 		return

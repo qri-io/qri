@@ -42,6 +42,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.0.4
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.5
+	github.com/prometheus/common v0.4.0
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.1.1-0.20190826121154-bee27f6db672
@@ -52,10 +53,10 @@ require (
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
 	github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1
-	github.com/qri-io/registry v0.1.1-0.20190826161556-72cfd08eea32
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0
+	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v0.0.4
 	github.com/theckman/go-flock v0.7.1
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f

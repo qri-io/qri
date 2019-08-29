@@ -6,17 +6,16 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/p2p"
 )
 
 // SearchHandlers wraps a requests struct to interface with http.HandlerFunc
 type SearchHandlers struct {
-	lib.SearchRequests
+	lib.SearchMethods
 }
 
 // NewSearchHandlers allocates a SearchHandlers pointer
-func NewSearchHandlers(node *p2p.QriNode) *SearchHandlers {
-	req := lib.NewSearchRequests(node, nil)
+func NewSearchHandlers(inst *lib.Instance) *SearchHandlers {
+	req := lib.NewSearchMethods(inst)
 	return &SearchHandlers{*req}
 }
 
@@ -50,7 +49,7 @@ func (h *SearchHandlers) searchHandler(w http.ResponseWriter, r *http.Request) {
 
 	results := []lib.SearchResult{}
 
-	if err := h.SearchRequests.Search(sp, &results); err != nil {
+	if err := h.SearchMethods.Search(sp, &results); err != nil {
 		log.Infof("search error: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

@@ -7,14 +7,13 @@ import (
 	"path/filepath"
 	"testing"
 
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regserver/mock"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -48,9 +47,8 @@ func testdataPath(path string) string {
 }
 
 func newTestRepo(t *testing.T) repo.Repo {
-	rc, _ := mock.NewMockServer()
 	mapStore := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, qfs.NewMemFS(mapStore), profile.NewMemStore(), rc)
+	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, qfs.NewMemFS(mapStore), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

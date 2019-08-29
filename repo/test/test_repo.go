@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
-	"github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
@@ -22,7 +22,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/registry/regclient"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -64,14 +63,14 @@ func ProfileConfig() *config.ProfilePod {
 }
 
 // NewEmptyTestRepo initializes a test repo with no contents
-func NewEmptyTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
+func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
 	pro := &profile.Profile{
 		Peername: "peer",
 		ID:       profile.IDB58MustDecode(profileID),
 		PrivKey:  privKey,
 	}
 	ms := cafs.NewMapstore()
-	return repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore(), rc)
+	return repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
 }
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
@@ -83,10 +82,10 @@ func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 }
 
 // NewTestRepo generates a repository usable for testing purposes
-func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
+func NewTestRepo() (mr *repo.MemRepo, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	mr, err = NewEmptyTestRepo(rc)
+	mr, err = NewEmptyTestRepo()
 	if err != nil {
 		return
 	}
@@ -106,10 +105,10 @@ func NewTestRepo(rc *regclient.Client) (mr *repo.MemRepo, err error) {
 }
 
 // NewTestRepoWithHistory generates a repository with a dataset that has a history, usable for testing purposes
-func NewTestRepoWithHistory(rc *regclient.Client) (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
+func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
-	mr, err = NewEmptyTestRepo(rc)
+	mr, err = NewEmptyTestRepo()
 	if err != nil {
 		return
 	}
@@ -154,7 +153,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		ID:       id,
 		Peername: fmt.Sprintf("test-repo-%d", peerNum),
 		PrivKey:  pk,
-	}, ms, newTestFS(ms), profile.NewMemStore(), nil)
+	}, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		return r, err
 	}
@@ -225,7 +224,7 @@ func NewMemRepoFromDir(path string) (repo.Repo, crypto.PrivKey, error) {
 	}
 
 	ms := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore(), nil)
+	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		return mr, pk, err
 	}

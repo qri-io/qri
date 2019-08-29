@@ -11,10 +11,10 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/search"
-	"github.com/qri-io/registry/regclient"
 )
 
 var log = golog.Logger("fsrepo")
@@ -43,7 +43,7 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc *regclient.Client, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -64,8 +64,6 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, rc
 		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: NewProfileStore(bp),
-
-		registry: rc,
 	}
 
 	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
@@ -158,11 +156,6 @@ func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
 // Profiles returns this repo's Peers implementation
 func (r *Repo) Profiles() profile.Store {
 	return r.profiles
-}
-
-// Registry returns a client for interacting with a federated registry if one exists, otherwise nil
-func (r *Repo) Registry() *regclient.Client {
-	return r.registry
 }
 
 // Destroy destroys this repository
