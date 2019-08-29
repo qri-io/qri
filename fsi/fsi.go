@@ -136,6 +136,11 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	}
 
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
+		if err == repo.ErrNoHistory {
+			// if we're unlinking a ref without history, delete it
+			return fsi.repo.DeleteRef(ref)
+		}
+
 		return err
 	}
 
