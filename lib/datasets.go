@@ -313,7 +313,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			return fmt.Errorf("%s is not linked to the filesystem", ref.AliasString())
 		}
 
-		var problems map[string]string
+		var problems map[string]fsi.FileStat
 		ds, _, problems, err = fsi.ReadDir(ref.FSIPath)
 		if err != nil {
 			return

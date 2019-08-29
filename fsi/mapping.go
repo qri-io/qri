@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
@@ -28,12 +29,18 @@ var (
 	ErrNoDatasetFiles = fmt.Errorf("no dataset files provided")
 )
 
+// FileStat holds information about a file: its path and mod time
+type FileStat struct {
+	Path  string
+	Mtime time.Time
+}
+
 // ReadDir parses a directory into a dataset, returning both the dataset and
 // a map of component names to the files they came from. Files can be specified
 // in either JSON or YAML format. It is an error to specify any component more
 // than once
-func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, problems map[string]string, err error) {
-	fileMap = map[string]string{}
+func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]FileStat, err error) {
+	fileMap = map[string]FileStat{}
 	ds = &dataset.Dataset{}
 	schema := map[string]interface{}{}
 	problems = nil
@@ -57,39 +64,44 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 		".yml":  newYAMLDecoder,
 	}
 
-	addFile := func(cmpName, path string) error {
-		if cmpPath, exists := fileMap[cmpName]; exists {
-			cmpPath = filepath.Base(cmpPath)
-			path = filepath.Base(path)
-			return fmt.Errorf(`%s is defined in two places: %s and %s. please remove one`, cmpName, cmpPath, path)
+	addFile := func(cmpName, path string, mtime time.Time) error {
+		foundFile, exists := fileMap[cmpName]
+		if exists {
+			foundPath := filepath.Base(foundFile.Path)
+			anotherPath := filepath.Base(path)
+			return fmt.Errorf(`%s is defined in two places: %s and %s. please remove one`, cmpName, foundPath, anotherPath)
 		}
-
-		fileMap[cmpName] = path
+		fileMap[cmpName] = FileStat{Path: path, Mtime: mtime}
 		return nil
 	}
 
-	// HACK: Detect body format.
+	// HACK: Detect body format and body modification time.
+	var mtime time.Time
 	bodyFormat := ""
-	if _, err = os.Stat(filepath.Join(dir, "body.csv")); !os.IsNotExist(err) {
+	if st, err := os.Stat(filepath.Join(dir, "body.csv")); !os.IsNotExist(err) {
+		mtime = st.ModTime()
 		bodyFormat = "csv"
 	}
-	if _, err = os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
+	if st, err := os.Stat(filepath.Join(dir, "body.json")); !os.IsNotExist(err) {
 		if bodyFormat == "csv" {
 			return ds, fileMap, problems, fmt.Errorf("body.csv and body.json both exist")
 		}
+		mtime = st.ModTime()
 		bodyFormat = "json"
 	}
 
 	bodyFilename := ""
 	if bodyFormat != "" {
 		bodyFilename = fmt.Sprintf("body.%s", bodyFormat)
-		if err = addFile(componentNameBody, bodyFilename); err != nil {
+		if err = addFile(componentNameBody, bodyFilename, mtime); err != nil {
 			return ds, fileMap, problems, err
 		}
 		if ds.BodyPath == "" {
 			ds.BodyPath = filepath.Join(dir, bodyFilename)
 		}
 	}
+
+	var st os.FileInfo
 
 	// Iterate components in a deterministic order, from highest priority to lowest.
 	for i := 0; i < len(componentListOrder); i++ {
@@ -99,12 +111,13 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 			filename := fmt.Sprintf("%s%s", cmpName, ext)
 			path := filepath.Join(dir, filename)
 			if f, e := os.Open(path); e == nil {
+				st, _ = f.Stat()
 				if cmpName != componentNameBody {
 					if err = mkDec(f).Decode(cmp); err != nil {
 						if problems == nil {
-							problems = make(map[string]string)
+							problems = make(map[string]FileStat)
 						}
-						problems[cmpName] = filename
+						problems[cmpName] = FileStat{Path: filename, Mtime: st.ModTime()}
 						// Don't treat this parse failure as an error, only as a "problem" to
 						// display in `status`. This prevents the entire function from returning
 						// an error in the case that no other components are checked after this
@@ -112,7 +125,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 						err = nil
 						continue
 					}
-					if err = addFile(cmpName, path); err != nil {
+					if err = addFile(cmpName, path, st.ModTime()); err != nil {
 						return ds, fileMap, problems, err
 					}
 				}
@@ -120,37 +133,37 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap map[string]string, proble
 				switch cmpName {
 				case componentNameDataset:
 					if ds.Commit != nil {
-						if err = addFile(componentNameCommit, path); err != nil {
+						if err = addFile(componentNameCommit, path, st.ModTime()); err != nil {
 							return
 						}
 					}
 					if ds.Meta != nil {
-						if err = addFile(componentNameMeta, path); err != nil {
+						if err = addFile(componentNameMeta, path, st.ModTime()); err != nil {
 							return
 						}
 					}
 					if ds.Structure != nil {
-						if err = addFile(componentNameStructure, path); err != nil {
+						if err = addFile(componentNameStructure, path, st.ModTime()); err != nil {
 							return
 						}
 						if ds.Structure.Schema != nil {
-							if err = addFile(componentNameSchema, path); err != nil {
+							if err = addFile(componentNameSchema, path, st.ModTime()); err != nil {
 								return
 							}
 						}
 					}
 					if ds.Viz != nil {
-						if err = addFile(componentNameViz, path); err != nil {
+						if err = addFile(componentNameViz, path, st.ModTime()); err != nil {
 							return
 						}
 					}
 					if ds.Transform != nil {
-						if err = addFile(componentNameTransform, path); err != nil {
+						if err = addFile(componentNameTransform, path, st.ModTime()); err != nil {
 							return
 						}
 					}
 					if ds.Body != nil {
-						if err = addFile(componentNameBody, path); err != nil {
+						if err = addFile(componentNameBody, path, st.ModTime()); err != nil {
 							return
 						}
 					}
