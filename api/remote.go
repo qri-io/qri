@@ -80,7 +80,7 @@ func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Req
 		Ref:        ref.String(),
 		RemoteName: r.FormValue("remote"),
 	}
-	var res bool
+	var res repo.DatasetRef
 
 	switch r.Method {
 	case "POST":

@@ -74,34 +74,22 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
+	var res repo.DatasetRef
 	for _, ref := range o.Refs {
-		// mark dataset as listed on p2p
-		// TODO (b5) - make this a flag on lib.PushToRemote
-		setPub := lib.SetPublishStatusParams{
-			Ref:           ref,
-			PublishStatus: !o.Unpublish,
-		}
-
-		var publishedRef repo.DatasetRef
-		if err := o.DatasetRequests.SetPublishStatus(&setPub, &publishedRef); err != nil {
-			return err
-		}
-
 		p := lib.PublicationParams{
 			Ref:        ref,
 			RemoteName: o.RemoteName,
 		}
-		var res bool
 		if o.Unpublish {
 			if err := o.RemoteMethods.Unpublish(&p, &res); err != nil {
 				return err
 			}
-			printInfo(o.Out, "unpublished dataset %s", publishedRef)
+			printInfo(o.Out, "unpublished dataset %s", res)
 		} else {
 			if err := o.RemoteMethods.Publish(&p, &res); err != nil {
 				return err
 			}
-			printInfo(o.Out, "published dataset %s", publishedRef)
+			printInfo(o.Out, "published dataset %s", res)
 		}
 	}
 	return nil

@@ -115,10 +115,23 @@ func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*re
 	return ref, err
 }
 
-// RemoveDataset handles requests to remove a dataset
-func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) error {
-	// TODO (b5):
-	return fmt.Errorf("not yet implemented: removing dataset revisions")
+// RemoveDatasetRef handles requests to remove a dataset
+func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string) error {
+	ref, err := r.refFromMeta(params)
+	if err != nil {
+		return err
+	}
+	log.Debug("remove dataset ", ref)
+
+	if err := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		if err == repo.ErrNotFound {
+			err = nil
+		} else {
+			return err
+		}
+	}
+
+	return r.node.Repo.DeleteRef(ref)
 }
 
 func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
@@ -268,9 +281,17 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 			w.Write(res)
 			return
 		case "DELETE":
-			// TODO (b5) - handle delete
-			w.WriteHeader(http.StatusNotImplemented)
-			w.Write([]byte("haven't implemented deletes over HTTP yet"))
+			params := map[string]string{}
+			for key := range req.URL.Query() {
+				params[key] = req.FormValue(key)
+			}
+			if err := r.RemoveDatasetRef(req.Context(), params); err != nil {
+				w.WriteHeader(http.StatusInternalServerError)
+				w.Write([]byte(err.Error()))
+				return
+			}
+
+			w.WriteHeader(http.StatusOK)
 			return
 		default:
 			w.WriteHeader(http.StatusNotFound)

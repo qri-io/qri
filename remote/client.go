@@ -230,6 +230,9 @@ func removeDatasetHTTP(ctx context.Context, params map[string]string, remoteAddr
 	}
 
 	if res.StatusCode != http.StatusOK {
+		if data, err := ioutil.ReadAll(res.Body); err == nil {
+			log.Error("HTTP server remove error response: ", string(data))
+		}
 		return fmt.Errorf("failed to remove dataset from remote")
 	}
 

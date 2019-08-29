@@ -282,12 +282,15 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
+
+	// TODO (b5) - remove this. res.Ref should be used instead
 	ref := repo.DatasetRef{
 		Peername:  res.Dataset.Peername,
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
 		FSIPath:   res.Ref.FSIPath,
+		Published: res.Ref.Published,
 		Dataset:   res.Dataset,
 	}
 	util.WriteResponse(w, ref)
