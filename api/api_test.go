@@ -74,6 +74,7 @@ func newTestInstanceWithProfileFromNode(node *p2p.QriNode) *lib.Instance {
 	return lib.NewInstanceFromConfigAndNode(cfg, node)
 }
 
+// TODO (b5) - num param is no longer in use, refactor this function away
 func newTestNodeWithNumDatasets(t *testing.T, num int) (node *p2p.QriNode, teardown func()) {
 	var r repo.Repo
 	r, teardown = newTestRepo(t)

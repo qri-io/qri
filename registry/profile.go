@@ -10,8 +10,6 @@ import (
 )
 
 // Profile is a shorthand version of qri-io/qri/repo/profile.Profile
-// I'm toying with the idea of using "handle" instead of "peername",
-// so it's "handle" here for now
 type Profile struct {
 	Created  time.Time
 	Username string

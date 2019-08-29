@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
-// RemoteClientHandlers provies HTTP handlers for issuing requests to remotes
+// RemoteClientHandlers provides HTTP handlers for issuing requests to remotes
 type RemoteClientHandlers struct {
 	readOnly bool
 	inst     *lib.Instance

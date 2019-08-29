@@ -2,8 +2,6 @@ module github.com/qri-io/qri
 
 go 1.12
 
-replace github.com/qri-io/qri/registry => /Users/b5/qri/registry
-
 replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead

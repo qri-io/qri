@@ -24,6 +24,7 @@ func TestRegisterProfile(t *testing.T) {
 	}
 
 	src = rand.New(rand.NewSource(10000))
+	// TODO (b5) - this makes tests slow. use a cache
 	key1, _, err := crypto.GenerateEd25519Key(src)
 	if err != nil {
 		t.Error(err.Error())
