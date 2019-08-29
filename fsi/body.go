@@ -17,18 +17,18 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		return nil, err
 	}
 
-	bodyPath, ok := mapping["body"]
+	bodyFileStat, ok := mapping["body"]
 	if !ok {
 		return nil, fmt.Errorf("no body found")
 	}
 
-	f, err := os.Open(filepath.Join(dirPath, bodyPath))
+	f, err := os.Open(filepath.Join(dirPath, bodyFileStat.Path))
 	if err != nil {
 		return nil, err
 	}
 
 	defer f.Close()
-	file := qfs.NewMemfileReader(filepath.Base(bodyPath), f)
+	file := qfs.NewMemfileReader(filepath.Base(bodyFileStat.Path), f)
 
 	st := &dataset.Structure{}
 	assign := &dataset.Structure{

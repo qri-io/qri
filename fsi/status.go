@@ -8,12 +8,12 @@ import (
 	"os"
 	"path/filepath"
 	"sort"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
-	// "github.com/qri-io/dataset/validate"
 )
 
 var (
@@ -35,6 +35,25 @@ type StatusItem struct {
 	Component  string `json:"component"`
 	Type       string `json:"type"`
 	Message    string `json:"message"`
+	Mtime      time.Time `json:"mtime"`
+}
+
+// MarshalJSON marshals a StatusItem, handling mtime specially
+func (si StatusItem) MarshalJSON() ([]byte, error) {
+	obj := struct {
+		SourceFile string `json:"sourceFile"`
+		Component  string `json:"component"`
+		Type       string `json:"type"`
+		Message    string `json:"message"`
+		Mtime      string `json:"mtime,omitempty"`
+	}{
+		SourceFile: si.SourceFile,
+		Component:  si.Component,
+		Type:       si.Type,
+		Message:    si.Message,
+		Mtime:      si.Mtime.Format(time.RFC3339),
+	}
+	return json.Marshal(obj)
 }
 
 // statusItems is a slice of component Status, used for sorting
@@ -114,19 +133,19 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 	working.DropDerivedValues()
 
 	// Set body file from local filesystem.
-	if bodyFilename, ok := fileMap[componentNameBody]; ok {
-		bf, err := os.Open(filepath.Join(dir, bodyFilename))
+	if bodyStat, ok := fileMap[componentNameBody]; ok {
+		bf, err := os.Open(filepath.Join(dir, bodyStat.Path))
 		if err != nil {
 			return nil, err
 		}
-		working.SetBodyFile(qfs.NewMemfileReader(bodyFilename, bf))
+		working.SetBodyFile(qfs.NewMemfileReader(bodyStat.Path, bf))
 	}
 
 	return fsi.CalculateStateTransition(stored, working, fileMap, problems)
 }
 
 // CalculateStateTransition calculates the differences between two versions of a dataset.
-func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, problems map[string]string) (changes []StatusItem, err error) {
+func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, problems map[string]FileStat) (changes []StatusItem, err error) {
 	// if err = validate.Dataset(ds); err != nil {
 	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
 	// }
@@ -135,11 +154,12 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 	if problems != nil {
 		for i := 0; i < len(componentListOrder); i++ {
 			cmpName := componentListOrder[i]
-			if cmpFilename, ok := problems[cmpName]; ok {
+			if cmpFile, ok := problems[cmpName]; ok {
 				change := StatusItem{
-					SourceFile: cmpFilename,
+					SourceFile: cmpFile.Path,
 					Component:  cmpName,
 					Type:       STParseError,
+					Mtime:      cmpFile.Mtime,
 				}
 				changes = append(changes, change)
 			}
@@ -182,7 +202,7 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 			continue
 		}
 
-		localFilepath, ok := fileMap[path]
+		localFile, ok := fileMap[path]
 		if !ok {
 			continue
 		}
@@ -201,9 +221,10 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 
 		if cmp := dsComponent(prev, path); cmp == nil {
 			change := StatusItem{
-				SourceFile: localFilepath,
+				SourceFile: localFile.Path,
 				Component:  path,
 				Type:       STAdd,
+				Mtime:      localFile.Mtime,
 			}
 			changes = append(changes, change)
 		} else {
@@ -220,9 +241,10 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 					// Handle the case where there's no previous version. Body is "add"ed, do
 					// not attempt to read the non-existent body.
 					change := StatusItem{
-						SourceFile: localFilepath,
+						SourceFile: localFile.Path,
 						Component:  path,
 						Type:       STAdd,
+						Mtime:      localFile.Mtime,
 					}
 					changes = append(changes, change)
 					continue
@@ -263,16 +285,18 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 
 			if !bytes.Equal(prevData, nextData) {
 				change := StatusItem{
-					SourceFile: localFilepath,
+					SourceFile: localFile.Path,
 					Component:  path,
 					Type:       STChange,
+					Mtime:      localFile.Mtime,
 				}
 				changes = append(changes, change)
 			} else {
 				change := StatusItem{
-					SourceFile: localFilepath,
+					SourceFile: localFile.Path,
 					Component:  path,
 					Type:       STUnmodified,
+					Mtime:      localFile.Mtime,
 				}
 				changes = append(changes, change)
 			}
@@ -307,15 +331,15 @@ func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error)
 		}
 	}
 
-	fileMap := make(map[string]string)
+	fileMap := make(map[string]FileStat)
 	if next.Meta != nil {
-		fileMap["meta"] = "meta"
+		fileMap["meta"] = FileStat{Path:"meta"}
 	}
 	if next.BodyPath != "" || next.BodyFile() != nil {
-		fileMap["body"] = "body"
+		fileMap["body"] = FileStat{Path:"body"}
 	}
 	if next.Structure != nil && next.Structure.Schema != nil {
-		fileMap["schema"] = "schema"
+		fileMap["schema"] = FileStat{Path:"schema"}
 	}
 	return fsi.CalculateStateTransition(prev, next, fileMap, nil)
 }

@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/fsi"
@@ -32,6 +33,8 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
+	cmd.Flags().BoolVar(&o.ShowMtime, "show-mtime", false, "whether to show mtime for each component")
+
 	return cmd
 }
 
@@ -40,6 +43,7 @@ type StatusOptions struct {
 	ioes.IOStreams
 
 	Refs *RefSelect
+	ShowMtime bool
 
 	FSIMethods *lib.FSIMethods
 }
@@ -55,6 +59,9 @@ func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// ColumnPositionForMtime is the column position at which to display mod times, if requested
+const ColumnPositionForMtime = 40
+
 // Run executes the status command
 func (o *StatusOptions) Run() (err error) {
 	printRefSelect(o.ErrOut, o.Refs)
@@ -69,19 +76,30 @@ func (o *StatusOptions) Run() (err error) {
 	clean := true
 	valid := true
 	for _, si := range res {
+		line := ""
 		switch si.Type {
 		case fsi.STRemoved:
-			printErr(o.Out, fmt.Errorf("  %s:  %s", si.Type, si.Component))
+			line = fmt.Sprintf("%s:  %s", si.Type, si.Component)
 			clean = false
 		case fsi.STUnmodified:
-			// noop
+			line = ""
 		case fsi.STAdd, fsi.STChange:
-			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
+			line = fmt.Sprintf("%s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile))
 			clean = false
 		case fsi.STParseError:
-			printErr(o.Out, fmt.Errorf("  %s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile)))
+			line = fmt.Sprintf("%s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile))
 			clean = false
 			valid = false
+		}
+		if line != "" {
+			if o.ShowMtime && !si.Mtime.IsZero() {
+				padding := ""
+				if len(line) < ColumnPositionForMtime {
+					padding = strings.Repeat(" ", ColumnPositionForMtime - len(line))
+				}
+				line = fmt.Sprintf("%s%s%s", line, padding, si.Mtime.Format("2006-01-02 15:04:05"))
+			}
+			printErr(o.Out, fmt.Errorf("  %s", line))
 		}
 		// TODO(dlong): Validate each file / component, set `valid` to false if any problems exist
 	}

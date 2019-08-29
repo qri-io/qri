@@ -8,6 +8,7 @@ import (
 	"sort"
 	"strings"
 	"testing"
+	"time"
 )
 
 func copyDir(sourceDir, destDir string) error {
@@ -52,7 +53,20 @@ func TestStatusValid(t *testing.T) {
 	for _, ch := range changes {
 		actual += strings.Replace(fmt.Sprintf("%s", ch), paths.firstDir, ".", 1)
 	}
-	expect := `{./commit.json commit add }{./meta.json meta add }{./schema.json schema add }{./structure.json structure add }{./transform.json transform add }{./viz.json viz add }{body.csv body add }`
+	// Construct the expected repsonse by getting the real timestamp from each component.
+	expectList := []string{"commit", "meta", "schema", "structure", "transform", "viz", "body"}
+	expect := ""
+	for _, cmpName := range expectList {
+		var componentFile string
+		if cmpName == "body" {
+			componentFile = "body.csv"
+		} else {
+			componentFile = fmt.Sprintf("./%s.json", cmpName)
+		}
+		st, _ := os.Stat(filepath.Join(paths.firstDir, componentFile))
+		mtimeText := st.ModTime().In(time.Local)
+		expect = fmt.Sprintf("%s{%s %s add  %s}", expect, componentFile, cmpName, mtimeText)
+	}
 	if actual != expect {
 		t.Errorf("status error didn't match, actual: %s, expect: %s", actual, expect)
 	}

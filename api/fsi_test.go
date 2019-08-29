@@ -11,6 +11,7 @@ import (
 	"strconv"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
@@ -95,6 +96,14 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected ref to be \"peer/test_ds\", got \"%s\"", ref)
 	}
 
+	// Get mtimes for the component files
+	st, _ := os.Stat(filepath.Join(initDir, "meta.json"))
+	metaMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(initDir, "schema.json"))
+	schemaMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(initDir, "body.csv"))
+	bodyMtime := st.ModTime().Format(time.RFC3339)
+
 	dsHandler := NewDatasetHandlers(inst, false)
 
 	// Dataset with no history
@@ -115,8 +124,8 @@ func TestNoHistory(t *testing.T) {
 	// Handle tempoary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, initDir, initSubdir, -1)
 	expectBody = `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"describe","type":"string"},{"title":"quantity","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
-	if expectBody != resultBody {
-		t.Errorf("expected body %s, got %s", expectBody, resultBody)
+	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	// Body with no history
@@ -158,9 +167,10 @@ func TestNoHistory(t *testing.T) {
 	}
 	// Handle tempoary directory by replacing the temp part with a shorter string.
 	resultBody = strings.Replace(actualBody, initDir, initSubdir, -1)
-	expectBody = `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":""},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":""},{"sourceFile":"body.csv","component":"body","type":"add","message":""}],"meta":{"code":200}}`
-	if expectBody != resultBody {
-		t.Errorf("expected body %s, got %s", expectBody, resultBody)
+	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, schemaMtime, bodyMtime)
+	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	logHandler := NewLogHandlers(node)
