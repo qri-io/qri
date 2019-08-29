@@ -124,8 +124,8 @@ func TestNoHistory(t *testing.T) {
 	// Handle tempoary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, initDir, initSubdir, -1)
 	expectBody = `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"describe","type":"string"},{"title":"quantity","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
-	if expectBody != resultBody {
-		t.Errorf("expected body %s, got %s", expectBody, resultBody)
+	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	// Body with no history
@@ -169,8 +169,8 @@ func TestNoHistory(t *testing.T) {
 	resultBody = strings.Replace(actualBody, initDir, initSubdir, -1)
 	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, schemaMtime, bodyMtime)
-	if expectBody != resultBody {
-		t.Errorf("expected body %s, got %s", expectBody, resultBody)
+	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	logHandler := NewLogHandlers(node)

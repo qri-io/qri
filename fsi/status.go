@@ -35,7 +35,25 @@ type StatusItem struct {
 	Component  string `json:"component"`
 	Type       string `json:"type"`
 	Message    string `json:"message"`
-	Mtime      time.Time `json:"mtime,omitempty"`
+	Mtime      time.Time `json:"mtime"`
+}
+
+// MarshalJSON marshals a StatusItem, handling mtime specially
+func (si StatusItem) MarshalJSON() ([]byte, error) {
+	obj := struct {
+		SourceFile string `json:"sourceFile"`
+		Component  string `json:"component"`
+		Type       string `json:"type"`
+		Message    string `json:"message"`
+		Mtime      string `json:"mtime,omitempty"`
+	}{
+		SourceFile: si.SourceFile,
+		Component:  si.Component,
+		Type:       si.Type,
+		Message:    si.Message,
+		Mtime:      si.Mtime.Format(time.RFC3339),
+	}
+	return json.Marshal(obj)
 }
 
 // statusItems is a slice of component Status, used for sorting
