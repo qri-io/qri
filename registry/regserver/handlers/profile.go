@@ -31,7 +31,8 @@ func NewProfilesHandler(profiles registry.Profiles) http.HandlerFunc {
 			for _, pro := range ps {
 				profiles.Create(pro.Username, pro)
 			}
-			fallthrough
+
+			apiutil.WriteResponse(w, ps)
 		case "GET":
 
 			l, err := profiles.Len()

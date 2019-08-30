@@ -150,7 +150,7 @@ of your dataset from the registry`,
 type RegistryOptions struct {
 	ioes.IOStreams
 	Refs                  []string
-	RegistryClientMethods lib.RegistryClientMethods
+	RegistryClientMethods *lib.RegistryClientMethods
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run

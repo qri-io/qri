@@ -73,8 +73,6 @@ type Repo interface {
 	PrivateKey() crypto.PrivKey
 	// A repository must maintain profile information about encountered peers.
 	// Decsisions regarding retentaion of peers is left to the the implementation
-	// TODO - should rename this to "profiles" to separate from the networking
-	// concept of a peer
 	Profiles() profile.Store
 }
 
