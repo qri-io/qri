@@ -34,6 +34,7 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 		return err
 	}
 
+	log.Errorf("create profile response: %v", pro)
 	*p = *pro
 
 	cfg := m.configChanges(pro)
@@ -52,6 +53,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 		return err
 	}
 
+	log.Errorf("prove profile response: %v", pro)
 	*p = *pro
 
 	cfg := m.configChanges(pro)
@@ -61,7 +63,14 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Config {
 	cfg := m.inst.cfg.Copy()
 	cfg.Profile.Peername = pro.Username
-	// TODO (b5) - *all* profile details should come back from registry server
-	// set them here
+	cfg.Profile.Created = pro.Created
+	cfg.Profile.Email = pro.Email
+	cfg.Profile.Photo = pro.Photo
+	cfg.Profile.Thumb = pro.Thumb
+	cfg.Profile.Name = pro.Name
+	cfg.Profile.Description = pro.Description
+	cfg.Profile.HomeURL = pro.HomeURL
+	cfg.Profile.Twitter = pro.Twitter
+
 	return cfg
 }

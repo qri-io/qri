@@ -10,11 +10,19 @@ import (
 )
 
 // Profile is a shorthand version of qri-io/qri/repo/profile.Profile
+// TODO (b5) - this should be refactored to embed a config.Profile,
+// add password & key fields
 type Profile struct {
-	Created  time.Time
-	Username string
-	Email    string
-	Password string `json:",omitempty"`
+	Created     time.Time
+	Username    string
+	Email       string
+	Password    string `json:",omitempty"`
+	Photo       string
+	Thumb       string
+	Name        string
+	Description string
+	HomeURL     string
+	Twitter     string
 
 	ProfileID string
 	PublicKey string
