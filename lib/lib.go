@@ -64,7 +64,7 @@ func Receivers(inst *Instance) []Methods {
 
 	return []Methods{
 		NewDatasetRequestsInstance(inst),
-		RegistryClientMethods(*inst),
+		NewRegistryClientMethods(inst),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),
@@ -561,6 +561,7 @@ func (inst *Instance) Config() *config.Config {
 
 // ChangeConfig implements the ConfigSetter interface
 func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
+	cfg = cfg.WithPrivateValues(inst.cfg)
 
 	if path := inst.cfg.Path(); path != "" {
 		if err = cfg.WriteToFile(path); err != nil {

@@ -84,9 +84,5 @@ func (m *ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) 
 		return fmt.Errorf("error validating config: %s", err)
 	}
 
-	cfg := update.WithPrivateValues(m.inst.cfg)
-
-	*set = true
-
-	return m.inst.ChangeConfig(cfg)
+	return m.inst.ChangeConfig(update)
 }

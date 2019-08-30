@@ -10,14 +10,14 @@ import (
 
 // RegistryClientHandlers wraps a requests struct to interface with http.HandlerFunc
 type RegistryClientHandlers struct {
-	lib.RegistryClientMethods
+	*lib.RegistryClientMethods
 	readOnly bool
 }
 
 // NewRegistryClientHandlers allocates a RegistryClientHandlers pointer
 func NewRegistryClientHandlers(inst *lib.Instance, readOnly bool) *RegistryClientHandlers {
 	h := &RegistryClientHandlers{
-		RegistryClientMethods: lib.RegistryClientMethods(*inst),
+		RegistryClientMethods: lib.NewRegistryClientMethods(inst),
 		readOnly:              readOnly,
 	}
 	return h
