@@ -12,7 +12,7 @@ type Registry struct {
 // DefaultRegistry generates a new default registry instance
 func DefaultRegistry() *Registry {
 	r := &Registry{
-		Location: "https://registry.qri.io",
+		Location: "https://registry.qri.cloud",
 	}
 	return r
 }
