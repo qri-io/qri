@@ -42,7 +42,7 @@ func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type StatusOptions struct {
 	ioes.IOStreams
 
-	Refs *RefSelect
+	Refs      *RefSelect
 	ShowMtime bool
 
 	FSIMethods *lib.FSIMethods
@@ -95,7 +95,7 @@ func (o *StatusOptions) Run() (err error) {
 			if o.ShowMtime && !si.Mtime.IsZero() {
 				padding := ""
 				if len(line) < ColumnPositionForMtime {
-					padding = strings.Repeat(" ", ColumnPositionForMtime - len(line))
+					padding = strings.Repeat(" ", ColumnPositionForMtime-len(line))
 				}
 				line = fmt.Sprintf("%s%s%s", line, padding, si.Mtime.Format("2006-01-02 15:04:05"))
 			}

@@ -344,3 +344,15 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 
 	return nil
 }
+
+// DeleteComponents removes the list of named components from the given directory
+func DeleteComponents(removeList []string, fileMap map[string]FileStat, dirPath string) error {
+	for _, comp := range removeList {
+		removeFile := fileMap[comp].Path
+		// TODO(dlong): Collect errors and return them all, instead of bailing immediately
+		if err := os.Remove(removeFile); err != nil {
+			return err
+		}
+	}
+	return nil
+}

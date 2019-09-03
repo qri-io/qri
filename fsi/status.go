@@ -31,10 +31,10 @@ var (
 
 // StatusItem is a component that has status representation on the filesystem
 type StatusItem struct {
-	SourceFile string `json:"sourceFile"`
-	Component  string `json:"component"`
-	Type       string `json:"type"`
-	Message    string `json:"message"`
+	SourceFile string    `json:"sourceFile"`
+	Component  string    `json:"component"`
+	Type       string    `json:"type"`
+	Message    string    `json:"message"`
 	Mtime      time.Time `json:"mtime"`
 }
 
@@ -333,13 +333,13 @@ func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error)
 
 	fileMap := make(map[string]FileStat)
 	if next.Meta != nil {
-		fileMap["meta"] = FileStat{Path:"meta"}
+		fileMap["meta"] = FileStat{Path: "meta"}
 	}
 	if next.BodyPath != "" || next.BodyFile() != nil {
-		fileMap["body"] = FileStat{Path:"body"}
+		fileMap["body"] = FileStat{Path: "body"}
 	}
 	if next.Structure != nil && next.Structure.Schema != nil {
-		fileMap["schema"] = FileStat{Path:"schema"}
+		fileMap["schema"] = FileStat{Path: "schema"}
 	}
 	return fsi.CalculateStateTransition(prev, next, fileMap, nil)
 }

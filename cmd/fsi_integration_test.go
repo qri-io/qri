@@ -748,6 +748,106 @@ func TestRestorePreviousVersion(t *testing.T) {
 	}
 }
 
+// Test that restore deletes a component that didn't exist before
+func TestRestoreDeleteComponent(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_restore_delete_component")
+	defer fr.Delete()
+
+	// First version has only a body
+	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv me/del_cmp")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	_ = parseRefFromSave(fr.GetCommandOutput())
+
+	fr.ChdirToRoot()
+
+	// Checkout the newly created dataset.
+	if err := fr.ExecCommand("qri checkout me/del_cmp"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	workDir := fr.ChdirToWorkDir("del_cmp")
+
+	// Modify the body.json file.
+	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
+
+	// Modify meta.json by changing the title.
+	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Restore to get erase the meta component.
+	if err := fr.ExecCommand("qri restore meta"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "schema.json"}
+	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Status, check that the working directory has added files.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/del_cmp]
+
+  modified: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
+// Test that restore deletes a component if there was no previous version
+func TestRestoreWithNoHistory(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_restore_no_history")
+	defer fr.Delete()
+
+	workDir := fr.CreateAndChdirToWorkDir("new_folder")
+
+	// Init as a linked directory.
+	if err := fr.ExecCommand("qri init --name new_folder --format csv"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Restore to get erase the meta component.
+	if err := fr.ExecCommand("qri restore meta"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "schema.json"}
+	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Status, check that the working directory has added files.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/new_folder]
+
+  add: schema (source: schema.json)
+  add: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]
