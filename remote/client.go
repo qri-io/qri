@@ -257,9 +257,10 @@ func sigParams(pk crypto.PrivKey, ref repo.DatasetRef) (map[string]string, error
 	return map[string]string{
 		"peername":  ref.Peername,
 		"name":      ref.Name,
-		"profileId": pid,
+		"profileID": ref.ProfileID.String(),
 		"path":      ref.Path,
 
+		"pid":       pid,
 		"timestamp": now,
 		"signature": b64Sig,
 	}, nil
