@@ -15,6 +15,9 @@ import (
 
 // ProfileMethods encapsulates business logic for this node's
 // user profile
+// TODO (b5) - alterations to user profile are a subset of configuration
+// changes. all of this code should be refactored into subroutines of general
+// configuration getters & setters
 type ProfileMethods struct {
 	inst *Instance
 }

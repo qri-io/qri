@@ -81,7 +81,7 @@ func (m *ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) 
 	}
 
 	if err = update.Validate(); err != nil {
-		return fmt.Errorf("error validating config: %s", err)
+		return fmt.Errorf("validating config: %s", err)
 	}
 
 	return m.inst.ChangeConfig(update)
