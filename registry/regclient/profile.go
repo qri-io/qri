@@ -127,5 +127,11 @@ func (c Client) doJSONProfileReq(method string, p *registry.Profile) (*registry.
 		return nil, fmt.Errorf("registry: %s", env.Meta.Error)
 	}
 
+	// Peername is in the process of being deprecated
+	// We want to favor Username, which is what we are
+	// using in all our cloud services
+	// this ensures any old references to Peername will not
+	// be lost
+	env.Data.Peername = env.Data.Username
 	return env.Data, nil
 }

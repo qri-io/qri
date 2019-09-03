@@ -13,20 +13,22 @@ import (
 // TODO (b5) - this should be refactored to embed a config.Profile,
 // add password & key fields
 type Profile struct {
-	Created     time.Time
-	Username    string
-	Email       string
+	Created  time.Time `json:"created"`
+	Username string    `json:"username"`
+	// Deprecated use Username instead
+	Peername    string `json:"peername,omitempty"`
+	Email       string `json:"email"`
 	Password    string `json:",omitempty"`
-	Photo       string
-	Thumb       string
-	Name        string
-	Description string
-	HomeURL     string
-	Twitter     string
+	Photo       string `json:"photo"`
+	Thumb       string `json:"thumb"`
+	Name        string `json:"name"`
+	Description string `json:"description"`
+	HomeURL     string `json:"homeurl"`
+	Twitter     string `json:"twitter"`
 
-	ProfileID string
-	PublicKey string
-	Signature string
+	ProfileID string `json:"profileid"`
+	PublicKey string `json:"publickey"`
+	Signature string `json:"signature"`
 }
 
 // Validate is a sanity check that all required values are present
