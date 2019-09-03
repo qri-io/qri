@@ -20,7 +20,7 @@ import (
 var log = golog.Logger("remote")
 
 // Hook is a function
-type Hook func(ctx context.Context, ref repo.DatasetRef) error
+type Hook func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -117,7 +117,7 @@ func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*re
 
 // RemoveDatasetRef handles requests to remove a dataset
 func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string) error {
-	ref, err := r.refFromMeta(params)
+	pid, ref, err := r.pidAndRefFromMeta(params)
 	if err != nil {
 		return err
 	}
@@ -127,6 +127,12 @@ func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string)
 		if err == repo.ErrNotFound {
 			err = nil
 		} else {
+			return err
+		}
+	}
+
+	if r.datasetRemoved != nil {
+		if err := r.datasetRemoved(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -154,11 +160,11 @@ func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[strin
 	}
 
 	if r.acceptPushPreCheck != nil {
-		ref, err := r.refFromMeta(meta)
+		pid, ref, err := r.pidAndRefFromMeta(meta)
 		if err != nil {
 			return err
 		}
-		if err := r.acceptPushPreCheck(ctx, ref); err != nil {
+		if err := r.acceptPushPreCheck(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -168,11 +174,11 @@ func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[strin
 
 func (r *Remote) pushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.acceptPushFinalCheck != nil {
-		ref, err := r.refFromMeta(meta)
+		pid, ref, err := r.pidAndRefFromMeta(meta)
 		if err != nil {
 			return err
 		}
-		if err := r.acceptPushFinalCheck(ctx, ref); err != nil {
+		if err := r.acceptPushFinalCheck(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -181,7 +187,7 @@ func (r *Remote) pushFinalCheck(ctx context.Context, info dag.Info, meta map[str
 }
 
 func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
-	ref, err := r.refFromMeta(meta)
+	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		return err
 	}
@@ -195,7 +201,7 @@ func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[strin
 	}
 
 	if r.datasetPushed != nil {
-		if err = r.datasetPushed(ctx, ref); err != nil {
+		if err = r.datasetPushed(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -207,13 +213,13 @@ func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[strin
 }
 
 func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
-	ref, err := r.refFromMeta(meta)
+	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		return err
 	}
 
 	if r.datasetRemoved != nil {
-		if err = r.datasetRemoved(ctx, ref); err != nil {
+		if err = r.datasetRemoved(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -221,32 +227,33 @@ func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string
 }
 
 func (r *Remote) getDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
-	ref, err := r.refFromMeta(meta)
+	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		return err
 	}
 
 	if r.datasetPulled != nil {
-		if err = r.datasetPulled(ctx, ref); err != nil {
+		if err = r.datasetPulled(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func (r *Remote) refFromMeta(meta map[string]string) (repo.DatasetRef, error) {
-
+func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.DatasetRef, error) {
 	ref := repo.DatasetRef{
 		Peername: meta["peername"],
 		Name:     meta["name"],
 		Path:     meta["path"],
 	}
 
-	if pid, err := profile.IDB58Decode(meta["profileId"]); err == nil {
+	if pid, err := profile.IDB58Decode(meta["profileID"]); err == nil {
 		ref.ProfileID = pid
 	}
 
-	return ref, nil
+	pid, err := profile.IDB58Decode(meta["pid"])
+
+	return pid, ref, err
 }
 
 // DsyncHTTPHandler provides an http handler for dsync
