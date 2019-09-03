@@ -28,11 +28,11 @@ func (cfg Repo) Validate() error {
     "title": "Repo",
     "description": "Config for the qri repository",
     "type": "object",
-    "required": ["middleware", "type"],
+    "required": ["type"],
     "properties": {
       "middleware": {
         "description": "Middleware packages that need to be applied to the repo",
-        "type": "array",
+        "type": ["array", "null"],
         "items": {
           "type": "string"
         }
