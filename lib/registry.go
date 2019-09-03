@@ -3,6 +3,7 @@ package lib
 import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/registry"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // RegistryClientMethods defines business logic for working with registries
@@ -37,8 +38,7 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 	log.Errorf("create profile response: %v", pro)
 	*p = *pro
 
-	cfg := m.configChanges(pro)
-	return m.inst.ChangeConfig(cfg)
+	return m.updateConfig(pro)
 }
 
 // ProveProfileKey asserts to a registry that this user has control of a
@@ -56,8 +56,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 	log.Errorf("prove profile response: %v", pro)
 	*p = *pro
 
-	cfg := m.configChanges(pro)
-	return m.inst.ChangeConfig(cfg)
+	return m.updateConfig(pro)
 }
 
 func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Config {
@@ -73,4 +72,19 @@ func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Conf
 	cfg.Profile.Twitter = pro.Twitter
 
 	return cfg
+}
+
+func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
+	cfg := m.configChanges(pro)
+
+	// TODO (b5) - this should be automatically done by m.inst.ChangeConfig
+	repoPro, err := profile.NewProfile(cfg.Profile)
+	if err != nil {
+		return err
+	}
+	if err := m.inst.Repo().SetProfile(repoPro); err != nil {
+		return err
+	}
+
+	return m.inst.ChangeConfig(cfg)
 }
