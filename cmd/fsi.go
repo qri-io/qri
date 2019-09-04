@@ -54,6 +54,15 @@ type FSIOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
+	// TODO (b5): From dustmop: This is okay as a starting point, but we also want
+	// to add flags to explicitly set the directory and dataset-ref.
+	// Since the fsi command is "plumbing", we may actually want to require them,
+	// under the assumption that this is only for advanced use cases, and the UI
+	// doesn't need to be as friendly. In addition, a common use case is going to
+	// be a user deleted their dataset folder, and doesn't have access to the
+	// .qri-ref file any more, so they want to remove the entry from the .fbs,
+	// but don't have any access to the linked ref. In that case, relying on the
+	// implicit ref doesn't work.
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
 		return
 	}
@@ -64,7 +73,7 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 
 // Link creates a FSI link
 func (o *FSIOptions) Link() (err error) {
-	return fmt.Errorf("not finsihed: link")
+	return fmt.Errorf("not finished: link")
 }
 
 // Unlink executes the fsi unlink command
