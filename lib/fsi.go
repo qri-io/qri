@@ -228,11 +228,10 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	// TODO(dlong): Perhaps disallow empty Dir (without FSIPath override), since relative
 	// paths cause problems. Test using `qri connect`.
 
-	// Read the previous version of the dataset from the repo
-	var ds *dataset.Dataset
-	if ref.Path == "" {
-		ds = &dataset.Dataset{}
-	} else {
+	ds := &dataset.Dataset{}
+
+	if ref.Path != "" {
+		// Read the previous version of the dataset from the repo
 		ds, err = dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
@@ -249,15 +248,21 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 
 	removeComponents := []string{}
 
-	var history dataset.Dataset
-	history.Structure = &dataset.Structure{}
+	history := &dataset.Dataset{
+		Structure: &dataset.Structure{
+			// TODO(dlong): This assumes we have a version-less working directory, created by
+			// `qri init`, which by default starts with a body.csv file.
+			// TODO (b5): instead we should default to the empty string, or some other sentinel
+			// value for "unknown body format", which could be use to check all supported data
+			// format file extensions. eg: body.json, body.xlsx, body.csv, body.cbor
+			Format: "csv",
+		},
+	}
+
 	if ds.Structure != nil {
 		history.Structure.Format = ds.Structure.Format
-	} else {
-		// TODO(dlong): This assumes we have a version-less working directory, created by
-		// `qri init`, which by default starts with a body.csv file.
-		history.Structure.Format = "csv"
 	}
+
 	if p.Component == "" {
 		// Entire dataset.
 		history.Assign(ds)
@@ -304,7 +309,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	fsi.DeleteComponents(removeComponents, currFileMap, p.Dir)
 
 	// Write components of the dataset to the working directory.
-	return fsi.WriteComponents(&history, p.Dir)
+	return fsi.WriteComponents(history, p.Dir)
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for a given reference string
