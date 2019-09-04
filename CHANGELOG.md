@@ -1,4 +1,84 @@
-# [](https://github.com/qri-io/qri/compare/v0.8.1...v) (2019-06-25)
+# [0.9.0-alpha](https://github.com/qri-io/qri/compare/v0.8.2...v0.9.0-alpha) (2019-09-04)
+
+# Preparing for 0.9.0
+We're not quite ready to put the seal-of-approval on 0.9.0, but it's been more than a few months since we cut a relase. This alpha-edition splits the difference while we prepare for a full & proper 0.9.0. The forthcoming big ticket item will be _File System Integration_ [(RFC0025)](https://github.com/qri-io/rfcs/blob/master/text/0025-filesystem-integration.md), which dramatically simplifies the story around integrating with a version-controlled dataset.
+
+So while this isn't a proper release, the changelog gives a feel for just how much work is included this go-round. More soon!
+
+### Bug Fixes
+
+* **api:** body requests honor full references ([335d2a4](https://github.com/qri-io/qri/commit/335d2a4))
+* **api:** lowercase StatusItem when serialized to JSON ([e1790c9](https://github.com/qri-io/qri/commit/e1790c9))
+* **api:** report proper publish status on dataset get ([2242fb7](https://github.com/qri-io/qri/commit/2242fb7))
+* **api:** support stored status requests to /dsstatus ([880a7a3](https://github.com/qri-io/qri/commit/880a7a3))
+* **api status, body, get:** fsi=true endpoints should not care if there is no history ([0c7649f](https://github.com/qri-io/qri/commit/0c7649f))
+* **cfg:** Better error messages when validating config ([6ee7355](https://github.com/qri-io/qri/commit/6ee7355))
+* **checkout:** absolutize FSI link creation paths ([64c3b41](https://github.com/qri-io/qri/commit/64c3b41))
+* **cmd:** print export info using o.Out ([3bfec29](https://github.com/qri-io/qri/commit/3bfec29))
+* **config:** change default registry location to https://registry.qri.cloud ([7d2248a](https://github.com/qri-io/qri/commit/7d2248a))
+* **config:** relax repo config validation, make rpc work ([0d16d32](https://github.com/qri-io/qri/commit/0d16d32))
+* **connect:** Handle error gracefully when already connected ([4770bde](https://github.com/qri-io/qri/commit/4770bde))
+* **diff:** Better error when diffing a dataset with only 1 version ([0a90ab9](https://github.com/qri-io/qri/commit/0a90ab9))
+* **diff:** Diff works for linked working directories ([d352e44](https://github.com/qri-io/qri/commit/d352e44))
+* **ds:** Update dataset gomod, fix tests for change that omits errCount ([a99727b](https://github.com/qri-io/qri/commit/a99727b))
+* **fill:** Error message consistency ([3b5470b](https://github.com/qri-io/qri/commit/3b5470b))
+* **fsi:** body.csv files, set structure.format, don't crash in save ([1d83254](https://github.com/qri-io/qri/commit/1d83254))
+* **fsi:** canonicalize alias before fetching ([073c640](https://github.com/qri-io/qri/commit/073c640))
+* **fsi:** Cleanup error handling and some if statements ([2feb0ab](https://github.com/qri-io/qri/commit/2feb0ab))
+* **fsi:** Ensure api does not send 500s for datasets without history ([6193c5f](https://github.com/qri-io/qri/commit/6193c5f))
+* **fsi:** Marshal timestamps consistently to fix tests ([4733d9d](https://github.com/qri-io/qri/commit/4733d9d))
+* **fsi:** Multiple bug fixes, unit tests. ([f483d95](https://github.com/qri-io/qri/commit/f483d95))
+* **fsi:** Proper handling for fsi status with null datasets ([29606ea](https://github.com/qri-io/qri/commit/29606ea))
+* **fsi:** serialize link json to lowerCamelCase ([9b8bb8d](https://github.com/qri-io/qri/commit/9b8bb8d))
+* **fsi save:** fix fsi not accepting values from API ([8fca975](https://github.com/qri-io/qri/commit/8fca975))
+* **lib:** profileMethods need to persist their changes ([ab4296a](https://github.com/qri-io/qri/commit/ab4296a))
+* **publish:** sync refstore publication flag to remote publication ([a969b9a](https://github.com/qri-io/qri/commit/a969b9a))
+* **regclient.Profile:** Profile struct has field formatting details when marshalling to json ([e3f0238](https://github.com/qri-io/qri/commit/e3f0238))
+* **registry:** update repo profile on successful registration ([fcdfc05](https://github.com/qri-io/qri/commit/fcdfc05))
+* **repo:** Error for accessing datasets with no history ([aa4dbb6](https://github.com/qri-io/qri/commit/aa4dbb6))
+* **restore:** Restore will delete components that didn’t exist in previous version ([7f64f85](https://github.com/qri-io/qri/commit/7f64f85))
+* **status:** Parse errors should also be shown for schema ([271b837](https://github.com/qri-io/qri/commit/271b837))
+* **status:** Status displays parse errors, instead of bailing out ([6e5cde7](https://github.com/qri-io/qri/commit/6e5cde7))
+* **unlinked status:** show status on unlinked datasets ([e7f561b](https://github.com/qri-io/qri/commit/e7f561b))
+* **use:** Fix `qri get` with no args bug. Bump version. ([aaf295e](https://github.com/qri-io/qri/commit/aaf295e))
+* **use:** Move `use` up to cmd/ from lib/. Delete select from repo/ ([8286730](https://github.com/qri-io/qri/commit/8286730))
+* **validate:** Validate works with FSI. Various FSI cleanups. ([64c1ce1](https://github.com/qri-io/qri/commit/64c1ce1))
+
+
+### Features
+
+* **api:** add checkout endpoint ([18980f9](https://github.com/qri-io/qri/commit/18980f9))
+* **api:** add fsilinks endpoint for debugging fsi ([f319452](https://github.com/qri-io/qri/commit/f319452))
+* **api:** init fsi endpoint ([7613302](https://github.com/qri-io/qri/commit/7613302))
+* **api.FSI:** initial FSI api methods ([63e57a3](https://github.com/qri-io/qri/commit/63e57a3))
+* **checkout:** Checkout creates a linked directory from the repo ([be4d3eb](https://github.com/qri-io/qri/commit/be4d3eb))
+* **cmd:** add fsi plumbing subcommand ([4d12de8](https://github.com/qri-io/qri/commit/4d12de8))
+* **fsi:** add fsi body api handler ([ea7069c](https://github.com/qri-io/qri/commit/ea7069c))
+* **fsi:** add save via fsi endpoint ([7ed6439](https://github.com/qri-io/qri/commit/7ed6439))
+* **fsi:** link flatbuffer serialization ([71e9ff8](https://github.com/qri-io/qri/commit/71e9ff8))
+* **fsi:** Package fsi defines qri file system integration ([0214d2f](https://github.com/qri-io/qri/commit/0214d2f))
+* **fsi:** read fsi-linked dataset ([74705ac](https://github.com/qri-io/qri/commit/74705ac))
+* **fsi:** Remove GetDatasetRefString, use RefSelect everywhere ([4b1edc6](https://github.com/qri-io/qri/commit/4b1edc6))
+* **init:** qri init binds a directory to a dataset selection ([8e5a203](https://github.com/qri-io/qri/commit/8e5a203))
+* **ipfs_http:** support for ipfs_http store ([aaf7d0a](https://github.com/qri-io/qri/commit/aaf7d0a))
+* **lib:** add extra options to make NewInstance work in test settings ([b67dcff](https://github.com/qri-io/qri/commit/b67dcff))
+* **qri-ref:** Cleanup return values, use varName package ([d3b8688](https://github.com/qri-io/qri/commit/d3b8688))
+* **qri-ref:** Commands to link a working directory to a dataset ([93c50c2](https://github.com/qri-io/qri/commit/93c50c2))
+* **registry:** sync local profile details on successful signup ([d184f98](https://github.com/qri-io/qri/commit/d184f98))
+* **remote:** add support for ref removes ([e2a6d3a](https://github.com/qri-io/qri/commit/e2a6d3a))
+* **replace-save dataset:** support dataset save without patching from prior verion ([9906727](https://github.com/qri-io/qri/commit/9906727))
+* **restore:** Add api for restore. Test for checkout and restore apis. ([d1d9670](https://github.com/qri-io/qri/commit/d1d9670))
+* **restore:** Restore command for restoring component files in FSI ([620d95d](https://github.com/qri-io/qri/commit/620d95d))
+* **status:** add initial status check func ([e3eb1c1](https://github.com/qri-io/qri/commit/e3eb1c1))
+* **status:** FSI status include file mtime. Requires flag for cmdline. ([2ccffd6](https://github.com/qri-io/qri/commit/2ccffd6))
+* **status:** report removed files in qri status ([e5c7fde](https://github.com/qri-io/qri/commit/e5c7fde))
+* **status:** Status at a specific dataset version, historical changes ([cbc108c](https://github.com/qri-io/qri/commit/cbc108c))
+* **status:** Status UI. RefSelect to simplify handling references in cmd ([21f547a](https://github.com/qri-io/qri/commit/21f547a))
+* **unpublish:** support both publish & unpublish, expand remote behaviour ([f23f467](https://github.com/qri-io/qri/commit/f23f467))
+
+
+
+# [0.8.2](https://github.com/qri-io/qri/compare/v0.8.1...v0.8.2) (2019-06-25)
 
 
 Version 0.8.2 is a patch release that improves qri's command-line client in numerous small ways
