@@ -216,7 +216,8 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	if err != nil {
 		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
 	}
-	if err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref); err != nil {
+	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref)
+	if err != nil && err != repo.ErrNoHistory {
 		return
 	}
 
@@ -227,18 +228,41 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	// TODO(dlong): Perhaps disallow empty Dir (without FSIPath override), since relative
 	// paths cause problems. Test using `qri connect`.
 
-	ds, err := dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
+	ds := &dataset.Dataset{}
+
+	if ref.Path != "" {
+		// Read the previous version of the dataset from the repo
+		ds, err = dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %s", err)
+		}
+		if err = base.OpenDataset(m.inst.node.Repo.Filesystem(), ds); err != nil {
+			return
+		}
+	}
+
+	current, currFileMap, _, err := fsi.ReadDir(p.Dir)
 	if err != nil {
-		return fmt.Errorf("loading dataset: %s", err)
+		return err
 	}
 
-	if err = base.OpenDataset(m.inst.node.Repo.Filesystem(), ds); err != nil {
-		return
+	removeComponents := []string{}
+
+	history := &dataset.Dataset{
+		Structure: &dataset.Structure{
+			// TODO(dlong): This assumes we have a version-less working directory, created by
+			// `qri init`, which by default starts with a body.csv file.
+			// TODO (b5): instead we should default to the empty string, or some other sentinel
+			// value for "unknown body format", which could be use to check all supported data
+			// format file extensions. eg: body.json, body.xlsx, body.csv, body.cbor
+			Format: "csv",
+		},
 	}
 
-	var history dataset.Dataset
-	history.Structure = &dataset.Structure{}
-	history.Structure.Format = ds.Structure.Format
+	if ds.Structure != nil {
+		history.Structure.Format = ds.Structure.Format
+	}
+
 	if p.Component == "" {
 		// Entire dataset.
 		history.Assign(ds)
@@ -246,30 +270,46 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 		// Meta component.
 		history.Meta = &dataset.Meta{}
 		history.Meta.Assign(ds.Meta)
+		if current.Meta != nil && !current.Meta.IsEmpty() && (ds.Meta == nil || ds.Meta.IsEmpty()) {
+			removeComponents = append(removeComponents, "meta")
+		}
 	} else if p.Component == "schema" || p.Component == "structure.schema" {
 		// Schema is not a "real" component, is short for the structure's schema.
-		history.Structure.Schema = ds.Structure.Schema
+		if ds.Structure != nil {
+			history.Structure.Schema = ds.Structure.Schema
+		}
+		if len(current.Structure.Schema) > 0 && (ds.Structure == nil || len(ds.Structure.Schema) == 0) {
+			removeComponents = append(removeComponents, "schema")
+		}
 	} else if p.Component == "body" {
 		// Body of the dataset.
-		df, err := dataset.ParseDataFormatString(history.Structure.Format)
-		if err != nil {
-			return err
+		// This check for ref.Path is equivilant to making sure there's a previous version.
+		if ref.Path != "" {
+			df, err := dataset.ParseDataFormatString(history.Structure.Format)
+			if err != nil {
+				return err
+			}
+			fcfg, err := dataset.ParseFormatConfigMap(df, map[string]interface{}{})
+			if err != nil {
+				return err
+			}
+			bufData, err := actions.GetBody(m.inst.node, ds, df, fcfg, -1, -1, true)
+			if err != nil {
+				return err
+			}
+			history.SetBodyFile(qfs.NewMemfileBytes("body", bufData))
+		} else {
+			removeComponents = append(removeComponents, "body")
 		}
-		fcfg, err := dataset.ParseFormatConfigMap(df, map[string]interface{}{})
-		if err != nil {
-			return err
-		}
-		bufData, err := actions.GetBody(m.inst.node, ds, df, fcfg, -1, -1, true)
-		if err != nil {
-			return err
-		}
-		history.SetBodyFile(qfs.NewMemfileBytes("body", bufData))
 	} else {
 		return fmt.Errorf("Unknown component name \"%s\"", p.Component)
 	}
 
+	// Delete components that exist in the working directory but did not exist in previous version.
+	fsi.DeleteComponents(removeComponents, currFileMap, p.Dir)
+
 	// Write components of the dataset to the working directory.
-	return fsi.WriteComponents(&history, p.Dir)
+	return fsi.WriteComponents(history, p.Dir)
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for a given reference string
