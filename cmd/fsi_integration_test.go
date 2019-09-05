@@ -848,6 +848,62 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test using "init" with a source body path
+func TestInitWithSourceBodyPath(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_init_source_body_path")
+	defer fr.Delete()
+
+	sourceFile, err := filepath.Abs("testdata/days_of_week.csv")
+	if err != nil {
+		panic(err)
+	}
+
+	workDir := fr.CreateAndChdirToWorkDir("init_source")
+
+	// Init with a source body path.
+	if err := fr.ExecCommand(fmt.Sprintf("qri init --name init_source --source-body-path %s", sourceFile)); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Status, check that the working directory has added files.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/init_source]
+
+  add: meta (source: meta.json)
+  add: schema (source: schema.json)
+  add: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Read body.csv
+	actualBody, err := ioutil.ReadFile("body.csv")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	expectBody, err := ioutil.ReadFile(sourceFile)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("meta.json contents (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]

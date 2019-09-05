@@ -12,24 +12,25 @@ import (
 
 // InitParams encapsulates parameters for fsi.InitDataset
 type InitParams struct {
-	Filepath string
-	Name     string
-	Format   string
+	Dir            string
+	Name           string
+	Format         string
+	SourceBodyPath string
 }
 
 // InitDataset creates a new dataset
 func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
-	if p.Filepath == "" {
-		return "", fmt.Errorf("filepath is required to initialize a dataset")
+	if p.Dir == "" {
+		return "", fmt.Errorf("directory is required to initialize a dataset")
 	}
 
-	if fi, err := os.Stat(p.Filepath); err != nil {
+	if fi, err := os.Stat(p.Dir); err != nil {
 		return "", err
 	} else if !fi.IsDir() {
-		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Filepath)
+		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
 
-	if err = canInitDir(p.Filepath); err != nil {
+	if err = canInitDir(p.Dir); err != nil {
 		return "", err
 	}
 
@@ -42,13 +43,21 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", fmt.Errorf("a dataset with the name %s already exists in your repo", ref)
 	}
 
+	// Derive format from --source-body-path if provided.
+	if p.Format == "" && p.SourceBodyPath != "" {
+		ext := filepath.Ext(p.SourceBodyPath)
+		if len(ext) > 0 {
+			p.Format = ext[1:]
+		}
+	}
+
 	// Validate dataset format
 	if p.Format != "csv" && p.Format != "json" {
 		return "", fmt.Errorf("invalid format \"%s\", only \"csv\" and \"json\" accepted", p.Format)
 	}
 
 	// Create the link file, containing the dataset reference.
-	if name, err = fsi.CreateLink(p.Filepath, ref.AliasString()); err != nil {
+	if name, err = fsi.CreateLink(p.Dir, ref.AliasString()); err != nil {
 		return name, err
 	}
 
@@ -60,7 +69,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		"homeURL": ""
 	}
 	`)
-	if err := ioutil.WriteFile(filepath.Join(p.Filepath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(p.Dir, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
 		return name, err
 	}
 
@@ -98,23 +107,31 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 	data, err = json.MarshalIndent(schema, "", " ")
-	if err := ioutil.WriteFile(filepath.Join(p.Filepath, "schema.json"), data, os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(p.Dir, "schema.json"), data, os.ModePerm); err != nil {
 		return name, err
 	}
 
-	// Create a skeleton body file.
-	if p.Format == "csv" {
-		bodyText := "one,two,3\nfour,five,6"
-		if err := ioutil.WriteFile(filepath.Join(p.Filepath, "body.csv"), []byte(bodyText), os.ModePerm); err != nil {
-			return name, err
-		}
-	} else if p.Format == "json" {
-		bodyText := `{
+	var bodyBytes []byte
+	if p.SourceBodyPath == "" {
+		// Create a skeleton body file.
+		if p.Format == "csv" {
+			bodyBytes = []byte("one,two,3\nfour,five,6")
+		} else if p.Format == "json" {
+			bodyBytes = []byte(`{
   "key": "value"
-}`
-		if err := ioutil.WriteFile(filepath.Join(p.Filepath, "body.json"), []byte(bodyText), os.ModePerm); err != nil {
-			return name, err
+}`)
+		} else {
+			return "", fmt.Errorf("unknown body format %s", p.Format)
 		}
+	} else {
+		// Create body file by reading the sourcefile.
+		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
+			return "", err
+		}
+	}
+	bodyFilename := filepath.Join(p.Dir, fmt.Sprintf("body.%s", p.Format))
+	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
+		return "", err
 	}
 
 	return name, err

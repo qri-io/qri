@@ -30,6 +30,7 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 
 	cmd.Flags().StringVar(&o.Name, "name", "", "name of the dataset")
 	cmd.Flags().StringVar(&o.Format, "format", "", "format of dataset")
+	cmd.Flags().StringVar(&o.SourceBodyPath, "source-body-path", "", "path to the body file")
 
 	return cmd
 }
@@ -38,8 +39,9 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 type InitOptions struct {
 	ioes.IOStreams
 
-	Name   string
-	Format string
+	Name           string
+	Format         string
+	SourceBodyPath string
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -72,9 +74,10 @@ func (o *InitOptions) Run() (err error) {
 	}
 
 	p := &lib.InitFSIDatasetParams{
-		Filepath: pwd,
-		Format:   o.Format,
-		Name:     o.Name,
+		Dir:            pwd,
+		Format:         o.Format,
+		Name:           o.Name,
+		SourceBodyPath: o.SourceBodyPath,
 	}
 	var name string
 	if err = o.FSIMethods.InitDataset(p, &name); err != nil {
