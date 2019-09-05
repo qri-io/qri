@@ -121,7 +121,7 @@ func TestNoHistory(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	// Handle tempoary directory by replacing the temp part with a shorter string.
+	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, initDir, initSubdir, -1)
 	expectBody = `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"describe","type":"string"},{"title":"quantity","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
@@ -165,7 +165,7 @@ func TestNoHistory(t *testing.T) {
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
-	// Handle tempoary directory by replacing the temp part with a shorter string.
+	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody = strings.Replace(actualBody, initDir, initSubdir, -1)
 	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, schemaMtime, bodyMtime)
@@ -273,8 +273,31 @@ func TestCheckoutAndRestore(t *testing.T) {
 	}
 
 	// Overwrite meta so it has a different title
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile(filepath.Join(workDir, "meta.json"), []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
+	}
+
+	// Get mtimes for the component files
+	st, _ := os.Stat(filepath.Join(workDir, "meta.json"))
+	metaMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(workDir, "dataset.json"))
+	datasetMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(workDir, "schema.json"))
+	schemaMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(workDir, "body.csv"))
+	bodyMtime := st.ModTime().Format(time.RFC3339)
+
+	// Status should show that meta is modified
+	actualStatusCode, actualBody = APICall("/status/peer/fsi_checkout_restore?fsi=true", fsiHandler.StatusHandler("/status"))
+	if actualStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	}
+	// Handle temporary directory by replacing the temp part with a shorter string.
+	resultBody := strings.Replace(actualBody, workDir, "", -1)
+	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/dataset.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/schema.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, datasetMtime, schemaMtime, bodyMtime)
+	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	// Restore the meta component
