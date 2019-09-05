@@ -113,20 +113,24 @@ func (c *Client) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAd
 	if c == nil {
 		return ErrNoRemoteClient
 	}
+	log.Debugf("pulling dataset: %s from %s", ref.String(), remoteAddr)
 
 	if ref.Path == "" {
 		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
+			log.Errorf("resolving head ref: %s", err.Error())
 			return err
 		}
 	}
 
 	params, err := sigParams(c.pk, *ref)
 	if err != nil {
+		log.Error("generating sig params: ", err)
 		return err
 	}
 
 	pull, err := c.ds.NewPull(ref.Path, remoteAddr+"/remote/dsync", params)
 	if err != nil {
+		log.Error("creating pull: ", err)
 		return err
 	}
 

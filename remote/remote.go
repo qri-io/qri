@@ -229,11 +229,13 @@ func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string
 func (r *Remote) getDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
+		log.Errorf("ref from meta: %s", err.Error())
 		return err
 	}
 
 	if r.datasetPulled != nil {
 		if err = r.datasetPulled(ctx, pid, ref); err != nil {
+			log.Errorf("dataset pulled hook: %s", err.Error())
 			return err
 		}
 	}
@@ -247,7 +249,7 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.Dat
 		Path:     meta["path"],
 	}
 
-	if pid, err := profile.IDB58Decode(meta["profileID"]); err == nil {
+	if pid, decErr := profile.IDB58Decode(meta["profileID"]); decErr == nil {
 		ref.ProfileID = pid
 	}
 
