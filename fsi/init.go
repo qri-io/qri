@@ -15,6 +15,7 @@ type InitParams struct {
 	Dir            string
 	Name           string
 	Format         string
+	Mkdir          string
 	SourceBodyPath string
 }
 
@@ -30,7 +31,22 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
 
-	if err = canInitDir(p.Dir); err != nil {
+	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go
+
+	// Either use an existing directory, or create one at the given directory.
+	var targetPath string
+	if p.Mkdir == "" {
+		targetPath = p.Dir
+	} else {
+		targetPath = filepath.Join(p.Dir, p.Mkdir)
+		// Create the directory. It is not an error for the directory to already exist, as long
+		// as it is not already linked, which is checked below.
+		if err := os.Mkdir(targetPath, os.ModePerm); err != nil {
+			return "", err
+		}
+	}
+
+	if err = canInitDir(targetPath); err != nil {
 		return "", err
 	}
 
@@ -57,7 +73,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	// Create the link file, containing the dataset reference.
-	if name, err = fsi.CreateLink(p.Dir, ref.AliasString()); err != nil {
+	if name, err = fsi.CreateLink(targetPath, ref.AliasString()); err != nil {
 		return name, err
 	}
 
@@ -69,7 +85,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		"homeURL": ""
 	}
 	`)
-	if err := ioutil.WriteFile(filepath.Join(p.Dir, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(targetPath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
 		return name, err
 	}
 
@@ -107,7 +123,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 	data, err = json.MarshalIndent(schema, "", " ")
-	if err := ioutil.WriteFile(filepath.Join(p.Dir, "schema.json"), data, os.ModePerm); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(targetPath, "schema.json"), data, os.ModePerm); err != nil {
 		return name, err
 	}
 
@@ -129,7 +145,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 			return "", err
 		}
 	}
-	bodyFilename := filepath.Join(p.Dir, fmt.Sprintf("body.%s", p.Format))
+	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
 	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
 		return "", err
 	}
