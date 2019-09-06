@@ -115,6 +115,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			Dir:            dir,
 			Name:           r.FormValue("name"),
 			Format:         r.FormValue("format"),
+			Mkdir:          r.FormValue("mkdir"),
 			SourceBodyPath: r.FormValue("sourcebodypath"),
 		}
 
