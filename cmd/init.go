@@ -23,7 +23,9 @@ func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			"group": "dataset",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			o.Complete(f)
+			if err := o.Complete(f, args); err != nil {
+				return err
+			}
 			return o.Run()
 		},
 	}
@@ -42,17 +44,21 @@ type InitOptions struct {
 	Name           string
 	Format         string
 	SourceBodyPath string
+	Mkdir          string
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
 }
 
 // Complete completes a dataset reference
-func (o *InitOptions) Complete(f Factory) (err error) {
+func (o *InitOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return err
 	}
 	o.FSIMethods, err = f.FSIMethods()
+	if len(args) > 0 && args[0] != "." {
+		o.Mkdir = args[0]
+	}
 	return err
 }
 
@@ -63,9 +69,14 @@ func (o *InitOptions) Run() (err error) {
 		return err
 	}
 
-	// Suggestion for the dataset name defaults to the name of the current directory.
+	// Suggestion for the dataset name defaults to directory it is being linked into
 	if o.Name == "" {
-		suggestedName := varName.CreateVarNameFromString(filepath.Base(pwd))
+		var suggestedName string
+		if o.Mkdir == "" {
+			suggestedName = varName.CreateVarNameFromString(filepath.Base(pwd))
+		} else {
+			suggestedName = varName.CreateVarNameFromString(o.Mkdir)
+		}
 		o.Name = inputText(o.ErrOut, o.In, "Name of new dataset", suggestedName)
 	}
 
@@ -75,6 +86,7 @@ func (o *InitOptions) Run() (err error) {
 
 	p := &lib.InitFSIDatasetParams{
 		Dir:            pwd,
+		Mkdir:          o.Mkdir,
 		Format:         o.Format,
 		Name:           o.Name,
 		SourceBodyPath: o.SourceBodyPath,

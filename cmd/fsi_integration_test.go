@@ -904,6 +904,47 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test init with a directory will create that directory
+func TestInitWithDirectory(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_init_with_directory")
+	defer fr.Delete()
+
+	fr.ChdirToRoot()
+
+	// Init with a directory to create.
+	if err := fr.ExecCommand(fmt.Sprintf("qri init init_dir --name init_dir --format csv")); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Directory has been created by `qri init`
+	workDir := fr.ChdirToWorkDir("init_dir")
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Status, check that the working directory has added files.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/init_dir]
+
+  add: meta (source: meta.json)
+  add: schema (source: schema.json)
+  add: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]
