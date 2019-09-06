@@ -22,7 +22,7 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		return nil, fmt.Errorf("no body found")
 	}
 
-	f, err := os.Open(filepath.Join(dirPath, bodyFileStat.Path))
+	f, err := os.Open(bodyFileStat.Path)
 	if err != nil {
 		return nil, err
 	}

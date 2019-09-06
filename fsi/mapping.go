@@ -11,6 +11,8 @@ import (
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/dataset/dsio"
 )
 
 const (
@@ -90,14 +92,39 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 		bodyFormat = "json"
 	}
 
-	bodyFilename := ""
+	bodyFilepath := ""
 	if bodyFormat != "" {
-		bodyFilename = fmt.Sprintf("body.%s", bodyFormat)
-		if err = addFile(componentNameBody, bodyFilename, mtime); err != nil {
+		bodyFilepath = filepath.Join(dir, fmt.Sprintf("body.%s", bodyFormat))
+		if err != nil {
 			return ds, fileMap, problems, err
 		}
-		if ds.BodyPath == "" {
-			ds.BodyPath = filepath.Join(dir, bodyFilename)
+		bodyOkay := false
+		file, err := os.Open(bodyFilepath)
+		if err == nil {
+			// Read each entry of the body.
+			entries, err := OpenEntryReader(file, bodyFormat)
+			if err == nil {
+				err = dsio.EachEntry(entries, func(int, dsio.Entry, error) error { return nil })
+				if err == nil {
+					bodyOkay = true
+				}
+			}
+		}
+		err = nil
+		if bodyOkay {
+			// If body parsed okay, add the body component.
+			if err = addFile(componentNameBody, bodyFilepath, mtime); err != nil {
+				return ds, fileMap, problems, err
+			}
+			if ds.BodyPath == "" {
+				ds.BodyPath = bodyFilepath
+			}
+		} else {
+			// Else, record a problem.
+			if problems == nil {
+				problems = make(map[string]FileStat)
+			}
+			problems[componentNameBody] = FileStat{Path: bodyFilepath, Mtime: mtime}
 		}
 	}
 
@@ -355,4 +382,20 @@ func DeleteComponents(removeList []string, fileMap map[string]FileStat, dirPath 
 		}
 	}
 	return nil
+}
+
+// OpenEntryReader opens a entry reader for the file, determining the schema automatically
+func OpenEntryReader(file *os.File, format string) (dsio.EntryReader, error) {
+	st := dataset.Structure{Format: format}
+	schema, _, err := detect.Schema(&st, file)
+	if err != nil {
+		return nil, err
+	}
+	file.Seek(0, 0)
+	st.Schema = schema
+	entries, err := dsio.NewEntryReader(&st, file)
+	if err != nil {
+		return nil, err
+	}
+	return entries, nil
 }
