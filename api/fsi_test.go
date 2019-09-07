@@ -167,7 +167,7 @@ func TestNoHistory(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody = strings.Replace(actualBody, initDir, initSubdir, -1)
-	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/schema.json","component":"schema","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, schemaMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
@@ -294,7 +294,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, workDir, "", -1)
-	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/dataset.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/schema.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/dataset.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/schema.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, datasetMtime, schemaMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)

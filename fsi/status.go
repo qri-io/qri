@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"sort"
 	"time"
 
@@ -134,7 +133,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 
 	// Set body file from local filesystem.
 	if bodyStat, ok := fileMap[componentNameBody]; ok {
-		bf, err := os.Open(filepath.Join(dir, bodyStat.Path))
+		bf, err := os.Open(bodyStat.Path)
 		if err != nil {
 			return nil, err
 		}

@@ -446,6 +446,49 @@ fix these problems before saving this dataset
 	}
 }
 
+// Test that status displays parse errors even for the body component
+func TestBodyParseError(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_status_parse_error")
+	defer fr.Delete()
+
+	// Save a dataset containing a body.json and meta component
+	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json --file=testdata/movies/meta_override.yaml me/bad_body")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Change to a temporary directory.
+	fr.ChdirToRoot()
+
+	// Checkout the newly created dataset.
+	if err = fr.ExecCommand("qri checkout me/bad_body"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	_ = fr.ChdirToWorkDir("bad_body")
+
+	// Modify the meta.json so that it fails to parse.
+	if err = ioutil.WriteFile("body.json", []byte(`{"title": "hello}`), os.ModePerm); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// Status, check that status shows the parse error.
+	if err = fr.ExecCommand("qri status"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/bad_body]
+
+  parse error: body (source: body.json)
+
+fix these problems before saving this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
 // Test that parse errors are also properly shown for schema.
 func TestStatusParseErrorForSchema(t *testing.T) {
 	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_schema")
