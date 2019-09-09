@@ -108,11 +108,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 				err = dsio.EachEntry(entries, func(int, dsio.Entry, error) error { return nil })
 				if err == nil {
 					bodyOkay = true
-					if entries.Structure().Schema["type"] == "object" {
-						bodyBaseSchema = dataset.BaseSchemaObject
-					} else {
-						bodyBaseSchema = dataset.BaseSchemaArray
-					}
+					bodyBaseSchema = entries.Structure().Schema
 				}
 			}
 		}
