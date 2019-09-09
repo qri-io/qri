@@ -120,7 +120,7 @@ func TestInitStatusSave(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
 	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -134,7 +134,6 @@ func TestInitStatusSave(t *testing.T) {
 	expect := `for linked dataset [test_peer/brand_new]
 
   add: meta (source: meta.json)
-  add: schema (source: schema.json)
   add: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
@@ -868,7 +867,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "schema.json"}
+	expectContents := []string{".qri-ref", "body.csv"}
 	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -881,7 +880,6 @@ func TestRestoreWithNoHistory(t *testing.T) {
 	output := fr.GetCommandOutput()
 	expect := `for linked dataset [test_peer/new_folder]
 
-  add: schema (source: schema.json)
   add: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
@@ -910,7 +908,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
 	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -924,7 +922,6 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 	expect := `for linked dataset [test_peer/init_source]
 
   add: meta (source: meta.json)
-  add: schema (source: schema.json)
   add: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset
@@ -964,7 +961,7 @@ func TestInitWithDirectory(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
 	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
@@ -978,7 +975,6 @@ func TestInitWithDirectory(t *testing.T) {
 	expect := `for linked dataset [test_peer/init_dir]
 
   add: meta (source: meta.json)
-  add: schema (source: schema.json)
   add: body (source: body.csv)
 
 run ` + "`qri save`" + ` to commit this dataset

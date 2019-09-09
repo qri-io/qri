@@ -93,6 +93,7 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 	}
 
 	bodyFilepath := ""
+	var bodyBaseSchema map[string]interface{}
 	if bodyFormat != "" {
 		bodyFilepath = filepath.Join(dir, fmt.Sprintf("body.%s", bodyFormat))
 		if err != nil {
@@ -107,6 +108,11 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 				err = dsio.EachEntry(entries, func(int, dsio.Entry, error) error { return nil })
 				if err == nil {
 					bodyOkay = true
+					if entries.Structure().Schema["type"] == "object" {
+						bodyBaseSchema = dataset.BaseSchemaObject
+					} else {
+						bodyBaseSchema = dataset.BaseSchemaArray
+					}
 				}
 			}
 		}
@@ -206,9 +212,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 						ds.Structure = &dataset.Structure{}
 					}
 					ds.Structure.Schema = *cmp.(*map[string]interface{})
-					if ds.Structure.Format == "" {
-						ds.Structure.Format = bodyFormat
-					}
 				case componentNameViz:
 					ds.Viz = cmp.(*dataset.Viz)
 				case componentNameTransform:
@@ -219,6 +222,20 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 					}
 				}
 			}
+		}
+	}
+
+	// A very special hack for when the body implies a format, but there's no schema, and
+	// therefore no structure.
+	if bodyFormat != "" {
+		if ds.Structure == nil {
+			ds.Structure = &dataset.Structure{}
+		}
+		if ds.Structure.Format == "" {
+			ds.Structure.Format = bodyFormat
+		}
+		if len(ds.Structure.Schema) == 0 {
+			ds.Structure.Schema = bodyBaseSchema
 		}
 	}
 
