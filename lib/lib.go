@@ -28,6 +28,7 @@ import (
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
+	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
@@ -316,7 +317,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.registry == nil {
-		inst.registry = newRegClient(cfg)
+		inst.registry = newRegClient(ctx, cfg)
 	}
 
 	if o.repo != nil {
@@ -429,13 +430,27 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 	}
 }
 
-func newRegClient(cfg *config.Config) (rc *regclient.Client) {
-	if cfg.Registry != nil && cfg.Registry.Location != "" {
-		rc = regclient.NewClient(&regclient.Config{
-			Location: cfg.Registry.Location,
-		})
+func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client) {
+	if cfg.Registry != nil {
+		switch cfg.Registry.Location {
+		case "mock":
+			cli, server := regmock.NewMockServerRegistry(regmock.NewMemRegistry())
+			log.Infof("mock registry serving at: '%s'", server.URL)
+			go func() {
+				<-ctx.Done()
+				server.Close()
+			}()
+			return cli
+		case "":
+			return rc
+		default:
+			return regclient.NewClient(&regclient.Config{
+				Location: cfg.Registry.Location,
+			})
+		}
 	}
-	return
+
+	return nil
 }
 
 func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo, err error) {
