@@ -1,7 +1,6 @@
 package fsi
 
 import (
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -86,44 +85,6 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 	`)
 	if err := ioutil.WriteFile(filepath.Join(targetPath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
-		return name, err
-	}
-
-	var (
-		schema map[string]interface{}
-		data   []byte
-	)
-	if p.Format == "csv" {
-		schema = map[string]interface{}{
-			"type": "array",
-			"items": map[string]interface{}{
-				"type": "array",
-				"items": []interface{}{
-					// First column
-					map[string]interface{}{
-						"type":  "string",
-						"title": "name",
-					},
-					// Second column
-					map[string]interface{}{
-						"type":  "string",
-						"title": "describe",
-					},
-					// Third column
-					map[string]interface{}{
-						"type":  "integer",
-						"title": "quantity",
-					},
-				},
-			},
-		}
-	} else {
-		schema = map[string]interface{}{
-			"type": "object",
-		}
-	}
-	data, err = json.MarshalIndent(schema, "", " ")
-	if err := ioutil.WriteFile(filepath.Join(targetPath, "schema.json"), data, os.ModePerm); err != nil {
 		return name, err
 	}
 
