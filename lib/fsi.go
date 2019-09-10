@@ -33,8 +33,7 @@ func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]repo.DatasetRef) (err erro
 		return m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res)
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.LinkedRefs(p.Offset, p.Limit)
+	*res, err = m.inst.fsi.LinkedRefs(p.Offset, p.Limit)
 	return err
 }
 
@@ -58,8 +57,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.CreateLink", p, res)
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.CreateLink(p.Dir, p.Ref)
+	*res, err = m.inst.fsi.CreateLink(p.Dir, p.Ref)
 	return err
 }
 
@@ -69,9 +67,7 @@ func (m *FSIMethods) UpdateLink(p *LinkParams, res *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.UpdateLink", p, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.UpdateLink(p.Dir, p.Ref)
+	*res, err = m.inst.fsi.UpdateLink(p.Dir, p.Ref)
 	return err
 }
 
@@ -81,11 +77,7 @@ func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.Unlink", p, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	err = fsint.Unlink(p.Dir, p.Ref)
-
-	return err
+	return m.inst.fsi.Unlink(p.Dir, p.Ref)
 }
 
 // StatusItem is an alias for an fsi.StatusItem
@@ -98,9 +90,7 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 		return m.inst.rpc.Call("FSIMethods.Status", dir, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.Status(*dir)
+	*res, err = m.inst.fsi.Status(*dir)
 	return err
 }
 
@@ -112,13 +102,11 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	dir, err := fsint.AliasToLinkedDir(*alias)
+	dir, err := m.inst.fsi.AliasToLinkedDir(*alias)
 	if err != nil {
 		return err
 	}
-	*res, err = fsint.Status(dir)
+	*res, err = m.inst.fsi.Status(dir)
 	return err
 }
 
@@ -129,9 +117,7 @@ func (m *FSIMethods) StatusAtVersion(ref *string, res *[]StatusItem) (err error)
 		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	*res, err = fsint.StatusAtVersion(*ref)
+	*res, err = m.inst.fsi.StatusAtVersion(*ref)
 	return err
 }
 
@@ -179,15 +165,13 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return
 	}
 
-	fsint := fsi.NewFSI(m.inst.repo)
-
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
 		return err
 	}
 
 	// Create the link file, containing the dataset reference.
-	if _, err = fsint.CreateLink(p.Dir, p.Ref); err != nil {
+	if _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref); err != nil {
 		return err
 	}
 
@@ -390,8 +374,6 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err err
 		return m.inst.rpc.Call("FSIMethods.InitDataset", p, name)
 	}
 
-	// TODO (b5) - inst should have an fsi instance
-	fsint := fsi.NewFSI(m.inst.repo)
-	*name, err = fsint.InitDataset(*p)
+	*name, err = m.inst.fsi.InitDataset(*p)
 	return err
 }
