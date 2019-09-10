@@ -52,17 +52,12 @@ type FSIOptions struct {
 	FSIMethods *lib.FSIMethods
 }
 
-// Complete adds any missing configuration that can only be added just before calling Run
+// Complete adds any missing configuration that can only be added just before
+// calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
-	// TODO (b5): From dustmop: This is okay as a starting point, but we also want
-	// to add flags to explicitly set the directory and dataset-ref.
-	// Since the fsi command is "plumbing", we may actually want to require them,
-	// under the assumption that this is only for advanced use cases, and the UI
-	// doesn't need to be as friendly. In addition, a common use case is going to
-	// be a user deleted their dataset folder, and doesn't have access to the
-	// .qri-ref file any more, so they want to remove the entry from the .fbs,
-	// but don't have any access to the linked ref. In that case, relying on the
-	// implicit ref doesn't work.
+	if len(args) < 1 {
+		return fmt.Errorf("please provide the name of a dataset to unlink")
+	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
 		return
 	}
@@ -73,25 +68,27 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 
 // Link creates a FSI link
 func (o *FSIOptions) Link() (err error) {
-	return fmt.Errorf("not finished: link")
+	return fmt.Errorf("not finished: link command")
 }
 
 // Unlink executes the fsi unlink command
 func (o *FSIOptions) Unlink() error {
-	printRefSelect(o.ErrOut, o.Refs)
+	var res string
 
-	p := &lib.LinkParams{
-		Dir: o.Refs.Dir(),
-		Ref: o.Refs.Ref(),
+	for _, ref := range o.Refs.RefList() {
+		printRefSelect(o.Out, o.Refs)
+
+		p := &lib.LinkParams{
+			Dir: o.Refs.Dir(),
+			Ref: ref,
+		}
+
+		if err := o.FSIMethods.Unlink(p, &res); err != nil {
+			printErr(o.ErrOut, err)
+			return nil
+		}
+
+		printSuccess(o.Out, "unlinked: %s", res)
 	}
-
-	res := ""
-
-	if err := o.FSIMethods.Unlink(p, &res); err != nil {
-		printErr(o.ErrOut, err)
-		return nil
-	}
-
-	printSuccess(o.ErrOut, "unlinked: %s", res)
 	return nil
 }
