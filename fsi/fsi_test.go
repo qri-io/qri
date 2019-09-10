@@ -217,3 +217,22 @@ func TestUpdateLink(t *testing.T) {
 		t.Errorf("error: link did not match, actual: %s, expect: %s", link, expect)
 	}
 }
+
+func TestUnlink(t *testing.T) {
+	paths := NewTmpPaths()
+	defer paths.Close()
+
+	fsi := NewFSI(paths.testRepo)
+	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	if err := fsi.Unlink(paths.firstDir, "me/mismatched_reference"); err == nil {
+		t.Errorf("expected unlinking mismatched reference to error")
+	}
+
+	if err := fsi.Unlink(paths.firstDir, "me/test_ds"); err != nil {
+		t.Errorf("unlinking valid reference: %s", err.Error())
+	}
+}

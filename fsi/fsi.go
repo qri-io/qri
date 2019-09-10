@@ -18,8 +18,12 @@ import (
 	"path/filepath"
 	"strings"
 
+	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/repo"
 )
+
+// package level logger
+var log = golog.Logger("fsi")
 
 // QriRefFilename is the name of the file that links a folder to a dataset.
 // The file contains a dataset reference that declares the link
@@ -133,6 +137,10 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return err
+	}
+
+	if removeLinkErr := removeLinkFile(dirPath); removeLinkErr != nil {
+		log.Debugf("removing link file: %s", removeLinkErr.Error())
 	}
 
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
