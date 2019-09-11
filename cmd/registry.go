@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/registry"
 	"github.com/spf13/cobra"
 )
 
@@ -80,7 +81,7 @@ Datasets are by default published to the registry when they are created.`,
 				return err
 			}
 			// return o.Publish()
-			return fmt.Errorf("TODO (b5) = restore")
+			return fmt.Errorf("TODO (b5): restore")
 		},
 	}
 
@@ -102,54 +103,50 @@ This dataset will no longer show up in search results.`,
 				return err
 			}
 			// return o.Unpublish()
-			return fmt.Errorf("TODO (b5) = restore")
+			return fmt.Errorf("TODO (b5): restore")
 		},
 	}
 
-	pin := &cobra.Command{
-		Use:   "pin",
-		Short: "pin dataset data to the registry",
-		Long: `
-Pin asks a registry to host a copy of your dataset, making it available for
-others to download on the d.web`,
-		Example: `  Pin a dataset to the registry:
-  $ qri registry pin me/dataset_name`,
-		Args: cobra.MinimumNArgs(1),
+	signup := &cobra.Command{
+		Use: "signup",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			// return o.Pin()
-			return fmt.Errorf("TODO (b5) = restore")
+			return o.Signup()
 		},
 	}
 
-	unpin := &cobra.Command{
-		Use:   "unpin",
-		Short: "unpin dataset data from the registry",
-		Long: `
-Unpin reverses the pin process, asking a registry to remove it's hosted copy
-of your dataset from the registry`,
-		Example: `  Unpin a dataset from the registry:
-  $ qri registry unpin me/dataset_name`,
-		Args: cobra.MinimumNArgs(1),
+	signup.Flags().StringVar(&o.Username, "username", "", "registry username to prove")
+	signup.Flags().StringVar(&o.Password, "password", "", "registry password")
+	signup.Flags().StringVar(&o.Email, "email", "", "email")
+
+	prove := &cobra.Command{
+		Use: "prove",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			// return o.Unpin()
-			return fmt.Errorf("TODO (b5) = restore")
+			return o.Prove()
 		},
 	}
 
-	cmd.AddCommand(publish, unpublish, status, pin, unpin)
+	prove.Flags().StringVar(&o.Username, "username", "", "registry username to prove")
+	prove.Flags().StringVar(&o.Password, "password", "", "registry password")
+
+	cmd.AddCommand(publish, unpublish, status, signup, prove)
 	return cmd
 }
 
 // RegistryOptions encapsulates state for the registry command & subcommands
 type RegistryOptions struct {
 	ioes.IOStreams
-	Refs                  []string
+	Refs []string
+
+	Username string
+	Password string
+	Email    string
+
 	RegistryClientMethods *lib.RegistryClientMethods
 }
 
@@ -158,6 +155,34 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 	o.Refs = args
 	o.RegistryClientMethods, err = f.RegistryClientMethods()
 	return
+}
+
+// Signup registers a handle with the registry
+func (o *RegistryOptions) Signup() error {
+	p := &registry.Profile{
+		Username: o.Username,
+		Email:    o.Email,
+		Password: o.Password,
+	}
+	var ok bool
+	if err := o.RegistryClientMethods.CreateProfile(p, &ok); err != nil {
+		return err
+	}
+	return nil
+}
+
+// Prove associates a keypair with an account
+func (o *RegistryOptions) Prove() error {
+	p := &registry.Profile{
+		Username: o.Username,
+		Password: o.Password,
+	}
+	var ok bool
+	if err := o.RegistryClientMethods.ProveProfileKey(p, &ok); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 // // Publish executes the publish command
