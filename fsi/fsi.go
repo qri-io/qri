@@ -152,6 +152,11 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 		return err
 	}
 
+	// attempt to remove the directory, ignoring "directory not empty" errors
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		return err
+	}
+
 	ref.FSIPath = ""
 	return fsi.repo.PutRef(ref)
 }

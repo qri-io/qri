@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -21,6 +22,9 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	link := &cobra.Command{
 		Use:   "link",
 		Short: "link a .qri-ref",
+		Example: `link a dataset to the current working directory:
+  $ qri fsi link peername/dataset .`,
+		Args: cobra.MinimumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -49,6 +53,7 @@ type FSIOptions struct {
 	ioes.IOStreams
 
 	Refs       *RefSelect
+	Path       string
 	FSIMethods *lib.FSIMethods
 }
 
@@ -56,10 +61,14 @@ type FSIOptions struct {
 // calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) < 1 {
-		return fmt.Errorf("please provide the name of a dataset to unlink")
+		return fmt.Errorf("please provide the name of a dataset")
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
 		return
+	}
+
+	if len(args) > 1 {
+		o.Path = args[1]
 	}
 
 	o.FSIMethods, err = f.FSIMethods()
@@ -68,7 +77,22 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 
 // Link creates a FSI link
 func (o *FSIOptions) Link() (err error) {
-	return fmt.Errorf("not finished: link command")
+	o.Path, err = filepath.Abs(o.Path)
+	if err != nil {
+		return err
+	}
+
+	p := &lib.LinkParams{
+		Dir: o.Path,
+		Ref: o.Refs.Ref(),
+	}
+	var res string
+	if err := o.FSIMethods.CreateLink(p, &res); err != nil {
+		return err
+	}
+
+	printSuccess(o.Out, "created dataset reference: %s", res)
+	return nil
 }
 
 // Unlink executes the fsi unlink command

@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
@@ -383,6 +384,49 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	}
 
 	return nil
+}
+
+// DeleteDatasetFiles removes mapped files from a directory. if the result of
+// deleting all files leaves the directory empty, it will remove the directory
+// as well
+func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error) {
+	_, mapping, problems, err := ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	removed = map[string]FileStat{}
+	for component, stat := range mapping {
+		// ignore not found errors. multiple components can be specified in the
+		// same dataset file, creating multiple remove attempts to the same path
+		if err := os.Remove(stat.Path); err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+		removed[component] = stat
+	}
+
+	// delete files even if they have problems parsing
+	for component, stat := range problems {
+		// TODO (b5): mapping returns absolute paths in FileStat, problems returns
+		// relative paths. We should pick one & go with it. I vote absolute
+		path := filepath.Join(dirPath, stat.Path)
+		// ignore not found errors. multiple components can be specified in the
+		// same dataset file, creating multiple remove attempts to the same path
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
+			return nil, err
+		}
+		removed[component] = FileStat{
+			Path:  path,
+			Mtime: stat.Mtime,
+		}
+	}
+
+	// attempt to remove the directory, ignoring "directory not empty" errors
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		return removed, err
+	}
+
+	return removed, nil
 }
 
 // DeleteComponents removes the list of named components from the given directory

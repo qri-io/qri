@@ -44,6 +44,8 @@ both qri & IPFS. Promise.`,
 
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
+	cmd.Flags().BoolVar(&o.DeleteFSIFiles, "files", false, "delete linked files in dataset directory")
+	cmd.Flags().BoolVar(&o.Unlink, "unlink", false, "break link to directory")
 
 	return cmd
 }
@@ -54,9 +56,11 @@ type RemoveOptions struct {
 
 	Args []string
 
-	RevisionsText string
-	All           bool
-	Revision      rev.Rev
+	RevisionsText  string
+	Revision       rev.Rev
+	All            bool
+	DeleteFSIFiles bool
+	Unlink         bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -100,8 +104,10 @@ func (o *RemoveOptions) Validate() error {
 func (o *RemoveOptions) Run() (err error) {
 	for _, arg := range o.Args {
 		params := lib.RemoveParams{
-			Ref:      arg,
-			Revision: o.Revision,
+			Ref:            arg,
+			Revision:       o.Revision,
+			DeleteFSIFiles: o.DeleteFSIFiles,
+			Unlink:         o.Unlink,
 		}
 
 		res := lib.RemoveResponse{}
@@ -115,6 +121,12 @@ func (o *RemoveOptions) Run() (err error) {
 			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
 		} else {
 			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
+		}
+		if res.Unlinked {
+			printSuccess(o.Out, "removed dataset link")
+		}
+		if res.DeletedFSIFiles {
+			printSuccess(o.Out, "deleted dataset files")
 		}
 	}
 	return nil

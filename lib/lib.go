@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
@@ -327,10 +328,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
+	}
+
+	if inst.repo != nil {
+		inst.fsi = fsi.NewFSI(inst.repo)
+
 		if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
 			qfssetter.SetFilesystem(inst.qfs)
 		}
 	}
+
 	if inst.node == nil {
 		if inst.node, err = p2p.NewQriNode(inst.repo, cfg.P2P); err != nil {
 			log.Error("intializing p2p:", err.Error())
@@ -533,6 +540,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		inst.repo = node.Repo
 		inst.store = node.Repo.Store()
 		inst.qfs = node.Repo.Filesystem()
+		inst.fsi = fsi.NewFSI(inst.repo)
 	}
 
 	return inst
@@ -551,12 +559,13 @@ type Instance struct {
 	cfg      *config.Config
 
 	streams ioes.IOStreams
-	store   cafs.Filestore
-	qfs     qfs.Filesystem
 	repo    repo.Repo
+	store   cafs.Filestore
 	node    *p2p.QriNode
-	cron    cron.Scheduler
 
+	qfs          qfs.Filesystem
+	cron         cron.Scheduler
+	fsi          *fsi.FSI
 	remote       *remote.Remote
 	remoteClient *remote.Client
 	registry     *regclient.Client

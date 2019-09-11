@@ -456,9 +456,15 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.RemoveParams{
-		Ref:      HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
-		Revision: rev.Rev{Field: "ds", Gen: -1},
+		Ref:            HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
+		Revision:       rev.Rev{Field: "ds", Gen: -1},
+		Unlink:         r.FormValue("unlink") == "true",
+		DeleteFSIFiles: r.FormValue("delete") == "true",
 	}
+	if r.FormValue("all") == "true" {
+		p.Revision = rev.NewAllRevisions()
+	}
+
 	res := lib.RemoveResponse{}
 	if err := h.Remove(&p, &res); err != nil {
 		log.Infof("error deleting dataset: %s", err.Error())
