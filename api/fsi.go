@@ -1,12 +1,14 @@
 package api
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // FSIHandlers connects HTTP requests to the FSI subsystem
@@ -125,7 +127,40 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		util.WriteResponse(w, map[string]string{"ref": name})
+		// Get code taken
+		// taken from ./root.go
+		gp := lib.GetParams{
+			Path:   name,
+			UseFSI: true,
+		}
+		res := lib.GetResult{}
+		err := h.dsm.Get(&gp, &res)
+		if err != nil {
+			if err == repo.ErrNotFound {
+				util.NotFoundHandler(w, r)
+				return
+			}
+			util.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		if res.Dataset == nil || res.Dataset.IsEmpty() {
+			util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
+			return
+		}
+
+		// TODO (b5) - why is this necessary?
+		ref := repo.DatasetRef{
+			Peername:  res.Dataset.Peername,
+			ProfileID: profile.ID(res.Dataset.ProfileID),
+			Name:      res.Dataset.Name,
+			Path:      res.Dataset.Path,
+			FSIPath:   res.Ref.FSIPath,
+			Published: res.Ref.Published,
+			Dataset:   res.Dataset,
+		}
+
+		util.WriteResponse(w, ref)
+		return
 	}
 }
 
