@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/ghodss/yaml"
@@ -386,7 +387,8 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 }
 
 // DeleteDatasetFiles removes mapped files from a directory. if the result of
-// moving all files leaves the directory empty
+// deleting all files leaves the directory empty, it will remove the directory
+// as well
 func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error) {
 	_, mapping, problems, err := ReadDir(dirPath)
 	if err != nil {
@@ -419,9 +421,10 @@ func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error)
 		}
 	}
 
-	// attempt to remove the directory, this will error if the directory is
-	// not empty. We intentionally ignore this error
-	os.Remove(dirPath)
+	// attempt to remove the directory, ignoring "directory not empty" errors
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		return removed, err
+	}
 
 	return removed, nil
 }
