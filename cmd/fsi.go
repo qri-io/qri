@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -68,7 +69,22 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 
 // Link creates a FSI link
 func (o *FSIOptions) Link() (err error) {
-	return fmt.Errorf("not finished: link command")
+	pwd, err := os.Getwd()
+	if err != nil {
+		return err
+	}
+
+	p := &lib.LinkParams{
+		Dir: pwd,
+		Ref: o.Refs.Ref(),
+	}
+	var res string
+	if err := o.FSIMethods.CreateLink(p, &res); err != nil {
+		return err
+	}
+
+	printSuccess(o.Out, "created dataset reference: %s", res)
+	return nil
 }
 
 // Unlink executes the fsi unlink command

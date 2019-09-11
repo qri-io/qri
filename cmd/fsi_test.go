@@ -44,4 +44,15 @@ func TestFSILinkingCommands(t *testing.T) {
 	}
 
 	// TODO (b5) - get output of qri list, confirm dataset is unlinked
+
+	// Link the dataset to the pwd
+	if err := runner.ExecCommand("qri fsi link me/save_and_unlink"); err != nil {
+		t.Errorf("unlinking dataset: %s", err.Error())
+	}
+
+	dirContents = listDirectory(pwd)
+	expectContents = []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
+	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
 }

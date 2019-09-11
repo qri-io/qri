@@ -387,17 +387,32 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 
 // DeleteDatasetFiles removes mapped files from a directory. if the result of
 // moving all files leaves the directory empty
-func DeleteDatasetFiles(dirPath string) (removed []string, err error) {
-	_, mapping, _, err := ReadDir(dirPath)
+func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error) {
+	_, mapping, problems, err := ReadDir(dirPath)
 	if err != nil {
 		return nil, err
 	}
 
-	for _, stat := range mapping {
+	removed = map[string]FileStat{}
+	for component, stat := range mapping {
 		if err := os.Remove(stat.Path); err != nil {
 			return nil, err
 		}
-		removed = append(removed, stat.Path)
+		removed[component] = stat
+	}
+
+	// delete files even if they have problems parsing
+	for component, stat := range problems {
+		// TODO (b5): mapping returns absolute paths in FileStat, problems returns
+		// relative paths. We should pick one & go with it. I vote absolute
+		path := filepath.Join(dirPath, stat.Path)
+		if err := os.Remove(path); err != nil {
+			return nil, err
+		}
+		removed[component] = FileStat{
+			Path:  path,
+			Mtime: stat.Mtime,
+		}
 	}
 
 	// attempt to remove the directory, this will error if the directory is

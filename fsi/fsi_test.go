@@ -50,6 +50,21 @@ func (t *TmpPaths) Close() {
 	os.RemoveAll(t.secondDir)
 }
 
+// tFileStat constructs a filepath from path elements and fetches a FileStat
+// in the context of a test
+func tFileStat(t *testing.T, pathElems ...string) FileStat {
+	path := filepath.Join(pathElems...)
+	st, err := os.Stat(path)
+	if err != nil {
+		t.Fatalf("Getting FileStat: %s", err.Error())
+	}
+
+	return FileStat{
+		Path:  path,
+		Mtime: st.ModTime(),
+	}
+}
+
 func TestCreateLink(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
