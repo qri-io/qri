@@ -1,0 +1,23 @@
+
+The new core for FSI will operate around the following new understandings:
+
+1) There is a isomorphism between FSI directories and datasets that we want to make explicit.
+2) We want our operations to be lazy and efficient, doing only the work necessary for their task.
+3) Many situations arise where some components are dependent on others, code must reflect that.
+4) Unify work such as dropping derived values and comparing components to avoid special cases.
+
+A core method "ObserveDirectory" collects files from disk. After this call is done, only the returned observation matters, and no future work needs to be done which lists the contents of the directory, including calls to Stat check as checking !IsNotExist.
+
+Another method "ExpandObservation" which unpacks any component such as "dataset" or "structure", which many contain other components. After this, we know exactly what components exist in the observation, though not all have been read.
+
+Finally, "ReadObservation" fills in all of the data in a collection by reading each component. This is needed for `qri status` or `qri diff`, assuming we don't do any cacheing or run-time magic. Will discover parse errors or unknown field errors.
+
+When writing a Dataset to a directory (such as running "qri restore"), create a observation of the target directory, and expand it, in order to figure out where the incoming files should be written.
+
+When running a command that only needs to access one component, such as "qri get meta", we don't need to read files like the "schema" or "body", as long as there's no container components such as "dataset" which may also contain a meta.
+
+Near future goals:
+1) Simplify fsi/mapping.go's ReadDir, WriteComponents, DeleteComponents
+2) Simplify fsi/status.go's Status and CalculateStateTransition
+3) Simplify fsi/init.go's InitDataset
+3) Probably can entirely remove fsi/body.go
