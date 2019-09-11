@@ -385,6 +385,28 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	return nil
 }
 
+// DeleteDatasetFiles removes mapped files from a directory. if the result of
+// moving all files leaves the directory empty
+func DeleteDatasetFiles(dirPath string) (removed []string, err error) {
+	_, mapping, _, err := ReadDir(dirPath)
+	if err != nil {
+		return nil, err
+	}
+
+	for _, stat := range mapping {
+		if err := os.Remove(stat.Path); err != nil {
+			return nil, err
+		}
+		removed = append(removed, stat.Path)
+	}
+
+	// attempt to remove the directory, this will error if the directory is
+	// not empty. We intentionally ignore this error
+	os.Remove(dirPath)
+
+	return removed, nil
+}
+
 // DeleteComponents removes the list of named components from the given directory
 func DeleteComponents(removeList []string, fileMap map[string]FileStat, dirPath string) error {
 	for _, comp := range removeList {

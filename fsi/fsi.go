@@ -133,6 +133,9 @@ func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
 }
 
 // Unlink breaks the connection between a directory and a dataset
+// TODO (b5) - should this even need the refStr, since we consider the .qri-ref
+// file the canonical source of truth, shouldn't this look for that file,
+// and use the reference stored within to talk to the repo?
 func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
@@ -151,6 +154,10 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 
 		return err
 	}
+
+	// attempt to remove the directory, this will error if the directory is
+	// not empty. We intentionally ignore this error
+	os.Remove(dirPath)
 
 	ref.FSIPath = ""
 	return fsi.repo.PutRef(ref)
