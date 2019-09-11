@@ -395,7 +395,9 @@ func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error)
 
 	removed = map[string]FileStat{}
 	for component, stat := range mapping {
-		if err := os.Remove(stat.Path); err != nil {
+		// ignore not found errors. multiple components can be specified in the
+		// same dataset file, creating multiple remove attempts to the same path
+		if err := os.Remove(stat.Path); err != nil && !os.IsNotExist(err) {
 			return nil, err
 		}
 		removed[component] = stat
@@ -406,7 +408,9 @@ func DeleteDatasetFiles(dirPath string) (removed map[string]FileStat, err error)
 		// TODO (b5): mapping returns absolute paths in FileStat, problems returns
 		// relative paths. We should pick one & go with it. I vote absolute
 		path := filepath.Join(dirPath, stat.Path)
-		if err := os.Remove(path); err != nil {
+		// ignore not found errors. multiple components can be specified in the
+		// same dataset file, creating multiple remove attempts to the same path
+		if err := os.Remove(path); err != nil && !os.IsNotExist(err) {
 			return nil, err
 		}
 		removed[component] = FileStat{

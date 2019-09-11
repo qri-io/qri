@@ -518,6 +518,10 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return r.cli.Call("DatasetRequests.Remove", p, res)
 	}
 
+	if p.Revision.Field != "ds" {
+		return fmt.Errorf("can only remove whole dataset versions, not individual components")
+	}
+
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err
@@ -528,12 +532,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 	res.Ref = ref.String()
 
-	if ref.Path == "" && ref.Peername == "" && ref.Name == "" {
-		return fmt.Errorf("either peername/name or path is required")
-	}
-	if p.Revision.Field != "ds" {
-		return fmt.Errorf("can only delete whole dataset revisions, not individual fields")
-	}
 	if ref.FSIPath == "" && p.Unlink {
 		return fmt.Errorf("cannot unlink, dataset is not linked to a directory")
 	}
@@ -542,12 +540,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	removeEntireDataset := func() error {
-		// Delete entire dataset for all generations.
-		if err := actions.DeleteDataset(r.node, &ref); err != nil {
-			return err
-		}
-		res.NumDeleted = rev.AllGenerations
-
 		// removing all revisions of a dataset must unlink it
 		if ref.FSIPath != "" {
 			if p.DeleteFSIFiles {
@@ -562,6 +554,13 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			}
 			res.Unlinked = true
 		}
+
+		// Delete entire dataset for all generations.
+		if err := actions.DeleteDataset(r.node, &ref); err != nil {
+			return err
+		}
+		res.NumDeleted = rev.AllGenerations
+
 		return nil
 	}
 
@@ -582,13 +581,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return removeEntireDataset()
 	}
 
-	// Delete the specific number of revisions.
-	replace := log[p.Revision.Gen]
-	if err := actions.ModifyDataset(r.node, &ref, &replace, false /*isRename*/); err != nil {
-		return err
-	}
-	res.NumDeleted = p.Revision.Gen
-
 	if ref.FSIPath != "" {
 		if p.DeleteFSIFiles {
 			if _, err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
@@ -604,6 +596,13 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			res.Unlinked = true
 		}
 	}
+
+	// Delete the specific number of revisions.
+	replace := log[p.Revision.Gen]
+	if err := actions.ModifyDataset(r.node, &ref, &replace, false /*isRename*/); err != nil {
+		return err
+	}
+	res.NumDeleted = p.Revision.Gen
 
 	return nil
 }

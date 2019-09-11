@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"os"
+	"path/filepath"
 	"strconv"
 	"strings"
 	"sync"
@@ -635,34 +636,115 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+
+	// TODO (b5) - dataset requests require an instance to delete properly
+	// we should do the "DatasetMethods" refactor ASAP
+	req := NewDatasetRequestsInstance(inst)
+	allRevs := rev.Rev{Field: "ds", Gen: -1}
+
+	// we need some fsi stuff to fully test remove
+	fsim := NewFSIMethods(inst)
+	// create datasets working directory
+	datasetsDir, err := ioutil.TempDir("", "QriTestDatasetRequestsRemove")
 	if err != nil {
-		t.Fatalf("error getting movies ref: %s", err.Error())
+		t.Fatal(err)
+	}
+	defer os.RemoveAll(datasetsDir)
+
+	// link cities dataset with a checkout
+	checkoutp := &CheckoutParams{
+		Dir: filepath.Join(datasetsDir, "cities"),
+		Ref: "me/cities",
+	}
+	var out string
+	if err := fsim.Checkout(checkoutp, &out); err != nil {
+		t.Fatal(err)
 	}
 
-	cases := []struct {
-		ref string
-		res *dataset.Dataset
-		err string
+	// add a commit to craigslist
+	saveRes := &repo.DatasetRef{}
+	if err := req.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
+		t.Fatal(err)
+	}
+
+	// link craigslist with a checkout
+	checkoutp = &CheckoutParams{
+		Dir: filepath.Join(datasetsDir, "craigslist"),
+		Ref: "me/craigslist",
+	}
+	if err := fsim.Checkout(checkoutp, &out); err != nil {
+		t.Fatal(err)
+	}
+
+	badCases := []struct {
+		err    string
+		params RemoveParams
 	}{
-		{"", nil, "repo: empty dataset reference"},
-		{"abc/ABC", nil, "repo: not found"},
-		{ref.String(), nil, ""},
+		{"repo: empty dataset reference", RemoveParams{Ref: "", Revision: allRevs}},
+		{"repo: not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
+		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: rev.Rev{Field: "st", Gen: -1}}},
+		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: rev.Rev{Field: "ds", Gen: 0}}},
+		{"cannot unlink, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, Unlink: true}},
+		{"can't delete files, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, DeleteFSIFiles: true}},
 	}
 
-	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
-		params := RemoveParams{
-			Ref:      c.ref,
-			Revision: rev.Rev{Field: "ds", Gen: -1},
-		}
-		res := RemoveResponse{}
-		err := req.Remove(&params, &res)
+	for _, c := range badCases {
+		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
+			res := RemoveResponse{}
+			err := req.Remove(&c.params, &res)
 
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
-			continue
-		}
+			if err == nil {
+				t.Errorf("expected error. got nil")
+				return
+			} else if c.err != err.Error() {
+				t.Errorf("error mismatch: expected: %s, got: %s", c.err, err)
+			}
+		})
+	}
+
+	goodCases := []struct {
+		description string
+		params      RemoveParams
+		res         RemoveResponse
+	}{
+		{"all generations of peer/movies",
+			RemoveParams{Ref: "peer/movies", Revision: allRevs},
+			RemoveResponse{NumDeleted: -1},
+		},
+		{"all generations, specifying more revs than log length",
+			RemoveParams{Ref: "peer/counter", Revision: rev.Rev{Field: "ds", Gen: 20}},
+			RemoveResponse{NumDeleted: -1},
+		},
+		{"all generations of peer/cities, remove link, delete files",
+			RemoveParams{Ref: "peer/cities", Revision: allRevs, DeleteFSIFiles: true},
+			RemoveResponse{NumDeleted: -1, Unlinked: true, DeletedFSIFiles: true},
+		},
+		{"one commit of peer/craigslist, remove link, delete files",
+			RemoveParams{Ref: "peer/craigslist", Revision: rev.Rev{Field: "ds", Gen: 1}, Unlink: true, DeleteFSIFiles: true},
+			RemoveResponse{NumDeleted: 1, Unlinked: true, DeletedFSIFiles: true},
+		},
+	}
+
+	for _, c := range goodCases {
+		t.Run(fmt.Sprintf("good_case_%s", c.description), func(t *testing.T) {
+			res := RemoveResponse{}
+			err := req.Remove(&c.params, &res)
+
+			if err != nil {
+				t.Errorf("unexpected error: %s", err)
+				return
+			}
+			if c.res.NumDeleted != res.NumDeleted {
+				t.Errorf("res.NumDeleted mismatch. want %d, got %d", c.res.NumDeleted, res.NumDeleted)
+			}
+			if c.res.Unlinked != res.Unlinked {
+				t.Errorf("res.Unlinked mismatch. want %t, got %t", c.res.Unlinked, res.Unlinked)
+			}
+			if c.res.DeletedFSIFiles != res.DeletedFSIFiles {
+				t.Errorf("res.DeletedFSIFiles mismatch. want %t, got %t", c.res.DeletedFSIFiles, res.DeletedFSIFiles)
+			}
+		})
 	}
 }
 
