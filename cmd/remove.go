@@ -75,19 +75,20 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		o.Revision = rev.NewAllRevisions()
 	} else {
 		if o.RevisionsText == "" {
-			return fmt.Errorf("--revisions flag is requried")
+			o.Revision = rev.Rev{Field: "ds", Gen: 0}
+		} else {
+			revisions, err := rev.ParseRevs(o.RevisionsText)
+			if err != nil {
+				return err
+			}
+			if len(revisions) != 1 {
+				return fmt.Errorf("need exactly 1 revision parameter to remove")
+			}
+			if revisions[0] == nil {
+				return fmt.Errorf("invalid nil revision")
+			}
+			o.Revision = *revisions[0]
 		}
-		revisions, err := rev.ParseRevs(o.RevisionsText)
-		if err != nil {
-			return err
-		}
-		if len(revisions) != 1 {
-			return fmt.Errorf("need exactly 1 revision parameter to remove")
-		}
-		if revisions[0] == nil {
-			return fmt.Errorf("invalid nil revision")
-		}
-		o.Revision = *revisions[0]
 	}
 	return err
 }
