@@ -120,14 +120,14 @@ func (o *RemoveOptions) Run() (err error) {
 		}
 		if res.NumDeleted == rev.AllGenerations {
 			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
-		} else {
+		} else if res.NumDeleted != 0 {
 			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
-		}
-		if res.Unlinked {
-			printSuccess(o.Out, "removed dataset link")
 		}
 		if res.DeletedFSIFiles {
 			printSuccess(o.Out, "deleted dataset files")
+		}
+		if res.Unlinked {
+			printSuccess(o.Out, "removed dataset link")
 		}
 	}
 	return nil

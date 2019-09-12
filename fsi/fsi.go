@@ -143,17 +143,20 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 		log.Debugf("removing link file: %s", removeLinkErr.Error())
 	}
 
+	defer func() {
+		// always attempt to remove the directory, ignoring "directory not empty" errors
+		// os.Remove will fail if the directory isn't empty, which is the behaviour
+		// we want
+		if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+			log.Errorf("removing directory: %s", err.Error())
+		}
+	}()
+
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
 		if err == repo.ErrNoHistory {
 			// if we're unlinking a ref without history, delete it
 			return fsi.repo.DeleteRef(ref)
 		}
-
-		return err
-	}
-
-	// attempt to remove the directory, ignoring "directory not empty" errors
-	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
 		return err
 	}
 
