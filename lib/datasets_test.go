@@ -652,6 +652,18 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 	defer os.RemoveAll(datasetsDir)
 
+	// initialize an example no-history dataset
+	initp := &InitFSIDatasetParams{
+		Name:   "no_history",
+		Dir:    datasetsDir,
+		Format: "csv",
+		Mkdir:  "no_history",
+	}
+	var noHistoryName string
+	if err := fsim.InitDataset(initp, &noHistoryName); err != nil {
+		t.Fatal(err)
+	}
+
 	// link cities dataset with a checkout
 	checkoutp := &CheckoutParams{
 		Dir: filepath.Join(datasetsDir, "cities"),
@@ -723,6 +735,10 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		{"one commit of peer/craigslist, remove link, delete files",
 			RemoveParams{Ref: "peer/craigslist", Revision: rev.Rev{Field: "ds", Gen: 1}, Unlink: true, DeleteFSIFiles: true},
 			RemoveResponse{NumDeleted: 1, Unlinked: true, DeletedFSIFiles: true},
+		},
+		{"no history dataset, remove link, delete files",
+			RemoveParams{Ref: noHistoryName, Revision: rev.Rev{Field: "ds", Gen: 0}, DeleteFSIFiles: true},
+			RemoveResponse{NumDeleted: 0, Unlinked: true, DeletedFSIFiles: true},
 		},
 	}
 

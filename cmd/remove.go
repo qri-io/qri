@@ -75,19 +75,20 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		o.Revision = rev.NewAllRevisions()
 	} else {
 		if o.RevisionsText == "" {
-			return fmt.Errorf("--revisions flag is requried")
+			o.Revision = rev.Rev{Field: "ds", Gen: 0}
+		} else {
+			revisions, err := rev.ParseRevs(o.RevisionsText)
+			if err != nil {
+				return err
+			}
+			if len(revisions) != 1 {
+				return fmt.Errorf("need exactly 1 revision parameter to remove")
+			}
+			if revisions[0] == nil {
+				return fmt.Errorf("invalid nil revision")
+			}
+			o.Revision = *revisions[0]
 		}
-		revisions, err := rev.ParseRevs(o.RevisionsText)
-		if err != nil {
-			return err
-		}
-		if len(revisions) != 1 {
-			return fmt.Errorf("need exactly 1 revision parameter to remove")
-		}
-		if revisions[0] == nil {
-			return fmt.Errorf("invalid nil revision")
-		}
-		o.Revision = *revisions[0]
 	}
 	return err
 }
@@ -119,14 +120,14 @@ func (o *RemoveOptions) Run() (err error) {
 		}
 		if res.NumDeleted == rev.AllGenerations {
 			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
-		} else {
+		} else if res.NumDeleted != 0 {
 			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
-		}
-		if res.Unlinked {
-			printSuccess(o.Out, "removed dataset link")
 		}
 		if res.DeletedFSIFiles {
 			printSuccess(o.Out, "deleted dataset files")
+		}
+		if res.Unlinked {
+			printSuccess(o.Out, "removed dataset link")
 		}
 	}
 	return nil

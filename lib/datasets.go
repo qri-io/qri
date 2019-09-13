@@ -527,8 +527,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return err
 	}
 
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return err
+	noHistory := false
+	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
+		return canonErr
+	} else if canonErr == repo.ErrNoHistory {
+		noHistory = true
 	}
 	res.Ref = ref.String()
 
@@ -539,16 +542,30 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return fmt.Errorf("can't delete files, dataset is not linked to a directory")
 	}
 
+	if ref.FSIPath != "" {
+		if p.DeleteFSIFiles {
+			if _, err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
+				return err
+			}
+			res.DeletedFSIFiles = true
+		}
+
+		// running remove on a dataset that has no history must always unlink
+		if p.Unlink || noHistory {
+			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
+				return err
+			}
+			res.Unlinked = true
+		}
+	}
+
+	if noHistory {
+		return nil
+	}
+
 	removeEntireDataset := func() error {
 		// removing all revisions of a dataset must unlink it
-		if ref.FSIPath != "" {
-			if p.DeleteFSIFiles {
-				if _, err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
-					return err
-				}
-				res.DeletedFSIFiles = true
-			}
-
+		if ref.FSIPath != "" && !p.Unlink {
 			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
 				return err
 			}
@@ -579,22 +596,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	// If deleting more revisions then exist, delete the entire dataset.
 	if p.Revision.Gen >= len(log) {
 		return removeEntireDataset()
-	}
-
-	if ref.FSIPath != "" {
-		if p.DeleteFSIFiles {
-			if _, err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
-				return err
-			}
-			res.DeletedFSIFiles = true
-		}
-
-		if p.Unlink {
-			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
-				return err
-			}
-			res.Unlinked = true
-		}
 	}
 
 	// Delete the specific number of revisions.

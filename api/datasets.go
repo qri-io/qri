@@ -459,7 +459,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		Ref:            HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
 		Revision:       rev.Rev{Field: "ds", Gen: -1},
 		Unlink:         r.FormValue("unlink") == "true",
-		DeleteFSIFiles: r.FormValue("delete") == "true",
+		DeleteFSIFiles: r.FormValue("files") == "true",
 	}
 	if r.FormValue("all") == "true" {
 		p.Revision = rev.NewAllRevisions()
