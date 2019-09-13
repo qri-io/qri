@@ -11,17 +11,6 @@ file_identifier "QFBF";
 // "qri flatbuffer" file should be .qfb
 file_extension "qfb";
 
-
-table Suggestion {
-  index:int;
-  timestamp:string;
-  text:string;
-  subject:string;
-  type:string;
-  closed:bool;
-}
-
-
 enum OpType:byte {
   unknown = 0,
   merge,
@@ -47,7 +36,6 @@ table Operation {
 table AccessControl {
 
 }
-
 
 table Log {
 	operations:[Operation];
