@@ -652,6 +652,8 @@ github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71 h1:6WhdBHWrOBJfqN
 github.com/qri-io/dataset v0.1.3-0.20190719194105-19b550e95f71/go.mod h1:J/ptld3evb1QyYdU95+H+Ft6XitjYzNPnyW83GJoox0=
 github.com/qri-io/dataset v0.1.4 h1:HcYc0rgRp4gdYOyKQ6IXO+h5SdKHSuYzyyo8ifDidSU=
 github.com/qri-io/dataset v0.1.4/go.mod h1:8gWyqlhu35xu/HbPfzaWHIpMSsnpL0JBT9+K8SkJ+Bs=
+github.com/qri-io/dataset v0.1.5-0.20190914114227-5298f1c14165 h1:bmH81gg02f3utSAO8LYaelz8AWnvngL2SVuhETaO2w0=
+github.com/qri-io/dataset v0.1.5-0.20190914114227-5298f1c14165/go.mod h1:Gn47Jz2Xl4PoNx8QgqjLoaiwUNPL/O1457FGt8eBBFw=
 github.com/qri-io/deepdiff v0.1.0 h1:1VXd/ePPrSrq4GRINC4YxmoPHuuLufg2ujMKvvEWsDc=
 github.com/qri-io/deepdiff v0.1.0/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
@@ -668,6 +670,8 @@ github.com/qri-io/jsonschema v0.1.1/go.mod h1:QpzJ6gBQ0GYgGmh7mDQ1YsvvhSgE4rYj0k
 github.com/qri-io/qfs v0.1.0/go.mod h1:vZ5gVAYKaW8bDLh8U8DEr3s/1JyNzQJg1Rg9HYS+VZo=
 github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1 h1:4wV9IFa9YC4mC+XC9U45kdya67DU9GYconzCGfX3l3s=
 github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1/go.mod h1:rshAoUDPjd1yo7WuqWvc7T+ciNeX0+/KD2Li3mLdZhE=
+github.com/qri-io/qfs v0.1.1-0.20190914113707-830d3ea8232d h1:nLPFxFm6ByIPwiz6cImn2Ww/JQyY9kK8W+CnNHHEFTo=
+github.com/qri-io/qfs v0.1.1-0.20190914113707-830d3ea8232d/go.mod h1:+C3MIzAcZHU0+SiL9rzGIjvq3su17YAxQdvPJtAg+fo=
 github.com/qri-io/starlib v0.4.1 h1:aXcKv4p8WRoGElC+ZpfyKMP1OmT2KP5+iISPfXJXk6M=
 github.com/qri-io/starlib v0.4.1/go.mod h1:JapoWfwTbokzzGktLGV4671KiMnLDmJYtVJfZHhh2c4=
 github.com/qri-io/varName v0.1.0 h1:dFP5qZHrxnn5fNoMbjfpMCRBYDrOsoyls7R07r+emk0=

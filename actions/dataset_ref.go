@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/qri/p2p"
@@ -21,7 +22,7 @@ import (
 // control over local only and network actions. Once we have those, we can attempt
 // to load the dataset locally, if it error with DatasetNotFound, or something similar
 // we will know that the dataset does not exist locally
-func ResolveDatasetRef(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (local bool, err error) {
+func ResolveDatasetRef(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (local bool, err error) {
 	if err := repo.CanonicalizeDatasetRef(node.Repo, ref); err == nil && ref.Path != "" {
 		return true, nil
 	} else if err != nil && err != repo.ErrNotFound && err != profile.ErrNotFound {
@@ -57,7 +58,7 @@ func ResolveDatasetRef(node *p2p.QriNode, rc *remote.Client, remoteAddr string, 
 	if node.Online {
 		tasks++
 		go func() {
-			err := node.ResolveDatasetRef(ref)
+			err := node.ResolveDatasetRef(ctx, ref)
 			log.Debugf("p2p ref res: %s", ref)
 			if !ref.Complete() && err == nil {
 				err = fmt.Errorf("p2p network responded with incomplete reference")

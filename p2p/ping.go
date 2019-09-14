@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"time"
 
 	peer "github.com/libp2p/go-libp2p-peer"
@@ -12,7 +13,7 @@ const (
 )
 
 // Ping initiates a ping message from peer to a peer.ID
-func (n *QriNode) Ping(peerID peer.ID) (time.Duration, error) {
+func (n *QriNode) Ping(ctx context.Context, peerID peer.ID) (time.Duration, error) {
 	log.Debugf("Ping %s -> %s", n.ID, peerID)
 
 	replies := make(chan Message)
@@ -20,7 +21,7 @@ func (n *QriNode) Ping(peerID peer.ID) (time.Duration, error) {
 
 	now := time.Now()
 	ping := NewMessage(n.ID, MtPing, []byte("PING"))
-	if err := n.SendMessage(ping, replies, peerID); err != nil {
+	if err := n.SendMessage(ctx, ping, replies, peerID); err != nil {
 		return time.Duration(0), err
 	}
 

@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -34,7 +34,7 @@ func TestRequestEventsList(t *testing.T) {
 			go func(p1, p2 *QriNode) {
 				defer wg.Done()
 
-				events, err := p1.RequestEventsList(p2.ID, EventsParams{Limit: 10, Offset: 0})
+				events, err := p1.RequestEventsList(ctx, p2.ID, EventsParams{Limit: 10, Offset: 0})
 				if err != nil {
 					t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
 				}

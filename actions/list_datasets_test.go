@@ -1,16 +1,18 @@
 package actions
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
 )
 
 func TestListDatasets(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, false)
+	res, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -24,10 +26,11 @@ func TestListDatasets(t *testing.T) {
 }
 
 func TestListDatasetsNotFound(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	_, err := ListDatasets(node, &repo.DatasetRef{Peername: "not_found"}, "", 1, 0, false, false, false)
+	_, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "not_found"}, "", 1, 0, false, false, false)
 	if err == nil {
 		t.Error("expected to get error")
 	}
@@ -38,10 +41,11 @@ func TestListDatasetsNotFound(t *testing.T) {
 }
 
 func TestListDatasetsWithVersions(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 	addCitiesDataset(t, node)
 
-	res, err := ListDatasets(node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, true)
+	res, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, true)
 	if err != nil {
 		t.Error(err.Error())
 	}

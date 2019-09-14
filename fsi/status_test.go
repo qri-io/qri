@@ -1,6 +1,7 @@
 package fsi
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -32,6 +33,7 @@ func copyDir(sourceDir, destDir string) error {
 }
 
 func TestStatusValid(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
@@ -42,7 +44,7 @@ func TestStatusValid(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/valid_mappings/all_json_components/", paths.firstDir)
-	changes, err := fsi.Status(paths.firstDir)
+	changes, err := fsi.Status(ctx, paths.firstDir)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -73,6 +75,7 @@ func TestStatusValid(t *testing.T) {
 }
 
 func TestStatusInvalidDataset(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
@@ -83,7 +86,7 @@ func TestStatusInvalidDataset(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/invalid_mappings/double_format/", paths.firstDir)
-	_, err = fsi.Status(paths.firstDir)
+	_, err = fsi.Status(ctx, paths.firstDir)
 	if err == nil {
 		t.Fatalf("expected error, did not get one")
 	}
@@ -96,6 +99,7 @@ func TestStatusInvalidDataset(t *testing.T) {
 }
 
 func TestStatusInvalidMeta(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
@@ -106,7 +110,7 @@ func TestStatusInvalidMeta(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/invalid_mappings/two_metas/", paths.firstDir)
-	_, err = fsi.Status(paths.firstDir)
+	_, err = fsi.Status(ctx, paths.firstDir)
 	if err == nil {
 		t.Fatalf("expected error, did not get one")
 	}
@@ -119,6 +123,7 @@ func TestStatusInvalidMeta(t *testing.T) {
 }
 
 func TestStatusNotFound(t *testing.T) {
+	ctx := context.Background()
 	paths := NewTmpPaths()
 	defer paths.Close()
 
@@ -129,7 +134,7 @@ func TestStatusNotFound(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/invalid_mappings/not_found/", paths.firstDir)
-	_, err = fsi.Status(paths.firstDir)
+	_, err = fsi.Status(ctx, paths.firstDir)
 	if err == nil {
 		t.Fatalf("expected error, did not get one")
 	}

@@ -1,6 +1,8 @@
 package actions
 
 import (
+	"context"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
@@ -9,7 +11,7 @@ import (
 )
 
 // Recall loads revisions of a dataset from history
-func Recall(node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.Dataset, error) {
+func Recall(ctx context.Context, node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.Dataset, error) {
 	if str == "" {
 		return &dataset.Dataset{}, nil
 	}
@@ -23,7 +25,7 @@ func Recall(node *p2p.QriNode, str string, ref repo.DatasetRef) (*dataset.Datase
 		return nil, err
 	}
 
-	res, err := base.LoadRevs(node.Repo, ref, revs)
+	res, err := base.LoadRevs(ctx, node.Repo, ref, revs)
 	if err != nil {
 		return nil, err
 	}

@@ -50,6 +50,11 @@ type ScheduleParams struct {
 
 // Schedule creates a job and adds it to the scheduler
 func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) {
+	// this context is scoped to the scheduling request. currently not cancellable
+	// because our lib methods don't accept a context themselves
+	// TODO (b5): refactor RPC communication to use context
+	ctx := context.TODO()
+
 	// Make all paths absolute. this must happen *before* any possible RPC call
 	if update.PossibleShellScript(in.Name) {
 		if err = qfs.AbsPath(&in.Name); err != nil {
@@ -68,15 +73,10 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 		// return m.inst.rpc.Call("UpdateMethods.Schedule", in, out)
 	}
 
-	job, err := m.jobFromScheduleParams(in)
+	job, err := m.jobFromScheduleParams(ctx, in)
 	if err != nil {
 		return err
 	}
-
-	// this context is scoped to the scheduling request. currently not cancellable
-	// because our lib methods don't accept a context themselves
-	// TODO (b5): refactor RPC communication to use context
-	var ctx = context.Background()
 
 	if m.inst.cron == nil {
 		return fmt.Errorf("update service not available")
@@ -87,7 +87,7 @@ func (m *UpdateMethods) Schedule(in *ScheduleParams, out *cron.Job) (err error) 
 	return err
 }
 
-func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job, err error) {
+func (m *UpdateMethods) jobFromScheduleParams(ctx context.Context, p *ScheduleParams) (job *cron.Job, err error) {
 	if update.PossibleShellScript(p.Name) {
 		return update.ShellScriptToJob(p.Name, p.Periodicity, nil)
 	}
@@ -116,7 +116,7 @@ func (m *UpdateMethods) jobFromScheduleParams(p *ScheduleParams) (job *cron.Job,
 	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
 		return
 	}
-	if err = base.ReadDataset(r, &ref); err != nil {
+	if err = base.ReadDataset(ctx, r, &ref); err != nil {
 		return
 	}
 
@@ -302,6 +302,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("UpdateMethods.Run", p, res)
 	}
+	ctx := context.TODO()
 
 	switch p.Type {
 	case cron.JTDataset:
@@ -328,7 +329,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 			}
 		}
 		*res = repo.DatasetRef{}
-		err = m.runDatasetUpdate(params, res)
+		err = m.runDatasetUpdate(ctx, params, res)
 
 	case cron.JTShellScript:
 		return update.JobToCmd(m.inst.streams, p).Run()
@@ -361,7 +362,7 @@ func absolutizeJobFilepaths(j *Job) error {
 	return nil
 }
 
-func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) error {
+func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res *repo.DatasetRef) error {
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err
@@ -374,7 +375,7 @@ func (m *UpdateMethods) runDatasetUpdate(p *SaveParams, res *repo.DatasetRef) er
 	}
 
 	if !base.InLocalNamespace(m.inst.Repo(), &ref) {
-		*res, err = actions.UpdateRemoteDataset(m.inst.Node(), &ref, true)
+		*res, err = actions.UpdateRemoteDataset(ctx, m.inst.Node(), &ref, true)
 		return err
 	}
 

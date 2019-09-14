@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -11,7 +12,7 @@ import (
 const MtResolveDatasetRef = MsgType("resolve_dataset_ref")
 
 // ResolveDatasetRef completes a dataset reference
-func (n *QriNode) ResolveDatasetRef(ref *repo.DatasetRef) (err error) {
+func (n *QriNode) ResolveDatasetRef(ctx context.Context, ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s ResolveDatasetRef %s", n.ID, ref)
 
 	if !n.Online {
@@ -32,7 +33,7 @@ func (n *QriNode) ResolveDatasetRef(ref *repo.DatasetRef) (err error) {
 	}
 
 	for _, pid := range pids {
-		if err := n.SendMessage(req, replies, pid); err != nil {
+		if err := n.SendMessage(ctx, req, replies, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
 		}

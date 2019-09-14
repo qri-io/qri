@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/ioes"
@@ -59,6 +60,7 @@ func TestRenderComplete(t *testing.T) {
 }
 
 func TestRenderRun(t *testing.T) {
+	ctx := context.Background()
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
@@ -87,7 +89,7 @@ func TestRenderRun(t *testing.T) {
 	}
 	r := node.Repo
 
-	key, err := r.Store().Put(templateFile, false)
+	key, err := r.Store().Put(ctx, templateFile, false)
 	if err != nil {
 		t.Errorf("error putting template into store: %s", err)
 		return

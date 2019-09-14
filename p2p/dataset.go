@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -15,7 +16,7 @@ const MtDatasetInfo = MsgType("dataset_info")
 // It's expected the local peer has attempted to canonicalize the reference
 // before sending to the network
 // ref is used as an outparam, populating with data on success
-func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
+func (n *QriNode) RequestDataset(ctx context.Context, ref *repo.DatasetRef) (err error) {
 	log.Debugf("%s RequestDataset %s", n.ID, ref)
 
 	// if peer ID is *our* peer.ID check for local dataset
@@ -23,7 +24,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	// network request
 	if ref.ProfileID != "" {
 		if pro, err := n.Repo.Profile(); err == nil && pro.ID == ref.ProfileID {
-			ds, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
+			ds, err := dsfs.LoadDataset(ctx, n.Repo.Store(), ref.Path)
 			if err != nil {
 				return err
 			}
@@ -49,7 +50,7 @@ func (n *QriNode) RequestDataset(ref *repo.DatasetRef) (err error) {
 	}
 
 	for _, pid := range pids {
-		if err := n.SendMessage(req, replies, pid); err != nil {
+		if err := n.SendMessage(ctx, req, replies, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
 			// return err
@@ -86,7 +87,7 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 
 		if err := repo.CanonicalizeDatasetRef(n.Repo, &dsr); err == nil {
 			if ref, err := n.Repo.GetRef(dsr); err == nil {
-				ds, e := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
+				ds, e := dsfs.LoadDataset(context.TODO(), n.Repo.Store(), ref.Path)
 				if e != nil {
 					log.Debug(err.Error())
 					return

@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -10,10 +11,11 @@ import (
 )
 
 func TestLoadRevisions(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	cities, err := dsfs.LoadDataset(r.Store(), ref.Path)
+	cities, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -42,7 +44,7 @@ func TestLoadRevisions(t *testing.T) {
 			continue
 		}
 
-		got, err := LoadRevs(r, c.ref, revs)
+		got, err := LoadRevs(ctx, r, c.ref, revs)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)
 		}

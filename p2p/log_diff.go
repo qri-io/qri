@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -14,7 +15,7 @@ const MtLogDiff = MsgType("log_diff")
 // RequestLogDiff fetches info about a dataset from qri peers
 // It's expected the local peer has attempted to canonicalize the reference
 // before sending to the network
-func (n *QriNode) RequestLogDiff(ref *repo.DatasetRef) (ldr base.LogDiffResult, err error) {
+func (n *QriNode) RequestLogDiff(ctx context.Context, ref *repo.DatasetRef) (ldr base.LogDiffResult, err error) {
 	log.Debugf("%s RequestLogDiff %s", n.ID, ref)
 
 	p, err := n.ConnectToPeer(n.ctx, PeerConnectionParams{
@@ -28,7 +29,7 @@ func (n *QriNode) RequestLogDiff(ref *repo.DatasetRef) (ldr base.LogDiffResult, 
 	}
 
 	// TODO - deal with max limit / offset / pagination issuez
-	rLog, err := base.DatasetLog(n.Repo, *ref, 10000, 0, false)
+	rLog, err := base.DatasetLog(ctx, n.Repo, *ref, 10000, 0, false)
 	if err != nil {
 		return
 	}
@@ -42,7 +43,7 @@ func (n *QriNode) RequestLogDiff(ref *repo.DatasetRef) (ldr base.LogDiffResult, 
 	}
 
 	for _, pid := range p.PeerIDs {
-		if err = n.SendMessage(req, replies, pid); err != nil {
+		if err = n.SendMessage(ctx, req, replies, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
 		}
@@ -69,7 +70,7 @@ func (n *QriNode) handleLogDiff(ws *WrappedStream, msg Message) (hangup bool) {
 		}
 
 		res := msg
-		ldr, err := base.LogDiff(n.Repo, remoteLog)
+		ldr, err := base.LogDiff(context.TODO(), n.Repo, remoteLog)
 		if err != nil {
 			log.Error(err)
 			return

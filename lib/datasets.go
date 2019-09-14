@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -60,6 +61,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
+	ctx := context.TODO()
 
 	ds := &repo.DatasetRef{
 		Peername:  p.Peername,
@@ -75,7 +77,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.Offset = 0
 	}
 
-	replies, err := actions.ListDatasets(r.node, ds, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	replies, err := actions.ListDatasets(ctx, r.node, ds, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 
 	*res = replies
 	return err
@@ -114,6 +116,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
 	}
+	ctx := context.TODO()
 
 	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
 	if err != nil {
@@ -129,7 +132,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			return fmt.Errorf("loading linked dataset: %s", err)
 		}
 	} else {
-		ds, err = dsfs.LoadDataset(r.node.Repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
@@ -140,7 +143,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	res.Ref = ref
 	res.Dataset = ds
 
-	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 		return
 	}
 
@@ -292,6 +295,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
+	ctx := context.TODO()
 
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
@@ -348,7 +352,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			// ProfileID: ds.ProfileID,
 			Path: ds.Path,
 		}
-		recall, err := actions.Recall(r.node, p.Recall, ref)
+		recall, err := actions.Recall(ctx, r.node, p.Recall, ref)
 		if err != nil {
 			return err
 		}
@@ -380,7 +384,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return fmt.Errorf("no changes to save")
 	}
 
-	if err = base.OpenDataset(r.node.Repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 		log.Debugf("open ds error: %s", err.Error())
 		return
 	}
@@ -396,7 +400,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		Force:               p.Force,
 		ShouldRender:        p.ShouldRender,
 	}
-	ref, err = actions.SaveDataset(r.node, ds, p.Secrets, p.ScriptOutput, switches)
+	ref, err = actions.SaveDataset(ctx, r.node, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -479,6 +483,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Rename", p, res)
 	}
+	ctx := context.TODO()
 
 	if p.Current.IsEmpty() {
 		return fmt.Errorf("current name is required to rename a dataset")
@@ -488,7 +493,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return err
 	}
 
-	if err = actions.DatasetHead(r.node, &p.New); err != nil {
+	if err = actions.DatasetHead(ctx, r.node, &p.New); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
@@ -517,6 +522,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Remove", p, res)
 	}
+	ctx := context.TODO()
 
 	if p.Revision.Field != "ds" {
 		return fmt.Errorf("can only remove whole dataset versions, not individual components")
@@ -573,7 +579,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 
 		// Delete entire dataset for all generations.
-		if err := actions.DeleteDataset(r.node, &ref); err != nil {
+		if err := actions.DeleteDataset(ctx, r.node, &ref); err != nil {
 			return err
 		}
 		res.NumDeleted = rev.AllGenerations
@@ -588,7 +594,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	log, err := actions.DatasetLog(r.node, ref, p.Revision.Gen+1, 0)
+	log, err := actions.DatasetLog(ctx, r.node, ref, p.Revision.Gen+1, 0)
 	if err != nil {
 		return err
 	}
@@ -613,13 +619,14 @@ func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err e
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Add", ref, res)
 	}
+	ctx := context.TODO()
 
 	defaultAddr := ""
 	if r.inst != nil && r.inst.cfg.Registry != nil {
 		defaultAddr = r.inst.cfg.Registry.Location
 	}
 
-	err = actions.AddDataset(r.node, r.inst.RemoteClient(), defaultAddr, ref)
+	err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), defaultAddr, ref)
 	*res = *ref
 	return err
 }
@@ -639,6 +646,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Validate", p, errors)
 	}
+	ctx := context.TODO()
 
 	// TODO: restore validating data from a URL
 	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
@@ -665,7 +673,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	*errors, err = actions.Validate(r.node, ref, body, schema)
+	*errors, err = actions.Validate(ctx, r.node, ref, body, schema)
 	return
 }
 

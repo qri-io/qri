@@ -76,7 +76,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 				// TODO - this is breaking encapsulation pretty hard. Should probs move this stuff into lib
 				if cfg != nil && cfg.Render != nil && cfg.Render.TemplateUpdateAddress != "" {
 					if latest, err := lib.CheckVersion(context.Background(), namesys, cfg.Render.TemplateUpdateAddress, cfg.Render.DefaultTemplateHash); err == lib.ErrUpdateRequired {
-						err := pinner.Pin(latest, true)
+						err := pinner.Pin(ctx, latest, true)
 						if err != nil {
 							log.Debug("error pinning template hash: %s", err.Error())
 							return
@@ -172,7 +172,7 @@ func (s *Server) HandleIPFSPath(w http.ResponseWriter, r *http.Request) {
 }
 
 func (s Server) fetchCAFSPath(path string, w http.ResponseWriter, r *http.Request) {
-	file, err := s.Node().Repo.Store().Get(path)
+	file, err := s.Node().Repo.Store().Get(r.Context(), path)
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
@@ -201,7 +201,7 @@ func (s Server) HandleIPNSPath(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	file, err := node.Repo.Store().Get(p.String())
+	file, err := node.Repo.Store().Get(r.Context(), p.String())
 	if err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

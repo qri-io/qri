@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -13,6 +14,7 @@ import (
 )
 
 func TestExecTransform(t *testing.T) {
+	ctx := context.Background()
 	store := cafs.NewMapstore()
 	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
 	if err != nil {
@@ -45,7 +47,7 @@ def transform(ds,ctx):
 	`)
 	next.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", data))
 
-	if err := ExecTransform(node, next, prev, nil, nil); err != nil {
+	if err := ExecTransform(ctx, node, next, prev, nil, nil); err != nil {
 		t.Error(err.Error())
 	}
 }

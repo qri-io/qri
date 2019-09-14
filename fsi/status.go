@@ -2,6 +2,7 @@ package fsi
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -102,7 +103,7 @@ func (fsi *FSI) AliasToLinkedDir(alias string) (string, error) {
 }
 
 // Status compares status of the current working directory against the dataset's last version
-func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
+func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, err error) {
 	refStr, ok := GetLinkedFilesysRef(dir)
 	if !ok {
 		err = fmt.Errorf("not a linked directory")
@@ -115,7 +116,7 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		// no dataset, compare to an empty ds
 		stored = &dataset.Dataset{}
 	} else {
-		if stored, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+		if stored, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), ref.Path); err != nil {
 			return nil, err
 		}
 	}
@@ -140,11 +141,11 @@ func (fsi *FSI) Status(dir string) (changes []StatusItem, err error) {
 		working.SetBodyFile(qfs.NewMemfileReader(bodyStat.Path, bf))
 	}
 
-	return fsi.CalculateStateTransition(stored, working, fileMap, problems)
+	return fsi.CalculateStateTransition(ctx, stored, working, fileMap, problems)
 }
 
 // CalculateStateTransition calculates the differences between two versions of a dataset.
-func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, problems map[string]FileStat) (changes []StatusItem, err error) {
+func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next *dataset.Dataset, fileMap, problems map[string]FileStat) (changes []StatusItem, err error) {
 	// if err = validate.Dataset(ds); err != nil {
 	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
 	// }
@@ -232,7 +233,7 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 			var nextData []byte
 			if path == componentNameBody {
 				// Getting data for the body works differently.
-				if err = prev.OpenBodyFile(fsi.repo.Filesystem()); err != nil {
+				if err = prev.OpenBodyFile(ctx, fsi.repo.Filesystem()); err != nil {
 					return nil, err
 				}
 				prevBody := prev.BodyFile()
@@ -257,7 +258,7 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 				}
 
 				// Getting data for the body works differently.
-				if err = next.OpenBodyFile(fsi.repo.Filesystem()); err != nil {
+				if err = next.OpenBodyFile(ctx, fsi.repo.Filesystem()); err != nil {
 					return nil, err
 				}
 				nextBody := next.BodyFile()
@@ -307,7 +308,7 @@ func (fsi *FSI) CalculateStateTransition(prev, next *dataset.Dataset, fileMap, p
 }
 
 // StatusAtVersion gets changes that happened at a particular version in a dataset's history.
-func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error) {
+func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []StatusItem, err error) {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return nil, err
@@ -317,7 +318,7 @@ func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error)
 	if err := repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
 		return nil, err
 	}
-	if next, err = dsfs.LoadDataset(fsi.repo.Store(), ref.Path); err != nil {
+	if next, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), ref.Path); err != nil {
 		return nil, err
 	}
 
@@ -325,7 +326,7 @@ func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error)
 	if prevPath == "" {
 		prev = &dataset.Dataset{}
 	} else {
-		if prev, err = dsfs.LoadDataset(fsi.repo.Store(), prevPath); err != nil {
+		if prev, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), prevPath); err != nil {
 			return nil, err
 		}
 	}
@@ -340,7 +341,7 @@ func (fsi *FSI) StatusAtVersion(refStr string) (changes []StatusItem, err error)
 	if next.Structure != nil && next.Structure.Schema != nil {
 		fileMap["schema"] = FileStat{Path: "schema"}
 	}
-	return fsi.CalculateStateTransition(prev, next, fileMap, nil)
+	return fsi.CalculateStateTransition(ctx, prev, next, fileMap, nil)
 }
 
 func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {

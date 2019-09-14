@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -19,7 +20,7 @@ type EventsParams struct {
 }
 
 // RequestEventsList fetches a log of events from a peer
-func (n *QriNode) RequestEventsList(pid peer.ID, p EventsParams) ([]*repo.Event, error) {
+func (n *QriNode) RequestEventsList(ctx context.Context, pid peer.ID, p EventsParams) ([]*repo.Event, error) {
 	log.Debugf("%s: RequestEventsList", n.ID)
 
 	if pid == n.ID {
@@ -35,7 +36,7 @@ func (n *QriNode) RequestEventsList(pid peer.ID, p EventsParams) ([]*repo.Event,
 	req = req.WithHeaders("phase", "request")
 
 	replies := make(chan Message)
-	if err = n.SendMessage(req, replies, pid); err != nil {
+	if err = n.SendMessage(ctx, req, replies, pid); err != nil {
 		return nil, err
 	}
 

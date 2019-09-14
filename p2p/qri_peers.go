@@ -66,13 +66,13 @@ func (n *QriNode) UpgradeToQriConnection(pinfo pstore.PeerInfo) error {
 	// tag the connection as more important in the conn manager:
 	n.host.ConnManager().TagPeer(pid, qriSupportKey, qriSupportValue)
 
-	if _, err := n.RequestProfile(pid); err != nil {
+	if _, err := n.RequestProfile(n.Context(), pid); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
 
 	go func() {
-		ps, err := n.RequestQriPeers(pid)
+		ps, err := n.RequestQriPeers(n.Context(), pid)
 		if err != nil {
 			log.Debug("error fetching qri peers: %s", err)
 		}
@@ -154,7 +154,7 @@ func (n *QriNode) RequestNewPeers(ctx context.Context, peers []QriPeer) {
 }
 
 // RequestQriPeers asks a designated peer for a list of qri peers
-func (n *QriNode) RequestQriPeers(id peer.ID) ([]QriPeer, error) {
+func (n *QriNode) RequestQriPeers(ctx context.Context, id peer.ID) ([]QriPeer, error) {
 	log.Debugf("%s RequestQriPeers: %s", n.ID, id)
 
 	if id == n.ID {
@@ -175,7 +175,7 @@ func (n *QriNode) RequestQriPeers(id peer.ID) ([]QriPeer, error) {
 	req = req.WithHeaders("phase", "request")
 
 	replies := make(chan Message)
-	err = n.SendMessage(req, replies, id)
+	err = n.SendMessage(ctx, req, replies, id)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("send dataset info message error: %s", err.Error())

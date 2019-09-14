@@ -1,6 +1,8 @@
 package base
 
 import (
+	"context"
+
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
@@ -9,11 +11,11 @@ import (
 
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
-func LoadRevs(r repo.Repo, ref repo.DatasetRef, revs []*rev.Rev) (res *dataset.Dataset, err error) {
+func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*rev.Rev) (res *dataset.Dataset, err error) {
 	var ds *dataset.Dataset
 	res = &dataset.Dataset{}
 	for {
-		if ds, err = dsfs.LoadDataset(r.Store(), ref.Path); err != nil {
+		if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
 			return
 		}
 

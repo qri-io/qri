@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/config"
@@ -10,6 +11,7 @@ import (
 )
 
 func TestDatasetLog(t *testing.T) {
+	ctx := context.Background()
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -23,13 +25,13 @@ func TestDatasetLog(t *testing.T) {
 	node := p.(*p2p.QriNode)
 
 	ref := repo.MustParseDatasetRef("peer/not_a_dataset")
-	log, err := DatasetLog(node, ref, -1, 0)
+	log, err := DatasetLog(ctx, node, ref, -1, 0)
 	if err == nil {
 		t.Errorf("expected lookup for nonexistent log to fail")
 	}
 
 	ref = repo.MustParseDatasetRef("peer/movies")
-	if log, err = DatasetLog(node, ref, -1, 0); err != nil {
+	if log, err = DatasetLog(ctx, node, ref, -1, 0); err != nil {
 		t.Error(err.Error())
 	}
 	if len(log) != 1 {

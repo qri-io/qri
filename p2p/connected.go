@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"time"
 
@@ -37,7 +38,7 @@ func (pod pinfoPod) Decode() (pstore.PeerInfo, error) {
 }
 
 // AnnounceConnected kicks off a notice to other peers that a profile has connected
-func (n *QriNode) AnnounceConnected() error {
+func (n *QriNode) AnnounceConnected(ctx context.Context) error {
 	pids := n.ConnectedQriPeerIDs()
 	log.Debugf("%s AnnounceConnected to %d peers", n.ID, len(pids))
 
@@ -58,7 +59,7 @@ func (n *QriNode) AnnounceConnected() error {
 	msg := NewMessage(n.ID, MtConnected, data)
 
 	go func() {
-		if err := n.SendMessage(msg, nil, pids...); err != nil {
+		if err := n.SendMessage(ctx, msg, nil, pids...); err != nil {
 			log.Debugf("send profile message error: %s", err.Error())
 		}
 	}()
@@ -88,7 +89,7 @@ func (n *QriNode) handleConnected(ws *WrappedStream, msg Message) (hangup bool) 
 	n.host.Peerstore().AddAddrs(pinfo.ID, pinfo.Addrs, pstore.TempAddrTTL)
 
 	// request this peer's profile to connect two node's knowledge of each other
-	if _, err := n.RequestProfile(pinfo.ID); err != nil {
+	if _, err := n.RequestProfile(context.TODO(), pinfo.ID); err != nil {
 		log.Debug(err.Error())
 		return
 	}

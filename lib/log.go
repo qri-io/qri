@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"net/rpc"
 
@@ -44,6 +45,7 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 	if r.cli != nil {
 		return r.cli.Call("LogRequests.Log", params, res)
 	}
+	ctx := context.TODO()
 
 	if params.Ref == "" {
 		return repo.ErrEmptyRef
@@ -65,6 +67,6 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 		params.Offset = 0
 	}
 
-	*res, err = actions.DatasetLog(r.node, ref, params.Limit, params.Offset)
+	*res, err = actions.DatasetLog(ctx, r.node, ref, params.Limit, params.Offset)
 	return
 }

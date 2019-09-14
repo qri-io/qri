@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"io/ioutil"
 	"strings"
 
@@ -81,7 +82,7 @@ func MaybeAddDefaultViz(ds *dataset.Dataset) {
 // Render uses go's html/template package to generate html documents from an
 // input dataset. It's API has been adjusted to use lowerCamelCase instead of
 // UpperCamelCase naming conventions
-func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
+func Render(ctx context.Context, r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
 	/*
 		outline: html viz
 			HTML template gives users a number of helper template functions, along
@@ -124,12 +125,12 @@ func Render(r repo.Repo, ref repo.DatasetRef, tmplData []byte) ([]byte, error) {
 
 	store := r.Store()
 
-	ds, err := dsfs.LoadDataset(store, ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, err
 	}
-	if err := OpenDataset(r.Filesystem(), ds); err != nil {
+	if err := OpenDataset(ctx, r.Filesystem(), ds); err != nil {
 		return nil, err
 	}
 

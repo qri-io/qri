@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"net/rpc"
 
@@ -44,6 +45,7 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("RenderRequests.Render", p, res)
 	}
+	ctx := context.TODO()
 
 	var ref repo.DatasetRef
 	if ref, err = repo.ParseDatasetRef(p.Ref); err != nil {
@@ -56,6 +58,6 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 		return err
 	}
 
-	*res, err = base.Render(r.repo, ref, p.Template)
+	*res, err = base.Render(ctx, r.repo, ref, p.Template)
 	return err
 }

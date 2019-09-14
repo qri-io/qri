@@ -31,11 +31,11 @@ func TestUpdateRemoteDataset(t *testing.T) {
 	connectMapStores(peers)
 
 	now := addNowTransformDataset(t, peers[0])
-	if err := AddDataset(peers[1], nil, "", &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
+	if err := AddDataset(ctx, peers[1], nil, "", &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
 		t.Error(err)
 	}
 
-	base.ReadDataset(peers[0].Repo, &now)
+	base.ReadDataset(ctx, peers[0].Repo, &now)
 
 	ds := &dataset.Dataset{
 		Peername: now.Peername,
@@ -52,12 +52,12 @@ func TestUpdateRemoteDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// run a local update to advance history
-	now0, err := SaveDataset(peers[0], ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	now0, err := SaveDataset(ctx, peers[0], ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
 
-	now1, err := UpdateRemoteDataset(peers[1], &now, false)
+	now1, err := UpdateRemoteDataset(ctx, peers[1], &now, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -67,14 +67,14 @@ func TestUpdateRemoteDataset(t *testing.T) {
 }
 
 func TestAddDataset(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 
-	if err := AddDataset(node, nil, "", &repo.DatasetRef{Peername: "foo", Name: "bar"}); err == nil {
+	if err := AddDataset(ctx, node, nil, "", &repo.DatasetRef{Peername: "foo", Name: "bar"}); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
 	// Create test nodes.
-	ctx := context.Background()
 	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
 	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 2)
 	if err != nil {
@@ -88,7 +88,7 @@ func TestAddDataset(t *testing.T) {
 
 	connectMapStores(peers)
 	p2Pro, _ := peers[1].Repo.Profile()
-	if err := AddDataset(peers[0], nil, "", &repo.DatasetRef{Peername: p2Pro.Peername, Name: "cities"}); err != nil {
+	if err := AddDataset(ctx, peers[0], nil, "", &repo.DatasetRef{Peername: p2Pro.Peername, Name: "cities"}); err != nil {
 		t.Error(err.Error())
 	}
 }
@@ -107,6 +107,7 @@ func TestDataset(t *testing.T) {
 }
 
 func TestSaveDataset(t *testing.T) {
+	ctx := context.Background()
 	n := newTestNode(t)
 
 	// test Dry run
@@ -119,7 +120,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
+	ref, err := SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Errorf("dry run error: %s", err.Error())
 	}
@@ -142,7 +143,7 @@ func TestSaveDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -168,10 +169,10 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(["hey"])`),
 		},
 	}
-	ds.Transform.OpenScriptFile(nil)
+	ds.Transform.OpenScriptFile(ctx, nil)
 
 	// dryrun should work
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, n, ds, secrets, nil, SaveDatasetSwitches{DryRun: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,10 +195,10 @@ func TestSaveDataset(t *testing.T) {
   ds.set_body(["hey"])`),
 		},
 	}
-	ds.Transform.OpenScriptFile(nil)
+	ds.Transform.OpenScriptFile(ctx, nil)
 
 	// test save with transform
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -216,7 +217,7 @@ func TestSaveDataset(t *testing.T) {
 		},
 	}
 
-	ref, err = SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -226,7 +227,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 
 	// recall previous transform
-	tfds, err := Recall(n, "tf", ref)
+	tfds, err := Recall(ctx, n, "tf", ref)
 	if err != nil {
 		t.Error(err)
 	}
@@ -240,11 +241,11 @@ func TestSaveDataset(t *testing.T) {
 		},
 		Transform: tfds.Transform,
 	}
-	if err := ds.Transform.OpenScriptFile(n.Repo.Filesystem()); err != nil {
+	if err := ds.Transform.OpenScriptFile(ctx, n.Repo.Filesystem()); err != nil {
 		t.Error(err)
 	}
 
-	ref, err = SaveDataset(n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err = SaveDataset(ctx, n, ds, secrets, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -254,6 +255,7 @@ func TestSaveDataset(t *testing.T) {
 }
 
 func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
+	ctx := context.Background()
 	n := newTestNode(t)
 
 	ds := &dataset.Dataset{
@@ -263,7 +265,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 		},
 	}
 
-	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{ShouldRender: true})
+	_, err := SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{ShouldRender: true})
 	expect := "creating a new dataset requires a structure or a body"
 	if err == nil || err.Error() != expect {
 		t.Errorf("expected error, but got %s", err.Error())
@@ -271,6 +273,7 @@ func TestSaveDatasetWithoutStructureOrBody(t *testing.T) {
 }
 
 func TestSaveDatasetReplace(t *testing.T) {
+	ctx := context.Background()
 	n := newTestNode(t)
 
 	ds := &dataset.Dataset{
@@ -284,7 +287,7 @@ func TestSaveDatasetReplace(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
 	// test save
-	_, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Pin: true})
+	_, err := SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{Pin: true})
 	if err != nil {
 		t.Error(err)
 	}
@@ -296,12 +299,12 @@ func TestSaveDatasetReplace(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte(`{"foo":"bar"}`)))
 
-	ref, err := SaveDataset(n, ds, nil, nil, SaveDatasetSwitches{Replace: true, Pin: true})
+	ref, err := SaveDataset(ctx, n, ds, nil, nil, SaveDatasetSwitches{Replace: true, Pin: true})
 	if err != nil {
 		t.Error(err)
 	}
 
-	if err := base.ReadDataset(n.Repo, &ref); err != nil {
+	if err := base.ReadDataset(ctx, n.Repo, &ref); err != nil {
 		t.Error(err)
 	}
 
@@ -343,9 +346,10 @@ func createDataset(t *testing.T, rmf RepoMakerFunc) (*p2p.QriNode, repo.DatasetR
 }
 
 func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
+	ctx := context.Background()
 	n, ref := createDataset(t, rmf)
 
-	if err := base.ReadDataset(n.Repo, &ref); err != nil {
+	if err := base.ReadDataset(ctx, n.Repo, &ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -357,6 +361,7 @@ func testReadDataset(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
+	ctx := context.Background()
 	node, ref := createDataset(t, rmf)
 
 	b := &repo.DatasetRef{
@@ -369,7 +374,7 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	if err := base.ReadDataset(node.Repo, b); err != nil {
+	if err := base.ReadDataset(ctx, node.Repo, b); err != nil {
 		t.Error(err.Error())
 		return
 	}
@@ -381,15 +386,17 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 }
 
 func testDeleteDataset(t *testing.T, rmf RepoMakerFunc) {
+	ctx := context.Background()
 	node, ref := createDataset(t, rmf)
 
-	if err := DeleteDataset(node, &ref); err != nil {
+	if err := DeleteDataset(ctx, node, &ref); err != nil {
 		t.Error(err.Error())
 		return
 	}
 }
 
 func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
+	ctx := context.Background()
 	node, ref := createDataset(t, rmf)
 	pinner := true
 
@@ -403,7 +410,7 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	if err := base.PinDataset(node.Repo, *b); err != nil {
+	if err := base.PinDataset(ctx, node.Repo, *b); err != nil {
 		if err == repo.ErrNotPinner {
 			pinner = false
 		} else {
@@ -422,7 +429,7 @@ func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
 	// 	return
 	// }
 
-	if err := DeleteDataset(node, b); err != nil {
+	if err := DeleteDataset(ctx, node, b); err != nil {
 		t.Error(err.Error())
 		return
 	}

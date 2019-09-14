@@ -2,6 +2,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -18,7 +19,7 @@ import (
 )
 
 // Validate checks a dataset body for errors based on a schema
-func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
+func Validate(ctx context.Context, node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
 	if !ref.IsEmpty() {
 		err = repo.CanonicalizeDatasetRef(node.Repo, &ref)
 		if err != nil && err != repo.ErrNotFound {
@@ -35,7 +36,7 @@ func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (er
 
 	// if a dataset is specified, load it
 	if ref.Path != "" {
-		if err = DatasetHead(node, &ref); err != nil {
+		if err = DatasetHead(ctx, node, &ref); err != nil {
 			log.Debug(err.Error())
 			return
 		}
@@ -91,7 +92,7 @@ func Validate(node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (er
 	if data == nil && ref.Dataset != nil {
 		ds := ref.Dataset
 
-		f, e := dsfs.LoadBody(node.Repo.Store(), ds)
+		f, e := dsfs.LoadBody(ctx, node.Repo.Store(), ds)
 		if e != nil {
 			log.Debug(e.Error())
 			err = fmt.Errorf("error loading dataset data: %s", e.Error())

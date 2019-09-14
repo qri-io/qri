@@ -2,6 +2,7 @@ package actions
 
 import (
 	"bytes"
+	"context"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -9,10 +10,11 @@ import (
 )
 
 func TestGetBody(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 	ref := addCitiesDataset(t, node)
 
-	ds, err := base.ReadDatasetPath(node.Repo, ref.String())
+	ds, err := base.ReadDatasetPath(ctx, node.Repo, ref.String())
 	if err != nil {
 		t.Fatal(err)
 	}

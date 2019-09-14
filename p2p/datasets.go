@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -24,7 +25,7 @@ type DatasetsListParams struct {
 }
 
 // RequestDatasetsList gets a list of a peer's datasets
-func (n *QriNode) RequestDatasetsList(pid peer.ID, p DatasetsListParams) ([]repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p DatasetsListParams) ([]repo.DatasetRef, error) {
 	log.Debugf("%s RequestDatasetList: %s", n.ID, pid)
 
 	if pid == n.ID {
@@ -45,7 +46,7 @@ func (n *QriNode) RequestDatasetsList(pid peer.ID, p DatasetsListParams) ([]repo
 	req = req.WithHeaders("phase", "request")
 
 	replies := make(chan Message)
-	err = n.SendMessage(req, replies, pid)
+	err = n.SendMessage(ctx, req, replies, pid)
 	if err != nil {
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("send dataset info message error: %s", err.Error())
@@ -71,7 +72,7 @@ func (n *QriNode) handleDatasetsList(ws *WrappedStream, msg Message) (hangup boo
 			dlp.Limit = listMax
 		}
 
-		refs, err := base.ListDatasets(n.Repo, dlp.Term, dlp.Limit, dlp.Offset, false, true, false)
+		refs, err := base.ListDatasets(context.TODO(), n.Repo, dlp.Term, dlp.Limit, dlp.Offset, false, true, false)
 		if err != nil {
 			log.Error(err)
 			return

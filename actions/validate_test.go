@@ -1,12 +1,16 @@
 package actions
 
-import "testing"
+import (
+	"context"
+	"testing"
+)
 
 func TestValidate(t *testing.T) {
+	ctx := context.Background()
 	node := newTestNode(t)
 	cities := addCitiesDataset(t, node)
 
-	errs, err := Validate(node, cities, nil, nil)
+	errs, err := Validate(ctx, node, cities, nil, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}

@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset/dsdiff"
@@ -9,19 +10,19 @@ import (
 )
 
 // DiffDatasets calculates the difference between two dataset references
-func DiffDatasets(node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool, components map[string]bool) (diffs map[string]*dsdiff.SubDiff, err error) {
+func DiffDatasets(ctx context.Context, node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool, components map[string]bool) (diffs map[string]*dsdiff.SubDiff, err error) {
 	if leftRef.IsEmpty() || rightRef.IsEmpty() {
 		// TODO - make new error
 		err = fmt.Errorf("please provide two dataset references to compare")
 		return
 	}
 
-	if err = DatasetHead(node, &leftRef); err != nil {
+	if err = DatasetHead(ctx, node, &leftRef); err != nil {
 		return
 	}
 	dsLeft := leftRef.Dataset
 
-	if err = DatasetHead(node, &rightRef); err != nil {
+	if err = DatasetHead(ctx, node, &rightRef); err != nil {
 		return
 	}
 	dsRight := rightRef.Dataset

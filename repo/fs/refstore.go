@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -62,7 +63,7 @@ func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
 	}
 
 	if rs.store != nil && r.Path != "" {
-		if ds, err = dsfs.LoadDataset(rs.store, r.Path); err != nil {
+		if ds, err = dsfs.LoadDataset(context.TODO(), rs.store, r.Path); err != nil {
 			return err
 		}
 

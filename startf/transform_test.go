@@ -2,6 +2,7 @@ package startf
 
 import (
 	"bytes"
+	"context"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -29,13 +30,14 @@ func scriptFile(t *testing.T, path string) qfs.File {
 }
 
 func TestExecScript(t *testing.T) {
+	ctx := context.Background()
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/tf.star"))
 
 	stderr := &bytes.Buffer{}
-	err := ExecScript(ds, nil, SetOutWriter(stderr))
+	err := ExecScript(ctx, ds, nil, SetOutWriter(stderr))
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -75,7 +77,7 @@ hello world!`
 }
 
 func TestExecScript2(t *testing.T) {
-
+	ctx := context.Background()
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"foo":["bar","baz","bat"]}`))
 	}))
@@ -84,7 +86,7 @@ func TestExecScript2(t *testing.T) {
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/fetch.star"))
-	err := ExecScript(ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
 		o.Globals["test_server_url"] = starlark.String(s.URL)
 	})
 
@@ -98,6 +100,7 @@ func TestExecScript2(t *testing.T) {
 }
 
 func TestLoadDataset(t *testing.T) {
+	ctx := context.Background()
 	node := testQriNode(t)
 
 	ds := &dataset.Dataset{
@@ -105,7 +108,7 @@ func TestLoadDataset(t *testing.T) {
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/load_ds.star"))
 
-	err := ExecScript(ds, nil, func(o *ExecOpts) {
+	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
 		o.Node = node
 		o.ModuleLoader = testModuleLoader(t)
 	})
@@ -115,11 +118,12 @@ func TestLoadDataset(t *testing.T) {
 }
 
 func TestGetMetaNilPrev(t *testing.T) {
+	ctx := context.Background()
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{},
 	}
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/meta_title.star"))
-	err := ExecScript(ds, nil)
+	err := ExecScript(ctx, ds, nil)
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -133,6 +137,7 @@ func TestGetMetaNilPrev(t *testing.T) {
 }
 
 func TestGetMetaWithPrev(t *testing.T) {
+	ctx := context.Background()
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{},
 	}
@@ -142,7 +147,7 @@ func TestGetMetaWithPrev(t *testing.T) {
 			Title: "test_title",
 		},
 	}
-	err := ExecScript(ds, prev)
+	err := ExecScript(ctx, ds, prev)
 	if err != nil {
 		t.Error(err.Error())
 		return

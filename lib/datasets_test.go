@@ -362,6 +362,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 }
 
 func TestDatasetRequestsGet(t *testing.T) {
+	ctx := context.Background()
 	mr, err := testrepo.NewTestRepo()
 	if err != nil {
 		t.Fatalf("error allocating test repo: %s", err.Error())
@@ -376,12 +377,12 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatalf("error getting path: %s", err.Error())
 	}
 
-	moviesDs, err := dsfs.LoadDataset(mr.Store(), ref.Path)
+	moviesDs, err := dsfs.LoadDataset(ctx, mr.Store(), ref.Path)
 	if err != nil {
 		t.Fatalf("error loading dataset: %s", err.Error())
 	}
 
-	moviesDs.OpenBodyFile(node.Repo.Filesystem())
+	moviesDs.OpenBodyFile(ctx, node.Repo.Filesystem())
 	moviesBodyFile := moviesDs.BodyFile()
 	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
 	moviesBody := mustBeArray(base.ReadEntries(reader))

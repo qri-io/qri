@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"time"
@@ -29,14 +30,14 @@ type SaveDatasetSwitches struct {
 }
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
 		r        = node.Repo
 	)
 
-	prev, mutable, prevPath, err := base.PrepareDatasetSave(r, changes.Peername, changes.Name)
+	prev, mutable, prevPath, err := base.PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
 	if err != nil {
 		return
 	}
@@ -60,7 +61,7 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 		mutateCheck := mutatedComponentsFunc(changes)
 
 		changes.Transform.Secrets = secrets
-		if err = ExecTransform(node, changes, prev, scriptOut, mutateCheck); err != nil {
+		if err = ExecTransform(ctx, node, changes, prev, scriptOut, mutateCheck); err != nil {
 			return
 		}
 		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
@@ -108,19 +109,19 @@ func SaveDataset(node *p2p.QriNode, changes *dataset.Dataset, secrets map[string
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
-	return base.CreateDataset(r, node.LocalStreams, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
+	return base.CreateDataset(ctx, r, node.LocalStreams, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
 }
 
 // UpdateRemoteDataset brings a reference to the latest version, syncing to the
 // latest history it can find over p2p & via any configured registry
-func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
+func UpdateRemoteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
 	var ldr base.LogDiffResult
-	ldr, err = node.RequestLogDiff(ref)
+	ldr, err = node.RequestLogDiff(ctx, ref)
 	if err != nil {
 		return
 	}
 	for _, add := range ldr.Add {
-		if err = base.FetchDataset(node.Repo, &add, true, false); err != nil {
+		if err = base.FetchDataset(ctx, node.Repo, &add, true, false); err != nil {
 			return
 		}
 	}
@@ -133,14 +134,14 @@ func UpdateRemoteDataset(node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
-func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (err error) {
+func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (err error) {
 	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
 	if !ref.Complete() {
 		// TODO (ramfox): we should check to see if the dataset already exists locally
 		// unfortunately, because of the nature of the ipfs filesystem commands, we don't
 		// know if files we fetch are local only or possibly coming from the network.
 		// instead, for now, let's just always try to add
-		if _, err := ResolveDatasetRef(node, rc, remoteAddr, ref); err != nil {
+		if _, err := ResolveDatasetRef(ctx, node, rc, remoteAddr, ref); err != nil {
 			return err
 		}
 	}
@@ -171,13 +172,13 @@ func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *re
 				responses <- res
 			}()
 
-			if err := rc.PullDataset(node.Context(), ref, remoteAddr); err != nil {
+			if err := rc.PullDataset(ctx, ref, remoteAddr); err != nil {
 				res.Error = err
 				return
 			}
 			node.LocalStreams.PrintErr("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-				err := pinner.Pin(ref.Path, true)
+				err := pinner.Pin(ctx, ref.Path, true)
 				res.Error = err
 			}
 		}(refCopy)
@@ -186,7 +187,7 @@ func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *re
 	if node.Online {
 		tasks++
 		go func() {
-			err := base.FetchDataset(node.Repo, ref, true, true)
+			err := base.FetchDataset(ctx, node.Repo, ref, true, true)
 			responses <- addResponse{
 				Ref:   ref,
 				Error: err,
@@ -225,13 +226,13 @@ func AddDataset(node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *re
 		return err
 	}
 
-	prevRef.Dataset, err = dsfs.LoadDataset(node.Repo.Store(), prevRef.Path)
+	prevRef.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Store(), prevRef.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error loading repo dataset: %s", prevRef.Path)
 	}
 
-	ref.Dataset, err = dsfs.LoadDataset(node.Repo.Store(), ref.Path)
+	ref.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Store(), ref.Path)
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error loading added dataset: %s", ref.Path)
@@ -309,7 +310,7 @@ func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bo
 }
 
 // DeleteDataset removes a dataset from the store
-func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
+func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 	r := node.Repo
 
 	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
@@ -345,7 +346,7 @@ func DeleteDataset(node *p2p.QriNode, ref *repo.DatasetRef) (err error) {
 		return err
 	}
 
-	if err = base.UnpinDataset(r, *ref); err != nil && err != repo.ErrNotPinner {
+	if err = base.UnpinDataset(ctx, r, *ref); err != nil && err != repo.ErrNotPinner {
 		return err
 	}
 

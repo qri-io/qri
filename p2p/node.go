@@ -220,7 +220,7 @@ func (n *QriNode) startOnlineServices() error {
 		// block until we have at least one successful bootstrap connection
 		<-bsPeers
 
-		if err := n.AnnounceConnected(); err != nil {
+		if err := n.AnnounceConnected(n.Context()); err != nil {
 			log.Infof("error announcing connected: %s", err.Error())
 		}
 	}()
@@ -354,14 +354,14 @@ func makeBasicHost(ctx context.Context, ps pstore.Peerstore, p2pconf *config.P2P
 }
 
 // SendMessage opens a stream & sends a message from p to one ore more peerIDs
-func (n *QriNode) SendMessage(msg Message, replies chan Message, pids ...peer.ID) error {
+func (n *QriNode) SendMessage(ctx context.Context, msg Message, replies chan Message, pids ...peer.ID) error {
 	for _, peerID := range pids {
 		if peerID == n.ID {
 			// can't send messages to yourself, silly
 			continue
 		}
 
-		s, err := n.host.NewStream(n.Context(), peerID, QriProtocolID)
+		s, err := n.host.NewStream(ctx, peerID, QriProtocolID)
 		if err != nil {
 			return fmt.Errorf("error opening stream: %s", err.Error())
 		}

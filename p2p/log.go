@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -29,7 +30,7 @@ type DatasetLogResponse struct {
 }
 
 // RequestDatasetLog gets the log information of Peer's dataset
-func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetLog(ctx context.Context, ref repo.DatasetRef, limit, offset int) ([]repo.DatasetRef, error) {
 
 	// get a list of peers to whom we will send the request
 	pids := n.ClosestConnectedQriPeers(ref.ProfileID, NumPeersToContact)
@@ -52,7 +53,7 @@ func (n *QriNode) RequestDatasetLog(ref repo.DatasetRef, limit, offset int) ([]r
 	}
 
 	for _, pid := range pids {
-		if err = n.SendMessage(req, messages, pid); err != nil {
+		if err = n.SendMessage(ctx, req, messages, pid); err != nil {
 			log.Debugf("%s err: %s", pid, err.Error())
 			continue
 		}
@@ -99,7 +100,7 @@ func (n *QriNode) handleDatasetLog(ws *WrappedStream, msg Message) (hangup bool)
 		}
 
 		for {
-			dataset, err := dsfs.LoadDataset(n.Repo.Store(), ref.Path)
+			dataset, err := dsfs.LoadDataset(context.TODO(), n.Repo.Store(), ref.Path)
 			if err != nil {
 				sendDatasetLogReply(ws, msg, history, err)
 				return

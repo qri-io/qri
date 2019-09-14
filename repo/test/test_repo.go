@@ -1,6 +1,7 @@
 package test
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"fmt"
@@ -185,6 +186,7 @@ func pkgPath(paths ...string) string {
 // should be designed to avoid requiring Tranforms be run or Viz be prepped
 func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err error) {
 	var (
+		ctx = context.Background()
 		ds  = tc.Input
 		pro *profile.Profile
 		// NOTE - struct fields need to be instantiated to make assign set to
@@ -210,7 +212,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err er
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	ref, err = base.CreateDataset(r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
+	ref, err = base.CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
 	return
 }
 

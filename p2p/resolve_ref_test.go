@@ -49,7 +49,7 @@ func TestResolveDatasetRef(t *testing.T) {
 			go func(p *QriNode) {
 				defer wg.Done()
 				ref := repo.DatasetRef{Peername: "tim", Name: "bar"}
-				if err := p.ResolveDatasetRef(&ref); err != nil {
+				if err := p.ResolveDatasetRef(ctx, &ref); err != nil {
 					t.Errorf("%s ResolveDatasetRef error: %s", p.ID, err.Error())
 				}
 				if ref.String() != expect {

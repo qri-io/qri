@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -100,7 +101,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := SaveDataset(context.Background(), node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -113,7 +114,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, node *p2p.QriNode) repo.Datase
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := SaveDataset(context.Background(), node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -129,7 +130,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
 	tc.Input.Peername = "peer"
 
-	ref, err := SaveDataset(node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := SaveDataset(context.Background(), node, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

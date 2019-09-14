@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 	"strconv"
@@ -12,8 +13,8 @@ import (
 )
 
 // Select loads a dataset value specified by case.Sensitve.dot.separated.paths
-func Select(r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) {
-	ds, err := dsfs.LoadDataset(r.Store(), ref.Path)
+func Select(ctx context.Context, r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) {
+	ds, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
 	if err != nil {
 		return nil, err
 	}
