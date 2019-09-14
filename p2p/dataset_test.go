@@ -37,7 +37,7 @@ func TestRequestDatasetInfo(t *testing.T) {
 			go func(p *QriNode, ref repo.DatasetRef) {
 				defer wg.Done()
 				// ref := repo.DatasetRef{Path: "foo"}
-				if err := p.RequestDataset(&ref); err != nil {
+				if err := p.RequestDataset(ctx, &ref); err != nil {
 					t.Errorf("%s RequestDataset error: %s", p.ID, err.Error())
 				}
 				if ref.Dataset == nil {

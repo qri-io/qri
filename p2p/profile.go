@@ -1,6 +1,7 @@
 package p2p
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 
@@ -16,7 +17,7 @@ import (
 const MtProfile = MsgType("profile")
 
 // RequestProfile get's qri profile information on a peer ID
-func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
+func (n *QriNode) RequestProfile(ctx context.Context, pid peer.ID) (*profile.Profile, error) {
 	log.Debugf("%s RequestProfile: %s", n.ID, pid)
 
 	if pid == n.ID {
@@ -35,7 +36,7 @@ func (n *QriNode) RequestProfile(pid peer.ID) (*profile.Profile, error) {
 	req := NewMessage(n.ID, MtProfile, data)
 	req = req.WithHeaders("phase", "request")
 
-	if err := n.SendMessage(req, replies, pid); err != nil {
+	if err := n.SendMessage(ctx, req, replies, pid); err != nil {
 		log.Debugf("send profile message error: %s", err.Error())
 		return nil, err
 	}

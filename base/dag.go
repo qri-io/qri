@@ -33,7 +33,7 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		return nil, err
 	}
 	// get referenced version of dataset
-	ds, err := dsfs.LoadDatasetRefs(store, path)
+	ds, err := dsfs.LoadDatasetRefs(ctx, store, path)
 	if err != nil {
 		return nil, err
 	}
@@ -50,7 +50,7 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		if err != nil {
 			return nil, err
 		}
-		if err := dsfs.DerefDatasetViz(store, ds); err != nil {
+		if err := dsfs.DerefDatasetViz(ctx, store, ds); err != nil {
 			return nil, err
 		}
 		if ds.Viz.RenderedPath != "" {

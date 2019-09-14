@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"path/filepath"
@@ -89,8 +90,9 @@ func (m *FSIMethods) Status(dir *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.Status", dir, res)
 	}
+	ctx := context.TODO()
 
-	*res, err = m.inst.fsi.Status(*dir)
+	*res, err = m.inst.fsi.Status(ctx, *dir)
 	return err
 }
 
@@ -101,12 +103,13 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.AliasStatus", alias, res)
 	}
+	ctx := context.TODO()
 
 	dir, err := m.inst.fsi.AliasToLinkedDir(*alias)
 	if err != nil {
 		return err
 	}
-	*res, err = m.inst.fsi.Status(dir)
+	*res, err = m.inst.fsi.Status(ctx, dir)
 	return err
 }
 
@@ -116,8 +119,9 @@ func (m *FSIMethods) StatusAtVersion(ref *string, res *[]StatusItem) (err error)
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
 	}
+	ctx := context.TODO()
 
-	*res, err = m.inst.fsi.StatusAtVersion(*ref)
+	*res, err = m.inst.fsi.StatusAtVersion(ctx, *ref)
 	return err
 }
 
@@ -132,6 +136,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.Checkout", p, out)
 	}
+	ctx := context.TODO()
 
 	// TODO(dlong): Fail if Dir is "", should be required to specify a location. Should probably
 	// only allow absolute paths. Add tests.
@@ -155,13 +160,13 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Load dataset that is being checked out.
-	ds, err := dsfs.LoadDataset(m.inst.repo.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 	if err != nil {
 		return fmt.Errorf("error loading dataset")
 	}
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
-	if err = base.OpenDataset(m.inst.repo.Filesystem(), ds); err != nil {
+	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
 		return
 	}
 
@@ -192,6 +197,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.Restore", p, out)
 	}
+	ctx := context.TODO()
 
 	if p.Ref == "" {
 		return repo.ErrEmptyRef
@@ -216,11 +222,11 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 
 	if ref.Path != "" {
 		// Read the previous version of the dataset from the repo
-		ds, err = dsfs.LoadDataset(m.inst.node.Repo.Store(), ref.Path)
+		ds, err = dsfs.LoadDataset(ctx, m.inst.node.Repo.Store(), ref.Path)
 		if err != nil {
 			return fmt.Errorf("loading dataset: %s", err)
 		}
-		if err = base.OpenDataset(m.inst.node.Repo.Filesystem(), ds); err != nil {
+		if err = base.OpenDataset(ctx, m.inst.node.Repo.Filesystem(), ds); err != nil {
 			return
 		}
 	}

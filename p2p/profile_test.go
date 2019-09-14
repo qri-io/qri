@@ -5,10 +5,9 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
-
 	// pstore "gx/ipfs/QmTTJcDL3gsnGDALjh2fDGg1onGRUdVgNL2hU2WEZcVrMX/go-libp2p-peerstore"
 	peer "github.com/libp2p/go-libp2p-peer"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestRequestProfileConnectNodes(t *testing.T) {
@@ -32,7 +31,7 @@ func TestRequestProfileConnectNodes(t *testing.T) {
 			go func(p1, p2 *QriNode) {
 				defer wg.Done()
 
-				_, err := p1.RequestProfile(p2.ID)
+				_, err := p1.RequestProfile(ctx, p2.ID)
 				if err != nil {
 					t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
 				}

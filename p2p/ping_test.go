@@ -23,7 +23,7 @@ func TestPing(t *testing.T) {
 
 	for i, p1 := range peers {
 		for _, p2 := range peers[i+1:] {
-			lat, err := p1.Ping(p2.ID)
+			lat, err := p1.Ping(ctx, p2.ID)
 			if err != nil {
 				t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
 				return

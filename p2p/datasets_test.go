@@ -5,7 +5,7 @@ import (
 	"sync"
 	"testing"
 
-	"github.com/qri-io/qri/p2p/test"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestRequestDatasetsList(t *testing.T) {
@@ -29,7 +29,7 @@ func TestRequestDatasetsList(t *testing.T) {
 			go func(p1, p2 *QriNode) {
 				defer wg.Done()
 
-				refs, err := p1.RequestDatasetsList(p2.ID, DatasetsListParams{Limit: 10, Offset: 0})
+				refs, err := p1.RequestDatasetsList(ctx, p2.ID, DatasetsListParams{Limit: 10, Offset: 0})
 				if err != nil {
 					t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
 				}

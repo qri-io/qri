@@ -962,7 +962,9 @@ func (r *TestRepoRoot) GetPathForDataset(index int) string {
 }
 
 // ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.
+// TODO (b5): reprecate this rediculous function
 func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
+	ctx := context.Background()
 	// TODO: Perhaps there is an existing cafs primitive that does this work instead?
 	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
@@ -972,7 +974,7 @@ func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
 		r.t.Fatal(err)
 	}
 
-	bodyFile, err := fs.Get(keyPath)
+	bodyFile, err := fs.Get(ctx, keyPath)
 	if err != nil {
 		r.t.Fatal(err)
 	}
@@ -987,11 +989,12 @@ func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
 
 // DatasetMarshalJSON reads the dataset head and marshals it as json.
 func (r *TestRepoRoot) DatasetMarshalJSON(ref string) string {
+	ctx := context.Background()
 	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.ipfsPath
 	})
-	ds, err := dsfs.LoadDataset(fs, ref)
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
 	if err != nil {
 		r.t.Fatal(err)
 	}

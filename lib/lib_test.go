@@ -154,6 +154,7 @@ func testdataPath(path string) string {
 // pulled from actions and base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
+	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -162,7 +163,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.BodyBytes = tc.Body
 
-	ref, err := actions.SaveDataset(node, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := actions.SaveDataset(ctx, node, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -170,6 +171,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 }
 
 func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
+	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
 	if err != nil {
 		t.Fatal(err.Error())
@@ -178,7 +180,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, err := actions.SaveDataset(node, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := actions.SaveDataset(ctx, node, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

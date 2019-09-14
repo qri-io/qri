@@ -63,7 +63,7 @@ func TestAnnounceConnected(t *testing.T) {
 	}
 
 	// have that node announce connection
-	if err := node.(*QriNode).AnnounceConnected(); err != nil {
+	if err := node.(*QriNode).AnnounceConnected(ctx); err != nil {
 		t.Error(err.Error())
 		return
 	}

@@ -2,6 +2,7 @@ package base
 
 import (
 	"bytes"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -24,27 +25,27 @@ import (
 // OpenDataset prepares a dataset for use, checking each component
 // for populated Path or Byte suffixed fields, consuming those fields to
 // set File handlers that are ready for reading
-func OpenDataset(fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
+func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) (err error) {
 	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(fsys); err != nil {
+		if err = ds.OpenBodyFile(ctx, fsys); err != nil {
 			log.Debug(err)
 			return
 		}
 	}
 	if ds.Transform != nil && ds.Transform.ScriptFile() == nil {
-		if err = ds.Transform.OpenScriptFile(fsys); err != nil {
+		if err = ds.Transform.OpenScriptFile(ctx, fsys); err != nil {
 			log.Debug(err)
 			return
 		}
 	}
 	if ds.Viz != nil && ds.Viz.ScriptFile() == nil {
-		if err = ds.Viz.OpenScriptFile(fsys); err != nil {
+		if err = ds.Viz.OpenScriptFile(ctx, fsys); err != nil {
 			log.Debug(err)
 			return
 		}
 	}
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
-		if err = ds.Viz.OpenRenderedFile(fsys); err != nil {
+		if err = ds.Viz.OpenRenderedFile(ctx, fsys); err != nil {
 			log.Debug(err)
 			return
 		}
@@ -79,7 +80,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
 	store := r.Store()
 	num, err := r.RefCount()
 	if err != nil {
@@ -131,7 +132,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 		}
 
 		if ref.Path != "" {
-			ds, err := dsfs.LoadDataset(store, ref.Path)
+			ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
 			if err != nil {
 				return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
 			}
@@ -141,7 +142,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 			}
 
 			if showVersions {
-				dsVersions, err := DatasetLog(r, ref, 0, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, ref, 0, 0, false)
 				if err != nil {
 					return nil, err
 				}
@@ -156,7 +157,7 @@ func ListDatasets(r repo.Repo, term string, limit, offset int, RPC, publishedOnl
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful. CreateDataset is a lower-level
 // component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -172,7 +173,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		return
 	}
 
-	if path, err = dsfs.CreateDataset(r.Store(), ds, dsPrev, r.PrivateKey(), pin, force, shouldRender); err != nil {
+	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, dsPrev, r.PrivateKey(), pin, force, shouldRender); err != nil {
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
@@ -204,7 +205,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 		r.LogEvent(repo.ETDsPinned, ref)
 	}
 
-	if err = ReadDataset(r, &ref); err != nil {
+	if err = ReadDataset(ctx, r, &ref); err != nil {
 		return
 	}
 
@@ -212,7 +213,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 	// references to files in a store that won't exist after this function call
 	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
 	// knows about the store
-	if resBody, err = r.Store().Get(ref.Dataset.BodyPath); err != nil {
+	if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
 		log.Error("error getting from store:", err.Error())
 	}
 	ref.Dataset.SetBodyFile(resBody)
@@ -220,7 +221,7 @@ func CreateDataset(r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Data
 }
 
 // FetchDataset grabs a dataset from a remote source
-func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
+func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
 	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())
 	// TODO (b5): use a function from a canonical place to produce this path, possibly from dsfs
 	path := key + "/" + dsfs.PackageFileDataset.String()
@@ -234,25 +235,24 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 	// TODO: This is asserting that the target is Fetch-able, but inside dsfs.LoadDataset,
 	// only Get is called. Clean up the semantics of Fetch and Get to get this expection
 	// more correctly in line with what's actually required.
-	_, err = fetcher.Fetch(cafs.SourceAny, path)
+	_, err = fetcher.Fetch(ctx, cafs.SourceAny, path)
 	if err != nil {
 		return fmt.Errorf("error fetching file: %s", err.Error())
 	}
 
 	if pin {
-		if err = PinDataset(r, *ref); err != nil {
+		if err = PinDataset(ctx, r, *ref); err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error pinning root key: %s", err.Error())
 		}
 	}
 
 	if load {
-		ds, err := dsfs.LoadDataset(r.Store(), path)
+		ds, err := dsfs.LoadDataset(ctx, r.Store(), path)
 		if err != nil {
 			log.Debug(err.Error())
 			return fmt.Errorf("error loading newly saved dataset path: %s", path)
 		}
-
 		ref.Dataset = ds
 	}
 
@@ -261,7 +261,7 @@ func FetchDataset(r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error)
 
 // ReadDatasetPath takes a path string, parses, canonicalizes, loads a dataset pointer, and opens the file
 // The medium-term goal here is to obfuscate use of repo.DatasetRef, which we're hoping to deprecate
-func ReadDatasetPath(r repo.Repo, path string) (ds *dataset.Dataset, err error) {
+func ReadDatasetPath(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
 	ref, err := repo.ParseDatasetRef(path)
 	if err != nil {
 		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
@@ -271,7 +271,7 @@ func ReadDatasetPath(r repo.Repo, path string) (ds *dataset.Dataset, err error) 
 		return
 	}
 
-	loaded, err := dsfs.LoadDataset(r.Store(), ref.Path)
+	loaded, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
 	if err != nil {
 		return nil, fmt.Errorf("error loading dataset")
 	}
@@ -279,14 +279,14 @@ func ReadDatasetPath(r repo.Repo, path string) (ds *dataset.Dataset, err error) 
 	loaded.Peername = ref.Peername
 	ds = loaded
 
-	err = OpenDataset(r.Filesystem(), ds)
+	err = OpenDataset(ctx, r.Filesystem(), ds)
 	return
 }
 
 // ReadDataset grabs a dataset from the store
-func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
+func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err error) {
 	if store := r.Store(); store != nil {
-		ds, e := dsfs.LoadDataset(store, ref.Path)
+		ds, e := dsfs.LoadDataset(ctx, store, ref.Path)
 		if e != nil {
 			return e
 		}
@@ -300,18 +300,18 @@ func ReadDataset(r repo.Repo, ref *repo.DatasetRef) (err error) {
 }
 
 // PinDataset marks a dataset for retention in a store
-func PinDataset(r repo.Repo, ref repo.DatasetRef) error {
+func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Pin(ref.Path, true)
+		pinner.Pin(ctx, ref.Path, true)
 		return r.LogEvent(repo.ETDsPinned, ref)
 	}
 	return repo.ErrNotPinner
 }
 
 // UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(r repo.Repo, ref repo.DatasetRef) error {
+func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Unpin(ref.Path, true)
+		pinner.Unpin(ctx, ref.Path, true)
 		return r.LogEvent(repo.ETDsUnpinned, ref)
 	}
 	return repo.ErrNotPinner
@@ -400,7 +400,7 @@ func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset in
 // * ds.BodyPath being a url
 // * ds.BodyPath being a path on the local filesystem
 // TODO - consider moving this func to some other package. maybe actions?
-func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error) {
+func DatasetBodyFile(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error) {
 	if ds.BodyBytes != nil {
 		if ds.Structure == nil || ds.Structure.Format == "" {
 			return nil, fmt.Errorf("specifying bodyBytes requires format be specified in dataset.structure")
@@ -432,7 +432,7 @@ func DatasetBodyFile(store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error
 	}
 
 	if strings.HasPrefix(ds.BodyPath, "/ipfs") || strings.HasPrefix(ds.BodyPath, "/cafs") || strings.HasPrefix(ds.BodyPath, "/map") {
-		return store.Get(ds.BodyPath)
+		return store.Get(ctx, ds.BodyPath)
 	}
 
 	// convert yaml input to json as a hack to support yaml input for now

@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"encoding/base64"
 	"fmt"
 	"os"
@@ -56,12 +57,13 @@ func newTestRepo(t *testing.T) repo.Repo {
 }
 
 func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err := CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -69,6 +71,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 }
 
 func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
@@ -93,7 +96,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err = CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -101,12 +104,13 @@ func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 }
 
 func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("flourinated_compounds_in_fast_food_packaging"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err := CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

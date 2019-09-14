@@ -1,6 +1,7 @@
 package search
 
 import (
+	"context"
 	"encoding/json"
 	"log"
 	"time"
@@ -102,22 +103,22 @@ func buildIndexMapping() (mapping.IndexMapping, error) {
 }
 
 // IndexRepo calculates an index for a given repository
-func IndexRepo(r repo.Repo, i bleve.Index) error {
+func IndexRepo(ctx context.Context, r repo.Repo, i bleve.Index) error {
 	refs, err := r.References(0, -1)
 	if err != nil {
 		return err
 	}
-	return indexDatasetRefs(r.Store(), i, refs)
+	return indexDatasetRefs(ctx, r.Store(), i, refs)
 }
 
-func indexDatasetRefs(store cafs.Filestore, i bleve.Index, refs []repo.DatasetRef) error {
+func indexDatasetRefs(ctx context.Context, store cafs.Filestore, i bleve.Index, refs []repo.DatasetRef) error {
 	log.Printf("Indexing...")
 	count := 0
 	startTime := time.Now()
 	batch := i.NewBatch()
 	batchCount := 0
 	for _, ref := range refs {
-		ds, err := dsfs.LoadDataset(store, ref.Path)
+		ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
 		if err != nil {
 			log.Printf("error loading dataset: %s", err.Error())
 			continue

@@ -2,6 +2,7 @@ package base
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 
@@ -25,7 +26,7 @@ import (
 // TODO (b5): input parameters here assume the store can properly resolve the previous dataset path
 // through canonicalization (looking the name up in the repo). The value given by the input dataset
 // document may differ, and we should probably respect that value if it does
-func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, prevPath string, err error) {
+func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, prevPath string, err error) {
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &repo.DatasetRef{Name: name, Peername: peername}
@@ -35,19 +36,19 @@ func PrepareDatasetSave(r repo.Repo, peername, name string) (prev, mutable *data
 
 	prevPath = lookup.Path
 
-	if prev, err = dsfs.LoadDataset(r.Store(), prevPath); err != nil {
+	if prev, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
 		return
 	}
 	if prev.BodyPath != "" {
 		var body qfs.File
-		body, err = dsfs.LoadBody(r.Store(), prev)
+		body, err = dsfs.LoadBody(ctx, r.Store(), prev)
 		if err != nil {
 			return
 		}
 		prev.SetBodyFile(body)
 	}
 
-	if mutable, err = dsfs.LoadDataset(r.Store(), prevPath); err != nil {
+	if mutable, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
 		return
 	}
 

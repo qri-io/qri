@@ -2,6 +2,7 @@ package base
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -22,11 +23,12 @@ func TestOpenCloseDataset(t *testing.T) {
 }
 
 func TestListDatasets(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
 	// Limit to one
-	res, err := ListDatasets(r, "", 1, 0, false, false, false)
+	res, err := ListDatasets(ctx, r, "", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -35,7 +37,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to published datasets
-	res, err = ListDatasets(r, "", 1, 0, false, true, false)
+	res, err = ListDatasets(ctx, r, "", 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -49,7 +51,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to published datasets, after publishing cities
-	res, err = ListDatasets(r, "", 1, 0, false, true, false)
+	res, err = ListDatasets(ctx, r, "", 1, 0, false, true, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -59,7 +61,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to datasets with "city" in their name
-	res, err = ListDatasets(r, "city", 1, 0, false, false, false)
+	res, err = ListDatasets(ctx, r, "city", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -68,7 +70,7 @@ func TestListDatasets(t *testing.T) {
 	}
 
 	// Limit to datasets with "cit" in their name
-	res, err = ListDatasets(r, "cit", 1, 0, false, false, false)
+	res, err = ListDatasets(ctx, r, "cit", 1, 0, false, false, false)
 	if err != nil {
 		t.Error(err.Error())
 	}
@@ -78,6 +80,7 @@ func TestListDatasets(t *testing.T) {
 }
 
 func TestCreateDataset(t *testing.T) {
+	ctx := context.Background()
 	streams := ioes.NewDiscardIOStreams()
 	store := cafs.NewMapstore()
 	r, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
@@ -96,11 +99,11 @@ func TestCreateDataset(t *testing.T) {
 	}
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 
-	if _, err := CreateDataset(r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true, false, true); err == nil {
+	if _, err := CreateDataset(ctx, r, streams, &dataset.Dataset{}, &dataset.Dataset{}, false, true, false, true); err == nil {
 		t.Error("expected bad dataset to error")
 	}
 
-	ref, err := CreateDataset(r, streams, ds, &dataset.Dataset{}, false, true, false, true)
+	ref, err := CreateDataset(ctx, r, streams, ds, &dataset.Dataset{}, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -118,7 +121,7 @@ func TestCreateDataset(t *testing.T) {
 
 	prev := ref.Dataset
 
-	ref, err = CreateDataset(r, streams, ds, prev, false, true, false, true)
+	ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -134,17 +137,18 @@ func TestCreateDataset(t *testing.T) {
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
 	prev = ref.Dataset
 
-	if ref, err = CreateDataset(r, streams, ds, prev, false, true, false, true); err == nil {
+	if ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, false, true); err == nil {
 		t.Error("expected unchanged dataset with no force flag to error")
 	}
 
 	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-	if ref, err = CreateDataset(r, streams, ds, prev, false, true, true, true); err != nil {
+	if ref, err = CreateDataset(ctx, r, streams, ds, prev, false, true, true, true); err != nil {
 		t.Errorf("unexpected force-save error: %s", err)
 	}
 }
 
 func TestFetchDataset(t *testing.T) {
+	ctx := context.Background()
 	r1 := newTestRepo(t)
 	r2 := newTestRepo(t)
 	ref := addCitiesDataset(t, r2)
@@ -152,16 +156,17 @@ func TestFetchDataset(t *testing.T) {
 	// Connect in memory Mapstore's behind the scene to simulate IPFS-like behavior.
 	r1.Store().(*cafs.MapStore).AddConnection(r2.Store().(*cafs.MapStore))
 
-	if err := FetchDataset(r1, &repo.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
+	if err := FetchDataset(ctx, r1, &repo.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
-	if err := FetchDataset(r1, &ref, true, true); err != nil {
+	if err := FetchDataset(ctx, r1, &ref, true, true); err != nil {
 		t.Error(err.Error())
 	}
 }
 
 func TestDatasetPodBodyFile(t *testing.T) {
+	ctx := context.Background()
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"json":"data"}`))
 	}))
@@ -196,7 +201,7 @@ func TestDatasetPodBodyFile(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		file, err := DatasetBodyFile(nil, c.ds)
+		file, err := DatasetBodyFile(ctx, nil, c.ds)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
@@ -344,11 +349,12 @@ func TestReadDataset(t *testing.T) {
 // }
 
 func TestDatasetPinning(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 	streams := ioes.NewDiscardIOStreams()
 
-	if err := PinDataset(r, ref); err != nil {
+	if err := PinDataset(ctx, r, ref); err != nil {
 		if err == repo.ErrNotPinner {
 			t.Log("repo store doesn't support pinning")
 		} else {
@@ -363,23 +369,23 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(r, streams, tc.Input, nil, false, false, false, true)
+	ref2, err := CreateDataset(ctx, r, streams, tc.Input, nil, false, false, false, true)
 	if err != nil {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := PinDataset(r, ref2); err != nil && err != repo.ErrNotPinner {
+	if err := PinDataset(ctx, r, ref2); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := UnpinDataset(r, ref); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(ctx, r, ref); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}
 
-	if err := UnpinDataset(r, ref2); err != nil && err != repo.ErrNotPinner {
+	if err := UnpinDataset(ctx, r, ref2); err != nil && err != repo.ErrNotPinner {
 		t.Error(err.Error())
 		return
 	}

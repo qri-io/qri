@@ -45,13 +45,13 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e
-	github.com/qri-io/dataset v0.1.4
+	github.com/qri-io/dataset v0.1.5-0.20190914114227-5298f1c14165
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20190821172050-7a9e28256bc1
+	github.com/qri-io/qfs v0.1.1-0.20190914113707-830d3ea8232d
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0

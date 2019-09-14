@@ -2,6 +2,7 @@ package lib
 
 import (
 	"archive/zip"
+	"context"
 	"encoding/json"
 	"fmt"
 	"io"
@@ -65,6 +66,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	if r.cli != nil {
 		return r.cli.Call("ExportRequests.Export", p, fileWritten)
 	}
+	ctx := context.TODO()
 
 	if p.Ref == "" {
 		return repo.ErrEmptyRef
@@ -77,7 +79,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 		return err
 	}
 
-	ds, err := base.ReadDatasetPath(r.node.Repo, ref.String())
+	ds, err := base.ReadDatasetPath(ctx, r.node.Repo, ref.String())
 	if err != nil {
 		return err
 	}
@@ -240,7 +242,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	case "zip":
 
 		store := r.node.Repo.Store()
-		if err = dsutil.WriteZipArchive(store, ds, "json", ref.String(), writer); err != nil {
+		if err = dsutil.WriteZipArchive(ctx, store, ds, "json", ref.String(), writer); err != nil {
 			return err
 		}
 

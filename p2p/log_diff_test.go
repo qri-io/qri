@@ -31,7 +31,7 @@ func TestRequestLogDiff(t *testing.T) {
 	}
 
 	// add a dataset to peer 4
-	ref, err := base.CreateDataset(peers[4].Repo, streams, tc.Input, nil, false, true, false, true)
+	ref, err := base.CreateDataset(ctx, peers[4].Repo, streams, tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -40,7 +40,7 @@ func TestRequestLogDiff(t *testing.T) {
 	peers[3].Repo.Store().(*cafs.MapStore).AddConnection(peers[4].Repo.Store().(*cafs.MapStore))
 
 	// give that dataset to peer 3
-	if err := base.FetchDataset(peers[3].Repo, &ref, true, false); err != nil {
+	if err := base.FetchDataset(ctx, peers[3].Repo, &ref, true, false); err != nil {
 		t.Fatalf("error fetching dataset: %s", err)
 	}
 
@@ -50,12 +50,12 @@ func TestRequestLogDiff(t *testing.T) {
 	update.Name = tc.Name
 
 	// add an update on peer 4
-	ref2, err := base.CreateDataset(peers[4].Repo, streams, update, tc.Input, false, true, false, true)
+	ref2, err := base.CreateDataset(ctx, peers[4].Repo, streams, update, tc.Input, false, true, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	ldr, err := peers[3].RequestLogDiff(&ref)
+	ldr, err := peers[3].RequestLogDiff(ctx, &ref)
 	if err != nil {
 		t.Error(err)
 	}

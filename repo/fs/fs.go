@@ -2,6 +2,7 @@
 package fsrepo
 
 import (
+	"context"
 	"fmt"
 	"os"
 
@@ -124,7 +125,7 @@ func (r *Repo) PrivateKey() crypto.PrivKey {
 }
 
 // Search this repo for dataset references
-func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
+func (r *Repo) Search(ctx context.Context, p repo.SearchParams) ([]repo.DatasetRef, error) {
 	if r.index == nil {
 		return nil, fmt.Errorf("search not supported")
 	}
@@ -141,7 +142,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 			}
 		}
 
-		if err := base.ReadDataset(r, &ref); err != nil {
+		if err := base.ReadDataset(ctx, r, &ref); err != nil {
 			log.Debug(err.Error())
 		}
 	}
@@ -150,7 +151,7 @@ func (r *Repo) Search(p repo.SearchParams) ([]repo.DatasetRef, error) {
 
 // UpdateSearchIndex refreshes this repos search index
 func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
-	return search.IndexRepo(r, r.index)
+	return search.IndexRepo(context.Background(), r, r.index)
 }
 
 // Profiles returns this repo's Peers implementation

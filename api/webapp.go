@@ -25,7 +25,7 @@ func (s Server) ServeWebapp(ctx context.Context) {
 
 	m := webappMuxer{
 		template: s.middleware(s.WebappTemplateHandler),
-		webapp:   s.FrontendHandler("/webapp"),
+		webapp:   s.FrontendHandler(ctx, "/webapp"),
 	}
 
 	webappserver := &http.Server{Handler: m}
@@ -57,7 +57,7 @@ func (h webappMuxer) ServeHTTP(w http.ResponseWriter, r *http.Request) {
 // and serves it up as a traditional HTTP endpoint, transparently redirecting requests
 // for [prefix]/foo.js to [CAFS Hash]/foo.js
 // prefix is the path prefix that should be stripped from the request URL.Path
-func (s Server) FrontendHandler(prefix string) http.Handler {
+func (s Server) FrontendHandler(ctx context.Context, prefix string) http.Handler {
 	// TODO -
 	// * there's no error handling,
 	// * and really the data could be owned by Server and initialized by it,
@@ -72,14 +72,13 @@ func (s Server) FrontendHandler(prefix string) http.Handler {
 		}
 		path := s.Config().Webapp.EntrypointHash
 
-		// TODO (ramfox): frontend handler should accept a context
 		log.Info("fetching webapp off the distributed web...")
 		fetcher, ok := s.Repo().Store().(cafs.Fetcher)
 		if !ok {
 			errs <- fmt.Errorf("this store cannot fetch from remote sources")
 			return
 		}
-		_, err := fetcher.Fetch(cafs.SourceAny, path+"/main.js")
+		_, err := fetcher.Fetch(ctx, cafs.SourceAny, path+"/main.js")
 		if err != nil {
 			errs <- fmt.Errorf("error fetching file: %s", err.Error())
 		}
@@ -89,7 +88,7 @@ func (s Server) FrontendHandler(prefix string) http.Handler {
 			errs <- fmt.Errorf("this store is not configured to pin")
 			return
 		}
-		if err := pinner.Pin(path, true); err != nil {
+		if err := pinner.Pin(ctx, path, true); err != nil {
 			errs <- fmt.Errorf("error pinning webapp: %s", err.Error())
 			return
 		}
@@ -98,11 +97,15 @@ func (s Server) FrontendHandler(prefix string) http.Handler {
 	}()
 
 	go func() {
-		fetchErr = <-errs
-		if fetchErr != nil {
-			log.Errorf("error fetching webapp: %s", fetchErr)
+		select {
+		case fetchErr = <-errs:
+			if fetchErr != nil {
+				log.Errorf("error fetching webapp: %s", fetchErr)
+			}
+			updating = false
+		case <-ctx.Done():
+			return
 		}
-		updating = false
 	}()
 
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {

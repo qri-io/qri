@@ -1,6 +1,7 @@
 package lib
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -161,6 +162,7 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.ProfilePhoto", req, res)
 	}
+	ctx := context.TODO()
 
 	r := m.inst.repo
 
@@ -173,7 +175,7 @@ func (m *ProfileMethods) ProfilePhoto(req *config.ProfilePod, res *[]byte) (err 
 		return nil
 	}
 
-	f, e := r.Store().Get(pro.Photo)
+	f, e := r.Store().Get(ctx, pro.Photo)
 	if e != nil {
 		return e
 	}
@@ -194,6 +196,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.SetProfilePhoto", p, res)
 	}
+	ctx := context.TODO()
 
 	r := m.inst.repo
 
@@ -219,7 +222,7 @@ func (m *ProfileMethods) SetProfilePhoto(p *FileParams, res *config.ProfilePod) 
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.Store().Put(qfs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 		return fmt.Errorf("error saving photo: %s", err.Error())
@@ -259,6 +262,7 @@ func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err e
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.PostPhoto", req, res)
 	}
+	ctx := context.TODO()
 
 	r := m.inst.repo
 	pro, e := m.getProfile(r, req.ID, req.Peername)
@@ -270,7 +274,7 @@ func (m *ProfileMethods) PosterPhoto(req *config.ProfilePod, res *[]byte) (err e
 		return nil
 	}
 
-	f, e := r.Store().Get(pro.Poster)
+	f, e := r.Store().Get(ctx, pro.Poster)
 	if e != nil {
 		return e
 	}
@@ -284,6 +288,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("ProfileMethods.SetPosterPhoto", p, res)
 	}
+	ctx := context.TODO()
 
 	if p.Data == nil {
 		return fmt.Errorf("file is required")
@@ -310,7 +315,7 @@ func (m *ProfileMethods) SetPosterPhoto(p *FileParams, res *config.ProfilePod) e
 	}
 
 	// TODO - if file extension is .jpg / .jpeg ipfs does weird shit that makes this not work
-	path, err := r.Store().Put(qfs.NewMemfileBytes("plz_just_encode", data), true)
+	path, err := r.Store().Put(ctx, qfs.NewMemfileBytes("plz_just_encode", data), true)
 	if err != nil {
 		log.Debug(err.Error())
 

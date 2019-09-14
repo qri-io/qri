@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset"
@@ -9,15 +10,15 @@ import (
 )
 
 // DatasetLog fetches the history of changes to a dataset, if loadDatasets is true, dataset information will be populated
-func DatasetLog(r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
 	for {
 		var ds *dataset.Dataset
 		if loadDatasets {
-			if ds, err = dsfs.LoadDataset(r.Store(), ref.Path); err != nil {
+			if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
 				return
 			}
 		} else {
-			if ds, err = dsfs.LoadDatasetRefs(r.Store(), ref.Path); err != nil {
+			if ds, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path); err != nil {
 				return
 			}
 		}
@@ -47,7 +48,7 @@ type LogDiffResult struct {
 }
 
 // LogDiff determines the difference between an input slice of references
-func LogDiff(r repo.Repo, a []repo.DatasetRef) (ldr LogDiffResult, err error) {
+func LogDiff(ctx context.Context, r repo.Repo, a []repo.DatasetRef) (ldr LogDiffResult, err error) {
 	if len(a) < 1 {
 		return ldr, fmt.Errorf("no references provided for diffing")
 	}
@@ -59,7 +60,7 @@ func LogDiff(r repo.Repo, a []repo.DatasetRef) (ldr LogDiffResult, err error) {
 	}
 
 	// TODO - deal with max limit / offset / pagination issuez
-	b, err := DatasetLog(r, ldr.Head, 10000, 0, false)
+	b, err := DatasetLog(ctx, r, ldr.Head, 10000, 0, false)
 	if err != nil {
 		return ldr, err
 	}

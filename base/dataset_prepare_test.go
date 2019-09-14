@@ -1,6 +1,7 @@
 package base
 
 import (
+	"context"
 	"encoding/json"
 	"testing"
 
@@ -9,10 +10,11 @@ import (
 )
 
 func TestPrepareDatasetSave(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	prev, mutable, prevPath, err := PrepareDatasetSave(r, ref.Peername, ref.Name)
+	prev, mutable, prevPath, err := PrepareDatasetSave(ctx, r, ref.Peername, ref.Name)
 	if err != nil {
 		t.Errorf("case cities dataset error: %s ", err.Error())
 	}
@@ -35,7 +37,7 @@ func TestPrepareDatasetSave(t *testing.T) {
 		t.Errorf("case cities dataset: previous path should not be empty")
 	}
 
-	prev, mutable, prevPath, err = PrepareDatasetSave(r, "me", "non-existent")
+	prev, mutable, prevPath, err = PrepareDatasetSave(ctx, r, "me", "non-existent")
 	if err != nil {
 		t.Errorf("case non-existant previous dataset error: %s ", err.Error())
 	}

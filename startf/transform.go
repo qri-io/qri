@@ -4,6 +4,7 @@ package startf
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"io/ioutil"
@@ -69,6 +70,7 @@ func DefaultExecOpts(o *ExecOpts) {
 }
 
 type transform struct {
+	ctx          context.Context
 	node         *p2p.QriNode
 	next         *dataset.Dataset
 	prev         *dataset.Dataset
@@ -95,7 +97,7 @@ var DefaultModuleLoader = func(thread *starlark.Thread, module string) (dict sta
 // will set transformation details, but starlark scripts can modify many parts of the dataset
 // pointer, including meta, structure, and transform. opts may provide more ways for output to
 // be produced from this function.
-func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
+func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 	var err error
 	if next.Transform == nil || next.Transform.ScriptFile() == nil {
 		return fmt.Errorf("no script to execute")
@@ -131,6 +133,7 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 	pipeScript := qfs.NewMemfileReader(script.FileName(), tr)
 
 	t := &transform{
+		ctx:          ctx,
 		node:         o.Node,
 		next:         next,
 		prev:         prev,
@@ -145,7 +148,7 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 		t.stderr = io.MultiWriter(o.OutWriter, o.Node.LocalStreams.ErrOut)
 	}
 
-	ctx := skyctx.NewContext(next.Transform.Config, o.Secrets)
+	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
 
 	thread := &starlark.Thread{
 		Load: t.ModuleLoader,
@@ -170,7 +173,7 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 	}
 
 	for name, fn := range funcs {
-		val, err := fn(t, thread, ctx)
+		val, err := fn(t, thread, skyCtx)
 
 		if err != nil {
 			if evalErr, ok := err.(*starlark.EvalError); ok {
@@ -179,10 +182,10 @@ func ExecScript(next, prev *dataset.Dataset, opts ...func(o *ExecOpts)) error {
 			return err
 		}
 
-		ctx.SetResult(name, val)
+		skyCtx.SetResult(name, val)
 	}
 
-	err = callTransformFunc(t, thread, ctx)
+	err = callTransformFunc(t, thread, skyCtx)
 	if evalErr, ok := err.(*starlark.EvalError); ok {
 		return fmt.Errorf(evalErr.Backtrace())
 	}
@@ -320,7 +323,7 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 		return starlark.None, err
 	}
 
-	ds, err := t.loadDataset(refstr.GoString())
+	ds, err := t.loadDataset(t.ctx, refstr.GoString())
 	if err != nil {
 		return starlark.None, err
 	}
@@ -328,7 +331,7 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 	return skyds.NewDataset(ds, nil).Methods(), nil
 }
 
-func (t *transform) loadDataset(refstr string) (*dataset.Dataset, error) {
+func (t *transform) loadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
 	if t.node == nil {
 		return nil, fmt.Errorf("no qri node available to load dataset: %s", refstr)
 	}
@@ -342,13 +345,13 @@ func (t *transform) loadDataset(refstr string) (*dataset.Dataset, error) {
 	}
 	t.node.LocalStreams.PrintErr(fmt.Sprintf("load: %s\n", ref.String()))
 
-	ds, err := dsfs.LoadDataset(t.node.Repo.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, t.node.Repo.Store(), ref.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(t.node.Repo.Filesystem()); err != nil {
+		if err = ds.OpenBodyFile(ctx, t.node.Repo.Filesystem()); err != nil {
 			return nil, err
 		}
 	}

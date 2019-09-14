@@ -266,6 +266,7 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.GetReferences", p, res)
 	}
+	ctx := context.TODO()
 
 	id, err := peer.IDB58Decode(p.PeerID)
 	if err != nil {
@@ -277,7 +278,7 @@ func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) 
 	// 	return err
 	// }
 
-	refs, err := d.qriNode.RequestDatasetsList(id, p2p.DatasetsListParams{
+	refs, err := d.qriNode.RequestDatasetsList(ctx, id, p2p.DatasetsListParams{
 		Limit:  p.Limit,
 		Offset: p.Offset,
 	})

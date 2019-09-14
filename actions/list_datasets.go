@@ -1,6 +1,7 @@
 package actions
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/qri-io/qri/base"
@@ -10,7 +11,7 @@ import (
 )
 
 // ListDatasets lists a peer's datasets
-func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(ctx context.Context, node *p2p.QriNode, ds *repo.DatasetRef, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
 
 	r := node.Repo
 	pro, err := r.Profile()
@@ -57,7 +58,7 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, term string, limit, of
 			return nil, fmt.Errorf("couldn't find a peer address for profile: %s", pro.ID)
 		}
 
-		res, err = node.RequestDatasetsList(pro.PeerIDs[0], p2p.DatasetsListParams{
+		res, err = node.RequestDatasetsList(ctx, pro.PeerIDs[0], p2p.DatasetsListParams{
 			Term:   term,
 			Limit:  limit,
 			Offset: offset,
@@ -76,5 +77,5 @@ func ListDatasets(node *p2p.QriNode, ds *repo.DatasetRef, term string, limit, of
 		return
 	}
 
-	return base.ListDatasets(node.Repo, term, limit, offset, RPC, publishedOnly, showVersions)
+	return base.ListDatasets(ctx, node.Repo, term, limit, offset, RPC, publishedOnly, showVersions)
 }

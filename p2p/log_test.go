@@ -29,7 +29,7 @@ func TestRequestDatasetLog(t *testing.T) {
 	}
 
 	// add a dataset to tim
-	ref, err := base.CreateDataset(peers[4].Repo, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err := base.CreateDataset(ctx, peers[4].Repo, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func TestRequestDatasetLog(t *testing.T) {
 			// go func(p1, p2 *QriNode) {
 			// 	defer wg.Done()
 
-			refs, err := p1.RequestDatasetLog(ref, 100, 0)
+			refs, err := p1.RequestDatasetLog(ctx, ref, 100, 0)
 			if err != nil {
 				t.Errorf("%s -> %s error: %s", p1.ID.Pretty(), p2.ID.Pretty(), err.Error())
 			}

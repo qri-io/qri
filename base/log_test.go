@@ -1,18 +1,20 @@
 package base
 
 import (
+	"context"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
 )
 
 func TestDatasetLog(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	addCitiesDataset(t, r)
 	head := updateCitiesDataset(t, r)
 	expectLen := 2
 
-	dlog, err := DatasetLog(r, head, 100, 0, true)
+	dlog, err := DatasetLog(ctx, r, head, 100, 0, true)
 	if err != nil {
 		t.Error(err)
 	}
@@ -23,7 +25,7 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("expected log with loadDataset == true to populate datasets")
 	}
 
-	dlog, err = DatasetLog(r, head, 100, 0, false)
+	dlog, err = DatasetLog(ctx, r, head, 100, 0, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -37,23 +39,24 @@ func TestDatasetLog(t *testing.T) {
 }
 
 func TestLogDiff(t *testing.T) {
+	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 	head := updateCitiesDataset(t, r)
 
-	ldr, err := LogDiff(r, []repo.DatasetRef{})
+	ldr, err := LogDiff(ctx, r, []repo.DatasetRef{})
 	if err == nil {
 		t.Error("expected empty diff to error")
 	}
 
-	ldr, err = LogDiff(r, []repo.DatasetRef{
+	ldr, err = LogDiff(ctx, r, []repo.DatasetRef{
 		repo.DatasetRef{Peername: "missing", Name: "reference"},
 	})
 	if err == nil {
 		t.Error("expected diff of missing reference to error")
 	}
 
-	ldr, err = LogDiff(r, []repo.DatasetRef{ref})
+	ldr, err = LogDiff(ctx, r, []repo.DatasetRef{ref})
 	if err != nil {
 		t.Error(err)
 	}
