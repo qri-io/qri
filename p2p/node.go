@@ -252,6 +252,13 @@ func (n *QriNode) ipfsNode() (*core.IpfsNode, error) {
 	return nil, fmt.Errorf("not using IPFS")
 }
 
+// IPFS exposes the core.IPFS node if one exists.
+// This is currently required by things like remoteClient in other packages,
+// which don't work properly with the CoreAPI implementation
+func (n *QriNode) IPFS() (*core.IpfsNode, error) {
+	return n.ipfsNode()
+}
+
 // GetIPFSNamesys returns a namesystem from IPFS
 func (n *QriNode) GetIPFSNamesys() (namesys.NameSystem, error) {
 	ipfsn, err := n.ipfsNode()

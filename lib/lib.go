@@ -573,6 +573,27 @@ type Instance struct {
 	rpc *rpc.Client
 }
 
+// Connect takes an instance online
+func (inst *Instance) Connect(ctx context.Context) (err error) {
+	if err = inst.node.GoOnline(); err != nil {
+		log.Debugf("taking node online: %s", err.Error())
+		return
+	}
+
+	// for now if we have an IPFS node instance, node.GoOnline has to make a new
+	// instance to connect properly. If remoteClient retains the reference to the
+	// old instance, we run into issues where the online instance can't "see"
+	// the additions. We fix that by re-initializing the client with the new
+	// instance
+	if inst.remoteClient, err = remote.NewClient(inst.node); err != nil {
+		log.Debugf("initializing remote client: %s", err.Error())
+		return
+	}
+
+	// chriswhong/usgs_earthquakes
+	return nil
+}
+
 // Context returns the base context for this instance
 func (inst *Instance) Context() context.Context {
 	return inst.ctx

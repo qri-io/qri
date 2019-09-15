@@ -11,6 +11,7 @@ import (
 	"strings"
 	"time"
 
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multihash"
@@ -42,8 +43,9 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 
 // Client issues requests to a remote
 type Client struct {
-	pk crypto.PrivKey
-	ds *dsync.Dsync
+	pk   crypto.PrivKey
+	ds   *dsync.Dsync
+	capi coreiface.CoreAPI
 }
 
 // NewClient creates a client
@@ -67,9 +69,17 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 	})
 
 	return &Client{
-		pk: node.Repo.PrivateKey(),
-		ds: ds,
+		pk:   node.Repo.PrivateKey(),
+		ds:   ds,
+		capi: capi,
 	}, nil
+}
+
+// CoreAPI exposes this client's CoreApi
+// TODO (b5) - this shouldn't be necessary, currently being exposed to debug
+// Adding a dataset in actions.AddDataset
+func (c *Client) CoreAPI() coreiface.CoreAPI {
+	return c.capi
 }
 
 // PushDataset pushes the contents of a dataset to a remote

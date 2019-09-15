@@ -44,10 +44,19 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 			return
 		}
 	}
+
+	// TODO (b5) - this is an error sometimes caused by failing to properly pin the
+	// rendered file. this'll really trip up if we're online, b/c ipfs will hang
+	// forever looking for the missing render dag :()
 	if ds.Viz != nil && ds.Viz.RenderedFile() == nil {
 		if err = ds.Viz.OpenRenderedFile(ctx, fsys); err != nil {
-			log.Debug(err)
-			return
+			if strings.Contains(err.Error(), "not found") {
+				log.Debug("skipping not-found viz script")
+				err = nil
+			} else {
+				log.Debug(err)
+				return
+			}
 		}
 	}
 	return
