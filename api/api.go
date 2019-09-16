@@ -49,9 +49,8 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	node := s.Node()
 	cfg := s.Config()
 
-	if err = node.GoOnline(); err != nil {
-		fmt.Println("serving error", cfg.P2P.Enabled)
-		return
+	if err := s.Instance.Connect(ctx); err != nil {
+		return err
 	}
 
 	server := &http.Server{}

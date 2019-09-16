@@ -151,6 +151,8 @@ func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remot
 		Error error
 	}
 
+	fetchCtx, cancelFetch := context.WithCancel(ctx)
+	defer cancelFetch()
 	responses := make(chan addResponse)
 	tasks := 0
 
@@ -172,13 +174,13 @@ func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remot
 				responses <- res
 			}()
 
-			if err := rc.PullDataset(ctx, ref, remoteAddr); err != nil {
+			if err := rc.PullDataset(fetchCtx, ref, remoteAddr); err != nil {
 				res.Error = err
 				return
 			}
 			node.LocalStreams.PrintErr("🗼 fetched from registry\n")
 			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
-				err := pinner.Pin(ctx, ref.Path, true)
+				err := pinner.Pin(fetchCtx, ref.Path, true)
 				res.Error = err
 			}
 		}(refCopy)
@@ -187,7 +189,7 @@ func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remot
 	if node.Online {
 		tasks++
 		go func() {
-			err := base.FetchDataset(ctx, node.Repo, ref, true, true)
+			err := base.FetchDataset(fetchCtx, node.Repo, ref, true, true)
 			responses <- addResponse{
 				Ref:   ref,
 				Error: err,
@@ -204,6 +206,7 @@ func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remot
 		res := <-responses
 		err = res.Error
 		if err == nil {
+			cancelFetch()
 			success = true
 			*ref = *res.Ref
 			break

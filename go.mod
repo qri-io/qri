@@ -56,11 +56,10 @@ require (
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0
 	github.com/sirupsen/logrus v1.2.0
-	github.com/spf13/cobra v0.0.4
+	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/net v0.0.0-20190620200207-3b0461eec859 // indirect
-	golang.org/x/sys v0.0.0-20190610200419-93c9922d18ae
+	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
 	gopkg.in/yaml.v2 v2.2.2
 )
