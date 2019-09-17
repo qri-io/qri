@@ -42,8 +42,8 @@ func TestDatasetHandlers(t *testing.T) {
 	getCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/me/family_relationships", nil},
-		{"GET", "/me/family_relationships/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
-		{"GET", "/at/map/QmPRjfgUFrH1GxBqujJ3sEvwV3gzHdux1j4g8SLyjbhwot", nil},
+		{"GET", "/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		{"GET", "/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)
