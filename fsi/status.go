@@ -8,6 +8,7 @@ import (
 	"io/ioutil"
 	"os"
 	"sort"
+	"strings"
 	"time"
 
 	"github.com/qri-io/dataset"
@@ -326,8 +327,22 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []S
 	if prevPath == "" {
 		prev = &dataset.Dataset{}
 	} else {
-		if prev, err = dsfs.LoadDataset(ctx, fsi.repo.Store(), prevPath); err != nil {
-			return nil, err
+		// If the prior dataset can't be resolved quickly, we'll assume it isn't local
+		// and time out the load
+		// TODO (b5) - the proper way to handle this is to use a local dataset store
+		timeoutCtx, cancel := context.WithTimeout(ctx, time.Millisecond*700)
+		defer cancel()
+
+		if prev, err = dsfs.LoadDataset(timeoutCtx, fsi.repo.Store(), prevPath); err != nil {
+			if strings.Contains(err.Error(), "deadline exceeded") {
+				// TODO (b5) - need to handle this situation gracefully, returning an indication
+				// that the previous version can't be loaded
+				prev = &dataset.Dataset{}
+				err = nil
+			} else {
+				log.Error(err)
+				return nil, err
+			}
 		}
 	}
 

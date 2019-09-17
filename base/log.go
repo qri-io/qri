@@ -3,6 +3,7 @@ package base
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
@@ -11,34 +12,59 @@ import (
 
 // DatasetLog fetches the history of changes to a dataset, if loadDatasets is true, dataset information will be populated
 func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
-	for {
-		var ds *dataset.Dataset
-		if loadDatasets {
-			if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
-				return
-			}
-		} else {
-			if ds, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path); err != nil {
-				return
-			}
-		}
-		ref.Dataset = ds
+	// TODO (b5) - this is a horrible hack to handle long-lived requests when connected to IPFS
+	// if we don't have the dataset locally, this process will take longer than 700 mill, because it'll
+	// reach out onto the d.web to attempt to resolve previous hashes. capping the duration
+	// yeilds quick results. The proper way to solve this is to feed a local-only IPFS store to
+	// this entire function
+	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*700)
+	defer cancel()
 
-		if offset <= 0 {
-			rlog = append(rlog, ref)
+	versions := make(chan repo.DatasetRef)
+	done := make(chan struct{})
+	go func() {
+		for {
+			var ds *dataset.Dataset
+			if loadDatasets {
+				if ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path); err != nil {
+					return
+				}
+			} else {
+				if ds, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path); err != nil {
+					return
+				}
+			}
+			ref.Dataset = ds
 
-			limit--
-			if limit == 0 {
+			if offset <= 0 {
+				// rlog = append(rlog, ref)
+				versions <- ref
+
+				limit--
+				if limit == 0 {
+					break
+				}
+			}
+			if ref.Dataset.PreviousPath == "" {
 				break
 			}
+			ref.Path = ref.Dataset.PreviousPath
+			offset--
 		}
-		if ref.Dataset.PreviousPath == "" {
-			break
+		done <- struct{}{}
+	}()
+
+	for {
+		select {
+		case ref := <-versions:
+			rlog = append(rlog, ref)
+		case <-done:
+			return rlog, nil
+		case <-ctx.Done():
+			// TODO (b5) - ths is technially a failure, handle it!
+			return rlog, nil
 		}
-		ref.Path = ref.Dataset.PreviousPath
-		offset--
 	}
-	return rlog, nil
 }
 
 // LogDiffResult is the result of comparing a set of references

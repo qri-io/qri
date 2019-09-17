@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qri/config"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
-
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
