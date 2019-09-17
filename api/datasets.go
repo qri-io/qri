@@ -279,6 +279,10 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 			NoHistoryErrResponse(w)
 			return
 		}
+		if err == lib.ErrNotLinkedToFilesystem {
+			NoFsiPathErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -651,4 +655,10 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 func NoHistoryErrResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	w.Write([]byte(`{ "meta": { "code": 422, "error": "no history" }, "data": null }`))
+}
+
+// NoFsiPathErrResponse is a HTTP 422 response (Unprocessable Entity)
+func NoFsiPathErrResponse(w http.ResponseWriter) {
+	w.WriteHeader(http.StatusUnprocessableEntity)
+	w.Write([]byte(`{ "meta": { "code": 422, "error": "dataset is not linked to the filesystem" }, "data": null }`))
 }

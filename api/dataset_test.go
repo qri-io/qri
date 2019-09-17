@@ -44,6 +44,9 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/me/family_relationships", nil},
 		{"GET", "/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
 		{"GET", "/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+		// test that when fsi=true on a request that does not have a link to the filesystem
+		// we get the correct error code & message
+		{"GET", "/me/family_relationships?fsi=true", nil},
 		{"DELETE", "/", nil},
 	}
 	runHandlerTestCases(t, "get", h.GetHandler, getCases, true)

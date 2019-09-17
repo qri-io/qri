@@ -61,6 +61,10 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 			util.NotFoundHandler(w, r)
 			return
 		}
+		if err == lib.ErrNotLinkedToFilesystem {
+			NoFsiPathErrResponse(w)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
