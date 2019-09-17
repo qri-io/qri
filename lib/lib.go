@@ -44,10 +44,6 @@ var (
 	// directory. only $HOME is replaced (no other $ env vars).
 	defaultIPFSLocation = "$HOME/.ipfs"
 
-	// ErrNotLinkedToFilesystem is the err implementers should return when we
-	// are expecting the dataset to have a file system link, but fsiPath is empty
-	ErrNotLinkedToFilesystem = fmt.Errorf("dataset is not linked to the filesystem")
-
 	log = golog.Logger("lib")
 )
 

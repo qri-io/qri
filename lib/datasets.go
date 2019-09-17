@@ -126,7 +126,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	var ds *dataset.Dataset
 	if p.UseFSI {
 		if ref.FSIPath == "" {
-			return ErrNotLinkedToFilesystem
+			return fsi.ErrNoLink
 		}
 		if ds, _, _, err = fsi.ReadDir(ref.FSIPath); err != nil {
 			return fmt.Errorf("loading linked dataset: %s", err)
@@ -314,7 +314,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			return err
 		}
 		if ref.FSIPath == "" {
-			return ErrNotLinkedToFilesystem
+			return fsi.ErrNoLink
 		}
 
 		var problems map[string]fsi.FileStat

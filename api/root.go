@@ -6,6 +6,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -61,8 +62,8 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 			util.NotFoundHandler(w, r)
 			return
 		}
-		if err == lib.ErrNotLinkedToFilesystem {
-			NoFsiPathErrResponse(w)
+		if err == fsi.ErrNoLink {
+			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
 		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

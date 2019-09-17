@@ -23,7 +23,13 @@ import (
 )
 
 // package level logger
-var log = golog.Logger("fsi")
+var (
+	log = golog.Logger("fsi")
+
+	// ErrNotLinkedToFilesystem is the err implementers should return when we
+	// are expecting the dataset to have a file system link, but fsiPath is empty
+	ErrNoLink = fmt.Errorf("dataset is not linked to the filesystem")
+)
 
 // QriRefFilename is the name of the file that links a folder to a dataset.
 // The file contains a dataset reference that declares the link

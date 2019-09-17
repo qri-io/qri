@@ -15,6 +15,7 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsutil"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -279,8 +280,8 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 			NoHistoryErrResponse(w)
 			return
 		}
-		if err == lib.ErrNotLinkedToFilesystem {
-			NoFsiPathErrResponse(w)
+		if err == fsi.ErrNoLink {
+			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
 		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -655,10 +656,4 @@ func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, p
 func NoHistoryErrResponse(w http.ResponseWriter) {
 	w.WriteHeader(http.StatusUnprocessableEntity)
 	w.Write([]byte(`{ "meta": { "code": 422, "error": "no history" }, "data": null }`))
-}
-
-// NoFsiPathErrResponse is a HTTP 422 response (Unprocessable Entity)
-func NoFsiPathErrResponse(w http.ResponseWriter) {
-	w.WriteHeader(http.StatusUnprocessableEntity)
-	w.Write([]byte(`{ "meta": { "code": 422, "error": "dataset is not linked to the filesystem" }, "data": null }`))
 }
