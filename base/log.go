@@ -54,17 +54,17 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 		done <- struct{}{}
 	}()
 
-	select {
-	case ref := <-versions:
-		rlog = append(rlog, ref)
-	case <-done:
-		break
-	case <-ctx.Done():
-		// TODO (b5) - ths is technially a failure, handle it!
-		break
+	for {
+		select {
+		case ref := <-versions:
+			rlog = append(rlog, ref)
+		case <-done:
+			return rlog, nil
+		case <-ctx.Done():
+			// TODO (b5) - ths is technially a failure, handle it!
+			return rlog, nil
+		}
 	}
-
-	return rlog, nil
 }
 
 // LogDiffResult is the result of comparing a set of references
