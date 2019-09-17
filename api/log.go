@@ -57,7 +57,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	res := []repo.DatasetRef{}
 	if err := h.Log(params, &res); err != nil {
 		if err == repo.ErrNoHistory {
-			NoHistoryErrResponse(w)
+			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
 		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
