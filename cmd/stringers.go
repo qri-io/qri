@@ -55,6 +55,7 @@ func (r refStringer) String() string {
 	w := &bytes.Buffer{}
 	title := color.New(color.FgGreen, color.Bold).SprintFunc()
 	path := color.New(color.Faint).SprintFunc()
+	warn := color.New(color.FgYellow).SprintFunc()
 	ds := r.Dataset
 	dsr := repo.DatasetRef(r)
 
@@ -66,6 +67,9 @@ func (r refStringer) String() string {
 		fmt.Fprintf(w, "\nlinked: %s", path(r.FSIPath))
 	} else if r.Path != "" {
 		fmt.Fprintf(w, "\n%s", path(r.Path))
+	}
+	if r.Foreign {
+		fmt.Fprintf(w, "\n%s", warn("foreign"))
 	}
 	if ds != nil && ds.Structure != nil {
 		fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(ds.Structure.Length)))

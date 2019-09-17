@@ -143,7 +143,12 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 		if ref.Path != "" {
 			ds, err := dsfs.LoadDataset(ctx, store, ref.Path)
 			if err != nil {
-				return nil, fmt.Errorf("error loading path: %s, err: %s", ref.Path, err.Error())
+				if strings.Contains(err.Error(), "not found") {
+					res[i].Foreign = true
+					err = nil
+					continue
+				}
+				return nil, fmt.Errorf("error loading ref: %s, err: %s", ref.String(), err.Error())
 			}
 			res[i].Dataset = ds
 			if RPC {

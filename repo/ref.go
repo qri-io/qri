@@ -62,6 +62,8 @@ type DatasetRef struct {
 	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 	// Published indicates whether this reference is listed as an available dataset
 	Published bool `json:"published"`
+	// If true, this reference doesn't exist locally
+	Foreign bool `json:"foreign,omitempty"`
 }
 
 // String implements the Stringer interface for DatasetRef
