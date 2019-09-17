@@ -1,6 +1,7 @@
 package api
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -67,6 +68,13 @@ func TestFSIHandlers(t *testing.T) {
 	runHandlerTestCases(t, "checkout", h.CheckoutHandler(""), checkoutCases, true)
 }
 
+// TODO (ramfox): this test should be split for each endpoint:
+// getHandler
+// rootHandler
+// bodyHandler
+// logHandler
+// statusHandler
+// each test should test responses for a dataset with no history, fsi=true and fsi=false
 func TestNoHistory(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
@@ -96,6 +104,13 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected ref to be \"peer/test_ds\", got \"%s\"", ref)
 	}
 
+	expectNoHistoryBody := map[string]interface{}{
+		"meta": map[string]interface{}{
+			"code":  float64(422),
+			"error": repo.ErrNoHistory.Error(),
+		},
+	}
+
 	// Get mtimes for the component files
 	st, _ := os.Stat(filepath.Join(initDir, "meta.json"))
 	metaMtime := st.ModTime().Format(time.RFC3339)
@@ -104,72 +119,89 @@ func TestNoHistory(t *testing.T) {
 
 	dsHandler := NewDatasetHandlers(inst, false)
 
-	// Dataset with no history
-	actualStatusCode, actualBody := APICall("/peer/test_ds", dsHandler.GetHandler)
-	if actualStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", actualStatusCode)
-	}
-	expectBody := `{ "meta": { "code": 422, "error": "no history" }, "data": null }`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
+	gotStatusCode, gotBodyString := APICall("/peer/test_ds", dsHandler.GetHandler)
+	if gotStatusCode != 422 {
+		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
 
-	// Dataset with no history, but FSI working directory has contents
-	actualStatusCode, actualBody = APICall("/peer/test_ds?fsi=true", dsHandler.GetHandler)
-	if actualStatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	gotBody := map[string]interface{}{
+		"meta": map[string]interface{}{
+			"code":  0,
+			"error": "",
+		},
+	}
+
+	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
+		t.Errorf("could not unmarshal response into struct: %s", err)
+	}
+
+	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	}
+
+	// Dataset with a link to the filesystem, but no history and the api request says fsi=true
+	gotStatusCode, gotBodyString = APICall("/peer/test_ds?fsi=true", dsHandler.GetHandler)
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody := strings.Replace(actualBody, initDir, initSubdir, -1)
+	resultBody := strings.Replace(gotBodyString, initDir, initSubdir, -1)
 	// TODO(dlong): Some weird flakiness in the code, which we don't really understand, causes
 	// the type of field_2 to be a string sometimes, and a boolean sometimes. Band-aid over this
 	// flakiness for now, by forcing the type to be a string, but dig in at some point to figure
 	// out what's really happening.
 	resultBody = strings.Replace(resultBody, "boolean", "string", -1)
-	expectBody = `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
+	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	// Body with no history
-	actualStatusCode, actualBody = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
-	if actualStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
+	if gotStatusCode != 422 {
+		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	expectBody = `{ "meta": { "code": 422, "error": "no history" }, "data": null }`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
+		t.Errorf("could not unmarshal response into struct: %s", err)
+	}
+
+	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
 	}
 
 	// Body with no history, but FSI working directory has body
-	actualStatusCode, actualBody = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
-	if actualStatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	expectBody = `{"data":{"path":"","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?fsi=true\u0026page=2"}}`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	if expectBody != gotBodyString {
+		t.Errorf("expected body %s, got %s", expectBody, gotBodyString)
 	}
 
 	fsiHandler := NewFSIHandlers(inst, false)
 
 	// Status at version with no history
-	actualStatusCode, actualBody = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"))
-	if actualStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"))
+	if gotStatusCode != 422 {
+		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	expectBody = `{ "meta": { "code": 422, "error": "no history" }, "data": null }`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
+		t.Errorf("could not unmarshal response into struct: %s", err)
+	}
+
+	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
 	}
 
 	// Status with no history, but FSI working directory has contents
-	actualStatusCode, actualBody = APICall("/status/peer/test_ds?fsi=true", fsiHandler.StatusHandler("/status"))
-	if actualStatusCode != 200 {
-		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds?fsi=true", fsiHandler.StatusHandler("/status"))
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody = strings.Replace(actualBody, initDir, initSubdir, -1)
+	resultBody = strings.Replace(gotBodyString, initDir, initSubdir, -1)
 	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
@@ -179,26 +211,31 @@ func TestNoHistory(t *testing.T) {
 	logHandler := NewLogHandlers(node)
 
 	// History with no history
-	actualStatusCode, actualBody = APICall("/history/peer/test_ds", logHandler.LogHandler)
-	if actualStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler)
+	if gotStatusCode != 422 {
+		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	expectBody = `{ "meta": { "code": 422, "error": "no history" }, "data": null }`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
+		t.Errorf("could not unmarshal response into struct: %s", err)
+	}
+
+	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
 	}
 
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
-	actualStatusCode, actualBody = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler)
-	if actualStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", actualStatusCode)
+	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds?fsi=true", logHandler.LogHandler)
+	if gotStatusCode != 422 {
+		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	expectBody = `{ "meta": { "code": 422, "error": "no history" }, "data": null }`
-	if expectBody != actualBody {
-		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
+		t.Errorf("could not unmarshal response into struct: %s", err)
+	}
+
+	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
 	}
 }
-
 func TestCheckoutAndRestore(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()

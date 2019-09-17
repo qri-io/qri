@@ -74,7 +74,7 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 		err = h.StatusAtVersion(&refStr, &res)
 		if err != nil {
 			if err == repo.ErrNoHistory {
-				NoHistoryErrResponse(w)
+				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 				return
 			}
 			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
