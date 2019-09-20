@@ -1,5 +1,5 @@
-// IDL file for cron service
-namespace log_fbs;
+// IDL file for log service
+namespace logfb;
 
 // setting file_identifier adds a "magic number" to bytes 4-7 to use as a
 // sanity check for a "Qri FlatBuffer File". As our use of flatbuffers grows
@@ -11,35 +11,56 @@ file_identifier "QFBF";
 // "qri flatbuffer" file should be .qfb
 file_extension "qfb";
 
-enum OpType:byte {
-  unknown = 0,
-  merge,
-  acl_update,
-  peer_update,
-  peer_delete,
-  dataset_commit,
-  dataset_delete,
-  suggestion_update,
-  suggestion_delete
-}
-
-
+// flatbuffers in go presently don't support a vector of unions, so we can't
+// break operations out into individual structs & union them, which would be
+// the smart choice here. To get around this, the fields of operation itself
+// are a union of all fields defined by operations. Thankfully there's a fair
+// amount of overlap, even more if we abuse field names a bit.
+// Not all operations will use all fields.
+//
+// I've opted to use "Operation" and reserve "Op"
+// as a keyword for the day where we can do a vector of a union type
 table Operation {
-  index:int;
-  type:OpType;
-  author:string;
-  subject:string;
-  prev:string;
-  note:string;
+  type:ushort;        // type of operation, two bytes
+  timestamp:long;      // operation timestamp, for annotation purposes only
+  ref:string;         // identifier of data this operation is documenting
+
+  name:string;        // human-readable name for the reference
+  prev:string;        // previous reference in a causal history
+
+  size:int;           // size of the referenced value in bytes
+  revisions:int;      // for counting sequential revisions from ref
+	destination:string; // push operation destination
+  note:string;        // operation annotation for users. eg: commit title
 }
 
-table AccessControl {
-
-}
-
+// Log is a list of operations
 table Log {
-	operations:[Operation];
-  secret:string;
+  name:string;        // human component of a log label, cached from opset
+  identifier:string;  // canonical component of a log label, cached from opset
+  signature:string;   // cryptographic signature of opset hash
+  opset:[Operation];  // append-only list of operations being logged
 }
 
-root_type Logs;
+// Logset is a list of related logs. eg: A dataset name correlates to a logset, 
+// with one log per author branch of history. 
+// eg2: A set of authors also correlates to a collection of logs, with one log 
+// for each user key
+table Logset {
+  name:string;        // human component of a log label, cached from opset
+  identifier:string;  // canonical component of a log lable, cached from opset
+  signer:string;      // identifier for who signed this logset
+  signature:string;   // cryptographic signature attesting to set integrity
+  root:string;        // root caches the log that originated this set
+  logs:[Log];         // collection of logs 
+}
+
+// Book is an author's journal of logs
+table Book {
+  name:string;        // book author name
+  identifier:string;  // book author identifier
+  authors:[Logset];   // list of author keys
+  names:[Logset];     // named dataset logs
+}
+
+root_type Book;

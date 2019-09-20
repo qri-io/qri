@@ -7,9 +7,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/log/logfb"
 )
 
 func Example() {
@@ -28,7 +30,7 @@ func Example() {
 
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
-	fs := qfs.NewMemFS(nil)
+	fs := qfs.NewMemFS()
 
 	// Create a new LogBook, passing in:
 	//  * the author private key to encrypt & decrypt the logbook
@@ -37,7 +39,7 @@ func Example() {
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := NewLogbook(pk, "b5", fs, "/mem/logset")
+	book, err := NewBook(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -126,9 +128,12 @@ func Example() {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	state := book.State("me/world_bank_population")
+	log, err := book.Versions("me/world_bank_population", 0, 100)
+	if err != nil {
+		panic(err)
+	}
 
-	fmt.Println(state)
+	fmt.Println(log)
 	// Output:
 	// TODO (b5) - figure out what's actually output here
 }
@@ -145,25 +150,65 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 // func TestLogInit(t *testing.T) {
 // }
 
-func TestLogState(t *testing.T) {
-	// logA := Log{}
-	// logA, _ = PutDatasetCommit(logA, "PeerA", "CommitA", "", "created dataset")
-	// logA, _ = PutSuggestionUpdate(logA, "PeerA", "SuggestA", "", "Hey I'm a comment")
+func TestNewBook(t *testing.T) {
+	testPk := `CAASpgkwggSiAgEAAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAECggEAaVOxe6Y5A5XzrxHBDtzjlwcBels3nm/fWScvjH4dMQXlavwcwPgKhy2NczDhr4X69oEw6Msd4hQiqJrlWd8juUg6vIsrl1wS/JAOCS65fuyJfV3Pw64rWbTPMwO3FOvxj+rFghZFQgjg/i45uHA2UUkM+h504M5Nzs6Arr/rgV7uPGR5e5OBw3lfiS9ZaA7QZiOq7sMy1L0qD49YO1ojqWu3b7UaMaBQx1Dty7b5IVOSYG+Y3U/dLjhTj4Hg1VtCHWRm3nMOE9cVpMJRhRzKhkq6gnZmni8obz2BBDF02X34oQLcHC/Wn8F3E8RiBjZDI66g+iZeCCUXvYz0vxWAQQKBgQDEJu6flyHPvyBPAC4EOxZAw0zh6SF/r8VgjbKO3n/8d+kZJeVmYnbsLodIEEyXQnr35o2CLqhCvR2kstsRSfRz79nMIt6aPWuwYkXNHQGE8rnCxxyJmxV4S63GczLk7SIn4KmqPlCI08AU0TXJS3zwh7O6e6kBljjPt1mnMgvr3QKBgQD6fAkdI0FRZSXwzygx4uSg47Co6X6ESZ9FDf6ph63lvSK5/eue/ugX6p/olMYq5CHXbLpgM4EJYdRfrH6pwqtBwUJhlh1xI6C48nonnw+oh8YPlFCDLxNG4tq6JVo071qH6CFXCIank3ThZeW5a3ZSe5pBZ8h4bUZ9H8pJL4C7yQKBgFb8SN/+/qCJSoOeOcnohhLMSSD56MAeK7KIxAF1jF5isr1TP+rqiYBtldKQX9bIRY3/8QslM7r88NNj+aAuIrjzSausXvkZedMrkXbHgS/7EAPflrkzTA8fyH10AsLgoj/68mKr5bz34nuY13hgAJUOKNbvFeC9RI5g6eIqYH0FAoGAVqFTXZp12rrK1nAvDKHWRLa6wJCQyxvTU8S1UNi2EgDJ492oAgNTLgJdb8kUiH0CH0lhZCgr9py5IKW94OSM6l72oF2UrS6PRafHC7D9b2IV5Al9lwFO/3MyBrMocapeeyaTcVBnkclz4Qim3OwHrhtFjF1ifhP9DwVRpuIg+dECgYANwlHxLe//tr6BM31PUUrOxP5Y/cj+ydxqM/z6papZFkK6Mvi/vMQQNQkh95GH9zqyC5Z/yLxur4ry1eNYty/9FnuZRAkEmlUSZ/DobhU0Pmj8Hep6JsTuMutref6vCk2n02jc9qYmJuD7iXkdXDSawbEG6f5C4MUkJ38z1t1OjA==`
+	data, err := base64.StdEncoding.DecodeString(testPk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	pk, err := crypto.UnmarshalPrivateKey(data)
+	if err != nil {
+		t.Fatalf("error unmarshaling private key: %s", err.Error())
+	}
 
-	// logB := logA.Copy()
-	// logB, _ = PutDatasetCommit(logB, "PeerB", "CommitB", "CommitA", "added the stuff")
-	// logB, _ = PutSuggestionUpdate(logB, "PeerB", "SuggestD", "", "this so cool")
+	fs := qfs.NewMemFS()
+	book, err := NewBook(pk, "b5", fs, "/mem/logset")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// logA, _ = PutSuggestionUpdate(logA, "PeerA", "SuggestB", "", "Another Comment")
-	// logA, _ = PutSuggestionUpdate(logA, "PeerA", "SuggestC", "SuggestA", "updated comment")
-	// logA, _ = PutSuggestionDelete(logA, "PeerA", "SuggestC")
+	author, err := book.Author("b5")
+	if err != nil {
+		t.Fatal(err)
+	}
 
-	// logA = logA.Put(logB.Ops[len(logB.Ops)-1])
+	t.Logf("%v", author)
+}
 
-	// logA, _ = PutDatasetCommit(logA, "PeerA", "CommitC", "CommitA", "an edit")
-	// logB = logB.Put(logA.Ops[len(logA.Ops)-1])
+func TestBookFlatbuffer(t *testing.T) {
+	everyOpLog := log{
+		signature: nil,
+		ops: []operation{
+			userInit{
+				op: op{
+					opType: opTypeUserInit,
+					ref:    "QmHashOfSteveSPublicKey",
+				},
+				Author: "steve",
+			},
+		},
+	}
 
-	// s := logA.State()
-	// data, _ := json.MarshalIndent(s, "", "  ")
-	// fmt.Println(string(data))
+	set := logset{
+		logs: map[string]log{
+			"branch": everyOpLog,
+		},
+	}
+
+	book := Book{
+		authors: []logset{set},
+		logs:    []logset{set},
+	}
+
+	data := book.flatbufferBytes()
+	bookfb := logfb.GetRootAsBook(data, 0)
+
+	got := &Book{}
+	if err := got.unmarshalFlatbuffer(bookfb); err != nil {
+		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
+	}
+
+	if diff := cmp.Diff(book, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
 }

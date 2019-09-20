@@ -1,52 +1,84 @@
 package log
 
+import (
+	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/qri-io/qri/log/logfb"
+)
+
 // opType is the set of kinds of operations
 // OpType splits the provided byte in half, using the higher 4 bits for the
 // "category" of operation, and the lower 4 bits for the type of operation
 // within the category
-type opType byte
+// the second byte is reserved for future use
+type opType uint16
 
 const (
-	opTypeUserInit   opType = 0x00
-	opTypeUserChange opType = 0x01
-	opTypeUserDelete opType = 0x02
-	opTypeUserRename opType = 0x03
+	opTypeUserInit   opType = 0x0000
+	opTypeUserChange opType = 0x0100
+	opTypeUserDelete opType = 0x0200
+	opTypeUserRename opType = 0x0300
 
-	opTypeNameInit   opType = 0x10
-	opTypeNameChange opType = 0x11
-	opTypeNameDelete opType = 0x12
+	opTypeNameInit   opType = 0x1000
+	opTypeNameChange opType = 0x1100
+	opTypeNameDelete opType = 0x1200
 
-	opTypeVersionSave      opType = 0x20
-	opTypeVersionDelete    opType = 0x21
-	opTypeVersionPublish   opType = 0x22
-	opTypeVersionUnpublish opType = 0x23
+	opTypeVersionSave      opType = 0x2000
+	opTypeVersionDelete    opType = 0x2100
+	opTypeVersionPublish   opType = 0x2200
+	opTypeVersionUnpublish opType = 0x2300
 
-	opTypeACLInit   opType = 0x30
-	opTypeACLUpdate opType = 0x31
-	opTypeACLDelete opType = 0x32
+	opTypeACLInit   opType = 0x3000
+	opTypeACLUpdate opType = 0x3100
+	opTypeACLDelete opType = 0x3200
 )
 
 type operation interface {
 	OpType() opType
-	Timestamp() uint64
+	Timestamp() int64
 	Ref() string
+	MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
 type op struct {
 	opType    opType
-	timestamp uint64
+	timestamp int64
 	ref       string
 }
 
-func (o op) OpType() opType    { return o.opType }
-func (o op) Timestamp() uint64 { return o.timestamp }
-func (o op) Ref() string       { return o.ref }
+func (o op) OpType() opType   { return o.opType }
+func (o op) Timestamp() int64 { return o.timestamp }
+func (o op) Ref() string      { return o.ref }
 
 // userInit signifies the creation of a user
 type userInit struct {
 	op
 	Author   string
 	Username string
+}
+
+func (o userInit) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	author := builder.CreateString(o.Author)
+	username := builder.CreateString(o.Username)
+
+	logfb.OperationStart(builder)
+	logfb.OperationAddType(builder, uint16(o.opType))
+	// TODO (b5):
+	logfb.OperationAddTimestamp(builder, 0)
+	logfb.OperationAddRef(builder, author)
+	logfb.OperationAddName(builder, username)
+	return logfb.OperationEnd(builder)
+}
+
+func newUserInitFlatbuffer(o *logfb.Operation) (userInit, error) {
+	return userInit{
+		op: op{
+			opType:    opTypeUserInit,
+			timestamp: o.Timestamp(),
+			ref:       string(o.Ref()),
+		},
+		Author:   string(o.Ref()),
+		Username: string(o.Name()),
+	}, nil
 }
 
 // userChange signifies a change in any user details that aren't
@@ -76,6 +108,19 @@ type nameInit struct {
 	Name     string
 }
 
+func (o nameInit) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	author := builder.CreateString(o.Author)
+	username := builder.CreateString(o.Username)
+
+	logfb.OperationStart(builder)
+	logfb.OperationAddType(builder, uint16(o.opType))
+	// TODO (b5):
+	logfb.OperationAddTimestamp(builder, 0)
+	logfb.OperationAddRef(builder, author)
+	logfb.OperationAddName(builder, username)
+	return logfb.OperationEnd(builder)
+}
+
 // nameChange signifies a dataset name change
 type nameChange struct {
 	op
@@ -96,6 +141,21 @@ type versionSave struct {
 	Note string
 }
 
+func (o versionSave) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	prev := builder.CreateString(o.Prev)
+	ref := builder.CreateString(o.ref)
+	note := builder.CreateString(o.Note)
+
+	logfb.OperationStart(builder)
+	logfb.OperationAddType(builder, uint16(o.opType))
+	// TODO (b5):
+	logfb.OperationAddTimestamp(builder, 0)
+	logfb.OperationAddRef(builder, ref)
+	logfb.OperationAddPrev(builder, prev)
+	logfb.OperationAddNote(builder, note)
+	return logfb.OperationEnd(builder)
+}
+
 // versionDelete signifies deleting one or more versions of a dataset
 type versionDelete struct {
 	op
@@ -106,7 +166,7 @@ type versionDelete struct {
 // dataset
 type versionPublish struct {
 	op
-	Revisions   uint32
+	Revisions   int
 	Destination string
 }
 
@@ -114,7 +174,7 @@ type versionPublish struct {
 // dataset
 type versionUnpublish struct {
 	op
-	Revisions   uint32
+	Revisions   int
 	Destination string
 }
 
