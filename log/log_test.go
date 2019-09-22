@@ -176,7 +176,7 @@ func TestNewBook(t *testing.T) {
 }
 
 func TestBookFlatbuffer(t *testing.T) {
-	everyOpLog := log{
+	everyOpLog := &log{
 		signature: nil,
 		ops: []operation{
 			userInit{
@@ -184,20 +184,20 @@ func TestBookFlatbuffer(t *testing.T) {
 					opType: opTypeUserInit,
 					ref:    "QmHashOfSteveSPublicKey",
 				},
-				Author: "steve",
+				Username: "steve",
 			},
 		},
 	}
 
-	set := logset{
-		logs: map[string]log{
-			"branch": everyOpLog,
+	set := &logset{
+		logs: map[string]*log{
+			"steve": everyOpLog,
 		},
 	}
 
-	book := Book{
-		authors: []logset{set},
-		logs:    []logset{set},
+	book := &Book{
+		authors:  []*logset{set},
+		datasets: []*logset{set},
 	}
 
 	data := book.flatbufferBytes()
@@ -208,7 +208,7 @@ func TestBookFlatbuffer(t *testing.T) {
 		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
 	}
 
-	if diff := cmp.Diff(book, got); diff != "" {
+	if diff := cmp.Diff(book, got, cmp.AllowUnexported(Book{}, logset{}, log{}, userInit{}, op{})); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

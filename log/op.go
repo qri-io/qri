@@ -39,6 +39,13 @@ type operation interface {
 	MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT
 }
 
+type initOperation interface {
+	operation
+	Name() string
+	AuthorName() string
+	AuthorID() string
+}
+
 type op struct {
 	opType    opType
 	timestamp int64
@@ -52,33 +59,42 @@ func (o op) Ref() string      { return o.ref }
 // userInit signifies the creation of a user
 type userInit struct {
 	op
-	Author   string
 	Username string
 }
 
 func (o userInit) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	author := builder.CreateString(o.Author)
+	ref := builder.CreateString(o.ref)
 	username := builder.CreateString(o.Username)
 
 	logfb.OperationStart(builder)
 	logfb.OperationAddType(builder, uint16(o.opType))
-	// TODO (b5):
-	logfb.OperationAddTimestamp(builder, 0)
-	logfb.OperationAddRef(builder, author)
+	logfb.OperationAddTimestamp(builder, o.timestamp)
+	logfb.OperationAddRef(builder, ref)
 	logfb.OperationAddName(builder, username)
 	return logfb.OperationEnd(builder)
 }
 
-func newUserInitFlatbuffer(o *logfb.Operation) (userInit, error) {
+func (o userInit) Name() string {
+	return o.Username
+}
+
+func (o userInit) AuthorName() string {
+	return o.Username
+}
+
+func (o userInit) AuthorID() string {
+	return o.ref
+}
+
+func newUserInitFlatbuffer(o *logfb.Operation) userInit {
 	return userInit{
 		op: op{
 			opType:    opTypeUserInit,
 			timestamp: o.Timestamp(),
 			ref:       string(o.Ref()),
 		},
-		Author:   string(o.Ref()),
 		Username: string(o.Name()),
-	}, nil
+	}
 }
 
 // userChange signifies a change in any user details that aren't
@@ -88,16 +104,31 @@ type userChange struct {
 	Note string
 }
 
+func (o userChange) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // userRename signifies a user has changed their username
 type userRename struct {
 	op
 	Username string
 }
 
+func (o userRename) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // userDelete signifies user details have been deleted
 type userDelete struct {
 	op
 	Author string
+}
+
+func (o userDelete) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
 }
 
 // nameInit signifies dataset name creation in a user's namespace
@@ -127,10 +158,20 @@ type nameChange struct {
 	Name string
 }
 
+func (o nameChange) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // nameDelete signifies a dataset name has been deleted
 type nameDelete struct {
 	op
 	Name string
+}
+
+func (o nameDelete) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
 }
 
 // versionSave signifies creating one new dataset version
@@ -162,12 +203,22 @@ type versionDelete struct {
 	Revisions int
 }
 
+func (o versionDelete) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // versionPublish signifies publishing one or more sequential versions of a
 // dataset
 type versionPublish struct {
 	op
 	Revisions   int
 	Destination string
+}
+
+func (o versionPublish) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
 }
 
 // versionUnpublish signifies unpublishing one or more sequential versions of a
@@ -178,12 +229,22 @@ type versionUnpublish struct {
 	Destination string
 }
 
+func (o versionUnpublish) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // aclInit signifies intializing an access control list
 type aclInit struct {
 	op
 	Prev string
 	Size uint64
 	Note string
+}
+
+func (o aclInit) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
 }
 
 // aclUpdate signifies a change to an access control list
@@ -194,8 +255,130 @@ type aclUpdate struct {
 	Note string
 }
 
+func (o aclUpdate) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
 // aclDelete signifies removing an access control list
 type aclDelete struct {
 	op
 	Prev string
+}
+
+func (o aclDelete) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// TODO (b5) - finish
+	return 0
+}
+
+func unmarshalOperationFlatbuffer(opfb *logfb.Operation) (opr operation, err error) {
+	switch opType(opfb.Type()) {
+	case opTypeUserInit:
+		opr = newUserInitFlatbuffer(opfb)
+	case opTypeUserChange:
+		opr = userChange{
+			op: op{
+				opType:    opTypeUserChange,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeUserDelete:
+		opr = userDelete{
+			op: op{
+				opType:    opTypeUserDelete,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeUserRename:
+		opr = userRename{
+			op: op{
+				opType:    opTypeUserRename,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeNameInit:
+		opr = nameInit{
+			op: op{
+				opType:    opTypeNameInit,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeNameChange:
+		opr = nameChange{
+			op: op{
+				opType:    opTypeNameChange,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeNameDelete:
+		opr = nameDelete{
+			op: op{
+				opType:    opTypeNameDelete,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeVersionSave:
+		opr = versionSave{
+			op: op{
+				opType:    opTypeVersionSave,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeVersionDelete:
+		opr = versionDelete{
+			op: op{
+				opType:    opTypeVersionDelete,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeVersionPublish:
+		opr = versionPublish{
+			op: op{
+				opType:    opTypeVersionPublish,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeVersionUnpublish:
+		opr = versionUnpublish{
+			op: op{
+				opType:    opTypeVersionUnpublish,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeACLInit:
+		opr = aclInit{
+			op: op{
+				opType:    opTypeACLInit,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeACLUpdate:
+		opr = aclUpdate{
+			op: op{
+				opType:    opTypeACLUpdate,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	case opTypeACLDelete:
+		opr = aclDelete{
+			op: op{
+				opType:    opTypeACLDelete,
+				timestamp: opfb.Timestamp(),
+				ref:       string(opfb.Ref()),
+			},
+		}
+	}
+	return opr, nil
 }

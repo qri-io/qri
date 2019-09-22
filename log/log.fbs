@@ -60,7 +60,7 @@ table Book {
   name:string;        // book author name
   identifier:string;  // book author identifier
   authors:[Logset];   // list of author keys
-  names:[Logset];     // named dataset logs
+  datasets:[Logset];  // named dataset logs
 }
 
 root_type Book;
