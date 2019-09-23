@@ -284,6 +284,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/init/", s.middleware(fsih.InitHandler("/init")))
 	m.Handle("/checkout/", s.middleware(fsih.CheckoutHandler("/checkout")))
 	m.Handle("/restore/", s.middleware(fsih.RestoreHandler("/restore")))
+	m.Handle("/fsi/write/", s.middleware(fsih.WriteHandler("/fsi/write")))
 
 	renderh := NewRenderHandlers(node.Repo)
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))

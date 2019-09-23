@@ -1,6 +1,7 @@
 package api
 
 import (
+	"bytes"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -236,6 +237,93 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
 	}
 }
+
+func TestFSIWrite(t *testing.T) {
+	node, teardown := newTestNode(t)
+	defer teardown()
+
+	inst := newTestInstanceWithProfileFromNode(node)
+
+	tmpDir := os.TempDir()
+	workSubdir := "write_test"
+	workDir := filepath.Join(tmpDir, workSubdir)
+	// Don't create the work directory, it must not exist for checkout to work. Remove if it
+	// already exists.
+	_ = os.RemoveAll(workDir)
+
+	dr := lib.NewDatasetRequests(node, nil)
+	fsiHandler := NewFSIHandlers(inst, false)
+
+	// Save version 1
+	saveParams := lib.SaveParams{
+		Ref: "me/write_test",
+		Dataset: &dataset.Dataset{
+			Meta: &dataset.Meta{
+				Title: "title one",
+			},
+		},
+		BodyPath: "testdata/cities/data.csv",
+	}
+	res := repo.DatasetRef{}
+	if err := dr.Save(&saveParams, &res); err != nil {
+		t.Fatal(err)
+	}
+
+	// Checkout the dataset
+	actualStatusCode, actualBody := APICallWithParams(
+		"POST",
+		"/checkout/peer/write_test",
+		map[string]string{
+			"dir": workDir,
+		},
+		fsiHandler.CheckoutHandler("/checkout"))
+	if actualStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	}
+	expectBody := `{"data":"","meta":{"code":200}}`
+	if expectBody != actualBody {
+		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	}
+
+	status, strRes := JSONAPICallWithBody("POST", "/me/write_test", &dataset.Dataset{Meta: &dataset.Meta{Title: "oh hai there"}}, fsiHandler.WriteHandler(""))
+
+	if status != http.StatusOK {
+		t.Errorf("status code mismatch. expected: %d, got: %d", http.StatusOK, status)
+	}
+
+	exp := struct {
+		Data []struct {
+			// ignore mtime & path fields by only deserializing component & type from JSON
+			Component string
+			Type      string
+		}
+	}{
+		Data: []struct {
+			Component string
+			Type      string
+		}{
+			{Component: "meta", Type: "modified"},
+			{Component: "structure", Type: "unmodified"},
+			{Component: "schema", Type: "unmodified"},
+			{Component: "body", Type: "unmodified"},
+		},
+	}
+
+	got := struct {
+		Data []struct {
+			Component string
+			Type      string
+		}
+	}{}
+	if err := json.NewDecoder(strings.NewReader(strRes)).Decode(&got); err != nil {
+		t.Fatal(err)
+	}
+
+	if diff := cmp.Diff(exp, got); diff != "" {
+		t.Errorf("response data mistmach (-want +got):\n%s", diff)
+	}
+}
+
 func TestCheckoutAndRestore(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
@@ -418,6 +506,27 @@ func APICallWithParams(method, reqURL string, params map[string]string, hf http.
 	hf(w, req)
 	res := w.Result()
 	statusCode := res.StatusCode
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	return statusCode, string(bodyBytes)
+}
+
+func JSONAPICallWithBody(method, reqURL string, data interface{}, hf http.HandlerFunc) (int, string) {
+	enc, err := json.Marshal(data)
+	if err != nil {
+		panic(err)
+	}
+
+	req := httptest.NewRequest(method, reqURL, bytes.NewReader(enc))
+	// Set form-encoded header so server will find the parameters
+	req.Header.Add("Content-Type", "application/json")
+	w := httptest.NewRecorder()
+	hf(w, req)
+	res := w.Result()
+	statusCode := res.StatusCode
+
 	bodyBytes, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		panic(err)

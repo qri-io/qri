@@ -1,11 +1,13 @@
 package api
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -161,6 +163,55 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 
 		util.WriteResponse(w, ref)
 		return
+	}
+}
+
+// WriteHandler writes input data to the local filesystem link
+func (h *FSIHandlers) WriteHandler(routePrefix string) http.HandlerFunc {
+	handler := h.writeHandler(routePrefix)
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, routePrefix)
+			return
+		}
+
+		switch r.Method {
+		case "OPTIONS":
+			util.EmptyOkHandler(w, r)
+		case "POST":
+			handler(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) writeHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			return
+		}
+
+		ds := &dataset.Dataset{}
+		if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		p := &lib.FSIWriteParams{
+			Ref: ref.AliasString(),
+			Ds:  ds,
+		}
+
+		out := []lib.StatusItem{}
+		if err := h.Write(p, &out); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		util.WriteResponse(w, out)
 	}
 }
 

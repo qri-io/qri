@@ -185,6 +185,48 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	return err
 }
 
+// FSIWriteParams encapsultes arguments for writing to an FSI-linked directory
+type FSIWriteParams struct {
+	Ref string
+	Ds  *dataset.Dataset
+}
+
+// Write mutates a linked dataset on the filesystem
+func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.Write", p, res)
+	}
+	ctx := context.TODO()
+
+	if p.Ref == "" {
+		return repo.ErrEmptyRef
+	}
+	if p.Ds == nil {
+		return fmt.Errorf("dataset is required")
+	}
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return fmt.Errorf("'%s' is not a valid dataset reference", p.Ref)
+	}
+	err = repo.CanonicalizeDatasetRef(m.inst.node.Repo, &ref)
+	if err != nil && err != repo.ErrNoHistory {
+		return err
+	}
+
+	// Directory to write components to can be determined from FSIPath of ref.
+	if ref.FSIPath == "" {
+		return fsi.ErrNoLink
+	}
+
+	// Write components of the dataset to the working directory
+	if err = fsi.WriteComponents(p.Ds, ref.FSIPath); err != nil {
+		return err
+	}
+
+	*res, err = m.inst.fsi.Status(ctx, ref.FSIPath)
+	return err
+}
+
 // RestoreParams provides parameters to the restore method.
 type RestoreParams struct {
 	Dir       string
