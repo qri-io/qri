@@ -7,11 +7,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/log/logfb"
 )
 
 func Example() {
@@ -173,42 +171,4 @@ func TestNewBook(t *testing.T) {
 	}
 
 	t.Logf("%v", author)
-}
-
-func TestBookFlatbuffer(t *testing.T) {
-	everyOpLog := &log{
-		signature: nil,
-		ops: []operation{
-			userInit{
-				op: op{
-					opType: opTypeUserInit,
-					ref:    "QmHashOfSteveSPublicKey",
-				},
-				Username: "steve",
-			},
-		},
-	}
-
-	set := &logset{
-		logs: map[string]*log{
-			"steve": everyOpLog,
-		},
-	}
-
-	book := &Book{
-		authors:  []*logset{set},
-		datasets: []*logset{set},
-	}
-
-	data := book.flatbufferBytes()
-	bookfb := logfb.GetRootAsBook(data, 0)
-
-	got := &Book{}
-	if err := got.unmarshalFlatbuffer(bookfb); err != nil {
-		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
-	}
-
-	if diff := cmp.Diff(book, got, cmp.AllowUnexported(Book{}, logset{}, log{}, userInit{}, op{})); diff != "" {
-		t.Errorf("result mismatch (-want +got):\n%s", diff)
-	}
 }

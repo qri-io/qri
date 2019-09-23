@@ -22,7 +22,7 @@ file_extension "qfb";
 // as a keyword for the day where we can do a vector of a union type
 table Operation {
   type:ushort;        // type of operation, two bytes
-  timestamp:long;      // operation timestamp, for annotation purposes only
+  timestamp:long;     // operation timestamp, for annotation purposes only
   ref:string;         // identifier of data this operation is documenting
 
   name:string;        // human-readable name for the reference
