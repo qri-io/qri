@@ -26,28 +26,28 @@ func (rcv *Operation) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *Operation) Type() uint16 {
+func (rcv *Operation) Type() OpType {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
-		return rcv._tab.GetUint16(o + rcv._tab.Pos)
+		return OpType(rcv._tab.GetInt8(o + rcv._tab.Pos))
 	}
 	return 0
 }
 
-func (rcv *Operation) MutateType(n uint16) bool {
-	return rcv._tab.MutateUint16Slot(4, n)
+func (rcv *Operation) MutateType(n OpType) bool {
+	return rcv._tab.MutateInt8Slot(4, int8(n))
 }
 
-func (rcv *Operation) Timestamp() int64 {
+func (rcv *Operation) Model() uint32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
-		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+		return rcv._tab.GetUint32(o + rcv._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Operation) MutateTimestamp(n int64) bool {
-	return rcv._tab.MutateInt64Slot(6, n)
+func (rcv *Operation) MutateModel(n uint32) bool {
+	return rcv._tab.MutateUint32Slot(6, n)
 }
 
 func (rcv *Operation) Ref() []byte {
@@ -58,7 +58,7 @@ func (rcv *Operation) Ref() []byte {
 	return nil
 }
 
-func (rcv *Operation) Name() []byte {
+func (rcv *Operation) Prev() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -66,48 +66,65 @@ func (rcv *Operation) Name() []byte {
 	return nil
 }
 
-func (rcv *Operation) Prev() []byte {
+func (rcv *Operation) Relations(j int) []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+		a := rcv._tab.Vector(o)
+		return rcv._tab.ByteVector(a + flatbuffers.UOffsetT(j*4))
 	}
 	return nil
 }
 
-func (rcv *Operation) Size() int32 {
+func (rcv *Operation) RelationsLength() int {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
+	if o != 0 {
+		return rcv._tab.VectorLen(o)
+	}
+	return 0
+}
+
+func (rcv *Operation) Name() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
-	return 0
+	return nil
 }
 
-func (rcv *Operation) MutateSize(n int32) bool {
-	return rcv._tab.MutateInt32Slot(14, n)
-}
-
-func (rcv *Operation) Revisions() int32 {
+func (rcv *Operation) AuthorID() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *Operation) MutateRevisions(n int32) bool {
-	return rcv._tab.MutateInt32Slot(16, n)
-}
-
-func (rcv *Operation) Destination() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
 	return nil
+}
+
+func (rcv *Operation) Timestamp() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
+	if o != 0 {
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Operation) MutateTimestamp(n int64) bool {
+	return rcv._tab.MutateInt64Slot(18, n)
+}
+
+func (rcv *Operation) Size() uint64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	if o != 0 {
+		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *Operation) MutateSize(n uint64) bool {
+	return rcv._tab.MutateUint64Slot(20, n)
 }
 
 func (rcv *Operation) Note() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
 	}
@@ -115,34 +132,40 @@ func (rcv *Operation) Note() []byte {
 }
 
 func OperationStart(builder *flatbuffers.Builder) {
-	builder.StartObject(9)
+	builder.StartObject(10)
 }
-func OperationAddType(builder *flatbuffers.Builder, type_ uint16) {
-	builder.PrependUint16Slot(0, type_, 0)
+func OperationAddType(builder *flatbuffers.Builder, type_ OpType) {
+	builder.PrependInt8Slot(0, int8(type_), 0)
 }
-func OperationAddTimestamp(builder *flatbuffers.Builder, timestamp int64) {
-	builder.PrependInt64Slot(1, timestamp, 0)
+func OperationAddModel(builder *flatbuffers.Builder, model uint32) {
+	builder.PrependUint32Slot(1, model, 0)
 }
 func OperationAddRef(builder *flatbuffers.Builder, ref flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(ref), 0)
 }
-func OperationAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(name), 0)
-}
 func OperationAddPrev(builder *flatbuffers.Builder, prev flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(prev), 0)
+	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(prev), 0)
 }
-func OperationAddSize(builder *flatbuffers.Builder, size int32) {
-	builder.PrependInt32Slot(5, size, 0)
+func OperationAddRelations(builder *flatbuffers.Builder, relations flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(relations), 0)
 }
-func OperationAddRevisions(builder *flatbuffers.Builder, revisions int32) {
-	builder.PrependInt32Slot(6, revisions, 0)
+func OperationStartRelationsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+	return builder.StartVector(4, numElems, 4)
 }
-func OperationAddDestination(builder *flatbuffers.Builder, destination flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(destination), 0)
+func OperationAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(5, flatbuffers.UOffsetT(name), 0)
+}
+func OperationAddAuthorID(builder *flatbuffers.Builder, authorID flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(6, flatbuffers.UOffsetT(authorID), 0)
+}
+func OperationAddTimestamp(builder *flatbuffers.Builder, timestamp int64) {
+	builder.PrependInt64Slot(7, timestamp, 0)
+}
+func OperationAddSize(builder *flatbuffers.Builder, size uint64) {
+	builder.PrependUint64Slot(8, size, 0)
 }
 func OperationAddNote(builder *flatbuffers.Builder, note flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(note), 0)
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(note), 0)
 }
 func OperationEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

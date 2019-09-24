@@ -2,6 +2,7 @@ package log
 
 import (
 	"fmt"
+	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -10,6 +11,14 @@ import (
 	"github.com/qri-io/qri/logbook/log"
 	"github.com/qri-io/qri/logbook/logfb"
 	"github.com/qri-io/qri/repo"
+)
+
+const (
+	userModel        uint32 = 0x0001
+	nameModel        uint32 = 0x0002
+	versionModel     uint32 = 0x0003
+	publicationModel uint32 = 0x0004
+	aclModel         uint32 = 0x0005
 )
 
 // Book is a journal of operations organized into a collection of append-only
@@ -24,6 +33,7 @@ type Book struct {
 	username string
 	id       string
 	pk       crypto.PrivKey
+	// modelSets map[uint32]*log.Set
 	authors  []*log.Set
 	datasets []*log.Set
 }
@@ -50,7 +60,15 @@ func (book Book) DeleteAuthor() error {
 // NameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
 func (book Book) NameInit(name string) error {
-	op := log.NewNameInit(book.id, book.username, name)
+	// op := log.NewNameInit(book.id, book.username, name)
+	op := log.Op{
+		Type:      log.OpTypeInit,
+		Model:     nameModel,
+		AuthorID:  book.id,
+		Name:      name,
+		Timestamp: time.Now().UnixNano(),
+	}
+
 	set := log.InitSet(name, op)
 	book.datasets = append(book.datasets, set)
 	return fmt.Errorf("not finished")

@@ -42,7 +42,7 @@ func NewSimulation(ctx context.Context, peerCount int, gen *opGenerator) *Simula
 		p := &Peer{
 			ID:    i,
 			Log:   Log{},
-			Inbox: make(chan Operation, peerCount),
+			Inbox: make(chan Op, peerCount),
 
 			ops:   gen,
 			ticks: make(chan struct{}),
@@ -82,12 +82,12 @@ type opGenerator struct {
 	opsGenerated int
 }
 
-func (og *opGenerator) Gen(id int) Operation {
-	var o Operation
+func (og *opGenerator) Gen(id int) Op {
+	var o Op
 	i := rand.Intn(100)
 	if i > og.NoopProb {
 		//  Author: fmt.Sprintf("%d", id)
-		o = VersionSave{op: op{ref: fmt.Sprintf("%d", og.opsGenerated)}, Note: fmt.Sprintf("op number %d", og.opsGenerated)}
+		o = Op{Ref: fmt.Sprintf("%d", og.opsGenerated), Note: fmt.Sprintf("op number %d", og.opsGenerated)}
 		og.opsGenerated++
 	}
 
@@ -97,11 +97,11 @@ func (og *opGenerator) Gen(id int) Operation {
 type Peer struct {
 	ID          int
 	Log         Log
-	Inbox       chan Operation
-	Downstreams []chan Operation
+	Inbox       chan Op
+	Downstreams []chan Op
 
 	ops          *opGenerator
-	message      *Operation
+	message      *Op
 	msgsSent     int
 	msgsReceived int
 	ticks        chan struct{}

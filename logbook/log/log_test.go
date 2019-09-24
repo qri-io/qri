@@ -11,39 +11,30 @@ import (
 var allowUnexported = cmp.AllowUnexported(
 	Set{},
 	Log{},
-	op{},
-	UserInit{},
-	UserChange{},
-	UserRename{},
-	UserDelete{},
-	NameInit{},
-	NameChange{},
-	NameDelete{},
-	VersionSave{},
-	VersionDelete{},
-	VersionPublish{},
-	VersionUnpublish{},
-	ACLInit{},
-	ACLUpdate{},
-	ACLDelete{},
+	Op{},
 )
 
-func TestLogsetFlatbuffer(t *testing.T) {
-	everyOpLog := &Log{
-		signature: nil,
-		ops: []Operation{
-			UserInit{
-				op: op{
-					ref: "QmHashOfSteveSPublicKey",
-				},
-				Username: "steve",
-			},
-		},
-	}
+func TestAllOpsLogsetFlatbuffer(t *testing.T) {
 
 	set := &Set{
 		logs: map[string]*Log{
-			"steve": everyOpLog,
+			"steve": &Log{
+				signature: nil,
+				ops: []Op{
+					Op{
+						Type:      OpTypeInit,
+						Model:     0x0001,
+						Ref:       "QmRefHash",
+						Prev:      "QmPrevHash",
+						Relations: []string{"a", "b", "c"},
+						Name:      "steve",
+						AuthorID:  "QmSteveHash",
+						Timestamp: 1,
+						Size:      2,
+						Note:      "note!",
+					},
+				},
+			},
 		},
 	}
 

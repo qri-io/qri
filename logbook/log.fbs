@@ -11,6 +11,9 @@ file_identifier "QFBF";
 // "qri flatbuffer" file should be .qfb
 file_extension "qfb";
 
+// OpType enumerates types of operations
+enum OpType: byte { Unknown = 0, Init, Amend, Remove }
+
 // flatbuffers in go presently don't support a vector of unions, so we can't
 // break operations out into individual structs & union them, which would be
 // the smart choice here. To get around this, the fields of operation itself
@@ -21,16 +24,17 @@ file_extension "qfb";
 // I've opted to use "Operation" and reserve "Op"
 // as a keyword for the day where we can do a vector of a union type
 table Operation {
-  type:ushort;        // type of operation, two bytes
-  timestamp:long;     // operation timestamp, for annotation purposes only
+  type:OpType;        // type of operation
+  model:uint;         // data model to operate on, designated by 4 bytes
   ref:string;         // identifier of data this operation is documenting
+  prev:string;        // previous reference in a causal history
+  relations:[string]; // references this operation relates. usage is operation type-dependant
 
   name:string;        // human-readable name for the reference
-  prev:string;        // previous reference in a causal history
+  authorID:string;    // identifier for author
 
-  size:int;           // size of the referenced value in bytes
-  revisions:int;      // for counting sequential revisions from ref
-	destination:string; // push operation destination
+  timestamp:long;     // operation timestamp, for annotation purposes only
+  size:ulong;         // size of the referenced value in bytes
   note:string;        // operation annotation for users. eg: commit title
 }
 

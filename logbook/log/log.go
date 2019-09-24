@@ -16,7 +16,7 @@ type Set struct {
 }
 
 // InitSet creates a Log from an initialization operation
-func InitSet(name string, initop InitOperation) *Set {
+func InitSet(name string, initop Op) *Set {
 	lg := InitLog(initop)
 	return &Set{
 		root: name,
@@ -87,13 +87,13 @@ func (ls *Set) UnmarshalFlatbuffer(lsfb *logfb.Logset) (err error) {
 // log attribution is verified by an author's signature
 type Log struct {
 	signature []byte
-	ops       []Operation
+	ops       []Op
 }
 
 // InitLog creates a Log from an initialization operation
-func InitLog(initop InitOperation) *Log {
+func InitLog(initop Op) *Log {
 	return &Log{
-		ops: []Operation{initop},
+		ops: []Op{initop},
 	}
 }
 
@@ -112,13 +112,12 @@ func (lg Log) Type() string {
 
 // Author returns the name and identifier this log is attributed to
 func (lg Log) Author() (name, identifier string) {
-	// TODO (b5) - name and identifier must come from init operation
-	if len(lg.ops) > 0 {
-		if initOp, ok := lg.ops[0].(InitOperation); ok {
-			return initOp.AuthorName(), initOp.AuthorID()
-		}
-	}
-	return "", ""
+	// if len(lg.ops) > 0 {
+	// 	if initOp, ok := lg.ops[0].(InitOperation); ok {
+	// 		return initOp.AuthorName(), initOp.AuthorID()
+	// 	}
+	// }
+	return lg.ops[0].Name, lg.ops[0].AuthorID
 }
 
 // Name returns the human-readable name for this log, determined by the
@@ -126,12 +125,12 @@ func (lg Log) Author() (name, identifier string) {
 // TODO (b5) - name must be made mutable by playing forward any name-changing
 // operations and applying them to the log
 func (lg Log) Name() string {
-	if len(lg.ops) > 0 {
-		if initOp, ok := lg.ops[0].(InitOperation); ok {
-			return initOp.Name()
-		}
-	}
-	return ""
+	// if len(lg.ops) > 0 {
+	// 	if initOp, ok := lg.ops[0].(InitOperation); ok {
+	// 		return initOp.Name()
+	// 	}
+	// }
+	return lg.ops[0].Name
 }
 
 // Verify confirms that the signature for a log matches
@@ -169,20 +168,109 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 
 // UnmarshalFlatbuffer reads a Log from
 func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
-	newLg := Log{
-		signature: lfb.Signature(),
+	newLg := Log{}
+
+	if len(lfb.Signature()) != 0 {
+		newLg.signature = lfb.Signature()
 	}
 
-	newLg.ops = make([]Operation, lfb.OpsetLength())
+	newLg.ops = make([]Op, lfb.OpsetLength())
 	opfb := &logfb.Operation{}
 	for i := 0; i < lfb.OpsetLength(); i++ {
 		if lfb.Opset(opfb, i) {
-			if newLg.ops[i], err = unmarshalOperationFlatbuffer(opfb); err != nil {
-				return err
-			}
+			newLg.ops[i] = UnmarshalOpFlatbuffer(opfb)
 		}
 	}
 
 	*lg = newLg
 	return nil
+}
+
+// OpType is the set of all kinds of operations, they are two bytes in length
+// OpType splits the provided byte in half, using the higher 4 bits for the
+// "category" of operation, and the lower 4 bits for the type of operation
+// within the category
+// the second byte is reserved for future use
+type OpType byte
+
+const (
+	// OpTypeInit is the creation of a model
+	OpTypeInit OpType = 0x01
+	// OpTypeAmend represents amending a model
+	OpTypeAmend OpType = 0x02
+	// OpTypeRemove represents deleting a model
+	OpTypeRemove OpType = 0x03
+)
+
+type Op struct {
+	Type      OpType   // type of operation
+	Model     uint32   // data model to operate on
+	Ref       string   // identifier of data this operation is documenting
+	Prev      string   // previous reference in a causal history
+	Relations []string // references this operation relates to. usage is operation type-dependant
+	Name      string   // human-readable name for the reference
+	AuthorID  string   // identifier for author
+
+	Timestamp int64  // operation timestamp, for annotation purposes only
+	Size      uint64 // size of the referenced value in bytes
+	Note      string // operation annotation for users. eg: commit title
+}
+
+// MarshalFlatbuffer writes this operation to a flatbuffer, returning the
+// ending byte offset
+func (o Op) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	ref := builder.CreateString(o.Ref)
+	prev := builder.CreateString(o.Prev)
+	name := builder.CreateString(o.Name)
+	authorID := builder.CreateString(o.AuthorID)
+	note := builder.CreateString(o.Note)
+
+	count := len(o.Relations)
+	offsets := make([]flatbuffers.UOffsetT, count)
+	for i, r := range o.Relations {
+		offsets[i] = builder.CreateString(r)
+	}
+
+	logfb.OperationStartRelationsVector(builder, count)
+	for i := count - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
+	}
+	rels := builder.EndVector(count)
+
+	logfb.OperationStart(builder)
+	logfb.OperationAddType(builder, logfb.OpType(o.Type))
+	logfb.OperationAddModel(builder, o.Model)
+	logfb.OperationAddRef(builder, ref)
+	logfb.OperationAddRelations(builder, rels)
+	logfb.OperationAddPrev(builder, prev)
+	logfb.OperationAddName(builder, name)
+	logfb.OperationAddAuthorID(builder, authorID)
+	logfb.OperationAddTimestamp(builder, o.Timestamp)
+	logfb.OperationAddSize(builder, o.Size)
+	logfb.OperationAddNote(builder, note)
+	return logfb.OperationEnd(builder)
+}
+
+// UnmarshalOpFlatbuffer creates an op from a flatbuffer operation pointer
+func UnmarshalOpFlatbuffer(o *logfb.Operation) Op {
+	op := Op{
+		Type:      OpType(byte(o.Type())),
+		Model:     o.Model(),
+		Timestamp: o.Timestamp(),
+		Ref:       string(o.Ref()),
+		Prev:      string(o.Prev()),
+		Name:      string(o.Name()),
+		AuthorID:  string(o.AuthorID()),
+		Size:      o.Size(),
+		Note:      string(o.Note()),
+	}
+
+	if o.RelationsLength() > 0 {
+		op.Relations = make([]string, o.RelationsLength())
+		for i := 0; i < o.RelationsLength(); i++ {
+			op.Relations[i] = string(o.Relations(i))
+		}
+	}
+
+	return op
 }
