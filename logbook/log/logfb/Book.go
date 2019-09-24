@@ -42,7 +42,7 @@ func (rcv *Book) Identifier() []byte {
 	return nil
 }
 
-func (rcv *Book) Authors(obj *Logset, j int) bool {
+func (rcv *Book) Sets(obj *Logset, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		x := rcv._tab.Vector(o)
@@ -54,28 +54,8 @@ func (rcv *Book) Authors(obj *Logset, j int) bool {
 	return false
 }
 
-func (rcv *Book) AuthorsLength() int {
+func (rcv *Book) SetsLength() int {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
-	if o != 0 {
-		return rcv._tab.VectorLen(o)
-	}
-	return 0
-}
-
-func (rcv *Book) Datasets(obj *Logset, j int) bool {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
-	if o != 0 {
-		x := rcv._tab.Vector(o)
-		x += flatbuffers.UOffsetT(j) * 4
-		x = rcv._tab.Indirect(x)
-		obj.Init(rcv._tab.Bytes, x)
-		return true
-	}
-	return false
-}
-
-func (rcv *Book) DatasetsLength() int {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.VectorLen(o)
 	}
@@ -83,7 +63,7 @@ func (rcv *Book) DatasetsLength() int {
 }
 
 func BookStart(builder *flatbuffers.Builder) {
-	builder.StartObject(4)
+	builder.StartObject(3)
 }
 func BookAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(name), 0)
@@ -91,16 +71,10 @@ func BookAddName(builder *flatbuffers.Builder, name flatbuffers.UOffsetT) {
 func BookAddIdentifier(builder *flatbuffers.Builder, identifier flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(identifier), 0)
 }
-func BookAddAuthors(builder *flatbuffers.Builder, authors flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(authors), 0)
+func BookAddSets(builder *flatbuffers.Builder, sets flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(2, flatbuffers.UOffsetT(sets), 0)
 }
-func BookStartAuthorsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
-	return builder.StartVector(4, numElems, 4)
-}
-func BookAddDatasets(builder *flatbuffers.Builder, datasets flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(3, flatbuffers.UOffsetT(datasets), 0)
-}
-func BookStartDatasetsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
+func BookStartSetsVector(builder *flatbuffers.Builder, numElems int) flatbuffers.UOffsetT {
 	return builder.StartVector(4, numElems, 4)
 }
 func BookEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {

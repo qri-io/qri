@@ -1,15 +1,15 @@
 package log
 
 import (
+	"context"
 	"fmt"
+	"io/ioutil"
 	"time"
 
-	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/logbook/log"
-	"github.com/qri-io/qri/logbook/logfb"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -21,21 +21,11 @@ const (
 	aclModel         uint32 = 0x0005
 )
 
-// Book is a journal of operations organized into a collection of append-only
-// logs. Each log is single-writer
-// Books are connected to a single author, and represent their view of
-// the global dataset graph.
-// Any write operation performed on the logbook are attributed to a single
-// author, denoted by a private key. Books can replicate logs from other
-// authors, forming a conflict-free replicated data type (CRDT), and a basis
-// for collaboration through knowledge of each other's operations
+// Book wraps a log.Book with a higher-order API specific to Qri
 type Book struct {
-	username string
-	id       string
-	pk       crypto.PrivKey
-	// modelSets map[uint32]*log.Set
-	authors  []*log.Set
-	datasets []*log.Set
+	book     log.Book
+	location string
+	fs       qfs.Filesystem
 }
 
 // NewBook initializes a logbook, reading any existing data at the given
@@ -55,6 +45,40 @@ func (book Book) RenameAuthor() error {
 // DeleteAuthor removes an author, we'll use this in key rotation
 func (book Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
+}
+
+// Save writes the
+func (book Book) Save(ctx context.Context) error {
+	ciphertext, err := book.book.(book.flatbufferBytes())
+	if err != nil {
+		return err
+	}
+
+	file := qfs.NewMemfileBytes(book.location, ciphertext)
+	return book.fs.Put(ctx, file)
+}
+
+// Load
+func (book Book) Load(ctx context.Context) error {
+	f, err := book.fs.Get(ctx, book.location)
+	if err != nil {
+		if err == qfs.ErrNotFound {
+			return nil
+		}
+		return err
+	}
+
+	ciphertext, err := ioutil.ReadAll(f)
+	if err != nil {
+		return err
+	}
+
+	plaintext, err := book.decrypt(ciphertext)
+	if err != nil {
+		return err
+	}
+
+	return
 }
 
 // NameInit initializes a new name within the author's namespace. Dataset
@@ -143,78 +167,4 @@ func (book Book) readAlias(alias string) (*log.Log, error) {
 		return nil, fmt.Errorf("alias is required")
 	}
 	return nil, fmt.Errorf("not finished")
-}
-
-func (book Book) save() error {
-	return fmt.Errorf("not finished")
-}
-
-// flatbufferBytes formats book as a flatbuffer byte slice
-func (book Book) flatbufferBytes() []byte {
-	builder := flatbuffers.NewBuilder(0)
-	off := book.marshalFlatbuffer(builder)
-	builder.Finish(off)
-	return builder.FinishedBytes()
-}
-
-func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	username := builder.CreateString(book.username)
-	id := builder.CreateString(book.id)
-
-	count := len(book.authors)
-	offsets := make([]flatbuffers.UOffsetT, count)
-	for i, lset := range book.authors {
-		offsets[i] = lset.MarshalFlatbuffer(builder)
-	}
-	logfb.BookStartAuthorsVector(builder, count)
-	for i := count - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(offsets[i])
-	}
-	authors := builder.EndVector(count)
-
-	count = len(book.datasets)
-	offsets = make([]flatbuffers.UOffsetT, count)
-	for i, lset := range book.datasets {
-		offsets[i] = lset.MarshalFlatbuffer(builder)
-	}
-	logfb.BookStartAuthorsVector(builder, count)
-	for i := count - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(offsets[i])
-	}
-	datasets := builder.EndVector(count)
-
-	logfb.BookStart(builder)
-	logfb.BookAddName(builder, username)
-	logfb.BookAddIdentifier(builder, id)
-	logfb.BookAddAuthors(builder, authors)
-	logfb.BookAddDatasets(builder, datasets)
-	return logfb.BookEnd(builder)
-}
-
-func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
-	newBook := Book{}
-
-	newBook.authors = make([]*log.Set, b.AuthorsLength())
-	var logsetfb logfb.Logset
-	for i := 0; i < b.AuthorsLength(); i++ {
-		if b.Authors(&logsetfb, i) {
-			newBook.authors[i] = &log.Set{}
-			if err := newBook.authors[i].UnmarshalFlatbuffer(&logsetfb); err != nil {
-				return err
-			}
-		}
-	}
-
-	newBook.datasets = make([]*log.Set, b.DatasetsLength())
-	for i := 0; i < b.DatasetsLength(); i++ {
-		if ok := b.Datasets(&logsetfb, i); ok {
-			newBook.datasets[i] = &log.Set{}
-			if err := newBook.datasets[i].UnmarshalFlatbuffer(&logsetfb); err != nil {
-				return err
-			}
-		}
-	}
-
-	*book = newBook
-	return nil
 }

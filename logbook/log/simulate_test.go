@@ -82,7 +82,7 @@ type opGenerator struct {
 	opsGenerated int
 }
 
-func (og *opGenerator) Gen(id int) Op {
+func (og *opGenerator) MaybeGen(id int) Op {
 	var o Op
 	i := rand.Intn(100)
 	if i > og.NoopProb {
@@ -90,6 +90,17 @@ func (og *opGenerator) Gen(id int) Op {
 		o = Op{Ref: fmt.Sprintf("%d", og.opsGenerated), Note: fmt.Sprintf("op number %d", og.opsGenerated)}
 		og.opsGenerated++
 	}
+
+	return o
+}
+
+func (og *opGenerator) Gen() Op {
+	//  Author: fmt.Sprintf("%d", id)
+	o := Op{
+		Ref:  fmt.Sprintf("%d", og.opsGenerated),
+		Note: fmt.Sprintf("op number %d", og.opsGenerated),
+	}
+	og.opsGenerated++
 
 	return o
 }
@@ -130,7 +141,7 @@ func (p *Peer) Tick(t int) {
 		return
 	}
 
-	op := p.ops.Gen(p.ID)
+	op := p.ops.MaybeGen(p.ID)
 	// TODO (b5) - need to restore with a new mechanism for put
 	// p.Log = p.Log.Put(op)
 	p.msgsSent++

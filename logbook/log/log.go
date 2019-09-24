@@ -1,11 +1,170 @@
 package log
 
 import (
+	"context"
+	"crypto/aes"
+	"crypto/cipher"
+	"crypto/md5"
+	"crypto/rand"
+	"encoding/hex"
 	"fmt"
+	"io"
 
 	flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/qri-io/qri/logbook/logfb"
+	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/qri-io/qri/logbook/log/logfb"
 )
+
+// Book is a journal of operations organized into a collection of append-only
+// logs. Each log is single-writer
+// Books are connected to a single author, and represent their view of
+// the global dataset graph.
+// Any write operation performed on the logbook are attributed to a single
+// author, denoted by a private key. Books can replicate logs from other
+// authors, forming a conflict-free replicated data type (CRDT), and a basis
+// for collaboration through knowledge of each other's operations
+type Book struct {
+	authorname string
+	id         string
+	pk         crypto.PrivKey
+	sets       map[uint32][]*Set
+}
+
+// NewBook initializes a Book
+func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
+	return &Book{
+		pk:         pk,
+		authorname: authorname,
+		sets:       map[uint32][]*Set{},
+	}, nil
+}
+
+// AppendSet adds a set to a book
+func (book *Book) AppendSet(set *Set) {
+	book.sets[set.Model()] = append(book.sets[set.Model()], set)
+}
+
+// UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
+func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, ciphertext []byte) error {
+	plaintext, err := book.decrypt(ciphertext)
+	if err != nil {
+		return err
+	}
+
+	return book.unmarshalFlatbuffer(logfb.GetRootAsBook(plaintext, 0))
+}
+
+// FlatbufferCipher marshals book to a flatbuffer and encrypts the book using
+// the book private key
+func (book Book) FlatbufferCipher() ([]byte, error) {
+	return book.encrypt(book.flatbufferBytes())
+}
+
+func (book Book) cipher() (cipher.AEAD, error) {
+	pkBytes, err := book.pk.Raw()
+	if err != nil {
+		return nil, err
+	}
+	hasher := md5.New()
+	hasher.Write(pkBytes)
+	hash := hex.EncodeToString(hasher.Sum(nil))
+
+	block, err := aes.NewCipher([]byte(hash))
+	if err != nil {
+		return nil, err
+	}
+	return cipher.NewGCM(block)
+}
+
+func (book Book) encrypt(data []byte) ([]byte, error) {
+	gcm, err := book.cipher()
+	if err != nil {
+		return nil, err
+	}
+
+	nonce := make([]byte, gcm.NonceSize())
+	if _, err = io.ReadFull(rand.Reader, nonce); err != nil {
+		return nil, err
+	}
+
+	ciphertext := gcm.Seal(nonce, nonce, data, nil)
+	return ciphertext, nil
+}
+
+func (book Book) decrypt(data []byte) ([]byte, error) {
+	gcm, err := book.cipher()
+	if err != nil {
+		return nil, err
+	}
+
+	nonceSize := gcm.NonceSize()
+	nonce, ciphertext := data[:nonceSize], data[nonceSize:]
+	plaintext, err := gcm.Open(nil, nonce, ciphertext, nil)
+	if err != nil {
+		return nil, err
+	}
+	return plaintext, nil
+}
+
+// flatbufferBytes formats book as a flatbuffer byte slice
+func (book Book) flatbufferBytes() []byte {
+	builder := flatbuffers.NewBuilder(0)
+	off := book.marshalFlatbuffer(builder)
+	builder.Finish(off)
+	return builder.FinishedBytes()
+}
+
+func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	authorname := builder.CreateString(book.authorname)
+	id := builder.CreateString(book.id)
+
+	setsl := book.setsSlice()
+	count := len(setsl)
+	offsets := make([]flatbuffers.UOffsetT, count)
+	for i, lset := range setsl {
+		offsets[i] = lset.MarshalFlatbuffer(builder)
+	}
+	logfb.BookStartSetsVector(builder, count)
+	for i := count - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(offsets[i])
+	}
+	sets := builder.EndVector(count)
+
+	logfb.BookStart(builder)
+	logfb.BookAddName(builder, authorname)
+	logfb.BookAddIdentifier(builder, id)
+	logfb.BookAddSets(builder, sets)
+	return logfb.BookEnd(builder)
+}
+
+func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
+	newBook := Book{
+		id:   string(b.Identifier()),
+		sets: map[uint32][]*Set{},
+	}
+
+	count := b.SetsLength()
+	logsetfb := &logfb.Logset{}
+	for i := 0; i < count; i++ {
+		if b.Sets(logsetfb, i) {
+			set := &Set{}
+			if err := set.UnmarshalFlatbuffer(logsetfb); err != nil {
+				return err
+			}
+			newBook.sets[set.Model()] = append(newBook.sets[set.Model()], set)
+		}
+	}
+
+	*book = newBook
+	return nil
+}
+
+func (book Book) setsSlice() (sets []*Set) {
+	for _, setsl := range book.sets {
+		sets = append(sets, setsl...)
+	}
+	return sets
+}
 
 // Set is a collection of logs
 type Set struct {
@@ -26,10 +185,26 @@ func InitSet(name string, initop Op) *Set {
 	}
 }
 
+// NewSet creates a set from a given log, rooted at the set name
+func NewSet(lg *Log) *Set {
+	name := lg.Name()
+	return &Set{
+		root: name,
+		logs: map[string]*Log{
+			name: lg,
+		},
+	}
+}
+
 // Author gives authorship information about who created this logset
 func (ls Set) Author() (string, string) {
 	// TODO (b5) - fetch from master branch intiailization
 	return "", ""
+}
+
+// Model returns the model of the root log
+func (ls Set) Model() uint32 {
+	return ls.logs[ls.root].ops[0].Model
 }
 
 // MarshalFlatbuffer writes the set to a flatbuffer builder
@@ -97,6 +272,11 @@ func InitLog(initop Op) *Log {
 	}
 }
 
+// Append adds an operation to the log
+func (lg *Log) Append(op Op) {
+	lg.ops = append(lg.ops, op)
+}
+
 // Len returns the number of of the latest entry in the log
 func (lg Log) Len() int {
 	return len(lg.ops)
@@ -138,8 +318,8 @@ func (lg Log) Verify() error {
 	return fmt.Errorf("not finished")
 }
 
-// MarshalFlatbuffer writes log to a flatbuffer, returning the
-// ending byte offset
+// MarshalFlatbuffer writes log to a flatbuffer, returning the ending byte
+// offset
 func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	namestr, idstr := lg.Author()
 	name := builder.CreateString(namestr)
@@ -202,6 +382,8 @@ const (
 	OpTypeRemove OpType = 0x03
 )
 
+// Op is an operation, a single atomic unit in a log that describes a state
+// change
 type Op struct {
 	Type      OpType   // type of operation
 	Model     uint32   // data model to operate on
