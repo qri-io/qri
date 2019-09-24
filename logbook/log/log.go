@@ -39,9 +39,24 @@ func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
 	}, nil
 }
 
+// AuthorName gives the human-readable name of the author
+func (book Book) AuthorName() string {
+	return book.authorname
+}
+
+// AuthorID returns the machine identifier for a name
+func (book Book) AuthorID() string {
+	return book.id
+}
+
 // AppendSet adds a set to a book
 func (book *Book) AppendSet(set *Set) {
 	book.sets[set.Model()] = append(book.sets[set.Model()], set)
+}
+
+// ModelSets gives all sets whoe model type matches model
+func (book *Book) ModelSets(model uint32) []*Set {
+	return book.sets[model]
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
@@ -205,6 +220,16 @@ func (ls Set) Author() (string, string) {
 // Model returns the model of the root log
 func (ls Set) Model() uint32 {
 	return ls.logs[ls.root].ops[0].Model
+}
+
+// RootName gives the name of the root branch
+func (ls Set) RootName() string {
+	return ls.root
+}
+
+// Log returns a log from the set for a given name
+func (ls Set) Log(name string) *Log {
+	return ls.logs[name]
 }
 
 // MarshalFlatbuffer writes the set to a flatbuffer builder

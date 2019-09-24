@@ -7,10 +7,16 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/logbook/log"
 	"github.com/qri-io/qri/repo"
+)
+
+var (
+	// ErrNotFound is a sentinel error for data not found in a logbook
+	ErrNotFound = fmt.Errorf("logbook: not found")
 )
 
 const (
@@ -23,18 +29,34 @@ const (
 
 // Book wraps a log.Book with a higher-order API specific to Qri
 type Book struct {
-	book     log.Book
+	bk       *log.Book
 	location string
-	fs       qfs.Filesystem
+	fs       qfs.WritableFilesystem
 }
 
 // NewBook initializes a logbook, reading any existing data at the given
 // location, on the given filesystem. logbooks are encrypted at rest. The
 // same key must be given to decrypt an existing logbook
 func NewBook(pk crypto.PrivKey, username string, fs qfs.WritableFilesystem, location string) (*Book, error) {
+	pid, err := calcProfileID(pk)
+	if err != nil {
+		return nil, err
+	}
+
 	// validate inputs
 	// check for an existing log
-	return &Book{}, fmt.Errorf("not finished")
+	bk, err := log.NewBook(pk, username, pid)
+	if err != nil {
+		return nil, err
+	}
+
+	book := &Book{
+		bk:       bk,
+		fs:       fs,
+		location: location,
+	}
+
+	return book, book.Load(context.Background())
 }
 
 // RenameAuthor marks a change in author name
@@ -47,18 +69,18 @@ func (book Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
 }
 
-// Save writes the
-func (book Book) Save(ctx context.Context) error {
-	ciphertext, err := book.book.(book.flatbufferBytes())
+// Save writes the book to book.location
+func (book Book) Save(ctx context.Context) (string, error) {
+	ciphertext, err := book.bk.FlatbufferCipher()
 	if err != nil {
-		return err
+		return "", err
 	}
 
 	file := qfs.NewMemfileBytes(book.location, ciphertext)
 	return book.fs.Put(ctx, file)
 }
 
-// Load
+// Load reads the book dataset from book.location
 func (book Book) Load(ctx context.Context) error {
 	f, err := book.fs.Get(ctx, book.location)
 	if err != nil {
@@ -73,60 +95,119 @@ func (book Book) Load(ctx context.Context) error {
 		return err
 	}
 
-	plaintext, err := book.decrypt(ciphertext)
-	if err != nil {
-		return err
-	}
-
-	return
+	return book.bk.UnmarshalFlatbufferCipher(ctx, ciphertext)
 }
 
-// NameInit initializes a new name within the author's namespace. Dataset
+// WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
-func (book Book) NameInit(name string) error {
+func (book Book) WriteNameInit(ctx context.Context, name string) error {
 	// op := log.NewNameInit(book.id, book.username, name)
 	op := log.Op{
 		Type:      log.OpTypeInit,
 		Model:     nameModel,
-		AuthorID:  book.id,
+		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
 		Timestamp: time.Now().UnixNano(),
 	}
 
 	set := log.InitSet(name, op)
-	book.datasets = append(book.datasets, set)
-	return fmt.Errorf("not finished")
+	book.bk.AppendSet(set)
+	_, err := book.Save(ctx)
+	return err
 }
 
-// VersionSave adds an operation to a log marking the creation of a dataset
-// version. Book will copy details from the provided dataset pointer
-func (book Book) VersionSave(alias string, ds *dataset.Dataset) error {
-	return fmt.Errorf("not finished")
+// WriteVersionSave adds an operation to a log marking the creation of a
+// dataset version. Book will copy details from the provided dataset pointer
+func (book Book) WriteVersionSave(ctx context.Context, alias string, ds *dataset.Dataset) error {
+	l, err := book.readAliasLogRoot(nameModel, alias)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeInit,
+		Model: versionModel,
+		Ref:   ds.Path,
+		Prev:  ds.PreviousPath,
+		Note:  ds.Commit.Title,
+	})
+
+	_, err = book.Save(ctx)
+	return err
 }
 
-// VersionAmend adds an operation to a log amending a dataset version
-func (book Book) VersionAmend(alias string, ds *dataset.Dataset) error {
-	return fmt.Errorf("not finished")
+// WriteVersionAmend adds an operation to a log amending a dataset version
+func (book Book) WriteVersionAmend(ctx context.Context, alias string, ds *dataset.Dataset) error {
+	l, err := book.readAliasLog(nameModel, alias, book.bk.Author)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeAmend,
+		Model: versionModel,
+		Ref:   ds.Path,
+		Prev:  ds.PreviousPath,
+		Note:  ds.Commit.Title,
+	})
+
+	_, err = book.Save(ctx)
+	return err
 }
 
-// VersionDelete adds an operation to a log marking a number of sequential
+// WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book Book) VersionDelete(alias string, revisions int) error {
-	return fmt.Errorf("not finished")
+func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions int) error {
+	l, err := book.readAliasLogRoot(nameModel, alias)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeRemove,
+		Model: versionModel,
+		// TODO (b5) - finish
+	})
+
+	_, err = book.Save(ctx)
+	return err
 }
 
-// Publish adds an operation to a log marking the publication of a number of
-// versions to one or more destinations. Versions count continously from head
-// back
-func (book Book) Publish(alias string, revisions int, destinations ...string) error {
-	return fmt.Errorf("not finished")
+// WritePublish adds an operation to a log marking the publication of a number
+// of versions to one or more destinations
+func (book Book) WritePublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
+	l, err := book.readAliasLogRoot(nameModel, alias)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeInit,
+		Model: publicationModel,
+		// TODO (b5) - finish
+	})
+
+	_, err = book.Save(ctx)
+	return err
 }
 
-// Unpublish adds an operation to a log marking an unpublish request for a count
-// of sequential versions from HEAD
-func (book Book) Unpublish(alias string, revisions int, destinations ...string) error {
-	return fmt.Errorf("not finished")
+// WriteUnpublish adds an operation to a log marking an unpublish request for a
+// count of sequential versions from HEAD
+func (book Book) WriteUnpublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
+	l, err := book.readAliasLogRoot(nameModel, alias)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeRemove,
+		Model: publicationModel,
+		// TODO (b5) - finish
+	})
+
+	_, err = book.Save(ctx)
+	return err
 }
 
 // Author represents the author at a point in time
@@ -162,9 +243,48 @@ func (book Book) ACL(alias string) (ACL, error) {
 	return ACL{}, fmt.Errorf("not finished")
 }
 
-func (book Book) readAlias(alias string) (*log.Log, error) {
+func (book Book) readAliasLogRoot(model uint32, alias string) (*log.Log, error) {
 	if alias == "" {
 		return nil, fmt.Errorf("alias is required")
 	}
-	return nil, fmt.Errorf("not finished")
+
+	for _, set := range book.bk.ModelSets(model) {
+		if set.Name() == alias {
+			return set.Log(set.RootName()), nil
+		}
+	}
+
+	return nil, ErrNotFound
+}
+
+func (book Book) readAliasLog(model uint32, alias, branch string) (*log.Log, error) {
+	if alias == "" {
+		return nil, fmt.Errorf("alias is required")
+	}
+
+	for _, set := range book.bk.ModelSets(model) {
+		if set.Name() == alias {
+			log := set.Log(branch)
+			if log == nil {
+				return nil, ErrNotFound
+			}
+			return log, nil
+		}
+	}
+
+	return nil, ErrNotFound
+}
+
+func calcProfileID(privKey crypto.PrivKey) (string, error) {
+	pubkeybytes, err := privKey.GetPublic().Bytes()
+	if err != nil {
+		return "", fmt.Errorf("error getting pubkey bytes: %s", err.Error())
+	}
+
+	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
+	if err != nil {
+		return "", fmt.Errorf("error summing pubkey: %s", err.Error())
+	}
+
+	return mh.B58String(), nil
 }

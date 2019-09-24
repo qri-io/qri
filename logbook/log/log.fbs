@@ -44,20 +44,21 @@ table Log {
   identifier:string;  // canonical component of a log label, cached from opset
   signature:string;   // cryptographic signature of opset hash
   opset:[Operation];  // append-only list of operations being logged
+  logs:[Log];         // logs can be arranged into hierarchies
 }
 
-// Logset is a list of related logs. eg: A dataset name correlates to a logset, 
-// with one log per author branch of history. 
-// eg2: A set of authors also correlates to a collection of logs, with one log 
-// for each user key
-table Logset {
-  name:string;        // human component of a log label, cached from opset
-  identifier:string;  // canonical component of a log lable, cached from opset
-  signer:string;      // identifier for who signed this logset
-  signature:string;   // cryptographic signature attesting to set integrity
-  root:string;        // root caches the log that originated this set
-  logs:[Log];         // collection of logs 
-}
+// // Logset is a list of related logs. eg: A dataset name correlates to a logset, 
+// // with one log per author branch of history. 
+// // eg2: A set of authors also correlates to a collection of logs, with one log 
+// // for each user key
+// table Logset {
+//   name:string;        // human component of a log label, cached from opset
+//   identifier:string;  // canonical component of a log lable, cached from opset
+//   signer:string;      // identifier for who signed this logset
+//   signature:string;   // cryptographic signature attesting to set integrity
+//   root:string;        // root caches the log that originated this set
+//   logs:[Log];         // collection of logs 
+// }
 
 // Book is an author's journal of logs
 table Book {

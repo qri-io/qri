@@ -13,6 +13,9 @@ import (
 )
 
 func Example() {
+	// background context to play with
+	ctx := context.Background()
+
 	// logbooks are encrypted at rest, we need a private key to interact with
 	// them, including to create a new logbook. This is a dummy Private Key
 	// you should never, ever use in real life. demo only folks.
@@ -46,7 +49,7 @@ func Example() {
 	// log under the logbook author's namespace with the given name, and an opset
 	// that tracks operations by this author within that new namespace.
 	// The entire logbook is persisted to the filestore after each operation
-	if err := book.NameInit("world_bank_population"); err != nil {
+	if err := book.WriteNameInit(ctx, "world_bank_population"); err != nil {
 		panic(err)
 	}
 
@@ -64,8 +67,8 @@ func Example() {
 	}
 
 	// create a log record of the version of a dataset. In practice this'll be
-	// part of the overall save routine
-	if err := book.VersionSave("me/world_bank_poulation", ds); err != nil {
+	// part of the overall save routine that created the above ds variable
+	if err := book.WriteVersionSave(ctx, "b5/world_bank_poulation", ds); err != nil {
 		panic(err)
 	}
 
@@ -83,7 +86,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.VersionSave("me/world_bank_population", ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, "b5/world_bank_population", ds2); err != nil {
 		panic(err)
 	}
 
@@ -92,7 +95,7 @@ func Example() {
 	// published two consecutive revisions from head: the latest version, and the
 	// one before it. "registry.qri.cloud" indicates we published to a single
 	// destination with that name.
-	if err := book.Publish("me/world_bank_population", 2, "registry.qri.cloud"); err != nil {
+	if err := book.WritePublish(ctx, "b5/world_bank_population", 2, "registry.qri.cloud"); err != nil {
 		panic(err)
 	}
 
@@ -100,7 +103,7 @@ func Example() {
 	// VersionDelete accepts an argument of number of versions back from HEAD
 	// more complex deletes that remove pieces of history may require either
 	// composing multiple log operations
-	book.VersionDelete("me/world_bank_population", 1)
+	book.WriteVersionDelete(ctx, "b5/world_bank_population", 1)
 
 	// create another version
 	ds3 := &dataset.Dataset{
@@ -119,14 +122,14 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.VersionSave("me/world_bank_population", ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, "b5/world_bank_population", ds3); err != nil {
 		panic(err)
 	}
 
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	log, err := book.Versions("me/world_bank_population", 0, 100)
+	log, err := book.Versions("b5/world_bank_population", 0, 100)
 	if err != nil {
 		panic(err)
 	}
