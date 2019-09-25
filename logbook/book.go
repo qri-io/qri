@@ -38,13 +38,14 @@ type Book struct {
 // location, on the given filesystem. logbooks are encrypted at rest. The
 // same key must be given to decrypt an existing logbook
 func NewBook(pk crypto.PrivKey, username string, fs qfs.WritableFilesystem, location string) (*Book, error) {
+	ctx := context.Background()
 	pid, err := calcProfileID(pk)
 	if err != nil {
 		return nil, err
 	}
 
-	// validate inputs
-	// check for an existing log
+	// TODO (b5) - validate inputs
+
 	bk, err := log.NewBook(pk, username, pid)
 	if err != nil {
 		return nil, err
@@ -56,7 +57,31 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.WritableFilesystem, loca
 		location: location,
 	}
 
-	return book, book.Load(context.Background())
+	if err = book.Load(ctx); err != nil {
+		if err == ErrNotFound {
+			err = book.initialize(ctx)
+			return book, err
+		}
+		return nil, err
+	}
+
+	return book, nil
+}
+
+func (book *Book) initialize(ctx context.Context) error {
+	// initialize author namespace
+	l := log.InitLog(log.Op{
+		Type:      log.OpTypeInit,
+		Model:     nameModel,
+		Name:      book.bk.AuthorName(),
+		AuthorID:  book.bk.AuthorID(),
+		Timestamp: time.Now().UnixNano(),
+	})
+
+	book.bk.AppendLog(l)
+
+	_, err := book.Save(ctx)
+	return err
 }
 
 // RenameAuthor marks a change in author name
@@ -85,7 +110,7 @@ func (book Book) Load(ctx context.Context) error {
 	f, err := book.fs.Get(ctx, book.location)
 	if err != nil {
 		if err == qfs.ErrNotFound {
-			return nil
+			return ErrNotFound
 		}
 		return err
 	}
@@ -101,19 +126,23 @@ func (book Book) Load(ctx context.Context) error {
 // WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
 func (book Book) WriteNameInit(ctx context.Context, name string) error {
-	op := log.Op{
+	book.initName(ctx, name)
+	_, err := book.Save(ctx)
+	return err
+}
+
+func (book Book) initName(ctx context.Context, name string) *log.Log {
+	lg := log.InitLog(log.Op{
 		Type:      log.OpTypeInit,
 		Model:     nameModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
 		Timestamp: time.Now().UnixNano(),
-	}
+	})
 
 	ns := book.authorNamespace()
-	ns.AddChild(log.InitLog(op))
-
-	_, err := book.Save(ctx)
-	return err
+	ns.AddChild(lg)
+	return lg
 }
 
 func (book Book) authorNamespace() *log.Log {
@@ -122,25 +151,21 @@ func (book Book) authorNamespace() *log.Log {
 			return l
 		}
 	}
-
-	l := log.InitLog(log.Op{
-		Type:      log.OpTypeInit,
-		Model:     nameModel,
-		Name:      book.bk.AuthorName(),
-		AuthorID:  book.bk.AuthorID(),
-		Timestamp: time.Now().UnixNano(),
-	})
-
-	book.bk.AppendLog(l)
-	return l
+	// this should never happen in practice
+	return nil
 }
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-func (book Book) WriteVersionSave(ctx context.Context, alias string, ds *dataset.Dataset) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
+func (book Book) WriteVersionSave(ctx context.Context, ref repo.DatasetRef, ds *dataset.Dataset) error {
+	l, err := book.readRefLog(ref)
 	if err != nil {
-		return err
+		if err == ErrNotFound {
+			l = book.initName(ctx, ref.Name)
+			err = nil
+		} else {
+			return err
+		}
 	}
 
 	l.Append(log.Op{
@@ -156,8 +181,8 @@ func (book Book) WriteVersionSave(ctx context.Context, alias string, ds *dataset
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
-func (book Book) WriteVersionAmend(ctx context.Context, alias string, ds *dataset.Dataset) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
+func (book Book) WriteVersionAmend(ctx context.Context, ref repo.DatasetRef, ds *dataset.Dataset) error {
+	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
 	}
@@ -177,8 +202,8 @@ func (book Book) WriteVersionAmend(ctx context.Context, alias string, ds *datase
 // WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions int) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
+func (book Book) WriteVersionDelete(ctx context.Context, ref repo.DatasetRef, revisions int) error {
+	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
 	}
@@ -186,6 +211,7 @@ func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions
 	l.Append(log.Op{
 		Type:  log.OpTypeRemove,
 		Model: versionModel,
+		Size:  uint64(revisions),
 		// TODO (b5) - finish
 	})
 
@@ -195,10 +221,11 @@ func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions
 
 // WritePublish adds an operation to a log marking the publication of a number
 // of versions to one or more destinations
-func (book Book) WritePublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
+func (book Book) WritePublish(ctx context.Context, ref repo.DatasetRef, revisions int, destinations ...string) error {
+	l, err := book.readRefLog(ref)
 	if err != nil {
-		return err
+		return fmt.Errorf("%#v", book.bk.ModelLogs(nameModel)[0])
+		// return err
 	}
 
 	l.Append(log.Op{
@@ -213,8 +240,8 @@ func (book Book) WritePublish(ctx context.Context, alias string, revisions int, 
 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
 // count of sequential versions from HEAD
-func (book Book) WriteUnpublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
+func (book Book) WriteUnpublish(ctx context.Context, ref repo.DatasetRef, revisions int, destinations ...string) error {
+	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
 	}
@@ -247,8 +274,40 @@ func (book Book) Author(username string) (Author, error) {
 
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(alias string, offset, limit int) ([]repo.DatasetRef, error) {
-	return nil, fmt.Errorf("not finished")
+func (book Book) Versions(ref repo.DatasetRef, offset, limit int) ([]repo.DatasetRef, error) {
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	refs := []repo.DatasetRef{}
+	for _, op := range l.Ops() {
+		if op.Model == versionModel {
+			switch op.Type {
+			case log.OpTypeInit:
+				refs = append(refs, book.refFromOp(ref, op))
+			case log.OpTypeAmend:
+				refs[len(refs)-1] = book.refFromOp(ref, op)
+			case log.OpTypeRemove:
+				refs = refs[:len(refs)-int(op.Size)]
+			}
+		}
+	}
+
+	return refs, nil
+}
+
+func (book Book) refFromOp(ref repo.DatasetRef, op log.Op) repo.DatasetRef {
+	return repo.DatasetRef{
+		Peername: ref.Peername,
+		Name:     ref.Name,
+		Path:     op.Ref,
+		Dataset: &dataset.Dataset{
+			Commit: &dataset.Commit{
+				Title: op.Note,
+			},
+		},
+	}
 }
 
 // ACL represents an access control list
@@ -262,28 +321,17 @@ func (book Book) ACL(alias string) (ACL, error) {
 	return ACL{}, fmt.Errorf("not finished")
 }
 
-// func (book Book) readAliasLogRoot(model uint32, alias string) (*log.Log, error) {
-// 	if alias == "" {
-// 		return nil, fmt.Errorf("alias is required")
-// 	}
-
-// 	for _, lg := range book.bk.ModelLogs(model) {
-// 		if lg.Name() == alias {
-// 			return lg.Child(lg.RootName()), nil
-// 		}
-// 	}
-
-// 	return nil, ErrNotFound
-// }
-
-func (book Book) readAliasLog(model uint32, alias, branch string) (*log.Log, error) {
-	if alias == "" {
-		return nil, fmt.Errorf("alias is required")
+func (book Book) readRefLog(ref repo.DatasetRef) (*log.Log, error) {
+	if ref.Peername == "" {
+		return nil, fmt.Errorf("ref.Peername is required")
+	}
+	if ref.Name == "" {
+		return nil, fmt.Errorf("ref.Name is required")
 	}
 
-	for _, lg := range book.bk.ModelLogs(model) {
-		if lg.Name() == alias {
-			log := lg.Child(branch)
+	for _, lg := range book.bk.ModelLogs(nameModel) {
+		if lg.Name() == ref.Peername {
+			log := lg.Child(ref.Name)
 			if log == nil {
 				return nil, ErrNotFound
 			}

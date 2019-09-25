@@ -32,6 +32,17 @@ func TestBookFlatbuffer(t *testing.T) {
 		Note:      "note!",
 	})
 
+	log.AddChild(InitLog(Op{
+		Type:      OpTypeInit,
+		Model:     0x0002,
+		Ref:       "QmRefHash",
+		Name:      "steve",
+		AuthorID:  "QmSteveHash",
+		Timestamp: 2,
+		Size:      2500000,
+		Note:      "note?",
+	}))
+
 	book := &Book{
 		logs: map[uint32][]*Log{
 			0x0001: []*Log{log},

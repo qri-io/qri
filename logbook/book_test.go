@@ -10,6 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/repo"
 )
 
 func Example() {
@@ -66,9 +67,11 @@ func Example() {
 		// need to model those properly first.
 	}
 
+	ref := repo.DatasetRef{Peername: "b5", Name: "world_bank_population"}
+
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if err := book.WriteVersionSave(ctx, "b5/world_bank_poulation", ds); err != nil {
+	if err := book.WriteVersionSave(ctx, ref, ds); err != nil {
 		panic(err)
 	}
 
@@ -86,7 +89,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, "b5/world_bank_population", ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, ref, ds2); err != nil {
 		panic(err)
 	}
 
@@ -95,7 +98,7 @@ func Example() {
 	// published two consecutive revisions from head: the latest version, and the
 	// one before it. "registry.qri.cloud" indicates we published to a single
 	// destination with that name.
-	if err := book.WritePublish(ctx, "b5/world_bank_population", 2, "registry.qri.cloud"); err != nil {
+	if err := book.WritePublish(ctx, ref, 2, "registry.qri.cloud"); err != nil {
 		panic(err)
 	}
 
@@ -103,7 +106,7 @@ func Example() {
 	// VersionDelete accepts an argument of number of versions back from HEAD
 	// more complex deletes that remove pieces of history may require either
 	// composing multiple log operations
-	book.WriteVersionDelete(ctx, "b5/world_bank_population", 1)
+	book.WriteVersionDelete(ctx, ref, 1)
 
 	// create another version
 	ds3 := &dataset.Dataset{
@@ -122,21 +125,25 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, "b5/world_bank_population", ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, ref, ds3); err != nil {
 		panic(err)
 	}
 
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	log, err := book.Versions("b5/world_bank_population", 0, 100)
+	log, err := book.Versions(ref, 0, 100)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(log)
+	for _, ref := range log {
+		fmt.Println(ref.String())
+	}
+
 	// Output:
-	// TODO (b5) - figure out what's actually output here
+	// b5/world_bank_population@QmHashOfVersion1
+	// b5/world_bank_population@QmHashOfVersion3
 }
 
 type testRunner struct {

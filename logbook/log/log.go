@@ -248,7 +248,7 @@ func (lg Log) Child(name string) *Log {
 }
 
 // AddChild appends a log as a direct descendant of this log
-func (lg Log) AddChild(l *Log) {
+func (lg *Log) AddChild(l *Log) {
 	lg.logs = append(lg.logs, l)
 }
 
@@ -257,9 +257,27 @@ func (lg Log) Verify() error {
 	return fmt.Errorf("not finished")
 }
 
+// Ops gives the set of operations in a log
+func (lg Log) Ops() []Op {
+	return lg.ops
+}
+
 // MarshalFlatbuffer writes log to a flatbuffer, returning the ending byte
 // offset
 func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	// build logs bottom up, collecting offsets
+	logcount := len(lg.logs)
+	logoffsets := make([]flatbuffers.UOffsetT, logcount)
+	for i, o := range lg.logs {
+		logoffsets[i] = o.MarshalFlatbuffer(builder)
+	}
+
+	logfb.LogStartLogsVector(builder, logcount)
+	for i := logcount - 1; i >= 0; i-- {
+		builder.PrependUOffsetT(logoffsets[i])
+	}
+	logs := builder.EndVector(logcount)
+
 	namestr, idstr := lg.Author()
 	name := builder.CreateString(namestr)
 	id := builder.CreateString(idstr)
@@ -276,18 +294,6 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 		builder.PrependUOffsetT(offsets[i])
 	}
 	ops := builder.EndVector(count)
-
-	count = len(lg.logs)
-	offsets = make([]flatbuffers.UOffsetT, count)
-	for i, o := range lg.logs {
-		offsets[i] = o.MarshalFlatbuffer(builder)
-	}
-
-	logfb.LogStartLogsVector(builder, count)
-	for i, lg := range lg.logs {
-		offsets[i] = lg.MarshalFlatbuffer(builder)
-	}
-	logs := builder.EndVector(count)
 
 	logfb.LogStart(builder)
 	logfb.LogAddName(builder, name)
@@ -311,6 +317,17 @@ func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
 	for i := 0; i < lfb.OpsetLength(); i++ {
 		if lfb.Opset(opfb, i) {
 			newLg.ops[i] = UnmarshalOpFlatbuffer(opfb)
+		}
+	}
+
+	if lfb.LogsLength() > 0 {
+		newLg.logs = make([]*Log, lfb.LogsLength())
+		childfb := &logfb.Log{}
+		for i := 0; i < lfb.LogsLength(); i++ {
+			if lfb.Logs(childfb, i) {
+				newLg.logs[i] = &Log{}
+				newLg.logs[i].UnmarshalFlatbuffer(childfb)
+			}
 		}
 	}
 
