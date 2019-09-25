@@ -64,7 +64,7 @@ table Log {
 table Book {
   name:string;        // book author name
   identifier:string;  // book author identifier
-  sets:[Logset];      // collection of logsets in this book
+  logs:[Log];      // collection of logsets in this book
 }
 
 root_type Book;

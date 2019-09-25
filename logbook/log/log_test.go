@@ -14,13 +14,12 @@ import (
 
 var allowUnexported = cmp.AllowUnexported(
 	Book{},
-	Set{},
 	Log{},
 	Op{},
 )
 
 func TestBookFlatbuffer(t *testing.T) {
-	set := InitSet("steve", Op{
+	log := InitLog(Op{
 		Type:      OpTypeInit,
 		Model:     0x0001,
 		Ref:       "QmRefHash",
@@ -34,8 +33,8 @@ func TestBookFlatbuffer(t *testing.T) {
 	})
 
 	book := &Book{
-		sets: map[uint32][]*Set{
-			0x0001: []*Set{set},
+		logs: map[uint32][]*Log{
+			0x0001: []*Log{log},
 		},
 	}
 
@@ -63,7 +62,7 @@ func TestBookCiphertext(t *testing.T) {
 	}, 10)
 
 	book := tr.Book
-	book.AppendSet(NewSet(lg))
+	book.AppendLog(lg)
 
 	gotcipher, err := book.FlatbufferCipher()
 	if err != nil {

@@ -101,7 +101,6 @@ func (book Book) Load(ctx context.Context) error {
 // WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
 func (book Book) WriteNameInit(ctx context.Context, name string) error {
-	// op := log.NewNameInit(book.id, book.username, name)
 	op := log.Op{
 		Type:      log.OpTypeInit,
 		Model:     nameModel,
@@ -110,16 +109,36 @@ func (book Book) WriteNameInit(ctx context.Context, name string) error {
 		Timestamp: time.Now().UnixNano(),
 	}
 
-	set := log.InitSet(name, op)
-	book.bk.AppendSet(set)
+	ns := book.authorNamespace()
+	ns.AddChild(log.InitLog(op))
+
 	_, err := book.Save(ctx)
 	return err
+}
+
+func (book Book) authorNamespace() *log.Log {
+	for _, l := range book.bk.ModelLogs(nameModel) {
+		if l.Name() == book.bk.AuthorName() {
+			return l
+		}
+	}
+
+	l := log.InitLog(log.Op{
+		Type:      log.OpTypeInit,
+		Model:     nameModel,
+		Name:      book.bk.AuthorName(),
+		AuthorID:  book.bk.AuthorID(),
+		Timestamp: time.Now().UnixNano(),
+	})
+
+	book.bk.AppendLog(l)
+	return l
 }
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
 func (book Book) WriteVersionSave(ctx context.Context, alias string, ds *dataset.Dataset) error {
-	l, err := book.readAliasLogRoot(nameModel, alias)
+	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
 	if err != nil {
 		return err
 	}
@@ -138,7 +157,7 @@ func (book Book) WriteVersionSave(ctx context.Context, alias string, ds *dataset
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
 func (book Book) WriteVersionAmend(ctx context.Context, alias string, ds *dataset.Dataset) error {
-	l, err := book.readAliasLog(nameModel, alias, book.bk.Author)
+	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
 	if err != nil {
 		return err
 	}
@@ -159,7 +178,7 @@ func (book Book) WriteVersionAmend(ctx context.Context, alias string, ds *datase
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
 func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions int) error {
-	l, err := book.readAliasLogRoot(nameModel, alias)
+	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
 	if err != nil {
 		return err
 	}
@@ -177,7 +196,7 @@ func (book Book) WriteVersionDelete(ctx context.Context, alias string, revisions
 // WritePublish adds an operation to a log marking the publication of a number
 // of versions to one or more destinations
 func (book Book) WritePublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
-	l, err := book.readAliasLogRoot(nameModel, alias)
+	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
 	if err != nil {
 		return err
 	}
@@ -195,7 +214,7 @@ func (book Book) WritePublish(ctx context.Context, alias string, revisions int, 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
 // count of sequential versions from HEAD
 func (book Book) WriteUnpublish(ctx context.Context, alias string, revisions int, destinations ...string) error {
-	l, err := book.readAliasLogRoot(nameModel, alias)
+	l, err := book.readAliasLog(nameModel, alias, book.bk.AuthorName())
 	if err != nil {
 		return err
 	}
@@ -243,28 +262,28 @@ func (book Book) ACL(alias string) (ACL, error) {
 	return ACL{}, fmt.Errorf("not finished")
 }
 
-func (book Book) readAliasLogRoot(model uint32, alias string) (*log.Log, error) {
-	if alias == "" {
-		return nil, fmt.Errorf("alias is required")
-	}
+// func (book Book) readAliasLogRoot(model uint32, alias string) (*log.Log, error) {
+// 	if alias == "" {
+// 		return nil, fmt.Errorf("alias is required")
+// 	}
 
-	for _, set := range book.bk.ModelSets(model) {
-		if set.Name() == alias {
-			return set.Log(set.RootName()), nil
-		}
-	}
+// 	for _, lg := range book.bk.ModelLogs(model) {
+// 		if lg.Name() == alias {
+// 			return lg.Child(lg.RootName()), nil
+// 		}
+// 	}
 
-	return nil, ErrNotFound
-}
+// 	return nil, ErrNotFound
+// }
 
 func (book Book) readAliasLog(model uint32, alias, branch string) (*log.Log, error) {
 	if alias == "" {
 		return nil, fmt.Errorf("alias is required")
 	}
 
-	for _, set := range book.bk.ModelSets(model) {
-		if set.Name() == alias {
-			log := set.Log(branch)
+	for _, lg := range book.bk.ModelLogs(model) {
+		if lg.Name() == alias {
+			log := lg.Child(branch)
 			if log == nil {
 				return nil, ErrNotFound
 			}

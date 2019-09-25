@@ -27,7 +27,7 @@ type Book struct {
 	authorname string
 	id         string
 	pk         crypto.PrivKey
-	sets       map[uint32][]*Set
+	logs       map[uint32][]*Log
 }
 
 // NewBook initializes a Book
@@ -35,7 +35,7 @@ func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
 	return &Book{
 		pk:         pk,
 		authorname: authorname,
-		sets:       map[uint32][]*Set{},
+		logs:       map[uint32][]*Log{},
 	}, nil
 }
 
@@ -49,14 +49,14 @@ func (book Book) AuthorID() string {
 	return book.id
 }
 
-// AppendSet adds a set to a book
-func (book *Book) AppendSet(set *Set) {
-	book.sets[set.Model()] = append(book.sets[set.Model()], set)
+// AppendLog adds a log to a book
+func (book *Book) AppendLog(l *Log) {
+	book.logs[l.Model()] = append(book.logs[l.Model()], l)
 }
 
-// ModelSets gives all sets whoe model type matches model
-func (book *Book) ModelSets(model uint32) []*Set {
-	return book.sets[model]
+// ModelLogs gives all sets whoe model type matches model
+func (book *Book) ModelLogs(model uint32) []*Log {
+	return book.logs[model]
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
@@ -133,13 +133,13 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	authorname := builder.CreateString(book.authorname)
 	id := builder.CreateString(book.id)
 
-	setsl := book.setsSlice()
+	setsl := book.logsSlice()
 	count := len(setsl)
 	offsets := make([]flatbuffers.UOffsetT, count)
 	for i, lset := range setsl {
 		offsets[i] = lset.MarshalFlatbuffer(builder)
 	}
-	logfb.BookStartSetsVector(builder, count)
+	logfb.BookStartLogsVector(builder, count)
 	for i := count - 1; i >= 0; i-- {
 		builder.PrependUOffsetT(offsets[i])
 	}
@@ -148,25 +148,25 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	logfb.BookStart(builder)
 	logfb.BookAddName(builder, authorname)
 	logfb.BookAddIdentifier(builder, id)
-	logfb.BookAddSets(builder, sets)
+	logfb.BookAddLogs(builder, sets)
 	return logfb.BookEnd(builder)
 }
 
 func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	newBook := Book{
 		id:   string(b.Identifier()),
-		sets: map[uint32][]*Set{},
+		logs: map[uint32][]*Log{},
 	}
 
-	count := b.SetsLength()
-	logsetfb := &logfb.Logset{}
+	count := b.LogsLength()
+	lfb := &logfb.Log{}
 	for i := 0; i < count; i++ {
-		if b.Sets(logsetfb, i) {
-			set := &Set{}
-			if err := set.UnmarshalFlatbuffer(logsetfb); err != nil {
+		if b.Logs(lfb, i) {
+			l := &Log{}
+			if err := l.UnmarshalFlatbuffer(lfb); err != nil {
 				return err
 			}
-			newBook.sets[set.Model()] = append(newBook.sets[set.Model()], set)
+			newBook.logs[l.Model()] = append(newBook.logs[l.Model()], l)
 		}
 	}
 
@@ -174,113 +174,11 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	return nil
 }
 
-func (book Book) setsSlice() (sets []*Set) {
-	for _, setsl := range book.sets {
-		sets = append(sets, setsl...)
+func (book Book) logsSlice() (logs []*Log) {
+	for _, logsl := range book.logs {
+		logs = append(logs, logsl...)
 	}
-	return sets
-}
-
-// Set is a collection of logs
-type Set struct {
-	signer    string
-	signature []byte
-	root      string
-	logs      map[string]*Log
-}
-
-// InitSet creates a Log from an initialization operation
-func InitSet(name string, initop Op) *Set {
-	lg := InitLog(initop)
-	return &Set{
-		root: name,
-		logs: map[string]*Log{
-			name: lg,
-		},
-	}
-}
-
-// NewSet creates a set from a given log, rooted at the set name
-func NewSet(lg *Log) *Set {
-	name := lg.Name()
-	return &Set{
-		root: name,
-		logs: map[string]*Log{
-			name: lg,
-		},
-	}
-}
-
-// Author gives authorship information about who created this logset
-func (ls Set) Author() (string, string) {
-	// TODO (b5) - fetch from master branch intiailization
-	return "", ""
-}
-
-// Model returns the model of the root log
-func (ls Set) Model() uint32 {
-	return ls.logs[ls.root].ops[0].Model
-}
-
-// RootName gives the name of the root branch
-func (ls Set) RootName() string {
-	return ls.root
-}
-
-// Log returns a log from the set for a given name
-func (ls Set) Log(name string) *Log {
-	return ls.logs[name]
-}
-
-// MarshalFlatbuffer writes the set to a flatbuffer builder
-func (ls Set) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	namestr, idstr := ls.Author()
-	name := builder.CreateString(namestr)
-	id := builder.CreateString(idstr)
-	root := builder.CreateString(ls.root)
-
-	count := len(ls.logs)
-	offsets := make([]flatbuffers.UOffsetT, count)
-	i := 0
-	for _, log := range ls.logs {
-		offsets[i] = log.MarshalFlatbuffer(builder)
-		i++
-	}
-
-	logfb.LogsetStartLogsVector(builder, count)
-	for i := count - 1; i >= 0; i-- {
-		builder.PrependUOffsetT(offsets[i])
-	}
-	logs := builder.EndVector(count)
-
-	logfb.LogsetStart(builder)
-	logfb.LogsetAddName(builder, name)
-	logfb.LogsetAddRoot(builder, root)
-	logfb.LogsetAddIdentifier(builder, id)
-	logfb.LogsetAddLogs(builder, logs)
-	return logfb.LogEnd(builder)
-}
-
-// UnmarshalFlatbuffer creates a set from a logset pointer
-func (ls *Set) UnmarshalFlatbuffer(lsfb *logfb.Logset) (err error) {
-	newLs := Set{
-		root: string(lsfb.Root()),
-		logs: map[string]*Log{},
-	}
-
-	lgfb := &logfb.Log{}
-	for i := 0; i < lsfb.LogsLength(); i++ {
-		if lsfb.Logs(lgfb, i) {
-			lg := &Log{}
-			if err = lg.UnmarshalFlatbuffer(lgfb); err != nil {
-				return err
-			}
-			newLs.logs[lg.Name()] = lg
-		}
-	}
-
-	*ls = newLs
-	return nil
+	return logs
 }
 
 // Log is a causally-ordered set of operations performed by a single author.
@@ -288,6 +186,7 @@ func (ls *Set) UnmarshalFlatbuffer(lsfb *logfb.Logset) (err error) {
 type Log struct {
 	signature []byte
 	ops       []Op
+	logs      []*Log
 }
 
 // InitLog creates a Log from an initialization operation
@@ -307,12 +206,12 @@ func (lg Log) Len() int {
 	return len(lg.ops)
 }
 
-// Type gives the operation type for a log, based on the first operation written
-// to the log. Logs can contain multiple types of operations, but the first
-// operation written to a log determines the kind of log for catagorization
-// purposes
-func (lg Log) Type() string {
-	return ""
+// Model gives the operation type for a log, based on the first operation
+// written to the log. Logs can contain multiple models of operations, but the
+// first operation written to a log determines the kind of log for
+// catagorization purposes
+func (lg Log) Model() uint32 {
+	return lg.ops[0].Model
 }
 
 // Author returns the name and identifier this log is attributed to
@@ -336,6 +235,21 @@ func (lg Log) Name() string {
 	// 	}
 	// }
 	return lg.ops[0].Name
+}
+
+// Child returns a child log for a given name, and nil if it doesn't exist
+func (lg Log) Child(name string) *Log {
+	for _, l := range lg.logs {
+		if l.Name() == name {
+			return l
+		}
+	}
+	return nil
+}
+
+// AddChild appends a log as a direct descendant of this log
+func (lg Log) AddChild(l *Log) {
+	lg.logs = append(lg.logs, l)
 }
 
 // Verify confirms that the signature for a log matches
@@ -363,11 +277,24 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 	}
 	ops := builder.EndVector(count)
 
+	count = len(lg.logs)
+	offsets = make([]flatbuffers.UOffsetT, count)
+	for i, o := range lg.logs {
+		offsets[i] = o.MarshalFlatbuffer(builder)
+	}
+
+	logfb.LogStartLogsVector(builder, count)
+	for i, lg := range lg.logs {
+		offsets[i] = lg.MarshalFlatbuffer(builder)
+	}
+	logs := builder.EndVector(count)
+
 	logfb.LogStart(builder)
 	logfb.LogAddName(builder, name)
 	logfb.LogAddIdentifier(builder, id)
 	logfb.LogAddSignature(builder, signature)
 	logfb.LogAddOpset(builder, ops)
+	logfb.LogAddLogs(builder, logs)
 	return logfb.LogEnd(builder)
 }
 
