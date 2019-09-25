@@ -408,10 +408,10 @@ func TestCheckoutAndRestore(t *testing.T) {
 	// Get mtimes for the component files
 	st, _ := os.Stat(filepath.Join(workDir, "meta.json"))
 	metaMtime := st.ModTime().Format(time.RFC3339)
-	st, _ = os.Stat(filepath.Join(workDir, "dataset.json"))
-	datasetMtime := st.ModTime().Format(time.RFC3339)
-	st, _ = os.Stat(filepath.Join(workDir, "schema.json"))
-	schemaMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(workDir, "structure.json"))
+	structureMtime := st.ModTime().Format(time.RFC3339)
+	// st, _ = os.Stat(filepath.Join(workDir, "schema.json"))
+	// schemaMtime := st.ModTime().Format(time.RFC3339)
 	st, _ = os.Stat(filepath.Join(workDir, "body.csv"))
 	bodyMtime := st.ModTime().Format(time.RFC3339)
 
@@ -422,8 +422,8 @@ func TestCheckoutAndRestore(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, workDir, "", -1)
-	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/dataset.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/schema.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
-	expectBody = fmt.Sprintf(templateBody, metaMtime, datasetMtime, schemaMtime, bodyMtime)
+	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/structure.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/structure.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, structureMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}

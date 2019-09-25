@@ -121,7 +121,7 @@ func TestInitStatusSave(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -183,8 +183,8 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -262,8 +262,8 @@ func TestCheckoutWithStructure(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "meta.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -341,8 +341,8 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
-// Test checkout and modifying schema, then checking status.
-func TestCheckoutAndModifySchema(t *testing.T) {
+// Test checkout and modifying structure & schema, then checking status.
+func TestCheckoutAndModifyStructure(t *testing.T) {
 	fr := NewFSITestRunner(t, "qri_test_checkout_and_modify_schema")
 	defer fr.Delete()
 
@@ -363,8 +363,8 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -379,7 +379,7 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 	}
 
 	// Create schema.json with a minimal schema.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type": "array"}`), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile("structure.json", []byte(`{ "format": "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -389,11 +389,10 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 	}
 
 	output = fr.GetCommandOutput()
-	// TODO(dlong): structure/dataset.json should not be marked as `modified`
 	expect := `for linked dataset [test_peer/more_movies]
 
-  modified: structure (source: dataset.json)
-  modified: schema (source: schema.json)
+  modified: structure (source: structure.json)
+  modified: schema (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -675,8 +674,8 @@ run ` + "`qri save`" + ` to commit this dataset
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
-	// Modify schema.json by using the base schema.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type": "array"}`), os.ModePerm); err != nil {
+	// Modify struture.json
+	if err = ioutil.WriteFile("structure.json", []byte(`{ "format" : "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -686,11 +685,10 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = fr.GetCommandOutput()
-	// TODO(dlong): structure/dataset.json should not be marked as `modified`
 	expect = `for linked dataset [test_peer/ten_movies]
 
-  modified: structure (source: dataset.json)
-  modified: schema (source: schema.json)
+  modified: structure (source: structure.json)
+  modified: schema (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -819,15 +817,15 @@ func TestRestoreDeleteComponent(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	// Restore to get erase the meta component.
+	// Restore to erase the meta component.
 	if err := fr.ExecCommand("qri restore meta"); err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -868,7 +866,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -909,7 +907,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -962,7 +960,7 @@ func TestInitWithDirectory(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 

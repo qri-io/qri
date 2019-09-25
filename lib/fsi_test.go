@@ -77,9 +77,6 @@ func TestFSIMethodsWrite(t *testing.T) {
 		{"repo: not found", FSIWriteParams{Ref: "👋", Ds: &dataset.Dataset{}}},
 		{"repo: not found", FSIWriteParams{Ref: "abc/ABC", Ds: &dataset.Dataset{}}},
 		{"dataset is not linked to the filesystem", FSIWriteParams{Ref: "peer/movies", Ds: &dataset.Dataset{}}},
-		// TODO (b5) - this is also a bug, and should be allowed. body should map to a file or something
-		{"body is defined in two places: body.json and dataset.json. please remove one",
-			FSIWriteParams{Ref: "me/craigslist", Ds: &dataset.Dataset{Body: []interface{}{[]interface{}{"foo", "bar", "baz"}}}}},
 	}
 
 	for _, c := range badCases {
@@ -105,8 +102,11 @@ func TestFSIMethodsWrite(t *testing.T) {
 			FSIWriteParams{Ref: "me/cities", Ds: &dataset.Dataset{Structure: &dataset.Structure{Format: "json"}}},
 			[]StatusItem{
 				{Component: "meta", Type: "unmodified"},
-				{Component: "structure", Type: "unmodified"},
-				{Component: "schema", Type: "unmodified"},
+				{Component: "structure", Type: "modified"},
+				// TODO (b5) - a side effect of re-prioritizing structure: api writes will remove any schema files
+				// I think this is ok b/c a theoretical schema editor would map that same data to structure,
+				// so no data would be lost unless the user wanted it so.
+				{Component: "schema", Type: "removed"},
 				{Component: "body", Type: "unmodified"},
 			},
 		},
