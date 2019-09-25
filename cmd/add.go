@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"fmt"
+	"path/filepath"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -35,12 +36,15 @@ the name of the peer that originally added the dataset. You must have
 		},
 	}
 
+	cmd.Flags().StringVar(&o.LinkDir, "link", "", "path to directory to link dataset to")
+
 	return cmd
 }
 
 // AddOptions encapsulates state for the add command
 type AddOptions struct {
 	ioes.IOStreams
+	LinkDir         string
 	DatasetRequests *lib.DatasetRequests
 }
 
@@ -57,20 +61,32 @@ func (o *AddOptions) Run(args []string) error {
 	o.StartSpinner()
 	defer o.StopSpinner()
 
+	if len(args) > 1 && o.LinkDir != "" {
+		return fmt.Errorf("link flag can only be used with a single reference")
+	}
+
 	for _, arg := range args {
-		ref, err := parseCmdLineDatasetRef(arg)
-		if err != nil {
-			return err
+		if o.LinkDir != "" {
+			abs, err := filepath.Abs(o.LinkDir)
+			if err != nil {
+				return err
+			}
+			o.LinkDir = abs
+		}
+
+		p := &lib.AddParams{
+			Ref:     arg,
+			LinkDir: o.LinkDir,
 		}
 
 		res := repo.DatasetRef{}
-		if err = o.DatasetRequests.Add(&ref, &res); err != nil {
+		if err := o.DatasetRequests.Add(p, &res); err != nil {
 			return err
 		}
 
 		refStr := refStringer(res)
 		fmt.Fprintf(o.Out, "\n%s", refStr.String())
-		printInfo(o.Out, "Successfully added dataset %s", ref)
+		printInfo(o.Out, "Successfully added dataset %s", arg)
 	}
 
 	return nil

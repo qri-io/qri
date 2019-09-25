@@ -614,21 +614,48 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	return nil
 }
 
+// AddParams encapsulates parameters to the add command
+type AddParams struct {
+	Ref        string
+	LinkDir    string
+	RemoteAddr string // remote to attempt to pull from
+}
+
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(ref *repo.DatasetRef, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Add", ref, res)
+		return r.cli.Call("DatasetRequests.Add", p, res)
 	}
 	ctx := context.TODO()
 
-	defaultAddr := ""
-	if r.inst != nil && r.inst.cfg.Registry != nil {
-		defaultAddr = r.inst.cfg.Registry.Location
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
 	}
 
-	err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), defaultAddr, ref)
-	*res = *ref
-	return err
+	if p.RemoteAddr == "" && r.inst != nil && r.inst.cfg.Registry != nil {
+		p.RemoteAddr = r.inst.cfg.Registry.Location
+	}
+
+	if err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), p.RemoteAddr, &ref); err != nil {
+		return err
+	}
+
+	*res = ref
+
+	if p.LinkDir != "" {
+		checkoutp := &CheckoutParams{
+			Ref: ref.String(),
+			Dir: p.LinkDir,
+		}
+		m := NewFSIMethods(r.inst)
+		checkoutRes := ""
+		if err = m.Checkout(checkoutp, &checkoutRes); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // ValidateDatasetParams defines parameters for dataset

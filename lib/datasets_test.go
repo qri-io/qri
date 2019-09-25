@@ -767,11 +767,11 @@ func TestDatasetRequestsRemove(t *testing.T) {
 
 func TestDatasetRequestsAdd(t *testing.T) {
 	cases := []struct {
-		p   *repo.DatasetRef
+		p   *AddParams
 		res *repo.DatasetRef
 		err string
 	}{
-		{&repo.DatasetRef{Name: "abc", Path: "hash###"}, nil, "node is not online and no registry is configured"},
+		{&AddParams{Ref: "abc/hash###"}, nil, "node is not online and no registry is configured"},
 	}
 
 	mr, err := testrepo.NewTestRepo()
@@ -842,12 +842,15 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				index, _ := strconv.ParseInt(num, 10, 32)
 				name := datasets[index]
 				ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
+				p := &AddParams{
+					Ref: ref.AliasString(),
+				}
 
 				// Build requests for peer1 to peer2.
 				dsr := NewDatasetRequests(p0, nil)
 				got := &repo.DatasetRef{}
 
-				err := dsr.Add(&ref, got)
+				err := dsr.Add(p, got)
 				if err != nil {
 					pro1, _ := p0.Repo.Profile()
 					pro2, _ := p1.Repo.Profile()
