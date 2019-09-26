@@ -31,6 +31,7 @@ type SearchParams struct {
 // SearchResult struct
 type SearchResult struct {
 	Type, ID string
+	URL      string
 	Value    interface{}
 }
 
@@ -60,9 +61,14 @@ func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
 
 	searchResults := make([]SearchResult, len(regResults))
 	for i, result := range regResults {
-		searchResults[i].Type = result.Type
-		searchResults[i].ID = result.ID
-		searchResults[i].Value = result.Value
+		searchResults[i].Type = "dataset"
+		searchResults[i].ID = result.Path
+		searchResults[i].Value = result
+
+		// TODO (b5) - this is cloud specific, should be generalized
+		if m.inst.Config().Registry.Location == "https://registry.qri.cloud" {
+			searchResults[i].URL = fmt.Sprintf("https://qri.cloud/%s/%s", result.Peername, result.Name)
+		}
 	}
 	*results = searchResults
 	return nil

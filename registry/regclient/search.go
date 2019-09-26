@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry"
 )
 
@@ -36,7 +37,7 @@ type SearchParams struct {
 }
 
 // Search makes a registry search request
-func (c Client) Search(p *SearchParams) ([]*registry.Result, error) {
+func (c Client) Search(p *SearchParams) ([]*dataset.Dataset, error) {
 	params := &registry.SearchParams{
 		Q: p.QueryString,
 		//Filters: p.Filters,
@@ -80,7 +81,7 @@ func (c Client) prepGetReq(s *registry.SearchParams) (*http.Request, error) {
 	return req, nil
 }
 
-func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (results []*registry.Result, err error) {
+func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (results []*dataset.Dataset, err error) {
 	if c.cfg.Location == "" {
 		return nil, ErrNoRegistry
 	}
@@ -105,7 +106,7 @@ func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (result
 	}
 	// add response to an envelope
 	env := struct {
-		Data []*registry.Result
+		Data []*dataset.Dataset
 		Meta struct {
 			Error  string
 			Status string

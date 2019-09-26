@@ -10,7 +10,7 @@ import (
 // Searchable is an opt-in interface for registries that wish to
 // support search
 type Searchable interface {
-	Search(p SearchParams) ([]Result, error)
+	Search(p SearchParams) ([]*dataset.Dataset, error)
 }
 
 // Indexer is an interface for adding registry values to a search index
@@ -27,13 +27,6 @@ type SearchParams struct {
 	Limit, Offset int
 }
 
-// Result is the interface that a search result implements
-type Result struct {
-	Type  string      // one of ["dataset", "profile"] for now
-	ID    string      // identifier to lookup
-	Value interface{} // Value returned
-}
-
 // ErrSearchNotSupported is the canonical error to indicate search
 // isn't implemented
 var ErrSearchNotSupported = fmt.Errorf("search not supported")
@@ -43,7 +36,7 @@ var ErrSearchNotSupported = fmt.Errorf("search not supported")
 type NilSearch bool
 
 // Search returns an error indicating that search is not supported
-func (ns NilSearch) Search(p SearchParams) ([]Result, error) {
+func (ns NilSearch) Search(p SearchParams) ([]*dataset.Dataset, error) {
 	return nil, ErrSearchNotSupported
 }
 
@@ -56,15 +49,14 @@ type MockSearch struct {
 }
 
 // Search is a trivial search implementation used for testing
-func (ms MockSearch) Search(p SearchParams) (results []Result, err error) {
+func (ms MockSearch) Search(p SearchParams) (results []*dataset.Dataset, err error) {
 	for _, ds := range ms.Datasets {
 		dsname := ""
 		if ds.Meta != nil {
 			dsname = strings.ToLower(ds.Meta.Title)
 		}
 		if strings.Contains(dsname, strings.ToLower(p.Q)) {
-			result := &Result{Value: ds}
-			results = append(results, *result)
+			results = append(results, ds)
 		}
 	}
 

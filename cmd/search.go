@@ -4,13 +4,11 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"strings"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -106,11 +104,7 @@ func (o *SearchOptions) Run() (err error) {
 		fmt.Fprintf(o.Out, "showing %d results for '%s'\n", len(results), o.Query)
 		items := make([]fmt.Stringer, len(results))
 		for i, result := range results {
-			ref, err := searchResultToRef(&result)
-			if err != nil {
-				return err
-			}
-			items[i] = refStringer(*ref)
+			items[i] = searchResultStringer(result)
 		}
 		o.StopSpinner()
 		printItems(o.Out, items, page.Offset())
@@ -130,26 +124,26 @@ func (o *SearchOptions) Run() (err error) {
 	return nil
 }
 
-func searchResultToRef(result *lib.SearchResult) (*repo.DatasetRef, error) {
-	ref := &repo.DatasetRef{
-		Dataset: &dataset.Dataset{},
-	}
-	raw, err := json.Marshal(result.Value)
-	if err != nil {
-		return nil, err
-	}
-	if err = json.Unmarshal(raw, ref.Dataset); err != nil {
-		return nil, err
-	}
-	ref.Path = ref.Dataset.Path
+// func searchResultToRef(result *lib.SearchResult) (*repo.DatasetRef, error) {
+// 	ref := &repo.DatasetRef{
+// 		Dataset: &dataset.Dataset{},
+// 	}
+// 	raw, err := json.Marshal(result.Value)
+// 	if err != nil {
+// 		return nil, err
+// 	}
+// 	if err = json.Unmarshal(raw, ref.Dataset); err != nil {
+// 		return nil, err
+// 	}
+// 	ref.Path = ref.Dataset.Path
 
-	id := strings.Split(result.ID, "/")
-	if len(id) != 2 {
-		ref.Peername = ref.Dataset.Peername
-		ref.Name = ref.Dataset.Name
-		return ref, nil
-	}
-	ref.Peername = id[0]
-	ref.Name = id[1]
-	return ref, nil
-}
+// 	id := strings.Split(result.ID, "/")
+// 	if len(id) != 2 {
+// 		ref.Peername = ref.Dataset.Peername
+// 		ref.Name = ref.Dataset.Name
+// 		return ref, nil
+// 	}
+// 	ref.Peername = id[0]
+// 	ref.Name = id[1]
+// 	return ref, nil
+// }
