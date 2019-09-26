@@ -1,4 +1,11 @@
-package log
+// Package logbook records and syncs dataset histories. As users work on
+// datasets, they build of a log of operations. Each operation is a record
+// of an action taken, like creating a dataset, or unpublishing a version.
+// Each of these operations is wrtten to a log attributed to the user that
+// performed the action, and stored in the logbook under the namespace of that
+// dataset. The current state of a user's log is derived from iterating over
+// all operations to produce the current state.
+package logbook
 
 import (
 	"context"

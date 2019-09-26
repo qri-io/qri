@@ -1,3 +1,12 @@
+// Package log is an operation-based conflict-free replicated data type (CRDT)
+// of append-only logs. A log is a sequence of operations attributed to a single
+// author, designated by a private key.
+// Each operation is a record of some action the author took. Applications
+// iterate the sequence of operations to produce the current state.
+// Logs can be arranged into hierarchies to form logical groupings.
+// A book contains an author's logs, both logs they've written as well as logs
+// replicated from other authors. Books are encrypted at rest using the author
+// private key.
 package log
 
 import (
