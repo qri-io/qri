@@ -6,11 +6,6 @@ import (
 	"sync"
 	"time"
 
-	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
-	"github.com/qri-io/qri/config"
-	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo"
 	core "github.com/ipfs/go-ipfs/core"
 	namesys "github.com/ipfs/go-ipfs/namesys"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
@@ -25,6 +20,11 @@ import (
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
 	discovery "github.com/libp2p/go-libp2p/p2p/discovery"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/ioes"
+	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qri/config"
+	p2ptest "github.com/qri-io/qri/p2p/test"
+	"github.com/qri-io/qri/repo"
 )
 
 // QriNode encapsulates a qri peer-2-peer node
@@ -456,7 +456,6 @@ func MakeHandlers(n *QriNode) map[MsgType]HandlerFunc {
 		MtProfile:           n.handleProfile,
 		MtDatasetInfo:       n.handleDataset,
 		MtDatasets:          n.handleDatasetsList,
-		MtEvents:            n.handleEvents,
 		MtConnected:         n.handleConnected,
 		MtResolveDatasetRef: n.handleResolveDatasetRef,
 		MtDatasetLog:        n.handleDatasetLog,

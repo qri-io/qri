@@ -211,13 +211,9 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	if err = r.PutRef(ref); err != nil {
 		return
 	}
-	if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
-		return
-	}
-	_, storeIsPinner := r.Store().(cafs.Pinner)
-	if pin && storeIsPinner {
-		r.LogEvent(repo.ETDsPinned, ref)
-	}
+	// if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
+	// 	return
+	// }
 
 	if err = ReadDataset(ctx, r, &ref); err != nil {
 		return
@@ -316,8 +312,9 @@ func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err er
 // PinDataset marks a dataset for retention in a store
 func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Pin(ctx, ref.Path, true)
-		return r.LogEvent(repo.ETDsPinned, ref)
+		return pinner.Pin(ctx, ref.Path, true)
+		// return r.LogEvent(repo.ETDsPinned, ref)
+
 	}
 	return repo.ErrNotPinner
 }
@@ -325,8 +322,8 @@ func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 // UnpinDataset unmarks a dataset for retention in a store
 func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Unpin(ctx, ref.Path, true)
-		return r.LogEvent(repo.ETDsUnpinned, ref)
+		return pinner.Unpin(ctx, ref.Path, true)
+		// return r.LogEvent(repo.ETDsUnpinned, ref)
 	}
 	return repo.ErrNotPinner
 }

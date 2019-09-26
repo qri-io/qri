@@ -10,7 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/dsref"
 )
 
 func Example() {
@@ -67,7 +67,7 @@ func Example() {
 		// need to model those properly first.
 	}
 
-	ref := repo.DatasetRef{Peername: "b5", Name: "world_bank_population"}
+	ref := dsref.Ref{Username: "b5", Name: "world_bank_population"}
 
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
@@ -137,8 +137,8 @@ func Example() {
 		panic(err)
 	}
 
-	for _, ref := range log {
-		fmt.Println(ref.String())
+	for _, info := range log {
+		fmt.Println(info.Ref.String())
 	}
 
 	// Output:

@@ -8,7 +8,6 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
@@ -233,7 +232,7 @@ func newTestQriNode(t *testing.T) *p2p.QriNode {
 }
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return muxfs.NewMux(map[string]qfs.PathResolver{
+	return qfs.NewMux(map[string]qfs.Filesystem{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  cafsys,

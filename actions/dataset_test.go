@@ -322,7 +322,6 @@ func DatasetTests(t *testing.T, rmf RepoMakerFunc) {
 		testReadDataset,
 		testRenameDataset,
 		testDeleteDataset,
-		testEventsLog,
 	} {
 		test(t, rmf)
 	}
@@ -392,73 +391,6 @@ func testDeleteDataset(t *testing.T, rmf RepoMakerFunc) {
 	if err := DeleteDataset(ctx, node, &ref); err != nil {
 		t.Error(err.Error())
 		return
-	}
-}
-
-func testEventsLog(t *testing.T, rmf RepoMakerFunc) {
-	ctx := context.Background()
-	node, ref := createDataset(t, rmf)
-	pinner := true
-
-	b := &repo.DatasetRef{
-		Name:      "cities2",
-		ProfileID: ref.ProfileID,
-	}
-
-	if err := ModifyDataset(node, &ref, b, true); err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	if err := base.PinDataset(ctx, node.Repo, *b); err != nil {
-		if err == repo.ErrNotPinner {
-			pinner = false
-		} else {
-			t.Error(err.Error())
-			return
-		}
-	}
-
-	// TODO - calling unpin followed by delete will trigger two unpin events,
-	// which based on our current architecture can and will probably cause problems
-	// we should either hardern every unpin implementation to not error on multiple
-	// calls to unpin the same hash, or include checks in the delete method
-	// and only call unpin if the hash is in fact pinned
-	// if err := act.UnpinDataset(b); err != nil && err != repo.ErrNotPinner {
-	// 	t.Error(err.Error())
-	// 	return
-	// }
-
-	if err := DeleteDataset(ctx, node, b); err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	events, err := node.Repo.Events(10, 0)
-	if err != nil {
-		t.Error(err.Error())
-		return
-	}
-
-	ets := []repo.EventType{repo.ETDsDeleted, repo.ETDsUnpinned, repo.ETDsPinned, repo.ETDsRenamed, repo.ETDsPinned, repo.ETDsCreated}
-
-	if !pinner {
-		ets = []repo.EventType{repo.ETDsDeleted, repo.ETDsRenamed, repo.ETDsCreated}
-	}
-
-	if len(events) != len(ets) {
-		t.Errorf("event log length mismatch. expected: %d, got: %d", len(ets), len(events))
-		t.Log("event log:")
-		for i, e := range events {
-			t.Logf("\t%d: %s", i, e.Type)
-		}
-		return
-	}
-
-	for i, et := range ets {
-		if events[i].Type != et {
-			t.Errorf("case %d eventType mismatch. expected: %s, got: %s", i, et, events[i].Type)
-		}
 	}
 }
 

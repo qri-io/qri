@@ -309,7 +309,8 @@ func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bo
 		return err
 	}
 
-	return r.LogEvent(repo.ETDsRenamed, *new)
+	// return r.LogEvent(repo.ETDsRenamed, *new)
+	return nil
 }
 
 // DeleteDataset removes a dataset from the store
@@ -353,5 +354,6 @@ func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef)
 		return err
 	}
 
-	return r.LogEvent(repo.ETDsDeleted, *ref)
+	// return r.LogEvent(repo.ETDsDeleted, *ref)
+	return nil
 }

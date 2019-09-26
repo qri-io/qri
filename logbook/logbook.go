@@ -17,8 +17,8 @@ import (
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/log"
-	"github.com/qri-io/qri/repo"
 )
 
 var (
@@ -39,14 +39,20 @@ type Book struct {
 	bk       *log.Book
 	pk       crypto.PrivKey
 	location string
-	fs       qfs.WritableFilesystem
+	fs       qfs.Filesystem
 }
 
 // NewBook initializes a logbook, reading any existing data at the given
 // location, on the given filesystem. logbooks are encrypted at rest. The
 // same key must be given to decrypt an existing logbook
-func NewBook(pk crypto.PrivKey, username string, fs qfs.WritableFilesystem, location string) (*Book, error) {
+func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location string) (*Book, error) {
 	ctx := context.Background()
+	if pk == nil {
+		return nil, fmt.Errorf("logbook: private key is required")
+	}
+	if fs == nil {
+		return nil, fmt.Errorf("logbook: filsystem is required")
+	}
 	pid, err := calcProfileID(pk)
 	if err != nil {
 		return nil, err
@@ -166,7 +172,7 @@ func (book Book) authorNamespace() *log.Log {
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-func (book Book) WriteVersionSave(ctx context.Context, ref repo.DatasetRef, ds *dataset.Dataset) error {
+func (book Book) WriteVersionSave(ctx context.Context, ref dsref.Ref, ds *dataset.Dataset) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		if err == ErrNotFound {
@@ -190,7 +196,7 @@ func (book Book) WriteVersionSave(ctx context.Context, ref repo.DatasetRef, ds *
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
-func (book Book) WriteVersionAmend(ctx context.Context, ref repo.DatasetRef, ds *dataset.Dataset) error {
+func (book Book) WriteVersionAmend(ctx context.Context, ref dsref.Ref, ds *dataset.Dataset) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -211,7 +217,7 @@ func (book Book) WriteVersionAmend(ctx context.Context, ref repo.DatasetRef, ds 
 // WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book Book) WriteVersionDelete(ctx context.Context, ref repo.DatasetRef, revisions int) error {
+func (book Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisions int) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -230,7 +236,7 @@ func (book Book) WriteVersionDelete(ctx context.Context, ref repo.DatasetRef, re
 
 // WritePublish adds an operation to a log marking the publication of a number
 // of versions to one or more destinations
-func (book Book) WritePublish(ctx context.Context, ref repo.DatasetRef, revisions int, destinations ...string) error {
+func (book Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return fmt.Errorf("%#v", book.bk.ModelLogs(nameModel)[0])
@@ -251,7 +257,7 @@ func (book Book) WritePublish(ctx context.Context, ref repo.DatasetRef, revision
 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
 // count of sequential versions from HEAD
-func (book Book) WriteUnpublish(ctx context.Context, ref repo.DatasetRef, revisions int, destinations ...string) error {
+func (book Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -288,7 +294,7 @@ func (book Book) Author(username string) (Author, error) {
 // LogBytes gets signed bytes suitable for sending as a network request.
 // keep in mind that logs should never be sent to someone who does not have
 // proper permission to be disclosed log details
-func (book Book) LogBytes(ref repo.DatasetRef) ([]byte, error) {
+func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 	lg, err := book.readRefLog(ref)
 	if err != nil {
 		return nil, err
@@ -299,20 +305,20 @@ func (book Book) LogBytes(ref repo.DatasetRef) ([]byte, error) {
 
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(ref repo.DatasetRef, offset, limit int) ([]repo.DatasetRef, error) {
+func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]dsref.Info, error) {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	refs := []repo.DatasetRef{}
+	refs := []dsref.Info{}
 	for _, op := range l.Ops() {
 		if op.Model == versionModel {
 			switch op.Type {
 			case log.OpTypeInit:
-				refs = append(refs, book.refFromOp(ref, op))
+				refs = append(refs, book.infoFromOp(ref, op))
 			case log.OpTypeAmend:
-				refs[len(refs)-1] = book.refFromOp(ref, op)
+				refs[len(refs)-1] = book.infoFromOp(ref, op)
 			case log.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
@@ -322,16 +328,15 @@ func (book Book) Versions(ref repo.DatasetRef, offset, limit int) ([]repo.Datase
 	return refs, nil
 }
 
-func (book Book) refFromOp(ref repo.DatasetRef, op log.Op) repo.DatasetRef {
-	return repo.DatasetRef{
-		Peername: ref.Peername,
-		Name:     ref.Name,
-		Path:     op.Ref,
-		Dataset: &dataset.Dataset{
-			Commit: &dataset.Commit{
-				Title: op.Note,
-			},
+func (book Book) infoFromOp(ref dsref.Ref, op log.Op) dsref.Info {
+	return dsref.Info{
+		Ref: dsref.Ref{
+			Username: ref.Username,
+			Name:     ref.Name,
+			Path:     op.Ref,
 		},
+		Timestamp:   time.Unix(op.Timestamp, op.Timestamp),
+		CommitTitle: op.Note,
 	}
 }
 
@@ -347,8 +352,8 @@ func (book Book) ACL(alias string) (ACL, error) {
 	return ACL{}, fmt.Errorf("not finished")
 }
 
-func (book Book) readRefLog(ref repo.DatasetRef) (*log.Log, error) {
-	if ref.Peername == "" {
+func (book Book) readRefLog(ref dsref.Ref) (*log.Log, error) {
+	if ref.Username == "" {
 		return nil, fmt.Errorf("ref.Peername is required")
 	}
 	if ref.Name == "" {
@@ -356,7 +361,7 @@ func (book Book) readRefLog(ref repo.DatasetRef) (*log.Log, error) {
 	}
 
 	for _, lg := range book.bk.ModelLogs(nameModel) {
-		if lg.Name() == ref.Peername {
+		if lg.Name() == ref.Username {
 			log := lg.Child(ref.Name)
 			if log == nil {
 				return nil, ErrNotFound

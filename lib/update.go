@@ -345,7 +345,8 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 	}
 
 	// TODO (b5): expand event logging interface to support storing additional details
-	return m.inst.Repo().LogEvent(repo.ETCronJobRan, *res)
+	// return m.inst.Repo().LogEvent(repo.ETCronJobRan, *res)
+	return nil
 }
 
 func absolutizeJobFilepaths(j *Job) error {
