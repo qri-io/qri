@@ -8,7 +8,9 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/update/cron"
 )
@@ -70,6 +72,46 @@ func (r refStringer) String() string {
 	}
 	if r.Foreign {
 		fmt.Fprintf(w, "\n%s", warn("foreign"))
+	}
+	if ds != nil && ds.Structure != nil {
+		fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(ds.Structure.Length)))
+		if ds.Structure.Entries == 1 {
+			fmt.Fprintf(w, ", %d entry", ds.Structure.Entries)
+		} else {
+			fmt.Fprintf(w, ", %d entries", ds.Structure.Entries)
+		}
+		if ds.Structure.ErrCount == 1 {
+			fmt.Fprintf(w, ", %d error", ds.Structure.ErrCount)
+		} else {
+			fmt.Fprintf(w, ", %d errors", ds.Structure.ErrCount)
+		}
+		if ds.NumVersions == 0 {
+			// nothing
+		} else if ds.NumVersions == 1 {
+			fmt.Fprintf(w, ", %d version", ds.NumVersions)
+		} else {
+			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
+		}
+	}
+
+	fmt.Fprintf(w, "\n\n")
+	return w.String()
+}
+
+type searchResultStringer lib.SearchResult
+
+func (r searchResultStringer) String() string {
+	w := &strings.Builder{}
+	title := color.New(color.FgGreen, color.Bold).SprintFunc()
+	path := color.New(color.Faint).SprintFunc()
+	ds := r.Value.(*dataset.Dataset)
+
+	fmt.Fprintf(w, "%s/%s", title(ds.Peername), title(ds.Name))
+	fmt.Fprintf(w, "\n%s", r.URL)
+	fmt.Fprintf(w, "\n%s", path(ds.Path))
+
+	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
+		fmt.Fprintf(w, "\n%s", ds.Meta.Title)
 	}
 	if ds != nil && ds.Structure != nil {
 		fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(ds.Structure.Length)))
