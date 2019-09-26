@@ -16,7 +16,7 @@ const (
 	// QriProtocolID is the top level Protocol Identifier
 	QriProtocolID = protocol.ID("/qri")
 	// QriServiceTag tags the type & version of the qri service
-	QriServiceTag = "qri/0.9.0-dev"
+	QriServiceTag = "qri/0.9.0"
 	// default value to give qri peer connections in connmanager, one hunnit
 	qriSupportValue = 100
 	// qriSupportKey is the key we store the flag for qri support under in Peerstores and in ConnManager()
