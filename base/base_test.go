@@ -49,7 +49,7 @@ func testdataPath(path string) string {
 
 func newTestRepo(t *testing.T) repo.Repo {
 	mapStore := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, qfs.NewMemFS(mapStore), profile.NewMemStore())
+	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}

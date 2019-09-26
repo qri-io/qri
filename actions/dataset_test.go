@@ -96,7 +96,7 @@ func TestAddDataset(t *testing.T) {
 func TestDataset(t *testing.T) {
 	rmf := func(t *testing.T) repo.Repo {
 		store := cafs.NewMapstore()
-		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
+		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
 		if err != nil {
 			panic(err)
 		}

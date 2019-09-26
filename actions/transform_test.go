@@ -16,7 +16,7 @@ import (
 func TestExecTransform(t *testing.T) {
 	ctx := context.Background()
 	store := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
+	mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
