@@ -83,7 +83,7 @@ func TestCreateDataset(t *testing.T) {
 	ctx := context.Background()
 	streams := ioes.NewDiscardIOStreams()
 	store := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(store), profile.NewMemStore())
+	r, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
