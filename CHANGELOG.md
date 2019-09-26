@@ -1,7 +1,90 @@
+# [0.9.0](https://github.com/qri-io/qri/compare/v0.9.0-alpha...v0.9.0) (2019-09-26)
+
+0.9.0 makes Qri work like Git! 
+
+# :open_file_folder: File System Integration [(RFC0025)](https://github.com/qri-io/rfcs/blob/master/text/0025-filesystem-integration.md)
+This release brings a few new commands into qri. If you're a [git](https://git-scm.com) user, these will look familiar:
+
+```
+init        initialize a dataset directory
+checkout    checkout creates a linked directory and writes dataset files to that directory
+status      Show status of working directory
+restore     restore returns part or all of a dataset to a previous state
+```
+
+You can now interact with a versioned dataset in similar way you would a git repository. Now creating new versions is as simple as `cd`ing to a linked directory and typing `qri save`.
+
+After a lot of thought & research, we've come to believe that using the filesystem as an interface is a great way to interact with versioned data. Git has been doing this for some time, and we've put thought & care into bringing the aspects of git that work well in this context. 
+
+Running the new `qri init` command will create an _FSI-linked directory_. A new datset will be created in your qri repo, and a hidden file called `.qri-ref` will be created in the folder you've initialized within. When you're linked directory you no longer need to type the name of a dataset to interact with it. `qri get body peername/dataset_name` is just `qri get body` when you're in an FSI-linked directory. You can see which datasets are linked when you `qri list`, it'll show the folder it's linked to.
+
+Unlike git, qri doesn't track _all_ files in a linked folder. Instead it only looks for specific filenames to map to dataset components:
+
+| component | possible filename                                   |
+| --------- | ----------------------------------------------------|
+| body      | `body.csv`, `body.json`, `body.xlsx`, `body.cbor`   |
+| meta      | `meta.json`, `meta.yaml`                            |
+| schema    | `schema.json`, `schema.yaml`                        |
+
+We'll be following up with support for transform and viz components shortly. It's still possible to create datasets that _don't_ have a link to the filesystem, and indeed this is still the better way to go for large datasets.
+
+File system integration opens up a whole bunch of opportunities for integration with other tools by dropping back to a common interface: files. Now you can use whatever software you'd like to edit dataset files, and by writing back to that folder with one of these name you're ready to version from the get go. command like `qri status` make it easy to keep track of where you are in your work, and `qri restore` makes it easy to "reset to head".
+
+
+# :desktop_computer: [Qri Desktop](https://github.com/qri-io/desktop)
+This is the first qri release that will be bundled into Qri Desktop, our brand new project for working with datasets. Qri desktop puts a face on qri, We'll be cutting a release of qri desktop shortly. Check it out!
+
+# :cloud: qri.cloud as a new default registry
+
+This release also puts a bunch of work into the registry. We've made the job of a registry smaller, moving much of the behaviour of dataset syncing into _remotes_, which any peer can now become. At the same time, we're hard at work building qri.cloud, our new hosted service for dataset management and collaboration. If you're coming from a prior version of qri, run the following to swich to the new registry:
+
+```
+qri config set registry.location https://registry.qri.cloud
+```
+
+Now when you `qri publish`, it'll go to qri.cloud. _Lots_ of exciting things coming for qri cloud in the next few months.
+
+
+
+### Bug Fixes
+
+* **add:** need to re-initialize add when connecting ([767d2ad](https://github.com/qri-io/qri/commit/767d2ad))
+* **api:** remove files field is 'files', not 'delete' ([3017723](https://github.com/qri-io/qri/commit/3017723))
+* **fsi:** Add relative directory to fsi body path. Parse body for status. ([4284b5e](https://github.com/qri-io/qri/commit/4284b5e))
+* **fsi:** Init does not output a schema.json ([45b770c](https://github.com/qri-io/qri/commit/45b770c))
+* **fsi:** Keep detected schema when body exists without a schema ([3ecdbbe](https://github.com/qri-io/qri/commit/3ecdbbe))
+* **fsi unlink:** unlink command removes .qri-ref file ([0e6a8fd](https://github.com/qri-io/qri/commit/0e6a8fd))
+* **fsi.DeleteFiles:** attempt to remove files, even on early return ([711f733](https://github.com/qri-io/qri/commit/711f733))
+* **remove:** removing a dataset with no history should work ([f0ba1a1](https://github.com/qri-io/qri/commit/f0ba1a1))
+* **search:** update to new registry api search result format ([1ac83bf](https://github.com/qri-io/qri/commit/1ac83bf))
+* **test:** Handle test flakiness by forcing column type to be a string ([1880b17](https://github.com/qri-io/qri/commit/1880b17))
+
+
+### Features
+
+* **add:** add link flag to lib.Add, CLI, API ([61984f6](https://github.com/qri-io/qri/commit/61984f6))
+* **fsi:** add fsimethods.Write to write directly to the linked filesystem ([65cdb12](https://github.com/qri-io/qri/commit/65cdb12))
+* **fsi:** Api can set directory to create for init ([90e2115](https://github.com/qri-io/qri/commit/90e2115))
+* **fsi:** Init can take a directory name to create for linking ([d62b816](https://github.com/qri-io/qri/commit/d62b816))
+* **fsi:** Init may take a --source-body-path to create body file ([20517d9](https://github.com/qri-io/qri/commit/20517d9))
+* **log:** book encryption methods, move book into log pkg ([47e8fbd](https://github.com/qri-io/qri/commit/47e8fbd))
+* **log:** flatbuffer encoding code & test work ([b88d899](https://github.com/qri-io/qri/commit/b88d899))
+* **log:** flatbuffer work, shuffling names, added signatures ([4545d66](https://github.com/qri-io/qri/commit/4545d66))
+* **log:** initial CRDT dataset log proof of concept ([eaf4b94](https://github.com/qri-io/qri/commit/eaf4b94))
+* **logbook:** add primitive method for getting log bytes ([9a736c2](https://github.com/qri-io/qri/commit/9a736c2))
+* **logbook:** frame out API, unexport a bunch of stuff ([fac0bc7](https://github.com/qri-io/qri/commit/fac0bc7))
+* **logbook:** initial example test passing ([5deea01](https://github.com/qri-io/qri/commit/5deea01))
+* **mock registry:** add support for mock registry config ([7b7b98b](https://github.com/qri-io/qri/commit/7b7b98b))
+* **registry:** add signup & prove subcommands ([8262c6d](https://github.com/qri-io/qri/commit/8262c6d))
+* **remove:** add files and unlink flags to remove ([4c5a924](https://github.com/qri-io/qri/commit/4c5a924))
+* **windows:** Set .qri-ref as hidden in Windows ([6d71d48](https://github.com/qri-io/qri/commit/6d71d48))
+
+
+
 # [0.9.0-alpha](https://github.com/qri-io/qri/compare/v0.8.2...v0.9.0-alpha) (2019-09-04)
 
 # Preparing for 0.9.0
-We're not quite ready to put the seal-of-approval on 0.9.0, but it's been more than a few months since we cut a relase. This alpha-edition splits the difference while we prepare for a full & proper 0.9.0. The forthcoming big ticket item will be _File System Integration_ [(RFC0025)](https://github.com/qri-io/rfcs/blob/master/text/0025-filesystem-integration.md), which dramatically simplifies the story around integrating with a version-controlled dataset.
+We're not quite ready to put the seal-of-approval on 0.9.0, but it's been more than a few months since we cut a release. This alpha-edition splits the difference while we prepare for a full & proper 0.9.0. The forthcoming big ticket item will be _File System Integration_ [(RFC0025)](https://github.com/qri-io/rfcs/blob/master/text/0025-filesystem-integration.md), which dramatically simplifies the story around integrating with a version-controlled dataset.
 
 So while this isn't a proper release, the changelog gives a feel for just how much work is included this go-round. More soon!
 
