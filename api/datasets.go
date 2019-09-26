@@ -364,13 +364,19 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	// TODO (b5) - move this into lib.Add
 	if ref.Peername == "" || ref.Name == "" {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("need peername and dataset name: '/add/[peername]/[datasetname]'"))
 		return
 	}
 
+	p := &lib.AddParams{
+		Ref:     ref.String(),
+		LinkDir: r.FormValue("dir"),
+	}
+
 	res := repo.DatasetRef{}
-	err = h.Add(&ref, &res)
+	err = h.Add(p, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
