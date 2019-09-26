@@ -31,6 +31,7 @@ func TestBookFlatbuffer(t *testing.T) {
 		Size:      2,
 		Note:      "note!",
 	})
+	log.signature = []byte{1, 2, 3}
 
 	log.AddChild(InitLog(Op{
 		Type:      OpTypeInit,
@@ -94,6 +95,32 @@ func TestBookCiphertext(t *testing.T) {
 
 	if err = book.UnmarshalFlatbufferCipher(tr.Ctx, gotcipher); err != nil {
 		t.Errorf("book.UnmarhsalFlatbufferCipher unexpected error: %s", err.Error())
+	}
+}
+
+func TestBookSignLog(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	lg := tr.RandomLog(Op{
+		Type:  OpTypeInit,
+		Model: 0x0001,
+		Name:  "apples",
+	}, 400)
+
+	pk := tr.Book.pk
+	data, err := lg.SignedFlatbufferBytes(pk)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	received, err := FromFlatbufferBytes(data)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if err := received.Verify(pk.GetPublic()); err != nil {
+		t.Fatal(err)
 	}
 }
 

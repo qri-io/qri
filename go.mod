@@ -2,8 +2,6 @@ module github.com/qri-io/qri
 
 go 1.12
 
-replace github.com/qri-io/qfs => /Users/b5/qri/qfs
-
 replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead
@@ -53,7 +51,7 @@ require (
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20190914113707-830d3ea8232d
+	github.com/qri-io/qfs v0.1.1-0.20190926005644-f6aaf2ffe3bf
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0

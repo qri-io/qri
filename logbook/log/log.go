@@ -196,6 +196,13 @@ func InitLog(initop Op) *Log {
 	}
 }
 
+// FromFlatbufferBytes initializes a log from flatbuffer data
+func FromFlatbufferBytes(data []byte) (*Log, error) {
+	rootfb := logfb.GetRootAsLog(data, 0)
+	lg := &Log{}
+	return lg, lg.UnmarshalFlatbuffer(rootfb)
+}
+
 // Append adds an operation to the log
 func (lg *Log) Append(op Op) {
 	lg.ops = append(lg.ops, op)
@@ -216,11 +223,6 @@ func (lg Log) Model() uint32 {
 
 // Author returns the name and identifier this log is attributed to
 func (lg Log) Author() (name, identifier string) {
-	// if len(lg.ops) > 0 {
-	// 	if initOp, ok := lg.ops[0].(InitOperation); ok {
-	// 		return initOp.AuthorName(), initOp.AuthorID()
-	// 	}
-	// }
 	return lg.ops[0].Name, lg.ops[0].AuthorID
 }
 
@@ -229,11 +231,6 @@ func (lg Log) Author() (name, identifier string) {
 // TODO (b5) - name must be made mutable by playing forward any name-changing
 // operations and applying them to the log
 func (lg Log) Name() string {
-	// if len(lg.ops) > 0 {
-	// 	if initOp, ok := lg.ops[0].(InitOperation); ok {
-	// 		return initOp.Name()
-	// 	}
-	// }
 	return lg.ops[0].Name
 }
 
@@ -253,13 +250,54 @@ func (lg *Log) AddChild(l *Log) {
 }
 
 // Verify confirms that the signature for a log matches
-func (lg Log) Verify() error {
-	return fmt.Errorf("not finished")
+func (lg Log) Verify(pub crypto.PubKey) error {
+	ok, err := pub.Verify(lg.SigningBytes(), lg.signature)
+	if err != nil {
+		return err
+	}
+	if !ok {
+		return fmt.Errorf("invalid signature")
+	}
+	return nil
 }
 
 // Ops gives the set of operations in a log
 func (lg Log) Ops() []Op {
 	return lg.ops
+}
+
+// Sign assigns the log signature by signing the logging checksum with a given
+// private key
+// TODO (b5) - this is assuming the log is authored by this private key. as soon
+// as we add collaborators, this won't be true
+func (lg *Log) Sign(pk crypto.PrivKey) (err error) {
+	lg.signature, err = pk.Sign(lg.SigningBytes())
+	if err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// SigningBytes perpares a byte slice for signing from a log's operations
+func (lg Log) SigningBytes() []byte {
+	hasher := md5.New()
+	for _, op := range lg.ops {
+		hasher.Write([]byte(op.Ref))
+	}
+	return hasher.Sum(nil)
+}
+
+// SignedFlatbufferBytes signs a log then marshals it to a flatbuffer
+func (lg Log) SignedFlatbufferBytes(pk crypto.PrivKey) ([]byte, error) {
+	if err := lg.Sign(pk); err != nil {
+		return nil, err
+	}
+
+	builder := flatbuffers.NewBuilder(0)
+	log := lg.MarshalFlatbuffer(builder)
+	builder.Finish(log)
+	return builder.FinishedBytes(), nil
 }
 
 // MarshalFlatbuffer writes log to a flatbuffer, returning the ending byte

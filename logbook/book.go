@@ -30,6 +30,7 @@ const (
 // Book wraps a log.Book with a higher-order API specific to Qri
 type Book struct {
 	bk       *log.Book
+	pk       crypto.PrivKey
 	location string
 	fs       qfs.WritableFilesystem
 }
@@ -54,6 +55,7 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.WritableFilesystem, loca
 	book := &Book{
 		bk:       bk,
 		fs:       fs,
+		pk:       pk,
 		location: location,
 	}
 
@@ -229,8 +231,10 @@ func (book Book) WritePublish(ctx context.Context, ref repo.DatasetRef, revision
 	}
 
 	l.Append(log.Op{
-		Type:  log.OpTypeInit,
-		Model: publicationModel,
+		Type:      log.OpTypeInit,
+		Model:     publicationModel,
+		Size:      uint64(revisions),
+		Relations: destinations,
 		// TODO (b5) - finish
 	})
 
@@ -247,8 +251,10 @@ func (book Book) WriteUnpublish(ctx context.Context, ref repo.DatasetRef, revisi
 	}
 
 	l.Append(log.Op{
-		Type:  log.OpTypeRemove,
-		Model: publicationModel,
+		Type:      log.OpTypeRemove,
+		Model:     publicationModel,
+		Size:      uint64(revisions),
+		Relations: destinations,
 		// TODO (b5) - finish
 	})
 
@@ -270,6 +276,18 @@ func (book Book) Author(username string) (Author, error) {
 		Username: "",
 	}
 	return a, nil
+}
+
+// LogBytes gets signed bytes suitable for sending as a network request.
+// keep in mind that logs should never be sent to someone who does not have
+// proper permission to be disclosed log details
+func (book Book) LogBytes(ref repo.DatasetRef) ([]byte, error) {
+	lg, err := book.readRefLog(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	return lg.SignedFlatbufferBytes(book.pk)
 }
 
 // Versions plays a set of operations for a given log, producing a State struct
@@ -310,7 +328,8 @@ func (book Book) refFromOp(ref repo.DatasetRef, op log.Op) repo.DatasetRef {
 	}
 }
 
-// ACL represents an access control list
+// ACL represents an access control list. ACL is a work in progress, not fully
+// implemented
 // TODO (b5) - the real version of this struct will come from a different
 // package
 type ACL struct {
