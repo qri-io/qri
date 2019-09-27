@@ -241,7 +241,7 @@ func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 
 func newTestDisconnectedQriNode() (*p2p.QriNode, error) {
 	ms := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{}, ms, newTestFS(ms), profile.NewMemStore())
+	r, err := repo.NewMemRepo(&profile.Profile{PrivKey: privKey}, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
 		return nil, err
 	}

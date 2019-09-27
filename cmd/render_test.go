@@ -89,7 +89,7 @@ func TestRenderRun(t *testing.T) {
 	}
 	r := node.Repo
 
-	key, err := r.Store().Put(ctx, templateFile, false)
+	key, err := r.Store().Put(ctx, templateFile)
 	if err != nil {
 		t.Errorf("error putting template into store: %s", err)
 		return

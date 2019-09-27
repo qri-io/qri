@@ -55,6 +55,7 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, ba
 
 	book, err := logbook.NewBook(pro.PrivKey, pro.Peername, fsys, filepath.Join(base, "logbook.qfb"))
 	if err != nil {
+		log.Errorf("initializing logbook: %s", err)
 		return nil, err
 	}
 
@@ -110,6 +111,7 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 	return r.profile, nil
 }
 
+// Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook
 }

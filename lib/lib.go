@@ -324,7 +324,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.repo != nil {
 		inst.repo = o.repo
 	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store); err != nil {
+		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
@@ -332,10 +332,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.repo != nil {
 		inst.fsi = fsi.NewFSI(inst.repo)
-
-		if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
-			qfssetter.SetFilesystem(inst.qfs)
-		}
 	}
 
 	if inst.node == nil {
@@ -460,7 +456,7 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo, err error) {
+func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -468,9 +464,9 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, nil, pro, path)
+		return fsrepo.NewRepo(store, fs, pro, path)
 	case "mem":
-		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore())
+		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}

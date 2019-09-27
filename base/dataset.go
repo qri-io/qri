@@ -313,8 +313,6 @@ func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err er
 func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
 		return pinner.Pin(ctx, ref.Path, true)
-		// return r.LogEvent(repo.ETDsPinned, ref)
-
 	}
 	return repo.ErrNotPinner
 }

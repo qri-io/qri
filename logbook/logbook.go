@@ -11,6 +11,7 @@ import (
 	"context"
 	"fmt"
 	"io/ioutil"
+	"strings"
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
@@ -51,14 +52,15 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 		return nil, fmt.Errorf("logbook: private key is required")
 	}
 	if fs == nil {
-		return nil, fmt.Errorf("logbook: filsystem is required")
+		return nil, fmt.Errorf("logbook: filesystem is required")
+	}
+	if location == "" {
+		return nil, fmt.Errorf("logbook: location is required")
 	}
 	pid, err := calcProfileID(pk)
 	if err != nil {
 		return nil, err
 	}
-
-	// TODO (b5) - validate inputs
 
 	bk, err := log.NewBook(pk, username, pid)
 	if err != nil {
@@ -94,9 +96,7 @@ func (book *Book) initialize(ctx context.Context) error {
 	})
 
 	book.bk.AppendLog(l)
-
-	_, err := book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // RenameAuthor marks a change in author name
@@ -110,21 +110,22 @@ func (book Book) DeleteAuthor() error {
 }
 
 // Save writes the book to book.location
-func (book Book) Save(ctx context.Context) (string, error) {
+func (book Book) Save(ctx context.Context) error {
 	ciphertext, err := book.bk.FlatbufferCipher()
 	if err != nil {
-		return "", err
+		return err
 	}
 
 	file := qfs.NewMemfileBytes(book.location, ciphertext)
-	return book.fs.Put(ctx, file)
+	book.location, err = book.fs.Put(ctx, file)
+	return err
 }
 
 // Load reads the book dataset from book.location
-func (book Book) Load(ctx context.Context) error {
+func (book *Book) Load(ctx context.Context) error {
 	f, err := book.fs.Get(ctx, book.location)
 	if err != nil {
-		if err == qfs.ErrNotFound {
+		if strings.Contains(err.Error(), "not found") {
 			return ErrNotFound
 		}
 		return err
@@ -142,8 +143,7 @@ func (book Book) Load(ctx context.Context) error {
 // histories start with a NameInit
 func (book Book) WriteNameInit(ctx context.Context, name string) error {
 	book.initName(ctx, name)
-	_, err := book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 func (book Book) initName(ctx context.Context, name string) *log.Log {
@@ -191,8 +191,7 @@ func (book Book) WriteVersionSave(ctx context.Context, ref dsref.Ref, ds *datase
 		Note:  ds.Commit.Title,
 	})
 
-	_, err = book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
@@ -210,8 +209,7 @@ func (book Book) WriteVersionAmend(ctx context.Context, ref dsref.Ref, ds *datas
 		Note:  ds.Commit.Title,
 	})
 
-	_, err = book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // WriteVersionDelete adds an operation to a log marking a number of sequential
@@ -230,8 +228,7 @@ func (book Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revision
 		// TODO (b5) - finish
 	})
 
-	_, err = book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // WritePublish adds an operation to a log marking the publication of a number
@@ -251,8 +248,7 @@ func (book Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int,
 		// TODO (b5) - finish
 	})
 
-	_, err = book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
@@ -271,8 +267,7 @@ func (book Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions in
 		// TODO (b5) - finish
 	})
 
-	_, err = book.Save(ctx)
-	return err
+	return book.Save(ctx)
 }
 
 // Author represents the author at a point in time

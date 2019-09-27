@@ -3,11 +3,6 @@ module github.com/qri-io/qri
 go 1.12
 
 replace (
-	github.com/qri-io/dataset => /Users/b5/qri/dataset
-	github.com/qri-io/qfs => /Users/b5/qri/qfs
-)
-
-replace (
 	github.com/go-critic/go-critic v0.0.0-20181204210945-c3db6069acc5 => github.com/go-critic/go-critic v0.0.0-20190422201921-c3db6069acc5
 	github.com/go-critic/go-critic v0.0.0-20181204210945-ee9bf5809ead => github.com/go-critic/go-critic v0.0.0-20190210220443-ee9bf5809ead
 	github.com/golangci/errcheck v0.0.0-20181003203344-ef45e06d44b6 => github.com/golangci/errcheck v0.0.0-20181223084120-ef45e06d44b6

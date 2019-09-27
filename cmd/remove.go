@@ -6,7 +6,6 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/dsref"
 	"github.com/spf13/cobra"
 )
 
