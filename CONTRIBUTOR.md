@@ -167,7 +167,7 @@ It's a quick process, we promise!
 
 
 
-[coc]: https://github.com/qri-io/qri/CODE_OF_CONDUCT.md
+[coc]: https://github.com/qri-io/qri/blob/master/code_of_conduct.md
 [corporate-cla]: http://code.google.com/legal/corporate-cla-v1.0.html
 [developers]: DEVELOPERS.md
 [developers.setup]: DEVELOPERS.md#setup
