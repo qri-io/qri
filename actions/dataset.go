@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
@@ -300,6 +301,10 @@ func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bo
 	}
 	if isRename {
 		new.Path = current.Path
+
+		if err = r.Logbook().WriteNameAmend(context.TODO(), repo.ConvertToDsref(*current), new.Name); err != nil {
+			return err
+		}
 	}
 
 	if err = r.DeleteRef(*current); err != nil {
@@ -309,7 +314,6 @@ func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bo
 		return err
 	}
 
-	// return r.LogEvent(repo.ETDsRenamed, *new)
 	return nil
 }
 
@@ -334,14 +338,14 @@ func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef)
 	// TODO - this is causing bad things in our tests. For some reason core repo explodes with nil
 	// references when this is on and go test ./... is run from $GOPATH/github.com/qri-io/qri
 	// let's upgrade IPFS to the latest version & try again
-	// log, err := base.DatasetLog(r, *ref, 10000, 0, false)
-	// if err != nil {
-	// 	return err
-	// }
+	log, err := base.DatasetLog(ctx, r, *ref, 10000, 0, false)
+	if err != nil {
+		return err
+	}
 
 	// for _, ref := range log {
 	// 	time.Sleep(time.Millisecond * 50)
-	// 	if err = base.UnpinDataset(r, ref); err != nil {
+	// 	if err = base.UnpinDataset(r, ref); err != nil && err != repo.ErrNotPinner {
 	// 		return err
 	// 	}
 	// }
@@ -354,6 +358,10 @@ func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef)
 		return err
 	}
 
-	// return r.LogEvent(repo.ETDsDeleted, *ref)
-	return nil
+	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), len(log))
+	if err == logbook.ErrNotFound {
+		return nil
+	}
+
+	return err
 }

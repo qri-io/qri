@@ -332,8 +332,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		err = m.runDatasetUpdate(ctx, params, res)
 
 	case cron.JTShellScript:
-		return update.JobToCmd(m.inst.streams, p).Run()
-
+		err = update.JobToCmd(m.inst.streams, p).Run()
 	case cron.JobType(""):
 		return fmt.Errorf("update requires a job type to run")
 	default:
@@ -344,9 +343,10 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 		return err
 	}
 
-	// TODO (b5): expand event logging interface to support storing additional details
-	// return m.inst.Repo().LogEvent(repo.ETCronJobRan, *res)
-	return nil
+	if p.RunError == "" {
+		err = m.inst.Repo().Logbook().WriteCronJobRan(ctx, p.RunNumber, repo.ConvertToDsref(*res))
+	}
+	return err
 }
 
 func absolutizeJobFilepaths(j *Job) error {

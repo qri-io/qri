@@ -208,12 +208,18 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		Name:      ds.Name,
 		Path:      path,
 	}
+
 	if err = r.PutRef(ref); err != nil {
 		return
 	}
-	// if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
-	// 	return
-	// }
+
+	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
+	ds.ProfileID = pro.ID.String()
+	ds.Peername = pro.Peername
+	ds.Path = path
+	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil {
+		return
+	}
 
 	if err = ReadDataset(ctx, r, &ref); err != nil {
 		return
@@ -321,7 +327,6 @@ func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
 		return pinner.Unpin(ctx, ref.Path, true)
-		// return r.LogEvent(repo.ETDsUnpinned, ref)
 	}
 	return repo.ErrNotPinner
 }

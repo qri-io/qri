@@ -57,6 +57,8 @@ func Example() {
 	// pretend we've just created a dataset, these are the only fields the log
 	// will care about
 	ds := &dataset.Dataset{
+		Peername: "b5",
+		Name:     "world_bank_population",
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 			Title:     "initial commit",
@@ -67,16 +69,16 @@ func Example() {
 		// need to model those properly first.
 	}
 
-	ref := dsref.Ref{Username: "b5", Name: "world_bank_population"}
-
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if err := book.WriteVersionSave(ctx, ref, ds); err != nil {
+	if err := book.WriteVersionSave(ctx, ds); err != nil {
 		panic(err)
 	}
 
 	// sometime later, we create another version
 	ds2 := &dataset.Dataset{
+		Peername: "b5",
+		Name:     "world_bank_population",
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
 			Title:     "added body data",
@@ -89,8 +91,13 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, ref, ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, ds2); err != nil {
 		panic(err)
+	}
+
+	ref := dsref.Ref{
+		Username: "b5",
+		Name:     "world_bank_population",
 	}
 
 	// pretend we just published both saved versions of the dataset to the
@@ -110,6 +117,8 @@ func Example() {
 
 	// create another version
 	ds3 := &dataset.Dataset{
+		Peername: "b5",
+		Name:     "world_bank_population",
 		Commit: &dataset.Commit{
 			Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
 			Title:     "added meta info",
@@ -125,7 +134,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if err := book.WriteVersionSave(ctx, ref, ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, ds3); err != nil {
 		panic(err)
 	}
 

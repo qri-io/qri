@@ -33,6 +33,7 @@ const (
 	versionModel     uint32 = 0x0003
 	publicationModel uint32 = 0x0004
 	aclModel         uint32 = 0x0005
+	cronJobModel     uint32 = 0x0006
 )
 
 // Book wraps a log.Book with a higher-order API specific to Qri
@@ -89,7 +90,7 @@ func (book *Book) initialize(ctx context.Context) error {
 	// initialize author namespace
 	l := log.InitLog(log.Op{
 		Type:      log.OpTypeInit,
-		Model:     nameModel,
+		Model:     userModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
 		Timestamp: time.Now().UnixNano(),
@@ -161,7 +162,7 @@ func (book Book) initName(ctx context.Context, name string) *log.Log {
 }
 
 func (book Book) authorNamespace() *log.Log {
-	for _, l := range book.bk.ModelLogs(nameModel) {
+	for _, l := range book.bk.ModelLogs(userModel) {
 		if l.Name() == book.bk.AuthorName() {
 			return l
 		}
@@ -170,9 +171,34 @@ func (book Book) authorNamespace() *log.Log {
 	return nil
 }
 
+// WriteNameAmend marks a rename event within a namespace
+func (book Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName string) error {
+	// TODO (b5) - finish
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:      log.OpTypeAmend,
+		Model:     nameModel,
+		Name:      newName,
+		Timestamp: time.Now().UnixNano(),
+	})
+
+	return nil
+}
+
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-func (book Book) WriteVersionSave(ctx context.Context, ref dsref.Ref, ds *dataset.Dataset) error {
+func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
+	ref := dsref.Ref{
+		Username:  ds.Peername,
+		ProfileID: ds.ProfileID,
+		Name:      ds.Name,
+		Path:      ds.Path,
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		if err == ErrNotFound {
@@ -264,6 +290,23 @@ func (book Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions in
 		Model:     publicationModel,
 		Size:      uint64(revisions),
 		Relations: destinations,
+		// TODO (b5) - finish
+	})
+
+	return book.Save(ctx)
+}
+
+// WriteCronJobRan adds an operation to a log marking the execution of a cronjob
+func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Ref) error {
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return err
+	}
+
+	l.Append(log.Op{
+		Type:  log.OpTypeRemove,
+		Model: cronJobModel,
+		Size:  uint64(number),
 		// TODO (b5) - finish
 	})
 

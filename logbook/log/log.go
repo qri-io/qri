@@ -163,8 +163,10 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 
 func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	newBook := Book{
-		id:   string(b.Identifier()),
-		logs: map[uint32][]*Log{},
+		pk:         book.pk,
+		authorname: string(b.Name()),
+		id:         string(b.Identifier()),
+		logs:       map[uint32][]*Log{},
 	}
 
 	count := b.LogsLength()
