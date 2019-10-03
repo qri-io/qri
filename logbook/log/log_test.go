@@ -31,7 +31,7 @@ func TestBookFlatbuffer(t *testing.T) {
 		Size:      2,
 		Note:      "note!",
 	})
-	log.signature = []byte{1, 2, 3}
+	log.Signature = []byte{1, 2, 3}
 
 	log.AddChild(InitLog(Op{
 		Type:      OpTypeInit,

@@ -96,11 +96,11 @@ func TestAddDataset(t *testing.T) {
 func TestDataset(t *testing.T) {
 	rmf := func(t *testing.T) repo.Repo {
 		store := cafs.NewMapstore()
+		testPeerProfile.PrivKey = privKey
 		mr, err := repo.NewMemRepo(testPeerProfile, store, qfs.NewMemFS(), profile.NewMemStore())
 		if err != nil {
 			panic(err)
 		}
-		// mr.SetPrivateKey(privKey)
 		return mr
 	}
 	DatasetTests(t, rmf)

@@ -24,7 +24,8 @@ import (
 
 var (
 	// ErrNotFound is a sentinel error for data not found in a logbook
-	ErrNotFound = fmt.Errorf("logbook: not found")
+	ErrNotFound  = fmt.Errorf("logbook: not found")
+	newTimestamp = func() time.Time { return time.Now() }
 )
 
 const (
@@ -35,6 +36,25 @@ const (
 	aclModel         uint32 = 0x0005
 	cronJobModel     uint32 = 0x0006
 )
+
+func modelString(m uint32) string {
+	switch m {
+	case userModel:
+		return "user"
+	case nameModel:
+		return "name"
+	case versionModel:
+		return "version"
+	case publicationModel:
+		return "publication"
+	case aclModel:
+		return "acl"
+	case cronJobModel:
+		return "cronJob"
+	default:
+		return ""
+	}
+}
 
 // Book wraps a log.Book with a higher-order API specific to Qri
 type Book struct {
@@ -87,16 +107,26 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 }
 
 func (book *Book) initialize(ctx context.Context) error {
-	// initialize author namespace
-	l := log.InitLog(log.Op{
+	// initialize author's log of user actions
+	userActions := log.InitLog(log.Op{
 		Type:      log.OpTypeInit,
 		Model:     userModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: newTimestamp().UnixNano(),
 	})
+	book.bk.AppendLog(userActions)
 
-	book.bk.AppendLog(l)
+	// initialize author's namespace
+	ns := log.InitLog(log.Op{
+		Type:      log.OpTypeInit,
+		Model:     nameModel,
+		Name:      book.bk.AuthorName(),
+		AuthorID:  book.bk.AuthorID(),
+		Timestamp: newTimestamp().UnixNano(),
+	})
+	book.bk.AppendLog(ns)
+
 	return book.Save(ctx)
 }
 
@@ -111,7 +141,7 @@ func (book Book) DeleteAuthor() error {
 }
 
 // Save writes the book to book.location
-func (book Book) Save(ctx context.Context) error {
+func (book *Book) Save(ctx context.Context) error {
 	ciphertext, err := book.bk.FlatbufferCipher()
 	if err != nil {
 		return err
@@ -153,21 +183,22 @@ func (book Book) initName(ctx context.Context, name string) *log.Log {
 		Model:     nameModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: newTimestamp().UnixNano(),
 	})
 
 	ns := book.authorNamespace()
-	ns.AddChild(lg)
+	ns.Logs = append(ns.Logs, lg)
 	return lg
 }
 
 func (book Book) authorNamespace() *log.Log {
-	for _, l := range book.bk.ModelLogs(userModel) {
+	for _, l := range book.bk.ModelLogs(nameModel) {
 		if l.Name() == book.bk.AuthorName() {
 			return l
 		}
 	}
 	// this should never happen in practice
+	// TODO (b5): create an author namespace on the spot if this happens
 	return nil
 }
 
@@ -183,22 +214,15 @@ func (book Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName stri
 		Type:      log.OpTypeAmend,
 		Model:     nameModel,
 		Name:      newName,
-		Timestamp: time.Now().UnixNano(),
+		Timestamp: newTimestamp().UnixNano(),
 	})
-
 	return nil
 }
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
 func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
-	ref := dsref.Ref{
-		Username:  ds.Peername,
-		ProfileID: ds.ProfileID,
-		Name:      ds.Name,
-		Path:      ds.Path,
-	}
-
+	ref := refFromDataset(ds)
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		if err == ErrNotFound {
@@ -221,8 +245,8 @@ func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) erro
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
-func (book Book) WriteVersionAmend(ctx context.Context, ref dsref.Ref, ds *dataset.Dataset) error {
-	l, err := book.readRefLog(ref)
+func (book Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) error {
+	l, err := book.readRefLog(refFromDataset(ds))
 	if err != nil {
 		return err
 	}
@@ -262,8 +286,7 @@ func (book Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revision
 func (book Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
-		return fmt.Errorf("%#v", book.bk.ModelLogs(nameModel)[0])
-		// return err
+		return err
 	}
 
 	l.Append(log.Op{
@@ -304,29 +327,13 @@ func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Re
 	}
 
 	l.Append(log.Op{
-		Type:  log.OpTypeRemove,
+		Type:  log.OpTypeInit,
 		Model: cronJobModel,
 		Size:  uint64(number),
 		// TODO (b5) - finish
 	})
 
 	return book.Save(ctx)
-}
-
-// Author represents the author at a point in time
-type Author struct {
-	Username  string
-	ID        string
-	PublicKey string
-}
-
-// Author plays forward the current author's operation log to determine the
-// latest author state
-func (book Book) Author(username string) (Author, error) {
-	a := Author{
-		Username: "",
-	}
-	return a, nil
 }
 
 // LogBytes gets signed bytes suitable for sending as a network request.
@@ -350,13 +357,13 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]dsref.Info, error
 	}
 
 	refs := []dsref.Info{}
-	for _, op := range l.Ops() {
+	for _, op := range l.Ops {
 		if op.Model == versionModel {
 			switch op.Type {
 			case log.OpTypeInit:
-				refs = append(refs, book.infoFromOp(ref, op))
+				refs = append(refs, infoFromOp(ref, op))
 			case log.OpTypeAmend:
-				refs[len(refs)-1] = book.infoFromOp(ref, op)
+				refs[len(refs)-1] = infoFromOp(ref, op)
 			case log.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
@@ -366,28 +373,170 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]dsref.Info, error
 	return refs, nil
 }
 
-func (book Book) infoFromOp(ref dsref.Ref, op log.Op) dsref.Info {
+// LogEntry is a simplified representation of a log operation
+type LogEntry struct {
+	Timestamp time.Time
+	Author    string
+	Action    string
+	Note      string
+}
+
+// String formats a LogEntry as a String
+func (l LogEntry) String() string {
+	return fmt.Sprintf("%s\t%s\t%s\t%s", l.Timestamp.Format(time.Kitchen), l.Author, l.Action, l.Note)
+}
+
+// Logs returns
+func (book Book) Logs(ref dsref.Ref, offset, limit int) ([]LogEntry, error) {
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return nil, err
+	}
+
+	res := []LogEntry{}
+	for _, op := range l.Ops {
+		if offset > 0 {
+			offset--
+			continue
+		}
+		res = append(res, logEntryFromOp(ref.Username, op))
+		if len(res) == limit {
+			break
+		}
+	}
+
+	return res, nil
+}
+
+var actionStrings = map[uint32][3]string{
+	userModel:        [3]string{"create profile", "update profile", "delete profile"},
+	nameModel:        [3]string{"init", "rename", "delete"},
+	versionModel:     [3]string{"save", "amend", "remove"},
+	publicationModel: [3]string{"publish", "", "unpublish"},
+	aclModel:         [3]string{"update access", "update access", ""},
+	cronJobModel:     [3]string{"ran update", "", ""},
+}
+
+func logEntryFromOp(author string, op log.Op) LogEntry {
+	return LogEntry{
+		Timestamp: time.Unix(0, op.Timestamp),
+		Author:    author,
+		Action:    actionStrings[op.Model][int(op.Type)-1],
+		Note:      op.Note,
+	}
+}
+
+// RawLogs returns a serialized, complete set of logs keyed by model type
+// logs. Most
+func (book Book) RawLogs() map[string][]Log {
+	logs := map[string][]Log{}
+	for m, lgs := range book.bk.Logs() {
+		ls := make([]Log, len(lgs))
+		for i, l := range lgs {
+			ls[i] = newLog(l)
+		}
+		logs[modelString(m)] = ls
+	}
+	return logs
+}
+
+// Log is a human-oriented representation of log.Log intended for serialization
+type Log struct {
+	Ops  []Op  `json:"ops,omitempty"`
+	Logs []Log `json:"logs,omitempty"`
+}
+
+func newLog(lg *log.Log) Log {
+	ops := make([]Op, len(lg.Ops))
+	for i, o := range lg.Ops {
+		ops[i] = newOp(o)
+	}
+
+	var ls []Log
+	if len(lg.Logs) > 0 {
+		ls = make([]Log, len(lg.Logs))
+		for i, l := range lg.Logs {
+			ls[i] = newLog(l)
+		}
+	}
+
+	return Log{
+		Ops:  ops,
+		Logs: ls,
+	}
+}
+
+// Op is a human-oriented representation of log.Op intended for serialization
+type Op struct {
+	// type of operation
+	Type string `json:"type,omitempty"`
+	// data model to operate on
+	Model string `json:"model,omitempty"`
+	// identifier of data this operation is documenting
+	Ref string `json:"ref,omitempty"`
+	// previous reference in a causal history
+	Prev string `json:"prev,omitempty"`
+	// references this operation relates to. usage is operation type-dependant
+	Relations []string `json:"relations,omitempty"`
+	// human-readable name for the reference
+	Name string `json:"name,omitempty"`
+	// identifier for author
+	AuthorID string `json:"authorID,omitempty"`
+	// operation timestamp, for annotation purposes only
+	Timestamp time.Time `json:"timestamp,omitempty"`
+	// size of the referenced value in bytes
+	Size uint64 `json:"size,omitempty"`
+	// operation annotation for users. eg: commit title
+	Note string `json:"note,omitempty"`
+}
+
+func newOp(op log.Op) Op {
+	return Op{
+		Type:      opTypeString(op.Type),
+		Model:     modelString(op.Model),
+		Ref:       op.Ref,
+		Prev:      op.Prev,
+		Relations: op.Relations,
+		Name:      op.Name,
+		AuthorID:  op.AuthorID,
+		Timestamp: time.Unix(0, op.Timestamp),
+		Size:      op.Size,
+		Note:      op.Note,
+	}
+}
+
+func opTypeString(op log.OpType) string {
+	switch op {
+	case log.OpTypeInit:
+		return "init"
+	case log.OpTypeAmend:
+		return "amend"
+	case log.OpTypeRemove:
+		return "remove"
+	default:
+		return ""
+	}
+}
+
+func refFromDataset(ds *dataset.Dataset) dsref.Ref {
+	return dsref.Ref{
+		Username:  ds.Peername,
+		ProfileID: ds.ProfileID,
+		Name:      ds.Name,
+		Path:      ds.Path,
+	}
+}
+
+func infoFromOp(ref dsref.Ref, op log.Op) dsref.Info {
 	return dsref.Info{
 		Ref: dsref.Ref{
 			Username: ref.Username,
 			Name:     ref.Name,
 			Path:     op.Ref,
 		},
-		Timestamp:   time.Unix(op.Timestamp, op.Timestamp),
+		Timestamp:   time.Unix(0, op.Timestamp),
 		CommitTitle: op.Note,
 	}
-}
-
-// ACL represents an access control list. ACL is a work in progress, not fully
-// implemented
-// TODO (b5) - the real version of this struct will come from a different
-// package
-type ACL struct {
-}
-
-// ACL is a control list
-func (book Book) ACL(alias string) (ACL, error) {
-	return ACL{}, fmt.Errorf("not finished")
 }
 
 func (book Book) readRefLog(ref dsref.Ref) (*log.Log, error) {
@@ -414,12 +563,12 @@ func (book Book) readRefLog(ref dsref.Ref) (*log.Log, error) {
 func calcProfileID(privKey crypto.PrivKey) (string, error) {
 	pubkeybytes, err := privKey.GetPublic().Bytes()
 	if err != nil {
-		return "", fmt.Errorf("error getting pubkey bytes: %s", err.Error())
+		return "", fmt.Errorf("getting pubkey bytes: %s", err.Error())
 	}
 
 	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
 	if err != nil {
-		return "", fmt.Errorf("error summing pubkey: %s", err.Error())
+		return "", fmt.Errorf("summing pubkey: %s", err.Error())
 	}
 
 	return mh.B58String(), nil
