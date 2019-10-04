@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -69,4 +70,52 @@ func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error)
 
 	*res, err = actions.DatasetLog(ctx, r.node, ref, params.Limit, params.Offset)
 	return
+}
+
+// RefListParams encapsulatess parameters for requests to a single reference
+// that will produce a paginated result
+type RefListParams struct {
+	// String value of a reference
+	Ref string
+	// Pagination Parameters
+	Offset, Limit int
+}
+
+// LogEntry is a record in a log of operations on a dataset
+type LogEntry = logbook.LogEntry
+
+// Logbook lists log entries for actions taken on a given dataset
+func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
+	if r.cli != nil {
+		return r.cli.Call("LogRequests.Logbook", p, res)
+	}
+	ctx := context.TODO()
+
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
+		return err
+	}
+
+	book := r.node.Repo.Logbook()
+	*res, err = book.LogEntries(ctx, repo.ConvertToDsref(ref), p.Offset, p.Limit)
+	return err
+}
+
+// RawLogsParams enapsulates parameters for the RawLogs methods
+type RawLogsParams struct {
+	// no options yet
+}
+
+// RawLogs encodes the full logbook as human-oriented json
+func (r *LogRequests) RawLogs(p *RawLogsParams, res *interface{}) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("LogRequests.RawLogs", p, res)
+	}
+	ctx := context.TODO()
+
+	*res = r.node.Repo.Logbook().RawLogs(ctx)
+	return err
 }

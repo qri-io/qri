@@ -2,7 +2,9 @@ package lib
 
 import (
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -64,5 +66,50 @@ func TestHistoryRequestsLog(t *testing.T) {
 				continue
 			}
 		}
+	}
+}
+
+func TestHistoryRequestsLogEntries(t *testing.T) {
+	mr, refs, err := testrepo.NewTestRepoWithHistory()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+		return
+	}
+
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	firstRef := refs[0].String()
+	req := NewLogRequests(node, nil)
+
+	if err = req.Logbook(&RefListParams{}, nil); err == nil {
+		t.Errorf("expected empty reference param to error")
+	}
+
+	res := []LogEntry{}
+	if err = req.Logbook(&RefListParams{Ref: firstRef, Limit: 30}, &res); err != nil {
+		t.Fatal(err)
+	}
+
+	result := make([]string, len(res))
+	for i := range res {
+		// set response times to zero for consistent results
+		res[i].Timestamp = time.Time{}
+		result[i] = res[i].String()
+	}
+
+	expect := []string{
+		`12:00AM	peer	init	`,
+		`12:00AM	peer	save	initial commit`,
+		`12:00AM	peer	save	initial commit`,
+		`12:00AM	peer	save	initial commit`,
+		`12:00AM	peer	save	initial commit`,
+		`12:00AM	peer	save	initial commit`,
+	}
+
+	if diff := cmp.Diff(expect, result); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

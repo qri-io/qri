@@ -16,10 +16,10 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -611,7 +611,10 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 	res.NumDeleted = p.Revision.Gen
 
-	return nil
+	// TODO (b5) - this should be moved down into the action
+	err = r.inst.Repo().Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(ref), res.NumDeleted)
+
+	return err
 }
 
 // AddParams encapsulates parameters to the add command

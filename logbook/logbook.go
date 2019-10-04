@@ -233,14 +233,21 @@ func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) erro
 		}
 	}
 
-	l.Append(log.Op{
+	op := log.Op{
 		Type:  log.OpTypeInit,
 		Model: versionModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
-		Note:  ds.Commit.Title,
-	})
 
+		Timestamp: ds.Commit.Timestamp.UnixNano(),
+		Note:      ds.Commit.Title,
+	}
+
+	if ds.Structure != nil {
+		op.Size = uint64(ds.Structure.Length)
+	}
+
+	l.Append(op)
 	return book.Save(ctx)
 }
 
@@ -256,7 +263,9 @@ func (book Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) err
 		Model: versionModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
-		Note:  ds.Commit.Title,
+
+		Timestamp: ds.Commit.Timestamp.UnixNano(),
+		Note:      ds.Commit.Title,
 	})
 
 	return book.Save(ctx)
@@ -438,8 +447,9 @@ func (l LogEntry) String() string {
 	return fmt.Sprintf("%s\t%s\t%s\t%s", l.Timestamp.Format(time.Kitchen), l.Author, l.Action, l.Note)
 }
 
-// Logs returns
-func (book Book) Logs(ref dsref.Ref, offset, limit int) ([]LogEntry, error) {
+// LogEntries returns a summarized "line-by-line" representation of a log for a
+// given dataset reference
+func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit int) ([]LogEntry, error) {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return nil, err
@@ -480,7 +490,7 @@ func logEntryFromOp(author string, op log.Op) LogEntry {
 
 // RawLogs returns a serialized, complete set of logs keyed by model type
 // logs. Most
-func (book Book) RawLogs() map[string][]Log {
+func (book Book) RawLogs(ctx context.Context) map[string][]Log {
 	logs := map[string][]Log{}
 	for m, lgs := range book.bk.Logs() {
 		ls := make([]Log, len(lgs))

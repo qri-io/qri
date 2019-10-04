@@ -184,13 +184,13 @@ func TestNewBook(t *testing.T) {
 	}
 }
 
-func TestBookLog(t *testing.T) {
+func TestBookLogEntries(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteWorldBankExample(t)
 
-	entries, err := tr.Book.Logs(tr.WorldBankRef(), 0, 30)
+	entries, err := tr.Book.LogEntries(tr.Ctx, tr.WorldBankRef(), 0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -224,7 +224,7 @@ func TestBookRawLog(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 
-	got := tr.Book.RawLogs()
+	got := tr.Book.RawLogs(tr.Ctx)
 
 	// data, err := json.MarshalIndent(got, "", "  ")
 	// if err != nil {
@@ -258,7 +258,7 @@ func TestBookRawLog(t *testing.T) {
 								Type:      "init",
 								Model:     "version",
 								Ref:       "QmHashOfVersion1",
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 								Note:      "initial commit",
 							},
 							{
@@ -266,7 +266,7 @@ func TestBookRawLog(t *testing.T) {
 								Model:     "version",
 								Ref:       "QmHashOfVersion2",
 								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
 								Note:      "added body data",
 							},
 							{
@@ -296,7 +296,7 @@ func TestBookRawLog(t *testing.T) {
 								Model:     "version",
 								Ref:       "QmHashOfVersion3",
 								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+								Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
 								Note:      "added meta info",
 							},
 						},
@@ -335,17 +335,6 @@ func TestLogTransfer(t *testing.T) {
 		t.Error(err)
 	}
 
-	// got := &log.Log{}
-	// if err := got.UnmarshalFlatbufferBytes(data); err != nil {
-	// 	t.Error(err)
-	// }
-
-	// data, err = json.MarshalIndent(got, "", "  ")
-	// if err != nil {
-	// 	t.Fatal(err)
-	// }
-	// t.Logf("%s", string(data))
-
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
 	book2, err := NewBook(pk2, "user2", fs2, "/mem/fs2_location")
@@ -357,7 +346,7 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	lgs := book2.RawLogs()
+	lgs := book2.RawLogs(tr.Ctx)
 	data, err = json.MarshalIndent(lgs, "", "  ")
 	if err != nil {
 		t.Fatal(err)
@@ -379,11 +368,11 @@ func TestRenameDataset(t *testing.T) {
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.Logs(tr.RenameInitialRef(), 0, 30); err == nil {
+	if _, err := tr.Book.LogEntries(tr.Ctx, tr.RenameInitialRef(), 0, 30); err == nil {
 		t.Error("expected fetching renamed dataset to error")
 	}
 
-	entries, err := tr.Book.Logs(tr.RenameRef(), 0, 30)
+	entries, err := tr.Book.LogEntries(tr.Ctx, tr.RenameRef(), 0, 30)
 	// entries, err := tr.Book.Logs(tr.RenameInitialRef(), 0, 30)
 	if err != nil {
 		t.Fatal(err)

@@ -1,6 +1,7 @@
 package fsi
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
@@ -124,6 +125,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", err
 	}
 
+	err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name)
 	return name, err
 }
 

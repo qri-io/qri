@@ -211,3 +211,17 @@ func oneLiner(str string, maxLen int) string {
 	}
 	return str
 }
+
+type logEntryStringer lib.LogEntry
+
+func (s logEntryStringer) String() string {
+	title := color.New(color.FgGreen, color.Bold).SprintFunc()
+	ts := color.New(color.Faint).SprintFunc()
+
+	return fmt.Sprintf("%s\t%s\t%s\t%s\n",
+		ts(s.Timestamp.Format(time.RFC3339)),
+		title(s.Author),
+		title(s.Action),
+		s.Note,
+	)
+}
