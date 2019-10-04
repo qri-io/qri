@@ -103,10 +103,6 @@ func TestFSIMethodsWrite(t *testing.T) {
 			[]StatusItem{
 				{Component: "meta", Type: "unmodified"},
 				{Component: "structure", Type: "modified"},
-				// TODO (b5) - a side effect of re-prioritizing structure: api writes will remove any schema files
-				// I think this is ok b/c a theoretical schema editor would map that same data to structure,
-				// so no data would be lost unless the user wanted it so.
-				{Component: "schema", Type: "removed"},
 				{Component: "body", Type: "unmodified"},
 			},
 		},

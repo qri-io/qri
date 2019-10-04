@@ -20,7 +20,6 @@ const (
 	componentNameCommit    = "commit"
 	componentNameDataset   = "dataset"
 	componentNameMeta      = "meta"
-	componentNameSchema    = "schema"
 	componentNameBody      = "body"
 	componentNameStructure = "structure"
 	componentNameTransform = "transform"
@@ -45,7 +44,6 @@ type FileStat struct {
 func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]FileStat, err error) {
 	fileMap = map[string]FileStat{}
 	ds = &dataset.Dataset{}
-	schema := map[string]interface{}{}
 	problems = nil
 
 	components := map[string]interface{}{
@@ -54,7 +52,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 		componentNameCommit:    &dataset.Commit{},
 		componentNameMeta:      &dataset.Meta{},
 		componentNameStructure: &dataset.Structure{},
-		componentNameSchema:    &schema,
 		componentNameTransform: &dataset.Transform{},
 		componentNameViz:       &dataset.Viz{},
 
@@ -176,11 +173,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 						if err = addFile(componentNameStructure, path, st.ModTime()); err != nil {
 							return
 						}
-						if ds.Structure.Schema != nil {
-							if err = addFile(componentNameSchema, path, st.ModTime()); err != nil {
-								return
-							}
-						}
 					}
 					if ds.Viz != nil {
 						if err = addFile(componentNameViz, path, st.ModTime()); err != nil {
@@ -204,16 +196,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 					ds.Meta = cmp.(*dataset.Meta)
 				case componentNameStructure:
 					ds.Structure = cmp.(*dataset.Structure)
-					if ds.Structure.Schema != nil {
-						if err = addFile(componentNameSchema, path, st.ModTime()); err != nil {
-							return
-						}
-					}
-				case componentNameSchema:
-					if ds.Structure == nil {
-						ds.Structure = &dataset.Structure{}
-					}
-					ds.Structure.Schema = *cmp.(*map[string]interface{})
 				case componentNameViz:
 					ds.Viz = cmp.(*dataset.Viz)
 				case componentNameTransform:

@@ -304,7 +304,6 @@ func TestFSIWrite(t *testing.T) {
 		}{
 			{Component: "meta", Type: "modified"},
 			{Component: "structure", Type: "unmodified"},
-			{Component: "schema", Type: "unmodified"},
 			{Component: "body", Type: "unmodified"},
 		},
 	}
@@ -410,8 +409,6 @@ func TestCheckoutAndRestore(t *testing.T) {
 	metaMtime := st.ModTime().Format(time.RFC3339)
 	st, _ = os.Stat(filepath.Join(workDir, "structure.json"))
 	structureMtime := st.ModTime().Format(time.RFC3339)
-	// st, _ = os.Stat(filepath.Join(workDir, "schema.json"))
-	// schemaMtime := st.ModTime().Format(time.RFC3339)
 	st, _ = os.Stat(filepath.Join(workDir, "body.csv"))
 	bodyMtime := st.ModTime().Format(time.RFC3339)
 
@@ -422,8 +419,8 @@ func TestCheckoutAndRestore(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(actualBody, workDir, "", -1)
-	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/structure.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/structure.json","component":"schema","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
-	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, structureMtime, bodyMtime)
+	templateBody := `{"data":[{"sourceFile":"/meta.json","component":"meta","type":"modified","message":"","mtime":"%s"},{"sourceFile":"/structure.json","component":"structure","type":"unmodified","message":"","mtime":"%s"},{"sourceFile":"/body.csv","component":"body","type":"unmodified","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}

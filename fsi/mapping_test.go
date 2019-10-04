@@ -80,7 +80,7 @@ func TestDeleteDatasetFiles(t *testing.T) {
 	if err := ioutil.WriteFile(filepath.Join(paths.secondDir, "body.csv"), []byte(`first,second,third`), 0666); err != nil {
 		t.Fatal(err)
 	}
-	if err := ioutil.WriteFile(filepath.Join(paths.secondDir, "schema.json"), []byte(`{"type": "array"}`), 0666); err != nil {
+	if err := ioutil.WriteFile(filepath.Join(paths.secondDir, "structure.json"), []byte(`{"schema":{"type": "array"}}`), 0666); err != nil {
 		t.Fatal(err)
 	}
 	if err := ioutil.WriteFile(filepath.Join(paths.secondDir, "meta.json"), []byte(`invalid, but existing metadata file`), 0666); err != nil {
@@ -88,7 +88,7 @@ func TestDeleteDatasetFiles(t *testing.T) {
 	}
 
 	bodyStat = tFileStat(t, paths.secondDir, "body.csv")
-	schemaStat := tFileStat(t, paths.secondDir, "schema.json")
+	structureStat := tFileStat(t, paths.secondDir, "structure.json")
 	metaStat := tFileStat(t, paths.secondDir, "meta.json")
 
 	if mapping, err = DeleteDatasetFiles(paths.secondDir); err != nil {
@@ -96,9 +96,9 @@ func TestDeleteDatasetFiles(t *testing.T) {
 	}
 
 	expect = map[string]FileStat{
-		"body":   bodyStat,
-		"schema": schemaStat,
-		"meta":   metaStat,
+		"body":      bodyStat,
+		"structure": structureStat,
+		"meta":      metaStat,
 	}
 	if diff := cmp.Diff(expect, mapping); diff != "" {
 		t.Errorf("deleted file map mismatch (-want +got):\n%s", diff)

@@ -378,7 +378,7 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
-	// Create schema.json with a minimal schema.
+	// Create structure.json with a minimal schema.
 	if err = ioutil.WriteFile("structure.json", []byte(`{ "format": "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -392,7 +392,6 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 	expect := `for linked dataset [test_peer/more_movies]
 
   modified: structure (source: structure.json)
-  modified: schema (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -487,9 +486,9 @@ fix these problems before saving this dataset
 	}
 }
 
-// Test that parse errors are also properly shown for schema.
-func TestStatusParseErrorForSchema(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_schema")
+// Test that parse errors are also properly shown for structure.
+func TestStatusParseErrorForStructure(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_structure")
 	defer fr.Delete()
 
 	// Save a dataset containing a body.json and meta component
@@ -508,7 +507,7 @@ func TestStatusParseErrorForSchema(t *testing.T) {
 	_ = fr.ChdirToWorkDir("ten_movies")
 
 	// Modify the meta.json so that it fails to parse.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type":`), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile("structure.json", []byte(`{"format":`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -520,7 +519,7 @@ func TestStatusParseErrorForSchema(t *testing.T) {
 	output := fr.GetCommandOutput()
 	expect := `for linked dataset [test_peer/ten_movies]
 
-  parse error: schema (source: schema.json)
+  parse error: structure (source: structure.json)
 
 fix these problems before saving this dataset
 `
@@ -568,7 +567,7 @@ func TestStatusAtVersion(t *testing.T) {
 	}
 
 	output := fr.GetCommandOutput()
-	expect := `  schema: add
+	expect := `  structure: add
   body: add
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -582,7 +581,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: add
-  schema: unmodified
+  structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -596,7 +595,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: modified
-  schema: unmodified
+  structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -610,7 +609,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: unmodified
-  schema: unmodified
+  structure: unmodified
   body: modified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -688,7 +687,6 @@ run ` + "`qri save`" + ` to commit this dataset
 	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: structure (source: structure.json)
-  modified: schema (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -697,7 +695,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Restore to get the old schema back.
-	if err = fr.ExecCommand("qri restore schema"); err != nil {
+	if err = fr.ExecCommand("qri restore structure"); err != nil {
 		t.Fatalf(err.Error())
 	}
 
