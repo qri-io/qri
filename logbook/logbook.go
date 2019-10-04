@@ -340,12 +340,64 @@ func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Re
 // keep in mind that logs should never be sent to someone who does not have
 // proper permission to be disclosed log details
 func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
-	lg, err := book.readRefLog(ref)
-	if err != nil {
-		return nil, err
+	if ref.Username == "" {
+		return nil, fmt.Errorf("ref.Username is required")
+	}
+	if ref.Name == "" {
+		return nil, fmt.Errorf("ref.Name is required")
 	}
 
-	return lg.SignedFlatbufferBytes(book.pk)
+	for _, lg := range book.bk.ModelLogs(nameModel) {
+		if lg.Name() == ref.Username {
+			l := lg.Child(ref.Name)
+			if l == nil {
+				return nil, ErrNotFound
+			}
+
+			root := &log.Log{
+				Ops:  lg.Ops,
+				Logs: []*log.Log{l},
+			}
+			return root.SignedFlatbufferBytes(book.pk)
+		}
+	}
+
+	return nil, ErrNotFound
+}
+
+// MergeLogBytes adds a log to the logbook, mergining with any existing log data
+// TODO (b5) - this isn't fully worked out yet, need to verify signatures,
+// restricting what logs can be written based on the signer
+func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte) error {
+	if ref.Username == "" {
+		return fmt.Errorf("ref.Username is required")
+	}
+	if ref.Name == "" {
+		return fmt.Errorf("ref.Name is required")
+	}
+
+	lg := &log.Log{}
+	if err := lg.UnmarshalFlatbufferBytes(data); err != nil {
+		return err
+	}
+
+	// TODO (b5) - verify signature
+
+	merged := false
+	for _, l := range book.bk.ModelLogs(nameModel) {
+		// x.Model() == y.Model() && x.Ops[0].Name == y.Ops[0].Name && x.Ops[0].AuthorID == y.Ops[0].AuthorID
+		if l.Model() == lg.Model() && l.Ops[0].Name == lg.Ops[0].Name && l.Ops[0].AuthorID == lg.Ops[0].AuthorID {
+			merged = true
+			l.Merge(lg)
+			break
+		}
+	}
+
+	if !merged {
+		book.bk.AppendLog(lg)
+	}
+
+	return book.Save(ctx)
 }
 
 // Versions plays a set of operations for a given log, producing a State struct
@@ -541,7 +593,7 @@ func infoFromOp(ref dsref.Ref, op log.Op) dsref.Info {
 
 func (book Book) readRefLog(ref dsref.Ref) (*log.Log, error) {
 	if ref.Username == "" {
-		return nil, fmt.Errorf("ref.Peername is required")
+		return nil, fmt.Errorf("ref.Username is required")
 	}
 	if ref.Name == "" {
 		return nil, fmt.Errorf("ref.Name is required")

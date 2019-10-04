@@ -201,6 +201,9 @@ func (book Book) logsSlice() (logs []*Log) {
 // Log is a causally-ordered set of operations performed by a single author.
 // log attribution is verified by an author's signature
 type Log struct {
+	name     string // name value cache. not persisted
+	authorID string // authorID value cache. not persisted
+
 	Signature []byte
 	Ops       []Op
 	Logs      []*Log
@@ -222,6 +225,14 @@ func FromFlatbufferBytes(data []byte) (*Log, error) {
 
 // Append adds an operation to the log
 func (lg *Log) Append(op Op) {
+	if op.Model == lg.Model() {
+		if op.Name != "" {
+			lg.name = op.Name
+		}
+		if op.AuthorID != "" {
+			lg.authorID = op.AuthorID
+		}
+	}
 	lg.Ops = append(lg.Ops, op)
 }
 
@@ -234,16 +245,30 @@ func (lg Log) Model() uint32 {
 }
 
 // Author returns the name and identifier this log is attributed to
-func (lg Log) Author() (name, identifier string) {
-	return lg.Ops[0].Name, lg.Ops[0].AuthorID
+func (lg Log) Author() (identifier string) {
+	if lg.authorID == "" {
+		m := lg.Model()
+		for _, o := range lg.Ops {
+			if o.Model == m && o.AuthorID != "" {
+				lg.authorID = o.AuthorID
+			}
+		}
+	}
+	return lg.authorID
 }
 
 // Name returns the human-readable name for this log, determined by the
 // initialization event
-// TODO (b5) - name must be made mutable by playing forward any name-changing
-// operations and applying them to the log
 func (lg Log) Name() string {
-	return lg.Ops[0].Name
+	if lg.name == "" {
+		m := lg.Model()
+		for _, o := range lg.Ops {
+			if o.Model == m && o.Name != "" {
+				lg.name = o.Name
+			}
+		}
+	}
+	return lg.name
 }
 
 // Child returns a child log for a given name, and nil if it doesn't exist
@@ -259,6 +284,33 @@ func (lg Log) Child(name string) *Log {
 // AddChild appends a log as a direct descendant of this log
 func (lg *Log) AddChild(l *Log) {
 	lg.Logs = append(lg.Logs, l)
+}
+
+// Merge combines two logs that are assumed to be a shared root, combining
+// children from both branches, matching branches prefer longer Opsets
+// Merging relies on comparison of initialization operations, which
+// must be present to constitute a match
+func (lg *Log) Merge(l *Log) {
+	// if the incoming log has more operations, use it & clear the cache
+	if len(l.Ops) > len(lg.Ops) {
+		lg.Ops = l.Ops
+		lg.name = ""
+		lg.authorID = ""
+		lg.Signature = nil
+	}
+
+LOOP:
+	for _, x := range l.Logs {
+		for j, y := range lg.Logs {
+			// if logs match. merge 'em
+			if x.Model() == y.Model() && x.Ops[0].Name == y.Ops[0].Name && x.Ops[0].AuthorID == y.Ops[0].AuthorID {
+				lg.Logs[j].Merge(x)
+				continue LOOP
+			}
+		}
+		// no match, append!
+		lg.Logs = append(lg.Logs, x)
+	}
 }
 
 // Verify confirms that the signature for a log matches
@@ -323,9 +375,8 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 	}
 	logs := builder.EndVector(logcount)
 
-	namestr, idstr := lg.Author()
-	name := builder.CreateString(namestr)
-	id := builder.CreateString(idstr)
+	name := builder.CreateString(lg.Name())
+	id := builder.CreateString(lg.Author())
 	signature := builder.CreateByteString(lg.Signature)
 
 	count := len(lg.Ops)

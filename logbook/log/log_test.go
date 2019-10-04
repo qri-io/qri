@@ -130,6 +130,145 @@ func TestBookSignLog(t *testing.T) {
 	}
 }
 
+func TestNameTracking(t *testing.T) {
+	lg := InitLog(Op{
+		Type:     OpTypeInit,
+		Model:    0x01,
+		Name:     "apples",
+		AuthorID: "authorID",
+	})
+
+	changeOp := Op{
+		Type:     OpTypeAmend,
+		Model:    0x01,
+		Name:     "oranges",
+		AuthorID: "authorID2",
+	}
+	lg.Append(changeOp)
+
+	if lg.Name() != "oranges" {
+		t.Logf("name mismatch. expected 'oranges', got: '%s'", lg.Name())
+	}
+
+	if lg.Author() != "authorID2" {
+		t.Logf("name mismatch. expected 'authorID2', got: '%s'", lg.Author())
+	}
+}
+
+func TestLogMerge(t *testing.T) {
+	left := &Log{
+		Signature: []byte{1, 2, 3},
+		Ops: []Op{
+			Op{
+				Type:     OpTypeInit,
+				Model:    0x0001,
+				AuthorID: "author",
+				Name:     "root",
+			},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x0002,
+						AuthorID: "author",
+						Name:     "child_a",
+					},
+					Op{
+						Type:  OpTypeInit,
+						Model: 0x0456,
+					},
+				},
+			},
+		},
+	}
+
+	right := &Log{
+		Ops: []Op{
+			Op{
+				Type:     OpTypeInit,
+				Model:    0x0001,
+				AuthorID: "author",
+				Name:     "root",
+			},
+			Op{
+				Type:  OpTypeInit,
+				Model: 0x0011,
+			},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x0002,
+						AuthorID: "author",
+						Name:     "child_a",
+					},
+				},
+			},
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x0002,
+						AuthorID: "buthor",
+						Name:     "child_b",
+					},
+				},
+			},
+		},
+	}
+
+	left.Merge(right)
+
+	expect := &Log{
+		Ops: []Op{
+			Op{
+				Type:     OpTypeInit,
+				Model:    0x0001,
+				AuthorID: "author",
+				Name:     "root",
+			},
+			Op{
+				Type:  OpTypeInit,
+				Model: 0x0011,
+			},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x0002,
+						AuthorID: "author",
+						Name:     "child_a",
+					},
+					Op{
+						Type:  OpTypeInit,
+						Model: 0x0456,
+					},
+				},
+			},
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x0002,
+						AuthorID: "buthor",
+						Name:     "child_b",
+					},
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(expect, left, allowUnexported); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 type testRunner struct {
 	Ctx        context.Context
 	AuthorName string
