@@ -2,7 +2,6 @@ package base
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/qri-io/dataset"
@@ -68,67 +67,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	}
 }
 
-// LogDiffResult is the result of comparing a set of references
-type LogDiffResult struct {
-	Head        repo.DatasetRef
-	Add, Remove []repo.DatasetRef
-}
-
-// LogDiff determines the difference between an input slice of references
-func LogDiff(ctx context.Context, r repo.Repo, a []repo.DatasetRef) (ldr LogDiffResult, err error) {
-	if len(a) < 1 {
-		return ldr, fmt.Errorf("no references provided for diffing")
-	}
-
-	alias := repo.DatasetRef{Peername: a[0].Peername, Name: a[0].Name}
-	ldr.Head, err = r.GetRef(alias)
-	if err != nil {
-		return ldr, err
-	}
-
-	// TODO - deal with max limit / offset / pagination issuez
-	b, err := DatasetLog(ctx, r, ldr.Head, 10000, 0, false)
-	if err != nil {
-		return ldr, err
-	}
-
-	ldr.Add, ldr.Remove = refDiff(a, b)
-
-	return ldr, nil
-}
-
-// refDiff returns a set of additions and removals needed to sync slice a to b
-func refDiff(a, b []repo.DatasetRef) (add, remove []repo.DatasetRef) {
-	var present bool
-	for _, aRef := range a {
-		present = false
-		for _, bRef := range b {
-			if aRef.Equal(bRef) {
-				present = true
-				break
-			}
-		}
-		if !present {
-			remove = append(remove, aRef)
-		}
-	}
-
-	for _, bRef := range b {
-		present = false
-		for _, aRef := range a {
-			if bRef.Equal(aRef) {
-				present = true
-				break
-			}
-		}
-		if !present {
-			add = append(add, bRef)
-		}
-	}
-	return
-}
-
-// ConstructDatasetLogFromHistory constructs a log for a name if one doesn't 
+// ConstructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
 func ConstructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
 	refs, err := DatasetLog(ctx, r, repo.DatasetRef{ Peername: ref.Username, Name: ref.Name}, 1000000, 0, true)

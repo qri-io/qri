@@ -17,53 +17,7 @@ import (
 )
 
 func TestUpdateRemoteDataset(t *testing.T) {
-	ctx := context.Background()
-	factory := p2ptest.NewTestNodeFactory(p2p.NewTestableQriNode)
-	testPeers, err := p2ptest.NewTestNetwork(ctx, factory, 2)
-	if err != nil {
-		t.Fatalf("error creating network: %s", err.Error())
-	}
-	if err := p2ptest.ConnectQriNodes(ctx, testPeers); err != nil {
-		t.Fatalf("error connecting peers: %s", err.Error())
-	}
-
-	peers := asQriNodes(testPeers)
-	connectMapStores(peers)
-
-	now := addNowTransformDataset(t, peers[0])
-	if err := AddDataset(ctx, peers[1], nil, "", &repo.DatasetRef{Peername: now.Peername, Name: now.Name}); err != nil {
-		t.Error(err)
-	}
-
-	base.ReadDataset(ctx, peers[0].Repo, &now)
-
-	ds := &dataset.Dataset{
-		Peername: now.Peername,
-		Name:     now.Name,
-		Commit: &dataset.Commit{
-			Title:   "total overwrite",
-			Message: "manually create a silly change",
-		},
-		Meta: &dataset.Meta{
-			Title: "another test dataset",
-		},
-		Structure: &dataset.Structure{Format: "json", Schema: map[string]interface{}{"type": "array"}},
-	}
-	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[]")))
-
-	// run a local update to advance history
-	now0, err := SaveDataset(ctx, peers[0], ds, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Error(err)
-	}
-
-	now1, err := UpdateRemoteDataset(ctx, peers[1], &now, false)
-	if err != nil {
-		t.Error(err)
-	}
-	if !now0.Equal(now1) {
-		t.Errorf("refs unequal: %s != %s", now0, now1)
-	}
+	// TODO (b5) - restore
 }
 
 func TestAddDataset(t *testing.T) {

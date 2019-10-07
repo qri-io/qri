@@ -116,22 +116,7 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 // UpdateRemoteDataset brings a reference to the latest version, syncing to the
 // latest history it can find over p2p & via any configured registry
 func UpdateRemoteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
-	var ldr base.LogDiffResult
-	ldr, err = node.RequestLogDiff(ctx, ref)
-	if err != nil {
-		return
-	}
-	for _, add := range ldr.Add {
-		if err = base.FetchDataset(ctx, node.Repo, &add, true, false); err != nil {
-			return
-		}
-	}
-	if err = node.Repo.PutRef(ldr.Head); err != nil {
-		return
-	}
-	res = ldr.Head
-	// TODO - currently we're not loading the body here
-	return
+	return res, fmt.Errorf("remote updating is currently disabled")
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
