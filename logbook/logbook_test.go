@@ -174,13 +174,42 @@ func TestNewBook(t *testing.T) {
 		t.Errorf("expected missing location arg to error")
 	}
 
-	book, err := NewBook(pk, "b5", fs, "/mem/logset")
+	_, err := NewBook(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		t.Fatal(err)
 	}
+}
 
-	if err := book.Load(context.Background()); err != nil {
-		t.Fatal(err)
+func TestErrNoLogbook(t *testing.T) {
+	var (
+		book *Book
+		ctx  = context.Background()
+		err  error
+	)
+
+	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteNameAmend(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteNameInit(ctx, ""); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WritePublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteUnpublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteVersionAmend(ctx, nil); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteVersionDelete(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 }
 
@@ -215,6 +244,23 @@ func TestBookLogEntries(t *testing.T) {
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestLogBytes(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteRenameExample(t)
+
+	if _, err := tr.Book.LogBytes(dsref.Ref{}); err == nil {
+		t.Error("expected LogBytes with empty ref to fail")
+	}
+	if _, err := tr.Book.LogBytes(dsref.Ref{Username: tr.Username}); err == nil {
+		t.Error("expected LogBytes with empty name ref to fail")
+	}
+	if _, err := tr.Book.LogBytes(tr.RenameRef()); err != nil {
+		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
 	}
 }
 
@@ -340,6 +386,13 @@ func TestLogTransfer(t *testing.T) {
 	book2, err := NewBook(pk2, "user2", fs2, "/mem/fs2_location")
 	if err != nil {
 		t.Fatal(err)
+	}
+
+	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{}, nil); err == nil {
+		t.Error("expected MergeLogBytes with empty ref to fail")
+	}
+	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{Username: tr.Username}, nil); err == nil {
+		t.Error("expected MergeLogBytes with empty name ref to fail")
 	}
 
 	if err := book2.MergeLogBytes(tr.Ctx, tr.WorldBankRef(), data); err != nil {

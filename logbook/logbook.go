@@ -23,6 +23,8 @@ import (
 )
 
 var (
+	// ErrNoLogbook indicates a logbook doesn't exist
+	ErrNoLogbook = fmt.Errorf("logbook: no logbook")
 	// ErrNotFound is a sentinel error for data not found in a logbook
 	ErrNotFound  = fmt.Errorf("logbook: not found")
 	newTimestamp = func() time.Time { return time.Now() }
@@ -95,7 +97,7 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 		location: location,
 	}
 
-	if err = book.Load(ctx); err != nil {
+	if err = book.load(ctx); err != nil {
 		if err == ErrNotFound {
 			err = book.initialize(ctx)
 			return book, err
@@ -127,21 +129,22 @@ func (book *Book) initialize(ctx context.Context) error {
 	})
 	book.bk.AppendLog(ns)
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // RenameAuthor marks a change in author name
-func (book Book) RenameAuthor() error {
+func (book *Book) RenameAuthor() error {
 	return fmt.Errorf("not finished")
 }
 
-// DeleteAuthor removes an author, we'll use this in key rotation
-func (book Book) DeleteAuthor() error {
+// DeleteAuthor removes an author, used on teardown
+func (book *Book) DeleteAuthor() error {
 	return fmt.Errorf("not finished")
 }
 
-// Save writes the book to book.location
-func (book *Book) Save(ctx context.Context) error {
+// save writes the book to book.location
+func (book *Book) save(ctx context.Context) error {
+
 	ciphertext, err := book.bk.FlatbufferCipher()
 	if err != nil {
 		return err
@@ -152,8 +155,8 @@ func (book *Book) Save(ctx context.Context) error {
 	return err
 }
 
-// Load reads the book dataset from book.location
-func (book *Book) Load(ctx context.Context) error {
+// load reads the book dataset from book.location
+func (book *Book) load(ctx context.Context) error {
 	f, err := book.fs.Get(ctx, book.location)
 	if err != nil {
 		if strings.Contains(err.Error(), "not found") {
@@ -172,9 +175,12 @@ func (book *Book) Load(ctx context.Context) error {
 
 // WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
-func (book Book) WriteNameInit(ctx context.Context, name string) error {
+func (book *Book) WriteNameInit(ctx context.Context, name string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
 	book.initName(ctx, name)
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 func (book Book) initName(ctx context.Context, name string) *log.Log {
@@ -203,8 +209,12 @@ func (book Book) authorNamespace() *log.Log {
 }
 
 // WriteNameAmend marks a rename event within a namespace
-func (book Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName string) error {
-	// TODO (b5) - finish
+// TODO (b5) - finish
+func (book *Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -221,7 +231,11 @@ func (book Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName stri
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
+func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	ref := refFromDataset(ds)
 	l, err := book.readRefLog(ref)
 	if err != nil {
@@ -248,11 +262,15 @@ func (book Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) erro
 	}
 
 	l.Append(op)
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
-func (book Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) error {
+func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(refFromDataset(ds))
 	if err != nil {
 		return err
@@ -268,13 +286,17 @@ func (book Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) err
 		Note:      ds.Commit.Title,
 	})
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // WriteVersionDelete adds an operation to a log marking a number of sequential
 // versions from HEAD as deleted. Because logs are append-only, deletes are
 // recorded as "tombstone" operations that mark removal.
-func (book Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisions int) error {
+func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisions int) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -287,12 +309,16 @@ func (book Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revision
 		// TODO (b5) - finish
 	})
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // WritePublish adds an operation to a log marking the publication of a number
 // of versions to one or more destinations
-func (book Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -306,12 +332,16 @@ func (book Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int,
 		// TODO (b5) - finish
 	})
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // WriteUnpublish adds an operation to a log marking an unpublish request for a
 // count of sequential versions from HEAD
-func (book Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions int, destinations ...string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -325,11 +355,15 @@ func (book Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions in
 		// TODO (b5) - finish
 	})
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // WriteCronJobRan adds an operation to a log marking the execution of a cronjob
-func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Ref) error {
+func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Ref) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -342,7 +376,7 @@ func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Re
 		// TODO (b5) - finish
 	})
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // LogBytes gets signed bytes suitable for sending as a network request.
@@ -350,10 +384,10 @@ func (book Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.Re
 // proper permission to be disclosed log details
 func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 	if ref.Username == "" {
-		return nil, fmt.Errorf("ref.Username is required")
+		return nil, fmt.Errorf("logbook: reference Username is required")
 	}
 	if ref.Name == "" {
-		return nil, fmt.Errorf("ref.Name is required")
+		return nil, fmt.Errorf("logbook: reference Name is required")
 	}
 
 	for _, lg := range book.bk.ModelLogs(nameModel) {
@@ -406,7 +440,7 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 		book.bk.AppendLog(lg)
 	}
 
-	return book.Save(ctx)
+	return book.save(ctx)
 }
 
 // Versions plays a set of operations for a given log, producing a State struct
