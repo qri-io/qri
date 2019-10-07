@@ -27,6 +27,11 @@ var (
 	ErrNoLogbook = fmt.Errorf("logbook: no logbook")
 	// ErrNotFound is a sentinel error for data not found in a logbook
 	ErrNotFound  = fmt.Errorf("logbook: not found")
+	// ErrLogTooShort indicates a log is missing elements. Because logs are 
+	// append-only, passing a shorter log than the one on file is grounds 
+	// for rejection
+	ErrLogTooShort = fmt.Errorf("logbook: log is too short")
+
 	newTimestamp = func() time.Time { return time.Now() }
 )
 
@@ -175,6 +180,8 @@ func (book *Book) load(ctx context.Context) error {
 
 // WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
+// TODO (b5) - this presently only works for datasets in an author's user 
+// namespace
 func (book *Book) WriteNameInit(ctx context.Context, name string) error {
 	if book == nil {
 		return ErrNoLogbook
@@ -247,6 +254,11 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 		}
 	}
 
+	book.appendVersionSave(l, ds)
+	return book.save(ctx)
+}
+
+func (book *Book) appendVersionSave(l *log.Log, ds *dataset.Dataset) {
 	op := log.Op{
 		Type:  log.OpTypeInit,
 		Model: versionModel,
@@ -262,7 +274,6 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	}
 
 	l.Append(op)
-	return book.save(ctx)
 }
 
 // WriteVersionAmend adds an operation to a log amending a dataset version
@@ -438,6 +449,27 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 
 	if !merged {
 		book.bk.AppendLog(lg)
+	}
+
+	return book.save(ctx)
+}
+
+// ConstructDatasetLog creates a sparse log from a connected dataset history
+// where no prior log exists
+// the given history MUST be ordered from oldest to newest commits
+// TODO (b5) - this presently only works for datasets in an author's user 
+// namespace
+func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
+	l, err := book.readRefLog(ref)
+	if err == nil {
+		// if the log already exists, it will either as-or-more rich than this log,
+		// refuse to overwrite
+		return ErrLogTooShort
+	}
+
+	l = book.initName(ctx, ref.Name)
+	for _, ds := range history {
+		book.appendVersionSave(l, ds)
 	}
 
 	return book.save(ctx)

@@ -5,6 +5,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook"
 )
 
 func TestDatasetLog(t *testing.T) {
@@ -107,4 +109,44 @@ func RefSetEqual(a, b []repo.DatasetRef) bool {
 		}
 	}
 	return true
+}
+
+func TestConstructDatasetLogFromHistory(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepo(t).(*repo.MemRepo)
+
+	// remove the logbook
+	r.RemoveLogbook()
+
+	// create some history
+	addCitiesDataset(t, r)
+	updateCitiesDataset(t, r)
+
+	// add the logbook back
+	p, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := logbook.NewBook(p.PrivKey, p.Peername, r.Filesystem(), "/map/logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetLogbook(book)
+
+	ref := dsref.Ref{ Username: p.Peername, Name: "cities" }
+
+	// confirm no history exists:
+	if _, err = book.Versions(ref, 0, 100); err == nil {
+		t.Errorf("expected versions for nonexistent history to fail")
+	}
+	
+	// create some history
+	if err := ConstructDatasetLogFromHistory(ctx, r, ref); err != nil {
+		t.Errorf("building dataset history: %s", err)
+	}
+
+	// confirm history exists:
+	if _, err = book.Versions(ref, 0, 100); err != nil {
+		t.Error(err)
+	}
 }

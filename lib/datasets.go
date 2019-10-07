@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -613,6 +614,9 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 	// TODO (b5) - this should be moved down into the action
 	err = r.inst.Repo().Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(ref), res.NumDeleted)
+	if err == logbook.ErrNoLogbook {
+		err = nil
+	}
 
 	return err
 }

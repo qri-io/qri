@@ -57,6 +57,18 @@ func (r *MemRepo) Logbook() *logbook.Book {
 	return r.logbook
 }
 
+// RemoveLogbook drops a MemRepo's logbook pointer. MemRepo gets used in tests
+// a bunch, where logbook manipulation is helpful
+func (r *MemRepo) RemoveLogbook() {
+	r.logbook = nil
+}
+
+// SetLogbook assigns MemRepo's logbook. MemRepo gets used in tests a bunch, 
+// where logbook manipulation is helpful
+func (r *MemRepo) SetLogbook(book *logbook.Book) {
+	r.logbook = book
+}
+
 // SetFilesystem implements QFSSetter, currently used during lib contstruction
 func (r *MemRepo) SetFilesystem(fs qfs.Filesystem) {
 	r.filesystem = fs

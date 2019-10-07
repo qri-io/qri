@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -217,7 +218,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	ds.ProfileID = pro.ID.String()
 	ds.Peername = pro.Peername
 	ds.Path = path
-	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil {
+	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
 		return
 	}
 

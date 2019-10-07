@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetLog fetches the history of changes to a dataset, if loadDatasets is true, dataset information will be populated
@@ -125,4 +126,20 @@ func refDiff(a, b []repo.DatasetRef) (add, remove []repo.DatasetRef) {
 		}
 	}
 	return
+}
+
+// ConstructDatasetLogFromHistory constructs a log for a name if one doesn't 
+// exist.
+func ConstructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
+	refs, err := DatasetLog(ctx, r, repo.DatasetRef{ Peername: ref.Username, Name: ref.Name}, 1000000, 0, true)
+	if err != nil {
+		return err
+	}
+	history := make([]*dataset.Dataset, len(refs))
+	for i, ref := range refs {
+		history[i] = ref.Dataset
+	}
+
+	book := r.Logbook()
+	return book.ConstructDatasetLog(ctx, ref, history)
 }

@@ -302,7 +302,7 @@ func ModifyDataset(node *p2p.QriNode, current, new *repo.DatasetRef, isRename bo
 	if isRename {
 		new.Path = current.Path
 
-		if err = r.Logbook().WriteNameAmend(context.TODO(), repo.ConvertToDsref(*current), new.Name); err != nil {
+		if err = r.Logbook().WriteNameAmend(context.TODO(), repo.ConvertToDsref(*current), new.Name); err != nil && err != logbook.ErrNoLogbook {
 			return err
 		}
 	}
@@ -359,7 +359,7 @@ func DeleteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef)
 	}
 
 	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), len(log))
-	if err == logbook.ErrNotFound {
+	if err == logbook.ErrNotFound || err == logbook.ErrNoLogbook {
 		return nil
 	}
 

@@ -452,6 +452,66 @@ func TestRenameDataset(t *testing.T) {
 	}
 }
 
+func TestConstructDatasetLog(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	book := tr.Book
+	name := "to_reconstruct"
+	ref := dsref.Ref{ Username: tr.Username, Name: name }
+	history := []*dataset.Dataset{
+		&dataset.Dataset{
+			Peername: tr.Username,
+			Name:     name,
+			Commit: &dataset.Commit{
+				Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
+				Title:     "initial commit",
+			},
+			Path:         "HashOfVersion1",
+		},
+		&dataset.Dataset{
+			Peername: tr.Username,
+			Name:     name,
+			Commit: &dataset.Commit{
+				Timestamp: time.Date(2000, time.January, 2, 0, 0, 0, 0, time.UTC),
+				Title:     "commit 2",
+			},
+			Path:         "HashOfVersion2",
+			PreviousPath: "HashOfVersion1",
+		},
+		&dataset.Dataset{
+			Peername: tr.Username,
+			Name:     name,
+			Commit: &dataset.Commit{
+				Timestamp: time.Date(2000, time.January, 3, 0, 0, 0, 0, time.UTC),
+				Title:     "commit 2",
+			},
+			Path:         "HashOfVersion3",
+			PreviousPath: "HashOfVersion2",
+		},
+	}
+
+	if err := book.ConstructDatasetLog(tr.Ctx, ref, history); err != nil {
+		t.Errorf("error constructing history: %s", err)
+	}
+
+	if err := book.ConstructDatasetLog(tr.Ctx, ref, history); err == nil {
+		t.Error("expected second call to reconstruct to error")
+	}
+
+	// now for the fun bit. When we ask for the state of the log, it will
+	// play our opsets forward and get us the current state of tne log
+	// we can also get the state of a log from the book:
+	versions, err := book.Versions(ref, 0, 100)
+	if err != nil {
+		t.Errorf("getting versions: %s", err)
+	}
+
+	if len(versions) != 3 {
+		t.Errorf("expected 3 versions to return from history")
+	}
+}
+
 func mustTime(str string) time.Time {
 	t, err := time.Parse(time.RFC3339, str)
 	if err != nil {
