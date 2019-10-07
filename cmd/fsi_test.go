@@ -26,8 +26,8 @@ func TestFSILinkingCommands(t *testing.T) {
 
 	// Verify the directory contains the files that we expect, including .qri-ref link file
 	dirContents := listDirectory(pwd)
-	expectContents := []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -38,8 +38,8 @@ func TestFSILinkingCommands(t *testing.T) {
 
 	// Verify the directory contains the files that we expect
 	dirContents = listDirectory(pwd)
-	expectContents = []string{"body.csv", "meta.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents = []string{"body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents after unlinking (-want +got):\n%s", diff)
 	}
 
@@ -51,8 +51,8 @@ func TestFSILinkingCommands(t *testing.T) {
 	}
 
 	dirContents = listDirectory(pwd)
-	expectContents = []string{".qri-ref", "body.csv", "meta.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents = []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 }

@@ -281,18 +281,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	removeComponents := []string{}
 
 	history := &dataset.Dataset{
-		Structure: &dataset.Structure{
-			// TODO(dlong): This assumes we have a version-less working directory, created by
-			// `qri init`, which by default starts with a body.csv file.
-			// TODO (b5): instead we should default to the empty string, or some other sentinel
-			// value for "unknown body format", which could be use to check all supported data
-			// format file extensions. eg: body.json, body.xlsx, body.csv, body.cbor
-			Format: "csv",
-		},
-	}
-
-	if ds.Structure != nil {
-		history.Structure.Format = ds.Structure.Format
+		Structure: ds.Structure,
 	}
 
 	if p.Component == "" {
@@ -304,6 +293,11 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 		history.Meta.Assign(ds.Meta)
 		if current.Meta != nil && !current.Meta.IsEmpty() && (ds.Meta == nil || ds.Meta.IsEmpty()) {
 			removeComponents = append(removeComponents, "meta")
+		}
+	} else if p.Component == "structure" {
+		history.Structure.Assign(ds.Structure)
+		if !current.Structure.IsEmpty() && ds.Structure != nil {
+			removeComponents = append(removeComponents, "structure")
 		}
 	} else if p.Component == "schema" || p.Component == "structure.schema" {
 		// Schema is not a "real" component, is short for the structure's schema.
@@ -338,7 +332,9 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	}
 
 	// Delete components that exist in the working directory but did not exist in previous version.
-	fsi.DeleteComponents(removeComponents, currFileMap, p.Dir)
+	if err = fsi.DeleteComponents(removeComponents, currFileMap, p.Dir); err != nil {
+		return err
+	}
 
 	// Write components of the dataset to the working directory.
 	return fsi.WriteComponents(history, p.Dir)

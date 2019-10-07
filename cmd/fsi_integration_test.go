@@ -121,7 +121,7 @@ func TestInitStatusSave(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -183,8 +183,8 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -262,8 +262,8 @@ func TestCheckoutWithStructure(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "meta.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -341,8 +341,8 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
-// Test checkout and modifying schema, then checking status.
-func TestCheckoutAndModifySchema(t *testing.T) {
+// Test checkout and modifying structure & schema, then checking status.
+func TestCheckoutAndModifyStructure(t *testing.T) {
 	fr := NewFSITestRunner(t, "qri_test_checkout_and_modify_schema")
 	defer fr.Delete()
 
@@ -363,8 +363,8 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -378,8 +378,8 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
-	// Create schema.json with a minimal schema.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type": "array"}`), os.ModePerm); err != nil {
+	// Create structure.json with a minimal schema.
+	if err = ioutil.WriteFile("structure.json", []byte(`{ "format": "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -389,11 +389,9 @@ func TestCheckoutAndModifySchema(t *testing.T) {
 	}
 
 	output = fr.GetCommandOutput()
-	// TODO(dlong): structure/dataset.json should not be marked as `modified`
 	expect := `for linked dataset [test_peer/more_movies]
 
-  modified: structure (source: dataset.json)
-  modified: schema (source: schema.json)
+  modified: structure (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -488,9 +486,9 @@ fix these problems before saving this dataset
 	}
 }
 
-// Test that parse errors are also properly shown for schema.
-func TestStatusParseErrorForSchema(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_schema")
+// Test that parse errors are also properly shown for structure.
+func TestStatusParseErrorForStructure(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_structure")
 	defer fr.Delete()
 
 	// Save a dataset containing a body.json and meta component
@@ -509,7 +507,7 @@ func TestStatusParseErrorForSchema(t *testing.T) {
 	_ = fr.ChdirToWorkDir("ten_movies")
 
 	// Modify the meta.json so that it fails to parse.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type":`), os.ModePerm); err != nil {
+	if err = ioutil.WriteFile("structure.json", []byte(`{"format":`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -521,7 +519,7 @@ func TestStatusParseErrorForSchema(t *testing.T) {
 	output := fr.GetCommandOutput()
 	expect := `for linked dataset [test_peer/ten_movies]
 
-  parse error: schema (source: schema.json)
+  parse error: structure (source: structure.json)
 
 fix these problems before saving this dataset
 `
@@ -569,7 +567,7 @@ func TestStatusAtVersion(t *testing.T) {
 	}
 
 	output := fr.GetCommandOutput()
-	expect := `  schema: add
+	expect := `  structure: add
   body: add
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -583,7 +581,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: add
-  schema: unmodified
+  structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -597,7 +595,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: modified
-  schema: unmodified
+  structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -611,7 +609,7 @@ func TestStatusAtVersion(t *testing.T) {
 
 	output = fr.GetCommandOutput()
 	expect = `  meta: unmodified
-  schema: unmodified
+  structure: unmodified
   body: modified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
@@ -675,8 +673,8 @@ run ` + "`qri save`" + ` to commit this dataset
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
-	// Modify schema.json by using the base schema.
-	if err = ioutil.WriteFile("schema.json", []byte(`{"type": "array"}`), os.ModePerm); err != nil {
+	// Modify struture.json
+	if err = ioutil.WriteFile("structure.json", []byte(`{ "format" : "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -686,11 +684,9 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	output = fr.GetCommandOutput()
-	// TODO(dlong): structure/dataset.json should not be marked as `modified`
 	expect = `for linked dataset [test_peer/ten_movies]
 
-  modified: structure (source: dataset.json)
-  modified: schema (source: schema.json)
+  modified: structure (source: structure.json)
 
 run ` + "`qri save`" + ` to commit this dataset
 `
@@ -699,7 +695,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Restore to get the old schema back.
-	if err = fr.ExecCommand("qri restore schema"); err != nil {
+	if err = fr.ExecCommand("qri restore structure"); err != nil {
 		t.Fatalf(err.Error())
 	}
 
@@ -819,15 +815,15 @@ func TestRestoreDeleteComponent(t *testing.T) {
 		t.Fatalf(err.Error())
 	}
 
-	// Restore to get erase the meta component.
+	// Restore to erase the meta component.
 	if err := fr.ExecCommand("qri restore meta"); err != nil {
 		t.Fatalf(err.Error())
 	}
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
-	expectContents := []string{".qri-ref", "body.csv", "dataset.json", "schema.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	expectContents := []string{".qri-ref", "body.csv", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -868,7 +864,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -909,7 +905,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
@@ -962,7 +958,7 @@ func TestInitWithDirectory(t *testing.T) {
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
 	expectContents := []string{".qri-ref", "body.csv", "meta.json"}
-	if diff := cmp.Diff(dirContents, expectContents); diff != "" {
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 

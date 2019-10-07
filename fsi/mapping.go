@@ -20,7 +20,6 @@ const (
 	componentNameCommit    = "commit"
 	componentNameDataset   = "dataset"
 	componentNameMeta      = "meta"
-	componentNameSchema    = "schema"
 	componentNameBody      = "body"
 	componentNameStructure = "structure"
 	componentNameTransform = "transform"
@@ -45,7 +44,6 @@ type FileStat struct {
 func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]FileStat, err error) {
 	fileMap = map[string]FileStat{}
 	ds = &dataset.Dataset{}
-	schema := map[string]interface{}{}
 	problems = nil
 
 	components := map[string]interface{}{
@@ -54,7 +52,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 		componentNameCommit:    &dataset.Commit{},
 		componentNameMeta:      &dataset.Meta{},
 		componentNameStructure: &dataset.Structure{},
-		componentNameSchema:    &schema,
 		componentNameTransform: &dataset.Transform{},
 		componentNameViz:       &dataset.Viz{},
 
@@ -176,11 +173,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 						if err = addFile(componentNameStructure, path, st.ModTime()); err != nil {
 							return
 						}
-						if ds.Structure.Schema != nil {
-							if err = addFile(componentNameSchema, path, st.ModTime()); err != nil {
-								return
-							}
-						}
 					}
 					if ds.Viz != nil {
 						if err = addFile(componentNameViz, path, st.ModTime()); err != nil {
@@ -204,11 +196,6 @@ func ReadDir(dir string) (ds *dataset.Dataset, fileMap, problems map[string]File
 					ds.Meta = cmp.(*dataset.Meta)
 				case componentNameStructure:
 					ds.Structure = cmp.(*dataset.Structure)
-				case componentNameSchema:
-					if ds.Structure == nil {
-						ds.Structure = &dataset.Structure{}
-					}
-					ds.Structure.Schema = *cmp.(*map[string]interface{})
 				case componentNameViz:
 					ds.Viz = cmp.(*dataset.Viz)
 				case componentNameTransform:
@@ -295,17 +282,6 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 	ds.Meta = nil
 
 	var bodyFormat string
-	var schema map[string]interface{}
-	if ds.Structure != nil {
-		schema = ds.Structure.Schema
-		ds.Structure.Schema = nil
-
-		bodyFormat = ds.Structure.Format
-
-		// Structure is kept in the dataset.
-		ds.Structure.Format = ""
-		ds.Structure.Qri = ""
-	}
 
 	// Commit, viz, transform are never written as individual files.
 	ds.Commit = nil
@@ -327,16 +303,21 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 		}
 	}
 
-	// Schema component.
-	if len(schema) > 0 {
-		data, err := json.MarshalIndent(schema, "", " ")
+	// Structure component
+	if ds.Structure != nil {
+		bodyFormat = ds.Structure.Format
+		// TODO (b5) -
+		depth := ds.Structure.Depth
+		ds.Structure.DropDerivedValues()
+		ds.Structure.Depth = depth
+		data, err := json.MarshalIndent(ds.Structure, "", " ")
 		if err != nil {
+			return nil
+		}
+		if err = ioutil.WriteFile(filepath.Join(dirPath, "structure.json"), data, 0666); err != nil {
 			return err
 		}
-		err = ioutil.WriteFile(filepath.Join(dirPath, "schema.json"), data, os.ModePerm)
-		if err != nil {
-			return err
-		}
+		ds.Structure = nil
 	}
 
 	// Body component.
@@ -364,14 +345,11 @@ func WriteComponents(ds *dataset.Dataset, dirPath string) error {
 
 	// Dataset (everything else).
 	ds.DropDerivedValues()
+	ds.DropTransientValues()
 	// TODO(dlong): Should more of these move to DropDerivedValues?
 	ds.Qri = ""
-	ds.Name = ""
 	ds.Peername = ""
 	ds.PreviousPath = ""
-	if ds.Structure != nil && ds.Structure.IsEmpty() {
-		ds.Structure = nil
-	}
 	if !ds.IsEmpty() {
 		data, err := json.MarshalIndent(ds, "", " ")
 		if err != nil {

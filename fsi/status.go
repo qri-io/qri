@@ -68,7 +68,6 @@ var componentOrder = map[string]int{
 	"commit":    -7,
 	"meta":      -6,
 	"structure": -5,
-	"schema":    -4,
 	"viz":       -3,
 	"transform": -2,
 	"body":      -1,
@@ -79,7 +78,6 @@ var componentListOrder = []string{
 	"commit",
 	"meta",
 	"structure",
-	"schema",
 	"viz",
 	"transform",
 	"body",
@@ -208,18 +206,6 @@ func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next *datase
 			continue
 		}
 
-		// Special case: if the schema had a parse error, skip checking the structure. Otherwise,
-		// the structure will be shown as "modified".
-		// TODO(dlong): Handle the case where structure actually does have changes but schema
-		// has a parse error.
-		if problems != nil {
-			if path == componentNameStructure {
-				if _, ok := problems[componentNameSchema]; ok {
-					continue
-				}
-			}
-		}
-
 		if cmp := dsComponent(prev, path); cmp == nil {
 			change := StatusItem{
 				SourceFile: localFile.Path,
@@ -273,6 +259,38 @@ func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next *datase
 					}
 				}
 			} else {
+				// TODO(dlong): Do this type of comparison for each component kind. That is,
+				// compare the structured forms, after using DropDerivedValues. Or, just rewrite
+				// the FSI core so that this type of comparison is far easier to perform.
+				if path == componentNameStructure {
+					if prevStructure, ok := cmp.(*dataset.Structure); ok {
+						if nextStructure, ok := dsComponent(next, path).(*dataset.Structure); ok {
+							prevStructure.DropDerivedValues()
+							nextStructure.DropDerivedValues()
+							prevHash, _ := prevStructure.Hash()
+							nextHash, _ := nextStructure.Hash()
+							if prevHash != nextHash {
+								change := StatusItem{
+									SourceFile: localFile.Path,
+									Component:  path,
+									Type:       STChange,
+									Mtime:      localFile.Mtime,
+								}
+								changes = append(changes, change)
+							} else {
+								change := StatusItem{
+									SourceFile: localFile.Path,
+									Component:  path,
+									Type:       STUnmodified,
+									Mtime:      localFile.Mtime,
+								}
+								changes = append(changes, change)
+							}
+							continue
+						}
+					}
+				}
+
 				prevData, err = json.Marshal(cmp)
 				if err != nil {
 					return nil, err
@@ -353,8 +371,8 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []S
 	if next.BodyPath != "" || next.BodyFile() != nil {
 		fileMap["body"] = FileStat{Path: "body"}
 	}
-	if next.Structure != nil && next.Structure.Schema != nil {
-		fileMap["schema"] = FileStat{Path: "schema"}
+	if next.Structure != nil {
+		fileMap["structure"] = FileStat{Path: "structure"}
 	}
 	return fsi.CalculateStateTransition(ctx, prev, next, fileMap, nil)
 }
@@ -374,11 +392,6 @@ func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {
 			return nil
 		}
 		return ds.Meta
-	case componentNameSchema:
-		if ds.Structure == nil {
-			return nil
-		}
-		return ds.Structure.Schema
 	case componentNameBody:
 		return ds.BodyPath != ""
 	case componentNameStructure:
@@ -408,7 +421,6 @@ func dsAllComponents(ds *dataset.Dataset) map[string]interface{} {
 		componentNameCommit,
 		componentNameDataset,
 		componentNameMeta,
-		componentNameSchema,
 		componentNameBody,
 		componentNameStructure,
 		componentNameTransform,

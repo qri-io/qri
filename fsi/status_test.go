@@ -56,7 +56,7 @@ func TestStatusValid(t *testing.T) {
 		actual += strings.Replace(fmt.Sprintf("%s", ch), paths.firstDir, ".", 1)
 	}
 	// Construct the expected repsonse by getting the real timestamp from each component.
-	expectList := []string{"body", "commit", "meta", "schema", "structure", "transform", "viz"}
+	expectList := []string{"body", "commit", "meta", "structure", "transform", "viz"}
 	expect := ""
 	for _, cmpName := range expectList {
 		var componentFile string
