@@ -1,18 +1,14 @@
 package fsrepo
 
 import (
-	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"sort"
 
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/search"
 )
 
 // Refstore is a file-based implementation of the repo.Refstore
@@ -20,18 +16,13 @@ import (
 type Refstore struct {
 	basepath
 	file File
-	// optional search index to add/remove from
-	index search.Index
 	// filestore for checking dataset integrity
 	store cafs.Filestore
 }
 
 // PutRef adds a reference to the store
 func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
-	var (
-		ds   *dataset.Dataset
-		refs repo.Refs
-	)
+	var refs repo.Refs
 
 	// remove dataset reference, refstores only store reference details
 	r.Dataset = nil
@@ -62,29 +53,6 @@ func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
 		refs = append(refs, r)
 	}
 
-	if rs.store != nil && r.Path != "" {
-		if ds, err = dsfs.LoadDataset(context.TODO(), rs.store, r.Path); err != nil {
-			return err
-		}
-
-		// TODO (b5) - move this up into base package
-		// search really needs to become a first-class operation
-		if rs.index != nil {
-			batch := rs.index.NewBatch()
-			err = batch.Index(r.Path, ds)
-			if err != nil {
-				log.Debug(err.Error())
-				return err
-			}
-			err = rs.index.Batch(batch)
-			if err != nil {
-				log.Debug(err.Error())
-				return err
-			}
-		}
-
-	}
-
 	return rs.save(refs)
 }
 
@@ -111,13 +79,6 @@ func (rs Refstore) DeleteRef(del repo.DatasetRef) error {
 
 	for i, ref := range refs {
 		if ref.Match(del) {
-			// TODO (b5) - this is search index handling, move this up into base
-			if ref.Path != "" && rs.index != nil {
-				if err := rs.index.Delete(ref.Path); err != nil {
-					log.Debug(err.Error())
-					return err
-				}
-			}
 			refs = append(refs[:i], refs[i+1:]...)
 			break
 		}

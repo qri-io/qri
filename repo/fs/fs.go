@@ -2,7 +2,6 @@
 package fsrepo
 
 import (
-	"context"
 	"fmt"
 	"os"
 
@@ -11,11 +10,9 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/repo/search"
 )
 
 var log = golog.Logger("fsrepo")
@@ -38,7 +35,6 @@ type Repo struct {
 	graph map[string]*dsgraph.Node
 
 	profiles *ProfileStore
-	index    search.Index
 
 	registry *regclient.Client
 }
@@ -65,13 +61,6 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, ba
 		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: NewProfileStore(bp),
-	}
-
-	if index, err := search.LoadIndex(bp.filepath(FileSearchIndex)); err == nil {
-		r.index = index
-		if fsRefstore, ok := r.Refstore.(Refstore); ok {
-			fsRefstore.index = index
-		}
 	}
 
 	if _, err := maybeCreateFlatbufferRefsFile(base); err != nil {
@@ -122,36 +111,6 @@ func (r *Repo) SetProfile(p *profile.Profile) error {
 // PrivateKey returns this repo's private key
 func (r *Repo) PrivateKey() crypto.PrivKey {
 	return r.profile.PrivKey
-}
-
-// Search this repo for dataset references
-func (r *Repo) Search(ctx context.Context, p repo.SearchParams) ([]repo.DatasetRef, error) {
-	if r.index == nil {
-		return nil, fmt.Errorf("search not supported")
-	}
-
-	refs, err := search.Search(r.index, p)
-	if err != nil {
-		log.Debug(err.Error())
-		return refs, err
-	}
-	for _, ref := range refs {
-		if ref.Path == "" {
-			if got, err := r.GetRef(ref); err == nil {
-				ref.Path = got.Path
-			}
-		}
-
-		if err := base.ReadDataset(ctx, r, &ref); err != nil {
-			log.Debug(err.Error())
-		}
-	}
-	return refs, nil
-}
-
-// UpdateSearchIndex refreshes this repos search index
-func (r *Repo) UpdateSearchIndex(store cafs.Filestore) error {
-	return search.IndexRepo(context.Background(), r, r.index)
 }
 
 // Profiles returns this repo's Peers implementation
