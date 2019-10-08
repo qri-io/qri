@@ -15,7 +15,6 @@ replace (
 
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
-	github.com/boltdb/bolt v1.3.1 // indirect
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
 	github.com/ghodss/yaml v1.0.0
@@ -43,7 +42,6 @@ require (
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
-	github.com/qri-io/bleve v0.5.1-0.20190530204435-e47ddda1936d
 	github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e
 	github.com/qri-io/dataset v0.1.5-0.20190914114227-5298f1c14165
 	github.com/qri-io/deepdiff v0.1.0
