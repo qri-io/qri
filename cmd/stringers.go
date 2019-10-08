@@ -225,3 +225,17 @@ func (s logEntryStringer) String() string {
 		s.Note,
 	)
 }
+
+type dslogItemStringer lib.DatasetLogItem
+
+func (s dslogItemStringer) String() string {
+	title := color.New(color.FgGreen, color.Bold).SprintFunc()
+	ts := color.New(color.Faint).SprintFunc()
+
+	return fmt.Sprintf("%s\t%s\t%s\t%s\n",
+		ts(s.Timestamp.Format(time.RFC3339)),
+		title(s.Ref.Name),
+		title(s.Ref.Path),
+		s.CommitTitle,
+	)
+}

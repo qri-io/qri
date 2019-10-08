@@ -102,7 +102,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		ref := *right
 
 		lr := NewLogRequests(node, nil)
-		var res []repo.DatasetRef
+		var res []DatasetLogItem
 		err = lr.Log(&LogParams{
 			Ref: ref,
 			ListParams: ListParams{
@@ -120,7 +120,7 @@ func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
 		} else if len(res) == 1 {
 			return fmt.Errorf("dataset has only one version, nothing to diff against")
 		} else {
-			*left = res[1].String()
+			*left = res[1].Ref.String()
 		}
 	}
 

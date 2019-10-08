@@ -10,6 +10,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/logbook"
 )
 
 // InitParams encapsulates parameters for fsi.InitDataset
@@ -126,6 +127,9 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name)
+	if err == logbook.ErrNoLogbook {
+		err = nil
+	}
 	return name, err
 }
 

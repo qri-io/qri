@@ -26,9 +26,9 @@ var (
 	// ErrNoLogbook indicates a logbook doesn't exist
 	ErrNoLogbook = fmt.Errorf("logbook: no logbook")
 	// ErrNotFound is a sentinel error for data not found in a logbook
-	ErrNotFound  = fmt.Errorf("logbook: not found")
-	// ErrLogTooShort indicates a log is missing elements. Because logs are 
-	// append-only, passing a shorter log than the one on file is grounds 
+	ErrNotFound = fmt.Errorf("logbook: not found")
+	// ErrLogTooShort indicates a log is missing elements. Because logs are
+	// append-only, passing a shorter log than the one on file is grounds
 	// for rejection
 	ErrLogTooShort = fmt.Errorf("logbook: log is too short")
 
@@ -180,7 +180,7 @@ func (book *Book) load(ctx context.Context) error {
 
 // WriteNameInit initializes a new name within the author's namespace. Dataset
 // histories start with a NameInit
-// TODO (b5) - this presently only works for datasets in an author's user 
+// TODO (b5) - this presently only works for datasets in an author's user
 // namespace
 func (book *Book) WriteNameInit(ctx context.Context, name string) error {
 	if book == nil {
@@ -457,7 +457,7 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 // ConstructDatasetLog creates a sparse log from a connected dataset history
 // where no prior log exists
 // the given history MUST be ordered from oldest to newest commits
-// TODO (b5) - this presently only works for datasets in an author's user 
+// TODO (b5) - this presently only works for datasets in an author's user
 // namespace
 func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
 	l, err := book.readRefLog(ref)
@@ -475,17 +475,39 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	return book.save(ctx)
 }
 
+// DatasetInfo describes info aboud a dataset version in a repository
+type DatasetInfo struct {
+	Ref         dsref.Ref // version Reference
+	Published   bool      // indicates whether this reference is listed as an available dataset
+	Timestamp   time.Time // creation timestamp
+	CommitTitle string    // title from commit
+}
+
+func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
+	return DatasetInfo{
+		Ref: dsref.Ref{
+			Username:  ref.Username,
+			ProfileID: ref.ProfileID,
+			Name:      ref.Name,
+			Path:      op.Ref,
+		},
+		Timestamp:   time.Unix(0, op.Timestamp),
+		CommitTitle: op.Note,
+	}
+}
+
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]dsref.Info, error) {
+func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, error) {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return nil, err
 	}
 
-	refs := []dsref.Info{}
+	refs := []DatasetInfo{}
 	for _, op := range l.Ops {
-		if op.Model == versionModel {
+		switch op.Model {
+		case versionModel:
 			switch op.Type {
 			case log.OpTypeInit:
 				refs = append(refs, infoFromOp(ref, op))
@@ -494,7 +516,27 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]dsref.Info, error
 			case log.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
+		case publicationModel:
+			switch op.Type {
+			case log.OpTypeInit:
+				for i := 1; i <= int(op.Size); i++ {
+					refs[len(refs)-i].Published = true
+				}
+			case log.OpTypeRemove:
+				for i := 1; i <= int(op.Size); i++ {
+					refs[len(refs)-i].Published = false
+				}
+			}
 		}
+	}
+
+	if offset > len(refs) {
+		offset = len(refs)
+	}
+	refs = refs[offset:]
+
+	if limit < len(refs) {
+		refs = refs[:limit]
 	}
 
 	return refs, nil
@@ -652,18 +694,6 @@ func refFromDataset(ds *dataset.Dataset) dsref.Ref {
 		ProfileID: ds.ProfileID,
 		Name:      ds.Name,
 		Path:      ds.Path,
-	}
-}
-
-func infoFromOp(ref dsref.Ref, op log.Op) dsref.Info {
-	return dsref.Info{
-		Ref: dsref.Ref{
-			Username: ref.Username,
-			Name:     ref.Name,
-			Path:     op.Ref,
-		},
-		Timestamp:   time.Unix(0, op.Timestamp),
-		CommitTitle: op.Note,
 	}
 }
 

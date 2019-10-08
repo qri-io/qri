@@ -83,7 +83,7 @@ func (o *LogOptions) Run() error {
 		},
 	}
 
-	refs := []repo.DatasetRef{}
+	refs := []lib.DatasetLogItem{}
 	if err := o.LogRequests.Log(p, &refs); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "please provide a dataset reference")
@@ -93,7 +93,7 @@ func (o *LogOptions) Run() error {
 
 	items := make([]fmt.Stringer, len(refs))
 	for i, r := range refs {
-		items[i] = logStringer(r)
+		items[i] = dslogItemStringer(r)
 	}
 
 	printItems(o.Out, items, page.Offset())

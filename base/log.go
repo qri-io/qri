@@ -6,12 +6,70 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/repo"
 )
 
-// DatasetLog fetches the history of changes to a dataset, if loadDatasets is true, dataset information will be populated
-func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
+// DatasetLogItem is a line item in a dataset response
+type DatasetLogItem struct {
+	Ref dsref.Ref `json:"ref,omitempty"`
+	// Creation timestamp
+	Timestamp time.Time `json:"timestamp,omitempty"`
+	// Title field from dataset.commit component
+	CommitTitle string `json:"commitTitle,omitempty"`
+	// Message field from dataset.commit component
+	CommitMessage string `json:"commitMessage,omitempty"`
+	Published     bool   `json:"published,omitempty"`
+}
+
+// DatasetLog fetches the change version history of a dataset
+func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (items []DatasetLogItem, err error) {
+	if book := r.Logbook(); book != nil {
+		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
+			items = make([]DatasetLogItem, len(versions))
+			// log is returned newest-first, fill slice in reverse
+			i := len(items) - 1
+			for _, v := range versions {
+				items[i] = DatasetLogItem{
+					Ref:         v.Ref,
+					Published:   v.Published,
+					Timestamp:   v.Timestamp,
+					CommitTitle: v.CommitTitle,
+				}
+				i--
+			}
+			return items, nil
+		}
+	}
+
+	rlog, err := DatasetLogFromHistory(ctx, r, ref, offset, limit, loadDatasets)
+	if err != nil {
+		return nil, err
+	}
+	items = make([]DatasetLogItem, len(rlog))
+	for i, vref := range rlog {
+		items[i] = DatasetLogItem{Ref: repo.ConvertToDsref(vref)}
+		if vref.Dataset != nil {
+			items[i].Timestamp = vref.Dataset.Commit.Timestamp
+			items[i].CommitTitle = vref.Dataset.Commit.Title
+			items[i].CommitMessage = vref.Dataset.Commit.Message
+		}
+	}
+
+	// add a history entry b/c we didn't have one, but repo didn't error
+	go func() {
+		if err := ConstructDatasetLogFromHistory(context.Background(), r, repo.ConvertToDsref(ref)); err != nil {
+			log.Errorf("ConstructDatasetLogFromHistory: %s", err)
+		}
+	}()
+
+	return items, err
+}
+
+// DatasetLogFromHistory fetches the history of changes to a dataset by walking
+// backwards through dataset commits. if loadDatasets is true, dataset
+// information will be populated
+func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef, offset, limit int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
 	// TODO (b5) - this is a horrible hack to handle long-lived requests when connected to IPFS
 	// if we don't have the dataset locally, this process will take longer than 700 mill, because it'll
 	// reach out onto the d.web to attempt to resolve previous hashes. capping the duration
@@ -37,7 +95,6 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 			ref.Dataset = ds
 
 			if offset <= 0 {
-				// rlog = append(rlog, ref)
 				versions <- ref
 
 				limit--
@@ -70,7 +127,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 // ConstructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
 func ConstructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
-	refs, err := DatasetLog(ctx, r, repo.DatasetRef{ Peername: ref.Username, Name: ref.Name}, 1000000, 0, true)
+	refs, err := DatasetLogFromHistory(ctx, r, repo.DatasetRef{Peername: ref.Username, Name: ref.Name}, 0, 1000000, true)
 	if err != nil {
 		return err
 	}

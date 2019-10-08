@@ -17,8 +17,8 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -157,7 +157,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 			}
 
 			if showVersions {
-				dsVersions, err := DatasetLog(ctx, r, ref, 0, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, ref, 1000000, 0, false)
 				if err != nil {
 					return nil, err
 				}

@@ -4,30 +4,30 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/repo"
 )
 
-func TestDatasetLog(t *testing.T) {
+func TestDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	addCitiesDataset(t, r)
 	head := updateCitiesDataset(t, r)
 	expectLen := 2
 
-	dlog, err := DatasetLog(ctx, r, head, 100, 0, true)
+	dlog, err := DatasetLogFromHistory(ctx, r, head, 0, 100, true)
 	if err != nil {
 		t.Error(err)
 	}
 	if len(dlog) != expectLen {
-		t.Errorf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
+		t.Fatalf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
 	}
 	if dlog[0].Dataset.Meta.Title != head.Dataset.Meta.Title {
 		t.Errorf("expected log with loadDataset == true to populate datasets")
 	}
 
-	dlog, err = DatasetLog(ctx, r, head, 100, 0, false)
+	dlog, err = DatasetLogFromHistory(ctx, r, head, 0, 100, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -62,13 +62,13 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 	r.SetLogbook(book)
 
-	ref := dsref.Ref{ Username: p.Peername, Name: "cities" }
+	ref := dsref.Ref{Username: p.Peername, Name: "cities"}
 
 	// confirm no history exists:
 	if _, err = book.Versions(ref, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
-	
+
 	// create some history
 	if err := ConstructDatasetLogFromHistory(ctx, r, ref); err != nil {
 		t.Errorf("building dataset history: %s", err)

@@ -6,6 +6,7 @@ import (
 	"net/rpc"
 
 	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -41,8 +42,11 @@ type LogParams struct {
 	Ref string
 }
 
+// DatasetLogItem is a line item in a dataset response
+type DatasetLogItem = base.DatasetLogItem
+
 // Log returns the history of changes for a given dataset
-func (r *LogRequests) Log(params *LogParams, res *[]repo.DatasetRef) (err error) {
+func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("LogRequests.Log", params, res)
 	}

@@ -452,13 +452,81 @@ func TestRenameDataset(t *testing.T) {
 	}
 }
 
+func TestVersions(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteWorldBankExample(t)
+	tr.WriteMoreWorldBankCommits(t)
+	book := tr.Book
+
+	versions, err := book.Versions(tr.WorldBankRef(), 0, 10)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect := []DatasetInfo{
+		{
+			Ref: dsref.Ref{
+				Username: "test_author",
+				Name:     "world_bank_population",
+				Path:     "QmHashOfVersion3",
+			},
+			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
+			CommitTitle: "added meta info",
+		},
+		{
+			Ref: dsref.Ref{
+				Username: "test_author",
+				Name:     "world_bank_population",
+				Path:     "QmHashOfVersion4",
+			},
+			Timestamp:   mustTime("2000-01-03T19:00:00-05:00"),
+			CommitTitle: "v4",
+		},
+		{
+			Ref: dsref.Ref{
+				Username: "test_author",
+				Name:     "world_bank_population",
+				Path:     "QmHashOfVersion5",
+			},
+			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
+			CommitTitle: "v5",
+		},
+	}
+
+	if diff := cmp.Diff(expect, versions); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+
+	versions, err = book.Versions(tr.WorldBankRef(), 1, 1)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect = []DatasetInfo{
+		{
+			Ref: dsref.Ref{
+				Username: "test_author",
+				Name:     "world_bank_population",
+				Path:     "QmHashOfVersion4",
+			},
+			Timestamp:   mustTime("2000-01-03T19:00:00-05:00"),
+			CommitTitle: "v4",
+		},
+	}
+	if diff := cmp.Diff(expect, versions); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestConstructDatasetLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	book := tr.Book
 	name := "to_reconstruct"
-	ref := dsref.Ref{ Username: tr.Username, Name: name }
+	ref := dsref.Ref{Username: tr.Username, Name: name}
 	history := []*dataset.Dataset{
 		&dataset.Dataset{
 			Peername: tr.Username,
@@ -467,7 +535,7 @@ func TestConstructDatasetLog(t *testing.T) {
 				Timestamp: time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC),
 				Title:     "initial commit",
 			},
-			Path:         "HashOfVersion1",
+			Path: "HashOfVersion1",
 		},
 		&dataset.Dataset{
 			Peername: tr.Username,
@@ -618,6 +686,40 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 
 	if err := book.WriteVersionAmend(tr.Ctx, ds); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
+	book := tr.Book
+	name := "world_bank_population"
+	ds := &dataset.Dataset{
+		Peername: tr.Username,
+		Name:     name,
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2000, time.January, 4, 0, 0, 0, 0, time.UTC),
+			Title:     "v4",
+		},
+		Path:         "QmHashOfVersion4",
+		PreviousPath: "QmHashOfVersion3",
+	}
+
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+		panic(err)
+	}
+
+	ds = &dataset.Dataset{
+		Peername: tr.Username,
+		Name:     name,
+		Commit: &dataset.Commit{
+			Timestamp: time.Date(2000, time.January, 5, 0, 0, 0, 0, time.UTC),
+			Title:     "v5",
+		},
+		Path:         "QmHashOfVersion5",
+		PreviousPath: "QmHashOfVersion4",
+	}
+
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+		panic(err)
 	}
 }
 

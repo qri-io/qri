@@ -606,8 +606,16 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Delete the specific number of revisions.
-	replace := log[p.Revision.Gen]
-	if err := actions.ModifyDataset(r.node, &ref, &replace, false /*isRename*/); err != nil {
+	dsr := log[p.Revision.Gen]
+	replace := &repo.DatasetRef{
+		Peername:  dsr.Ref.Username,
+		Name:      dsr.Ref.Name,
+		ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
+		Path:      dsr.Ref.Path,
+		Published: dsr.Published,
+	}
+
+	if err := actions.ModifyDataset(r.node, &ref, replace, false /*isRename*/); err != nil {
 		return err
 	}
 	res.NumDeleted = p.Revision.Gen

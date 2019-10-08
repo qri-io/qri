@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
