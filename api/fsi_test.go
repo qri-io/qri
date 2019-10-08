@@ -148,12 +148,7 @@ func TestNoHistory(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(gotBodyString, initDir, initSubdir, -1)
-	// TODO(dlong): Some weird flakiness in the code, which we don't really understand, causes
-	// the type of field_2 to be a string sometimes, and a boolean sometimes. Band-aid over this
-	// flakiness for now, by forcing the type to be a string, but dig in at some point to figure
-	// out what's really happening.
-	resultBody = strings.Replace(resultBody, "boolean", "string", -1)
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
+	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"boolean"},{"title":"field_2","type":"boolean"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
