@@ -1,11 +1,13 @@
 package fsi
 
 import (
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -111,7 +113,44 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", err
 	}
 
+	// Create basic structure (no derived values) based on Format
+	structureBytes, err := createBasicStructure(p.Format)
+	if err != nil {
+		return "", err
+	}
+	// use format to determine basic formatConfig
+	structureFilename := filepath.Join(targetPath, "structure.json")
+	if err := ioutil.WriteFile(structureFilename, structureBytes, os.ModePerm); err != nil {
+		return "", err
+	}
+
 	return name, err
+}
+
+func createBasicStructure(format string) ([]byte, error) {
+	var err error
+	formatConfigBytes := []byte{}
+	switch format {
+	case "csv":
+		formatConfigBytes, err = json.Marshal(dataset.CSVOptions{})
+		if err != nil {
+			return nil, err
+		}
+	case "json":
+		formatConfigBytes, err = json.Marshal(map[string]interface{}{"pretty": false})
+		if err != nil {
+			return nil, err
+		}
+	case "xlsx":
+		formatConfigBytes, err = json.Marshal(dataset.XLSXOptions{SheetName: "sheet1"})
+		if err != nil {
+			return nil, err
+		}
+	default:
+		return nil, fmt.Errorf("unknown body format '%s'", format)
+	}
+	structureStr := fmt.Sprintf(`{"format":"%s","formatConfig":%s}`, format, formatConfigBytes)
+	return []byte(structureStr), nil
 }
 
 func canInitDir(dir string) error {
@@ -122,8 +161,8 @@ func canInitDir(dir string) error {
 		// TODO(dlong): Instead, import the meta.json file for the new dataset
 		return fmt.Errorf("cannot initialize new dataset, meta.json exists")
 	}
-	if _, err := os.Stat(filepath.Join(dir, "schema.json")); !os.IsNotExist(err) {
-		// TODO(dlong): Instead, import the schema.json file for the new dataset
+	if _, err := os.Stat(filepath.Join(dir, "structure.json")); !os.IsNotExist(err) {
+		// TODO(dlong): Instead, import the structure.json file for the new dataset
 		return fmt.Errorf("cannot initialize new dataset, schema.json exists")
 	}
 	if _, err := os.Stat(filepath.Join(dir, "body.csv")); !os.IsNotExist(err) {

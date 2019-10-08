@@ -115,6 +115,7 @@ func TestFSIMethodsWrite(t *testing.T) {
 			FSIWriteParams{Ref: noHistoryName, Ds: &dataset.Dataset{Meta: &dataset.Meta{Title: "Changed Title"}}},
 			[]StatusItem{
 				{Component: "meta", Type: "add"},
+				{Component: "structure", Type: "add"},
 				{Component: "body", Type: "add"},
 			},
 		},
