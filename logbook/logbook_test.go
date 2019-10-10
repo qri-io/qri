@@ -388,14 +388,11 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{}, nil); err == nil {
-		t.Error("expected MergeLogBytes with empty ref to fail")
-	}
-	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{Username: tr.Username}, nil); err == nil {
-		t.Error("expected MergeLogBytes with empty name ref to fail")
+	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), nil); err == nil {
+		t.Error("expected MergeLogBytes with no data to fail")
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, tr.WorldBankRef(), data); err != nil {
+	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), data); err != nil {
 		t.Fatal(err)
 	}
 

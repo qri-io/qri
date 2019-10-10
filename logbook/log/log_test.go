@@ -21,7 +21,7 @@ func TestBookFlatbuffer(t *testing.T) {
 	pk := testPrivKey(t)
 	log := InitLog(Op{
 		Type:      OpTypeInit,
-		Model:     0x0001,
+		Model:     0x1,
 		Ref:       "QmRefHash",
 		Prev:      "QmPrevHash",
 		Relations: []string{"a", "b", "c"},
@@ -48,7 +48,7 @@ func TestBookFlatbuffer(t *testing.T) {
 		pk:         pk,
 		authorname: "must_preserve",
 		logs: map[uint32][]*Log{
-			0x0001: []*Log{log},
+			0x1: []*Log{log},
 		},
 	}
 
@@ -75,7 +75,7 @@ func TestBookCiphertext(t *testing.T) {
 
 	lg := tr.RandomLog(Op{
 		Type:  OpTypeInit,
-		Model: 0x0001,
+		Model: 0x1,
 		Name:  "apples",
 	}, 10)
 
@@ -110,7 +110,7 @@ func TestBookSignLog(t *testing.T) {
 
 	lg := tr.RandomLog(Op{
 		Type:  OpTypeInit,
-		Model: 0x0001,
+		Model: 0x1,
 		Name:  "apples",
 	}, 400)
 
@@ -161,7 +161,7 @@ func TestLogMerge(t *testing.T) {
 		Ops: []Op{
 			Op{
 				Type:     OpTypeInit,
-				Model:    0x0001,
+				Model:    0x1,
 				AuthorID: "author",
 				Name:     "root",
 			},
@@ -188,7 +188,7 @@ func TestLogMerge(t *testing.T) {
 		Ops: []Op{
 			Op{
 				Type:     OpTypeInit,
-				Model:    0x0001,
+				Model:    0x1,
 				AuthorID: "author",
 				Name:     "root",
 			},
@@ -227,7 +227,7 @@ func TestLogMerge(t *testing.T) {
 		Ops: []Op{
 			Op{
 				Type:     OpTypeInit,
-				Model:    0x0001,
+				Model:    0x1,
 				AuthorID: "author",
 				Name:     "root",
 			},
@@ -293,6 +293,77 @@ func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
 		if _, err := book.FlatbufferCipher(); err != nil {
 			b.Fatal(err)
 		}
+	}
+}
+
+func TestLogTraversal(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.AddAuthorLogTree()
+
+	if _, err := tr.Book.Log(0x1); err == nil {
+		t.Errorf("expected not providing a name to error")
+	}
+
+	if _, err := tr.Book.Log(0x1, "this", "isn't", "a", "thing"); err != ErrNotFound {
+		t.Errorf("expected asking for nonexistent log to return ErrNotFound. got: %v", err)
+	}
+
+	got, err := tr.Book.Log(0x1, "root", "b", "bazinga")
+	if err != nil {
+		t.Error(err)
+	}
+
+	t.Logf("%#v", tr.Book.Logs()[0x1][0])
+
+	expect := &Log{
+		Ops: []Op{
+			{Type: OpTypeInit, Model: 0x0002, AuthorID: "buthor", Name: "bazinga"},
+		},
+	}
+
+	if diff := cmp.Diff(expect, got, allowUnexported); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestRemoveLog(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.AddAuthorLogTree()
+
+	if err := tr.Book.RemoveLog(0x0); err == nil {
+		t.Errorf("expected no name remove to error")
+	}
+
+	if err := tr.Book.RemoveLog(0x1, "root", "b", "bazinga"); err != nil {
+		t.Error(err)
+	}
+
+	if log, err := tr.Book.Log(0x1, "root", "b", "bazinga"); err != ErrNotFound {
+		t.Errorf("expected RemoveLog to remove log at path root/b/bazinga. got: %v. log: %v", err, log)
+	}
+
+	if err := tr.Book.RemoveLog(0x1, "root", "b"); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := tr.Book.Log(0x1, "root", "b"); err != ErrNotFound {
+		t.Error("expected RemoveLog to remove log at path root/b")
+	}
+
+	if err := tr.Book.RemoveLog(0x1, "root"); err != nil {
+		t.Error(err)
+	}
+
+	if _, err := tr.Book.Log(0x1, "root"); err != ErrNotFound {
+		t.Error("expected RemoveLog to remove log at path root")
+	}
+
+	if err := tr.Book.RemoveLog(0x1, "nonexistent"); err != ErrNotFound {
+		t.Error("expected RemoveLog for nonexistent path to error")
 	}
 }
 
@@ -374,4 +445,56 @@ func comparePrivKeys(a, b crypto.PrivKey) bool {
 	}
 
 	return string(abytes) == string(bbytes)
+}
+
+func (tr *testRunner) AddAuthorLogTree() {
+	tree := &Log{
+		Ops: []Op{
+			Op{
+				Type:     OpTypeInit,
+				Model:    0x1,
+				AuthorID: "author",
+				Name:     "root",
+			},
+			Op{
+				Type:  OpTypeInit,
+				Model: 0x11,
+			},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x2,
+						AuthorID: "author",
+						Name:     "a",
+					},
+					Op{
+						Type:  OpTypeInit,
+						Model: 0x456,
+					},
+				},
+			},
+			{
+				Ops: []Op{
+					Op{
+						Type:     OpTypeInit,
+						Model:    0x2,
+						AuthorID: "buthor",
+						Name:     "b",
+					},
+				},
+				Logs: []*Log{
+					{
+						Ops: []Op{
+							{Type: OpTypeInit, Model: 0x0002, AuthorID: "buthor", Name: "bazinga"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	tr.Book.AppendLog(tree)
 }

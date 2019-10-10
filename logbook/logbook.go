@@ -137,6 +137,16 @@ func (book *Book) initialize(ctx context.Context) error {
 	return book.save(ctx)
 }
 
+// Author returns this book's author
+func (book *Book) Author() log.Author {
+	return book.bk
+}
+
+// AuthorName returns the human-readable name of the author
+func (book *Book) AuthorName() string {
+	return book.bk.AuthorName()
+}
+
 // RenameAuthor marks a change in author name
 func (book *Book) RenameAuthor() error {
 	return fmt.Errorf("not finished")
@@ -420,14 +430,9 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 }
 
 // MergeLogBytes adds a log to the logbook, merging with any existing log data
-// TODO (b5) - this isn't fully worked out yet, need to verify signatures,
-// restricting what logs can be written based on the signer
-func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte) error {
-	if ref.Username == "" {
-		return fmt.Errorf("ref.Username is required")
-	}
-	if ref.Name == "" {
-		return fmt.Errorf("ref.Name is required")
+func (book *Book) MergeLogBytes(ctx context.Context, sender log.Author, data []byte) error {
+	if data == nil {
+		return fmt.Errorf("no data provided to merge")
 	}
 
 	lg := &log.Log{}
@@ -435,7 +440,17 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 		return err
 	}
 
-	// TODO (b5) - verify signature
+	// eventually access control will dictate which logs can be written by whom.
+	// For now we only allow users to merge logs they've written
+	// book will need access to a store of public keys before we can verify
+	// signatures non-same-senders
+	if err := lg.Verify(sender.AuthorPubKey()); err != nil {
+		return err
+	}
+
+	if lg.Author() != sender.AuthorID() {
+		return fmt.Errorf("authors can only push logs they own")
+	}
 
 	merged := false
 	for _, l := range book.bk.ModelLogs(nameModel) {
@@ -452,6 +467,39 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 	}
 
 	return book.save(ctx)
+}
+
+// RemoveLog removes an entire log from a logbook
+func (book *Book) RemoveLog(ctx context.Context, sender log.Author, ref dsref.Ref) error {
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return err
+	}
+
+	// eventually access control will dictate which logs can be written by whom.
+	// For now we only allow users to merge logs they've written
+	// book will need access to a store of public keys before we can verify
+	// signatures non-same-senders
+	// if err := l.Verify(sender.AuthorPubKey()); err != nil {
+	// 	return err
+	// }
+
+	if l.Author() != sender.AuthorID() {
+		return fmt.Errorf("authors can only remove logs they own")
+	}
+
+	book.bk.RemoveLog(nameModel, dsRefToLogPath(ref)...)
+	return book.save(ctx)
+}
+
+func dsRefToLogPath(ref dsref.Ref) (path []string) {
+	for _, str := range []string{
+		ref.Username,
+		ref.Name,
+	} {
+		path = append(path, str)
+	}
+	return path
 }
 
 // ConstructDatasetLog creates a sparse log from a connected dataset history
