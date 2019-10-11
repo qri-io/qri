@@ -20,7 +20,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/rev"
+	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -464,12 +464,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.RemoveParams{
 		Ref:            HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
-		Revision:       rev.Rev{Field: "ds", Gen: -1},
+		Revision:       dsref.Rev{Field: "ds", Gen: -1},
 		Unlink:         r.FormValue("unlink") == "true",
 		DeleteFSIFiles: r.FormValue("files") == "true",
 	}
 	if r.FormValue("all") == "true" {
-		p.Revision = rev.NewAllRevisions()
+		p.Revision = dsref.NewAllRevisions()
 	}
 
 	res := lib.RemoveResponse{}

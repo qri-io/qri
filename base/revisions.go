@@ -5,13 +5,13 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/rev"
 )
 
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
-func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*rev.Rev) (res *dataset.Dataset, err error) {
+func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*dsref.Rev) (res *dataset.Dataset, err error) {
 	var ds *dataset.Dataset
 	res = &dataset.Dataset{}
 	for {
@@ -37,7 +37,7 @@ func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*rev
 	return res, nil
 }
 
-func sel(r *rev.Rev, ds, res *dataset.Dataset) bool {
+func sel(r *dsref.Rev, ds, res *dataset.Dataset) bool {
 	switch r.Field {
 	case "ds":
 		r.Gen--

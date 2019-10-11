@@ -19,7 +19,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/rev"
+	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -504,7 +504,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 // RemoveParams defines parameters for remove command
 type RemoveParams struct {
 	Ref            string
-	Revision       rev.Rev
+	Revision       dsref.Rev
 	Unlink         bool // If true, break any FSI link
 	DeleteFSIFiles bool // If true, delete tracked files from the designated FSI link
 }
@@ -582,12 +582,12 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		if err := actions.DeleteDataset(ctx, r.node, &ref); err != nil {
 			return err
 		}
-		res.NumDeleted = rev.AllGenerations
+		res.NumDeleted = dsref.AllGenerations
 
 		return nil
 	}
 
-	if p.Revision.Gen == rev.AllGenerations {
+	if p.Revision.Gen == dsref.AllGenerations {
 		return removeEntireDataset()
 	} else if p.Revision.Gen < 1 {
 		return fmt.Errorf("invalid number of revisions to delete: %d", p.Revision.Gen)
