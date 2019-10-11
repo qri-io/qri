@@ -107,6 +107,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	for _, a := range node.EncapsulatedAddresses() {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
+	info += fmt.Sprintf("\nYou are running Qri v%s", lib.VersionNumber)
 	info += "\n\n"
 
 	node.LocalStreams.Print(info)
