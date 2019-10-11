@@ -4,8 +4,8 @@ import (
 	"fmt"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/rev"
 	"github.com/spf13/cobra"
 )
 
@@ -57,7 +57,7 @@ type RemoveOptions struct {
 	Args []string
 
 	RevisionsText  string
-	Revision       rev.Rev
+	Revision       dsref.Rev
 	All            bool
 	DeleteFSIFiles bool
 	Unlink         bool
@@ -72,12 +72,12 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 	if o.All {
-		o.Revision = rev.NewAllRevisions()
+		o.Revision = dsref.NewAllRevisions()
 	} else {
 		if o.RevisionsText == "" {
-			o.Revision = rev.Rev{Field: "ds", Gen: 0}
+			o.Revision = dsref.Rev{Field: "ds", Gen: 0}
 		} else {
-			revisions, err := rev.ParseRevs(o.RevisionsText)
+			revisions, err := dsref.ParseRevs(o.RevisionsText)
 			if err != nil {
 				return err
 			}
@@ -118,7 +118,7 @@ func (o *RemoveOptions) Run() (err error) {
 			}
 			return err
 		}
-		if res.NumDeleted == rev.AllGenerations {
+		if res.NumDeleted == dsref.AllGenerations {
 			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
 		} else if res.NumDeleted != 0 {
 			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)

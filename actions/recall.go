@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/rev"
+	"github.com/qri-io/qri/dsref"
 )
 
 // Recall loads revisions of a dataset from history
@@ -16,7 +16,7 @@ func Recall(ctx context.Context, node *p2p.QriNode, str string, ref repo.Dataset
 		return &dataset.Dataset{}, nil
 	}
 
-	revs, err := rev.ParseRevs(str)
+	revs, err := dsref.ParseRevs(str)
 	if err != nil {
 		return nil, err
 	}

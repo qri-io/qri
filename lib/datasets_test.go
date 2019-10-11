@@ -24,11 +24,11 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
-	"github.com/qri-io/qri/rev"
 )
 
 func TestDatasetRequestsSave(t *testing.T) {
@@ -642,7 +642,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	// TODO (b5) - dataset requests require an instance to delete properly
 	// we should do the "DatasetMethods" refactor ASAP
 	req := NewDatasetRequestsInstance(inst)
-	allRevs := rev.Rev{Field: "ds", Gen: -1}
+	allRevs := dsref.Rev{Field: "ds", Gen: -1}
 
 	// we need some fsi stuff to fully test remove
 	fsim := NewFSIMethods(inst)
@@ -696,8 +696,8 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}{
 		{"repo: empty dataset reference", RemoveParams{Ref: "", Revision: allRevs}},
 		{"repo: not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
-		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: rev.Rev{Field: "st", Gen: -1}}},
-		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: rev.Rev{Field: "ds", Gen: 0}}},
+		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: dsref.Rev{Field: "st", Gen: -1}}},
+		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: dsref.Rev{Field: "ds", Gen: 0}}},
 		{"cannot unlink, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, Unlink: true}},
 		{"can't delete files, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, DeleteFSIFiles: true}},
 	}
@@ -726,7 +726,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 			RemoveResponse{NumDeleted: -1},
 		},
 		{"all generations, specifying more revs than log length",
-			RemoveParams{Ref: "peer/counter", Revision: rev.Rev{Field: "ds", Gen: 20}},
+			RemoveParams{Ref: "peer/counter", Revision: dsref.Rev{Field: "ds", Gen: 20}},
 			RemoveResponse{NumDeleted: -1},
 		},
 		{"all generations of peer/cities, remove link, delete files",
@@ -734,11 +734,11 @@ func TestDatasetRequestsRemove(t *testing.T) {
 			RemoveResponse{NumDeleted: -1, Unlinked: true, DeletedFSIFiles: true},
 		},
 		{"one commit of peer/craigslist, remove link, delete files",
-			RemoveParams{Ref: "peer/craigslist", Revision: rev.Rev{Field: "ds", Gen: 1}, Unlink: true, DeleteFSIFiles: true},
+			RemoveParams{Ref: "peer/craigslist", Revision: dsref.Rev{Field: "ds", Gen: 1}, Unlink: true, DeleteFSIFiles: true},
 			RemoveResponse{NumDeleted: 1, Unlinked: true, DeletedFSIFiles: true},
 		},
 		{"no history dataset, remove link, delete files",
-			RemoveParams{Ref: noHistoryName, Revision: rev.Rev{Field: "ds", Gen: 0}, DeleteFSIFiles: true},
+			RemoveParams{Ref: noHistoryName, Revision: dsref.Rev{Field: "ds", Gen: 0}, DeleteFSIFiles: true},
 			RemoveResponse{NumDeleted: 0, Unlinked: true, DeletedFSIFiles: true},
 		},
 	}

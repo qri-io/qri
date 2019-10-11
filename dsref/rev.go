@@ -1,10 +1,5 @@
-// Package rev defines structure and syntax for specifying revisions of a
-// dataset history. Much of this is inspired by git revisions:
-// https://git-scm.com/docs/gitrevisions
-//
-// Unlike git, Qri is aware of the underlying data model it's selecting against,
-// so revisions can have conventional names for specifying fields of a dataset
-package rev
+// Package dsref defines structure and syntax for referring to a dataset
+package dsref
 
 import (
 	"fmt"
@@ -12,7 +7,13 @@ import (
 	"strings"
 )
 
-// Rev names a field of a dataset at a snapshot
+// Rev names a field of a dataset at a snapshot relative to the latest version
+// in a history
+// Much of this is inspired by git revisions:
+// https://git-scm.com/docs/gitrevisions
+//
+// Unlike git, Qri is aware of the underlying data model it's selecting against,
+// so revisions can have conventional names for specifying fields of a dataset
 type Rev struct {
 	// field scopt, currently can only be a component name, or the entire dataset
 	Field string

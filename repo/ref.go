@@ -9,6 +9,7 @@ import (
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
@@ -40,13 +41,47 @@ func IsRefString(path string) bool {
 	return isRefString.MatchString(path)
 }
 
+// ConvertToDsref is a shim function to transition from a DatasetRef to a
+// dsref.Ref while we experiment with dsref as the home of name parsing
+func ConvertToDsref(ref DatasetRef) dsref.Ref {
+	return dsref.Ref{
+		Username:  ref.Peername,
+		Name:      ref.Name,
+		ProfileID: ref.ProfileID.String(),
+		Path:      ref.Path,
+	}
+}
+
+// DatasetInfo describes info aboud a dataset version in a repository
+type DatasetInfo struct {
+	// Reference for this version
+	Ref dsref.Ref `json:"ref,omitempty"`
+
+	// FSIPath is this dataset's link to the local filesystem if one exists
+	FSIPath string `json:"fsiPath,omitempty"`
+	// Published indicates whether this reference is listed as an available dataset
+	Published bool `json:"published"`
+	// If true, this version doesn't exist locally
+	Foreign bool `json:"foreign,omitempty"`
+}
+
+// ConvertToDsinfo is a shim function to transition from a DatasetRef to Info
+func ConvertToDsinfo(ref DatasetRef) DatasetInfo {
+	return DatasetInfo{
+		Ref:       ConvertToDsref(ref),
+		FSIPath:   ref.FSIPath,
+		Published: ref.Published,
+		Foreign:   ref.Foreign,
+	}
+}
+
 // DatasetRef encapsulates a reference to a dataset. This needs to exist to bind
 // ways of referring to a dataset to a dataset itself, as datasets can't easily
 // contain their own hash information, and names are unique on a per-repository
 // basis.
-// It's tempting to think this needs to be "bigger", supporting more fields,
-// keep in mind that if the information is important at all, it should
-// be stored as metadata within the dataset itself.
+//
+// Deprecated: DatasetRef will be removed in future versions of Qri, use
+// dsref.Ref and this package's Info struct instead
 type DatasetRef struct {
 	// Peername of dataset owner
 	Peername string `json:"peername,omitempty"`

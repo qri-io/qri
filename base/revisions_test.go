@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/rev"
+	"github.com/qri-io/qri/dsref"
 )
 
 func TestLoadRevisions(t *testing.T) {
@@ -38,7 +38,7 @@ func TestLoadRevisions(t *testing.T) {
 	}
 
 	for i, c := range cases {
-		revs, err := rev.ParseRevs(c.revs)
+		revs, err := dsref.ParseRevs(c.revs)
 		if err != nil {
 			t.Errorf("case %d error parsing revs: %s", i, err)
 			continue
