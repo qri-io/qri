@@ -43,7 +43,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e
-	github.com/qri-io/dataset v0.1.5-0.20191007153417-af14d7dff51a
+	github.com/qri-io/dataset v0.1.5-0.20191011203842-ba68cf89cae2
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0

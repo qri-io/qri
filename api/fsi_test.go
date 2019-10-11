@@ -117,6 +117,8 @@ func TestNoHistory(t *testing.T) {
 	metaMtime := st.ModTime().Format(time.RFC3339)
 	st, _ = os.Stat(filepath.Join(initDir, "body.csv"))
 	bodyMtime := st.ModTime().Format(time.RFC3339)
+	st, _ = os.Stat(filepath.Join(initDir, "structure.json"))
+	structureMtime := st.ModTime().Format(time.RFC3339)
 
 	dsHandler := NewDatasetHandlers(inst, false)
 
@@ -148,7 +150,7 @@ func TestNoHistory(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody := strings.Replace(gotBodyString, initDir, initSubdir, -1)
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"boolean"},{"title":"field_2","type":"boolean"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
+	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"keywords":[],"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","formatConfig":{"headerRow":false,"lazyQuotes":false,"variadicFields":false},"qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"boolean"},{"title":"field_2","type":"boolean"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}},"published":false},"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
@@ -198,8 +200,8 @@ func TestNoHistory(t *testing.T) {
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
 	resultBody = strings.Replace(gotBodyString, initDir, initSubdir, -1)
-	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
-	expectBody = fmt.Sprintf(templateBody, metaMtime, bodyMtime)
+	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/structure.json","component":"structure","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
