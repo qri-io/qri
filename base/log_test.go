@@ -4,7 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qri/dsref"
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
@@ -49,7 +50,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 
 	// create some history
 	addCitiesDataset(t, r)
-	updateCitiesDataset(t, r)
+	ref := updateCitiesDataset(t, r)
 
 	// add the logbook back
 	p, err := r.Profile()
@@ -62,20 +63,34 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 	r.SetLogbook(book)
 
-	ref := dsref.Ref{Username: p.Peername, Name: "cities"}
+	cities := repo.ConvertToDsref(ref)
 
 	// confirm no history exists:
-	if _, err = book.Versions(ref, 0, 100); err == nil {
+	if _, err = book.Versions(cities, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 
 	// create some history
-	if err := ConstructDatasetLogFromHistory(ctx, r, ref); err != nil {
+	if err := constructDatasetLogFromHistory(ctx, r, cities); err != nil {
 		t.Errorf("building dataset history: %s", err)
 	}
 
+	expect := []logbook.DatasetInfo{
+		{
+			CommitTitle: "initial commit",
+		},
+		{
+			CommitTitle: "initial commit",
+		},
+	}
+
 	// confirm history exists:
-	if _, err = book.Versions(ref, 0, 100); err != nil {
+	got, err := book.Versions(cities, 0, 100)
+	if err != nil {
 		t.Error(err)
+	}
+
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(logbook.DatasetInfo{}, "Timestamp", "Ref")); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }

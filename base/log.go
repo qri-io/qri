@@ -57,11 +57,13 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
-	go func() {
-		if err := ConstructDatasetLogFromHistory(context.Background(), r, repo.ConvertToDsref(ref)); err != nil {
-			log.Errorf("ConstructDatasetLogFromHistory: %s", err)
-		}
-	}()
+	if pro, err := r.Profile(); err == nil && ref.Peername == pro.Peername {
+		go func() {
+			if err := constructDatasetLogFromHistory(context.Background(), r, repo.ConvertToDsref(ref)); err != nil {
+				log.Errorf("constructDatasetLogFromHistory: %s", err)
+			}
+		}()
+	}
 
 	return items, err
 }
@@ -96,7 +98,6 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef
 
 			if offset <= 0 {
 				versions <- ref
-
 				limit--
 				if limit == 0 {
 					break
@@ -124,10 +125,11 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef
 	}
 }
 
-// ConstructDatasetLogFromHistory constructs a log for a name if one doesn't
+// constructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
-func ConstructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
-	refs, err := DatasetLogFromHistory(ctx, r, repo.DatasetRef{Peername: ref.Username, Name: ref.Name}, 0, 1000000, true)
+func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
+	repoRef := repo.DatasetRef{Peername: ref.Username, Name: ref.Name, Path: ref.Path}
+	refs, err := DatasetLogFromHistory(ctx, r, repoRef, 0, 1000000, true)
 	if err != nil {
 		return err
 	}
