@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/logbook"
 )
@@ -93,6 +94,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	var bodyBytes []byte
+	var schema map[string]interface{}
 	if p.SourceBodyPath == "" {
 		// Create a skeleton body file.
 		if p.Format == "csv" {
@@ -109,6 +111,19 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
 			return "", err
 		}
+		file, err := os.Open(p.SourceBodyPath)
+		if err != nil {
+			return "", err
+		}
+		defer file.Close()
+		entries, err := OpenEntryReader(file, p.Format)
+		if err == nil {
+			err = dsio.EachEntry(entries, func(int, dsio.Entry, error) error { return nil })
+			if err != nil {
+				schema = nil
+			}
+			schema = entries.Structure().Schema
+		}
 	}
 	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
 	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
@@ -116,7 +131,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	// Create basic structure (no derived values) based on Format
-	structureBytes, err := createBasicStructure(p.Format)
+	structureBytes, err := createBasicStructure(p.Format, schema)
 	if err != nil {
 		return "", err
 	}
@@ -133,9 +148,10 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	return name, err
 }
 
-func createBasicStructure(format string) ([]byte, error) {
+func createBasicStructure(format string, schema map[string]interface{}) ([]byte, error) {
 	var err error
 	formatConfigBytes := []byte{}
+	schemaBytes := []byte{}
 	switch format {
 	case "csv":
 		formatConfigBytes, err = json.Marshal(dataset.CSVOptions{})
@@ -155,7 +171,14 @@ func createBasicStructure(format string) ([]byte, error) {
 	default:
 		return nil, fmt.Errorf("unknown body format '%s'", format)
 	}
-	structureStr := fmt.Sprintf(`{"format":"%s","formatConfig":%s}`, format, formatConfigBytes)
+	if len(schema) == 0 {
+		schema = nil
+	}
+	schemaBytes, err = json.Marshal(schema)
+	if err != nil {
+		return nil, err
+	}
+	structureStr := fmt.Sprintf(`{"format":"%s","formatConfig":%s,"schema":%s}`, format, formatConfigBytes, schemaBytes)
 	return []byte(structureStr), nil
 }
 

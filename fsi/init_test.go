@@ -9,15 +9,18 @@ import (
 func TestCreateBasicStructure(t *testing.T) {
 	good := []struct {
 		format      string
+		schema      map[string]interface{}
 		expectBytes []byte
 	}{
-		{"csv", []byte(`{"format":"csv","formatConfig":{"headerRow":false,"lazyQuotes":false,"variadicFields":false}}`)},
-		{"json", []byte(`{"format":"json","formatConfig":{"pretty":false}}`)},
-		{"xlsx", []byte(`{"format":"xlsx","formatConfig":{"sheetName":"sheet1"}}`)},
+		{"csv", nil, []byte(`{"format":"csv","formatConfig":{"headerRow":false,"lazyQuotes":false,"variadicFields":false},"schema":null}`)},
+		{"json", nil, []byte(`{"format":"json","formatConfig":{"pretty":false},"schema":null}`)},
+		{"xlsx", nil, []byte(`{"format":"xlsx","formatConfig":{"sheetName":"sheet1"},"schema":null}`)},
+		{"csv", map[string]interface{}{"items": map[string]interface{}{"items": "array"}}, []byte(`{"format":"csv","formatConfig":{"headerRow":false,"lazyQuotes":false,"variadicFields":false},"schema":{"items":{"items":"array"}}}`)},
+		{"csv", map[string]interface{}{}, []byte(`{"format":"csv","formatConfig":{"headerRow":false,"lazyQuotes":false,"variadicFields":false},"schema":null}`)},
 	}
 	for _, c := range good {
 		t.Run(fmt.Sprintf("good: %s", c.format), func(t *testing.T) {
-			gotBytes, err := createBasicStructure(c.format)
+			gotBytes, err := createBasicStructure(c.format, c.schema)
 			if err != nil {
 				t.Errorf("expected no error. got: %s", err)
 			}
@@ -34,7 +37,7 @@ func TestCreateBasicStructure(t *testing.T) {
 	}
 	for _, c := range bad {
 		t.Run(fmt.Sprintf("bad: %s", c.format), func(t *testing.T) {
-			_, err := createBasicStructure(c.format)
+			_, err := createBasicStructure(c.format, nil)
 			t.Log(err)
 			if err == nil {
 				t.Errorf("expected error. got: %s", err)
