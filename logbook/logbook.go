@@ -32,7 +32,9 @@ var (
 	// for rejection
 	ErrLogTooShort = fmt.Errorf("logbook: log is too short")
 
-	newTimestamp = func() time.Time { return time.Now() }
+	// NewTimestamp generates the current unix nanosecond time.
+	// This is mainly here for tests to override
+	NewTimestamp = func() int64 { return time.Now().UnixNano() }
 )
 
 const (
@@ -120,7 +122,7 @@ func (book *Book) initialize(ctx context.Context) error {
 		Model:     userModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	book.bk.AppendLog(userActions)
 
@@ -130,7 +132,7 @@ func (book *Book) initialize(ctx context.Context) error {
 		Model:     nameModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	book.bk.AppendLog(ns)
 
@@ -206,7 +208,7 @@ func (book Book) initName(ctx context.Context, name string) *log.Log {
 		Model:     nameModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 
 	ns := book.authorNamespace()
@@ -241,7 +243,7 @@ func (book *Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName str
 		Type:      log.OpTypeAmend,
 		Model:     nameModel,
 		Name:      newName,
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	return nil
 }

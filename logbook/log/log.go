@@ -406,7 +406,7 @@ LOOP:
 	for _, x := range l.Logs {
 		for j, y := range lg.Logs {
 			// if logs match. merge 'em
-			if x.Model() == y.Model() && x.Ops[0].Name == y.Ops[0].Name && x.Ops[0].AuthorID == y.Ops[0].AuthorID {
+			if x.Ops[0].Equal(y.Ops[0]) {
 				lg.Logs[j].Merge(x)
 				continue LOOP
 			}
@@ -570,6 +570,20 @@ type Op struct {
 	Timestamp int64  // operation timestamp, for annotation purposes only
 	Size      uint64 // size of the referenced value in bytes
 	Note      string // operation annotation for users. eg: commit title
+}
+
+// Equal tests equality between two operations
+func (o Op) Equal(b Op) bool {
+	return o.Type == b.Type &&
+		o.Model == b.Model &&
+		o.Ref == b.Ref &&
+		o.Prev == b.Prev &&
+		len(o.Relations) == len(b.Relations) &&
+		o.Name == b.Name &&
+		o.AuthorID == b.AuthorID &&
+		o.Timestamp == b.Timestamp &&
+		o.Size == b.Size &&
+		o.Note == b.Note
 }
 
 // MarshalFlatbuffer writes this operation to a flatbuffer, returning the
