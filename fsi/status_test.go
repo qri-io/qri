@@ -55,8 +55,8 @@ func TestStatusValid(t *testing.T) {
 	for _, ch := range changes {
 		actual += strings.Replace(fmt.Sprintf("%s", ch), paths.firstDir, ".", 1)
 	}
-	// Construct the expected repsonse by getting the real timestamp from each component.
-	expectList := []string{"body", "commit", "meta", "structure", "transform", "viz"}
+	// Construct the expected response by getting the real timestamp from each component.
+	expectList := []string{"body", "commit", "meta", "structure"}
 	expect := ""
 	for _, cmpName := range expectList {
 		var componentFile string
@@ -86,15 +86,15 @@ func TestStatusInvalidDataset(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/invalid_mappings/double_format/", paths.firstDir)
-	_, err = fsi.Status(ctx, paths.firstDir)
-	if err == nil {
-		t.Fatalf("expected error, did not get one")
+	changes, err := fsi.Status(ctx, paths.firstDir)
+	if err != nil {
+		t.Fatal(err)
 	}
-	// TODO(dlong): Kind of annoying, this error message is not deterministic.
-	expectOne := `dataset is defined in two places: dataset.json and dataset.yaml. please remove one`
-	expectTwo := `dataset is defined in two places: dataset.yaml and dataset.json. please remove one`
-	if err.Error() != expectOne && err.Error() != expectTwo {
-		t.Errorf("status error didn't match, actual: %s, expect: %s", err.Error(), expectOne)
+
+	message := fmt.Sprintf("%s", changes)
+	expect := "dataset conflict"
+	if !strings.Contains(message, expect) {
+		t.Errorf("status error didn't match, expected to contain: %s, got: %s", expect, message)
 	}
 }
 
@@ -110,15 +110,13 @@ func TestStatusInvalidMeta(t *testing.T) {
 	}
 
 	_ = copyDir("testdata/invalid_mappings/two_metas/", paths.firstDir)
-	_, err = fsi.Status(ctx, paths.firstDir)
-	if err == nil {
-		t.Fatalf("expected error, did not get one")
+	changes, err := fsi.Status(ctx, paths.firstDir)
+	if err != nil {
+		t.Fatalf(err.Error())
 	}
-	// TODO(dlong): Kind of annoying, this error message is not deterministic.
-	expectOne := `meta is defined in two places: dataset.yaml and meta.json. please remove one`
-	expectTwo := `meta is defined in two places: meta.json and dataset.yaml. please remove one`
-	if err.Error() != expectOne && err.Error() != expectTwo {
-		t.Errorf("status error didn't match, actual: %s, expect: %s", err.Error(), expectOne)
+
+	if !strings.Contains(fmt.Sprintf("%s", changes), "meta conflict") {
+		t.Errorf("status should have message about meta conflict")
 	}
 }
 

@@ -106,7 +106,11 @@ func (o *RestoreOptions) Run() (err error) {
 	}
 
 	var res string
-	err = o.FSIMethods.Restore(&lib.RestoreParams{Ref: ref, Component: o.ComponentName}, &res)
+	err = o.FSIMethods.Restore(&lib.RestoreParams{
+		Ref:       ref,
+		Dir:       o.Refs.Dir(),
+		Component: o.ComponentName,
+	}, &res)
 	if err != nil {
 		return err
 	}

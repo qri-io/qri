@@ -1,19 +1,15 @@
 package fsi
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
-	"os"
-	"sort"
 	"strings"
 	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -28,6 +24,8 @@ var (
 	STRemoved = "removed"
 	// STParseError is a component that didn't parse
 	STParseError = "parse error"
+	// STConflictError is a component with a conflict
+	STConflictError = "conflict error"
 )
 
 // StatusItem is a component that has status representation on the filesystem
@@ -55,38 +53,6 @@ func (si StatusItem) MarshalJSON() ([]byte, error) {
 		Mtime:      si.Mtime.Format(time.RFC3339),
 	}
 	return json.Marshal(obj)
-}
-
-// statusItems is a slice of component Status, used for sorting
-type statusItems []StatusItem
-
-// componentOrder is the canonical order for components. values are negative
-// such that they will report less than a nonexistent key, which will return 0
-// and report after specified keys
-var componentOrder = map[string]int{
-	"dataset":   -8,
-	"commit":    -7,
-	"meta":      -6,
-	"structure": -5,
-	"viz":       -3,
-	"transform": -2,
-	"body":      -1,
-}
-
-var componentListOrder = []string{
-	"dataset",
-	"commit",
-	"meta",
-	"structure",
-	"viz",
-	"transform",
-	"body",
-}
-
-func (si statusItems) Len() int      { return len(si) }
-func (si statusItems) Swap(i, j int) { si[i], si[j] = si[j], si[i] }
-func (si statusItems) Less(i, j int) bool {
-	return componentOrder[si[i].Component] < componentOrder[si[j].Component]
 }
 
 // AliasToLinkedDir converts the given dataset alias to the FSI path it is linked to.
@@ -125,204 +91,104 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 	stored.Transform = nil
 	stored.Peername = ""
 
-	working, fileMap, problems, err := ReadDir(dir)
+	working, err := component.ListDirectoryComponents(dir)
 	if err != nil {
 		return nil, err
 	}
-	working.DropDerivedValues()
 
-	// Set body file from local filesystem.
-	if bodyStat, ok := fileMap[componentNameBody]; ok {
-		bf, err := os.Open(bodyStat.Path)
-		if err != nil {
-			return nil, err
-		}
-		working.SetBodyFile(qfs.NewMemfileReader(bodyStat.Path, bf))
+	err = component.ExpandListedComponents(working, fsi.repo.Filesystem())
+	if err != nil {
+		return nil, err
 	}
 
-	return fsi.CalculateStateTransition(ctx, stored, working, fileMap, problems)
+	// TODO: If in the future we cache mtimes and previous status, we can more lazily read only
+	// some components.
+
+	prevComps := component.ConvertDatasetToComponents(stored, fsi.repo.Filesystem())
+	nextComps := working
+	return fsi.CalculateStateTransition(ctx, prevComps, nextComps)
 }
 
 // CalculateStateTransition calculates the differences between two versions of a dataset.
-func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next *dataset.Dataset, fileMap, problems map[string]FileStat) (changes []StatusItem, err error) {
-	// if err = validate.Dataset(ds); err != nil {
-	// 	return nil, fmt.Errorf("dataset is invalid: %s" , err)
-	// }
+func (fsi *FSI) CalculateStateTransition(ctx context.Context, prev, next component.Component) (changes []StatusItem, err error) {
 
-	// Problems is nil unless some components have errors
-	if problems != nil {
-		for i := 0; i < len(componentListOrder); i++ {
-			cmpName := componentListOrder[i]
-			if cmpFile, ok := problems[cmpName]; ok {
-				change := StatusItem{
-					SourceFile: cmpFile.Path,
-					Component:  cmpName,
-					Type:       STParseError,
-					Mtime:      cmpFile.Mtime,
-				}
-				changes = append(changes, change)
-			}
-		}
+	changes = make([]StatusItem, 0, component.NumberPossibleComponents)
+
+	// See if the dataset itself has a problem.
+	dsComp := next.Base().GetSubcomponent("dataset")
+	if dsComp != nil && dsComp.Base().ProblemKind != "" {
+		changes = append(changes, StatusItem{
+			SourceFile: dsComp.Base().SourceFile,
+			Component:  "dataset",
+			Type:       dsComp.Base().ProblemKind,
+			Mtime:      dsComp.Base().ModTime,
+		})
 	}
 
-	prevComponents := dsAllComponents(prev)
+	for _, compName := range component.AllSubcomponentNames() {
+		prevComp := prev.Base().GetSubcomponent(compName)
+		nextComp := next.Base().GetSubcomponent(compName)
 
-	for cmpName := range prevComponents {
-		// when reporting deletes, ignore "bound" components that must/must-not
-		// exist based on external conditions
-		if cmpName != componentNameDataset && cmpName != componentNameStructure && cmpName != componentNameCommit && cmpName != componentNameViz {
-
-			// Skip adding `removed` messages if we already added `problem` for this component.
-			if problems != nil {
-				if _, ok := problems[cmpName]; ok {
-					continue
-				}
-			}
-
-			cmp := dsComponent(prev, cmpName)
-			// If the component was not in the previous version, it can't have been removed.
-			if cmp == nil {
-				continue
-			}
-			if _, ok := fileMap[cmpName]; !ok {
-				change := StatusItem{
-					Component: cmpName,
-					Type:      STRemoved,
-				}
-				changes = append(changes, change)
-			}
-		}
-	}
-
-	// Iterate components in a deterministic order, going backwards.
-	for i := len(componentListOrder) - 1; i >= 0; i-- {
-		path := componentListOrder[i]
-		if path == componentNameDataset {
+		// Next component might have a problem, such as a parse error, or permission problem.
+		if nextComp != nil && nextComp.Base().ProblemKind != "" {
+			changes = append(changes, StatusItem{
+				SourceFile: nextComp.Base().SourceFile,
+				Component:  compName,
+				Type:       nextComp.Base().ProblemKind,
+				Mtime:      nextComp.Base().ModTime,
+			})
 			continue
 		}
 
-		localFile, ok := fileMap[path]
-		if !ok {
+		if prevComp == nil && nextComp == nil {
+			// Didn't exist before, still doesn't - skip this component.
 			continue
-		}
-
-		if cmp := dsComponent(prev, path); cmp == nil {
-			change := StatusItem{
-				SourceFile: localFile.Path,
-				Component:  path,
+		} else if prevComp == nil && nextComp != nil {
+			// Didn't exist before, does now - component was added.
+			changes = append(changes, StatusItem{
+				SourceFile: nextComp.Base().SourceFile,
+				Component:  compName,
 				Type:       STAdd,
-				Mtime:      localFile.Mtime,
-			}
-			changes = append(changes, change)
+				Mtime:      nextComp.Base().ModTime,
+			})
+			continue
+		} else if prevComp != nil && nextComp == nil {
+			// Did exist before, but doesn't now - component was removed.
+			changes = append(changes, StatusItem{
+				Component: compName,
+				Type:      STRemoved,
+			})
+			continue
+		}
+
+		isEqual, err := prevComp.Compare(nextComp)
+		if err != nil {
+			changes = append(changes, StatusItem{
+				SourceFile: nextComp.Base().SourceFile,
+				Component:  compName,
+				Type:       STParseError,
+				Mtime:      nextComp.Base().ModTime,
+			})
+			continue
+		}
+
+		if isEqual {
+			changes = append(changes, StatusItem{
+				SourceFile: nextComp.Base().SourceFile,
+				Component:  compName,
+				Type:       STUnmodified,
+				Mtime:      nextComp.Base().ModTime,
+			})
 		} else {
-
-			var prevData []byte
-			var nextData []byte
-			if path == componentNameBody {
-				// Getting data for the body works differently.
-				if err = prev.OpenBodyFile(ctx, fsi.repo.Filesystem()); err != nil {
-					return nil, err
-				}
-				prevBody := prev.BodyFile()
-				if prevBody == nil {
-					// Handle the case where there's no previous version. Body is "add"ed, do
-					// not attempt to read the non-existent body.
-					change := StatusItem{
-						SourceFile: localFile.Path,
-						Component:  path,
-						Type:       STAdd,
-						Mtime:      localFile.Mtime,
-					}
-					changes = append(changes, change)
-					continue
-				} else {
-					// Read body of previous version.
-					defer prevBody.Close()
-					prevData, err = ioutil.ReadAll(prevBody)
-					if err != nil {
-						return nil, err
-					}
-				}
-
-				// Getting data for the body works differently.
-				if err = next.OpenBodyFile(ctx, fsi.repo.Filesystem()); err != nil {
-					return nil, err
-				}
-				nextBody := next.BodyFile()
-				// TODO(dlong): Handle case where neither version has a body / body is removed.
-				if nextBody != nil {
-					// Read body of next version.
-					defer nextBody.Close()
-					nextData, err = ioutil.ReadAll(nextBody)
-					if err != nil {
-						return nil, err
-					}
-				}
-			} else {
-				// TODO(dlong): Do this type of comparison for each component kind. That is,
-				// compare the structured forms, after using DropDerivedValues. Or, just rewrite
-				// the FSI core so that this type of comparison is far easier to perform.
-				if path == componentNameStructure {
-					if prevStructure, ok := cmp.(*dataset.Structure); ok {
-						if nextStructure, ok := dsComponent(next, path).(*dataset.Structure); ok {
-							prevStructure.DropDerivedValues()
-							nextStructure.DropDerivedValues()
-							prevHash, _ := prevStructure.Hash()
-							nextHash, _ := nextStructure.Hash()
-							if prevHash != nextHash {
-								change := StatusItem{
-									SourceFile: localFile.Path,
-									Component:  path,
-									Type:       STChange,
-									Mtime:      localFile.Mtime,
-								}
-								changes = append(changes, change)
-							} else {
-								change := StatusItem{
-									SourceFile: localFile.Path,
-									Component:  path,
-									Type:       STUnmodified,
-									Mtime:      localFile.Mtime,
-								}
-								changes = append(changes, change)
-							}
-							continue
-						}
-					}
-				}
-
-				prevData, err = json.Marshal(cmp)
-				if err != nil {
-					return nil, err
-				}
-
-				nextData, err = json.Marshal(dsComponent(next, path))
-				if err != nil {
-					return nil, err
-				}
-			}
-
-			if !bytes.Equal(prevData, nextData) {
-				change := StatusItem{
-					SourceFile: localFile.Path,
-					Component:  path,
-					Type:       STChange,
-					Mtime:      localFile.Mtime,
-				}
-				changes = append(changes, change)
-			} else {
-				change := StatusItem{
-					SourceFile: localFile.Path,
-					Component:  path,
-					Type:       STUnmodified,
-					Mtime:      localFile.Mtime,
-				}
-				changes = append(changes, change)
-			}
+			changes = append(changes, StatusItem{
+				SourceFile: nextComp.Base().SourceFile,
+				Component:  compName,
+				Type:       STChange,
+				Mtime:      nextComp.Base().ModTime,
+			})
 		}
 	}
 
-	sort.Sort(statusItems(changes))
 	return changes, nil
 }
 
@@ -364,74 +230,25 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []S
 		}
 	}
 
-	fileMap := make(map[string]FileStat)
-	if next.Meta != nil {
-		fileMap["meta"] = FileStat{Path: "meta"}
-	}
-	if next.BodyPath != "" || next.BodyFile() != nil {
-		fileMap["body"] = FileStat{Path: "body"}
-	}
-	if next.Structure != nil {
-		fileMap["structure"] = FileStat{Path: "structure"}
-	}
-	return fsi.CalculateStateTransition(ctx, prev, next, fileMap, nil)
-}
+	prevCompCollect := component.ConvertDatasetToComponents(prev, fsi.repo.Filesystem())
+	prevCompCollect.Base().RemoveSubcomponent("commit")
+	prevCompCollect.DropDerivedValues()
+	nextCompCollect := component.ConvertDatasetToComponents(next, fsi.repo.Filesystem())
+	nextCompCollect.Base().RemoveSubcomponent("commit")
+	nextCompCollect.DropDerivedValues()
 
-func dsComponent(ds *dataset.Dataset, cmpName string) interface{} {
-	// This switch avoids returning interfaces with nil values and non-nil type tags.
-	switch cmpName {
-	case componentNameCommit:
-		if ds.Commit == nil {
-			return nil
-		}
-		return ds.Commit
-	case componentNameDataset:
-		return ds
-	case componentNameMeta:
-		if ds.Meta == nil {
-			return nil
-		}
-		return ds.Meta
-	case componentNameBody:
-		return ds.BodyPath != ""
-	case componentNameStructure:
-		if ds.Structure == nil {
-			return nil
-		}
-		return ds.Structure
-	case componentNameTransform:
-		if ds.Transform == nil {
-			return nil
-		}
-		return ds.Transform
-	case componentNameViz:
-		if ds.Viz == nil {
-			return nil
-		}
-		return ds.Viz
-	default:
-		return nil
+	changes, err = fsi.CalculateStateTransition(ctx, prevCompCollect, nextCompCollect)
+	if err != nil {
+		return nil, err
 	}
-}
-
-// dsAllComponents returns the components of a dataset as a map of component_name: value
-func dsAllComponents(ds *dataset.Dataset) map[string]interface{} {
-	components := map[string]interface{}{}
-	cmpNames := []string{
-		componentNameCommit,
-		componentNameDataset,
-		componentNameMeta,
-		componentNameBody,
-		componentNameStructure,
-		componentNameTransform,
-		componentNameViz,
-	}
-
-	for _, cmpName := range cmpNames {
-		if cmp := dsComponent(ds, cmpName); cmp != nil {
-			components[cmpName] = cmp
+	for i, ch := range changes {
+		comp := ch.Component
+		if comp == "meta" || comp == "body" || comp == "structure" {
+			fmt.Printf("component {%s}: Changes sourceFile\n", comp)
+			changes[i].SourceFile = comp
+		} else {
+			fmt.Printf("component {%s}: no change\n", comp)
 		}
 	}
-
-	return components
+	return changes, nil
 }

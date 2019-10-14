@@ -128,7 +128,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		if ref.FSIPath == "" {
 			return fsi.ErrNoLink
 		}
-		if ds, _, _, err = fsi.ReadDir(ref.FSIPath); err != nil {
+		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
 			return fmt.Errorf("loading linked dataset: %s", err)
 		}
 	} else {
@@ -317,13 +317,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			return fsi.ErrNoLink
 		}
 
-		var problems map[string]fsi.FileStat
-		ds, _, problems, err = fsi.ReadDir(ref.FSIPath)
+		ds, err = fsi.ReadDir(ref.FSIPath)
 		if err != nil {
 			return
-		}
-		if problems != nil {
-			return fmt.Errorf("cannot save, dataset has errors")
 		}
 	}
 
@@ -550,7 +546,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 	if ref.FSIPath != "" {
 		if p.DeleteFSIFiles {
-			if _, err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
+			if err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
 				return err
 			}
 			res.DeletedFSIFiles = true
