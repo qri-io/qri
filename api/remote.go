@@ -24,34 +24,21 @@ func NewRemoteClientHandlers(inst *lib.Instance, readOnly bool) *RemoteClientHan
 	}
 }
 
-// // PublishHandler works with dataset publicity
-// func (h *DatasetHandlers) PublishHandler(w http.ResponseWriter, r *http.Request) {
-// 	switch r.Method {
-// 	case "GET":
-// 		h.listPublishedHandler(w, r)
-// 	case "POST":
-// 		h.publishHandler(w, r, true)
-// 	case "DELETE":
-// 		h.publishHandler(w, r, false)
-// 	default:
-// 		util.NotFoundHandler(w, r)
-// 	}
-// }
+// NewFetchHandler returns an HTTP handler for fetching details from a remote
+func (h *RemoteClientHandlers) NewFetchHandler(prefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.readOnly {
+			readOnlyResponse(w, prefix)
+			return
+		}
 
-// func (h DatasetHandlers) publishHandler(w http.ResponseWriter, r *http.Request, publish bool) {
-// 	p := &lib.SetPublishStatusParams{
-// 		Ref:           ref.String(),
-// 		PublishStatus: publish,
-// 		// UpdateRegistry:    r.FormValue("no_registry") != "true",
-// 		// UpdateRegistryPin: r.FormValue("no_pin") != "true",
-// 	}
-// 	var publishedRef repo.DatasetRef
-// 	if err := h.DatasetRequests.SetPublishStatus(p, &publishedRef); err != nil {
-// 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
-// 		return
-// 	}
-// 	util.WriteResponse(w, publishedRef)
-// }
+		// ref, err := DatasetRefFromPath(r.URL.Path[len(prefix):])
+		// if err != nil {
+		// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
+		// 	return
+		// }
+	}
+}
 
 // PublishHandler facilitates requests to publish or unpublish
 // from the local node to a remote
@@ -123,15 +110,17 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 // RemoteHandlers wraps a request struct to interface with http.HandlerFunc
 type RemoteHandlers struct {
 	*lib.RemoteMethods
-	DsyncHandler http.HandlerFunc
-	RefsHandler  http.HandlerFunc
+	DsyncHandler   http.HandlerFunc
+	RefsHandler    http.HandlerFunc
+	LogsyncHandler http.HandlerFunc
 }
 
 // NewRemoteHandlers allocates a RemoteHandlers pointer
 func NewRemoteHandlers(inst *lib.Instance) *RemoteHandlers {
 	return &RemoteHandlers{
-		RemoteMethods: lib.NewRemoteMethods(inst),
-		DsyncHandler:  inst.Remote().DsyncHTTPHandler(),
-		RefsHandler:   inst.Remote().RefsHTTPHandler(),
+		RemoteMethods:  lib.NewRemoteMethods(inst),
+		DsyncHandler:   inst.Remote().DsyncHTTPHandler(),
+		RefsHandler:    inst.Remote().RefsHTTPHandler(),
+		LogsyncHandler: inst.Remote().LogsyncHTTPHandler(),
 	}
 }

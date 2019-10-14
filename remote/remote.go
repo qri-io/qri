@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -42,8 +43,9 @@ type Options struct {
 // Remote receives requests from other qri nodes to perform actions on their
 // behalf
 type Remote struct {
-	node  *p2p.QriNode
-	dsync *dsync.Dsync
+	node    *p2p.QriNode
+	dsync   *dsync.Dsync
+	logsync *logsync.Logsync
 
 	acceptSizeMax int64
 	// TODO (b5) - dsync needs to use timeouts
@@ -54,6 +56,9 @@ type Remote struct {
 	datasetPushed        Hook
 	datasetRemoved       Hook
 	datasetPulled        Hook
+
+	logReceiveCheck Hook
+	logDidReceive   Hook
 }
 
 // NewRemote creates a remote
@@ -101,6 +106,15 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		dsyncConfig.RemoveCheck = r.removeCheck
 		dsyncConfig.GetDagInfoCheck = r.getDagInfo
 	})
+	if err != nil {
+		return nil, err
+	}
+
+	if book := node.Repo.Logbook(); book != nil {
+		r.logsync = logsync.New(book, func(o *logsync.Options) {
+
+		})
+	}
 
 	return r, err
 }
@@ -261,6 +275,11 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.Dat
 // DsyncHTTPHandler provides an http handler for dsync
 func (r *Remote) DsyncHTTPHandler() http.HandlerFunc {
 	return dsync.HTTPRemoteHandler(r.dsync)
+}
+
+// LogsyncHTTPHandler provides an http handler for synchronizing logs
+func (r *Remote) LogsyncHTTPHandler() http.HandlerFunc {
+	return logsync.HTTPHandler(r.logsync)
 }
 
 // RefsHTTPHandler handles requests for dataset references

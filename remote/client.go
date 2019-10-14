@@ -17,6 +17,8 @@ import (
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -43,9 +45,10 @@ func Address(cfg *config.Config, name string) (addr string, err error) {
 
 // Client issues requests to a remote
 type Client struct {
-	pk   crypto.PrivKey
-	ds   *dsync.Dsync
-	capi coreiface.CoreAPI
+	pk      crypto.PrivKey
+	ds      *dsync.Dsync
+	logsync *logsync.Logsync
+	capi    coreiface.CoreAPI
 }
 
 // NewClient creates a client
@@ -68,10 +71,16 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 		dsyncConfig.PinAPI = capi.Pin()
 	})
 
+	var ls *logsync.Logsync
+	if book := node.Repo.Logbook(); book != nil {
+		ls = logsync.New(book)
+	}
+
 	return &Client{
-		pk:   node.Repo.PrivateKey(),
-		ds:   ds,
-		capi: capi,
+		pk:      node.Repo.PrivateKey(),
+		ds:      ds,
+		logsync: ls,
+		capi:    capi,
 	}, nil
 }
 
@@ -82,13 +91,34 @@ func (c *Client) CoreAPI() coreiface.CoreAPI {
 	return c.capi
 }
 
+// Fetch pulls a logbook from a remote
+func (c *Client) Fetch(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/logsync"
+	}
+	log.Debugf("fetching logs for %s from %s", ref.Alias(), remoteAddr)
+	pull, err := c.logsync.NewPull(ref, remoteAddr)
+	if err != nil {
+		return err
+	}
+
+	return pull.Do(ctx)
+}
+
 // PushDataset pushes the contents of a dataset to a remote
 func (c *Client) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/dsync"
+	}
 	log.Debugf("pushing dataset %s to %s", ref.Path, remoteAddr)
-	push, err := c.ds.NewPush(ref.Path, remoteAddr+"/remote/dsync", true)
+	push, err := c.ds.NewPush(ref.Path, remoteAddr, true)
 	if err != nil {
 		return err
 	}
@@ -307,6 +337,7 @@ func calcProfileID(privKey crypto.PrivKey) (string, error) {
 	return mh.B58String(), nil
 }
 
+// TODO (b5) - this should return an enumeration
 func addressType(remoteAddr string) string {
 	// if a valid base58 peerID is passed, we're doing a p2p dsync
 	if _, err := peer.IDB58Decode(remoteAddr); err == nil {

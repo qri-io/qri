@@ -28,6 +28,34 @@ func NewRemoteMethods(inst *Instance) *RemoteMethods {
 // CoreRequestsName implements the Requests interface
 func (*RemoteMethods) CoreRequestsName() string { return "remote" }
 
+// FetchParams encapsulates parameters for a fetch request
+type FetchParams struct {
+	Ref        string
+	RemoteName string
+}
+
+// Fetch pulls a logbook from a remote
+func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
+		return err
+	}
+	*res = ref
+
+	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	if err != nil {
+		return err
+	}
+
+	// TODO (b5) - need contexts yo
+	ctx := context.TODO()
+
+	return r.cli.Fetch(ctx, repo.ConvertToDsref(ref), addr)
+}
+
 // PublicationParams encapsulates parmeters for dataset publication
 type PublicationParams struct {
 	Ref        string
@@ -40,7 +68,7 @@ type PublicationParams struct {
 // Publish posts a dataset version to a remote
 func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("DatasetRequests.Publish", p, res)
+		return r.inst.rpc.Call("RemoteMethods.Publish", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -71,7 +99,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 // Unpublish asks a remote to remove a dataset
 func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("DatasetRequests.Unpublish", p, res)
+		return r.inst.rpc.Call("RemoteMethods.Unpublish", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -103,7 +131,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) er
 // PullDataset fetches a dataset ref from a remote
 func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("DatasetRequests.Unpublish", p, res)
+		return r.inst.rpc.Call("RemoteMethods.PullDataset", p, res)
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)

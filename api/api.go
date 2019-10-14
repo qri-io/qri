@@ -250,6 +250,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 		remh := NewRemoteHandlers(s.Instance)
 		m.Handle("/remote/dsync", s.middleware(remh.DsyncHandler))
+		m.Handle("/remote/logsync", s.middleware(remh.LogsyncHandler))
 		m.Handle("/remote/refs", s.middleware(remh.RefsHandler))
 	}
 
@@ -269,6 +270,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
+	m.Handle("/fetch/", s.middleware(remClientH.NewFetchHandler("/fetch")))
 
 	uh := UpdateHandlers{
 		UpdateMethods: lib.NewUpdateMethods(s.Instance),
