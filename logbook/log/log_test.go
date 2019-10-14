@@ -269,6 +269,33 @@ func TestLogMerge(t *testing.T) {
 	}
 }
 
+func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
+	tr, cleanup := newTestRunner(b)
+	defer cleanup()
+
+	init := Op{
+		Type:  OpTypeInit,
+		Model: 0xFFFF,
+	}
+
+	l := tr.RandomLog(init, 10000)
+	book := tr.Book
+	book.AppendLog(l)
+
+	data, err := book.FlatbufferCipher()
+	if err != nil {
+		b.Fatal(err)
+	}
+
+	b.Logf("data is %d bytes", len(data))
+	b.ResetTimer()
+	for n := 0; n < b.N; n++ {
+		if _, err := book.FlatbufferCipher(); err != nil {
+			b.Fatal(err)
+		}
+	}
+}
+
 type testRunner struct {
 	Ctx        context.Context
 	AuthorName string
@@ -277,7 +304,12 @@ type testRunner struct {
 	gen        *opGenerator
 }
 
-func newTestRunner(t *testing.T) (tr testRunner, cleanup func()) {
+type testFailer interface {
+	Fatal(args ...interface{})
+	Fatalf(format string, args ...interface{})
+}
+
+func newTestRunner(t testFailer) (tr testRunner, cleanup func()) {
 	ctx := context.Background()
 	authorName := "test_author"
 	authorID := "QmTestAuthorID"
@@ -310,7 +342,7 @@ func (tr testRunner) RandomLog(init Op, opCount int) *Log {
 	return lg
 }
 
-func testPrivKey(t *testing.T) crypto.PrivKey {
+func testPrivKey(t testFailer) crypto.PrivKey {
 	// logbooks are encrypted at rest, we need a private key to interact with
 	// them, including to create a new logbook. This is a dummy Private Key
 	// you should never, ever use in real life. demo only folks.
