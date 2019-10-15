@@ -134,7 +134,11 @@ func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.
 		return err
 	}
 	history := make([]*dataset.Dataset, len(refs))
-	for i, ref := range refs {
+	// logs are returned from newest-to-oldest, and log construction needs them
+	// ordered from oldest to newest
+	i := len(refs)
+	for _, ref := range refs {
+		i--
 		history[i] = ref.Dataset
 	}
 
