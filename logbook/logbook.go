@@ -419,7 +419,7 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 	return nil, ErrNotFound
 }
 
-// MergeLogBytes adds a log to the logbook, mergining with any existing log data
+// MergeLogBytes adds a log to the logbook, merging with any existing log data
 // TODO (b5) - this isn't fully worked out yet, need to verify signatures,
 // restricting what logs can be written based on the signer
 func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte) error {
@@ -596,8 +596,7 @@ func logEntryFromOp(author string, op log.Op) LogEntry {
 	}
 }
 
-// RawLogs returns a serialized, complete set of logs keyed by model type
-// logs. Most
+// RawLogs returns a serialized, complete set of logs keyed by model type logs
 func (book Book) RawLogs(ctx context.Context) map[string][]Log {
 	logs := map[string][]Log{}
 	for m, lgs := range book.bk.Logs() {

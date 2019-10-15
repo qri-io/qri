@@ -109,7 +109,7 @@ func NewLogbookCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Example: `  show log for the dataset bob/precip:
 		$ qri logbook bob/precip`,
 		Long: `Logbooks are records of changes to a dataset. The logbook is more detailed
-than a dataset history, recording the steps taken construct a dataset history
+than a dataset history, recording the steps taken to construct a dataset history
 without including dataset data. Logbooks can be synced with other users.
 
 The logbook command shows entries for a dataset, from newest to oldest.`,

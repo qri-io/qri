@@ -25,7 +25,7 @@ func DatasetLog(ctx context.Context, node *p2p.QriNode, ref repo.DatasetRef, lim
 			rlog[i] = base.DatasetLogItem{
 				Ref: repo.ConvertToDsref(v),
 			}
-			if v.Dataset != nil {
+			if v.Dataset != nil && v.Dataset.Commit != nil {
 				rlog[i].Timestamp = v.Dataset.Commit.Timestamp
 				rlog[i].CommitTitle = v.Dataset.Commit.Title
 				rlog[i].CommitMessage = v.Dataset.Commit.Message

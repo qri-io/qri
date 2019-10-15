@@ -27,9 +27,9 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
-			// log is returned newest-first, fill slice in reverse
-			i := len(items) - 1
-			for _, v := range versions {
+			for j, v := range versions {
+				// log is returned newest-first, fill slice in reverse
+				i := len(items) - j - 1
 				items[i] = DatasetLogItem{
 					Ref:         v.Ref,
 					Published:   v.Published,
@@ -49,7 +49,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	items = make([]DatasetLogItem, len(rlog))
 	for i, vref := range rlog {
 		items[i] = DatasetLogItem{Ref: repo.ConvertToDsref(vref)}
-		if vref.Dataset != nil {
+		if vref.Dataset != nil && vref.Dataset.Commit != nil {
 			items[i].Timestamp = vref.Dataset.Commit.Timestamp
 			items[i].CommitTitle = vref.Dataset.Commit.Title
 			items[i].CommitMessage = vref.Dataset.Commit.Message
@@ -134,11 +134,10 @@ func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.
 		return err
 	}
 	history := make([]*dataset.Dataset, len(refs))
-	// logs are returned from newest-to-oldest, and log construction needs them
-	// ordered from oldest to newest
-	i := len(refs)
-	for _, ref := range refs {
-		i--
+	for j, ref := range refs {
+		// logs are returned from newest-to-oldest, and log construction needs them
+		// ordered from oldest to newest
+		i := len(refs) - j - 1
 		history[i] = ref.Dataset
 	}
 

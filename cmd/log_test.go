@@ -33,6 +33,11 @@ func TestLogbookCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	// TODO (b5) - once we have consistent timestamps from the logbook package
+	// for testing, enable this & compare output
+	// res := r.GetOutput()
+	// t.Log(res)
+
 	cmdR = r.CreateCommandRunner(ctx)
 	if err = executeCommand(cmdR, "qri logbook me/test_movies"); err != nil {
 		t.Fatal(err)

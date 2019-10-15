@@ -76,7 +76,7 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 	return
 }
 
-// RefListParams encapsulatess parameters for requests to a single reference
+// RefListParams encapsulates parameters for requests to a single reference
 // that will produce a paginated result
 type RefListParams struct {
 	// String value of a reference

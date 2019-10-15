@@ -306,7 +306,6 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 
 	// Read body from the dataset that was saved.
 	dsPath := r.GetPathForDataset(0)
-	fmt.Println(dsPath)
 	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.csv")
 
 	// Read the body from the testdata input file.
