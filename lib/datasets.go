@@ -16,10 +16,11 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -605,13 +606,27 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Delete the specific number of revisions.
-	replace := log[p.Revision.Gen]
-	if err := actions.ModifyDataset(r.node, &ref, &replace, false /*isRename*/); err != nil {
+	dsr := log[p.Revision.Gen]
+	replace := &repo.DatasetRef{
+		Peername:  dsr.Ref.Username,
+		Name:      dsr.Ref.Name,
+		ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
+		Path:      dsr.Ref.Path,
+		Published: dsr.Published,
+	}
+
+	if err := actions.ModifyDataset(r.node, &ref, replace, false /*isRename*/); err != nil {
 		return err
 	}
 	res.NumDeleted = p.Revision.Gen
 
-	return nil
+	// TODO (b5) - this should be moved down into the action
+	err = r.inst.Repo().Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(ref), res.NumDeleted)
+	if err == logbook.ErrNoLogbook {
+		err = nil
+	}
+
+	return err
 }
 
 // AddParams encapsulates parameters to the add command

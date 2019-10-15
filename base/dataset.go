@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -156,7 +157,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 			}
 
 			if showVersions {
-				dsVersions, err := DatasetLog(ctx, r, ref, 0, 0, false)
+				dsVersions, err := DatasetLog(ctx, r, ref, 1000000, 0, false)
 				if err != nil {
 					return nil, err
 				}
@@ -208,15 +209,17 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		Name:      ds.Name,
 		Path:      path,
 	}
+
 	if err = r.PutRef(ref); err != nil {
 		return
 	}
-	if err = r.LogEvent(repo.ETDsCreated, ref); err != nil {
+
+	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
+	ds.ProfileID = pro.ID.String()
+	ds.Peername = pro.Peername
+	ds.Path = path
+	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
 		return
-	}
-	_, storeIsPinner := r.Store().(cafs.Pinner)
-	if pin && storeIsPinner {
-		r.LogEvent(repo.ETDsPinned, ref)
 	}
 
 	if err = ReadDataset(ctx, r, &ref); err != nil {
@@ -316,8 +319,7 @@ func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err er
 // PinDataset marks a dataset for retention in a store
 func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Pin(ctx, ref.Path, true)
-		return r.LogEvent(repo.ETDsPinned, ref)
+		return pinner.Pin(ctx, ref.Path, true)
 	}
 	return repo.ErrNotPinner
 }
@@ -325,8 +327,7 @@ func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 // UnpinDataset unmarks a dataset for retention in a store
 func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
-		pinner.Unpin(ctx, ref.Path, true)
-		return r.LogEvent(repo.ETDsUnpinned, ref)
+		return pinner.Unpin(ctx, ref.Path, true)
 	}
 	return repo.ErrNotPinner
 }

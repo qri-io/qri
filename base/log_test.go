@@ -4,28 +4,31 @@ import (
 	"context"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
 
-func TestDatasetLog(t *testing.T) {
+func TestDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	addCitiesDataset(t, r)
 	head := updateCitiesDataset(t, r)
 	expectLen := 2
 
-	dlog, err := DatasetLog(ctx, r, head, 100, 0, true)
+	dlog, err := DatasetLogFromHistory(ctx, r, head, 0, 100, true)
 	if err != nil {
 		t.Error(err)
 	}
 	if len(dlog) != expectLen {
-		t.Errorf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
+		t.Fatalf("log length mismatch. expected: %d, got: %d", expectLen, len(dlog))
 	}
 	if dlog[0].Dataset.Meta.Title != head.Dataset.Meta.Title {
 		t.Errorf("expected log with loadDataset == true to populate datasets")
 	}
 
-	dlog, err = DatasetLog(ctx, r, head, 100, 0, false)
+	dlog, err = DatasetLogFromHistory(ctx, r, head, 0, 100, false)
 	if err != nil {
 		t.Error(err)
 	}
@@ -38,73 +41,56 @@ func TestDatasetLog(t *testing.T) {
 	}
 }
 
-func TestLogDiff(t *testing.T) {
+func TestConstructDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
-	r := newTestRepo(t)
-	ref := addCitiesDataset(t, r)
-	head := updateCitiesDataset(t, r)
+	r := newTestRepo(t).(*repo.MemRepo)
 
-	ldr, err := LogDiff(ctx, r, []repo.DatasetRef{})
-	if err == nil {
-		t.Error("expected empty diff to error")
+	// remove the logbook
+	r.RemoveLogbook()
+
+	// create some history
+	addCitiesDataset(t, r)
+	ref := updateCitiesDataset(t, r)
+
+	// add the logbook back
+	p, err := r.Profile()
+	if err != nil {
+		t.Fatal(err)
+	}
+	book, err := logbook.NewBook(p.PrivKey, p.Peername, r.Filesystem(), "/map/logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+	r.SetLogbook(book)
+
+	cities := repo.ConvertToDsref(ref)
+
+	// confirm no history exists:
+	if _, err = book.Versions(cities, 0, 100); err == nil {
+		t.Errorf("expected versions for nonexistent history to fail")
 	}
 
-	ldr, err = LogDiff(ctx, r, []repo.DatasetRef{
-		repo.DatasetRef{Peername: "missing", Name: "reference"},
-	})
-	if err == nil {
-		t.Error("expected diff of missing reference to error")
+	// create some history
+	if err := constructDatasetLogFromHistory(ctx, r, cities); err != nil {
+		t.Errorf("building dataset history: %s", err)
 	}
 
-	ldr, err = LogDiff(ctx, r, []repo.DatasetRef{ref})
+	expect := []logbook.DatasetInfo{
+		{
+			CommitTitle: "initial commit",
+		},
+		{
+			CommitTitle: "initial commit",
+		},
+	}
+
+	// confirm history exists:
+	got, err := book.Versions(cities, 0, 100)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expectAdd := []repo.DatasetRef{head}
-	if !RefSetEqual(ldr.Add, expectAdd) {
-		t.Errorf("add mismatch. expected: %v\ngot: %v", expectAdd, ldr.Add)
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(logbook.DatasetInfo{}, "Timestamp", "Ref")); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
-}
-
-func TestRefDiff(t *testing.T) {
-	a := []repo.DatasetRef{
-		repo.MustParseDatasetRef("a/b@c/ipfs/d"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/e"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/f"),
-	}
-	b := []repo.DatasetRef{
-		repo.MustParseDatasetRef("a/b@c/ipfs/e"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/f"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/g"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/h"),
-	}
-	expectAdd := []repo.DatasetRef{
-		repo.MustParseDatasetRef("a/b@c/ipfs/g"),
-		repo.MustParseDatasetRef("a/b@c/ipfs/h"),
-	}
-	expectRm := []repo.DatasetRef{
-		repo.MustParseDatasetRef("a/b@c/ipfs/d"),
-	}
-
-	gotAdd, gotRm := refDiff(a, b)
-
-	if !RefSetEqual(expectAdd, gotAdd) {
-		t.Errorf("add mismatch. expected: %v\ngot: %v", expectAdd, gotAdd)
-	}
-	if !RefSetEqual(expectRm, gotRm) {
-		t.Errorf("remove mismatch. expected: %v\ngot: %v", expectRm, gotRm)
-	}
-}
-
-func RefSetEqual(a, b []repo.DatasetRef) bool {
-	if len(a) != len(b) {
-		return false
-	}
-	for i, ar := range a {
-		if !b[i].Equal(ar) {
-			return false
-		}
-	}
-	return true
 }

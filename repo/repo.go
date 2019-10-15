@@ -9,6 +9,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -61,8 +62,9 @@ type Repo interface {
 
 	// All Repos must keep a Refstore, defining a store of known datasets
 	Refstore
-	// EventLog keeps a log of Profile activity for this repo
-	EventLog
+
+	// Repos have a logbook for recording & storing operation logs
+	Logbook() *logbook.Book
 
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the peer.

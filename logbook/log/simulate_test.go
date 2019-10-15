@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"testing"
+	"time"
 )
 
 func TestSimulateLogReplication(t *testing.T) {
@@ -97,8 +98,10 @@ func (og *opGenerator) MaybeGen(id int) Op {
 func (og *opGenerator) Gen() Op {
 	//  Author: fmt.Sprintf("%d", id)
 	o := Op{
-		Ref:  fmt.Sprintf("%d", og.opsGenerated),
-		Note: fmt.Sprintf("op number %d", og.opsGenerated),
+		Ref:       fmt.Sprintf("hash_number_%d_plus_somefiller_text", og.opsGenerated),
+		Prev:      fmt.Sprintf("hash_number_%d_plus_somefiller_text", og.opsGenerated-1),
+		Timestamp: time.Now().UnixNano(),
+		Note:      fmt.Sprintf("op number %d with a long description that shows how stuff gets long and stuff", og.opsGenerated),
 	}
 	og.opsGenerated++
 

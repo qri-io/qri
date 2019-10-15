@@ -33,9 +33,9 @@ import (
 // authors, forming a conflict-free replicated data type (CRDT), and a basis
 // for collaboration through knowledge of each other's operations
 type Book struct {
-	authorname string
-	id         string
 	pk         crypto.PrivKey
+	id         string
+	authorname string
 	logs       map[uint32][]*Log
 }
 
@@ -43,6 +43,7 @@ type Book struct {
 func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
 	return &Book{
 		pk:         pk,
+		id:         authorID,
 		authorname: authorname,
 		logs:       map[uint32][]*Log{},
 	}, nil
@@ -61,6 +62,11 @@ func (book Book) AuthorID() string {
 // AppendLog adds a log to a book
 func (book *Book) AppendLog(l *Log) {
 	book.logs[l.Model()] = append(book.logs[l.Model()], l)
+}
+
+// Logs returns the full map of logs keyed by model type
+func (book *Book) Logs() map[uint32][]*Log {
+	return book.logs
 }
 
 // ModelLogs gives all sets whoe model type matches model
@@ -163,8 +169,10 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 
 func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	newBook := Book{
-		id:   string(b.Identifier()),
-		logs: map[uint32][]*Log{},
+		pk:         book.pk,
+		id:         string(b.Identifier()),
+		authorname: string(b.Name()),
+		logs:       map[uint32][]*Log{},
 	}
 
 	count := b.LogsLength()
@@ -193,15 +201,18 @@ func (book Book) logsSlice() (logs []*Log) {
 // Log is a causally-ordered set of operations performed by a single author.
 // log attribution is verified by an author's signature
 type Log struct {
-	signature []byte
-	ops       []Op
-	logs      []*Log
+	name     string // name value cache. not persisted
+	authorID string // authorID value cache. not persisted
+
+	Signature []byte
+	Ops       []Op
+	Logs      []*Log
 }
 
 // InitLog creates a Log from an initialization operation
 func InitLog(initop Op) *Log {
 	return &Log{
-		ops: []Op{initop},
+		Ops: []Op{initop},
 	}
 }
 
@@ -214,12 +225,15 @@ func FromFlatbufferBytes(data []byte) (*Log, error) {
 
 // Append adds an operation to the log
 func (lg *Log) Append(op Op) {
-	lg.ops = append(lg.ops, op)
-}
-
-// Len returns the number of of the latest entry in the log
-func (lg Log) Len() int {
-	return len(lg.ops)
+	if op.Model == lg.Model() {
+		if op.Name != "" {
+			lg.name = op.Name
+		}
+		if op.AuthorID != "" {
+			lg.authorID = op.AuthorID
+		}
+	}
+	lg.Ops = append(lg.Ops, op)
 }
 
 // Model gives the operation type for a log, based on the first operation
@@ -227,25 +241,39 @@ func (lg Log) Len() int {
 // first operation written to a log determines the kind of log for
 // catagorization purposes
 func (lg Log) Model() uint32 {
-	return lg.ops[0].Model
+	return lg.Ops[0].Model
 }
 
 // Author returns the name and identifier this log is attributed to
-func (lg Log) Author() (name, identifier string) {
-	return lg.ops[0].Name, lg.ops[0].AuthorID
+func (lg Log) Author() (identifier string) {
+	if lg.authorID == "" {
+		m := lg.Model()
+		for _, o := range lg.Ops {
+			if o.Model == m && o.AuthorID != "" {
+				lg.authorID = o.AuthorID
+			}
+		}
+	}
+	return lg.authorID
 }
 
 // Name returns the human-readable name for this log, determined by the
 // initialization event
-// TODO (b5) - name must be made mutable by playing forward any name-changing
-// operations and applying them to the log
 func (lg Log) Name() string {
-	return lg.ops[0].Name
+	if lg.name == "" {
+		m := lg.Model()
+		for _, o := range lg.Ops {
+			if o.Model == m && o.Name != "" {
+				lg.name = o.Name
+			}
+		}
+	}
+	return lg.name
 }
 
 // Child returns a child log for a given name, and nil if it doesn't exist
 func (lg Log) Child(name string) *Log {
-	for _, l := range lg.logs {
+	for _, l := range lg.Logs {
 		if l.Name() == name {
 			return l
 		}
@@ -255,12 +283,39 @@ func (lg Log) Child(name string) *Log {
 
 // AddChild appends a log as a direct descendant of this log
 func (lg *Log) AddChild(l *Log) {
-	lg.logs = append(lg.logs, l)
+	lg.Logs = append(lg.Logs, l)
+}
+
+// Merge combines two logs that are assumed to be a shared root, combining
+// children from both branches, matching branches prefer longer Opsets
+// Merging relies on comparison of initialization operations, which
+// must be present to constitute a match
+func (lg *Log) Merge(l *Log) {
+	// if the incoming log has more operations, use it & clear the cache
+	if len(l.Ops) > len(lg.Ops) {
+		lg.Ops = l.Ops
+		lg.name = ""
+		lg.authorID = ""
+		lg.Signature = nil
+	}
+
+LOOP:
+	for _, x := range l.Logs {
+		for j, y := range lg.Logs {
+			// if logs match. merge 'em
+			if x.Model() == y.Model() && x.Ops[0].Name == y.Ops[0].Name && x.Ops[0].AuthorID == y.Ops[0].AuthorID {
+				lg.Logs[j].Merge(x)
+				continue LOOP
+			}
+		}
+		// no match, append!
+		lg.Logs = append(lg.Logs, x)
+	}
 }
 
 // Verify confirms that the signature for a log matches
 func (lg Log) Verify(pub crypto.PubKey) error {
-	ok, err := pub.Verify(lg.SigningBytes(), lg.signature)
+	ok, err := pub.Verify(lg.SigningBytes(), lg.Signature)
 	if err != nil {
 		return err
 	}
@@ -270,17 +325,12 @@ func (lg Log) Verify(pub crypto.PubKey) error {
 	return nil
 }
 
-// Ops gives the set of operations in a log
-func (lg Log) Ops() []Op {
-	return lg.ops
-}
-
 // Sign assigns the log signature by signing the logging checksum with a given
 // private key
 // TODO (b5) - this is assuming the log is authored by this private key. as soon
 // as we add collaborators, this won't be true
 func (lg *Log) Sign(pk crypto.PrivKey) (err error) {
-	lg.signature, err = pk.Sign(lg.SigningBytes())
+	lg.Signature, err = pk.Sign(lg.SigningBytes())
 	if err != nil {
 		return err
 	}
@@ -291,7 +341,7 @@ func (lg *Log) Sign(pk crypto.PrivKey) (err error) {
 // SigningBytes perpares a byte slice for signing from a log's operations
 func (lg Log) SigningBytes() []byte {
 	hasher := md5.New()
-	for _, op := range lg.ops {
+	for _, op := range lg.Ops {
 		hasher.Write([]byte(op.Ref))
 	}
 	return hasher.Sum(nil)
@@ -313,9 +363,9 @@ func (lg Log) SignedFlatbufferBytes(pk crypto.PrivKey) ([]byte, error) {
 // offset
 func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	// build logs bottom up, collecting offsets
-	logcount := len(lg.logs)
+	logcount := len(lg.Logs)
 	logoffsets := make([]flatbuffers.UOffsetT, logcount)
-	for i, o := range lg.logs {
+	for i, o := range lg.Logs {
 		logoffsets[i] = o.MarshalFlatbuffer(builder)
 	}
 
@@ -325,14 +375,13 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 	}
 	logs := builder.EndVector(logcount)
 
-	namestr, idstr := lg.Author()
-	name := builder.CreateString(namestr)
-	id := builder.CreateString(idstr)
-	signature := builder.CreateByteString(lg.signature)
+	name := builder.CreateString(lg.Name())
+	id := builder.CreateString(lg.Author())
+	signature := builder.CreateByteString(lg.Signature)
 
-	count := len(lg.ops)
+	count := len(lg.Ops)
 	offsets := make([]flatbuffers.UOffsetT, count)
-	for i, o := range lg.ops {
+	for i, o := range lg.Ops {
 		offsets[i] = o.MarshalFlatbuffer(builder)
 	}
 
@@ -351,29 +400,35 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 	return logfb.LogEnd(builder)
 }
 
-// UnmarshalFlatbuffer reads a Log from
+// UnmarshalFlatbufferBytes is a convenince wrapper to deserialze a flatbuffer
+// slice into a log
+func (lg *Log) UnmarshalFlatbufferBytes(data []byte) error {
+	return lg.UnmarshalFlatbuffer(logfb.GetRootAsLog(data, 0))
+}
+
+// UnmarshalFlatbuffer populates a logfb.Log from a Log pointer
 func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
 	newLg := Log{}
 
 	if len(lfb.Signature()) != 0 {
-		newLg.signature = lfb.Signature()
+		newLg.Signature = lfb.Signature()
 	}
 
-	newLg.ops = make([]Op, lfb.OpsetLength())
+	newLg.Ops = make([]Op, lfb.OpsetLength())
 	opfb := &logfb.Operation{}
 	for i := 0; i < lfb.OpsetLength(); i++ {
 		if lfb.Opset(opfb, i) {
-			newLg.ops[i] = UnmarshalOpFlatbuffer(opfb)
+			newLg.Ops[i] = UnmarshalOpFlatbuffer(opfb)
 		}
 	}
 
 	if lfb.LogsLength() > 0 {
-		newLg.logs = make([]*Log, lfb.LogsLength())
+		newLg.Logs = make([]*Log, lfb.LogsLength())
 		childfb := &logfb.Log{}
 		for i := 0; i < lfb.LogsLength(); i++ {
 			if lfb.Logs(childfb, i) {
-				newLg.logs[i] = &Log{}
-				newLg.logs[i].UnmarshalFlatbuffer(childfb)
+				newLg.Logs[i] = &Log{}
+				newLg.Logs[i].UnmarshalFlatbuffer(childfb)
 			}
 		}
 	}

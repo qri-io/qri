@@ -23,10 +23,10 @@ import (
 	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
@@ -324,7 +324,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.repo != nil {
 		inst.repo = o.repo
 	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store); err != nil {
+		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
@@ -332,10 +332,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 
 	if inst.repo != nil {
 		inst.fsi = fsi.NewFSI(inst.repo)
-
-		if qfssetter, ok := inst.repo.(repo.QFSSetter); ok {
-			qfssetter.SetFilesystem(inst.qfs)
-		}
 	}
 
 	if inst.node == nil {
@@ -460,7 +456,7 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo, err error) {
+func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -468,16 +464,16 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore) (r repo.Repo
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, nil, pro, path)
+		return fsrepo.NewRepo(store, fs, pro, path)
 	case "mem":
-		return repo.NewMemRepo(pro, store, nil, profile.NewMemStore())
+		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
 	default:
 		return nil, fmt.Errorf("unknown repo type: %s", cfg.Repo.Type)
 	}
 }
 
 func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
-	mux := map[string]qfs.PathResolver{
+	mux := map[string]qfs.Filesystem{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  store,
@@ -487,7 +483,7 @@ func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, er
 		mux["ipfs"] = ipfss
 	}
 
-	fsys := muxfs.NewMux(mux)
+	fsys := qfs.NewMux(mux)
 	return fsys, nil
 }
 
@@ -569,6 +565,7 @@ type Instance struct {
 	remote       *remote.Remote
 	remoteClient *remote.Client
 	registry     *regclient.Client
+	logbook      *logbook.Book
 
 	rpc *rpc.Client
 }

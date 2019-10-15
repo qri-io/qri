@@ -274,7 +274,7 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	r := NewTestRepoRoot(t, "qri_test_remove_only_two_revisions")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())

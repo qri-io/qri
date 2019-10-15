@@ -4,12 +4,14 @@ package fsrepo
 import (
 	"fmt"
 	"os"
+	"path/filepath"
 
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -26,13 +28,13 @@ type Repo struct {
 	basepath
 
 	repo.Refstore
-	EventLog
 
 	profile *profile.Profile
 
-	store cafs.Filestore
-	fsys  qfs.Filesystem
-	graph map[string]*dsgraph.Node
+	store   cafs.Filestore
+	fsys    qfs.Filesystem
+	graph   map[string]*dsgraph.Node
+	logbook *logbook.Book
 
 	profiles *ProfileStore
 
@@ -50,15 +52,21 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, ba
 		return nil, fmt.Errorf("Expected: PrivateKey")
 	}
 
+	book, err := logbook.NewBook(pro.PrivKey, pro.Peername, fsys, filepath.Join(base, "logbook.qfb"))
+	if err != nil {
+		log.Errorf("initializing logbook: %s", err)
+		return nil, err
+	}
+
 	r := &Repo{
 		profile: pro,
 
 		store:    store,
 		fsys:     fsys,
 		basepath: bp,
+		logbook:  book,
 
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefs},
-		EventLog: NewEventLog(base, FileEventLogs, store),
 
 		profiles: NewProfileStore(bp),
 	}
@@ -100,6 +108,11 @@ func (r *Repo) SetFilesystem(fs qfs.Filesystem) {
 // Profile gives this repo's peer profile
 func (r *Repo) Profile() (*profile.Profile, error) {
 	return r.profile, nil
+}
+
+// Logbook stores operation logs for coordinating state across peers
+func (r *Repo) Logbook() *logbook.Book {
+	return r.logbook
 }
 
 // SetProfile updates this repo's peer profile info

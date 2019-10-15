@@ -18,7 +18,6 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qfs/muxfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -75,7 +74,7 @@ func NewEmptyTestRepo() (mr *repo.MemRepo, err error) {
 }
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
-	return muxfs.NewMux(map[string]qfs.PathResolver{
+	return qfs.NewMux(map[string]qfs.Filesystem{
 		"local": localfs.NewFS(),
 		"http":  httpfs.NewFS(),
 		"cafs":  cafsys,

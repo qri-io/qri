@@ -124,7 +124,7 @@ func CompareInstances(a, b *Instance) error {
 
 func TestReceivers(t *testing.T) {
 	store := cafs.NewMapstore()
-	r, err := repo.NewMemRepo(&profile.Profile{}, store, qfs.NewMemFS(), profile.NewMemStore())
+	r, err := repo.NewMemRepo(&profile.Profile{PrivKey: privKey}, store, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
 		t.Errorf("error creating mem repo: %s", err)
 		return
