@@ -60,7 +60,11 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 		return fmt.Errorf("'%s' is not a valid dataset reference", params.Ref)
 	}
 	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return
+		if err == repo.ErrNotFound {
+			err = nil
+		} else {
+			return
+		}
 	}
 
 	// ensure valid limit value

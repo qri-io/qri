@@ -599,12 +599,12 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	authorName := "test_author"
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
-	prevTs := newTimestamp
+	prevTs := NewTimestamp
 	tr = &testRunner{
 		Ctx:      ctx,
 		Username: authorName,
 	}
-	newTimestamp = tr.newTimestamp
+	NewTimestamp = tr.newTimestamp
 
 	var err error
 	tr.Book, err = NewBook(pk, authorName, fs, "/mem/logset")
@@ -613,15 +613,15 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	}
 
 	cleanup = func() {
-		newTimestamp = prevTs
+		NewTimestamp = prevTs
 	}
 
 	return tr, cleanup
 }
 
-func (tr *testRunner) newTimestamp() time.Time {
+func (tr *testRunner) newTimestamp() int64 {
 	defer func() { tr.Tick++ }()
-	return time.Unix(int64(94670280000+tr.Tick), 0)
+	return time.Unix(int64(94670280000+tr.Tick), 0).UnixNano()
 }
 
 func (tr *testRunner) WorldBankRef() dsref.Ref {

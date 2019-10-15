@@ -36,12 +36,20 @@ type FetchParams struct {
 
 // Fetch pulls a logbook from a remote
 func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
+	if r.inst.rpc != nil {
+		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
+	}
+
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err
 	}
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
-		return err
+		if err == repo.ErrNotFound {
+			err = nil
+		} else {
+			return err
+		}
 	}
 	*res = ref
 
