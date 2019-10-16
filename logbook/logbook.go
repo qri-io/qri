@@ -24,7 +24,7 @@ import (
 
 var (
 	// ErrNoLogbook indicates a logbook doesn't exist
-	ErrNoLogbook = fmt.Errorf("logbook: no logbook")
+	ErrNoLogbook = fmt.Errorf("logbook: does not exist")
 	// ErrNotFound is a sentinel error for data not found in a logbook
 	ErrNotFound = fmt.Errorf("logbook: not found")
 	// ErrLogTooShort indicates a log is missing elements. Because logs are

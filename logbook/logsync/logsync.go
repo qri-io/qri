@@ -16,6 +16,9 @@ import (
 	"github.com/qri-io/qri/logbook/log"
 )
 
+// ErrNoLogsync indicates no logsync pointer has been allocated where one is expected
+var ErrNoLogsync = fmt.Errorf("logsync: does not exist")
+
 // Logsync fulfills requests from clients, logsync wraps a logbook.Book, pushing
 // and pulling logs from remote sources to its logbook
 type Logsync struct {
@@ -82,6 +85,10 @@ func (lsync *Logsync) Author() log.Author {
 }
 
 func (lsync *Logsync) put(ctx context.Context, author log.Author, r io.Reader) error {
+	if lsync == nil {
+		return ErrNoLogsync
+	}
+
 	if lsync.receiveCheck != nil {
 		// TODO (b5) - need to populate path
 		if err := lsync.receiveCheck(ctx, author, ""); err != nil {
@@ -108,6 +115,10 @@ func (lsync *Logsync) put(ctx context.Context, author log.Author, r io.Reader) e
 }
 
 func (lsync *Logsync) get(ctx context.Context, author log.Author, ref dsref.Ref) (log.Author, io.Reader, error) {
+	if lsync == nil {
+		return nil, nil, ErrNoLogsync
+	}
+
 	data, err := lsync.book.LogBytes(ref)
 	if err != nil {
 		return lsync.Author(), nil, err
@@ -116,6 +127,10 @@ func (lsync *Logsync) get(ctx context.Context, author log.Author, ref dsref.Ref)
 }
 
 func (lsync *Logsync) del(ctx context.Context, sender log.Author, ref dsref.Ref) error {
+	if lsync == nil {
+		return ErrNoLogsync
+	}
+
 	return lsync.book.RemoveLog(ctx, sender, ref)
 }
 
@@ -167,7 +182,7 @@ func (lsync *Logsync) getRemote(remoteAddr string) (rem remote, err error) {
 		}
 		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
 	} else if strings.HasPrefix(remoteAddr, "http") {
-		rem = &HTTPClient{URL: remoteAddr}
+		rem = &httpClient{URL: remoteAddr}
 	} else {
 		return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
 	}

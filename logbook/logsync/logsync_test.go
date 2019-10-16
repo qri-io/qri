@@ -8,7 +8,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -149,83 +148,6 @@ func makeNasdaqLogs(ctx context.Context, book *logbook.Book) dsref.Ref {
 		panic(err)
 	}
 	return ref
-}
-
-func TestSyncHTTP(t *testing.T) {
-	tr, cleanup := newTestRunner(t)
-	defer cleanup()
-
-	a, b := tr.DefaultLogsyncs()
-
-	server := httptest.NewServer(HTTPHandler(a))
-	defer server.Close()
-
-	ref, err := writeNasdaqLogs(tr.Ctx, tr.A)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if _, err := b.NewPull(ref, ""); err == nil {
-		t.Errorf("expected invalid remote address to error")
-	}
-
-	pull, err := b.NewPull(ref, server.URL)
-	if err != nil {
-		t.Errorf("creating pull: %s", err)
-	}
-
-	if err := pull.Do(tr.Ctx); err != nil {
-		t.Fatalf("pulling nasdaq logs %s", err.Error())
-	}
-
-	var expect, got []logbook.DatasetInfo
-	if expect, err = tr.A.Versions(ref, 0, 100); err != nil {
-		t.Error(err)
-	}
-	if got, err = tr.B.Versions(ref, 0, 100); err != nil {
-		t.Error(err)
-	}
-
-	if diff := cmp.Diff(expect, got); diff != "" {
-		t.Errorf("result mismatch. (-want +got):\n%s", diff)
-	}
-
-	worldBankRef, err := writeWorldBankLogs(tr.Ctx, tr.B)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	push, err := b.NewPush(worldBankRef, server.URL)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	if err = push.Do(tr.Ctx); err != nil {
-		t.Error(err)
-	}
-
-	if expect, err = tr.B.Versions(worldBankRef, 0, 100); err != nil {
-		t.Error(err)
-	}
-	if got, err = tr.A.Versions(worldBankRef, 0, 100); err != nil {
-		t.Error(err)
-	}
-	if diff := cmp.Diff(expect, got); diff != "" {
-		t.Errorf("result mismatch. (-want +got):\n%s", diff)
-	}
-
-	if err = b.DoRemove(tr.Ctx, ref, server.URL); err == nil {
-		t.Errorf("expected an error removing a log user doesn't own")
-	}
-
-	if err = b.DoRemove(tr.Ctx, worldBankRef, server.URL); err != nil {
-		t.Errorf("delete err: %s", err)
-	}
-
-	if got, err = tr.A.Versions(worldBankRef, 0, 100); err == nil {
-		t.Logf("%v\n", got)
-		t.Error("expected an err fetching removed reference")
-	}
 }
 
 type testRunner struct {

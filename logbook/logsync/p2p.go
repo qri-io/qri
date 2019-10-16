@@ -290,7 +290,6 @@ func (c *p2pHandler) handleStream(ws *p2putil.WrappedStream, replies chan p2puti
 
 		handler, ok := c.handlers[msg.Type]
 		if !ok {
-			// log.Errorf("peer %s sent unrecognized message type '%s', hanging up", n.ID, msg.Type)
 			break
 		}
 
