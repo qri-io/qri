@@ -86,7 +86,8 @@ func (o *StatusOptions) Run() (err error) {
 		case fsi.STAdd, fsi.STChange:
 			line = fmt.Sprintf("%s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile))
 			clean = false
-		case fsi.STParseError:
+		default:
+			// Represents various error states
 			line = fmt.Sprintf("%s: %s (source: %s)", si.Type, si.Component, filepath.Base(si.SourceFile))
 			clean = false
 			valid = false

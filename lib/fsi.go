@@ -8,10 +8,9 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -257,8 +256,9 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 	if p.Dir == "" && ref.FSIPath != "" {
 		p.Dir = ref.FSIPath
 	}
-	// TODO(dlong): Perhaps disallow empty Dir (without FSIPath override), since relative
-	// paths cause problems. Test using `qri connect`.
+	if p.Dir == "" {
+		return fmt.Errorf("no FSIPath or Dir given")
+	}
 
 	ds := &dataset.Dataset{}
 
@@ -273,71 +273,31 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 		}
 	}
 
-	current, currFileMap, _, err := fsi.ReadDir(p.Dir)
+	// Build component container from the dataset from the repo.
+	repoContainer := component.ConvertDatasetToComponents(ds, m.inst.node.Repo.Filesystem())
+	repoContainer.Base().RemoveSubcomponent("commit")
+	repoContainer.DropDerivedValues()
+
+	// Build component container from FSI directory.
+	diskContainer, err := component.ListDirectoryComponents(p.Dir)
+	if err != nil {
+		return err
+	}
+	err = component.ExpandListedComponents(diskContainer, m.inst.node.Repo.Filesystem())
 	if err != nil {
 		return err
 	}
 
-	removeComponents := []string{}
-
-	history := &dataset.Dataset{
-		Structure: ds.Structure,
-	}
-
-	if p.Component == "" {
-		// Entire dataset.
-		history.Assign(ds)
-	} else if p.Component == "meta" {
-		// Meta component.
-		history.Meta = &dataset.Meta{}
-		history.Meta.Assign(ds.Meta)
-		if current.Meta != nil && !current.Meta.IsEmpty() && (ds.Meta == nil || ds.Meta.IsEmpty()) {
-			removeComponents = append(removeComponents, "meta")
-		}
-	} else if p.Component == "structure" {
-		history.Structure.Assign(ds.Structure)
-		if !current.Structure.IsEmpty() && ds.Structure != nil {
-			removeComponents = append(removeComponents, "structure")
-		}
-	} else if p.Component == "schema" || p.Component == "structure.schema" {
-		// Schema is not a "real" component, is short for the structure's schema.
-		if ds.Structure != nil {
-			history.Structure.Schema = ds.Structure.Schema
-		}
-		if len(current.Structure.Schema) > 0 && (ds.Structure == nil || len(ds.Structure.Schema) == 0) {
-			removeComponents = append(removeComponents, "schema")
-		}
-	} else if p.Component == "body" {
-		// Body of the dataset.
-		// This check for ref.Path is equivilant to making sure there's a previous version.
-		if ref.Path != "" {
-			df, err := dataset.ParseDataFormatString(history.Structure.Format)
-			if err != nil {
-				return err
+	for _, compName := range component.AllSubcomponentNames() {
+		if p.Component == "" || p.Component == compName {
+			if repoContainer.Base().GetSubcomponent(compName) == nil {
+				fsi.DeleteComponent(diskContainer, compName, p.Dir)
+			} else {
+				fsi.WriteComponent(repoContainer, compName, p.Dir)
 			}
-			fcfg, err := dataset.ParseFormatConfigMap(df, map[string]interface{}{})
-			if err != nil {
-				return err
-			}
-			bufData, err := actions.GetBody(m.inst.node, ds, df, fcfg, -1, -1, true)
-			if err != nil {
-				return err
-			}
-			history.SetBodyFile(qfs.NewMemfileBytes("body", bufData))
-		} else {
-			removeComponents = append(removeComponents, "body")
 		}
-	} else {
-		return fmt.Errorf("Unknown component name \"%s\"", p.Component)
 	}
-
-	// Delete components that exist in the working directory but did not exist in previous version.
-	if err = fsi.DeleteComponents(removeComponents, currFileMap, p.Dir); err != nil {
-		return err
-	}
-
-	// Write components of the dataset to the working directory.
-	return fsi.WriteComponents(history, p.Dir)
+	return nil
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for a given reference string
@@ -355,7 +315,7 @@ func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) erro
 		return err
 	}
 
-	ds, _, _, err := fsi.ReadDir(ref.FSIPath)
+	ds, err := fsi.ReadDir(ref.FSIPath)
 	if err != nil {
 		return err
 	}

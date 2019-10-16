@@ -5,8 +5,8 @@ meta:
   title: this a title
 structure:
   format: json
-schema:
-  type: array
+  schema:
+    type: array
 transform:
   scriptPath: not_exist.star
 viz:

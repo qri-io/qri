@@ -156,7 +156,9 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 				place.Set(reflect.ValueOf(strmap))
 				return
 			}
-			place.Set(reflect.ValueOf(ms))
+			if place.CanSet() {
+				place.Set(reflect.ValueOf(ms))
+			}
 			return
 		}
 		mi, ok := val.(map[interface{}]interface{})
@@ -170,7 +172,9 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 				place.Set(reflect.ValueOf(strmap))
 				return
 			}
-			place.Set(reflect.ValueOf(ensureMapsHaveStringKeys(mi)))
+			if place.CanSet() {
+				place.Set(reflect.ValueOf(ensureMapsHaveStringKeys(mi)))
+			}
 			return
 		}
 		// Error due to not being able to convert.
