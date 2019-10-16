@@ -29,20 +29,6 @@ type Logsync struct {
 	didReceive   Hook
 }
 
-// remove is an internal interface for methods available on foreign logbooks
-// the logsync struct contains the canonical implementation of a remote
-// interface. network clients wrap the remote interface with network behaviours,
-// using Logsync methods to do the "real work" and echoing that back across the
-// client protocol
-type remote interface {
-	put(ctx context.Context, author log.Author, r io.Reader) error
-	get(ctx context.Context, author log.Author, ref dsref.Ref) (sender log.Author, data io.Reader, err error)
-	del(ctx context.Context, author log.Author, ref dsref.Ref) error
-}
-
-// assert at compile-time that Logsync is a remote
-var _ remote = (*Logsync)(nil)
-
 // Options encapsulates runtime configuration for a remote
 type Options struct {
 	// ReceiveCheck is called before accepting a log, returning an error from this
@@ -81,8 +67,93 @@ type Hook func(ctx context.Context, author log.Author, path string) error
 
 // Author is the local author of lsync's logbook
 func (lsync *Logsync) Author() log.Author {
+	if lsync == nil {
+		return nil
+	}
 	return lsync.book.Author()
 }
+
+// NewPush prepares a Push from the local logsync to a remote destination
+// doing a push places a local log on the remote
+func (lsync *Logsync) NewPush(ref dsref.Ref, remoteAddr string) (*Push, error) {
+	if lsync == nil {
+		return nil, ErrNoLogsync
+	}
+
+	rem, err := lsync.remoteClient(remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Push{
+		book:   lsync.book,
+		remote: rem,
+		ref:    ref,
+	}, nil
+}
+
+// NewPull creates a Pull from the local logsync to a remote destination
+// doing a pull fetches a log from the remote to the local logbook
+func (lsync *Logsync) NewPull(ref dsref.Ref, remoteAddr string) (*Pull, error) {
+	if lsync == nil {
+		return nil, ErrNoLogsync
+	}
+
+	rem, err := lsync.remoteClient(remoteAddr)
+	if err != nil {
+		return nil, err
+	}
+
+	return &Pull{
+		book:   lsync.book,
+		remote: rem,
+		ref:    ref,
+	}, nil
+}
+
+// DoRemove asks a remote to remove a log
+func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	if lsync == nil {
+		return ErrNoLogsync
+	}
+
+	rem, err := lsync.remoteClient(remoteAddr)
+	if err != nil {
+		return err
+	}
+
+	return rem.del(ctx, lsync.Author(), ref)
+}
+
+func (lsync *Logsync) remoteClient(remoteAddr string) (rem remote, err error) {
+	// if a valid base58 peerID is passed, we're doing a p2p dsync
+	if id, err := peer.IDB58Decode(remoteAddr); err == nil {
+		if lsync.p2pHandler == nil {
+			return nil, fmt.Errorf("no p2p host provided to perform p2p logsync")
+		}
+		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
+	} else if strings.HasPrefix(remoteAddr, "http") {
+		rem = &httpClient{URL: remoteAddr}
+	} else {
+		return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
+	}
+
+	return rem, nil
+}
+
+// remove is an internal interface for methods available on foreign logbooks
+// the logsync struct contains the canonical implementation of a remote
+// interface. network clients wrap the remote interface with network behaviours,
+// using Logsync methods to do the "real work" and echoing that back across the
+// client protocol
+type remote interface {
+	put(ctx context.Context, author log.Author, r io.Reader) error
+	get(ctx context.Context, author log.Author, ref dsref.Ref) (sender log.Author, data io.Reader, err error)
+	del(ctx context.Context, author log.Author, ref dsref.Ref) error
+}
+
+// assert at compile-time that Logsync is a remote
+var _ remote = (*Logsync)(nil)
 
 func (lsync *Logsync) put(ctx context.Context, author log.Author, r io.Reader) error {
 	if lsync == nil {
@@ -132,62 +203,6 @@ func (lsync *Logsync) del(ctx context.Context, sender log.Author, ref dsref.Ref)
 	}
 
 	return lsync.book.RemoveLog(ctx, sender, ref)
-}
-
-// NewPush prepares a Push from the local logsync to a remote destination
-// doing a push places a local log on the remote
-func (lsync *Logsync) NewPush(ref dsref.Ref, remote string) (*Push, error) {
-	rem, err := lsync.getRemote(remote)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Push{
-		book:   lsync.book,
-		remote: rem,
-		ref:    ref,
-	}, nil
-}
-
-// NewPull creates a Pull from the local logsync to a remote destination
-// doing a pull fetches a log from the remote to the local logbook
-func (lsync *Logsync) NewPull(ref dsref.Ref, remote string) (*Pull, error) {
-	rem, err := lsync.getRemote(remote)
-	if err != nil {
-		return nil, err
-	}
-
-	return &Pull{
-		book:   lsync.book,
-		remote: rem,
-		ref:    ref,
-	}, nil
-}
-
-// DoRemove asks a remote to remove a log
-func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remote string) error {
-	rem, err := lsync.getRemote(remote)
-	if err != nil {
-		return err
-	}
-
-	return rem.del(ctx, lsync.Author(), ref)
-}
-
-func (lsync *Logsync) getRemote(remoteAddr string) (rem remote, err error) {
-	// if a valid base58 peerID is passed, we're doing a p2p dsync
-	if id, err := peer.IDB58Decode(remoteAddr); err == nil {
-		if lsync.p2pHandler == nil {
-			return nil, fmt.Errorf("no p2p host provided to perform p2p logsync")
-		}
-		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
-	} else if strings.HasPrefix(remoteAddr, "http") {
-		rem = &httpClient{URL: remoteAddr}
-	} else {
-		return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
-	}
-
-	return rem, nil
 }
 
 // Push is a request to place a log on a remote

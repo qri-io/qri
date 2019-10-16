@@ -652,6 +652,14 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 		p.RemoteAddr = r.inst.cfg.Registry.Location
 	}
 
+	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
+	// while we work to upgrade the stack. Long term we may want to consider a mechanism
+	// for allowing partial completion where only one of logs or dataset pulling works
+	// by doing both in parallel and reporting issues on both
+	if pullLogsErr := r.inst.RemoteClient().PullLogs(ctx, repo.ConvertToDsref(ref), p.RemoteAddr); pullLogsErr != nil {
+		log.Errorf("pulling logs: %s", pullLogsErr)
+	}
+
 	if err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), p.RemoteAddr, &ref); err != nil {
 		return err
 	}

@@ -60,8 +60,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
-
-	return r.cli.Fetch(ctx, repo.ConvertToDsref(ref), addr)
+	return r.cli.PullLogs(ctx, repo.ConvertToDsref(ref), addr)
 }
 
 // PublicationParams encapsulates parmeters for dataset publication
@@ -96,6 +95,14 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
+	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
+	// while we work to upgrade the stack. Long term we may want to consider a mechanism
+	// for allowing partial completion where only one of logs or dataset pushing works
+	// by doing both in parallel and reporting issues on both
+	if pushLogsErr := r.cli.PushLogs(ctx, repo.ConvertToDsref(ref), addr); pushLogsErr != nil {
+		log.Errorf("pushing logs: %s", pushLogsErr)
+	}
+
 	if err = r.cli.PushDataset(ctx, ref, addr); err != nil {
 		return err
 	}
@@ -127,6 +134,14 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) er
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
+
+	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
+	// while we work to upgrade the stack. Long term we may want to consider a mechanism
+	// for allowing partial completion where only one of logs or dataset pushing works
+	// by doing both in parallel and reporting issues on both
+	if removeLogsErr := r.cli.RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
+		log.Error("removing logs: %s", removeLogsErr.Error())
+	}
 
 	if err := r.cli.RemoveDataset(ctx, ref, addr); err != nil {
 		return err

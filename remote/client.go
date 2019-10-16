@@ -24,7 +24,7 @@ import (
 )
 
 // ErrNoRemoteClient is returned when no client is allocated
-var ErrNoRemoteClient = fmt.Errorf("not configured to make remote requests")
+var ErrNoRemoteClient = fmt.Errorf("remote: no client to make remote requests")
 
 // Address extracts the address of a remote from a configuration for a given
 // remote name
@@ -73,7 +73,11 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 
 	var ls *logsync.Logsync
 	if book := node.Repo.Logbook(); book != nil {
-		ls = logsync.New(book)
+		ls = logsync.New(book, func(logsyncConfig *logsync.Options) {
+			if host := node.Host(); host != nil {
+				logsyncConfig.Libp2pHost = host
+			}
+		})
 	}
 
 	return &Client{
@@ -91,8 +95,8 @@ func (c *Client) CoreAPI() coreiface.CoreAPI {
 	return c.capi
 }
 
-// Fetch pulls a logbook from a remote
-func (c *Client) Fetch(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+// PullLogs pulls logbook data from a remote
+func (c *Client) PullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -107,6 +111,38 @@ func (c *Client) Fetch(ctx context.Context, ref dsref.Ref, remoteAddr string) er
 	}
 
 	return pull.Do(ctx)
+}
+
+// PushLogs pushes logbook data to a remote address
+func (c *Client) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/logsync"
+	}
+	log.Debugf("pushing logs for %s from %s", ref.Alias(), remoteAddr)
+	push, err := c.logsync.NewPush(ref, remoteAddr)
+	if err != nil {
+		return err
+	}
+
+	return push.Do(ctx)
+}
+
+// RemoveLogs requests a remote remove logbook data from an address
+func (c *Client) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/logsync"
+	}
+
+	log.Debugf("deleting logs for %s from %s", ref.Alias(), remoteAddr)
+	return c.logsync.DoRemove(ctx, ref, remoteAddr)
 }
 
 // PushDataset pushes the contents of a dataset to a remote

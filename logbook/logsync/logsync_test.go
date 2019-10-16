@@ -108,6 +108,24 @@ func Example() {
 	// johnathon has 2 references for basit/nasdaq
 }
 
+func TestNilCallable(t *testing.T) {
+	var logsync *Logsync
+
+	if a := logsync.Author(); a != nil {
+		t.Errorf("author mismatch. expected: '%v', got: '%v' ", nil, a)
+	}
+
+	if _, err := logsync.NewPush(dsref.Ref{}, ""); err != ErrNoLogsync {
+		t.Errorf("error mismatch. expected: '%v', got: '%v' ", ErrNoLogsync, err)
+	}
+	if _, err := logsync.NewPull(dsref.Ref{}, ""); err != ErrNoLogsync {
+		t.Errorf("error mismatch. expected: '%v', got: '%v' ", ErrNoLogsync, err)
+	}
+	if err := logsync.DoRemove(context.Background(), dsref.Ref{}, ""); err != ErrNoLogsync {
+		t.Errorf("error mismatch. expected: '%v', got: '%v' ", ErrNoLogsync, err)
+	}
+}
+
 func makeJohnathonLogbook() *logbook.Book {
 	pk, err := decodePk(aPk)
 	if err != nil {
