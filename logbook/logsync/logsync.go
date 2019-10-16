@@ -19,8 +19,8 @@ import (
 // Logsync fulfills requests from clients, logsync wraps a logbook.Book, pushing
 // and pulling logs from remote sources to its logbook
 type Logsync struct {
-	book *logbook.Book
-	host host.Host
+	book       *logbook.Book
+	p2pHandler *p2pHandler
 
 	receiveCheck Hook
 	didReceive   Hook
@@ -47,6 +47,9 @@ type Options struct {
 	ReceiveCheck Hook
 	// DidReceive is called after a log has been merged into the logbook
 	DidReceive Hook
+
+	// to send & push over libp2p connections, provide a libp2p host
+	Libp2pHost host.Host
 }
 
 // New creates a remote from a logbook and optional configuration functions
@@ -56,12 +59,18 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 		opt(o)
 	}
 
-	return &Logsync{
+	logsync := &Logsync{
 		book: book,
 
 		receiveCheck: o.ReceiveCheck,
 		didReceive:   o.DidReceive,
 	}
+
+	if o.Libp2pHost != nil {
+		logsync.p2pHandler = newp2pHandler(logsync, o.Libp2pHost)
+	}
+
+	return logsync
 }
 
 // Hook is a function called at specified points in the sync lifecycle
@@ -152,12 +161,11 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remote string
 
 func (lsync *Logsync) getRemote(remoteAddr string) (rem remote, err error) {
 	// if a valid base58 peerID is passed, we're doing a p2p dsync
-	if _, err := peer.IDB58Decode(remoteAddr); err == nil {
-		if lsync.host == nil {
-			return nil, fmt.Errorf("no p2p host provided to perform p2p dsync")
+	if id, err := peer.IDB58Decode(remoteAddr); err == nil {
+		if lsync.p2pHandler == nil {
+			return nil, fmt.Errorf("no p2p host provided to perform p2p logsync")
 		}
-		// rem = &p2pClient{remotePeerID: id, p2pHandler: ds.p2pHandler}
-		return nil, fmt.Errorf("p2p logsync not finished")
+		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
 	} else if strings.HasPrefix(remoteAddr, "http") {
 		rem = &HTTPClient{URL: remoteAddr}
 	} else {

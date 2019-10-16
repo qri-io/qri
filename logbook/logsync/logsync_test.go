@@ -17,7 +17,7 @@ import (
 	"github.com/qri-io/qri/logbook/log"
 )
 
-func ExampleNew() {
+func Example() {
 	// first some boilerplate setup
 	ctx, done := context.WithCancel(context.Background())
 	defer done()
@@ -110,7 +110,12 @@ func ExampleNew() {
 }
 
 func makeJohnathonLogbook() *logbook.Book {
-	book, err := newTestbook("johnathon", aPk)
+	pk, err := decodePk(aPk)
+	if err != nil {
+		panic(err)
+	}
+
+	book, err := newTestbook("johnathon", pk)
 	if err != nil {
 		panic(err)
 	}
@@ -118,7 +123,12 @@ func makeJohnathonLogbook() *logbook.Book {
 }
 
 func makeBasitLogbook() *logbook.Book {
-	book, err := newTestbook("basit", bPk)
+	pk, err := decodePk(bPk)
+	if err != nil {
+		panic(err)
+	}
+
+	book, err := newTestbook("basit", pk)
 	if err != nil {
 		panic(err)
 	}
@@ -219,8 +229,9 @@ func TestSyncHTTP(t *testing.T) {
 }
 
 type testRunner struct {
-	Ctx  context.Context
-	A, B *logbook.Book
+	Ctx                context.Context
+	A, B               *logbook.Book
+	APrivKey, BPrivKey crypto.PrivKey
 }
 
 func (tr *testRunner) DefaultLogsyncs() (a, b *Logsync) {
@@ -232,10 +243,20 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	tr = &testRunner{
 		Ctx: context.Background(),
 	}
-	if tr.A, err = newTestbook("a", aPk); err != nil {
+
+	tr.APrivKey, err = decodePk(aPk)
+	if err != nil {
 		t.Fatal(err)
 	}
-	if tr.B, err = newTestbook("b", bPk); err != nil {
+	if tr.A, err = newTestbook("a", tr.APrivKey); err != nil {
+		t.Fatal(err)
+	}
+
+	tr.BPrivKey, err = decodePk(bPk)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if tr.B, err = newTestbook("b", tr.BPrivKey); err != nil {
 		t.Fatal(err)
 	}
 
@@ -243,7 +264,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	return tr, cleanup
 }
 
-func newTestbook(username, b64pk string) (*logbook.Book, error) {
+func decodePk(b64pk string) (crypto.PrivKey, error) {
 	// logbooks are encrypted at rest, we need a private key to interact with
 	// them, including to create a new logbook. This is a dummy Private Key
 	// you should never, ever use in real life. demo only folks.
@@ -251,15 +272,13 @@ func newTestbook(username, b64pk string) (*logbook.Book, error) {
 	if err != nil {
 		return nil, err
 	}
-	pk, err := crypto.UnmarshalPrivateKey(data)
-	if err != nil {
-		return nil, err
-	}
+	return crypto.UnmarshalPrivateKey(data)
+}
 
+func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-
 	return logbook.NewBook(pk, username, fs, "/mem/logset")
 }
 

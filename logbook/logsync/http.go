@@ -31,7 +31,7 @@ func (c *HTTPClient) put(ctx context.Context, author log.Author, r io.Reader) er
 	}
 	req = req.WithContext(ctx)
 
-	if err := addAuthorHeaders(req.Header, author); err != nil {
+	if err := addAuthorHTTPHeaders(req.Header, author); err != nil {
 		return err
 	}
 
@@ -53,7 +53,7 @@ func (c *HTTPClient) get(ctx context.Context, author log.Author, ref dsref.Ref) 
 	}
 	req = req.WithContext(ctx)
 
-	if err := addAuthorHeaders(req.Header, author); err != nil {
+	if err := addAuthorHTTPHeaders(req.Header, author); err != nil {
 		return nil, nil, err
 	}
 	res, err := http.DefaultClient.Do(req)
@@ -83,7 +83,7 @@ func (c *HTTPClient) del(ctx context.Context, author log.Author, ref dsref.Ref) 
 	}
 	req = req.WithContext(ctx)
 
-	if err := addAuthorHeaders(req.Header, author); err != nil {
+	if err := addAuthorHTTPHeaders(req.Header, author); err != nil {
 		return err
 	}
 
@@ -96,7 +96,7 @@ func (c *HTTPClient) del(ctx context.Context, author log.Author, ref dsref.Ref) 
 	return err
 }
 
-func addAuthorHeaders(h http.Header, author log.Author) error {
+func addAuthorHTTPHeaders(h http.Header, author log.Author) error {
 	h.Set("AuthorID", author.AuthorID())
 	pubByteStr, err := author.AuthorPubKey().Bytes()
 	if err != nil {
@@ -140,7 +140,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 			}
 			r.Body.Close()
 
-			addAuthorHeaders(w.Header(), lsync.Author())
+			addAuthorHTTPHeaders(w.Header(), lsync.Author())
 		case "GET":
 			ref, err := repo.ParseDatasetRef(r.FormValue("ref"))
 			if err != nil {
@@ -156,7 +156,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 				return
 			}
 
-			addAuthorHeaders(w.Header(), receiver)
+			addAuthorHTTPHeaders(w.Header(), receiver)
 			io.Copy(w, r)
 		case "DELETE":
 			ref, err := repo.ParseDatasetRef(r.FormValue("ref"))
@@ -172,7 +172,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 				return
 			}
 
-			addAuthorHeaders(w.Header(), lsync.Author())
+			addAuthorHTTPHeaders(w.Header(), lsync.Author())
 		}
 	}
 }
