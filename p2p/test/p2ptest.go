@@ -8,20 +8,18 @@ import (
 	"path/filepath"
 	"sync"
 
+	host "github.com/libp2p/go-libp2p-host"
+	pstore "github.com/libp2p/go-libp2p-peerstore"
+	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
-
-	host "github.com/libp2p/go-libp2p-host"
-	pstore "github.com/libp2p/go-libp2p-peerstore"
-	ma "github.com/multiformats/go-multiaddr"
 )
 
 // TestablePeerNode is used by tests only. Implemented by QriNode
 type TestablePeerNode interface {
-	// add Host here?
 	Host() host.Host
 	SimplePeerInfo() pstore.PeerInfo
 	UpgradeToQriConnection(pstore.PeerInfo) error

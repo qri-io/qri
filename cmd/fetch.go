@@ -26,9 +26,6 @@ func NewFetchCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		},
 	}
 
-	// cmd.Flags().BoolVarP(&o.Unfetch, "unfetch", "", false, "unfetch a dataset")
-	// cmd.Flags().BoolVarP(&o.NoRegistry, "no-registry", "", false, "don't fetch to registry")
-	// cmd.Flags().BoolVarP(&o.NoPin, "no-pin", "", false, "don't pin dataset to registry")
 	cmd.Flags().StringVarP(&o.RemoteName, "remote", "", "", "name of remote to fetch to")
 
 	return cmd

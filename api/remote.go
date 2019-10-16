@@ -32,11 +32,21 @@ func (h *RemoteClientHandlers) NewFetchHandler(prefix string) http.HandlerFunc {
 			return
 		}
 
-		// ref, err := DatasetRefFromPath(r.URL.Path[len(prefix):])
-		// if err != nil {
-		// 	util.WriteErrResponse(w, http.StatusBadRequest, err)
-		// 	return
-		// }
+		ref, err := DatasetRefFromPath(r.URL.Path[len(prefix):])
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		p := &lib.FetchParams{
+			Ref:        ref.String(),
+			RemoteName: r.FormValue("remote"),
+		}
+		var res repo.DatasetRef
+		if err := h.Fetch(p, &res); err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
 	}
 }
 

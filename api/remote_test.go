@@ -20,6 +20,12 @@ func TestRemoteClientHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "publish", h.PublishHandler, publishCases, true)
 
+	fetchCases := []handlerTestCase{
+		{"GET", "/fetch/", nil},
+		{"GET", "/fetch/me/cities", nil},
+	}
+	runHandlerTestCases(t, "fetch", h.NewFetchHandler("/fetch"), fetchCases, true)
+
 	// node, teardown := newTestNode(t)
 	// defer teardown()
 
