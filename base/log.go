@@ -72,6 +72,10 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
 func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef, offset, limit int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
+	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
+		return nil, err
+	}
+
 	// TODO (b5) - this is a horrible hack to handle long-lived requests when connected to IPFS
 	// if we don't have the dataset locally, this process will take longer than 700 mill, because it'll
 	// reach out onto the d.web to attempt to resolve previous hashes. capping the duration

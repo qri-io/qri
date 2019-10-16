@@ -595,7 +595,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	log, err := actions.DatasetLog(ctx, r.node, ref, p.Revision.Gen+1, 0)
+	log, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
 	if err != nil {
 		return err
 	}

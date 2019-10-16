@@ -6,9 +6,48 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
+
+func TestDatasetLog(t *testing.T) {
+	ctx := context.Background()
+	mr := newTestRepo(t)
+	addCitiesDataset(t, mr)
+	updateCitiesDataset(t, mr)
+
+	ref := repo.MustParseDatasetRef("me/not_a_dataset")
+	log, err := DatasetLog(ctx, mr, ref, -1, 0, true)
+	if err == nil {
+		t.Errorf("expected lookup for nonexistent log to fail")
+	}
+
+	ref = repo.MustParseDatasetRef("me/cities")
+	if log, err = DatasetLog(ctx, mr, ref, 1, 0, true); err != nil {
+		t.Error(err.Error())
+	}
+	if len(log) != 1 {
+		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
+	}
+
+	expect := []DatasetLogItem{
+		{
+			Ref: dsref.Ref{
+				Username:  "peer",
+				Name:      "cities",
+				ProfileID: "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+				// TODO (b5) - use constant time to make timestamp & path comparable
+				Path: "/map/QmfDpSrzqrSM9PctPqDserHRTAaGHUjLLqzYrGEKawU4iN",
+			},
+			CommitTitle: "initial commit",
+		},
+	}
+
+	if diff := cmp.Diff(expect, log, cmpopts.IgnoreFields(DatasetLogItem{}, "Timestamp"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
 
 func TestDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()

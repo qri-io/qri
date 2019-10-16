@@ -45,7 +45,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - empty",
 			&LogParams{}, []DatasetLogItem{}, "repo: empty dataset reference"},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, "repo: not found"},
+			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
