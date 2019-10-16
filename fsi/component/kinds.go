@@ -237,10 +237,7 @@ func (sc *StructureComponent) LoadAndFill(ds *dataset.Dataset) error {
 		return err
 	}
 	if sc.Value.Schema == nil && sc.SchemaInference != nil {
-		sc.Value.Schema, err = sc.SchemaInference(ds)
-		if err != nil {
-			return err
-		}
+		// do nothing, don't infer schema to insert here
 	}
 	if ds != nil {
 		ds.Structure = sc.Value

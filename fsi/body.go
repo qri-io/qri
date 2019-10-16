@@ -29,6 +29,7 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	if err != nil {
 		return nil, err
 	}
+	defer f.Close()
 
 	stComponent := components.Base().GetSubcomponent("structure")
 	stComponent.LoadAndFill(nil)
@@ -37,14 +38,27 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		return nil, fmt.Errorf("could not get structure")
 	}
 	stValue := structure.Value
+	schema := stValue.Schema
 
-	defer f.Close()
+	if schema == nil {
+		bodyFormat := bodyComponent.Base().Format
+		// Create schema by detecting it from the body.
+		// TODO(dlong): This should move into `dsio` package.
+		entries, err := component.OpenEntryReader(f, bodyFormat)
+		if err != nil {
+			return nil, err
+		}
+		schema = entries.Structure().Schema
+		// Reset the reader
+		f.Seek(0, 0)
+	}
+
 	file := qfs.NewMemfileReader(filepath.Base(bodyComponent.Base().SourceFile), f)
 
 	st := &dataset.Structure{}
 	assign := &dataset.Structure{
 		Format: format.String(),
-		Schema: stValue.Schema,
+		Schema: schema,
 	}
 	if fcfg != nil {
 		assign.FormatConfig = fcfg.Map()

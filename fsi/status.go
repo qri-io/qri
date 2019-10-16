@@ -244,10 +244,7 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []S
 	for i, ch := range changes {
 		comp := ch.Component
 		if comp == "meta" || comp == "body" || comp == "structure" {
-			fmt.Printf("component {%s}: Changes sourceFile\n", comp)
 			changes[i].SourceFile = comp
-		} else {
-			fmt.Printf("component {%s}: no change\n", comp)
 		}
 	}
 	return changes, nil

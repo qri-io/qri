@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/logbook"
 )
@@ -81,14 +81,15 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return name, err
 	}
 
+	// TODO(dlong): Instead, create a component.Container and write it out to the `target`.
+
 	// Create a skeleton meta.json file.
 	metaSkeleton := []byte(`{
-		"title": "",
-		"description": "",
-		"keywords": [],
-		"homeURL": ""
-	}
-	`)
+  "title": "",
+  "description": "",
+  "keywords": [],
+  "homeURL": ""
+}`)
 	if err := ioutil.WriteFile(filepath.Join(targetPath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
 		return name, err
 	}
@@ -111,19 +112,18 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
 			return "", err
 		}
+		// Create schema by detecting it from the body.
 		file, err := os.Open(p.SourceBodyPath)
 		if err != nil {
 			return "", err
 		}
 		defer file.Close()
-		entries, err := OpenEntryReader(file, p.Format)
-		if err == nil {
-			err = dsio.EachEntry(entries, func(int, dsio.Entry, error) error { return nil })
-			if err != nil {
-				schema = nil
-			}
-			schema = entries.Structure().Schema
+		// TODO(dlong): This should move into `dsio` package.
+		entries, err := component.OpenEntryReader(file, p.Format)
+		if err != nil {
+			schema = nil
 		}
+		schema = entries.Structure().Schema
 	}
 	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
 	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
