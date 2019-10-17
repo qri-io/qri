@@ -275,7 +275,6 @@ func DatasetTests(t *testing.T, rmf RepoMakerFunc) {
 		testSaveDataset,
 		testReadDataset,
 		testRenameDataset,
-		testDeleteDataset,
 	} {
 		test(t, rmf)
 	}
@@ -334,16 +333,6 @@ func testRenameDataset(t *testing.T, rmf RepoMakerFunc) {
 
 	if b.Dataset == nil {
 		t.Error("expected dataset to not equal nil")
-		return
-	}
-}
-
-func testDeleteDataset(t *testing.T, rmf RepoMakerFunc) {
-	ctx := context.Background()
-	node, ref := createDataset(t, rmf)
-
-	if err := DeleteDataset(ctx, node, &ref); err != nil {
-		t.Error(err.Error())
 		return
 	}
 }
