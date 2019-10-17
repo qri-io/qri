@@ -19,7 +19,10 @@ type DatasetLogItem struct {
 	CommitTitle string `json:"commitTitle,omitempty"`
 	// Message field from dataset.commit component
 	CommitMessage string `json:"commitMessage,omitempty"`
-	Published     bool   `json:"published,omitempty"`
+	// Published indicates if this version has been published
+	Published bool `json:"published,omitempty"`
+	// Local indicates the connected filesystem has this version available
+	Local bool `json:"local,omitempty"`
 }
 
 // DatasetLog fetches the change version history of a dataset
@@ -27,6 +30,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
+
 			for j, v := range versions {
 				// log is returned newest-first, fill slice in reverse
 				i := len(items) - j - 1
@@ -36,6 +40,21 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 					Timestamp:   v.Timestamp,
 					CommitTitle: v.CommitTitle,
 				}
+
+				if v.Ref.Path != "" {
+					items[i].Local, err = r.Store().Has(ctx, v.Ref.Path)
+					if err != nil {
+						return nil, err
+					}
+					if items[i].Local {
+						if ds, err := dsfs.LoadDataset(ctx, r.Store(), v.Ref.Path); err == nil {
+							if ds.Commit != nil {
+								items[i].CommitMessage = ds.Commit.Message
+							}
+						}
+					}
+				}
+
 				i--
 			}
 			return items, nil

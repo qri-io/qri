@@ -33,6 +33,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 			Ref:         repo.ConvertToDsref(r),
 			Published:   r.Published,
 			CommitTitle: r.Dataset.Commit.Title,
+			Local:       true,
 		}
 	}
 
