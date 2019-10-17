@@ -591,7 +591,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	log, err := actions.DatasetLog(ctx, r.node, ref, p.Revision.Gen+1, 0)
+	log, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
 	if err != nil {
 		return err
 	}
@@ -646,6 +646,14 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 
 	if p.RemoteAddr == "" && r.inst != nil && r.inst.cfg.Registry != nil {
 		p.RemoteAddr = r.inst.cfg.Registry.Location
+	}
+
+	// TODO (b5) - we're early in log syncronization days. This is going to fail a bunch
+	// while we work to upgrade the stack. Long term we may want to consider a mechanism
+	// for allowing partial completion where only one of logs or dataset pulling works
+	// by doing both in parallel and reporting issues on both
+	if pullLogsErr := r.inst.RemoteClient().PullLogs(ctx, repo.ConvertToDsref(ref), p.RemoteAddr); pullLogsErr != nil {
+		log.Errorf("pulling logs: %s", pullLogsErr)
 	}
 
 	if err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), p.RemoteAddr, &ref); err != nil {

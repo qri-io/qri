@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/rpc"
 
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
@@ -59,8 +58,11 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 	if err != nil {
 		return fmt.Errorf("'%s' is not a valid dataset reference", params.Ref)
 	}
-	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
-		return
+	// we only canonicalize the profile here, full dataset canonicalization
+	// currently relies on repo's refstore, and the logbook may be a superset
+	// of the refstore
+	if err = repo.CanonicalizeProfile(r.node.Repo, &ref); err != nil {
+		return err
 	}
 
 	// ensure valid limit value
@@ -72,7 +74,7 @@ func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) 
 		params.Offset = 0
 	}
 
-	*res, err = actions.DatasetLog(ctx, r.node, ref, params.Limit, params.Offset)
+	*res, err = base.DatasetLog(ctx, r.node.Repo, ref, params.Limit, params.Offset, true)
 	return
 }
 

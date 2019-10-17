@@ -153,8 +153,8 @@ func Example() {
 	}
 
 	// Output:
-	// b5/world_bank_population@QmHashOfVersion1
 	// b5/world_bank_population@QmHashOfVersion3
+	// b5/world_bank_population@QmHashOfVersion1
 }
 
 func TestNewBook(t *testing.T) {
@@ -388,14 +388,11 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{}, nil); err == nil {
-		t.Error("expected MergeLogBytes with empty ref to fail")
-	}
-	if err := book2.MergeLogBytes(tr.Ctx, dsref.Ref{Username: tr.Username}, nil); err == nil {
-		t.Error("expected MergeLogBytes with empty name ref to fail")
+	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), nil); err == nil {
+		t.Error("expected MergeLogBytes with no data to fail")
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, tr.WorldBankRef(), data); err != nil {
+	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), data); err != nil {
 		t.Fatal(err)
 	}
 
@@ -470,10 +467,10 @@ func TestVersions(t *testing.T) {
 			Ref: dsref.Ref{
 				Username: "test_author",
 				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion3",
+				Path:     "QmHashOfVersion5",
 			},
-			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
-			CommitTitle: "added meta info",
+			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
+			CommitTitle: "v5",
 		},
 		{
 			Ref: dsref.Ref{
@@ -488,10 +485,10 @@ func TestVersions(t *testing.T) {
 			Ref: dsref.Ref{
 				Username: "test_author",
 				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion5",
+				Path:     "QmHashOfVersion3",
 			},
-			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
-			CommitTitle: "v5",
+			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
+			CommitTitle: "added meta info",
 		},
 	}
 
@@ -602,12 +599,12 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	authorName := "test_author"
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
-	prevTs := newTimestamp
+	prevTs := NewTimestamp
 	tr = &testRunner{
 		Ctx:      ctx,
 		Username: authorName,
 	}
-	newTimestamp = tr.newTimestamp
+	NewTimestamp = tr.newTimestamp
 
 	var err error
 	tr.Book, err = NewBook(pk, authorName, fs, "/mem/logset")
@@ -616,15 +613,15 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	}
 
 	cleanup = func() {
-		newTimestamp = prevTs
+		NewTimestamp = prevTs
 	}
 
 	return tr, cleanup
 }
 
-func (tr *testRunner) newTimestamp() time.Time {
+func (tr *testRunner) newTimestamp() int64 {
 	defer func() { tr.Tick++ }()
-	return time.Unix(int64(94670280000+tr.Tick), 0)
+	return time.Unix(int64(94670280000+tr.Tick), 0).UnixNano()
 }
 
 func (tr *testRunner) WorldBankRef() dsref.Ref {

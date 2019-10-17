@@ -24,7 +24,7 @@ import (
 
 var (
 	// ErrNoLogbook indicates a logbook doesn't exist
-	ErrNoLogbook = fmt.Errorf("logbook: no logbook")
+	ErrNoLogbook = fmt.Errorf("logbook: does not exist")
 	// ErrNotFound is a sentinel error for data not found in a logbook
 	ErrNotFound = fmt.Errorf("logbook: not found")
 	// ErrLogTooShort indicates a log is missing elements. Because logs are
@@ -32,7 +32,9 @@ var (
 	// for rejection
 	ErrLogTooShort = fmt.Errorf("logbook: log is too short")
 
-	newTimestamp = func() time.Time { return time.Now() }
+	// NewTimestamp generates the current unix nanosecond time.
+	// This is mainly here for tests to override
+	NewTimestamp = func() int64 { return time.Now().UnixNano() }
 )
 
 const (
@@ -120,7 +122,7 @@ func (book *Book) initialize(ctx context.Context) error {
 		Model:     userModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	book.bk.AppendLog(userActions)
 
@@ -130,11 +132,21 @@ func (book *Book) initialize(ctx context.Context) error {
 		Model:     nameModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	book.bk.AppendLog(ns)
 
 	return book.save(ctx)
+}
+
+// Author returns this book's author
+func (book *Book) Author() log.Author {
+	return book.bk
+}
+
+// AuthorName returns the human-readable name of the author
+func (book *Book) AuthorName() string {
+	return book.bk.AuthorName()
 }
 
 // RenameAuthor marks a change in author name
@@ -196,7 +208,7 @@ func (book Book) initName(ctx context.Context, name string) *log.Log {
 		Model:     nameModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 
 	ns := book.authorNamespace()
@@ -231,7 +243,7 @@ func (book *Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName str
 		Type:      log.OpTypeAmend,
 		Model:     nameModel,
 		Name:      newName,
-		Timestamp: newTimestamp().UnixNano(),
+		Timestamp: NewTimestamp(),
 	})
 	return nil
 }
@@ -420,14 +432,9 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 }
 
 // MergeLogBytes adds a log to the logbook, merging with any existing log data
-// TODO (b5) - this isn't fully worked out yet, need to verify signatures,
-// restricting what logs can be written based on the signer
-func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte) error {
-	if ref.Username == "" {
-		return fmt.Errorf("ref.Username is required")
-	}
-	if ref.Name == "" {
-		return fmt.Errorf("ref.Name is required")
+func (book *Book) MergeLogBytes(ctx context.Context, sender log.Author, data []byte) error {
+	if data == nil {
+		return fmt.Errorf("no data provided to merge")
 	}
 
 	lg := &log.Log{}
@@ -435,7 +442,17 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 		return err
 	}
 
-	// TODO (b5) - verify signature
+	// eventually access control will dictate which logs can be written by whom.
+	// For now we only allow users to merge logs they've written
+	// book will need access to a store of public keys before we can verify
+	// signatures non-same-senders
+	if err := lg.Verify(sender.AuthorPubKey()); err != nil {
+		return err
+	}
+
+	if lg.Author() != sender.AuthorID() {
+		return fmt.Errorf("authors can only push logs they own")
+	}
 
 	merged := false
 	for _, l := range book.bk.ModelLogs(nameModel) {
@@ -452,6 +469,39 @@ func (book *Book) MergeLogBytes(ctx context.Context, ref dsref.Ref, data []byte)
 	}
 
 	return book.save(ctx)
+}
+
+// RemoveLog removes an entire log from a logbook
+func (book *Book) RemoveLog(ctx context.Context, sender log.Author, ref dsref.Ref) error {
+	l, err := book.readRefLog(ref)
+	if err != nil {
+		return err
+	}
+
+	// eventually access control will dictate which logs can be written by whom.
+	// For now we only allow users to merge logs they've written
+	// book will need access to a store of public keys before we can verify
+	// signatures non-same-senders
+	// if err := l.Verify(sender.AuthorPubKey()); err != nil {
+	// 	return err
+	// }
+
+	if l.Author() != sender.AuthorID() {
+		return fmt.Errorf("authors can only remove logs they own")
+	}
+
+	book.bk.RemoveLog(nameModel, dsRefToLogPath(ref)...)
+	return book.save(ctx)
+}
+
+func dsRefToLogPath(ref dsref.Ref) (path []string) {
+	for _, str := range []string{
+		ref.Username,
+		ref.Name,
+	} {
+		path = append(path, str)
+	}
+	return path
 }
 
 // ConstructDatasetLog creates a sparse log from a connected dataset history
@@ -481,6 +531,7 @@ type DatasetInfo struct {
 	Published   bool      // indicates whether this reference is listed as an available dataset
 	Timestamp   time.Time // creation timestamp
 	CommitTitle string    // title from commit
+	Size        uint64    // size of dataset in bytes
 }
 
 func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
@@ -493,6 +544,7 @@ func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
 		},
 		Timestamp:   time.Unix(0, op.Timestamp),
 		CommitTitle: op.Note,
+		Size:        op.Size,
 	}
 }
 
@@ -528,6 +580,13 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, erro
 				}
 			}
 		}
+	}
+
+	// reverse the slice, placing newest first
+	// https://github.com/golang/go/wiki/SliceTricks#reversing
+	for i := len(refs)/2 - 1; i >= 0; i-- {
+		opp := len(refs) - 1 - i
+		refs[i], refs[opp] = refs[opp], refs[i]
 	}
 
 	if offset > len(refs) {

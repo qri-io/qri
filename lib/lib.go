@@ -26,7 +26,6 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
@@ -67,6 +66,7 @@ func Receivers(inst *Instance) []Methods {
 	return []Methods{
 		NewDatasetRequestsInstance(inst),
 		NewRegistryClientMethods(inst),
+		NewRemoteMethods(inst),
 		NewLogRequests(node, nil),
 		NewExportRequests(node, nil),
 		NewPeerRequests(node, nil),
@@ -565,7 +565,6 @@ type Instance struct {
 	remote       *remote.Remote
 	remoteClient *remote.Client
 	registry     *regclient.Client
-	logbook      *logbook.Book
 
 	rpc *rpc.Client
 }
@@ -587,7 +586,6 @@ func (inst *Instance) Connect(ctx context.Context) (err error) {
 		return
 	}
 
-	// chriswhong/usgs_earthquakes
 	return nil
 }
 

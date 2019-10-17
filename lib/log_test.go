@@ -29,10 +29,13 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	items := make([]DatasetLogItem, len(refs))
 	for i, r := range refs {
+		t.Logf("%d: %d %s\t%s\t%s", i, r.Dataset.Structure.Length, r.Dataset.Commit.Title, r.Path, r.Dataset.PreviousPath)
 		items[i] = DatasetLogItem{
 			Ref:         repo.ConvertToDsref(r),
 			Published:   r.Published,
 			CommitTitle: r.Dataset.Commit.Title,
+			Local:       true,
+			Size:        uint64(r.Dataset.Structure.Length),
 		}
 	}
 
@@ -45,7 +48,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - empty",
 			&LogParams{}, []DatasetLogItem{}, "repo: empty dataset reference"},
 		{"log list - bad path",
-			&LogParams{Ref: "/badpath"}, []DatasetLogItem{}, "repo: not found"},
+			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
 		{"log list - default",
 			&LogParams{Ref: firstRef}, items, ""},
 		{"log list - offset 0 limit 3",
@@ -69,6 +72,11 @@ func TestHistoryRequestsLog(t *testing.T) {
 		if len(c.refs) != len(got) {
 			t.Errorf("case '%s' expected log length error. expected: %d, got: %d", c.description, len(c.refs), len(got))
 			continue
+		}
+
+		t.Logf("-- %s", c.description)
+		for i, v := range c.refs {
+			t.Logf("expect: %d got: %d", v.Size, got[i].Size)
 		}
 
 		if diff := cmp.Diff(c.refs, got, cmpopts.IgnoreFields(DatasetLogItem{}, "Timestamp"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {

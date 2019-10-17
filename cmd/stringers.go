@@ -229,13 +229,33 @@ func (s logEntryStringer) String() string {
 type dslogItemStringer lib.DatasetLogItem
 
 func (s dslogItemStringer) String() string {
-	title := color.New(color.FgGreen, color.Bold).SprintFunc()
-	ts := color.New(color.Faint).SprintFunc()
+	yellow := color.New(color.FgYellow).SprintFunc()
+	faint := color.New(color.Faint).SprintFunc()
 
-	return fmt.Sprintf("%s\t%s\t%s\t%s\n",
-		ts(s.Timestamp.Format(time.RFC3339)),
-		title(s.Ref.Name),
-		title(s.Ref.Path),
+	var storage string
+	if s.Local {
+		storage = "local"
+	} else {
+		storage = faint("remote")
+	}
+
+	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n\n%s\n",
+		faint("Commit:  "),
+		yellow(s.Ref.Path),
+		faint("Date:    "),
+		s.Timestamp.Format(time.UnixDate),
+		faint("Storage: "),
+		storage,
+		faint("Size:    "),
+		humanize.Bytes(s.Size),
 		s.CommitTitle,
 	)
+
+	if s.CommitMessage != "" {
+		msg += fmt.Sprintf("\n%s\n\n", s.CommitMessage)
+	} else {
+		msg += "\n"
+	}
+
+	return msg
 }

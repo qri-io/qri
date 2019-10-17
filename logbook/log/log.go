@@ -24,6 +24,40 @@ import (
 	"github.com/qri-io/qri/logbook/log/logfb"
 )
 
+var (
+	// ErrNotFound is a sentinel error for data not found in a logbook
+	ErrNotFound = fmt.Errorf("log: not found")
+)
+
+// Author uses keypair cryptography to distinguish between different log sources
+// (authors)
+type Author interface {
+	AuthorID() string
+	AuthorPubKey() crypto.PubKey
+}
+
+type author struct {
+	id     string
+	pubKey crypto.PubKey
+}
+
+// NewAuthor creates an Author interface implementation, allowing outside
+// packages needing to satisfy the Author interface
+func NewAuthor(id string, pubKey crypto.PubKey) Author {
+	return author{
+		id:     id,
+		pubKey: pubKey,
+	}
+}
+
+func (a author) AuthorID() string {
+	return a.id
+}
+
+func (a author) AuthorPubKey() crypto.PubKey {
+	return a.pubKey
+}
+
 // Book is a journal of operations organized into a collection of append-only
 // logs. Each log is single-writer
 // Books are connected to a single author, and represent their view of
@@ -59,9 +93,64 @@ func (book Book) AuthorID() string {
 	return book.id
 }
 
+// AuthorPubKey gives this book's author public key
+func (book Book) AuthorPubKey() crypto.PubKey {
+	return book.pk.GetPublic()
+}
+
 // AppendLog adds a log to a book
 func (book *Book) AppendLog(l *Log) {
 	book.logs[l.Model()] = append(book.logs[l.Model()], l)
+}
+
+// RemoveLog removes a log from the book
+// TODO (b5) - this currently won't work when trying to remove the root log
+func (book *Book) RemoveLog(rootModel uint32, names ...string) error {
+	if len(names) == 0 {
+		return fmt.Errorf("name is required")
+	}
+
+	remove := names[len(names)-1]
+	parentPath := names[:len(names)-1]
+
+	if len(parentPath) == 0 {
+		for i, l := range book.logs[rootModel] {
+			if l.Name() == remove {
+				book.logs[rootModel] = append(book.logs[rootModel][:i], book.logs[rootModel][i+1:]...)
+				return nil
+			}
+		}
+		return ErrNotFound
+	}
+
+	parent, err := book.Log(rootModel, parentPath...)
+	if err != nil {
+		return err
+	}
+
+	// iterate list looking for log to remove
+	for i, l := range parent.Logs {
+		if l.Name() == remove {
+			parent.Logs = append(parent.Logs[:i], parent.Logs[i+1:]...)
+			return nil
+		}
+	}
+
+	return ErrNotFound
+}
+
+// Log traverses the log graph & pulls out a log
+func (book *Book) Log(rootModel uint32, names ...string) (*Log, error) {
+	if len(names) == 0 {
+		return nil, fmt.Errorf("name is required")
+	}
+
+	for _, log := range book.logs[rootModel] {
+		if log.Name() == names[0] {
+			return log.Log(names[1:]...)
+		}
+	}
+	return nil, ErrNotFound
 }
 
 // Logs returns the full map of logs keyed by model type
@@ -271,6 +360,20 @@ func (lg Log) Name() string {
 	return lg.name
 }
 
+// Log returns a descendant log, traversing the log tree by name
+func (lg *Log) Log(names ...string) (*Log, error) {
+	if len(names) == 0 {
+		return lg, nil
+	}
+
+	for _, log := range lg.Logs {
+		if log.Name() == names[0] {
+			return log.Log(names[1:]...)
+		}
+	}
+	return nil, ErrNotFound
+}
+
 // Child returns a child log for a given name, and nil if it doesn't exist
 func (lg Log) Child(name string) *Log {
 	for _, l := range lg.Logs {
@@ -303,7 +406,7 @@ LOOP:
 	for _, x := range l.Logs {
 		for j, y := range lg.Logs {
 			// if logs match. merge 'em
-			if x.Model() == y.Model() && x.Ops[0].Name == y.Ops[0].Name && x.Ops[0].AuthorID == y.Ops[0].AuthorID {
+			if x.Ops[0].Equal(y.Ops[0]) {
 				lg.Logs[j].Merge(x)
 				continue LOOP
 			}
@@ -467,6 +570,20 @@ type Op struct {
 	Timestamp int64  // operation timestamp, for annotation purposes only
 	Size      uint64 // size of the referenced value in bytes
 	Note      string // operation annotation for users. eg: commit title
+}
+
+// Equal tests equality between two operations
+func (o Op) Equal(b Op) bool {
+	return o.Type == b.Type &&
+		o.Model == b.Model &&
+		o.Ref == b.Ref &&
+		o.Prev == b.Prev &&
+		len(o.Relations) == len(b.Relations) &&
+		o.Name == b.Name &&
+		o.AuthorID == b.AuthorID &&
+		o.Timestamp == b.Timestamp &&
+		o.Size == b.Size &&
+		o.Note == b.Note
 }
 
 // MarshalFlatbuffer writes this operation to a flatbuffer, returning the
