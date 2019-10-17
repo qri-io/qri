@@ -326,3 +326,20 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 		}
 	}
 }
+
+// Address extracts the address of a remote from a configuration for a given
+// remote name
+func Address(cfg *config.Config, name string) (addr string, err error) {
+	if name == "" {
+		if cfg.Registry != nil && cfg.Registry.Location != "" {
+			return cfg.Registry.Location, nil
+		}
+		return "", fmt.Errorf("no registry specifiied to use as default remote")
+	}
+
+	if dst, found := cfg.Remotes.Get(name); found {
+		return dst, nil
+	}
+
+	return "", fmt.Errorf(`remote name "%s" not found`, name)
+}

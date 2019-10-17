@@ -22,7 +22,9 @@ require (
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.3.0
 	github.com/ipfs/go-cid v0.0.2
+	github.com/ipfs/go-datastore v0.0.5
 	github.com/ipfs/go-ipfs v0.4.21
+	github.com/ipfs/go-ipfs-config v0.0.3
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.8

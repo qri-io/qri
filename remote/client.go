@@ -16,7 +16,6 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dag/dsync"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/p2p"
@@ -25,23 +24,6 @@ import (
 
 // ErrNoRemoteClient is returned when no client is allocated
 var ErrNoRemoteClient = fmt.Errorf("remote: no client to make remote requests")
-
-// Address extracts the address of a remote from a configuration for a given
-// remote name
-func Address(cfg *config.Config, name string) (addr string, err error) {
-	if name == "" {
-		if cfg.Registry.Location != "" {
-			return cfg.Registry.Location, nil
-		}
-		return "", fmt.Errorf("no registry specifiied to use as default remote")
-	}
-
-	if dst, found := cfg.Remotes.Get(name); found {
-		return dst, nil
-	}
-
-	return "", fmt.Errorf(`remote name "%s" not found`, name)
-}
 
 // Client issues requests to a remote
 type Client struct {
