@@ -13,7 +13,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/logbook/log"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
 func Example() {
@@ -32,14 +32,14 @@ func Example() {
 	basitLogsync := New(basitsLogbook, func(o *Options) {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
-		o.ReceiveCheck = func(ctx context.Context, author log.Author, path string) error {
+		o.ReceiveCheck = func(ctx context.Context, author oplog.Author, path string) error {
 			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
 		}
 
-		o.DidReceive = func(ctx context.Context, author log.Author, path string) error {
+		o.DidReceive = func(ctx context.Context, author oplog.Author, path string) error {
 			wait <- struct{}{}
 			return nil
 		}

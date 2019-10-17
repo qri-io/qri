@@ -19,7 +19,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook/log"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
 var (
@@ -65,9 +65,9 @@ func modelString(m uint32) string {
 	}
 }
 
-// Book wraps a log.Book with a higher-order API specific to Qri
+// Book wraps a oplog.Book with a higher-order API specific to Qri
 type Book struct {
-	bk       *log.Book
+	bk       *oplog.Book
 	pk       crypto.PrivKey
 	location string
 	fs       qfs.Filesystem
@@ -92,7 +92,7 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 		return nil, err
 	}
 
-	bk, err := log.NewBook(pk, username, pid)
+	bk, err := oplog.NewBook(pk, username, pid)
 	if err != nil {
 		return nil, err
 	}
@@ -117,8 +117,8 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 
 func (book *Book) initialize(ctx context.Context) error {
 	// initialize author's log of user actions
-	userActions := log.InitLog(log.Op{
-		Type:      log.OpTypeInit,
+	userActions := oplog.InitLog(oplog.Op{
+		Type:      oplog.OpTypeInit,
 		Model:     userModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
@@ -127,8 +127,8 @@ func (book *Book) initialize(ctx context.Context) error {
 	book.bk.AppendLog(userActions)
 
 	// initialize author's namespace
-	ns := log.InitLog(log.Op{
-		Type:      log.OpTypeInit,
+	ns := oplog.InitLog(oplog.Op{
+		Type:      oplog.OpTypeInit,
 		Model:     nameModel,
 		Name:      book.bk.AuthorName(),
 		AuthorID:  book.bk.AuthorID(),
@@ -140,7 +140,7 @@ func (book *Book) initialize(ctx context.Context) error {
 }
 
 // Author returns this book's author
-func (book *Book) Author() log.Author {
+func (book *Book) Author() oplog.Author {
 	return book.bk
 }
 
@@ -202,9 +202,9 @@ func (book *Book) WriteNameInit(ctx context.Context, name string) error {
 	return book.save(ctx)
 }
 
-func (book Book) initName(ctx context.Context, name string) *log.Log {
-	lg := log.InitLog(log.Op{
-		Type:      log.OpTypeInit,
+func (book Book) initName(ctx context.Context, name string) *oplog.Log {
+	lg := oplog.InitLog(oplog.Op{
+		Type:      oplog.OpTypeInit,
 		Model:     nameModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
@@ -216,7 +216,7 @@ func (book Book) initName(ctx context.Context, name string) *log.Log {
 	return lg
 }
 
-func (book Book) authorNamespace() *log.Log {
+func (book Book) authorNamespace() *oplog.Log {
 	for _, l := range book.bk.ModelLogs(nameModel) {
 		if l.Name() == book.bk.AuthorName() {
 			return l
@@ -239,8 +239,8 @@ func (book *Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName str
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:      log.OpTypeAmend,
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeAmend,
 		Model:     nameModel,
 		Name:      newName,
 		Timestamp: NewTimestamp(),
@@ -270,9 +270,9 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	return book.save(ctx)
 }
 
-func (book *Book) appendVersionSave(l *log.Log, ds *dataset.Dataset) {
-	op := log.Op{
-		Type:  log.OpTypeInit,
+func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
+	op := oplog.Op{
+		Type:  oplog.OpTypeInit,
 		Model: versionModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
@@ -299,8 +299,8 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:  log.OpTypeAmend,
+	l.Append(oplog.Op{
+		Type:  oplog.OpTypeAmend,
 		Model: versionModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
@@ -325,8 +325,8 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:  log.OpTypeRemove,
+	l.Append(oplog.Op{
+		Type:  oplog.OpTypeRemove,
 		Model: versionModel,
 		Size:  uint64(revisions),
 		// TODO (b5) - finish
@@ -347,8 +347,8 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:      log.OpTypeInit,
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeInit,
 		Model:     publicationModel,
 		Size:      uint64(revisions),
 		Relations: destinations,
@@ -370,8 +370,8 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:      log.OpTypeRemove,
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeRemove,
 		Model:     publicationModel,
 		Size:      uint64(revisions),
 		Relations: destinations,
@@ -392,8 +392,8 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 		return err
 	}
 
-	l.Append(log.Op{
-		Type:  log.OpTypeInit,
+	l.Append(oplog.Op{
+		Type:  oplog.OpTypeInit,
 		Model: cronJobModel,
 		Size:  uint64(number),
 		// TODO (b5) - finish
@@ -420,9 +420,9 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 				return nil, ErrNotFound
 			}
 
-			root := &log.Log{
+			root := &oplog.Log{
 				Ops:  lg.Ops,
-				Logs: []*log.Log{l},
+				Logs: []*oplog.Log{l},
 			}
 			return root.SignedFlatbufferBytes(book.pk)
 		}
@@ -432,12 +432,12 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 }
 
 // MergeLogBytes adds a log to the logbook, merging with any existing log data
-func (book *Book) MergeLogBytes(ctx context.Context, sender log.Author, data []byte) error {
+func (book *Book) MergeLogBytes(ctx context.Context, sender oplog.Author, data []byte) error {
 	if data == nil {
 		return fmt.Errorf("no data provided to merge")
 	}
 
-	lg := &log.Log{}
+	lg := &oplog.Log{}
 	if err := lg.UnmarshalFlatbufferBytes(data); err != nil {
 		return err
 	}
@@ -472,7 +472,7 @@ func (book *Book) MergeLogBytes(ctx context.Context, sender log.Author, data []b
 }
 
 // RemoveLog removes an entire log from a logbook
-func (book *Book) RemoveLog(ctx context.Context, sender log.Author, ref dsref.Ref) error {
+func (book *Book) RemoveLog(ctx context.Context, sender oplog.Author, ref dsref.Ref) error {
 	l, err := book.readRefLog(ref)
 	if err != nil {
 		return err
@@ -534,7 +534,7 @@ type DatasetInfo struct {
 	Size        uint64    // size of dataset in bytes
 }
 
-func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
+func infoFromOp(ref dsref.Ref, op oplog.Op) DatasetInfo {
 	return DatasetInfo{
 		Ref: dsref.Ref{
 			Username:  ref.Username,
@@ -561,20 +561,20 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, erro
 		switch op.Model {
 		case versionModel:
 			switch op.Type {
-			case log.OpTypeInit:
+			case oplog.OpTypeInit:
 				refs = append(refs, infoFromOp(ref, op))
-			case log.OpTypeAmend:
+			case oplog.OpTypeAmend:
 				refs[len(refs)-1] = infoFromOp(ref, op)
-			case log.OpTypeRemove:
+			case oplog.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
 		case publicationModel:
 			switch op.Type {
-			case log.OpTypeInit:
+			case oplog.OpTypeInit:
 				for i := 1; i <= int(op.Size); i++ {
 					refs[len(refs)-i].Published = true
 				}
-			case log.OpTypeRemove:
+			case oplog.OpTypeRemove:
 				for i := 1; i <= int(op.Size); i++ {
 					refs[len(refs)-i].Published = false
 				}
@@ -646,7 +646,7 @@ var actionStrings = map[uint32][3]string{
 	cronJobModel:     [3]string{"ran update", "", ""},
 }
 
-func logEntryFromOp(author string, op log.Op) LogEntry {
+func logEntryFromOp(author string, op oplog.Op) LogEntry {
 	return LogEntry{
 		Timestamp: time.Unix(0, op.Timestamp),
 		Author:    author,
@@ -668,13 +668,13 @@ func (book Book) RawLogs(ctx context.Context) map[string][]Log {
 	return logs
 }
 
-// Log is a human-oriented representation of log.Log intended for serialization
+// Log is a human-oriented representation of oplog.Log intended for serialization
 type Log struct {
 	Ops  []Op  `json:"ops,omitempty"`
 	Logs []Log `json:"logs,omitempty"`
 }
 
-func newLog(lg *log.Log) Log {
+func newLog(lg *oplog.Log) Log {
 	ops := make([]Op, len(lg.Ops))
 	for i, o := range lg.Ops {
 		ops[i] = newOp(o)
@@ -694,7 +694,7 @@ func newLog(lg *log.Log) Log {
 	}
 }
 
-// Op is a human-oriented representation of log.Op intended for serialization
+// Op is a human-oriented representation of oplog.Op intended for serialization
 type Op struct {
 	// type of operation
 	Type string `json:"type,omitempty"`
@@ -718,7 +718,7 @@ type Op struct {
 	Note string `json:"note,omitempty"`
 }
 
-func newOp(op log.Op) Op {
+func newOp(op oplog.Op) Op {
 	return Op{
 		Type:      opTypeString(op.Type),
 		Model:     modelString(op.Model),
@@ -733,13 +733,13 @@ func newOp(op log.Op) Op {
 	}
 }
 
-func opTypeString(op log.OpType) string {
+func opTypeString(op oplog.OpType) string {
 	switch op {
-	case log.OpTypeInit:
+	case oplog.OpTypeInit:
 		return "init"
-	case log.OpTypeAmend:
+	case oplog.OpTypeAmend:
 		return "amend"
-	case log.OpTypeRemove:
+	case oplog.OpTypeRemove:
 		return "remove"
 	default:
 		return ""
@@ -755,7 +755,7 @@ func refFromDataset(ds *dataset.Dataset) dsref.Ref {
 	}
 }
 
-func (book Book) readRefLog(ref dsref.Ref) (*log.Log, error) {
+func (book Book) readRefLog(ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("ref.Username is required")
 	}

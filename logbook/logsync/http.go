@@ -10,7 +10,7 @@ import (
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook/log"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -24,7 +24,7 @@ type httpClient struct {
 var _ remote = (*httpClient)(nil)
 
 // Put
-func (c *httpClient) put(ctx context.Context, author log.Author, r io.Reader) error {
+func (c *httpClient) put(ctx context.Context, author oplog.Author, r io.Reader) error {
 	req, err := http.NewRequest("PUT", c.URL, r)
 	if err != nil {
 		return err
@@ -49,7 +49,7 @@ func (c *httpClient) put(ctx context.Context, author log.Author, r io.Reader) er
 	return nil
 }
 
-func (c *httpClient) get(ctx context.Context, author log.Author, ref dsref.Ref) (log.Author, io.Reader, error) {
+func (c *httpClient) get(ctx context.Context, author oplog.Author, ref dsref.Ref) (oplog.Author, io.Reader, error) {
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s?ref=%s", c.URL, ref), nil)
 	if err != nil {
 		return nil, nil, err
@@ -78,7 +78,7 @@ func (c *httpClient) get(ctx context.Context, author log.Author, ref dsref.Ref) 
 	return sender, res.Body, nil
 }
 
-func (c *httpClient) del(ctx context.Context, author log.Author, ref dsref.Ref) error {
+func (c *httpClient) del(ctx context.Context, author oplog.Author, ref dsref.Ref) error {
 	req, err := http.NewRequest("DELETE", fmt.Sprintf("%s?ref=%s", c.URL, ref), nil)
 	if err != nil {
 		return err
@@ -101,7 +101,7 @@ func (c *httpClient) del(ctx context.Context, author log.Author, ref dsref.Ref) 
 	return err
 }
 
-func addAuthorHTTPHeaders(h http.Header, author log.Author) error {
+func addAuthorHTTPHeaders(h http.Header, author oplog.Author) error {
 	h.Set("AuthorID", author.AuthorID())
 	pubByteStr, err := author.AuthorPubKey().Bytes()
 	if err != nil {
@@ -111,7 +111,7 @@ func addAuthorHTTPHeaders(h http.Header, author log.Author) error {
 	return nil
 }
 
-func senderFromHTTPHeaders(h http.Header) (log.Author, error) {
+func senderFromHTTPHeaders(h http.Header) (oplog.Author, error) {
 	data, err := base64.StdEncoding.DecodeString(h.Get("PubKey"))
 	if err != nil {
 		return nil, err
@@ -122,7 +122,7 @@ func senderFromHTTPHeaders(h http.Header) (log.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return log.NewAuthor(h.Get("AuthorID"), pub), nil
+	return oplog.NewAuthor(h.Get("AuthorID"), pub), nil
 }
 
 // HTTPHandler exposes a Dsync remote over HTTP by exposing a HTTP handler
