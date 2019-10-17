@@ -153,8 +153,8 @@ func Example() {
 	}
 
 	// Output:
-	// b5/world_bank_population@QmHashOfVersion1
 	// b5/world_bank_population@QmHashOfVersion3
+	// b5/world_bank_population@QmHashOfVersion1
 }
 
 func TestNewBook(t *testing.T) {
@@ -467,10 +467,10 @@ func TestVersions(t *testing.T) {
 			Ref: dsref.Ref{
 				Username: "test_author",
 				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion3",
+				Path:     "QmHashOfVersion5",
 			},
-			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
-			CommitTitle: "added meta info",
+			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
+			CommitTitle: "v5",
 		},
 		{
 			Ref: dsref.Ref{
@@ -485,10 +485,10 @@ func TestVersions(t *testing.T) {
 			Ref: dsref.Ref{
 				Username: "test_author",
 				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion5",
+				Path:     "QmHashOfVersion3",
 			},
-			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
-			CommitTitle: "v5",
+			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
+			CommitTitle: "added meta info",
 		},
 	}
 

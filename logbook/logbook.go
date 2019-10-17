@@ -531,6 +531,7 @@ type DatasetInfo struct {
 	Published   bool      // indicates whether this reference is listed as an available dataset
 	Timestamp   time.Time // creation timestamp
 	CommitTitle string    // title from commit
+	Size        uint64    // size of dataset in bytes
 }
 
 func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
@@ -543,6 +544,7 @@ func infoFromOp(ref dsref.Ref, op log.Op) DatasetInfo {
 		},
 		Timestamp:   time.Unix(0, op.Timestamp),
 		CommitTitle: op.Note,
+		Size:        op.Size,
 	}
 }
 
@@ -578,6 +580,13 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, erro
 				}
 			}
 		}
+	}
+
+	// reverse the slice, placing newest first
+	// https://github.com/golang/go/wiki/SliceTricks#reversing
+	for i := len(refs)/2 - 1; i >= 0; i-- {
+		opp := len(refs) - 1 - i
+		refs[i], refs[opp] = refs[opp], refs[i]
 	}
 
 	if offset > len(refs) {

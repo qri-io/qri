@@ -117,9 +117,11 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	expect := []logbook.DatasetInfo{
 		{
 			CommitTitle: "initial commit",
+			Size:        0x9b,
 		},
 		{
 			CommitTitle: "initial commit",
+			Size:        0x9b,
 		},
 	}
 

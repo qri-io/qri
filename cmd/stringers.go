@@ -239,13 +239,15 @@ func (s dslogItemStringer) String() string {
 		storage = faint("remote")
 	}
 
-	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n\n%s\n",
+	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n\n%s\n",
 		faint("Commit:  "),
 		yellow(s.Ref.Path),
 		faint("Date:    "),
 		s.Timestamp.Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
+		faint("Size:    "),
+		humanize.Bytes(s.Size),
 		s.CommitTitle,
 	)
 

@@ -21,6 +21,8 @@ type DatasetLogItem struct {
 	CommitMessage string `json:"commitMessage,omitempty"`
 	// Published indicates if this version has been published
 	Published bool `json:"published,omitempty"`
+	// Size of dataset in bytes
+	Size uint64 `json:"size,omitempty"`
 	// Local indicates the connected filesystem has this version available
 	Local bool `json:"local,omitempty"`
 }
@@ -31,14 +33,13 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
 
-			for j, v := range versions {
-				// log is returned newest-first, fill slice in reverse
-				i := len(items) - j - 1
+			for i, v := range versions {
 				items[i] = DatasetLogItem{
 					Ref:         v.Ref,
 					Published:   v.Published,
 					Timestamp:   v.Timestamp,
 					CommitTitle: v.CommitTitle,
+					Size:        v.Size,
 				}
 
 				if v.Ref.Path != "" {
@@ -157,10 +158,7 @@ func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.
 		return err
 	}
 	history := make([]*dataset.Dataset, len(refs))
-	for j, ref := range refs {
-		// logs are returned from newest-to-oldest, and log construction needs them
-		// ordered from oldest to newest
-		i := len(refs) - j - 1
+	for i, ref := range refs {
 		history[i] = ref.Dataset
 	}
 
