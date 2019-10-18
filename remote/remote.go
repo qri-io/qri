@@ -22,34 +22,42 @@ import (
 
 var log = golog.Logger("remote")
 
-// Hook is a function
+// Hook is a function called at specific points in the sync cycle
+// hook contexts may be populated with request parameters
 type Hook func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
-	// called when a client requests to push a dataset. The dataset itself
-	// will not be accessible at this point, only fields like the name of
-	// the dataset, and peer performing the push
+	// called when a client requests to push a dataset, before any data has been
+	// received
 	DatasetPushPreCheck Hook
-	// called when a dataset has been pushed, but before it's been pinned
-	// this is a chance to inspect dataset contents before confirming
+	// called when a dataset has been pushed, but before it's saved
 	DatasetPushFinalCheck Hook
 	// called after successfully publishing a dataset version
 	DatasetPushed Hook
 	// called when a client has unpublished a dataset version
 	DatasetRemovePreCheck Hook
-	DatasetRemoved        Hook
-	DatasetPullPreCheck   Hook
+	// called after a dataset version has been removed
+	DatasetRemoved Hook
+	// called before a version pull is permitted
+	DatasetPullPreCheck Hook
 	// called when a client pulls a dataset
 	DatasetPulled Hook
 
-	LogPushPreCheck   Hook
+	// called before any log data is accepted from a client
+	LogPushPreCheck Hook
+	// called after a log has been received by a client, before it's saved
 	LogPushFinalCheck Hook
-	LogPushed         Hook
-	LogPullPreCheck   Hook
-	LogPulled         Hook
+	// called after a log has been pushed
+	LogPushed Hook
+	// called before a log pull is allowed
+	LogPullPreCheck Hook
+	// called after a log has been pulled
+	LogPulled Hook
+	// called before a log remove is performed
 	LogRemovePreCheck Hook
-	LogRemoved        Hook
+	// called after a log has been removed
+	LogRemoved Hook
 }
 
 // Remote receives requests from other qri nodes to perform actions on their

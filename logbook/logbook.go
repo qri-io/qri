@@ -444,7 +444,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 		return ref, fmt.Errorf("logbook: log is required")
 	}
 	if log.Model() != nameModel {
-		return ref, fmt.Errorf("logbook: log doesn't descibe a dataset")
+		return ref, fmt.Errorf("logbook: log doesn't describe a dataset")
 	}
 	if len(log.Logs) != 1 {
 		return ref, fmt.Errorf("logbook: ambiguous dataset reference")

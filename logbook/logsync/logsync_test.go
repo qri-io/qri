@@ -194,7 +194,7 @@ func TestHookErrors(t *testing.T) {
 	callCheck := func(s string) Hook {
 		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
 			hooksCalled = append(hooksCalled, s)
-			return fmt.Errorf("boooooooooo")
+			return fmt.Errorf("hook failed")
 		}
 	}
 
