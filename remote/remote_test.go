@@ -24,17 +24,20 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	aCfg := &config.Remote{
-		Enabled:       true,
-		AllowRemoves:  true,
-		AcceptSizeMax: 10000,
-	}
-
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
 		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
+		}
+	}
+
+	requireLogCallCheck := func(t *testing.T, s string) Hook {
+		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
+			if l, ok := OplogFromContext(ctx); !ok {
+				t.Errorf("hook %s expected log to be in context. got: %v", s, l)
+			}
+			return callCheck(s)(ctx, pid, ref)
 		}
 	}
 
@@ -46,12 +49,18 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		o.DatasetRemoved = callCheck("DatasetRemoved")
 
 		o.LogPushPreCheck = callCheck("LogPushPreCheck")
-		// TODO (b5) - log push final check
-		o.LogPushed = callCheck("LogPushed")
+		o.LogPushFinalCheck = requireLogCallCheck(t, "LogPushFinalCheck")
+		o.LogPushed = requireLogCallCheck(t, "LogPushed")
 		o.LogPullPreCheck = callCheck("LogPullPreCheck")
 		o.LogPulled = callCheck("LogPulled")
 		o.LogRemovePreCheck = callCheck("LogRemovePreCheck")
 		o.LogRemoved = callCheck("LogRemoved")
+	}
+
+	aCfg := &config.Remote{
+		Enabled:       true,
+		AllowRemoves:  true,
+		AcceptSizeMax: 10000,
 	}
 
 	rem, err := NewRemote(tr.NodeA, aCfg, opts)
@@ -109,6 +118,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		"LogPulled",
 		"DatasetPulled",
 		"LogPushPreCheck",
+		"LogPushFinalCheck",
 		"LogPushed",
 		"DatasetPushPreCheck",
 		"DatasetPushFinalCheck",

@@ -204,6 +204,13 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 		return err
 	}
 
+	if lsync.pushFinalCheck != nil {
+		// TODO (b5) - need to populate path
+		if err := lsync.pushFinalCheck(ctx, author, dsref.Ref{}, lg); err != nil {
+			return err
+		}
+	}
+
 	if err := lsync.book.MergeLog(ctx, author, lg); err != nil {
 		return err
 	}

@@ -44,6 +44,7 @@ type Options struct {
 	DatasetPulled Hook
 
 	LogPushPreCheck   Hook
+	LogPushFinalCheck Hook
 	LogPushed         Hook
 	LogPullPreCheck   Hook
 	LogPulled         Hook
@@ -125,6 +126,7 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 	if book := node.Repo.Logbook(); book != nil {
 		r.logsync = logsync.New(book, func(lso *logsync.Options) {
 			lso.PushPreCheck = r.logHook(o.LogPushPreCheck)
+			lso.PushFinalCheck = r.logHook(o.LogPushFinalCheck)
 			lso.Pushed = r.logHook(o.LogPushed)
 			lso.PullPreCheck = r.logHook(o.LogPullPreCheck)
 			lso.Pulled = r.logHook(o.LogPulled)
@@ -303,6 +305,9 @@ func (r *Remote) logHook(h Hook) logsync.Hook {
 					return err
 				}
 			}
+
+			// embed the log oplog pointer in our hook
+			ctx = newLogHookContext(ctx, l)
 
 			return h(ctx, pid, r)
 		}
