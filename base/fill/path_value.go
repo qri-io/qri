@@ -156,6 +156,27 @@ func coerceToTargetType(val interface{}, place reflect.Value) (interface{}, erro
 			}
 		}
 		return nil, &FieldError{Want: "int", Got: reflect.TypeOf(val).Name(), Val: val}
+	case reflect.Int64:
+		num, ok := val.(int)
+		if ok {
+			return num, nil
+		}
+		num64, ok := val.(int64)
+		if ok {
+			return num64, nil
+		}
+		float64, ok := val.(float64)
+		if ok {
+			return float64, nil
+		}
+		str, ok := val.(string)
+		if ok {
+			parsed, err := strconv.ParseInt(str, 10, 64)
+			if err == nil {
+				return int64(parsed), nil
+			}
+		}
+		return nil, &FieldError{Want: "int64", Got: reflect.TypeOf(val).Name(), Val: val}
 	case reflect.Ptr:
 		alloc := reflect.New(place.Type().Elem())
 		return coerceToTargetType(val, alloc.Elem())
