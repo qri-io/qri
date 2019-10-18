@@ -15,7 +15,7 @@ import (
 	protocol "github.com/libp2p/go-libp2p-protocol"
 	"github.com/qri-io/dag/dsync/p2putil"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook/log"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -45,7 +45,7 @@ type p2pClient struct {
 // assert at compile time that p2pClient implements DagSyncable
 var _ remote = (*p2pClient)(nil)
 
-func (c *p2pClient) put(ctx context.Context, author log.Author, r io.Reader) (err error) {
+func (c *p2pClient) put(ctx context.Context, author oplog.Author, r io.Reader) (err error) {
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
 		return err
@@ -61,7 +61,7 @@ func (c *p2pClient) put(ctx context.Context, author log.Author, r io.Reader) (er
 	return err
 }
 
-func (c *p2pClient) get(ctx context.Context, author log.Author, ref dsref.Ref) (sender log.Author, data io.Reader, err error) {
+func (c *p2pClient) get(ctx context.Context, author oplog.Author, ref dsref.Ref) (sender oplog.Author, data io.Reader, err error) {
 	headers := []string{
 		"phase", "request",
 		"ref", ref.String(),
@@ -82,7 +82,7 @@ func (c *p2pClient) get(ctx context.Context, author log.Author, ref dsref.Ref) (
 	return sender, bytes.NewReader(res.Body), err
 }
 
-func (c *p2pClient) del(ctx context.Context, author log.Author, ref dsref.Ref) error {
+func (c *p2pClient) del(ctx context.Context, author oplog.Author, ref dsref.Ref) error {
 	headers := []string{
 		"phase", "request",
 		"ref", ref.String(),
@@ -97,7 +97,7 @@ func (c *p2pClient) del(ctx context.Context, author log.Author, ref dsref.Ref) e
 	return err
 }
 
-func addAuthorP2PHeaders(h []string, author log.Author) ([]string, error) {
+func addAuthorP2PHeaders(h []string, author oplog.Author) ([]string, error) {
 	pubByteStr, err := author.AuthorPubKey().Bytes()
 	if err != nil {
 		return h, err
@@ -106,7 +106,7 @@ func addAuthorP2PHeaders(h []string, author log.Author) ([]string, error) {
 	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey), nil
 }
 
-func authorFromP2PHeaders(msg p2putil.Message) (log.Author, error) {
+func authorFromP2PHeaders(msg p2putil.Message) (oplog.Author, error) {
 	data, err := base64.StdEncoding.DecodeString(msg.Header("pub_key"))
 	if err != nil {
 		return nil, err
@@ -117,7 +117,7 @@ func authorFromP2PHeaders(msg p2putil.Message) (log.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return log.NewAuthor(msg.Header("author_id"), pub), nil
+	return oplog.NewAuthor(msg.Header("author_id"), pub), nil
 }
 
 // p2pHandler implements logsync as a libp2p protocol handler
@@ -280,7 +280,7 @@ func (c *p2pHandler) handleStream(ws *p2putil.WrappedStream, replies chan p2puti
 			if err.Error() == "EOF" {
 				break
 			}
-			// log.Debugf("error receiving message: %s", err.Error())
+			// oplog.Debugf("error receiving message: %s", err.Error())
 			break
 		}
 

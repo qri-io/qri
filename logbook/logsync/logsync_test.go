@@ -8,12 +8,14 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
+	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/logbook/log"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
 func Example() {
@@ -32,14 +34,14 @@ func Example() {
 	basitLogsync := New(basitsLogbook, func(o *Options) {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
-		o.ReceiveCheck = func(ctx context.Context, author log.Author, path string) error {
+		o.PushPreCheck = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
 			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
 		}
 
-		o.DidReceive = func(ctx context.Context, author log.Author, path string) error {
+		o.Pushed = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
 			wait <- struct{}{}
 			return nil
 		}
@@ -106,6 +108,183 @@ func Example() {
 	// basit has 3 references for johnathon/world_bank_population
 	// basit has 2 references for basit/nasdaq
 	// johnathon has 2 references for basit/nasdaq
+}
+
+func TestHookCalls(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	hooksCalled := []string{}
+	callCheck := func(s string) Hook {
+		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
+			hooksCalled = append(hooksCalled, s)
+			return nil
+		}
+	}
+
+	nasdaqRef, err := writeNasdaqLogs(tr.Ctx, tr.A)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lsA := New(tr.A, func(o *Options) {
+		o.PullPreCheck = callCheck("PullPreCheck")
+		o.Pulled = callCheck("Pulled")
+		o.PushPreCheck = callCheck("PushPreCheck")
+		o.PushFinalCheck = callCheck("PushFinalCheck")
+		o.Pushed = callCheck("Pushed")
+		o.RemovePreCheck = callCheck("RemovePreCheck")
+		o.Removed = callCheck("Removed")
+	})
+
+	s := httptest.NewServer(HTTPHandler(lsA))
+	defer s.Close()
+
+	lsB := New(tr.B)
+
+	pull, err := lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pull.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	worldBankRef, err := writeWorldBankLogs(tr.Ctx, tr.B)
+	if err != nil {
+		t.Fatal(err)
+	}
+	push, err := lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := push.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+
+	if err := lsB.DoRemove(tr.Ctx, worldBankRef, s.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	expectHooksCallOrder := []string{
+		"PullPreCheck",
+		"Pulled",
+		"PushPreCheck",
+		"PushFinalCheck",
+		"Pushed",
+		"RemovePreCheck",
+		"Removed",
+	}
+
+	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestHookErrors(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	worldBankRef, err := writeWorldBankLogs(tr.Ctx, tr.B)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hooksCalled := []string{}
+	callCheck := func(s string) Hook {
+		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
+			hooksCalled = append(hooksCalled, s)
+			return fmt.Errorf("hook failed")
+		}
+	}
+
+	nasdaqRef, err := writeNasdaqLogs(tr.Ctx, tr.A)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lsA := New(tr.A, func(o *Options) {
+		o.PullPreCheck = callCheck("PullPreCheck")
+		o.PushPreCheck = callCheck("PushPreCheck")
+		o.RemovePreCheck = callCheck("RemovePreCheck")
+
+		o.PushFinalCheck = callCheck("PushFinalCheck")
+
+		o.Pulled = callCheck("Pulled")
+		o.Pushed = callCheck("Pushed")
+		o.Removed = callCheck("Removed")
+	})
+
+	s := httptest.NewServer(HTTPHandler(lsA))
+	defer s.Close()
+
+	lsB := New(tr.B)
+
+	pull, err := lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pull.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+	push, err := lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := push.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+	if err := lsB.DoRemove(tr.Ctx, worldBankRef, s.URL); err == nil {
+		t.Fatal(err)
+	}
+
+	lsA.pushPreCheck = nil
+	lsA.pullPreCheck = nil
+	lsA.removePreCheck = nil
+
+	push, err = lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := push.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+
+	lsA.pushFinalCheck = nil
+
+	pull, err = lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pull.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+	push, err = lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = push.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := lsB.DoRemove(tr.Ctx, worldBankRef, s.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	expectHooksCallOrder := []string{
+		"PullPreCheck",
+		"PushPreCheck",
+		"RemovePreCheck",
+
+		"PushFinalCheck",
+
+		"Pulled",
+		"Pushed",
+		"Removed",
+	}
+
+	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
 }
 
 func TestNilCallable(t *testing.T) {
@@ -200,7 +379,10 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	cleanup = func() {}
+	golog.SetLogLevel("logsync", "CRITICAL")
+	cleanup = func() {
+		golog.SetLogLevel("logsync", "ERROR")
+	}
 	return tr, cleanup
 }
 

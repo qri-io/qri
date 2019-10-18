@@ -1,13 +1,14 @@
-// Package log is an operation-based conflict-free replicated data type (CRDT)
-// of append-only logs. A log is a sequence of operations attributed to a single
-// author, designated by a private key.
-// Each operation is a record of some action the author took. Applications
-// iterate the sequence of operations to produce the current state.
+// Package oplog is an operation-based replicated data type of append-only logs
+// oplog has three main structures: logbook, log, and op
+// A log is a sequence of operations attributed to a single author, designated
+// by a private key.
+// an operation is a record of some action an author took. Applications iterate
+// the sequence of operations to produce the current state.
 // Logs can be arranged into hierarchies to form logical groupings.
 // A book contains an author's logs, both logs they've written as well as logs
 // replicated from other authors. Books are encrypted at rest using the author
 // private key.
-package log
+package oplog
 
 import (
 	"context"
@@ -21,7 +22,7 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qri/logbook/log/logfb"
+	"github.com/qri-io/qri/logbook/oplog/logfb"
 )
 
 var (

@@ -1,4 +1,4 @@
-package log
+package oplog
 
 import (
 	"bytes"
@@ -8,7 +8,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-crypto"
-	"github.com/qri-io/qri/logbook/log/logfb"
+	"github.com/qri-io/qri/logbook/oplog/logfb"
 )
 
 var allowUnexported = cmp.AllowUnexported(

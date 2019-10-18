@@ -3,7 +3,6 @@ package logbook
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"testing"
 	"time"
@@ -247,20 +246,88 @@ func TestBookLogEntries(t *testing.T) {
 	}
 }
 
-func TestLogBytes(t *testing.T) {
+func TestLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.LogBytes(dsref.Ref{}); err == nil {
+	if _, err := tr.Book.Log(dsref.Ref{}); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.LogBytes(dsref.Ref{Username: tr.Username}); err == nil {
+	if _, err := tr.Book.Log(dsref.Ref{Username: tr.Username}); err == nil {
 		t.Error("expected LogBytes with empty name ref to fail")
 	}
-	if _, err := tr.Book.LogBytes(tr.RenameRef()); err != nil {
+	if _, err := tr.Book.Log(tr.RenameRef()); err != nil {
 		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
+	}
+}
+
+func TestLogBytes(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteRenameExample(t)
+	log, err := tr.Book.Log(tr.RenameRef())
+	if err != nil {
+		t.Error(err)
+	}
+	data, err := tr.Book.LogBytes(log)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if len(data) < 1 {
+		t.Errorf("expected data to be populated")
+	}
+}
+
+func TestDsRefAliasForLog(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteWorldBankExample(t)
+	tr.WriteRenameExample(t)
+	egRef := tr.RenameRef()
+	log, err := tr.Book.Log(egRef)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if _, err := DsrefAliasForLog(nil); err == nil {
+		t.Error("expected nil ref to error")
+	}
+
+	wrongModelLog, err := tr.Book.bk.Log(userModel, tr.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := DsrefAliasForLog(wrongModelLog); err == nil {
+		t.Error("expected converting log of wrong model to error")
+	}
+
+	ambiguousLog, err := tr.Book.bk.Log(nameModel, tr.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := DsrefAliasForLog(ambiguousLog); err == nil {
+		t.Error("expected converting ambiguous logs to error")
+	}
+
+	ref, err := DsrefAliasForLog(log)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect := dsref.Ref{
+		Username: egRef.Username,
+		Name:     egRef.Name,
+	}
+
+	if diff := cmp.Diff(expect, ref); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }
 
@@ -370,13 +437,15 @@ func TestBookRawLog(t *testing.T) {
 	}
 }
 
+// TODO (b5) - this test should also check that only the requested log is being
+// transferred, not any extras
 func TestLogTransfer(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteWorldBankExample(t)
 
-	data, err := tr.Book.LogBytes(tr.WorldBankRef())
+	log, err := tr.Book.Log(tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -388,20 +457,17 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), nil); err == nil {
-		t.Error("expected MergeLogBytes with no data to fail")
+	if err := book2.MergeLog(tr.Ctx, tr.Book.Author(), log); err == nil {
+		t.Error("expected Merging unsigned log to fail")
 	}
 
-	if err := book2.MergeLogBytes(tr.Ctx, tr.Book.Author(), data); err != nil {
-		t.Fatal(err)
+	if err := log.Sign(tr.Book.pk); err != nil {
+		t.Error(err)
 	}
 
-	lgs := book2.RawLogs(tr.Ctx)
-	data, err = json.MarshalIndent(lgs, "", "  ")
-	if err != nil {
+	if err := book2.MergeLog(tr.Ctx, tr.Book.Author(), log); err != nil {
 		t.Fatal(err)
 	}
-	t.Logf("%s", string(data))
 
 	revs, err := book2.Versions(tr.WorldBankRef(), 0, 30)
 	if err != nil {
