@@ -198,7 +198,7 @@ func (o *LogbookOptions) Logbook() error {
 
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
-	var res interface{}
+	res := lib.RawLogs{}
 	if err := o.LogRequests.RawLogs(&lib.RawLogsParams{}, &res); err != nil {
 		return err
 	}
