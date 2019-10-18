@@ -282,6 +282,55 @@ func TestLogBytes(t *testing.T) {
 	}
 }
 
+func TestDsRefAliasForLog(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteWorldBankExample(t)
+	tr.WriteRenameExample(t)
+	egRef := tr.RenameRef()
+	log, err := tr.Book.Log(egRef)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if _, err := DsrefAliasForLog(nil); err == nil {
+		t.Error("expected nil ref to error")
+	}
+
+	wrongModelLog, err := tr.Book.bk.Log(userModel, tr.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := DsrefAliasForLog(wrongModelLog); err == nil {
+		t.Error("expected converting log of wrong model to error")
+	}
+
+	ambiguousLog, err := tr.Book.bk.Log(nameModel, tr.Username)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if _, err := DsrefAliasForLog(ambiguousLog); err == nil {
+		t.Error("expected converting ambiguous logs to error")
+	}
+
+	ref, err := DsrefAliasForLog(log)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect := dsref.Ref{
+		Username: egRef.Username,
+		Name:     egRef.Name,
+	}
+
+	if diff := cmp.Diff(expect, ref); diff != "" {
+		t.Errorf("result mismatch. (-want +got):\n%s", diff)
+	}
+}
+
 func TestBookRawLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()

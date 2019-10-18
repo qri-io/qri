@@ -41,6 +41,18 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		}
 	}
 
+	requireLogAndRefCallCheck := func(t *testing.T, s string) Hook {
+		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
+			if ref.String() == "" {
+				t.Errorf("hook %s expected reference to be populated", s)
+			}
+			if l, ok := OplogFromContext(ctx); !ok {
+				t.Errorf("hook %s expected log to be in context. got: %v", s, l)
+			}
+			return callCheck(s)(ctx, pid, ref)
+		}
+	}
+
 	opts := func(o *Options) {
 		o.DatasetPushPreCheck = callCheck("DatasetPushPreCheck")
 		o.DatasetPushFinalCheck = callCheck("DatasetPushFinalCheck")
@@ -49,7 +61,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		o.DatasetRemoved = callCheck("DatasetRemoved")
 
 		o.LogPushPreCheck = callCheck("LogPushPreCheck")
-		o.LogPushFinalCheck = requireLogCallCheck(t, "LogPushFinalCheck")
+		o.LogPushFinalCheck = requireLogAndRefCallCheck(t, "LogPushFinalCheck")
 		o.LogPushed = requireLogCallCheck(t, "LogPushed")
 		o.LogPullPreCheck = callCheck("LogPullPreCheck")
 		o.LogPulled = callCheck("LogPulled")
@@ -113,7 +125,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := []string{
+	expectHooksCallOrder := []string{
 		"LogPullPreCheck",
 		"LogPulled",
 		"DatasetPulled",
@@ -128,7 +140,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		"DatasetRemoved",
 	}
 
-	if diff := cmp.Diff(expect, hooksCalled); diff != "" {
+	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

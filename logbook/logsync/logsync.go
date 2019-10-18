@@ -185,7 +185,6 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 	}
 
 	if lsync.pushPreCheck != nil {
-		// TODO (b5) - need to populate path
 		if err := lsync.pushPreCheck(ctx, author, dsref.Ref{}, nil); err != nil {
 			return err
 		}
@@ -205,8 +204,11 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 	}
 
 	if lsync.pushFinalCheck != nil {
-		// TODO (b5) - need to populate path
-		if err := lsync.pushFinalCheck(ctx, author, dsref.Ref{}, lg); err != nil {
+		ref, err := logbook.DsrefAliasForLog(lg)
+		if err != nil {
+			return err
+		}
+		if err := lsync.pushFinalCheck(ctx, author, ref, lg); err != nil {
 			return err
 		}
 	}
@@ -259,7 +261,6 @@ func (lsync *Logsync) del(ctx context.Context, sender oplog.Author, ref dsref.Re
 	}
 
 	if lsync.removePreCheck != nil {
-		// TODO (b5) - need to populate path
 		if err := lsync.removePreCheck(ctx, sender, ref, nil); err != nil {
 			return err
 		}

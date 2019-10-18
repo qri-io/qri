@@ -402,7 +402,8 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	return book.save(ctx)
 }
 
-// Log gets a log for a given dsref
+// Log gets a log for a given dsref. The returned log is an exact reference,
+// refering one and only one dataset
 func (book Book) Log(ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: reference Username is required")
@@ -431,6 +432,30 @@ func (book Book) Log(ref dsref.Ref) (*oplog.Log, error) {
 // LogBytes signs a log with this book's private key and writes to a flatbuffer
 func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
 	return log.SignedFlatbufferBytes(book.pk)
+}
+
+// DsrefAliasForLog parses log data into a dataset alias reference, populating
+// only the username and name components of a dataset.
+// the passed in oplog must refer unambiguously to a dataset or branch.
+// book.Log() returns exact log references
+func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
+	ref := dsref.Ref{}
+	if log == nil {
+		return ref, fmt.Errorf("logbook: log is required")
+	}
+	if log.Model() != nameModel {
+		return ref, fmt.Errorf("logbook: log doesn't descibe a dataset")
+	}
+	if len(log.Logs) != 1 {
+		return ref, fmt.Errorf("logbook: ambiguous dataset reference")
+	}
+
+	ref = dsref.Ref{
+		Username: log.Name(),
+		Name:     log.Logs[0].Name(),
+	}
+
+	return ref, nil
 }
 
 // MergeLog adds a log to the logbook, merging with any existing log data
