@@ -8,10 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi/component"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/repo"
 )
 
 // InitParams encapsulates parameters for fsi.InitDataset
@@ -25,6 +24,9 @@ type InitParams struct {
 
 // InitDataset creates a new dataset
 func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
+	// TODO (ramfox): at each failure, we should ensure we clean up any
+	// file or directory creation by calling either os.Remove(targetPath)
+	// or fsi.Unlink(targetPath, ref.AliasString())
 	if p.Dir == "" {
 		return "", fmt.Errorf("directory is required to initialize a dataset")
 	}
@@ -95,7 +97,6 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	var bodyBytes []byte
-	var schema map[string]interface{}
 	if p.SourceBodyPath == "" {
 		// Create a skeleton body file.
 		if p.Format == "csv" {
@@ -112,74 +113,45 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
 			return "", err
 		}
-		// Create schema by detecting it from the body.
-		file, err := os.Open(p.SourceBodyPath)
-		if err != nil {
-			return "", err
-		}
-		defer file.Close()
-		// TODO(dlong): This should move into `dsio` package.
-		entries, err := component.OpenEntryReader(file, p.Format)
-		if err != nil {
-			schema = nil
-		}
-		schema = entries.Structure().Schema
+
 	}
 	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
 	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	// Create basic structure (no derived values) based on Format
-	structureBytes, err := createBasicStructure(p.Format, schema)
+	// Create structure by detecting it from the body.
+	file, err := os.Open(bodyFilename)
 	if err != nil {
 		return "", err
 	}
+	defer file.Close()
+
+	// TODO(dlong): This should move into `dsio` package.
+	entries, err := component.OpenEntryReader(file, p.Format)
+	if err != nil {
+		return "", err
+	}
+
+	structureBytes, err := json.Marshal(entries.Structure())
+	if err != nil {
+		return "", err
+	}
+
 	// use format to determine basic formatConfig
 	structureFilename := filepath.Join(targetPath, "structure.json")
 	if err := ioutil.WriteFile(structureFilename, structureBytes, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name)
-	if err == logbook.ErrNoLogbook {
-		err = nil
-	}
-	return name, err
-}
-
-func createBasicStructure(format string, schema map[string]interface{}) ([]byte, error) {
-	var err error
-	formatConfigBytes := []byte{}
-	schemaBytes := []byte{}
-	switch format {
-	case "csv":
-		formatConfigBytes, err = json.Marshal(dataset.CSVOptions{})
-		if err != nil {
-			return nil, err
+	if err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name); err != nil {
+		if err == logbook.ErrNoLogbook {
+			err = nil
+			return name, nil
 		}
-	case "json":
-		formatConfigBytes, err = json.Marshal(map[string]interface{}{"pretty": false})
-		if err != nil {
-			return nil, err
-		}
-	case "xlsx":
-		formatConfigBytes, err = json.Marshal(dataset.XLSXOptions{SheetName: "sheet1"})
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown body format '%s'", format)
+		return name, err
 	}
-	if len(schema) == 0 {
-		schema = nil
-	}
-	schemaBytes, err = json.Marshal(schema)
-	if err != nil {
-		return nil, err
-	}
-	structureStr := fmt.Sprintf(`{"format":"%s","formatConfig":%s,"schema":%s}`, format, formatConfigBytes, schemaBytes)
-	return []byte(structureStr), nil
+	return name, nil
 }
 
 func canInitDir(dir string) error {
