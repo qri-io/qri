@@ -8,7 +8,7 @@ import (
 func TestRecall(t *testing.T) {
 	ctx := context.Background()
 	node := newTestNode(t)
-	ref := addNowTransformDataset(t, node)
+	ref := addNowTransformDataset(t, node.Repo)
 
 	_, err := Recall(ctx, node, "", ref)
 	if err != nil {

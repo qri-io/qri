@@ -14,14 +14,14 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
 // Validate checks a dataset body for errors based on a schema
-func Validate(ctx context.Context, node *p2p.QriNode, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
+func Validate(ctx context.Context, r repo.Repo, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
 	if !ref.IsEmpty() {
-		err = repo.CanonicalizeDatasetRef(node.Repo, &ref)
+		err = repo.CanonicalizeDatasetRef(r, &ref)
 		if err != nil && err != repo.ErrNotFound {
 			log.Debug(err.Error())
 			err = fmt.Errorf("error with new reference: %s", err.Error())
@@ -36,7 +36,7 @@ func Validate(ctx context.Context, node *p2p.QriNode, ref repo.DatasetRef, body,
 
 	// if a dataset is specified, load it
 	if ref.Path != "" {
-		if err = DatasetHead(ctx, node, &ref); err != nil {
+		if err = base.ReadDataset(ctx, r, &ref); err != nil {
 			log.Debug(err.Error())
 			return
 		}
@@ -92,7 +92,7 @@ func Validate(ctx context.Context, node *p2p.QriNode, ref repo.DatasetRef, body,
 	if data == nil && ref.Dataset != nil {
 		ds := ref.Dataset
 
-		f, e := dsfs.LoadBody(ctx, node.Repo.Store(), ds)
+		f, e := dsfs.LoadBody(ctx, r.Store(), ds)
 		if e != nil {
 			log.Debug(e.Error())
 			err = fmt.Errorf("error loading dataset data: %s", e.Error())

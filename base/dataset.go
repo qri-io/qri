@@ -302,6 +302,10 @@ func ReadDatasetPath(ctx context.Context, r repo.Repo, path string) (ds *dataset
 
 // ReadDataset grabs a dataset from the store
 func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err error) {
+	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
+		return
+	}
+
 	if store := r.Store(); store != nil {
 		ds, e := dsfs.LoadDataset(ctx, store, ref.Path)
 		if e != nil {

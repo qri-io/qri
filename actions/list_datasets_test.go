@@ -10,7 +10,7 @@ import (
 func TestListDatasets(t *testing.T) {
 	ctx := context.Background()
 	node := newTestNode(t)
-	addCitiesDataset(t, node)
+	addCitiesDataset(t, node.Repo)
 
 	res, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, false)
 	if err != nil {
@@ -28,7 +28,7 @@ func TestListDatasets(t *testing.T) {
 func TestListDatasetsNotFound(t *testing.T) {
 	ctx := context.Background()
 	node := newTestNode(t)
-	addCitiesDataset(t, node)
+	addCitiesDataset(t, node.Repo)
 
 	_, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "not_found"}, "", 1, 0, false, false, false)
 	if err == nil {
@@ -43,7 +43,7 @@ func TestListDatasetsNotFound(t *testing.T) {
 func TestListDatasetsWithVersions(t *testing.T) {
 	ctx := context.Background()
 	node := newTestNode(t)
-	addCitiesDataset(t, node)
+	addCitiesDataset(t, node.Repo)
 
 	res, err := ListDatasets(ctx, node, &repo.DatasetRef{Peername: "me"}, "", 1, 0, false, false, true)
 	if err != nil {

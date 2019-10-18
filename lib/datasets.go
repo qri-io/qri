@@ -397,7 +397,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		Force:               p.Force,
 		ShouldRender:        p.ShouldRender,
 	}
-	ref, err = actions.SaveDataset(ctx, r.node, ds, p.Secrets, p.ScriptOutput, switches)
+	ref, err = actions.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -490,7 +490,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return err
 	}
 
-	if err = actions.DatasetHead(ctx, r.node, &p.New); err != nil {
+	if err = base.ReadDataset(ctx, r.node.Repo, &p.New); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
@@ -719,7 +719,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	*errors, err = actions.Validate(ctx, r.node, ref, body, schema)
+	*errors, err = actions.Validate(ctx, r.node.Repo, ref, body, schema)
 	return
 }
 

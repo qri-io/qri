@@ -7,10 +7,10 @@ import (
 
 func TestValidate(t *testing.T) {
 	ctx := context.Background()
-	node := newTestNode(t)
-	cities := addCitiesDataset(t, node)
+	r := newTestRepo(t)
+	cities := addCitiesDataset(t, r)
 
-	errs, err := Validate(ctx, node, cities, nil, nil)
+	errs, err := Validate(ctx, r, cities, nil, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}
