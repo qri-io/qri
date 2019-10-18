@@ -5,7 +5,7 @@ import (
 	"sync"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 	"go.starlark.net/starlark"
 	"go.starlark.net/starlarkstruct"
 )
@@ -20,13 +20,13 @@ var (
 )
 
 // NewModule creates a new qri module instance
-func NewModule(node *p2p.QriNode) *Module {
-	return &Module{node: node}
+func NewModule(repo repo.Repo) *Module {
+	return &Module{repo: repo}
 }
 
 // Module encapsulates state for a qri starlark module
 type Module struct {
-	node *p2p.QriNode
+	repo repo.Repo
 	ds   *dataset.Dataset
 }
 
@@ -50,12 +50,12 @@ func (m *Module) AddAllMethods(sd starlark.StringDict) starlark.StringDict {
 
 // ListDatasets shows current local datasets
 func (m *Module) ListDatasets(thread *starlark.Thread, _ *starlark.Builtin, args starlark.Tuple, kwargs []starlark.Tuple) (starlark.Value, error) {
-	if m.node == nil {
-		return starlark.None, fmt.Errorf("no qri node available to list datasets")
+	if m.repo == nil {
+		return starlark.None, fmt.Errorf("no qri repo available to list datasets")
 	}
 
 	// TODO (b5) - remove hardcoded limit
-	refs, err := m.node.Repo.References(0, 1000)
+	refs, err := m.repo.References(0, 100000)
 	if err != nil {
 		return starlark.None, fmt.Errorf("error getting dataset list: %s", err.Error())
 	}
