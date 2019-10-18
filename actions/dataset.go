@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/startf"
 )
 
 // SaveDatasetSwitches provides toggleable flags to SaveDataset that control
@@ -59,10 +60,16 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 	if changes.Transform != nil {
 		// create a check func from a record of all the parts that the datasetPod is changing,
 		// the startf package will use this function to ensure the same components aren't modified
-		mutateCheck := mutatedComponentsFunc(changes)
+		mutateCheck := startf.MutatedComponentsFunc(changes)
 
-		changes.Transform.Secrets = secrets
-		if err = ExecTransform(ctx, node, changes, prev, scriptOut, mutateCheck); err != nil {
+		opts := []func(*startf.ExecOpts){
+			startf.AddQriRepo(node.Repo),
+			startf.AddMutateFieldCheck(mutateCheck),
+			startf.SetOutWriter(scriptOut),
+			startf.SetSecrets(secrets),
+		}
+
+		if err = startf.ExecScript(ctx, changes, prev, opts...); err != nil {
 			return
 		}
 		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())

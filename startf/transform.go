@@ -12,7 +12,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	skyctx "github.com/qri-io/qri/startf/context"
 	skyds "github.com/qri-io/qri/startf/ds"
@@ -22,9 +21,14 @@ import (
 	"go.starlark.net/starlark"
 )
 
+// Version is the current version of this startf, this version number will be
+// written with each transformation exectution. This value must match
+// github.com/qri-io/qri/lib.Version
+const Version = "0.9.2-dev"
+
 // ExecOpts defines options for execution
 type ExecOpts struct {
-	Node             *p2p.QriNode               // supply a QriNode to make the 'qri' module available in starlark
+	Repo             repo.Repo                  // supply a repo to make the 'qri' module available in starlark
 	AllowFloat       bool                       // allow floating-point numbers
 	AllowSet         bool                       // allow set data type
 	AllowLambda      bool                       // allow lambda expressions
@@ -36,10 +40,11 @@ type ExecOpts struct {
 	ModuleLoader     ModuleLoader               // starlark module loader function
 }
 
-// AddQriNodeOpt adds a qri node to execution options
-func AddQriNodeOpt(node *p2p.QriNode) func(o *ExecOpts) {
+// AddQriRepo adds a qri repo to execution options, providing scripted access
+// to assets within the respoitory
+func AddQriRepo(repo repo.Repo) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
-		o.Node = node
+		o.Repo = repo
 	}
 }
 
@@ -59,6 +64,21 @@ func SetOutWriter(w io.Writer) func(o *ExecOpts) {
 	}
 }
 
+// SetSecrets assigns environment secret key-value pairs for script execution
+func SetSecrets(secrets map[string]string) func(o *ExecOpts) {
+	return func(o *ExecOpts) {
+		if secrets != nil {
+			// convert to map[string]interface{}, which the lower-level startf supports
+			// until we're sure map[string]string is going to work in the majority of use cases
+			s := map[string]interface{}{}
+			for key, val := range secrets {
+				s[key] = val
+			}
+			o.Secrets = s
+		}
+	}
+}
+
 // DefaultExecOpts applies default options to an ExecOpts pointer
 func DefaultExecOpts(o *ExecOpts) {
 	o.AllowFloat = true
@@ -71,7 +91,7 @@ func DefaultExecOpts(o *ExecOpts) {
 
 type transform struct {
 	ctx          context.Context
-	node         *p2p.QriNode
+	repo         repo.Repo
 	next         *dataset.Dataset
 	prev         *dataset.Dataset
 	skyqri       *skyqri.Module
@@ -134,18 +154,13 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 
 	t := &transform{
 		ctx:          ctx,
-		node:         o.Node,
+		repo:         o.Repo,
 		next:         next,
 		prev:         prev,
-		skyqri:       skyqri.NewModule(o.Node),
+		skyqri:       skyqri.NewModule(o.Repo),
 		checkFunc:    o.MutateFieldCheck,
 		stderr:       o.OutWriter,
 		moduleLoader: o.ModuleLoader,
-	}
-
-	if o.Node != nil {
-		// if node localstreams exists, write to both localstreams and output buffer
-		t.stderr = io.MultiWriter(o.OutWriter, o.Node.LocalStreams.ErrOut)
 	}
 
 	skyCtx := skyctx.NewContext(next.Transform.Config, o.Secrets)
@@ -221,14 +236,6 @@ func (t *transform) globalFunc(name string) (fn *starlark.Function, err error) {
 	return x.(*starlark.Function), nil
 }
 
-func confirmIterable(x starlark.Value) (starlark.Iterable, error) {
-	v, ok := x.(starlark.Iterable)
-	if !ok {
-		return nil, fmt.Errorf("did not return structured data")
-	}
-	return v, nil
-}
-
 func (t *transform) specialFuncs() (defined map[string]specialFunc, err error) {
 	specialFuncs := map[string]specialFunc{
 		"download": callDownloadFunc,
@@ -286,12 +293,6 @@ func callTransformFunc(t *transform, thread *starlark.Thread, ctx *skyctx.Contex
 	return nil
 }
 
-func (t *transform) setSpinnerMsg(msg string) {
-	if t.node != nil {
-		t.node.LocalStreams.SpinnerMsg(msg)
-	}
-}
-
 // print writes output only if a node is specified
 func (t *transform) print(msg string) {
 	t.stderr.Write([]byte(msg))
@@ -332,26 +333,25 @@ func (t *transform) LoadDataset(thread *starlark.Thread, _ *starlark.Builtin, ar
 }
 
 func (t *transform) loadDataset(ctx context.Context, refstr string) (*dataset.Dataset, error) {
-	if t.node == nil {
-		return nil, fmt.Errorf("no qri node available to load dataset: %s", refstr)
+	if t.repo == nil {
+		return nil, fmt.Errorf("no qri repo available to load dataset: %s", refstr)
 	}
 
 	ref, err := repo.ParseDatasetRef(refstr)
 	if err != nil {
 		return nil, err
 	}
-	if err := repo.CanonicalizeDatasetRef(t.node.Repo, &ref); err != nil {
+	if err := repo.CanonicalizeDatasetRef(t.repo, &ref); err != nil {
 		return nil, err
 	}
-	t.node.LocalStreams.PrintErr(fmt.Sprintf("load: %s\n", ref.String()))
 
-	ds, err := dsfs.LoadDataset(ctx, t.node.Repo.Store(), ref.Path)
+	ds, err := dsfs.LoadDataset(ctx, t.repo.Store(), ref.Path)
 	if err != nil {
 		return nil, err
 	}
 
 	if ds.BodyFile() == nil {
-		if err = ds.OpenBodyFile(ctx, t.node.Repo.Filesystem()); err != nil {
+		if err = ds.OpenBodyFile(ctx, t.repo.Filesystem()); err != nil {
 			return nil, err
 		}
 	}
@@ -362,4 +362,39 @@ func (t *transform) loadDataset(ctx context.Context, refstr string) (*dataset.Da
 	t.next.Transform.Resources[ref.Path] = &dataset.TransformResource{Path: ref.String()}
 
 	return ds, nil
+}
+
+// MutatedComponentsFunc returns a function for checking if a field has been
+// modified. it's a kind of data structure mutual exclusion lock
+// TODO (b5) - this should be refactored & expanded
+func MutatedComponentsFunc(dsp *dataset.Dataset) func(path ...string) error {
+	components := map[string][]string{}
+	if dsp.Commit != nil {
+		components["commit"] = []string{}
+	}
+	if dsp.Transform != nil {
+		components["transform"] = []string{}
+	}
+	if dsp.Meta != nil {
+		components["meta"] = []string{}
+	}
+	if dsp.Structure != nil {
+		components["structure"] = []string{}
+	}
+	if dsp.Viz != nil {
+		components["viz"] = []string{}
+	}
+	if dsp.Body != nil || dsp.BodyBytes != nil || dsp.BodyPath != "" {
+		components["body"] = []string{}
+	}
+
+	return func(path ...string) error {
+		if len(path) > 0 && components[path[0]] != nil {
+			return fmt.Errorf(`transform script and user-supplied dataset are both trying to set:
+  %s
+
+please adjust either the transform script or remove the supplied '%s'`, path[0], path[0])
+		}
+		return nil
+	}
 }
