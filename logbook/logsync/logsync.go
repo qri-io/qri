@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"strings"
 
+	golog "github.com/ipfs/go-log"
 	host "github.com/libp2p/go-libp2p-host"
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/qri-io/qri/dsref"
@@ -16,8 +17,12 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
-// ErrNoLogsync indicates no logsync pointer has been allocated where one is expected
-var ErrNoLogsync = fmt.Errorf("logsync: does not exist")
+var (
+	// ErrNoLogsync indicates no logsync pointer has been allocated where one is expected
+	ErrNoLogsync = fmt.Errorf("logsync: does not exist")
+
+	logger = golog.Logger("logsync")
+)
 
 // Logsync fulfills requests from clients, logsync wraps a logbook.Book, pushing
 // and pulling logs from remote sources to its logbook
@@ -203,11 +208,12 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 		return err
 	}
 
+	ref, err := logbook.DsrefAliasForLog(lg)
+	if err != nil {
+		return err
+	}
+
 	if lsync.pushFinalCheck != nil {
-		ref, err := logbook.DsrefAliasForLog(lg)
-		if err != nil {
-			return err
-		}
 		if err := lsync.pushFinalCheck(ctx, author, ref, lg); err != nil {
 			return err
 		}
@@ -218,9 +224,8 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 	}
 
 	if lsync.pushed != nil {
-		// TODO (b5) - need to populate path
-		if err := lsync.pushed(ctx, author, dsref.Ref{}, lg); err != nil {
-			return err
+		if err := lsync.pushed(ctx, author, ref, lg); err != nil {
+			logger.Errorf("pushed hook: %s", err)
 		}
 	}
 	return nil
@@ -248,7 +253,7 @@ func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Re
 
 	if lsync.pulled != nil {
 		if err := lsync.pulled(ctx, author, ref, l); err != nil {
-			return nil, nil, err
+			logger.Errorf("pulled hook: %s", err)
 		}
 	}
 
@@ -272,7 +277,7 @@ func (lsync *Logsync) del(ctx context.Context, sender oplog.Author, ref dsref.Re
 
 	if lsync.removed != nil {
 		if err := lsync.removed(ctx, sender, ref, nil); err != nil {
-			return err
+			logger.Errorf("removed hook: %s", err)
 		}
 	}
 

@@ -32,15 +32,6 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		}
 	}
 
-	requireLogCallCheck := func(t *testing.T, s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
-			if l, ok := OplogFromContext(ctx); !ok {
-				t.Errorf("hook %s expected log to be in context. got: %v", s, l)
-			}
-			return callCheck(s)(ctx, pid, ref)
-		}
-	}
-
 	requireLogAndRefCallCheck := func(t *testing.T, s string) Hook {
 		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
 			if ref.String() == "" {
@@ -62,7 +53,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 
 		o.LogPushPreCheck = callCheck("LogPushPreCheck")
 		o.LogPushFinalCheck = requireLogAndRefCallCheck(t, "LogPushFinalCheck")
-		o.LogPushed = requireLogCallCheck(t, "LogPushed")
+		o.LogPushed = requireLogAndRefCallCheck(t, "LogPushed")
 		o.LogPullPreCheck = callCheck("LogPullPreCheck")
 		o.LogPulled = callCheck("LogPulled")
 		o.LogRemovePreCheck = callCheck("LogRemovePreCheck")

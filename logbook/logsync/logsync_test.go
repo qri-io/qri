@@ -9,6 +9,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -178,8 +179,114 @@ func TestHookCalls(t *testing.T) {
 	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
-
 }
+
+func TestHookErrors(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	worldBankRef, err := writeWorldBankLogs(tr.Ctx, tr.B)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	hooksCalled := []string{}
+	callCheck := func(s string) Hook {
+		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
+			hooksCalled = append(hooksCalled, s)
+			return fmt.Errorf("boooooooooo")
+		}
+	}
+
+	nasdaqRef, err := writeNasdaqLogs(tr.Ctx, tr.A)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	lsA := New(tr.A, func(o *Options) {
+		o.PullPreCheck = callCheck("PullPreCheck")
+		o.PushPreCheck = callCheck("PushPreCheck")
+		o.RemovePreCheck = callCheck("RemovePreCheck")
+
+		o.PushFinalCheck = callCheck("PushFinalCheck")
+
+		o.Pulled = callCheck("Pulled")
+		o.Pushed = callCheck("Pushed")
+		o.Removed = callCheck("Removed")
+	})
+
+	s := httptest.NewServer(HTTPHandler(lsA))
+	defer s.Close()
+
+	lsB := New(tr.B)
+
+	pull, err := lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pull.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+	push, err := lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := push.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+	if err := lsB.DoRemove(tr.Ctx, worldBankRef, s.URL); err == nil {
+		t.Fatal(err)
+	}
+
+	lsA.pushPreCheck = nil
+	lsA.pullPreCheck = nil
+	lsA.removePreCheck = nil
+
+	push, err = lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := push.Do(tr.Ctx); err == nil {
+		t.Fatal(err)
+	}
+
+	lsA.pushFinalCheck = nil
+
+	pull, err = lsB.NewPull(nasdaqRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := pull.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+	push, err = lsB.NewPush(worldBankRef, s.URL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err = push.Do(tr.Ctx); err != nil {
+		t.Fatal(err)
+	}
+	if err := lsB.DoRemove(tr.Ctx, worldBankRef, s.URL); err != nil {
+		t.Fatal(err)
+	}
+
+	expectHooksCallOrder := []string{
+		"PullPreCheck",
+		"PushPreCheck",
+		"RemovePreCheck",
+
+		"PushFinalCheck",
+
+		"Pulled",
+		"Pushed",
+		"Removed",
+	}
+
+	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestNilCallable(t *testing.T) {
 	var logsync *Logsync
 
@@ -272,7 +379,10 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		t.Fatal(err)
 	}
 
-	cleanup = func() {}
+	golog.SetLogLevel("logsync", "CRITICAL")
+	cleanup = func() {
+		golog.SetLogLevel("logsync", "ERROR")
+	}
 	return tr, cleanup
 }
 
