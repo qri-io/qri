@@ -402,10 +402,8 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	return book.save(ctx)
 }
 
-// LogBytes gets signed bytes suitable for sending as a network request.
-// keep in mind that logs should never be sent to someone who does not have
-// proper permission to be disclosed log details
-func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
+// Log gets a log for a given dsref
+func (book Book) Log(ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: reference Username is required")
 	}
@@ -413,34 +411,30 @@ func (book Book) LogBytes(ref dsref.Ref) ([]byte, error) {
 		return nil, fmt.Errorf("logbook: reference Name is required")
 	}
 
-	for _, lg := range book.bk.ModelLogs(nameModel) {
-		if lg.Name() == ref.Username {
-			l := lg.Child(ref.Name)
-			if l == nil {
-				return nil, ErrNotFound
-			}
-
-			root := &oplog.Log{
-				Ops:  lg.Ops,
-				Logs: []*oplog.Log{l},
-			}
-			return root.SignedFlatbufferBytes(book.pk)
-		}
+	// fetch namespace & user log
+	ns, err := book.bk.Log(nameModel, ref.Username)
+	if err != nil {
+		return nil, err
+	}
+	ds, err := ns.Log(ref.Name)
+	if err != nil {
+		return nil, err
 	}
 
-	return nil, ErrNotFound
+	// construct a sparse log of just namespace and the dataset log
+	return &oplog.Log{
+		Ops:  ns.Ops,
+		Logs: []*oplog.Log{ds},
+	}, nil
 }
 
-// MergeLogBytes adds a log to the logbook, merging with any existing log data
-func (book *Book) MergeLogBytes(ctx context.Context, sender oplog.Author, data []byte) error {
-	if data == nil {
-		return fmt.Errorf("no data provided to merge")
-	}
+// LogBytes signs a log with this book's private key and writes to a flatbuffer
+func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
+	return log.SignedFlatbufferBytes(book.pk)
+}
 
-	lg := &oplog.Log{}
-	if err := lg.UnmarshalFlatbufferBytes(data); err != nil {
-		return err
-	}
+// MergeLog adds a log to the logbook, merging with any existing log data
+func (book *Book) MergeLog(ctx context.Context, sender oplog.Author, lg *oplog.Log) error {
 
 	// eventually access control will dictate which logs can be written by whom.
 	// For now we only allow users to merge logs they've written

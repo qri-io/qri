@@ -25,20 +25,34 @@ type Logsync struct {
 	book       *logbook.Book
 	p2pHandler *p2pHandler
 
-	receiveCheck Hook
-	didReceive   Hook
+	pushPreCheck   Hook
+	pushFinalCheck Hook
+	pushed         Hook
+	pullPreCheck   Hook
+	pulled         Hook
+	removePreCheck Hook
+	removed        Hook
 }
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
-	// ReceiveCheck is called before accepting a log, returning an error from this
-	// check will cancel receiving
-	ReceiveCheck Hook
-	// DidReceive is called after a log has been merged into the logbook
-	DidReceive Hook
-
 	// to send & push over libp2p connections, provide a libp2p host
 	Libp2pHost host.Host
+
+	// called before accepting a log, returning an error cancel receiving
+	PushPreCheck Hook
+	// called after log data has been received, before it's stored in the logbook
+	PushFinalCheck Hook
+	// called after a log has been merged into the logbook
+	Pushed Hook
+	// called before a pull is accepted
+	PullPreCheck Hook
+	// called after a log is pulled
+	Pulled Hook
+	// called before removing
+	RemovePreCheck Hook
+	// called after removing
+	Removed Hook
 }
 
 // New creates a remote from a logbook and optional configuration functions
@@ -51,8 +65,13 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 	logsync := &Logsync{
 		book: book,
 
-		receiveCheck: o.ReceiveCheck,
-		didReceive:   o.DidReceive,
+		pushPreCheck:   o.PushPreCheck,
+		pushFinalCheck: o.PushFinalCheck,
+		pushed:         o.Pushed,
+		pullPreCheck:   o.PullPreCheck,
+		pulled:         o.Pulled,
+		removePreCheck: o.RemovePreCheck,
+		removed:        o.Removed,
 	}
 
 	if o.Libp2pHost != nil {
@@ -62,11 +81,16 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 	return logsync
 }
 
+// Author is an interface for fetching the ID & public key of a log author
+// TODO (b5) - this should be moved into it's own package, and probs just work
+// with existing libp2p peer structs
+type Author = oplog.Author
+
 // Hook is a function called at specified points in the sync lifecycle
-type Hook func(ctx context.Context, author oplog.Author, path string) error
+type Hook func(ctx context.Context, author Author, ref dsref.Ref, log *oplog.Log) error
 
 // Author is the local author of lsync's logbook
-func (lsync *Logsync) Author() oplog.Author {
+func (lsync *Logsync) Author() Author {
 	if lsync == nil {
 		return nil
 	}
@@ -160,9 +184,9 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 		return ErrNoLogsync
 	}
 
-	if lsync.receiveCheck != nil {
+	if lsync.pushPreCheck != nil {
 		// TODO (b5) - need to populate path
-		if err := lsync.receiveCheck(ctx, author, ""); err != nil {
+		if err := lsync.pushPreCheck(ctx, author, dsref.Ref{}, nil); err != nil {
 			return err
 		}
 	}
@@ -171,14 +195,22 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 	if err != nil {
 		return err
 	}
+	if len(data) == 0 {
+		return fmt.Errorf("no data provided to merge")
+	}
 
-	if err := lsync.book.MergeLogBytes(ctx, author, data); err != nil {
+	lg := &oplog.Log{}
+	if err := lg.UnmarshalFlatbufferBytes(data); err != nil {
 		return err
 	}
 
-	if lsync.didReceive != nil {
+	if err := lsync.book.MergeLog(ctx, author, lg); err != nil {
+		return err
+	}
+
+	if lsync.pushed != nil {
 		// TODO (b5) - need to populate path
-		if err := lsync.didReceive(ctx, author, ""); err != nil {
+		if err := lsync.pushed(ctx, author, dsref.Ref{}, lg); err != nil {
 			return err
 		}
 	}
@@ -190,10 +222,27 @@ func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Re
 		return nil, nil, ErrNoLogsync
 	}
 
-	data, err := lsync.book.LogBytes(ref)
+	if lsync.pullPreCheck != nil {
+		if err := lsync.pullPreCheck(ctx, author, ref, nil); err != nil {
+			return nil, nil, err
+		}
+	}
+
+	l, err := lsync.book.Log(ref)
 	if err != nil {
 		return lsync.Author(), nil, err
 	}
+	data, err := lsync.book.LogBytes(l)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	if lsync.pulled != nil {
+		if err := lsync.pulled(ctx, author, ref, l); err != nil {
+			return nil, nil, err
+		}
+	}
+
 	return lsync.Author(), bytes.NewReader(data), nil
 }
 
@@ -202,7 +251,24 @@ func (lsync *Logsync) del(ctx context.Context, sender oplog.Author, ref dsref.Re
 		return ErrNoLogsync
 	}
 
-	return lsync.book.RemoveLog(ctx, sender, ref)
+	if lsync.removePreCheck != nil {
+		// TODO (b5) - need to populate path
+		if err := lsync.removePreCheck(ctx, sender, ref, nil); err != nil {
+			return err
+		}
+	}
+
+	if err := lsync.book.RemoveLog(ctx, sender, ref); err != nil {
+		return err
+	}
+
+	if lsync.removed != nil {
+		if err := lsync.removed(ctx, sender, ref, nil); err != nil {
+			return err
+		}
+	}
+
+	return nil
 }
 
 // Push is a request to place a log on a remote
@@ -214,7 +280,11 @@ type Push struct {
 
 // Do executes a push
 func (p *Push) Do(ctx context.Context) error {
-	data, err := p.book.LogBytes(p.ref)
+	log, err := p.book.Log(p.ref)
+	if err != nil {
+		return err
+	}
+	data, err := p.book.LogBytes(log)
 	if err != nil {
 		return err
 	}
@@ -241,5 +311,10 @@ func (p *Pull) Do(ctx context.Context) error {
 		return err
 	}
 
-	return p.book.MergeLogBytes(ctx, sender, data)
+	l := &oplog.Log{}
+	if err := l.UnmarshalFlatbufferBytes(data); err != nil {
+		return err
+	}
+
+	return p.book.MergeLog(ctx, sender, l)
 }

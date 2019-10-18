@@ -32,14 +32,14 @@ func Example() {
 	basitLogsync := New(basitsLogbook, func(o *Options) {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
-		o.ReceiveCheck = func(ctx context.Context, author oplog.Author, path string) error {
+		o.PushPreCheck = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
 			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
 		}
 
-		o.DidReceive = func(ctx context.Context, author oplog.Author, path string) error {
+		o.Pushed = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
 			wait <- struct{}{}
 			return nil
 		}

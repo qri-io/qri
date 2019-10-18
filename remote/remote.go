@@ -12,7 +12,9 @@ import (
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/logsync"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -28,16 +30,25 @@ type Options struct {
 	// called when a client requests to push a dataset. The dataset itself
 	// will not be accessible at this point, only fields like the name of
 	// the dataset, and peer performing the push
-	AcceptPushPreCheck Hook
+	DatasetPushPreCheck Hook
 	// called when a dataset has been pushed, but before it's been pinned
 	// this is a chance to inspect dataset contents before confirming
-	AcceptPushFinalCheck Hook
+	DatasetPushFinalCheck Hook
 	// called after successfully publishing a dataset version
 	DatasetPushed Hook
 	// called when a client has unpublished a dataset version
-	DatasetRemoved Hook
+	DatasetRemovePreCheck Hook
+	DatasetRemoved        Hook
+	DatasetPullPreCheck   Hook
 	// called when a client pulls a dataset
 	DatasetPulled Hook
+
+	LogPushPreCheck   Hook
+	LogPushed         Hook
+	LogPullPreCheck   Hook
+	LogPulled         Hook
+	LogRemovePreCheck Hook
+	LogRemoved        Hook
 }
 
 // Remote receives requests from other qri nodes to perform actions on their
@@ -51,14 +62,13 @@ type Remote struct {
 	// TODO (b5) - dsync needs to use timeouts
 	acceptTimeoutMs time.Duration
 
-	acceptPushPreCheck   Hook
-	acceptPushFinalCheck Hook
-	datasetPushed        Hook
-	datasetRemoved       Hook
-	datasetPulled        Hook
-
-	logReceiveCheck Hook
-	logDidReceive   Hook
+	datasetPushPreCheck   Hook
+	datasetPushFinalCheck Hook
+	datasetPushed         Hook
+	datasetRemovePreCheck Hook
+	datasetRemoved        Hook
+	datasetPullPreCheck   Hook
+	datasetPulled         Hook
 }
 
 // NewRemote creates a remote
@@ -74,11 +84,13 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		acceptSizeMax:   cfg.AcceptSizeMax,
 		acceptTimeoutMs: cfg.AcceptTimeoutMs,
 
-		acceptPushPreCheck:   o.AcceptPushPreCheck,
-		acceptPushFinalCheck: o.AcceptPushFinalCheck,
-		datasetPushed:        o.DatasetPushed,
-		datasetRemoved:       o.DatasetRemoved,
-		datasetPulled:        o.DatasetPulled,
+		datasetPushPreCheck:   o.DatasetPushPreCheck,
+		datasetPushFinalCheck: o.DatasetPushFinalCheck,
+		datasetPushed:         o.DatasetPushed,
+		datasetRemovePreCheck: o.DatasetRemovePreCheck,
+		datasetRemoved:        o.DatasetRemoved,
+		datasetPullPreCheck:   o.DatasetPullPreCheck,
+		datasetPulled:         o.DatasetPulled,
 	}
 
 	capi, err := node.IPFSCoreAPI()
@@ -100,19 +112,24 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		dsyncConfig.RequireAllBlocks = cfg.RequireAllBlocks
 		dsyncConfig.PinAPI = capi.Pin()
 
-		dsyncConfig.PushPreCheck = r.pushPreCheck
-		dsyncConfig.PushFinalCheck = r.pushFinalCheck
-		dsyncConfig.PushComplete = r.pushComplete
-		dsyncConfig.RemoveCheck = r.removeCheck
-		dsyncConfig.GetDagInfoCheck = r.getDagInfo
+		dsyncConfig.PushPreCheck = r.dsPushPreCheck
+		dsyncConfig.PushFinalCheck = r.dsPushFinalCheck
+		dsyncConfig.PushComplete = r.dsPushComplete
+		dsyncConfig.RemoveCheck = r.dsRemovePreCheck
+		dsyncConfig.GetDagInfoCheck = r.dsGetDagInfo
 	})
 	if err != nil {
 		return nil, err
 	}
 
 	if book := node.Repo.Logbook(); book != nil {
-		r.logsync = logsync.New(book, func(o *logsync.Options) {
-
+		r.logsync = logsync.New(book, func(lso *logsync.Options) {
+			lso.PushPreCheck = r.logHook(o.LogPushPreCheck)
+			lso.Pushed = r.logHook(o.LogPushed)
+			lso.PullPreCheck = r.logHook(o.LogPullPreCheck)
+			lso.Pulled = r.logHook(o.LogPulled)
+			lso.RemovePreCheck = r.logHook(o.LogRemovePreCheck)
+			lso.Removed = r.logHook(o.LogRemoved)
 		})
 	}
 
@@ -154,7 +171,7 @@ func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string)
 	return r.node.Repo.DeleteRef(ref)
 }
 
-func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	if r.acceptSizeMax == 0 {
 		return fmt.Errorf("not accepting any datasets")
 	}
@@ -173,12 +190,12 @@ func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[strin
 		}
 	}
 
-	if r.acceptPushPreCheck != nil {
+	if r.datasetPushPreCheck != nil {
 		pid, ref, err := r.pidAndRefFromMeta(meta)
 		if err != nil {
 			return err
 		}
-		if err := r.acceptPushPreCheck(ctx, pid, ref); err != nil {
+		if err := r.datasetPushPreCheck(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -186,13 +203,13 @@ func (r *Remote) pushPreCheck(ctx context.Context, info dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) pushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
-	if r.acceptPushFinalCheck != nil {
+func (r *Remote) dsPushFinalCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+	if r.datasetPushFinalCheck != nil {
 		pid, ref, err := r.pidAndRefFromMeta(meta)
 		if err != nil {
 			return err
 		}
-		if err := r.acceptPushFinalCheck(ctx, pid, ref); err != nil {
+		if err := r.datasetPushFinalCheck(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -200,7 +217,7 @@ func (r *Remote) pushFinalCheck(ctx context.Context, info dag.Info, meta map[str
 	return nil
 }
 
-func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		return err
@@ -226,7 +243,7 @@ func (r *Remote) pushComplete(ctx context.Context, info dag.Info, meta map[strin
 	return r.node.Repo.PutRef(ref)
 }
 
-func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
+func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		return err
@@ -240,7 +257,7 @@ func (r *Remote) removeCheck(ctx context.Context, info dag.Info, meta map[string
 	return nil
 }
 
-func (r *Remote) getDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
+func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(meta)
 	if err != nil {
 		log.Errorf("ref from meta: %s", err.Error())
@@ -270,6 +287,28 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.Dat
 	pid, err := profile.IDB58Decode(meta["pid"])
 
 	return pid, ref, err
+}
+
+func (r *Remote) logHook(h Hook) logsync.Hook {
+	return func(ctx context.Context, author logsync.Author, ref dsref.Ref, l *oplog.Log) error {
+		if h != nil {
+			pid, err := profile.IDB58Decode(author.AuthorID())
+			if err != nil {
+				return err
+			}
+
+			var r repo.DatasetRef
+			if ref.String() != "" {
+				if r, err = repo.ParseDsref(ref); err != nil {
+					return err
+				}
+			}
+
+			return h(ctx, pid, r)
+		}
+
+		return nil
+	}
 }
 
 // DsyncHTTPHandler provides an http handler for dsync

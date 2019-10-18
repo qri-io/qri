@@ -41,6 +41,11 @@ func IsRefString(path string) bool {
 	return isRefString.MatchString(path)
 }
 
+// ParseDsref is a shim to convert dsrefs back to repo.DatasetRef
+func ParseDsref(r dsref.Ref) (DatasetRef, error) {
+	return ParseDatasetRef(r.String())
+}
+
 // ConvertToDsref is a shim function to transition from a DatasetRef to a
 // dsref.Ref while we experiment with dsref as the home of name parsing
 func ConvertToDsref(ref DatasetRef) dsref.Ref {

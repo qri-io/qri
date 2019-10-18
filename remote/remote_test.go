@@ -39,11 +39,19 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 	}
 
 	opts := func(o *Options) {
-		o.AcceptPushPreCheck = callCheck("AcceptPushPreCheck")
-		o.AcceptPushFinalCheck = callCheck("AcceptPushFinalCheck")
+		o.DatasetPushPreCheck = callCheck("DatasetPushPreCheck")
+		o.DatasetPushFinalCheck = callCheck("DatasetPushFinalCheck")
 		o.DatasetPushed = callCheck("DatasetPushed")
 		o.DatasetPulled = callCheck("DatasetPulled")
 		o.DatasetRemoved = callCheck("DatasetRemoved")
+
+		o.LogPushPreCheck = callCheck("LogPushPreCheck")
+		// TODO (b5) - log push final check
+		o.LogPushed = callCheck("LogPushed")
+		o.LogPullPreCheck = callCheck("LogPullPreCheck")
+		o.LogPulled = callCheck("LogPulled")
+		o.LogRemovePreCheck = callCheck("LogRemovePreCheck")
+		o.LogRemoved = callCheck("LogRemoved")
 	}
 
 	rem, err := NewRemote(tr.NodeA, aCfg, opts)
@@ -97,10 +105,16 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 	}
 
 	expect := []string{
+		"LogPullPreCheck",
+		"LogPulled",
 		"DatasetPulled",
-		"AcceptPushPreCheck",
-		"AcceptPushFinalCheck",
+		"LogPushPreCheck",
+		"LogPushed",
+		"DatasetPushPreCheck",
+		"DatasetPushFinalCheck",
 		"DatasetPushed",
+		"LogRemovePreCheck",
+		"LogRemoved",
 		"DatasetRemoved",
 	}
 
