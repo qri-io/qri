@@ -80,6 +80,23 @@ func TestFillPathValue(t *testing.T) {
 	}
 
 	c = Collection{}
+	err = SetPathValue("big", 1234567890123, &c)
+	if err != nil {
+		panic(err)
+	}
+	if c.Big != 1234567890123 {
+		t.Errorf("expected: s.Big should be 1234567890123")
+	}
+
+	err = SetPathValue("big", "2345678901234", &c)
+	if err != nil {
+		panic(err)
+	}
+	if c.Big != 2345678901234 {
+		t.Errorf("expected: s.Big should be 2345678901234")
+	}
+
+	c = Collection{}
 	err = SetPathValue("ptr", 123, &c)
 	if err != nil {
 		panic(err)
