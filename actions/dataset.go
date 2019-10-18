@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
@@ -32,11 +33,10 @@ type SaveDatasetSwitches struct {
 }
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
-		r        = node.Repo
 	)
 
 	prev, mutable, prevPath, err := base.PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
@@ -49,9 +49,10 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 	}
 
 	if sw.DryRun {
-		node.LocalStreams.PrintErr("🏃🏽‍♀️ dry run\n")
+		str.PrintErr("🏃🏽‍♀️ dry run\n")
+
 		// dry-runs store to an in-memory repo
-		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), node.Repo.Filesystem(), profile.NewMemStore())
+		r, err = repo.NewMemRepo(pro, cafs.NewMapstore(), r.Filesystem(), profile.NewMemStore())
 		if err != nil {
 			return
 		}
@@ -63,7 +64,7 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 		mutateCheck := startf.MutatedComponentsFunc(changes)
 
 		opts := []func(*startf.ExecOpts){
-			startf.AddQriRepo(node.Repo),
+			startf.AddQriRepo(r),
 			startf.AddMutateFieldCheck(mutateCheck),
 			startf.SetOutWriter(scriptOut),
 			startf.SetSecrets(secrets),
@@ -72,8 +73,8 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 		if err = startf.ExecScript(ctx, changes, prev, opts...); err != nil {
 			return
 		}
-		// changes.Transform.SetScriptFile(mutable.Transform.ScriptFile())
-		node.LocalStreams.PrintErr("✅ transform complete\n")
+
+		str.PrintErr("✅ transform complete\n")
 	}
 
 	if prevPath == "" && changes.BodyFile() == nil && changes.Structure == nil {
@@ -117,7 +118,7 @@ func SaveDataset(ctx context.Context, node *p2p.QriNode, changes *dataset.Datase
 	// let's make history, if it exists
 	changes.PreviousPath = prevPath
 
-	return base.CreateDataset(ctx, r, node.LocalStreams, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
+	return base.CreateDataset(ctx, r, str, changes, prev, sw.DryRun, sw.Pin, sw.Force, sw.ShouldRender)
 }
 
 // UpdateRemoteDataset brings a reference to the latest version, syncing to the

@@ -113,9 +113,6 @@ func (m *UpdateMethods) jobFromScheduleParams(ctx context.Context, p *SchedulePa
 		r = finst.Repo()
 	}
 
-	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-		return
-	}
 	if err = base.ReadDataset(ctx, r, &ref); err != nil {
 		return
 	}

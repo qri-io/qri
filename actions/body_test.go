@@ -12,7 +12,7 @@ import (
 func TestGetBody(t *testing.T) {
 	ctx := context.Background()
 	node := newTestNode(t)
-	ref := addCitiesDataset(t, node)
+	ref := addCitiesDataset(t, node.Repo)
 
 	ds, err := base.ReadDatasetPath(ctx, node.Repo, ref.String())
 	if err != nil {
