@@ -8,9 +8,9 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/repo"
 )
 
 // InitParams encapsulates parameters for fsi.InitDataset
@@ -24,6 +24,9 @@ type InitParams struct {
 
 // InitDataset creates a new dataset
 func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
+	// TODO (ramfox): at each failure, we should ensure we clean up any
+	// file or directory creation by calling either os.Remove(targetPath)
+	// or fsi.Unlink(targetPath, ref.AliasString())
 	if p.Dir == "" {
 		return "", fmt.Errorf("directory is required to initialize a dataset")
 	}
@@ -34,7 +37,8 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
 
-	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go
+	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go. That is,
+	// do some stuff to initialize, create components, then call WriteComponents.
 
 	// Either use an existing directory, or create one at the given directory.
 	var targetPath string
@@ -80,14 +84,15 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return name, err
 	}
 
+	// TODO(dlong): Instead, create a component.Container and write it out to the `target`.
+
 	// Create a skeleton meta.json file.
 	metaSkeleton := []byte(`{
-		"title": "",
-		"description": "",
-		"keywords": [],
-		"homeURL": ""
-	}
-	`)
+  "title": "",
+  "description": "",
+  "keywords": [],
+  "homeURL": ""
+}`)
 	if err := ioutil.WriteFile(filepath.Join(targetPath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
 		return name, err
 	}
@@ -109,54 +114,45 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
 			return "", err
 		}
+
 	}
 	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
 	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	// Create basic structure (no derived values) based on Format
-	structureBytes, err := createBasicStructure(p.Format)
+	// Create structure by detecting it from the body.
+	file, err := os.Open(bodyFilename)
 	if err != nil {
 		return "", err
 	}
+	defer file.Close()
+
+	// TODO(dlong): This should move into `dsio` package.
+	entries, err := component.OpenEntryReader(file, p.Format)
+	if err != nil {
+		return "", err
+	}
+
+	structureBytes, err := json.Marshal(entries.Structure())
+	if err != nil {
+		return "", err
+	}
+
 	// use format to determine basic formatConfig
 	structureFilename := filepath.Join(targetPath, "structure.json")
 	if err := ioutil.WriteFile(structureFilename, structureBytes, os.ModePerm); err != nil {
 		return "", err
 	}
 
-	err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name)
-	if err == logbook.ErrNoLogbook {
-		err = nil
+	if err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name); err != nil {
+		if err == logbook.ErrNoLogbook {
+			err = nil
+			return name, nil
+		}
+		return name, err
 	}
-	return name, err
-}
-
-func createBasicStructure(format string) ([]byte, error) {
-	var err error
-	formatConfigBytes := []byte{}
-	switch format {
-	case "csv":
-		formatConfigBytes, err = json.Marshal(dataset.CSVOptions{})
-		if err != nil {
-			return nil, err
-		}
-	case "json":
-		formatConfigBytes, err = json.Marshal(map[string]interface{}{"pretty": false})
-		if err != nil {
-			return nil, err
-		}
-	case "xlsx":
-		formatConfigBytes, err = json.Marshal(dataset.XLSXOptions{SheetName: "sheet1"})
-		if err != nil {
-			return nil, err
-		}
-	default:
-		return nil, fmt.Errorf("unknown body format '%s'", format)
-	}
-	structureStr := fmt.Sprintf(`{"format":"%s","formatConfig":%s}`, format, formatConfigBytes)
-	return []byte(structureStr), nil
+	return name, nil
 }
 
 func canInitDir(dir string) error {
