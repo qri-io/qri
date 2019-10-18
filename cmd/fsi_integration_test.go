@@ -161,6 +161,42 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test that we can get the body even if structure has been deleted.
+func TestGetBodyWithoutStructure(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_get_body_without_structure")
+	defer fr.Delete()
+
+	workDir := fr.CreateAndChdirToWorkDir("body_only")
+
+	// Init as a linked directory.
+	if err := fr.ExecCommand("qri init --name body_only --format csv"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Remove the structure.
+	if err := os.Remove(filepath.Join(workDir, "structure.json")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Get the body, even though there's no structure. One will be inferred.
+	if err := fr.ExecCommand("qri get body"); err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	output := fr.GetCommandOutput()
+	expectBody := "for linked dataset [test_peer/body_only]\n\none,two,3\nfour,five,6\n\n"
+	if diff := cmp.Diff(expectBody, output); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
 // Test that checkout, used on a simple dataset with a body.json and no meta, creates a
 // working directory with a clean status.
 func TestCheckoutSimpleStatus(t *testing.T) {

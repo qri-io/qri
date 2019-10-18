@@ -31,17 +31,27 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	}
 	defer f.Close()
 
+	var structure *dataset.Structure
+
+	var schema map[string]interface{}
 	stComponent := components.Base().GetSubcomponent("structure")
-	stComponent.LoadAndFill(nil)
-	structure, ok := stComponent.(*component.StructureComponent)
-	if !ok {
-		return nil, fmt.Errorf("could not get structure")
+	if stComponent != nil {
+		stComponent.LoadAndFill(nil)
+		comp, ok := stComponent.(*component.StructureComponent)
+		if !ok {
+			return nil, fmt.Errorf("could not get structure")
+		}
+		structure = comp.Value
+		schema = structure.Schema
 	}
-	stValue := structure.Value
-	schema := stValue.Schema
 
 	if schema == nil {
 		bodyFormat := bodyComponent.Base().Format
+		// If there was no structure, define one using the body's file extension.
+		if structure == nil {
+			structure = &dataset.Structure{}
+			structure.Format = bodyFormat
+		}
 		// Create schema by detecting it from the body.
 		// TODO(dlong): This should move into `dsio` package.
 		entries, err := component.OpenEntryReader(f, bodyFormat)
@@ -63,7 +73,7 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 	if fcfg != nil {
 		assign.FormatConfig = fcfg.Map()
 	}
-	st.Assign(stValue, assign)
+	st.Assign(structure, assign)
 
-	return base.ConvertBodyFile(file, stValue, st, limit, offset, all)
+	return base.ConvertBodyFile(file, structure, st, limit, offset, all)
 }

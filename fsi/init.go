@@ -37,7 +37,8 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
 
-	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go
+	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go. That is,
+	// do some stuff to initialize, create components, then call WriteComponents.
 
 	// Either use an existing directory, or create one at the given directory.
 	var targetPath string
