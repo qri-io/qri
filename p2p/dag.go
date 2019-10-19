@@ -1,18 +1,22 @@
-package base
+package p2p
 
 import (
 	"context"
 
+	"github.com/ipfs/go-cid"
+	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs/cafs"
-
-	"github.com/ipfs/go-cid"
-	ipld "github.com/ipfs/go-ipld-format"
 )
 
 // NewManifest generates a manifest for a given node
-func NewManifest(ctx context.Context, ng ipld.NodeGetter, path string) (*dag.Manifest, error) {
+func (node *QriNode) NewManifest(ctx context.Context, path string) (*dag.Manifest, error) {
+	ng, err := newNodeGetter(node)
+	if err != nil {
+		return nil, err
+	}
+
 	id, err := cid.Parse(path)
 	if err != nil {
 		return nil, err
@@ -21,8 +25,30 @@ func NewManifest(ctx context.Context, ng ipld.NodeGetter, path string) (*dag.Man
 	return dag.NewManifest(ctx, ng, id)
 }
 
-// NewDAGInfo generates a DAGInfo for a given node. If a label is provided, it gnenerates a sub-DAGInfo at that
-func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
+// MissingManifest returns a manifest describing blocks that are not in this
+// node for a given manifest
+func (node *QriNode) MissingManifest(ctx context.Context, m *dag.Manifest) (missing *dag.Manifest, err error) {
+	ng, err := newNodeGetter(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return dag.Missing(ctx, ng, m)
+}
+
+// NewDAGInfo generates a DAGInfo for a given node. If a label is given, it will generate a sub-DAGInfo at thea label.
+func (node *QriNode) NewDAGInfo(ctx context.Context, path, label string) (*dag.Info, error) {
+	ng, err := newNodeGetter(node)
+	if err != nil {
+		return nil, err
+	}
+
+	return newDAGInfo(ctx, node.Repo.Store(), ng, path, label)
+}
+
+// newDAGInfo generates a DAGInfo for a given node. If a label is provided,
+// it generates a sub-DAGInfo at that label
+func newDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, path, label string) (*dag.Info, error) {
 	id, err := cid.Parse(path)
 	if err != nil {
 		return nil, err
@@ -89,4 +115,13 @@ func NewDAGInfo(ctx context.Context, store cafs.Filestore, ng ipld.NodeGetter, p
 		return info.InfoAtLabel(label)
 	}
 	return info, nil
+}
+
+// newNodeGetter generates an ipld.NodeGetter from a QriNode
+func newNodeGetter(node *QriNode) (ipld.NodeGetter, error) {
+	capi, err := node.IPFSCoreAPI()
+	if err != nil {
+		return nil, err
+	}
+	return dag.NewNodeGetter(capi.Dag()), nil
 }

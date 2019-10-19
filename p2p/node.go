@@ -74,9 +74,6 @@ type QriNode struct {
 	// local feedback as opposed to p2p connections
 	LocalStreams ioes.IOStreams
 
-	// networkNotifee satisfies the net.Notifee interface
-	networkNotifee networkNotifee
-
 	// TODO - waiting on next IPFS release
 	// autoNAT service
 	// autonat *autonat.AutoNATService
@@ -113,11 +110,6 @@ func NewQriNode(r repo.Repo, p2pconf *config.P2P) (node *QriNode, err error) {
 		LocalStreams: ioes.NewDiscardIOStreams(),
 	}
 	node.handlers = MakeHandlers(node)
-
-	// using this work around, rather than implimenting the Notifee
-	// functions themselves, allows us to not pollute the QriNode
-	// namespace with function names that we may want to use in the future
-	node.networkNotifee = networkNotifee{node}
 
 	return node, nil
 }
@@ -184,9 +176,6 @@ func (n *QriNode) GoOnline() (err error) {
 	// 		return err
 	// 	}
 	// }
-
-	// add n.networkNotifee as a Notifee of this network
-	n.host.Network().Notify(n.networkNotifee)
 
 	p, err := n.Repo.Profile()
 	if err != nil {

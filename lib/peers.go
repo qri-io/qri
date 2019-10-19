@@ -6,7 +6,6 @@ import (
 	"net/rpc"
 	"strings"
 
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -61,7 +60,7 @@ func (d *PeerRequests) List(p *PeerListParams, res *[]*config.ProfilePod) (err e
 		p.Limit = DefaultPageSize
 	}
 
-	*res, err = actions.ListPeers(d.qriNode, p.Limit, p.Offset, !p.Cached)
+	*res, err = p2p.ListPeers(d.qriNode, p.Limit, p.Offset, !p.Cached)
 	return err
 }
 
@@ -82,10 +81,7 @@ func (d *PeerRequests) ConnectedQriProfiles(limit *int, peers *[]*config.Profile
 		return d.cli.Call("PeerRequests.ConnectedQriProfiles", limit, peers)
 	}
 
-	connected, err := actions.ConnectedQriProfiles(d.qriNode)
-	if err != nil {
-		return err
-	}
+	connected := d.qriNode.ConnectedQriProfiles()
 
 	build := make([]*config.ProfilePod, intMin(len(connected), *limit))
 	for _, p := range connected {
@@ -232,12 +228,13 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 			}
 
 			prof, err := pro.Encode()
-			*res = *prof
-
-			connected, err := actions.ConnectedQriProfiles(d.qriNode)
 			if err != nil {
 				return err
 			}
+			*res = *prof
+
+			connected := d.qriNode.ConnectedQriProfiles()
+
 			// If the requested profileID is in the list of connected peers, set Online flag.
 			if _, ok := connected[pro.ID]; ok {
 				res.Online = true
