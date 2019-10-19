@@ -348,7 +348,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			// ProfileID: ds.ProfileID,
 			Path: ds.Path,
 		}
-		recall, err := actions.Recall(ctx, r.node, p.Recall, ref)
+		recall, err := base.Recall(ctx, r.node.Repo, p.Recall, ref)
 		if err != nil {
 			return err
 		}
@@ -718,7 +718,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	*errors, err = actions.Validate(ctx, r.node.Repo, ref, body, schema)
+	*errors, err = base.Validate(ctx, r.node.Repo, ref, body, schema)
 	return
 }
 

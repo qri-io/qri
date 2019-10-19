@@ -1,4 +1,4 @@
-package actions
+package base
 
 import (
 	"bytes"
@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -36,7 +35,7 @@ func Validate(ctx context.Context, r repo.Repo, ref repo.DatasetRef, body, schem
 
 	// if a dataset is specified, load it
 	if ref.Path != "" {
-		if err = base.ReadDataset(ctx, r, &ref); err != nil {
+		if err = ReadDataset(ctx, r, &ref); err != nil {
 			log.Debug(err.Error())
 			return
 		}
