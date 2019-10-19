@@ -163,7 +163,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 				return err
 			}
 		} else {
-			if bufData, err = actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+			if bufData, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
 				return err
 			}
 		}
