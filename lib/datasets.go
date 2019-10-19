@@ -727,6 +727,7 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
 	}
+	ctx := context.TODO()
 
 	ref, err := repo.ParseDatasetRef(*refstr)
 	if err != nil {
@@ -737,7 +738,7 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 	}
 
 	var mf *dag.Manifest
-	mf, err = actions.NewManifest(r.node, ref.Path)
+	mf, err = r.node.NewManifest(ctx, ref.Path)
 	if err != nil {
 		return
 	}
@@ -750,9 +751,10 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Manifest", a, b)
 	}
+	ctx := context.TODO()
 
 	var mf *dag.Manifest
-	mf, err = actions.Missing(r.node, a)
+	mf, err = r.node.MissingManifest(ctx, a)
 	if err != nil {
 		return
 	}
@@ -770,6 +772,7 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
 	}
+	ctx := context.TODO()
 
 	ref, err := repo.ParseDatasetRef(s.RefStr)
 	if err != nil {
@@ -780,7 +783,7 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	}
 
 	var info *dag.Info
-	info, err = actions.NewDAGInfo(r.node, ref.Path, s.Label)
+	info, err = r.node.NewDAGInfo(ctx, ref.Path, s.Label)
 	if err != nil {
 		return
 	}

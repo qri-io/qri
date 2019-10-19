@@ -11,11 +11,11 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
-	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/p2p"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -181,7 +181,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		Ctx: context.Background(),
 	}
 
-	nodes, _, err := makeAPISwarm(tr.Ctx, true, 2)
+	nodes, _, err := p2ptest.MakeIPFSSwarm(tr.Ctx, true, 2)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -194,25 +194,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 }
 
 func qriNode(t *testing.T, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
-	p := &profile.Profile{
-		ID:       profile.ID(pi.PeerID),
-		Peername: peername,
-		PrivKey:  pi.PrivKey,
-	}
-
-	store, err := ipfsfs.NewFilestore(func(cfg *ipfsfs.StoreCfg) {
-		cfg.Node = node
-	})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	fsys := qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs": qfs.NewMemFS(),
-		"ipfs": store,
-	})
-
-	repo, err := repo.NewMemRepo(p, store, fsys, profile.NewMemStore())
+	repo, err := p2ptest.MakeRepoFromIPFSNode(node, peername)
 	if err != nil {
 		t.Fatal(err)
 	}

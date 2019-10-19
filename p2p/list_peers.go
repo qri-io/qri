@@ -1,15 +1,13 @@
-package actions
+package p2p
 
 import (
 	"fmt"
 
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // ListPeers lists Peers on the qri network
-func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
+func ListPeers(node *QriNode, limit, offset int, onlineOnly bool) ([]*config.ProfilePod, error) {
 
 	r := node.Repo
 	user, err := r.Profile()
@@ -18,10 +16,7 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 	}
 
 	peers := make([]*config.ProfilePod, 0, limit)
-	connected, err := ConnectedQriProfiles(node)
-	if err != nil {
-		return nil, err
-	}
+	connected := node.ConnectedQriProfiles()
 
 	if onlineOnly {
 		for _, p := range connected {
@@ -63,9 +58,4 @@ func ListPeers(node *p2p.QriNode, limit, offset int, onlineOnly bool) ([]*config
 	}
 
 	return peers, nil
-}
-
-// ConnectedQriProfiles returns a map from ProfileIDs to profiles for each connected node
-func ConnectedQriProfiles(node *p2p.QriNode) (map[profile.ID]*config.ProfilePod, error) {
-	return node.ConnectedQriProfiles(), nil
 }
