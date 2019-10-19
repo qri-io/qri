@@ -161,7 +161,6 @@ func TestDatasetPinning(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
-	streams := ioes.NewDiscardIOStreams()
 
 	if err := PinDataset(ctx, r, ref); err != nil {
 		if err == repo.ErrNotPinner {
@@ -178,7 +177,7 @@ func TestDatasetPinning(t *testing.T) {
 		return
 	}
 
-	ref2, err := CreateDataset(ctx, r, streams, tc.Input, nil, false, false, false, true)
+	ref2, err := CreateDataset(ctx, r, devNull, tc.Input, nil, false, false, false, true)
 	if err != nil {
 		t.Error(err.Error())
 		return

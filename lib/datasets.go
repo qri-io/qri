@@ -461,7 +461,7 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 	}
 
 	ref.Published = p.PublishStatus
-	if err = actions.SetPublishStatus(r.node, &ref, ref.Published); err != nil {
+	if err = base.SetPublishStatus(r.node.Repo, &ref, ref.Published); err != nil {
 		return err
 	}
 
@@ -485,7 +485,7 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
-	if err := actions.ModifyDataset(r.node, &p.Current, &p.New, true /*isRename*/); err != nil {
+	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &p.Current, &p.New, true /*isRename*/); err != nil {
 		return err
 	}
 
@@ -614,7 +614,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		Published: dsr.Published,
 	}
 
-	if err := actions.ModifyDataset(r.node, &ref, replace, false /*isRename*/); err != nil {
+	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/); err != nil {
 		return err
 	}
 	if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen); err != nil {
