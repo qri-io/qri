@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs/httpfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
@@ -111,7 +112,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(context.Background(), r, devNull, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(context.Background(), r, devNull, tc.Input, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -124,7 +125,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := SaveDataset(context.Background(), r, devNull, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(context.Background(), r, devNull, tc.Input, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}

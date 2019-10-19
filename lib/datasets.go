@@ -388,7 +388,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	// TODO (b5) - this should be integrated into actions.SaveDataset
 	fsiPath := ref.FSIPath
 
-	switches := actions.SaveDatasetSwitches{
+	switches := base.SaveDatasetSwitches{
 		Replace:             p.Replace,
 		DryRun:              p.DryRun,
 		Pin:                 true,
@@ -396,7 +396,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		Force:               p.Force,
 		ShouldRender:        p.ShouldRender,
 	}
-	ref, err = actions.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
+	ref, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err

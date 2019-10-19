@@ -13,12 +13,12 @@ import (
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
-	"github.com/qri-io/ioes"
+	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -180,7 +180,7 @@ func pkgPath(paths ...string) string {
 	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)
 }
 
-// it's tempting to use actions.Dataset.CreateDataset here, but we can't b/c import cycle :/
+// it's tempting to use base.CreateDataset here, but we can't b/c import cycle :/
 // this version of createDataset doesn't run transforms or prepare viz. Test cases
 // should be designed to avoid requiring Tranforms be run or Viz be prepped
 func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err error) {
@@ -197,6 +197,8 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err er
 			Transform: &dataset.Transform{},
 			Viz:       &dataset.Viz{},
 		}
+		path    string
+		resBody qfs.File
 	)
 	pro, err = r.Profile()
 	if err != nil {
@@ -211,8 +213,58 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err er
 		ds.Commit.Author = &dataset.User{ID: pro.ID.String()}
 	}
 
-	ref, err = base.CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), ds, nil, false, true, false, true)
-	return
+	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, nil, r.PrivateKey(), true, false, true); err != nil {
+		return
+	}
+	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
+		prev := repo.DatasetRef{
+			ProfileID: pro.ID,
+			Peername:  pro.Peername,
+			Name:      ds.Name,
+			Path:      ds.PreviousPath,
+		}
+
+		// should be ok to skip this error. we may not have the previous
+		// reference locally
+		_ = r.DeleteRef(prev)
+	}
+	ref = repo.DatasetRef{
+		ProfileID: pro.ID,
+		Peername:  pro.Peername,
+		Name:      ds.Name,
+		Path:      path,
+	}
+
+	if err = r.PutRef(ref); err != nil {
+		return
+	}
+
+	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
+	ds.ProfileID = pro.ID.String()
+	ds.Peername = pro.Peername
+	ds.Path = path
+	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
+		return
+	}
+
+	ds, err = dsfs.LoadDataset(ctx, r.Store(), ref.Path)
+	if err != nil {
+		return ref, err
+	}
+	ds.Name = ref.Name
+	ds.Peername = ref.Peername
+	ref.Dataset = ds
+
+	// need to open here b/c we might be doing a dry-run, which would mean we have
+	// references to files in a store that won't exist after this function call
+	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
+	// knows about the store
+	if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
+		return ref, err
+	}
+	ref.Dataset.SetBodyFile(resBody)
+
+	return ref, nil
 }
 
 // NewMemRepoFromDir reads a director of testCases and calls createDataset

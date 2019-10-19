@@ -7,12 +7,10 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 )
 
 // OpenDataset prepares a dataset for use, checking each component
@@ -161,73 +159,6 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	return
 }
 
-// CreateDataset uses dsfs to add a dataset to a repo's store, updating all
-// references within the repo if successful. CreateDataset is a lower-level
-// component of github.com/qri-io/qri/actions.CreateDataset
-func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
-	var (
-		pro     *profile.Profile
-		path    string
-		resBody qfs.File
-	)
-
-	pro, err = r.Profile()
-	if err != nil {
-		return
-	}
-
-	if err = ValidateDataset(ds); err != nil {
-		return
-	}
-
-	if path, err = dsfs.CreateDataset(ctx, r.Store(), ds, dsPrev, r.PrivateKey(), pin, force, shouldRender); err != nil {
-		return
-	}
-	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
-		prev := repo.DatasetRef{
-			ProfileID: pro.ID,
-			Peername:  pro.Peername,
-			Name:      ds.Name,
-			Path:      ds.PreviousPath,
-		}
-
-		// should be ok to skip this error. we may not have the previous
-		// reference locally
-		_ = r.DeleteRef(prev)
-	}
-	ref = repo.DatasetRef{
-		ProfileID: pro.ID,
-		Peername:  pro.Peername,
-		Name:      ds.Name,
-		Path:      path,
-	}
-
-	if err = r.PutRef(ref); err != nil {
-		return
-	}
-
-	// TODO (b5): confirm these assignments happen in dsfs.CreateDataset with tests
-	ds.ProfileID = pro.ID.String()
-	ds.Peername = pro.Peername
-	ds.Path = path
-	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
-		return
-	}
-
-	if err = ReadDataset(ctx, r, &ref); err != nil {
-		return
-	}
-
-	// need to open here b/c we might be doing a dry-run, which would mean we have
-	// references to files in a store that won't exist after this function call
-	// TODO (b5): this should be replaced with a call to OpenDataset with a qfs that
-	// knows about the store
-	if resBody, err = r.Store().Get(ctx, ref.Dataset.BodyPath); err != nil {
-		log.Error("error getting from store:", err.Error())
-	}
-	ref.Dataset.SetBodyFile(resBody)
-	return
-}
 
 // FetchDataset grabs a dataset from a remote source
 func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {

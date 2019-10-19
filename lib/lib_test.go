@@ -15,7 +15,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/actions"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/p2p"
@@ -165,7 +165,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.BodyBytes = tc.Body
 
-	ref, err := actions.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -182,7 +182,7 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ds.Name = tc.Name
 	ds.Transform.ScriptPath = "testdata/now_tf/transform.star"
 
-	ref, err := actions.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, actions.SaveDatasetSwitches{Pin: true, ShouldRender: true})
+	ref, err := base.SaveDataset(ctx, node.Repo, devNull, ds, nil, nil, base.SaveDatasetSwitches{Pin: true, ShouldRender: true})
 	if err != nil {
 		t.Fatal(err.Error())
 	}
