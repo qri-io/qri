@@ -1,11 +1,10 @@
-package actions
+package base
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset/dsdiff"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -17,12 +16,12 @@ func DiffDatasets(ctx context.Context, r repo.Repo, leftRef, rightRef repo.Datas
 		return
 	}
 
-	if err = base.ReadDataset(ctx, r, &leftRef); err != nil {
+	if err = ReadDataset(ctx, r, &leftRef); err != nil {
 		return nil, err
 	}
 	dsLeft := leftRef.Dataset
 
-	if err = base.ReadDataset(ctx, r, &rightRef); err != nil {
+	if err = ReadDataset(ctx, r, &rightRef); err != nil {
 		return nil, err
 	}
 	dsRight := rightRef.Dataset

@@ -181,7 +181,7 @@ func TestSaveDataset(t *testing.T) {
 	}
 
 	// recall previous transform
-	tfds, err := Recall(ctx, n, "tf", ref)
+	tfds, err := base.Recall(ctx, n.Repo, "tf", ref)
 	if err != nil {
 		t.Error(err)
 	}

@@ -130,19 +130,3 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	}
 	return ref
 }
-
-func addNowTransformDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
-	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	// TODO (b5): need to figure out a better story for peernames in test cases
-	// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
-	tc.Input.Peername = "peer"
-
-	ref, err := SaveDataset(context.Background(), r, devNull, tc.Input, nil, nil, SaveDatasetSwitches{Pin: true, ShouldRender: true})
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return ref
-}
