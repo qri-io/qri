@@ -31,6 +31,7 @@ type Client struct {
 	ds      *dsync.Dsync
 	logsync *logsync.Logsync
 	capi    coreiface.CoreAPI
+	node *p2p.QriNode
 }
 
 // NewClient creates a client
@@ -67,6 +68,7 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 		ds:      ds,
 		logsync: ls,
 		capi:    capi,
+		node: node,
 	}, nil
 }
 

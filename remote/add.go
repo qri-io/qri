@@ -1,4 +1,4 @@
-package actions
+package remote
 
 import (
 	"context"
@@ -7,29 +7,31 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 )
 
-// UpdateRemoteDataset brings a reference to the latest version, syncing to the
-// latest history it can find over p2p & via any configured registry
-func UpdateRemoteDataset(ctx context.Context, node *p2p.QriNode, ref *repo.DatasetRef, pin bool) (res repo.DatasetRef, err error) {
-	return res, fmt.Errorf("remote updating is currently disabled")
-}
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
-func AddDataset(ctx context.Context, node *p2p.QriNode, rc *remote.Client, remoteAddr string, ref *repo.DatasetRef) (err error) {
+func (rc *Client) AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) (err error) {
+	if rc == nil {
+		return ErrNoRemoteClient
+	}
+
 	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
 	if !ref.Complete() {
-		// TODO (ramfox): we should check to see if the dataset already exists locally
-		// unfortunately, because of the nature of the ipfs filesystem commands, we don't
-		// know if files we fetch are local only or possibly coming from the network.
-		// instead, for now, let's just always try to add
-		if _, err := ResolveDatasetRef(ctx, node, rc, remoteAddr, ref); err != nil {
+		if err := rc.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
 			return err
 		}
+		// // TODO (ramfox): we should check to see if the dataset already exists locally
+		// // unfortunately, because of the nature of the ipfs filesystem commands, we don't
+		// // know if files we fetch are local only or possibly coming from the network.
+		// // instead, for now, let's just always try to add
+		// if _, err := ResolveDatasetRef(ctx, node, rc, remoteAddr, ref); err != nil {
+		// 	return err
+		// }
 	}
+
+	node := rc.node
 
 	type addResponse struct {
 		Ref   *repo.DatasetRef

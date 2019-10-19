@@ -655,7 +655,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 		log.Errorf("pulling logs: %s", pullLogsErr)
 	}
 
-	if err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), p.RemoteAddr, &ref); err != nil {
+	if err = r.inst.RemoteClient().AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
 		return err
 	}
 
