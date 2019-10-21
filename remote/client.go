@@ -16,10 +16,14 @@ import (
 	peer "github.com/libp2p/go-libp2p-peer"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // ErrNoRemoteClient is returned when no client is allocated
@@ -31,28 +35,33 @@ type Client struct {
 	ds      *dsync.Dsync
 	logsync *logsync.Logsync
 	capi    coreiface.CoreAPI
-	node *p2p.QriNode
+	node    *p2p.QriNode
 }
 
 // NewClient creates a client
-func NewClient(node *p2p.QriNode) (*Client, error) {
-	capi, err := node.IPFSCoreAPI()
-	if err != nil {
-		return nil, err
-	}
+func NewClient(node *p2p.QriNode) (c *Client, err error) {
+	var ds *dsync.Dsync
 
-	lng, err := dsync.NewLocalNodeGetter(capi)
-	if err != nil {
-		return nil, err
-	}
-
-	ds, err := dsync.New(lng, capi.Block(), func(dsyncConfig *dsync.Config) {
-		if host := node.Host(); host != nil {
-			dsyncConfig.Libp2pHost = host
+	capi, capiErr := node.IPFSCoreAPI()
+	if capiErr == nil {
+		lng, err := dsync.NewLocalNodeGetter(capi)
+		if err != nil {
+			return nil, err
 		}
 
-		dsyncConfig.PinAPI = capi.Pin()
-	})
+		ds, err = dsync.New(lng, capi.Block(), func(dsyncConfig *dsync.Config) {
+			if host := node.Host(); host != nil {
+				dsyncConfig.Libp2pHost = host
+			}
+
+			dsyncConfig.PinAPI = capi.Pin()
+		})
+		if err != nil {
+			return nil, err
+		}
+	} else {
+		log.Debug("cannot initialize dsync client, repo isn't using IPFS")
+	}
 
 	var ls *logsync.Logsync
 	if book := node.Repo.Logbook(); book != nil {
@@ -68,15 +77,8 @@ func NewClient(node *p2p.QriNode) (*Client, error) {
 		ds:      ds,
 		logsync: ls,
 		capi:    capi,
-		node: node,
+		node:    node,
 	}, nil
-}
-
-// CoreAPI exposes this client's CoreApi
-// TODO (b5) - this shouldn't be necessary, currently being exposed to debug
-// Adding a dataset in actions.AddDataset
-func (c *Client) CoreAPI() coreiface.CoreAPI {
-	return c.capi
 }
 
 // PullLogs pulls logbook data from a remote
@@ -367,4 +369,166 @@ func addressType(remoteAddr string) string {
 	}
 
 	return ""
+}
+
+// ListDatasets shows the reflist of a peer
+func (c *Client) ListDatasets(ctx context.Context, ds *repo.DatasetRef, term string, offset, limit int) (res []repo.DatasetRef, err error) {
+	if c == nil {
+		return nil, ErrNoRemoteClient
+	}
+
+	var profiles map[profile.ID]*profile.Profile
+	profiles, err = c.node.Repo.Profiles().List()
+	if err != nil {
+		log.Debug(err.Error())
+		return nil, fmt.Errorf("error fetching profile: %s", err.Error())
+	}
+
+	var pro *profile.Profile
+	for _, p := range profiles {
+		if ds.ProfileID.String() == p.ID.String() || ds.Peername == p.Peername {
+			pro = p
+		}
+	}
+	if err != nil {
+		return nil, fmt.Errorf("couldn't find profile: %s", err.Error())
+	}
+	if pro == nil {
+		return nil, fmt.Errorf("profile not found: \"%s\"", ds.Peername)
+	}
+
+	if len(pro.PeerIDs) == 0 {
+		return nil, fmt.Errorf("couldn't find a peer address for profile: %s", pro.ID)
+	}
+
+	res, err = c.node.RequestDatasetsList(ctx, pro.PeerIDs[0], p2p.DatasetsListParams{
+		Term:   term,
+		Limit:  limit,
+		Offset: offset,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("error requesting dataset list: %s", err.Error())
+	}
+
+	return
+}
+
+// AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
+func (c *Client) AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) (err error) {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
+	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
+	if !ref.Complete() {
+		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
+			return err
+		}
+		// // TODO (ramfox): we should check to see if the dataset already exists locally
+		// // unfortunately, because of the nature of the ipfs filesystem commands, we don't
+		// // know if files we fetch are local only or possibly coming from the network.
+		// // instead, for now, let's just always try to add
+		// if _, err := ResolveDatasetRef(ctx, node, rc, remoteAddr, ref); err != nil {
+		// 	return err
+		// }
+	}
+
+	node := c.node
+
+	type addResponse struct {
+		Ref   *repo.DatasetRef
+		Error error
+	}
+
+	fetchCtx, cancelFetch := context.WithCancel(ctx)
+	defer cancelFetch()
+	responses := make(chan addResponse)
+	tasks := 0
+
+	if remoteAddr != "" {
+		tasks++
+
+		refCopy := &repo.DatasetRef{
+			Peername:  ref.Peername,
+			ProfileID: ref.ProfileID,
+			Name:      ref.Name,
+			Path:      ref.Path,
+		}
+
+		go func(ref *repo.DatasetRef) {
+			res := addResponse{Ref: ref}
+
+			// always send on responses channel
+			defer func() {
+				responses <- res
+			}()
+
+			if err := c.PullDataset(fetchCtx, ref, remoteAddr); err != nil {
+				res.Error = err
+				return
+			}
+			node.LocalStreams.PrintErr("🗼 fetched from registry\n")
+			if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
+				err := pinner.Pin(fetchCtx, ref.Path, true)
+				res.Error = err
+			}
+		}(refCopy)
+	}
+
+	if node.Online {
+		tasks++
+		go func() {
+			err := base.FetchDataset(fetchCtx, node.Repo, ref, true, true)
+			responses <- addResponse{
+				Ref:   ref,
+				Error: err,
+			}
+		}()
+	}
+
+	if tasks == 0 {
+		return fmt.Errorf("no registry configured and node is not online")
+	}
+
+	success := false
+	for i := 0; i < tasks; i++ {
+		res := <-responses
+		err = res.Error
+		if err == nil {
+			cancelFetch()
+			success = true
+			*ref = *res.Ref
+			break
+		}
+	}
+
+	if !success {
+		return fmt.Errorf("add failed: %s", err.Error())
+	}
+
+	prevRef, err := node.Repo.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	if err != nil && err == repo.ErrNotFound {
+		if err = node.Repo.PutRef(*ref); err != nil {
+			log.Debug(err.Error())
+			return fmt.Errorf("error putting dataset in repo: %s", err.Error())
+		}
+		return nil
+	}
+	if err != nil {
+		return err
+	}
+
+	prevRef.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Store(), prevRef.Path)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error loading repo dataset: %s", prevRef.Path)
+	}
+
+	ref.Dataset, err = dsfs.LoadDataset(ctx, node.Repo.Store(), ref.Path)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error loading added dataset: %s", ref.Path)
+	}
+
+	return base.ReplaceRefIfMoreRecent(node.Repo, &prevRef, ref)
 }

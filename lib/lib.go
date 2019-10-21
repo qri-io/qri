@@ -532,6 +532,12 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		node:     node,
 	}
 
+	var err error
+	inst.remoteClient, err = remote.NewClient(node)
+	if err != nil {
+		panic(err)
+	}
+
 	if node != nil && node.Repo != nil {
 		inst.repo = node.Repo
 		inst.store = node.Repo.Store()

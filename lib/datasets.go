@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
@@ -55,18 +54,13 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 	}
 }
 
-// List returns this repo's datasets
+// List gets the reflist for either the local repo or a peer
 func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 	ctx := context.TODO()
-
-	ds := &repo.DatasetRef{
-		Peername:  p.Peername,
-		ProfileID: p.ProfileID,
-	}
 
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -77,9 +71,44 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.Offset = 0
 	}
 
-	replies, err := actions.ListDatasets(ctx, r.node, ds, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	// TODO (b5) - this logic around weather we're listing locally or
+	// a remote peer needs cleanup
+	ref := &repo.DatasetRef{
+		Peername:  p.Peername,
+		ProfileID: p.ProfileID,
+	}
+	if err := repo.CanonicalizeProfile(r.node.Repo, ref); err != nil {
+		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
+	}
 
-	*res = replies
+	pro, err := r.node.Repo.Profile()
+	if err != nil {
+		return err
+	}
+
+	var refs []repo.DatasetRef
+	if ref.Peername == "" || pro.Peername == ref.Peername {
+		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	} else {
+
+		refs, err = r.inst.remoteClient.ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
+	}
+	if err != nil {
+		return err
+	}
+
+	*res = refs
+
+	// TODO (b5) - for now we're removing schemas b/c they don't serialize properly over RPC
+	// update 2019-10-21 - this probably isn't true anymore. should test & remove
+	if p.RPC {
+		for _, rep := range *res {
+			if rep.Dataset.Structure != nil {
+				rep.Dataset.Structure.Schema = nil
+			}
+		}
+	}
+
 	return err
 }
 

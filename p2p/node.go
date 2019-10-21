@@ -27,6 +27,9 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// ErrNoQriNode indicates a qri node doesn't exist
+var ErrNoQriNode = fmt.Errorf("p2p: no qri node")
+
 // QriNode encapsulates a qri peer-2-peer node
 type QriNode struct {
 	// ID is the node's identifier both locally & on the network
@@ -263,6 +266,9 @@ type ipfsApier interface {
 
 // IPFSCoreAPI returns a IPFS API interface instance
 func (n *QriNode) IPFSCoreAPI() (coreiface.CoreAPI, error) {
+	if n == nil {
+		return nil, ErrNoQriNode
+	}
 	if apier, ok := n.Repo.Store().(ipfsApier); ok {
 		return apier.IPFSCoreAPI(), nil
 	}
