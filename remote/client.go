@@ -421,16 +421,12 @@ func (c *Client) AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAdd
 
 	log.Debugf("add dataset %s. remoteAddr: %s", ref.String(), remoteAddr)
 	if !ref.Complete() {
+		// TODO (b5) - we should remove ResolveHeadRef in favour of a p2p.ResolveDatasetRef
+		// head resolution shouldn't require setting up a remote, and should instead be a
+		// standard method any qri peer can perform
 		if err := c.ResolveHeadRef(ctx, ref, remoteAddr); err != nil {
 			return err
 		}
-		// // TODO (ramfox): we should check to see if the dataset already exists locally
-		// // unfortunately, because of the nature of the ipfs filesystem commands, we don't
-		// // know if files we fetch are local only or possibly coming from the network.
-		// // instead, for now, let's just always try to add
-		// if _, err := ResolveDatasetRef(ctx, node, rc, remoteAddr, ref); err != nil {
-		// 	return err
-		// }
 	}
 
 	node := c.node
