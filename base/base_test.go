@@ -70,7 +70,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	return ref
 }
 
-func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+func updateCitiesDataset(t *testing.T, r repo.Repo, title string) repo.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
@@ -86,8 +86,12 @@ func updateCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err)
 	}
 
+	if title == "" {
+		title = "this is the new title"
+	}
+
 	prevTitle := tc.Input.Meta.Title
-	tc.Input.Meta.Title = "this is the new title"
+	tc.Input.Meta.Title = title
 	tc.Input.PreviousPath = ref.Path
 	defer func() {
 		// because test cases are cached for performance, we need to clean up any mutation to

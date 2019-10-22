@@ -15,7 +15,7 @@ func TestDatasetLog(t *testing.T) {
 	ctx := context.Background()
 	mr := newTestRepo(t)
 	addCitiesDataset(t, mr)
-	updateCitiesDataset(t, mr)
+	updateCitiesDataset(t, mr, "")
 
 	ref := repo.MustParseDatasetRef("me/not_a_dataset")
 	log, err := DatasetLog(ctx, mr, ref, -1, 0, true)
@@ -53,7 +53,7 @@ func TestDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)
 	addCitiesDataset(t, r)
-	head := updateCitiesDataset(t, r)
+	head := updateCitiesDataset(t, r, "")
 	expectLen := 2
 
 	dlog, err := DatasetLogFromHistory(ctx, r, head, 0, 100, true)
@@ -89,7 +89,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 
 	// create some history
 	addCitiesDataset(t, r)
-	ref := updateCitiesDataset(t, r)
+	ref := updateCitiesDataset(t, r, "")
 
 	// add the logbook back
 	p, err := r.Profile()

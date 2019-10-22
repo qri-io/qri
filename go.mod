@@ -51,7 +51,7 @@ require (
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20190927121847-9e99025ffde6
+	github.com/qri-io/qfs v0.1.1-0.20191017222245-b5d2cc022636
 	github.com/qri-io/starlib v0.4.1
 	github.com/qri-io/varName v0.1.0
 	github.com/sergi/go-diff v1.0.0

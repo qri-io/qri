@@ -18,7 +18,6 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -576,7 +575,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 
 		// Delete entire dataset for all generations.
-		if err := actions.DeleteDataset(ctx, r.node, &ref); err != nil {
+		if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
+			return err
+		}
+		// remove the ref from the ref store
+		if err := r.inst.Repo().DeleteRef(ref); err != nil {
 			return err
 		}
 		res.NumDeleted = dsref.AllGenerations
@@ -614,15 +617,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if err := actions.ModifyDataset(r.node, &ref, replace, false /*isRename*/); err != nil {
 		return err
 	}
-	res.NumDeleted = p.Revision.Gen
-
-	// TODO (b5) - this should be moved down into the action
-	err = r.inst.Repo().Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(ref), res.NumDeleted)
-	if err == logbook.ErrNoLogbook {
-		err = nil
+	if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen); err != nil {
+		return err
 	}
-
-	return err
+	res.NumDeleted = p.Revision.Gen
+	return nil
 }
 
 // AddParams encapsulates parameters to the add command

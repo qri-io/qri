@@ -500,3 +500,61 @@ func ConvertBodyFormat(bodyFile qfs.File, fromSt, toSt *dataset.Structure) (qfs.
 
 	return qfs.NewMemfileReader(fmt.Sprintf("body.%s", toSt.Format), buffer), nil
 }
+
+// RemoveNVersionsFromStore removes n versions of a dataset from the store starting with
+// the most recent version
+// when n == -1, remove all versions
+// does not remove the dataset reference
+func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, n int) error {
+	var err error
+	if r == nil {
+		return fmt.Errorf("need a repo")
+	}
+	// ref is nil or ref has no path err
+	if ref == nil || ref.Path == "" {
+		return fmt.Errorf("need a dataset reference with a path")
+	}
+
+	if n < -1 {
+		return fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
+	}
+
+	// load previous dataset into prev
+	ref.Dataset, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path)
+	if err != nil {
+		return err
+	}
+
+	curr := *ref
+
+	i := n
+
+	for i != 0 {
+		// decrement our counter
+		i--
+		// unpin dataset
+		if err = UnpinDataset(ctx, r, curr); err != nil {
+			return err
+		}
+		// if no previous path, break
+		if curr.Dataset.PreviousPath == "" {
+			break
+		}
+		// load previous dataset into prev
+		next, err := dsfs.LoadDatasetRefs(ctx, r.Store(), curr.Dataset.PreviousPath)
+		if err != nil {
+			return err
+		}
+		curr = repo.DatasetRef{
+			Path:    next.Path,
+			Dataset: next,
+		}
+	}
+
+	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), n)
+	if err == logbook.ErrNoLogbook {
+		err = nil
+	}
+
+	return nil
+}
