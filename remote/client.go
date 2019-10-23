@@ -2,19 +2,16 @@ package remote
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"net/url"
 	"strings"
-	"time"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-crypto"
 	peer "github.com/libp2p/go-libp2p-peer"
-	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/qfs/cafs"
@@ -303,60 +300,6 @@ func removeDatasetHTTP(ctx context.Context, params map[string]string, remoteAddr
 	}
 
 	return nil
-}
-
-func sigParams(pk crypto.PrivKey, ref repo.DatasetRef) (map[string]string, error) {
-
-	pid, err := calcProfileID(pk)
-	if err != nil {
-		return nil, err
-	}
-
-	now := fmt.Sprintf("%d", time.Now().In(time.UTC).Unix())
-	rss := requestSigningString(now, pid, ref.Path)
-
-	b64Sig, err := signString(pk, rss)
-	if err != nil {
-		return nil, err
-	}
-
-	return map[string]string{
-		"peername":  ref.Peername,
-		"name":      ref.Name,
-		"profileID": ref.ProfileID.String(),
-		"path":      ref.Path,
-
-		"pid":       pid,
-		"timestamp": now,
-		"signature": b64Sig,
-	}, nil
-}
-
-func requestSigningString(timestamp, peerID, cidStr string) string {
-	return fmt.Sprintf("%s.%s.%s", timestamp, peerID, cidStr)
-}
-
-func signString(privKey crypto.PrivKey, str string) (b64Sig string, err error) {
-	sigbytes, err := privKey.Sign([]byte(str))
-	if err != nil {
-		return "", fmt.Errorf("error signing %s", err.Error())
-	}
-
-	return base64.StdEncoding.EncodeToString(sigbytes), nil
-}
-
-func calcProfileID(privKey crypto.PrivKey) (string, error) {
-	pubkeybytes, err := privKey.GetPublic().Bytes()
-	if err != nil {
-		return "", fmt.Errorf("error getting pubkey bytes: %s", err.Error())
-	}
-
-	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
-	if err != nil {
-		return "", fmt.Errorf("error summing pubkey: %s", err.Error())
-	}
-
-	return mh.B58String(), nil
 }
 
 // TODO (b5) - this should return an enumeration
