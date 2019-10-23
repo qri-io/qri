@@ -6,12 +6,23 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 func TestGetConfig(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
-	// TODO (b5) - hack until we can get better test-instance allocation
-	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err)
+		return
+	}
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst := NewInstanceFromConfigAndNode(cfg, node)
 	m := NewConfigMethods(inst)
 
 	p := &GetConfigParams{Field: "profile.id", Format: "json"}
@@ -33,8 +44,17 @@ func TestSaveConfigToFile(t *testing.T) {
 	cfgPath := path + "/config.yaml"
 	cfg := config.DefaultConfigForTesting()
 	cfg.SetPath(cfgPath)
-	// TODO (b5) - hack until we can get better test-instance allocation
-	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err)
+		return
+	}
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst := NewInstanceFromConfigAndNode(cfg, node)
 	m := NewConfigMethods(inst)
 
 	var ok bool
@@ -45,8 +65,17 @@ func TestSaveConfigToFile(t *testing.T) {
 
 func TestSetConfig(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
-	// TODO (b5) - hack until we can get better test-instance allocation
-	inst := NewInstanceFromConfigAndNode(cfg, nil)
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err)
+		return
+	}
+	node, err := p2p.NewQriNode(mr, cfg.P2P)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	inst := NewInstanceFromConfigAndNode(cfg, node)
 	m := NewConfigMethods(inst)
 
 	var set bool

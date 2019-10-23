@@ -10,6 +10,22 @@ import (
 	"github.com/qri-io/qri/dsref"
 )
 
+func TestRecall(t *testing.T) {
+	ctx := context.Background()
+	r := newTestRepo(t)
+	ref := addNowTransformDataset(t, r)
+
+	_, err := Recall(ctx, r, "", ref)
+	if err != nil {
+		t.Error(err)
+	}
+
+	_, err = Recall(ctx, r, "tf", ref)
+	if err != nil {
+		t.Error(err)
+	}
+}
+
 func TestLoadRevisions(t *testing.T) {
 	ctx := context.Background()
 	r := newTestRepo(t)

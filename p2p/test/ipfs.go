@@ -1,4 +1,4 @@
-package remote
+package p2ptest
 
 import (
 	"context"
@@ -12,25 +12,59 @@ import (
 	corebs "github.com/ipfs/go-ipfs/core/bootstrap"
 	coreapi "github.com/ipfs/go-ipfs/core/coreapi"
 	mock "github.com/ipfs/go-ipfs/core/mock"
-	"github.com/ipfs/go-ipfs/keystore"
-	"github.com/ipfs/go-ipfs/repo"
+	keystore "github.com/ipfs/go-ipfs/keystore"
+	repo "github.com/ipfs/go-ipfs/repo"
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	peer "github.com/libp2p/go-libp2p-peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	mocknet "github.com/libp2p/go-libp2p/p2p/net/mock"
+	qfs "github.com/qri-io/qfs"
+	ipfsfs "github.com/qri-io/qfs/cafs/ipfs"
 	cfgtest "github.com/qri-io/qri/config/test"
+	qrirepo "github.com/qri-io/qri/repo"
+	profile "github.com/qri-io/qri/repo/profile"
 )
+
+// MakeRepoFromIPFSNode wraps an ipfs node with a mock qri repo
+func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, error) {
+	p := &profile.Profile{
+		ID:       profile.ID(node.Identity),
+		Peername: username,
+		PrivKey:  node.PrivateKey,
+	}
+
+	store, err := ipfsfs.NewFilestore(func(cfg *ipfsfs.StoreCfg) {
+		cfg.Node = node
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	fsys := qfs.NewMux(map[string]qfs.Filesystem{
+		"cafs": qfs.NewMemFS(),
+		"ipfs": store,
+	})
+
+	return qrirepo.NewMemRepo(p, store, fsys, profile.NewMemStore())
+}
+
+// MakeIPFSNode creates a single mock IPFS Node
+func MakeIPFSNode(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
+	nd, api, err := MakeIPFSSwarm(ctx, true, 1)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	return nd[0], api[0], nil
+}
 
 const testPeerID = "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe"
 
-// `echo -n 'hello, world!' | ipfs add`
-var hello = "/ipfs/QmQy2Dw4Wk7rdJKjThjYXzfFJNaRKRHhHP5gHHXroJMYxk"
-var helloStr = "hello, world!"
-
-// `echo -n | ipfs add`
-var emptyFile = "/ipfs/QmbFMke1KXqnYyBBWxB74N4c5SBnJMVAiMNRcGu6x1AwQH"
-
-func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
+// MakeIPFSSwarm creates and connects n number of mock IPFS Nodes
+func MakeIPFSSwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNode, []coreiface.CoreAPI, error) {
+	if n > 10 {
+		return nil, nil, fmt.Errorf("cannot generate a network of more than 10 peers")
+	}
 	mn := mocknet.New(ctx)
 
 	nodes := make([]*core.IpfsNode, n)
@@ -109,13 +143,4 @@ func makeAPISwarm(ctx context.Context, fullIdentity bool, n int) ([]*core.IpfsNo
 	}
 
 	return nodes, apis, nil
-}
-
-func makeAPI(ctx context.Context) (*core.IpfsNode, coreiface.CoreAPI, error) {
-	nd, api, err := makeAPISwarm(ctx, false, 1)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	return nd[0], api[0], nil
 }

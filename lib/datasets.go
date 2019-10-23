@@ -14,7 +14,6 @@ import (
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
@@ -55,18 +54,13 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 	}
 }
 
-// List returns this repo's datasets
+// List gets the reflist for either the local repo or a peer
 func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
 	}
 	ctx := context.TODO()
-
-	ds := &repo.DatasetRef{
-		Peername:  p.Peername,
-		ProfileID: p.ProfileID,
-	}
 
 	// ensure valid limit value
 	if p.Limit <= 0 {
@@ -77,9 +71,44 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		p.Offset = 0
 	}
 
-	replies, err := actions.ListDatasets(ctx, r.node, ds, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	// TODO (b5) - this logic around weather we're listing locally or
+	// a remote peer needs cleanup
+	ref := &repo.DatasetRef{
+		Peername:  p.Peername,
+		ProfileID: p.ProfileID,
+	}
+	if err := repo.CanonicalizeProfile(r.node.Repo, ref); err != nil {
+		return fmt.Errorf("error canonicalizing peer: %s", err.Error())
+	}
 
-	*res = replies
+	pro, err := r.node.Repo.Profile()
+	if err != nil {
+		return err
+	}
+
+	var refs []repo.DatasetRef
+	if ref.Peername == "" || pro.Peername == ref.Peername {
+		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
+	} else {
+
+		refs, err = r.inst.remoteClient.ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
+	}
+	if err != nil {
+		return err
+	}
+
+	*res = refs
+
+	// TODO (b5) - for now we're removing schemas b/c they don't serialize properly over RPC
+	// update 2019-10-21 - this probably isn't true anymore. should test & remove
+	if p.RPC {
+		for _, rep := range *res {
+			if rep.Dataset.Structure != nil {
+				rep.Dataset.Structure.Schema = nil
+			}
+		}
+	}
+
 	return err
 }
 
@@ -163,7 +192,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 				return err
 			}
 		} else {
-			if bufData, err = actions.GetBody(r.node, ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+			if bufData, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
 				return err
 			}
 		}
@@ -348,7 +377,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 			// ProfileID: ds.ProfileID,
 			Path: ds.Path,
 		}
-		recall, err := actions.Recall(ctx, r.node, p.Recall, ref)
+		recall, err := base.Recall(ctx, r.node.Repo, p.Recall, ref)
 		if err != nil {
 			return err
 		}
@@ -388,7 +417,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	// TODO (b5) - this should be integrated into actions.SaveDataset
 	fsiPath := ref.FSIPath
 
-	switches := actions.SaveDatasetSwitches{
+	switches := base.SaveDatasetSwitches{
 		Replace:             p.Replace,
 		DryRun:              p.DryRun,
 		Pin:                 true,
@@ -396,7 +425,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		Force:               p.Force,
 		ShouldRender:        p.ShouldRender,
 	}
-	ref, err = actions.SaveDataset(ctx, r.node, ds, p.Secrets, p.ScriptOutput, switches)
+	ref, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -461,7 +490,7 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 	}
 
 	ref.Published = p.PublishStatus
-	if err = actions.SetPublishStatus(r.node, &ref, ref.Published); err != nil {
+	if err = base.SetPublishStatus(r.node.Repo, &ref, ref.Published); err != nil {
 		return err
 	}
 
@@ -485,11 +514,11 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
-	if err := actions.ModifyDataset(r.node, &p.Current, &p.New, true /*isRename*/); err != nil {
+	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &p.Current, &p.New, true /*isRename*/); err != nil {
 		return err
 	}
 
-	if err = actions.DatasetHead(ctx, r.node, &p.New); err != nil {
+	if err = base.ReadDataset(ctx, r.node.Repo, &p.New); err != nil {
 		log.Debug(err.Error())
 		return err
 	}
@@ -614,7 +643,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		Published: dsr.Published,
 	}
 
-	if err := actions.ModifyDataset(r.node, &ref, replace, false /*isRename*/); err != nil {
+	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/); err != nil {
 		return err
 	}
 	if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen); err != nil {
@@ -655,7 +684,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 		log.Errorf("pulling logs: %s", pullLogsErr)
 	}
 
-	if err = actions.AddDataset(ctx, r.node, r.inst.RemoteClient(), p.RemoteAddr, &ref); err != nil {
+	if err = r.inst.RemoteClient().AddDataset(ctx, &ref, p.RemoteAddr); err != nil {
 		return err
 	}
 
@@ -718,7 +747,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	*errors, err = actions.Validate(ctx, r.node, ref, body, schema)
+	*errors, err = base.Validate(ctx, r.node.Repo, ref, body, schema)
 	return
 }
 
@@ -727,6 +756,7 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
 	}
+	ctx := context.TODO()
 
 	ref, err := repo.ParseDatasetRef(*refstr)
 	if err != nil {
@@ -737,7 +767,7 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 	}
 
 	var mf *dag.Manifest
-	mf, err = actions.NewManifest(r.node, ref.Path)
+	mf, err = r.node.NewManifest(ctx, ref.Path)
 	if err != nil {
 		return
 	}
@@ -750,9 +780,10 @@ func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Manifest", a, b)
 	}
+	ctx := context.TODO()
 
 	var mf *dag.Manifest
-	mf, err = actions.Missing(r.node, a)
+	mf, err = r.node.MissingManifest(ctx, a)
 	if err != nil {
 		return
 	}
@@ -770,6 +801,7 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
 	}
+	ctx := context.TODO()
 
 	ref, err := repo.ParseDatasetRef(s.RefStr)
 	if err != nil {
@@ -780,7 +812,7 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	}
 
 	var info *dag.Info
-	info, err = actions.NewDAGInfo(r.node, ref.Path, s.Label)
+	info, err = r.node.NewDAGInfo(ctx, ref.Path, s.Label)
 	if err != nil {
 		return
 	}

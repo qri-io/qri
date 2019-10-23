@@ -3,8 +3,8 @@ package lib
 import (
 	"context"
 
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/remote"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -108,7 +108,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 	}
 
 	res.Published = true
-	return actions.SetPublishStatus(r.inst.node, res, res.Published)
+	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
 }
 
 // Unpublish asks a remote to remove a dataset
@@ -148,7 +148,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) er
 	}
 
 	res.Published = false
-	return actions.SetPublishStatus(r.inst.node, res, res.Published)
+	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
 }
 
 // PullDataset fetches a dataset ref from a remote

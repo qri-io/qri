@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-crypto"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
@@ -27,6 +28,8 @@ var (
 		Peername: "peer",
 		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 	}
+
+	devNull = ioes.NewDiscardIOStreams()
 )
 
 func init() {
@@ -49,7 +52,11 @@ func testdataPath(path string) string {
 
 func newTestRepo(t *testing.T) repo.Repo {
 	mapStore := cafs.NewMapstore()
-	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, qfs.NewMemFS(), profile.NewMemStore())
+	mux := qfs.NewMux(map[string]qfs.Filesystem{
+		"map":  mapStore,
+		"cafs": mapStore,
+	})
+	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, mux, profile.NewMemStore())
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -100,7 +107,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) repo.DatasetRe
 		tc.Input.PreviousPath = ""
 	}()
 
-	ref, err = CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err = CreateDataset(ctx, r, devNull, tc.Input, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -114,7 +121,41 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := CreateDataset(ctx, r, ioes.NewDiscardIOStreams(), tc.Input, nil, false, true, false, true)
+	ref, err := CreateDataset(ctx, r, devNull, tc.Input, nil, false, true, false, true)
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	return ref
+}
+
+func addNowTransformDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+	ctx := context.Background()
+
+	ds := &dataset.Dataset{
+		Name:     "now_tf",
+		Peername: "peer",
+		Commit: &dataset.Commit{
+			Title: "",
+		},
+		Meta: &dataset.Meta{
+			Title: "example transform",
+		},
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaArray,
+		},
+		Transform: &dataset.Transform{},
+	}
+
+	script := `
+load("time.star", "time")
+
+def transform(ds, ctx):
+	ds.set_body([str(time.now())])`
+	ds.Transform.SetScriptFile(qfs.NewMemfileBytes("transform.star", []byte(script)))
+	ds.SetBodyFile(qfs.NewMemfileBytes("data.json", []byte("[]")))
+
+	ref, err := CreateDataset(ctx, r, devNull, ds, nil, false, true, false, true)
 	if err != nil {
 		t.Fatal(err.Error())
 	}

@@ -1,29 +1,28 @@
-package actions
+package base
 
 import (
 	"context"
 	"fmt"
 
 	"github.com/qri-io/dataset/dsdiff"
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
 // DiffDatasets calculates the difference between two dataset references
-func DiffDatasets(ctx context.Context, node *p2p.QriNode, leftRef, rightRef repo.DatasetRef, all bool, components map[string]bool) (diffs map[string]*dsdiff.SubDiff, err error) {
+func DiffDatasets(ctx context.Context, r repo.Repo, leftRef, rightRef repo.DatasetRef, all bool, components map[string]bool) (diffs map[string]*dsdiff.SubDiff, err error) {
 	if leftRef.IsEmpty() || rightRef.IsEmpty() {
 		// TODO - make new error
 		err = fmt.Errorf("please provide two dataset references to compare")
 		return
 	}
 
-	if err = DatasetHead(ctx, node, &leftRef); err != nil {
-		return
+	if err = ReadDataset(ctx, r, &leftRef); err != nil {
+		return nil, err
 	}
 	dsLeft := leftRef.Dataset
 
-	if err = DatasetHead(ctx, node, &rightRef); err != nil {
-		return
+	if err = ReadDataset(ctx, r, &rightRef); err != nil {
+		return nil, err
 	}
 	dsRight := rightRef.Dataset
 
@@ -94,51 +93,6 @@ func DiffDatasets(ctx context.Context, node *p2p.QriNode, leftRef, rightRef repo
 			}
 		}
 	}
-	// Hack to examine data
-	// if all || components["data"] == true {
-	// 	if dsLeft.Structure.Checksum == dsRight.Structure.Checksum {
-	// 		return
-	// 	}
-	// 	params0 := &ReadParams{
-	// 		Format: dataset.JSONDataFormat,
-	// 		Path:   dsLeft.Path().String(),
-	// 	}
-	// 	params1 := &ReadParams{
-	// 		Format: dataset.JSONDataFormat,
-	// 		Path:   dsRight.Path().String(),
-	// 	}
-	// 	result0 := &ReadResult{}
-	// 	result1 := &ReadResult{}
-	// 	err := r.ReadBody(params0, result0)
-	// 	if err != nil {
-	// 		log.Debug(err.Error())
-	// 		return fmt.Errorf("error getting structured data: %s", err.Error())
-	// 	}
-	// 	err = r.ReadBody(params1, result1)
-	// 	if err != nil {
-	// 		log.Debug(err.Error())
-	// 		return fmt.Errorf("error getting structured data: %s", err.Error())
-	// 	}
-
-	// 	m0 := &map[string]json.RawMessage{"data": result0.Data}
-	// 	m1 := &map[string]json.RawMessage{"data": result1.Data}
-	// 	dataBytes0, err := json.Marshal(m0)
-	// 	if err != nil {
-	// 		log.Debug(err.Error())
-	// 		return fmt.Errorf("error marshaling json: %s", err.Error())
-	// 	}
-	// 	dataBytes1, err := json.Marshal(m1)
-	// 	if err != nil {
-	// 		log.Debug(err.Error())
-	// 		return fmt.Errorf("error marshaling json: %s", err.Error())
-	// 	}
-	// 	dataDiffs, err := dsdiff.DiffJSON(dataBytes0, dataBytes1, "data")
-	// 	if err != nil {
-	// 		log.Debug(err.Error())
-	// 		return fmt.Errorf("error comparing structured data: %s", err.Error())
-	// 	}
-	// 	diffs["data"] = dataDiffs
-	// }
 
 	return
 }

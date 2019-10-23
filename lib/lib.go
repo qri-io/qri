@@ -47,7 +47,7 @@ var (
 )
 
 // VersionNumber is the current version qri
-const VersionNumber = "0.9.1-alpha"
+const VersionNumber = "0.9.2-dev"
 
 func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
@@ -530,6 +530,12 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		teardown: teardown,
 		cfg:      cfg,
 		node:     node,
+	}
+
+	var err error
+	inst.remoteClient, err = remote.NewClient(node)
+	if err != nil {
+		panic(err)
 	}
 
 	if node != nil && node.Repo != nil {

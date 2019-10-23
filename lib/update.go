@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/actions"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -113,9 +112,6 @@ func (m *UpdateMethods) jobFromScheduleParams(ctx context.Context, p *SchedulePa
 		r = finst.Repo()
 	}
 
-	if err = repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-		return
-	}
 	if err = base.ReadDataset(ctx, r, &ref); err != nil {
 		return
 	}
@@ -376,8 +372,8 @@ func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res
 	}
 
 	if !base.InLocalNamespace(m.inst.Repo(), &ref) {
-		*res, err = actions.UpdateRemoteDataset(ctx, m.inst.Node(), &ref, true)
-		return err
+		// TODO (b5) - add remoteclient.Update method
+		return fmt.Errorf("remote updating is currently disabled")
 	}
 
 	// default to recalling transform scripts for local updates

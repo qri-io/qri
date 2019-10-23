@@ -9,6 +9,29 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// Recall loads revisions of a dataset from history
+func Recall(ctx context.Context, r repo.Repo, str string, ref repo.DatasetRef) (*dataset.Dataset, error) {
+	if str == "" {
+		return &dataset.Dataset{}, nil
+	}
+
+	revs, err := dsref.ParseRevs(str)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
+		return nil, err
+	}
+
+	res, err := LoadRevs(ctx, r, ref, revs)
+	if err != nil {
+		return nil, err
+	}
+
+	return res, nil
+}
+
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
 func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*dsref.Rev) (res *dataset.Dataset, err error) {

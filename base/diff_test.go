@@ -1,4 +1,4 @@
-package actions
+package base
 
 import (
 	"context"
@@ -7,11 +7,11 @@ import (
 
 func TestDiffDatasets(t *testing.T) {
 	ctx := context.Background()
-	node := newTestNode(t)
-	cities := addCitiesDataset(t, node)
-	fc := addFlourinatedCompoundsDataset(t, node)
+	r := newTestRepo(t)
+	cities := addCitiesDataset(t, r)
+	fc := addFlourinatedCompoundsDataset(t, r)
 
-	diffs, err := DiffDatasets(ctx, node, cities, fc, true, nil)
+	diffs, err := DiffDatasets(ctx, r, cities, fc, true, nil)
 	if err != nil {
 		t.Error(err.Error())
 	}

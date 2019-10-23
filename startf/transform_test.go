@@ -8,11 +8,11 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 	repoTest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/starlib"
 	"github.com/qri-io/starlib/testdata"
@@ -27,6 +27,24 @@ func scriptFile(t *testing.T, path string) qfs.File {
 	}
 
 	return qfs.NewMemfileBytes(path, data)
+}
+
+func TestOpts(t *testing.T) {
+	o := &ExecOpts{}
+	SetSecrets(nil)(o)
+	SetSecrets(map[string]string{"a": "b"})(o)
+	SetOutWriter(nil)(o)
+	AddQriRepo(nil)(o)
+	AddMutateFieldCheck(nil)(o)
+
+	expect := &ExecOpts{
+		Secrets:   map[string]interface{}{"a": "b"},
+		OutWriter: nil,
+	}
+
+	if diff := cmp.Diff(expect, o); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
 }
 
 func TestExecScript(t *testing.T) {
@@ -99,9 +117,26 @@ func TestExecScript2(t *testing.T) {
 	}
 }
 
+func TestScriptError(t *testing.T) {
+	ctx := context.Background()
+	script := `
+def transform(ds, ctx):
+	error("script error")
+	`
+	scriptFile := qfs.NewMemfileBytes("tf.star", []byte(script))
+
+	ds := &dataset.Dataset{
+		Transform: &dataset.Transform{},
+	}
+	ds.Transform.SetScriptFile(scriptFile)
+	if err := ExecScript(ctx, ds, nil); err == nil {
+		t.Errorf("expected script to error. got nil")
+	}
+}
+
 func TestLoadDataset(t *testing.T) {
 	ctx := context.Background()
-	node := testQriNode(t)
+	repo := testRepo(t)
 
 	ds := &dataset.Dataset{
 		Transform: &dataset.Transform{},
@@ -109,7 +144,7 @@ func TestLoadDataset(t *testing.T) {
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/load_ds.star"))
 
 	err := ExecScript(ctx, ds, nil, func(o *ExecOpts) {
-		o.Node = node
+		o.Repo = repo
 		o.ModuleLoader = testModuleLoader(t)
 	})
 	if err != nil {
@@ -160,17 +195,47 @@ func TestGetMetaWithPrev(t *testing.T) {
 	}
 }
 
-func testQriNode(t *testing.T) *p2p.QriNode {
+func TestMutatedComponentsFunc(t *testing.T) {
+	ds := &dataset.Dataset{
+		Commit:    &dataset.Commit{},
+		Meta:      &dataset.Meta{},
+		Transform: &dataset.Transform{},
+		Structure: &dataset.Structure{},
+		Viz:       &dataset.Viz{},
+		Body:      []interface{}{"foo"},
+	}
+
+	fn := MutatedComponentsFunc(ds)
+
+	paths := []string{
+		"commit",
+		"meta",
+		"transform",
+		"structure",
+		"viz",
+		"body",
+	}
+	for _, p := range paths {
+		if err := fn(p); err == nil {
+			t.Errorf("expected error for path: '%s', got nil", p)
+		}
+	}
+
+	fn = MutatedComponentsFunc(&dataset.Dataset{})
+	for _, p := range paths {
+		if err := fn(p); err != nil {
+			t.Errorf("expected empty dataset to not error for path: '%s', got: %s", p, err)
+		}
+	}
+
+}
+
+func testRepo(t *testing.T) repo.Repo {
 	mr, err := repoTest.NewTestRepo()
 	if err != nil {
 		t.Fatal(err)
 	}
-
-	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
-	if err != nil {
-		t.Fatal(err.Error())
-	}
-	return node
+	return mr
 }
 
 func testModuleLoader(t *testing.T) func(thread *starlark.Thread, module string) (dict starlark.StringDict, err error) {
