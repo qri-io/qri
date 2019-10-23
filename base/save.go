@@ -1,17 +1,17 @@
 package base
 
 import (
-	"io"
-	"fmt"
 	"context"
+	"fmt"
+	"io"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/startf"
 )
@@ -117,8 +117,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 }
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
-// references within the repo if successful. CreateDataset is a lower-level
-// component of github.com/qri-io/qri/actions.CreateDataset
+// references within the repo if successful
 func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile

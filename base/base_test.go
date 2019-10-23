@@ -132,9 +132,7 @@ func addNowTransformDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	ctx := context.Background()
 
 	ds := &dataset.Dataset{
-		Name: "now_tf",
-		// TODO (b5): need to figure out a better story for peernames in test cases
-		// this was put here to satisfy qri-io/qri/actions.TestUpdateDatasetLocal
+		Name:     "now_tf",
 		Peername: "peer",
 		Commit: &dataset.Commit{
 			Title: "",

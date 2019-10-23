@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"

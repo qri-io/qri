@@ -162,7 +162,6 @@ func ConvertBodyFile(file qfs.File, in, out *dataset.Structure, limit, offset in
 // * ds.BodyBytes not being nil (requires ds.Structure.Format be set to know data format)
 // * ds.BodyPath being a url
 // * ds.BodyPath being a path on the local filesystem
-// TODO - consider moving this func to some other package. maybe actions?
 func DatasetBodyFile(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset) (qfs.File, error) {
 	if ds.BodyBytes != nil {
 		if ds.Structure == nil || ds.Structure.Format == "" {
@@ -223,6 +222,7 @@ func DatasetBodyFile(ctx context.Context, store cafs.Filestore, ds *dataset.Data
 }
 
 // ConvertBodyFormat rewrites a body from a source format to a destination format.
+// TODO (b5): Combine this with ConvertBodyFile, update callers.
 func ConvertBodyFormat(bodyFile qfs.File, fromSt, toSt *dataset.Structure) (qfs.File, error) {
 	// Reader for entries of the source body.
 	r, err := dsio.NewEntryReader(fromSt, bodyFile)

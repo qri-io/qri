@@ -36,7 +36,7 @@ func TestReadBody(t *testing.T) {
 	}
 }
 
-func TestDatasetPodBodyFile(t *testing.T) {
+func TestDatasetBodyFile(t *testing.T) {
 	ctx := context.Background()
 	s := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte(`{"json":"data"}`))

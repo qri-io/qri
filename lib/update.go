@@ -373,9 +373,6 @@ func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res
 
 	if !base.InLocalNamespace(m.inst.Repo(), &ref) {
 		// TODO (b5) - add remoteclient.Update method
-		// actions.UpdateRemoteDataset was intended to bring a reference to the latest version, syncing to the
-		// latest history it can find over p2p & via any configured registry
-		// we lost it along the way, and need to update to use logbook, etc.
 		return fmt.Errorf("remote updating is currently disabled")
 	}
 
