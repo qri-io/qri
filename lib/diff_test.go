@@ -5,9 +5,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"

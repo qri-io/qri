@@ -12,7 +12,7 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/spf13/cobra"
 )
 

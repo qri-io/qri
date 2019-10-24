@@ -1,0 +1,42 @@
+{
+  "meta": {
+    "qri": "md:0",
+    "title": "example city data"
+  },
+  "commit": {
+    "qri": "cm:0",
+    "title": ""
+  },
+  "qri": "ds:0",
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "city",
+            "type": "string"
+          },
+          {
+            "title": "pop",
+            "type": "integer"
+          },
+          {
+            "title": "avg_age",
+            "type": "number"
+          },
+          {
+            "title": "in_usa",
+            "type": "boolean"
+          }
+        ]
+      }
+    }
+  }
+}

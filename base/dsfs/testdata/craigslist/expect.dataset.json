@@ -1,0 +1,29 @@
+{
+  "commit": {
+    "qri": "cm:0",
+    "signature": "QDA/hZm6buL6oBMdWAZnLi3mg5GMa10odfedy98hx8Alavbgn1c5WkZqd1dejqhkiKKjuok8fMdv5VLKGp12FVRXw3JpFa5fK8o5sQGNIVXe3TK/qmVHWKslNE7HhOkzb/ok8idTBHu3HPkXqDmHioZE0JeLkd6F41BIOkCcVBv+w3SviR3UqMSXtzeBqznUD4XfWUFe5PO08GkQ4qSOZKXj1aqxq/oSGQJHt4vN+891hn/fJDx0inLPRT4Dn4Hm8LL0tJ+o4OJ4q7gC+t9QrPaNK69aO6hgAXxJQbLGReh291Fdk+DWe7McGVJsp0YU0hdDC8kafotUHZosVVESWQ==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "initial commit"
+  },
+  "bodyPath": "/map/QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "QmUPfueN4Amv6pyPddi6KRtYFw3dpJKyD4ka95jUgBq9dv",
+    "entries": 1200,
+    "errCount": 1,
+    "depth" : 4,
+    "format": "json",
+    "length": 520254,
+    "qri": "st:0",
+    "schema": {
+      "title": "Apartment",
+      "type": "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "name" : { "type": "string"}
+        }
+      }
+    }
+  }
+}

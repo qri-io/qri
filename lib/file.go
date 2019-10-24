@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/dsfs/dsutil"
 	"github.com/qri-io/qri/base/fill"
 	"gopkg.in/yaml.v2"
 )

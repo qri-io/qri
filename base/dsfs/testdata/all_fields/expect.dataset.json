@@ -1,0 +1,55 @@
+{
+  "commit": {
+    "qri": "cm:0",
+    "signature": "RZU/18bxxacveMoNvGxINIS9MxvNwtc4OiSCRjCGnospztHNhJfJP0PflrzKG1tqLGi+c4w94BJRmLR/I5YaVqqwm86vGkYhwDRuBEViuT4GlKCzVEFUk63fJsT9YmcUWlabqEnUW2l0O6p+RatfmumlKOleONMYy1woa5PbIzRGoITo4u9piYiV6RVRJ9bURjEU7cr8iVXcwO+YEw6qMCUBKUAok+yttjt+iYm0JLD9hPoQO14Vu4jWMFxByoLvVIEquEqnlgyuQGvelFfuApUI5goTftOcASANuTsnrOe6gq0HJxNN27kAYQujS3swspi7qVrL9X8v341YKu77fQ==",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "I'm a commit"
+  },
+  "bodyPath": "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+  "meta": {
+    "qri": "md:0",
+    "title": "dataset with all submodels example"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+    "depth" : 2,
+    "entries": 5,
+    "errCount": 1,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 155,
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "transform": {
+    "qri": "tf:0",
+    "resources": {
+      "foo": {"path":"/not/a/real/path"}
+    },
+    "scriptPath": "/map/QmaCHzMEoDKF21Qd3emkT1mWEBS5uZG5BxLeJNbaXxghWc",
+    "syntax": "sql"
+  },
+  "viz":{
+    "format": "html",
+    "qri": "vz:0",
+    "scriptPath": "/map/QmedXhMECTMY5x92PavJMAef4g5bW1KT5PpATvxJYmu4Fv"
+  }
+}

@@ -6,7 +6,7 @@ import (
 	"github.com/ipfs/go-cid"
 	ipld "github.com/ipfs/go-ipld-format"
 	"github.com/qri-io/dag"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qfs/cafs"
 )
 

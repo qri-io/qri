@@ -1,0 +1,70 @@
+{
+  "qri": "ds:0",
+  "commit": {
+    "qri": "cm:0",
+    "title": "I'm a commit"
+  },
+  "meta": {
+    "qri": "md:0",
+    "title": "dataset with all submodels example"
+  },
+  "transform": {
+    "qri": "tf:0",
+    "syntax": "sql",
+    "scriptPath": "foo.star",
+    "structure": {
+      "qri": "st:0",
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": [
+            {
+              "title": "title",
+              "type": "string"
+            },
+            {
+              "title": "duration",
+              "type": "integer"
+            }
+          ]
+        }
+      }
+    },
+    "resources": {
+      "foo": {"path":"/not/a/real/path"}
+    }
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  },
+  "viz":{
+    "format": "html",
+    "qri": "vz:0",
+    "scriptPath": "bar"
+  }
+}

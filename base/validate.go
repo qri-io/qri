@@ -9,11 +9,11 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 

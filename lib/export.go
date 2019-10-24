@@ -16,9 +16,9 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/dsutil"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs/dsutil"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
