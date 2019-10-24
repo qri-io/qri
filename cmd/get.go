@@ -3,11 +3,11 @@ package cmd
 import (
 	"bytes"
 	"fmt"
-	"regexp"
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -81,9 +81,6 @@ type GetOptions struct {
 	DatasetRequests *lib.DatasetRequests
 }
 
-// isDatasetField checks if a string is a dataset field or not
-var isDatasetField = regexp.MustCompile("(?i)^(commit|cm|structure|st|body|bd|meta|md|viz|vz|transform|tf|rendered|rd)($|\\.)")
-
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
@@ -91,7 +88,7 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if len(args) > 0 {
-		if isDatasetField.MatchString(args[0]) {
+		if component.IsDatasetField.MatchString(args[0]) {
 			o.Selector = args[0]
 			args = args[1:]
 		}

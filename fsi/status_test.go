@@ -56,12 +56,14 @@ func TestStatusValid(t *testing.T) {
 		actual += strings.Replace(fmt.Sprintf("%s", ch), paths.firstDir, ".", 1)
 	}
 	// Construct the expected response by getting the real timestamp from each component.
-	expectList := []string{"body", "commit", "meta", "structure"}
+	expectList := []string{"body", "commit", "meta", "readme", "structure"}
 	expect := ""
 	for _, cmpName := range expectList {
 		var componentFile string
 		if cmpName == "body" {
 			componentFile = "./body.csv"
+		} else if cmpName == "readme" {
+			componentFile = "./readme.md"
 		} else {
 			componentFile = fmt.Sprintf("./%s.json", cmpName)
 		}

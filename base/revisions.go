@@ -102,6 +102,13 @@ func sel(r *dsref.Rev, ds, res *dataset.Dataset) bool {
 				res.Viz = ds.Viz
 			}
 		}
+	case "rm":
+		if ds.Readme != nil {
+			r.Gen--
+			if r.Gen == 0 {
+				res.Readme = ds.Readme
+			}
+		}
 	case "st":
 		if ds.Structure != nil {
 			r.Gen--

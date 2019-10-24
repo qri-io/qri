@@ -77,7 +77,7 @@ func ListDirectoryComponents(dir string) (Component, error) {
 }
 
 // ExpandListedComponents will read whatever is necessary in order to discover all of the components
-// that exist within this observation. For example, is a "dataset" exists, it will be read to find
+// that exist within this observation. For example, if a "dataset" exists, it will be read to find
 // out if it contains a "meta", a "structure", etc. No other components are expanded, but this
 // may change in the future if we decide another component can contain some other component. If
 // the "dataset" file does not exist, an empty dataset component will be created.
@@ -134,7 +134,15 @@ func ExpandListedComponents(container Component, resolver qfs.Filesystem) error 
 			bodyStructure = ds.Structure
 		}
 	}
-	// TODO: viz
+	if ds.Readme != nil {
+		comp := assignField(filesysComponent, "readme", dsComponent)
+		if comp != nil {
+			readme := comp.(*ReadmeComponent)
+			readme.Resolver = resolver
+			readme.Value = ds.Readme
+			readme.IsLoaded = true
+		}
+	}
 	// TODO: transform
 	if ds.Body != nil {
 		comp := assignField(filesysComponent, "body", dsComponent)
@@ -192,12 +200,15 @@ func assignField(target Component, componentName string, parent Component) Compo
 func GetKnownFilenames() map[string][]string {
 	componentExtensionTypes := []string{".json", ".yml", ".yaml"}
 	bodyExtensionTypes := []string{".csv", ".json", ".cbor", ".xlsx"}
+	readmeExtensionTypes := []string{".md", ".html"}
 	return map[string][]string{
 		"dataset":   componentExtensionTypes,
 		"commit":    componentExtensionTypes,
 		"meta":      componentExtensionTypes,
 		"structure": componentExtensionTypes,
+		// TODO(dlong): Viz is deprecated
 		"viz":       []string{".html"},
+		"readme":    readmeExtensionTypes,
 		"transform": []string{".star"},
 		"body":      bodyExtensionTypes,
 	}

@@ -1,6 +1,7 @@
 package fill
 
 import (
+	"bytes"
 	"encoding/json"
 	"reflect"
 	"testing"
@@ -244,6 +245,7 @@ type Collection struct {
 	Ptr  *int
 	Dict map[string]string
 	List []string
+	Blob []byte
 	Sub  SubElement
 	Big  int64
 	Ubig uint64
@@ -538,6 +540,61 @@ func TestStringSlice(t *testing.T) {
 	}
 	if c.List[0] != "a" {
 		t.Error("expected: List[0] == \"a\"")
+	}
+}
+
+func TestByteSlice(t *testing.T) {
+	jsonData := `{
+  "blob": "abcd"
+}`
+	data := make(map[string]interface{})
+	err := json.Unmarshal([]byte(jsonData), &data)
+	if err != nil {
+		panic(err)
+	}
+
+	var c Collection
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(c.Blob) != 4 {
+		t.Error("expected size 4 for Blob")
+	}
+	if bytes.Compare(c.Blob, []byte("abcd")) != 0 {
+		t.Error("expected: Blob == \"abcd\"")
+	}
+
+	// Binary data may also be assigned from a slice of bytes
+	data = map[string]interface{}{
+		"blob": []byte{0x01, 0x02, 0x03, 0x04, 0x05},
+	}
+	c = Collection{}
+	err = Struct(data, &c)
+	if err != nil {
+		panic(err)
+	}
+
+	if len(c.Blob) != 5 {
+		t.Error("expected size 5 for Blob")
+	}
+	if bytes.Compare(c.Blob, []byte{0x01, 0x02, 0x03, 0x04, 0x05}) != 0 {
+		t.Error("expected: Blob == \"\\x01, \\x02, \\x03, \\x04, \\x05\"")
+	}
+
+	// Binary data can't be assigned an integer, that's an error
+	data = map[string]interface{}{
+		"blob": 3456,
+	}
+	c = Collection{}
+	err = Struct(data, &c)
+	expect := `at "Blob": need type byte slice, value 3456`
+	if err == nil {
+		t.Fatalf("expected: error for wrong type, but no error returned")
+	}
+	if err.Error() != expect {
+		t.Errorf("expected: expect: \"%s\", got: \"%s\"", expect, err.Error())
 	}
 }
 

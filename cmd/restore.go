@@ -5,6 +5,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -68,7 +69,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 			arg = "structure.schema"
 		}
 
-		if isDatasetField.MatchString(arg) {
+		if component.IsDatasetField.MatchString(arg) {
 			if o.ComponentName != "" {
 				return fmt.Errorf("cannot provide more than one dataset field")
 			}
