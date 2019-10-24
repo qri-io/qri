@@ -12,6 +12,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -103,7 +104,7 @@ type DAGOptions struct {
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *DAGOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) > 0 {
-		if isDatasetField.MatchString(args[0]) {
+		if component.IsDatasetField.MatchString(args[0]) {
 			o.Label = fullFieldToAbbr(args[0])
 			args = args[1:]
 		}

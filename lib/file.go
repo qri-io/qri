@@ -123,10 +123,18 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 		case ".html":
 			// html files are assumped to be a viz script with no additional viz
 			// component details
+			// TODO(dlong): Deprecate viz, assume "html" is a readme
 			ds.Viz = &dataset.Viz{ScriptPath: path}
 			ds.Viz.Format = "html"
 			ds.Viz.SetScriptFile(qfs.NewMemfileReader("viz.html", f))
 			return &ds, "vz", nil
+
+		case ".md":
+			// md files are assumped to be a readme file
+			ds.Readme = &dataset.Readme{ScriptPath: path}
+			ds.Readme.Format = "md"
+			ds.Readme.SetScriptFile(qfs.NewMemfileReader("readme.md", f))
+			return &ds, "rm", nil
 
 		default:
 			return nil, "", fmt.Errorf("error, unrecognized file extension: \"%s\"", fileExt)
@@ -143,6 +151,10 @@ func fillDatasetOrComponent(fields map[string]interface{}, path string, ds *data
 
 	if kindStr, ok := fields["qri"].(string); ok && len(kindStr) >= 2 {
 		switch kindStr[:2] {
+		case "rm":
+			ds.Readme = &dataset.Readme{}
+			target = ds.Readme
+			kind = "rm"
 		case "md":
 			ds.Meta = &dataset.Meta{}
 			target = ds.Meta
@@ -177,5 +189,8 @@ func absDatasetPaths(path string, dsp *dataset.Dataset) {
 	}
 	if dsp.Viz != nil && qfs.PathKind(dsp.Viz.ScriptPath) == "local" && !filepath.IsAbs(dsp.Viz.ScriptPath) {
 		dsp.Viz.ScriptPath = filepath.Join(base, dsp.Viz.ScriptPath)
+	}
+	if dsp.Readme != nil && qfs.PathKind(dsp.Readme.ScriptPath) == "local" && !filepath.IsAbs(dsp.Readme.ScriptPath) {
+		dsp.Readme.ScriptPath = filepath.Join(base, dsp.Readme.ScriptPath)
 	}
 }

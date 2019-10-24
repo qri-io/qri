@@ -15,7 +15,7 @@ func TestListDirectoryComponents(t *testing.T) {
 	}
 
 	names := getComponentNames(components)
-	expect := []string{"body", "meta"}
+	expect := []string{"body", "meta", "readme"}
 	if diff := cmp.Diff(expect, names); diff != "" {
 		t.Fatalf("component names (-want +got):\n%s", diff)
 	}
@@ -45,6 +45,13 @@ func TestListDirectoryComponents(t *testing.T) {
 	expectStr = "{\"qri\":\"md:0\",\"title\":\"title\"}"
 	if diff := cmp.Diff(expectStr, string(data)); diff != "" {
 		t.Errorf("meta component (-want +got):\n%s", diff)
+	}
+
+	readmeComponent := components.Base().GetSubcomponent("readme").(*ReadmeComponent)
+	readmeComponent.LoadAndFill(nil)
+	expectStr = "# Readme\n\nDescribes this dataset.\n"
+	if diff := cmp.Diff(expectStr, string(readmeComponent.Value.ScriptBytes)); diff != "" {
+		t.Errorf("readme component (-want +got):\n%s", diff)
 	}
 }
 

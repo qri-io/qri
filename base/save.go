@@ -105,6 +105,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		return
 	}
 
+	// TODO(dlong): Remove this, stop generating a default viz.
 	// add a default viz if one is needed
 	if sw.ShouldRender {
 		MaybeAddDefaultViz(changes)

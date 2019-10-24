@@ -68,6 +68,7 @@ var fieldMap = map[string]string{
 	"structure": "st",
 	"body":      "bd",
 	"rendered":  "rd",
+	"readme":    "rm",
 
 	"ds": "ds",
 	"md": "md",
@@ -76,4 +77,5 @@ var fieldMap = map[string]string{
 	"st": "st",
 	"bd": "bd",
 	"rd": "rd",
+	"rm": "rm",
 }

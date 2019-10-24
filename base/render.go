@@ -66,6 +66,7 @@ func init() {
 }
 
 // MaybeAddDefaultViz sets a dataset viz component and template if none exists
+// TODO(dlong): This is deprecated and should be removed.
 func MaybeAddDefaultViz(ds *dataset.Dataset) {
 	if ds.Viz != nil {
 		// ensure viz defaults to HTML if unspecified
@@ -138,6 +139,7 @@ func Render(ctx context.Context, r repo.Repo, ref repo.DatasetRef, tmplData []by
 	ds.Peername = ref.Peername
 	ds.Name = ref.Name
 
+	// TODO(dlong): Deprecated, this should be removed.
 	MaybeAddDefaultViz(ds)
 
 	if tmplData != nil {

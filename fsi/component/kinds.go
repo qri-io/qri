@@ -5,7 +5,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"gopkg.in/yaml.v2"
 	"io"
 	"io/ioutil"
 	"os"
@@ -16,6 +15,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/fill"
+	"gopkg.in/yaml.v2"
 )
 
 // FilesysComponent represents a collection of components existing as files on a filesystem
@@ -484,6 +484,86 @@ func SerializeBody(source interface{}, st *dataset.Structure) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
+// ReadmeComponent represents a meta component
+type ReadmeComponent struct {
+	BaseComponent
+	Resolver qfs.PathResolver
+	Value    *dataset.Readme
+}
+
+// Compare compares to another component
+func (rc *ReadmeComponent) Compare(compare Component) (bool, error) {
+	other, ok := compare.(*ReadmeComponent)
+	if !ok {
+		return false, nil
+	}
+	if err := rc.LoadAndFill(nil); err != nil {
+		return false, err
+	}
+	if err := compare.LoadAndFill(nil); err != nil {
+		return false, err
+	}
+	return compareComponentData(rc.Value, other.Value)
+}
+
+// WriteTo writes the component as a file to the directory
+func (rc *ReadmeComponent) WriteTo(dirPath string) error {
+	if err := rc.LoadAndFill(nil); err != nil {
+		return err
+	}
+	if rc.Value != nil && !rc.Value.IsEmpty() {
+		filename := filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
+		if err := ioutil.WriteFile(filename, rc.Value.ScriptBytes, os.ModePerm); err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+// RemoveFrom removes the component file from the directory
+func (rc *ReadmeComponent) RemoveFrom(dirPath string) error {
+	// TODO(dlong): Does component have SourceFile set?
+	if err := os.Remove(filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// DropDerivedValues drops derived values from the component
+func (rc *ReadmeComponent) DropDerivedValues() {
+	rc.Value.DropDerivedValues()
+}
+
+// LoadAndFill loads data from the component source file and assigns it
+func (rc *ReadmeComponent) LoadAndFill(ds *dataset.Dataset) error {
+	if rc.Base().IsLoaded {
+		return nil
+	}
+	if rc.Value == nil {
+		fields, err := rc.Base().LoadFile()
+		if err != nil {
+			return err
+		}
+		rc.Value = &dataset.Readme{}
+		if err := fill.Struct(fields, rc.Value); err != nil {
+			return err
+		}
+	}
+	rc.Base().IsLoaded = true
+
+	if rc.Resolver != nil {
+		err := rc.Value.InlineScriptFile(context.Background(), rc.Resolver)
+		if err != nil {
+			return err
+		}
+	}
+
+	if ds != nil {
+		ds.Readme = rc.Value
+	}
+	return nil
+}
+
 // Base returns the common base data for the component
 func (bc *BaseComponent) Base() *BaseComponent {
 	return bc
@@ -504,20 +584,24 @@ func (bc *BaseComponent) LoadFile() (map[string]interface{}, error) {
 	bc.IsLoaded = true
 	// Parse the file bytes using the specified format
 	fields := make(map[string]interface{})
-	if bc.Format == "json" {
+	switch bc.Format {
+	case "json":
 		if err = json.Unmarshal(data, &fields); err != nil {
 			bc.SetErrorAsProblem("parse", err)
 			return nil, err
 		}
 		return fields, nil
-	} else if bc.Format == "yaml" {
+	case "yaml":
 		if err = yaml.Unmarshal(data, &fields); err != nil {
 			bc.SetErrorAsProblem("parse", err)
 			return nil, err
 		}
 		return fields, nil
+	case "html", "md":
+		fields["ScriptBytes"] = data
+		return fields, nil
 	}
-	return nil, fmt.Errorf("unknown format \"%s\"", bc.Format)
+	return nil, fmt.Errorf("unknown local file format \"%s\"", bc.Format)
 }
 
 // SetErrorAsProblem converts the error into a problem and assigns it
@@ -540,6 +624,8 @@ func (bc *BaseComponent) SetSubcomponent(name string, base BaseComponent) Compon
 		component = &CommitComponent{BaseComponent: base}
 	} else if name == "structure" {
 		component = &StructureComponent{BaseComponent: base}
+	} else if name == "readme" {
+		component = &ReadmeComponent{BaseComponent: base}
 	} else if name == "body" {
 		component = &BodyComponent{BaseComponent: base}
 	} else if name == "dataset" {

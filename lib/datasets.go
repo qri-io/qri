@@ -204,6 +204,10 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		// TODO (b5): this is a hack that should be generalized
 		res.Bytes, err = ioutil.ReadAll(ds.Transform.ScriptFile())
 		return err
+	} else if p.Selector == "readme.script" && ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		// `qri get readme.script` loads the readme source, as a special case
+		res.Bytes, err = ioutil.ReadAll(ds.Readme.ScriptFile())
+		return err
 	} else if p.Selector == "viz.script" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
 		// `qri get viz.script` loads the visualization script, as a special case
 		res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
@@ -404,6 +408,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds.BodyBytes == nil &&
 		ds.Structure == nil &&
 		ds.Meta == nil &&
+		ds.Readme == nil &&
 		ds.Viz == nil &&
 		ds.Transform == nil {
 		return fmt.Errorf("no changes to save")
@@ -462,7 +467,9 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	*res = ref
 
 	if p.WriteFSI {
-		fsi.WriteComponents(res.Dataset, ref.FSIPath)
+		// Need to pass filesystem here so that we can read the README component and write it
+		// properly back to disk.
+		fsi.WriteComponents(res.Dataset, ref.FSIPath, r.inst.node.Repo.Filesystem())
 	}
 	return nil
 }

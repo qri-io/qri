@@ -34,6 +34,7 @@ var (
 	// timeObj and strObj are used for reflect.TypeOf
 	timeObj time.Time
 	strObj  string
+	byteObj byte
 )
 
 // putFieldsToTargetStruct iterates over the fields in the target struct, and assigns each
@@ -185,9 +186,28 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 			// If slice is nil, nothing more to do.
 			return
 		}
+
+		if place.Type().Elem() == reflect.TypeOf(byteObj) {
+			// Special behavior for raw binary data, either a byte array or a string.
+			// TODO(dlong): Look into if this is needed for reflect.Array. If yes, add
+			// functionality and tests, if no, document why not.
+			byteSlice, ok := val.([]byte)
+			if ok {
+				place.SetBytes(byteSlice)
+				return
+			}
+			text, ok := val.(string)
+			if ok {
+				place.SetBytes([]byte(text))
+				return
+			}
+			collector.Add(fmt.Errorf("need type byte slice, value %v", val))
+			return
+		}
+
 		slice, ok := val.([]interface{})
 		if !ok {
-			collector.Add(fmt.Errorf("need type slice, value %s", val))
+			collector.Add(fmt.Errorf("need type slice, value %v", val))
 			return
 		}
 		// Get size of type of the slice to deserialize.
@@ -212,7 +232,7 @@ func putValueToPlace(val interface{}, place reflect.Value, collector *ErrorColle
 		}
 		slice, ok := val.([]interface{})
 		if !ok {
-			collector.Add(fmt.Errorf("need type slice, value %s", val))
+			collector.Add(fmt.Errorf("need type array, value %s", val))
 			return
 		}
 		// Get size of type of the slice to deserialize.

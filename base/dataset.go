@@ -35,6 +35,12 @@ func OpenDataset(ctx context.Context, fsys qfs.Filesystem, ds *dataset.Dataset) 
 			return
 		}
 	}
+	if ds.Readme != nil && ds.Readme.ScriptFile() == nil {
+		if err = ds.Readme.OpenScriptFile(ctx, fsys); err != nil {
+			log.Debug(err)
+			return
+		}
+	}
 
 	// TODO (b5) - this is an error sometimes caused by failing to properly pin the
 	// rendered file. this'll really trip up if we're online, b/c ipfs will hang
@@ -72,6 +78,16 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 	}
 	if ds.Viz != nil && ds.Viz.RenderedFile() != nil {
 		if err = ds.Viz.RenderedFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		if err = ds.Readme.ScriptFile().Close(); err != nil {
+			return
+		}
+	}
+	if ds.Readme != nil && ds.Readme.RenderedFile() != nil {
+		if err = ds.Readme.RenderedFile().Close(); err != nil {
 			return
 		}
 	}

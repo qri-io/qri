@@ -180,7 +180,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Write components of the dataset to the working directory.
-	err = fsi.WriteComponents(ds, p.Dir)
+	err = fsi.WriteComponents(ds, p.Dir, m.inst.node.Repo.Filesystem())
 	return err
 }
 
@@ -218,7 +218,7 @@ func (m *FSIMethods) Write(p *FSIWriteParams, res *[]StatusItem) (err error) {
 	}
 
 	// Write components of the dataset to the working directory
-	if err = fsi.WriteComponents(p.Ds, ref.FSIPath); err != nil {
+	if err = fsi.WriteComponents(p.Ds, ref.FSIPath, m.inst.node.Repo.Filesystem()); err != nil {
 		return err
 	}
 

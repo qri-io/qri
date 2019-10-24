@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qfs"
 )
 
 // ReadDir reads the component files in the directory, and returns a dataset
@@ -53,12 +54,12 @@ func GetProblems(comp component.Component) string {
 }
 
 // WriteComponents writes components of the dataset to the given path, as individual files.
-func WriteComponents(ds *dataset.Dataset, dirPath string) error {
+func WriteComponents(ds *dataset.Dataset, dirPath string, resolver qfs.Filesystem) error {
 	// TODO(dlong): In the future, use ListDirectoryComponents(dirPath) to figure out what
 	// files exist, project this component.Component onto those files. This will handle
 	// things like writing a meta component into dataset.json's meta component instead of
 	// a conflicting meta.json
-	comp := component.ConvertDatasetToComponents(ds, nil)
+	comp := component.ConvertDatasetToComponents(ds, resolver)
 	comp.Base().RemoveSubcomponent("commit")
 	comp.DropDerivedValues()
 

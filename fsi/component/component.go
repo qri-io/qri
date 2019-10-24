@@ -20,11 +20,11 @@ type Component interface {
 }
 
 // NumberPossibleComponents is the number of subcomponents plus "dataset".
-const NumberPossibleComponents = 7
+const NumberPossibleComponents = 8
 
 // AllSubcomponentNames is the names of subcomponents that can live on a collection.
 func AllSubcomponentNames() []string {
-	return []string{"commit", "meta", "structure", "viz", "transform", "body"}
+	return []string{"commit", "meta", "structure", "readme", "viz", "transform", "body"}
 }
 
 // ConvertDatasetToComponents will convert a dataset to a component collection
@@ -48,6 +48,12 @@ func ConvertDatasetToComponents(ds *dataset.Dataset, qfilesys qfs.Filesystem) Co
 		cc := CommitComponent{}
 		cc.Value = ds.Commit
 		dc.Subcomponents["commit"] = &cc
+	}
+	if ds.Readme != nil {
+		rc := ReadmeComponent{Resolver: qfilesys}
+		rc.Value = ds.Readme
+		rc.Format = "md"
+		dc.Subcomponents["readme"] = &rc
 	}
 	if ds.BodyPath != "" {
 		bc := BodyComponent{Resolver: qfilesys}
@@ -87,6 +93,11 @@ func ToDataset(comp Component) (*dataset.Dataset, error) {
 	}
 	if stComponent := comp.Base().GetSubcomponent("structure"); stComponent != nil {
 		if err := stComponent.LoadAndFill(ds); err != nil {
+			return nil, err
+		}
+	}
+	if rmComponent := comp.Base().GetSubcomponent("readme"); rmComponent != nil {
+		if err := rmComponent.LoadAndFill(ds); err != nil {
 			return nil, err
 		}
 	}
