@@ -11,6 +11,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/logsync"
@@ -156,13 +157,25 @@ func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*re
 	return ref, err
 }
 
-// RemoveDatasetRef handles requests to remove a dataset
-func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string) error {
+// RemoveDataset handles requests to remove a dataset
+// currently removes all versions of a dataset
+// TODO (ramfox): add `gen` params that indicates how many versions of the dataset, starting
+// with the most recent version, we should remove. This should remove the latest version of
+// the dataset ref from the refstore and add the (n + 1)th to the refstore
+// gen = -1 should indicate that we remove all the dataset versions
+func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(params)
 	if err != nil {
 		return err
 	}
 	log.Debug("remove dataset ", ref)
+
+	// run pre check hook
+	if r.datasetRemovePreCheck != nil {
+		if err = r.datasetRemovePreCheck(ctx, pid, ref); err != nil {
+			return err
+		}
+	}
 
 	if err := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
 		if err == repo.ErrNotFound {
@@ -172,13 +185,23 @@ func (r *Remote) RemoveDatasetRef(ctx context.Context, params map[string]string)
 		}
 	}
 
+	// remove all the versions of this dataset from the store
+	if err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, &ref, -1); err != nil {
+		return err
+	}
+
+	// remove the dataset reference from the repo
+	if err := r.node.Repo.DeleteRef(ref); err != nil {
+		return err
+	}
+
+	// run completed hook
 	if r.datasetRemoved != nil {
 		if err := r.datasetRemoved(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
-
-	return r.node.Repo.DeleteRef(ref)
+	return nil
 }
 
 func (r *Remote) dsPushPreCheck(ctx context.Context, info dag.Info, meta map[string]string) error {
@@ -259,8 +282,8 @@ func (r *Remote) dsRemovePreCheck(ctx context.Context, info dag.Info, meta map[s
 		return err
 	}
 
-	if r.datasetRemoved != nil {
-		if err = r.datasetRemoved(ctx, pid, ref); err != nil {
+	if r.datasetRemovePreCheck != nil {
+		if err = r.datasetRemovePreCheck(ctx, pid, ref); err != nil {
 			return err
 		}
 	}
@@ -365,7 +388,7 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 			for key := range req.URL.Query() {
 				params[key] = req.FormValue(key)
 			}
-			if err := r.RemoveDatasetRef(req.Context(), params); err != nil {
+			if err := r.RemoveDataset(req.Context(), params); err != nil {
 				w.WriteHeader(http.StatusInternalServerError)
 				w.Write([]byte(err.Error()))
 				return
