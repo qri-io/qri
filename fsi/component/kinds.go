@@ -10,13 +10,12 @@ import (
 	"os"
 	"path/filepath"
 
-	"gopkg.in/yaml.v2"
-
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/fill"
+	"gopkg.in/yaml.v2"
 )
 
 // FilesysComponent represents a collection of components existing as files on a filesystem
