@@ -8,7 +8,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 

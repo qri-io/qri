@@ -1,0 +1,86 @@
+{
+  "abstract": "/map/Qmb3n8FvgDbLoU9d7e3vo1UAyVkwV1RnqXUqPKC3Rj2Ej7",
+  "abstractTransform": "/map/QmemJQrK7PTQvD3n8gmo9JhyaByyLmETiNR1Y8wS7hv4sP",
+  "commit": {
+    "qri": "cm:0",
+    "signature": "8WVfbCKYc4rpugq5ZKYoWzX6wFQ6odffwe2UDAR1G1ktjQihiRx8EADNmxZDgh8LkuWSQLMKJ5xzndFVbW5AcnfeLkJ9GCut62QWmWapb5TWU2GeBxRZnmDhJKpDjTf5fvExUZk7F7viSbVGUfXWmKPZwieLVfowkJMGee8WLQo7hY3rK42dPjMfqP91AQgQsLCPFFFwGN94FExeQ5FcdP2ecLNpyxTbDNbQWeov6oUiHDTXFQ95T28WkJQDQvp5DwnS3WeBEF2TzxGq165KjLHLq3GJm5s767MzgWdZibKcRZpXX9k2S2DeMdRh1AhTXJEdXXj5TtS37ANeJ9f1QL4Eb6XAue",
+    "timestamp": "2001-01-01T01:01:01.000000001Z",
+    "title": "I'm a commit"
+  },
+  "dataPath": "/map/QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+  "meta": {
+    "qri": "md:0",
+    "title": "dataset with all submodels example"
+  },
+  "qri": "ds:0",
+  "structure": {
+    "checksum": "QmcCcPTqmckdXLBwPQXxfyW2BbFcUT6gqv9oGeWDkrNTyD",
+    "entries": 6,
+    "errCount": 1,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 155,
+    "qri": "st:0",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "transform": {
+    "data": "select * from foo",
+    "qri": "tf:0",
+    "resources": {
+      "foo": "/not/a/real/path"
+    },
+    "structure": {
+      "errCount": 0,
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "qri": "st:0",
+      "schema": {
+        "items": {
+          "items": [
+            {
+              "title": "title",
+              "type": "string"
+            },
+            {
+              "title": "duration",
+              "type": "integer"
+            }
+          ],
+          "type": "array"
+        },
+        "type": "array"
+      }
+    },
+    "syntax": "sql"
+  },
+  "visconfig": {
+    "format": "foo",
+    "qri": "vc:0",
+    "visualizations": {
+      "colors": {
+        "background": "#000000",
+        "bars": "#ffffff"
+      },
+      "type": "bar"
+    }
+  }
+}

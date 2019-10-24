@@ -5,7 +5,7 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )

@@ -4,10 +4,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/lib"
 )
 
 func TestRemoveComplete(t *testing.T) {

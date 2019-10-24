@@ -14,10 +14,10 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/base/dsfs"
 	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/qri-io/qri/repo"

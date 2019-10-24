@@ -8,9 +8,9 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"

@@ -28,6 +28,7 @@ require (
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
 	github.com/ipfs/interface-go-ipfs-core v0.0.8
+	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
 	github.com/libp2p/go-libp2p v0.0.28
 	github.com/libp2p/go-libp2p-circuit v0.0.8
 	github.com/libp2p/go-libp2p-connmgr v0.0.6
@@ -45,7 +46,7 @@ require (
 	github.com/multiformats/go-multihash v0.0.5
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e
-	github.com/qri-io/dataset v0.1.5-0.20191024204026-dbd50f316e05
+	github.com/qri-io/dataset v0.1.5-0.20191024210747-110c862634eb
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
@@ -58,6 +59,7 @@ require (
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
+	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
 	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
 	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb

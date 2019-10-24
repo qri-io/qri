@@ -1,0 +1,25 @@
+{
+  "qri": "ds:0",
+  "commit" : {
+    "qri" : "cm:0",
+    "title" : "initial commit"
+  },
+  "structure": {
+    "checksum": "QmPT7t4GQaBN4uxCdv3PD8A5vWaJ1ELCKCaZEjYYvUhe4W",
+    "entries": 30,
+    "errCount": 1,
+    "format": "json",
+    "length": 512676,
+    "qri": "st:0",
+    "schema": {
+      "title": "Apartment",
+      "type": "array",
+      "items" : {
+        "type" : "object",
+        "properties" : {
+          "name" : { "type": "string"}
+        }
+      }
+    }
+  }
+}

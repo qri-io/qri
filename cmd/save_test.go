@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/lib"
 )
 

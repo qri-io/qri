@@ -630,6 +630,8 @@ github.com/qri-io/dataset v0.1.5-0.20191018150659-be7d041b6f00 h1:3c/kX9UYxmZMZ/
 github.com/qri-io/dataset v0.1.5-0.20191018150659-be7d041b6f00/go.mod h1:l8gFkxVnRz5Fed1iVviXNeUL6w7zRsZrFy58tXlR8CA=
 github.com/qri-io/dataset v0.1.5-0.20191024204026-dbd50f316e05 h1:MWVLbbjiGMPcYBKg3fYjX4nQMj2qrjX50prCEYO6g54=
 github.com/qri-io/dataset v0.1.5-0.20191024204026-dbd50f316e05/go.mod h1:l8gFkxVnRz5Fed1iVviXNeUL6w7zRsZrFy58tXlR8CA=
+github.com/qri-io/dataset v0.1.5-0.20191024210747-110c862634eb h1:bmRJUHOGUWOjWfHwM6l3oagFMFYz5CiFaXzrTdo3zj4=
+github.com/qri-io/dataset v0.1.5-0.20191024210747-110c862634eb/go.mod h1:l8gFkxVnRz5Fed1iVviXNeUL6w7zRsZrFy58tXlR8CA=
 github.com/qri-io/deepdiff v0.1.0 h1:1VXd/ePPrSrq4GRINC4YxmoPHuuLufg2ujMKvvEWsDc=
 github.com/qri-io/deepdiff v0.1.0/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=

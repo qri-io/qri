@@ -6,10 +6,10 @@ import (
 	"io"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsfs"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
