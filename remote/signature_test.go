@@ -9,8 +9,8 @@ import (
 )
 
 func TestVerifySigParams(t *testing.T) {
-	peerInfo := test.GetTestPeerInfo(0)
-	pid, err := calcProfileID(peerInfo.PrivKey)
+	peerInfo0 := test.GetTestPeerInfo(0)
+	pid, err := calcProfileID(peerInfo0.PrivKey)
 	if err != nil {
 		t.Errorf(err.Error())
 		return
@@ -26,16 +26,28 @@ func TestVerifySigParams(t *testing.T) {
 		Name:      "baz",
 		ProfileID: profileID,
 	}
-	sigParams, err := sigParams(peerInfo.PrivKey, ref)
+	sigParams, err := sigParams(peerInfo0.PrivKey, ref)
 	if err != nil {
 		panic(err)
 	}
 
-	verified, err := VerifySigParams(peerInfo.PubKey, sigParams)
+	verified, err := VerifySigParams(peerInfo0.PubKey, sigParams)
 	if err != nil {
 		t.Errorf("case 'should verify', expected no error, got '%s'", err)
 	}
 	if verified == false {
-		t.Errorf("case 'should verify', expected verification to be true, was false")
+		t.Errorf("case 'should verify', expected verification to be true, but was false")
+	}
+
+	peerInfo1 := test.GetTestPeerInfo(1)
+	verified, err = VerifySigParams(peerInfo1.PubKey, sigParams)
+	if err == nil {
+		t.Errorf("case 'should not verify', expected error 'crypto/rsa: verification error', got no error")
+	}
+	if err != nil && err.Error() != "crypto/rsa: verification error" {
+		t.Errorf("case 'should not verify', expected error 'crypto/rsa: verification error', got error, '%s'", err)
+	}
+	if verified == true {
+		t.Errorf("case 'should not verify', expected verification to be false, but was true")
 	}
 }

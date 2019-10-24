@@ -158,6 +158,11 @@ func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*re
 }
 
 // RemoveDataset handles requests to remove a dataset
+// currently removes all versions of a dataset
+// TODO (ramfox): add `gen` params that indicates how many versions of the dataset, starting
+// with the most recent version, we should remove. This should remove the latest version of
+// the dataset ref from the refstore and add the (n + 1)th to the refstore
+// gen = -1 should indicate that we remove all the dataset versions
 func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) error {
 	pid, ref, err := r.pidAndRefFromMeta(params)
 	if err != nil {
