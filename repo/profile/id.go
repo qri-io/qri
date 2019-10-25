@@ -3,7 +3,7 @@ package profile
 import (
 	"encoding/json"
 
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 // ID is a distinct thing form a peer.ID. They are *NOT* meant to be interchangable

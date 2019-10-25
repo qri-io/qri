@@ -6,8 +6,8 @@ package test
 import (
 	"encoding/base64"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 // EncodedPeerInfo holds encoded private keys and peerIDs for test peers.

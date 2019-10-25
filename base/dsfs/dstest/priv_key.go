@@ -4,7 +4,7 @@ import (
 	"encoding/base64"
 	"fmt"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 var (

@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"sync"
 
-	host "github.com/libp2p/go-libp2p-host"
+	host "github.com/libp2p/go-libp2p-core/host"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 	"github.com/qri-io/qri/config"
@@ -134,7 +134,7 @@ func NewAvailableTestNode(r repo.Repo, f *TestNodeFactory) (TestablePeerNode, er
 // mirrors the connection that would normally occur between two p2p nodes.
 // The Host.Connect function adds the addresses into the peerstore and dials the
 // remote peer.
-// Take a look at https://github.com/libp2p/go-libp2p-host/blob/623ffaa4ef2b8dad77933159d0848a393a91c41e/host.go#L36
+// Take a look at https://github.com/libp2p/go-libp2p-core/host/blob/623ffaa4ef2b8dad77933159d0848a393a91c41e/host.go#L36
 // for more info
 // Connect should always:
 // - add a connections to the peer

@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 )
 
 // MtDatasets is a dataset list message
