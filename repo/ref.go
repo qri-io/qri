@@ -109,14 +109,8 @@ type DatasetRef struct {
 // String implements the Stringer interface for DatasetRef
 func (r DatasetRef) String() (s string) {
 	s = r.AliasString()
-	if r.ProfileID.String() != "" || r.Path != "" {
-		s += "@"
-	}
-	if r.ProfileID.String() != "" {
-		s += r.ProfileID.String()
-	}
 	if r.Path != "" {
-		s += r.Path
+		s += "@" + r.Path
 	}
 	return
 }
