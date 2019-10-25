@@ -115,6 +115,21 @@ func (r DatasetRef) String() (s string) {
 	return
 }
 
+// Absolute implements the same thing as String(), but append ProfileID if it exist
+func (r DatasetRef) Absolute() (s string) {
+	s = r.AliasString()
+	if r.ProfileID.String() != "" || r.Path != "" {
+		s += "@"
+	}
+	if r.ProfileID.String() != "" {
+		s += r.ProfileID.String()
+	}
+	if r.Path != "" {
+		s += r.Path
+	}
+	return
+}
+
 // AliasString returns the alias components of a DatasetRef as a string
 func (r DatasetRef) AliasString() (s string) {
 	s = r.Peername
