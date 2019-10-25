@@ -8,7 +8,7 @@ import (
 	"io/ioutil"
 	"net/http"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"

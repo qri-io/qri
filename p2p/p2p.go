@@ -6,7 +6,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 
-	protocol "github.com/libp2p/go-libp2p-protocol"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
 )
 

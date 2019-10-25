@@ -7,8 +7,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 
-	"github.com/libp2p/go-libp2p-crypto"
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/doggos"
 	ipfs "github.com/qri-io/qfs/cafs/ipfs"
 )
