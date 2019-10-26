@@ -45,62 +45,72 @@ func TestIsRefString(t *testing.T) {
 var cases = []struct {
 	ref         DatasetRef
 	String      string
+	Absolute    string
 	AliasString string
 }{
 	{DatasetRef{
 		Peername: "peername",
-	}, "peername", "peername"},
+	}, "peername", "peername", "peername"},
 	{DatasetRef{
 		Peername: "peername",
 		Name:     "datasetname",
-	}, "peername/datasetname", "peername/datasetname"},
+	}, "peername/datasetname", "peername/datasetname", "peername/datasetname"},
 
 	{DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-	}, "@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ""},
+	}, "", "@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", ""},
 	{DatasetRef{
 		Path: "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-	}, "@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+	}, "@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 
 	{DatasetRef{
 		Peername:  "peername",
 		Name:      "datasetname",
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "peername/datasetname"},
+	}, "peername/datasetname", "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "peername/datasetname"},
 	{DatasetRef{
 		Peername:  "peername",
 		Name:      "datasetname",
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-	}, "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "peername/datasetname"},
+	}, "peername/datasetname@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "peername/datasetname@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "peername/datasetname"},
 
 	{DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 		Peername:  "lucille",
-	}, "lucille@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "lucille"},
+	}, "lucille", "lucille@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "lucille"},
 	{DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 		Peername:  "lucille",
 		Name:      "ball",
 		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-	}, "lucille/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball"},
+	}, "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball"},
 
 	{DatasetRef{
 		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
 		Peername:  "bad_name",
-	}, "bad_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "bad_name"},
+	}, "bad_name", "bad_name@QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y", "bad_name"},
 	// TODO - this used to be me@badId, which isn't very useful, but at least provided coding parity
 	// might be worth revisiting
 	{DatasetRef{
 		ProfileID: profile.ID("badID"),
 		Peername:  "me",
-	}, "me@C6mUq3y", "me"},
+	}, "me", "me@C6mUq3y", "me"},
 }
 
 func TestDatasetRefString(t *testing.T) {
 	for i, c := range cases {
 		if c.ref.String() != c.String {
 			t.Errorf("case %d:\n%s\n%s", i, c.ref.String(), c.String)
+			continue
+		}
+	}
+}
+
+func TestDatasetRefAbsolute(t *testing.T) {
+	for i, c := range cases {
+		if c.ref.Absolute() != c.Absolute {
+			t.Errorf("case %d:\n%s\n%s", i, c.ref.Absolute(), c.Absolute)
 			continue
 		}
 	}
@@ -400,12 +410,12 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 		expect string
 		err    string
 	}{
-		{"me/foo", "lucille/foo@2g/ipfs/QmTest", ""},
-		{"carla/hockey_stats", "carla/hockey_stats@2h/ipfs/QmTest2", ""},
-		{"lucille/ball", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		{"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
-		{"renamed/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@2g/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"me/foo", "lucille/foo@/ipfs/QmTest", ""},
+		{"carla/hockey_stats", "carla/hockey_stats@/ipfs/QmTest2", ""},
+		{"lucille/ball", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"me/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
+		{"renamed/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", "lucille/ball@/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1", ""},
 	}
 
 	for i, c := range cases {
