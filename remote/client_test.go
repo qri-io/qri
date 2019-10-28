@@ -3,16 +3,15 @@ package remote
 import (
 	"testing"
 
-	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/config"
-	p2ptest "github.com/qri-io/qri/p2p/test"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/p2p"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 )
-
 
 func TestAddDataset(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
@@ -47,8 +46,8 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
 		Peername: "remote_test_peer",
-		ID: profile.ID(pi.PeerID),
-		PrivKey: pi.PrivKey,
+		ID:       profile.ID(pi.PeerID),
+		PrivKey:  pi.PrivKey,
 	}
 	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())
 	if err != nil {
@@ -63,7 +62,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 
 func newTestFS(cafsys cafs.Filestore) qfs.Filesystem {
 	return qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs":  cafsys,
+		"cafs": cafsys,
 	})
 }
 

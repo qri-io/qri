@@ -15,12 +15,12 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs/dsutil"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/dsref"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc

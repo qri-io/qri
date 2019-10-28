@@ -3,8 +3,8 @@ package lib
 import (
 	"context"
 
-	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 )
 

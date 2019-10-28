@@ -13,9 +13,9 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	net "github.com/libp2p/go-libp2p-core/network"
 	peer "github.com/libp2p/go-libp2p-core/peer"
+	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	pstoremem "github.com/libp2p/go-libp2p-peerstore/pstoremem"
-	protocol "github.com/libp2p/go-libp2p-core/protocol"
 )
 
 // TestableNode satisfies the TestablePeerNode interface

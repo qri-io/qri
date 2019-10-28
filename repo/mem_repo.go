@@ -63,7 +63,7 @@ func (r *MemRepo) RemoveLogbook() {
 	r.logbook = nil
 }
 
-// SetLogbook assigns MemRepo's logbook. MemRepo gets used in tests a bunch, 
+// SetLogbook assigns MemRepo's logbook. MemRepo gets used in tests a bunch,
 // where logbook manipulation is helpful
 func (r *MemRepo) SetLogbook(book *logbook.Book) {
 	r.logbook = book

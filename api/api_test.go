@@ -16,8 +16,8 @@ import (
 
 	"github.com/beme/abide"
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
