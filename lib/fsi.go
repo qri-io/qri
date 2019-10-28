@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -180,8 +180,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Write components of the dataset to the working directory.
-	err = fsi.WriteComponents(ds, p.Dir, m.inst.node.Repo.Filesystem())
-	return err
+	return fsi.WriteComponents(ds, p.Dir, m.inst.node.Repo.Filesystem())
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory

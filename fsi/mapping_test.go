@@ -6,7 +6,7 @@ import (
 	"sort"
 	"testing"
 
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qri/base/component"
 )
 
 func TestReadDir(t *testing.T) {

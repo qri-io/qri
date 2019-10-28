@@ -9,7 +9,7 @@ import (
 )
 
 func TestListDirectoryComponents(t *testing.T) {
-	components, err := ListDirectoryComponents("../testdata/valid_mappings/some_json_components/")
+	components, err := ListDirectoryComponents("../../fsi/testdata/valid_mappings/some_json_components/")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

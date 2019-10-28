@@ -12,7 +12,7 @@ import (
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
