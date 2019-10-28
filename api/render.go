@@ -29,12 +29,23 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            HTTPPathToQriPath(r.URL.Path[len("/render"):]),
-		TemplateFormat: "html",
+		Ref:       HTTPPathToQriPath(r.URL.Path[len("/render"):]),
+		OutFormat: "html",
+	}
+
+	if r.FormValue("readme") == "true" {
+		p.UseFSI = r.FormValue("fsi") == "true"
+		var text string
+		if err := h.RenderReadme(p, &text); err != nil {
+			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+		w.Write([]byte(text))
+		return
 	}
 
 	data := []byte{}
-	if err := h.Render(p, &data); err != nil {
+	if err := h.RenderTemplate(p, &data); err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}

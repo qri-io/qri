@@ -95,7 +95,7 @@ func TestRenderRequestsRender(t *testing.T) {
 
 	for i, c := range cases {
 		got := []byte{}
-		err := reqs.Render(c.params, &got)
+		err := reqs.RenderTemplate(c.params, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
 			return
