@@ -15,11 +15,11 @@ import (
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )

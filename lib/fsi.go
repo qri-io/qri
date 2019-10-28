@@ -8,9 +8,9 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/repo"
 )
 
