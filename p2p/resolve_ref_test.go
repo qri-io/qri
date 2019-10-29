@@ -39,7 +39,7 @@ func TestResolveDatasetRef(t *testing.T) {
 		t.Fatalf("peer must be able to resolve local ref. error: %s", err.Error())
 	}
 
-	expect := "tim/bar@QmTPqxoLireaT3xHuqy3shHvqoomeuFfiPn9ySvjt8mbSi/ipfs/QmXSGsgt8Bn8jepw7beXibYUfWSJVU2SzP3TpkioQVUrmM"
+	expect := "tim/bar@/ipfs/QmXSGsgt8Bn8jepw7beXibYUfWSJVU2SzP3TpkioQVUrmM"
 
 	t.Logf("testing ResolveDatasetRef message with %d peers", len(peers))
 	var wg sync.WaitGroup
