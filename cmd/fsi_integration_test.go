@@ -936,6 +936,74 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test creating a readme and then rendering it.
+func TestRenderReadme(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_render_readme")
+	defer fr.Delete()
+
+	_ = fr.CreateAndChdirToWorkDir("render_readme")
+
+	// Init as a linked directory.
+	if err := fr.ExecCommand("qri init --name render_readme --format csv"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Create readme.md with some text.
+	if err := ioutil.WriteFile("readme.md", []byte("# hi\nhello\n"), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	// Status, check that the working directory has added files including readme.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatal(err)
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/render_readme]
+
+  add: meta (source: meta.json)
+  add: structure (source: structure.json)
+  add: readme (source: readme.md)
+  add: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Save the new dataset.
+	if err := fr.ExecCommand("qri save"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Status again, check that the working directory is clean.
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatal(err)
+	}
+
+	output = fr.GetCommandOutput()
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/render_readme"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Render the readme, check the html.
+	if err := fr.ExecCommand("qri render"); err != nil {
+		t.Fatal(err)
+	}
+
+	output = fr.GetCommandOutput()
+	expectBody := `for linked dataset [test_peer/render_readme]
+
+<h1>hi</h1>
+
+<p>hello</p>
+`
+	if diff := cmp.Diff(expectBody, output); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
 // Test using "init" with a source body path
 func TestInitWithSourceBodyPath(t *testing.T) {
 	fr := NewFSITestRunner(t, "qri_test_init_source_body_path")

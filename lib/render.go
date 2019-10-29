@@ -5,7 +5,10 @@ import (
 	"fmt"
 	"net/rpc"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -35,15 +38,16 @@ func (RenderRequests) CoreRequestsName() string { return "render" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
-	Ref            string
-	Template       []byte
-	TemplateFormat string
+	Ref       string
+	Template  []byte
+	UseFSI    bool
+	OutFormat string
 }
 
-// Render executes a template against a template
-func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
+// RenderViz renders a viz component as html
+func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RenderRequests.Render", p, res)
+		return r.cli.Call("RenderRequests.RenderViz", p, res)
 	}
 	ctx := context.TODO()
 
@@ -59,5 +63,49 @@ func (r *RenderRequests) Render(p *RenderParams, res *[]byte) (err error) {
 	}
 
 	*res, err = base.Render(ctx, r.repo, ref, p.Template)
+	return err
+}
+
+// RenderReadme renders the readme into html for the given dataset
+func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("RenderRequests.RenderReadme", p, res)
+	}
+	ctx := context.TODO()
+
+	ref, err := base.ToDatasetRef(p.Ref, r.repo, p.UseFSI)
+	if err != nil {
+		return err
+	}
+
+	var ds *dataset.Dataset
+	if p.UseFSI {
+		if ref.FSIPath == "" {
+			return fsi.ErrNoLink
+		}
+		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+			return fmt.Errorf("loading linked dataset: %s", err)
+		}
+	} else {
+		ds, err = dsfs.LoadDataset(ctx, r.repo.Store(), ref.Path)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %s", err)
+		}
+	}
+
+	if ds.Readme == nil {
+		return fmt.Errorf("no readme to render")
+	}
+
+	err = ds.Readme.OpenScriptFile(ctx, r.repo.Filesystem())
+	if err != nil {
+		return err
+	}
+
+	if ds.Readme.ScriptFile() == nil {
+		return fmt.Errorf("no readme to render")
+	}
+
+	*res, err = base.RenderReadme(ctx, ds.Readme.ScriptFile())
 	return err
 }
