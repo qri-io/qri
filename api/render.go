@@ -33,22 +33,24 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 		OutFormat: "html",
 	}
 
-	if r.FormValue("readme") == "true" {
-		p.UseFSI = r.FormValue("fsi") == "true"
-		var text string
-		if err := h.RenderReadme(p, &text); err != nil {
+	// Old style viz component rendering
+	if r.FormValue("viz") == "true" {
+		data := []byte{}
+		if err := h.RenderViz(p, &data); err != nil {
 			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
 		}
-		w.Write([]byte(text))
+
+		w.Write(data)
 		return
 	}
 
-	data := []byte{}
-	if err := h.RenderTemplate(p, &data); err != nil {
+	// Readme component rendering
+	p.UseFSI = r.FormValue("fsi") == "true"
+	var text string
+	if err := h.RenderReadme(p, &text); err != nil {
 		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
-
-	w.Write(data)
+	w.Write([]byte(text))
 }

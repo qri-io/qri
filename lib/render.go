@@ -44,10 +44,10 @@ type RenderParams struct {
 	OutFormat string
 }
 
-// RenderTemplate executes a template against a dataset
-func (r *RenderRequests) RenderTemplate(p *RenderParams, res *[]byte) (err error) {
+// RenderViz renders a viz component as html
+func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RenderRequests.RenderTemplate", p, res)
+		return r.cli.Call("RenderRequests.RenderViz", p, res)
 	}
 	ctx := context.TODO()
 
@@ -93,9 +93,17 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 		}
 	}
 
+	if ds.Readme == nil {
+		return fmt.Errorf("no readme to render")
+	}
+
 	err = ds.Readme.OpenScriptFile(ctx, r.repo.Filesystem())
 	if err != nil {
 		return err
+	}
+
+	if ds.Readme.ScriptFile() == nil {
+		return fmt.Errorf("no readme to render")
 	}
 
 	*res, err = base.RenderReadme(ctx, ds.Readme.ScriptFile())

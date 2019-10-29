@@ -22,19 +22,15 @@ html, or by filling in a template using the go/html template style.
 
 Use the ` + "`--output`" + ` flag to save the rendered html to a file.
 
-Use the ` + "`--template`" + ` flag to use a custom template. If no template is
-provided, Qri will render the dataset with a default template.
+Use the ` + "`--viz`" + ` flag to render the viz. Default is to use readme.
 
-Use the ` + "`--readme`" + ` flag to convert the dataset's readme
-component from markdown to html.`,
-		Example: `  render a dataset called me/schools:
+Use the ` + "`--template`" + ` flag to use a custom template. If no template is
+provided, Qri will render the dataset with a default template.`,
+		Example: `  render the readme of a dataset called me/schools:
   $ qri render -o=schools.html me/schools
 
   render a dataset with a custom template:
-  $ qri render --template=template.html me/schools
-
-  render a dataset's readme file:
-  $ qri render --readme me/schools`,
+  $ qri render --viz --template=template.html me/schools`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -47,7 +43,7 @@ component from markdown to html.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Template, "template", "t", "", "path to template file")
-	cmd.Flags().BoolVarP(&o.UseReadme, "readme", "r", false, "whether to use the readme component")
+	cmd.Flags().BoolVarP(&o.UseViz, "viz", "v", false, "whether to use the viz component")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write output file")
 
 	return cmd
@@ -57,10 +53,10 @@ component from markdown to html.`,
 type RenderOptions struct {
 	ioes.IOStreams
 
-	Refs      *RefSelect
-	Template  string
-	UseReadme bool
-	Output    string
+	Refs     *RefSelect
+	Template string
+	UseViz   bool
+	Output   string
 
 	RenderRequests *lib.RenderRequests
 }
@@ -78,19 +74,19 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the render command
 func (o *RenderOptions) Run() error {
-	if o.Template != "" && o.UseReadme {
-		return fmt.Errorf("can not specify both --template and --readme flags")
+	if o.Template != "" && !o.UseViz {
+		return fmt.Errorf("can not specify both --template without --viz flag")
 	}
 
-	if o.UseReadme {
-		return o.RunReadmeRender()
+	if o.UseViz {
+		return o.RunVizRender()
 	}
 
-	return o.RunTemplateRender()
+	return o.RunReadmeRender()
 }
 
-// RunTemplateRender renders a dataset template as html
-func (o *RenderOptions) RunTemplateRender() (err error) {
+// RunVizRender renders a viz component of a dataset as html
+func (o *RenderOptions) RunVizRender() (err error) {
 	var template []byte
 	if o.Template != "" {
 		template, err = ioutil.ReadFile(o.Template)
@@ -106,7 +102,7 @@ func (o *RenderOptions) RunTemplateRender() (err error) {
 	}
 
 	res := []byte{}
-	if err := o.RenderRequests.RenderTemplate(p, &res); err != nil {
+	if err := o.RenderRequests.RenderViz(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
 		}

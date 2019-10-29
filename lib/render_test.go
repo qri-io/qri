@@ -1,13 +1,21 @@
 package lib
 
 import (
+	"context"
 	"net"
 	"net/http"
 	"net/http/httptest"
 	"net/rpc"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -95,7 +103,7 @@ func TestRenderRequestsRender(t *testing.T) {
 
 	for i, c := range cases {
 		got := []byte{}
-		err := reqs.RenderTemplate(c.params, &got)
+		err := reqs.RenderViz(c.params, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d %s error mismatch. expected: '%s', got: '%s'", i, c.description, c.err, err)
 			return
@@ -107,5 +115,92 @@ func TestRenderRequestsRender(t *testing.T) {
 			t.Log(dmp.DiffPrettyText(diffs))
 			t.Errorf("case %d %s failed to match.", i, c.description)
 		}
+	}
+}
+
+// renderTestRunner holds state to make it easier to run tests
+type renderTestRunner struct {
+	Node        *p2p.QriNode
+	Repo        repo.Repo
+	DatasetReqs *DatasetRequests
+	RenderReqs  *RenderRequests
+	Context     context.Context
+	ContextDone func()
+	TsFunc      func() time.Time
+}
+
+// newRenderTestRunner returns a test runner for render
+func newRenderTestRunner(t *testing.T, testName string) *renderTestRunner {
+	r := renderTestRunner{}
+	r.Context, r.ContextDone = context.WithCancel(context.Background())
+
+	// To keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	r.TsFunc = dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Time{} }
+
+	var err error
+	r.Repo, err = testrepo.NewTestRepo()
+	if err != nil {
+		panic(err)
+	}
+
+	r.Node, err = p2p.NewQriNode(r.Repo, config.DefaultP2PForTesting())
+	if err != nil {
+		panic(err)
+	}
+	r.DatasetReqs = NewDatasetRequests(r.Node, nil)
+	r.RenderReqs = NewRenderRequests(r.Repo, nil)
+
+	return &r
+}
+
+// Delete cleans up after the test is done
+func (r *renderTestRunner) Delete() {
+	r.ContextDone()
+	dsfs.Timestamp = r.TsFunc
+}
+
+// Save saves a version of the dataset with a body
+func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string) {
+	dsRef := repo.DatasetRef{}
+	params := SaveParams{
+		Ref:      ref,
+		Dataset:  ds,
+		BodyPath: bodyPath,
+	}
+	err := r.DatasetReqs.Save(&params, &dsRef)
+	if err != nil {
+		panic(err)
+	}
+}
+
+// Test that render with a readme returns an html string
+func TestRenderReadme(t *testing.T) {
+	runner := newRenderTestRunner(t, "render_readme")
+	defer runner.Delete()
+
+	runner.Save(
+		"me/my_dataset",
+		&dataset.Dataset{
+			Readme: &dataset.Readme{
+				ScriptBytes: []byte("# hi\n\nhello\n"),
+			},
+		},
+		"testdata/jobs_by_automation/body.csv")
+
+	params := RenderParams{
+		Ref:       "me/my_dataset",
+		OutFormat: "html",
+	}
+	var text string
+	err := runner.RenderReqs.RenderReadme(&params, &text)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect := "<h1>hi</h1>\n\n<p>hello</p>\n"
+	if diff := cmp.Diff(expect, text); diff != "" {
+		t.Errorf("response mismatch (-want +got):\n%s", diff)
 	}
 }

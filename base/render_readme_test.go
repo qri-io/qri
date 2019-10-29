@@ -36,3 +36,26 @@ three things:
 		t.Errorf("body component (-want +got):\n%s", diff)
 	}
 }
+
+func TestRenderReadmeWithScriptTag(t *testing.T) {
+	ctx := context.Background()
+
+	f := qfs.NewMemfileBytes("test.md", []byte(`# a script
+
+<script>alert('hi');</script>
+
+done`))
+	htmlStr, err := RenderReadme(ctx, f)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expectStr := `<h1>a script</h1>
+
+
+
+<p>done</p>
+`
+	if diff := cmp.Diff(expectStr, htmlStr); diff != "" {
+		t.Errorf("body component (-want +got):\n%s", diff)
+	}
+}
