@@ -16,12 +16,14 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"io"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/minio/blake2b-simd"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
 )
 
@@ -326,6 +328,15 @@ func (lg *Log) Append(op Op) {
 	lg.Ops = append(lg.Ops, op)
 }
 
+// InitOpHash returns the hash of the initialization operation
+// if the log is empty, returns the empty string
+func (lg Log) InitOpHash() string {
+	if len(lg.Ops) == 0 {
+		return ""
+	}
+	return lg.Ops[0].Hash()
+}
+
 // Model gives the operation type for a log, based on the first operation
 // written to the log. Logs can contain multiple models of operations, but the
 // first operation written to a log determines the kind of log for
@@ -585,6 +596,17 @@ func (o Op) Equal(b Op) bool {
 		o.Timestamp == b.Timestamp &&
 		o.Size == b.Size &&
 		o.Note == b.Note
+}
+
+// Hash returns the base64 encoded blake2b 256 hash of the Op flatbuffer
+func (o Op) Hash() string {
+	builder := flatbuffers.NewBuilder(0)
+	end := o.MarshalFlatbuffer(builder)
+	builder.Finish(end)
+	data := builder.FinishedBytes()
+	// calculate blake2b hash and return base64 encoding
+	sum := blake2b.Sum256(data)
+	return base64.StdEncoding.EncodeToString(sum[:])
 }
 
 // MarshalFlatbuffer writes this operation to a flatbuffer, returning the
