@@ -367,6 +367,23 @@ func TestRemoveLog(t *testing.T) {
 	}
 }
 
+func TestInitOpHash(t *testing.T) {
+	l := &Log{}
+	got := l.InitOpHash()
+	if "" != got {
+		t.Errorf("expected op hash of empty log to give the empty string, got: %s", got)
+	}
+
+	l = &Log{
+		Ops: []Op{Op{Name: "hello"}},
+	}
+	got = l.InitOpHash()
+	expect := "z8xxzIjAZ/Y57O4k2YRx8SyIdEVKykrquyKCUIMeC/s="
+	if expect != got {
+		t.Errorf("result mismatch, expect: %s, got: %s", expect, got)
+	}
+}
+
 type testRunner struct {
 	Ctx        context.Context
 	AuthorName string
