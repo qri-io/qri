@@ -7,7 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
 )
 
@@ -364,6 +364,23 @@ func TestRemoveLog(t *testing.T) {
 
 	if err := tr.Book.RemoveLog(0x1, "nonexistent"); err != ErrNotFound {
 		t.Error("expected RemoveLog for nonexistent path to error")
+	}
+}
+
+func TestInitOpHash(t *testing.T) {
+	l := &Log{}
+	got := l.InitOpHash()
+	if "" != got {
+		t.Errorf("expected op hash of empty log to give the empty string, got: %s", got)
+	}
+
+	l = &Log{
+		Ops: []Op{Op{Name: "hello"}},
+	}
+	got = l.InitOpHash()
+	expect := "z8xxzIjAZ/Y57O4k2YRx8SyIdEVKykrquyKCUIMeC/s="
+	if expect != got {
+		t.Errorf("result mismatch, expect: %s, got: %s", expect, got)
 	}
 }
 

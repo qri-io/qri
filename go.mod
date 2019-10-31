@@ -21,47 +21,51 @@ require (
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
 	github.com/google/go-cmp v0.3.0
-	github.com/ipfs/go-cid v0.0.2
-	github.com/ipfs/go-datastore v0.0.5
-	github.com/ipfs/go-ipfs v0.4.21
-	github.com/ipfs/go-ipfs-config v0.0.3
+	github.com/ipfs/go-cid v0.0.3
+	github.com/ipfs/go-datastore v0.1.1
+	github.com/ipfs/go-ds-badger v0.0.7 // indirect
+	github.com/ipfs/go-ipfs v0.4.22-0.20191023033800-4a102207a36c
+	github.com/ipfs/go-ipfs-config v0.0.11
 	github.com/ipfs/go-ipld-format v0.0.2
 	github.com/ipfs/go-log v0.0.1
-	github.com/ipfs/interface-go-ipfs-core v0.0.8
+	github.com/ipfs/interface-go-ipfs-core v0.2.3
 	github.com/jinzhu/copier v0.0.0-20180308034124-7e38e58719c3
-	github.com/libp2p/go-libp2p v0.0.28
-	github.com/libp2p/go-libp2p-circuit v0.0.8
-	github.com/libp2p/go-libp2p-connmgr v0.0.6
-	github.com/libp2p/go-libp2p-crypto v0.0.2
-	github.com/libp2p/go-libp2p-host v0.0.3
-	github.com/libp2p/go-libp2p-net v0.0.2
-	github.com/libp2p/go-libp2p-peer v0.1.1
-	github.com/libp2p/go-libp2p-peerstore v0.0.6
-	github.com/libp2p/go-libp2p-protocol v0.0.1
-	github.com/libp2p/go-libp2p-swarm v0.0.6
+	github.com/libp2p/go-libp2p v0.4.0
+	github.com/libp2p/go-libp2p-circuit v0.1.3
+	github.com/libp2p/go-libp2p-connmgr v0.1.1
+	github.com/libp2p/go-libp2p-core v0.2.3
+	github.com/libp2p/go-libp2p-peerstore v0.1.3
+	github.com/libp2p/go-libp2p-swarm v0.2.2
+	github.com/microcosm-cc/bluemonday v1.0.2
+	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.1.2
-	github.com/multiformats/go-multiaddr v0.0.4
+	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/multiformats/go-multicodec v0.1.6
-	github.com/multiformats/go-multihash v0.0.5
+	github.com/multiformats/go-multihash v0.0.8
 	github.com/qri-io/apiutil v0.1.0
-	github.com/qri-io/dag v0.2.1-0.20190905192357-bbfe4c6d220e
-	github.com/qri-io/dataset v0.1.5-0.20191024210747-110c862634eb
+	github.com/qri-io/dag v0.2.1-0.20191025201336-254aa177fbd7
+	github.com/qri-io/dataset v0.1.5-0.20191025195651-c58fba11892c
 	github.com/qri-io/deepdiff v0.1.0
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20191017222245-b5d2cc022636
-	github.com/qri-io/starlib v0.4.1
+	github.com/qri-io/qfs v0.1.1-0.20191025195012-9971677b190d
+	github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967
 	github.com/qri-io/varName v0.1.0
+	github.com/russross/blackfriday v1.5.2
+	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
+	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
-	golang.org/x/crypto v0.0.0-20190701094942-4def268fd1a4
-	golang.org/x/sys v0.0.0-20190626221950-04f50cda93cb
+	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
+	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b
 	gopkg.in/yaml.v2 v2.2.2
 )

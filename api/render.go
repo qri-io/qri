@@ -29,15 +29,28 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            HTTPPathToQriPath(r.URL.Path[len("/render"):]),
-		TemplateFormat: "html",
+		Ref:       HTTPPathToQriPath(r.URL.Path[len("/render"):]),
+		OutFormat: "html",
 	}
 
-	data := []byte{}
-	if err := h.Render(p, &data); err != nil {
-		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+	// Old style viz component rendering
+	if r.FormValue("viz") == "true" {
+		data := []byte{}
+		if err := h.RenderViz(p, &data); err != nil {
+			apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+			return
+		}
+
+		w.Write(data)
 		return
 	}
 
-	w.Write(data)
+	// Readme component rendering
+	p.UseFSI = r.FormValue("fsi") == "true"
+	var text string
+	if err := h.RenderReadme(p, &text); err != nil {
+		apiutil.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+	w.Write([]byte(text))
 }

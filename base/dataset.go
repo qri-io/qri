@@ -175,7 +175,6 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	return
 }
 
-
 // FetchDataset grabs a dataset from a remote source
 func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
 	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())

@@ -2,13 +2,12 @@ package fsi
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"os"
 	"path/filepath"
 
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 )
@@ -36,9 +35,6 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	} else if !fi.IsDir() {
 		return "", fmt.Errorf("invalid path to initialize. '%s' is not a directory", p.Dir)
 	}
-
-	// TODO(dlong): This function should more closely resemble Checkout in lib/fsi.go. That is,
-	// do some stuff to initialize, create components, then call WriteComponents.
 
 	// Either use an existing directory, or create one at the given directory.
 	var targetPath string
@@ -84,65 +80,55 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return name, err
 	}
 
-	// TODO(dlong): Instead, create a component.Container and write it out to the `target`.
+	initDs := &dataset.Dataset{}
 
-	// Create a skeleton meta.json file.
-	metaSkeleton := []byte(`{
-  "title": "",
-  "description": "",
-  "keywords": [],
-  "homeURL": ""
-}`)
-	if err := ioutil.WriteFile(filepath.Join(targetPath, "meta.json"), metaSkeleton, os.ModePerm); err != nil {
-		return name, err
-	}
+	// Add an empty meta.
+	initDs.Meta = &dataset.Meta{Title: ""}
 
-	var bodyBytes []byte
-	if p.SourceBodyPath == "" {
-		// Create a skeleton body file.
-		if p.Format == "csv" {
-			bodyBytes = []byte("one,two,3\nfour,five,6")
-		} else if p.Format == "json" {
-			bodyBytes = []byte(`{
-  "key": "value"
-}`)
-		} else {
-			return "", fmt.Errorf("unknown body format %s", p.Format)
-		}
-	} else {
-		// Create body file by reading the sourcefile.
-		if bodyBytes, err = ioutil.ReadFile(p.SourceBodyPath); err != nil {
+	// Add body file.
+	var bodySchema map[string]interface{}
+	if p.SourceBodyPath != "" {
+		initDs.BodyPath = p.SourceBodyPath
+		// Create structure by detecting it from the body.
+		file, err := os.Open(p.SourceBodyPath)
+		if err != nil {
 			return "", err
 		}
-
-	}
-	bodyFilename := filepath.Join(targetPath, fmt.Sprintf("body.%s", p.Format))
-	if err := ioutil.WriteFile(bodyFilename, bodyBytes, os.ModePerm); err != nil {
-		return "", err
-	}
-
-	// Create structure by detecting it from the body.
-	file, err := os.Open(bodyFilename)
-	if err != nil {
-		return "", err
-	}
-	defer file.Close()
-
-	// TODO(dlong): This should move into `dsio` package.
-	entries, err := component.OpenEntryReader(file, p.Format)
-	if err != nil {
-		return "", err
+		defer file.Close()
+		// TODO(dlong): This should move into `dsio` package.
+		entries, err := component.OpenEntryReader(file, p.Format)
+		if err != nil {
+			return "", err
+		}
+		initDs.Structure = entries.Structure()
+	} else if p.Format == "csv" {
+		initDs.Body = []interface{}{
+			[]interface{}{"one", "two", 3},
+			[]interface{}{"four", "five", 6},
+		}
+	} else if p.Format == "json" {
+		initDs.Body = map[string]interface{}{
+			"key": "value",
+		}
 	}
 
-	structureBytes, err := json.Marshal(entries.Structure())
-	if err != nil {
-		return "", err
+	// Add structure.
+	if initDs.Structure == nil {
+		initDs.Structure = &dataset.Structure{
+			Format: p.Format,
+		}
+		if bodySchema != nil {
+			initDs.Structure.Schema = bodySchema
+		}
 	}
 
-	// use format to determine basic formatConfig
-	structureFilename := filepath.Join(targetPath, "structure.json")
-	if err := ioutil.WriteFile(structureFilename, structureBytes, os.ModePerm); err != nil {
-		return "", err
+	// Write components of the dataset to the working directory.
+	container := component.ConvertDatasetToComponents(initDs, fsi.repo.Filesystem())
+	for _, compName := range component.AllSubcomponentNames() {
+		aComp := container.Base().GetSubcomponent(compName)
+		if aComp != nil {
+			aComp.WriteTo(targetPath)
+		}
 	}
 
 	if err = fsi.repo.Logbook().WriteNameInit(context.TODO(), name); err != nil {

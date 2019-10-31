@@ -5,7 +5,7 @@ import (
 	"math/rand"
 	"testing"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 )
 
 func TestRegisterProfile(t *testing.T) {

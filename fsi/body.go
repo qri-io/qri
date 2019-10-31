@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qri/base/component"
 )
 
 // GetBody is an FSI version of actions.GetBody

@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/sergi/go-diff/diffmatchpatch"
 
-	"github.com/libp2p/go-libp2p-peer"
+	"github.com/libp2p/go-libp2p-core/peer"
 )
 
 func TestPutProfileWithAddresses(t *testing.T) {

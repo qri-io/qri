@@ -6,7 +6,7 @@ import (
 	"math/rand"
 
 	"github.com/ipfs/go-ipfs/core/bootstrap"
-	peer "github.com/libp2p/go-libp2p-peer"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
 )

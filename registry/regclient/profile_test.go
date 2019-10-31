@@ -6,7 +6,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver/handlers"
 )

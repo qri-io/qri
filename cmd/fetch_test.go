@@ -47,7 +47,8 @@ func TestFetchCommand(t *testing.T) {
 		}
 	}()
 
-	time.Sleep(time.Second * 2)
+	// TODO (b5) - this is horrible. we should block on a channel receive for connectedness
+	time.Sleep(time.Second * 5)
 
 	b := NewTestRepoRoot(t, "qri_test_fetch_b")
 	defer b.Delete()

@@ -10,7 +10,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
-
 )
 
 func TestWriteDir(t *testing.T) {
