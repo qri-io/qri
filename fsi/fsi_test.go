@@ -212,7 +212,7 @@ func TestUpdateLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	expect := `peer/test_ds@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt/ipfs/QmExample`
+	expect := `peer/test_ds@/ipfs/QmExample`
 	if link != expect {
 		t.Errorf("error: link did not match, actual: %s, expect: %s", link, expect)
 	}

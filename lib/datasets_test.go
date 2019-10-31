@@ -903,7 +903,7 @@ Pirates of the Caribbean: At World's End ,foo
 		err       string
 	}{
 		{ValidateDatasetParams{Ref: ""}, 0, "bad arguments provided"},
-		{ValidateDatasetParams{Ref: "me"}, 0, "cannot find dataset: peer@QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"},
+		{ValidateDatasetParams{Ref: "me"}, 0, "cannot find dataset: peer"},
 		{ValidateDatasetParams{Ref: "me/movies"}, 4, ""},
 		{ValidateDatasetParams{Ref: "me/movies", Body: dataf, BodyFilename: "data.csv"}, 1, ""},
 		{ValidateDatasetParams{Ref: "me/movies", Schema: schemaf}, 4, ""},

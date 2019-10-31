@@ -109,6 +109,15 @@ type DatasetRef struct {
 // String implements the Stringer interface for DatasetRef
 func (r DatasetRef) String() (s string) {
 	s = r.AliasString()
+	if r.Path != "" {
+		s += "@" + r.Path
+	}
+	return
+}
+
+// Absolute implements the same thing as String(), but append ProfileID if it exist
+func (r DatasetRef) Absolute() (s string) {
+	s = r.AliasString()
 	if r.ProfileID.String() != "" || r.Path != "" {
 		s += "@"
 	}
