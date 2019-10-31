@@ -5,7 +5,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/fsi/component"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )

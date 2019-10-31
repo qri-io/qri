@@ -10,8 +10,8 @@ import (
 	"strings"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
-	crypto "github.com/libp2p/go-libp2p-crypto"
-	peer "github.com/libp2p/go-libp2p-peer"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"

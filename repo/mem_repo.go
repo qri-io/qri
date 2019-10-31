@@ -1,7 +1,7 @@
 package repo
 
 import (
-	crypto "github.com/libp2p/go-libp2p-crypto"
+	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -63,7 +63,7 @@ func (r *MemRepo) RemoveLogbook() {
 	r.logbook = nil
 }
 
-// SetLogbook assigns MemRepo's logbook. MemRepo gets used in tests a bunch, 
+// SetLogbook assigns MemRepo's logbook. MemRepo gets used in tests a bunch,
 // where logbook manipulation is helpful
 func (r *MemRepo) SetLogbook(book *logbook.Book) {
 	r.logbook = book

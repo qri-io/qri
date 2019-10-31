@@ -71,7 +71,6 @@ func TestSetPublishStatus(t *testing.T) {
 	}
 }
 
-
 func TestReplaceRefIfMoreRecent(t *testing.T) {
 	r := newTestRepo(t)
 	older := time.Date(2019, 1, 1, 12, 0, 0, 0, time.UTC)

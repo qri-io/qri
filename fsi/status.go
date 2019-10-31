@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qri/repo"
 )
 

@@ -15,21 +15,22 @@ func NewRenderCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RenderOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "render",
-		Short: "Execute a template against a dataset",
+		Short: "Render a dataset readme or a dataset template",
 		Long: `
-You can use html templates, formatted in the go/html template style, 
-to render visualizations from your dataset. These visualizations can be charts, 
-graphs, or just display your dataset in a different format.
+Render a dataset either by converting its readme from markdown to
+html, or by filling in a template using the go/html template style.
 
 Use the ` + "`--output`" + ` flag to save the rendered html to a file.
 
+Use the ` + "`--viz`" + ` flag to render the viz. Default is to use readme.
+
 Use the ` + "`--template`" + ` flag to use a custom template. If no template is
 provided, Qri will render the dataset with a default template.`,
-		Example: `  render a dataset called me/schools:
+		Example: `  render the readme of a dataset called me/schools:
   $ qri render -o=schools.html me/schools
 
   render a dataset with a custom template:
-  $ qri render --template=template.html me/schools`,
+  $ qri render --viz --template=template.html me/schools`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
@@ -42,6 +43,7 @@ provided, Qri will render the dataset with a default template.`,
 	}
 
 	cmd.Flags().StringVarP(&o.Template, "template", "t", "", "path to template file")
+	cmd.Flags().BoolVarP(&o.UseViz, "viz", "v", false, "whether to use the viz component")
 	cmd.Flags().StringVarP(&o.Output, "output", "o", "", "path to write output file")
 
 	return cmd
@@ -53,6 +55,7 @@ type RenderOptions struct {
 
 	Refs     *RefSelect
 	Template string
+	UseViz   bool
 	Output   string
 
 	RenderRequests *lib.RenderRequests
@@ -70,9 +73,21 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 }
 
 // Run executes the render command
-func (o *RenderOptions) Run() (err error) {
-	var template []byte
+func (o *RenderOptions) Run() error {
+	if o.Template != "" && !o.UseViz {
+		return fmt.Errorf("can not specify both --template without --viz flag")
+	}
 
+	if o.UseViz {
+		return o.RunVizRender()
+	}
+
+	return o.RunReadmeRender()
+}
+
+// RunVizRender renders a viz component of a dataset as html
+func (o *RenderOptions) RunVizRender() (err error) {
+	var template []byte
 	if o.Template != "" {
 		template, err = ioutil.ReadFile(o.Template)
 		if err != nil {
@@ -81,13 +96,13 @@ func (o *RenderOptions) Run() (err error) {
 	}
 
 	p := &lib.RenderParams{
-		Ref:            o.Refs.Ref(),
-		Template:       template,
-		TemplateFormat: "html",
+		Ref:       o.Refs.Ref(),
+		Template:  template,
+		OutFormat: "html",
 	}
 
 	res := []byte{}
-	if err = o.RenderRequests.Render(p, &res); err != nil {
+	if err := o.RenderRequests.RenderViz(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
 			return lib.NewError(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
 		}
@@ -98,6 +113,29 @@ func (o *RenderOptions) Run() (err error) {
 		fmt.Fprint(o.Out, string(res))
 	} else {
 		ioutil.WriteFile(o.Output, res, 0777)
+	}
+	return nil
+}
+
+// RunReadmeRender renders a readme file as html
+func (o *RenderOptions) RunReadmeRender() error {
+	printRefSelect(o.Out, o.Refs)
+
+	p := &lib.RenderParams{
+		Ref:       o.Refs.Ref(),
+		UseFSI:    o.Refs.IsLinked(),
+		OutFormat: "html",
+	}
+
+	var res string
+	if err := o.RenderRequests.RenderReadme(p, &res); err != nil {
+		return err
+	}
+
+	if o.Output == "" {
+		fmt.Fprint(o.Out, res)
+	} else {
+		ioutil.WriteFile(o.Output, []byte(res), 0777)
 	}
 	return nil
 }

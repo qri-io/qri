@@ -55,7 +55,15 @@ func ConvertDatasetToComponents(ds *dataset.Dataset, qfilesys qfs.Filesystem) Co
 		rc.Format = "md"
 		dc.Subcomponents["readme"] = &rc
 	}
-	if ds.BodyPath != "" {
+
+	if ds.Body != nil {
+		bc := BodyComponent{Resolver: qfilesys}
+		bc.Value = ds.Body
+		bc.BodyFile = ds.BodyFile()
+		bc.Structure = ds.Structure
+		bc.Format = ds.Structure.Format
+		dc.Subcomponents["body"] = &bc
+	} else if ds.BodyPath != "" {
 		bc := BodyComponent{Resolver: qfilesys}
 		bc.SourceFile = ds.BodyPath
 		bc.BodyFile = ds.BodyFile()

@@ -127,7 +127,8 @@ func (mc *MetaComponent) WriteTo(dirPath string) error {
 	if err := mc.LoadAndFill(nil); err != nil {
 		return err
 	}
-	if mc.Value != nil && !mc.Value.IsEmpty() {
+	// Okay to output an empty meta, we do so for `qri init`.
+	if mc.Value != nil {
 		return writeComponentFile(mc.Value, dirPath, "meta.json")
 	}
 	return nil

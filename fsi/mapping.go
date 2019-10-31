@@ -6,8 +6,8 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/fsi/component"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/component"
 )
 
 // ReadDir reads the component files in the directory, and returns a dataset

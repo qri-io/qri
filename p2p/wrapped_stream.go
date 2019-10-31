@@ -3,7 +3,7 @@ package p2p
 import (
 	"bufio"
 
-	net "github.com/libp2p/go-libp2p-net"
+	net "github.com/libp2p/go-libp2p-core/network"
 	multicodec "github.com/multiformats/go-multicodec"
 	json "github.com/multiformats/go-multicodec/json"
 )
