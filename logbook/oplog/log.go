@@ -16,15 +16,15 @@ import (
 	"crypto/cipher"
 	"crypto/md5"
 	"crypto/rand"
-	"encoding/base64"
+	"encoding/base32"
 	"encoding/hex"
 	"fmt"
 	"io"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/minio/blake2b-simd"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
+	"golang.org/x/crypto/blake2b"
 )
 
 var (
@@ -328,9 +328,9 @@ func (lg *Log) Append(op Op) {
 	lg.Ops = append(lg.Ops, op)
 }
 
-// InitOpHash returns the hash of the initialization operation
+// ID returns the hash of the initialization operation
 // if the log is empty, returns the empty string
-func (lg Log) InitOpHash() string {
+func (lg Log) ID() string {
 	if len(lg.Ops) == 0 {
 		return ""
 	}
@@ -598,15 +598,25 @@ func (o Op) Equal(b Op) bool {
 		o.Note == b.Note
 }
 
-// Hash returns the base64 encoded blake2b 256 hash of the Op flatbuffer
+// Hash uses lower-case base32 encoding for id bytes for a few reasons:
+// * base64 uses the "/" character, which messes with paths
+// * can be used as URLS
+// * doesn't rely on case, which means it works in case-insensitive contexts
+// * lowercase is easier on the eyes
+//
+// we're intentionally *not* using multiformat CIDs here. ID's are not
+// identifiers of content stored wholly in an immutable filesystem, they're a
+// reference to the intialization operation in a history
+var base32Enc = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
+
+// Hash returns the base32-lowercase-encoded blake2b-256 hash of the Op flatbuffer
 func (o Op) Hash() string {
 	builder := flatbuffers.NewBuilder(0)
 	end := o.MarshalFlatbuffer(builder)
 	builder.Finish(end)
 	data := builder.FinishedBytes()
-	// calculate blake2b hash and return base64 encoding
 	sum := blake2b.Sum256(data)
-	return base64.StdEncoding.EncodeToString(sum[:])
+	return base32Enc.EncodeToString(sum[:])
 }
 
 // MarshalFlatbuffer writes this operation to a flatbuffer, returning the

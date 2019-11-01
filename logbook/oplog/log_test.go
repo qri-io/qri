@@ -6,6 +6,7 @@ import (
 	"encoding/base64"
 	"testing"
 
+	"github.com/dustin/go-humanize"
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
@@ -287,7 +288,7 @@ func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
 		b.Fatal(err)
 	}
 
-	b.Logf("data is %d bytes", len(data))
+	b.Logf("one simulated log with 10k ops weighs %s as encrypted data", humanize.Bytes(uint64(len(data))))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
 		if _, err := book.FlatbufferCipher(); err != nil {
@@ -367,9 +368,9 @@ func TestRemoveLog(t *testing.T) {
 	}
 }
 
-func TestInitOpHash(t *testing.T) {
+func TestLogID(t *testing.T) {
 	l := &Log{}
-	got := l.InitOpHash()
+	got := l.ID()
 	if "" != got {
 		t.Errorf("expected op hash of empty log to give the empty string, got: %s", got)
 	}
@@ -377,8 +378,18 @@ func TestInitOpHash(t *testing.T) {
 	l = &Log{
 		Ops: []Op{Op{Name: "hello"}},
 	}
-	got = l.InitOpHash()
-	expect := "z8xxzIjAZ/Y57O4k2YRx8SyIdEVKykrquyKCUIMeC/s="
+	got = l.ID()
+	expect := "z7ghdteiybt7mopm5ysntbdr6ewiq5cfjlfev2v3ekbfbay6bp5q"
+	if expect != got {
+		t.Errorf("result mismatch, expect: %s, got: %s", expect, got)
+	}
+
+	// changing a feature like a timestamp should affect output hash
+	l = &Log{
+		Ops: []Op{Op{Name: "hello", Timestamp: 2}},
+	}
+	got = l.ID()
+	expect = "7ixp5z4h2dzjyljkjn7sbnsu6vg22gpgozmcl7wpg33pl5qfs3ra"
 	if expect != got {
 		t.Errorf("result mismatch, expect: %s, got: %s", expect, got)
 	}
