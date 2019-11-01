@@ -232,7 +232,7 @@ func TestBookLogEntries(t *testing.T) {
 	}
 
 	expect := []string{
-		"10:07PM\ttest_author\tinit\t",
+		"12:02AM\ttest_author\tinit\t",
 		"12:00AM\ttest_author\tsave\tinitial commit",
 		"12:00AM\ttest_author\tsave\tadded body data",
 		"12:00AM\ttest_author\tpublish\t",
@@ -246,19 +246,22 @@ func TestBookLogEntries(t *testing.T) {
 	}
 }
 
-func TestLog(t *testing.T) {
+func TestHeadRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.Log(dsref.Ref{}); err == nil {
+	if _, err := tr.Book.HeadRef(dsref.Ref{}); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.Log(dsref.Ref{Username: tr.Username}); err == nil {
+	if _, err := tr.Book.HeadRef(dsref.Ref{Username: tr.Username}); err == nil {
 		t.Error("expected LogBytes with empty name ref to fail")
 	}
-	if _, err := tr.Book.Log(tr.RenameRef()); err != nil {
+	lg := tr.Book.RawLogs(tr.Ctx)
+	t.Logf("%#v\n\n", tr.RenameRef().String())
+	t.Logf("%#v\n\n", lg)
+	if _, err := tr.Book.HeadRef(tr.RenameRef()); err != nil {
 		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
 	}
 }
@@ -268,7 +271,7 @@ func TestLogBytes(t *testing.T) {
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
-	log, err := tr.Book.Log(tr.RenameRef())
+	log, err := tr.Book.HeadRef(tr.RenameRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -289,7 +292,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 	egRef := tr.RenameRef()
-	log, err := tr.Book.Log(egRef)
+	log, err := tr.Book.HeadRef(egRef)
 	if err != nil {
 		t.Error(err)
 	}
@@ -298,7 +301,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected nil ref to error")
 	}
 
-	wrongModelLog, err := tr.Book.bk.Log(userModel, tr.Username)
+	wrongModelLog, err := tr.Book.bk.HeadRef(tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +310,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected converting log of wrong model to error")
 	}
 
-	ambiguousLog, err := tr.Book.bk.Log(nameModel, tr.Username)
+	ambiguousLog, err := tr.Book.bk.HeadRef(tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -345,87 +348,85 @@ func TestBookRawLog(t *testing.T) {
 	// }
 	// t.Logf("%s", string(data))
 
-	expect := map[string][]Log{
-		"name": []Log{
-			{
-				Ops: []Op{
-					{
-						Type:      "init",
-						Model:     "name",
-						Name:      "test_author",
-						AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-						Timestamp: mustTime("2047-03-18T17:07:12.45224192-05:00"),
-					},
-				},
-				Logs: []Log{
-					{
-						Ops: []Op{
-							{
-								Type:      "init",
-								Model:     "name",
-								Name:      "world_bank_population",
-								AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-								Timestamp: mustTime("2047-03-18T17:07:13.45224192-05:00"),
-							},
-							{
-								Type:      "init",
-								Model:     "version",
-								Ref:       "QmHashOfVersion1",
-								Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
-								Note:      "initial commit",
-							},
-							{
-								Type:      "init",
-								Model:     "version",
-								Ref:       "QmHashOfVersion2",
-								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
-								Note:      "added body data",
-							},
-							{
-								Type:  "init",
-								Model: "publication",
-								Relations: []string{
-									"registry.qri.cloud",
-								},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      2,
-							},
-							{
-								Type:      "remove",
-								Model:     "publication",
-								Relations: []string{"registry.qri.cloud"},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      2,
-							},
-							{
-								Type:      "remove",
-								Model:     "version",
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      1,
-							},
-							{
-								Type:      "amend",
-								Model:     "version",
-								Ref:       "QmHashOfVersion3",
-								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
-								Note:      "added meta info",
-							},
-						},
-					},
+	expect := []Log{
+		{
+			Ops: []Op{
+				{
+					Type:      "init",
+					Model:     "user",
+					Name:      "test_author",
+					AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+					Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 				},
 			},
-		},
-		"user": []Log{
-			{
-				Ops: []Op{
-					{
-						Type:      "init",
-						Model:     "user",
-						Name:      "test_author",
-						AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-						Timestamp: mustTime("2047-03-18T17:07:11.45224192-05:00"),
+			Logs: []Log{
+				Log{
+					Ops: []Op{
+						{
+							Type:      "init",
+							Model:     "name",
+							Name:      "world_bank_population",
+							AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
+						},
+					},
+					Logs: []Log{
+						Log{
+							Ops: []Op{
+								{
+									Type:      "init",
+									Model:     "name",
+									Name:      "author",
+									AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+									Timestamp: mustTime("1999-12-31T19:02:00-05:00"),
+								},
+								{
+									Type:      "init",
+									Model:     "version",
+									Ref:       "QmHashOfVersion1",
+									Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
+									Note:      "initial commit",
+								},
+								{
+									Type:      "init",
+									Model:     "version",
+									Ref:       "QmHashOfVersion2",
+									Prev:      "QmHashOfVersion1",
+									Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
+									Note:      "added body data",
+								},
+								{
+									Type:  "init",
+									Model: "publication",
+									Relations: []string{
+										"registry.qri.cloud",
+									},
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      2,
+								},
+								{
+									Type:      "remove",
+									Model:     "publication",
+									Relations: []string{"registry.qri.cloud"},
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      2,
+								},
+								{
+									Type:      "remove",
+									Model:     "version",
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      1,
+								},
+								{
+									Type:      "amend",
+									Model:     "version",
+									Ref:       "QmHashOfVersion3",
+									Prev:      "QmHashOfVersion1",
+									Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
+									Note:      "added meta info",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -445,7 +446,7 @@ func TestLogTransfer(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 
-	log, err := tr.Book.Log(tr.WorldBankRef())
+	log, err := tr.Book.HeadRef(tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -503,11 +504,10 @@ func TestRenameDataset(t *testing.T) {
 	}
 
 	expect := []string{
-		"10:07PM\ttest_author\tinit\t",
+		"12:02AM\ttest_author\tinit\t",
 		"12:00AM\ttest_author\tsave\tinitial commit",
 		"12:00AM\ttest_author\tran update\t",
 		"12:00AM\ttest_author\tsave\tadded meta info",
-		"10:07PM\ttest_author\trename\t",
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -639,7 +639,7 @@ func TestConstructDatasetLog(t *testing.T) {
 	}
 
 	if len(versions) != 3 {
-		t.Errorf("expected 3 versions to return from history")
+		t.Errorf("expected 3 versions to return from history. got: %d", len(versions))
 	}
 }
 
@@ -687,7 +687,8 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 
 func (tr *testRunner) newTimestamp() int64 {
 	defer func() { tr.Tick++ }()
-	return time.Unix(int64(94670280000+tr.Tick), 0).UnixNano()
+	t := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	return t.Add(time.Minute * time.Duration(tr.Tick)).UnixNano()
 }
 
 func (tr *testRunner) WorldBankRef() dsref.Ref {

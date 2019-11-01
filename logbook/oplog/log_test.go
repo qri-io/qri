@@ -6,7 +6,6 @@ import (
 	"encoding/base64"
 	"testing"
 
-	"github.com/dustin/go-humanize"
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
@@ -15,7 +14,6 @@ import (
 var allowUnexported = cmp.AllowUnexported(
 	Book{},
 	Log{},
-	Op{},
 )
 
 func TestBookFlatbuffer(t *testing.T) {
@@ -48,9 +46,7 @@ func TestBookFlatbuffer(t *testing.T) {
 	book := &Book{
 		pk:         pk,
 		authorname: "must_preserve",
-		logs: map[uint32][]*Log{
-			0x1: []*Log{log},
-		},
+		logs:       []*Log{log},
 	}
 
 	data := book.flatbufferBytes()
@@ -128,6 +124,47 @@ func TestBookSignLog(t *testing.T) {
 
 	if err := received.Verify(pk.GetPublic()); err != nil {
 		t.Fatal(err)
+	}
+}
+
+func TestLogHead(t *testing.T) {
+	l := &Log{}
+	if !l.Head().Equal(Op{}) {
+		t.Errorf("expected empty log head to equal empty Op")
+	}
+
+	l = &Log{Ops: []Op{Op{}, Op{Model: 4}, Op{Model: 5, AuthorID: "foo"}}}
+	if !l.Head().Equal(l.Ops[2]) {
+		t.Errorf("expected log head to equal last Op")
+	}
+}
+
+func TestLogGetID(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.AddAuthorLogTree()
+
+	got, err := tr.Book.Log("nonsense")
+	if err != ErrNotFound {
+		t.Errorf("expected not-found error for missing ID. got: %s", err)
+	}
+
+	root := tr.Book.Logs()[0]
+	got, err = tr.Book.Log(root.ID())
+	if err != nil {
+		t.Errorf("unexpected error fetching root ID: %s", err)
+	} else if !got.Head().Equal(root.Head()) {
+		t.Errorf("returned log mismatch. Heads are different")
+	}
+
+	child := root.Logs[0]
+	got, err = tr.Book.Log(child.ID())
+	if err != nil {
+		t.Errorf("unexpected error fetching child ID: %s", err)
+	}
+	if !got.Head().Equal(child.Head()) {
+		t.Errorf("returned log mismatch. Heads are different")
 	}
 }
 
@@ -270,53 +307,26 @@ func TestLogMerge(t *testing.T) {
 	}
 }
 
-func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
-	tr, cleanup := newTestRunner(b)
-	defer cleanup()
-
-	init := Op{
-		Type:  OpTypeInit,
-		Model: 0xFFFF,
-	}
-
-	l := tr.RandomLog(init, 10000)
-	book := tr.Book
-	book.AppendLog(l)
-
-	data, err := book.FlatbufferCipher()
-	if err != nil {
-		b.Fatal(err)
-	}
-
-	b.Logf("one simulated log with 10k ops weighs %s as encrypted data", humanize.Bytes(uint64(len(data))))
-	b.ResetTimer()
-	for n := 0; n < b.N; n++ {
-		if _, err := book.FlatbufferCipher(); err != nil {
-			b.Fatal(err)
-		}
-	}
-}
-
 func TestLogTraversal(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.AddAuthorLogTree()
 
-	if _, err := tr.Book.Log(0x1); err == nil {
+	if _, err := tr.Book.HeadRef(); err == nil {
 		t.Errorf("expected not providing a name to error")
 	}
 
-	if _, err := tr.Book.Log(0x1, "this", "isn't", "a", "thing"); err != ErrNotFound {
+	if _, err := tr.Book.HeadRef("this", "isn't", "a", "thing"); err != ErrNotFound {
 		t.Errorf("expected asking for nonexistent log to return ErrNotFound. got: %v", err)
 	}
 
-	got, err := tr.Book.Log(0x1, "root", "b", "bazinga")
+	got, err := tr.Book.HeadRef("root", "b", "bazinga")
 	if err != nil {
 		t.Error(err)
 	}
 
-	t.Logf("%#v", tr.Book.Logs()[0x1][0])
+	t.Logf("%#v", tr.Book.Logs()[0])
 
 	expect := &Log{
 		Ops: []Op{
@@ -335,35 +345,35 @@ func TestRemoveLog(t *testing.T) {
 
 	tr.AddAuthorLogTree()
 
-	if err := tr.Book.RemoveLog(0x0); err == nil {
+	if err := tr.Book.RemoveLog(); err == nil {
 		t.Errorf("expected no name remove to error")
 	}
 
-	if err := tr.Book.RemoveLog(0x1, "root", "b", "bazinga"); err != nil {
+	if err := tr.Book.RemoveLog("root", "b", "bazinga"); err != nil {
 		t.Error(err)
 	}
 
-	if log, err := tr.Book.Log(0x1, "root", "b", "bazinga"); err != ErrNotFound {
+	if log, err := tr.Book.HeadRef("root", "b", "bazinga"); err != ErrNotFound {
 		t.Errorf("expected RemoveLog to remove log at path root/b/bazinga. got: %v. log: %v", err, log)
 	}
 
-	if err := tr.Book.RemoveLog(0x1, "root", "b"); err != nil {
+	if err := tr.Book.RemoveLog("root", "b"); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := tr.Book.Log(0x1, "root", "b"); err != ErrNotFound {
+	if _, err := tr.Book.HeadRef("root", "b"); err != ErrNotFound {
 		t.Error("expected RemoveLog to remove log at path root/b")
 	}
 
-	if err := tr.Book.RemoveLog(0x1, "root"); err != nil {
+	if err := tr.Book.RemoveLog("root"); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := tr.Book.Log(0x1, "root"); err != ErrNotFound {
+	if _, err := tr.Book.HeadRef("root"); err != ErrNotFound {
 		t.Error("expected RemoveLog to remove log at path root")
 	}
 
-	if err := tr.Book.RemoveLog(0x1, "nonexistent"); err != ErrNotFound {
+	if err := tr.Book.RemoveLog("nonexistent"); err != ErrNotFound {
 		t.Error("expected RemoveLog for nonexistent path to error")
 	}
 }
