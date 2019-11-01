@@ -112,6 +112,10 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, err
 	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
 	// If reference is specified by the user provide command-line arguments, use that reference.
 	if len(args) > 0 {
+		if allowed >= 2 {
+			// Diff allows multiple explicit references.
+			return NewListOfRefSelects(args), nil
+		}
 		return NewExplicitRefSelect(args[0]), nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.

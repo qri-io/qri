@@ -55,6 +55,11 @@ func (fc *FilesysComponent) LoadAndFill(ds *dataset.Dataset) error {
 	return nil
 }
 
+// StructuredData cannot be returned for a filesystem
+func (fc *FilesysComponent) StructuredData() (interface{}, error) {
+	return nil, fmt.Errorf("cannot convert filesys to a structured data")
+}
+
 // DatasetComponent represents a dataset with components
 type DatasetComponent struct {
 	BaseComponent
@@ -94,11 +99,35 @@ func (dc *DatasetComponent) DropDerivedValues() {
 		}
 		dc.BaseComponent.Subcomponents[compName].DropDerivedValues()
 	}
+	if dc.Value != nil {
+		dc.Value.DropDerivedValues()
+	}
 }
 
 // LoadAndFill loads data from the component source file and assigngs it
 func (dc *DatasetComponent) LoadAndFill(ds *dataset.Dataset) error {
 	return nil
+}
+
+// StructuredData returns the dataset as a map[string]
+func (dc *DatasetComponent) StructuredData() (interface{}, error) {
+	if err := dc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(dc.Value)
+}
+
+func structToMap(value interface{}) (map[string]interface{}, error) {
+	var result map[string]interface{}
+	bytes, err := json.Marshal(value)
+	if err != nil {
+		return nil, err
+	}
+	err = json.Unmarshal(bytes, &result)
+	if err != nil {
+		return nil, err
+	}
+	return result, nil
 }
 
 // MetaComponent represents a meta component
@@ -169,6 +198,14 @@ func (mc *MetaComponent) LoadAndFill(ds *dataset.Dataset) error {
 		ds.Meta = mc.Value
 	}
 	return nil
+}
+
+// StructuredData returns the meta as a map[string]
+func (mc *MetaComponent) StructuredData() (interface{}, error) {
+	if err := mc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(mc.Value)
 }
 
 // StructureComponent represents a structure component
@@ -246,6 +283,14 @@ func (sc *StructureComponent) LoadAndFill(ds *dataset.Dataset) error {
 	return nil
 }
 
+// StructuredData returns the structure as a map[string]
+func (sc *StructureComponent) StructuredData() (interface{}, error) {
+	if err := sc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(sc.Value)
+}
+
 // CommitComponent represents a commit component
 type CommitComponent struct {
 	BaseComponent
@@ -314,6 +359,14 @@ func (cc *CommitComponent) LoadAndFill(ds *dataset.Dataset) error {
 	return nil
 }
 
+// StructuredData returns the commit as a map[string]
+func (cc *CommitComponent) StructuredData() (interface{}, error) {
+	if err := cc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(cc.Value)
+}
+
 // BodyComponent represents a body component
 type BodyComponent struct {
 	BaseComponent
@@ -322,6 +375,16 @@ type BodyComponent struct {
 	Structure      *dataset.Structure
 	InferredSchema map[string]interface{}
 	Value          interface{}
+}
+
+// NewBodyComponent returns a body component for the given source file
+func NewBodyComponent(file string) *BodyComponent {
+	return &BodyComponent{
+		BaseComponent: BaseComponent{
+			SourceFile: file,
+			Format:     filepath.Ext(file),
+		},
+	}
 }
 
 // Compare compares to another component
@@ -415,6 +478,14 @@ func (bc *BodyComponent) LoadAndFill(ds *dataset.Dataset) error {
 	}
 
 	return nil
+}
+
+// StructuredData returns the body as a map[string] or []interface{}, depending on top-level type
+func (bc *BodyComponent) StructuredData() (interface{}, error) {
+	if err := bc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return bc.Value, nil
 }
 
 // WriteTo writes the component as a file to the directory
@@ -563,6 +634,14 @@ func (rc *ReadmeComponent) LoadAndFill(ds *dataset.Dataset) error {
 		ds.Readme = rc.Value
 	}
 	return nil
+}
+
+// StructuredData returns the readme as a map[string]
+func (rc *ReadmeComponent) StructuredData() (interface{}, error) {
+	if err := rc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(rc.Value)
 }
 
 // Base returns the common base data for the component

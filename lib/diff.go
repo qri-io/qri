@@ -1,17 +1,13 @@
 package lib
 
 import (
-	// "context"
 	"context"
-	"encoding/csv"
-	"encoding/json"
 	"fmt"
-	"path/filepath"
-	"strings"
 
 	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/p2p"
+	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -25,12 +21,16 @@ type DiffStat = deepdiff.Stats
 
 // DiffParams defines parameters for diffing two datasets with Diff
 type DiffParams struct {
+	// File path or reference to a dataset
 	LeftPath, RightPath string
 
-	// Format       string
-	// FormatConfig dataset.FormatConfig
-
+	// Which component or part of a dataset to compare
 	Selector string
+
+	// If not null, the working directory that the diff is using
+	WorkingDir string
+	// Whether to get the previous version of the left parameter
+	IsLeftAsPrevious bool
 
 	Limit, Offset int
 	All           bool
@@ -63,142 +63,167 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 	ctx := context.TODO()
 
-	if err = completeDiffRefs(r.node, &p.LeftPath, &p.RightPath); err != nil {
-		return
-	}
-
-	var leftData, rightData interface{}
-	if leftData, err = r.loadDiffData(ctx, p.LeftPath, p.Selector); err != nil {
-		return
-	}
-	if rightData, err = r.loadDiffData(ctx, p.RightPath, p.Selector); err != nil {
-		return
-	}
-
-	_res := DiffResponse{
-		Stat: &deepdiff.Stats{},
-		A:    leftData,
-		B:    rightData,
-	}
-
-	if _res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(_res.Stat)); err != nil {
-		return
-	}
-
-	*res = _res
-	return
-}
-
-func completeDiffRefs(node *p2p.QriNode, left, right *string) (err error) {
-	// fail if neither argument is given
-	if *left == "" && *right == "" {
-		return repo.ErrEmptyRef
-	}
-	// fill in left side from previous path if left isn't set & right is a ref string with history
-	if *right != "" && *left == "" && repo.IsRefString(*right) {
-		if *right == "" {
-			return repo.ErrEmptyRef
-		}
-		ref := *right
-
-		lr := NewLogRequests(node, nil)
-		var res []DatasetLogItem
-		err = lr.Log(&LogParams{
-			Ref: ref,
-			ListParams: ListParams{
-				Limit:  10,
-				Offset: 0,
-			},
-		}, &res)
+	if !repo.IsRefString(p.LeftPath) && !repo.IsRefString(p.RightPath) {
+		// Compare body files.
+		leftComp := component.NewBodyComponent(p.LeftPath)
+		leftData, err := leftComp.StructuredData()
 		if err != nil {
-			return
+			return err
 		}
 
-		if len(res) == 0 {
-			// NOTE: This shouldn't be possible.
-			return fmt.Errorf("dataset has no versions, nothing to diff against")
-		} else if len(res) == 1 {
-			return fmt.Errorf("dataset has only one version, nothing to diff against")
-		} else {
-			*left = res[1].Ref.String()
+		rightComp := component.NewBodyComponent(p.RightPath)
+		rightData, err := rightComp.StructuredData()
+		if err != nil {
+			return err
 		}
+
+		res.Stat = &deepdiff.Stats{}
+		res.A = leftData
+		res.B = rightData
+		res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(res.Stat))
+		return err
+	} else if !repo.IsRefString(p.LeftPath) || !repo.IsRefString(p.RightPath) {
+		// Only one is a file path, other is a reference. Cannot compare.
+		return fmt.Errorf("Cannot compare a dataset reference against a body file")
 	}
 
-	return
-}
-
-// TODO (b5): this is a temporary hack, I'd like to eventually merge this with a
-// bunch of other code, generalizing the types of data qri can work on
-func (r *DatasetRequests) loadDiffData(ctx context.Context, path, selector string) (data interface{}, err error) {
-	if repo.IsRefString(path) {
-		getp := &GetParams{
-			Path:     path,
-			Format:   "json",
-			Selector: selector,
-			All:      true,
-		}
-		res := &GetResult{}
-		if err = r.Get(getp, res); err != nil {
-			return
-		}
-		err = json.Unmarshal(res.Bytes, &data)
-		return
-	}
-	file, err := r.node.Repo.Filesystem().Get(ctx, path)
+	// Left side of diff
+	ref, err := repo.ParseDatasetRef(p.LeftPath)
 	if err != nil {
-		return nil, err
+		return err
 	}
-	defer file.Close()
-
-	ext := strings.ToLower(filepath.Ext(file.FileName()))
-	switch ext {
-	case ".json":
-		err = json.NewDecoder(file).Decode(&data)
-		// err = codec.NewDecoder(file, &codec.JsonHandle{}).Decode(&data)
-	case ".csv":
-		data, err = allCSVRows(file)
-	case ".cbor":
-		err = fmt.Errorf("cbor is not yet supported")
-		// err = codec.NewDecoder(file, &codec.CborHandle{}).Decode(&data)
-	default:
-		err = fmt.Errorf("unrecognized file extension: %s", ext)
+	err = repo.CanonicalizeDatasetRef(r.inst.node.Repo, &ref)
+	if err != nil && err != repo.ErrNoHistory {
+		return err
 	}
-	return
-}
+	ds, err := dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+	if err != nil {
+		return err
+	}
+	if p.IsLeftAsPrevious {
+		prev := ds.PreviousPath
+		if prev == "" {
+			return fmt.Errorf("dataset has only one version, nothing to diff against")
+		}
+		ref.Path = prev
+		ds, err = dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return err
+		}
+	}
+	leftComp := component.ConvertDatasetToComponents(ds, r.inst.node.Repo.Filesystem())
 
-func allCSVRows(file qfs.File) (recs []interface{}, err error) {
-	rdr := csv.NewReader(file)
+	// Right side of diff
+	var rightComp component.Component
+	if p.WorkingDir != "" {
+		// Working directory, read dataset from the current files.
+		rightComp, err = component.ListDirectoryComponents(p.WorkingDir)
+		if err != nil {
+			return err
+		}
+		err = component.ExpandListedComponents(rightComp, r.inst.node.Repo.Filesystem())
+		if err != nil {
+			return err
+		}
+		// TODO(dlong): Hack! This is what fills the value. StucturedData assumes this has been
+		// called. Should cleanup component's API so that this isn't necessary.
+		_, err = component.ToDataset(rightComp)
+		if err != nil {
+			return err
+		}
 
-	for {
-		var rec []string
-		if rec, err = rdr.Read(); err != nil {
-			if err.Error() == "EOF" {
-				err = nil
-				break
+	} else {
+		ref, err := repo.ParseDatasetRef(p.RightPath)
+		if err != nil {
+			return err
+		}
+		err = repo.CanonicalizeDatasetRef(r.inst.node.Repo, &ref)
+		if err != nil && err != repo.ErrNoHistory {
+			return err
+		}
+		ds, err := dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return err
+		}
+		rightComp = component.ConvertDatasetToComponents(ds, r.inst.node.Repo.Filesystem())
+	}
+
+	// If in an FSI linked working directory, drop derived values, since the user is not
+	// expected to have those trasient values on their checked out files.
+	if p.WorkingDir != "" {
+		// TODO(dlong): RemoveSubcomponent removes the component from the map, but not from the
+		// Value. That should be fixed so that component has a more sane API.
+		leftComp.Base().RemoveSubcomponent("commit")
+		leftComp.Base().RemoveSubcomponent("viz")
+		leftComp.DropDerivedValues()
+		rightComp.Base().RemoveSubcomponent("commit")
+		rightComp.Base().RemoveSubcomponent("viz")
+		rightComp.DropDerivedValues()
+
+		// Also load the body file, and inline it.
+		// TODO(dlong): This should be refactored into component so that it's easier to do.
+		leftDsComp := leftComp.Base().GetSubcomponent("dataset")
+		if leftDsComp != nil {
+			dsComp, ok := leftDsComp.(*component.DatasetComponent)
+			if ok {
+				ds := dsComp.Value
+				ds.Commit = nil
+				ds.Viz = nil
+				ds.Peername = ""
+				ds.PreviousPath = ""
+				bodyComp := leftComp.Base().GetSubcomponent("body")
+				if bodyComp != nil {
+					bodyComp.LoadAndFill(ds)
+					ds.Body, err = bodyComp.StructuredData()
+					if err != nil {
+						return err
+					}
+					ds.BodyPath = ""
+				}
 			}
-			return nil, err
 		}
-		recs = append(recs, rec)
-	}
-	return recs, nil
-}
 
-// MergeDiffs merges a list of DiffResponses into another, adding component names to each path
-func (r *DatasetRequests) MergeDiffs(merged *DiffResponse, inputs []DiffResponse, comps []string) (err error) {
-	merged.Stat = &DiffStat{}
-	for i, inp := range inputs {
-		merged.Stat.Left += inp.Stat.Left
-		merged.Stat.Right += inp.Stat.Right
-		merged.Stat.LeftWeight += inp.Stat.LeftWeight
-		merged.Stat.RightWeight += inp.Stat.RightWeight
-		merged.Stat.Inserts += inp.Stat.Inserts
-		merged.Stat.Updates += inp.Stat.Updates
-		merged.Stat.Deletes += inp.Stat.Deletes
-		merged.Stat.Moves += inp.Stat.Moves
-		for j, d := range inp.Diff {
-			inp.Diff[j].Path = comps[i] + "/" + d.Path
+		rightDsComp := rightComp.Base().GetSubcomponent("dataset")
+		if rightDsComp != nil {
+			dsComp, ok := rightDsComp.(*component.DatasetComponent)
+			if ok {
+				ds := dsComp.Value
+				ds.Commit = nil
+				ds.Viz = nil
+				ds.Peername = ""
+				ds.PreviousPath = ""
+				bodyComp := rightComp.Base().GetSubcomponent("body")
+				if bodyComp != nil {
+					bodyComp.LoadAndFill(ds)
+					ds.Body, err = bodyComp.StructuredData()
+					if err != nil {
+						return err
+					}
+					ds.BodyPath = ""
+				}
+			}
 		}
-		merged.Diff = append(merged.Diff, inp.Diff...)
 	}
-	return nil
+
+	selector := p.Selector
+	if selector == "" {
+		selector = "dataset"
+	}
+	leftComp = leftComp.Base().GetSubcomponent(selector)
+	rightComp = rightComp.Base().GetSubcomponent(selector)
+
+	leftData, err := leftComp.StructuredData()
+	if err != nil {
+		return err
+	}
+	rightData, err := rightComp.StructuredData()
+	if err != nil {
+		return err
+	}
+
+	res.Stat = &deepdiff.Stats{}
+	res.A = leftData
+	res.B = rightData
+	res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(res.Stat))
+	return err
 }

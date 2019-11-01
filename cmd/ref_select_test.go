@@ -210,3 +210,25 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	}
 
 }
+
+func TestGetCurrentRefSelectUsingTwoArgs(t *testing.T) {
+	f, err := NewTestFactory()
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+
+	// If two are allowed, refs be have length 2
+	refs, err := GetCurrentRefSelect(f, []string{"me/first_ds", "me/second_ds"}, 2)
+	if err != nil {
+		t.Fatalf(err.Error())
+	}
+	if len(refs.RefList()) != 2 {
+		t.Fatalf("error: ref_select.len, actual: %d, expect: %d", len(refs.RefList()), 2)
+	}
+	if refs.RefList()[0] != "me/first_ds" {
+		t.Fatalf("error: ref[0], actual: %s, expect: %s", refs.RefList()[0], "me/first_ds")
+	}
+	if refs.RefList()[1] != "me/second_ds" {
+		t.Fatalf("error: ref[0], actual: %s, expect: %s", refs.RefList()[1], "me/second_ds")
+	}
+}

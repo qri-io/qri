@@ -26,7 +26,8 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
-	req := NewDatasetRequests(node, nil)
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	req := NewDatasetRequestsInstance(inst)
 
 	// File 1
 	fp1, err := dstest.BodyFilepath("testdata/jobs_by_automation")
@@ -73,25 +74,25 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		{"two fully qualified references",
 			dsRef1.String(), dsRef2.String(),
 			"",
-			&DiffStat{Left: 41, Right: 43, LeftWeight: 2567, RightWeight: 2804, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
+			&DiffStat{Left: 40, Right: 42, LeftWeight: 2503, RightWeight: 2740, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
 			8,
 		},
 		{"fill left path from history",
-			"", dsRef2.AliasString(),
+			dsRef2.AliasString(), dsRef2.AliasString(),
 			"",
-			&DiffStat{Left: 41, Right: 43, LeftWeight: 2567, RightWeight: 2804, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
+			&DiffStat{Left: 40, Right: 42, LeftWeight: 2503, RightWeight: 2740, Inserts: 1, Updates: 7, Deletes: 0, Moves: 0},
 			8,
 		},
 		{"two local file paths",
 			"testdata/jobs_by_automation/body.csv", "testdata/jobs_by_automation_2/body.csv",
 			"",
-			&DiffStat{Left: 156, Right: 156, LeftWeight: 3897, RightWeight: 3909, Inserts: 0, Updates: 3, Deletes: 0, Moves: 0},
-			3,
+			&DiffStat{Left: 151, Right: 151, LeftWeight: 3757, RightWeight: 3757, Inserts: 0, Updates: 1, Deletes: 0, Moves: 0},
+			1,
 		},
 		{"diff local csv & json file",
 			"testdata/now_tf/input.dataset.json", "testdata/jobs_by_automation/body.csv",
 			"",
-			&DiffStat{Left: 10, Right: 156, LeftWeight: 162, RightWeight: 3897, Inserts: 156, Updates: 0, Deletes: 156, Moves: 0},
+			&DiffStat{Left: 10, Right: 151, LeftWeight: 162, RightWeight: 3757, Inserts: 151, Updates: 0, Deletes: 151, Moves: 0},
 			2,
 		},
 	}
@@ -103,19 +104,23 @@ func TestDatasetRequestsDiff(t *testing.T) {
 			RightPath: c.Right,
 			Selector:  c.Selector,
 		}
+		// If test has same two paths, assume we want the previous version compared against head.
+		if p.LeftPath == p.RightPath {
+			p.IsLeftAsPrevious = true
+		}
 		res := &DiffResponse{}
 		err := req.Diff(p, res)
 		if err != nil {
-			t.Errorf("%d. %s error: %s", i, c.description, err.Error())
+			t.Errorf("%d: \"%s\" error: %s", i, c.description, err.Error())
 			continue
 		}
 
 		if !reflect.DeepEqual(c.Stat, res.Stat) {
-			t.Errorf("%d %s diffStat mismatch.\nwant: %v\ngot: %v\n", i, c.description, c.Stat, res.Stat)
+			t.Errorf("%d: \"%s\" diffStat mismatch.\nwant: %v\ngot: %v\n", i, c.description, c.Stat, res.Stat)
 		}
 
 		if len(res.Diff) != c.DeltaLen {
-			t.Errorf("%d %s delta length mismatch. want: %d got: %d", i, c.description, c.DeltaLen, len(res.Diff))
+			t.Errorf("%d: \"%s\" delta length mismatch. want: %d got: %d", i, c.description, c.DeltaLen, len(res.Diff))
 		}
 	}
 }
