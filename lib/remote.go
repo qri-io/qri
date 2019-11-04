@@ -2,6 +2,7 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/remote"
@@ -82,6 +83,9 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 	if err != nil {
 		return err
 	}
+	if ref.Path != "" {
+		return fmt.Errorf("can only publish entire dataset, cannot use version %s", ref.Path)
+	}
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
@@ -121,6 +125,11 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) er
 	if err != nil {
 		return err
 	}
+
+	if ref.Path != "" {
+		return fmt.Errorf("can only unpublish entire dataset, cannot use version %s", ref.Path)
+	}
+
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}

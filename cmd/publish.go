@@ -25,7 +25,7 @@ to a published dataset will be immediately visible to connected peers.
   $ qri publish me/dataset me/other_dataset
 
   # unpublish a dataset
-  $ qri publish -unpublish me/dataset
+  $ qri publish --unpublish me/dataset
 
   # publish a few dataset on p2p only
   $ qri publish --no-registry me/dataset_2`,
