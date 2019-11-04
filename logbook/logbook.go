@@ -15,10 +15,10 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/oplog"
 )
 
@@ -92,12 +92,12 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 	if location == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
-	pid, err := calcProfileID(pk)
+	keyID, err := identity.KeyIDFromPriv(pk)
 	if err != nil {
 		return nil, err
 	}
 
-	bk, err := oplog.NewBook(pk, username, pid)
+	bk, err := oplog.NewBook(pk, username, keyID)
 	if err != nil {
 		return nil, err
 	}
@@ -490,9 +490,9 @@ func (book *Book) MergeLog(ctx context.Context, sender oplog.Author, lg *oplog.L
 		return err
 	}
 
-	if lg.ID() != sender.AuthorID() {
-		return fmt.Errorf("authors can only push logs they own")
-	}
+	// if lg.ID() != sender.AuthorID() {
+	// 	return fmt.Errorf("authors can only push logs they own")
+	// }
 
 	found, err := book.bk.Log(lg.ID())
 	if err != nil {
@@ -522,7 +522,16 @@ func (book *Book) RemoveLog(ctx context.Context, sender oplog.Author, ref dsref.
 	// 	return err
 	// }
 
-	if l.Author() != sender.AuthorID() {
+	root := l
+	for {
+		p := root.Parent()
+		if p == nil {
+			break
+		}
+		root = p
+	}
+
+	if root.ID() != sender.AuthorID() {
 		return fmt.Errorf("authors can only remove logs they own")
 	}
 
@@ -808,18 +817,4 @@ func (book Book) readBranchLog(ref dsref.Ref) (*oplog.Log, error) {
 	}
 
 	return book.bk.HeadRef(ref.Username, ref.Name, soloBranchName)
-}
-
-func calcProfileID(privKey crypto.PrivKey) (string, error) {
-	pubkeybytes, err := privKey.GetPublic().Bytes()
-	if err != nil {
-		return "", fmt.Errorf("getting pubkey bytes: %s", err.Error())
-	}
-
-	mh, err := multihash.Sum(pubkeybytes, multihash.SHA2_256, 32)
-	if err != nil {
-		return "", fmt.Errorf("summing pubkey: %s", err.Error())
-	}
-
-	return mh.B58String(), nil
 }

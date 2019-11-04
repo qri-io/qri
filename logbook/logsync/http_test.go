@@ -97,7 +97,7 @@ func TestHTTPClientErrors(t *testing.T) {
 		t.Error("expected error to exist")
 	}
 
-	c.URL = "https://not.a.url.sadfhajksldfjaskl"
+	c.URL = "https://not.a.url      .sadfhajksldfjaskl"
 	if _, _, err := c.get(tr.Ctx, tr.A.Author(), dsref.Ref{}); err == nil {
 		t.Error("expected error to exist")
 	}

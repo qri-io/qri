@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook/logsync"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
@@ -325,7 +326,11 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.Dat
 func (r *Remote) logHook(h Hook) logsync.Hook {
 	return func(ctx context.Context, author logsync.Author, ref dsref.Ref, l *oplog.Log) error {
 		if h != nil {
-			pid, err := profile.IDB58Decode(author.AuthorID())
+			kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
+			if err != nil {
+				return err
+			}
+			pid, err := profile.IDB58Decode(kid)
 			if err != nil {
 				return err
 			}

@@ -57,6 +57,10 @@ func (a author) AuthorID() string {
 	return a.id
 }
 
+func (a author) AuthorPubKeyID() crypto.PubKey {
+	return a.pubKey
+}
+
 func (a author) AuthorPubKey() crypto.PubKey {
 	return a.pubKey
 }
@@ -281,7 +285,7 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	for i := 0; i < count; i++ {
 		if b.Logs(lfb, i) {
 			l := &Log{}
-			if err := l.UnmarshalFlatbuffer(lfb); err != nil {
+			if err := l.UnmarshalFlatbuffer(lfb, nil); err != nil {
 				return err
 			}
 			newBook.logs = append(newBook.logs, l)
@@ -297,6 +301,7 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 type Log struct {
 	name     string // name value cache. not persisted
 	authorID string // authorID value cache. not persisted
+	parent   *Log   // parent link
 
 	Signature []byte
 	Ops       []Op
@@ -314,7 +319,7 @@ func InitLog(initop Op) *Log {
 func FromFlatbufferBytes(data []byte) (*Log, error) {
 	rootfb := logfb.GetRootAsLog(data, 0)
 	lg := &Log{}
-	return lg, lg.UnmarshalFlatbuffer(rootfb)
+	return lg, lg.UnmarshalFlatbuffer(rootfb, nil)
 }
 
 // Append adds an operation to the log
@@ -366,6 +371,11 @@ func (lg Log) Author() (identifier string) {
 		}
 	}
 	return lg.authorID
+}
+
+// Parent returns this log's parent if one exists
+func (lg *Log) Parent() *Log {
+	return lg.parent
 }
 
 // Name returns the human-readable name for this log, determined by the
@@ -533,12 +543,12 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 // UnmarshalFlatbufferBytes is a convenince wrapper to deserialze a flatbuffer
 // slice into a log
 func (lg *Log) UnmarshalFlatbufferBytes(data []byte) error {
-	return lg.UnmarshalFlatbuffer(logfb.GetRootAsLog(data, 0))
+	return lg.UnmarshalFlatbuffer(logfb.GetRootAsLog(data, 0), nil)
 }
 
 // UnmarshalFlatbuffer populates a logfb.Log from a Log pointer
-func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
-	newLg := Log{}
+func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log, parent *Log) (err error) {
+	newLg := Log{parent: parent}
 
 	if len(lfb.Signature()) != 0 {
 		newLg.Signature = lfb.Signature()
@@ -558,7 +568,7 @@ func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
 		for i := 0; i < lfb.LogsLength(); i++ {
 			if lfb.Logs(childfb, i) {
 				newLg.Logs[i] = &Log{}
-				newLg.Logs[i].UnmarshalFlatbuffer(childfb)
+				newLg.Logs[i].UnmarshalFlatbuffer(childfb, lg)
 			}
 		}
 	}

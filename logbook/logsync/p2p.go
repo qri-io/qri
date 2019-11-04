@@ -98,11 +98,12 @@ func (c *p2pClient) del(ctx context.Context, author oplog.Author, ref dsref.Ref)
 }
 
 func addAuthorP2PHeaders(h []string, author oplog.Author) ([]string, error) {
-	pubByteStr, err := author.AuthorPubKey().Bytes()
+	pkb, err := author.AuthorPubKey().Bytes()
 	if err != nil {
-		return h, err
+		return nil, err
 	}
-	pubKey := base64.StdEncoding.EncodeToString(pubByteStr)
+	pubKey := base64.StdEncoding.EncodeToString(pkb)
+
 	return append(h, "author_id", author.AuthorID(), "pub_key", pubKey), nil
 }
 
