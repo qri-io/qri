@@ -2,7 +2,6 @@ package logsync
 
 import (
 	"context"
-	"fmt"
 	"testing"
 
 	libp2p "github.com/libp2p/go-libp2p"
@@ -45,7 +44,6 @@ func TestP2PLogsync(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	fmt.Printf("removing dataset: %s\n", tr.A.ActivePeerID())
 	if err := pull.Do(tr.Ctx); err != nil {
 		t.Error(err)
 	}

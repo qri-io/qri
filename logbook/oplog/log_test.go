@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/google/go-cmp/cmp/cmpopts"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qri/logbook/oplog/logfb"
 )
@@ -61,7 +62,11 @@ func TestBookFlatbuffer(t *testing.T) {
 		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
 	}
 
-	if diff := cmp.Diff(book, got, allowUnexported, cmp.Comparer(comparePrivKeys)); diff != "" {
+	// TODO (b5) - need to ignore log.parent here. causes a stack overflow in cmp.Diff
+	// we should file an issue with a test that demonstrates the error
+	ignoreCircularPointers := cmpopts.IgnoreUnexported(Log{})
+
+	if diff := cmp.Diff(book, got, allowUnexported, cmp.Comparer(comparePrivKeys), ignoreCircularPointers); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

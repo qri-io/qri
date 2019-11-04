@@ -115,9 +115,10 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 			return book, err
 		}
 		return nil, err
-	} else {
-		// TODO (b5) verify username integrity on load
 	}
+	// else {
+	// TODO (b5) verify username integrity on load
+	// }
 
 	return book, nil
 }

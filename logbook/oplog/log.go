@@ -392,7 +392,8 @@ func (lg Log) Name() string {
 	return lg.name
 }
 
-// Log fetches a log by ID, checking all descendants for a match
+// Log fetches a log by ID, checking the current log and all descendants for a
+// an exact match
 func (lg *Log) Log(id string) (*Log, error) {
 	if lg.ID() == id {
 		return lg, nil
@@ -423,6 +424,7 @@ func (lg *Log) HeadRef(names ...string) (*Log, error) {
 
 // AddChild appends a log as a direct descendant of this log
 func (lg *Log) AddChild(l *Log) {
+	l.parent = lg
 	lg.Logs = append(lg.Logs, l)
 }
 
