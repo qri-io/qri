@@ -3,6 +3,7 @@ package cmd
 import (
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -78,6 +79,15 @@ func (o *InitOptions) Run() (err error) {
 			suggestedName = varName.CreateVarNameFromString(o.Mkdir)
 		}
 		o.Name = inputText(o.ErrOut, o.In, "Name of new dataset", suggestedName)
+	}
+
+	// If --source-body-path flag is set, use that to figure out the format
+	if o.SourceBodyPath != "" {
+		ext := filepath.Ext(o.SourceBodyPath)
+		if strings.HasPrefix(ext, ".") {
+			ext = ext[1:]
+		}
+		o.Format = ext
 	}
 
 	if o.Format == "" {
