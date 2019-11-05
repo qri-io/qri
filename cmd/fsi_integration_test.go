@@ -1143,6 +1143,84 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test making changes, then using diff to see those changes
+func TestDiffAfterChange(t *testing.T) {
+	fr := NewFSITestRunner(t, "qri_test_diff_after_change")
+	defer fr.Delete()
+
+	workDir := fr.CreateAndChdirToWorkDir("diff_change")
+
+	// Init as a linked directory.
+	if err := fr.ExecCommand("qri init --name diff_change --format csv"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Save the new dataset.
+	if err := fr.ExecCommand("qri save"); err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify meta.json with a title.
+	if err := ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify body.csv.
+	if err := ioutil.WriteFile("body.csv", []byte(`lucky,number,17
+four,five,321
+`), os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+
+	// Status to see changes
+	if err := fr.ExecCommand("qri status"); err != nil {
+		t.Fatal(err)
+	}
+
+	output := fr.GetCommandOutput()
+	expect := `for linked dataset [test_peer/diff_change]
+
+  modified: meta (source: meta.json)
+  modified: body (source: body.csv)
+
+run ` + "`qri save`" + ` to commit this dataset
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// Diff to see changes
+	if err := fr.ExecCommand("qri diff"); err != nil {
+		t.Fatal(err)
+	}
+
+	output = fr.GetCommandOutput()
+	expect = `for linked dataset [test_peer/diff_change]
+
++1 element. 1 insert. 0 deletes. 4 updates.
+
+body:
+  0:
+    ~ 0: "lucky"
+    ~ 1: "number"
+    ~ 2: 17
+  1:
+    ~ 2: 321
+meta:
+  + title: "hello"
+`
+	if diff := cmpTextLines(expect, output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]

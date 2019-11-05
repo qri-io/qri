@@ -17,6 +17,7 @@ type Component interface {
 	RemoveFrom(dirPath string) error
 	DropDerivedValues()
 	LoadAndFill(*dataset.Dataset) error
+	StructuredData() (interface{}, error)
 }
 
 // NumberPossibleComponents is the number of subcomponents plus "dataset".

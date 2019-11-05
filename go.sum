@@ -716,6 +716,8 @@ github.com/qri-io/dataset v0.1.5-0.20191025195651-c58fba11892c h1:pjA/TpX6ivOhm3
 github.com/qri-io/dataset v0.1.5-0.20191025195651-c58fba11892c/go.mod h1:efJPKDyyGItDnI9CzKuQYmKiEP0xp4mIxIut7o/bG2g=
 github.com/qri-io/deepdiff v0.1.0 h1:1VXd/ePPrSrq4GRINC4YxmoPHuuLufg2ujMKvvEWsDc=
 github.com/qri-io/deepdiff v0.1.0/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
+github.com/qri-io/deepdiff v0.1.1-0.20191101211235-d2c221028259 h1:lDsC5DpspS4Qg9GZsy1Yo0iXOoQGXHudvTvaUD7P8ZY=
+github.com/qri-io/deepdiff v0.1.1-0.20191101211235-d2c221028259/go.mod h1:/O1HQVAlm3yhgQvNwyzsKaECfM2vVSx6KxttgXQQGFw=
 github.com/qri-io/doggos v0.1.0 h1:B7Hn9ssRGDAonMhJ4UwDtPDmG9GtvLR8f7VFec7Rs7M=
 github.com/qri-io/doggos v0.1.0/go.mod h1:FmyznoDwt2mhskYpnasyoEsxNr490qVbX9Sf6NP2Crg=
 github.com/qri-io/ioes v0.1.0 h1:MCkiJcBhxFS9DKrvtrUQ+o1IQtZFKYioMt12XauqUT0=

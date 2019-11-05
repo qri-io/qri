@@ -39,6 +39,8 @@ require (
 	github.com/microcosm-cc/bluemonday v1.0.2
 	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/mitchellh/go-homedir v1.1.0
+	github.com/modern-go/concurrent v0.0.0-20180306012644-bacd9c7ef1dd // indirect
+	github.com/modern-go/reflect2 v1.0.1 // indirect
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/multiformats/go-multicodec v0.1.6
@@ -46,7 +48,7 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20191025201336-254aa177fbd7
 	github.com/qri-io/dataset v0.1.5-0.20191025195651-c58fba11892c
-	github.com/qri-io/deepdiff v0.1.0
+	github.com/qri-io/deepdiff v0.1.1-0.20191101211235-d2c221028259
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
