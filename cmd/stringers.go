@@ -17,6 +17,13 @@ import (
 
 type peerStringer config.ProfilePod
 
+// StringerLocation is the function to retrieve the timezone location
+var StringerLocation *time.Location
+
+func init() {
+	StringerLocation = time.Now().Location()
+}
+
 // String assumes that Peername and ID are present
 func (p peerStringer) String() string {
 	w := &bytes.Buffer{}
@@ -167,7 +174,7 @@ func (j jobStringer) String() string {
 	name := color.New(color.Bold).SprintFunc()
 	t := j.Periodicity.After(j.PrevRunStart)
 	relTime := humanize.RelTime(time.Now().In(time.UTC), t, "", "")
-	fmt.Fprintf(w, "%s\nin %sat %s | %s\n", name(j.Name), relTime, t.In(time.Now().Location()).Format(time.Kitchen), j.Type)
+	fmt.Fprintf(w, "%s\nin %sat %s | %s\n", name(j.Name), relTime, t.In(StringerLocation).Format(time.Kitchen), j.Type)
 	if j.RepoPath != "" {
 		fmt.Fprintf(w, "\nrepo: %s\n", j.RepoPath)
 	}
@@ -243,7 +250,7 @@ func (s dslogItemStringer) String() string {
 		faint("Commit:  "),
 		yellow(s.Ref.Path),
 		faint("Date:    "),
-		s.Timestamp.Format(time.UnixDate),
+		s.Timestamp.In(StringerLocation).Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),

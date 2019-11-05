@@ -614,6 +614,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
 			return err
 		}
+		// Write the deletion to the logbook.
+		book := r.inst.Repo().Logbook()
+		if err := book.WriteDatasetDelete(ctx, repo.ConvertToDsref(ref)); err != nil {
+			return err
+		}
 		// remove the ref from the ref store
 		if err := r.inst.Repo().DeleteRef(ref); err != nil {
 			return err
