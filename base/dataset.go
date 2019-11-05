@@ -305,8 +305,8 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 	for i != 0 {
 		// decrement our counter
 		i--
-		// unpin dataset
-		if err = UnpinDataset(ctx, r, curr); err != nil {
+		// unpin dataset, ignoring "not pinned" errors
+		if err = UnpinDataset(ctx, r, curr); err != nil && !strings.Contains(err.Error(), "not pinned") {
 			return err
 		}
 		// if no previous path, break
@@ -316,7 +316,12 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 		// load previous dataset into prev
 		next, err := dsfs.LoadDatasetRefs(ctx, r.Store(), curr.Dataset.PreviousPath)
 		if err != nil {
-			return err
+			// Note: We want delete to succeed even if datasets are remote, so we don't fail on
+			// this error, and break early instead
+			// TODO (b5) - removing dataset versions should rely on logbook, which is able
+			// to traverse across missing datasets in qfs
+			log.Debugf("error fetching previous: %s", err)
+			break
 		}
 		curr = repo.DatasetRef{
 			Path:    next.Path,
