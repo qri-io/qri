@@ -312,6 +312,76 @@ func TestLogMerge(t *testing.T) {
 	}
 }
 
+func TestHeadRefRemoveTracking(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	l := &Log{
+		Ops: []Op{
+			{Type: OpTypeInit, Model: 1, Name: "a"},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					{Type: OpTypeInit, Model: 2, Name: "a"},
+				},
+			},
+			{
+				Ops: []Op{
+					{Type: OpTypeRemove, Model: 2, Name: "b"}, // "pre-deleted log"
+				},
+			},
+		},
+	}
+	tr.Book.AppendLog(l)
+
+	aLog, err := tr.Book.HeadRef("a")
+	if err != nil {
+		t.Errorf("expected no error fetching head ref for a. got: %v", err)
+	}
+	if _, err = tr.Book.HeadRef("a", "a"); err != nil {
+		t.Errorf("expected no error fetching head ref for a/a. got: %v", err)
+	}
+	if _, err = tr.Book.HeadRef("a", "b"); err != ErrNotFound {
+		t.Errorf("expected removed log to be not found. got: %v", err)
+	}
+
+	// add a remove operation to "a":
+	aLog.Ops = append(aLog.Ops, Op{Type: OpTypeRemove, Model: 1, Name: "a"})
+
+	if _, err = tr.Book.HeadRef("a"); err != ErrNotFound {
+		t.Errorf("expected removed log to be not found. got: %v", err)
+	}
+	if _, err = tr.Book.HeadRef("a", "a"); err != ErrNotFound {
+		t.Errorf("expected child of removed log to be not found. got: %v", err)
+	}
+
+	expectLogs := []*Log{
+		{
+			Ops: []Op{
+				{Type: OpTypeInit, Model: 1, Name: "a"},
+				{Type: OpTypeRemove, Model: 1, Name: "a"},
+			},
+			Logs: []*Log{
+				{
+					Ops: []Op{
+						{Type: OpTypeInit, Model: 2, Name: "a"},
+					},
+				},
+				{
+					Ops: []Op{
+						{Type: OpTypeRemove, Model: 2, Name: "b"},
+					},
+				},
+			},
+		},
+	}
+
+	if diff := cmp.Diff(expectLogs, tr.Book.Logs(), allowUnexported); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestLogTraversal(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()

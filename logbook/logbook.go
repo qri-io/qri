@@ -39,9 +39,9 @@ var (
 
 const (
 	authorModel uint32 = iota
-	nameModel
+	datasetModel
 	branchModel
-	versionModel
+	commitModel
 	publicationModel
 	aclModel
 	cronJobModel
@@ -56,12 +56,12 @@ func modelString(m uint32) string {
 	switch m {
 	case authorModel:
 		return "user"
-	case nameModel:
-		return "name"
+	case datasetModel:
+		return "dataset"
 	case branchModel:
 		return "branch"
-	case versionModel:
-		return "version"
+	case commitModel:
+		return "commit"
 	case publicationModel:
 		return "publication"
 	case aclModel:
@@ -200,14 +200,18 @@ func (book *Book) load(ctx context.Context) error {
 	return book.bk.UnmarshalFlatbufferCipher(ctx, ciphertext)
 }
 
-// WriteNameInit initializes a new name within the author's namespace. Dataset
-// histories start with a NameInit
-// TODO (b5) - this presently only works for datasets in an author's user
-// namespace
-func (book *Book) WriteNameInit(ctx context.Context, name string) error {
+// WriteDatasetInit initializes a new dataset name within the author's namespace
+func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
+	if name == "" {
+		return fmt.Errorf("logbook: name is required to initialize a dataset")
+	}
+	if _, err := book.DatasetRef(dsref.Ref{Username: book.AuthorName(), Name: name}); err == nil {
+		return fmt.Errorf("logbook: dataset named '%s' already exists", name)
+	}
+
 	book.initName(ctx, name)
 	return book.save(ctx)
 }
@@ -215,7 +219,7 @@ func (book *Book) WriteNameInit(ctx context.Context, name string) error {
 func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     nameModel,
+		Model:     datasetModel,
 		AuthorID:  book.bk.AuthorID(),
 		Name:      name,
 		Timestamp: NewTimestamp(),
@@ -246,25 +250,44 @@ func (book Book) authorLog() *oplog.Log {
 	return authorLog
 }
 
-// WriteNameAmend marks a rename event within a namespace
-// TODO (b5) - finish
-func (book *Book) WriteNameAmend(ctx context.Context, ref dsref.Ref, newName string) error {
+// WriteDatasetRename marks renaming a dataset
+func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName string) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
 
-	l, err := book.readDatasetLog(ref)
+	l, err := book.DatasetRef(ref)
 	if err != nil {
 		return err
 	}
 
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
-		Model:     nameModel,
+		Model:     datasetModel,
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
-	return nil
+	return book.save(ctx)
+}
+
+// WriteDatasetDelete closes a dataset, marking it as deleted
+func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
+	l, err := book.DatasetRef(ref)
+	if err != nil {
+		return err
+	}
+
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeRemove,
+		Model:     datasetModel,
+		Timestamp: NewTimestamp(),
+	})
+
+	return book.save(ctx)
 }
 
 // WriteVersionSave adds an operation to a log marking the creation of a
@@ -292,7 +315,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
 	op := oplog.Op{
 		Type:  oplog.OpTypeInit,
-		Model: versionModel,
+		Model: commitModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
 
@@ -320,7 +343,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeAmend,
-		Model: versionModel,
+		Model: commitModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
 
@@ -346,7 +369,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeRemove,
-		Model: versionModel,
+		Model: commitModel,
 		Size:  int64(revisions),
 		// TODO (b5) - finish
 	})
@@ -421,6 +444,11 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	return book.save(ctx)
 }
 
+// Log gets a log for a given ID
+func (book Book) Log(id string) (*oplog.Log, error) {
+	return book.bk.Log(id)
+}
+
 // UserDatasetRef gets a user's log and a dataset reference, the returned log
 // will be a user log with a single dataset log containing all known branches:
 //   user
@@ -486,11 +514,6 @@ func (book Book) BranchRef(ref dsref.Ref) (*oplog.Log, error) {
 	}
 
 	return book.bk.HeadRef(ref.Username, ref.Name, DefaultBranchName)
-}
-
-// Log gets a log for a given ID
-func (book Book) Log(id string) (*oplog.Log, error) {
-	return book.bk.Log(id)
 }
 
 // LogBytes signs a log with this book's private key and writes to a flatbuffer
@@ -647,7 +670,7 @@ func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, erro
 	refs := []DatasetInfo{}
 	for _, op := range l.Ops {
 		switch op.Model {
-		case versionModel:
+		case commitModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
 				refs = append(refs, infoFromOp(ref, op))
@@ -727,9 +750,9 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 
 var actionStrings = map[uint32][3]string{
 	authorModel:      [3]string{"create profile", "update profile", "delete profile"},
-	nameModel:        [3]string{"init dataset", "rename dataset", "delete dataset"},
+	datasetModel:     [3]string{"init dataset", "rename dataset", "delete dataset"},
 	branchModel:      [3]string{"init branch", "rename branch", "delete branch"},
-	versionModel:     [3]string{"save commit", "amend commit", "remove commit"},
+	commitModel:      [3]string{"save commit", "amend commit", "remove commit"},
 	publicationModel: [3]string{"publish", "", "unpublish"},
 	aclModel:         [3]string{"update access", "update access", "remove all access"},
 	cronJobModel:     [3]string{"ran update", "", ""},
@@ -843,15 +866,4 @@ func refFromDataset(ds *dataset.Dataset) dsref.Ref {
 		Name:      ds.Name,
 		Path:      ds.Path,
 	}
-}
-
-func (book Book) readDatasetLog(ref dsref.Ref) (*oplog.Log, error) {
-	if ref.Username == "" {
-		return nil, fmt.Errorf("ref.Username is required")
-	}
-	if ref.Name == "" {
-		return nil, fmt.Errorf("ref.Name is required")
-	}
-
-	return book.bk.HeadRef(ref.Username, ref.Name)
 }

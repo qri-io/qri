@@ -162,13 +162,15 @@ func (book *Book) Log(id string) (*Log, error) {
 
 // HeadRef traverses the log graph & pulls out a log based on named head
 // references
+// HeadRef will not return logs that have been marked as removed. To fetch
+// removed logs either traverse the entire book or reference a log by ID
 func (book *Book) HeadRef(names ...string) (*Log, error) {
 	if len(names) == 0 {
 		return nil, fmt.Errorf("name is required")
 	}
 
 	for _, log := range book.logs {
-		if log.Name() == names[0] {
+		if log.Name() == names[0] && !log.Removed() {
 			return log.HeadRef(names[1:]...)
 		}
 	}
@@ -392,8 +394,19 @@ func (lg Log) Name() string {
 	return lg.name
 }
 
-// Log fetches a log by ID, checking the current log and all descendants for a
-// an exact match
+// Removed returns true if the log contains a remove operation for the log model
+func (lg Log) Removed() bool {
+	m := lg.Model()
+	for _, op := range lg.Ops {
+		if op.Model == m && op.Type == OpTypeRemove {
+			return true
+		}
+	}
+	return false
+}
+
+// Log fetches a log by ID, checking the current log and all descendants for an
+// exact match
 func (lg *Log) Log(id string) (*Log, error) {
 	if lg.ID() == id {
 		return lg, nil
@@ -409,13 +422,15 @@ func (lg *Log) Log(id string) (*Log, error) {
 }
 
 // HeadRef returns a descendant log, traversing the log tree by name
+// HeadRef will not return logs that have been marked as removed. To fetch
+// removed logs either traverse the entire book or reference a log by ID
 func (lg *Log) HeadRef(names ...string) (*Log, error) {
 	if len(names) == 0 {
 		return lg, nil
 	}
 
 	for _, log := range lg.Logs {
-		if log.Name() == names[0] {
+		if log.Name() == names[0] && !log.Removed() {
 			return log.HeadRef(names[1:]...)
 		}
 	}

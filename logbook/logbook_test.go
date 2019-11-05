@@ -51,7 +51,7 @@ func Example() {
 	// log under the logbook author's namespace with the given name, and an opset
 	// that tracks operations by this author within that new namespace.
 	// The entire logbook is persisted to the filestore after each operation
-	if err := book.WriteNameInit(ctx, "world_bank_population"); err != nil {
+	if err := book.WriteDatasetInit(ctx, "world_bank_population"); err != nil {
 		panic(err)
 	}
 
@@ -189,10 +189,13 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteNameAmend(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+	if err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteNameInit(ctx, ""); err != ErrNoLogbook {
+	if err = book.WriteDatasetRename(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteDatasetDelete(ctx, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 	if err = book.WritePublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
@@ -334,6 +337,91 @@ func TestDsRefAliasForLog(t *testing.T) {
 	}
 }
 
+func TestDatasetLogNaming(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+	var err error
+
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, ""); err == nil {
+		t.Errorf("expected initializing with an empty name to error")
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+		t.Errorf("unexpected error writing valid dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err == nil {
+		t.Error("expected initializing a name that already exists to error")
+	}
+	if err = tr.Book.WriteDatasetRename(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}, "iata_airport_codes"); err != nil {
+		t.Errorf("unexpected error renaming dataset: %s", err)
+	}
+	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}); err == nil {
+		t.Error("expected deleting updated name to error")
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+		t.Errorf("unexpected error writing recently freed-up dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "iata_airport_codes"}); err != nil {
+		t.Errorf("unexpected error deleting active dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "iata_airport_codes"); err != nil {
+		t.Errorf("expected initializing new name with deleted dataset to not error: %s", err)
+	}
+
+	expect := []Log{
+		{
+			Ops: []Op{
+				{Type: "init", Model: "user", Name: "test_author", AuthorID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
+			},
+			Logs: []Log{
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
+						{Type: "amend", Model: "dataset", Name: "iata_airport_codes", Timestamp: mustTime("1999-12-31T19:03:00-05:00")},
+						{Type: "remove", Model: "dataset", Timestamp: mustTime("1999-12-31T19:06:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
+							},
+						},
+					},
+				},
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
+							},
+						},
+					},
+				},
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	got := tr.Book.RawLogs(tr.Ctx)
+
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestBookRawLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -364,7 +452,7 @@ func TestBookRawLog(t *testing.T) {
 					Ops: []Op{
 						{
 							Type:      "init",
-							Model:     "name",
+							Model:     "dataset",
 							Name:      "world_bank_population",
 							AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
 							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
@@ -382,14 +470,14 @@ func TestBookRawLog(t *testing.T) {
 								},
 								{
 									Type:      "init",
-									Model:     "version",
+									Model:     "commit",
 									Ref:       "QmHashOfVersion1",
 									Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 									Note:      "initial commit",
 								},
 								{
 									Type:      "init",
-									Model:     "version",
+									Model:     "commit",
 									Ref:       "QmHashOfVersion2",
 									Prev:      "QmHashOfVersion1",
 									Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
@@ -413,13 +501,13 @@ func TestBookRawLog(t *testing.T) {
 								},
 								{
 									Type:      "remove",
-									Model:     "version",
+									Model:     "commit",
 									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
 									Size:      1,
 								},
 								{
 									Type:      "amend",
-									Model:     "version",
+									Model:     "commit",
 									Ref:       "QmHashOfVersion3",
 									Prev:      "QmHashOfVersion1",
 									Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
@@ -438,17 +526,20 @@ func TestBookRawLog(t *testing.T) {
 	}
 }
 
-// TODO (b5) - this test should also check that only the requested log is being
-// transferred, not any extras
 func TestLogTransfer(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteWorldBankExample(t)
+	tr.WriteRenameExample(t)
 
 	log, err := tr.Book.UserDatasetRef(tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
+	}
+
+	if len(log.Logs) != 1 {
+		t.Errorf("expected UserDatasetRef to only return one dataset log. got: %d", len(log.Logs))
 	}
 
 	pk2 := testPrivKey2(t)
@@ -699,7 +790,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	book := tr.Book
 	name := "world_bank_population"
 
-	if err := book.WriteNameInit(tr.Ctx, name); err != nil {
+	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
 		panic(err)
 	}
 
@@ -800,7 +891,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	name := "dataset"
 	rename := "renamed_dataset"
 
-	if err := book.WriteNameInit(tr.Ctx, name); err != nil {
+	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
 		panic(err)
 	}
 
@@ -836,7 +927,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book.WriteNameAmend(tr.Ctx, ref, rename); err != nil {
+	if err := book.WriteDatasetRename(tr.Ctx, ref, rename); err != nil {
 		t.Fatal(err)
 	}
 }
