@@ -35,7 +35,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 			Published:   r.Published,
 			CommitTitle: r.Dataset.Commit.Title,
 			Local:       true,
-			Size:        uint64(r.Dataset.Structure.Length),
+			Size:        int64(r.Dataset.Structure.Length),
 		}
 	}
 
@@ -117,12 +117,12 @@ func TestHistoryRequestsLogEntries(t *testing.T) {
 	}
 
 	expect := []string{
-		`12:00AM	peer	init	`,
-		`12:00AM	peer	save	initial commit`,
-		`12:00AM	peer	save	initial commit`,
-		`12:00AM	peer	save	initial commit`,
-		`12:00AM	peer	save	initial commit`,
-		`12:00AM	peer	save	initial commit`,
+		`12:00AM	peer	init branch	main`,
+		`12:00AM	peer	save commit	initial commit`,
+		`12:00AM	peer	save commit	initial commit`,
+		`12:00AM	peer	save commit	initial commit`,
+		`12:00AM	peer	save commit	initial commit`,
+		`12:00AM	peer	save commit	initial commit`,
 	}
 
 	if diff := cmp.Diff(expect, result); diff != "" {

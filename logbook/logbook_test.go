@@ -179,7 +179,7 @@ func TestNewBook(t *testing.T) {
 	}
 }
 
-func TestErrNoLogbook(t *testing.T) {
+func TestNilCallable(t *testing.T) {
 	var (
 		book *Book
 		ctx  = context.Background()
@@ -232,13 +232,13 @@ func TestBookLogEntries(t *testing.T) {
 	}
 
 	expect := []string{
-		"12:02AM\ttest_author\tinit\t",
-		"12:00AM\ttest_author\tsave\tinitial commit",
-		"12:00AM\ttest_author\tsave\tadded body data",
+		"12:02AM\ttest_author\tinit branch\tmain",
+		"12:00AM\ttest_author\tsave commit\tinitial commit",
+		"12:00AM\ttest_author\tsave commit\tadded body data",
 		"12:00AM\ttest_author\tpublish\t",
 		"12:00AM\ttest_author\tunpublish\t",
-		"12:00AM\ttest_author\tremove\t",
-		"12:00AM\ttest_author\tamend\tadded meta info",
+		"12:00AM\ttest_author\tremove commit\t",
+		"12:00AM\ttest_author\tamend commit\tadded meta info",
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -246,22 +246,22 @@ func TestBookLogEntries(t *testing.T) {
 	}
 }
 
-func TestHeadRef(t *testing.T) {
+func TestUserDatasetRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.HeadRef(dsref.Ref{}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(dsref.Ref{}); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.HeadRef(dsref.Ref{Username: tr.Username}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(dsref.Ref{Username: tr.Username}); err == nil {
 		t.Error("expected LogBytes with empty name ref to fail")
 	}
-	lg := tr.Book.RawLogs(tr.Ctx)
-	t.Logf("%#v\n\n", tr.RenameRef().String())
-	t.Logf("%#v\n\n", lg)
-	if _, err := tr.Book.HeadRef(tr.RenameRef()); err != nil {
+	// lg := tr.Book.RawLogs(tr.Ctx)
+	// t.Logf("%#v\n\n", tr.RenameRef().String())
+	// t.Logf("%#v\n\n", lg)
+	if _, err := tr.Book.UserDatasetRef(tr.RenameRef()); err != nil {
 		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
 	}
 }
@@ -271,7 +271,7 @@ func TestLogBytes(t *testing.T) {
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
-	log, err := tr.Book.HeadRef(tr.RenameRef())
+	log, err := tr.Book.UserDatasetRef(tr.RenameRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -292,7 +292,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 	egRef := tr.RenameRef()
-	log, err := tr.Book.HeadRef(egRef)
+	log, err := tr.Book.UserDatasetRef(egRef)
 	if err != nil {
 		t.Error(err)
 	}
@@ -375,8 +375,8 @@ func TestBookRawLog(t *testing.T) {
 							Ops: []Op{
 								{
 									Type:      "init",
-									Model:     "name",
-									Name:      "author",
+									Model:     "branch",
+									Name:      "main",
 									AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
 									Timestamp: mustTime("1999-12-31T19:02:00-05:00"),
 								},
@@ -446,7 +446,7 @@ func TestLogTransfer(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 
-	log, err := tr.Book.HeadRef(tr.WorldBankRef())
+	log, err := tr.Book.UserDatasetRef(tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -504,10 +504,10 @@ func TestRenameDataset(t *testing.T) {
 	}
 
 	expect := []string{
-		"12:02AM\ttest_author\tinit\t",
-		"12:00AM\ttest_author\tsave\tinitial commit",
+		"12:02AM\ttest_author\tinit branch\tmain",
+		"12:00AM\ttest_author\tsave commit\tinitial commit",
 		"12:00AM\ttest_author\tran update\t",
-		"12:00AM\ttest_author\tsave\tadded meta info",
+		"12:00AM\ttest_author\tsave commit\tadded meta info",
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {

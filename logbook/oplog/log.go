@@ -607,7 +607,7 @@ type Op struct {
 	AuthorID  string   // identifier for author
 
 	Timestamp int64  // operation timestamp, for annotation purposes only
-	Size      uint64 // size of the referenced value in bytes
+	Size      int64  // size of the referenced value in bytes
 	Note      string // operation annotation for users. eg: commit title
 }
 

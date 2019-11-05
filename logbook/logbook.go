@@ -40,16 +40,17 @@ var (
 const (
 	authorModel uint32 = iota
 	nameModel
+	branchModel
 	versionModel
 	publicationModel
 	aclModel
 	cronJobModel
 )
 
-// we currently don't actually do branches in qri, but logbook supports them
-// soloBranchName is the default name all branch-level logbook data is read from
-// and written to
-const soloBranchName = "author"
+// DefaultBranchName is the default name all branch-level logbook data is read
+// from and written to. we currently don't present branches as a user-facing
+// feature in qri, but logbook supports them
+const DefaultBranchName = "main"
 
 func modelString(m uint32) string {
 	switch m {
@@ -57,6 +58,8 @@ func modelString(m uint32) string {
 		return "user"
 	case nameModel:
 		return "name"
+	case branchModel:
+		return "branch"
 	case versionModel:
 		return "version"
 	case publicationModel:
@@ -220,9 +223,9 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 
 	branch := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     nameModel,
+		Model:     branchModel,
 		AuthorID:  book.bk.AuthorID(),
-		Name:      soloBranchName,
+		Name:      DefaultBranchName,
 		Timestamp: NewTimestamp(),
 	})
 
@@ -272,7 +275,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	}
 
 	ref := refFromDataset(ds)
-	branchLog, err := book.readBranchLog(ref)
+	branchLog, err := book.BranchRef(ref)
 	if err != nil {
 		if err == oplog.ErrNotFound {
 			branchLog = book.initName(ctx, ref.Name)
@@ -298,7 +301,7 @@ func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
 	}
 
 	if ds.Structure != nil {
-		op.Size = uint64(ds.Structure.Length)
+		op.Size = int64(ds.Structure.Length)
 	}
 
 	l.Append(op)
@@ -310,7 +313,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 		return ErrNoLogbook
 	}
 
-	l, err := book.readBranchLog(refFromDataset(ds))
+	l, err := book.BranchRef(refFromDataset(ds))
 	if err != nil {
 		return err
 	}
@@ -336,7 +339,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 		return ErrNoLogbook
 	}
 
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -344,7 +347,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeRemove,
 		Model: versionModel,
-		Size:  uint64(revisions),
+		Size:  int64(revisions),
 		// TODO (b5) - finish
 	})
 
@@ -358,7 +361,7 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 		return ErrNoLogbook
 	}
 
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -366,7 +369,7 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     publicationModel,
-		Size:      uint64(revisions),
+		Size:      int64(revisions),
 		Relations: destinations,
 		// TODO (b5) - finish
 	})
@@ -381,7 +384,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 		return ErrNoLogbook
 	}
 
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -389,7 +392,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
 		Model:     publicationModel,
-		Size:      uint64(revisions),
+		Size:      int64(revisions),
 		Relations: destinations,
 		// TODO (b5) - finish
 	})
@@ -403,7 +406,7 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 		return ErrNoLogbook
 	}
 
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -411,16 +414,21 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeInit,
 		Model: cronJobModel,
-		Size:  uint64(number),
+		Size:  int64(number),
 		// TODO (b5) - finish
 	})
 
 	return book.save(ctx)
 }
 
-// HeadRef gets a log for a given dsref. The returned log is an exact
-// reference, refering one and only one dataset
-func (book Book) HeadRef(ref dsref.Ref) (*oplog.Log, error) {
+// UserDatasetRef gets a user's log and a dataset reference, the returned log
+// will be a user log with a single dataset log containing all known branches:
+//   user
+//     dataset
+//       branch
+//       branch
+//       ...
+func (book Book) UserDatasetRef(ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: reference Username is required")
 	}
@@ -428,25 +436,59 @@ func (book Book) HeadRef(ref dsref.Ref) (*oplog.Log, error) {
 		return nil, fmt.Errorf("logbook: reference Name is required")
 	}
 
+	// fetch user log
 	author, err := book.bk.HeadRef(ref.Username)
 	if err != nil {
 		return nil, err
 	}
 
-	// fetch namespace & user log
+	// fetch dataset & all branches
 	ds, err := book.bk.HeadRef(ref.Username, ref.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	// construct a sparse log of just namespace and the dataset log
+	// construct a sparse oplog of just user, dataset, and branches
 	return &oplog.Log{
 		Ops:  author.Ops,
 		Logs: []*oplog.Log{ds},
 	}, nil
 }
 
-// Log gets an oplog for a given ID
+// DatasetRef gets a dataset log and all branches. Dataset logs describe
+// activity affecting an entire dataset. Things like dataset name changes and
+// access control changes are kept in the dataset log
+//
+// currently all logs are hardcoded to only accept one branch name. This
+// function always returns
+func (book Book) DatasetRef(ref dsref.Ref) (*oplog.Log, error) {
+	if ref.Username == "" {
+		return nil, fmt.Errorf("logbook: ref.Username is required")
+	}
+	if ref.Name == "" {
+		return nil, fmt.Errorf("logbook: ref.Name is required")
+	}
+
+	return book.bk.HeadRef(ref.Username, ref.Name)
+}
+
+// BranchRef gets a branch log for a dataset reference. Branch logs describe
+// a line of commits
+//
+// currently all logs are hardcoded to only accept one branch name. This
+// function always returns
+func (book Book) BranchRef(ref dsref.Ref) (*oplog.Log, error) {
+	if ref.Username == "" {
+		return nil, fmt.Errorf("logbook: ref.Username is required")
+	}
+	if ref.Name == "" {
+		return nil, fmt.Errorf("logbook: ref.Name is required")
+	}
+
+	return book.bk.HeadRef(ref.Username, ref.Name, DefaultBranchName)
+}
+
+// Log gets a log for a given ID
 func (book Book) Log(id string) (*oplog.Log, error) {
 	return book.bk.Log(id)
 }
@@ -510,7 +552,7 @@ func (book *Book) MergeLog(ctx context.Context, sender oplog.Author, lg *oplog.L
 
 // RemoveLog removes an entire log from a logbook
 func (book *Book) RemoveLog(ctx context.Context, sender oplog.Author, ref dsref.Ref) error {
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -556,7 +598,7 @@ func dsRefToLogPath(ref dsref.Ref) (path []string) {
 // TODO (b5) - this presently only works for datasets in an author's user
 // namespace
 func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
-	branchLog, err := book.readBranchLog(ref)
+	branchLog, err := book.BranchRef(ref)
 	if err == nil {
 		// if the log already exists, it will either as-or-more rich than this log,
 		// refuse to overwrite
@@ -577,7 +619,7 @@ type DatasetInfo struct {
 	Published   bool      // indicates whether this reference is listed as an available dataset
 	Timestamp   time.Time // creation timestamp
 	CommitTitle string    // title from commit
-	Size        uint64    // size of dataset in bytes
+	Size        int64     // size of dataset in bytes
 }
 
 func infoFromOp(ref dsref.Ref, op oplog.Op) DatasetInfo {
@@ -597,7 +639,7 @@ func infoFromOp(ref dsref.Ref, op oplog.Op) DatasetInfo {
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
 func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, error) {
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return nil, err
 	}
@@ -663,7 +705,7 @@ func (l LogEntry) String() string {
 // LogEntries returns a summarized "line-by-line" representation of a log for a
 // given dataset reference
 func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit int) ([]LogEntry, error) {
-	l, err := book.readBranchLog(ref)
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return nil, err
 	}
@@ -685,19 +727,24 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 
 var actionStrings = map[uint32][3]string{
 	authorModel:      [3]string{"create profile", "update profile", "delete profile"},
-	nameModel:        [3]string{"init", "rename", "delete"},
-	versionModel:     [3]string{"save", "amend", "remove"},
+	nameModel:        [3]string{"init dataset", "rename dataset", "delete dataset"},
+	branchModel:      [3]string{"init branch", "rename branch", "delete branch"},
+	versionModel:     [3]string{"save commit", "amend commit", "remove commit"},
 	publicationModel: [3]string{"publish", "", "unpublish"},
-	aclModel:         [3]string{"update access", "update access", ""},
+	aclModel:         [3]string{"update access", "update access", "remove all access"},
 	cronJobModel:     [3]string{"ran update", "", ""},
 }
 
 func logEntryFromOp(author string, op oplog.Op) LogEntry {
+	note := op.Note
+	if note == "" && op.Name != "" {
+		note = op.Name
+	}
 	return LogEntry{
 		Timestamp: time.Unix(0, op.Timestamp),
 		Author:    author,
 		Action:    actionStrings[op.Model][int(op.Type)-1],
-		Note:      op.Note,
+		Note:      note,
 	}
 }
 
@@ -756,7 +803,7 @@ type Op struct {
 	// operation timestamp, for annotation purposes only
 	Timestamp time.Time `json:"timestamp,omitempty"`
 	// size of the referenced value in bytes
-	Size uint64 `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 	// operation annotation for users. eg: commit title
 	Note string `json:"note,omitempty"`
 }
@@ -807,15 +854,4 @@ func (book Book) readDatasetLog(ref dsref.Ref) (*oplog.Log, error) {
 	}
 
 	return book.bk.HeadRef(ref.Username, ref.Name)
-}
-
-func (book Book) readBranchLog(ref dsref.Ref) (*oplog.Log, error) {
-	if ref.Username == "" {
-		return nil, fmt.Errorf("ref.Username is required")
-	}
-	if ref.Name == "" {
-		return nil, fmt.Errorf("ref.Name is required")
-	}
-
-	return book.bk.HeadRef(ref.Username, ref.Name, soloBranchName)
 }

@@ -22,7 +22,7 @@ type DatasetLogItem struct {
 	// Published indicates if this version has been published
 	Published bool `json:"published,omitempty"`
 	// Size of dataset in bytes
-	Size uint64 `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 	// Local indicates the connected filesystem has this version available
 	Local bool `json:"local,omitempty"`
 }

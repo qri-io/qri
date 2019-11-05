@@ -111,16 +111,16 @@ func (rcv *Operation) MutateTimestamp(n int64) bool {
 	return rcv._tab.MutateInt64Slot(18, n)
 }
 
-func (rcv *Operation) Size() uint64 {
+func (rcv *Operation) Size() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
-		return rcv._tab.GetUint64(o + rcv._tab.Pos)
+		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
 	return 0
 }
 
-func (rcv *Operation) MutateSize(n uint64) bool {
-	return rcv._tab.MutateUint64Slot(20, n)
+func (rcv *Operation) MutateSize(n int64) bool {
+	return rcv._tab.MutateInt64Slot(20, n)
 }
 
 func (rcv *Operation) Note() []byte {
@@ -161,8 +161,8 @@ func OperationAddAuthorID(builder *flatbuffers.Builder, authorID flatbuffers.UOf
 func OperationAddTimestamp(builder *flatbuffers.Builder, timestamp int64) {
 	builder.PrependInt64Slot(7, timestamp, 0)
 }
-func OperationAddSize(builder *flatbuffers.Builder, size uint64) {
-	builder.PrependUint64Slot(8, size, 0)
+func OperationAddSize(builder *flatbuffers.Builder, size int64) {
+	builder.PrependInt64Slot(8, size, 0)
 }
 func OperationAddNote(builder *flatbuffers.Builder, note flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(note), 0)

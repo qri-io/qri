@@ -601,31 +601,59 @@ func TestDatasetRequestsRename(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	cases := []struct {
+	bad := []struct {
 		p   *RenameParams
-		res string
 		err string
 	}{
-		{&RenameParams{}, "", "current name is required to rename a dataset"},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new movies"}}, "", "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new_movies"}}, "new_movies", ""},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "", "dataset 'peer/sitemap' already exists"},
+		{&RenameParams{}, "current name is required to rename a dataset"},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new movies"}}, "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
 	}
 
 	req := NewDatasetRequests(node, nil)
-	for i, c := range cases {
+	for i, c := range bad {
 		got := &repo.DatasetRef{}
 		err := req.Rename(c.p, got)
 
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
-			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
+		if err == nil {
+			t.Errorf("case %d didn't error. expected: %s", i, c.err)
 			continue
 		}
 
-		if got.Name != c.res {
-			t.Errorf("case %d response name mismatch. expected: '%s', got: '%s'", i, c.err, err)
+		if c.err != err.Error() {
+			t.Errorf("case %d error mismatch: expected: %s, got: %s", i, c.err, err)
 			continue
 		}
+	}
+
+	log, err := mr.Logbook().DatasetRef(dsref.Ref{Username: "peer", Name: "movies"})
+	if err != nil {
+		t.Errorf("error getting logbook head reference: %s", err)
+	}
+
+	p := &RenameParams{
+		Current: repo.DatasetRef{Peername: "peer", Name: "movies"},
+		New:     repo.DatasetRef{Peername: "peer", Name: "new_movies"},
+	}
+
+	res := &repo.DatasetRef{}
+	if err := req.Rename(p, res); err != nil {
+		t.Errorf("unexpected error renaming: %s", err)
+	}
+
+	expect := &repo.DatasetRef{Peername: "peer", Name: "new_movies"}
+	if expect.AliasString() != res.AliasString() {
+		t.Errorf("response mismatch. expected: %s, got: %s", expect.AliasString(), res.AliasString())
+	}
+
+	// get log by id this time
+	after, err := mr.Logbook().Log(log.ID())
+	if err != nil {
+		t.Errorf("getting log by ID: %s", err)
+	}
+
+	if expect.Name != after.Name() {
+		t.Errorf("rename log mismatch. expected: %s, got: %s", expect.Name, after.Name())
 	}
 }
 

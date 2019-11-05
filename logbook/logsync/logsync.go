@@ -246,7 +246,7 @@ func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Re
 		}
 	}
 
-	l, err := lsync.book.HeadRef(ref)
+	l, err := lsync.book.UserDatasetRef(ref)
 	if err != nil {
 		return lsync.Author(), nil, err
 	}
@@ -297,7 +297,7 @@ type Push struct {
 
 // Do executes a push
 func (p *Push) Do(ctx context.Context) error {
-	log, err := p.book.HeadRef(p.ref)
+	log, err := p.book.UserDatasetRef(p.ref)
 	if err != nil {
 		return err
 	}
