@@ -131,7 +131,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}
 
-	if err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), name); err != nil {
+	if err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), ref.Name); err != nil {
 		if err == logbook.ErrNoLogbook {
 			err = nil
 			return name, nil

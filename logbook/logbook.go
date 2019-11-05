@@ -14,6 +14,7 @@ import (
 	"strings"
 	"time"
 
+	logger "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -35,6 +36,9 @@ var (
 	// NewTimestamp generates the current unix nanosecond time.
 	// This is mainly here for tests to override
 	NewTimestamp = func() int64 { return time.Now().UnixNano() }
+
+	// package logger
+	log = logger.Logger("logbook")
 )
 
 const (
@@ -217,6 +221,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 }
 
 func (book Book) initName(ctx context.Context, name string) *oplog.Log {
+	log.Debugf("initializing name: '%s'", name)
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     datasetModel,
@@ -255,6 +260,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WriteDatasetRename: '%s' -> '%s'", ref.Alias(), newName)
 
 	l, err := book.DatasetRef(ref)
 	if err != nil {
@@ -275,6 +281,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WriteDatasetDelete: '%s'", ref)
 
 	l, err := book.DatasetRef(ref)
 	if err != nil {
@@ -298,6 +305,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	}
 
 	ref := refFromDataset(ds)
+	log.Debugf("WriteVersionSave: %s", ref)
 	branchLog, err := book.BranchRef(ref)
 	if err != nil {
 		if err == oplog.ErrNotFound {
@@ -335,8 +343,10 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 	if book == nil {
 		return ErrNoLogbook
 	}
+	ref := refFromDataset(ds)
+	log.Debugf("WriteVersionAmend: '%s'", ref)
 
-	l, err := book.BranchRef(refFromDataset(ds))
+	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err
 	}
@@ -361,6 +371,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WriteVersionDelete: %s, revisions: %d", ref, revisions)
 
 	l, err := book.BranchRef(ref)
 	if err != nil {
@@ -383,6 +394,7 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
 
 	l, err := book.BranchRef(ref)
 	if err != nil {
@@ -406,6 +418,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
 
 	l, err := book.BranchRef(ref)
 	if err != nil {
@@ -428,6 +441,7 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	if book == nil {
 		return ErrNoLogbook
 	}
+	log.Debugf("WriteCronJobRan: %s, number: %d", ref, number)
 
 	l, err := book.BranchRef(ref)
 	if err != nil {

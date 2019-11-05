@@ -56,7 +56,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 		{"log list - offset 3 limit 3",
 			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 3, Limit: 3}}, items[3:], ""},
 		{"log list - offset 6 limit 3",
-			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, []DatasetLogItem{}, ""},
+			&LogParams{Ref: firstRef, ListParams: ListParams{Offset: 6, Limit: 3}}, nil, "repo: no history"},
 	}
 
 	req := NewLogRequests(node, nil)

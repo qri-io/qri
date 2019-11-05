@@ -33,6 +33,12 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
 
+			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
+			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
+			if len(versions) == 0 {
+				return nil, repo.ErrNoHistory
+			}
+
 			for i, v := range versions {
 				items[i] = DatasetLogItem{
 					Ref:         v.Ref,
