@@ -57,6 +57,10 @@ func (a author) AuthorID() string {
 	return a.id
 }
 
+func (a author) AuthorPubKeyID() crypto.PubKey {
+	return a.pubKey
+}
+
 func (a author) AuthorPubKey() crypto.PubKey {
 	return a.pubKey
 }
@@ -73,7 +77,7 @@ type Book struct {
 	pk         crypto.PrivKey
 	id         string
 	authorname string
-	logs       map[uint32][]*Log
+	logs       []*Log
 }
 
 // NewBook initializes a Book
@@ -82,7 +86,6 @@ func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
 		pk:         pk,
 		id:         authorID,
 		authorname: authorname,
-		logs:       map[uint32][]*Log{},
 	}, nil
 }
 
@@ -96,6 +99,11 @@ func (book Book) AuthorID() string {
 	return book.id
 }
 
+// SetAuthorID assigns this book's author Identifier
+func (book *Book) SetAuthorID(id string) {
+	book.id = id
+}
+
 // AuthorPubKey gives this book's author public key
 func (book Book) AuthorPubKey() crypto.PubKey {
 	return book.pk.GetPublic()
@@ -103,12 +111,12 @@ func (book Book) AuthorPubKey() crypto.PubKey {
 
 // AppendLog adds a log to a book
 func (book *Book) AppendLog(l *Log) {
-	book.logs[l.Model()] = append(book.logs[l.Model()], l)
+	book.logs = append(book.logs, l)
 }
 
 // RemoveLog removes a log from the book
 // TODO (b5) - this currently won't work when trying to remove the root log
-func (book *Book) RemoveLog(rootModel uint32, names ...string) error {
+func (book *Book) RemoveLog(names ...string) error {
 	if len(names) == 0 {
 		return fmt.Errorf("name is required")
 	}
@@ -117,16 +125,16 @@ func (book *Book) RemoveLog(rootModel uint32, names ...string) error {
 	parentPath := names[:len(names)-1]
 
 	if len(parentPath) == 0 {
-		for i, l := range book.logs[rootModel] {
+		for i, l := range book.logs {
 			if l.Name() == remove {
-				book.logs[rootModel] = append(book.logs[rootModel][:i], book.logs[rootModel][i+1:]...)
+				book.logs = append(book.logs[:i], book.logs[i+1:]...)
 				return nil
 			}
 		}
 		return ErrNotFound
 	}
 
-	parent, err := book.Log(rootModel, parentPath...)
+	parent, err := book.HeadRef(parentPath...)
 	if err != nil {
 		return err
 	}
@@ -142,28 +150,36 @@ func (book *Book) RemoveLog(rootModel uint32, names ...string) error {
 	return ErrNotFound
 }
 
-// Log traverses the log graph & pulls out a log
-func (book *Book) Log(rootModel uint32, names ...string) (*Log, error) {
+// Log fetches a log for a given ID
+func (book *Book) Log(id string) (*Log, error) {
+	for _, lg := range book.logs {
+		if l, err := lg.Log(id); err == nil {
+			return l, nil
+		}
+	}
+	return nil, ErrNotFound
+}
+
+// HeadRef traverses the log graph & pulls out a log based on named head
+// references
+// HeadRef will not return logs that have been marked as removed. To fetch
+// removed logs either traverse the entire book or reference a log by ID
+func (book *Book) HeadRef(names ...string) (*Log, error) {
 	if len(names) == 0 {
 		return nil, fmt.Errorf("name is required")
 	}
 
-	for _, log := range book.logs[rootModel] {
-		if log.Name() == names[0] {
-			return log.Log(names[1:]...)
+	for _, log := range book.logs {
+		if log.Name() == names[0] && !log.Removed() {
+			return log.HeadRef(names[1:]...)
 		}
 	}
 	return nil, ErrNotFound
 }
 
 // Logs returns the full map of logs keyed by model type
-func (book *Book) Logs() map[uint32][]*Log {
+func (book *Book) Logs() []*Log {
 	return book.logs
-}
-
-// ModelLogs gives all sets whoe model type matches model
-func (book *Book) ModelLogs(model uint32) []*Log {
-	return book.logs[model]
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
@@ -240,7 +256,7 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	authorname := builder.CreateString(book.authorname)
 	id := builder.CreateString(book.id)
 
-	setsl := book.logsSlice()
+	setsl := book.Logs()
 	count := len(setsl)
 	offsets := make([]flatbuffers.UOffsetT, count)
 	for i, lset := range setsl {
@@ -264,7 +280,6 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 		pk:         book.pk,
 		id:         string(b.Identifier()),
 		authorname: string(b.Name()),
-		logs:       map[uint32][]*Log{},
 	}
 
 	count := b.LogsLength()
@@ -272,10 +287,10 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	for i := 0; i < count; i++ {
 		if b.Logs(lfb, i) {
 			l := &Log{}
-			if err := l.UnmarshalFlatbuffer(lfb); err != nil {
+			if err := l.UnmarshalFlatbuffer(lfb, nil); err != nil {
 				return err
 			}
-			newBook.logs[l.Model()] = append(newBook.logs[l.Model()], l)
+			newBook.logs = append(newBook.logs, l)
 		}
 	}
 
@@ -283,18 +298,12 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	return nil
 }
 
-func (book Book) logsSlice() (logs []*Log) {
-	for _, logsl := range book.logs {
-		logs = append(logs, logsl...)
-	}
-	return logs
-}
-
 // Log is a causally-ordered set of operations performed by a single author.
 // log attribution is verified by an author's signature
 type Log struct {
 	name     string // name value cache. not persisted
 	authorID string // authorID value cache. not persisted
+	parent   *Log   // parent link
 
 	Signature []byte
 	Ops       []Op
@@ -312,7 +321,7 @@ func InitLog(initop Op) *Log {
 func FromFlatbufferBytes(data []byte) (*Log, error) {
 	rootfb := logfb.GetRootAsLog(data, 0)
 	lg := &Log{}
-	return lg, lg.UnmarshalFlatbuffer(rootfb)
+	return lg, lg.UnmarshalFlatbuffer(rootfb, nil)
 }
 
 // Append adds an operation to the log
@@ -337,6 +346,14 @@ func (lg Log) ID() string {
 	return lg.Ops[0].Hash()
 }
 
+// Head gets the latest operation in the log
+func (lg Log) Head() Op {
+	if len(lg.Ops) == 0 {
+		return Op{}
+	}
+	return lg.Ops[len(lg.Ops)-1]
+}
+
 // Model gives the operation type for a log, based on the first operation
 // written to the log. Logs can contain multiple models of operations, but the
 // first operation written to a log determines the kind of log for
@@ -358,6 +375,11 @@ func (lg Log) Author() (identifier string) {
 	return lg.authorID
 }
 
+// Parent returns this log's parent if one exists
+func (lg *Log) Parent() *Log {
+	return lg.parent
+}
+
 // Name returns the human-readable name for this log, determined by the
 // initialization event
 func (lg Log) Name() string {
@@ -372,32 +394,52 @@ func (lg Log) Name() string {
 	return lg.name
 }
 
-// Log returns a descendant log, traversing the log tree by name
-func (lg *Log) Log(names ...string) (*Log, error) {
-	if len(names) == 0 {
+// Removed returns true if the log contains a remove operation for the log model
+func (lg Log) Removed() bool {
+	m := lg.Model()
+	for _, op := range lg.Ops {
+		if op.Model == m && op.Type == OpTypeRemove {
+			return true
+		}
+	}
+	return false
+}
+
+// Log fetches a log by ID, checking the current log and all descendants for an
+// exact match
+func (lg *Log) Log(id string) (*Log, error) {
+	if lg.ID() == id {
 		return lg, nil
 	}
-
-	for _, log := range lg.Logs {
-		if log.Name() == names[0] {
-			return log.Log(names[1:]...)
+	if len(lg.Logs) > 0 {
+		for _, l := range lg.Logs {
+			if got, err := l.Log(id); err == nil {
+				return got, nil
+			}
 		}
 	}
 	return nil, ErrNotFound
 }
 
-// Child returns a child log for a given name, and nil if it doesn't exist
-func (lg Log) Child(name string) *Log {
-	for _, l := range lg.Logs {
-		if l.Name() == name {
-			return l
+// HeadRef returns a descendant log, traversing the log tree by name
+// HeadRef will not return logs that have been marked as removed. To fetch
+// removed logs either traverse the entire book or reference a log by ID
+func (lg *Log) HeadRef(names ...string) (*Log, error) {
+	if len(names) == 0 {
+		return lg, nil
+	}
+
+	for _, log := range lg.Logs {
+		if log.Name() == names[0] && !log.Removed() {
+			return log.HeadRef(names[1:]...)
 		}
 	}
-	return nil
+	return nil, ErrNotFound
 }
 
 // AddChild appends a log as a direct descendant of this log
 func (lg *Log) AddChild(l *Log) {
+	l.parent = lg
 	lg.Logs = append(lg.Logs, l)
 }
 
@@ -518,12 +560,12 @@ func (lg Log) MarshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffse
 // UnmarshalFlatbufferBytes is a convenince wrapper to deserialze a flatbuffer
 // slice into a log
 func (lg *Log) UnmarshalFlatbufferBytes(data []byte) error {
-	return lg.UnmarshalFlatbuffer(logfb.GetRootAsLog(data, 0))
+	return lg.UnmarshalFlatbuffer(logfb.GetRootAsLog(data, 0), nil)
 }
 
 // UnmarshalFlatbuffer populates a logfb.Log from a Log pointer
-func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
-	newLg := Log{}
+func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log, parent *Log) (err error) {
+	newLg := Log{parent: parent}
 
 	if len(lfb.Signature()) != 0 {
 		newLg.Signature = lfb.Signature()
@@ -543,7 +585,7 @@ func (lg *Log) UnmarshalFlatbuffer(lfb *logfb.Log) (err error) {
 		for i := 0; i < lfb.LogsLength(); i++ {
 			if lfb.Logs(childfb, i) {
 				newLg.Logs[i] = &Log{}
-				newLg.Logs[i].UnmarshalFlatbuffer(childfb)
+				newLg.Logs[i].UnmarshalFlatbuffer(childfb, lg)
 			}
 		}
 	}
@@ -580,7 +622,7 @@ type Op struct {
 	AuthorID  string   // identifier for author
 
 	Timestamp int64  // operation timestamp, for annotation purposes only
-	Size      uint64 // size of the referenced value in bytes
+	Size      int64  // size of the referenced value in bytes
 	Note      string // operation annotation for users. eg: commit title
 }
 

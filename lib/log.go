@@ -116,7 +116,7 @@ type RawLogsParams struct {
 }
 
 // RawLogs is an alias for a human representation of a raw logbook
-type RawLogs = map[string][]logbook.Log
+type RawLogs = []logbook.Log
 
 // RawLogs encodes the full logbook as human-oriented json
 func (r *LogRequests) RawLogs(p *RawLogsParams, res *RawLogs) (err error) {

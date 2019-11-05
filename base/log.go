@@ -22,7 +22,7 @@ type DatasetLogItem struct {
 	// Published indicates if this version has been published
 	Published bool `json:"published,omitempty"`
 	// Size of dataset in bytes
-	Size uint64 `json:"size,omitempty"`
+	Size int64 `json:"size,omitempty"`
 	// Local indicates the connected filesystem has this version available
 	Local bool `json:"local,omitempty"`
 }
@@ -32,6 +32,12 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, of
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
+
+			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
+			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
+			if len(versions) == 0 {
+				return nil, repo.ErrNoHistory
+			}
 
 			for i, v := range versions {
 				items[i] = DatasetLogItem{

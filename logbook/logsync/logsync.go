@@ -155,19 +155,23 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 }
 
 func (lsync *Logsync) remoteClient(remoteAddr string) (rem remote, err error) {
+	if strings.HasPrefix(remoteAddr, "http") {
+		return &httpClient{URL: remoteAddr}, nil
+	}
+
+	// if we're given a logbook authorId, convert it to the active public key ID
+	if l, err := lsync.book.Log(remoteAddr); err == nil {
+		remoteAddr = l.Author()
+	}
+
 	// if a valid base58 peerID is passed, we're doing a p2p dsync
 	if id, err := peer.IDB58Decode(remoteAddr); err == nil {
 		if lsync.p2pHandler == nil {
 			return nil, fmt.Errorf("no p2p host provided to perform p2p logsync")
 		}
 		return &p2pClient{remotePeerID: id, p2pHandler: lsync.p2pHandler}, nil
-	} else if strings.HasPrefix(remoteAddr, "http") {
-		rem = &httpClient{URL: remoteAddr}
-	} else {
-		return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
 	}
-
-	return rem, nil
+	return nil, fmt.Errorf("unrecognized push address string: %s", remoteAddr)
 }
 
 // remove is an internal interface for methods available on foreign logbooks
@@ -242,7 +246,7 @@ func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Re
 		}
 	}
 
-	l, err := lsync.book.Log(ref)
+	l, err := lsync.book.UserDatasetRef(ref)
 	if err != nil {
 		return lsync.Author(), nil, err
 	}
@@ -293,7 +297,7 @@ type Push struct {
 
 // Do executes a push
 func (p *Push) Do(ctx context.Context) error {
-	log, err := p.book.Log(p.ref)
+	log, err := p.book.UserDatasetRef(p.ref)
 	if err != nil {
 		return err
 	}

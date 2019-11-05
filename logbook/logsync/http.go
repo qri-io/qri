@@ -102,7 +102,8 @@ func (c *httpClient) del(ctx context.Context, author oplog.Author, ref dsref.Ref
 }
 
 func addAuthorHTTPHeaders(h http.Header, author oplog.Author) error {
-	h.Set("AuthorID", author.AuthorID())
+	h.Set("ID", author.AuthorID())
+
 	pubByteStr, err := author.AuthorPubKey().Bytes()
 	if err != nil {
 		return err
@@ -122,7 +123,7 @@ func senderFromHTTPHeaders(h http.Header) (oplog.Author, error) {
 		return nil, fmt.Errorf("decoding public key: %s", err)
 	}
 
-	return oplog.NewAuthor(h.Get("AuthorID"), pub), nil
+	return oplog.NewAuthor(h.Get("ID"), pub), nil
 }
 
 // HTTPHandler exposes a Dsync remote over HTTP by exposing a HTTP handler

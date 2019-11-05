@@ -239,7 +239,7 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "qri_test_save_relative_body")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_relative_body")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -274,7 +274,7 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "qri_test_remove_only_two_revisions")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_two_revisions")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -325,7 +325,7 @@ func TestRemoveAllRevisionsLongForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_one_revision")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -368,7 +368,7 @@ func TestRemoveAllRevisionsShortForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "qri_test_remove_only_one_revision")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_one_revision")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -417,7 +417,7 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -458,7 +458,7 @@ func TestSaveTwoComponents(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -500,7 +500,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -541,7 +541,7 @@ func TestSaveThenOverrideViz(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -582,7 +582,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_file_transform")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -623,7 +623,7 @@ func TestSaveDatasetWithComponentError(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -653,7 +653,7 @@ func TestSaveConflictingComponents(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_then_override_meta")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -689,7 +689,7 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_transform_same")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_transform_same")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -724,7 +724,7 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_save_transform_get_body")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_transform_get_body")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -765,7 +765,7 @@ func TestDiffRevisions(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_diff_revisions")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_diff_revisions")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -826,7 +826,7 @@ func TestDiffOnlyOneRevision(t *testing.T) {
 	defer func() { dsfs.Timestamp = prev }()
 	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	r := NewTestRepoRoot(t, "qri_test_diff_only_one")
+	r := NewTestRepoRoot(t, "test_peer", "qri_test_diff_only_one")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -870,7 +870,7 @@ type TestRepoRoot struct {
 }
 
 // NewTestRepoRoot constructs the test repo and initializes everything as cheaply as possible.
-func NewTestRepoRoot(t *testing.T, prefix string) TestRepoRoot {
+func NewTestRepoRoot(t *testing.T, peername, prefix string) TestRepoRoot {
 	rootPath, err := ioutil.TempDir("", prefix)
 	if err != nil {
 		t.Fatal(err)
@@ -896,7 +896,7 @@ func NewTestRepoRoot(t *testing.T, prefix string) TestRepoRoot {
 	}
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
-	cfg.Profile.Peername = "test_peer"
+	cfg.Profile.Peername = peername
 	err = cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
 	if err != nil {
 		t.Fatal(err)

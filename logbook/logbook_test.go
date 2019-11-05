@@ -51,7 +51,7 @@ func Example() {
 	// log under the logbook author's namespace with the given name, and an opset
 	// that tracks operations by this author within that new namespace.
 	// The entire logbook is persisted to the filestore after each operation
-	if err := book.WriteNameInit(ctx, "world_bank_population"); err != nil {
+	if err := book.WriteDatasetInit(ctx, "world_bank_population"); err != nil {
 		panic(err)
 	}
 
@@ -179,7 +179,7 @@ func TestNewBook(t *testing.T) {
 	}
 }
 
-func TestErrNoLogbook(t *testing.T) {
+func TestNilCallable(t *testing.T) {
 	var (
 		book *Book
 		ctx  = context.Background()
@@ -189,10 +189,13 @@ func TestErrNoLogbook(t *testing.T) {
 	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteNameAmend(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+	if err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if err = book.WriteNameInit(ctx, ""); err != ErrNoLogbook {
+	if err = book.WriteDatasetRename(ctx, dsref.Ref{}, ""); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.WriteDatasetDelete(ctx, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 	if err = book.WritePublish(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
@@ -232,13 +235,13 @@ func TestBookLogEntries(t *testing.T) {
 	}
 
 	expect := []string{
-		"10:07PM\ttest_author\tinit\t",
-		"12:00AM\ttest_author\tsave\tinitial commit",
-		"12:00AM\ttest_author\tsave\tadded body data",
+		"12:02AM\ttest_author\tinit branch\tmain",
+		"12:00AM\ttest_author\tsave commit\tinitial commit",
+		"12:00AM\ttest_author\tsave commit\tadded body data",
 		"12:00AM\ttest_author\tpublish\t",
 		"12:00AM\ttest_author\tunpublish\t",
-		"12:00AM\ttest_author\tremove\t",
-		"12:00AM\ttest_author\tamend\tadded meta info",
+		"12:00AM\ttest_author\tremove commit\t",
+		"12:00AM\ttest_author\tamend commit\tadded meta info",
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -246,19 +249,22 @@ func TestBookLogEntries(t *testing.T) {
 	}
 }
 
-func TestLog(t *testing.T) {
+func TestUserDatasetRef(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.Log(dsref.Ref{}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(dsref.Ref{}); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.Log(dsref.Ref{Username: tr.Username}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(dsref.Ref{Username: tr.Username}); err == nil {
 		t.Error("expected LogBytes with empty name ref to fail")
 	}
-	if _, err := tr.Book.Log(tr.RenameRef()); err != nil {
+	// lg := tr.Book.RawLogs(tr.Ctx)
+	// t.Logf("%#v\n\n", tr.RenameRef().String())
+	// t.Logf("%#v\n\n", lg)
+	if _, err := tr.Book.UserDatasetRef(tr.RenameRef()); err != nil {
 		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
 	}
 }
@@ -268,7 +274,7 @@ func TestLogBytes(t *testing.T) {
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
-	log, err := tr.Book.Log(tr.RenameRef())
+	log, err := tr.Book.UserDatasetRef(tr.RenameRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -289,7 +295,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 	egRef := tr.RenameRef()
-	log, err := tr.Book.Log(egRef)
+	log, err := tr.Book.UserDatasetRef(egRef)
 	if err != nil {
 		t.Error(err)
 	}
@@ -298,7 +304,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected nil ref to error")
 	}
 
-	wrongModelLog, err := tr.Book.bk.Log(userModel, tr.Username)
+	wrongModelLog, err := tr.Book.bk.HeadRef(tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -307,7 +313,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected converting log of wrong model to error")
 	}
 
-	ambiguousLog, err := tr.Book.bk.Log(nameModel, tr.Username)
+	ambiguousLog, err := tr.Book.bk.HeadRef(tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -331,6 +337,91 @@ func TestDsRefAliasForLog(t *testing.T) {
 	}
 }
 
+func TestDatasetLogNaming(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+	var err error
+
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, ""); err == nil {
+		t.Errorf("expected initializing with an empty name to error")
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+		t.Errorf("unexpected error writing valid dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err == nil {
+		t.Error("expected initializing a name that already exists to error")
+	}
+	if err = tr.Book.WriteDatasetRename(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}, "iata_airport_codes"); err != nil {
+		t.Errorf("unexpected error renaming dataset: %s", err)
+	}
+	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "airport_codes"}); err == nil {
+		t.Error("expected deleting updated name to error")
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "airport_codes"); err != nil {
+		t.Errorf("unexpected error writing recently freed-up dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetDelete(tr.Ctx, dsref.Ref{Username: tr.Book.AuthorName(), Name: "iata_airport_codes"}); err != nil {
+		t.Errorf("unexpected error deleting active dataset name: %s", err)
+	}
+	if err = tr.Book.WriteDatasetInit(tr.Ctx, "iata_airport_codes"); err != nil {
+		t.Errorf("expected initializing new name with deleted dataset to not error: %s", err)
+	}
+
+	expect := []Log{
+		{
+			Ops: []Op{
+				{Type: "init", Model: "user", Name: "test_author", AuthorID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
+			},
+			Logs: []Log{
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
+						{Type: "amend", Model: "dataset", Name: "iata_airport_codes", Timestamp: mustTime("1999-12-31T19:03:00-05:00")},
+						{Type: "remove", Model: "dataset", Timestamp: mustTime("1999-12-31T19:06:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
+							},
+						},
+					},
+				},
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
+							},
+						},
+					},
+				},
+				{
+					Ops: []Op{
+						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
+					},
+					Logs: []Log{
+						{
+							Ops: []Op{
+								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
+							},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	got := tr.Book.RawLogs(tr.Ctx)
+
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
 func TestBookRawLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
@@ -345,87 +436,85 @@ func TestBookRawLog(t *testing.T) {
 	// }
 	// t.Logf("%s", string(data))
 
-	expect := map[string][]Log{
-		"name": []Log{
-			{
-				Ops: []Op{
-					{
-						Type:      "init",
-						Model:     "name",
-						Name:      "test_author",
-						AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-						Timestamp: mustTime("2047-03-18T17:07:12.45224192-05:00"),
-					},
-				},
-				Logs: []Log{
-					{
-						Ops: []Op{
-							{
-								Type:      "init",
-								Model:     "name",
-								Name:      "world_bank_population",
-								AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-								Timestamp: mustTime("2047-03-18T17:07:13.45224192-05:00"),
-							},
-							{
-								Type:      "init",
-								Model:     "version",
-								Ref:       "QmHashOfVersion1",
-								Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
-								Note:      "initial commit",
-							},
-							{
-								Type:      "init",
-								Model:     "version",
-								Ref:       "QmHashOfVersion2",
-								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
-								Note:      "added body data",
-							},
-							{
-								Type:  "init",
-								Model: "publication",
-								Relations: []string{
-									"registry.qri.cloud",
-								},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      2,
-							},
-							{
-								Type:      "remove",
-								Model:     "publication",
-								Relations: []string{"registry.qri.cloud"},
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      2,
-							},
-							{
-								Type:      "remove",
-								Model:     "version",
-								Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
-								Size:      1,
-							},
-							{
-								Type:      "amend",
-								Model:     "version",
-								Ref:       "QmHashOfVersion3",
-								Prev:      "QmHashOfVersion1",
-								Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
-								Note:      "added meta info",
-							},
-						},
-					},
+	expect := []Log{
+		{
+			Ops: []Op{
+				{
+					Type:      "init",
+					Model:     "user",
+					Name:      "test_author",
+					AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+					Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 				},
 			},
-		},
-		"user": []Log{
-			{
-				Ops: []Op{
-					{
-						Type:      "init",
-						Model:     "user",
-						Name:      "test_author",
-						AuthorID:  "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-						Timestamp: mustTime("2047-03-18T17:07:11.45224192-05:00"),
+			Logs: []Log{
+				Log{
+					Ops: []Op{
+						{
+							Type:      "init",
+							Model:     "dataset",
+							Name:      "world_bank_population",
+							AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
+						},
+					},
+					Logs: []Log{
+						Log{
+							Ops: []Op{
+								{
+									Type:      "init",
+									Model:     "branch",
+									Name:      "main",
+									AuthorID:  "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q",
+									Timestamp: mustTime("1999-12-31T19:02:00-05:00"),
+								},
+								{
+									Type:      "init",
+									Model:     "commit",
+									Ref:       "QmHashOfVersion1",
+									Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
+									Note:      "initial commit",
+								},
+								{
+									Type:      "init",
+									Model:     "commit",
+									Ref:       "QmHashOfVersion2",
+									Prev:      "QmHashOfVersion1",
+									Timestamp: mustTime("2000-01-01T19:00:00-05:00"),
+									Note:      "added body data",
+								},
+								{
+									Type:  "init",
+									Model: "publication",
+									Relations: []string{
+										"registry.qri.cloud",
+									},
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      2,
+								},
+								{
+									Type:      "remove",
+									Model:     "publication",
+									Relations: []string{"registry.qri.cloud"},
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      2,
+								},
+								{
+									Type:      "remove",
+									Model:     "commit",
+									Timestamp: mustTime("1969-12-31T19:00:00-05:00"),
+									Size:      1,
+								},
+								{
+									Type:      "amend",
+									Model:     "commit",
+									Ref:       "QmHashOfVersion3",
+									Prev:      "QmHashOfVersion1",
+									Timestamp: mustTime("2000-01-02T19:00:00-05:00"),
+									Note:      "added meta info",
+								},
+							},
+						},
 					},
 				},
 			},
@@ -437,17 +526,20 @@ func TestBookRawLog(t *testing.T) {
 	}
 }
 
-// TODO (b5) - this test should also check that only the requested log is being
-// transferred, not any extras
 func TestLogTransfer(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
 	tr.WriteWorldBankExample(t)
+	tr.WriteRenameExample(t)
 
-	log, err := tr.Book.Log(tr.WorldBankRef())
+	log, err := tr.Book.UserDatasetRef(tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
+	}
+
+	if len(log.Logs) != 1 {
+		t.Errorf("expected UserDatasetRef to only return one dataset log. got: %d", len(log.Logs))
 	}
 
 	pk2 := testPrivKey2(t)
@@ -503,11 +595,10 @@ func TestRenameDataset(t *testing.T) {
 	}
 
 	expect := []string{
-		"10:07PM\ttest_author\tinit\t",
-		"12:00AM\ttest_author\tsave\tinitial commit",
+		"12:02AM\ttest_author\tinit branch\tmain",
+		"12:00AM\ttest_author\tsave commit\tinitial commit",
 		"12:00AM\ttest_author\tran update\t",
-		"12:00AM\ttest_author\tsave\tadded meta info",
-		"10:07PM\ttest_author\trename\t",
+		"12:00AM\ttest_author\tsave commit\tadded meta info",
 	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
@@ -639,7 +730,7 @@ func TestConstructDatasetLog(t *testing.T) {
 	}
 
 	if len(versions) != 3 {
-		t.Errorf("expected 3 versions to return from history")
+		t.Errorf("expected 3 versions to return from history. got: %d", len(versions))
 	}
 }
 
@@ -687,7 +778,8 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 
 func (tr *testRunner) newTimestamp() int64 {
 	defer func() { tr.Tick++ }()
-	return time.Unix(int64(94670280000+tr.Tick), 0).UnixNano()
+	t := time.Date(2000, time.January, 1, 0, 0, 0, 0, time.UTC)
+	return t.Add(time.Minute * time.Duration(tr.Tick)).UnixNano()
 }
 
 func (tr *testRunner) WorldBankRef() dsref.Ref {
@@ -698,7 +790,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	book := tr.Book
 	name := "world_bank_population"
 
-	if err := book.WriteNameInit(tr.Ctx, name); err != nil {
+	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
 		panic(err)
 	}
 
@@ -799,7 +891,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	name := "dataset"
 	rename := "renamed_dataset"
 
-	if err := book.WriteNameInit(tr.Ctx, name); err != nil {
+	if err := book.WriteDatasetInit(tr.Ctx, name); err != nil {
 		panic(err)
 	}
 
@@ -835,7 +927,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if err := book.WriteNameAmend(tr.Ctx, ref, rename); err != nil {
+	if err := book.WriteDatasetRename(tr.Ctx, ref, rename); err != nil {
 		t.Fatal(err)
 	}
 }

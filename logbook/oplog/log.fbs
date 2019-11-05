@@ -34,7 +34,7 @@ table Operation {
   authorID:string;    // identifier for author
 
   timestamp:long;     // operation timestamp, for annotation purposes only
-  size:ulong;         // size of the referenced value in bytes
+  size:long;          // size of the referenced value in bytes
   note:string;        // operation annotation for users. eg: commit title
 }
 

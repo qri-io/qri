@@ -247,7 +247,7 @@ func (s dslogItemStringer) String() string {
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),
-		humanize.Bytes(s.Size),
+		humanize.Bytes(uint64(s.Size)),
 		s.CommitTitle,
 	)
 

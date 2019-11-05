@@ -7,7 +7,7 @@ import (
 )
 
 func TestFetchCommand(t *testing.T) {
-	r := NewTestRepoRoot(t, "qri_test_fetch_a")
+	r := NewTestRepoRoot(t, "peer_a", "qri_test_fetch_a")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -25,7 +25,7 @@ func TestFetchCommand(t *testing.T) {
 	}
 
 	cmdR = r.CreateCommandRunner(ctx)
-	if err = executeCommand(cmdR, "qri log test_peer/test_movies"); err != nil {
+	if err = executeCommand(cmdR, "qri log peer_a/test_movies"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -50,11 +50,11 @@ func TestFetchCommand(t *testing.T) {
 	// TODO (b5) - this is horrible. we should block on a channel receive for connectedness
 	time.Sleep(time.Second * 5)
 
-	b := NewTestRepoRoot(t, "qri_test_fetch_b")
+	b := NewTestRepoRoot(t, "peer_b", "qri_test_fetch_b")
 	defer b.Delete()
 
 	cmdBr := b.CreateCommandRunner(ctx)
-	if err = executeCommand(cmdBr, "qri log test_peer/test_movies"); err == nil {
+	if err = executeCommand(cmdBr, "qri log peer_b/test_movies"); err == nil {
 		t.Fatal("expected fetch on non-existant log to error")
 	}
 
@@ -64,7 +64,7 @@ func TestFetchCommand(t *testing.T) {
 	}
 
 	cmdBr = b.CreateCommandRunner(ctx)
-	if err = executeCommand(cmdBr, "qri fetch test_peer/test_movies --remote a_node"); err != nil {
+	if err = executeCommand(cmdBr, "qri fetch peer_a/test_movies --remote a_node"); err != nil {
 		t.Fatal(err)
 	}
 
@@ -77,7 +77,7 @@ func TestFetchCommand(t *testing.T) {
 	t.Logf("%s", text)
 
 	cmdBr = b.CreateCommandRunner(ctx)
-	if err = executeCommand(cmdBr, "qri log test_peer/test_movies"); err != nil {
+	if err = executeCommand(cmdBr, "qri log peer_a/test_movies"); err != nil {
 		t.Fatal(err)
 	}
 

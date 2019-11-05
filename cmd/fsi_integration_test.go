@@ -30,7 +30,7 @@ type FSITestRunner struct {
 
 // NewFSITestRunner returns a new FSITestRunner.
 func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
-	root := NewTestRepoRoot(t, testName)
+	root := NewTestRepoRoot(t, "test_peer", testName)
 
 	fr := FSITestRunner{}
 	fr.RepoRoot = &root
