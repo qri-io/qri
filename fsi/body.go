@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qri/base/component"
 )
 
-// GetBody is an FSI version of actions.GetBody
+// GetBody is an FSI version of base.ReadBody
 func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfig, offset, limit int, all bool) ([]byte, error) {
 
 	components, err := component.ListDirectoryComponents(dirPath)
