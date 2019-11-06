@@ -419,7 +419,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return
 	}
 
-	// TODO (b5) - this should be integrated into actions.SaveDataset
+	// TODO (b5) - this should be integrated into base.SaveDataset
 	fsiPath := ref.FSIPath
 
 	switches := base.SaveDatasetSwitches{
@@ -436,7 +436,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		return err
 	}
 
-	// TODO (b5) - this should be integrated into actions.SaveDataset
+	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" {
 		ref.FSIPath = fsiPath
 		if err = r.node.Repo.PutRef(ref); err != nil {

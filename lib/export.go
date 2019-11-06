@@ -174,7 +174,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	case "json":
 
 		// TODO (dlong): Look into combining this functionality (reading body, changing structure),
-		// and moving it into a method of `actions`.
+		// with some of the functions in `base`.
 		bodyEntries, err := base.ReadEntries(reader)
 		if err != nil {
 			return err

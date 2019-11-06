@@ -210,7 +210,7 @@ func (d *PeerRequests) Info(p *PeerInfoParams, res *config.ProfilePod) error {
 		return d.cli.Call("PeerRequests.Info", p, res)
 	}
 
-	// TODO: Move most / all of this to actions package, perhaps.
+	// TODO: Move most / all of this to p2p package, perhaps.
 	r := d.qriNode.Repo
 
 	profiles, err := r.Profiles().List()

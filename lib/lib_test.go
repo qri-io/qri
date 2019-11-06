@@ -153,7 +153,7 @@ func testdataPath(path string) string {
 	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
 }
 
-// pulled from actions and base packages
+// pulled from base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	ctx := context.Background()
