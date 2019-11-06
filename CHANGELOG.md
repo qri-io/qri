@@ -1,3 +1,99 @@
+# [0.9.1](https://github.com/qri-io/qri/compare/v0.9.0...v0.9.1) (2019-11-05)
+
+This release brings first-class support for Readmes, adds a bunch of stability, and sets the table for exciting collaboration features in the future.
+
+### 📄 Qri now supports readme!
+This release brings support for a new dataset component, readmes! Following in a long tradition of readme's in the world of software. Readme's are [markdown](https://daringfireball.net/projects/markdown/) documents for explaining your dataset in human terms.
+
+The easiest way to create a readme is by creating a file called `readme.md` in an FSI-linked directory. Qri will pick up on the file & add it to your dataset. You can see what the rendered HTML version looks like by running `qri render` in an FSI-linked directory.
+
+In the future, we're excited to build out the feature set readme's offer, and think they're a better long-term fit for us than the generic notion of our existing `viz` component. Readme's differ from viz by not allowing generic script inclusion, which allows us to present them in a safer sandbox-like environment. This fits well with our story around transform scripts and the general expectation that scripts Qri interacts with will come with a safer execution properties. 
+
+With this release, support for readme's in [qri.cloud](https://qri.cloud) and [desktop](https://qri.io/desktop) is right around the corner.
+
+Happy note taking!
+
+### 📘 Introducing Logbook
+
+**[video!](https://youtu.be/WBshhfYv740?t=206)**
+
+Until now qri has used stored datasets as it's source of history. Qri keeps commit information in the dataset itself, and creates a log of datasets by having each dataset reference the one before it. Keeping commits in history has a number of advantages:
+* all datasets are attributed to the user that made them
+* all datasets have an accurate creation timestamp
+* all datasets include any notes the author made at the time
+* all of these these details are _part of the dataset_, and move with it.
+
+We've gone a long way with this simplistic apporoach, but using datasets as the only source of history has one major limitation: _the history of a dataset is tied to the data itself_. This means you can't uncover the full history of a dataset unless you have _all_ versions of a dataset _stored locally_. Logbook fixes that problem.
+
+Logbook is a _coordination tool_ for talking about who did what, without having to move around the data itself. This means Qri can tell you meaningful things about dataset versions you don't have. This will make syncing faster, and forms the basis for _collaboration_. 
+
+To make use of logbook, all you have to do is... nothing! Logbook is a transparent service that overlays onto traditional Qri commands. You'll see some new details in commands like `qri log` and a few new plumbing commands like `qri fetch` and `qri logbook`, but this feature adds no new requirements to the Qri workflow.
+
+We're most excited about what logbook allows us to do (collaboration!), and can't wait to ship features that will show the benefit of logbook. More fun soon!
+
+### 🏗 Stability Improvements
+As always, we're working on stabilizing & improving the way Qri works. We've this release we've focused on bringing stability to three major areas
+* filesystem integration (FSI)
+* remotes
+* diff
+
+### Bug Fixes
+
+* **diff:** Diff implemented using Component interface ([ed88d67](https://github.com/qri-io/qri/commit/ed88d67))
+* **fill:** Support setting int64 ([d6dea9a](https://github.com/qri-io/qri/commit/d6dea9a))
+* **fsi:** Can get body even if no structure exists. Infer it. ([4cf8132](https://github.com/qri-io/qri/commit/4cf8132))
+* **fsi:** Don't output schema for default csv, many related fixes ([9f2c1e9](https://github.com/qri-io/qri/commit/9f2c1e9))
+* **fsi:** Rebase this so it works with new component functionality ([e3ba68a](https://github.com/qri-io/qri/commit/e3ba68a))
+* **fsi:** Schema is no longer treated as a top-level component ([e8f22c5](https://github.com/qri-io/qri/commit/e8f22c5))
+* **fsi init:** fix init writing the wrong dataset name ([0bc6d62](https://github.com/qri-io/qri/commit/0bc6d62))
+* **init:** add basic `structure.json` on `init` ([a6f423b](https://github.com/qri-io/qri/commit/a6f423b))
+* **log:** fix history being created in reverse order ([c706ef4](https://github.com/qri-io/qri/commit/c706ef4))
+* **log:** fix log construction from history, add test ([0567ae9](https://github.com/qri-io/qri/commit/0567ae9))
+* **logbook:** logbook cleanup ([525ac78](https://github.com/qri-io/qri/commit/525ac78))
+* **publish:** Can only publish / unpublish a head reference ([f834621](https://github.com/qri-io/qri/commit/f834621))
+* **readme:** Add readme to dsref, fix style of yaml import ([0f286ef](https://github.com/qri-io/qri/commit/0f286ef))
+* **remote:** disambiguate AuthorID & AuthorPubKey use in logsync ([8e95fe1](https://github.com/qri-io/qri/commit/8e95fe1))
+* **remote:** remove dataset ([3c38191](https://github.com/qri-io/qri/commit/3c38191))
+* **remove:** don't fail if remove encounters an issue traversing qfs history ([f842273](https://github.com/qri-io/qri/commit/f842273)), closes [#989](https://github.com/qri-io/qri/issues/989)
+* **rpc:** fix logbook --raw over RPC ([48708b6](https://github.com/qri-io/qri/commit/48708b6))
+* incorporate PR feedback fixes ([0970fa0](https://github.com/qri-io/qri/commit/0970fa0))
+
+
+### Features
+
+* **api:** add /fetch endpoint ([5637f90](https://github.com/qri-io/qri/commit/5637f90))
+* **fetch:** fetch pulls logs via logsync ([0f3f2af](https://github.com/qri-io/qri/commit/0f3f2af))
+* **log:** add Local field to DatasetLogItem ([f127167](https://github.com/qri-io/qri/commit/f127167))
+* **log:** add sizes to log, fix logbook version pagination ([5ab0c0a](https://github.com/qri-io/qri/commit/5ab0c0a))
+* **log:** use logbook to show versions ([1c38865](https://github.com/qri-io/qri/commit/1c38865))
+* **logbook:** add lib methods & plumbing commands for logbook ([6a9ae8f](https://github.com/qri-io/qri/commit/6a9ae8f))
+* **logbook:** add logbook inspection structs & methods ([dd4fb36](https://github.com/qri-io/qri/commit/dd4fb36))
+* **logbook:** construct logs from dataset histories ([0a3de84](https://github.com/qri-io/qri/commit/0a3de84))
+* **logbook:** log merge combines two logs ([8a3b006](https://github.com/qri-io/qri/commit/8a3b006))
+* **logsync:** add p2p logsync handler ([1b0f1c2](https://github.com/qri-io/qri/commit/1b0f1c2))
+* **logsync:** syncronize logs over HTTP ([1feb242](https://github.com/qri-io/qri/commit/1feb242))
+* **oplog:** `InitOpHash` returns the encoded hash of the initial op of a log ([4898375](https://github.com/qri-io/qri/commit/4898375))
+* **readme:** Readme component, prepare for removing viz ([d567a32](https://github.com/qri-io/qri/commit/d567a32))
+* **readme:** Render readme component as html ([21c274e](https://github.com/qri-io/qri/commit/21c274e))
+* **remote:** add logsync hooks ([70077bd](https://github.com/qri-io/qri/commit/70077bd))
+* **remote:** adding logsync to remote ([12fddad](https://github.com/qri-io/qri/commit/12fddad))
+* **remote:** embed log hook oplogs in hook context ([412852d](https://github.com/qri-io/qri/commit/412852d))
+* **remote:** populate LogPushFinalCheck dataset reference ([a768023](https://github.com/qri-io/qri/commit/a768023))
+* **remote:** push & pull logs on publish & add ([16c7b4e](https://github.com/qri-io/qri/commit/16c7b4e))
+* **VerifySigParams:** adds `VerifySigParams` & refactors all signature logic ([2c9e3f8](https://github.com/qri-io/qri/commit/2c9e3f8))
+
+
+### Tests
+
+* **api:** update API tests to reflect breaking change to log ([1b6be4f](https://github.com/qri-io/qri/commit/1b6be4f))
+
+
+### BREAKING CHANGES
+
+* **api:** log commands and api endpoint return a different data structure now
+
+
+
 # [0.9.0](https://github.com/qri-io/qri/compare/v0.9.0-alpha...v0.9.0) (2019-09-26)
 
 0.9.0 makes Qri work like Git! 
