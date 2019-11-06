@@ -1,6 +1,6 @@
 // +build !windows
 
-package fsi
+package base
 
 import (
 	"fmt"
@@ -8,8 +8,8 @@ import (
 	"strings"
 )
 
-// setFileHidden ensures the filename begins with a dot. Other OSes may do more
-func setFileHidden(path string) error {
+// SetFileHidden ensures the filename begins with a dot. Other OSes may do more
+func SetFileHidden(path string) error {
 	basename := filepath.Base(path)
 	if !strings.HasPrefix(basename, ".") {
 		return fmt.Errorf("hidden files must begin with \".\"")

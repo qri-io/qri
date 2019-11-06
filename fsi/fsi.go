@@ -19,6 +19,7 @@ import (
 	"strings"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -188,7 +189,7 @@ func writeLinkFile(dir, linkstr string) error {
 	if err := ioutil.WriteFile(filepath, []byte(linkstr), os.ModePerm); err != nil {
 		return err
 	}
-	return setFileHidden(filepath)
+	return base.SetFileHidden(filepath)
 }
 
 func removeLinkFile(dir string) error {

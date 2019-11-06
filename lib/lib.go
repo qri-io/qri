@@ -23,6 +23,7 @@ import (
 	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/fsi"
@@ -464,7 +465,10 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 
 	switch cfg.Repo.Type {
 	case "fs":
-		return fsrepo.NewRepo(store, fs, pro, path)
+		repo, err := fsrepo.NewRepo(store, fs, pro, path)
+		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
+		_ = base.SetFileHidden(path)
+		return repo, err
 	case "mem":
 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
 	default:
