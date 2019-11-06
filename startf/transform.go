@@ -24,7 +24,7 @@ import (
 // Version is the current version of this startf, this version number will be
 // written with each transformation exectution. This value must match
 // github.com/qri-io/qri/lib.Version
-const Version = "0.9.2-dev"
+const Version = "0.9.1"
 
 // ExecOpts defines options for execution
 type ExecOpts struct {
