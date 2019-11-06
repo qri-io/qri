@@ -1,0 +1,280 @@
+package stats
+
+import (
+	"encoding/json"
+	"strings"
+	"testing"
+
+	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/dsio"
+)
+
+type TestCase struct {
+	Description string
+	JSONSchema  string
+	JSONInput   string
+	Expect      interface{}
+}
+
+func TestStrings(t *testing.T) {
+	strings := TestCase{
+		"an array of strings",
+		`{"type":"array"}`,
+		`["a","a","bb","ccc","dddd"]`,
+		[]map[string]interface{}{
+			{
+				"type":        "string",
+				"count":       5,
+				"minLength":   1,
+				"maxLength":   4,
+				"unique":      3,
+				"frequencies": map[string]int{"a": 2},
+			},
+		},
+	}
+
+	runTestCases(t, strings)
+}
+
+func TestAllTypesIdentitySchemaArray(t *testing.T) {
+	allTypesIdentitySchemaArray := TestCase{
+		"all types identity schema array of object entries",
+		`{"type":"array"}`,
+		`[
+			{"int": 1, "float": 1.1, "nil": null, "bool": false, "string": "a"},
+			{"int": 1, "float": 1.1, "nil": null, "bool": true, "string": "aa"},
+			{"int": 3, "float": 3.3, "nil": null, "bool": false, "string": "aaa"},
+			{"int": 4, "float": 4.4, "nil": null, "bool": true, "string": "aaa"},
+			{"int": 5, "float": 5.5, "nil": null, "bool": false, "string": "aaaaa"}
+		]`,
+		[]map[string]interface{}{
+			{
+				"key":        "bool",
+				"count":      5,
+				"trueCount":  2,
+				"falseCount": 3,
+				"type":       "boolean",
+			},
+			{
+				"key":         "float",
+				"count":       5,
+				"min":         float64(1.1),
+				"max":         float64(5.5),
+				"type":        "numeric",
+				"unique":      3,
+				"frequencies": map[string]int{"1.1": 2},
+			},
+			{
+				"key":         "int",
+				"count":       5,
+				"min":         float64(1),
+				"max":         float64(5),
+				"type":        "numeric",
+				"unique":      3,
+				"frequencies": map[string]int{"1": 2},
+			},
+			{
+				"key":   "nil",
+				"count": 5,
+				"type":  "null",
+			},
+			{
+				"key":         "string",
+				"count":       5,
+				"minLength":   1,
+				"maxLength":   5,
+				"type":        "string",
+				"unique":      3,
+				"frequencies": map[string]int{"aaa": 2},
+			},
+		},
+	}
+
+	runTestCases(t, allTypesIdentitySchemaArray)
+}
+
+func TestAllTypesIdentitySchemaObject(t *testing.T) {
+	allTypesIdentitySchemaObject := TestCase{
+		"all types identity schema object of array entries",
+		`{"type":"object"}`,
+		`{
+			"a" : [1,1.1,null,false,"a"],
+			"b" : [1,2.2,null,true,"aa"],
+			"c" : [3,2.2,null,false,"aaa"],
+			"d" : [4,4.4,null,true,"aaa"],
+			"e" : [5,5.5,null,false,"aaaaa"]
+		}`,
+		[]map[string]interface{}{
+			{
+				"count":       5,
+				"min":         float64(1),
+				"max":         float64(5),
+				"type":        "numeric",
+				"unique":      3,
+				"frequencies": map[string]int{"1": 2},
+			},
+			{
+				"count":       5,
+				"min":         float64(1.1),
+				"max":         float64(5.5),
+				"type":        "numeric",
+				"unique":      3,
+				"frequencies": map[string]int{"2.2": 2},
+			},
+			{
+				"count": 5,
+				"type":  "null",
+			},
+			{
+				"count":      5,
+				"trueCount":  2,
+				"falseCount": 3,
+				"type":       "boolean",
+			},
+			{
+				"count":       5,
+				"minLength":   1,
+				"maxLength":   5,
+				"type":        "string",
+				"unique":      3,
+				"frequencies": map[string]int{"aaa": 2},
+			},
+		},
+	}
+
+	runTestCases(t, allTypesIdentitySchemaObject)
+}
+
+func TestFreqThreshold(t *testing.T) {
+	prev := StopFreqCountThreshold
+	StopFreqCountThreshold = 2
+	defer func() { StopFreqCountThreshold = prev }()
+
+	less := TestCase{
+		"fewer unique values than threhold",
+		`{"type":"array"}`,
+		`[
+			["abcdefghijk",1],
+			["abcdefghijk",1],
+			["abcdefghijk",1],
+			["abcdefghijk",1],
+			["abcdefghijk",1]
+		]`,
+		[]map[string]interface{}{
+			{
+				"count":       5,
+				"minLength":   11,
+				"maxLength":   11,
+				"type":        "string",
+				"frequencies": map[string]int{"abcdefghijk": 5},
+			},
+			{
+				"count":       5,
+				"min":         float64(1),
+				"max":         float64(1),
+				"type":        "numeric",
+				"frequencies": map[string]int{"1": 5},
+			},
+		},
+	}
+
+	more := TestCase{
+		"more unique values than threhold",
+		`{"type":"array"}`,
+		`[
+			["a",1],
+			["b",2],
+			["c",3],
+			["d",4],
+			["e",5]
+		]`,
+		[]map[string]interface{}{
+			{
+				"count":     5,
+				"minLength": 1,
+				"maxLength": 1,
+				"type":      "string",
+			},
+			{
+				"count": 5,
+				"min":   float64(1),
+				"max":   float64(5),
+				"type":  "numeric",
+			},
+		},
+	}
+
+	runTestCases(t, less, more)
+}
+
+func TestDepth3(t *testing.T) {
+	t.SkipNow()
+
+	depth3 := TestCase{
+		"array of object of array of strings",
+		`{"type":"array"}`,
+		`[
+			{"ids": ["a","b","c"], "is_great": true },
+			{"ids": [1,2,3,4,5,6] },
+			{"ids": ["b",20,"c"] }
+		]`,
+		[]map[string]interface{}{
+			{
+				"key":  "ids",
+				"type": "array",
+				"values": []map[string]interface{}{
+					{"count": 2, "maxLength": 1, "minLength": 1},
+					{"count": 2, "maxLength": 1, "minLength": 1},
+				},
+			},
+		},
+	}
+
+	runTestCases(t, depth3)
+}
+
+func runTestCases(t *testing.T, cases ...TestCase) {
+	for i, c := range cases {
+		var sch map[string]interface{}
+		if err := json.Unmarshal([]byte(c.JSONSchema), &sch); err != nil {
+			t.Errorf("%d. %s error decoding schema: %s", i, c.Description, err)
+			continue
+		}
+		st := &dataset.Structure{
+			Format: "json",
+			Schema: sch,
+		}
+		if c.JSONInput[0] == '{' {
+			st.Schema = dataset.BaseSchemaObject
+		}
+		r, err := dsio.NewJSONReader(st, strings.NewReader(c.JSONInput))
+		if err != nil {
+			t.Errorf("%d. %s error creating json reader: %s", i, c.Description, err)
+			continue
+		}
+		acc := NewAccumulator(r)
+
+		err = ReadAllDiscard(acc)
+		got := ToMap(acc)
+		if diff := cmp.Diff(c.Expect, got); diff != "" {
+			t.Errorf("%d. '%s' result mismatch (-want +got):%s\n", i, c.Description, diff)
+		}
+	}
+}
+
+// ReadAllDiscard consumes all reader entries, discarding entries
+func ReadAllDiscard(r dsio.EntryReader) (err error) {
+	defer r.Close()
+	for {
+		_, err = r.ReadEntry()
+		if err != nil {
+			if err.Error() == "EOF" {
+				err = nil
+				break
+			}
+			return err
+		}
+	}
+	return err
+}
