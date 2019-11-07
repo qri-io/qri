@@ -34,6 +34,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
 )
@@ -104,6 +105,7 @@ type InstanceOptions struct {
 	store     cafs.Filestore
 	qfs       qfs.Filesystem
 	regclient *regclient.Client
+	stats     *stats.Stats
 
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
@@ -222,6 +224,14 @@ func OptRegistryClient(cli *regclient.Client) Option {
 	}
 }
 
+// OptStatsCache overrides the configured stats cache
+func OptStatsCache(stats *stats.Stats) Option {
+	return func(o *InstanceOptions) error {
+		o.stats = stats
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -329,6 +339,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
+	}
+
+	if o.stats != nil {
+		inst.stats = o.stats
+	} else if inst.stats == nil {
+		inst.stats = newStats(inst.repoPath, cfg)
 	}
 
 	if inst.repo != nil {
@@ -476,6 +492,27 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 	}
 }
 
+func newStats(repoPath string, cfg *config.Config) *stats.Stats {
+	// The stats cache default location is repoPath/stats
+	// can be overridden in the config: cfg.Stats.Path
+	path := filepath.Join(repoPath, "stats")
+	if cfg.Stats.Path != "" {
+		path = cfg.Stats.Path
+	}
+	switch cfg.Stats.Type {
+	case "fs":
+		return stats.New(stats.NewOSCache(path, cfg.Stats.MaxSize))
+	// TODO (ramfox): return a mem and/or postgres version of the stats.Stats
+	// once those are implemented
+	// case "mem":
+	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.MaxSize))
+	// case "postgres":
+	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.MaxSize))
+	default:
+		return stats.New(nil)
+	}
+}
+
 func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
 	mux := map[string]qfs.Filesystem{
 		"local": localfs.NewFS(),
@@ -575,6 +612,7 @@ type Instance struct {
 	remote       *remote.Remote
 	remoteClient *remote.Client
 	registry     *regclient.Client
+	stats        *stats.Stats
 
 	rpc *rpc.Client
 }
