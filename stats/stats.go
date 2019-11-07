@@ -189,7 +189,7 @@ func newAccumulator(val interface{}) accumulator {
 		return &nullAcc{}
 	case float64, float32:
 		return newNumericAcc("number")
-	case int:
+	case int, int32, int64:
 		return newNumericAcc("integer")
 	case string:
 		return newStringAcc()
@@ -341,6 +341,10 @@ func (acc *numericAcc) Write(e dsio.Entry) {
 	var v float64
 	switch x := e.Value.(type) {
 	case int:
+		v = float64(x)
+	case int32:
+		v = float64(x)
+	case int64:
 		v = float64(x)
 	case float32:
 		v = float64(x)
