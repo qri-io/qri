@@ -196,7 +196,7 @@ func (cfg Config) Validate() error {
     "title": "config",
     "description": "qri configuration",
     "type": "object",
-    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC", "Render","Stats"],
+    "required": ["Profile", "Repo", "Store", "P2P", "CLI", "API", "Webapp", "RPC", "Render"],
     "properties" : {
 			"Profile" : { "type":"object" },
 			"Repo" : { "type":"object" },
@@ -206,8 +206,7 @@ func (cfg Config) Validate() error {
 			"API" : { "type":"object" },
 			"Webapp" : { "type":"object" },
 			"RPC" : { "type":"object" },
-			"Render" : { "type":"object" },
-			"Stats" : { "type":"object" }
+			"Render" : { "type":"object" }
     }
   }`)
 	if err := validate(schema, &cfg); err != nil {

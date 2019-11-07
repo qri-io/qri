@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
@@ -960,6 +961,62 @@ Pirates of the Caribbean: At World's End ,foo
 			t.Errorf("case %d error count mismatch. expected: %d, got: %d", i, c.numErrors, len(got))
 			t.Log(got)
 			continue
+		}
+	}
+}
+
+func TestDatasetRequestsStats(t *testing.T) {
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
+	req := NewDatasetRequestsInstance(inst)
+
+	badCases := []struct {
+		description string
+		ref         string
+		expectedErr string
+	}{
+		{"empty reference", "", repo.ErrEmptyRef.Error()},
+		{"dataset does not exist", "me/dataset_does_not_exist", "repo: not found"},
+	}
+	for i, c := range badCases {
+		res := &StatsResponse{}
+		err := req.Stats(&StatsParams{Ref: c.ref}, res)
+		if c.expectedErr != err.Error() {
+			t.Errorf("%d. case %s: error mismatch, expected: '%s', got: '%s'", i, c.description, c.expectedErr, err.Error())
+		}
+	}
+
+	// TODO (ramfox): see if there is a better way to verify the stat bytes then
+	// just inputing them in the cases struct
+	goodCases := []struct {
+		description string
+		ref         string
+		expected    []byte
+	}{
+		{"csv: me/cities", "me/cities", []byte(`[{"count":5,"maxLength":8,"minLength":7,"type":"string","unique":5},{"count":5,"max":40000000,"min":35000,"type":"numeric","unique":5},{"count":5,"frequencies":{"44.4":2},"max":65.25,"min":44.4,"type":"numeric","unique":3},{"count":5,"falseCount":1,"trueCount":4,"type":"boolean"}]`)},
+		{"json: me/sitemap", "me/sitemap", []byte(`[{"count":10,"key":"contentLength","max":40079,"min":24515,"type":"numeric","unique":10},{"count":10,"frequencies":{"text/html; charset=utf-8":10},"key":"contentSniff","maxLength":24,"minLength":24,"type":"string"},{"count":10,"frequencies":{"text/html; charset=utf-8":10},"key":"contentType","maxLength":24,"minLength":24,"type":"string"},{"count":10,"key":"duration","max":4081577841,"min":74291866,"type":"numeric","unique":10},{"count":10,"key":"hash","maxLength":68,"minLength":68,"type":"string","unique":10},{"key":"links","type":"array","values":[{"count":10,"maxLength":58,"minLength":14,"unique":10},{"count":10,"maxLength":115,"minLength":19,"unique":10},{"count":10,"maxLength":68,"minLength":22,"unique":10},{"count":10,"maxLength":115,"minLength":14,"unique":10},{"count":9,"maxLength":70,"minLength":15,"unique":9},{"count":9,"maxLength":115,"minLength":37,"unique":9},{"count":9,"maxLength":52,"minLength":15,"unique":9},{"count":9,"maxLength":75,"minLength":19,"unique":9},{"count":9,"maxLength":66,"minLength":15,"unique":9},{"count":7,"maxLength":75,"minLength":19,"unique":7},{"count":7,"maxLength":66,"minLength":22,"unique":7},{"count":6,"maxLength":43,"minLength":19,"unique":6},{"count":6,"maxLength":77,"minLength":14,"unique":6},{"count":6,"maxLength":77,"minLength":21,"unique":6},{"count":4,"maxLength":43,"minLength":14,"unique":4},{"count":3,"maxLength":32,"minLength":21,"unique":3},{"count":3,"maxLength":42,"minLength":19,"unique":3},{"count":3,"maxLength":66,"minLength":32,"unique":3},{"count":3,"maxLength":46,"minLength":19,"unique":3},{"count":2,"maxLength":66,"minLength":22,"unique":2},{"count":2,"maxLength":32,"minLength":23,"unique":2},{"count":2,"maxLength":33,"minLength":22,"unique":2},{"count":2,"maxLength":32,"minLength":27,"unique":2},{"count":1,"maxLength":33,"minLength":33,"unique":1},{"count":1,"maxLength":27,"minLength":27,"unique":1}]},{"count":1,"key":"redirectTo","maxLength":18,"minLength":18,"type":"string","unique":1},{"count":11,"frequencies":{"200":10},"key":"status","max":301,"min":200,"type":"numeric","unique":1},{"count":11,"key":"timestamp","maxLength":35,"minLength":35,"type":"string","unique":11},{"count":10,"key":"title","maxLength":88,"minLength":53,"type":"string","unique":10},{"count":11,"key":"url","maxLength":78,"minLength":18,"type":"string","unique":11}]`)},
+	}
+	for i, c := range goodCases {
+		res := &StatsResponse{}
+		err := req.Stats(&StatsParams{Ref: c.ref}, res)
+		if err != nil {
+			t.Errorf("%d. case %s: unexpected error: '%s'", i, c.description, err.Error())
+			continue
+		}
+		got, err := ioutil.ReadAll(res.Reader)
+		if err != nil {
+			t.Fatalf("%d. case %s: error reading response: '%s'", i, c.description, err.Error())
+		}
+		if diff := cmp.Diff(c.expected, got); diff != "" {
+			t.Errorf("%d. '%s' result mismatch (-want +got):%s\n", i, c.description, diff)
 		}
 	}
 }

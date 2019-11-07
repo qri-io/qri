@@ -831,3 +831,42 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	*i = *info
 	return
 }
+
+// StatsParams defines the params for a Stats request
+type StatsParams struct {
+	// string representation of a dataset reference
+	Ref string
+}
+
+// StatsResponse defines the response for a Stats request
+type StatsResponse struct {
+	Reader io.Reader
+}
+
+// Stats generates stats for a dataset
+func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Stats", p, res)
+	}
+	ctx := context.TODO()
+
+	ref, err := base.ToDatasetRef(p.Ref, r.node.Repo, false)
+	if err != nil {
+		return err
+	}
+	ref.Dataset, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+	if err != nil {
+		return fmt.Errorf("loading dataset: %s", err)
+	}
+
+	// stats.JSON assumes we have a bodyFile. base.OpenDataset will attach the
+	// bodyFile to the dataset for us
+	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ref.Dataset); err != nil {
+		return
+	}
+
+	if res.Reader, err = r.inst.stats.JSON(ctx, ref.Dataset); err != nil {
+		return
+	}
+	return nil
+}

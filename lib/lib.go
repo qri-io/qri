@@ -496,6 +496,9 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	// The stats cache default location is repoPath/stats
 	// can be overridden in the config: cfg.Stats.Path
 	path := filepath.Join(repoPath, "stats")
+	if cfg.Stats == nil {
+		return stats.New(nil)
+	}
 	if cfg.Stats.Path != "" {
 		path = cfg.Stats.Path
 	}
@@ -571,6 +574,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		teardown: teardown,
 		cfg:      cfg,
 		node:     node,
+		stats:    stats.New(nil),
 	}
 
 	var err error
