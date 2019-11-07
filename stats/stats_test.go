@@ -1,13 +1,17 @@
 package stats
 
 import (
+	"context"
 	"encoding/json"
+	"fmt"
+	"io/ioutil"
 	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
+	"github.com/qri-io/qfs"
 )
 
 type TestCase struct {
@@ -277,4 +281,106 @@ func ReadAllDiscard(r dsio.EntryReader) (err error) {
 		}
 	}
 	return err
+}
+func TestJSON(t *testing.T) {
+	ctx := context.Background()
+	bodyFile := qfs.NewMemfileBytes("bodyfile", []byte("[bad body file]"))
+	structure := &dataset.Structure{
+		Format: "json",
+		Schema: map[string]interface{}{
+			"type": "array",
+		},
+	}
+	dsWithBody := &dataset.Dataset{Path: "path"}
+	dsWithBody.SetBodyFile(bodyFile)
+	dsWithStructure := &dataset.Dataset{Path: "path", Structure: structure}
+	dsWithStructure.SetBodyFile(bodyFile)
+	badCases := []struct {
+		description string
+		dataset     *dataset.Dataset
+		err         string
+	}{
+		{"no path", &dataset.Dataset{}, "stats: dataset is missing Path parameter"},
+		{"no body", &dataset.Dataset{Path: "path"}, "stats: dataset has no body file"},
+		{"no structure", dsWithBody, "stats: dataset is missing structure"},
+		{"reader error", dsWithStructure, "Expected: separator ','"},
+	}
+
+	for _, c := range badCases {
+		s := New(nil)
+		_, err := s.JSON(ctx, c.dataset)
+		if c.err != err.Error() {
+			t.Errorf("case '%s', error mismatch, expected: '%s', got: '%s'", c.description, c.err, err.Error())
+		}
+	}
+
+	goodCases := []*TestCase{
+		&TestCase{
+			"an array of strings",
+			`{"type":"array"}`,
+			`["a","a","bb","ccc","dddd"]`,
+			`[{"count":5,"frequencies":{"a":2},"maxLength":4,"minLength":1,"type":"string","unique":3}]`,
+		},
+		&TestCase{
+			"all types identity schema array of object entries",
+			`{"type":"array"}`,
+			`[
+				{"int": 1, "float": 1.1, "nil": null, "bool": false, "string": "a"},
+				{"int": 1, "float": 1.1, "nil": null, "bool": true, "string": "aa"},
+				{"int": 3, "float": 3.3, "nil": null, "bool": false, "string": "aaa"},
+				{"int": 4, "float": 4.4, "nil": null, "bool": true, "string": "aaa"},
+				{"int": 5, "float": 5.5, "nil": null, "bool": false, "string": "aaaaa"}
+			]`,
+			`[{"count":5,"falseCount":3,"key":"bool","trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"1.1":2},"key":"float","max":5.5,"min":1.1,"type":"numeric","unique":3},{"count":5,"frequencies":{"1":2},"key":"int","max":5,"min":1,"type":"numeric","unique":3},{"count":5,"key":"nil","type":"null"},{"count":5,"frequencies":{"aaa":2},"key":"string","maxLength":5,"minLength":1,"type":"string","unique":3}]`,
+		},
+		&TestCase{
+			"all types identity schema object of array entries",
+			`{"type":"object"}`,
+			`{
+				"a" : [1,1.1,null,false,"a"],
+				"b" : [1,2.2,null,true,"aa"],
+				"c" : [3,2.2,null,false,"aaa"],
+				"d" : [4,4.4,null,true,"aaa"],
+				"e" : [5,5.5,null,false,"aaaaa"]
+			}`,
+			`[{"count":5,"frequencies":{"1":2},"max":5,"min":1,"type":"numeric","unique":3},{"count":5,"frequencies":{"2.2":2},"max":5.5,"min":1.1,"type":"numeric","unique":3},{"count":5,"type":"null"},{"count":5,"falseCount":3,"trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"aaa":2},"maxLength":5,"minLength":1,"type":"string","unique":3}]`,
+		},
+		&TestCase{
+			"array of object of array of strings",
+			`{"type":"array"}`,
+			`[
+				{"ids": ["a","b","c"], "is_great": true },
+				{"ids": [1,2,3,4,5,6] },
+				{"ids": ["b",20,"c"] }
+			]`,
+			`[{"key":"ids","type":"array","values":[{"count":2,"maxLength":1,"minLength":1,"unique":2},{"count":1,"maxLength":1,"minLength":1,"unique":1},{"count":2,"frequencies":{"c":2},"maxLength":1,"minLength":1},{"count":1,"max":4,"min":4,"unique":1},{"count":1,"max":5,"min":5,"unique":1},{"count":1,"max":6,"min":6,"unique":1}]},{"count":1,"falseCount":0,"key":"is_great","trueCount":1,"type":"boolean"}]`,
+		},
+	}
+	for i, c := range goodCases {
+		var sch map[string]interface{}
+		if err := json.Unmarshal([]byte(c.JSONSchema), &sch); err != nil {
+			t.Errorf("%d. %s error decoding schema: %s", i, c.Description, err)
+			continue
+		}
+		st := &dataset.Structure{
+			Format: "json",
+			Schema: sch,
+		}
+		ds := &dataset.Dataset{Path: "path", Structure: st}
+		bodyFile := qfs.NewMemfileBytes("bodyfile", []byte(c.JSONInput))
+		ds.SetBodyFile(bodyFile)
+		s := New(nil)
+		r, err := s.JSON(ctx, ds)
+		if err != nil {
+			t.Errorf("%d. %s unexpected error: %s", i, c.Description, err)
+		}
+		got, err := ioutil.ReadAll(r)
+		if err != nil {
+			t.Errorf("%d. %s unexpected read error: %s", i, c.Description, err)
+		}
+		if diff := cmp.Diff([]byte(fmt.Sprintf("%v", c.Expect)), got); diff != "" {
+			t.Errorf("%d. '%s' result mismatch (-want +got):%s\n", i, c.Description, diff)
+		}
+
+	}
 }
