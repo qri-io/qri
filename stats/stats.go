@@ -32,6 +32,11 @@ type Stats struct {
 
 // New allocates a Stats service
 func New(cache Cache) *Stats {
+	if cache == nil {
+		return &Stats{
+			cache: nilCache(false),
+		}
+	}
 	return &Stats{
 		cache: cache,
 	}

@@ -12,6 +12,8 @@ import (
 var (
 	// ErrCacheMiss indicates a requested path isn't in the cache
 	ErrCacheMiss = fmt.Errorf("stats: cache miss")
+	// ErrNoCache indicates there is no cache
+	ErrNoCache = fmt.Errorf("stats: no cache")
 )
 
 // Cache is a store of JSON-formated stats data, keyed by path
@@ -40,7 +42,6 @@ func NewOSCache(rootDir string, maxSize uint64) Cache {
 	if err := os.MkdirAll(rootDir, 0x667); err != nil {
 		// log.Errorf("stat: %s", args ...interface{})
 	}
-
 	return osCache{
 		root:    rootDir,
 		maxSize: maxSize,
@@ -63,3 +64,19 @@ func (c osCache) JSON(ctx context.Context, path string) (r io.Reader, err error)
 
 // Hash uses lower-case base32 encoding for id bytes for a few reasons:
 var b32Enc = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
+
+// nilCache is a stand in for not having a cache
+// it only ever returns ErrNoCache
+type nilCache bool
+
+var _ Cache = (*nilCache)(nil)
+
+// PutJSON places stats in the cache, keyed by path
+func (nilCache) PutJSON(ctx context.Context, path string, r io.Reader) error {
+	return ErrNoCache
+}
+
+// JSON gets cached byte data for a path
+func (nilCache) JSON(ctx context.Context, path string) (r io.Reader, err error) {
+	return nil, ErrNoCache
+}
