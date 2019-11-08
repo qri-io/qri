@@ -4,3 +4,4 @@
 /qri
 node_modules
 coverage.txt
+.vscode/launch.json
