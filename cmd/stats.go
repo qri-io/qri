@@ -74,13 +74,13 @@ func (o *StatsOptions) Run() (err error) {
 	if err = o.DatasetRequests.Stats(p, r); err != nil {
 		return err
 	}
-	// this feels wrong
+
 	statsBytes, err := ioutil.ReadAll(r.Reader)
 	if err != nil {
 		return fmt.Errorf("error reading stats")
 	}
 	// if o.Pretty {
-	// return some nicely formated stats
+	// some nicely formatted stats
 	// }
 	statsBytes = append(statsBytes, byte('\n'))
 	printInfo(o.Out, string(statsBytes))

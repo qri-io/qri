@@ -200,7 +200,6 @@ func newAccumulator(val interface{}) accumulator {
 	case []interface{}:
 		return &arrayAcc{}
 	}
-	panic(fmt.Sprintf("unexpected type: %T %#v", val, val))
 }
 
 type objectAcc struct {

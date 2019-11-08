@@ -59,6 +59,13 @@ func TestDatasetHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "body", h.BodyHandler, bodyCases, true)
 
+	statsCases := []handlerTestCase{
+		{"OPTIONS", "/", nil},
+		{"GET", "/stats/me/craigslist", nil},
+		{"GET", "/stats/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
+	}
+	runHandlerTestCases(t, "stats", h.StatsHandler, statsCases, false)
+
 	renameCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"POST", "/rename", mustFile(t, "testdata/renameRequest.json")},
