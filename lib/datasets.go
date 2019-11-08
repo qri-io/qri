@@ -103,7 +103,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	// update 2019-10-21 - this probably isn't true anymore. should test & remove
 	if p.RPC {
 		for _, rep := range *res {
-			if rep.Dataset.Structure != nil {
+			if rep.Dataset != nil && rep.Dataset.Structure != nil {
 				rep.Dataset.Structure.Schema = nil
 			}
 		}
