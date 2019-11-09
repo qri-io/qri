@@ -546,18 +546,16 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 
 // RemoveParams defines parameters for remove command
 type RemoveParams struct {
-	Ref            string
-	Revision       dsref.Rev
-	Unlink         bool // If true, break any FSI link
-	DeleteFSIFiles bool // If true, delete tracked files from the designated FSI link
+	Ref       string
+	Revision  dsref.Rev
+	KeepFiles bool
 }
 
 // RemoveResponse gives the results of a remove
 type RemoveResponse struct {
-	Ref             string
-	NumDeleted      int
-	Unlinked        bool // true if the remove unlinked an FSI-linked dataset
-	DeletedFSIFiles bool // true if the remove deleted FSI-linked files
+	Ref        string
+	NumDeleted int
+	Unlinked   bool
 }
 
 // Remove a dataset entirely or remove a certain number of revisions
@@ -566,6 +564,10 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return r.cli.Call("DatasetRequests.Remove", p, res)
 	}
 	ctx := context.TODO()
+
+	if p.Revision.Gen == 0 {
+		return fmt.Errorf("invalid number of revisions to delete: 0")
+	}
 
 	if p.Revision.Field != "ds" {
 		return fmt.Errorf("can only remove whole dataset versions, not individual components")
@@ -576,45 +578,42 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return err
 	}
 
-	noHistory := false
-	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
+	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil {
 		return canonErr
-	} else if canonErr == repo.ErrNoHistory {
-		noHistory = true
 	}
 	res.Ref = ref.String()
 
-	if ref.FSIPath == "" && p.Unlink {
-		return fmt.Errorf("cannot unlink, dataset is not linked to a directory")
-	}
-	if ref.FSIPath == "" && p.DeleteFSIFiles {
-		return fmt.Errorf("can't delete files, dataset is not linked to a directory")
-	}
-
 	if ref.FSIPath != "" {
-		if p.DeleteFSIFiles {
-			if err := fsi.DeleteDatasetFiles(ref.FSIPath); err != nil {
-				return err
+		// Dataset is linked in a working directory.
+		if !p.KeepFiles {
+			// Make sure that status is clean, otherwise, refuse to remove any revisions.
+			wdErr := r.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
+			if wdErr != nil {
+				if wdErr == fsi.ErrWorkingDirectoryDirty {
+					return fmt.Errorf("cannot remove from dataset while working directory is dirty")
+				}
+				return wdErr
 			}
-			res.DeletedFSIFiles = true
 		}
+	} else if p.KeepFiles {
+		// If dataset is not linked in a working directory, --keep-files can't be used.
+		return fmt.Errorf("dataset is not linked to filesystem, cannot use keep-files")
+	}
 
-		// running remove on a dataset that has no history must always unlink
-		if p.Unlink || noHistory {
-			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
-				return err
-			}
-			res.Unlinked = true
+	// Get the revisions that will be deleted.
+	history, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
+	if err != nil {
+		if err == repo.ErrNoHistory {
+			p.Revision.Gen = dsref.AllGenerations
+		} else {
+			return err
 		}
 	}
 
-	if noHistory {
-		return nil
-	}
-
-	removeEntireDataset := func() error {
+	if p.Revision.Gen == dsref.AllGenerations || p.Revision.Gen >= len(history) {
 		// removing all revisions of a dataset must unlink it
-		if ref.FSIPath != "" && !p.Unlink {
+		if ref.FSIPath != "" {
+			fmt.Printf("about to Unlink\n")
 			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
 				return err
 			}
@@ -622,7 +621,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 
 		// Delete entire dataset for all generations.
-		if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
+		if _, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
 			return err
 		}
 		// Write the deletion to the logbook.
@@ -636,43 +635,55 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 		res.NumDeleted = dsref.AllGenerations
 
-		return nil
-	}
+		if ref.FSIPath != "" && !p.KeepFiles {
+			// Remove all files
+			fsi.DeleteComponentFiles(ref.FSIPath)
+		}
+	} else {
+		// Delete the specific number of revisions.
+		dsr := history[p.Revision.Gen]
+		replace := &repo.DatasetRef{
+			Peername:  dsr.Ref.Username,
+			Name:      dsr.Ref.Name,
+			ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
+			Path:      dsr.Ref.Path,
+			Published: dsr.Published,
+		}
+		err = base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/)
+		if err != nil {
+			return err
+		}
+		head, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen)
+		if err != nil {
+			return err
+		}
+		res.NumDeleted = p.Revision.Gen
 
-	if p.Revision.Gen == dsref.AllGenerations {
-		return removeEntireDataset()
-	} else if p.Revision.Gen < 1 {
-		return fmt.Errorf("invalid number of revisions to delete: %d", p.Revision.Gen)
-	}
+		if ref.FSIPath != "" && !p.KeepFiles {
+			// Load dataset version that is at head after newer versions are removed
+			ds, err := dsfs.LoadDataset(ctx, r.inst.Repo().Store(), head.Path)
+			if err != nil {
+				return err
+			}
+			ds.Name = head.Name
+			ds.Peername = head.Peername
+			if err = base.OpenDataset(ctx, r.inst.Repo().Filesystem(), ds); err != nil {
+				return err
+			}
 
-	// Get the revisions that will be deleted.
-	log, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
-	if err != nil {
-		return err
-	}
+			// TODO(dlong): Add a method to FSI called ProjectOntoDirectory, use it here
+			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
 
-	// If deleting more revisions then exist, delete the entire dataset.
-	if p.Revision.Gen >= len(log) {
-		return removeEntireDataset()
-	}
+			// Delete the old files
+			err = fsi.DeleteComponentFiles(ref.FSIPath)
+			if err != nil {
+				log.Debug("deleting component files: %s", err)
+			}
 
-	// Delete the specific number of revisions.
-	dsr := log[p.Revision.Gen]
-	replace := &repo.DatasetRef{
-		Peername:  dsr.Ref.Username,
-		Name:      dsr.Ref.Name,
-		ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
-		Path:      dsr.Ref.Path,
-		Published: dsr.Published,
+			// Update the files in the working directory
+			fsi.WriteComponents(ds, ref.FSIPath, r.inst.node.Repo.Filesystem())
+		}
 	}
-
-	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/); err != nil {
-		return err
-	}
-	if err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen); err != nil {
-		return err
-	}
-	res.NumDeleted = p.Revision.Gen
 	return nil
 }
 

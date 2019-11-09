@@ -26,6 +26,8 @@ var (
 	STParseError = "parse error"
 	// STConflictError is a component with a conflict
 	STConflictError = "conflict error"
+	// ErrWorkingDirectoryDirty is the error for when the working directory is not clean
+	ErrWorkingDirectoryDirty = fmt.Errorf("working directory is dirty")
 )
 
 // StatusItem is a component that has status representation on the filesystem
@@ -248,4 +250,20 @@ func (fsi *FSI) StatusAtVersion(ctx context.Context, refStr string) (changes []S
 		}
 	}
 	return changes, nil
+}
+
+// IsWorkingDirectoryClean returns nil if the directory is clean, or ErrWorkingDirectoryDirty if
+// it is dirty
+func (fsi *FSI) IsWorkingDirectoryClean(ctx context.Context, dir string) error {
+	changes, err := fsi.Status(ctx, dir)
+	if err != nil {
+		return err
+	}
+	for _, ch := range changes {
+		if ch.Type != STUnmodified {
+			return ErrWorkingDirectoryDirty
+		}
+	}
+	return nil
+
 }

@@ -80,6 +80,30 @@ func (fr *FSITestRunner) GetCommandOutput() string {
 	return fr.RepoRoot.GetOutput()
 }
 
+// MustExec runs a command, returning standard output, failing the test if there's an error
+func (fr *FSITestRunner) MustExec(cmdText string) string {
+	if err := fr.ExecCommand(cmdText); err != nil {
+		fr.RepoRoot.t.Fatal(err)
+	}
+	return fr.GetCommandOutput()
+}
+
+// MustWriteFile writes to a file, failing the test if there's an error
+func (fr *FSITestRunner) MustWriteFile(filename, contents string) {
+	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
+		fr.RepoRoot.t.Fatal(err)
+	}
+}
+
+// MustReadFile reads a file, failing the test if there's an error
+func (fr *FSITestRunner) MustReadFile(filename string) string {
+	bytes, err := ioutil.ReadFile(filename)
+	if err != nil {
+		fr.RepoRoot.t.Fatal(err)
+	}
+	return string(bytes)
+}
+
 // ChdirToRoot changes the current directory to the temporary root
 func (fr *FSITestRunner) ChdirToRoot() {
 	os.Chdir(fr.RootPath)
@@ -162,6 +186,17 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// TODO: Verify that files are in ipfs repo.
+
+	// Verify that the .qri-ref contains the full path for the saved dataset.
+	bytes, err := ioutil.ReadFile(".qri-ref")
+	if err != nil {
+		t.Fatal(err)
+	}
+	// TODO(dlong): Fix me, should write the updated FSI link with the dsref head
+	expect = "test_peer/brand_new"
+	if diff := cmp.Diff(expect, string(bytes)); diff != "" {
+		t.Errorf(".qri-ref contents (-want +got):\n%s", diff)
+	}
 
 	// Status again, check that the working directory is clean.
 	if err := fr.ExecCommand("qri status"); err != nil {

@@ -475,10 +475,9 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.RemoveParams{
-		Ref:            HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
-		Revision:       dsref.Rev{Field: "ds", Gen: -1},
-		Unlink:         r.FormValue("unlink") == "true",
-		DeleteFSIFiles: r.FormValue("files") == "true",
+		Ref:       HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
+		Revision:  dsref.Rev{Field: "ds", Gen: -1},
+		KeepFiles: r.FormValue("keep-files") == "true",
 	}
 	if r.FormValue("all") == "true" {
 		p.Revision = dsref.NewAllRevisions()
