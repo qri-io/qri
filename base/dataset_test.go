@@ -147,7 +147,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	}
 
 	for _, c := range bad {
-		err := RemoveNVersionsFromStore(ctx, c.store, c.ref, c.n)
+		_, err := RemoveNVersionsFromStore(ctx, c.store, c.ref, c.n)
 		if err == nil {
 			t.Errorf("case %s expected: '%s', got no error", c.description, c.err)
 			continue
@@ -181,7 +181,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	for _, c := range good {
 		// remove
 		latestRef := refs[len(refs)-1]
-		err := RemoveNVersionsFromStore(ctx, r, latestRef, c.n)
+		_, err := RemoveNVersionsFromStore(ctx, r, latestRef, c.n)
 		if err != nil {
 			t.Errorf("case '%s', unexpected err: %s", c.description, err.Error())
 		}
@@ -210,7 +210,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 		update := updateCitiesDataset(t, r, fmt.Sprintf("example city data version %d", i))
 		refs = append(refs, &update)
 	}
-	err := RemoveNVersionsFromStore(ctx, r, refs[len(refs)-1], -1)
+	_, err := RemoveNVersionsFromStore(ctx, r, refs[len(refs)-1], -1)
 	if err != nil {
 		t.Errorf("case 'remove all', unexpected err: %s", err.Error())
 	}

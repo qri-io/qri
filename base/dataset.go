@@ -278,24 +278,24 @@ func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 // the most recent version
 // when n == -1, remove all versions
 // does not remove the dataset reference
-func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, n int) error {
+func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, n int) (*repo.DatasetRef, error) {
 	var err error
 	if r == nil {
-		return fmt.Errorf("need a repo")
+		return nil, fmt.Errorf("need a repo")
 	}
 	// ref is nil or ref has no path err
 	if ref == nil || ref.Path == "" {
-		return fmt.Errorf("need a dataset reference with a path")
+		return nil, fmt.Errorf("need a dataset reference with a path")
 	}
 
 	if n < -1 {
-		return fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
+		return nil, fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
 	}
 
 	// load previous dataset into prev
 	ref.Dataset, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	curr := *ref
@@ -307,7 +307,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 		i--
 		// unpin dataset, ignoring "not pinned" errors
 		if err = UnpinDataset(ctx, r, curr); err != nil && !strings.Contains(err.Error(), "not pinned") {
-			return err
+			return nil, err
 		}
 		// if no previous path, break
 		if curr.Dataset.PreviousPath == "" {
@@ -334,5 +334,5 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 		err = nil
 	}
 
-	return nil
+	return &curr, nil
 }

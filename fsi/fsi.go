@@ -20,6 +20,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -195,4 +196,24 @@ func writeLinkFile(dir, linkstr string) error {
 func removeLinkFile(dir string) error {
 	dir = filepath.Join(dir, QriRefFilename)
 	return os.Remove(dir)
+}
+
+// DeleteComponentFiles deletes all component files in the directory. Should only be used if
+// removing an entire dataset, or if the dataset is about to be rewritten back to the filesystem.
+func DeleteComponentFiles(dir string) error {
+	dirComps, err := component.ListDirectoryComponents(dir)
+	if err != nil {
+		return err
+	}
+	for _, compName := range component.AllSubcomponentNames() {
+		comp := dirComps.Base().GetSubcomponent(compName)
+		if comp == nil {
+			continue
+		}
+		err = os.Remove(comp.Base().SourceFile)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }

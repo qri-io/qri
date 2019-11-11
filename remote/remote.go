@@ -187,7 +187,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	}
 
 	// remove all the versions of this dataset from the store
-	if err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, &ref, -1); err != nil {
+	if _, err := base.RemoveNVersionsFromStore(ctx, r.node.Repo, &ref, -1); err != nil {
 		return err
 	}
 

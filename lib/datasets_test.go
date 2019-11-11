@@ -729,20 +729,19 @@ func TestDatasetRequestsRemove(t *testing.T) {
 		{"repo: not found", RemoveParams{Ref: "abc/ABC", Revision: allRevs}},
 		{"can only remove whole dataset versions, not individual components", RemoveParams{Ref: "abc/ABC", Revision: dsref.Rev{Field: "st", Gen: -1}}},
 		{"invalid number of revisions to delete: 0", RemoveParams{Ref: "peer/movies", Revision: dsref.Rev{Field: "ds", Gen: 0}}},
-		{"cannot unlink, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, Unlink: true}},
-		{"can't delete files, dataset is not linked to a directory", RemoveParams{Ref: "peer/movies", Revision: allRevs, DeleteFSIFiles: true}},
+		{"dataset is not linked to filesystem, cannot use keep-files", RemoveParams{Ref: "peer/movies", Revision: allRevs, KeepFiles: true}},
 	}
 
-	for _, c := range badCases {
+	for i, c := range badCases {
 		t.Run(fmt.Sprintf("bad_case_%s", c.err), func(t *testing.T) {
 			res := RemoveResponse{}
 			err := req.Remove(&c.params, &res)
 
 			if err == nil {
-				t.Errorf("expected error. got nil")
+				t.Errorf("case %d: expected error. got nil", i)
 				return
 			} else if c.err != err.Error() {
-				t.Errorf("error mismatch: expected: %s, got: %s", c.err, err)
+				t.Errorf("case %d: error mismatch: expected: %s, got: %s", i, c.err, err)
 			}
 		})
 	}
@@ -760,18 +759,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 			RemoveParams{Ref: "peer/counter", Revision: dsref.Rev{Field: "ds", Gen: 20}},
 			RemoveResponse{NumDeleted: -1},
 		},
-		{"all generations of peer/cities, remove link, delete files",
-			RemoveParams{Ref: "peer/cities", Revision: allRevs, DeleteFSIFiles: true},
-			RemoveResponse{NumDeleted: -1, Unlinked: true, DeletedFSIFiles: true},
-		},
-		{"one commit of peer/craigslist, remove link, delete files",
-			RemoveParams{Ref: "peer/craigslist", Revision: dsref.Rev{Field: "ds", Gen: 1}, Unlink: true, DeleteFSIFiles: true},
-			RemoveResponse{NumDeleted: 1, Unlinked: true, DeletedFSIFiles: true},
-		},
-		{"no history dataset, remove link, delete files",
-			RemoveParams{Ref: noHistoryName, Revision: dsref.Rev{Field: "ds", Gen: 0}, DeleteFSIFiles: true},
-			RemoveResponse{NumDeleted: 0, Unlinked: true, DeletedFSIFiles: true},
-		},
 	}
 
 	for _, c := range goodCases {
@@ -788,9 +775,6 @@ func TestDatasetRequestsRemove(t *testing.T) {
 			}
 			if c.res.Unlinked != res.Unlinked {
 				t.Errorf("res.Unlinked mismatch. want %t, got %t", c.res.Unlinked, res.Unlinked)
-			}
-			if c.res.DeletedFSIFiles != res.DeletedFSIFiles {
-				t.Errorf("res.DeletedFSIFiles mismatch. want %t, got %t", c.res.DeletedFSIFiles, res.DeletedFSIFiles)
 			}
 		})
 	}

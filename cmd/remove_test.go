@@ -42,12 +42,6 @@ func TestRemoveComplete(t *testing.T) {
 			continue
 		}
 
-		if !testSliceEqual(c.args, opt.Args) {
-			t.Errorf("case %d, opt.Args not set correctly. Expected: '%s', Got: '%s'", i, c.args, opt.Args)
-			ioReset(in, out, errs)
-			continue
-		}
-
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
 			ioReset(in, out, errs)
@@ -69,7 +63,7 @@ func TestRemoveValidate(t *testing.T) {
 	}
 	for i, c := range cases {
 		opt := &RemoveOptions{
-			Args: c.args,
+			Refs: NewListOfRefSelects(c.args),
 		}
 
 		err := opt.Validate()
@@ -112,10 +106,10 @@ func TestRemoveRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{[]string{}, -1, "", "", ""},
+		{[]string{}, -1, "", "repo: empty dataset reference", ""},
 		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
 		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/map/QmcnKQTWNuAYpcqUa4Ss85WiNp4c9ySem4DNipxQzUqw5J'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmQAvmHB7gE5jvXyzqYeAZfAz2dnWxghEjq7hDN8aaJWZM'\nremoved entire dataset 'peer/counter@/map/QmVB2MQoYXQq4ouDuxmeDa1GvCzvRpYUN1PFRsqgi39TGp'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmQAvmHB7gE5jvXyzqYeAZfAz2dnWxghEjq7hDN8aaJWZM'\n", "", ""},
 		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
 	}
 
@@ -128,7 +122,7 @@ func TestRemoveRun(t *testing.T) {
 
 		opt := &RemoveOptions{
 			IOStreams:       streams,
-			Args:            c.args,
+			Refs:            NewListOfRefSelects(c.args),
 			Revision:        dsref.Rev{Field: "ds", Gen: c.revision},
 			DatasetRequests: dsr,
 		}

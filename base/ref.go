@@ -99,7 +99,7 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 			return err
 		}
 	}
-
+	new.FSIPath = current.FSIPath
 	if err = r.DeleteRef(*current); err != nil {
 		return err
 	}

@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -44,8 +45,7 @@ both qri & IPFS. Promise.`,
 
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
-	cmd.Flags().BoolVar(&o.DeleteFSIFiles, "files", false, "delete linked files in dataset directory")
-	cmd.Flags().BoolVar(&o.Unlink, "unlink", false, "break link to directory")
+	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
 
 	return cmd
 }
@@ -54,48 +54,48 @@ both qri & IPFS. Promise.`,
 type RemoveOptions struct {
 	ioes.IOStreams
 
-	Args []string
+	Refs *RefSelect
 
-	RevisionsText  string
-	Revision       dsref.Rev
-	All            bool
-	DeleteFSIFiles bool
-	Unlink         bool
+	RevisionsText string
+	Revision      dsref.Rev
+	All           bool
+	KeepFiles     bool
 
 	DatasetRequests *lib.DatasetRequests
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
-	o.Args = args
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
+		return err
+	}
+	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
 		return err
 	}
 	if o.All {
 		o.Revision = dsref.NewAllRevisions()
 	} else {
 		if o.RevisionsText == "" {
-			o.Revision = dsref.Rev{Field: "ds", Gen: 0}
-		} else {
-			revisions, err := dsref.ParseRevs(o.RevisionsText)
-			if err != nil {
-				return err
-			}
-			if len(revisions) != 1 {
-				return fmt.Errorf("need exactly 1 revision parameter to remove")
-			}
-			if revisions[0] == nil {
-				return fmt.Errorf("invalid nil revision")
-			}
-			o.Revision = *revisions[0]
+			return fmt.Errorf("need --all or --revisions to specify how many revisions to remove")
 		}
+		revisions, err := dsref.ParseRevs(o.RevisionsText)
+		if err != nil {
+			return err
+		}
+		if len(revisions) != 1 {
+			return fmt.Errorf("need exactly 1 revision parameter to remove")
+		}
+		if revisions[0] == nil {
+			return fmt.Errorf("invalid nil revision")
+		}
+		o.Revision = *revisions[0]
 	}
 	return err
 }
 
 // Validate checks that all user input is valid
 func (o *RemoveOptions) Validate() error {
-	if len(o.Args) == 0 {
+	if o.Refs.Ref() == "" {
 		return lib.NewError(lib.ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
 	}
 	return nil
@@ -103,32 +103,29 @@ func (o *RemoveOptions) Validate() error {
 
 // Run executes the remove command
 func (o *RemoveOptions) Run() (err error) {
-	for _, arg := range o.Args {
-		params := lib.RemoveParams{
-			Ref:            arg,
-			Revision:       o.Revision,
-			DeleteFSIFiles: o.DeleteFSIFiles,
-			Unlink:         o.Unlink,
-		}
+	printRefSelect(o.Out, o.Refs)
 
-		res := lib.RemoveResponse{}
-		if err = o.DatasetRequests.Remove(&params, &res); err != nil {
-			if err.Error() == "repo: not found" {
-				return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", arg))
-			}
-			return err
+	params := lib.RemoveParams{
+		Ref:       o.Refs.Ref(),
+		Revision:  o.Revision,
+		KeepFiles: o.KeepFiles,
+	}
+
+	res := lib.RemoveResponse{}
+	if err = o.DatasetRequests.Remove(&params, &res); err != nil {
+		if err == repo.ErrNotFound {
+			return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}
-		if res.NumDeleted == dsref.AllGenerations {
-			printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
-		} else if res.NumDeleted != 0 {
-			printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
-		}
-		if res.DeletedFSIFiles {
-			printSuccess(o.Out, "deleted dataset files")
-		}
-		if res.Unlinked {
-			printSuccess(o.Out, "removed dataset link")
-		}
+		return err
+	}
+
+	if res.NumDeleted == dsref.AllGenerations {
+		printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
+	} else if res.NumDeleted != 0 {
+		printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
+	}
+	if res.Unlinked {
+		printSuccess(o.Out, "removed dataset link")
 	}
 	return nil
 }
