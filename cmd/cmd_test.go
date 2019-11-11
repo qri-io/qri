@@ -11,6 +11,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
@@ -828,5 +829,39 @@ func TestDiffOnlyOneRevision(t *testing.T) {
 	expect := `dataset has only one version, nothing to diff against`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
+	}
+}
+
+// Test that save can be called with a readme file
+func TestSaveReadmeFromFile(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "save_readme_file")
+	defer run.Delete()
+
+	// Save a first verison with just a body
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/save_readme_file")
+
+	// Save a new version by adding a readme
+	run.MustExec(t, "qri save --file=testdata/movies/about_movies.md me/save_readme_file")
+
+	// Verify we can get the readme back
+	actual := run.MustExec(t, "qri get readme me/save_readme_file")
+	expect := `format: md
+qri: rm:0
+scriptPath: /ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb
+
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("readme.md contents (-want +got):\n%s", diff)
+	}
+
+	// As well as the readme script bytes
+	actual = run.MustExec(t, "qri get readme.script me/save_readme_file")
+	expect = `# Title
+
+This is a dataset about movies
+
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
 }

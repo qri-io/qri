@@ -184,6 +184,33 @@ func DiffMeta(a, b *dataset.Meta) (*SubDiff, error) {
 	return DiffJSON(aBytes, bBytes, emptyDiff.kind)
 }
 
+// DiffReadme diffs the readme of two datasets
+func DiffReadme(a, b *dataset.Readme) (*SubDiff, error) {
+	var emptyDiff = &SubDiff{kind: "readme"}
+
+	if a == nil {
+		a = &dataset.Readme{}
+	}
+	if b == nil {
+		b = &dataset.Readme{}
+	}
+
+	if len(a.Path) > 1 && len(b.Path) > 1 {
+		if a.Path == b.Path {
+			return emptyDiff, nil
+		}
+	}
+	aBytes, err := a.MarshalJSONObject()
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling readme a: %s", err.Error())
+	}
+	bBytes, err := b.MarshalJSONObject()
+	if err != nil {
+		return nil, fmt.Errorf("error marshalling readme b: %s", err.Error())
+	}
+	return DiffJSON(aBytes, bBytes, emptyDiff.kind)
+}
+
 // DiffViz diffs the dataset.Viz structs of two datasets
 func DiffViz(a, b *dataset.Viz) (*SubDiff, error) {
 	var emptyDiff = &SubDiff{kind: "viz"}
@@ -275,6 +302,16 @@ func DiffDatasets(a, b *dataset.Dataset, deRefData *StructuredDataTuple) (map[st
 			result[metaDiffs.kind] = metaDiffs
 		}
 	}
+	// diff readme
+	if a.Readme != nil || b.Readme != nil {
+		readmeDiffs, err := DiffReadme(a.Readme, b.Readme)
+		if err != nil {
+			return nil, err
+		}
+		if readmeDiffs.Diff != nil {
+			result[readmeDiffs.kind] = readmeDiffs
+		}
+	}
 	// diff transform
 	if a.Transform != nil || b.Transform != nil {
 		transformDiffs, err := DiffTransform(a.Transform, b.Transform)
@@ -306,6 +343,7 @@ func DiffDatasets(a, b *dataset.Dataset, deRefData *StructuredDataTuple) (map[st
 //   3. dataset.Transform
 //   4. dataset.Meta
 //   5. Dataset.Viz
+//   6. Dataset.Readme
 func MapDiffsToString(m map[string]*SubDiff, how string) (string, error) {
 	keys := []string{
 		"structure",
@@ -313,6 +351,7 @@ func MapDiffsToString(m map[string]*SubDiff, how string) (string, error) {
 		"transform",
 		"meta",
 		"viz",
+		"readme",
 	}
 	// for _, key := range keys {
 	// 	val, ok := m[key]
