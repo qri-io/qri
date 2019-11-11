@@ -1,39 +1,20 @@
 package cmd
 
 import (
-	"context"
 	"testing"
 	"time"
-
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/spf13/cobra"
 )
 
 // LogTestRunner holds test info integration tests
 type LogTestRunner struct {
-	RepoRoot    *TestRepoRoot
-	Context     context.Context
-	ContextDone func()
-	TsFunc      func() time.Time
+	TestRunner
 	LocOrig     *time.Location
-	CmdR        *cobra.Command
 }
 
 // newLogTestRunner returns a new FSITestRunner.
 func newLogTestRunner(t *testing.T, peerName, testName string) *LogTestRunner {
-	root := NewTestRepoRoot(t, peerName, testName)
-
-	run := LogTestRunner{}
-	run.RepoRoot = &root
-	run.Context, run.ContextDone = context.WithCancel(context.Background())
-
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	counter := 0
-	run.TsFunc = dsfs.Timestamp
-	dsfs.Timestamp = func() time.Time {
-		counter++
-		return time.Date(2001, 01, 01, 01, 01, counter, 01, time.UTC)
+	run := LogTestRunner{
+		TestRunner: *NewTestRunner(t, peerName, testName),
 	}
 
 	// Set the location to New York so that timezone printing is consistent
@@ -44,26 +25,12 @@ func newLogTestRunner(t *testing.T, peerName, testName string) *LogTestRunner {
 	run.LocOrig = location
 	StringerLocation = location
 
+	// Restore the location function
+	run.Teardown = func() {
+		StringerLocation = run.LocOrig
+	}
+
 	return &run
-}
-
-// Delete cleans up after a LogTestRunner is done being used.
-func (run *LogTestRunner) Delete() {
-	dsfs.Timestamp = run.TsFunc
-	StringerLocation = run.LocOrig
-	run.ContextDone()
-	run.RepoRoot.Delete()
-}
-
-// ExecCommand executes the given command string
-func (run *LogTestRunner) ExecCommand(cmdText string) error {
-	run.CmdR = run.RepoRoot.CreateCommandRunner(run.Context)
-	return executeCommand(run.CmdR, cmdText)
-}
-
-// GetCommandOutput returns the standard output from the previously executed command
-func (run *LogTestRunner) GetCommandOutput() string {
-	return run.RepoRoot.GetOutput()
 }
 
 // Test that deleting an entire dataset works properly with the logbook.
@@ -107,8 +74,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmUARzGLtSzGSsU6nqQw93Ac57nBQHX1VhmwJzQKBnzkk9
-    Date:    Sun Dec 31 20:01:02 EST 2000
+	expect = `1   Commit:  /ipfs/QmNtWUnTsPp6W3c3cFUYLScTHesrHsj6L8qe8LzX1Yqwop
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    137 B
 
@@ -177,8 +144,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmeEtuVo2fQKCUaVsCmMLsu4eTrHSABKbiUUkuJrEgbv5p
-    Date:    Sun Dec 31 20:01:03 EST 2000
+	expect = `1   Commit:  /ipfs/QmTaaHHC9kMvCtwmDr8ahT4Y3d7yLixdu3AUjsQxsAmHes
+    Date:    Sun Dec 31 20:03:01 EST 2000
     Storage: local
     Size:    224 B
 

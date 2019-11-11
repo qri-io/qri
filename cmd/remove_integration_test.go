@@ -1,8 +1,6 @@
 package cmd
 
 import (
-	"context"
-	"io/ioutil"
 	"os"
 	"regexp"
 	"strings"
@@ -10,35 +8,18 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/spf13/cobra"
 )
 
 // RemoveTestRunner holds test info integration tests
 type RemoveTestRunner struct {
-	RepoRoot    *TestRepoRoot
-	Context     context.Context
-	ContextDone func()
-	TsFunc      func() time.Time
-	LocOrig     *time.Location
-	CmdR        *cobra.Command
+	TestRunner
+	LocOrig *time.Location
 }
 
 // newRemoveTestRunner returns a new FSITestRunner.
 func newRemoveTestRunner(t *testing.T, peerName, testName string) *RemoveTestRunner {
-	root := NewTestRepoRoot(t, peerName, testName)
-
-	run := RemoveTestRunner{}
-	run.RepoRoot = &root
-	run.Context, run.ContextDone = context.WithCancel(context.Background())
-
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	counter := 0
-	run.TsFunc = dsfs.Timestamp
-	dsfs.Timestamp = func() time.Time {
-		counter++
-		return time.Date(2001, 01, 01, 01, 01, counter, 01, time.UTC)
+	run := RemoveTestRunner{
+		TestRunner: *NewTestRunner(t, peerName, testName),
 	}
 
 	// Set the location to New York so that timezone printing is consistent
@@ -49,50 +30,12 @@ func newRemoveTestRunner(t *testing.T, peerName, testName string) *RemoveTestRun
 	run.LocOrig = location
 	StringerLocation = location
 
+	// Restore the location function
+	run.Teardown = func() {
+		StringerLocation = run.LocOrig
+	}
+
 	return &run
-}
-
-// Delete cleans up after a RemoveTestRunner is done being used.
-func (run *RemoveTestRunner) Delete() {
-	dsfs.Timestamp = run.TsFunc
-	StringerLocation = run.LocOrig
-	run.ContextDone()
-	run.RepoRoot.Delete()
-}
-
-// ExecCommand executes the given command string
-func (run *RemoveTestRunner) ExecCommand(cmdText string) error {
-	run.CmdR = run.RepoRoot.CreateCommandRunner(run.Context)
-	return executeCommand(run.CmdR, cmdText)
-}
-
-// MustExec runs a command, returning standard output, failing the test if there's an error
-func (run *RemoveTestRunner) MustExec(t *testing.T, cmdText string) string {
-	if err := run.ExecCommand(cmdText); err != nil {
-		t.Fatal(err)
-	}
-	return run.GetCommandOutput()
-}
-
-// MustWriteFile writes to a file, failing the test if there's an error
-func (run *RemoveTestRunner) MustWriteFile(t *testing.T, filename, contents string) {
-	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// MustReadFile reads a file, failing the test if there's an error
-func (run *RemoveTestRunner) MustReadFile(t *testing.T, filename string) string {
-	bytes, err := ioutil.ReadFile(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(bytes)
-}
-
-// GetCommandOutput returns the standard output from the previously executed command
-func (run *RemoveTestRunner) GetCommandOutput() string {
-	return run.RepoRoot.GetOutput()
 }
 
 func parsePathFromRef(ref string) string {
