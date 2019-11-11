@@ -478,6 +478,7 @@ func (h *DatasetHandlers) removeHandler(w http.ResponseWriter, r *http.Request) 
 		Ref:       HTTPPathToQriPath(r.URL.Path[len("/remove"):]),
 		Revision:  dsref.Rev{Field: "ds", Gen: -1},
 		KeepFiles: r.FormValue("keep-files") == "true",
+		Force:     r.FormValue("force") == "true",
 	}
 	if r.FormValue("all") == "true" {
 		p.Revision = dsref.NewAllRevisions()
