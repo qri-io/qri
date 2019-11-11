@@ -4,8 +4,15 @@ import (
 	"github.com/qri-io/jsonschema"
 )
 
-// Stats configures a qri stats
+// Stats configures qri statistical metadata calculation
 type Stats struct {
+	Cache cache `json:"cache"`
+	// For later addition:
+	// StopFreqCountThreshold int
+}
+
+// cache configures the cached storage of stats
+type cache struct {
 	Type    string `json:"type"`
 	MaxSize uint64 `json:"maxsize"`
 	Path    string `json:"path,omitempty"`
@@ -14,9 +21,11 @@ type Stats struct {
 // DefaultStats creates & returns a new default stats configuration
 func DefaultStats() *Stats {
 	return &Stats{
-		Type: "fs",
-		// Default to 25MiB
-		MaxSize: 1024 * 25,
+		Cache: cache{
+			Type: "fs",
+			// Default to 25MiB
+			MaxSize: 1024 * 25,
+		},
 	}
 }
 
@@ -27,35 +36,49 @@ func (cfg Stats) Validate() error {
     "title": "Stats",
     "description": "Config for the qri stats cache",
     "type": "object",
-    "required": ["type","maxsize"],
+    "required": [
+      "cache"
+    ],
     "properties": {
-      "maxsize": {
-        "description": "The maximum size, in bytes, that the cache should hold",
-        "type": "number"
-      },
-      "path": {
-        "description": "The path to the cache. Default is empty. If empty, Qri will save the cache in the Qri Path",
-        "type":"string"
-      },
-      "type": {
-        "description": "Type of cache",
-        "type": "string",
-        "enum": [
-          "fs",
-					"mem",
-					"postgres"
-        ]
+      "cache": {
+        "description": "The configuration for the cache that stores recent calculated stats.",
+        "type": "object",
+        "required": [
+          "type",
+          "maxsize"
+        ],
+        "properties": {
+          "maxsize": {
+            "description": "The maximum size, in bytes, that the cache should hold",
+            "type": "number"
+          },
+          "path": {
+            "description": "The path to the cache. Default is empty. If empty, Qri will save the cache in the Qri Path",
+            "type": "string"
+          },
+          "type": {
+            "description": "Type of cache",
+            "type": "string",
+            "enum": [
+              "fs",
+              "mem",
+              "postgres"
+            ]
+          }
+        }
       }
     }
-	}`)
+  }`)
 	return validate(schema, &cfg)
 }
 
 // Copy returns a deep copy of the Stats struct
 func (cfg *Stats) Copy() *Stats {
 	return &Stats{
-		Type:    cfg.Type,
-		MaxSize: cfg.MaxSize,
-		Path:    cfg.Path,
+		Cache: cache{
+			Type:    cfg.Cache.Type,
+			MaxSize: cfg.Cache.MaxSize,
+			Path:    cfg.Cache.Path,
+		},
 	}
 }

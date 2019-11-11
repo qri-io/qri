@@ -62,7 +62,6 @@ func (c osCache) JSON(ctx context.Context, path string) (r io.Reader, err error)
 	return nil, ErrCacheMiss
 }
 
-// Hash uses lower-case base32 encoding for id bytes for a few reasons:
 var b32Enc = base32.NewEncoding("abcdefghijklmnopqrstuvwxyz234567").WithPadding(base32.NoPadding)
 
 // nilCache is a stand in for not having a cache

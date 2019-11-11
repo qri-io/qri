@@ -1011,11 +1011,7 @@ func TestDatasetRequestsStats(t *testing.T) {
 			t.Errorf("%d. case %s: unexpected error: '%s'", i, c.description, err.Error())
 			continue
 		}
-		got, err := ioutil.ReadAll(res.Reader)
-		if err != nil {
-			t.Fatalf("%d. case %s: error reading response: '%s'", i, c.description, err.Error())
-		}
-		if diff := cmp.Diff(c.expected, got); diff != "" {
+		if diff := cmp.Diff(c.expected, res.StatsBytes); diff != "" {
 			t.Errorf("%d. '%s' result mismatch (-want +got):%s\n", i, c.description, diff)
 		}
 	}

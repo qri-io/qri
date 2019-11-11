@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"io/ioutil"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -75,14 +74,10 @@ func (o *StatsOptions) Run() (err error) {
 		return err
 	}
 
-	statsBytes, err := ioutil.ReadAll(r.Reader)
-	if err != nil {
-		return fmt.Errorf("error reading stats")
-	}
 	// if o.Pretty {
 	// some nicely formatted stats
 	// }
-	statsBytes = append(statsBytes, byte('\n'))
-	printInfo(o.Out, string(statsBytes))
+	r.StatsBytes = append(r.StatsBytes, byte('\n'))
+	printInfo(o.Out, string(r.StatsBytes))
 	return nil
 }

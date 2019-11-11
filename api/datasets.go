@@ -168,10 +168,6 @@ func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
 	case "OPTIONS":
 		util.EmptyOkHandler(w, r)
 	case "GET":
-		if h.ReadOnly {
-			readOnlyResponse(w, "/stats/")
-			return
-		}
 		h.statsHandler(w, r)
 	default:
 		util.NotFoundHandler(w, r)
@@ -666,14 +662,8 @@ func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	statsBytes, err := ioutil.ReadAll(res.Reader)
-	if err != nil {
-		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error reading stats"))
-		return
-	}
-
 	statsMap := &[]map[string]interface{}{}
-	if err := json.Unmarshal(statsBytes, statsMap); err != nil {
+	if err := json.Unmarshal(res.StatsBytes, statsMap); err != nil {
 		log.Errorf("error unmarshalling stats: %s", err)
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error writing stats"))
 		return

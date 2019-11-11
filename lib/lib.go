@@ -100,12 +100,12 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	node      *p2p.QriNode
-	repo      repo.Repo
-	store     cafs.Filestore
-	qfs       qfs.Filesystem
-	regclient *regclient.Client
-	stats     *stats.Stats
+	node       *p2p.QriNode
+	repo       repo.Repo
+	store      cafs.Filestore
+	qfs        qfs.Filesystem
+	regclient  *regclient.Client
+	statsCache *stats.Cache
 
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
@@ -225,9 +225,9 @@ func OptRegistryClient(cli *regclient.Client) Option {
 }
 
 // OptStatsCache overrides the configured stats cache
-func OptStatsCache(stats *stats.Stats) Option {
+func OptStatsCache(statsCache *stats.Cache) Option {
 	return func(o *InstanceOptions) error {
-		o.stats = stats
+		o.statsCache = statsCache
 		return nil
 	}
 }
@@ -341,8 +341,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if o.stats != nil {
-		inst.stats = o.stats
+	if o.statsCache != nil {
+		inst.stats = stats.New(*o.statsCache)
 	} else if inst.stats == nil {
 		inst.stats = newStats(inst.repoPath, cfg)
 	}
@@ -499,18 +499,18 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	if cfg.Stats == nil {
 		return stats.New(nil)
 	}
-	if cfg.Stats.Path != "" {
-		path = cfg.Stats.Path
+	if cfg.Stats.Cache.Path != "" {
+		path = cfg.Stats.Cache.Path
 	}
-	switch cfg.Stats.Type {
+	switch cfg.Stats.Cache.Type {
 	case "fs":
-		return stats.New(stats.NewOSCache(path, cfg.Stats.MaxSize))
+		return stats.New(stats.NewOSCache(path, cfg.Stats.Cache.MaxSize))
 	// TODO (ramfox): return a mem and/or postgres version of the stats.Stats
 	// once those are implemented
 	// case "mem":
-	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.MaxSize))
+	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.Cache.MaxSize))
 	// case "postgres":
-	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.MaxSize))
+	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.Cache.MaxSize))
 	default:
 		return stats.New(nil)
 	}
