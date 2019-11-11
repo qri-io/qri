@@ -1,0 +1,36 @@
+{
+  "kind": "qri:ds:0",
+  "BodyPath": "abc",
+  "path": "123",
+  "format": "csv",
+  "formatConfig": {
+  	"headerRow": true
+  },
+  "structure": {
+  	"schema": {
+	    "title": "Person",
+	    "type": "object",
+	    "properties": {
+	        "firstName": {
+	            "type": "string"
+	        },
+	        "middleName": {
+	        	"type": "string"
+	        },
+	        "lastName": {
+	            "type": "string"
+	        },
+	        "age": {
+	            "description": "Age in years",
+	            "type": "integer",
+	            "minimum": 0
+	        },
+	        "friends": {
+	        	"type" : "array",
+	        	"items" : { "title" : "REFERENCE", "$ref" : "#" }
+	        }
+	    },
+	    "required": ["firstName", "lastName"]
+		}
+  }
+}

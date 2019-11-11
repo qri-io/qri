@@ -1,0 +1,59 @@
+{
+  "kind": "qri:ds:0",
+  "bodyPath": "abcdefg",
+  "path": "123",
+
+  "structure": {
+    "checksum": "QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9Jcud9",
+    "entries": 33,
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "length": 1582,
+    "qri": "st:0",
+    "Commit": {
+      "title": "abc"
+    },
+    "PreviousPath": "",
+    "schema": {
+      "items": {
+        "items": [
+          {
+            "title": "rank",
+            "type": "integer"
+          },
+          {
+            "title": "probability_of_automation",
+            "type": "number"
+          },
+          {
+            "title": "soc_code",
+            "type": "string"
+          },
+          {
+            "title": "job_title",
+            "type": "string"
+          }
+        ],
+        "type": "array"
+      },
+      "type": "array"
+    }
+  },
+  "meta": {
+    "title": "abc",
+    "description": "I am a dataset"
+  },
+  "transform": {
+    "syntax": "python",
+    "data": "abc",
+    "config": {
+      "option": "value"
+    }
+  },
+  "viz": {
+    "format": "abc"
+  }
+}
+
