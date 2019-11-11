@@ -46,6 +46,7 @@ both qri & IPFS. Promise.`,
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
 	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
+	cmd.Flags().BoolVarP(&o.Force, "force", "f", false, "remove files even if dirty")
 
 	return cmd
 }
@@ -60,6 +61,7 @@ type RemoveOptions struct {
 	Revision      dsref.Rev
 	All           bool
 	KeepFiles     bool
+	Force         bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -109,6 +111,7 @@ func (o *RemoveOptions) Run() (err error) {
 		Ref:       o.Refs.Ref(),
 		Revision:  o.Revision,
 		KeepFiles: o.KeepFiles,
+		Force:     o.Force,
 	}
 
 	res := lib.RemoveResponse{}

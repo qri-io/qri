@@ -7,6 +7,7 @@ import (
 	"io"
 	"io/ioutil"
 	"net/rpc"
+	"os"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
@@ -549,6 +550,7 @@ type RemoveParams struct {
 	Ref       string
 	Revision  dsref.Rev
 	KeepFiles bool
+	Force     bool
 }
 
 // RemoveResponse gives the results of a remove
@@ -578,15 +580,16 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return err
 	}
 
-	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil {
+	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
 		return canonErr
 	}
 	res.Ref = ref.String()
 
 	if ref.FSIPath != "" {
 		// Dataset is linked in a working directory.
-		if !p.KeepFiles {
+		if !(p.KeepFiles || p.Force) {
 			// Make sure that status is clean, otherwise, refuse to remove any revisions.
+			// Setting either --keep-files or --force will skip this check.
 			wdErr := r.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
@@ -619,9 +622,14 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			res.Unlinked = true
 		}
 
-		// Delete entire dataset for all generations.
-		if _, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
-			return err
+		// If the dataset has no history (such as running `qri init` without `qri save`), then
+		// the ref has no path. Can't call RemoveNVersionsFromStore without a path, but don't
+		// need to call it anyway. Skip it.
+		if len(history) > 0 {
+			// Delete entire dataset for all generations.
+			if _, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
+				return err
+			}
 		}
 		// Write the deletion to the logbook.
 		book := r.inst.Repo().Logbook()
@@ -637,6 +645,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		if ref.FSIPath != "" && !p.KeepFiles {
 			// Remove all files
 			fsi.DeleteComponentFiles(ref.FSIPath)
+			// Delete the directory
+			err = os.Remove(ref.FSIPath)
+			if err != nil {
+				return err
+			}
 		}
 	} else {
 		// Delete the specific number of revisions.

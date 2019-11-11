@@ -366,6 +366,41 @@ working directory clean
 	}
 }
 
+// Test removing a dataset with no history works
+func TestRemoveNoHistory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_no_history")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_no_history")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_no_history --format csv")
+
+	// Try to remove, but this will result in an error because working directory is not clean
+	err := run.ExecCommand("qri remove --revisions=1")
+	if err == nil {
+		t.Fatal("expected error because working directory is not clean")
+	}
+	expect := `cannot remove from dataset while working directory is dirty`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Remove one revision, forced
+	run.MustExec(t, "qri remove --revisions=1 -f")
+
+	// Verify that dsref of HEAD is empty
+	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	if dsPath3 != "" {
+		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
+	}
+
+	// Verify the directory no longer exists
+	if _, err = os.Stat(workDir); !os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to not exist", workDir)
+	}
+}
+
 // Test removing a revision while keeping the files the same
 func TestRemoveKeepFiles(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_remove_one_keep_files")
@@ -398,7 +433,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	// Modify body.csv again.
 	run.MustWriteFile(t, "body.csv", "ten,eleven,12\n")
 
-	// Try to remove, but this will result an error because working directory is not clean
+	// Try to remove, but this will result in an error because working directory is not clean
 	err := run.ExecCommand("qri remove --revisions=1")
 	if err == nil {
 		t.Fatal("expected error because working directory is not clean")
@@ -483,11 +518,9 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
 	}
 
-	// Verify the directory contains none of the component files
-	dirContents := listDirectory(workDir)
-	expectContents := []string{}
-	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
-		t.Errorf("directory contents (-want +got):\n%s", diff)
+	// Verify the directory no longer exists
+	if _, err := os.Stat(workDir); !os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to not exist", workDir)
 	}
 }
 
