@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"context"
-	"time"
 	"testing"
+	"time"
 
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/spf13/cobra"

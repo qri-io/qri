@@ -6,6 +6,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -44,7 +45,7 @@ both qri & IPFS. Promise.`,
 
 	cmd.Flags().StringVarP(&o.RevisionsText, "revisions", "r", "", "revisions to delete")
 	cmd.Flags().BoolVarP(&o.All, "all", "a", false, "synonym for --revisions=all")
-	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "")
+	cmd.Flags().BoolVar(&o.KeepFiles, "keep-files", false, "don't modify files in working directory")
 
 	return cmd
 }
@@ -112,7 +113,7 @@ func (o *RemoveOptions) Run() (err error) {
 
 	res := lib.RemoveResponse{}
 	if err = o.DatasetRequests.Remove(&params, &res); err != nil {
-		if err.Error() == "repo: not found" {
+		if err == repo.ErrNotFound {
 			return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}
 		return err

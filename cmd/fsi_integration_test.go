@@ -81,25 +81,25 @@ func (fr *FSITestRunner) GetCommandOutput() string {
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error
-func (fr *FSITestRunner) MustExec(cmdText string) string {
+func (fr *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 	if err := fr.ExecCommand(cmdText); err != nil {
-		fr.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 	return fr.GetCommandOutput()
 }
 
 // MustWriteFile writes to a file, failing the test if there's an error
-func (fr *FSITestRunner) MustWriteFile(filename, contents string) {
+func (fr *FSITestRunner) MustWriteFile(t *testing.T, filename, contents string) {
 	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
-		fr.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 }
 
 // MustReadFile reads a file, failing the test if there's an error
-func (fr *FSITestRunner) MustReadFile(filename string) string {
+func (fr *FSITestRunner) MustReadFile(t *testing.T, filename string) string {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		fr.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 	return string(bytes)
 }

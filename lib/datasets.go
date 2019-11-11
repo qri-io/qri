@@ -613,7 +613,6 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if p.Revision.Gen == dsref.AllGenerations || p.Revision.Gen >= len(history) {
 		// removing all revisions of a dataset must unlink it
 		if ref.FSIPath != "" {
-			fmt.Printf("about to Unlink\n")
 			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
 				return err
 			}

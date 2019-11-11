@@ -6,8 +6,8 @@ import (
 	"os"
 	"regexp"
 	"strings"
-	"time"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/base/dsfs"
@@ -67,25 +67,25 @@ func (run *RemoveTestRunner) ExecCommand(cmdText string) error {
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error
-func (run *RemoveTestRunner) MustExec(cmdText string) string {
+func (run *RemoveTestRunner) MustExec(t *testing.T, cmdText string) string {
 	if err := run.ExecCommand(cmdText); err != nil {
-		run.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 	return run.GetCommandOutput()
 }
 
 // MustWriteFile writes to a file, failing the test if there's an error
-func (run *RemoveTestRunner) MustWriteFile(filename, contents string) {
+func (run *RemoveTestRunner) MustWriteFile(t *testing.T, filename, contents string) {
 	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
-		run.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 }
 
 // MustReadFile reads a file, failing the test if there's an error
-func (run *RemoveTestRunner) MustReadFile(filename string) string {
+func (run *RemoveTestRunner) MustReadFile(t *testing.T, filename string) string {
 	bytes, err := ioutil.ReadFile(filename)
 	if err != nil {
-		run.RepoRoot.t.Fatal(err)
+		t.Fatal(err)
 	}
 	return string(bytes)
 }
@@ -109,7 +109,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
-	output := run.MustExec("qri save --body=testdata/movies/body_two.json me/remove_test")
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -117,7 +117,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	}
 
 	// Save another version
-	output = run.MustExec("qri save --body=testdata/movies/body_four.json me/remove_test")
+	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -125,7 +125,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	}
 
 	// Remove one version
-	run.MustExec("qri remove --revisions=1 me/remove_test")
+	run.MustExec(t, "qri remove --revisions=1 me/remove_test")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
@@ -141,7 +141,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
-	output := run.MustExec("qri save --body=testdata/movies/body_two.json me/remove_test")
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -149,7 +149,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	}
 
 	// Save another version
-	output = run.MustExec("qri save --body=testdata/movies/body_four.json me/remove_test")
+	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -157,7 +157,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	}
 
 	// Remove one version
-	run.MustExec("qri remove --all me/remove_test")
+	run.MustExec(t, "qri remove --all me/remove_test")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
@@ -172,7 +172,7 @@ func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
-	output := run.MustExec("qri save --body=testdata/movies/body_two.json me/remove_test")
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -180,7 +180,7 @@ func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
 	}
 
 	// Save another version
-	output = run.MustExec("qri save --body=testdata/movies/body_four.json me/remove_test")
+	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -206,13 +206,13 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	_ = run.CreateAndChdirToWorkDir("remove_one")
 
 	// Init as a linked directory.
-	run.MustExec("qri init --name remove_one --format csv")
+	run.MustExec(t, "qri init --name remove_one --format csv")
 
 	// Add a meta.json.
-	run.MustWriteFile("meta.json", "{\"title\":\"one\"}\n")
+	run.MustWriteFile(t, "meta.json", "{\"title\":\"one\"}\n")
 
 	// Save the new dataset.
-	output := run.MustExec("qri save")
+	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -220,11 +220,11 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	}
 
 	// Modify meta.json and body.csv.
-	run.MustWriteFile("meta.json", "{\"title\":\"two\"}\n")
-	run.MustWriteFile("body.csv", "seven,eight,9\n")
+	run.MustWriteFile(t, "meta.json", "{\"title\":\"two\"}\n")
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
 
 	// Save the new dataset.
-	output = run.MustExec("qri save")
+	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -232,7 +232,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	}
 
 	// Remove one revision
-	run.MustExec("qri remove --revisions=1")
+	run.MustExec(t, "qri remove --revisions=1")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
@@ -242,7 +242,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	}
 
 	// Verify the meta.json contains the original contents, not `{"title":"two"}`
-	actual := run.MustReadFile("meta.json")
+	actual := run.MustReadFile(t, "meta.json")
 	expect := `{
  "qri": "md:0",
  "title": "one"
@@ -252,14 +252,14 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	}
 
 	// Verify the body.csv contains the original contents, not "seven,eight,9"
-	actual = run.MustReadFile("body.csv")
+	actual = run.MustReadFile(t, "body.csv")
 	expect = "one,two,3\nfour,five,6\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("body.csv contents (-want +got):\n%s", diff)
 	}
 
 	// Verify that status is clean
-	output = run.MustExec("qri status")
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/remove_one]
 
 working directory clean
@@ -270,7 +270,7 @@ working directory clean
 
 	// Verify that we can access the working directory. This would not be the case if the
 	// delete operation caused the FSIPath to be moved from the dataset ref in the repo.
-	actual = run.MustExec("qri get")
+	actual = run.MustExec(t, "qri get")
 	// TODO(dlong): Move temp omissions into TestRunner framework
 	regex := regexp.MustCompile("bodyPath: .*/remove_one/body.csv")
 	replaced := string(regex.ReplaceAll([]byte(actual), []byte("bodyPath: remove_one/body.csv")))
@@ -314,10 +314,10 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("remove_one")
 
 	// Init as a linked directory.
-	run.MustExec("qri init --name remove_one --format csv")
+	run.MustExec(t, "qri init --name remove_one --format csv")
 
 	// Save the new dataset.
-	output := run.MustExec("qri save")
+	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -325,11 +325,11 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	}
 
 	// Modify meta.json and body.csv.
-	run.MustWriteFile("meta.json", "{\"title\":\"two\"}\n")
-	run.MustWriteFile("body.csv", "seven,eight,9\n")
+	run.MustWriteFile(t, "meta.json", "{\"title\":\"two\"}\n")
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
 
 	// Save the new dataset.
-	output = run.MustExec("qri save")
+	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -337,7 +337,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	}
 
 	// Remove one revision
-	run.MustExec("qri remove --revisions=1")
+	run.MustExec(t, "qri remove --revisions=1")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
@@ -347,7 +347,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	}
 
 	// Verify that status is clean
-	output = run.MustExec("qri status")
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/remove_one]
 
 working directory clean
@@ -374,10 +374,10 @@ func TestRemoveKeepFiles(t *testing.T) {
 	_ = run.CreateAndChdirToWorkDir("remove_one")
 
 	// Init as a linked directory.
-	run.MustExec("qri init --name remove_one --format csv")
+	run.MustExec(t, "qri init --name remove_one --format csv")
 
 	// Save the new dataset.
-	output := run.MustExec("qri save")
+	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -385,10 +385,10 @@ func TestRemoveKeepFiles(t *testing.T) {
 	}
 
 	// Modify body.csv.
-	run.MustWriteFile("body.csv", "seven,eight,9\n")
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
 
 	// Save the new dataset.
-	output = run.MustExec("qri save")
+	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -396,7 +396,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	}
 
 	// Modify body.csv again.
-	run.MustWriteFile("body.csv", "ten,eleven,12\n")
+	run.MustWriteFile(t, "body.csv", "ten,eleven,12\n")
 
 	// Try to remove, but this will result an error because working directory is not clean
 	err := run.ExecCommand("qri remove --revisions=1")
@@ -416,7 +416,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	}
 
 	// Remove is possible using --keep-files
-	run.MustExec("qri remove --revisions=1 --keep-files")
+	run.MustExec(t, "qri remove --revisions=1 --keep-files")
 
 	// Verify that dsref is now the result of the first save because one commit was removed
 	dsPath4 := run.RepoRoot.GetPathForDataset(0)
@@ -426,14 +426,14 @@ func TestRemoveKeepFiles(t *testing.T) {
 	}
 
 	// Verify the body.csv contains the newest version and was not removed
-	actual := run.MustReadFile("body.csv")
+	actual := run.MustReadFile(t, "body.csv")
 	expect = "ten,eleven,12\n"
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("body.csv contents (-want +got):\n%s", diff)
 	}
 
 	// Verify that status is dirty because we kept the files
-	output = run.MustExec("qri status")
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/remove_one]
 
   modified: body (source: body.csv)
@@ -453,10 +453,10 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
 
 	// Init as a linked directory.
-	run.MustExec("qri init --name remove_all --format csv")
+	run.MustExec(t, "qri init --name remove_all --format csv")
 
 	// Save the new dataset.
-	output := run.MustExec("qri save")
+	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -464,10 +464,10 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	}
 
 	// Modify body.csv.
-	run.MustWriteFile("body.csv", "seven,eight,9\n")
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
 
 	// Save the new dataset.
-	output = run.MustExec("qri save")
+	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -475,7 +475,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	}
 
 	// Remove all versions
-	run.MustExec("qri remove --all=1")
+	run.MustExec(t, "qri remove --all=1")
 
 	// Verify that dsref of HEAD is empty
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
@@ -499,10 +499,10 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	workDir := run.CreateAndChdirToWorkDir("remove_all")
 
 	// Init as a linked directory.
-	run.MustExec("qri init --name remove_all --format csv")
+	run.MustExec(t, "qri init --name remove_all --format csv")
 
 	// Save the new dataset.
-	output := run.MustExec("qri save")
+	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
 	dsPath1 := run.RepoRoot.GetPathForDataset(0)
 	if ref1 != dsPath1 {
@@ -510,10 +510,10 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	}
 
 	// Modify body.csv.
-	run.MustWriteFile("body.csv", "seven,eight,9\n")
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
 
 	// Save the new dataset.
-	output = run.MustExec("qri save")
+	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
 	dsPath2 := run.RepoRoot.GetPathForDataset(0)
 	if ref2 != dsPath2 {
@@ -521,7 +521,7 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	}
 
 	// Remove all but --keep-files
-	run.MustExec("qri remove --revisions=all --keep-files")
+	run.MustExec(t, "qri remove --revisions=all --keep-files")
 
 	// Verify that dsref of HEAD is empty
 	dsPath3 := run.RepoRoot.GetPathForDataset(0)
