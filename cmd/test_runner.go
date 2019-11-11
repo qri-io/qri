@@ -21,7 +21,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TestRunner
+// TestRunner holds data used to run tests
 type TestRunner struct {
 	RepoRoot    *TestRepoRoot
 	Context     context.Context
@@ -31,7 +31,7 @@ type TestRunner struct {
 	Teardown    func()
 }
 
-// NewTestRunner
+// NewTestRunner constructs a new TsetRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
 	root := NewTestRepoRoot(t, peerName, testName)
 
