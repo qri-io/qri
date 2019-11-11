@@ -299,7 +299,6 @@ func TestJSON(t *testing.T) {
 		dataset     *dataset.Dataset
 		err         string
 	}{
-		{"no path", &dataset.Dataset{}, "stats: dataset is missing Path parameter"},
 		{"no body", &dataset.Dataset{Path: "path"}, "stats: dataset has no body file"},
 		{"no structure", dsWithBody, "stats: dataset is missing structure"},
 		{"reader error", dsWithStructure, "Expected: separator ','"},

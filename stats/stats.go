@@ -44,13 +44,17 @@ func New(cache Cache) *Stats {
 
 // JSON gets stats data as reader of JSON-formatted bytes
 func (s *Stats) JSON(ctx context.Context, ds *dataset.Dataset) (r io.Reader, err error) {
-	if ds.Path == "" {
-		return nil, fmt.Errorf("stats: dataset is missing Path parameter")
-	}
-
-	// check cache
-	if r, err := s.cache.JSON(ctx, ds.Path); err == nil {
-		return r, nil
+	// check cache if there is a Path
+	// TODO (ramfox): when we are calculating stats on fsi linked
+	// datasets, we need a different metric other the `dataset.Path` to
+	// identify and store stats, since FSI datasets will not have
+	// a `dataset.Path`. This metric should perhaps come out of the
+	// `dataset.BodyFile()` since we must have a bodyFile in order to
+	// calculate the stats
+	if ds.Path != "" {
+		if r, err := s.cache.JSON(ctx, ds.Path); err == nil {
+			return r, nil
+		}
 	}
 
 	body := ds.BodyFile()
@@ -82,11 +86,13 @@ func (s *Stats) JSON(ctx context.Context, ds *dataset.Dataset) (r io.Reader, err
 		return nil, err
 	}
 
-	go func() {
-		if err := s.cache.PutJSON(context.Background(), ds.Path, bytes.NewReader(data)); err != nil {
-			log.Debugf("putting stats in cache: %v", err.Error())
-		}
-	}()
+	if ds.Path != "" {
+		go func() {
+			if err := s.cache.PutJSON(context.Background(), ds.Path, bytes.NewReader(data)); err != nil {
+				log.Debugf("putting stats in cache: %v", err.Error())
+			}
+		}()
+	}
 
 	return bytes.NewReader(data), nil
 }
