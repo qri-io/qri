@@ -27,6 +27,7 @@ type Config struct {
 	Store    *Store
 	P2P      *P2P
 	Update   *Update
+	Stats    *Stats
 
 	Registry *Registry
 	Remotes  *Remotes
@@ -58,6 +59,7 @@ func DefaultConfig() *Config {
 		Store:    DefaultStore(),
 		P2P:      DefaultP2P(),
 		Update:   DefaultUpdate(),
+		Stats:    DefaultStats(),
 
 		Registry: DefaultRegistry(),
 		// default to no configured remotes
@@ -222,6 +224,7 @@ func (cfg Config) Validate() error {
 		cfg.RPC,
 		cfg.Update,
 		cfg.Logging,
+		cfg.Stats,
 	}
 	for _, val := range validators {
 		// we need to check here because we're potentially calling methods on nil
@@ -288,6 +291,9 @@ func (cfg *Config) Copy() *Config {
 	}
 	if cfg.Render != nil {
 		res.Render = cfg.Render.Copy()
+	}
+	if cfg.Stats != nil {
+		res.Stats = cfg.Stats.Copy()
 	}
 
 	return res

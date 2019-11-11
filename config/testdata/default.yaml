@@ -46,3 +46,7 @@ logging:
 render:
   templateupdateaddress: /ipns/defaulttmpl.qri.io
   defaulttemplatehash:   /ipfs/QmeqeRTf2Cvkqdx4xUdWi1nJB2TgCyxmemsL3H4f1eTBaw
+stats:
+  cache:
+    type: fs
+    maxsize: 25600

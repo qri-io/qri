@@ -34,6 +34,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
+	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
 )
@@ -99,11 +100,12 @@ type InstanceOptions struct {
 	Cfg     *config.Config
 	Streams ioes.IOStreams
 
-	node      *p2p.QriNode
-	repo      repo.Repo
-	store     cafs.Filestore
-	qfs       qfs.Filesystem
-	regclient *regclient.Client
+	node       *p2p.QriNode
+	repo       repo.Repo
+	store      cafs.Filestore
+	qfs        qfs.Filesystem
+	regclient  *regclient.Client
+	statsCache *stats.Cache
 
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
@@ -222,6 +224,14 @@ func OptRegistryClient(cli *regclient.Client) Option {
 	}
 }
 
+// OptStatsCache overrides the configured stats cache
+func OptStatsCache(statsCache *stats.Cache) Option {
+	return func(o *InstanceOptions) error {
+		o.statsCache = statsCache
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -329,6 +339,12 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
+	}
+
+	if o.statsCache != nil {
+		inst.stats = stats.New(*o.statsCache)
+	} else if inst.stats == nil {
+		inst.stats = newStats(inst.repoPath, cfg)
 	}
 
 	if inst.repo != nil {
@@ -476,6 +492,30 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 	}
 }
 
+func newStats(repoPath string, cfg *config.Config) *stats.Stats {
+	// The stats cache default location is repoPath/stats
+	// can be overridden in the config: cfg.Stats.Path
+	path := filepath.Join(repoPath, "stats")
+	if cfg.Stats == nil {
+		return stats.New(nil)
+	}
+	if cfg.Stats.Cache.Path != "" {
+		path = cfg.Stats.Cache.Path
+	}
+	switch cfg.Stats.Cache.Type {
+	case "fs":
+		return stats.New(stats.NewOSCache(path, cfg.Stats.Cache.MaxSize))
+	// TODO (ramfox): return a mem and/or postgres version of the stats.Stats
+	// once those are implemented
+	// case "mem":
+	// 	return stats.New(stats.NewMemCache(path, cfg.Stats.Cache.MaxSize))
+	// case "postgres":
+	// 	return stats.New(stats.NewSqlCache(path, cfg.Stats.Cache.MaxSize))
+	default:
+		return stats.New(nil)
+	}
+}
+
 func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
 	mux := map[string]qfs.Filesystem{
 		"local": localfs.NewFS(),
@@ -534,6 +574,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		teardown: teardown,
 		cfg:      cfg,
 		node:     node,
+		stats:    stats.New(nil),
 	}
 
 	var err error
@@ -575,6 +616,7 @@ type Instance struct {
 	remote       *remote.Remote
 	remoteClient *remote.Client
 	registry     *regclient.Client
+	stats        *stats.Stats
 
 	rpc *rpc.Client
 }

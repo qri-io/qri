@@ -140,7 +140,8 @@ type GetResult struct {
 // dataset will be loaded from the local repo if available, or by asking peers for it.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
-// then res.Bytes is loaded with the body.
+// then res.Bytes is loaded with the body. If the selector is "stats", then res.Bytes is loaded
+// with the generated stats.
 func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Get", p, res)
@@ -216,6 +217,16 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		// `qri get rendered` loads the rendered visualization script, as a special case
 		res.Bytes, err = ioutil.ReadAll(ds.Viz.RenderedFile())
 		return err
+	} else if p.Selector == "stats" {
+		statsParams := &StatsParams{
+			Dataset: res.Dataset,
+		}
+		statsRes := &StatsResponse{}
+		if err := r.Stats(statsParams, statsRes); err != nil {
+			return err
+		}
+		res.Bytes = statsRes.StatsBytes
+		return
 	} else {
 		var value interface{}
 		if p.Selector == "" {
@@ -830,4 +841,47 @@ func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	}
 	*i = *info
 	return
+}
+
+// StatsParams defines the params for a Stats request
+type StatsParams struct {
+	// string representation of a dataset reference
+	Ref string
+	// if we get a Dataset from the params, then we do not have to
+	// attempt to open a dataset from the reference
+	Dataset *dataset.Dataset
+}
+
+// StatsResponse defines the response for a Stats request
+type StatsResponse struct {
+	StatsBytes []byte
+}
+
+// Stats generates stats for a dataset
+func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.Stats", p, res)
+	}
+	ctx := context.TODO()
+	if p.Dataset == nil {
+		ref := &repo.DatasetRef{}
+		ref, err = base.ToDatasetRef(p.Ref, r.node.Repo, false)
+		if err != nil {
+			return err
+		}
+		p.Dataset, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
+		if err != nil {
+			return fmt.Errorf("loading dataset: %s", err)
+		}
+
+		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), p.Dataset); err != nil {
+			return
+		}
+	}
+	reader, err := r.inst.stats.JSON(ctx, p.Dataset)
+	if err != nil {
+		return err
+	}
+	res.StatsBytes, err = ioutil.ReadAll(reader)
+	return err
 }

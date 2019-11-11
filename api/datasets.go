@@ -162,6 +162,18 @@ func (h *DatasetHandlers) BodyHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// StatsHandler gets stats about the dataset
+func (h *DatasetHandlers) StatsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.statsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
 // UnpackHandler unpacks a zip file and sends it back as json
 func (h *DatasetHandlers) UnpackHandler(w http.ResponseWriter, r *http.Request) {
 	switch r.Method {
@@ -636,6 +648,27 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 		Data: json.RawMessage(result.Bytes),
 	}
 	if err := util.WritePageResponse(w, dataResponse, r, page); err != nil {
+		log.Infof("error writing response: %s", err.Error())
+	}
+}
+
+func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
+	p := &lib.StatsParams{
+		Ref: HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
+	}
+	res := &lib.StatsResponse{}
+	if err := h.Stats(p, res); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	statsMap := &[]map[string]interface{}{}
+	if err := json.Unmarshal(res.StatsBytes, statsMap); err != nil {
+		log.Errorf("error unmarshalling stats: %s", err)
+		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error writing stats"))
+		return
+	}
+	if err := util.WriteResponse(w, statsMap); err != nil {
 		log.Infof("error writing response: %s", err.Error())
 	}
 }

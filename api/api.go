@@ -266,6 +266,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/export/", s.middleware(dsh.ZipDatasetHandler))
 	m.Handle("/diff", s.middleware(dsh.DiffHandler))
 	m.Handle("/body/", s.middleware(dsh.BodyHandler))
+	m.Handle("/stats/", s.middleware(dsh.StatsHandler))
 	m.Handle("/unpack/", s.middleware(dsh.UnpackHandler))
 
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)

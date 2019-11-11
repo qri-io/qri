@@ -113,6 +113,9 @@ func TestNewDefaultInstance(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	if _, err = os.Stat(filepath.Join(tempDir, "stats")); os.IsNotExist(err) {
+		t.Errorf("NewInstance error: stats cache never created")
+	}
 }
 
 func CompareInstances(a, b *Instance) error {
