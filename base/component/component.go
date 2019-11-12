@@ -13,7 +13,7 @@ import (
 type Component interface {
 	Base() *BaseComponent
 	Compare(Component) (bool, error)
-	WriteTo(dirPath string) error
+	WriteTo(dirPath string) (string, error)
 	RemoveFrom(dirPath string) error
 	DropDerivedValues()
 	LoadAndFill(*dataset.Dataset) error

@@ -8,7 +8,7 @@ import (
 // LogTestRunner holds test info integration tests
 type LogTestRunner struct {
 	TestRunner
-	LocOrig     *time.Location
+	LocOrig *time.Location
 }
 
 // newLogTestRunner returns a new FSITestRunner.

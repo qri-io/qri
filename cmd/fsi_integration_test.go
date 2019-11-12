@@ -10,6 +10,8 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/fsi"
 )
 
 // FSITestRunner holds test info for fsi integration tests, for convenient cleanup.
@@ -49,42 +51,40 @@ func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
 }
 
 // ChdirToRoot changes the current directory to the temporary root
-func (fr *FSITestRunner) ChdirToRoot() {
-	os.Chdir(fr.RootPath)
+func (run *FSITestRunner) ChdirToRoot() {
+	os.Chdir(run.RootPath)
 }
 
 // ChangeToWorkDir changes to the already created working directory. Panics if it doesn't exist.
-func (fr *FSITestRunner) ChdirToWorkDir(subdir string) string {
-	fr.WorkPath = filepath.Join(fr.RootPath, subdir)
-	if err := os.Chdir(fr.WorkPath); err != nil {
+func (run *FSITestRunner) ChdirToWorkDir(subdir string) string {
+	run.WorkPath = filepath.Join(run.RootPath, subdir)
+	if err := os.Chdir(run.WorkPath); err != nil {
 		panic(err)
 	}
-	return fr.WorkPath
+	return run.WorkPath
 }
 
 // CreateAndChangeToWorkDir creates and changes to the working directory
-func (fr *FSITestRunner) CreateAndChdirToWorkDir(subdir string) string {
-	fr.WorkPath = filepath.Join(fr.RootPath, subdir)
-	err := os.MkdirAll(fr.WorkPath, os.ModePerm)
+func (run *FSITestRunner) CreateAndChdirToWorkDir(subdir string) string {
+	run.WorkPath = filepath.Join(run.RootPath, subdir)
+	err := os.MkdirAll(run.WorkPath, os.ModePerm)
 	if err != nil {
 		panic(err)
 	}
-	os.Chdir(fr.WorkPath)
-	return fr.WorkPath
+	os.Chdir(run.WorkPath)
+	return run.WorkPath
 }
 
 // Test using "init" to create a new linked directory, using status to see the added files,
 // then saving to create the dataset, leading to a clean status in the directory.
 func TestInitStatusSave(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_init_status_save")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_init_status_save")
+	defer run.Delete()
 
-	workDir := fr.CreateAndChdirToWorkDir("brand_new")
+	workDir := run.CreateAndChdirToWorkDir("brand_new")
 
 	// Init as a linked directory.
-	if err := fr.ExecCommand("qri init --name brand_new --format csv"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri init --name brand_new --format csv")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -98,20 +98,13 @@ func TestInitStatusSave(t *testing.T) {
  "format": "csv",
  "qri": "st:0"
 }`
-	structureText, err := ioutil.ReadFile(filepath.Join(workDir, "structure.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(expectText, string(structureText)); diff != "" {
+	structureText := run.MustReadFile(t, filepath.Join(workDir, "structure.json"))
+	if diff := cmp.Diff(expectText, structureText); diff != "" {
 		t.Errorf("structure.json contents (-want +got):\n%s", diff)
 	}
 
 	// Status, check that the working directory has added files.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/brand_new]
 
   add: meta (source: meta.json)
@@ -125,45 +118,51 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Save the new dataset.
-	if err := fr.ExecCommand("qri save"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save")
 
 	// TODO: Verify that files are in ipfs repo.
 
 	// Verify that the .qri-ref contains the full path for the saved dataset.
-	bytes, err := ioutil.ReadFile(".qri-ref")
-	if err != nil {
-		t.Fatal(err)
-	}
+	contents := run.MustReadFile(t, ".qri-ref")
 	// TODO(dlong): Fix me, should write the updated FSI link with the dsref head
 	expect = "test_peer/brand_new"
-	if diff := cmp.Diff(expect, string(bytes)); diff != "" {
+	if diff := cmp.Diff(expect, contents); diff != "" {
 		t.Errorf(".qri-ref contents (-want +got):\n%s", diff)
 	}
 
 	// Status again, check that the working directory is clean.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/brand_new"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 }
 
+// Test init command can use an explicit directory
+func TestInitExplicitDirectory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_explicit_dir")
+	defer run.Delete()
+
+	run.ChdirToRoot()
+	run.MustExec(t, "qri init --name explicit_dir --format csv explicit_dir")
+	workDir := filepath.Join(run.RootPath, "explicit_dir")
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
 // Test that we can get the body even if structure has been deleted.
 func TestGetBodyWithoutStructure(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_get_body_without_structure")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_get_body_without_structure")
+	defer run.Delete()
 
-	workDir := fr.CreateAndChdirToWorkDir("body_only")
+	workDir := run.CreateAndChdirToWorkDir("body_only")
 
 	// Init as a linked directory.
-	if err := fr.ExecCommand("qri init --name body_only --format csv"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri init --name body_only --format csv")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -178,11 +177,7 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 	}
 
 	// Get the body, even though there's no structure. One will be inferred.
-	if err := fr.ExecCommand("qri get body"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri get body")
 	expectBody := "for linked dataset [test_peer/body_only]\n\none,two,3\nfour,five,6\n\n"
 	if diff := cmp.Diff(expectBody, output); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
@@ -192,23 +187,18 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 // Test that checkout, used on a simple dataset with a body.json and no meta, creates a
 // working directory with a clean status.
 func TestCheckoutSimpleStatus(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_checkout_simple_status")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_checkout_simple_status")
+	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json me/two_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/two_movies")
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err := fr.ExecCommand("qri checkout me/two_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/two_movies")
 
-	workDir := fr.ChdirToWorkDir("two_movies")
+	workDir := run.ChdirToWorkDir("two_movies")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -218,11 +208,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/two_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -231,11 +217,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 	modifyFileUsingStringReplace("body.json", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/two_movies]
 
   modified: body (source: body.json)
@@ -247,16 +229,10 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Create meta.json with a title.
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status yet again, check that the meta is added.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/two_movies]
 
   add: meta (source: meta.json)
@@ -271,23 +247,18 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test checking out a dataset with a schema, and body.csv.
 func TestCheckoutWithStructure(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_checkout_with_structure")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_checkout_with_structure")
+	defer run.Delete()
 
 	// Save a dataset containing a body.csv and meta.
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv --file=testdata/movies/meta_override.yaml me/ten_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv --file=testdata/movies/meta_override.yaml me/ten_movies")
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/ten_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/ten_movies")
 
-	workPath := fr.ChdirToWorkDir("ten_movies")
+	workPath := run.ChdirToWorkDir("ten_movies")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
@@ -297,11 +268,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -310,11 +277,9 @@ func TestCheckoutWithStructure(t *testing.T) {
 	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri status")
 
-	output = fr.GetCommandOutput()
+	output = run.GetCommandOutput()
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: body (source: body.csv)
@@ -326,16 +291,10 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Modify meta.json by changing the title.
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status yet again, check that the meta is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: meta (source: meta.json)
@@ -348,16 +307,12 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Remove meta.json.
-	if err = os.Remove("meta.json"); err != nil {
+	if err := os.Remove("meta.json"); err != nil {
 		t.Fatal(err)
 	}
 
 	// Status one last time, check that the meta was removed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   removed:  meta
@@ -372,23 +327,18 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test checkout and modifying structure & schema, then checking status.
 func TestCheckoutAndModifyStructure(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_checkout_and_modify_schema")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_checkout_and_modify_schema")
+	defer run.Delete()
 
 	// Save a dataset containing a body.csv, no meta, nothing special.
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv me/more_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/more_movies")
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/more_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/more_movies")
 
-	workPath := fr.ChdirToWorkDir("more_movies")
+	workPath := run.ChdirToWorkDir("more_movies")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workPath)
@@ -398,26 +348,16 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/more_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Create structure.json with a minimal schema.
-	if err = ioutil.WriteFile("structure.json", []byte(`{ "format": "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "structure.json", `{ "format": "csv", "schema": {"type": "array"}}`)
 
 	// Status again, check that the body is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/more_movies]
 
   modified: structure (source: structure.json)
@@ -431,36 +371,25 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test that status displays parse errors correctly
 func TestStatusParseError(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_parse_error")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_status_parse_error")
+	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json --file=testdata/movies/meta_override.yaml me/bad_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_two.json --file=testdata/movies/meta_override.yaml me/bad_movies")
 
 	// Change to a temporary directory.
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/bad_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/bad_movies")
 
-	_ = fr.ChdirToWorkDir("bad_movies")
+	_ = run.ChdirToWorkDir("bad_movies")
 
 	// Modify the meta.json so that it fails to parse.
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello}`)
 
 	// Status, check that status shows the parse error.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/bad_movies]
 
   parse error: meta (source: meta.json)
@@ -474,36 +403,25 @@ fix these problems before saving this dataset
 
 // Test that status displays parse errors even for the body component
 func TestBodyParseError(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_parse_error")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_status_parse_error")
+	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json --file=testdata/movies/meta_override.yaml me/bad_body")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_two.json --file=testdata/movies/meta_override.yaml me/bad_body")
 
 	// Change to a temporary directory.
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/bad_body"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/bad_body")
 
-	_ = fr.ChdirToWorkDir("bad_body")
+	_ = run.ChdirToWorkDir("bad_body")
 
 	// Modify the meta.json so that it fails to parse.
-	if err = ioutil.WriteFile("body.json", []byte(`{"title": "hello}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "body.json", `{"title": "hello}`)
 
 	// Status, check that status shows the parse error.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/bad_body]
 
   parse error: body (source: body.json)
@@ -517,35 +435,24 @@ fix these problems before saving this dataset
 
 // Test that parse errors are also properly shown for structure.
 func TestStatusParseErrorForStructure(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_parse_error_for_structure")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_status_parse_error_for_structure")
+	defer run.Delete()
 
 	// Save a dataset containing a body.json and meta component
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv me/ten_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/ten_movies")
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/ten_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/ten_movies")
 
-	_ = fr.ChdirToWorkDir("ten_movies")
+	_ = run.ChdirToWorkDir("ten_movies")
 
 	// Modify the meta.json so that it fails to parse.
-	if err = ioutil.WriteFile("structure.json", []byte(`{"format":`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "structure.json", `{"format":`)
 
 	// Status, check that status shows the parse error.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   parse error: structure (source: structure.json)
@@ -559,43 +466,27 @@ fix these problems before saving this dataset
 
 // Test status at specific versions
 func TestStatusAtVersion(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_status_at_version")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_status_at_version")
+	defer run.Delete()
 
 	// First version has only a body
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json me/status_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref1 := parseRefFromSave(fr.GetCommandOutput())
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/status_ver")
+	ref1 := parseRefFromSave(output)
 
 	// Add a meta
-	err = fr.ExecCommand("qri save --file=testdata/movies/meta_override.yaml me/status_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref2 := parseRefFromSave(fr.GetCommandOutput())
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/status_ver")
+	ref2 := parseRefFromSave(output)
 
 	// Change the meta
-	err = fr.ExecCommand("qri save --file=testdata/movies/meta_another.yaml me/status_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref3 := parseRefFromSave(fr.GetCommandOutput())
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/status_ver")
+	ref3 := parseRefFromSave(output)
 
 	// Change the body
-	err = fr.ExecCommand("qri save --body=testdata/movies/body_four.json me/status_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref4 := parseRefFromSave(fr.GetCommandOutput())
+	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/status_ver")
+	ref4 := parseRefFromSave(output)
 
 	// Status for the first version of the dataset, both body and schema were added.
-	if err = fr.ExecCommand(fmt.Sprintf("qri status %s", ref1)); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref1))
 	expect := `  structure: add
   body: add
 `
@@ -604,11 +495,7 @@ func TestStatusAtVersion(t *testing.T) {
 	}
 
 	// Status for the second version, meta added.
-	if err = fr.ExecCommand(fmt.Sprintf("qri status %s", ref2)); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref2))
 	expect = `  meta: add
   structure: unmodified
   body: unmodified
@@ -618,11 +505,7 @@ func TestStatusAtVersion(t *testing.T) {
 	}
 
 	// Status for the third version, meta modified.
-	if err = fr.ExecCommand(fmt.Sprintf("qri status %s", ref3)); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref3))
 	expect = `  meta: modified
   structure: unmodified
   body: unmodified
@@ -632,11 +515,7 @@ func TestStatusAtVersion(t *testing.T) {
 	}
 
 	// Status for the fourth version, body modified.
-	if err = fr.ExecCommand(fmt.Sprintf("qri status %s", ref4)); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref4))
 	expect = `  meta: unmodified
   structure: unmodified
   body: modified
@@ -648,35 +527,24 @@ func TestStatusAtVersion(t *testing.T) {
 
 // Test checking out, modifying components, then using restore to undo the modification.
 func TestCheckoutAndRestore(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_checkout_and_restore")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_checkout_and_restore")
+	defer run.Delete()
 
 	// Save a dataset containing a body.csv and meta.
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv --file=testdata/movies/meta_override.yaml me/ten_movies")
-	if err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv --file=testdata/movies/meta_override.yaml me/ten_movies")
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err = fr.ExecCommand("qri checkout me/ten_movies"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/ten_movies")
 
-	_ = fr.ChdirToWorkDir("ten_movies")
+	_ = run.ChdirToWorkDir("ten_movies")
 
 	// Modify meta.json by changing the title.
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status to check that the meta is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: meta (source: meta.json)
@@ -688,31 +556,19 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Restore to get the old meta back.
-	if err = fr.ExecCommand("qri restore meta"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri restore meta")
 
 	// Status again, to validate that meta is no longer changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Modify struture.json
-	if err = ioutil.WriteFile("structure.json", []byte(`{ "format" : "csv", "schema": {"type": "array"}}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "structure.json", `{ "format" : "csv", "schema": {"type": "array"}}`)
 
 	// Status to check that the schema is changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: structure (source: structure.json)
@@ -724,16 +580,10 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Restore to get the old schema back.
-	if err = fr.ExecCommand("qri restore structure"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri restore structure")
 
 	// Status again, to validate that schema is no longer changed.
-	if err = fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -741,56 +591,38 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test restoring previous version
 func TestRestorePreviousVersion(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_restore_prev_version")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_restore_prev_version")
+	defer run.Delete()
 
 	// First version has only a body
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_two.json me/prev_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = parseRefFromSave(fr.GetCommandOutput())
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/prev_ver")
+	_ = parseRefFromSave(output)
 
 	// Add a meta
-	err = fr.ExecCommand("qri save --file=testdata/movies/meta_override.yaml me/prev_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	ref2 := parseRefFromSave(fr.GetCommandOutput())
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/prev_ver")
+	ref2 := parseRefFromSave(output)
 
 	// Change the meta
-	err = fr.ExecCommand("qri save --file=testdata/movies/meta_another.yaml me/prev_ver")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = parseRefFromSave(fr.GetCommandOutput())
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/prev_ver")
+	_ = parseRefFromSave(output)
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err := fr.ExecCommand("qri checkout me/prev_ver"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/prev_ver")
 
-	_ = fr.ChdirToWorkDir("prev_ver")
+	_ = run.ChdirToWorkDir("prev_ver")
 
 	// Verify that the status is clean
-	if err = fr.ExecCommand(fmt.Sprintf("qri status")); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/prev_ver"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Read meta.json, contains the contents of meta_another.yaml
-	metaContents, err := ioutil.ReadFile("meta.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	metaContents := run.MustReadFile(t, "meta.json")
 	expectContents := "{\n \"qri\": \"md:0\",\n \"title\": \"yet another title\"\n}"
-	if diff := cmp.Diff(expectContents, string(metaContents)); diff != "" {
+	if diff := cmp.Diff(expectContents, metaContents); diff != "" {
 		t.Errorf("meta.json contents (-want +got):\n%s", diff)
 	}
 
@@ -800,54 +632,40 @@ func TestRestorePreviousVersion(t *testing.T) {
 	path := ref2[pos:]
 
 	// Restore the previous version
-	if err = fr.ExecCommand(fmt.Sprintf("qri restore %s", path)); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, fmt.Sprintf("qri restore %s", path))
 
 	// Read meta.json, due to restore, it has the old data from meta_override.yaml
-	metaContents, err = ioutil.ReadFile("meta.json")
-	if err != nil {
-		t.Fatal(err)
-	}
+	metaContents = run.MustReadFile(t, "meta.json")
 	expectContents = "{\n \"qri\": \"md:0\",\n \"title\": \"different title\"\n}"
-	if diff := cmp.Diff(expectContents, string(metaContents)); diff != "" {
+	if diff := cmp.Diff(expectContents, metaContents); diff != "" {
 		t.Errorf("meta.json contents (-want +got):\n%s", diff)
 	}
 }
 
 // Test that restore deletes a component that didn't exist before
 func TestRestoreDeleteComponent(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_restore_delete_component")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_restore_delete_component")
+	defer run.Delete()
 
 	// First version has only a body
-	err := fr.ExecCommand("qri save --body=testdata/movies/body_ten.csv me/del_cmp")
-	if err != nil {
-		t.Fatal(err)
-	}
-	_ = parseRefFromSave(fr.GetCommandOutput())
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/del_cmp")
+	_ = parseRefFromSave(output)
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Checkout the newly created dataset.
-	if err := fr.ExecCommand("qri checkout me/del_cmp"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri checkout me/del_cmp")
 
-	workDir := fr.ChdirToWorkDir("del_cmp")
+	workDir := run.ChdirToWorkDir("del_cmp")
 
 	// Modify the body.json file.
 	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
 
 	// Modify meta.json by changing the title.
-	if err = ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Restore to erase the meta component.
-	if err := fr.ExecCommand("qri restore meta"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri restore meta")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -857,11 +675,7 @@ func TestRestoreDeleteComponent(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/del_cmp]
 
   modified: body (source: body.csv)
@@ -875,20 +689,16 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test that restore deletes a component if there was no previous version
 func TestRestoreWithNoHistory(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_restore_no_history")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_restore_no_history")
+	defer run.Delete()
 
-	workDir := fr.CreateAndChdirToWorkDir("new_folder")
+	workDir := run.CreateAndChdirToWorkDir("new_folder")
 
 	// Init as a linked directory.
-	if err := fr.ExecCommand("qri init --name new_folder --format csv"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri init --name new_folder --format csv")
 
 	// Restore to get erase the meta component.
-	if err := fr.ExecCommand("qri restore meta"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri restore meta")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -898,11 +708,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/new_folder]
 
   add: structure (source: structure.json)
@@ -917,27 +723,19 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test creating a readme and then rendering it.
 func TestRenderReadme(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_render_readme")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_render_readme")
+	defer run.Delete()
 
-	_ = fr.CreateAndChdirToWorkDir("render_readme")
+	_ = run.CreateAndChdirToWorkDir("render_readme")
 
 	// Init as a linked directory.
-	if err := fr.ExecCommand("qri init --name render_readme --format csv"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri init --name render_readme --format csv")
 
 	// Create readme.md with some text.
-	if err := ioutil.WriteFile("readme.md", []byte("# hi\nhello\n"), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "readme.md", "# hi\nhello\n")
 
 	// Status, check that the working directory has added files including readme.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/render_readme]
 
   add: meta (source: meta.json)
@@ -952,26 +750,16 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Save the new dataset.
-	if err := fr.ExecCommand("qri save"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save")
 
 	// Status again, check that the working directory is clean.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/render_readme"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Render the readme, check the html.
-	if err := fr.ExecCommand("qri render"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri render")
 	expectBody := `for linked dataset [test_peer/render_readme]
 
 <h1>hi</h1>
@@ -985,20 +773,18 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test using "init" with a source body path
 func TestInitWithSourceBodyPath(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_init_source_body_path")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_init_source_body_path")
+	defer run.Delete()
 
 	sourceFile, err := filepath.Abs("testdata/days_of_week.csv")
 	if err != nil {
 		panic(err)
 	}
 
-	workDir := fr.CreateAndChdirToWorkDir("init_source")
+	workDir := run.CreateAndChdirToWorkDir("init_source")
 
 	// Init with a source body path.
-	if err := fr.ExecCommand(fmt.Sprintf("qri init --name init_source --source-body-path %s", sourceFile)); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, fmt.Sprintf("qri init --name init_source --source-body-path %s", sourceFile))
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -1032,20 +818,13 @@ func TestInitWithSourceBodyPath(t *testing.T) {
   "type": "array"
  }
 }`
-	structureText, err := ioutil.ReadFile(filepath.Join(workDir, "structure.json"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(expectText, string(structureText)); diff != "" {
+	structureText := run.MustReadFile(t, filepath.Join(workDir, "structure.json"))
+	if diff := cmp.Diff(expectText, structureText); diff != "" {
 		t.Errorf("structure.json contents (-want +got):\n%s", diff)
 	}
 
 	// Status, check that the working directory has added files.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/init_source]
 
   add: meta (source: meta.json)
@@ -1059,10 +838,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Read body.csv
-	actualBody, err := ioutil.ReadFile("body.csv")
-	if err != nil {
-		t.Fatal(err)
-	}
+	actualBody := run.MustReadFile(t, "body.csv")
 	// TODO(dlong): Fix this test, figure out why lazyQuotes is not detected to be true.
 	expectBody := `english,spanish
 Sunday," domingo"
@@ -1073,28 +849,23 @@ Thursday," jueves"
 Friday," viernes"
 Saturdy," sábado"
 `
-	if err != nil {
-		t.Fatal(err)
-	}
-	if diff := cmp.Diff(expectBody, string(actualBody)); diff != "" {
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("meta.json contents (-want +got):\n%s", diff)
 	}
 }
 
 // Test init with a directory will create that directory
 func TestInitWithDirectory(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_init_with_directory")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_init_with_directory")
+	defer run.Delete()
 
-	fr.ChdirToRoot()
+	run.ChdirToRoot()
 
 	// Init with a directory to create.
-	if err := fr.ExecCommand(fmt.Sprintf("qri init init_dir --name init_dir --format csv")); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, fmt.Sprintf("qri init init_dir --name init_dir --format csv"))
 
 	// Directory has been created by `qri init`
-	workDir := fr.ChdirToWorkDir("init_dir")
+	workDir := run.ChdirToWorkDir("init_dir")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -1104,11 +875,7 @@ func TestInitWithDirectory(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/init_dir]
 
   add: meta (source: meta.json)
@@ -1124,15 +891,13 @@ run ` + "`qri save`" + ` to commit this dataset
 
 // Test making changes, then using diff to see those changes
 func TestDiffAfterChange(t *testing.T) {
-	fr := NewFSITestRunner(t, "qri_test_diff_after_change")
-	defer fr.Delete()
+	run := NewFSITestRunner(t, "qri_test_diff_after_change")
+	defer run.Delete()
 
-	workDir := fr.CreateAndChdirToWorkDir("diff_change")
+	workDir := run.CreateAndChdirToWorkDir("diff_change")
 
 	// Init as a linked directory.
-	if err := fr.ExecCommand("qri init --name diff_change --format csv"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri init --name diff_change --format csv")
 
 	// Verify the directory contains the files that we expect.
 	dirContents := listDirectory(workDir)
@@ -1142,28 +907,18 @@ func TestDiffAfterChange(t *testing.T) {
 	}
 
 	// Save the new dataset.
-	if err := fr.ExecCommand("qri save"); err != nil {
-		t.Fatal(err)
-	}
+	run.MustExec(t, "qri save")
 
 	// Modify meta.json with a title.
-	if err := ioutil.WriteFile("meta.json", []byte(`{"title": "hello"}`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Modify body.csv.
-	if err := ioutil.WriteFile("body.csv", []byte(`lucky,number,17
+	run.MustWriteFile(t, "body.csv", `lucky,number,17
 four,five,321
-`), os.ModePerm); err != nil {
-		t.Fatal(err)
-	}
+`)
 
 	// Status to see changes
-	if err := fr.ExecCommand("qri status"); err != nil {
-		t.Fatal(err)
-	}
-
-	output := fr.GetCommandOutput()
+	output := run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/diff_change]
 
   modified: meta (source: meta.json)
@@ -1176,11 +931,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Diff to see changes
-	if err := fr.ExecCommand("qri diff"); err != nil {
-		t.Fatal(err)
-	}
-
-	output = fr.GetCommandOutput()
+	output = run.MustExec(t, "qri diff")
 	expect = `for linked dataset [test_peer/diff_change]
 
 +1 element. 1 insert. 0 deletes. 4 updates.
@@ -1197,6 +948,80 @@ meta:
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+}
+
+// Test that if the meta component fails to write, init will rollback
+func TestInitMetaFailsToWrite(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_meta_fail")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("meta_fail")
+
+	// Set the meta component to fail when trying to write it to the filesystem
+	fsi.PrepareToWrite = func(c component.Component) {
+		metaComp := c.Base().GetSubcomponent("meta")
+		if metaComp != nil {
+			meta := metaComp.(*component.MetaComponent)
+			meta.DisableSerialization = true
+		}
+	}
+	defer func() {
+		fsi.PrepareToWrite = func(c component.Component) {}
+	}()
+
+	// Init as a linked directory.
+	err := run.ExecCommand("qri init --name meta_fail --format csv")
+	if err == nil {
+		t.Fatal("expected error trying to init, did not get an error")
+	}
+	expect := `serialization is disabled`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Verify the directory contains no files, since it rolled back.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Init with an explicit child directory.
+	err = run.ExecCommand("qri init --name meta_fail --format csv subdir")
+	if err == nil {
+		t.Fatal("expected error trying to init, did not get an error")
+	}
+
+	// Verify that the sub-directory does not exist.
+	_, err = os.Stat(filepath.Join(workDir, "subdir"))
+	if !os.IsNotExist(err) {
+		t.Errorf("expected \"subdir\" not to exist")
+	}
+}
+
+// Test that if source-body-path doesn't exist, init will rollback
+func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_source_not_found")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("source_not_found")
+
+	// Init as a linked directory.
+	err := run.ExecCommand("qri init --name source_not_found --source-body-path not_found.json")
+	if err == nil {
+		t.Fatal("expected error trying to init, did not get an error")
+	}
+	expect := `open not_found.json: no such file or directory`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Verify the directory contains no files, since it rolled back.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 }
 

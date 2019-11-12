@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
@@ -21,11 +22,29 @@ type InitParams struct {
 	SourceBodyPath string
 }
 
+func concatFunc(f1, f2 func()) func() {
+	return func() {
+		f1()
+		f2()
+	}
+}
+
+// PrepareToWrite is called before init writes the components to the filesystem. Used by tests.
+var PrepareToWrite = func(comp component.Component) {
+	// hook
+}
+
 // InitDataset creates a new dataset
 func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
-	// TODO (ramfox): at each failure, we should ensure we clean up any
-	// file or directory creation by calling either os.Remove(targetPath)
-	// or fsi.Unlink(targetPath, ref.AliasString())
+	// Create a rollback handler
+	rollback := func() {
+		log.Debug("did rollback InitDataset due to error")
+	}
+	defer func() {
+		log.Debug("InitDataset rolling back...")
+		rollback()
+	}()
+
 	if p.Dir == "" {
 		return "", fmt.Errorf("directory is required to initialize a dataset")
 	}
@@ -44,8 +63,24 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		targetPath = filepath.Join(p.Dir, p.Mkdir)
 		// Create the directory. It is not an error for the directory to already exist, as long
 		// as it is not already linked, which is checked below.
-		if err := os.Mkdir(targetPath, os.ModePerm); err != nil {
-			return "", err
+		err := os.Mkdir(targetPath, os.ModePerm)
+		if err != nil {
+			if strings.Contains(err.Error(), "file exists") {
+				// Not an error if directory already exists
+				err = nil
+			} else {
+				return "", err
+			}
+		} else {
+			// If directory was successfully created, add a step to the rollback in case future
+			// steps fail.
+			rollback = concatFunc(
+				func() {
+					log.Debugf("removing directory \"%s\" during rollback", targetPath)
+					if err := os.Remove(targetPath); err != nil {
+						log.Debugf("error while removing directory %s: \"%s\"", targetPath, err)
+					}
+				}, rollback)
 		}
 	}
 
@@ -76,10 +111,14 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 	}
 
 	// Create the link file, containing the dataset reference.
-	if name, err = fsi.CreateLink(targetPath, ref.AliasString()); err != nil {
+	var undo func()
+	if name, undo, err = fsi.CreateLink(targetPath, ref.AliasString()); err != nil {
 		return name, err
 	}
+	// If future steps fail, rollback the link creation.
+	rollback = concatFunc(undo, rollback)
 
+	// Construct the dataset to write to the working directory
 	initDs := &dataset.Dataset{}
 
 	// Add an empty meta.
@@ -124,19 +163,36 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 
 	// Write components of the dataset to the working directory.
 	container := component.ConvertDatasetToComponents(initDs, fsi.repo.Filesystem())
+	PrepareToWrite(container)
 	for _, compName := range component.AllSubcomponentNames() {
 		aComp := container.Base().GetSubcomponent(compName)
 		if aComp != nil {
-			aComp.WriteTo(targetPath)
+			wroteFile, err := aComp.WriteTo(targetPath)
+			if err != nil {
+				return "", err
+			}
+			// If future steps fail, rollback the components that have been written
+			rollback = concatFunc(func() {
+				if wroteFile != "" {
+					log.Debugf("removing file \"%s\" during rollback", wroteFile)
+					if err := os.Remove(wroteFile); err != nil {
+						log.Debugf("error while removing file \"%s\": %s", wroteFile, err)
+					}
+				}
+			}, rollback)
 		}
 	}
 
 	if err = fsi.repo.Logbook().WriteDatasetInit(context.TODO(), ref.Name); err != nil {
 		if err == logbook.ErrNoLogbook {
-			err = nil
+			rollback = func() {}
 			return name, nil
 		}
 		return name, err
+	}
+
+	rollback = func() {
+		// Success, no need to rollback.
 	}
 	return name, nil
 }

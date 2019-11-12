@@ -74,10 +74,10 @@ func WriteComponents(ds *dataset.Dataset, dirPath string, resolver qfs.Filesyste
 }
 
 // WriteComponent writes the component with the given name to the directory
-func WriteComponent(comp component.Component, name string, dirPath string) error {
+func WriteComponent(comp component.Component, name string, dirPath string) (string, error) {
 	aComp := comp.Base().GetSubcomponent(name)
 	if aComp == nil {
-		return nil
+		return "", nil
 	}
 	return aComp.WriteTo(dirPath)
 }

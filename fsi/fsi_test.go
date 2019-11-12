@@ -55,7 +55,7 @@ func TestCreateLink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	link, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	link, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -89,11 +89,11 @@ func TestCreateLinkTwice(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, err = fsi.CreateLink(paths.secondDir, "me/test_second")
+	_, _, err = fsi.CreateLink(paths.secondDir, "me/test_second")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -142,11 +142,11 @@ func TestCreateLinkAlreadyLinked(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	_, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err == nil {
 		t.Errorf("expected an error, did not get one")
 		return
@@ -163,13 +163,13 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 	// Remove the .qri-ref link file, then CreateLink again.
 	os.Remove(filepath.Join(paths.firstDir, ".qri-ref"))
-	_, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err = fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -204,7 +204,7 @@ func TestUpdateLink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -223,7 +223,7 @@ func TestUnlink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
-	_, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
