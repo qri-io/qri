@@ -140,7 +140,7 @@ func TestSaveRun(t *testing.T) {
 		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, true, "dataset saved: peer/movies@/map/QmdKoLw1RFz8SK3GpGN7LBHi2hKVoDPnacJdQuWZmu6PBG\nthis dataset has 1 validation errors\n", "", ""},
 		{"no changes detected", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, true, "", "error saving: no changes detected", ""},
 		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmcEF5R1ga5ny1AKxUurnYgbvV4Ai4Me9DdQPSrPuTSro2\nthis dataset has 1 validation errors\n", "", ""},
-		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmUB93dHg3e4mnCe95dejk9Zwh18tw8BP1GcLpaFQYygaP\nthis dataset has 1 validation errors\n", "", ""},
+		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmZac6Ue13TWYxdFvY9nGiEkjkCnc8XvdQDJ95SsAyB6hN\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
