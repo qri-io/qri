@@ -15,13 +15,13 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multihash"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/dsdiff"
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/base/dsdiff"
 )
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,

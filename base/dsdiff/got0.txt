@@ -1,0 +1,5 @@
+ {
+-  "format": "abc",
++  "format": "new thing",
+   "qri": ""
+ }

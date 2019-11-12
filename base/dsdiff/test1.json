@@ -1,0 +1,330 @@
+{
+  "version": 1,
+  "width": 105,
+  "height": 59,
+  "duration": 33.526706,
+  "command": null,
+  "title": null,
+  "env": {
+    "TERM": "xterm-256color",
+    "SHELL": "/bin/bash"
+  },
+  "stdout": [
+    [
+      0.026395,
+      "\u001b[?1034hbash-3.2$ "
+    ],
+    [
+      5.633419,
+      "l"
+    ],
+    [
+      0.037844,
+      "s"
+    ],
+    [
+      0.088109,
+      " "
+    ],
+    [
+      0.189157,
+      "-"
+    ],
+    [
+      0.237423,
+      "l"
+    ],
+    [
+      0.299476,
+      "\r\n"
+    ],
+    [
+      0.00822,
+      "total 64\r\n"
+    ],
+    [
+      0.000368,
+      "-rw-r--r--   1 osterbit  staff  1063 Jan 16 13:23 LICENSE\r\n-rw-r--r--   1 osterbit  staff   847 Jan 23 12:24 README.md\r\n-rw-r--r--   1 osterbit  staff   137 Jan 23 12:24 codecov.yml\r\n-rw-r--r--   1 osterbit  staff  5571 Jan 29 15:32 coverage.out\r\n-rw-r--r--   1 osterbit  staff  8127 Jan 31 10:50 datasetDiffer.go\r\n-rw-r--r--   1 osterbit  staff  3740 Jan 31 10:50 datasetDiffer_test.go\r\n-rw-r--r--   1 osterbit  staff     0 Jan 31 11:14 test1.json\r\n"
+    ],
+    [
+      0.000214,
+      "drwxr-xr-x  11 osterbit  staff   352 Jan 29 18:03 \u001b[1m\u001b[36mtestdata\u001b[39;49m\u001b[0m\r\n"
+    ],
+    [
+      0.0032,
+      "bash-3.2$ "
+    ],
+    [
+      3.332894,
+      "l"
+    ],
+    [
+      1.593841,
+      "f"
+    ],
+    [
+      0.121033,
+      " "
+    ],
+    [
+      10.025224,
+      "\r\n"
+    ],
+    [
+      0.095662,
+      "\u001b[?1049h\u001b[?1h\u001b=\u001b[?25l\u001b[H\u001b[2J"
+    ],
+    [
+      0.009655,
+      "\u001b(B\u001b[m\u001b[38;5;2m\u001b[1m\u001b[1;1Hosterbit@tom-laptop.local\u001b(B\u001b[m:\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m~/go/src/github.com/qri-io/datasetDiffer\u001b(B\u001b[m\u001b[1m\u001b[2;3Hloading...\u001b[2;20Hloading...\u001b(B\u001b[m\u001b[59;103H0/0\u001b[2;18H"
+    ],
+    [
+      0.000592,
+      "\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7m\u001b[2;19H testdata                       \u001b(B\u001b[m\u001b[3;20Hcodecov.yml\u001b[4;20Hcoverage.out\u001b[5;20HdatasetDiffer.go\u001b[6;20HdatasetDiffer_test.go\u001b[7;20HLICENSE\u001b[8;20HREADME.md\u001b[9;20Htest1.json\u001b[59;103H1\u001b[59;105H8\u001b[2;18H"
+    ],
+    [
+      0.000696,
+      "\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[2;2H _jsonschema   \u001b[3;2H analytics     \u001b[4;2H bleve         \u001b[5;2H cafs          \u001b[6;2H castore       \u001b[7;2H compare       \u001b[8;2H data_managemen\u001b[9;2H dataset       \u001b[10;2H dataset_sql   \u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7m\u001b[11;2H datasetDiffer \u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[12;2H differ        \u001b[13;2H doggos        \u001b[14;2H jsonpointer   \u001b[15;2H jsonschema    \u001b[16;2H jsontable     \u001b[17;2H qri           \u001b[18;2H qri-python    \u001b[19;2H varName       \u001b[2;18H"
+    ],
+    [
+      0.002232,
+      "\u001b[2;18H"
+    ],
+    [
+      0.000666,
+      "\u001b(B\u001b[m\u001b[7m\u001b[2;53H newData.json                                       \u001b(B\u001b[m\u001b[3;54HnewDescription.json\u001b[4;54HnewStructure.json\u001b[5;54HnewTitle.json\u001b[6;54HnewTransform.json\u001b[7;54HnewVisConfig.json\u001b[8;54Horig.json\u001b[9;54HstructureJsonSchemaNew.json\u001b[10;54HstructureJsonSchemaOrig.json\u001b[2;18H"
+    ],
+    [
+      4.3e-05,
+      "\u001b[H\u001b[2J"
+    ],
+    [
+      0.001005,
+      "\u001b(B\u001b[m\u001b[38;5;2m\u001b[1m\u001b[1;1Hosterbit@tom-laptop.local\u001b(B\u001b[m:\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m~/go/src/github.com/qri-io/datasetDiffer\u001b[2;2H _jsonschema   \u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7m\u001b[2;19H testdata                       \u001b(B\u001b[m\u001b[7m\u001b[2;53H newData.json                                       \u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[3;2H analytics     \u001b(B\u001b[m\u001b[3;20Hcodecov.yml\u001b[3;54HnewDescription.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[4;2H bleve         \u001b(B\u001b[m\u001b[4;20Hcoverage.out\u001b[4;54HnewStructure.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[5;2H cafs          \u001b(B\u001b[m\u001b[5;20HdatasetDiffer.go\u001b[5;54HnewTitle.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[6;2H castore       \u001b(B\u001b[m\u001b[6;20HdatasetDiffer_test.go\u001b[6;54HnewTransform.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7;2H compare       \u001b(B\u001b[m\u001b[7;20HLICENSE\u001b[7;54HnewVisConfig.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[8;2H data_managemen\u001b(B\u001b[m\u001b[8;20HREADME.md\u001b[8;54Horig.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[9;2H dataset       \u001b(B\u001b[m\u001b[9;20Htest1.json\u001b[9;54HstructureJsonSchemaNew.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[10;2H dataset_sql   \u001b(B\u001b[m\u001b[10;54HstructureJsonSchemaOrig.json\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7m\u001b[11;2H datasetDiffer \u001b(B"
+    ],
+    [
+      0.001635,
+      "\u001b[m\u001b[38;5;4m\u001b[1m\u001b[12;2H differ        \u001b[13;2H doggos        \u001b[14;2H jsonpointer   \u001b[15;2H jsonschema    \u001b[16;2H jsontable     \u001b[17;2H qri           \u001b[18;2H qri-python    \u001b[19;2H varName       \u001b(B\u001b[m\u001b[59;103H1/8"
+    ],
+    [
+      4.1e-05,
+      "\u001b[2;18H"
+    ],
+    [
+      0.000235,
+      "\u001b[2;18H"
+    ],
+    [
+      0.001052,
+      "\u001b[2;18H"
+    ],
+    [
+      0.00211,
+      "\u001b[2;18H"
+    ],
+    [
+      0.011306,
+      "\u001b[2;18H"
+    ],
+    [
+      0.242077,
+      "\u001b[2;18H"
+    ],
+    [
+      1.144176,
+      "\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[1;67H/testdata\u001b(B\u001b[m\u001b[38;5;4m\u001b[1m\u001b[7m\u001b[2;2H testdata      \u001b(B\u001b[m\u001b[7m\u001b[2;19H newData.json                   \u001b(B\u001b[m\u001b[2;53H \u001b(B\u001b[m\u001b[1mloading...\u001b(B\u001b[m                                         \u001b[3;2H codecov.yml   \u001b[3;20HnewDescription.json\u001b[3;54H                   \u001b[4;2H coverage.out  \u001b[4;20HnewStructure.json\u001b[4;54H                 \u001b[5;2H datasetDiffer.\u001b[5;20HnewTitle.json   \u001b[5;54H             \u001b[6;2H datasetDiffer_\u001b[6;20HnewTransform.json    \u001b[6;54H                 \u001b[7;2H LICENSE       \u001b[7;20HnewVisConfig.json\u001b[7;54H                 \u001b[8;2H README.md     \u001b[8;20Horig.json\u001b[8;54H         \u001b[9;2H test1.json    \u001b[9;20HstructureJsonSchemaNew.json\u001b[9;54H                           \u001b[10;2H               \u001b[10;20HstructureJsonSchemaOrig.json\u001b[10;54H                            \u001b[11;2H               \u001b[12;2H               \u001b[13;2H               \u001b[14;2H               \u001b[15;2H               \u001b[16;2H               \u001b[17;2H               \u001b[18;2H               \u001b[19;2H               \u001b[59;1H-rw-r--r--\u001b[59;12H1.0K\u001b[59"
+    ],
+    [
+      0.001795,
+      ";17HMon\u001b[59;21HJan\u001b[59;25H29\u001b[59;28H18:03:47\u001b[59;37H2018\u001b[59;105H9\u001b[2;18H"
+    ],
+    [
+      0.000162,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abcdefg\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"transform\":\u001b[15;71H{\u001b[16;60H\"Syntax\":\u001b[16;70H\"sql\",\u001b[17;60H\"Data\":\u001b[17;68H\"def\"\u001b[18;58H},\u001b[19;58H\"Commit\":\u001b[19;68H{\u001b[20;60H\"title\":\u001b[20;69H\"abc\"\u001b[21;58H},\u001b[22;58H\"PreviousPath\":\u001b[22;74H\"\",\u001b[23;58H\"schema\":\u001b[23;68H{\u001b[24;60H\"items\":\u001b[24;69H{\u001b[25;62H\"items\":\u001b[25;71H[\u001b[26;64H{\u001b[27;66H\"title\":\u001b[27;75H\"rank\",\u001b[28;66H\"type\":\u001b[28;74H\"integer\"\u001b[29;64H},\u001b[30;64H{\u001b[31;66H\"title\":\u001b[31;75H\"probability_of_automation\",\u001b[32;66H\"type\":\u001b[32;74H\"number\"\u001b[33;64H},\u001b[34;64H{\u001b[35;66H\"title\":\u001b[35;75H\"soc_code\",\u001b[36;66H\"type\":\u001b[36;74H\"string\"\u001b[37;64H},\u001b[38;64H{\u001b[39;66H\"title\":\u001b[39;75H\"job_title\",\u001b[40;66H\"type\":\u001b[40;74H\"string\"\u001b[41;64H}\u001b[42;62H]"
+    ],
+    [
+      0.000172,
+      ",\u001b[43;62H\"type\":\u001b[43;70H\"array\"\u001b[44;60H},\u001b[45;60H\"type\":\u001b[45;68H\"array\"\u001b[46;58H}\u001b[47;56H},\u001b[48;56H\"meta\":\u001b[48;64H{\u001b[49;58H\"title\":\u001b[49;67H\"abc\",\u001b[50;58H\"description\":\u001b[50;73H\"I\u001b[50;76Ham\u001b[50;79Ha\u001b[50;81Hdataset\"\u001b[51;56H},\u001b[52;56H\"visConfig\":\u001b[52;69H{\u001b[53;58H\"format\":\u001b[53;68H\"abc\"\u001b[54;56H}\u001b[55;54H}\u001b[2;18H"
+    ],
+    [
+      0.842757,
+      "\u001b[2;19H newData.json                   \u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[7m\u001b[3;19H newDescription.json            \u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H          \u001b[5;56H       \u001b[5;64H      \u001b[6;56H            \u001b[6;69H \u001b[7;58H           \u001b[7;70H                                    \u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H            \u001b[15;71H \u001b[16;60H         \u001b[16;70H      \u001b[17;60H       \u001b[17;68H     \u001b[18;58H  \u001b[19;58H         \u001b[19;68H \u001b[20;60H        \u001b[20;69H     \u001b[21;58H  \u001b[22;58H               \u001b[22;74H   \u001b[23;58H         \u001b[23;68H \u001b[24;60H        \u001b[24;69H \u001b[25;62H        \u001b[25;71H \u001b[26;64H \u001b[27;66H        \u001b[27;75H       \u001b[28;66H       \u001b[28;74H         \u001b[29;64H  \u001b[30;64H \u001b[31;66H        \u001b[31;75H                            \u001b[32;66H       \u001b[32;74H        \u001b[33;64H  \u001b[34;64H \u001b[35;66H        \u001b[35;75H           \u001b[36;66H       \u001b[36;74H        "
+    ],
+    [
+      6.1e-05,
+      "\u001b[37;64H  \u001b[38;64H \u001b[39;66H        \u001b[39;75H            \u001b[40;66H       \u001b[40;74H        \u001b[41;64H \u001b[42;62H  \u001b[43;62H       \u001b[43;70H       \u001b[44;60H  \u001b[45;60H       \u001b[45;68H       \u001b[46;58H \u001b[47;56H  \u001b[48;56H       \u001b[48;64H \u001b[49;58H        \u001b[49;67H      \u001b[50;58H              \u001b[50;73H  \u001b[50;76H  \u001b[50;79H \u001b[50;81H        \u001b[51;56H  \u001b[52;56H            \u001b[52;69H \u001b[53;58H         \u001b[53;68H     \u001b[54;56H \u001b[55;54H \u001b[59;12H886B\u001b[59;103H2\u001b[3;18H"
+    ],
+    [
+      0.000756,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"schema\":\u001b[15;68H{\u001b[16;60H\"items\":\u001b[16;69H{\u001b[17;62H\"items\":\u001b[17;71H[\u001b[18;64H{\u001b[19;66H\"title\":\u001b[19;75H\"rank\",\u001b[20;66H\"type\":\u001b[20;74H\"integer\"\u001b[21;64H},\u001b[22;64H{\u001b[23;66H\"title\":\u001b[23;75H\"probability_of_automation\",\u001b[24;66H\"type\":\u001b[24;74H\"number\"\u001b[25;64H},\u001b[26;64H{\u001b[27;66H\"title\":\u001b[27;75H\"soc_code\",\u001b[28;66H\"type\":\u001b[28;74H\"string\"\u001b[29;64H},\u001b[30;64H{\u001b[31;66H\"title\":\u001b[31;75H\"job_title\",\u001b[32;66H\"type\":\u001b[32;74H\"string\"\u001b[33;64H}\u001b[34;62H],\u001b[35;62H\"type\":\u001b[35;70H\"array\"\u001b[36;60H},\u001b[37;60H\"type\":\u001b[37;68H\"array\"\u001b[38;58H}\u001b[39;56H},\u001b[40;56H\"meta\":\u001b[40;64H{\u001b[41;58H\"title\":\u001b[41;67H\"abc\",\u001b[42;58H\"description\":\u001b[42;73H\"I\u001b[42;76Ham\u001b[42;79Ha\u001b[42;8"
+    ],
+    [
+      3.9e-05,
+      "1Hnew\u001b[42;85Hdescription\"\u001b[43;56H},\u001b[44;56H\"visConfig\":\u001b[44;69H{\u001b[45;58H\"format\":\u001b[45;68H\"abc\"\u001b[46;56H}\u001b[47;54H}\u001b[3;18H"
+    ],
+    [
+      0.310195,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;19H newDescription.json            \u001b[3;56H       \u001b[3;64H           \u001b(B\u001b[m\u001b[7m\u001b[4;19H newStructure.json              \u001b(B\u001b[m\u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;56H            \u001b[6;69H \u001b[7;58H           \u001b[7;70H                                    \u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H         \u001b[15;68H \u001b[16;60H        \u001b[16;69H \u001b[17;62H        \u001b[17;71H \u001b[18;64H \u001b[19;66H        \u001b[19;75H       \u001b[20;66H       \u001b[20;74H         \u001b[21;64H  \u001b[22;64H \u001b[23;66H        \u001b[23;75H                            \u001b[24;66H       \u001b[24;74H        \u001b[25;64H  \u001b[26;64H \u001b[27;66H        \u001b[27;75H           \u001b[28;66H       \u001b[28;74H        \u001b[29;64H  \u001b[30;64H \u001b[31;66H        \u001b[31;75H            \u001b[32;66H       \u001b[32;74H        \u001b[33;64H \u001b[34;62H  \u001b[35;62H       \u001b[35;70H       \u001b[36;60H  \u001b[37;60H       \u001b[37;68H       \u001b[38;58H \u001b[39;56H  \u001b"
+    ],
+    [
+      7.2e-05,
+      "[40;56H       \u001b[40;64H \u001b[41;58H        \u001b[41;67H      \u001b[42;58H              \u001b[42;73H  \u001b[42;76H  \u001b[42;79H \u001b[42;81H   \u001b[42;85H            \u001b[43;56H  \u001b[44;56H            \u001b[44;69H \u001b[45;58H         \u001b[45;68H     \u001b[46;56H \u001b[47;54H \u001b[59;13H72\u001b[59;103H3\u001b[4;18H"
+    ],
+    [
+      0.001478,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H35,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"schema\":\u001b[15;68H{\u001b[16;60H\"items\":\u001b[16;69H{\u001b[17;62H\"items\":\u001b[17;71H[\u001b[18;64H{\u001b[19;66H\"title\":\u001b[19;75H\"ranking\",\u001b[20;66H\"type\":\u001b[20;74H\"integer\"\u001b[21;64H},\u001b[22;64H{\u001b[23;66H\"title\":\u001b[23;75H\"prob_of_automation\",\u001b[24;66H\"type\":\u001b[24;74H\"number\"\u001b[25;64H},\u001b[26;64H{\u001b[27;66H\"title\":\u001b[27;75H\"soc_code\",\u001b[28;66H\"type\":\u001b[28;74H\"string\"\u001b[29;64H},\u001b[30;64H{\u001b[31;66H\"title\":\u001b[31;75H\"job_title\",\u001b[32;66H\"type\":\u001b[32;74H\"string\"\u001b[33;64H}\u001b[34;62H],\u001b[35;62H\"type\":\u001b[35;70H\"array\"\u001b[36;60H},\u001b[37;60H\"type\":\u001b[37;68H\"array\"\u001b[38;58H}\u001b[39;56H},\u001b[40;56H\"meta\":\u001b[40;64H{\u001b[41;58H\"title\":\u001b[41;67H\"abc\",\u001b[42;58H\"description\":\u001b[42;73H\"I\u001b[42;76Ham\u001b[42;79Ha\u001b[42;81Hda"
+    ],
+    [
+      0.000101,
+      "taset\"\u001b[43;56H},\u001b[44;56H\"visConfig\":\u001b[44;69H{\u001b[45;58H\"format\":\u001b[45;68H\"abc\"\u001b[46;56H}\u001b[47;54H}\u001b[4;18H"
+    ],
+    [
+      0.208876,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;19H newStructure.json              \u001b[4;56H           \u001b[4;68H      \u001b(B\u001b[m\u001b[7m\u001b[5;19H newTitle.json                  \u001b(B\u001b[m\u001b[5;56H       \u001b[5;64H      \u001b[6;56H            \u001b[6;69H \u001b[7;58H           \u001b[7;70H                                    \u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H         \u001b[15;68H \u001b[16;60H        \u001b[16;69H \u001b[17;62H        \u001b[17;71H \u001b[18;64H \u001b[19;66H        \u001b[19;75H          \u001b[20;66H       \u001b[20;74H         \u001b[21;64H  \u001b[22;64H \u001b[23;66H        \u001b[23;75H                     \u001b[24;66H       \u001b[24;74H        \u001b[25;64H  \u001b[26;64H \u001b[27;66H        \u001b[27;75H           \u001b[28;66H       \u001b[28;74H        \u001b[29;64H  \u001b[30;64H \u001b[31;66H        \u001b[31;75H            \u001b[32;66H       \u001b[32;74H        \u001b[33;64H \u001b[34;62H  \u001b[35;62H       \u001b[35;70H       \u001b[36;60H  \u001b[37;60H       \u001b[37;68H       \u001b[38;58H \u001b[39;56H  \u001b[40;"
+    ],
+    [
+      4e-05,
+      "56H       \u001b[40;64H \u001b[41;58H        \u001b[41;67H      \u001b[42;58H              \u001b[42;73H  \u001b[42;76H  \u001b[42;79H \u001b[42;81H        \u001b[43;56H  \u001b[44;56H            \u001b[44;69H \u001b[45;58H         \u001b[45;68H     \u001b[46;56H \u001b[47;54H \u001b[59;13H89\u001b[59;103H4\u001b[5;18H"
+    ],
+    [
+      0.001449,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"schema\":\u001b[15;68H{\u001b[16;60H\"items\":\u001b[16;69H{\u001b[17;62H\"items\":\u001b[17;71H[\u001b[18;64H{\u001b[19;66H\"title\":\u001b[19;75H\"rank\",\u001b[20;66H\"type\":\u001b[20;74H\"integer\"\u001b[21;64H},\u001b[22;64H{\u001b[23;66H\"title\":\u001b[23;75H\"probability_of_automation\",\u001b[24;66H\"type\":\u001b[24;74H\"number\"\u001b[25;64H},\u001b[26;64H{\u001b[27;66H\"title\":\u001b[27;75H\"soc_code\",\u001b[28;66H\"type\":\u001b[28;74H\"string\"\u001b[29;64H},\u001b[30;64H{\u001b[31;66H\"title\":\u001b[31;75H\"job_title\",\u001b[32;66H\"type\":\u001b[32;74H\"string\"\u001b[33;64H}\u001b[34;62H],\u001b[35;62H\"type\":\u001b[35;70H\"array\"\u001b[36;60H},\u001b[37;60H\"type\":\u001b[37;68H\"array\"\u001b[38;58H}\u001b[39;56H},\u001b[40;56H\"meta\":\u001b[40;64H{\u001b[41;58H\"title\":\u001b[41;67H\"Data\u001b[41;73HData\u001b[41;78HData\",\u001b[42;58H\"description\":\u001b[42;73H\"I"
+    ],
+    [
+      4.2e-05,
+      "\u001b[42;76Ham\u001b[42;79Ha\u001b[42;81Hdataset\"\u001b[43;56H},\u001b[44;56H\"visConfig\":\u001b[44;69H{\u001b[45;58H\"format\":\u001b[45;68H\"abc\"\u001b[46;56H}\u001b[47;54H}\u001b[5;18H"
+    ],
+    [
+      0.593607,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;19H newTitle.json                  \u001b[5;56H       \u001b[5;64H      \u001b(B\u001b[m\u001b[7m\u001b[6;19H newTransform.json              \u001b(B\u001b[m\u001b[6;56H            \u001b[6;69H \u001b[7;58H           \u001b[7;70H                                    \u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H         \u001b[15;68H \u001b[16;60H        \u001b[16;69H \u001b[17;62H        \u001b[17;71H \u001b[18;64H \u001b[19;66H        \u001b[19;75H       \u001b[20;66H       \u001b[20;74H         \u001b[21;64H  \u001b[22;64H \u001b[23;66H        \u001b[23;75H                            \u001b[24;66H       \u001b[24;74H        \u001b[25;64H  \u001b[26;64H \u001b[27;66H        \u001b[27;75H           \u001b[28;66H       \u001b[28;74H        \u001b[29;64H  \u001b[30;64H \u001b[31;66H        \u001b[31;75H            \u001b[32;66H       \u001b[32;74H        \u001b[33;64H \u001b[34;62H  \u001b[35;62H       \u001b[35;70H       \u001b[36;60H  \u001b[37;60H       \u001b[37;68H       \u001b[38;58H \u001b[39;56H  \u001b"
+    ],
+    [
+      0.000897,
+      "[40;56H       \u001b[40;64H \u001b[41;58H        \u001b[41;67H     \u001b[41;73H    \u001b[41;78H      \u001b[42;58H              \u001b[42;73H  \u001b[42;76H  \u001b[42;79H \u001b[42;81H        \u001b[43;56H  \u001b[44;56H            \u001b[44;69H \u001b[45;58H         \u001b[45;68H     \u001b[46;56H \u001b[47;54H \u001b[59;12H1.0K\u001b[59;103H5\u001b[6;18H"
+    ],
+    [
+      0.000519,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"transform\":\u001b[15;71H{\u001b[16;60H\"syntax\":\u001b[16;70H\"python\",\u001b[17;60H\"data\":\u001b[17;68H\"abc\",\u001b[18;60H\"config\":\u001b[18;70H{\u001b[19;62H\"new_option\":\u001b[19;76H\"new_value\"\u001b[20;60H}\u001b[21;58H},\u001b[22;58H\"Commit\":\u001b[22;68H{\u001b[23;60H\"title\":\u001b[23;69H\"abc\"\u001b[24;58H},\u001b[25;58H\"PreviousPath\":\u001b[25;74H\"\",\u001b[26;58H\"schema\":\u001b[26;68H{\u001b[27;60H\"items\":\u001b[27;69H{\u001b[28;62H\"items\":\u001b[28;71H[\u001b[29;64H{\u001b[30;66H\"title\":\u001b[30;75H\"rank\",\u001b[31;66H\"type\":\u001b[31;74H\"integer\"\u001b[32;64H},\u001b[33;64H{\u001b[34;66H\"title\":\u001b[34;75H\"probability_of_automation\",\u001b[35;66H\"type\":\u001b[35;74H\"number\"\u001b[36;64H},\u001b[37;64H{\u001b[38;66H\"title\":\u001b[38;75H\"soc_code\",\u001b[39;66H\"type\":\u001b[39;74H\"string\"\u001b[40;64H},\u001b[41;64H{\u001b[42;66H\"t"
+    ],
+    [
+      0.000106,
+      "itle\":\u001b[42;75H\"job_title\",\u001b[43;66H\"type\":\u001b[43;74H\"string\"\u001b[44;64H}\u001b[45;62H],\u001b[46;62H\"type\":\u001b[46;70H\"array\"\u001b[47;60H},\u001b[48;60H\"type\":\u001b[48;68H\"array\"\u001b[49;58H}\u001b[50;56H},\u001b[51;56H\"meta\":\u001b[51;64H{\u001b[52;58H\"title\":\u001b[52;67H\"abc\",\u001b[53;58H\"description\":\u001b[53;73H\"I\u001b[53;76Ham\u001b[53;79Ha\u001b[53;81Hdataset\"\u001b[54;56H},\u001b[55;56H\"visConfig\":\u001b[55;69H{\u001b[56;58H\"format\":\u001b[56;68H\"abc\"\u001b[57;56H}\u001b[58;54H}\u001b[6;18H"
+    ],
+    [
+      0.242207,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;19H newTransform.json              \u001b[6;56H            \u001b[6;69H \u001b(B\u001b[m\u001b[7m\u001b[7;19H newVisConfig.json              \u001b(B\u001b[m\u001b[7;58H           \u001b[7;70H                                    \u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H            \u001b[15;71H \u001b[16;60H         \u001b[16;70H         \u001b[17;60H       \u001b[17;68H      \u001b[18;60H         \u001b[18;70H \u001b[19;62H             \u001b[19;76H           \u001b[20;60H \u001b[21;58H  \u001b[22;58H         \u001b[22;68H \u001b[23;60H        \u001b[23;69H     \u001b[24;58H  \u001b[25;58H               \u001b[25;74H   \u001b[26;58H         \u001b[26;68H \u001b[27;60H        \u001b[27;69H \u001b[28;62H        \u001b[28;71H \u001b[29;64H \u001b[30;66H        \u001b[30;75H       \u001b[31;66H       \u001b[31;74H         \u001b[32;64H  \u001b[33;64H \u001b[34;66H        \u001b[34;75H                            \u001b[35;66H       \u001b[35;74H        \u001b[36"
+    ],
+    [
+      4.9e-05,
+      ";64H  \u001b[37;64H \u001b[38;66H        \u001b[38;75H           \u001b[39;66H       \u001b[39;74H        \u001b[40;64H  \u001b[41;64H \u001b[42;66H        \u001b[42;75H            \u001b[43;66H       \u001b[43;74H        \u001b[44;64H \u001b[45;62H  \u001b[46;62H       \u001b[46;70H       \u001b[47;60H  \u001b[48;60H       \u001b[48;68H       \u001b[49;58H \u001b[50;56H  \u001b[51;56H       \u001b[51;64H \u001b[52;58H        \u001b[52;67H      \u001b[53;58H              \u001b[53;73H  \u001b[53;76H  \u001b[53;79H \u001b[53;81H        \u001b[54;56H  \u001b[55;56H            \u001b[55;69H \u001b[56;58H         \u001b[56;68H     \u001b[57;56H \u001b[58;54H \u001b[59;103H6\u001b[7;18H"
+    ],
+    [
+      0.001536,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"transform\":\u001b[15;71H{\u001b[16;60H\"Syntax\":\u001b[16;70H\"python\",\u001b[17;60H\"Data\":\u001b[17;68H\"abc\"\u001b[18;58H},\u001b[19;58H\"Commit\":\u001b[19;68H{\u001b[20;60H\"title\":\u001b[20;69H\"abc\"\u001b[21;58H},\u001b[22;58H\"PreviousPath\":\u001b[22;74H\"\",\u001b[23;58H\"schema\":\u001b[23;68H{\u001b[24;60H\"items\":\u001b[24;69H{\u001b[25;62H\"items\":\u001b[25;71H[\u001b[26;64H{\u001b[27;66H\"title\":\u001b[27;75H\"rank\",\u001b[28;66H\"type\":\u001b[28;74H\"integer\"\u001b[29;64H},\u001b[30;64H{\u001b[31;66H\"title\":\u001b[31;75H\"probability_of_automation\",\u001b[32;66H\"type\":\u001b[32;74H\"number\"\u001b[33;64H},\u001b[34;64H{\u001b[35;66H\"title\":\u001b[35;75H\"soc_code\",\u001b[36;66H\"type\":\u001b[36;74H\"string\"\u001b[37;64H},\u001b[38;64H{\u001b[39;66H\"title\":\u001b[39;75H\"job_title\",\u001b[40;66H\"type\":\u001b[40;74H\"string\"\u001b[41;64H}\u001b[42;62H],"
+    ],
+    [
+      3.9e-05,
+      "\u001b[43;62H\"type\":\u001b[43;70H\"array\"\u001b[44;60H},\u001b[45;60H\"type\":\u001b[45;68H\"array\"\u001b[46;58H}\u001b[47;56H},\u001b[48;56H\"meta\":\u001b[48;64H{\u001b[49;58H\"title\":\u001b[49;67H\"abc\",\u001b[50;58H\"description\":\u001b[50;73H\"I\u001b[50;76Ham\u001b[50;79Ha\u001b[50;81Hdataset\"\u001b[51;56H},\u001b[52;56H\"visConfig\":\u001b[52;69H{\u001b[53;58H\"format\":\u001b[53;68H\"new\u001b[53;73Hthing\"\u001b[54;56H}\u001b[55;54H}\u001b[7;18H"
+    ],
+    [
+      0.203278,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;56H            \u001b[6;69H \u001b[7;19H newVisConfig.json              \u001b[7;58H           \u001b[7;70H                                    \u001b(B\u001b[m\u001b[7m\u001b[8;19H orig.json                      \u001b(B\u001b[m\u001b[8;58H          \u001b[8;69H   \u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H            \u001b[15;71H \u001b[16;60H         \u001b[16;70H         \u001b[17;60H       \u001b[17;68H     \u001b[18;58H  \u001b[19;58H         \u001b[19;68H \u001b[20;60H        \u001b[20;69H     \u001b[21;58H  \u001b[22;58H               \u001b[22;74H   \u001b[23;58H         \u001b[23;68H \u001b[24;60H        \u001b[24;69H \u001b[25;62H        \u001b[25;71H \u001b[26;64H \u001b[27;66H        \u001b[27;75H       \u001b[28;66H       \u001b[28;74H         \u001b[29;64H  \u001b[30;64H \u001b[31;66H        \u001b[31;75H                            \u001b[32;66H       \u001b[32;74H        \u001b[33;64H  \u001b[34;64H \u001b[35;66H        \u001b[35;75H           \u001b[36;66H       \u001b[36;74H   "
+    ],
+    [
+      3.9e-05,
+      "     \u001b[37;64H  \u001b[38;64H \u001b[39;66H        \u001b[39;75H            \u001b[40;66H       \u001b[40;74H        \u001b[41;64H \u001b[42;62H  \u001b[43;62H       \u001b[43;70H       \u001b[44;60H  \u001b[45;60H       \u001b[45;68H       \u001b[46;58H \u001b[47;56H  \u001b[48;56H       \u001b[48;64H \u001b[49;58H        \u001b[49;67H      \u001b[50;58H              \u001b[50;73H  \u001b[50;76H  \u001b[50;79H \u001b[50;81H        \u001b[51;56H  \u001b[52;56H            \u001b[52;69H \u001b[53;58H         \u001b[53;68H    \u001b[53;73H      \u001b[54;56H \u001b[55;54H \u001b[59;103H7\u001b[8;18H"
+    ],
+    [
+      0.001507,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"transform\":\u001b[15;71H{\u001b[16;60H\"syntax\":\u001b[16;70H\"python\",\u001b[17;60H\"data\":\u001b[17;68H\"abc\",\u001b[18;60H\"config\":\u001b[18;70H{\u001b[19;62H\"option\":\u001b[19;72H\"value\"\u001b[20;60H}\u001b[21;58H},\u001b[22;58H\"Commit\":\u001b[22;68H{\u001b[23;60H\"title\":\u001b[23;69H\"abc\"\u001b[24;58H},\u001b[25;58H\"PreviousPath\":\u001b[25;74H\"\",\u001b[26;58H\"schema\":\u001b[26;68H{\u001b[27;60H\"items\":\u001b[27;69H{\u001b[28;62H\"items\":\u001b[28;71H[\u001b[29;64H{\u001b[30;66H\"title\":\u001b[30;75H\"rank\",\u001b[31;66H\"type\":\u001b[31;74H\"integer\"\u001b[32;64H},\u001b[33;64H{\u001b[34;66H\"title\":\u001b[34;75H\"probability_of_automation\",\u001b[35;66H\"type\":\u001b[35;74H\"number\"\u001b[36;64H},\u001b[37;64H{\u001b[38;66H\"title\":\u001b[38;75H\"soc_code\",\u001b[39;66H\"type\":\u001b[39;74H\"string\"\u001b[40;64H},\u001b[41;64H{\u001b[42;66H\"title\":\u001b["
+    ],
+    [
+      8e-05,
+      "42;75H\"job_title\",\u001b[43;66H\"type\":\u001b[43;74H\"string\"\u001b[44;64H}\u001b[45;62H],\u001b[46;62H\"type\":\u001b[46;70H\"array\"\u001b[47;60H},\u001b[48;60H\"type\":\u001b[48;68H\"array\"\u001b[49;58H}\u001b[50;56H},\u001b[51;56H\"meta\":\u001b[51;64H{\u001b[52;58H\"title\":\u001b[52;67H\"abc\",\u001b[53;58H\"description\":\u001b[53;73H\"I\u001b[53;76Ham\u001b[53;79Ha\u001b[53;81Hdataset\"\u001b[54;56H},\u001b[55;56H\"visConfig\":\u001b[55;69H{\u001b[56;58H\"format\":\u001b[56;68H\"abc\"\u001b[57;56H}\u001b[58;54H}\u001b[8;18H"
+    ],
+    [
+      0.233781,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;56H            \u001b[6;69H \u001b[7;58H           \u001b[7;70H                                    \u001b[8;19H orig.json                      \u001b[8;58H          \u001b[8;69H   \u001b(B\u001b[m\u001b[7m\u001b[9;19H structureJsonSchemaNew.json    \u001b(B\u001b[m\u001b[9;58H         \u001b[9;68H      \u001b[10;58H               \u001b[10;74H \u001b[11;60H            \u001b[11;73H    \u001b[12;58H  \u001b[13;58H         \u001b[13;68H     \u001b[14;58H      \u001b[14;65H       \u001b[15;58H            \u001b[15;71H \u001b[16;60H         \u001b[16;70H         \u001b[17;60H       \u001b[17;68H      \u001b[18;60H         \u001b[18;70H \u001b[19;62H         \u001b[19;72H       \u001b[20;60H \u001b[21;58H  \u001b[22;58H         \u001b[22;68H \u001b[23;60H        \u001b[23;69H     \u001b[24;58H  \u001b[25;58H               \u001b[25;74H   \u001b[26;58H         \u001b[26;68H \u001b[27;60H        \u001b[27;69H \u001b[28;62H        \u001b[28;71H \u001b[29;64H \u001b[30;66H        \u001b[30;75H       \u001b[31;66H       \u001b[31;74H         \u001b[32;64H  \u001b[33;64H \u001b[34;66H        \u001b[34;75H                            \u001b[35;66H       \u001b[35;74H        \u001b[36;64H  \u001b["
+    ],
+    [
+      0.000163,
+      "37;64H \u001b[38;66H        \u001b[38;75H           \u001b[39;66H       \u001b[39;74H        \u001b[40;64H  \u001b[41;64H \u001b[42;66H        \u001b[42;75H            \u001b[43;66H       \u001b[43;74H        \u001b[44;64H \u001b[45;62H  \u001b[46;62H       \u001b[46;70H       \u001b[47;60H  \u001b[48;60H       \u001b[48;68H       \u001b[49;58H \u001b[50;56H  \u001b[51;56H       \u001b[51;64H \u001b[52;58H        \u001b[52;67H      \u001b[53;58H              \u001b[53;73H  \u001b[53;76H  \u001b[53;79H \u001b[53;81H        \u001b[54;56H  \u001b[55;56H            \u001b[55;69H \u001b[56;58H         \u001b[56;68H     \u001b[57;56H \u001b[58;54H \u001b[59;12H735B\u001b[59;103H8\u001b[9;18H"
+    ],
+    [
+      0.001629,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"format\":\u001b[6;66H\"csv\",\u001b[7;56H\"formatConfig\":\u001b[7;72H{\u001b[8;62H\"headerRow\":\u001b[8;75Htrue\u001b[9;56H},\u001b[10;56H\"structure\":\u001b[10;69H{\u001b[11;62H\"schema\":\u001b[11;72H{\u001b[12;66H\"title\":\u001b[12;75H\"Person\",\u001b[13;66H\"type\":\u001b[13;74H\"object\",\u001b[14;66H\"properties\":\u001b[14;80H{\u001b[15;70H\"firstName\":\u001b[15;83H{\u001b[16;74H\"type\":\u001b[16;82H\"string\"\u001b[17;70H},\u001b[18;70H\"middleName\":\u001b[18;84H{\u001b[19;78H\"type\":\u001b[19;86H\"string\"\u001b[20;70H},\u001b[21;70H\"lastName\":\u001b[21;82H{\u001b[22;74H\"type\":\u001b[22;82H\"string\"\u001b[23;70H},\u001b[24;70H\"age\":\u001b[24;77H{\u001b[25;74H\"description\":\u001b[25;89H\"Age\u001b[25;94Hin\u001b[25;97Hyears\",\u001b[26;74H\"type\":\u001b[26;82H\"integer\",\u001b[27;74H\"minimum\":\u001b[27;85H0\u001b[28;70H},\u001b[29;70H\"friends\":\u001b[29;81H{\u001b[30;78H\"type\"\u001b[30;85H:\u001b[30;87H\"array\",\u001b[31;78H\"items\"\u001b[31;86H:\u001b[31;88H{\u001b[31;90H\"title\"\u001b[31;98H:\u001b[31;100H\"REFER\u001b[32;70H}\u001b[33;66H},\u001b[34;66H\"required\":\u001b[34;78H[\"firstName\",\u001b[34;92H\"lastName\"]\u001b[35;70H}\u001b[36;56H}\u001b[37;54H}\u001b[9;18H"
+    ],
+    [
+      0.359853,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;56H         \u001b[6;66H      \u001b[7;56H               \u001b[7;72H \u001b[8;62H            \u001b[8;75H    \u001b[9;19H structureJsonSchemaNew.json    \u001b[9;56H  \u001b(B\u001b[m\u001b[7m\u001b[10;19H structureJsonSchemaOrig.json   \u001b(B\u001b[m\u001b[10;56H            \u001b[10;69H \u001b[11;62H         \u001b[11;72H \u001b[12;66H        \u001b[12;75H         \u001b[13;66H       \u001b[13;74H         \u001b[14;66H             \u001b[14;80H \u001b[15;70H            \u001b[15;83H \u001b[16;74H       \u001b[16;82H        \u001b[17;70H  \u001b[18;70H             \u001b[18;84H \u001b[19;78H       \u001b[19;86H        \u001b[20;70H  \u001b[21;70H           \u001b[21;82H \u001b[22;74H       \u001b[22;82H        \u001b[23;70H  \u001b[24;70H      \u001b[24;77H \u001b[25;74H              \u001b[25;89H    \u001b[25;94H  \u001b[25;97H       \u001b[26;74H       \u001b[26;82H          \u001b[27;74H          \u001b[27;85H \u001b[28;70H  \u001b[29;70H          \u001b[29;81H \u001b[30;78H      \u001b[30;85H \u001b[30;87H        \u001b[31;78H       \u001b[31;86H \u001b[31;88H \u001b[31;90H       \u001b[31;98H \u001b[31;100H      \u001b[32;70H \u001b[33;66H  \u001b[34;66H           \u001b[34;78H            "
+    ],
+    [
+      4.9e-05,
+      " \u001b[34;92H           \u001b[35;70H \u001b[36;56H \u001b[37;54H \u001b[59;12H673\u001b[59;103H9\u001b[10;18H"
+    ],
+    [
+      0.001381,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;58H\"format\":\u001b[6;68H\"csv\",\u001b[7;56H\"formatConfig\":\u001b[7;72H{\u001b[8;62H\"headerRow\":\u001b[8;75Htrue\u001b[9;56H},\u001b[10;56H\"structure\":\u001b[10;69H{\u001b[11;62H\"schema\":\u001b[11;72H{\u001b[12;66H\"title\":\u001b[12;75H\"Person\",\u001b[13;66H\"type\":\u001b[13;74H\"object\",\u001b[14;66H\"properties\":\u001b[14;80H{\u001b[15;70H\"firstName\":\u001b[15;83H{\u001b[16;74H\"type\":\u001b[16;82H\"string\"\u001b[17;70H},\u001b[18;70H\"lastName\":\u001b[18;82H{\u001b[19;74H\"type\":\u001b[19;82H\"string\"\u001b[20;70H},\u001b[21;70H\"age\":\u001b[21;77H{\u001b[22;74H\"description\":\u001b[22;89H\"Age\u001b[22;94Hin\u001b[22;97Hyears\",\u001b[23;74H\"type\":\u001b[23;82H\"integer\",\u001b[24;74H\"minimum\":\u001b[24;85H0\u001b[25;70H},\u001b[26;70H\"friends\":\u001b[26;81H{\u001b[27;78H\"type\"\u001b[27;85H:\u001b[27;87H\"array\",\u001b[28;78H\"items\"\u001b[28;86H:\u001b[28;88H{\u001b[28;90H\"title\"\u001b[28;98H:\u001b[28;100H\"REFER\u001b[29;70H}\u001b[30;66H},\u001b[31;66H\"required\":\u001b[31;78H[\"firstName\",\u001b[31;92H\"lastName\"]\u001b[32;70H}\u001b[33;56H}\u001b[34;54H}\u001b[10;18H"
+    ],
+    [
+      1.060892,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;58H         \u001b[6;68H      \u001b[7;56H               \u001b[7;72H \u001b[8;62H            \u001b[8;75H    \u001b(B\u001b[m\u001b[7m\u001b[9;19H structureJsonSchemaNew.json    \u001b(B\u001b[m\u001b[9;56H  \u001b[10;19H structureJsonSchemaOrig.json   \u001b[10;56H            \u001b[10;69H \u001b[11;62H         \u001b[11;72H \u001b[12;66H        \u001b[12;75H         \u001b[13;66H       \u001b[13;74H         \u001b[14;66H             \u001b[14;80H \u001b[15;70H            \u001b[15;83H \u001b[16;74H       \u001b[16;82H        \u001b[17;70H  \u001b[18;70H           \u001b[18;82H \u001b[19;74H       \u001b[19;82H        \u001b[20;70H  \u001b[21;70H      \u001b[21;77H \u001b[22;74H              \u001b[22;89H    \u001b[22;94H  \u001b[22;97H       \u001b[23;74H       \u001b[23;82H          \u001b[24;74H          \u001b[24;85H \u001b[25;70H  \u001b[26;70H          \u001b[26;81H \u001b[27;78H      \u001b[27;85H \u001b[27;87H        \u001b[28;78H       \u001b[28;86H \u001b[28;88H \u001b[28;90H       \u001b[28;98H \u001b[28;100H      \u001b[29;70H \u001b[30;66H  \u001b[31;66H           \u001b[31;78H             \u001b[31;92H           \u001b[32;70H \u001b[33;56H \u001b[34;54H \u001b[59;12H735\u001b[59;103H8\u001b[9"
+    ],
+    [
+      0.000339,
+      ";18H"
+    ],
+    [
+      0.000316,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"format\":\u001b[6;66H\"csv\",\u001b[7;56H\"formatConfig\":\u001b[7;72H{\u001b[8;62H\"headerRow\":\u001b[8;75Htrue\u001b[9;56H},\u001b[10;56H\"structure\":\u001b[10;69H{\u001b[11;62H\"schema\":\u001b[11;72H{\u001b[12;66H\"title\":\u001b[12;75H\"Person\",\u001b[13;66H\"type\":\u001b[13;74H\"object\",\u001b[14;66H\"properties\":\u001b[14;80H{\u001b[15;70H\"firstName\":\u001b[15;83H{\u001b[16;74H\"type\":\u001b[16;82H\"string\"\u001b[17;70H},\u001b[18;70H\"middleName\":\u001b[18;84H{\u001b[19;78H\"type\":\u001b[19;86H\"string\"\u001b[20;70H},\u001b[21;70H\"lastName\":\u001b[21;82H{\u001b[22;74H\"type\":\u001b[22;82H\"string\"\u001b[23;70H},\u001b[24;70H\"age\":\u001b[24;77H{\u001b[25;74H\"description\":\u001b[25;89H\"Age\u001b[25;94Hin\u001b[25;97Hyears\",\u001b[26;74H\"type\":\u001b[26;82H\"integer\",\u001b[27;74H\"minimum\":\u001b[27;85H0\u001b[28;70H},\u001b[29;70H\"friends\":\u001b[29;81H{\u001b[30;78H\"type\"\u001b[30;85H:\u001b[30;87H\"array\",\u001b[31;78H\"items\"\u001b[31;86H:\u001b[31;88H{\u001b[31;90H\"title\"\u001b[31;98H:\u001b[31;100H\"REFER\u001b[32;70H}\u001b[33;66H},\u001b[34;66H\"required\":\u001b[34;78H[\"firstName\",\u001b[34;92H\"lastName\"]\u001b[35;70H}\u001b[36;56H}\u001b[37;54H}\u001b[9;18H"
+    ],
+    [
+      0.455014,
+      "\u001b(B\u001b[m\u001b[1m\u001b[2;54Hloading...\u001b(B\u001b[m\u001b[3;56H       \u001b[3;64H           \u001b[4;56H           \u001b[4;68H      \u001b[5;56H       \u001b[5;64H      \u001b[6;56H         \u001b[6;66H      \u001b[7;56H               \u001b[7;72H \u001b(B\u001b[m\u001b[7m\u001b[8;19H orig.json                      \u001b(B\u001b[m\u001b[8;62H            \u001b[8;75H    \u001b[9;19H structureJsonSchemaNew.json    \u001b[9;56H  \u001b[10;56H            \u001b[10;69H \u001b[11;62H         \u001b[11;72H \u001b[12;66H        \u001b[12;75H         \u001b[13;66H       \u001b[13;74H         \u001b[14;66H             \u001b[14;80H \u001b[15;70H            \u001b[15;83H \u001b[16;74H       \u001b[16;82H        \u001b[17;70H  \u001b[18;70H             \u001b[18;84H \u001b[19;78H       \u001b[19;86H        \u001b[20;70H  \u001b[21;70H           \u001b[21;82H \u001b[22;74H       \u001b[22;82H        \u001b[23;70H  \u001b[24;70H      \u001b[24;77H \u001b[25;74H              \u001b[25;89H    \u001b[25;94H  \u001b[25;97H       \u001b[26;74H       \u001b[26;82H          \u001b[27;74H          \u001b[27;85H \u001b[28;70H  \u001b[29;70H          \u001b[29;81H \u001b[30;78H      \u001b[30;85H \u001b[30;87H        \u001b[31;78H       \u001b[31;86H \u001b[31;88H \u001b[31;90H       \u001b[31;98H \u001b[31;100H      \u001b[32;70H \u001b[33;66H  \u001b[34;66H           \u001b[34;78H             "
+    ],
+    [
+      0.000437,
+      "\u001b[34;92H           \u001b[35;70H \u001b[36;56H \u001b[37;54H \u001b[59;12H1.0K\u001b[59;103H7\u001b[8;18H"
+    ],
+    [
+      0.000546,
+      "\u001b[2;54H{         \u001b[3;56H\"kind\":\u001b[3;64H\"qri:ds:0\",\u001b[4;56H\"DataPath\":\u001b[4;68H\"abc\",\u001b[5;56H\"path\":\u001b[5;64H\"123\",\u001b[6;56H\"structure\":\u001b[6;69H{\u001b[7;58H\"checksum\":\u001b[7;70H\"QmRSLr53cRGhkwx1L3uGNCY7QGvup3XGy9J\u001b[8;58H\"entries\":\u001b[8;69H33,\u001b[9;58H\"format\":\u001b[9;68H\"csv\",\u001b[10;58H\"formatConfig\":\u001b[10;74H{\u001b[11;60H\"headerRow\":\u001b[11;73Htrue\u001b[12;58H},\u001b[13;58H\"length\":\u001b[13;68H1582,\u001b[14;58H\"qri\":\u001b[14;65H\"st:0\",\u001b[15;58H\"transform\":\u001b[15;71H{\u001b[16;60H\"syntax\":\u001b[16;70H\"python\",\u001b[17;60H\"data\":\u001b[17;68H\"abc\",\u001b[18;60H\"config\":\u001b[18;70H{\u001b[19;62H\"option\":\u001b[19;72H\"value\"\u001b[20;60H}\u001b[21;58H},\u001b[22;58H\"Commit\":\u001b[22;68H{\u001b[23;60H\"title\":\u001b[23;69H\"abc\"\u001b[24;58H},\u001b[25;58H\"PreviousPath\":\u001b[25;74H\"\",\u001b[26;58H\"schema\":\u001b[26;68H{\u001b[27;60H\"items\":\u001b[27;69H{\u001b[28;62H\"items\":\u001b[28;71H[\u001b[29;64H{\u001b[30;66H\"title\":\u001b[30;75H\"rank\",\u001b[31;66H\"type\":\u001b[31;74H\"integer\"\u001b[32;64H},\u001b[33;64H{\u001b[34;66H\"title\":\u001b[34;75H\"probability_of_automation\",\u001b[35;66H\"type\":\u001b[35;74H\"number\"\u001b[36;64H},\u001b[37;64H{\u001b[38;66H\"title\":\u001b[38;75H\"soc_code\",\u001b[39;66H\"type\":\u001b[39;74H\"string\"\u001b[40;64H},\u001b[41;64H{\u001b[42;66H\"title\":\u001b["
+    ],
+    [
+      4e-05,
+      "42;75H\"job_title\",\u001b[43;66H\"type\":\u001b[43;74H\"string\"\u001b[44;64H}\u001b[45;62H],\u001b[46;62H\"type\":\u001b[46;70H\"array\"\u001b[47;60H},\u001b[48;60H\"type\":\u001b[48;68H\"array\"\u001b[49;58H}\u001b[50;56H},\u001b[51;56H\"meta\":\u001b[51;64H{\u001b[52;58H\"title\":\u001b[52;67H\"abc\",\u001b[53;58H\"description\":\u001b[53;73H\"I\u001b[53;76Ham\u001b[53;79Ha\u001b[53;81Hdataset\"\u001b[54;56H},\u001b[55;56H\"visConfig\":\u001b[55;69H{\u001b[56;58H\"format\":\u001b[56;68H\"abc\"\u001b[57;56H}\u001b[58;54H}\u001b[8;18H"
+    ],
+    [
+      1.362459,
+      "\u001b[8;18H"
+    ],
+    [
+      7.6e-05,
+      "\u001b[?12l\u001b[?25h\u001b(B\u001b[m\u001b[H\u001b[2J\u001b[?1049l\u001b[?1l\u001b>\u001b[?1006l\u001b[?1015l\u001b[?1002l\u001b[?1000l"
+    ],
+    [
+      0.005512,
+      "bash-3.2$ "
+    ],
+    [
+      3.40168,
+      "e"
+    ],
+    [
+      0.222999,
+      "x"
+    ],
+    [
+      0.123415,
+      "i"
+    ],
+    [
+      0.183736,
+      "t"
+    ],
+    [
+      0.587115,
+      "\r\n"
+    ]
+  ]
+}

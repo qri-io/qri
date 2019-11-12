@@ -62,6 +62,7 @@ require (
 	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
+	github.com/yudai/gojsondiff v1.0.0
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
 	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
 	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b

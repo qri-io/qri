@@ -3,26 +3,20 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
-	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/gen"
-	"github.com/spf13/cobra"
 )
 
 func init() {
@@ -59,19 +53,6 @@ func confirmUpdateServiceNotRunning() error {
 
 	l.Close()
 	return nil
-}
-
-func executeCommand(root *cobra.Command, cmd string) error {
-	cmd = strings.TrimPrefix(cmd, "qri ")
-	// WARNING - currently doesn't support quoted strings as input
-	args := strings.Split(cmd, " ")
-	return executeCommandC(root, args...)
-}
-
-func executeCommandC(root *cobra.Command, args ...string) (err error) {
-	root.SetArgs(args)
-	_, err = root.ExecuteC()
-	return err
 }
 
 const moviesCSVData = `movie_title,duration
@@ -239,23 +220,15 @@ func TestSaveRelativeBodyPath(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_relative_body")
-	defer r.Delete()
+	run := NewTestRunner(t, "test_peer", "qri_test_save_relative_body")
+	defer run.Delete()
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	// TODO: If TestRepoRoot is moved to a different package, pass it an a parameter to this
-	// function.
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a dataset which has a body as a relative path
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_movies")
 
 	// Read body from the dataset that was saved.
-	dsPath := r.GetPathForDataset(0)
-	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.csv")
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actualBody := run.RepoRoot.ReadBodyFromIPFS(dsPath + "/body.csv")
 
 	// Read the body from the testdata input file.
 	f, _ := os.Open("testdata/movies/body_ten.csv")
@@ -274,39 +247,18 @@ func TestRemoveOnlyTwoRevisions(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_two_revisions")
-	defer r.Delete()
+	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_two_revisions")
+	defer run.Delete()
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri remove me/test_movies --revisions=2")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save three revisions, then remove two
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	run.MustExec(t, "qri remove me/test_movies --revisions=2")
 
 	// Read body from the dataset that was saved.
-	dsPath := r.GetPathForDataset(0)
-	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.csv")
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actualBody := run.RepoRoot.ReadBodyFromIPFS(dsPath + "/body.csv")
 
 	// Read the body from the testdata input file.
 	f, _ := os.Open("testdata/movies/body_ten.csv")
@@ -325,38 +277,17 @@ func TestRemoveAllRevisionsLongForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_one_revision")
-	defer r.Delete()
+	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_one_revision")
+	defer run.Delete()
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri remove me/test_movies --revisions=all")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save three versions, then remove all of them.
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	run.MustExec(t, "qri remove me/test_movies --revisions=all")
 
 	// Read path for dataset, which shouldn't exist anymore.
-	dsPath := r.GetPathForDataset(0)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
 	if dsPath != "" {
 		t.Errorf("expected dataset to be removed entirely, found at \"%s\"", dsPath)
 	}
@@ -368,38 +299,17 @@ func TestRemoveAllRevisionsShortForm(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_remove_only_one_revision")
-	defer r.Delete()
+	run := NewTestRunner(t, "test_peer", "qri_test_remove_only_one_revision")
+	defer run.Delete()
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri remove me/test_movies --all")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save three versions, then remove all of them, using the --all flag.
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	run.MustExec(t, "qri remove me/test_movies --all")
 
 	// Read path for dataset, which shouldn't exist anymore.
-	dsPath := r.GetPathForDataset(0)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
 	if dsPath != "" {
 		t.Errorf("expected dataset to be removed entirely, found at \"%s\"", dsPath)
 	}
@@ -411,38 +321,21 @@ func TestSaveThenOverrideMetaComponent(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a version, then save another with a new meta component.
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
-	dsPath := r.GetPathForDataset(0)
-	actual := r.DatasetMarshalJSON(dsPath)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override.yaml.
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified title\n","path":"/ipfs/QmfEiBVM5MLdw2zBgFVMcCRjavFmna8cLnPQiRzkjmWPBu","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Meta: 1 change"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSpXgpakANF3c4Z7qEZDv5tqmTw1r7Jyefg7NCJtJrohv","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
-	if actual != expect {
-		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified title\n","path":"/ipfs/QmZQFezXryWYXqEFkSfpqNMY2w9LMyAxNMxARwNT36FutV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"Meta: 1 change"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmaYjcYAEMNUEQTgCNGaPg3yaSEQ3SmHPegAxVZTfWWWJM","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
 }
 
@@ -452,39 +345,22 @@ func TestSaveTwoComponents(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a version, then same another with two components at once
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/structure_override.json me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
-	dsPath := r.GetPathForDataset(0)
-	actual := r.DatasetMarshalJSON(dsPath)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified formatConfig\n\t- modified schema\n","path":"/ipfs/QmbrZGpqFJZjW8JPZMZUQ8zDRZU3QakGE6hQ9D4tgvZtYx","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Structure: 2 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmVTLs5CkSfz9cczUqLXFXjypxEYZW6UKin7RXuGgKbusT","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
-	if actual != expect {
-		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified formatConfig\n\t- modified schema\n","path":"/ipfs/QmcrLQftiH7RGyyKCTr5YzSso5pK6FBf2oZusdDNNNeSHJ","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"Structure: 2 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmWNkcBdohvFaQG6GquGbZwq2LnuyDaojAMAfSmFDH3qRr","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
 }
 
@@ -494,38 +370,21 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf.star me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a version, then save another with a transform
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/tf.star me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
-	dsPath := r.GetPathForDataset(0)
-	actual := r.DatasetMarshalJSON(dsPath)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhDyCTYDEshqscC7LHrmcGMBE7bVX9osY7MfB9RDyJ1J","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmQgxzkFF2EZFoCvULLagyTgo5Q6QZmjaQjT41wELYvfsu","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.1"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
-	if actual != expect {
-		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhQQECYQJABS4nuyCHJaoQr5PbSecFb8vGvBoB4Myfpr","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmSkFjT2dafoz6A1grXF3tjwQ1q3Z2qBWcnizqumEohv4A","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.1"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
 }
 
@@ -535,38 +394,21 @@ func TestSaveThenOverrideViz(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/template.html me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a version, then save another with a viz template
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/template.html me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
-	dsPath := r.GetPathForDataset(0)
-	actual := r.DatasetMarshalJSON(dsPath)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with an added viz section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n","path":"/ipfs/QmZfiXv9QcMWHEF7S6HBwQhqGGEDhiHRVhXwh6oE9si44Q","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Viz: 1 change"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmNrhFKYf1KfqGT11hx6enH8whNJ8dVwDomt78wgGW8pXU","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if actual != expect {
-		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n","path":"/ipfs/QmZJGdSvx9ejepMiTcgfBHgBMXwC9LhusPuVZjHUn2i4WM","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"Viz: 1 change"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmbGRMX6NbJhkV46GZaRpiHfLox4zVEKRbiiyCUNamFsjx","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
 }
 
@@ -576,38 +418,21 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_file_transform")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save a version, then save another with three components at once
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
 
 	// Read head from the dataset that was saved, as json string.
-	dsPath := r.GetPathForDataset(0)
-	actual := r.DatasetMarshalJSON(dsPath)
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhDyCTYDEshqscC7LHrmcGMBE7bVX9osY7MfB9RDyJ1J","qri":"cm:0","signature":"I/nrDkgwt1IPtdFKvgMQAIRYvOqKfqm6x0qfpuJ14rEtO3+uPnY3K5pVDMWJ7K+pYJz6fyguYWgXHKkbo5wZl0ICVyoIiPa9zIVbqc1d6j1v13WqtRb0bn1CXQvuI6HcBhb7+VqkSW1m+ALpxhNQuI4ZfRv8Nm8MbEpL6Ct55fJpWX1zszJ2rQP1LcH2AlEZ8bl0qpcFMk03LENUHSt1DjlaApxrEJzDgAs5drfndxXgGKYjPpkjdF+qGhn2ALV2tC64I5aIn1SJPAQnVwprUr1FmVZjZcF9m9r8WnzQ6ldj29eZIciiFlT4n2Cbw+dgPo/hNRsgzn7Our2a6r5INw==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSf1Xevdijqdwa39Laz8Wdroz4gBpSAVCpNQkhiM2zipy","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.1"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
-	if actual != expect {
-		t.Errorf("error, dataset actual:\n%s\nexpect:\n%s\n", actual, expect)
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"\t- modified scriptPath\n\t- modified syntax\n\t- ...\n...modified syntaxVersion","path":"/ipfs/QmRhQQECYQJABS4nuyCHJaoQr5PbSecFb8vGvBoB4Myfpr","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"Transform: 3 changes"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmWUe54W5vH8wRnCsoJ9PhFkchp3HakuiL8t76cCnaPCNZ","peername":"me","previousPath":"/ipfs/QmdxjWGrjc9neXqReY6bHMC4eGG5je358PcCWCHNVYbLGU","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.1"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
 }
 
@@ -617,24 +442,14 @@ func TestSaveDatasetWithComponentError(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	// Try to save with two conflicting components, but this returns an error
+	err := run.ExecCommand("qri save --file=testdata/movies/ds_ten.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
 	if err == nil {
 		t.Errorf("expected error, did not get one")
 	}
-
 	expect := `conflict, cannot save a full dataset with other components`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
@@ -647,30 +462,15 @@ func TestSaveConflictingComponents(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_then_override_meta")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_then_override_meta")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
+	// Save two versions, but second has a conflict error
+	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
+	err := run.ExecCommand("qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/meta_override.yaml me/test_ds")
 	if err == nil {
 		t.Errorf("expected error, did not get one")
 	}
-
 	expect := `conflict, multiple components of kind "md"`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
@@ -683,26 +483,12 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_transform_same")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_transform_same")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	// Save a version, then another with no changes
+	run.MustExec(t, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+	err := run.ExecCommand("qri save --file=testdata/movies/tf_123.star me/test_ds")
 	expect := `error saving: no changes detected`
 	if err == nil {
 		t.Errorf("expected error: did not get one")
@@ -718,33 +504,16 @@ func TestTransformUsingGetBodyAndSetBody(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_save_transform_get_body")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_save_transform_get_body")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_two.json me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
+	// Save two versions, the second of which uses get_body in a transformation
+	run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/test_ds")
+	run.MustExec(t, "qri save --file=testdata/movies/tf_add_one.star me/test_ds")
 
 	// Read body from the dataset that was created with the transform
-	dsPath := r.GetPathForDataset(0)
-	actualBody := r.ReadBodyFromIPFS(dsPath + "/body.json")
+	dsPath := run.RepoRoot.GetPathForDataset(0)
+	actualBody := run.RepoRoot.ReadBodyFromIPFS(dsPath + "/body.json")
 
 	// This body is body_two.json, with the numbers in the second column increased by 1.
 	expectBody := `[["Avatar",179],["Pirates of the Caribbean: At World's End",170]]`
@@ -759,43 +528,15 @@ func TestDiffRevisions(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_diff_revisions")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_diff_revisions")
-	defer r.Delete()
+	// Save three versions, then diff the last two
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
+	run.MustExec(t, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
+	output := run.MustExec(t, "qri diff body me/test_movies")
 
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_twenty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri diff body me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	output := r.GetOutput()
 	expect := `+30 elements. 30 inserts. 0 deletes. 0 updates.
 
 + 18: ["Dragonfly ",104]
@@ -820,187 +561,49 @@ func TestDiffOnlyOneRevision(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_diff_only_one")
+	defer run.Delete()
 
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_diff_only_one")
-	defer r.Delete()
-
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	cmdR := r.CreateCommandRunner(ctx)
-	err := executeCommand(cmdR, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
-	if err != nil {
-		t.Fatalf(err.Error())
-	}
-
-	cmdR = r.CreateCommandRunner(ctx)
-	err = executeCommand(cmdR, "qri diff body me/test_movies")
+	// Save a version, then try to diff but it returns an error because there's only one version
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/test_movies")
+	err := run.ExecCommand("qri diff body me/test_movies")
 	if err == nil {
 		t.Errorf("expected error, did not get one")
 	}
-
 	expect := `dataset has only one version, nothing to diff against`
 	if err.Error() != expect {
 		t.Errorf("expected error: \"%s\", got: \"%s\"", expect, err.Error())
 	}
 }
 
-// TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
-// bodies of dataset in more of our test case. That would require extracting some parts out, like
-// pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a
-// parameter to its constructor.
+// Test that save can be called with a readme file
+func TestSaveReadmeFromFile(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "save_readme_file")
+	defer run.Delete()
 
-// TODO: Also, perhaps a different name would be better. This one is very similar to TestRepo,
-// but does things quite differently.
+	// Save two versions, one with a body, the second with a readme
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/save_readme_file")
+	run.MustExec(t, "qri save --file=testdata/movies/about_movies.md me/save_readme_file")
 
-// TestRepoRoot stores paths to a test repo.
-type TestRepoRoot struct {
-	rootPath    string
-	ipfsPath    string
-	qriPath     string
-	pathFactory PathFactory
-	testCrypto  gen.CryptoGenerator
-	streams     ioes.IOStreams
-	t           *testing.T
-}
+	// Verify we can get the readme back
+	actual := run.MustExec(t, "qri get readme me/save_readme_file")
+	expect := `format: md
+qri: rm:0
+scriptPath: /ipfs/QmQPbLdDwyAzCmKayuHGeNGx5eboDv5aXTMuw2daUuneCb
 
-// NewTestRepoRoot constructs the test repo and initializes everything as cheaply as possible.
-func NewTestRepoRoot(t *testing.T, peername, prefix string) TestRepoRoot {
-	rootPath, err := ioutil.TempDir("", prefix)
-	if err != nil {
-		t.Fatal(err)
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
 
-	// Create directory for new IPFS repo.
-	ipfsPath := filepath.Join(rootPath, "ipfs")
-	err = os.MkdirAll(ipfsPath, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Build IPFS repo directory by unzipping an empty repo.
-	testCrypto := libtest.NewTestCrypto()
-	err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Create directory for new Qri repo.
-	qriPath := filepath.Join(rootPath, "qri")
-	err = os.MkdirAll(qriPath, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Create empty config.yaml into the test repo.
-	cfg := config.DefaultConfigForTesting().Copy()
-	cfg.Profile.Peername = peername
-	err = cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-	// PathFactory returns the paths for qri and ipfs roots.
-	pathFactory := NewDirPathFactory(rootPath)
-	return TestRepoRoot{
-		rootPath:    rootPath,
-		ipfsPath:    ipfsPath,
-		qriPath:     qriPath,
-		pathFactory: pathFactory,
-		testCrypto:  testCrypto,
-		t:           t,
-	}
-}
+	// As well as the readme script bytes
+	actual = run.MustExec(t, "qri get readme.script me/save_readme_file")
+	expect = `# Title
 
-// Delete removes the test repo on disk.
-func (r *TestRepoRoot) Delete() {
-	os.RemoveAll(r.rootPath)
-}
+This is a dataset about movies
 
-// CreateCommandRunner returns a cobra runable command.
-func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
-	in := &bytes.Buffer{}
-	out := &bytes.Buffer{}
-	r.streams = ioes.NewIOStreams(in, out, out)
-	setNoColor(true)
-
-	cmd := NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
-	cmd.SetOutput(out)
-	return cmd
-}
-
-// GetOutput returns the output from the previously executed command.
-func (r *TestRepoRoot) GetOutput() string {
-	buffer, ok := r.streams.Out.(*bytes.Buffer)
-	if ok {
-		return buffer.String()
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
-	return ""
-}
-
-// GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
-func (r *TestRepoRoot) GetPathForDataset(index int) string {
-	dsRefs := filepath.Join(r.qriPath, "refs.fbs")
-
-	data, err := ioutil.ReadFile(dsRefs)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	refs, err := repo.UnmarshalRefsFlatbuffer(data)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	// If dataset doesn't exist, return an empty string for the path.
-	if len(refs) == 0 {
-		return ""
-	}
-
-	return refs[index].Path
-}
-
-// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.
-// TODO (b5): reprecate this rediculous function
-func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
-	ctx := context.Background()
-	// TODO: Perhaps there is an existing cafs primitive that does this work instead?
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.ipfsPath
-	})
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	bodyFile, err := fs.Get(ctx, keyPath)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(bodyFile)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	return string(bodyBytes)
-}
-
-// DatasetMarshalJSON reads the dataset head and marshals it as json.
-func (r *TestRepoRoot) DatasetMarshalJSON(ref string) string {
-	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.ipfsPath
-	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-	bytes, err := json.Marshal(ds)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-	return string(bytes)
 }

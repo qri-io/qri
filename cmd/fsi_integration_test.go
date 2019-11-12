@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"context"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -9,99 +8,44 @@ import (
 	"sort"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qri/base/dsfs"
-	"github.com/spf13/cobra"
 )
 
 // FSITestRunner holds test info for fsi integration tests, for convenient cleanup.
 type FSITestRunner struct {
-	RepoRoot    *TestRepoRoot
-	Context     context.Context
-	ContextDone func()
-	TsFunc      func() time.Time
-	Pwd         string
-	RootPath    string
-	WorkPath    string
-	CmdR        *cobra.Command
+	TestRunner
+	Pwd      string
+	RootPath string
+	WorkPath string
 }
 
 // NewFSITestRunner returns a new FSITestRunner.
 func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
-	root := NewTestRepoRoot(t, "test_peer", testName)
-
-	fr := FSITestRunner{}
-	fr.RepoRoot = &root
-	fr.Context, fr.ContextDone = context.WithCancel(context.Background())
-
-	// To keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	fr.TsFunc = dsfs.Timestamp
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := FSITestRunner{
+		TestRunner: *NewTestRunner(t, "test_peer", testName),
+	}
 
 	var err error
-	fr.Pwd, err = os.Getwd()
+	run.Pwd, err = os.Getwd()
 	if err != nil {
 		t.Fatal(err)
 	}
 
 	// Construct a temp directory, under which any fsi linked directories will be created.
-	fr.RootPath, err = ioutil.TempDir("", "")
+	run.RootPath, err = ioutil.TempDir("", "")
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	fr.WorkPath = ""
-	return &fr
-}
+	run.WorkPath = ""
 
-// Delete cleans up after a FSITestRunner is done being used.
-func (fr *FSITestRunner) Delete() {
-	os.Chdir(fr.Pwd)
-	if fr.WorkPath != "" {
-		defer os.RemoveAll(fr.WorkPath)
+	run.Teardown = func() {
+		os.Chdir(run.Pwd)
+		os.RemoveAll(run.RootPath)
 	}
-	defer os.RemoveAll(fr.RootPath)
-	dsfs.Timestamp = fr.TsFunc
-	fr.ContextDone()
-	fr.RepoRoot.Delete()
-}
 
-// ExecCommand executes the given command string
-func (fr *FSITestRunner) ExecCommand(cmdText string) error {
-	fr.CmdR = fr.RepoRoot.CreateCommandRunner(fr.Context)
-	return executeCommand(fr.CmdR, cmdText)
-}
-
-// GetCommandOutput returns the standard output from the previously executed command
-func (fr *FSITestRunner) GetCommandOutput() string {
-	return fr.RepoRoot.GetOutput()
-}
-
-// MustExec runs a command, returning standard output, failing the test if there's an error
-func (fr *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
-	if err := fr.ExecCommand(cmdText); err != nil {
-		t.Fatal(err)
-	}
-	return fr.GetCommandOutput()
-}
-
-// MustWriteFile writes to a file, failing the test if there's an error
-func (fr *FSITestRunner) MustWriteFile(t *testing.T, filename, contents string) {
-	if err := ioutil.WriteFile(filename, []byte(contents), os.FileMode(0644)); err != nil {
-		t.Fatal(err)
-	}
-}
-
-// MustReadFile reads a file, failing the test if there's an error
-func (fr *FSITestRunner) MustReadFile(t *testing.T, filename string) string {
-	bytes, err := ioutil.ReadFile(filename)
-	if err != nil {
-		t.Fatal(err)
-	}
-	return string(bytes)
+	return &run
 }
 
 // ChdirToRoot changes the current directory to the temporary root
