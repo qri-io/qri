@@ -57,7 +57,7 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 		return m.inst.rpc.Call("FSIMethods.CreateLink", p, res)
 	}
 
-	*res, err = m.inst.fsi.CreateLink(p.Dir, p.Ref)
+	*res, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref)
 	return err
 }
 
@@ -175,7 +175,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Create the link file, containing the dataset reference.
-	if _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref); err != nil {
+	if _, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref); err != nil {
 		return err
 	}
 

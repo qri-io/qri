@@ -34,8 +34,8 @@ func (fc *FilesysComponent) IsEmpty() bool {
 }
 
 // WriteTo writes the component as a file to the directory
-func (fc *FilesysComponent) WriteTo(dirPath string) error {
-	return fmt.Errorf("cannot write filesys component")
+func (fc *FilesysComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	return "", fmt.Errorf("cannot write filesys component")
 }
 
 // RemoveFrom removes the component file from the directory
@@ -82,8 +82,8 @@ func (dc *DatasetComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (dc *DatasetComponent) WriteTo(dirPath string) error {
-	return fmt.Errorf("cannot write dataset component")
+func (dc *DatasetComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	return "", fmt.Errorf("cannot write dataset component")
 }
 
 // RemoveFrom removes the component file from the directory
@@ -134,6 +134,8 @@ func structToMap(value interface{}) (map[string]interface{}, error) {
 type MetaComponent struct {
 	BaseComponent
 	Value *dataset.Meta
+	// Prevent the component from being written. Used for testing.
+	DisableSerialization bool
 }
 
 // Compare compares to another component
@@ -152,15 +154,18 @@ func (mc *MetaComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (mc *MetaComponent) WriteTo(dirPath string) error {
-	if err := mc.LoadAndFill(nil); err != nil {
-		return err
+func (mc *MetaComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if mc.DisableSerialization {
+		return "", fmt.Errorf("serialization is disabled")
+	}
+	if err = mc.LoadAndFill(nil); err != nil {
+		return
 	}
 	// Okay to output an empty meta, we do so for `qri init`.
 	if mc.Value != nil {
 		return writeComponentFile(mc.Value, dirPath, "meta.json")
 	}
-	return nil
+	return "", nil
 }
 
 // RemoveFrom removes the component file from the directory
@@ -234,14 +239,14 @@ func (sc *StructureComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (sc *StructureComponent) WriteTo(dirPath string) error {
-	if err := sc.LoadAndFill(nil); err != nil {
-		return err
+func (sc *StructureComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = sc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if sc.Value != nil && !sc.Value.IsEmpty() {
 		return writeComponentFile(sc.Value, dirPath, "structure.json")
 	}
-	return nil
+	return "", nil
 }
 
 // RemoveFrom removes the component file from the directory
@@ -313,14 +318,14 @@ func (cc *CommitComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (cc *CommitComponent) WriteTo(dirPath string) error {
-	if err := cc.LoadAndFill(nil); err != nil {
-		return err
+func (cc *CommitComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = cc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if cc.Value != nil && !cc.Value.IsEmpty() {
 		return writeComponentFile(cc.Value, dirPath, "commit.json")
 	}
-	return nil
+	return "", nil
 }
 
 // RemoveFrom removes the component file from the directory
@@ -489,23 +494,24 @@ func (bc *BodyComponent) StructuredData() (interface{}, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (bc *BodyComponent) WriteTo(dirPath string) error {
+func (bc *BodyComponent) WriteTo(dirPath string) (targetFile string, err error) {
 	if bc.Value == nil {
-		err := bc.LoadAndFill(nil)
+		err = bc.LoadAndFill(nil)
 		if err != nil {
-			return err
+			return
 		}
 	}
 	body := bc.Value
 	if bc.Structure == nil {
-		return fmt.Errorf("cannot write body without a structure")
+		return "", fmt.Errorf("cannot write body without a structure")
 	}
 	data, err := SerializeBody(body, bc.Structure)
 	if err != nil {
-		return err
+		return "", err
 	}
 	bodyFilename := fmt.Sprintf("body.%s", bc.Format)
-	return ioutil.WriteFile(filepath.Join(dirPath, bodyFilename), data, os.ModePerm)
+	targetFile = filepath.Join(dirPath, bodyFilename)
+	return targetFile, ioutil.WriteFile(targetFile, data, os.ModePerm)
 }
 
 // RemoveFrom removes the component file from the directory
@@ -579,17 +585,17 @@ func (rc *ReadmeComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (rc *ReadmeComponent) WriteTo(dirPath string) error {
-	if err := rc.LoadAndFill(nil); err != nil {
-		return err
+func (rc *ReadmeComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = rc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if rc.Value != nil && !rc.Value.IsEmpty() {
-		filename := filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
-		if err := ioutil.WriteFile(filename, rc.Value.ScriptBytes, os.ModePerm); err != nil {
-			return err
+		targetFile = filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
+		if err = ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, os.ModePerm); err != nil {
+			return
 		}
 	}
-	return nil
+	return "", nil
 }
 
 // RemoveFrom removes the component file from the directory
@@ -737,15 +743,16 @@ func compareComponentData(first interface{}, second interface{}) (bool, error) {
 	return string(left) == string(rite), nil
 }
 
-func writeComponentFile(value interface{}, dirPath string, basefile string) error {
+func writeComponentFile(value interface{}, dirPath string, basefile string) (string, error) {
 	data, err := json.MarshalIndent(value, "", " ")
 	if err != nil {
-		return err
+		return "", err
 	}
 	// TODO(dlong): How does this relate to Base.SourceFile? Should respect that.
-	err = ioutil.WriteFile(filepath.Join(dirPath, basefile), data, os.ModePerm)
+	targetFile := filepath.Join(dirPath, basefile)
+	err = ioutil.WriteFile(targetFile, data, os.ModePerm)
 	if err != nil {
-		return err
+		return "", err
 	}
-	return nil
+	return targetFile, nil
 }
