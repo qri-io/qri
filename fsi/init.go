@@ -41,8 +41,10 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		log.Debug("did rollback InitDataset due to error")
 	}
 	defer func() {
-		log.Debug("InitDataset rolling back...")
-		rollback()
+		if rollback != nil {
+			log.Debug("InitDataset rolling back...")
+			rollback()
+		}
 	}()
 
 	if p.Dir == "" {
@@ -76,9 +78,9 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 			// steps fail.
 			rollback = concatFunc(
 				func() {
-					log.Debugf("removing directory \"%s\" during rollback", targetPath)
+					log.Debugf("removing directory %q during rollback", targetPath)
 					if err := os.Remove(targetPath); err != nil {
-						log.Debugf("error while removing directory %s: \"%s\"", targetPath, err)
+						log.Debugf("error while removing directory %q: %s", targetPath, err)
 					}
 				}, rollback)
 		}
@@ -174,9 +176,9 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 			// If future steps fail, rollback the components that have been written
 			rollback = concatFunc(func() {
 				if wroteFile != "" {
-					log.Debugf("removing file \"%s\" during rollback", wroteFile)
+					log.Debugf("removing file %q during rollback", wroteFile)
 					if err := os.Remove(wroteFile); err != nil {
-						log.Debugf("error while removing file \"%s\": %s", wroteFile, err)
+						log.Debugf("error while removing file %q: %s", wroteFile, err)
 					}
 				}
 			}, rollback)
@@ -191,9 +193,8 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return name, err
 	}
 
-	rollback = func() {
-		// Success, no need to rollback.
-	}
+	// Success, no need to rollback.
+	rollback = nil
 	return name, nil
 }
 

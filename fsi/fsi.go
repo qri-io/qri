@@ -93,16 +93,16 @@ func (fsi *FSI) LinkedRefs(offset, limit int) ([]repo.DatasetRef, error) {
 
 // CreateLink links a working directory to a dataset. Returns the reference alias, and a
 // rollback function if no error occurs
-func (fsi *FSI) CreateLink(dirPath, refStr string) (string, func(), error) {
-	nullFunc := func() {}
+func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(), err error) {
+	rollback = func() {}
 
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
-		return "", nullFunc, err
+		return "", rollback, err
 	}
 	err = repo.CanonicalizeDatasetRef(fsi.repo, &ref)
 	if err != nil && err != repo.ErrNotFound && err != repo.ErrNoHistory {
-		return ref.String(), nullFunc, err
+		return ref.String(), rollback, err
 	}
 
 	if stored, err := fsi.repo.GetRef(ref); err == nil {
@@ -110,20 +110,20 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (string, func(), error) {
 			// There is already a link for this dataset, see if that link still exists.
 			targetPath := filepath.Join(stored.FSIPath, QriRefFilename)
 			if _, err := os.Stat(targetPath); err == nil {
-				return "", nullFunc, fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
+				return "", rollback, fmt.Errorf("'%s' is already linked to %s", ref.AliasString(), stored.FSIPath)
 			}
 		}
 	}
 
 	ref.FSIPath = dirPath
 	if err = fsi.repo.PutRef(ref); err != nil {
-		return "", nullFunc, err
+		return "", rollback, err
 	}
 	// If future steps fail, remove the ref we just put
 	removeRefFunc := func() {
-		log.Debugf("removing repo.ref \"%s\" during rollback", ref)
+		log.Debugf("removing repo.ref %q during rollback", ref)
 		if err := fsi.repo.DeleteRef(ref); err != nil {
-			log.Debugf("error while removing repo.ref %s: \"%s\"", ref, err)
+			log.Debugf("error while removing repo.ref %q: %s", ref, err)
 		}
 	}
 

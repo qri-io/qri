@@ -34,7 +34,7 @@ func (fc *FilesysComponent) IsEmpty() bool {
 }
 
 // WriteTo writes the component as a file to the directory
-func (fc *FilesysComponent) WriteTo(dirPath string) (string, error) {
+func (fc *FilesysComponent) WriteTo(dirPath string) (targetFile string, err error) {
 	return "", fmt.Errorf("cannot write filesys component")
 }
 
@@ -82,7 +82,7 @@ func (dc *DatasetComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (dc *DatasetComponent) WriteTo(dirPath string) (string, error) {
+func (dc *DatasetComponent) WriteTo(dirPath string) (targetFile string, err error) {
 	return "", fmt.Errorf("cannot write dataset component")
 }
 
@@ -154,12 +154,12 @@ func (mc *MetaComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (mc *MetaComponent) WriteTo(dirPath string) (string, error) {
+func (mc *MetaComponent) WriteTo(dirPath string) (targetFile string, err error) {
 	if mc.DisableSerialization {
 		return "", fmt.Errorf("serialization is disabled")
 	}
-	if err := mc.LoadAndFill(nil); err != nil {
-		return "", err
+	if err = mc.LoadAndFill(nil); err != nil {
+		return
 	}
 	// Okay to output an empty meta, we do so for `qri init`.
 	if mc.Value != nil {
@@ -239,9 +239,9 @@ func (sc *StructureComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (sc *StructureComponent) WriteTo(dirPath string) (string, error) {
-	if err := sc.LoadAndFill(nil); err != nil {
-		return "", err
+func (sc *StructureComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = sc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if sc.Value != nil && !sc.Value.IsEmpty() {
 		return writeComponentFile(sc.Value, dirPath, "structure.json")
@@ -318,9 +318,9 @@ func (cc *CommitComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (cc *CommitComponent) WriteTo(dirPath string) (string, error) {
-	if err := cc.LoadAndFill(nil); err != nil {
-		return "", err
+func (cc *CommitComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = cc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if cc.Value != nil && !cc.Value.IsEmpty() {
 		return writeComponentFile(cc.Value, dirPath, "commit.json")
@@ -494,11 +494,11 @@ func (bc *BodyComponent) StructuredData() (interface{}, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (bc *BodyComponent) WriteTo(dirPath string) (string, error) {
+func (bc *BodyComponent) WriteTo(dirPath string) (targetFile string, err error) {
 	if bc.Value == nil {
-		err := bc.LoadAndFill(nil)
+		err = bc.LoadAndFill(nil)
 		if err != nil {
-			return "", err
+			return
 		}
 	}
 	body := bc.Value
@@ -510,7 +510,7 @@ func (bc *BodyComponent) WriteTo(dirPath string) (string, error) {
 		return "", err
 	}
 	bodyFilename := fmt.Sprintf("body.%s", bc.Format)
-	targetFile := filepath.Join(dirPath, bodyFilename)
+	targetFile = filepath.Join(dirPath, bodyFilename)
 	return targetFile, ioutil.WriteFile(targetFile, data, os.ModePerm)
 }
 
@@ -585,14 +585,14 @@ func (rc *ReadmeComponent) Compare(compare Component) (bool, error) {
 }
 
 // WriteTo writes the component as a file to the directory
-func (rc *ReadmeComponent) WriteTo(dirPath string) (string, error) {
-	if err := rc.LoadAndFill(nil); err != nil {
-		return "", err
+func (rc *ReadmeComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = rc.LoadAndFill(nil); err != nil {
+		return
 	}
 	if rc.Value != nil && !rc.Value.IsEmpty() {
-		targetFile := filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
-		if err := ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, os.ModePerm); err != nil {
-			return targetFile, err
+		targetFile = filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
+		if err = ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, os.ModePerm); err != nil {
+			return
 		}
 	}
 	return "", nil
