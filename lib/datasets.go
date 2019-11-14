@@ -8,10 +8,12 @@ import (
 	"io/ioutil"
 	"net/rpc"
 	"os"
+	"path/filepath"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/dataset/detect"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
@@ -899,6 +901,20 @@ func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) 
 
 		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), p.Dataset); err != nil {
 			return
+		}
+	}
+	if p.Dataset.Structure == nil || p.Dataset.Structure.IsEmpty() {
+		p.Dataset.Structure = &dataset.Structure{}
+		p.Dataset.Structure.Format = filepath.Ext(p.Dataset.BodyFile().FileName())
+		p.Dataset.Structure.Schema, _, err = detect.Schema(p.Dataset.Structure, p.Dataset.BodyFile())
+		if err != nil {
+			return err
+		}
+		// TODO (ramfox): this feels gross, but since we consume the reader when
+		// detecting the schema, we need to open up the file again, since we don't
+		// have the option to seek back to the front
+		if err = p.Dataset.OpenBodyFile(ctx, r.node.Repo.Filesystem()); err != nil {
+			return err
 		}
 	}
 	reader, err := r.inst.stats.JSON(ctx, p.Dataset)
