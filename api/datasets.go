@@ -653,17 +653,24 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
-	p := &lib.StatsParams{
-		Ref: HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
+	p := lib.GetParams{
+		Path:     HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
+		UseFSI:   r.FormValue("fsi") == "true",
+		Selector: "stats",
 	}
-	res := &lib.StatsResponse{}
-	if err := h.Stats(p, res); err != nil {
+	res := lib.GetResult{}
+	err := h.Get(&p, &res)
+	if err != nil {
+		if err == repo.ErrNoHistory || err == fsi.ErrNoLink {
+			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+			return
+		}
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
 	statsMap := &[]map[string]interface{}{}
-	if err := json.Unmarshal(res.StatsBytes, statsMap); err != nil {
+	if err := json.Unmarshal(res.Bytes, statsMap); err != nil {
 		log.Errorf("error unmarshalling stats: %s", err)
 		util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error writing stats"))
 		return
