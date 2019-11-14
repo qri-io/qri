@@ -60,22 +60,30 @@ func TestAllTypesIdentitySchemaArray(t *testing.T) {
 				"type":       "boolean",
 			},
 			{
-				"key":         "float",
-				"count":       5,
-				"min":         float64(1.1),
-				"max":         float64(5.5),
-				"type":        "numeric",
-				"unique":      3,
-				"frequencies": map[string]int{"1.1": 2},
+				"key":    "float",
+				"count":  5,
+				"min":    float64(1.1),
+				"max":    float64(5.5),
+				"mean":   float64(3.08),
+				"median": float64(3.3),
+				"type":   "numeric",
+				"histogram": map[string][]float64{
+					"bins":        {1.1, 1.6400000000000001, 2.18, 2.72, 3.2600000000000002, 3.8000000000000003, 4.34, 4.880000000000001, 5.42, 5.960000000000001, 6.5},
+					"frequencies": {2, 0, 0, 0, 1, 0, 1, 0, 1, 0},
+				},
 			},
 			{
-				"key":         "int",
-				"count":       5,
-				"min":         float64(1),
-				"max":         float64(5),
-				"type":        "numeric",
-				"unique":      3,
-				"frequencies": map[string]int{"1": 2},
+				"key":    "int",
+				"count":  5,
+				"min":    float64(1),
+				"max":    float64(5),
+				"mean":   float64(2.8),
+				"median": float64(3),
+				"type":   "numeric",
+				"histogram": map[string][]float64{
+					"bins":        {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6},
+					"frequencies": {2, 0, 0, 0, 1, 0, 1, 0, 1, 0},
+				},
 			},
 			{
 				"key":   "nil",
@@ -102,28 +110,36 @@ func TestAllTypesIdentitySchemaObject(t *testing.T) {
 		"all types identity schema object of array entries",
 		`{"type":"object"}`,
 		`{
-			"a" : [1,1.1,null,false,"a"],
-			"b" : [1,2.2,null,true,"aa"],
+			"a" : [5,1.1,null,false,"a"],
+			"b" : [4,2.2,null,true,"aa"],
 			"c" : [3,2.2,null,false,"aaa"],
-			"d" : [4,4.4,null,true,"aaa"],
-			"e" : [5,5.5,null,false,"aaaaa"]
+			"d" : [1,4.4,null,true,"aaa"],
+			"e" : [1,5.5,null,false,"aaaaa"]
 		}`,
 		[]map[string]interface{}{
 			{
-				"count":       5,
-				"min":         float64(1),
-				"max":         float64(5),
-				"type":        "numeric",
-				"unique":      3,
-				"frequencies": map[string]int{"1": 2},
+				"count":  5,
+				"min":    float64(1),
+				"max":    float64(5),
+				"mean":   float64(2.8),
+				"median": float64(3),
+				"type":   "numeric",
+				"histogram": map[string][]float64{
+					"bins":        {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6},
+					"frequencies": {2, 0, 0, 0, 1, 0, 1, 0, 1, 0},
+				},
 			},
 			{
-				"count":       5,
-				"min":         float64(1.1),
-				"max":         float64(5.5),
-				"type":        "numeric",
-				"unique":      3,
-				"frequencies": map[string]int{"2.2": 2},
+				"count":  5,
+				"min":    float64(1.1),
+				"max":    float64(5.5),
+				"mean":   float64(3.08),
+				"median": float64(2.2),
+				"type":   "numeric",
+				"histogram": map[string][]float64{
+					"bins":        {1.1, 1.6400000000000001, 2.18, 2.72, 3.2600000000000002, 3.8000000000000003, 4.34, 4.880000000000001, 5.42, 5.960000000000001, 6.5},
+					"frequencies": {1, 0, 2, 0, 0, 0, 1, 0, 1, 0},
+				},
 			},
 			{
 				"count": 5,
@@ -173,11 +189,17 @@ func TestFreqThreshold(t *testing.T) {
 				"frequencies": map[string]int{"abcdefghijk": 5},
 			},
 			{
-				"count":       5,
-				"min":         float64(1),
-				"max":         float64(1),
-				"type":        "numeric",
-				"frequencies": map[string]int{"1": 5},
+				"count":  5,
+				"min":    float64(1),
+				"max":    float64(1),
+				"mean":   float64(1),
+				"median": float64(1),
+				// currently we're calculating historams at 100x the stop threshold, so this shows up
+				"histogram": map[string][]float64{
+					"bins":        {1, 1.1, 1.2, 1.3, 1.4, 1.5, 1.6, 1.7000000000000002, 1.8, 1.9, 2},
+					"frequencies": {5, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+				},
+				"type": "numeric",
 			},
 		},
 	}
@@ -200,10 +222,17 @@ func TestFreqThreshold(t *testing.T) {
 				"type":      "string",
 			},
 			{
-				"count": 5,
-				"min":   float64(1),
-				"max":   float64(5),
-				"type":  "numeric",
+				"count":  5,
+				"min":    float64(1),
+				"max":    float64(5),
+				"mean":   float64(3),
+				"median": float64(3),
+				// currently we're calculating historams at 100x the stop threshold, so this shows up
+				"histogram": map[string][]float64{
+					"bins":        {1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6},
+					"frequencies": {1, 0, 1, 0, 1, 0, 1, 0, 1, 0},
+				},
+				"type": "numeric",
 			},
 		},
 	}
@@ -336,7 +365,7 @@ func TestJSON(t *testing.T) {
 				{"int": 4, "float": 4.4, "nil": null, "bool": true, "string": "aaa"},
 				{"int": 5, "float": 5.5, "nil": null, "bool": false, "string": "aaaaa"}
 			]`,
-			[]byte(`[{"count":5,"falseCount":3,"key":"bool","trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"1.1":2},"key":"float","max":5.5,"min":1.1,"type":"numeric","unique":3},{"count":5,"frequencies":{"1":2},"key":"int","max":5,"min":1,"type":"numeric","unique":3},{"count":5,"key":"nil","type":"null"},{"count":5,"frequencies":{"aaa":2},"key":"string","maxLength":5,"minLength":1,"type":"string","unique":3}]`),
+			[]byte(`[{"count":5,"falseCount":3,"key":"bool","trueCount":2,"type":"boolean"},{"count":5,"histogram":{"bins":[1.1,1.6400000000000001,2.18,2.72,3.2600000000000002,3.8000000000000003,4.34,4.880000000000001,5.42,5.960000000000001,6.5],"frequencies":[2,0,0,0,1,0,1,0,1,0]},"key":"float","max":5.5,"mean":3.08,"median":3.3,"min":1.1,"type":"numeric"},{"count":5,"histogram":{"bins":[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6],"frequencies":[2,0,0,0,1,0,1,0,1,0]},"key":"int","max":5,"mean":2.8,"median":3,"min":1,"type":"numeric"},{"count":5,"key":"nil","type":"null"},{"count":5,"frequencies":{"aaa":2},"key":"string","maxLength":5,"minLength":1,"type":"string","unique":3}]`),
 		}, {
 			"csv: an array of strings",
 			"csv",
@@ -375,7 +404,7 @@ func TestJSON(t *testing.T) {
 				"type": "array"
 			 }`,
 			"1,1.1,,false,a\n1,1.1,,true,aa\n3,3.3,,false,aaa\n4,4.4,,true,aaa\n5,5.5,,false,aaaaa",
-			[]byte(`[{"count":5,"frequencies":{"1":2},"max":5,"min":1,"type":"numeric","unique":3},{"count":5,"frequencies":{"1.1":2},"max":5.5,"min":1.1,"type":"numeric","unique":3},{"count":5,"type":"null"},{"count":5,"falseCount":3,"trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"aaa":2},"maxLength":5,"minLength":1,"type":"string","unique":3}]`),
+			[]byte(`[{"count":5,"histogram":{"bins":[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6],"frequencies":[2,0,0,0,1,0,1,0,1,0]},"max":5,"mean":2.8,"median":3,"min":1,"type":"numeric"},{"count":5,"histogram":{"bins":[1.1,1.6400000000000001,2.18,2.72,3.2600000000000002,3.8000000000000003,4.34,4.880000000000001,5.42,5.960000000000001,6.5],"frequencies":[2,0,0,0,1,0,1,0,1,0]},"max":5.5,"mean":3.08,"median":3.3,"min":1.1,"type":"numeric"},{"count":5,"type":"null"},{"count":5,"falseCount":3,"trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"aaa":2},"maxLength":5,"minLength":1,"type":"string","unique":3}]`),
 		}, {
 			"json: all types identity schema object of array entries",
 			"json",
@@ -387,7 +416,7 @@ func TestJSON(t *testing.T) {
 					"d" : [4,4.4,null,true,"aaa"],
 					"e" : [5,5.5,null,false,"aaaaa"]
 				}`,
-			[]byte(`[{"count":5,"frequencies":{"1":2},"max":5,"min":1,"type":"numeric","unique":3},{"count":5,"frequencies":{"2.2":2},"max":5.5,"min":1.1,"type":"numeric","unique":3},{"count":5,"type":"null"},{"count":5,"falseCount":3,"trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"aaa":2},"maxLength":5,"minLength":1,"type":"string","unique":3}]`),
+			[]byte(`[{"count":5,"histogram":{"bins":[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6],"frequencies":[2,0,0,0,1,0,1,0,1,0]},"max":5,"mean":2.8,"median":3,"min":1,"type":"numeric"},{"count":5,"histogram":{"bins":[1.1,1.6400000000000001,2.18,2.72,3.2600000000000002,3.8000000000000003,4.34,4.880000000000001,5.42,5.960000000000001,6.5],"frequencies":[1,0,2,0,0,0,1,0,1,0]},"max":5.5,"mean":3.08,"median":2.2,"min":1.1,"type":"numeric"},{"count":5,"type":"null"},{"count":5,"falseCount":3,"trueCount":2,"type":"boolean"},{"count":5,"frequencies":{"aaa":2},"maxLength":5,"minLength":1,"type":"string","unique":3}]`),
 		}, {
 			"json: array of object of array of strings",
 			"json",
@@ -397,7 +426,7 @@ func TestJSON(t *testing.T) {
 					{"ids": [1,2,3,4,5,6] },
 					{"ids": ["b",20,"c"] }
 				]`,
-			[]byte(`[{"key":"ids","type":"array","values":[{"count":2,"maxLength":1,"minLength":1,"unique":2},{"count":1,"maxLength":1,"minLength":1,"unique":1},{"count":2,"frequencies":{"c":2},"maxLength":1,"minLength":1},{"count":1,"max":4,"min":4,"unique":1},{"count":1,"max":5,"min":5,"unique":1},{"count":1,"max":6,"min":6,"unique":1}]},{"count":1,"falseCount":0,"key":"is_great","trueCount":1,"type":"boolean"}]`),
+			[]byte(`[{"key":"ids","type":"array","values":[{"count":2,"maxLength":1,"minLength":1,"unique":2},{"count":1,"maxLength":1,"minLength":1,"unique":1},{"count":2,"frequencies":{"c":2},"maxLength":1,"minLength":1},{"count":1,"histogram":{"bins":[4,4.1,4.2,4.3,4.4,4.5,4.6,4.7,4.8,4.9,5],"frequencies":[1,0,0,0,0,0,0,0,0,0]},"max":4,"mean":4,"median":4,"min":4},{"count":1,"histogram":{"bins":[5,5.1,5.2,5.3,5.4,5.5,5.6,5.7,5.8,5.9,6],"frequencies":[1,0,0,0,0,0,0,0,0,0]},"max":5,"mean":5,"median":5,"min":5},{"count":1,"histogram":{"bins":[6,6.1,6.2,6.3,6.4,6.5,6.6,6.7,6.8,6.9,7],"frequencies":[1,0,0,0,0,0,0,0,0,0]},"max":6,"mean":6,"median":6,"min":6}]},{"count":1,"falseCount":0,"key":"is_great","trueCount":1,"type":"boolean"}]`),
 		},
 	}
 	for i, c := range goodCases {

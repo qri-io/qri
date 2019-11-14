@@ -8,11 +8,12 @@ import (
 	"fmt"
 	"io"
 	"sort"
-	"strconv"
 
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dsio"
+	gonumfloats "gonum.org/v1/gonum/floats"
+	gonumstat "gonum.org/v1/gonum/stat"
 )
 
 var (
@@ -314,27 +315,34 @@ func (acc *arrayAcc) Close() {
 	}
 }
 
-const maxUint = ^uint(0)
-const maxInt = int(maxUint >> 1)
-const minInt = -maxInt - 1
+const (
+	maxUint  = ^uint(0)
+	maxFloat = float64(maxUint >> 1)
+	maxInt   = int(maxUint >> 1)
+	minInt   = -maxInt - 1
+)
 
 type numericAcc struct {
-	typ         string
-	count       int
-	min         float64
-	max         float64
-	unique      int
-	frequencies map[float64]int
+	typ       string
+	count     int
+	min       float64
+	max       float64
+	mean      float64
+	median    float64
+	dividers  []float64
+	histogram []float64
 }
 
 var _ accumulator = (*numericAcc)(nil)
 
 func newNumericAcc(typ string) *numericAcc {
 	return &numericAcc{
-		typ:         typ,
-		max:         float64(minInt),
-		min:         float64(maxInt),
-		frequencies: map[float64]int{},
+		typ:    typ,
+		max:    float64(minInt),
+		min:    float64(maxInt),
+		median: maxFloat,
+		// use histogram to accumulate values
+		histogram: make([]float64, 0, StopFreqCountThreshold*100),
 	}
 }
 
@@ -359,13 +367,14 @@ func (acc *numericAcc) Write(e dsio.Entry) {
 		return
 	}
 
-	if acc.frequencies != nil {
-		acc.frequencies[v]++
-		if len(acc.frequencies) >= StopFreqCountThreshold {
-			acc.frequencies = nil
+	if acc.histogram != nil {
+		acc.histogram = append(acc.histogram, v)
+		if len(acc.histogram) == StopFreqCountThreshold*100 {
+			acc.histogram = nil
 		}
 	}
 
+	acc.mean += v
 	acc.count++
 	if v > acc.max {
 		acc.max = v
@@ -383,23 +392,21 @@ func (acc *numericAcc) Map() map[string]interface{} {
 		return map[string]interface{}{"count": 0}
 	}
 	m := map[string]interface{}{
+		"mean":  acc.mean,
 		"count": acc.count,
 		"min":   acc.min,
 		"max":   acc.max,
 	}
 
-	if acc.unique != 0 {
-		m["unique"] = acc.unique
+	if acc.median != maxFloat {
+		m["median"] = acc.median
 	}
 
-	if acc.frequencies != nil {
-		// need to convert keys to strings b/c many serialization formats aren't
-		// down with numeric map keys
-		strFrq := map[string]int{}
-		for fl, freq := range acc.frequencies {
-			strFrq[strconv.FormatFloat(fl, 'f', -1, 64)] = freq
+	if acc.histogram != nil {
+		m["histogram"] = map[string][]float64{
+			"bins":        acc.dividers,
+			"frequencies": acc.histogram,
 		}
-		m["frequencies"] = strFrq
 	}
 
 	return m
@@ -407,17 +414,21 @@ func (acc *numericAcc) Map() map[string]interface{} {
 
 // Close finalizes the accumulator
 func (acc *numericAcc) Close() {
-	if acc.frequencies != nil {
-		// determine unique values
-		for key, freq := range acc.frequencies {
-			if freq == 1 {
-				acc.unique++
-				delete(acc.frequencies, key)
-			}
-		}
-		if len(acc.frequencies) == 0 {
-			acc.frequencies = nil
-		}
+	// finalize avg
+	acc.mean = acc.mean / float64(acc.count)
+
+	if len(acc.histogram) > 0 {
+		acc.median = acc.histogram[len(acc.histogram)/2]
+
+		sort.Float64Slice(acc.histogram).Sort()
+		// turn values into a histogram
+		nBins := 10
+		acc.dividers = make([]float64, nBins+1)
+		// Increase the maximum divider so that the maximum value of x is contained
+		// within the last bucket.
+		gonumfloats.Span(acc.dividers, acc.min, acc.max+1)
+		// Span includes the min and the max. Trim the dividers to create 10 buckets
+		acc.histogram = gonumstat.Histogram(nil, acc.dividers, acc.histogram, nil)
 	}
 }
 
