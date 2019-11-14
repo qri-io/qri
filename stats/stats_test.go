@@ -102,7 +102,30 @@ func TestAllTypesIdentitySchemaArray(t *testing.T) {
 		},
 	}
 
-	runTestCases(t, allTypesIdentitySchemaArray)
+	medianTestCase := TestCase{
+		"median test cast",
+		`{"type":"array"}`,
+		`[
+			[2],
+			[1],
+		]`,
+		[]map[string]interface{}{
+			{
+				"count":  2,
+				"min":    float64(1),
+				"max":    float64(2),
+				"mean":   float64(1.5),
+				"median": float64(1.5),
+				"type":   "numeric",
+				"histogram": map[string][]float64{
+					"bins":        {1, 1.2, 1.4, 1.6, 1.8, 2, 2.2, 2.4000000000000004, 2.6, 2.8, 3},
+					"frequencies": {1, 0, 0, 0, 0, 1, 0, 0, 0, 0},
+				},
+			},
+		},
+	}
+
+	runTestCases(t, allTypesIdentitySchemaArray, medianTestCase)
 }
 
 func TestAllTypesIdentitySchemaObject(t *testing.T) {

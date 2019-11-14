@@ -418,9 +418,15 @@ func (acc *numericAcc) Close() {
 	acc.mean = acc.mean / float64(acc.count)
 
 	if len(acc.histogram) > 0 {
-		acc.median = acc.histogram[len(acc.histogram)/2]
-
 		sort.Float64Slice(acc.histogram).Sort()
+
+		if len(acc.histogram)%2 == 0 && len(acc.histogram) > 1 {
+			acc.median = (acc.histogram[len(acc.histogram)/2-1] + acc.histogram[len(acc.histogram)/2]) / float64(2)
+			// acc.median = (acc.histogram[len(acc.histogram)/2] + acc.histogram[len(acc.histogram)/2+1]) / float64(2)
+		} else {
+			acc.median = acc.histogram[len(acc.histogram)/2]
+		}
+
 		// turn values into a histogram
 		nBins := 10
 		acc.dividers = make([]float64, nBins+1)
