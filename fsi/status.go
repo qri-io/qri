@@ -90,7 +90,6 @@ func (fsi *FSI) Status(ctx context.Context, dir string) (changes []StatusItem, e
 
 	stored.DropDerivedValues()
 	stored.Commit = nil
-	stored.Transform = nil
 	stored.Peername = ""
 
 	working, err := component.ListDirectoryComponents(dir)

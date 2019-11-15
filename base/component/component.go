@@ -56,6 +56,13 @@ func ConvertDatasetToComponents(ds *dataset.Dataset, qfilesys qfs.Filesystem) Co
 		rc.Format = "md"
 		dc.Subcomponents["readme"] = &rc
 	}
+	if ds.Transform != nil {
+		dc.Subcomponents["transform"] = &TransformComponent{
+			BaseComponent: BaseComponent{Format: "star"},
+			Resolver:      qfilesys,
+			Value:         ds.Transform,
+		}
+	}
 
 	if ds.Body != nil {
 		bc := BodyComponent{Resolver: qfilesys}
@@ -76,8 +83,8 @@ func ConvertDatasetToComponents(ds *dataset.Dataset, qfilesys qfs.Filesystem) Co
 	return &dc
 }
 
-// ToDataset converts a component to a dataset. Should only be used on a component representing an
-// entire dataset.
+// ToDataset converts a component to a dataset. Should only be used on a
+// component representing an entire dataset.
 func ToDataset(comp Component) (*dataset.Dataset, error) {
 	dsComp := comp.Base().GetSubcomponent("dataset")
 	if dsComp == nil {
@@ -107,6 +114,11 @@ func ToDataset(comp Component) (*dataset.Dataset, error) {
 	}
 	if rmComponent := comp.Base().GetSubcomponent("readme"); rmComponent != nil {
 		if err := rmComponent.LoadAndFill(ds); err != nil {
+			return nil, err
+		}
+	}
+	if tfComponent := comp.Base().GetSubcomponent("transform"); tfComponent != nil {
+		if err := tfComponent.LoadAndFill(ds); err != nil {
 			return nil, err
 		}
 	}

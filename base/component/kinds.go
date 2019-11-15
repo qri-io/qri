@@ -562,7 +562,7 @@ func SerializeBody(source interface{}, st *dataset.Structure) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// ReadmeComponent represents a meta component
+// ReadmeComponent represents a readme component
 type ReadmeComponent struct {
 	BaseComponent
 	Resolver qfs.PathResolver
@@ -650,6 +650,99 @@ func (rc *ReadmeComponent) StructuredData() (interface{}, error) {
 	return structToMap(rc.Value)
 }
 
+// TransformComponent represents a transform component
+type TransformComponent struct {
+	BaseComponent
+	Resolver qfs.PathResolver
+	Value    *dataset.Transform
+}
+
+// Compare compares to another component
+func (tc *TransformComponent) Compare(compare Component) (bool, error) {
+	other, ok := compare.(*TransformComponent)
+	if !ok {
+		return false, nil
+	}
+	if err := tc.LoadAndFill(nil); err != nil {
+		return false, err
+	}
+	if err := compare.LoadAndFill(nil); err != nil {
+		return false, err
+	}
+
+	// TODO (b5) - for now we're only comparing script bytes, which means changes to transform
+	// configuration won't be detected by things like status, What's more, because stored transforms include
+	// a starlark syntax and a "qri" key, comparing FSI to stored JSON won't be equal
+	// Let's clean this up
+	return bytes.Equal(tc.Value.ScriptBytes, other.Value.ScriptBytes), nil
+}
+
+// WriteTo writes the component as a file to the directory
+func (tc *TransformComponent) WriteTo(dirPath string) (targetFile string, err error) {
+	if err = tc.LoadAndFill(nil); err != nil {
+		return
+	}
+	if tc.Value != nil && !tc.Value.IsEmpty() {
+		targetFile = filepath.Join(dirPath, fmt.Sprintf("transform.%s", tc.Format))
+		if err = ioutil.WriteFile(targetFile, tc.Value.ScriptBytes, os.ModePerm); err != nil {
+			return
+		}
+	}
+	return "", nil
+}
+
+// RemoveFrom removes the component file from the directory
+func (tc *TransformComponent) RemoveFrom(dirPath string) error {
+	// TODO(dlong): Does component have SoutceFile set?
+	if err := os.Remove(filepath.Join(dirPath, fmt.Sprintf("transform.%s", tc.Format))); err != nil && !os.IsNotExist(err) {
+		return err
+	}
+	return nil
+}
+
+// DropDerivedValues drops derived values from the component
+func (tc *TransformComponent) DropDerivedValues() {
+	tc.Value.DropDerivedValues()
+}
+
+// LoadAndFill loads data from the component soutce file and assigns it
+func (tc *TransformComponent) LoadAndFill(ds *dataset.Dataset) error {
+	if tc.Base().IsLoaded {
+		return nil
+	}
+	if tc.Value == nil {
+		fields, err := tc.Base().LoadFile()
+		if err != nil {
+			return err
+		}
+		tc.Value = &dataset.Transform{}
+		if err := fill.Struct(fields, tc.Value); err != nil {
+			return err
+		}
+	}
+	tc.Base().IsLoaded = true
+
+	if tc.Resolver != nil {
+		err := tc.Value.InlineScriptFile(context.Background(), tc.Resolver)
+		if err != nil {
+			return err
+		}
+	}
+
+	if ds != nil {
+		ds.Transform = tc.Value
+	}
+	return nil
+}
+
+// StructuredData returns the transform as a map[string]
+func (tc *TransformComponent) StructuredData() (interface{}, error) {
+	if err := tc.LoadAndFill(nil); err != nil {
+		return nil, err
+	}
+	return structToMap(tc.Value)
+}
+
 // Base returns the common base data for the component
 func (bc *BaseComponent) Base() *BaseComponent {
 	return bc
@@ -683,7 +776,7 @@ func (bc *BaseComponent) LoadFile() (map[string]interface{}, error) {
 			return nil, err
 		}
 		return fields, nil
-	case "html", "md":
+	case "html", "md", "star":
 		fields["ScriptBytes"] = data
 		return fields, nil
 	}
@@ -712,6 +805,8 @@ func (bc *BaseComponent) SetSubcomponent(name string, base BaseComponent) Compon
 		component = &StructureComponent{BaseComponent: base}
 	} else if name == "readme" {
 		component = &ReadmeComponent{BaseComponent: base}
+	} else if name == "transform" {
+		component = &TransformComponent{BaseComponent: base}
 	} else if name == "body" {
 		component = &BodyComponent{BaseComponent: base}
 	} else if name == "dataset" {
