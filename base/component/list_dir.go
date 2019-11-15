@@ -143,6 +143,15 @@ func ExpandListedComponents(container Component, resolver qfs.Filesystem) error 
 			readme.IsLoaded = true
 		}
 	}
+	if ds.Transform != nil {
+		comp := assignField(filesysComponent, "transform", dsComponent)
+		if comp != nil {
+			readme := comp.(*TransformComponent)
+			readme.Resolver = resolver
+			readme.Value = ds.Transform
+			readme.IsLoaded = true
+		}
+	}
 	// TODO: transform
 	if ds.Body != nil {
 		comp := assignField(filesysComponent, "body", dsComponent)
