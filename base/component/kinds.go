@@ -562,7 +562,7 @@ func SerializeBody(source interface{}, st *dataset.Structure) ([]byte, error) {
 	return buff.Bytes(), nil
 }
 
-// ReadmeComponent represents a meta component
+// ReadmeComponent represents a readme component
 type ReadmeComponent struct {
 	BaseComponent
 	Resolver qfs.PathResolver
@@ -650,7 +650,7 @@ func (rc *ReadmeComponent) StructuredData() (interface{}, error) {
 	return structToMap(rc.Value)
 }
 
-// TransformComponent represents a meta component
+// TransformComponent represents a transform component
 type TransformComponent struct {
 	BaseComponent
 	Resolver qfs.PathResolver
