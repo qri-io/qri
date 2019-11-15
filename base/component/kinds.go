@@ -669,7 +669,12 @@ func (tc *TransformComponent) Compare(compare Component) (bool, error) {
 	if err := compare.LoadAndFill(nil); err != nil {
 		return false, err
 	}
-	return compareComponentData(tc.Value, other.Value)
+
+	// TODO (b5) - for now we're only comparing script bytes, which means changes to transform
+	// configuration won't be detected by things like status, What's more, because stored transforms include
+	// a starlark syntax and a "qri" key, comparing FSI to stored JSON won't be equal
+	// Let's clean this up
+	return bytes.Equal(tc.Value.ScriptBytes, other.Value.ScriptBytes), nil
 }
 
 // WriteTo writes the component as a file to the directory
