@@ -199,7 +199,7 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	}
 }
 
-func TestUpdateLink(t *testing.T) {
+func TestModifyLink(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
@@ -208,13 +208,9 @@ func TestUpdateLink(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	link, err := fsi.UpdateLink(paths.firstDir, "me/test_ds@/ipfs/QmExample")
+	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds@/ipfs/QmExample")
 	if err != nil {
-		t.Fatalf(err.Error())
-	}
-	expect := `peer/test_ds@/ipfs/QmExample`
-	if link != expect {
-		t.Errorf("error: link did not match, actual: %s, expect: %s", link, expect)
+		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
 }
 
