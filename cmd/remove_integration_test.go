@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"os"
+	"path/filepath"
 	"regexp"
 	"strings"
 	"testing"
@@ -511,4 +512,31 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
+}
+
+// Test removing a linked dataset after the working directory has already been deleted.
+func TestRemoveIfWorkingDirectoryIsNotFound(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_no_wd")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_no_wd")
+
+	// Init as a linked directory
+	run.MustExec(t, "qri init --name remove_no_wd --format csv")
+
+	// Save the new dataset
+	run.MustExec(t, "qri save")
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	os.Chdir(parentDir)
+
+	// Remove the working directory
+	err := os.RemoveAll(workDir)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove all should still work, even though the working directory is gone.
+	run.MustExec(t, "qri remove --revisions=all me/remove_no_wd")
 }
