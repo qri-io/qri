@@ -9,6 +9,7 @@ import (
 	"net/rpc"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/ghodss/yaml"
 	"github.com/qri-io/dag"
@@ -597,7 +598,15 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
 					return fmt.Errorf("cannot remove from dataset while working directory is dirty")
 				}
-				return wdErr
+				if strings.Contains(wdErr.Error(), "not a linked directory") {
+					// If the working directory has been removed (or renamed), could not get the
+					// status. However, don't let this stop the remove operation, since the files
+					// are already gone, and therefore won't be removed.
+					log.Debugf("could not get status for %s, maybe removed or renamed", ref.FSIPath)
+					wdErr = nil
+				} else {
+					return wdErr
+				}
 			}
 		}
 	} else if p.KeepFiles {
@@ -650,7 +659,15 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			// Delete the directory
 			err = os.Remove(ref.FSIPath)
 			if err != nil {
-				return err
+				if strings.Contains(err.Error(), "no such file or directory") {
+					// If the working directory has already been removed (or renamed), it is
+					// not an error that this remove operation fails, since we were trying to
+					// remove them anyway.
+					log.Debugf("could not remove %s, maybe already removed or renamed", ref.FSIPath)
+					err = nil
+				} else {
+					return err
+				}
 			}
 		}
 	} else {
