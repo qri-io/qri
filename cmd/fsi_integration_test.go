@@ -992,6 +992,34 @@ meta:
 	}
 }
 
+// Test that diff before save leads to a reasonable error message
+func TestDiffBeforeSave(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_diff_before_save")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("diff_before")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name diff_change --format csv")
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+
+	// Diff should return the expected error message
+	err := run.ExecCommand("qri diff")
+	if err == nil {
+		t.Fatal("expected error trying to init, did not get an error")
+	}
+	expect := `dataset has no versions, nothing to diff against`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+}
+
 // Test that if the meta component fails to write, init will rollback
 func TestInitMetaFailsToWrite(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_init_meta_fail")
