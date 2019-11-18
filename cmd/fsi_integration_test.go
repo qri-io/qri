@@ -184,6 +184,47 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 	}
 }
 
+// Test init command can create a json body using the format flag
+func TestInitForJsonBody(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_json_body")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("json_body")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name json_body --format json")
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.json", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
+// Test init command can create a json body from a source body
+func TestInitWithJsonSourceBodyPath(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_json_body")
+	defer run.Delete()
+
+	sourceFile, err := filepath.Abs("testdata/movies/body_four.json")
+	if err != nil {
+		panic(err)
+	}
+
+	workDir := run.CreateAndChdirToWorkDir("json_body")
+
+	// Init as a linked directory.
+	run.MustExec(t, fmt.Sprintf("qri init --name json_body --source-body-path %s", sourceFile))
+
+	// Verify the directory contains the files that we expect.
+	dirContents := listDirectory(workDir)
+	expectContents := []string{".qri-ref", "body.json", "meta.json", "structure.json"}
+	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
+		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
 // Test that checkout, used on a simple dataset with a body.json and no meta, creates a
 // working directory with a clean status.
 func TestCheckoutSimpleStatus(t *testing.T) {

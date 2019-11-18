@@ -151,6 +151,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		initDs.Body = map[string]interface{}{
 			"key": "value",
 		}
+		bodySchema = dataset.BaseSchemaObject
 	}
 
 	// Add structure.
