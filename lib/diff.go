@@ -93,7 +93,10 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		return err
 	}
 	err = repo.CanonicalizeDatasetRef(r.inst.node.Repo, &ref)
-	if err != nil && err != repo.ErrNoHistory {
+	if err != nil {
+		if err == repo.ErrNoHistory {
+			return fmt.Errorf("dataset has no versions, nothing to diff against")
+		}
 		return err
 	}
 	ds, err := dsfs.LoadDataset(ctx, r.inst.node.Repo.Store(), ref.Path)
