@@ -1,3 +1,65 @@
+# [v0.9.2](https://github.com/qri-io/qri/compare/v0.9.1...v0.9.2) (2019-11-18)
+
+In this patch release we're fixing a bunch of tiny bugs centered around removing datasets, and adding methods for column statistics
+
+## 📊 Get to know your data with stats
+This release adds support for stats calculation. The easiest way to see stats is to `get` 'em:
+
+```
+$ qri get stats me/dataset
+
+# getting stats also works in an FSI-linked directory
+# so you can drop the dataset reference & just type:
+$ cd /path/to/linked/dataset/directory
+$ qri get stats
+```
+
+In both cases you'll get a JSON document of stats, with one stat aggregating each column in your datsaet. The type of stat created depends on the data type being aggregated. Here's the table of stats calculated so far:
+
+| column data type | stat type  | notes                                                                |
+| ---------------- | ---------- | -------------------------------------------------------------------- |
+| string           | string     | Calculates a term frequency If there are fewer than 10,000 unique values, fequencies that only occur once aren't listed in frequency map and instead increment a "unique" count. |
+| number           | numeric    | Calculates a 10-bucket histogram, as well as min, max, mean, median. |
+| boolean          | boolean    | Calculates a true / false / other count                              |
+| null             | null       | counts the number of null values                                     |
+
+
+
+### Bug Fixes
+
+* **api:** Remove force flag for api ([2acf8d8](https://github.com/qri-io/qri/commit/2acf8d8))
+* **fsi:** Cleanup quote usage, name return values ([1fa2f2b](https://github.com/qri-io/qri/commit/1fa2f2b))
+* **fsi status:** use byte comparison for transform equality test ([73c02a5](https://github.com/qri-io/qri/commit/73c02a5))
+* **init:** Can init linked datasets with json format ([a679155](https://github.com/qri-io/qri/commit/a679155))
+* **init:** If init has errors, rollback changes ([bc3eb42](https://github.com/qri-io/qri/commit/bc3eb42))
+* **ls:** Don't crash when `list` runs over RPC ([7eedc5d](https://github.com/qri-io/qri/commit/7eedc5d))
+* **readme:** Can save a readme component using --file flag ([714c470](https://github.com/qri-io/qri/commit/714c470))
+* **remove:** Can remove a dataset if its working directory is missing ([9a5b4d8](https://github.com/qri-io/qri/commit/9a5b4d8))
+* **remove:** Comments, cleanups, improve tests for remove ([4c1a8c1](https://github.com/qri-io/qri/commit/4c1a8c1))
+* **remove:** Fix multiple problems with remove ([67f5ad5](https://github.com/qri-io/qri/commit/67f5ad5)), closes [#1000](https://github.com/qri-io/qri/issues/1000)
+* **remove:** Force flag always removes files. Remove directory too. ([e89a2f6](https://github.com/qri-io/qri/commit/e89a2f6))
+* **rename:** Allow rename for dataset with no history. Update .qri-ref ([ebcb676](https://github.com/qri-io/qri/commit/ebcb676))
+* **rename:** Simplify some conditionals around renames ([965d78d](https://github.com/qri-io/qri/commit/965d78d))
+* **stats:** `int` was not capturing all integer options, add `int32` or `int64` ([e00791f](https://github.com/qri-io/qri/commit/e00791f))
+* **stats:** fix numeric median calculation ([24d29b3](https://github.com/qri-io/qri/commit/24d29b3))
+* **stats:** gets stats with no structure ([a2046d6](https://github.com/qri-io/qri/commit/a2046d6))
+* **stats/cache:** stats must have a cache struct, even if empty ([70279d4](https://github.com/qri-io/qri/commit/70279d4))
+* **windows:** Set the .qri repo as hidden on Windows. ([599b977](https://github.com/qri-io/qri/commit/599b977))
+
+
+### Features
+
+* **`qri stats`:** add stats cmd! outputs unformated json stats ([422ad72](https://github.com/qri-io/qri/commit/422ad72))
+* **api.StatsHandler:** add handler and tests for `/stats/` endpoint! ([a103758](https://github.com/qri-io/qri/commit/a103758))
+* **config:** add `Stats` config options to the config ([ba85eac](https://github.com/qri-io/qri/commit/ba85eac))
+* **fsi transform:** skeletal support for transform scripts via FSI ([98e0cfc](https://github.com/qri-io/qri/commit/98e0cfc))
+* **lib:** add `stats.Cache` to the lib instance as `stats` ([a8646f4](https://github.com/qri-io/qri/commit/a8646f4))
+* **lib.Stats:** add `lib.Stats` func and tests! ([1210e91](https://github.com/qri-io/qri/commit/1210e91))
+* **stats:** add histogram, mean, meadian to numeric stat ([937d145](https://github.com/qri-io/qri/commit/937d145))
+* **stats:** introduce stats subsystem ([5dd0ae1](https://github.com/qri-io/qri/commit/5dd0ae1))
+
+
+
 # [0.9.1](https://github.com/qri-io/qri/compare/v0.9.0...v0.9.1) (2019-11-05)
 
 This release brings first-class support for Readmes, adds a bunch of stability, and sets the table for exciting collaboration features in the future.
