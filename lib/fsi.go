@@ -82,9 +82,8 @@ func (m *FSIMethods) ModifyLink(p *LinkParams, res *bool) (err error) {
 	} else if p.ToModify == "ref" {
 		*res = true
 		return m.inst.fsi.ModifyLinkReference(p.Dir, p.Ref)
-	} else {
-		return fmt.Errorf("ToModify has unknown value %q", p.ToModify)
 	}
+	return fmt.Errorf("ToModify has unknown value %q", p.ToModify)
 }
 
 // Unlink rmeoves a connection between a working drirectory and a dataset history

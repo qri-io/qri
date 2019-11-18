@@ -79,11 +79,9 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 	if err := validate.ValidName(new.Name); err != nil {
 		return err
 	}
-	if err := repo.CanonicalizeDatasetRef(r, current); err != nil {
-		if err != repo.ErrNoHistory {
-			log.Debug(err.Error())
-			return fmt.Errorf("error with existing reference: %s", err.Error())
-		}
+	if err := repo.CanonicalizeDatasetRef(r, current); err != nil && err != repo.ErrNoHistory {
+		log.Debug(err.Error())
+		return fmt.Errorf("error with existing reference: %s", err.Error())
 	}
 	err = repo.CanonicalizeDatasetRef(r, new)
 	if err == nil {
