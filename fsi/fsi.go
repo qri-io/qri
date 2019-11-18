@@ -143,20 +143,25 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	return ref.AliasString(), removeLinkAndRemoveRefFunc, err
 }
 
-// UpdateLink changes an existing link entry
-func (fsi *FSI) UpdateLink(dirPath, refStr string) (string, error) {
+// ModifyLinkDirectory changes the directory for the linked dataset reference
+func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
+	return fmt.Errorf("TODO: Implement me")
+}
+
+// ModifyLinkReference changes the reference for the existing linked working directory
+func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {
-		return "", err
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNoHistory {
+		return err
 	}
 
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		return ref.String(), err
+	if _, err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
+		return err
 	}
-
-	ref.FSIPath = dirPath
-	err = fsi.repo.PutRef(ref)
-	return ref.String(), err
+	return nil
 }
 
 // Unlink breaks the connection between a directory and a dataset

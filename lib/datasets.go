@@ -536,11 +536,19 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err err
 		return fmt.Errorf("current name is required to rename a dataset")
 	}
 
+	// Update the reference stored in the repo
 	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &p.Current, &p.New, true /*isRename*/); err != nil {
 		return err
 	}
 
-	if err = base.ReadDataset(ctx, r.node.Repo, &p.New); err != nil {
+	// If the dataset is linked to a working directory, update the ref
+	if p.New.FSIPath != "" {
+		if err = r.inst.fsi.ModifyLinkReference(p.New.FSIPath, p.New.String()); err != nil {
+			return err
+		}
+	}
+
+	if err = base.ReadDataset(ctx, r.node.Repo, &p.New); err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
 		return err
 	}

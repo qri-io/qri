@@ -39,8 +39,9 @@ func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]repo.DatasetRef) (err erro
 
 // LinkParams encapsulate parameters to the link method
 type LinkParams struct {
-	Dir string
-	Ref string
+	Dir      string
+	Ref      string
+	ToModify string
 }
 
 // CreateLink creates a connection between a working drirectory and a dataset history
@@ -61,14 +62,28 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 	return err
 }
 
-// UpdateLink creates a connection between a working drirectory and a dataset history
-func (m *FSIMethods) UpdateLink(p *LinkParams, res *string) (err error) {
-	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.UpdateLink", p, res)
+// ModifyLink changes an existing link by either updating the ref for a directory, or vice versa
+func (m *FSIMethods) ModifyLink(p *LinkParams, res *bool) (err error) {
+	// absolutize path name
+	path, err := filepath.Abs(p.Dir)
+	if err != nil {
+		return err
 	}
 
-	*res, err = m.inst.fsi.UpdateLink(p.Dir, p.Ref)
-	return err
+	p.Dir = path
+
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.ModifyLink", p, res)
+	}
+
+	if p.ToModify == "dir" {
+		*res = true
+		return m.inst.fsi.ModifyLinkDirectory(p.Dir, p.Ref)
+	} else if p.ToModify == "ref" {
+		*res = true
+		return m.inst.fsi.ModifyLinkReference(p.Dir, p.Ref)
+	}
+	return fmt.Errorf("ToModify has unknown value %q", p.ToModify)
 }
 
 // Unlink rmeoves a connection between a working drirectory and a dataset history
