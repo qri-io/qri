@@ -602,7 +602,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 					// If the working directory has been removed (or renamed), could not get the
 					// status. However, don't let this stop the remove operation, since the files
 					// are already gone, and therefore won't be removed.
-					log.Debug("could not get stauts for %s, maybe removed or renamed", ref.FSIPath)
+					log.Debugf("could not get status for %s, maybe removed or renamed", ref.FSIPath)
 					wdErr = nil
 				} else {
 					return wdErr
@@ -663,7 +663,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 					// If the working directory has already been removed (or renamed), it is
 					// not an error that this remove operation fails, since we were trying to
 					// remove them anyway.
-					log.Debug("could not remove %s, maybe already removed or renamed", ref.FSIPath)
+					log.Debugf("could not remove %s, maybe already removed or renamed", ref.FSIPath)
 					err = nil
 				} else {
 					return err

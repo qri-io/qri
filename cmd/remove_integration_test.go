@@ -538,5 +538,7 @@ func TestRemoveIfWorkingDirectoryIsNotFound(t *testing.T) {
 	}
 
 	// Remove all should still work, even though the working directory is gone.
-	run.MustExec(t, "qri remove --revisions=all me/remove_no_wd")
+	if err = run.ExecCommand("qri remove --revisions=all me/remove_no_wd"); err != nil {
+		t.Error(err)
+	}
 }
