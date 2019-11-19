@@ -17,7 +17,9 @@ func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
 
 	l := tr.RandomLog(init, 10000)
 	book := tr.Book
-	book.AppendLog(l)
+	if err := book.AppendLog(tr.Ctx, l); err != nil {
+		b.Fatal(err)
+	}
 
 	data, err := book.FlatbufferCipher(tr.PrivKey)
 	if err != nil {

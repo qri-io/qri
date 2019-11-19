@@ -32,6 +32,78 @@ var (
 	ErrNotFound = fmt.Errorf("log: not found")
 )
 
+// Logstore persists a set of Logs
+type Logstore interface {
+	// Add a Log to the store. If the given log has children, the store must
+	// persist those logs as well
+	// if the given log specifies a parent, the log must be stored as a child of
+	// that log, and error if no such log exists.
+	// TODO (b5) - this store-by-parent rule is neither being used or enforced
+	AppendLog(ctx context.Context, l *Log) error
+
+	// Remove a log from the store, all descendant logs must be removed as well
+	RemoveLog(ctx context.Context, names ...string) error
+
+	// Logs lists top level logs in the store, that is, the set logs that have no
+	// parent. passing -1 as a limit returns all top level logs after the offset
+	//
+	// The order of logs returned is up to the store, but the stored order must
+	// be deterministic
+	Logs(ctx context.Context, offset, limit int) (topLevel []*Log, err error)
+
+	// get a log according to a hierarchy of log.Name() references
+	// for example, fetching HeadRef(ctx, "foo", "bar", "baz") is a request
+	// for the log at the hierarchy foo/bar/baz:
+	//   foo
+	//     bar
+	//       baz
+	//
+	// HeadRef must return ErrNotFound if any name in the heirarchy is  missing
+	// from the store
+	// Head references are mutated by adding operations to a log that modifies
+	// the name of the initialization model, which means names are not a
+	// persistent identifier
+	//
+	// HeadRef MAY return children of a log. If the returned log.Log value is
+	// populated, it MUST contain all children of the log.
+	// use Logstore.Children or Logstore.Descendants to populate missing children
+	HeadRef(ctx context.Context, names ...string) (*Log, error)
+
+	// get a log according to it's ID string
+	// Log must return ErrNotFound if the ID does not exist
+	//
+	// Log MAY return children of a log. If the returned log.Log value is
+	// populated, it MUST contain all children of the log.
+	// use Logstore.Children or Logstore.Descendants to populate missing children
+	Log(ctx context.Context, id string) (*Log, error)
+
+	// get the immediate descendants of a log, using the given log as an outparam.
+	// Children must only mutate Logs field of the passed-in log pointer
+	// added Children MAY include decendant logs
+	Children(ctx context.Context, l *Log) error
+	// get all generations of a log, using the given log as an outparam
+	// Descendants MUST only mutate Logs field of the passed-in log pointer
+	Descendants(ctx context.Context, l *Log) error
+}
+
+// AuthorLogstore adds encryption methods to the Logstore interface owned by a
+// single author
+type AuthorLogstore interface {
+	// All AuthorLogstores are Logstores
+	Logstore
+
+	// get the id of the oplog that represnts this Logstore's author
+	ID() string
+	// attribute ownership of the logstore to an author
+	// the given id MUST equal the id of a log already in the logstore
+	SetID(id string) error
+
+	// marshals all logs to a slice of bytes encrypted with the given private key
+	FlatbufferCipher(pk crypto.PrivKey) ([]byte, error)
+	// decrypt flatbuffer bytes, re-hydrating the store
+	UnmarshalFlatbufferCipher(ctx context.Context, pk crypto.PrivKey, ciphertext []byte) error
+}
+
 // Book is a journal of operations organized into a collection of append-only
 // logs. Each log is single-writer
 // Books are connected to a single author, and represent their view of
@@ -44,6 +116,9 @@ type Book struct {
 	id   string
 	logs []*Log
 }
+
+// assert at compile time that a Book pointer is an AuthorLogstore
+var _ AuthorLogstore = (*Book)(nil)
 
 // NewBook initializes a Book
 func NewBook(authorID string) (*Book, error) {
@@ -63,13 +138,14 @@ func (book *Book) SetID(id string) {
 }
 
 // AppendLog adds a log to a book
-func (book *Book) AppendLog(l *Log) {
+func (book *Book) AppendLog(_ context.Context, l *Log) error {
 	book.logs = append(book.logs, l)
+	return nil
 }
 
 // RemoveLog removes a log from the book
 // TODO (b5) - this currently won't work when trying to remove the root log
-func (book *Book) RemoveLog(names ...string) error {
+func (book *Book) RemoveLog(ctx context.Context, names ...string) error {
 	if len(names) == 0 {
 		return fmt.Errorf("name is required")
 	}
@@ -87,7 +163,7 @@ func (book *Book) RemoveLog(names ...string) error {
 		return ErrNotFound
 	}
 
-	parent, err := book.HeadRef(parentPath...)
+	parent, err := book.HeadRef(ctx, parentPath...)
 	if err != nil {
 		return err
 	}
@@ -104,7 +180,7 @@ func (book *Book) RemoveLog(names ...string) error {
 }
 
 // Log fetches a log for a given ID
-func (book *Book) Log(id string) (*Log, error) {
+func (book *Book) Log(_ context.Context, id string) (*Log, error) {
 	for _, lg := range book.logs {
 		if l, err := lg.Log(id); err == nil {
 			return l, nil
@@ -117,7 +193,7 @@ func (book *Book) Log(id string) (*Log, error) {
 // references
 // HeadRef will not return logs that have been marked as removed. To fetch
 // removed logs either traverse the entire book or reference a log by ID
-func (book *Book) HeadRef(names ...string) (*Log, error) {
+func (book *Book) HeadRef(_ context.Context, names ...string) (*Log, error) {
 	if len(names) == 0 {
 		return nil, fmt.Errorf("name is required")
 	}
@@ -131,8 +207,13 @@ func (book *Book) HeadRef(names ...string) (*Log, error) {
 }
 
 // Logs returns the full map of logs keyed by model type
-func (book *Book) Logs() []*Log {
-	return book.logs
+func (book *Book) Logs(ctx context.Context, offset, limit int) (topLevel []*Log, err error) {
+	// fast-path for no pagination
+	if offset == 0 && limit == -1 {
+		return book.logs[:], nil
+	}
+
+	return nil, fmt.Errorf("log subsets not finished")
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
@@ -143,6 +224,24 @@ func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, pk crypto.PrivK
 	}
 
 	return book.unmarshalFlatbuffer(logfb.GetRootAsBook(plaintext, 0))
+}
+
+// Children gets all descentants of a log, because logbook stores all
+// descendants in memory, children is a proxy for descenants
+func (book *Book) Children(ctx context.Context, l *Log) error {
+	return book.Descendants(ctx, l)
+}
+
+// Descendants gets all descentants of a log & assigns the results to the given
+// Log parameter, setting only the Logs field
+func (book *Book) Descendants(ctx context.Context, l *Log) error {
+	got, err := book.Log(ctx, l.ID())
+	if err != nil {
+		return err
+	}
+
+	l.Logs = got.Logs
+	return nil
 }
 
 // FlatbufferCipher marshals book to a flatbuffer and encrypts the book using
@@ -206,11 +305,12 @@ func (book Book) flatbufferBytes() []byte {
 	return builder.FinishedBytes()
 }
 
-// note: currently doesn't marshal book.author, we're considering deprecatingz
+// note: currently doesn't marshal book.author, we're considering deprecating
+// the author field
 func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	id := builder.CreateString(book.id)
 
-	setsl := book.Logs()
+	setsl := book.logs
 	count := len(setsl)
 	offsets := make([]flatbuffers.UOffsetT, count)
 	for i, lset := range setsl {
