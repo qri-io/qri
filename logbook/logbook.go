@@ -56,7 +56,8 @@ const (
 // feature in qri, but logbook supports them
 const DefaultBranchName = "main"
 
-func modelString(m uint32) string {
+// ModelString gets a unique string descriptor for an integral model identifier
+func ModelString(m uint32) string {
 	switch m {
 	case authorModel:
 		return "user"
@@ -869,7 +870,7 @@ type Op struct {
 func newOp(op oplog.Op) Op {
 	return Op{
 		Type:      opTypeString(op.Type),
-		Model:     modelString(op.Model),
+		Model:     ModelString(op.Model),
 		Ref:       op.Ref,
 		Prev:      op.Prev,
 		Relations: op.Relations,

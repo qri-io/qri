@@ -13,9 +13,36 @@ import (
 )
 
 var allowUnexported = cmp.AllowUnexported(
-	Book{},
+	Journal{},
 	Log{},
 )
+
+func TestBookID(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	expect := ""
+	got := tr.Journal.ID()
+	if expect != got {
+		t.Errorf("empty ID mismatch. expected: %q, got: %q", expect, got)
+	}
+
+	if err := tr.Journal.SetID(tr.Ctx, "test_id"); err == nil {
+		t.Errorf("expected setting an ID that doesn't exist to fail. got nil")
+	}
+
+	l := tr.AddAuthorLogTree(t)
+
+	if err := tr.Journal.SetID(tr.Ctx, l.ID()); err != nil {
+		t.Errorf("expected setting ID to an author log to not fail. got: %q", err)
+	}
+
+	expect = l.ID()
+	got = tr.Journal.ID()
+	if expect != got {
+		t.Errorf("set ID mismatch. expected: %q, got: %q", expect, got)
+	}
+}
 
 func TestBookFlatbuffer(t *testing.T) {
 	log := InitLog(Op{
@@ -43,14 +70,14 @@ func TestBookFlatbuffer(t *testing.T) {
 		Note:      "note?",
 	}))
 
-	book := &Book{
+	book := &Journal{
 		logs: []*Log{log},
 	}
 
 	data := book.flatbufferBytes()
 	logsetfb := logfb.GetRootAsBook(data, 0)
 
-	got := &Book{}
+	got := &Journal{}
 	if err := got.unmarshalFlatbuffer(logsetfb); err != nil {
 		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
 	}
@@ -74,7 +101,7 @@ func TestBookCiphertext(t *testing.T) {
 		Name:  "apples",
 	}, 10)
 
-	book := tr.Book
+	book := tr.Journal
 	if err := book.AppendLog(tr.Ctx, lg); err != nil {
 		t.Fatal(err)
 	}
@@ -146,13 +173,13 @@ func TestLogGetID(t *testing.T) {
 	tr.AddAuthorLogTree(t)
 	ctx := tr.Ctx
 
-	got, err := tr.Book.Log(ctx, "nonsense")
+	got, err := tr.Journal.Log(ctx, "nonsense")
 	if err != ErrNotFound {
 		t.Errorf("expected not-found error for missing ID. got: %s", err)
 	}
 
-	root := tr.Book.logs[0]
-	got, err = tr.Book.Log(ctx, root.ID())
+	root := tr.Journal.logs[0]
+	got, err = tr.Journal.Log(ctx, root.ID())
 	if err != nil {
 		t.Errorf("unexpected error fetching root ID: %s", err)
 	} else if !got.Head().Equal(root.Head()) {
@@ -160,7 +187,7 @@ func TestLogGetID(t *testing.T) {
 	}
 
 	child := root.Logs[0]
-	got, err = tr.Book.Log(ctx, child.ID())
+	got, err = tr.Journal.Log(ctx, child.ID())
 	if err != nil {
 		t.Errorf("unexpected error fetching child ID: %s", err)
 	}
@@ -331,28 +358,28 @@ func TestHeadRefRemoveTracking(t *testing.T) {
 			},
 		},
 	}
-	if err := tr.Book.AppendLog(ctx, l); err != nil {
+	if err := tr.Journal.AppendLog(ctx, l); err != nil {
 		t.Fatal(err)
 	}
 
-	aLog, err := tr.Book.HeadRef(ctx, "a")
+	aLog, err := tr.Journal.HeadRef(ctx, "a")
 	if err != nil {
 		t.Errorf("expected no error fetching head ref for a. got: %v", err)
 	}
-	if _, err = tr.Book.HeadRef(ctx, "a", "a"); err != nil {
+	if _, err = tr.Journal.HeadRef(ctx, "a", "a"); err != nil {
 		t.Errorf("expected no error fetching head ref for a/a. got: %v", err)
 	}
-	if _, err = tr.Book.HeadRef(ctx, "a", "b"); err != ErrNotFound {
+	if _, err = tr.Journal.HeadRef(ctx, "a", "b"); err != ErrNotFound {
 		t.Errorf("expected removed log to be not found. got: %v", err)
 	}
 
 	// add a remove operation to "a":
 	aLog.Ops = append(aLog.Ops, Op{Type: OpTypeRemove, Model: 1, Name: "a"})
 
-	if _, err = tr.Book.HeadRef(ctx, "a"); err != ErrNotFound {
+	if _, err = tr.Journal.HeadRef(ctx, "a"); err != ErrNotFound {
 		t.Errorf("expected removed log to be not found. got: %v", err)
 	}
-	if _, err = tr.Book.HeadRef(ctx, "a", "a"); err != ErrNotFound {
+	if _, err = tr.Journal.HeadRef(ctx, "a", "a"); err != ErrNotFound {
 		t.Errorf("expected child of removed log to be not found. got: %v", err)
 	}
 
@@ -377,7 +404,7 @@ func TestHeadRefRemoveTracking(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expectLogs, tr.Book.logs, allowUnexported); diff != "" {
+	if diff := cmp.Diff(expectLogs, tr.Journal.logs, allowUnexported); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -389,15 +416,15 @@ func TestLogTraversal(t *testing.T) {
 	tr.AddAuthorLogTree(t)
 	ctx := tr.Ctx
 
-	if _, err := tr.Book.HeadRef(ctx); err == nil {
+	if _, err := tr.Journal.HeadRef(ctx); err == nil {
 		t.Errorf("expected not providing a name to error")
 	}
 
-	if _, err := tr.Book.HeadRef(ctx, "this", "isn't", "a", "thing"); err != ErrNotFound {
+	if _, err := tr.Journal.HeadRef(ctx, "this", "isn't", "a", "thing"); err != ErrNotFound {
 		t.Errorf("expected asking for nonexistent log to return ErrNotFound. got: %v", err)
 	}
 
-	got, err := tr.Book.HeadRef(ctx, "root", "b", "bazinga")
+	got, err := tr.Journal.HeadRef(ctx, "root", "b", "bazinga")
 	if err != nil {
 		t.Error(err)
 	}
@@ -422,35 +449,35 @@ func TestRemoveLog(t *testing.T) {
 	tr.AddAuthorLogTree(t)
 	ctx := tr.Ctx
 
-	if err := tr.Book.RemoveLog(ctx); err == nil {
+	if err := tr.Journal.RemoveLog(ctx); err == nil {
 		t.Errorf("expected no name remove to error")
 	}
 
-	if err := tr.Book.RemoveLog(ctx, "root", "b", "bazinga"); err != nil {
+	if err := tr.Journal.RemoveLog(ctx, "root", "b", "bazinga"); err != nil {
 		t.Error(err)
 	}
 
-	if log, err := tr.Book.HeadRef(ctx, "root", "b", "bazinga"); err != ErrNotFound {
+	if log, err := tr.Journal.HeadRef(ctx, "root", "b", "bazinga"); err != ErrNotFound {
 		t.Errorf("expected RemoveLog to remove log at path root/b/bazinga. got: %v. log: %v", err, log)
 	}
 
-	if err := tr.Book.RemoveLog(ctx, "root", "b"); err != nil {
+	if err := tr.Journal.RemoveLog(ctx, "root", "b"); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := tr.Book.HeadRef(ctx, "root", "b"); err != ErrNotFound {
+	if _, err := tr.Journal.HeadRef(ctx, "root", "b"); err != ErrNotFound {
 		t.Error("expected RemoveLog to remove log at path root/b")
 	}
 
-	if err := tr.Book.RemoveLog(ctx, "root"); err != nil {
+	if err := tr.Journal.RemoveLog(ctx, "root"); err != nil {
 		t.Error(err)
 	}
 
-	if _, err := tr.Book.HeadRef(ctx, "root"); err != ErrNotFound {
+	if _, err := tr.Journal.HeadRef(ctx, "root"); err != ErrNotFound {
 		t.Error("expected RemoveLog to remove log at path root")
 	}
 
-	if err := tr.Book.RemoveLog(ctx, "nonexistent"); err != ErrNotFound {
+	if err := tr.Journal.RemoveLog(ctx, "nonexistent"); err != ErrNotFound {
 		t.Error("expected RemoveLog for nonexistent path to error")
 	}
 }
@@ -485,9 +512,8 @@ func TestLogID(t *testing.T) {
 type testRunner struct {
 	Ctx        context.Context
 	AuthorName string
-	AuthorID   string
 	PrivKey    crypto.PrivKey
-	Book       *Book
+	Journal    *Journal
 	gen        *opGenerator
 }
 
@@ -499,20 +525,13 @@ type testFailer interface {
 func newTestRunner(t testFailer) (tr testRunner, cleanup func()) {
 	ctx := context.Background()
 	authorName := "test_author"
-	authorID := "QmTestAuthorID"
 	pk := testPrivKey(t)
-
-	book, err := NewBook(authorID)
-	if err != nil {
-		t.Fatalf("creating book: %s", err.Error())
-	}
 
 	tr = testRunner{
 		Ctx:        ctx,
 		AuthorName: authorName,
-		AuthorID:   authorID,
 		PrivKey:    pk,
-		Book:       book,
+		Journal:    &Journal{},
 		gen:        &opGenerator{ctx: ctx, NoopProb: 60},
 	}
 	cleanup = func() {
@@ -564,7 +583,7 @@ func comparePrivKeys(a, b crypto.PrivKey) bool {
 	return string(abytes) == string(bbytes)
 }
 
-func (tr *testRunner) AddAuthorLogTree(t testFailer) {
+func (tr *testRunner) AddAuthorLogTree(t testFailer) *Log {
 	tree := &Log{
 		Ops: []Op{
 			Op{
@@ -613,7 +632,9 @@ func (tr *testRunner) AddAuthorLogTree(t testFailer) {
 		},
 	}
 
-	if err := tr.Book.AppendLog(tr.Ctx, tree); err != nil {
+	if err := tr.Journal.AppendLog(tr.Ctx, tree); err != nil {
 		t.Fatal(err)
 	}
+
+	return tree
 }
