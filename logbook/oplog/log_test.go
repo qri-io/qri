@@ -17,7 +17,7 @@ var allowUnexported = cmp.AllowUnexported(
 	Log{},
 )
 
-func TestBookID(t *testing.T) {
+func TestJournalID(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -44,7 +44,60 @@ func TestBookID(t *testing.T) {
 	}
 }
 
-func TestBookFlatbuffer(t *testing.T) {
+func TestJournalMerge(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+	ctx := tr.Ctx
+
+	if err := tr.Journal.MergeLog(ctx, &Log{}); err == nil {
+		t.Error("exceted adding an empty log to fail")
+	}
+
+	a := &Log{Ops: []Op{
+		{Type: OpTypeInit, AuthorID: "a"},
+	}}
+	if err := tr.Journal.MergeLog(ctx, a); err != nil {
+		t.Error(err)
+	}
+
+	expectLen := 1
+	gotLen := len(tr.Journal.logs)
+	if expectLen != gotLen {
+		t.Errorf("top level log length mismatch. expected: %d, got: %d", expectLen, gotLen)
+	}
+
+	a = &Log{
+		Ops: []Op{
+			{Type: OpTypeInit, AuthorID: "a"},
+		},
+		Logs: []*Log{
+			{
+				Ops: []Op{
+					{Type: OpTypeInit, Model: 1, AuthorID: "a"},
+				},
+			},
+		},
+	}
+
+	if err := tr.Journal.MergeLog(ctx, a); err != nil {
+		t.Error(err)
+	}
+
+	if expectLen != gotLen {
+		t.Errorf("top level log length shouldn't change after merging a child log. expected: %d, got: %d", expectLen, gotLen)
+	}
+
+	got, err := tr.Journal.Log(ctx, a.ID())
+	if err != nil {
+		t.Error(err)
+	}
+
+	if !got.Logs[0].Ops[0].Equal(a.Logs[0].Ops[0]) {
+		t.Errorf("expected returned ops to be equal")
+	}
+}
+
+func TestJournalFlatbuffer(t *testing.T) {
 	log := InitLog(Op{
 		Type:      OpTypeInit,
 		Model:     0x1,
@@ -70,11 +123,11 @@ func TestBookFlatbuffer(t *testing.T) {
 		Note:      "note?",
 	}))
 
-	book := &Journal{
+	j := &Journal{
 		logs: []*Log{log},
 	}
 
-	data := book.flatbufferBytes()
+	data := j.flatbufferBytes()
 	logsetfb := logfb.GetRootAsBook(data, 0)
 
 	got := &Journal{}
@@ -86,12 +139,12 @@ func TestBookFlatbuffer(t *testing.T) {
 	// we should file an issue with a test that demonstrates the error
 	ignoreCircularPointers := cmpopts.IgnoreUnexported(Log{})
 
-	if diff := cmp.Diff(book, got, allowUnexported, cmp.Comparer(comparePrivKeys), ignoreCircularPointers); diff != "" {
+	if diff := cmp.Diff(j, got, allowUnexported, cmp.Comparer(comparePrivKeys), ignoreCircularPointers); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
 
-func TestBookCiphertext(t *testing.T) {
+func TestJournalCiphertext(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -101,17 +154,17 @@ func TestBookCiphertext(t *testing.T) {
 		Name:  "apples",
 	}, 10)
 
-	book := tr.Journal
-	if err := book.AppendLog(tr.Ctx, lg); err != nil {
+	j := tr.Journal
+	if err := j.MergeLog(tr.Ctx, lg); err != nil {
 		t.Fatal(err)
 	}
 
-	gotcipher, err := book.FlatbufferCipher(tr.PrivKey)
+	gotcipher, err := j.FlatbufferCipher(tr.PrivKey)
 	if err != nil {
 		t.Fatalf("calculating flatbuffer cipher: %s", err.Error())
 	}
 
-	plaintext := book.flatbufferBytes()
+	plaintext := j.flatbufferBytes()
 	if bytes.Equal(gotcipher, plaintext) {
 		t.Errorf("plaintext bytes & ciphertext bytes can't be equal")
 	}
@@ -123,12 +176,12 @@ func TestBookCiphertext(t *testing.T) {
 	// 	t.Errorf("ciphertext as book should not have worked")
 	// }
 
-	if err = book.UnmarshalFlatbufferCipher(tr.Ctx, tr.PrivKey, gotcipher); err != nil {
+	if err = j.UnmarshalFlatbufferCipher(tr.Ctx, tr.PrivKey, gotcipher); err != nil {
 		t.Errorf("book.UnmarhsalFlatbufferCipher unexpected error: %s", err.Error())
 	}
 }
 
-func TestBookSignLog(t *testing.T) {
+func TestJournalSignLog(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -196,7 +249,7 @@ func TestLogGetID(t *testing.T) {
 	}
 }
 
-func TestNameTracking(t *testing.T) {
+func TestLogNameTracking(t *testing.T) {
 	lg := InitLog(Op{
 		Type:     OpTypeInit,
 		Model:    0x01,
@@ -358,7 +411,7 @@ func TestHeadRefRemoveTracking(t *testing.T) {
 			},
 		},
 	}
-	if err := tr.Journal.AppendLog(ctx, l); err != nil {
+	if err := tr.Journal.MergeLog(ctx, l); err != nil {
 		t.Fatal(err)
 	}
 
@@ -632,7 +685,7 @@ func (tr *testRunner) AddAuthorLogTree(t testFailer) *Log {
 		},
 	}
 
-	if err := tr.Journal.AppendLog(tr.Ctx, tree); err != nil {
+	if err := tr.Journal.MergeLog(tr.Ctx, tree); err != nil {
 		t.Fatal(err)
 	}
 

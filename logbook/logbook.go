@@ -80,7 +80,7 @@ func ModelString(m uint32) string {
 
 // Book wraps a oplog.Book with a higher-order API specific to Qri
 type Book struct {
-	bk *oplog.Book
+	store oplog.Logstore
 
 	pk         crypto.PrivKey
 	authorID   string
@@ -105,20 +105,15 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 		return nil, fmt.Errorf("logbook: location is required")
 	}
 
-	bk, err := oplog.NewBook("")
-	if err != nil {
-		return nil, err
-	}
-
 	book := &Book{
-		bk:         bk,
+		store:      &oplog.Journal{},
 		fs:         fs,
 		pk:         pk,
 		authorName: username,
 		fsLocation: location,
 	}
 
-	if err = book.load(ctx); err != nil {
+	if err := book.load(ctx); err != nil {
 		if err == ErrNotFound {
 			err = book.initialize(ctx)
 			return book, err
@@ -146,19 +141,20 @@ func (book *Book) initialize(ctx context.Context) error {
 		AuthorID:  keyID,
 		Timestamp: NewTimestamp(),
 	})
-	book.bk.AppendLog(userActions)
-	book.bk.SetID(userActions.ID())
 	book.authorID = userActions.ID()
+
+	if err = book.store.MergeLog(ctx, userActions); err != nil {
+		return err
+	}
+	if al, ok := book.store.(oplog.AuthorLogstore); ok {
+		al.SetID(ctx, book.authorID)
+	}
 	return book.save(ctx)
 }
 
 // ActivePeerID returns the in-use PeerID of the logbook author
 func (book *Book) ActivePeerID() (id string) {
-	lg, err := book.bk.Log(book.AuthorID())
-	if err != nil {
-		panic(err)
-	}
-	return lg.Author()
+	return book.authorID
 }
 
 // Author returns this book's author
@@ -192,37 +188,42 @@ func (book *Book) DeleteAuthor() error {
 }
 
 // save writes the book to book.fsLocation
-func (book *Book) save(ctx context.Context) error {
-	ciphertext, err := book.bk.FlatbufferCipher(book.pk)
-	if err != nil {
-		return err
-	}
+func (book *Book) save(ctx context.Context) (err error) {
+	if al, ok := book.store.(oplog.AuthorLogstore); ok {
+		ciphertext, err := al.FlatbufferCipher(book.pk)
+		if err != nil {
+			return err
+		}
 
-	file := qfs.NewMemfileBytes(book.fsLocation, ciphertext)
-	book.fsLocation, err = book.fs.Put(ctx, file)
+		file := qfs.NewMemfileBytes(book.fsLocation, ciphertext)
+		book.fsLocation, err = book.fs.Put(ctx, file)
+	}
 	return err
 }
 
 // load reads the book dataset from book.fsLocation
 func (book *Book) load(ctx context.Context) error {
-	f, err := book.fs.Get(ctx, book.fsLocation)
-	if err != nil {
-		if strings.Contains(err.Error(), "not found") {
-			return ErrNotFound
+	if al, ok := book.store.(oplog.AuthorLogstore); ok {
+
+		f, err := book.fs.Get(ctx, book.fsLocation)
+		if err != nil {
+			if strings.Contains(err.Error(), "not found") {
+				return ErrNotFound
+			}
+			return err
 		}
-		return err
-	}
 
-	ciphertext, err := ioutil.ReadAll(f)
-	if err != nil {
-		return err
-	}
+		ciphertext, err := ioutil.ReadAll(f)
+		if err != nil {
+			return err
+		}
 
-	if err = book.bk.UnmarshalFlatbufferCipher(ctx, book.pk, ciphertext); err != nil {
-		return err
-	}
+		if err = al.UnmarshalFlatbufferCipher(ctx, book.pk, ciphertext); err != nil {
+			return err
+		}
 
-	book.authorID = book.bk.ID()
+		book.authorID = al.ID()
+	}
 	return nil
 }
 
@@ -234,7 +235,7 @@ func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 	if name == "" {
 		return fmt.Errorf("logbook: name is required to initialize a dataset")
 	}
-	if _, err := book.DatasetRef(dsref.Ref{Username: book.AuthorName(), Name: name}); err == nil {
+	if _, err := book.DatasetRef(ctx, dsref.Ref{Username: book.AuthorName(), Name: name}); err == nil {
 		return fmt.Errorf("logbook: dataset named '%s' already exists", name)
 	}
 
@@ -262,13 +263,13 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 
 	dsLog.Logs = append(dsLog.Logs, branch)
 
-	ns := book.authorLog()
+	ns := book.authorLog(ctx)
 	ns.Logs = append(ns.Logs, dsLog)
 	return branch
 }
 
-func (book Book) authorLog() *oplog.Log {
-	authorLog, err := book.bk.Log(book.AuthorID())
+func (book Book) authorLog(ctx context.Context) *oplog.Log {
+	authorLog, err := book.store.Log(ctx, book.authorID)
 	if err != nil {
 		// this should never happen in practice
 		// TODO (b5): create an author namespace on the spot if this happens
@@ -284,7 +285,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName
 	}
 	log.Debugf("WriteDatasetRename: '%s' -> '%s'", ref.Alias(), newName)
 
-	l, err := book.DatasetRef(ref)
+	l, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -305,7 +306,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 	}
 	log.Debugf("WriteDatasetDelete: '%s'", ref)
 
-	l, err := book.DatasetRef(ref)
+	l, err := book.DatasetRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -328,7 +329,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 
 	ref := refFromDataset(ds)
 	log.Debugf("WriteVersionSave: %s", ref)
-	branchLog, err := book.BranchRef(ref)
+	branchLog, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		if err == oplog.ErrNotFound {
 			branchLog = book.initName(ctx, ref.Name)
@@ -368,7 +369,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 	ref := refFromDataset(ds)
 	log.Debugf("WriteVersionAmend: '%s'", ref)
 
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -395,7 +396,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 	}
 	log.Debugf("WriteVersionDelete: %s, revisions: %d", ref, revisions)
 
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -418,7 +419,7 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 	}
 	log.Debugf("WritePublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
 
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -442,7 +443,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 	}
 	log.Debugf("WriteUnpublish: %s, revisions: %d, destinations: %v", ref, revisions, destinations)
 
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -465,7 +466,7 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	}
 	log.Debugf("WriteCronJobRan: %s, number: %d", ref, number)
 
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -481,8 +482,8 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 }
 
 // Log gets a log for a given ID
-func (book Book) Log(id string) (*oplog.Log, error) {
-	return book.bk.Log(id)
+func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
+	return book.store.Log(ctx, id)
 }
 
 // UserDatasetRef gets a user's log and a dataset reference, the returned log
@@ -492,7 +493,7 @@ func (book Book) Log(id string) (*oplog.Log, error) {
 //       branch
 //       branch
 //       ...
-func (book Book) UserDatasetRef(ref dsref.Ref) (*oplog.Log, error) {
+func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: reference Username is required")
 	}
@@ -501,13 +502,13 @@ func (book Book) UserDatasetRef(ref dsref.Ref) (*oplog.Log, error) {
 	}
 
 	// fetch user log
-	author, err := book.bk.HeadRef(ref.Username)
+	author, err := book.store.HeadRef(ctx, ref.Username)
 	if err != nil {
 		return nil, err
 	}
 
 	// fetch dataset & all branches
-	ds, err := book.bk.HeadRef(ref.Username, ref.Name)
+	ds, err := book.store.HeadRef(ctx, ref.Username, ref.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -525,7 +526,7 @@ func (book Book) UserDatasetRef(ref dsref.Ref) (*oplog.Log, error) {
 //
 // currently all logs are hardcoded to only accept one branch name. This
 // function always returns
-func (book Book) DatasetRef(ref dsref.Ref) (*oplog.Log, error) {
+func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
 	}
@@ -533,7 +534,7 @@ func (book Book) DatasetRef(ref dsref.Ref) (*oplog.Log, error) {
 		return nil, fmt.Errorf("logbook: ref.Name is required")
 	}
 
-	return book.bk.HeadRef(ref.Username, ref.Name)
+	return book.store.HeadRef(ctx, ref.Username, ref.Name)
 }
 
 // BranchRef gets a branch log for a dataset reference. Branch logs describe
@@ -541,7 +542,7 @@ func (book Book) DatasetRef(ref dsref.Ref) (*oplog.Log, error) {
 //
 // currently all logs are hardcoded to only accept one branch name. This
 // function always returns
-func (book Book) BranchRef(ref dsref.Ref) (*oplog.Log, error) {
+func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
 	}
@@ -549,7 +550,7 @@ func (book Book) BranchRef(ref dsref.Ref) (*oplog.Log, error) {
 		return nil, fmt.Errorf("logbook: ref.Name is required")
 	}
 
-	return book.bk.HeadRef(ref.Username, ref.Name, DefaultBranchName)
+	return book.store.HeadRef(ctx, ref.Username, ref.Name, DefaultBranchName)
 }
 
 // LogBytes signs a log with this book's private key and writes to a flatbuffer
@@ -596,22 +597,26 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 	// 	return fmt.Errorf("authors can only push logs they own")
 	// }
 
-	found, err := book.bk.Log(lg.ID())
-	if err != nil {
-		if err == oplog.ErrNotFound {
-			book.bk.AppendLog(lg)
-			return book.save(ctx)
-		}
+	// found, err := book.store.Log(lg.ID())
+	// if err != nil {
+	// 	if err == oplog.ErrNotFound {
+	// 		book.store.AppendLog(lg)
+	// 		return book.save(ctx)
+	// 	}
+	// 	return err
+	// }
+
+	// found.Merge(lg)
+	if err := book.store.MergeLog(ctx, lg); err != nil {
 		return err
 	}
 
-	found.Merge(lg)
 	return book.save(ctx)
 }
 
 // RemoveLog removes an entire log from a logbook
 func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
 	}
@@ -637,7 +642,7 @@ func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsr
 		return fmt.Errorf("authors can only remove logs they own")
 	}
 
-	book.bk.RemoveLog(dsRefToLogPath(ref)...)
+	book.store.RemoveLog(ctx, dsRefToLogPath(ref)...)
 	return book.save(ctx)
 }
 
@@ -657,7 +662,7 @@ func dsRefToLogPath(ref dsref.Ref) (path []string) {
 // TODO (b5) - this presently only works for datasets in an author's user
 // namespace
 func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
-	branchLog, err := book.BranchRef(ref)
+	branchLog, err := book.BranchRef(ctx, ref)
 	if err == nil {
 		// if the log already exists, it will either as-or-more rich than this log,
 		// refuse to overwrite
@@ -697,8 +702,8 @@ func infoFromOp(ref dsref.Ref, op oplog.Op) DatasetInfo {
 
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(ref dsref.Ref, offset, limit int) ([]DatasetInfo, error) {
-	l, err := book.BranchRef(ref)
+func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetInfo, error) {
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -764,7 +769,7 @@ func (l LogEntry) String() string {
 // LogEntries returns a summarized "line-by-line" representation of a log for a
 // given dataset reference
 func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit int) ([]LogEntry, error) {
-	l, err := book.BranchRef(ref)
+	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
@@ -808,13 +813,17 @@ func logEntryFromOp(author string, op oplog.Op) LogEntry {
 }
 
 // RawLogs returns a serialized, complete set of logs keyed by model type logs
-func (book Book) RawLogs(ctx context.Context) []Log {
-	raw := book.bk.Logs()
+func (book Book) RawLogs(ctx context.Context) ([]Log, error) {
+	raw, err := book.store.Logs(ctx, 0, -1)
+	if err != nil {
+		return nil, err
+	}
+
 	logs := make([]Log, len(raw))
 	for i, l := range raw {
 		logs[i] = newLog(l)
 	}
-	return logs
+	return logs, nil
 }
 
 // Log is a human-oriented representation of oplog.Log intended for serialization

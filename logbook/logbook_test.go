@@ -142,7 +142,7 @@ func Example() {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	log, err := book.Versions(ref, 0, 100)
+	log, err := book.Versions(ctx, ref, 0, 100)
 	if err != nil {
 		panic(err)
 	}
@@ -255,16 +255,13 @@ func TestUserDatasetRef(t *testing.T) {
 
 	tr.WriteRenameExample(t)
 
-	if _, err := tr.Book.UserDatasetRef(dsref.Ref{}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(tr.Ctx, dsref.Ref{}); err == nil {
 		t.Error("expected LogBytes with empty ref to fail")
 	}
-	if _, err := tr.Book.UserDatasetRef(dsref.Ref{Username: tr.Username}); err == nil {
+	if _, err := tr.Book.UserDatasetRef(tr.Ctx, dsref.Ref{Username: tr.Username}); err == nil {
 		t.Error("expected LogBytes with empty name ref to fail")
 	}
-	// lg := tr.Book.RawLogs(tr.Ctx)
-	// t.Logf("%#v\n\n", tr.RenameRef().String())
-	// t.Logf("%#v\n\n", lg)
-	if _, err := tr.Book.UserDatasetRef(tr.RenameRef()); err != nil {
+	if _, err := tr.Book.UserDatasetRef(tr.Ctx, tr.RenameRef()); err != nil {
 		t.Errorf("expected LogBytes with proper ref to not produce an error. got: %s", err)
 	}
 }
@@ -274,7 +271,7 @@ func TestLogBytes(t *testing.T) {
 	defer cleanup()
 
 	tr.WriteRenameExample(t)
-	log, err := tr.Book.UserDatasetRef(tr.RenameRef())
+	log, err := tr.Book.UserDatasetRef(tr.Ctx, tr.RenameRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -295,7 +292,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 	egRef := tr.RenameRef()
-	log, err := tr.Book.UserDatasetRef(egRef)
+	log, err := tr.Book.UserDatasetRef(tr.Ctx, egRef)
 	if err != nil {
 		t.Error(err)
 	}
@@ -304,7 +301,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected nil ref to error")
 	}
 
-	wrongModelLog, err := tr.Book.bk.HeadRef(tr.Username)
+	wrongModelLog, err := tr.Book.store.HeadRef(tr.Ctx, tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -313,7 +310,7 @@ func TestDsRefAliasForLog(t *testing.T) {
 		t.Error("expected converting log of wrong model to error")
 	}
 
-	ambiguousLog, err := tr.Book.bk.HeadRef(tr.Username)
+	ambiguousLog, err := tr.Book.store.HeadRef(tr.Ctx, tr.Username)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -415,7 +412,10 @@ func TestDatasetLogNaming(t *testing.T) {
 		},
 	}
 
-	got := tr.Book.RawLogs(tr.Ctx)
+	got, err := tr.Book.RawLogs(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
@@ -428,7 +428,10 @@ func TestBookRawLog(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 
-	got := tr.Book.RawLogs(tr.Ctx)
+	got, err := tr.Book.RawLogs(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	// data, err := json.MarshalIndent(got, "", "  ")
 	// if err != nil {
@@ -533,7 +536,7 @@ func TestLogTransfer(t *testing.T) {
 	tr.WriteWorldBankExample(t)
 	tr.WriteRenameExample(t)
 
-	log, err := tr.Book.UserDatasetRef(tr.WorldBankRef())
+	log, err := tr.Book.UserDatasetRef(tr.Ctx, tr.WorldBankRef())
 	if err != nil {
 		t.Error(err)
 	}
@@ -561,7 +564,7 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	revs, err := book2.Versions(tr.WorldBankRef(), 0, 30)
+	revs, err := book2.Versions(tr.Ctx, tr.WorldBankRef(), 0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -614,7 +617,7 @@ func TestVersions(t *testing.T) {
 	tr.WriteMoreWorldBankCommits(t)
 	book := tr.Book
 
-	versions, err := book.Versions(tr.WorldBankRef(), 0, 10)
+	versions, err := book.Versions(tr.Ctx, tr.WorldBankRef(), 0, 10)
 	if err != nil {
 		t.Error(err)
 	}
@@ -653,7 +656,7 @@ func TestVersions(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 
-	versions, err = book.Versions(tr.WorldBankRef(), 1, 1)
+	versions, err = book.Versions(tr.Ctx, tr.WorldBankRef(), 1, 1)
 	if err != nil {
 		t.Error(err)
 	}
@@ -724,7 +727,7 @@ func TestConstructDatasetLog(t *testing.T) {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	versions, err := book.Versions(ref, 0, 100)
+	versions, err := book.Versions(tr.Ctx, ref, 0, 100)
 	if err != nil {
 		t.Errorf("getting versions: %s", err)
 	}

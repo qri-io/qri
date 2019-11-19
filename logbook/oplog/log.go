@@ -35,12 +35,17 @@ var (
 // Logstore persists a set of operations organized into hierarchical append-only
 // logs
 type Logstore interface {
-	// Add a Log to the store. If the given log has children, the store must
-	// persist those logs as well
-	// if the given log specifies a parent, the log must be stored as a child of
-	// that log, and error if no such log exists.
-	// TODO (b5) - this store-by-parent rule is neither being used or enforced
-	AppendLog(ctx context.Context, l *Log) error
+	// Merge adds a Log to the store, controlling for conflicts
+	// * logs that are already known to the store are merged with a
+	//   longest-log-wins strategy, adding all descendants
+	// * new top level logs are appended to the store, including all descendants
+	// * attempting to add a log with a parent not already in the store MUST fail
+	//
+	// TODO (b5) - currently a Log pointer doesn't provide a clear method for
+	// getting the ID of it's parent, which negates the potential for attempting
+	// to merge child log, so we don't need to control for the third point quite
+	// yet
+	MergeLog(ctx context.Context, l *Log) error
 
 	// Remove a log from the store, all descendant logs must be removed as well
 	RemoveLog(ctx context.Context, names ...string) error
@@ -87,8 +92,8 @@ type Logstore interface {
 	Descendants(ctx context.Context, l *Log) error
 }
 
-// AuthorLogstore adds encryption methods to the Logstore interface owned by a
-// single author
+// AuthorLogstore describes a store owned by a single author, it adds encryption
+// methods for safe local persistence as well as owner ID accessors
 type AuthorLogstore interface {
 	// All AuthorLogstores are Logstores
 	Logstore
@@ -131,10 +136,22 @@ func (j *Journal) SetID(ctx context.Context, id string) error {
 	return nil
 }
 
-// AppendLog adds a log to the journal
-// TODO (b5) - this currently doesn't require logs to be top level, it should
-func (j *Journal) AppendLog(_ context.Context, l *Log) error {
-	j.logs = append(j.logs, l)
+// MergeLog adds a log to the journal
+func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
+	if l.ID() == "" {
+		return fmt.Errorf("oplog: log ID cannot be empty")
+	}
+
+	found, err := j.Log(ctx, l.ID())
+	if err != nil {
+		if err == ErrNotFound {
+			j.logs = append(j.logs, l)
+			return nil
+		}
+		return err
+	}
+
+	found.Merge(l)
 	return nil
 }
 
