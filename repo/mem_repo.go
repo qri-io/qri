@@ -27,7 +27,7 @@ type MemRepo struct {
 // TODO (b5) - need a better mem-repo constructor, we don't need a logbook for
 // all test cases
 func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, ps profile.Store) (*MemRepo, error) {
-	book, err := logbook.NewBook(p.PrivKey, p.Peername, fsys, "/map/logbook")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, fsys, "/map/logbook")
 	if err != nil {
 		return nil, err
 	}

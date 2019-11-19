@@ -90,10 +90,15 @@ type Book struct {
 	fs         qfs.Filesystem
 }
 
-// NewBook initializes a logbook, reading any existing data at the given
-// filesystem location. logbooks are encrypted at rest. The same key must be
-// given to decrypt an existing logbook
-func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location string) (*Book, error) {
+// NewBook creates a book with an unattributed logstore
+func NewBook(store oplog.Logstore) *Book {
+	return &Book{store: store}
+}
+
+// NewJournal initializes a logbook owned by a single author, reading any
+// existing data at the given filesystem location.
+// logbooks are encrypted at rest with the given private key
+func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, location string) (*Book, error) {
 	ctx := context.Background()
 	if pk == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
@@ -155,12 +160,16 @@ func (book *Book) initialize(ctx context.Context) error {
 // ActivePeerID returns the in-use PeerID of the logbook author
 // TODO (b5) - remove the need for this context by caching the active PeerID
 // at key load / save / mutation points
-func (book *Book) ActivePeerID(ctx context.Context) (id string) {
+func (book *Book) ActivePeerID(ctx context.Context) (id string, err error) {
+	if book == nil {
+		return "", ErrNoLogbook
+	}
+
 	lg, err := book.store.Log(ctx, book.authorID)
 	if err != nil {
 		panic(err)
 	}
-	return lg.Author()
+	return lg.Author(), nil
 }
 
 // Author returns this book's author
@@ -590,7 +599,9 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 
 // MergeLog adds a log to the logbook, merging with any existing log data
 func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplog.Log) error {
-
+	if book == nil {
+		return ErrNoLogbook
+	}
 	// eventually access control will dictate which logs can be written by whom.
 	// For now we only allow users to merge logs they've written
 	// book will need access to a store of public keys before we can verify
@@ -603,16 +614,6 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 	// 	return fmt.Errorf("authors can only push logs they own")
 	// }
 
-	// found, err := book.store.Log(lg.ID())
-	// if err != nil {
-	// 	if err == oplog.ErrNotFound {
-	// 		book.store.AppendLog(lg)
-	// 		return book.save(ctx)
-	// 	}
-	// 	return err
-	// }
-
-	// found.Merge(lg)
 	if err := book.store.MergeLog(ctx, lg); err != nil {
 		return err
 	}
@@ -622,6 +623,10 @@ func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplo
 
 // RemoveLog removes an entire log from a logbook
 func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return err
@@ -668,6 +673,10 @@ func dsRefToLogPath(ref dsref.Ref) (path []string) {
 // TODO (b5) - this presently only works for datasets in an author's user
 // namespace
 func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, history []*dataset.Dataset) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
 	branchLog, err := book.BranchRef(ctx, ref)
 	if err == nil {
 		// if the log already exists, it will either as-or-more rich than this log,

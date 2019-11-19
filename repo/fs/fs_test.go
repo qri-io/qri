@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
@@ -18,16 +19,22 @@ func TestRepo(t *testing.T) {
 
 	rmf := func(t *testing.T) (repo.Repo, func()) {
 		if err := os.RemoveAll(path); err != nil {
-			t.Fatalf("error removing files: %s", err.Error())
+			t.Fatalf("error removing files: %q", err)
 		}
 
 		pro, err := profile.NewProfile(config.DefaultProfileForTesting())
 		if err != nil {
-			t.Fatal(err.Error())
+			t.Fatal(err)
+		}
+
+		fs := qfs.NewMemFS()
+		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, path)
+		if err != nil {
+			t.Fatal(err)
 		}
 
 		store := cafs.NewMapstore()
-		r, err := NewRepo(store, qfs.NewMemFS(), pro, path)
+		r, err := NewRepo(store, fs, book, pro, path)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}

@@ -40,7 +40,12 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// pull logs to B from A
-	pull, err := lsB.NewPull(worldBankRef, tr.A.ActivePeerID(tr.Ctx))
+	aID, err := tr.A.ActivePeerID(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pull, err := lsB.NewPull(worldBankRef, aID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -63,7 +68,12 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// push logs from A to B
-	push, err := lsA.NewPush(nasdaqRef, tr.B.ActivePeerID(tr.Ctx))
+	bID, err := tr.B.ActivePeerID(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	push, err := lsA.NewPush(nasdaqRef, bID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -81,7 +91,7 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// A request B removes nasdaq
-	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, tr.B.ActivePeerID(tr.Ctx)); err != nil {
+	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, bID); err != nil {
 		t.Errorf("unexpected error doing remove request: %s", err)
 	}
 	if _, err = tr.B.Versions(tr.Ctx, nasdaqRef, 0, 10); err == nil {

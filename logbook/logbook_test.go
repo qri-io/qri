@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
 func Example() {
@@ -35,14 +36,14 @@ func Example() {
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
 
-	// Create a new LogBook, passing in:
+	// Create a new journal for b5, passing in:
 	//  * the author private key to encrypt & decrypt the logbook
 	//  * author's current username
 	//  * a qfs.Filesystem for reading & writing the logbook
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := NewBook(pk, "b5", fs, "/mem/logset")
+	book, err := NewJournal(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -156,24 +157,24 @@ func Example() {
 	// b5/world_bank_population@QmHashOfVersion1
 }
 
-func TestNewBook(t *testing.T) {
+func TestNewJournal(t *testing.T) {
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
 
-	if _, err := NewBook(nil, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(nil, "b5", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing private key arg to error")
 	}
-	if _, err := NewBook(pk, "", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(pk, "", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing author arg to error")
 	}
-	if _, err := NewBook(pk, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(pk, "b5", nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing filesystem arg to error")
 	}
-	if _, err := NewBook(pk, "b5", fs, ""); err == nil {
+	if _, err := NewJournal(pk, "b5", fs, ""); err == nil {
 		t.Errorf("expected missing location arg to error")
 	}
 
-	_, err := NewBook(pk, "b5", fs, "/mem/logset")
+	_, err := NewJournal(pk, "b5", fs, "/mem/logset")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -186,6 +187,18 @@ func TestNilCallable(t *testing.T) {
 		err  error
 	)
 
+	if _, err = book.ActivePeerID(ctx); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.MergeLog(ctx, nil, &oplog.Log{}); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.RemoveLog(ctx, nil, dsref.Ref{}); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
+	if err = book.ConstructDatasetLog(ctx, dsref.Ref{}, nil); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
 	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
@@ -547,7 +560,7 @@ func TestLogTransfer(t *testing.T) {
 
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
-	book2, err := NewBook(pk2, "user2", fs2, "/mem/fs2_location")
+	book2, err := NewJournal(pk2, "user2", fs2, "/mem/fs2_location")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -767,7 +780,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	NewTimestamp = tr.newTimestamp
 
 	var err error
-	tr.Book, err = NewBook(pk, authorName, fs, "/mem/logset")
+	tr.Book, err = NewJournal(pk, authorName, fs, "/mem/logset")
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}
