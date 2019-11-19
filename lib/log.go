@@ -125,6 +125,6 @@ func (r *LogRequests) RawLogs(p *RawLogsParams, res *RawLogs) (err error) {
 	}
 	ctx := context.TODO()
 
-	*res = r.node.Repo.Logbook().RawLogs(ctx)
+	*res, err = r.node.Repo.Logbook().RawLogs(ctx)
 	return err
 }

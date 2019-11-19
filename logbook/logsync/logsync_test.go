@@ -57,7 +57,7 @@ func Example() {
 	// johnathon creates a dataset with a bunch of history:
 	worldBankDatasetRef := makeWorldBankLogs(ctx, johnathonsLogbook)
 
-	ver, err := johnathonsLogbook.Versions(worldBankDatasetRef, 0, 100)
+	ver, err := johnathonsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100)
 	if err != nil {
 		panic(err)
 	}
@@ -77,7 +77,7 @@ func Example() {
 
 	// wait for sync to complete
 	<-wait
-	if ver, err = basitsLogbook.Versions(worldBankDatasetRef, 0, 100); err != nil {
+	if ver, err = basitsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("basit has %d references for %s\n", len(ver), worldBankDatasetRef)
@@ -85,7 +85,7 @@ func Example() {
 	// this time basit creates a history
 	nasdaqDatasetRef := makeNasdaqLogs(ctx, basitsLogbook)
 
-	if ver, err = basitsLogbook.Versions(nasdaqDatasetRef, 0, 100); err != nil {
+	if ver, err = basitsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("basit has %d references for %s\n", len(ver), nasdaqDatasetRef)
@@ -100,7 +100,7 @@ func Example() {
 		panic(err)
 	}
 
-	if ver, err = johnathonsLogbook.Versions(nasdaqDatasetRef, 0, 100); err != nil {
+	if ver, err = johnathonsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("johnathon has %d references for %s\n", len(ver), nasdaqDatasetRef)

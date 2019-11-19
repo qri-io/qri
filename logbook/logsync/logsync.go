@@ -105,7 +105,7 @@ func (lsync *Logsync) NewPush(ref dsref.Ref, remoteAddr string) (*Push, error) {
 		return nil, ErrNoLogsync
 	}
 
-	rem, err := lsync.remoteClient(remoteAddr)
+	rem, err := lsync.remoteClient(context.TODO(), remoteAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -124,7 +124,7 @@ func (lsync *Logsync) NewPull(ref dsref.Ref, remoteAddr string) (*Pull, error) {
 		return nil, ErrNoLogsync
 	}
 
-	rem, err := lsync.remoteClient(remoteAddr)
+	rem, err := lsync.remoteClient(context.TODO(), remoteAddr)
 	if err != nil {
 		return nil, err
 	}
@@ -142,7 +142,7 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 		return ErrNoLogsync
 	}
 
-	rem, err := lsync.remoteClient(remoteAddr)
+	rem, err := lsync.remoteClient(ctx, remoteAddr)
 	if err != nil {
 		return err
 	}
@@ -150,13 +150,13 @@ func (lsync *Logsync) DoRemove(ctx context.Context, ref dsref.Ref, remoteAddr st
 	return rem.del(ctx, lsync.Author(), ref)
 }
 
-func (lsync *Logsync) remoteClient(remoteAddr string) (rem remote, err error) {
+func (lsync *Logsync) remoteClient(ctx context.Context, remoteAddr string) (rem remote, err error) {
 	if strings.HasPrefix(remoteAddr, "http") {
 		return &httpClient{URL: remoteAddr}, nil
 	}
 
 	// if we're given a logbook authorId, convert it to the active public key ID
-	if l, err := lsync.book.Log(remoteAddr); err == nil {
+	if l, err := lsync.book.Log(ctx, remoteAddr); err == nil {
 		remoteAddr = l.Author()
 	}
 
@@ -242,7 +242,7 @@ func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref
 		}
 	}
 
-	l, err := lsync.book.UserDatasetRef(ref)
+	l, err := lsync.book.UserDatasetRef(ctx, ref)
 	if err != nil {
 		return lsync.Author(), nil, err
 	}
@@ -293,7 +293,7 @@ type Push struct {
 
 // Do executes a push
 func (p *Push) Do(ctx context.Context) error {
-	log, err := p.book.UserDatasetRef(p.ref)
+	log, err := p.book.UserDatasetRef(ctx, p.ref)
 	if err != nil {
 		return err
 	}

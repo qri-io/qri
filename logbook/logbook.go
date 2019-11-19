@@ -153,8 +153,14 @@ func (book *Book) initialize(ctx context.Context) error {
 }
 
 // ActivePeerID returns the in-use PeerID of the logbook author
-func (book *Book) ActivePeerID() (id string) {
-	return book.authorID
+// TODO (b5) - remove the need for this context by caching the active PeerID
+// at key load / save / mutation points
+func (book *Book) ActivePeerID(ctx context.Context) (id string) {
+	lg, err := book.store.Log(ctx, book.authorID)
+	if err != nil {
+		panic(err)
+	}
+	return lg.Author()
 }
 
 // Author returns this book's author
