@@ -49,7 +49,7 @@ table Log {
 
 // Book is an author's journal of logs
 table Book {
-  name:string;        // book author name
+  name:string;        // book author name, not in use at the moment
   identifier:string;  // book author identifier
   logs:[Log];         // collection of logsets in this book
 }

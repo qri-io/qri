@@ -879,11 +879,11 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 }
 
 func (tr *testRunner) RenameInitialRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.bk.AuthorName(), Name: "dataset"}
+	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "dataset"}
 }
 
 func (tr *testRunner) RenameRef() dsref.Ref {
-	return dsref.Ref{Username: tr.Book.bk.AuthorName(), Name: "renamed_dataset"}
+	return dsref.Ref{Username: tr.Book.AuthorName(), Name: "renamed_dataset"}
 }
 
 func (tr *testRunner) WriteRenameExample(t *testing.T) {
@@ -918,7 +918,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 	ds.PreviousPath = "QmHashOfVersion1"
 
 	// pretend we ran a cron job that created this version
-	ref := dsref.Ref{Username: book.bk.AuthorName(), Name: name}
+	ref := dsref.Ref{Username: book.AuthorName(), Name: name}
 	if err := book.WriteCronJobRan(tr.Ctx, 1, ref); err != nil {
 		t.Fatal(err)
 	}

@@ -18,7 +18,6 @@ var allowUnexported = cmp.AllowUnexported(
 )
 
 func TestBookFlatbuffer(t *testing.T) {
-	pk := testPrivKey(t)
 	log := InitLog(Op{
 		Type:      OpTypeInit,
 		Model:     0x1,
@@ -45,19 +44,13 @@ func TestBookFlatbuffer(t *testing.T) {
 	}))
 
 	book := &Book{
-		pk:         pk,
-		authorname: "must_preserve",
-		logs:       []*Log{log},
+		logs: []*Log{log},
 	}
 
 	data := book.flatbufferBytes()
 	logsetfb := logfb.GetRootAsBook(data, 0)
 
-	got := &Book{
-		// re-provide private key, unmarshal flatbuffer must preserve this key
-		// through the unmarshaling call
-		pk: pk,
-	}
+	got := &Book{}
 	if err := got.unmarshalFlatbuffer(logsetfb); err != nil {
 		t.Fatalf("unmarshalling flatbuffer bytes: %s", err.Error())
 	}
@@ -84,7 +77,7 @@ func TestBookCiphertext(t *testing.T) {
 	book := tr.Book
 	book.AppendLog(lg)
 
-	gotcipher, err := book.FlatbufferCipher()
+	gotcipher, err := book.FlatbufferCipher(tr.PrivKey)
 	if err != nil {
 		t.Fatalf("calculating flatbuffer cipher: %s", err.Error())
 	}
@@ -101,7 +94,7 @@ func TestBookCiphertext(t *testing.T) {
 	// 	t.Errorf("ciphertext as book should not have worked")
 	// }
 
-	if err = book.UnmarshalFlatbufferCipher(tr.Ctx, gotcipher); err != nil {
+	if err = book.UnmarshalFlatbufferCipher(tr.Ctx, tr.PrivKey, gotcipher); err != nil {
 		t.Errorf("book.UnmarhsalFlatbufferCipher unexpected error: %s", err.Error())
 	}
 }
@@ -116,7 +109,7 @@ func TestBookSignLog(t *testing.T) {
 		Name:  "apples",
 	}, 400)
 
-	pk := tr.Book.pk
+	pk := tr.PrivKey
 	data, err := lg.SignedFlatbufferBytes(pk)
 	if err != nil {
 		t.Fatal(err)
@@ -484,6 +477,7 @@ type testRunner struct {
 	Ctx        context.Context
 	AuthorName string
 	AuthorID   string
+	PrivKey    crypto.PrivKey
 	Book       *Book
 	gen        *opGenerator
 }
@@ -499,7 +493,7 @@ func newTestRunner(t testFailer) (tr testRunner, cleanup func()) {
 	authorID := "QmTestAuthorID"
 	pk := testPrivKey(t)
 
-	book, err := NewBook(pk, authorName, authorID)
+	book, err := NewBook(authorID)
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}
@@ -508,6 +502,7 @@ func newTestRunner(t testFailer) (tr testRunner, cleanup func()) {
 		Ctx:        ctx,
 		AuthorName: authorName,
 		AuthorID:   authorID,
+		PrivKey:    pk,
 		Book:       book,
 		gen:        &opGenerator{ctx: ctx, NoopProb: 60},
 	}

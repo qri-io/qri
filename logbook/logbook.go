@@ -79,8 +79,12 @@ func modelString(m uint32) string {
 
 // Book wraps a oplog.Book with a higher-order API specific to Qri
 type Book struct {
-	bk         *oplog.Book
+	bk *oplog.Book
+
 	pk         crypto.PrivKey
+	authorID   string
+	authorName string
+
 	fsLocation string
 	fs         qfs.Filesystem
 }
@@ -99,12 +103,8 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 	if location == "" {
 		return nil, fmt.Errorf("logbook: location is required")
 	}
-	keyID, err := identity.KeyIDFromPriv(pk)
-	if err != nil {
-		return nil, err
-	}
 
-	bk, err := oplog.NewBook(pk, username, keyID)
+	bk, err := oplog.NewBook("")
 	if err != nil {
 		return nil, err
 	}
@@ -113,6 +113,7 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 		bk:         bk,
 		fs:         fs,
 		pk:         pk,
+		authorName: username,
 		fsLocation: location,
 	}
 
@@ -131,22 +132,28 @@ func NewBook(pk crypto.PrivKey, username string, fs qfs.Filesystem, location str
 }
 
 func (book *Book) initialize(ctx context.Context) error {
+	keyID, err := identity.KeyIDFromPriv(book.pk)
+	if err != nil {
+		return err
+	}
+
 	// initialize author's log of user actions
 	userActions := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     authorModel,
-		Name:      book.bk.AuthorName(),
-		AuthorID:  book.bk.AuthorID(),
+		Name:      book.AuthorName(),
+		AuthorID:  keyID,
 		Timestamp: NewTimestamp(),
 	})
 	book.bk.AppendLog(userActions)
-	book.bk.SetAuthorID(userActions.ID())
+	book.bk.SetID(userActions.ID())
+	book.authorID = userActions.ID()
 	return book.save(ctx)
 }
 
 // ActivePeerID returns the in-use PeerID of the logbook author
 func (book *Book) ActivePeerID() (id string) {
-	lg, err := book.bk.Log(book.bk.AuthorID())
+	lg, err := book.bk.Log(book.AuthorID())
 	if err != nil {
 		panic(err)
 	}
@@ -154,13 +161,23 @@ func (book *Book) ActivePeerID() (id string) {
 }
 
 // Author returns this book's author
-func (book *Book) Author() oplog.Author {
-	return book.bk
+func (book *Book) Author() identity.Author {
+	return book
 }
 
 // AuthorName returns the human-readable name of the author
 func (book *Book) AuthorName() string {
-	return book.bk.AuthorName()
+	return book.authorName
+}
+
+// AuthorID returns the machine identifier for a name
+func (book *Book) AuthorID() string {
+	return book.authorID
+}
+
+// AuthorPubKey gives this book's author public key
+func (book *Book) AuthorPubKey() crypto.PubKey {
+	return book.pk.GetPublic()
 }
 
 // RenameAuthor marks a change in author name
@@ -175,8 +192,7 @@ func (book *Book) DeleteAuthor() error {
 
 // save writes the book to book.fsLocation
 func (book *Book) save(ctx context.Context) error {
-
-	ciphertext, err := book.bk.FlatbufferCipher()
+	ciphertext, err := book.bk.FlatbufferCipher(book.pk)
 	if err != nil {
 		return err
 	}
@@ -201,7 +217,12 @@ func (book *Book) load(ctx context.Context) error {
 		return err
 	}
 
-	return book.bk.UnmarshalFlatbufferCipher(ctx, ciphertext)
+	if err = book.bk.UnmarshalFlatbufferCipher(ctx, book.pk, ciphertext); err != nil {
+		return err
+	}
+
+	book.authorID = book.bk.ID()
+	return nil
 }
 
 // WriteDatasetInit initializes a new dataset name within the author's namespace
@@ -225,7 +246,7 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     datasetModel,
-		AuthorID:  book.bk.AuthorID(),
+		AuthorID:  book.AuthorID(),
 		Name:      name,
 		Timestamp: NewTimestamp(),
 	})
@@ -233,7 +254,7 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 	branch := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
 		Model:     branchModel,
-		AuthorID:  book.bk.AuthorID(),
+		AuthorID:  book.AuthorID(),
 		Name:      DefaultBranchName,
 		Timestamp: NewTimestamp(),
 	})
@@ -246,7 +267,7 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 }
 
 func (book Book) authorLog() *oplog.Log {
-	authorLog, err := book.bk.Log(book.bk.AuthorID())
+	authorLog, err := book.bk.Log(book.AuthorID())
 	if err != nil {
 		// this should never happen in practice
 		// TODO (b5): create an author namespace on the spot if this happens
@@ -560,7 +581,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 }
 
 // MergeLog adds a log to the logbook, merging with any existing log data
-func (book *Book) MergeLog(ctx context.Context, sender oplog.Author, lg *oplog.Log) error {
+func (book *Book) MergeLog(ctx context.Context, sender identity.Author, lg *oplog.Log) error {
 
 	// eventually access control will dictate which logs can be written by whom.
 	// For now we only allow users to merge logs they've written
@@ -588,7 +609,7 @@ func (book *Book) MergeLog(ctx context.Context, sender oplog.Author, lg *oplog.L
 }
 
 // RemoveLog removes an entire log from a logbook
-func (book *Book) RemoveLog(ctx context.Context, sender oplog.Author, ref dsref.Ref) error {
+func (book *Book) RemoveLog(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
 	l, err := book.BranchRef(ref)
 	if err != nil {
 		return err

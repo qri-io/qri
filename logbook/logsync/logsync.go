@@ -13,6 +13,7 @@ import (
 	host "github.com/libp2p/go-libp2p-core/host"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 )
@@ -86,16 +87,11 @@ func New(book *logbook.Book, opts ...func(*Options)) *Logsync {
 	return logsync
 }
 
-// Author is an interface for fetching the ID & public key of a log author
-// TODO (b5) - this should be moved into it's own package, and probs just work
-// with existing libp2p peer structs
-type Author = oplog.Author
-
 // Hook is a function called at specified points in the sync lifecycle
-type Hook func(ctx context.Context, author Author, ref dsref.Ref, log *oplog.Log) error
+type Hook func(ctx context.Context, author identity.Author, ref dsref.Ref, log *oplog.Log) error
 
 // Author is the local author of lsync's logbook
-func (lsync *Logsync) Author() Author {
+func (lsync *Logsync) Author() identity.Author {
 	if lsync == nil {
 		return nil
 	}
@@ -180,15 +176,15 @@ func (lsync *Logsync) remoteClient(remoteAddr string) (rem remote, err error) {
 // using Logsync methods to do the "real work" and echoing that back across the
 // client protocol
 type remote interface {
-	put(ctx context.Context, author oplog.Author, r io.Reader) error
-	get(ctx context.Context, author oplog.Author, ref dsref.Ref) (sender oplog.Author, data io.Reader, err error)
-	del(ctx context.Context, author oplog.Author, ref dsref.Ref) error
+	put(ctx context.Context, author identity.Author, r io.Reader) error
+	get(ctx context.Context, author identity.Author, ref dsref.Ref) (sender identity.Author, data io.Reader, err error)
+	del(ctx context.Context, author identity.Author, ref dsref.Ref) error
 }
 
 // assert at compile-time that Logsync is a remote
 var _ remote = (*Logsync)(nil)
 
-func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader) error {
+func (lsync *Logsync) put(ctx context.Context, author identity.Author, r io.Reader) error {
 	if lsync == nil {
 		return ErrNoLogsync
 	}
@@ -235,7 +231,7 @@ func (lsync *Logsync) put(ctx context.Context, author oplog.Author, r io.Reader)
 	return nil
 }
 
-func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Ref) (oplog.Author, io.Reader, error) {
+func (lsync *Logsync) get(ctx context.Context, author identity.Author, ref dsref.Ref) (identity.Author, io.Reader, error) {
 	if lsync == nil {
 		return nil, nil, ErrNoLogsync
 	}
@@ -264,7 +260,7 @@ func (lsync *Logsync) get(ctx context.Context, author oplog.Author, ref dsref.Re
 	return lsync.Author(), bytes.NewReader(data), nil
 }
 
-func (lsync *Logsync) del(ctx context.Context, sender oplog.Author, ref dsref.Ref) error {
+func (lsync *Logsync) del(ctx context.Context, sender identity.Author, ref dsref.Ref) error {
 	if lsync == nil {
 		return ErrNoLogsync
 	}

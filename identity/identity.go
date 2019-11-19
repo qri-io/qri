@@ -8,6 +8,39 @@ import (
 	"github.com/multiformats/go-multihash"
 )
 
+// Author uses keypair cryptography to distinguish between different log sources
+// (authors)
+type Author interface {
+	AuthorID() string
+	AuthorPubKey() crypto.PubKey
+}
+
+type author struct {
+	id     string
+	pubKey crypto.PubKey
+}
+
+// NewAuthor creates an Author interface implementation, allowing outside
+// packages needing to satisfy the Author interface
+func NewAuthor(id string, pubKey crypto.PubKey) Author {
+	return author{
+		id:     id,
+		pubKey: pubKey,
+	}
+}
+
+func (a author) AuthorID() string {
+	return a.id
+}
+
+func (a author) AuthorPubKeyID() crypto.PubKey {
+	return a.pubKey
+}
+
+func (a author) AuthorPubKey() crypto.PubKey {
+	return a.pubKey
+}
+
 // KeyIDFromPriv is a wrapper for calling KeyIDFromPub on a private key
 func KeyIDFromPriv(pk crypto.PrivKey) (string, error) {
 	return KeyIDFromPub(pk.GetPublic())

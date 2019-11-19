@@ -19,7 +19,7 @@ func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
 	book := tr.Book
 	book.AppendLog(l)
 
-	data, err := book.FlatbufferCipher()
+	data, err := book.FlatbufferCipher(tr.PrivKey)
 	if err != nil {
 		b.Fatal(err)
 	}
@@ -27,7 +27,7 @@ func BenchmarkSave10kOpsOneAuthor(b *testing.B) {
 	b.Logf("one simulated log with 10k ops weighs %s as encrypted data", humanize.Bytes(uint64(len(data))))
 	b.ResetTimer()
 	for n := 0; n < b.N; n++ {
-		if _, err := book.FlatbufferCipher(); err != nil {
+		if _, err := book.FlatbufferCipher(tr.PrivKey); err != nil {
 			b.Fatal(err)
 		}
 	}

@@ -324,7 +324,7 @@ func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.Dat
 }
 
 func (r *Remote) logHook(h Hook) logsync.Hook {
-	return func(ctx context.Context, author logsync.Author, ref dsref.Ref, l *oplog.Log) error {
+	return func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
 		if h != nil {
 			kid, err := identity.KeyIDFromPub(author.AuthorPubKey())
 			if err != nil {

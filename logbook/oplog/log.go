@@ -32,39 +32,6 @@ var (
 	ErrNotFound = fmt.Errorf("log: not found")
 )
 
-// Author uses keypair cryptography to distinguish between different log sources
-// (authors)
-type Author interface {
-	AuthorID() string
-	AuthorPubKey() crypto.PubKey
-}
-
-type author struct {
-	id     string
-	pubKey crypto.PubKey
-}
-
-// NewAuthor creates an Author interface implementation, allowing outside
-// packages needing to satisfy the Author interface
-func NewAuthor(id string, pubKey crypto.PubKey) Author {
-	return author{
-		id:     id,
-		pubKey: pubKey,
-	}
-}
-
-func (a author) AuthorID() string {
-	return a.id
-}
-
-func (a author) AuthorPubKeyID() crypto.PubKey {
-	return a.pubKey
-}
-
-func (a author) AuthorPubKey() crypto.PubKey {
-	return a.pubKey
-}
-
 // Book is a journal of operations organized into a collection of append-only
 // logs. Each log is single-writer
 // Books are connected to a single author, and represent their view of
@@ -74,39 +41,25 @@ func (a author) AuthorPubKey() crypto.PubKey {
 // authors, forming a conflict-free replicated data type (CRDT), and a basis
 // for collaboration through knowledge of each other's operations
 type Book struct {
-	pk         crypto.PrivKey
-	id         string
-	authorname string
-	logs       []*Log
+	id   string
+	logs []*Log
 }
 
 // NewBook initializes a Book
-func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
+func NewBook(authorID string) (*Book, error) {
 	return &Book{
-		pk:         pk,
-		id:         authorID,
-		authorname: authorname,
+		id: authorID,
 	}, nil
 }
 
-// AuthorName gives the human-readable name of the author
-func (book Book) AuthorName() string {
-	return book.authorname
-}
-
-// AuthorID returns the machine identifier for a name
-func (book Book) AuthorID() string {
+// ID gets the book identifier
+func (book *Book) ID() string {
 	return book.id
 }
 
-// SetAuthorID assigns this book's author Identifier
-func (book *Book) SetAuthorID(id string) {
+// SetID assigns the book identifier
+func (book *Book) SetID(id string) {
 	book.id = id
-}
-
-// AuthorPubKey gives this book's author public key
-func (book Book) AuthorPubKey() crypto.PubKey {
-	return book.pk.GetPublic()
 }
 
 // AppendLog adds a log to a book
@@ -183,8 +136,8 @@ func (book *Book) Logs() []*Log {
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
-func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, ciphertext []byte) error {
-	plaintext, err := book.decrypt(ciphertext)
+func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, pk crypto.PrivKey, ciphertext []byte) error {
+	plaintext, err := book.decrypt(pk, ciphertext)
 	if err != nil {
 		return err
 	}
@@ -193,13 +146,14 @@ func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, ciphertext []by
 }
 
 // FlatbufferCipher marshals book to a flatbuffer and encrypts the book using
-// the book private key
-func (book Book) FlatbufferCipher() ([]byte, error) {
-	return book.encrypt(book.flatbufferBytes())
+// a given private key. This same private key must be retained elsewhere to read
+// the flatbuffer later on
+func (book Book) FlatbufferCipher(pk crypto.PrivKey) ([]byte, error) {
+	return book.encrypt(pk, book.flatbufferBytes())
 }
 
-func (book Book) cipher() (cipher.AEAD, error) {
-	pkBytes, err := book.pk.Raw()
+func (book Book) cipher(pk crypto.PrivKey) (cipher.AEAD, error) {
+	pkBytes, err := pk.Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +168,8 @@ func (book Book) cipher() (cipher.AEAD, error) {
 	return cipher.NewGCM(block)
 }
 
-func (book Book) encrypt(data []byte) ([]byte, error) {
-	gcm, err := book.cipher()
+func (book Book) encrypt(pk crypto.PrivKey, data []byte) ([]byte, error) {
+	gcm, err := book.cipher(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -229,8 +183,8 @@ func (book Book) encrypt(data []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func (book Book) decrypt(data []byte) ([]byte, error) {
-	gcm, err := book.cipher()
+func (book Book) decrypt(pk crypto.PrivKey, data []byte) ([]byte, error) {
+	gcm, err := book.cipher(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -252,8 +206,8 @@ func (book Book) flatbufferBytes() []byte {
 	return builder.FinishedBytes()
 }
 
+// note: currently doesn't marshal book.author, we're considering deprecatingz
 func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	authorname := builder.CreateString(book.authorname)
 	id := builder.CreateString(book.id)
 
 	setsl := book.Logs()
@@ -269,7 +223,6 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	sets := builder.EndVector(count)
 
 	logfb.BookStart(builder)
-	logfb.BookAddName(builder, authorname)
 	logfb.BookAddIdentifier(builder, id)
 	logfb.BookAddLogs(builder, sets)
 	return logfb.BookEnd(builder)
@@ -277,9 +230,7 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 
 func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 	newBook := Book{
-		pk:         book.pk,
-		id:         string(b.Identifier()),
-		authorname: string(b.Name()),
+		id: string(b.Identifier()),
 	}
 
 	count := b.LogsLength()
