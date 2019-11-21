@@ -587,7 +587,7 @@ hen,twenty-nine,30`),
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
-			got, err := generateCommitMsg(c.ds, c.prev, c.force)
+			got, err := generateCommitMsg(c.prev, c.ds, c.force)
 			if err != nil && c.errMsg != err.Error() {
 				t.Errorf("error mismatch\nexpect: %s\ngot: %s", c.errMsg, err.Error())
 				return

@@ -309,11 +309,29 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		return "", fmt.Errorf("strict mode: dataset body did not validate against its schema")
 	}
 
-	// TODO (ramfox): This whole section can be wrapped:
-	// func generateCommit(ds, prev *dataset.Dataset, privKey crypto.PrivKey) error
-	// Lots of stuff happening in prepareDataset and the steps to creating the
-	// proper commit can be abstracted out
-	diffDescription, err := generateCommitMsg(ds, dsPrev, force)
+	diffDescription, err := generateCommit(dsPrev, ds, privKey, force)
+	if err != nil {
+		return "", err
+	}
+
+	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
+
+	if shouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		// render the viz
+		renderedFile, err := dsviz.Render(ds)
+		if err != nil {
+			log.Debug(err.Error())
+			return "", fmt.Errorf("error rendering visualization: %s", err.Error())
+		}
+		ds.Viz.SetRenderedFile(renderedFile)
+	}
+
+	return diffDescription, nil
+}
+
+// generateCommit creates the commit title, message, timestamp, etc
+func generateCommit(prev, ds *dataset.Dataset, privKey crypto.PrivKey, force bool) (string, error) {
+	diffDescription, err := generateCommitMsg(prev, ds, force)
 	if err != nil {
 		log.Debug(fmt.Errorf("error saving: %s", err))
 		return "", fmt.Errorf("error saving: %s", err)
@@ -333,17 +351,6 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		return "", fmt.Errorf("error signing commit title: %s", err.Error())
 	}
 	ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
-	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
-
-	if shouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-		// render the viz
-		renderedFile, err := dsviz.Render(ds)
-		if err != nil {
-			log.Debug(err.Error())
-			return "", fmt.Errorf("error rendering visualization: %s", err.Error())
-		}
-		ds.Viz.SetRenderedFile(renderedFile)
-	}
 
 	return diffDescription, nil
 }
@@ -464,7 +471,7 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 // returns a commit message based on the diff of the two datasets
 // if there is no previous dataset, it returns "created dataset"
 // if there is no difference, the func returns an error
-func generateCommitMsg(ds, prev *dataset.Dataset, force bool) (string, error) {
+func generateCommitMsg(prev, ds *dataset.Dataset, force bool) (string, error) {
 	if prev == nil || prev.IsEmpty() {
 		return "created dataset", nil
 	}
