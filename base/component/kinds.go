@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/fill"
+	"github.com/qri-io/qri/base/toqtype"
 	"gopkg.in/yaml.v2"
 )
 
@@ -114,20 +115,7 @@ func (dc *DatasetComponent) StructuredData() (interface{}, error) {
 	if err := dc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(dc.Value)
-}
-
-func structToMap(value interface{}) (map[string]interface{}, error) {
-	var result map[string]interface{}
-	bytes, err := json.Marshal(value)
-	if err != nil {
-		return nil, err
-	}
-	err = json.Unmarshal(bytes, &result)
-	if err != nil {
-		return nil, err
-	}
-	return result, nil
+	return toqtype.StructToMap(dc.Value)
 }
 
 // MetaComponent represents a meta component
@@ -210,7 +198,7 @@ func (mc *MetaComponent) StructuredData() (interface{}, error) {
 	if err := mc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(mc.Value)
+	return toqtype.StructToMap(mc.Value)
 }
 
 // StructureComponent represents a structure component
@@ -293,7 +281,7 @@ func (sc *StructureComponent) StructuredData() (interface{}, error) {
 	if err := sc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(sc.Value)
+	return toqtype.StructToMap(sc.Value)
 }
 
 // CommitComponent represents a commit component
@@ -369,7 +357,7 @@ func (cc *CommitComponent) StructuredData() (interface{}, error) {
 	if err := cc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(cc.Value)
+	return toqtype.StructToMap(cc.Value)
 }
 
 // BodyComponent represents a body component
@@ -647,7 +635,7 @@ func (rc *ReadmeComponent) StructuredData() (interface{}, error) {
 	if err := rc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(rc.Value)
+	return toqtype.StructToMap(rc.Value)
 }
 
 // TransformComponent represents a transform component
@@ -740,7 +728,7 @@ func (tc *TransformComponent) StructuredData() (interface{}, error) {
 	if err := tc.LoadAndFill(nil); err != nil {
 		return nil, err
 	}
-	return structToMap(tc.Value)
+	return toqtype.StructToMap(tc.Value)
 }
 
 // Base returns the common base data for the component
