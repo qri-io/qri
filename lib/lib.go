@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
@@ -106,6 +107,7 @@ type InstanceOptions struct {
 	qfs        qfs.Filesystem
 	regclient  *regclient.Client
 	statsCache *stats.Cache
+	logbook    *logbook.Book
 
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
@@ -232,6 +234,14 @@ func OptStatsCache(statsCache *stats.Cache) Option {
 	}
 }
 
+// OptLogbook overrides the configured logbook with a manually provided one
+func OptLogbook(bk *logbook.Book) Option {
+	return func(o *InstanceOptions) error {
+		o.logbook = bk
+		return nil
+	}
+}
+
 // NewInstance creates a new Qri Instance, if no Option funcs are provided,
 // New uses a default set of Option funcs. Any Option functions passed to this
 // function must check whether their fields are nil or not.
@@ -283,6 +293,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		node:     o.node,
 		streams:  o.Streams,
 		registry: o.regclient,
+		logbook:  o.logbook,
 	}
 	qri = inst
 
@@ -328,6 +339,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.logbook == nil {
+		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("newLogbook: %w", err)
+		}
+	}
+
 	if inst.registry == nil {
 		inst.registry = newRegClient(ctx, cfg)
 	}
@@ -335,7 +353,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.repo != nil {
 		inst.repo = o.repo
 	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs); err != nil {
+		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
@@ -473,7 +491,18 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem) (r repo.Repo, err error) {
+func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *logbook.Book, err error) {
+	var pro *profile.Profile
+	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
+		return
+	}
+
+	logbookPath := filepath.Join(repoPath, "logbook.qfb")
+
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+}
+
+func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -481,7 +510,7 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 
 	switch cfg.Repo.Type {
 	case "fs":
-		repo, err := fsrepo.NewRepo(store, fs, pro, path)
+		repo, err := fsrepo.NewRepo(store, fs, book, pro, path)
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
 		_ = base.SetFileHidden(path)
 		return repo, err
@@ -617,6 +646,7 @@ type Instance struct {
 	remoteClient *remote.Client
 	registry     *regclient.Client
 	stats        *stats.Stats
+	logbook      *logbook.Book
 
 	rpc *rpc.Client
 }

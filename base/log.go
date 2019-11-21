@@ -30,7 +30,7 @@ type DatasetLogItem struct {
 // DatasetLog fetches the change version history of a dataset
 func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) (items []DatasetLogItem, err error) {
 	if book := r.Logbook(); book != nil {
-		if versions, err := book.Versions(repo.ConvertToDsref(ref), offset, limit); err == nil {
+		if versions, err := book.Versions(ctx, repo.ConvertToDsref(ref), offset, limit); err == nil {
 			items = make([]DatasetLogItem, len(versions))
 
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent

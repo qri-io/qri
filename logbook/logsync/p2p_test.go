@@ -40,7 +40,12 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// pull logs to B from A
-	pull, err := lsB.NewPull(worldBankRef, tr.A.ActivePeerID())
+	aID, err := tr.A.ActivePeerID(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	pull, err := lsB.NewPull(worldBankRef, aID)
 	if err != nil {
 		t.Error(err)
 	}
@@ -48,7 +53,7 @@ func TestP2PLogsync(t *testing.T) {
 		t.Error(err)
 	}
 
-	vs, err := tr.B.Versions(worldBankRef, 0, 10)
+	vs, err := tr.B.Versions(tr.Ctx, worldBankRef, 0, 10)
 	if err != nil {
 		t.Errorf("expected no error fetching versions after pull. got: %s", err)
 	}
@@ -63,7 +68,12 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// push logs from A to B
-	push, err := lsA.NewPush(nasdaqRef, tr.B.ActivePeerID())
+	bID, err := tr.B.ActivePeerID(tr.Ctx)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	push, err := lsA.NewPush(nasdaqRef, bID)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -72,7 +82,7 @@ func TestP2PLogsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	vs, err = tr.B.Versions(nasdaqRef, 0, 10)
+	vs, err = tr.B.Versions(tr.Ctx, nasdaqRef, 0, 10)
 	if err != nil {
 		t.Errorf("expected no error fetching versions after pull. got: %s", err)
 	}
@@ -81,10 +91,10 @@ func TestP2PLogsync(t *testing.T) {
 	}
 
 	// A request B removes nasdaq
-	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, tr.B.ActivePeerID()); err != nil {
+	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, bID); err != nil {
 		t.Errorf("unexpected error doing remove request: %s", err)
 	}
-	if _, err = tr.B.Versions(nasdaqRef, 0, 10); err == nil {
+	if _, err = tr.B.Versions(tr.Ctx, nasdaqRef, 0, 10); err == nil {
 		t.Errorf("expected error fetching versions. got nil")
 	}
 }

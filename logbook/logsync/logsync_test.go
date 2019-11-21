@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 )
@@ -34,14 +35,14 @@ func Example() {
 	basitLogsync := New(basitsLogbook, func(o *Options) {
 		// we MUST override the PreCheck function. In this example we're only going
 		// to allow pushes from johnathon
-		o.PushPreCheck = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
+		o.PushPreCheck = func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
 			if author.AuthorID() != johnathonsLogbook.Author().AuthorID() {
 				return fmt.Errorf("rejected for secret reasons")
 			}
 			return nil
 		}
 
-		o.Pushed = func(ctx context.Context, author oplog.Author, ref dsref.Ref, l *oplog.Log) error {
+		o.Pushed = func(ctx context.Context, author identity.Author, ref dsref.Ref, l *oplog.Log) error {
 			wait <- struct{}{}
 			return nil
 		}
@@ -56,7 +57,7 @@ func Example() {
 	// johnathon creates a dataset with a bunch of history:
 	worldBankDatasetRef := makeWorldBankLogs(ctx, johnathonsLogbook)
 
-	ver, err := johnathonsLogbook.Versions(worldBankDatasetRef, 0, 100)
+	ver, err := johnathonsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100)
 	if err != nil {
 		panic(err)
 	}
@@ -76,7 +77,7 @@ func Example() {
 
 	// wait for sync to complete
 	<-wait
-	if ver, err = basitsLogbook.Versions(worldBankDatasetRef, 0, 100); err != nil {
+	if ver, err = basitsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("basit has %d references for %s\n", len(ver), worldBankDatasetRef)
@@ -84,7 +85,7 @@ func Example() {
 	// this time basit creates a history
 	nasdaqDatasetRef := makeNasdaqLogs(ctx, basitsLogbook)
 
-	if ver, err = basitsLogbook.Versions(nasdaqDatasetRef, 0, 100); err != nil {
+	if ver, err = basitsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("basit has %d references for %s\n", len(ver), nasdaqDatasetRef)
@@ -99,7 +100,7 @@ func Example() {
 		panic(err)
 	}
 
-	if ver, err = johnathonsLogbook.Versions(nasdaqDatasetRef, 0, 100); err != nil {
+	if ver, err = johnathonsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
 	fmt.Printf("johnathon has %d references for %s\n", len(ver), nasdaqDatasetRef)
@@ -116,7 +117,7 @@ func TestHookCalls(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
+		return func(ctx context.Context, a identity.Author, ref dsref.Ref, l *oplog.Log) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
 		}
@@ -192,7 +193,7 @@ func TestHookErrors(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, a Author, ref dsref.Ref, l *oplog.Log) error {
+		return func(ctx context.Context, a identity.Author, ref dsref.Ref, l *oplog.Log) error {
 			hooksCalled = append(hooksCalled, s)
 			return fmt.Errorf("hook failed")
 		}
@@ -401,7 +402,7 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-	return logbook.NewBook(pk, username, fs, "/mem/logset")
+	return logbook.NewJournal(pk, username, fs, "/mem/logset")
 }
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {

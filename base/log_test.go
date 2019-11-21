@@ -96,7 +96,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewBook(p.PrivKey, p.Peername, r.Filesystem(), "/map/logbook")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, r.Filesystem(), "/map/logbook")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -105,7 +105,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	cities := repo.ConvertToDsref(ref)
 
 	// confirm no history exists:
-	if _, err = book.Versions(cities, 0, 100); err == nil {
+	if _, err = book.Versions(ctx, cities, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 
@@ -126,7 +126,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 
 	// confirm history exists:
-	got, err := book.Versions(cities, 0, 100)
+	got, err := book.Versions(ctx, cities, 0, 100)
 	if err != nil {
 		t.Error(err)
 	}

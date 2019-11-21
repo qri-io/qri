@@ -32,91 +32,132 @@ var (
 	ErrNotFound = fmt.Errorf("log: not found")
 )
 
-// Author uses keypair cryptography to distinguish between different log sources
-// (authors)
-type Author interface {
-	AuthorID() string
-	AuthorPubKey() crypto.PubKey
+// Logstore persists a set of operations organized into hierarchical append-only
+// logs
+type Logstore interface {
+	// Merge adds a Log to the store, controlling for conflicts
+	// * logs that are already known to the store are merged with a
+	//   longest-log-wins strategy, adding all descendants
+	// * new top level logs are appended to the store, including all descendants
+	// * attempting to add a log with a parent not already in the store MUST fail
+	//
+	// TODO (b5) - currently a Log pointer doesn't provide a clear method for
+	// getting the ID of it's parent, which negates the potential for attempting
+	// to merge child log, so we don't need to control for the third point quite
+	// yet
+	MergeLog(ctx context.Context, l *Log) error
+
+	// Remove a log from the store, all descendant logs must be removed as well
+	RemoveLog(ctx context.Context, names ...string) error
+
+	// Logs lists top level logs in the store, that is, the set logs that have no
+	// parent. passing -1 as a limit returns all top level logs after the offset
+	//
+	// The order of logs returned is up to the store, but the stored order must
+	// be deterministic
+	Logs(ctx context.Context, offset, limit int) (topLevel []*Log, err error)
+
+	// get a log according to a hierarchy of log.Name() references
+	// for example, fetching HeadRef(ctx, "foo", "bar", "baz") is a request
+	// for the log at the hierarchy foo/bar/baz:
+	//   foo
+	//     bar
+	//       baz
+	//
+	// HeadRef must return ErrNotFound if any name in the heirarchy is  missing
+	// from the store
+	// Head references are mutated by adding operations to a log that modifies
+	// the name of the initialization model, which means names are not a
+	// persistent identifier
+	//
+	// HeadRef MAY return children of a log. If the returned log.Log value is
+	// populated, it MUST contain all children of the log.
+	// use Logstore.Children or Logstore.Descendants to populate missing children
+	HeadRef(ctx context.Context, names ...string) (*Log, error)
+
+	// get a log according to it's ID string
+	// Log must return ErrNotFound if the ID does not exist
+	//
+	// Log MAY return children of a log. If the returned log.Log value is
+	// populated, it MUST contain all children of the log.
+	// use Logstore.Children or Logstore.Descendants to populate missing children
+	Log(ctx context.Context, id string) (*Log, error)
+
+	// get the immediate descendants of a log, using the given log as an outparam.
+	// Children must only mutate Logs field of the passed-in log pointer
+	// added Children MAY include decendant logs
+	Children(ctx context.Context, l *Log) error
+	// get all generations of a log, using the given log as an outparam
+	// Descendants MUST only mutate Logs field of the passed-in log pointer
+	Descendants(ctx context.Context, l *Log) error
 }
 
-type author struct {
-	id     string
-	pubKey crypto.PubKey
+// AuthorLogstore describes a store owned by a single author, it adds encryption
+// methods for safe local persistence as well as owner ID accessors
+type AuthorLogstore interface {
+	// All AuthorLogstores are Logstores
+	Logstore
+
+	// get the id of the oplog that represnts this Logstore's author
+	ID() string
+	// attribute ownership of the logstore to an author
+	// the given id MUST equal the id of a log already in the logstore
+	SetID(ctx context.Context, id string) error
+
+	// marshals all logs to a slice of bytes encrypted with the given private key
+	FlatbufferCipher(pk crypto.PrivKey) ([]byte, error)
+	// decrypt flatbuffer bytes, re-hydrating the store
+	UnmarshalFlatbufferCipher(ctx context.Context, pk crypto.PrivKey, ciphertext []byte) error
 }
 
-// NewAuthor creates an Author interface implementation, allowing outside
-// packages needing to satisfy the Author interface
-func NewAuthor(id string, pubKey crypto.PubKey) Author {
-	return author{
-		id:     id,
-		pubKey: pubKey,
+// Journal is a store of logs known to a single author, representing their
+// view of an abstract dataset graph. journals live in memory by default, and
+// can be encrypted for storage
+type Journal struct {
+	id   string
+	logs []*Log
+}
+
+// assert at compile time that a Journal pointer is an AuthorLogstore
+var _ AuthorLogstore = (*Journal)(nil)
+
+// ID gets the journal author identifier
+func (j *Journal) ID() string {
+	return j.id
+}
+
+// SetID assigns the book identifier
+func (j *Journal) SetID(ctx context.Context, id string) error {
+	if _, err := j.Log(ctx, id); err != nil {
+		return err
 	}
+
+	j.id = id
+	return nil
 }
 
-func (a author) AuthorID() string {
-	return a.id
+// MergeLog adds a log to the journal
+func (j *Journal) MergeLog(ctx context.Context, l *Log) error {
+	if l.ID() == "" {
+		return fmt.Errorf("oplog: log ID cannot be empty")
+	}
+
+	found, err := j.Log(ctx, l.ID())
+	if err != nil {
+		if err == ErrNotFound {
+			j.logs = append(j.logs, l)
+			return nil
+		}
+		return err
+	}
+
+	found.Merge(l)
+	return nil
 }
 
-func (a author) AuthorPubKeyID() crypto.PubKey {
-	return a.pubKey
-}
-
-func (a author) AuthorPubKey() crypto.PubKey {
-	return a.pubKey
-}
-
-// Book is a journal of operations organized into a collection of append-only
-// logs. Each log is single-writer
-// Books are connected to a single author, and represent their view of
-// the global dataset graph.
-// Any write operation performed on the logbook are attributed to a single
-// author, denoted by a private key. Books can replicate logs from other
-// authors, forming a conflict-free replicated data type (CRDT), and a basis
-// for collaboration through knowledge of each other's operations
-type Book struct {
-	pk         crypto.PrivKey
-	id         string
-	authorname string
-	logs       []*Log
-}
-
-// NewBook initializes a Book
-func NewBook(pk crypto.PrivKey, authorname, authorID string) (*Book, error) {
-	return &Book{
-		pk:         pk,
-		id:         authorID,
-		authorname: authorname,
-	}, nil
-}
-
-// AuthorName gives the human-readable name of the author
-func (book Book) AuthorName() string {
-	return book.authorname
-}
-
-// AuthorID returns the machine identifier for a name
-func (book Book) AuthorID() string {
-	return book.id
-}
-
-// SetAuthorID assigns this book's author Identifier
-func (book *Book) SetAuthorID(id string) {
-	book.id = id
-}
-
-// AuthorPubKey gives this book's author public key
-func (book Book) AuthorPubKey() crypto.PubKey {
-	return book.pk.GetPublic()
-}
-
-// AppendLog adds a log to a book
-func (book *Book) AppendLog(l *Log) {
-	book.logs = append(book.logs, l)
-}
-
-// RemoveLog removes a log from the book
+// RemoveLog removes a log from the journal
 // TODO (b5) - this currently won't work when trying to remove the root log
-func (book *Book) RemoveLog(names ...string) error {
+func (j *Journal) RemoveLog(ctx context.Context, names ...string) error {
 	if len(names) == 0 {
 		return fmt.Errorf("name is required")
 	}
@@ -125,16 +166,16 @@ func (book *Book) RemoveLog(names ...string) error {
 	parentPath := names[:len(names)-1]
 
 	if len(parentPath) == 0 {
-		for i, l := range book.logs {
+		for i, l := range j.logs {
 			if l.Name() == remove {
-				book.logs = append(book.logs[:i], book.logs[i+1:]...)
+				j.logs = append(j.logs[:i], j.logs[i+1:]...)
 				return nil
 			}
 		}
 		return ErrNotFound
 	}
 
-	parent, err := book.HeadRef(parentPath...)
+	parent, err := j.HeadRef(ctx, parentPath...)
 	if err != nil {
 		return err
 	}
@@ -151,8 +192,8 @@ func (book *Book) RemoveLog(names ...string) error {
 }
 
 // Log fetches a log for a given ID
-func (book *Book) Log(id string) (*Log, error) {
-	for _, lg := range book.logs {
+func (j *Journal) Log(_ context.Context, id string) (*Log, error) {
+	for _, lg := range j.logs {
 		if l, err := lg.Log(id); err == nil {
 			return l, nil
 		}
@@ -163,13 +204,13 @@ func (book *Book) Log(id string) (*Log, error) {
 // HeadRef traverses the log graph & pulls out a log based on named head
 // references
 // HeadRef will not return logs that have been marked as removed. To fetch
-// removed logs either traverse the entire book or reference a log by ID
-func (book *Book) HeadRef(names ...string) (*Log, error) {
+// removed logs either traverse the entire journal or reference a log by ID
+func (j *Journal) HeadRef(_ context.Context, names ...string) (*Log, error) {
 	if len(names) == 0 {
 		return nil, fmt.Errorf("name is required")
 	}
 
-	for _, log := range book.logs {
+	for _, log := range j.logs {
 		if log.Name() == names[0] && !log.Removed() {
 			return log.HeadRef(names[1:]...)
 		}
@@ -178,28 +219,52 @@ func (book *Book) HeadRef(names ...string) (*Log, error) {
 }
 
 // Logs returns the full map of logs keyed by model type
-func (book *Book) Logs() []*Log {
-	return book.logs
+func (j *Journal) Logs(ctx context.Context, offset, limit int) (topLevel []*Log, err error) {
+	// fast-path for no pagination
+	if offset == 0 && limit == -1 {
+		return j.logs[:], nil
+	}
+
+	return nil, fmt.Errorf("log subsets not finished")
 }
 
 // UnmarshalFlatbufferCipher decrypts and loads a flatbuffer ciphertext
-func (book *Book) UnmarshalFlatbufferCipher(ctx context.Context, ciphertext []byte) error {
-	plaintext, err := book.decrypt(ciphertext)
+func (j *Journal) UnmarshalFlatbufferCipher(ctx context.Context, pk crypto.PrivKey, ciphertext []byte) error {
+	plaintext, err := j.decrypt(pk, ciphertext)
 	if err != nil {
 		return err
 	}
 
-	return book.unmarshalFlatbuffer(logfb.GetRootAsBook(plaintext, 0))
+	return j.unmarshalFlatbuffer(logfb.GetRootAsBook(plaintext, 0))
 }
 
-// FlatbufferCipher marshals book to a flatbuffer and encrypts the book using
-// the book private key
-func (book Book) FlatbufferCipher() ([]byte, error) {
-	return book.encrypt(book.flatbufferBytes())
+// Children gets all descentants of a log, because logbook stores all
+// descendants in memory, children is a proxy for descenants
+func (j *Journal) Children(ctx context.Context, l *Log) error {
+	return j.Descendants(ctx, l)
 }
 
-func (book Book) cipher() (cipher.AEAD, error) {
-	pkBytes, err := book.pk.Raw()
+// Descendants gets all descentants of a log & assigns the results to the given
+// Log parameter, setting only the Logs field
+func (j *Journal) Descendants(ctx context.Context, l *Log) error {
+	got, err := j.Log(ctx, l.ID())
+	if err != nil {
+		return err
+	}
+
+	l.Logs = got.Logs
+	return nil
+}
+
+// FlatbufferCipher marshals journal to a flatbuffer and encrypts the book using
+// a given private key. This same private key must be retained elsewhere to read
+// the flatbuffer later on
+func (j Journal) FlatbufferCipher(pk crypto.PrivKey) ([]byte, error) {
+	return j.encrypt(pk, j.flatbufferBytes())
+}
+
+func (j Journal) cipher(pk crypto.PrivKey) (cipher.AEAD, error) {
+	pkBytes, err := pk.Raw()
 	if err != nil {
 		return nil, err
 	}
@@ -214,8 +279,8 @@ func (book Book) cipher() (cipher.AEAD, error) {
 	return cipher.NewGCM(block)
 }
 
-func (book Book) encrypt(data []byte) ([]byte, error) {
-	gcm, err := book.cipher()
+func (j Journal) encrypt(pk crypto.PrivKey, data []byte) ([]byte, error) {
+	gcm, err := j.cipher(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -229,8 +294,8 @@ func (book Book) encrypt(data []byte) ([]byte, error) {
 	return ciphertext, nil
 }
 
-func (book Book) decrypt(data []byte) ([]byte, error) {
-	gcm, err := book.cipher()
+func (j Journal) decrypt(pk crypto.PrivKey, data []byte) ([]byte, error) {
+	gcm, err := j.cipher(pk)
 	if err != nil {
 		return nil, err
 	}
@@ -245,18 +310,19 @@ func (book Book) decrypt(data []byte) ([]byte, error) {
 }
 
 // flatbufferBytes formats book as a flatbuffer byte slice
-func (book Book) flatbufferBytes() []byte {
+func (j Journal) flatbufferBytes() []byte {
 	builder := flatbuffers.NewBuilder(0)
-	off := book.marshalFlatbuffer(builder)
+	off := j.marshalFlatbuffer(builder)
 	builder.Finish(off)
 	return builder.FinishedBytes()
 }
 
-func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
-	authorname := builder.CreateString(book.authorname)
-	id := builder.CreateString(book.id)
+// note: currently doesn't marshal book.author, we're considering deprecating
+// the author field
+func (j Journal) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+	id := builder.CreateString(j.id)
 
-	setsl := book.Logs()
+	setsl := j.logs
 	count := len(setsl)
 	offsets := make([]flatbuffers.UOffsetT, count)
 	for i, lset := range setsl {
@@ -269,17 +335,14 @@ func (book Book) marshalFlatbuffer(builder *flatbuffers.Builder) flatbuffers.UOf
 	sets := builder.EndVector(count)
 
 	logfb.BookStart(builder)
-	logfb.BookAddName(builder, authorname)
 	logfb.BookAddIdentifier(builder, id)
 	logfb.BookAddLogs(builder, sets)
 	return logfb.BookEnd(builder)
 }
 
-func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
-	newBook := Book{
-		pk:         book.pk,
-		id:         string(b.Identifier()),
-		authorname: string(b.Name()),
+func (j *Journal) unmarshalFlatbuffer(b *logfb.Book) error {
+	newBook := Journal{
+		id: string(b.Identifier()),
 	}
 
 	count := b.LogsLength()
@@ -294,7 +357,7 @@ func (book *Book) unmarshalFlatbuffer(b *logfb.Book) error {
 		}
 	}
 
-	*book = newBook
+	*j = newBook
 	return nil
 }
 

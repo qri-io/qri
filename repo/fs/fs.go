@@ -4,7 +4,6 @@ package fsrepo
 import (
 	"fmt"
 	"os"
-	"path/filepath"
 
 	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -42,7 +41,9 @@ type Repo struct {
 }
 
 // NewRepo creates a new file-based repository
-func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, base string) (repo.Repo, error) {
+//
+// Deprecated: use CreateRepo instead
+func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -51,13 +52,6 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, pro *profile.Profile, ba
 	if pro.PrivKey == nil {
 		return nil, fmt.Errorf("Expected: PrivateKey")
 	}
-
-	book, err := logbook.NewBook(pro.PrivKey, pro.Peername, fsys, filepath.Join(base, "logbook.qfb"))
-	if err != nil {
-		log.Errorf("initializing logbook: %s", err)
-		return nil, err
-	}
-
 	r := &Repo{
 		profile: pro,
 

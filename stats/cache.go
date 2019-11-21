@@ -39,7 +39,7 @@ var _ Cache = (*osCache)(nil)
 
 // NewOSCache creates a cache in a local direcory
 func NewOSCache(rootDir string, maxSize uint64) Cache {
-	if err := os.MkdirAll(rootDir, 0x667); err != nil {
+	if err := os.MkdirAll(rootDir, os.ModePerm); err != nil {
 		// log.Errorf("stat: %s", args ...interface{})
 	}
 	return osCache{

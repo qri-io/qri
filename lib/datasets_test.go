@@ -601,6 +601,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	if err != nil {
 		t.Fatal(err.Error())
 	}
+	ctx := context.Background()
 
 	bad := []struct {
 		p   *RenameParams
@@ -627,7 +628,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 		}
 	}
 
-	log, err := mr.Logbook().DatasetRef(dsref.Ref{Username: "peer", Name: "movies"})
+	log, err := mr.Logbook().DatasetRef(ctx, dsref.Ref{Username: "peer", Name: "movies"})
 	if err != nil {
 		t.Errorf("error getting logbook head reference: %s", err)
 	}
@@ -648,7 +649,7 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	// get log by id this time
-	after, err := mr.Logbook().Log(log.ID())
+	after, err := mr.Logbook().Log(ctx, log.ID())
 	if err != nil {
 		t.Errorf("getting log by ID: %s", err)
 	}
