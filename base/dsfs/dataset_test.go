@@ -390,7 +390,8 @@ func TestGenerateCommitMessage(t *testing.T) {
 		description string
 		prev, ds    *dataset.Dataset
 		force       bool
-		expected    string
+		expectShort string
+		expectLong  string
 		errMsg      string
 	}{
 		{
@@ -399,6 +400,7 @@ func TestGenerateCommitMessage(t *testing.T) {
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}},
 			false,
 			"created dataset",
+			"created dataset",
 			"",
 		},
 		{
@@ -406,7 +408,8 @@ func TestGenerateCommitMessage(t *testing.T) {
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}},
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "changes to dataset"}},
 			false,
-			"Meta: 1 change\n\t- modified title",
+			"meta updated title",
+			"meta:\n\tupdated title",
 			"",
 		},
 		{
@@ -415,13 +418,15 @@ func TestGenerateCommitMessage(t *testing.T) {
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
 			false,
 			"",
-			"no changes detected",
+			"",
+			"no changes",
 		},
 		{
 			"same dataset but force is true",
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
 			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
 			true,
+			"forced update",
 			"forced update",
 			"",
 		},
@@ -438,7 +443,8 @@ func TestGenerateCommitMessage(t *testing.T) {
 				},
 			}},
 			false,
-			"Structure: 1 change\n\t- modified formatConfig",
+			"structure updated formatConfig.headerRow",
+			"structure:\n\tupdated formatConfig.headerRow",
 			"",
 		},
 		{
@@ -452,7 +458,9 @@ func TestGenerateCommitMessage(t *testing.T) {
 				ScriptBytes: []byte("# hello\n\ncontent\n\nanother line\n\n"),
 			}},
 			false,
-			"Readme: 1 change\n\t- modified scriptBytes",
+			// TODO(dlong): Should mention the line added.
+			"readme updated scriptBytes",
+			"readme:\n\tupdated scriptBytes",
 			"",
 		},
 		{
@@ -489,8 +497,9 @@ func TestGenerateCommitMessage(t *testing.T) {
 ]`),
 			},
 			false,
+			"body replaced row 1 and added row 3",
+			"body:\n\treplaced row 1\n\tadded row 3",
 			"",
-			"no changes detected",
 		},
 		{
 			"body with lots of changes",
@@ -521,8 +530,9 @@ twenty-five,giraffe,200
 hen,twenty-nine,30`),
 			},
 			false,
+			"body changed by 17%",
+			"body:\n\tchanged by 17%",
 			"",
-			"no changes detected",
 		},
 		{
 			"meta and structure and readme changes",
@@ -551,7 +561,8 @@ hen,twenty-nine,30`),
 				},
 			},
 			false,
-			"Structure: 1 change\n\t- modified formatConfig",
+			"updated meta, structure, and readme",
+			"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.headerRow\nreadme:\n\tupdated scriptBytes",
 			"",
 		},
 		{
@@ -580,66 +591,88 @@ hen,twenty-nine,30`),
 				},
 			},
 			false,
-			"Meta: 1 change\n\t- modified title",
+			"meta removed",
+			"meta removed",
+			"",
+		},
+		{
+			"meta has multiple parts changed",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "new dataset",
+					Description: "TODO: Add description",
+				},
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "changes to dataset",
+					HomeURL:     "http://example.com",
+					Description: "this is a great description",
+				},
+			},
+			false,
+			"meta updated 3 fields",
+			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title",
+			"",
+		},
+		{
+			"meta and body changed",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "new dataset",
+					Description: "TODO: Add description",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,9
+ten,eleven,12
+thirteen,fourteen,15
+sixteen,seventeen,18
+nineteen,twenty,21
+twenty-two,twenty-three,24
+twenty-five,twenty-six,27
+twenty-eight,twenty-nine,30`),
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "changes to dataset",
+					HomeURL:     "http://example.com",
+					Description: "this is a great description",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,cat
+dog,eleven,12
+thirteen,eel,15
+sixteen,seventeen,100
+frog,twenty,21
+twenty-two,twenty-three,24
+twenty-five,giraffe,200
+hen,twenty-nine,30`),
+			},
+			false,
+			"updated meta and body",
+			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title\nbody:\n\tchanged by 16%",
 			"",
 		},
 	}
 
 	for _, c := range cases {
 		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
-			got, err := generateCommitMsg(c.prev, c.ds, c.force)
+			shortTitle, longMessage, err := generateCommitDescriptions(c.prev, c.ds, c.force)
 			if err != nil && c.errMsg != err.Error() {
 				t.Errorf("error mismatch\nexpect: %s\ngot: %s", c.errMsg, err.Error())
 				return
 			}
-			if c.expected != got {
-				t.Errorf("message mismatch\nexpect: %s\ngot: %s", c.expected, got)
+			if c.expectShort != shortTitle {
+				t.Errorf("short message mismatch\nexpect: %s\ngot: %s", c.expectShort, shortTitle)
+			}
+			if c.expectLong != longMessage {
+				t.Errorf("long message mismatch\nexpect: %s\ngot: %s", c.expectLong, longMessage)
 			}
 		})
-	}
-}
-
-func TestCleanTitleAndMessage(t *testing.T) {
-	ds := &dataset.Dataset{Commit: &dataset.Commit{}}
-	cases := []struct {
-		title         string
-		message       string
-		description   string
-		expectTitle   string
-		expectMessage string
-	}{
-		// all should be over 70 characters
-		// no title, no message, no description
-		{"", "", "", "", ""},
-		// no title, no message, description
-		{"", "", "This is the description we are adding woooo", "This is the description we are adding woooo", ""},
-		// no title, no message, long description
-		{"", "", "need to make sure this description is over 70 characters long so that we can test to see if the cleaning of the title works", "need to make sure this description is over 70 characters long so ...", "...that we can test to see if the cleaning of the title works"},
-		// no title, message, no description
-		{"", "This text should move to the title", "", "This text should move to the title", ""},
-		// title, no message, no description
-		{"Yay, a title", "", "", "Yay, a title", ""},
-		// no title, message, description
-		{"", "And this text should stay in the message", "This description should move to the title", "This description should move to the title", "And this text should stay in the message"},
-		// title, message, no description
-		{"We have a title", "And we have a message", "", "We have a title", "And we have a message"},
-		// title, no message, description
-		{"We have a title", "", "This description will get squashed which I'm not sure what I feel about that", "We have a title", ""},
-		// long title, and message
-		{"This title is very long and I want to make sure that it works correctly with also having a message. wooo", "This message should still exist", "", "This title is very long and I want to make sure that it works ...", "...correctly with also having a message. wooo\nThis message should still exist"},
-	}
-	for i, c := range cases {
-		ds.Commit.Title = c.title
-		ds.Commit.Message = c.message
-
-		cleanTitleAndMessage(&ds.Commit.Title, &ds.Commit.Message, c.description)
-		if c.expectTitle != ds.Commit.Title {
-			t.Errorf("case %d, title mismatch, expect: %s, got: %s", i, c.expectTitle, ds.Commit.Title)
-		}
-		if c.expectMessage != ds.Commit.Message {
-			t.Errorf("case %d, message mismatch, expect: %s, got: %s", i, c.expectMessage, ds.Commit.Message)
-		}
-
 	}
 }
 
