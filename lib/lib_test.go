@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"reflect"
 	"testing"
+	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dstest"
@@ -16,12 +17,14 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	testrepo "github.com/qri-io/qri/repo/test"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -190,4 +193,52 @@ func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 		t.Fatal(err.Error())
 	}
 	return ref
+}
+
+type testRunner struct {
+	Ctx      context.Context
+	Profile  *profile.Profile
+	Instance *Instance
+	Dir      string // operating directory for writing files
+}
+
+func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
+	prevTs := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Time{} }
+
+	tmpDir, err := ioutil.TempDir("", "lib_test_runner")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+
+	tr = &testRunner{
+		Ctx: context.Background(),
+		// TODO (b5) - move test profile creation into testRunner constructor
+		Profile:  testPeerProfile,
+		Instance: NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node),
+		Dir:      tmpDir,
+	}
+
+	cleanup = func() {
+		dsfs.Timestamp = prevTs
+		os.RemoveAll(tr.Dir)
+	}
+	return tr, cleanup
+}
+
+func (tr *testRunner) writeFile(t *testing.T, filename, data string) (path string) {
+	path = filepath.Join(tr.Dir, filename)
+	if err := ioutil.WriteFile(path, []byte(data), 0x777); err != nil {
+		t.Fatal(err)
+	}
+	return path
 }
