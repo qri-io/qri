@@ -479,6 +479,10 @@ func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, l
 		return "created dataset", "created dataset", nil
 	}
 
+	// TODO(dlong): Inline body if it is a reasonable size, in order to get information about
+	// how the body has changed.
+	// TODO(dlong): Also should ignore derived fields, like structure.{checksum,entries,length}.
+
 	var prevData map[string]interface{}
 	prevData, err = toqtype.StructToMap(prev)
 	if err != nil {

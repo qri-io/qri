@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"strings"
 	"testing"
 	"time"
@@ -70,7 +71,12 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 // MustExec runs a command, returning standard output, failing the test if there's an error
 func (run *TestRunner) MustExec(t *testing.T, cmdText string) string {
 	if err := run.ExecCommand(cmdText); err != nil {
-		t.Fatal(err)
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
 	}
 	return run.GetCommandOutput()
 }

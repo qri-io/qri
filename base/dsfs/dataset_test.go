@@ -165,13 +165,13 @@ func TestCreateDataset(t *testing.T) {
 		{"strict_fail",
 			"", nil, 0, "strict mode: dataset body did not validate against its schema"},
 		{"cities",
-			"/map/QmUYex6ravy71tb4kbTmGq4Amr3v61P5crtgBPyBf6edTQ", nil, 6, ""},
+			"/map/QmXgaGiPcpiRcCkHrt4boC13hrqYshMFe3BztfLXgvh3pF", nil, 6, ""},
 		{"all_fields",
-			"/map/QmVzXTaBkeibMzEbLX8Na7d5wFr4pmqAVs7iwy3WH1J4qs", nil, 15, ""},
+			"/map/QmXQeeGnKXvn68uRZYffodggE298BWYFU7st7TPT9j67PL", nil, 15, ""},
 		{"cities_no_commit_title",
-			"/map/QmYEcxjtU7oJXeEtp2B5ZaGbw1g5YEyuf6GhL1R3LBo5fh", nil, 17, ""},
+			"/map/QmSCoZYVStTyUcDZPudPjRtxCPf2xAQNTFmvrLgkufUzJg", nil, 17, ""},
 		{"craigslist",
-			"/map/QmTDcyxadjji59eLEch6KmwEtTVwRzQC9RjdHFRdncZGxV", nil, 21, ""},
+			"/map/QmQsYot555Mn1K6ktrPa6bT3hXMTrEc6Wrp7FpbLb3jQDv", nil, 21, ""},
 		// should error when previous dataset won't dereference.
 		{"craigslist",
 			"", &dataset.Dataset{Structure: dataset.NewStructureRef("/bad/path")}, 21, "error loading dataset structure: error loading structure file: cafs: path not found"},
@@ -246,7 +246,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 
 	// Case: no changes in dataset
-	expectedErr = "error saving: no changes detected"
+	expectedErr = "error saving: no changes"
 	dsPrev, err := LoadDataset(ctx, store, cases[3].resultPath)
 	ds.PreviousPath = cases[3].resultPath
 	if err != nil {

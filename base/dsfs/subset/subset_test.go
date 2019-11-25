@@ -42,7 +42,7 @@ func TestLoadPreview(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := "ca0be54642b2b7d0a7c28c0628c8200fe7889f50"
+	expect := "657e6f941861f44c84833cde2b1f8a2c67923bd3"
 	sum := dstest.DatasetChecksum(res)
 	if expect != sum {
 		t.Errorf("dataset checksum mismatch. expected: %s, got: %s", expect, sum)

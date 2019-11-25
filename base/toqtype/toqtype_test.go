@@ -43,8 +43,8 @@ func TestStructToMapInvalid(t *testing.T) {
 	}
 }
 
-func TestMustParseJsonAsArray(t *testing.T) {
-	val := MustParseJsonAsArray("[1,2,3]")
+func TestMustParseJSONAsArray(t *testing.T) {
+	val := MustParseJSONAsArray("[1,2,3]")
 	expect := []interface{}{1.0, 2.0, 3.0}
 	if diff := cmp.Diff(expect, val); diff != "" {
 		t.Errorf("MustParseJsonAsArray (-want +got):\n%s", diff)

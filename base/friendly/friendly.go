@@ -2,9 +2,9 @@ package friendly
 
 import (
 	"fmt"
-	"strings"
-	"github.com/qri-io/deepdiff"
 	logger "github.com/ipfs/go-log"
+	"github.com/qri-io/deepdiff"
+	"strings"
 )
 
 var log = logger.Logger("dsfs")
@@ -33,7 +33,7 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 	changedComponents := []string{}
 
 	// Iterate over certain components that we want to check for changes to.
-	componentsToCheck := []string{"meta", "structure", "readme", "body"}
+	componentsToCheck := []string{"meta", "structure", "readme", "viz", "transform", "body"}
 	for _, compName := range componentsToCheck {
 		if changes, ok := perComponentChanges[compName]; ok {
 			changedComponents = append(changedComponents, compName)
@@ -93,7 +93,7 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 	} else if len(changedComponents) > 2 {
 		text := "updated "
 		for k, compName := range changedComponents {
-			if k == len(changedComponents) - 1 {
+			if k == len(changedComponents)-1 {
 				// If last change in the list...
 				text = fmt.Sprintf("%sand %s", text, compName)
 			} else {
@@ -111,7 +111,7 @@ func preprocess(deltas []*deepdiff.Delta) []*deepdiff.Delta {
 	build := make([]*deepdiff.Delta, 0, len(deltas))
 	for i, d := range deltas {
 		if i > 0 {
-			last := build[len(build) - 1]
+			last := build[len(build)-1]
 			if last.Path == d.Path {
 				if last.Type == deepdiff.DTDelete && d.Type == deepdiff.DTInsert {
 					last.Type = "replace"
@@ -127,6 +127,9 @@ func preprocess(deltas []*deepdiff.Delta) []*deepdiff.Delta {
 func buildComponentChanges(deltas []*deepdiff.Delta) map[string]*ComponentChanges {
 	perComponentChanges := make(map[string]*ComponentChanges)
 	for _, d := range deltas {
+		if d.Path == "/transform/scriptPath" {
+			continue
+		}
 		parts := strings.Split(d.Path, "/")
 		if len(parts) < 2 {
 			log.Debugf("path %q cannot map to dataset delta", d.Path)
@@ -134,12 +137,12 @@ func buildComponentChanges(deltas []*deepdiff.Delta) map[string]*ComponentChange
 		} else if len(parts) == 2 {
 			// Entire component changed
 			compName := parts[1]
-			if d.Type == deepdiff.DTDelete {
+			if d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTDelete {
 				if _, ok := perComponentChanges[compName]; !ok {
 					perComponentChanges[compName] = &ComponentChanges{}
 				}
 				changes, _ := perComponentChanges[compName]
-				changes.EntireMessage = "removed"
+				changes.EntireMessage = pastTense(string(d.Type))
 				continue
 			} else {
 				log.Debugf("unknown delta type %q for path %q", d.Type, d.Path)
@@ -173,7 +176,7 @@ func buildComponentChanges(deltas []*deepdiff.Delta) map[string]*ComponentChange
 
 func pastTense(text string) string {
 	if text == string(deepdiff.DTDelete) {
-		return "deleted"
+		return "removed"
 	} else if text == string(deepdiff.DTInsert) {
 		return "added"
 	} else if text == string(deepdiff.DTMove) {
