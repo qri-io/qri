@@ -23,10 +23,10 @@ func TestNewManifest(t *testing.T) {
 	expect := &dag.Manifest{
 		Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 		Nodes: []string{
-			"QmdShFSjhU6K96FLEtu1Zm5Wq2bG9avbUcKjEwm84EpXjy",
+			"QmTxSFyAAq7xa7L5DKAC1rYq1jR3GrAdpaTfMgxd2HU2Sw",
 			"QmQoNqKXP7aZJWS6GLJMx8Ax85uBFpRbmg7Npd6usx5V82",
-			"QmRwendrWJkquHoJfeCu3FvCraaWB4qXJ6N5Xv5xvv2qVv",
-			"QmVC2qgWvgS4UKvifAkB6rtHBks4vRTw64VmsceeBQ2V3V",
+			"QmSbMMHCQ2wetbXJsviNdfKkELS6jxLaHeqxdzT6DAmVZU",
+			"QmW27MUFMSvPiE3FpmHhSeBZQEuYAppofudDCLvPXVfSLR",
 			"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
 			"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
 			"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",
@@ -92,14 +92,14 @@ func TestNewDAGInfo(t *testing.T) {
 			"tf": 6,
 			"vz": 1,
 		},
-		Sizes: []uint64{0x0602, 0x26, 0x019c, 0x01bc, 0x0d, 0x36, 0x27, 0xa0},
+		Sizes: []uint64{0x061e, 0x26, 0x019c, 0x01d8, 0x0d, 0x36, 0x27, 0xa0},
 		Manifest: &dag.Manifest{
 			Links: [][2]int{{0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5}, {0, 6}, {0, 7}},
 			Nodes: []string{
-				"QmdShFSjhU6K96FLEtu1Zm5Wq2bG9avbUcKjEwm84EpXjy",
+				"QmTxSFyAAq7xa7L5DKAC1rYq1jR3GrAdpaTfMgxd2HU2Sw",
 				"QmQoNqKXP7aZJWS6GLJMx8Ax85uBFpRbmg7Npd6usx5V82",
-				"QmRwendrWJkquHoJfeCu3FvCraaWB4qXJ6N5Xv5xvv2qVv",
-				"QmVC2qgWvgS4UKvifAkB6rtHBks4vRTw64VmsceeBQ2V3V",
+				"QmSbMMHCQ2wetbXJsviNdfKkELS6jxLaHeqxdzT6DAmVZU",
+				"QmW27MUFMSvPiE3FpmHhSeBZQEuYAppofudDCLvPXVfSLR",
 				"QmWVxUKnBmbiXai1Wgu6SuMzyZwYRqjt5TXL8xxghN5hWL",
 				"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ",
 				"QmdzHjr5GdFGCvo9dCqdhUpqPxA6x5yz8G1cErb7q5MvTP",

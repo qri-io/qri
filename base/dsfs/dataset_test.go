@@ -386,13 +386,38 @@ func TestWriteDataset(t *testing.T) {
 }
 
 func TestGenerateCommitMessage(t *testing.T) {
-	cases := []struct {
+	badCases := []struct {
+		description string
+		prev, ds    *dataset.Dataset
+		force       bool
+		errMsg      string
+	}{
+		{
+			"no changes from one dataset version to next",
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			false,
+			"no changes",
+		},
+	}
+
+	for _, c := range badCases {
+		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
+			_, _, err := generateCommitDescriptions(c.prev, c.ds, c.force)
+			if err == nil {
+				t.Errorf("error expected, did not get one")
+			} else if c.errMsg != err.Error() {
+				t.Errorf("error mismatch\nexpect: %s\ngot: %s", c.errMsg, err.Error())
+			}
+		})
+	}
+
+	goodCases := []struct {
 		description string
 		prev, ds    *dataset.Dataset
 		force       bool
 		expectShort string
 		expectLong  string
-		errMsg      string
 	}{
 		{
 			"empty previous and non-empty dataset",
@@ -401,7 +426,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			false,
 			"created dataset",
 			"created dataset",
-			"",
 		},
 		{
 			"title changes from previous",
@@ -410,16 +434,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			false,
 			"meta updated title",
 			"meta:\n\tupdated title",
-			"",
-		},
-		{
-			"no changes from one dataset version to next",
-			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
-			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
-			false,
-			"",
-			"",
-			"no changes",
 		},
 		{
 			"same dataset but force is true",
@@ -428,7 +442,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			true,
 			"forced update",
 			"forced update",
-			"",
 		},
 		{
 			"structure sets the headerRow config option",
@@ -445,7 +458,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			false,
 			"structure updated formatConfig.headerRow",
 			"structure:\n\tupdated formatConfig.headerRow",
-			"",
 		},
 		{
 			"readme modified",
@@ -461,7 +473,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			// TODO(dlong): Should mention the line added.
 			"readme updated scriptBytes",
 			"readme:\n\tupdated scriptBytes",
-			"",
 		},
 		{
 			"body with a small number of changes",
@@ -499,7 +510,6 @@ func TestGenerateCommitMessage(t *testing.T) {
 			false,
 			"body replaced row 1 and added row 3",
 			"body:\n\treplaced row 1\n\tadded row 3",
-			"",
 		},
 		{
 			"body with lots of changes",
@@ -532,7 +542,6 @@ hen,twenty-nine,30`),
 			false,
 			"body changed by 17%",
 			"body:\n\tchanged by 17%",
-			"",
 		},
 		{
 			"meta and structure and readme changes",
@@ -563,7 +572,6 @@ hen,twenty-nine,30`),
 			false,
 			"updated meta, structure, and readme",
 			"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.headerRow\nreadme:\n\tupdated scriptBytes",
-			"",
 		},
 		{
 			"meta removed but everything else is the same",
@@ -593,7 +601,6 @@ hen,twenty-nine,30`),
 			false,
 			"meta removed",
 			"meta removed",
-			"",
 		},
 		{
 			"meta has multiple parts changed",
@@ -613,7 +620,6 @@ hen,twenty-nine,30`),
 			false,
 			"meta updated 3 fields",
 			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title",
-			"",
 		},
 		{
 			"meta and body changed",
@@ -655,15 +661,14 @@ hen,twenty-nine,30`),
 			false,
 			"updated meta and body",
 			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title\nbody:\n\tchanged by 16%",
-			"",
 		},
 	}
 
-	for _, c := range cases {
+	for _, c := range goodCases {
 		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
 			shortTitle, longMessage, err := generateCommitDescriptions(c.prev, c.ds, c.force)
-			if err != nil && c.errMsg != err.Error() {
-				t.Errorf("error mismatch\nexpect: %s\ngot: %s", c.errMsg, err.Error())
+			if err != nil {
+				t.Errorf("error: %s", err.Error())
 				return
 			}
 			if c.expectShort != shortTitle {
@@ -674,6 +679,8 @@ hen,twenty-nine,30`),
 			}
 		})
 	}
+
+
 }
 
 func TestGetDepth(t *testing.T) {

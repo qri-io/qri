@@ -344,10 +344,6 @@ func generateCommit(prev, ds *dataset.Dataset, privKey crypto.PrivKey, force boo
 		ds.Commit.Message = longMessage
 	}
 
-	// TODO (b5): we should check the delta between versions for meaninful changes here,
-	// ignoring fields we know will change every time. Can only do this with a proper set
-	// of change deltas
-
 	ds.Commit.Timestamp = Timestamp()
 	sb, _ := ds.SignableBytes()
 	signedBytes, err := privKey.Sign(sb)

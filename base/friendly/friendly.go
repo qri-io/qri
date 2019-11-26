@@ -2,9 +2,10 @@ package friendly
 
 import (
 	"fmt"
+	"strings"
+
 	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/deepdiff"
-	"strings"
 )
 
 var log = logger.Logger("dsfs")
