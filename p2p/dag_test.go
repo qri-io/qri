@@ -5,6 +5,7 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dag"
+	p2ptest "github.com/qri-io/qri/p2p/test"
 )
 
 func TestNewManifest(t *testing.T) {
@@ -46,27 +47,25 @@ func TestMissingManifest(t *testing.T) {
 	defer cleanup()
 
 	node := tr.IPFSBackedQriNode(t, "dag_tests_peer")
-	writeWorldBankPopulation(tr.Ctx, t, node.Repo)
+	ref := writeWorldBankPopulation(tr.Ctx, t, node.Repo)
 
-	in := &dag.Manifest{
-		Nodes: []string{
-			"QmdShFSjhU6K96FLEtu1Zm5Wq2bG9avbUcKjEwm84EpXjy", // block from world bank pop DAG
-			"Qma3bmcJhAdKeEB9dKJBfChVb2LvcNfWvqnh7hqbJR7aLZ", // block from world bank pop DAG
-			// "QmTFauExutTsy4XP6JbMFcw2Wa9645HJt2bTqL6qYDCKfe", // random hash from somewhere else
-		},
-	}
+	// Select some blocks from the saved dataset. Don't hardcode block ids, because if they
+	// ever change this test will hang.
+	capi, _ := node.IPFSCoreAPI()
+	blocks := p2ptest.GetSomeBlocks(capi, ref, 2)
+	in := &dag.Manifest{Nodes: blocks}
 
+	// TODO(dlong): This function seems to not work correctly. If any blocks are missing, it
+	// doesn't return them, instead it hangs forever.
+
+	// Get which blocks from the manifest are missing from available blocks.
 	mfst, err := node.MissingManifest(tr.Ctx, in)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expect := &dag.Manifest{
-		// Nodes: []string{
-		// 	"extraHash",
-		// },
-	}
-
+	// None of those blocks in the manifest are missing.
+	expect := &dag.Manifest{}
 	if diff := cmp.Diff(expect, mfst); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}

@@ -8,9 +8,12 @@ import (
 	"path/filepath"
 	"sync"
 
+	"github.com/ipfs/go-cid"
+	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	host "github.com/libp2p/go-libp2p-core/host"
 	pstore "github.com/libp2p/go-libp2p-peerstore"
 	ma "github.com/multiformats/go-multiaddr"
+	"github.com/qri-io/dag"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/repo"
@@ -202,4 +205,32 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 	}
 
 	return nil
+}
+
+// GetSomeBlocks returns a list of num ids for blocks that are in the referenced dataset.
+func GetSomeBlocks(capi coreiface.CoreAPI, ref repo.DatasetRef, num int) []string {
+	result := []string{}
+
+	ctx := context.Background()
+
+	ng := dag.NewNodeGetter(capi.Dag())
+
+	id, err := cid.Parse(ref.Path)
+	if err != nil {
+		panic(err)
+	}
+
+	elem, err := ng.Get(ctx, id)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, link := range elem.Links() {
+		result = append(result, link.Cid.String())
+		if len(result) >= num {
+			break
+		}
+	}
+
+	return result
 }
