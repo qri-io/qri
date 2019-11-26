@@ -342,7 +342,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if inst.logbook == nil {
 		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
 		if err != nil {
-			return nil, fmt.Errorf("newLogbook: %w", err)
+			return nil, fmt.Errorf("newLogbook: %v", err)
 		}
 	}
 
