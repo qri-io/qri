@@ -8,7 +8,6 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"strings"
 	"sync"
 	"time"
 
@@ -18,10 +17,12 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dsviz"
 	"github.com/qri-io/dataset/validate"
+	"github.com/qri-io/deepdiff"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	"github.com/qri-io/qri/base/dsdiff"
+	"github.com/qri-io/qri/base/friendly"
+	"github.com/qri-io/qri/base/toqtype"
 )
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
@@ -220,7 +221,7 @@ func CreateDataset(ctx context.Context, store cafs.Filestore, ds, dsPrev *datase
 			return
 		}
 	}
-	_, err = prepareDataset(store, ds, dsPrev, pk, force, shouldRender)
+	err = prepareDataset(store, ds, dsPrev, pk, force, shouldRender)
 	if err != nil {
 		log.Debug(err.Error())
 		return
@@ -242,7 +243,7 @@ var Timestamp = func() time.Time {
 
 // prepareDataset modifies a dataset in preparation for adding to a dsfs
 // it returns a new data file for use in WriteDataset
-func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, force, shouldRender bool) (string, error) {
+func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey crypto.PrivKey, force, shouldRender bool) error {
 	var (
 		err error
 		// lock for parallel edits to ds pointer
@@ -258,7 +259,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	}
 
 	if bf == nil && bfPrev == nil {
-		return "", fmt.Errorf("bodyfile or previous bodyfile needed")
+		return fmt.Errorf("bodyfile or previous bodyfile needed")
 	}
 
 	if bf == nil {
@@ -296,7 +297,7 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 	// Join the outstanding tasks, wait until all are cmoplete.
 	for i := 0; i < tasks; i++ {
 		if err := <-done; err != nil {
-			return "", err
+			return err
 		}
 	}
 
@@ -306,33 +307,13 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		for i, v := range validationErrors {
 			fmt.Fprintf(os.Stderr, "%d) %v\n", i, v)
 		}
-		return "", fmt.Errorf("strict mode: dataset body did not validate against its schema")
+		return fmt.Errorf("strict mode: dataset body did not validate against its schema")
 	}
 
-	// TODO (ramfox): This whole section can be wrapped:
-	// func generateCommit(ds, prev *dataset.Dataset, privKey crypto.PrivKey) error
-	// Lots of stuff happening in prepareDataset and the steps to creating the
-	// proper commit can be abstracted out
-	diffDescription, err := generateCommitMsg(ds, dsPrev, force)
-	if err != nil {
-		log.Debug(fmt.Errorf("error saving: %s", err))
-		return "", fmt.Errorf("error saving: %s", err)
+	if err = generateCommit(dsPrev, ds, privKey, force); err != nil {
+		return err
 	}
 
-	cleanTitleAndMessage(&ds.Commit.Title, &ds.Commit.Message, diffDescription)
-
-	// TODO (b5): we should check the delta between versions for meaninful changes here,
-	// ignoring fields we know will change every time. Can only do this with a proper set
-	// of change deltas
-
-	ds.Commit.Timestamp = Timestamp()
-	sb, _ := ds.SignableBytes()
-	signedBytes, err := privKey.Sign(sb)
-	if err != nil {
-		log.Debug(err.Error())
-		return "", fmt.Errorf("error signing commit title: %s", err.Error())
-	}
-	ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
 	ds.SetBodyFile(qfs.NewMemfileBytes("body."+ds.Structure.Format, buf.Bytes()))
 
 	if shouldRender && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
@@ -340,12 +321,39 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		renderedFile, err := dsviz.Render(ds)
 		if err != nil {
 			log.Debug(err.Error())
-			return "", fmt.Errorf("error rendering visualization: %s", err.Error())
+			return fmt.Errorf("error rendering visualization: %s", err.Error())
 		}
 		ds.Viz.SetRenderedFile(renderedFile)
 	}
 
-	return diffDescription, nil
+	return nil
+}
+
+// generateCommit creates the commit title, message, timestamp, etc
+func generateCommit(prev, ds *dataset.Dataset, privKey crypto.PrivKey, force bool) error {
+	shortTitle, longMessage, err := generateCommitDescriptions(prev, ds, force)
+	if err != nil {
+		log.Debug(fmt.Errorf("error saving: %s", err))
+		return fmt.Errorf("error saving: %s", err)
+	}
+
+	if ds.Commit.Title == "" {
+		ds.Commit.Title = shortTitle
+	}
+	if ds.Commit.Message == "" {
+		ds.Commit.Message = longMessage
+	}
+
+	ds.Commit.Timestamp = Timestamp()
+	sb, _ := ds.SignableBytes()
+	signedBytes, err := privKey.Sign(sb)
+	if err != nil {
+		log.Debug(err.Error())
+		return fmt.Errorf("error signing commit title: %s", err.Error())
+	}
+	ds.Commit.Signature = base64.StdEncoding.EncodeToString(signedBytes)
+
+	return nil
 }
 
 // setErrCount consumes sets the ErrCount field of a dataset's Structure
@@ -462,70 +470,42 @@ func setChecksumAndLength(ds *dataset.Dataset, data qfs.File, buf *bytes.Buffer,
 }
 
 // returns a commit message based on the diff of the two datasets
-// if there is no previous dataset, it returns "created dataset"
-// if there is no difference, the func returns an error
-func generateCommitMsg(ds, prev *dataset.Dataset, force bool) (string, error) {
+func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, long string, err error) {
 	if prev == nil || prev.IsEmpty() {
-		return "created dataset", nil
+		return "created dataset", "created dataset", nil
 	}
 
-	diffMap, err := dsdiff.DiffDatasets(prev, ds, nil)
+	// TODO(dlong): Inline body if it is a reasonable size, in order to get information about
+	// how the body has changed.
+	// TODO(dlong): Also should ignore derived fields, like structure.{checksum,entries,length}.
+
+	var prevData map[string]interface{}
+	prevData, err = toqtype.StructToMap(prev)
 	if err != nil {
-		err = fmt.Errorf("error diffing datasets: %s", err.Error())
-		return "", err
+		return "", "", err
 	}
 
-	diffDescription, err := dsdiff.MapDiffsToString(diffMap, "listKeys")
+	var nextData map[string]interface{}
+	nextData, err = toqtype.StructToMap(ds)
 	if err != nil {
-		return "", err
+		return "", "", err
 	}
 
-	if diffDescription == "" {
+	stat := deepdiff.Stats{}
+	diff, err := deepdiff.Diff(prevData, nextData, deepdiff.OptionSetStats(&stat))
+	if err != nil {
+		return "", "", err
+	}
+
+	shortTitle, longMessage := friendly.DiffDescriptions(diff, &stat)
+	if shortTitle == "" {
 		if force {
-			return "forced update", nil
+			return "forced update", "forced update", nil
 		}
-		return "", fmt.Errorf("no changes detected")
+		return "", "", fmt.Errorf("no changes")
 	}
 
-	return diffDescription, nil
-}
-
-// cleanTitleAndMessage adjusts the title to include no more
-// than 70 characters and no more than one line.  Text following
-// a line break or this limit will be prepended to the message
-func cleanTitleAndMessage(sTitle, sMsg *string, diffDescription string) {
-	st := *sTitle
-	sm := *sMsg
-	if st == "" && diffDescription != "" {
-		st = diffDescription
-	} else if st == "" {
-		// if title is *still* blank move pass message up to title
-		st = sm
-		sm = ""
-	}
-	//adjust for length
-	if len(st) > 70 {
-		cutIndex := 66
-		lastSpaceIndex := strings.LastIndex(st[:67], " ")
-		if lastSpaceIndex > 0 {
-			cutIndex = lastSpaceIndex + 1
-		}
-		if sm == "" {
-			sm = fmt.Sprintf("...%s", st[cutIndex:])
-		} else {
-			sm = fmt.Sprintf("...%s\n%s", st[cutIndex:], sm)
-		}
-		st = fmt.Sprintf("%s...", st[:cutIndex])
-	}
-	// adjust for line breaks
-	newlineIndex := strings.Index(st, "\n")
-	if newlineIndex > 0 {
-		sm = fmt.Sprintf("%s\n%s", st[newlineIndex+1:], sm)
-		st = st[:newlineIndex]
-
-	}
-	*sTitle = st
-	*sMsg = sm
+	return shortTitle, longMessage, nil
 }
 
 // WriteDataset writes a dataset to a cafs, replacing subcomponents of a dataset with path references

@@ -257,12 +257,10 @@ func (s dslogItemStringer) String() string {
 		humanize.Bytes(uint64(s.Size)),
 		s.CommitTitle,
 	)
-
-	if s.CommitMessage != "" {
-		msg += fmt.Sprintf("\n%s\n\n", s.CommitMessage)
-	} else {
-		msg += "\n"
+	if s.CommitMessage != "" && s.CommitMessage != s.CommitTitle {
+		msg += fmt.Sprintf("%s\n", s.CommitMessage)
 	}
+	msg += "\n"
 
 	return msg
 }

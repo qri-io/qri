@@ -108,8 +108,8 @@ func TestRemoveRun(t *testing.T) {
 	}{
 		{[]string{}, -1, "", "repo: empty dataset reference", ""},
 		{[]string{"me/bad_dataset"}, -1, "", "repo: not found", "could not find dataset 'me/bad_dataset'"},
-		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/map/QmcnKQTWNuAYpcqUa4Ss85WiNp4c9ySem4DNipxQzUqw5J'\n", "", ""},
-		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmQAvmHB7gE5jvXyzqYeAZfAz2dnWxghEjq7hDN8aaJWZM'\n", "", ""},
+		{[]string{"me/movies"}, -1, "removed entire dataset 'peer/movies@/map/QmVnSLjFfZ8QRyTvAMfqjWoTZS1zo4JthKjBaFjnneirAc'\n", "", ""},
+		{[]string{"me/cities", "me/counter"}, -1, "removed entire dataset 'peer/cities@/map/QmfRUKSPd2hR8w7RLkLb7ihhsAmcFCMuwnXHtKp5fMfgwv'\n", "", ""},
 		{[]string{"me/movies"}, -1, "", "repo: not found", "could not find dataset 'me/movies'"},
 	}
 

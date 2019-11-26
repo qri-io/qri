@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/base64"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"strings"
 	"testing"
@@ -15,6 +16,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
+	"github.com/qri-io/qri/base/toqtype"
 )
 
 // Test Private Key. peerId: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
@@ -163,13 +165,13 @@ func TestCreateDataset(t *testing.T) {
 		{"strict_fail",
 			"", nil, 0, "strict mode: dataset body did not validate against its schema"},
 		{"cities",
-			"/map/QmUYex6ravy71tb4kbTmGq4Amr3v61P5crtgBPyBf6edTQ", nil, 6, ""},
+			"/map/QmXgaGiPcpiRcCkHrt4boC13hrqYshMFe3BztfLXgvh3pF", nil, 6, ""},
 		{"all_fields",
-			"/map/QmVzXTaBkeibMzEbLX8Na7d5wFr4pmqAVs7iwy3WH1J4qs", nil, 15, ""},
+			"/map/QmXQeeGnKXvn68uRZYffodggE298BWYFU7st7TPT9j67PL", nil, 15, ""},
 		{"cities_no_commit_title",
-			"/map/QmYEcxjtU7oJXeEtp2B5ZaGbw1g5YEyuf6GhL1R3LBo5fh", nil, 17, ""},
+			"/map/QmSCoZYVStTyUcDZPudPjRtxCPf2xAQNTFmvrLgkufUzJg", nil, 17, ""},
 		{"craigslist",
-			"/map/QmTDcyxadjji59eLEch6KmwEtTVwRzQC9RjdHFRdncZGxV", nil, 21, ""},
+			"/map/QmQsYot555Mn1K6ktrPa6bT3hXMTrEc6Wrp7FpbLb3jQDv", nil, 21, ""},
 		// should error when previous dataset won't dereference.
 		{"craigslist",
 			"", &dataset.Dataset{Structure: dataset.NewStructureRef("/bad/path")}, 21, "error loading dataset structure: error loading structure file: cafs: path not found"},
@@ -244,7 +246,7 @@ func TestCreateDataset(t *testing.T) {
 	}
 
 	// Case: no changes in dataset
-	expectedErr = "error saving: no changes detected"
+	expectedErr = "error saving: no changes"
 	dsPrev, err := LoadDataset(ctx, store, cases[3].resultPath)
 	ds.PreviousPath = cases[3].resultPath
 	if err != nil {
@@ -384,76 +386,301 @@ func TestWriteDataset(t *testing.T) {
 }
 
 func TestGenerateCommitMessage(t *testing.T) {
-	cases := []struct {
-		ds, prev *dataset.Dataset
-		force    bool
-		expected string
-		errMsg   string
+	badCases := []struct {
+		description string
+		prev, ds    *dataset.Dataset
+		force       bool
+		errMsg      string
 	}{
-		// empty prev
-		{&dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}}, &dataset.Dataset{}, false, "created dataset", ""},
-		// different datasets
-		{&dataset.Dataset{Meta: &dataset.Meta{Title: "changes to dataset"}}, &dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}}, false, "Meta: 1 change\n\t- modified title", ""},
-		// same datasets
-		{&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}}, &dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}}, false, "", "no changes detected"},
-		// same datasets, forced
-		{&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}}, &dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}}, true, "forced update", ""},
+		{
+			"no changes from one dataset version to next",
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			false,
+			"no changes",
+		},
 	}
 
-	for i, c := range cases {
-		got, err := generateCommitMsg(c.ds, c.prev, c.force)
-		if err != nil && c.errMsg != err.Error() {
-			t.Errorf("case %d, error mismatch, expect: %s, got: %s", i, c.errMsg, err.Error())
-			continue
-		}
-		if c.expected != got {
-			t.Errorf("case %d, message mismatch, expect: %s, got: %s", i, c.expected, got)
-		}
+	for _, c := range badCases {
+		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
+			_, _, err := generateCommitDescriptions(c.prev, c.ds, c.force)
+			if err == nil {
+				t.Errorf("error expected, did not get one")
+			} else if c.errMsg != err.Error() {
+				t.Errorf("error mismatch\nexpect: %s\ngot: %s", c.errMsg, err.Error())
+			}
+		})
 	}
-}
 
-func TestCleanTitleAndMessage(t *testing.T) {
-	ds := &dataset.Dataset{Commit: &dataset.Commit{}}
-	cases := []struct {
-		title         string
-		message       string
-		description   string
-		expectTitle   string
-		expectMessage string
+	goodCases := []struct {
+		description string
+		prev, ds    *dataset.Dataset
+		force       bool
+		expectShort string
+		expectLong  string
 	}{
-		// all should be over 70 characters
-		// no title, no message, no description
-		{"", "", "", "", ""},
-		// no title, no message, description
-		{"", "", "This is the description we are adding woooo", "This is the description we are adding woooo", ""},
-		// no title, no message, long description
-		{"", "", "need to make sure this description is over 70 characters long so that we can test to see if the cleaning of the title works", "need to make sure this description is over 70 characters long so ...", "...that we can test to see if the cleaning of the title works"},
-		// no title, message, no description
-		{"", "This text should move to the title", "", "This text should move to the title", ""},
-		// title, no message, no description
-		{"Yay, a title", "", "", "Yay, a title", ""},
-		// no title, message, description
-		{"", "And this text should stay in the message", "This description should move to the title", "This description should move to the title", "And this text should stay in the message"},
-		// title, message, no description
-		{"We have a title", "And we have a message", "", "We have a title", "And we have a message"},
-		// title, no message, description
-		{"We have a title", "", "This description will get squashed which I'm not sure what I feel about that", "We have a title", ""},
-		// long title, and message
-		{"This title is very long and I want to make sure that it works correctly with also having a message. wooo", "This message should still exist", "", "This title is very long and I want to make sure that it works ...", "...correctly with also having a message. wooo\nThis message should still exist"},
+		{
+			"empty previous and non-empty dataset",
+			&dataset.Dataset{},
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}},
+			false,
+			"created dataset",
+			"created dataset",
+		},
+		{
+			"title changes from previous",
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "new dataset"}},
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "changes to dataset"}},
+			false,
+			"meta updated title",
+			"meta:\n\tupdated title",
+		},
+		{
+			"same dataset but force is true",
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			&dataset.Dataset{Meta: &dataset.Meta{Title: "same dataset"}},
+			true,
+			"forced update",
+			"forced update",
+		},
+		{
+			"structure sets the headerRow config option",
+			&dataset.Dataset{Structure: &dataset.Structure{
+				FormatConfig: map[string]interface{}{
+					"headerRow": false,
+				},
+			}},
+			&dataset.Dataset{Structure: &dataset.Structure{
+				FormatConfig: map[string]interface{}{
+					"headerRow": true,
+				},
+			}},
+			false,
+			"structure updated formatConfig.headerRow",
+			"structure:\n\tupdated formatConfig.headerRow",
+		},
+		{
+			"readme modified",
+			&dataset.Dataset{Readme: &dataset.Readme{
+				Format:      "md",
+				ScriptBytes: []byte("# hello\n\ncontent\n\n"),
+			}},
+			&dataset.Dataset{Readme: &dataset.Readme{
+				Format:      "md",
+				ScriptBytes: []byte("# hello\n\ncontent\n\nanother line\n\n"),
+			}},
+			false,
+			// TODO(dlong): Should mention the line added.
+			"readme updated scriptBytes",
+			"readme:\n\tupdated scriptBytes",
+		},
+		{
+			"body with a small number of changes",
+			&dataset.Dataset{
+				Structure: &dataset.Structure{Format: "json"},
+				Body: toqtype.MustParseJSONAsArray(`[
+  {
+    "fruit": "apple", "color": "red"
+  },
+  {
+    "fruit": "banana", "color": "yellow"
+  },
+  {
+    "fruit": "cherry", "color": "red"
+  }
+]`),
+			},
+			&dataset.Dataset{
+				Structure: &dataset.Structure{Format: "json"},
+				Body: toqtype.MustParseJSONAsArray(`[
+  {
+    "fruit": "apple", "color": "red"
+  },
+  {
+    "fruit": "blueberry", "color": "blue"
+  },
+  {
+    "fruit": "cherry", "color": "red"
+  },
+  {
+    "fruit": "durian", "color": "green"
+  }
+]`),
+			},
+			false,
+			"body replaced row 1 and added row 3",
+			"body:\n\treplaced row 1\n\tadded row 3",
+		},
+		{
+			"body with lots of changes",
+			&dataset.Dataset{
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,9
+ten,eleven,12
+thirteen,fourteen,15
+sixteen,seventeen,18
+nineteen,twenty,21
+twenty-two,twenty-three,24
+twenty-five,twenty-six,27
+twenty-eight,twenty-nine,30`),
+			},
+			&dataset.Dataset{
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,cat
+dog,eleven,12
+thirteen,eel,15
+sixteen,seventeen,100
+frog,twenty,21
+twenty-two,twenty-three,24
+twenty-five,giraffe,200
+hen,twenty-nine,30`),
+			},
+			false,
+			"body changed by 17%",
+			"body:\n\tchanged by 17%",
+		},
+		{
+			"meta and structure and readme changes",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{Title: "new dataset"},
+				Structure: &dataset.Structure{
+					FormatConfig: map[string]interface{}{
+						"headerRow": false,
+					},
+				},
+				Readme: &dataset.Readme{
+					Format:      "md",
+					ScriptBytes: []byte("# hello\n\ncontent\n\n"),
+				},
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{Title: "changes to dataset"},
+				Structure: &dataset.Structure{
+					FormatConfig: map[string]interface{}{
+						"headerRow": true,
+					},
+				},
+				Readme: &dataset.Readme{
+					Format:      "md",
+					ScriptBytes: []byte("# hello\n\ncontent\n\nanother line\n\n"),
+				},
+			},
+			false,
+			"updated meta, structure, and readme",
+			"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.headerRow\nreadme:\n\tupdated scriptBytes",
+		},
+		{
+			"meta removed but everything else is the same",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{Title: "new dataset"},
+				Structure: &dataset.Structure{
+					FormatConfig: map[string]interface{}{
+						"headerRow": false,
+					},
+				},
+				Readme: &dataset.Readme{
+					Format:      "md",
+					ScriptBytes: []byte("# hello\n\ncontent\n\n"),
+				},
+			},
+			&dataset.Dataset{
+				Structure: &dataset.Structure{
+					FormatConfig: map[string]interface{}{
+						"headerRow": false,
+					},
+				},
+				Readme: &dataset.Readme{
+					Format:      "md",
+					ScriptBytes: []byte("# hello\n\ncontent\n\n"),
+				},
+			},
+			false,
+			"meta removed",
+			"meta removed",
+		},
+		{
+			"meta has multiple parts changed",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "new dataset",
+					Description: "TODO: Add description",
+				},
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "changes to dataset",
+					HomeURL:     "http://example.com",
+					Description: "this is a great description",
+				},
+			},
+			false,
+			"meta updated 3 fields",
+			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title",
+		},
+		{
+			"meta and body changed",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "new dataset",
+					Description: "TODO: Add description",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,9
+ten,eleven,12
+thirteen,fourteen,15
+sixteen,seventeen,18
+nineteen,twenty,21
+twenty-two,twenty-three,24
+twenty-five,twenty-six,27
+twenty-eight,twenty-nine,30`),
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title:       "changes to dataset",
+					HomeURL:     "http://example.com",
+					Description: "this is a great description",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,cat
+dog,eleven,12
+thirteen,eel,15
+sixteen,seventeen,100
+frog,twenty,21
+twenty-two,twenty-three,24
+twenty-five,giraffe,200
+hen,twenty-nine,30`),
+			},
+			false,
+			"updated meta and body",
+			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title\nbody:\n\tchanged by 16%",
+		},
 	}
-	for i, c := range cases {
-		ds.Commit.Title = c.title
-		ds.Commit.Message = c.message
 
-		cleanTitleAndMessage(&ds.Commit.Title, &ds.Commit.Message, c.description)
-		if c.expectTitle != ds.Commit.Title {
-			t.Errorf("case %d, title mismatch, expect: %s, got: %s", i, c.expectTitle, ds.Commit.Title)
-		}
-		if c.expectMessage != ds.Commit.Message {
-			t.Errorf("case %d, message mismatch, expect: %s, got: %s", i, c.expectMessage, ds.Commit.Message)
-		}
-
+	for _, c := range goodCases {
+		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
+			shortTitle, longMessage, err := generateCommitDescriptions(c.prev, c.ds, c.force)
+			if err != nil {
+				t.Errorf("error: %s", err.Error())
+				return
+			}
+			if c.expectShort != shortTitle {
+				t.Errorf("short message mismatch\nexpect: %s\ngot: %s", c.expectShort, shortTitle)
+			}
+			if c.expectLong != longMessage {
+				t.Errorf("long message mismatch\nexpect: %s\ngot: %s", c.expectLong, longMessage)
+			}
+		})
 	}
+
+
 }
 
 func TestGetDepth(t *testing.T) {

@@ -155,7 +155,9 @@ func TestSaveDataset(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if ref.Dataset.Transform == nil {
+	if ref.Dataset == nil {
+		t.Error("expected dataset pointer to exist")
+	} else if ref.Dataset.Transform == nil {
 		t.Error("expected recalled transform to be present")
 	}
 }

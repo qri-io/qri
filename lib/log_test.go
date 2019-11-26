@@ -31,11 +31,12 @@ func TestHistoryRequestsLog(t *testing.T) {
 	for i, r := range refs {
 		t.Logf("%d: %d %s\t%s\t%s", i, r.Dataset.Structure.Length, r.Dataset.Commit.Title, r.Path, r.Dataset.PreviousPath)
 		items[i] = DatasetLogItem{
-			Ref:         repo.ConvertToDsref(r),
-			Published:   r.Published,
-			CommitTitle: r.Dataset.Commit.Title,
-			Local:       true,
-			Size:        int64(r.Dataset.Structure.Length),
+			Ref:           repo.ConvertToDsref(r),
+			Published:     r.Published,
+			CommitTitle:   r.Dataset.Commit.Title,
+			CommitMessage: r.Dataset.Commit.Message,
+			Local:         true,
+			Size:          int64(r.Dataset.Structure.Length),
 		}
 	}
 

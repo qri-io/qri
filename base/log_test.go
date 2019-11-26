@@ -40,7 +40,8 @@ func TestDatasetLog(t *testing.T) {
 				// TODO (b5) - use constant time to make timestamp & path comparable
 				Path: "/map/QmfDpSrzqrSM9PctPqDserHRTAaGHUjLLqzYrGEKawU4iN",
 			},
-			CommitTitle: "initial commit",
+			CommitTitle:   "initial commit",
+			CommitMessage: "created dataset",
 		},
 	}
 
