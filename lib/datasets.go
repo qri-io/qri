@@ -116,6 +116,15 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	return err
 }
 
+// ListRawRefs gets the list of raw references as string
+func (r *DatasetRequests) ListRawRefs(p *bool, text *string) (err error) {
+	if r.cli != nil {
+		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
+	}
+	*text, err = base.RawDatasetRefs(context.TODO(), r.node.Repo)
+	return err
+}
+
 // GetParams defines parameters for looking up the body of a dataset
 type GetParams struct {
 	// Path to get, this will often be a dataset reference like me/dataset

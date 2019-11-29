@@ -58,6 +58,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().BoolVarP(&o.Published, "published", "p", false, "list only published datasets")
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
+	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
 
 	return cmd
 }
@@ -73,6 +74,7 @@ type ListOptions struct {
 	Peername        string
 	Published       bool
 	ShowNumVersions bool
+	Raw             bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -90,6 +92,16 @@ func (o *ListOptions) Complete(f Factory, args []string) (err error) {
 func (o *ListOptions) Run() (err error) {
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
+
+	if o.Raw {
+		var in bool
+		var text string
+		if err = o.DatasetRequests.ListRawRefs(&in, &text); err != nil {
+			return err
+		}
+		printSuccess(o.Out, text)
+		return nil
+	}
 
 	refs := []repo.DatasetRef{}
 	p := &lib.ListParams{

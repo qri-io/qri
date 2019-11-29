@@ -13,6 +13,7 @@ import (
 	"strings"
 	"sync"
 	"testing"
+	"time"
 
 	"github.com/ghodss/yaml"
 	"github.com/google/go-cmp/cmp"
@@ -1009,3 +1010,68 @@ func mustBeArray(i interface{}, err error) []interface{} {
 	}
 	return i.([]interface{})
 }
+
+func TestListRawRefs(t *testing.T) {
+	// TODO(dlong): Put a TestRunner instance here
+
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	minute := 0
+	dsfs.Timestamp = func() time.Time {
+		minute++
+		return time.Date(2001, 01, 01, 01, minute, 01, 01, time.UTC)
+	}
+
+	mr, err := testrepo.NewTestRepo()
+	if err != nil {
+		t.Fatalf("error allocating test repo: %s", err.Error())
+	}
+	node, err := p2p.NewQriNode(mr, config.DefaultP2PForTesting())
+	if err != nil {
+		t.Fatal(err.Error())
+	}
+	req := NewDatasetRequests(node, nil)
+
+	var in bool
+	var text string
+	if err := req.ListRawRefs(&in, &text); err != nil {
+		t.Fatal(err)
+	}
+	expect := `0 Peername:  peer
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  Name:      cities
+  Path:      /map/QmcvCpP2qBYV4szUV4MkJopaZM6u8kbsYfhZxbk91ZY5s5
+  FSIPath:   
+  Published: false
+1 Peername:  peer
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  Name:      counter
+  Path:      /map/QmTve65WAZJqg6gGPU4o4YQSVdQ11bTA5YaFjyK9mnEQ48
+  FSIPath:   
+  Published: false
+2 Peername:  peer
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  Name:      craigslist
+  Path:      /map/QmX1sNkK7PYfx9344vcd6vK8fYRBV5NyH7C4Wqz6Y2x4zX
+  FSIPath:   
+  Published: false
+3 Peername:  peer
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  Name:      movies
+  Path:      /map/QmVnSLjFfZ8QRyTvAMfqjWoTZS1zo4JthKjBaFjnneirAc
+  FSIPath:   
+  Published: false
+4 Peername:  peer
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
+  Name:      sitemap
+  Path:      /map/QmdDVuAMJLCSQ4rCemBVh1KUk3cb7jSaCvXt9n2X75gnGj
+  FSIPath:   
+  Published: false
+`
+	if diff := cmp.Diff(expect, text); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
