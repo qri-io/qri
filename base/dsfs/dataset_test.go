@@ -680,7 +680,6 @@ hen,twenty-nine,30`),
 		})
 	}
 
-
 }
 
 func TestGetDepth(t *testing.T) {

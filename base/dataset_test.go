@@ -4,10 +4,13 @@ import (
 	"context"
 	"fmt"
 	"testing"
+	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -317,5 +320,36 @@ ref 'Fake Ref version 1' should exist in the store, but does NOT
 ref 'Fake Ref version 2' should exist in the store, but does NOT`
 	if s != sExpected {
 		t.Errorf("case 'expect empty refs to exist' response mismatch: expected '%s', got '%s'", sExpected, s)
+	}
+}
+
+func TestRawDatasetRefs(t *testing.T) {
+	// to keep hashes consistent, artificially specify the timestamp by overriding
+	// the dsfs.Timestamp func
+	prev := dsfs.Timestamp
+	defer func() { dsfs.Timestamp = prev }()
+	minute := 0
+	dsfs.Timestamp = func() time.Time {
+		minute++
+		return time.Date(2001, 01, 01, 01, minute, 01, 01, time.UTC)
+	}
+
+	ctx := context.Background()
+	r := newTestRepo(t)
+	addCitiesDataset(t, r)
+
+	actual, err := RawDatasetRefs(ctx, r)
+	if err != nil {
+		t.Fatal(err)
+	}
+	expect := `0 Peername:  peer
+  ProfileID: 9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb
+  Name:      cities
+  Path:      /map/QmbU34XVYPGeEGjJ93rBm4Nac2g4hBYFouDnu9p9psccDB
+  FSIPath:   
+  Published: false
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

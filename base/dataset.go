@@ -175,6 +175,38 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	return
 }
 
+// RawDatasetRefs converts the dataset refs to a string
+func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
+	num, err := r.RefCount()
+	if err != nil {
+		return "", err
+	}
+	res, err := r.References(0, num)
+	if err != nil {
+		log.Debug(err.Error())
+		return "", fmt.Errorf("error getting dataset list: %s", err.Error())
+	}
+
+	// Calculate the largest index, and get its length
+	width := len(fmt.Sprintf("%d", num-1))
+	// Padding for each row to stringify
+	padding := strings.Repeat(" ", width)
+	// A printf template for stringifying indexes, such that they all have the same size
+	numTemplate := fmt.Sprintf("%%%dd", width)
+
+	builder := strings.Builder{}
+	for n, ref := range res {
+		datasetNum := fmt.Sprintf(numTemplate, n)
+		fmt.Fprintf(&builder, "%s Peername:  %s\n", datasetNum, ref.Peername)
+		fmt.Fprintf(&builder, "%s ProfileID: %s\n", padding, ref.ProfileID)
+		fmt.Fprintf(&builder, "%s Name:      %s\n", padding, ref.Name)
+		fmt.Fprintf(&builder, "%s Path:      %s\n", padding, ref.Path)
+		fmt.Fprintf(&builder, "%s FSIPath:   %s\n", padding, ref.FSIPath)
+		fmt.Fprintf(&builder, "%s Published: %v\n", padding, ref.Published)
+	}
+	return builder.String(), nil
+}
+
 // FetchDataset grabs a dataset from a remote source
 func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
 	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())
