@@ -132,7 +132,7 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, err
 		return NewUsingRefSelect(selected[0]), nil
 	}
 	// Empty refselect
-	return nil, repo.ErrEmptyRef
+	return NewEmptyRefSelect(), repo.ErrEmptyRef
 }
 
 // GetLinkedRefSelect returns the current reference selection only if it is a linked directory

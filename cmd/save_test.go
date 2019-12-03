@@ -1,9 +1,11 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/lib"
@@ -191,4 +193,51 @@ func TestSaveRun(t *testing.T) {
 			continue
 		}
 	}
+}
+
+func TestSaveInferName(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_infer_name")
+	defer run.Delete()
+
+	// Save a dataset with an inferred name.
+	output := run.MustExec(t, "qri save --body testdata/movies/body_four.json")
+	actual := parseDatasetRefFromOutput(output)
+	expect := "dataset saved: test_peer/body_fourjson@/ipfs/QmcHttiUsLCcjEdhuSyA1YXFPymx3k7srjUjrsJdRCPSKn\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save again, get an error because the inferred name already exists.
+	err := run.ExecCommand("qri save --body testdata/movies/body_four.json")
+	expectErr := `inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference. To create a new dataset, use --new flag`
+	if err == nil {
+		t.Errorf("error expected, did not get one")
+	}
+	if diff := cmp.Diff(expectErr, err.Error()); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save but ensure a new dataset is created.
+	output = run.MustExec(t, "qri save --body testdata/movies/body_four.json --new")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/body_fourjson_1@/ipfs/QmXzwvaxmHUbjkAmirgKEzQyQAvaDRXEcNizodaJ5LqbjE\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save once again.
+	output = run.MustExec(t, "qri save --body testdata/movies/body_four.json --new")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/body_fourjson_2@/ipfs/QmbURFB5RLWN3LdtKe9yX3emiyvNtvtocsoaK8eFFVTXFL\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func parseDatasetRefFromOutput(text string) string {
+	pos := strings.Index(text, "dataset saved:")
+	if pos == -1 {
+		return ""
+	}
+	return text[pos:]
 }

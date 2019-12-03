@@ -22,14 +22,14 @@ func TestGetComplete(t *testing.T) {
 		refs     []string
 		err      string
 	}{
-		{[]string{}, "", []string{""}, ""},
+		{[]string{}, "", []string{}, ""},
 		{[]string{"one arg"}, "", []string{"one arg"}, ""},
 		{[]string{"commit", "peer/ds"}, "commit", []string{"peer/ds"}, ""},
 		{[]string{"commit.author", "peer/ds"}, "commit.author", []string{"peer/ds"}, ""},
 		// TODO(dlong): Fix tests when `qri get` can be passed multiple arguments.
 		//{[]string{"peer/ds_two", "peer/ds"}, "", []string{"peer/ds_two", "peer/ds"}, ""},
 		//{[]string{"foo", "peer/ds"}, "", []string{"foo", "peer/ds"}, ""},
-		{[]string{"structure"}, "structure", []string{""}, ""},
+		{[]string{"structure"}, "structure", []string{}, ""},
 		{[]string{"stats", "me/cities"}, "stats", []string{"me/cities"}, ""},
 		{[]string{"stats", "me/sitemap"}, "stats", []string{"me/sitemap"}, ""},
 	}
@@ -48,7 +48,7 @@ func TestGetComplete(t *testing.T) {
 		}
 
 		if !testSliceEqual(c.refs, opt.Refs.RefList()) {
-			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%s', Got: '%s'", i, c.refs, opt.Refs.RefList())
+			t.Errorf("case %d, opt.Refs not set correctly. Expected: '%q', Got: '%q'", i, c.refs, opt.Refs.RefList())
 			ioReset(in, out, errs)
 			continue
 		}

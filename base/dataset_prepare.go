@@ -27,6 +27,11 @@ import (
 // through canonicalization (looking the name up in the repo). The value given by the input dataset
 // document may differ, and we should probably respect that value if it does
 func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string) (prev, mutable *dataset.Dataset, prevPath string, err error) {
+	// Though a name is not required (it may be inferred), a peername must be set
+	if peername == "" {
+		return nil, nil, "", fmt.Errorf("peername required to prepare dataset")
+	}
+
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
 	lookup := &repo.DatasetRef{Name: name, Peername: peername}
@@ -59,13 +64,17 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 	return
 }
 
-// InferValues populates any missing fields that must exist to create a snapshot
-func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
-	// try to pick up a dataset name
+// MaybeInferName infer a name for the dataset if none is set
+func MaybeInferName(ds *dataset.Dataset) bool {
 	if ds.Name == "" {
 		ds.Name = varName.CreateVarNameFromString(ds.BodyFile().FileName())
+		return true
 	}
+	return false
+}
 
+// InferValues populates any missing fields that must exist to create a snapshot
+func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 	// infer commit values
 	if ds.Commit == nil {
 		ds.Commit = &dataset.Commit{}

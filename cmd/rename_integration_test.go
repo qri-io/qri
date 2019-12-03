@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"os"
-	"regexp"
 	"path/filepath"
+	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
