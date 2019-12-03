@@ -1,9 +1,14 @@
 package api
 
 import (
+	"bytes"
+	"fmt"
+	"io/ioutil"
 	"net"
 	"net/http"
 	"net/http/httptest"
+	"path/filepath"
+	"strings"
 	"testing"
 )
 
@@ -166,4 +171,53 @@ func newMockDataServer(t *testing.T) *httptest.Server {
 	mockDataServer.Listener = l
 	mockDataServer.Start()
 	return mockDataServer
+}
+
+func TestSaveWithInferredNewName(t *testing.T) {
+	node, teardown := newTestNode(t)
+	defer teardown()
+
+	inst := newTestInstanceWithProfileFromNode(node)
+	h := NewDatasetHandlers(inst, false)
+
+	bodyPath := "testdata/cities/data.csv"
+
+	// Save first version using a body path
+	req := postJSONRequest(fmt.Sprintf("/save/?bodypath=%s&new=true", absolutePath(bodyPath)), "{}")
+	w := httptest.NewRecorder()
+	h.SaveHandler(w, req)
+	bodyText := resultText(w)
+	// Name is inferred from the body path
+	expectText := `"name":"datacsv"`
+	if !strings.Contains(bodyText, expectText) {
+		t.Errorf("expected, body response to contain %q, not found", expectText)
+	}
+
+	// Save a second time
+	req = postJSONRequest(fmt.Sprintf("/save/?bodypath=%s&new=true", absolutePath(bodyPath)), "{}")
+	w = httptest.NewRecorder()
+	h.SaveHandler(w, req)
+	bodyText = resultText(w)
+	// Name is guaranteed to be unique
+	expectText = `"name":"datacsv_1"`
+	if !strings.Contains(bodyText, expectText) {
+		t.Errorf("expected, body response to contain %q, not found", expectText)
+	}
+}
+
+func postJSONRequest(url, jsonBody string) *http.Request {
+	req := httptest.NewRequest("POST", url, bytes.NewBuffer([]byte(jsonBody)))
+	req.Header.Set("Content-Type", "application/json")
+	return req
+}
+
+func absolutePath(text string) string {
+	res, _ := filepath.Abs(text)
+	return res
+}
+
+func resultText(rec *httptest.ResponseRecorder) string {
+	res := rec.Result()
+	bytes, _ := ioutil.ReadAll(res.Body)
+	return string(bytes)
 }

@@ -410,8 +410,13 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		if strings.Contains(r.URL.Path, "/save/") {
 			args, err := DatasetRefFromPath(r.URL.Path[len("/save/"):])
 			if err != nil {
-				util.WriteErrResponse(w, http.StatusBadRequest, err)
-				return
+				if err == repo.ErrEmptyRef && r.FormValue("new") == "true" {
+					// If saving a new dataset, name is not necessary
+					err = nil
+				} else {
+					util.WriteErrResponse(w, http.StatusBadRequest, err)
+					return
+				}
 			}
 			if args.Peername != "" {
 				ds.Peername = args.Peername
@@ -446,6 +451,8 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		ShouldRender: !(r.FormValue("no_render") == "true"),
 		ReadFSI:      r.FormValue("fsi") == "true",
 		WriteFSI:     r.FormValue("fsi") == "true",
+		NewName:      r.FormValue("new") == "true",
+		BodyPath:     r.FormValue("bodypath"),
 
 		ConvertFormatToPrev: true,
 		ScriptOutput:        scriptOutput,

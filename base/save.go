@@ -25,6 +25,7 @@ type SaveDatasetSwitches struct {
 	ConvertFormatToPrev bool
 	Force               bool
 	ShouldRender        bool
+	NewName             bool
 }
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
@@ -34,9 +35,42 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		pro      *profile.Profile
 	)
 
+	// TODO(dlong): Set this in the caller, return err if no peername, add test for it
+	// Actually, is it possible to save a dataset using any peername other than "me" or
+	// the user's own username? Should we just get the current user's name from the
+	// profile, and (within `base`) disallow "me" entirely?
+	if changes.Peername == "" {
+		changes.Peername = "me"
+	}
+
+	isInferredName := MaybeInferName(changes)
+
 	prev, mutable, prevPath, err := PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
 	if err != nil {
 		return
+	}
+
+	if prevPath != "" {
+		if sw.NewName && isInferredName {
+			// Using --new flag, name was inferred, but it's already in use. Because the --new
+			// flag was given, user is requesting we invent a unique name. Increment a counter
+			// on the name until we find something that's available.
+			changes.Name = GenerateAvailableName(r, changes.Peername, changes.Name)
+			prev, mutable, prevPath, err = PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
+			if err != nil {
+				return
+			}
+		} else if sw.NewName {
+			// Name was explicitly given, with the --new flag, but the name is already in use.
+			// This is an error.
+			// TODO(dlong): Add a test for this case.
+			return ref, fmt.Errorf("dataset name has a previous version, cannot make new dataset")
+		} else if isInferredName {
+			// Name was inferred, and has previous version. Unclear if the user meant to create
+			// a brand new dataset or if they wanted to add a new version to the existing dataset.
+			// Raise an error recommending one of these course of actions.
+			return ref, fmt.Errorf("inferred dataset name already exists. To add a new commit to this dataset, run save again with the dataset reference. To create a new dataset, use --new flag")
+		}
 	}
 
 	if pro, err = r.Profile(); err != nil {
@@ -182,4 +216,18 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	}
 	ref.Dataset.SetBodyFile(resBody)
 	return
+}
+
+// GenerateAvailableName creates a name for the dataset that is not currently in use
+func GenerateAvailableName(r repo.Repo, peername, prefix string) string {
+	counter := 0
+	for {
+		counter++
+		tryName := fmt.Sprintf("%s_%d", prefix, counter)
+		lookup := &repo.DatasetRef{Name: tryName, Peername: peername}
+		err := repo.CanonicalizeDatasetRef(r, lookup)
+		if err == repo.ErrNotFound {
+			return tryName
+		}
+	}
 }

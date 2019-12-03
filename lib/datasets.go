@@ -325,6 +325,8 @@ type SaveParams struct {
 	Force bool
 	// save a rendered version of the template along with the dataset
 	ShouldRender bool
+	// new dataset only, don't create a commit on an existing dataset, name will be unused
+	NewName bool
 }
 
 // AbsolutizePaths converts any relative path references to their absolute
@@ -355,11 +357,15 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	ctx := context.TODO()
 
 	if p.Private {
-		return fmt.Errorf("option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates")
+		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
+	// From cmd/, an empty reference becomes "me/", but from api/, it becomes "" (empty string).
+	// We must allow empty references for the case when the --new flag is being used, since it
+	// can be used to generate a name from a bodypath.
+	// TODO(dlong): Fix me! Check for these cases, return reasonable errors, test at lib/ level.
 	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil {
+	if err != nil && err != repo.ErrEmptyRef {
 		return err
 	}
 
@@ -423,8 +429,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ds = dsf
 	}
 
-	if ds.Name == "" {
-		return fmt.Errorf("name is required")
+	if p.BodyPath == "" && ds.Name == "" {
+		return fmt.Errorf("name or bodypath is required")
 	}
 	if !p.Force &&
 		ds.BodyPath == "" &&
@@ -453,6 +459,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 		ConvertFormatToPrev: p.ConvertFormatToPrev,
 		Force:               p.Force,
 		ShouldRender:        p.ShouldRender,
+		NewName:             p.NewName,
 	}
 	ref, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {

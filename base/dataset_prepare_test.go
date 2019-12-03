@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 )
@@ -55,17 +56,28 @@ func TestPrepareDatasetSave(t *testing.T) {
 	}
 }
 
-func TestInferValuesDatasetName(t *testing.T) {
+func TestInferValues(t *testing.T) {
 	r := newTestRepo(t)
 	pro, err := r.Profile()
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	ds := &dataset.Dataset{}
-	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
 	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
+	}
+	expectAuthorID := `9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb`
+	if diff := cmp.Diff(expectAuthorID, ds.Commit.Author.ID); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestMaybeInferName(t *testing.T) {
+	ds := &dataset.Dataset{}
+	ds.SetBodyFile(qfs.NewMemfileBytes("gabba gabba hey.csv", []byte("a,b,c,c,s,v")))
+	inferred := MaybeInferName(ds)
+	if !inferred {
+		t.Errorf("expected name to be inferred")
 	}
 	expectName := "gabba_gabba_heycsv"
 	if expectName != ds.Name {

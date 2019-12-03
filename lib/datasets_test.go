@@ -73,7 +73,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 
 	req := NewDatasetRequests(node, nil)
 
-	privateErrMsg := "option to make dataset private not yet implimented, refer to https://github.com/qri-io/qri/issues/291 for updates"
+	privateErrMsg := "option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates"
 	if err := req.Save(&SaveParams{Private: true}, nil); err == nil {
 		t.Errorf("expected datset to error")
 	} else if err.Error() != privateErrMsg {
@@ -114,7 +114,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 		err         string
 	}{
 
-		{"emtpy params", SaveParams{}, "repo: empty dataset reference"},
+		{"empty params", SaveParams{}, "name or bodypath is required"},
 		// {&dataset.Dataset{Peername: "foo", Name: "bar"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
 		// {&dataset.Dataset{Peername: "bad", Name: "path", Commit: &dataset.Commit{Qri: "qri:st"}}, nil, "decoding dataset: invalid commit 'qri' value: qri:st"},
 		// {&dataset.Dataset{Peername: "bad", Name: "path", BodyPath: "/bad/path"}, nil, "error with previous reference: error fetching peer from store: profile: not found"},
@@ -1074,4 +1074,3 @@ func TestListRawRefs(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
-

@@ -68,7 +68,9 @@ commit message and title to the save.`,
 	cmd.Flags().BoolVar(&o.DryRun, "dry-run", false, "simulate saving a dataset")
 	cmd.Flags().BoolVar(&o.Force, "force", false, "force a new commit, even if no changes are detected")
 	cmd.Flags().BoolVarP(&o.KeepFormat, "keep-format", "k", false, "convert incoming data to stored data format")
-	cmd.Flags().BoolVarP(&o.NoRender, "no-render", "n", false, "don't store a rendered version of the the vizualization ")
+	// TODO(dlong): --no-render is deprecated, viz are being phased out, in favor of readme.
+	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the vizualization ")
+	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
 
 	return cmd
 }
@@ -94,6 +96,7 @@ type SaveOptions struct {
 	Force          bool
 	NoRender       bool
 	Secrets        []string
+	NewName        bool
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -106,7 +109,10 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 	}
 
 	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
-		return
+		// Not an error to use an empty reference, it will be inferred later on.
+		if err != repo.ErrEmptyRef {
+			return err
+		}
 	}
 
 	o.UsingFSI = o.Refs.IsLinked()
@@ -162,6 +168,7 @@ func (o *SaveOptions) Run() (err error) {
 		Force:               o.Force,
 		ReturnBody:          o.DryRun,
 		ShouldRender:        !o.NoRender,
+		NewName:             o.NewName,
 	}
 
 	if o.Secrets != nil {
