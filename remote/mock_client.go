@@ -5,8 +5,8 @@ import (
 	"fmt"
 
 	"github.com/qri-io/dataset"
-	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/base/dsfs"
+	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -53,9 +53,8 @@ func (c *MockClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, remot
 
 	// Construct a simple dataset
 	ds := dataset.Dataset{
-		Commit: &dataset.Commit {
-		},
-		Structure: &dataset.Structure {
+		Commit: &dataset.Commit{},
+		Structure: &dataset.Structure{
 			Format: "json",
 			Schema: dataset.BaseSchemaObject,
 		},

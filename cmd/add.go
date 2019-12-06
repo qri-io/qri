@@ -9,8 +9,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// TODO: Tests.
-
 // NewAddCommand creates an add command
 func NewAddCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &AddOptions{IOStreams: ioStreams}

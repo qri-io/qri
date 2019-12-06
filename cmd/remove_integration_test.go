@@ -542,3 +542,74 @@ func TestRemoveIfWorkingDirectoryIsNotFound(t *testing.T) {
 		t.Error(err)
 	}
 }
+
+// Test that a dataset can be removed even if the logbook is missing
+func TestRemoveEvenIfLogbookGone(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_no_logbook")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_no_logbook")
+
+	// Init as a linked directory
+	run.MustExec(t, "qri init --name remove_no_logbook --format csv")
+
+	// Save the new dataset
+	run.MustExec(t, "qri save")
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	os.Chdir(parentDir)
+
+	// Remove the logbook
+	logbookFile := filepath.Join(run.RepoRoot.rootPath, "qri/logbook.qfb")
+	if _, err := os.Stat(logbookFile); os.IsNotExist(err) {
+		t.Fatal("logbook does not exist")
+	}
+	err := os.Remove(logbookFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove all should still work, even though the logbook is gone.
+	if err := run.ExecCommand("qri remove --revisions=all me/remove_no_logbook"); err != nil {
+		t.Error(err)
+	}
+}
+
+// Test that an added dataset can be removed
+func TestRemoveEvenIfForeignDataset(t *testing.T) {
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_foreign")
+	defer run.Delete()
+
+	// Save a foreign dataset
+	run.MustExec(t, "qri add other_peer/their_dataset")
+
+	// Remove all should still work, even though the dataset is foreign
+	if err := run.ExecCommand("qri remove --revisions=all other_peer/their_dataset"); err != nil {
+		t.Error(err)
+	}
+}
+
+// Test that an added dataset can be removed even if the logbook is missing
+func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
+	run := NewTestRunnerWithMockRemoteClient(t, "test_peer", "remove_no_oplog")
+	defer run.Delete()
+
+	// Save a foreign dataset
+	run.MustExec(t, "qri add other_peer/their_dataset")
+
+	// Remove the logbook
+	logbookFile := filepath.Join(run.RepoRoot.rootPath, "qri/logbook.qfb")
+	if _, err := os.Stat(logbookFile); os.IsNotExist(err) {
+		t.Fatal("logbook does not exist")
+	}
+	err := os.Remove(logbookFile)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Remove all should still work, even though the dataset is foreign with no logbook
+	if err := run.ExecCommand("qri remove --revisions=all other_peer/their_dataset"); err != nil {
+		t.Error(err)
+	}
+}
