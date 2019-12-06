@@ -119,6 +119,11 @@ func (o *RemoveOptions) Run() (err error) {
 		if err == repo.ErrNotFound {
 			return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}
+		if err == lib.ErrCantRemoveDirectoryDirty {
+			printErr(o.ErrOut, err)
+			printErr(o.ErrOut, fmt.Errorf("use either --keep-files, or --force"))
+			return fmt.Errorf("dataset not removed")
+		}
 		return err
 	}
 
