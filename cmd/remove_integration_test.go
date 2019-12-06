@@ -325,7 +325,7 @@ func TestRemoveNoHistory(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because working directory is not clean")
 	}
-	expect := `cannot remove from dataset while working directory is dirty`
+	expect := `dataset not removed`
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
@@ -382,7 +382,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error because working directory is not clean")
 	}
-	expect := `cannot remove from dataset while working directory is dirty`
+	expect := `dataset not removed`
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}

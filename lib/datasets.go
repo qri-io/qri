@@ -588,6 +588,9 @@ type RemoveResponse struct {
 	Unlinked   bool
 }
 
+// ErrCantRemoveDirectoryDirty is returned when a directory is dirty so the files cant' be removed
+var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working directory is dirty")
+
 // Remove a dataset entirely or remove a certain number of revisions
 func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if r.cli != nil {
@@ -621,7 +624,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			wdErr := r.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
-					return fmt.Errorf("cannot remove from dataset while working directory is dirty")
+					return ErrCantRemoveDirectoryDirty
 				}
 				if strings.Contains(wdErr.Error(), "not a linked directory") {
 					// If the working directory has been removed (or renamed), could not get the
