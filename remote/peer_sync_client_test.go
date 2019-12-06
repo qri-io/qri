@@ -17,7 +17,9 @@ func TestAddDataset(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
-	var nilClient *Client
+	var psClient *PeerSyncClient
+	var nilClient Client
+	nilClient = psClient
 	if err := nilClient.AddDataset(tr.Ctx, &repo.DatasetRef{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
 	}

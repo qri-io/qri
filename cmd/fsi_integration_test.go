@@ -24,9 +24,18 @@ type FSITestRunner struct {
 
 // NewFSITestRunner returns a new FSITestRunner.
 func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
-	run := FSITestRunner{
-		TestRunner: *NewTestRunner(t, "test_peer", testName),
-	}
+	inner := NewTestRunner(t, "test_peer", testName)
+	return newFSITestRunnerFromInner(t, inner)
+}
+
+// NewFSITestRunnerWithMockRemoteClient returns a new FSITestRunner.
+func NewFSITestRunnerWithMockRemoteClient(t *testing.T, testName string) *FSITestRunner {
+	inner := NewTestRunnerWithMockRemoteClient(t, "test_peer", testName)
+	return newFSITestRunnerFromInner(t, inner)
+}
+
+func newFSITestRunnerFromInner(t *testing.T, inner *TestRunner) *FSITestRunner {
+	run := FSITestRunner{TestRunner: *inner}
 
 	var err error
 	run.Pwd, err = os.Getwd()

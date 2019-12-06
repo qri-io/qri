@@ -109,9 +109,13 @@ type InstanceOptions struct {
 	statsCache *stats.Cache
 	logbook    *logbook.Book
 
+	remoteMockClient bool
 	// use OptRemoteOptions to set this
 	remoteOptsFunc func(*remote.Options)
 }
+
+// InstanceContextKey is used by context to set keys for constucting a lib.Instance
+type InstanceContextKey string
 
 // Option is a function that manipulates config details when fed to New(). Fields on
 // the o parameter may be null, functions cannot assume the Config is non-null.
@@ -376,7 +380,14 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if inst.node != nil {
+	// Check if this is coming from a test, which is requesting a MockRemoteClient.
+	key := InstanceContextKey("RemoteClient")
+	if v := ctx.Value(key); v != nil && v == "mock" && inst.node != nil {
+		inst.node.LocalStreams = o.Streams
+		if inst.remoteClient, err = remote.NewMockClient(inst.node); err != nil {
+			return
+		}
+	} else if inst.node != nil {
 		inst.node.LocalStreams = o.Streams
 
 		if _, e := inst.node.IPFSCoreAPI(); e == nil {
@@ -643,7 +654,7 @@ type Instance struct {
 	cron         cron.Scheduler
 	fsi          *fsi.FSI
 	remote       *remote.Remote
-	remoteClient *remote.Client
+	remoteClient remote.Client
 	registry     *regclient.Client
 	stats        *stats.Stats
 	logbook      *logbook.Book
@@ -741,7 +752,7 @@ func (inst *Instance) Remote() *remote.Remote {
 }
 
 // RemoteClient exposes the instance client for making requests to remotes
-func (inst *Instance) RemoteClient() *remote.Client {
+func (inst *Instance) RemoteClient() remote.Client {
 	if inst == nil {
 		return nil
 	}

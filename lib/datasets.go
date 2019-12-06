@@ -95,7 +95,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 	} else {
 
-		refs, err = r.inst.remoteClient.ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
+		refs, err = r.inst.RemoteClient().ListDatasets(ctx, ref, p.Term, p.Offset, p.Limit)
 	}
 	if err != nil {
 		return err
@@ -751,6 +751,10 @@ type AddParams struct {
 
 // Add adds an existing dataset to a peer's repository
 func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
+	if err = qfs.AbsPath(&p.LinkDir); err != nil {
+		return
+	}
+
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Add", p, res)
 	}
