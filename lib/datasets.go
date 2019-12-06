@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -669,7 +670,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// Write the deletion to the logbook.
 		book := r.inst.Repo().Logbook()
 		if err := book.WriteDatasetDelete(ctx, repo.ConvertToDsref(ref)); err != nil {
-			return err
+			// If the logbook is missing, it's not an error worth stopping for, since we're
+			// deleting the dataset anyway. This can happen from adding a foreign dataset.
+			if err != oplog.ErrNotFound {
+				return err
+			}
 		}
 		// remove the ref from the ref store
 		if err := r.inst.Repo().DeleteRef(ref); err != nil {
