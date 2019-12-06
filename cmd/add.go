@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"fmt"
-	"path/filepath"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
@@ -61,19 +60,14 @@ func (o *AddOptions) Run(args []string) error {
 	o.StartSpinner()
 	defer o.StopSpinner()
 
+	if len(args) == 0 {
+		return fmt.Errorf("nothing to add")
+	}
 	if len(args) > 1 && o.LinkDir != "" {
 		return fmt.Errorf("link flag can only be used with a single reference")
 	}
 
 	for _, arg := range args {
-		if o.LinkDir != "" {
-			abs, err := filepath.Abs(o.LinkDir)
-			if err != nil {
-				return err
-			}
-			o.LinkDir = abs
-		}
-
 		p := &lib.AddParams{
 			Ref:     arg,
 			LinkDir: o.LinkDir,

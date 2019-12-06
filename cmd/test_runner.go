@@ -16,6 +16,7 @@ import (
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/lib"
 	libtest "github.com/qri-io/qri/lib/test"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
@@ -35,9 +36,19 @@ type TestRunner struct {
 // NewTestRunner constructs a new TsetRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
 	root := NewTestRepoRoot(t, peerName, testName)
+	return newTestRunnerFromRoot(&root)
+}
 
+// NewTestRunnerWithMockRemoteClient constructs a test runner with a mock remote client
+func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) *TestRunner {
+	root := NewTestRepoRoot(t, peerName, testName)
+	root.useMockRemoteClient = true
+	return newTestRunnerFromRoot(&root)
+}
+
+func newTestRunnerFromRoot(root *TestRepoRoot) *TestRunner {
 	run := TestRunner{}
-	run.RepoRoot = &root
+	run.RepoRoot = root
 	run.Context, run.ContextDone = context.WithCancel(context.Background())
 
 	// To keep hashes consistent, artificially specify the timestamp by overriding
@@ -132,6 +143,8 @@ type TestRepoRoot struct {
 	testCrypto  gen.CryptoGenerator
 	streams     ioes.IOStreams
 	t           *testing.T
+
+	useMockRemoteClient bool
 }
 
 // NewTestRepoRoot constructs the test repo and initializes everything as cheaply as possible.
@@ -168,6 +181,7 @@ func NewTestRepoRoot(t *testing.T, peername, prefix string) TestRepoRoot {
 	}
 	// PathFactory returns the paths for qri and ipfs roots.
 	pathFactory := NewDirPathFactory(rootPath)
+
 	return TestRepoRoot{
 		rootPath:    rootPath,
 		ipfsPath:    ipfsPath,
@@ -189,6 +203,14 @@ func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	out := &bytes.Buffer{}
 	r.streams = ioes.NewIOStreams(in, out, out)
 	setNoColor(true)
+
+	if r.useMockRemoteClient {
+		// Set this context value, which is used in lib.NewInstance to construct a
+		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
+		// to pipe parameters into cobra.Command without doing it like this.
+		key := lib.InstanceContextKey("RemoteClient")
+		ctx = context.WithValue(ctx, key, "mock")
+	}
 
 	cmd := NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
 	cmd.SetOutput(out)

@@ -15,14 +15,12 @@ const allowedDagInfoSize uint64 = 10 * 1024 * 1024
 // TODO (b5): switch to using an Instance instead of separate fields
 type RemoteMethods struct {
 	inst *Instance
-	cli  *remote.Client
 }
 
 // NewRemoteMethods creates a RemoteMethods pointer from either a node or an rpc.Client
 func NewRemoteMethods(inst *Instance) *RemoteMethods {
 	return &RemoteMethods{
 		inst: inst,
-		cli:  inst.remoteClient,
 	}
 }
 
@@ -61,7 +59,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
-	return r.cli.PullLogs(ctx, repo.ConvertToDsref(ref), addr)
+	return r.inst.RemoteClient().PullLogs(ctx, repo.ConvertToDsref(ref), addr)
 }
 
 // PublicationParams encapsulates parmeters for dataset publication
@@ -103,11 +101,11 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if pushLogsErr := r.cli.PushLogs(ctx, repo.ConvertToDsref(ref), addr); pushLogsErr != nil {
+	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, repo.ConvertToDsref(ref), addr); pushLogsErr != nil {
 		log.Errorf("pushing logs: %s", pushLogsErr)
 	}
 
-	if err = r.cli.PushDataset(ctx, ref, addr); err != nil {
+	if err = r.inst.RemoteClient().PushDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 
@@ -148,11 +146,11 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) er
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if removeLogsErr := r.cli.RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
+	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
 		log.Error("removing logs: %s", removeLogsErr.Error())
 	}
 
-	if err := r.cli.RemoveDataset(ctx, ref, addr); err != nil {
+	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {
 		return err
 	}
 
@@ -174,6 +172,6 @@ func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 
-	err = r.cli.PullDataset(ctx, &ref, p.RemoteName)
+	err = r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
 	return err
 }
