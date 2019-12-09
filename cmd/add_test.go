@@ -2,7 +2,6 @@ package cmd
 
 import (
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -80,9 +79,6 @@ func TestAddWithCheckout(t *testing.T) {
 
 	// List references, the dataset should be there, and should be checked out
 	actual := run.MustExec(t, "qri list --raw")
-	// TODO(dlong): Move temp omissions into TestRunner framework
-	regex := regexp.MustCompile("FSIPath: .*/workdir")
-	replaced := string(regex.ReplaceAll([]byte(actual), []byte("FSIPath:   /tmp/workdir")))
 	expect := `0 Peername:  other_peer
   ProfileID: QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   Name:      their_dataset
@@ -91,7 +87,7 @@ func TestAddWithCheckout(t *testing.T) {
   Published: false
 
 `
-	if diff := cmp.Diff(expect, replaced); diff != "" {
+	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 

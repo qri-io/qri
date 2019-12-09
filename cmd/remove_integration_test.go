@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"strings"
 	"testing"
 	"time"
@@ -215,12 +214,9 @@ working directory clean
 	// Verify that we can access the working directory. This would not be the case if the
 	// delete operation caused the FSIPath to be moved from the dataset ref in the repo.
 	actual = run.MustExec(t, "qri get")
-	// TODO(dlong): Move temp omissions into TestRunner framework
-	regex := regexp.MustCompile("bodyPath: .*/remove_one/body.csv")
-	replaced := string(regex.ReplaceAll([]byte(actual), []byte("bodyPath: remove_one/body.csv")))
 	expect = `for linked dataset [test_peer/remove_one]
 
-bodyPath: remove_one/body.csv
+bodyPath: /tmp/remove_one/body.csv
 meta:
   qri: md:0
   title: one
@@ -245,7 +241,7 @@ structure:
     type: array
 
 `
-	if diff := cmp.Diff(expect, replaced); diff != "" {
+	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset result from get: (-want +got):\n%s", diff)
 	}
 }
