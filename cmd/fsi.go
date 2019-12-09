@@ -63,16 +63,19 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) < 1 {
 		return fmt.Errorf("please provide the name of a dataset")
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, -1); err != nil {
-		return
+	o.FSIMethods, err = f.FSIMethods()
+	if err != nil {
+		return err
+	}
+	if o.Refs, err = GetCurrentRefSelect(f, args, -1, o.FSIMethods); err != nil {
+		return err
 	}
 
 	if len(args) > 1 {
 		o.Path = args[1]
 	}
 
-	o.FSIMethods, err = f.FSIMethods()
-	return err
+	return nil
 }
 
 // Link creates a FSI link

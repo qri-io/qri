@@ -89,12 +89,13 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 		return fmt.Errorf("unknown argument \"%s\"", arg)
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1)
-	if err != nil {
+	if o.FSIMethods, err = f.FSIMethods(); err != nil {
 		return err
 	}
-	o.FSIMethods, err = f.FSIMethods()
-	return err
+	if o.Refs, err = GetCurrentRefSelect(f, dsRefList, 1, o.FSIMethods); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Run executes the `restore` command

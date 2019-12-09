@@ -66,10 +66,10 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 	if o.RenderRequests, err = f.RenderRequests(); err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		return err
 	}
-	return
+	return nil
 }
 
 // Run executes the render command

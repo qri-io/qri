@@ -65,7 +65,7 @@ type ExportOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *ExportOptions) Complete(f Factory, args []string) (err error) {
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		if err != repo.ErrEmptyRef {
 			return err
 		}

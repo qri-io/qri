@@ -143,12 +143,29 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	return ref.AliasString(), removeLinkAndRemoveRefFunc, err
 }
 
-// ModifyLinkDirectory changes the directory for the linked dataset reference
+// ModifyLinkDirectory changes the FSIPath in the repo so that it is linked to the directory. Does
+// not affect the .qri-ref linkfile in the working directory. Called when the command-line
+// interface or filesystem watcher detects that a working folder has been moved.
+// TODO(dlong): Add a filesystem watcher that behaves as described
+// TODO(dlong): Perhaps add a `qri mv` command that explicitly changes a working directory location
 func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
-	return fmt.Errorf("TODO: Implement me")
+	ref, err := repo.ParseDatasetRef(refStr)
+	if err != nil {
+		return err
+	}
+	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil && err != repo.ErrNoHistory {
+		return err
+	}
+	if ref.FSIPath == dirPath {
+		return nil
+	}
+
+	ref.FSIPath = dirPath
+	return fsi.repo.PutRef(ref)
 }
 
-// ModifyLinkReference changes the reference for the existing linked working directory
+// ModifyLinkReference changes the reference that is in .qri-ref linkfile in the working directory.
+// Does not affect the ref in the repo. Called when a rename command is invoked.
 func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 	ref, err := repo.ParseDatasetRef(refStr)
 	if err != nil {

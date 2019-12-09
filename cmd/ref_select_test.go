@@ -143,7 +143,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	defer os.Chdir(pwd)
 
 	// Explicit argument
-	refs, err := GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1)
+	refs, err := GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -157,7 +157,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	refs, err = GetCurrentRefSelect(f, []string{}, -1)
+	refs, err = GetCurrentRefSelect(f, []string{}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -166,7 +166,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	}
 
 	// Explicit has higher precedence than linked
-	refs, err = GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1)
+	refs, err = GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -180,7 +180,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
-	refs, err = GetCurrentRefSelect(f, []string{}, -1)
+	refs, err = GetCurrentRefSelect(f, []string{}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -192,7 +192,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	os.Remove(filepath.Join(workPath, ".qri-ref"))
 
 	// Use dataset
-	refs, err = GetCurrentRefSelect(f, []string{}, -1)
+	refs, err = GetCurrentRefSelect(f, []string{}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -201,7 +201,7 @@ func TestGetCurrentRefSelect(t *testing.T) {
 	}
 
 	// Explicit has higher precedence than use dataset
-	refs, err = GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1)
+	refs, err = GetCurrentRefSelect(f, []string{"me/explicit_ds"}, -1, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
@@ -218,7 +218,7 @@ func TestGetCurrentRefSelectUsingTwoArgs(t *testing.T) {
 	}
 
 	// If two are allowed, refs be have length 2
-	refs, err := GetCurrentRefSelect(f, []string{"me/first_ds", "me/second_ds"}, 2)
+	refs, err := GetCurrentRefSelect(f, []string{"me/first_ds", "me/second_ds"}, 2, nil)
 	if err != nil {
 		t.Fatalf(err.Error())
 	}

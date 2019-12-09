@@ -108,6 +108,18 @@ func (run *TestRunner) MustReadFile(t *testing.T, filename string) string {
 	return string(bytes)
 }
 
+// Must asserts that the function result passed to it is not an error
+func (run *TestRunner) Must(t *testing.T, err error) {
+	if err != nil {
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
+	}
+}
+
 // GetCommandOutput returns the standard output from the previously executed command
 func (run *TestRunner) GetCommandOutput() string {
 	return run.RepoRoot.GetOutput()

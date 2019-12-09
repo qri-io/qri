@@ -102,6 +102,24 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return err
 	}
 
+	if p.EnsureFSIExists {
+		// For each reference with a linked fsi working directory, check that the folder exists
+		// and has a .qri-ref file. If it's missing, remove the link from the centralized repo.
+		// Doing this every list operation is a bit inefficient, so the behavior is opt-in.
+		for _, ref := range refs {
+			if ref.FSIPath != "" {
+				target := filepath.Join(ref.FSIPath, fsi.QriRefFilename)
+				_, err := os.Stat(target)
+				if os.IsNotExist(err) {
+					ref.FSIPath = ""
+					if err = r.node.Repo.PutRef(ref); err != nil {
+						return err
+					}
+				}
+			}
+		}
+	}
+
 	*res = refs
 
 	// TODO (b5) - for now we're removing schemas b/c they don't serialize properly over RPC

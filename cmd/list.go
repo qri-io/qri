@@ -111,6 +111,7 @@ func (o *ListOptions) Run() (err error) {
 		Offset:          page.Offset(),
 		Published:       o.Published,
 		ShowNumVersions: o.ShowNumVersions,
+		EnsureFSIExists: true,
 	}
 	if err = o.DatasetRequests.List(p, &refs); err != nil {
 		return err

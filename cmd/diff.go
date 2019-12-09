@@ -84,11 +84,14 @@ func (o *DiffOptions) Complete(f Factory, args []string) (err error) {
 		}
 	}
 	o.DatasetRequests, err = f.DatasetRequests()
-
-	if o.Refs, err = GetCurrentRefSelect(f, args, 2); err != nil {
-		return
+	if err != nil {
+		return err
 	}
-	return
+
+	if o.Refs, err = GetCurrentRefSelect(f, args, 2, nil); err != nil {
+		return err
+	}
+	return nil
 }
 
 // Run executes the diff command

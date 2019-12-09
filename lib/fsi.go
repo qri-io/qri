@@ -62,30 +62,6 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 	return err
 }
 
-// ModifyLink changes an existing link by either updating the ref for a directory, or vice versa
-func (m *FSIMethods) ModifyLink(p *LinkParams, res *bool) (err error) {
-	// absolutize path name
-	path, err := filepath.Abs(p.Dir)
-	if err != nil {
-		return err
-	}
-
-	p.Dir = path
-
-	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.ModifyLink", p, res)
-	}
-
-	if p.ToModify == "dir" {
-		*res = true
-		return m.inst.fsi.ModifyLinkDirectory(p.Dir, p.Ref)
-	} else if p.ToModify == "ref" {
-		*res = true
-		return m.inst.fsi.ModifyLinkReference(p.Dir, p.Ref)
-	}
-	return fmt.Errorf("ToModify has unknown value %q", p.ToModify)
-}
-
 // Unlink rmeoves a connection between a working drirectory and a dataset history
 func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	if m.inst.rpc != nil {
@@ -394,4 +370,19 @@ func (m *FSIMethods) InitDataset(p *InitFSIDatasetParams, name *string) (err err
 
 	*name, err = m.inst.fsi.InitDataset(*p)
 	return err
+}
+
+// EnsureParams holds values for EnsureRef call
+type EnsureParams struct {
+	Dir string
+	Ref string
+}
+
+// EnsureRef will modify the directory path in the repo for the given reference
+func (m *FSIMethods) EnsureRef(p *EnsureParams, out *bool) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("FSIMethods.EnsureRef", p, out)
+	}
+
+	return m.inst.fsi.ModifyLinkDirectory(p.Dir, p.Ref)
 }

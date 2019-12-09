@@ -29,6 +29,8 @@ type ListParams struct {
 	Published bool
 	// ShowNumVersions only applies to listing datasets
 	ShowNumVersions bool
+	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
+	EnsureFSIExists bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

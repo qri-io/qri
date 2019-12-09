@@ -115,6 +115,33 @@ func (r DatasetRef) String() (s string) {
 	return
 }
 
+// DebugString returns a string that describes every field in the reference, useful for tests
+func (r DatasetRef) DebugString() string {
+	builder := strings.Builder{}
+	builder.WriteString("{peername:")
+	builder.WriteString(r.Peername)
+	builder.WriteString(",profileID:")
+	builder.WriteString(r.ProfileID.String())
+	builder.WriteString(",name:")
+	builder.WriteString(r.Name)
+	if r.Path != "" {
+		builder.WriteString(",path:")
+		builder.WriteString(r.Path)
+	}
+	if r.FSIPath != "" {
+		builder.WriteString(",fsiPath:")
+		builder.WriteString(r.FSIPath)
+	}
+	if r.Published {
+		builder.WriteString(",published:true")
+	}
+	if r.Foreign {
+		builder.WriteString(",foreign:true")
+	}
+	builder.WriteString("}")
+	return builder.String()
+}
+
 // Absolute implements the same thing as String(), but append ProfileID if it exist
 func (r DatasetRef) Absolute() (s string) {
 	s = r.AliasString()
