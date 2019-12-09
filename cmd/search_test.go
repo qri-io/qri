@@ -1,8 +1,10 @@
 package cmd
 
 import (
+	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"testing"
 
 	"github.com/qri-io/ioes"
@@ -89,7 +91,48 @@ func TestSearchValidate(t *testing.T) {
 	}
 }
 
+// SearchTestRunner holds state used by the search test
+type SearchTestRunner struct {
+	Pwd      string
+	RootPath string
+	Teardown func()
+}
+
+// NewSearchTestRunner sets up state needed for the search test
+func NewSearchTestRunner(t *testing.T) *SearchTestRunner {
+	run := SearchTestRunner{}
+
+	// Get current directory
+	var err error
+	run.Pwd, err = os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Create temporary directory to run the test in
+	run.RootPath, err = ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	os.Chdir(run.RootPath)
+
+	// Clean up function
+	run.Teardown = func() {
+		os.Chdir(run.Pwd)
+		os.RemoveAll(run.RootPath)
+	}
+	return &run
+}
+
+// Close tears down the test
+func (r *SearchTestRunner) Close() {
+	r.Teardown()
+}
+
 func TestSearchRun(t *testing.T) {
+	run := NewSearchTestRunner(t)
+	defer run.Close()
+
 	streams, in, out, errs := ioes.NewTestIOStreams()
 	setNoColor(true)
 
