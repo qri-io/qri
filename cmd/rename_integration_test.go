@@ -3,7 +3,6 @@ package cmd
 import (
 	"os"
 	"path/filepath"
-	"regexp"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -62,14 +61,11 @@ func TestRenameNoHistory(t *testing.T) {
 
 	// Test that `qri list` will only show the new ref. Still linked to the old directory name.
 	output := run.MustExec(t, "qri list")
-	// TODO(dlong): Move temp omissions into TestRunner framework
-	regex := regexp.MustCompile("linked: .*/remove_no_history")
-	replaced := string(regex.ReplaceAll([]byte(output), []byte("linked: /tmp/remove_no_history")))
 	expect = `1   test_peer/remove_second_name
     linked: /tmp/remove_no_history
 
 `
-	if diff := cmp.Diff(expect, replaced); diff != "" {
+	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
 }
@@ -103,15 +99,12 @@ func TestRenameUpdatesLink(t *testing.T) {
 
 	// Test that `qri list` will only show the new ref. Still linked to the old directory name.
 	output := run.MustExec(t, "qri list")
-	// TODO(dlong): Move temp omissions into TestRunner framework
-	regex := regexp.MustCompile("linked: .*/remove_update_link")
-	replaced := string(regex.ReplaceAll([]byte(output), []byte("linked: /tmp/remove_update_link")))
 	expect = `1   test_peer/remove_second_name
     linked: /tmp/remove_update_link
     22 B, 2 entries, 0 errors
 
 `
-	if diff := cmp.Diff(expect, replaced); diff != "" {
+	if diff := cmp.Diff(expect, output); diff != "" {
 		t.Errorf("qri list (-want +got):\n%s", diff)
 	}
 

@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	"runtime"
+
 	"io/ioutil"
 	"os"
 	"path/filepath"
@@ -26,6 +28,33 @@ type FSITestRunner struct {
 func NewFSITestRunner(t *testing.T, testName string) *FSITestRunner {
 	inner := NewTestRunner(t, "test_peer", testName)
 	return newFSITestRunnerFromInner(t, inner)
+}
+
+// MustExec runs a command, returning standard output, failing the test if there's an error
+func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
+	if err := run.ExecCommand(cmdText); err != nil {
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
+	}
+	return run.GetCommandOutput()
+}
+
+// GetCommandOutput returns standard output from the previous command, removing tmp directories
+func (run *FSITestRunner) GetCommandOutput() string {
+	outputText := run.RepoRoot.GetOutput()
+	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.rootPath)
+	if err == nil {
+		outputText = strings.Replace(outputText, realRoot, "/root", -1)
+	}
+	realTmp, err := filepath.EvalSymlinks(run.RootPath)
+	if err == nil {
+		outputText = strings.Replace(outputText, realTmp, "/tmp", -1)
+	}
+	return outputText
 }
 
 // NewFSITestRunnerWithMockRemoteClient returns a new FSITestRunner.
