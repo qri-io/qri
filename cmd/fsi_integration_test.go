@@ -43,7 +43,7 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 	return run.GetCommandOutput()
 }
 
-// GetCommandOutput returns standard output from the previous command, removingf tmp directories
+// GetCommandOutput returns standard output from the previous command, removing tmp directories
 func (run *FSITestRunner) GetCommandOutput() string {
 	outputText := run.RepoRoot.GetOutput()
 	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.rootPath)
