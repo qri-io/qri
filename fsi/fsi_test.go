@@ -199,18 +199,58 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	}
 }
 
-func TestModifyLink(t *testing.T) {
+// Test that ModifyLinkReference changes what is in the .qri-ref linkfile
+func TestModifyLinkReference(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
-		t.Fatalf(err.Error())
+		t.Fatal(err)
 	}
-	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds@/ipfs/QmExample")
+	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds_2@/ipfs/QmExample")
 	if err != nil {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
+	}
+
+	ref, ok := GetLinkedFilesysRef(paths.firstDir)
+	if !ok {
+		t.Fatal("expected linked filesys ref, didn't get one")
+	}
+	expect := "peer/test_ds_2"
+	if ref != expect {
+		t.Errorf("expected %s, got %s", expect, ref)
+	}
+}
+
+// Test that ModifyLinkDirectory changes the FSIPath in the repo
+func TestModifyLinkDirectory(t *testing.T) {
+	paths := NewTmpPaths()
+	defer paths.Close()
+
+	fsi := NewFSI(paths.testRepo)
+	_, _, err := fsi.CreateLink(paths.firstDir, "me/another_dataset")
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = fsi.ModifyLinkDirectory(paths.secondDir, "me/another_dataset")
+	if err != nil {
+		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
+	}
+
+	refs, err := fsi.LinkedRefs(0, 10)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if len(refs) != 1 {
+		t.Fatalf("expected, 1 reference, got %d", len(refs))
+	}
+	actual := refs[0].DebugString()
+	expect := fmt.Sprintf("{peername:peer,profileID:QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt,name:another_dataset,fsiPath:%s}", paths.secondDir)
+	if actual != expect {
+		t.Errorf("expected %q, got %q", expect, actual)
 	}
 }
 

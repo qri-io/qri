@@ -7,6 +7,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -107,7 +108,9 @@ func (r *RefSelect) String() string {
 // selected by the `use` command. This order is also the precendence, from most important to least.
 // This is the recommended method for command-line commands to get references, unless they have a
 // special way of interacting with datasets (for example, `qri status`).
-func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, error) {
+// If fsi pointer is passed in, use it to ensure that the ref in the .qri-ref linkfile matches
+// what is in the repo
+func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMethods) (*RefSelect, error) {
 	// TODO(dlong): Respect `allowed`, number of refs the command uses. -1 means any.
 	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
 	// If reference is specified by the user provide command-line arguments, use that reference.
@@ -121,6 +124,14 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int) (*RefSelect, err
 	// If in a working directory that is linked to a dataset, use that link's reference.
 	refs, err := GetLinkedRefSelect()
 	if err == nil {
+		if fsi != nil {
+			// Ensure that the link in the working directory matches what is in the repo.
+			var out bool
+			err = fsi.EnsureRef(&lib.EnsureParams{Dir: refs.Dir(), Ref: refs.Ref()}, &out)
+			if err != nil {
+				log.Debugf("%s", err)
+			}
+		}
 		return refs, nil
 	}
 	// Find what `use` is referencing and use that.

@@ -1132,6 +1132,89 @@ func TestInitSourceBodyPathDoesNotExist(t *testing.T) {
 	}
 }
 
+// Test that moving a directory causes the fsi path to update
+func TestMoveWorkingDirectory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_move_dir")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("move_dir")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name move_dir --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	run.Must(t, os.Chdir(parentDir))
+
+	// Move the directory's location
+	newNameDir := strings.Replace(workDir, "move_dir", "new_name_dir", -1)
+	run.Must(t, os.Rename(workDir, newNameDir))
+
+	// Enter into the moved directory
+	run.Must(t, os.Chdir(newNameDir))
+
+	// Status again, check that the working directory is clean.
+	output := run.MustExec(t, "qri status")
+	if diff := cmpTextLines(cleanStatusMessage("test_peer/move_dir"), output); diff != "" {
+		t.Errorf("qri status (-want +got):\n%s", diff)
+	}
+
+	// The FSIPath has been set to the new directory
+	output = run.MustExec(t, "qri list --raw")
+	expect := `0 Peername:  test_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      move_dir
+  Path:      /ipfs/QmZoN7BrAb6a7ydQSahYKsrb4vKHdC5u6b2EVAm3GpZmve
+  FSIPath:   /tmp/new_name_dir
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+}
+
+// Test that removing a directory will remove the fsi path from the repo
+func TestRemoveWorkingDirectory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_dir")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_dir")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_dir --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	run.Must(t, os.Chdir(parentDir))
+
+	// Remove the directory
+	run.Must(t, os.RemoveAll(workDir))
+
+	// List will detect that the directory is no longer linked
+	run.MustExec(t, "qri list")
+
+	// List datasets, the removed directory is no longer linked
+	output := run.MustExec(t, "qri list --raw")
+	expect := `0 Peername:  test_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      remove_dir
+  Path:      /ipfs/QmSR1QEtRjTAYiHCr2213E8VtWamfXf4S9D9unXLQHTiMf
+  FSIPath:   
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]

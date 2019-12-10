@@ -96,7 +96,7 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 		return
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 1)
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
 	if err == repo.ErrEmptyRef {
 		// It is not an error to call validate without a dataset reference. Might be
 		// validating a body file against a schema file directly.

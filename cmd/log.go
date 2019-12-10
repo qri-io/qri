@@ -61,7 +61,7 @@ type LogOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *LogOptions) Complete(f Factory, args []string) (err error) {
-	if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 		return err
 	}
 	o.LogRequests, err = f.LogRequests()
@@ -154,7 +154,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 			return fmt.Errorf("can't use dataset reference. the raw flag shows the entire logbook")
 		}
 	} else {
-		if o.Refs, err = GetCurrentRefSelect(f, args, 1); err != nil {
+		if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
 			return err
 		}
 	}
