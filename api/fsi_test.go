@@ -19,6 +19,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -70,6 +71,41 @@ func TestFSIHandlers(t *testing.T) {
 	runHandlerTestCases(t, "checkout", h.CheckoutHandler(""), checkoutCases, true)
 }
 
+type APITestRunner struct {
+	Node         *p2p.QriNode
+	NodeTeardown func()
+	Inst         *lib.Instance
+	TmpDir       string
+	WorkDir      string
+}
+
+func NewAPITestRunner(t *testing.T) *APITestRunner {
+	run := APITestRunner{}
+	run.Node, run.NodeTeardown = newTestNode(t)
+	run.Inst = newTestInstanceWithProfileFromNode(run.Node)
+
+	tmpDir, err := ioutil.TempDir("", "api_test")
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	run.TmpDir = tmpDir
+	return &run
+}
+
+func (r *APITestRunner) Delete() {
+	os.RemoveAll(r.TmpDir)
+	r.NodeTeardown()
+}
+
+func (r *APITestRunner) MustMakeWorkDir(t *testing.T, name string) string {
+	r.WorkDir = filepath.Join(r.TmpDir, name)
+	if err := os.MkdirAll(r.WorkDir, os.ModePerm); err != nil {
+		t.Fatal(err)
+	}
+	return r.WorkDir
+}
+
 // TODO (ramfox): this test should be split for each endpoint:
 // getHandler
 // rootHandler
@@ -78,23 +114,15 @@ func TestFSIHandlers(t *testing.T) {
 // statusHandler
 // each test should test responses for a dataset with no history, fsi=true and fsi=false
 func TestNoHistory(t *testing.T) {
-	node, teardown := newTestNode(t)
-	defer teardown()
+	run := NewAPITestRunner(t)
+	defer run.Delete()
 
-	inst := newTestInstanceWithProfileFromNode(node)
-
-	tmpDir := os.TempDir()
-	initSubdir := "fsi_init_dir"
-	initDir := filepath.Join(tmpDir, initSubdir)
-	if err := os.MkdirAll(initDir, os.ModePerm); err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(initDir)
+	subDir := "fsi_init_dir"
+	workDir := run.MustMakeWorkDir(t, subDir)
 
 	// Create a linked dataset without saving, it has no versions in the repository
-	f := fsi.NewFSI(node.Repo)
-	ref, err := f.InitDataset(fsi.InitParams{
-		Dir:    initDir,
+	ref, err := run.Inst.FSI().InitDataset(fsi.InitParams{
+		Dir:    workDir,
 		Name:   "test_ds",
 		Format: "csv",
 	})
@@ -114,14 +142,14 @@ func TestNoHistory(t *testing.T) {
 	}
 
 	// Get mtimes for the component files
-	st, _ := os.Stat(filepath.Join(initDir, "meta.json"))
+	st, _ := os.Stat(filepath.Join(workDir, "meta.json"))
 	metaMtime := st.ModTime().Format(time.RFC3339)
-	st, _ = os.Stat(filepath.Join(initDir, "body.csv"))
+	st, _ = os.Stat(filepath.Join(workDir, "body.csv"))
 	bodyMtime := st.ModTime().Format(time.RFC3339)
-	st, _ = os.Stat(filepath.Join(initDir, "structure.json"))
+	st, _ = os.Stat(filepath.Join(workDir, "structure.json"))
 	structureMtime := st.ModTime().Format(time.RFC3339)
 
-	dsHandler := NewDatasetHandlers(inst, false)
+	dsHandler := NewDatasetHandlers(run.Inst, false)
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
 	gotStatusCode, gotBodyString := APICall("/peer/test_ds", dsHandler.GetHandler)
@@ -129,13 +157,7 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
 
-	gotBody := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code":  0,
-			"error": "",
-		},
-	}
-
+	gotBody := map[string]interface{}{}
 	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
 		t.Errorf("could not unmarshal response into struct: %s", err)
 	}
@@ -150,7 +172,7 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody := strings.Replace(gotBodyString, initDir, initSubdir, -1)
+	resultBody := strings.Replace(gotBodyString, workDir, subDir, -1)
 	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
@@ -174,14 +196,12 @@ func TestNoHistory(t *testing.T) {
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-
-	// TODO(dlong): Data is returning 3 and 6 as strings instead of ints.
-	expectBody = `{"data":{"path":"","data":[["one","two","3"],["four","five","6"]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?fsi=true\u0026page=2"}}`
+	expectBody = `{"data":{"path":"","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?fsi=true\u0026page=2"}}`
 	if expectBody != gotBodyString {
 		t.Errorf("expected body %s, got %s", expectBody, gotBodyString)
 	}
 
-	fsiHandler := NewFSIHandlers(inst, false)
+	fsiHandler := NewFSIHandlers(run.Inst, false)
 
 	// Status at version with no history
 	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"))
@@ -202,14 +222,14 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
 	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody = strings.Replace(gotBodyString, initDir, initSubdir, -1)
+	resultBody = strings.Replace(gotBodyString, workDir, subDir, -1)
 	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/structure.json","component":"structure","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
 	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
 	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
-	logHandler := NewLogHandlers(node)
+	logHandler := NewLogHandlers(run.Node)
 
 	// History with no history
 	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler)
