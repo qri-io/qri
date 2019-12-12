@@ -1,3 +1,28 @@
+# [v0.9.3](https://github.com/qri-io/qri/compare/v0.9.2...v0.9.3) (2019-12-12)
+
+This patch release includes bug fixes and improvements around the working directory, in particular doing better with removing datasets, and generating automatic commit messages. There are also some small feature changes that are mostly laying the groundwork for future features.
+
+### Bug Fixes
+
+* **cmd:** Clean tmp directories in command output, to simplify tests ([d302828](https://github.com/qri-io/qri/commit/d302828fb4be078919d911974190b1e174ba77b4))
+* **diff:** Diff with no history returns a reasonable error message ([35207ba](https://github.com/qri-io/qri/commit/35207bae758e4b8e039eff4769eb6f1eec9d1856))
+* **fsi:** FSI should use detected schema for reading body ([9fed513](https://github.com/qri-io/qri/commit/9fed513ff893dd0886b592265c6c961dfa37977a))
+* **fsi:** When working directory is moved or deleted, update FSI Path ([3c4153b](https://github.com/qri-io/qri/commit/3c4153b1b8ce4b5bb1b847c1bf3dc75828ef6d0c))
+* **remove:** Improve error message when removing a dirty dataset ([21adb9b](https://github.com/qri-io/qri/commit/21adb9b20af5d84c9b8d379cb5e23c667b8e5d3c))
+* **remove:** Remove works on foreign datasets, even if logbook missing ([fe4598a](https://github.com/qri-io/qri/commit/fe4598abaa9f4427f05ae8a046e9dcc1fc9a318e))
+* **search:** Run TestSearchRun in a tmp directory ([633185e](https://github.com/qri-io/qri/commit/633185e59f5df15e1b900ecd4586666e5dad50de))
+
+
+### Features
+
+* **friendly:** Friendly generator for commit title and message ([29aa674](https://github.com/qri-io/qri/commit/29aa6740b6be494d4ba224ff56e89373bb1324a6))
+* **lib:** add OptLogbook to provide custom logbook ([31667b7](https://github.com/qri-io/qri/commit/31667b7c84051b8283f26102777c81e854ac7c93))
+* **oplog:** add Logstore & PersonalLogstore interfaces ([0d7f7a5](https://github.com/qri-io/qri/commit/0d7f7a5c94d673498a8ad6ecb51d44578bd87701))
+* **refs:** `qri list --raw` will display raw reference data ([d848f46](https://github.com/qri-io/qri/commit/d848f46d24cef35f218cc14e3f7d4c955d0c3377))
+* **save:** Flag --new for save ensures that we're saving a new dataset ([22db718](https://github.com/qri-io/qri/commit/22db71875192dae7cccb8e30401c646c6554f66f))
+
+
+
 # [v0.9.2](https://github.com/qri-io/qri/compare/v0.9.1...v0.9.2) (2019-11-18)
 
 In this patch release we're fixing a bunch of tiny bugs centered around removing datasets, and adding methods for column statistics
