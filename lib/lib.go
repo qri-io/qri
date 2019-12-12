@@ -692,6 +692,11 @@ func (inst *Instance) Config() *config.Config {
 	return inst.cfg
 }
 
+// FSI returns methods for using filesystem integration
+func (inst *Instance) FSI() *fsi.FSI {
+	return inst.fsi
+}
+
 // ChangeConfig implements the ConfigSetter interface
 func (inst *Instance) ChangeConfig(cfg *config.Config) (err error) {
 	cfg = cfg.WithPrivateValues(inst.cfg)

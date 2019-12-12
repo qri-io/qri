@@ -74,6 +74,10 @@ func GetBody(dirPath string, format dataset.DataFormat, fcfg dataset.FormatConfi
 		assign.FormatConfig = fcfg.Map()
 	}
 	st.Assign(structure, assign)
+	// If there is no schema on the dataset, but one was detected, assign it as well.
+	if structure.Schema == nil && assign.Schema != nil {
+		structure.Schema = assign.Schema
+	}
 
 	return base.ConvertBodyFile(file, structure, st, limit, offset, all)
 }
