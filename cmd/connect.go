@@ -9,7 +9,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewConnectCommand creates a new `qri connect` cobra command for connecting to the d.web, local api, rpc server, and webapp
+// NewConnectCommand creates a new `qri connect` cobra command for connecting to the d.web, local api, and rpc server
 func NewConnectCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := ConnectOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{

@@ -59,7 +59,6 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	server.Handler = mux
 
 	go s.ServeRPC(ctx)
-	go s.ServeWebapp(ctx)
 
 	if namesys, err := node.GetIPFSNamesys(); err == nil {
 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
