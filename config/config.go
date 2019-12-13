@@ -92,10 +92,6 @@ func (cfg Config) SummaryString() (summary string) {
 		summary += fmt.Sprintf("RPC port:\t%d\n", cfg.RPC.Port)
 	}
 
-	if cfg.Webapp != nil && cfg.Webapp.Enabled {
-		summary += fmt.Sprintf("Webapp port:\t%d\n", cfg.Webapp.Port)
-	}
-
 	return summary
 }
 
