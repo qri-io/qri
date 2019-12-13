@@ -49,9 +49,6 @@ var (
 	log = golog.Logger("lib")
 )
 
-// VersionNumber is the current qri version
-const VersionNumber = "0.9.3"
-
 func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
 	// registering with the gob package prevents errors when sending them

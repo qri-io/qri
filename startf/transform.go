@@ -16,15 +16,14 @@ import (
 	skyctx "github.com/qri-io/qri/startf/context"
 	skyds "github.com/qri-io/qri/startf/ds"
 	skyqri "github.com/qri-io/qri/startf/qri"
+	"github.com/qri-io/qri/version"
 	"github.com/qri-io/starlib"
 	"go.starlark.net/resolve"
 	"go.starlark.net/starlark"
 )
 
-// Version is the current version of this startf, this version number will be
-// written with each transformation exectution. This value must match
-// github.com/qri-io/qri/lib.Version
-const Version = "0.9.3"
+// Version is the version of qri that this transform was run with
+var Version = version.String
 
 // ExecOpts defines options for execution
 type ExecOpts struct {

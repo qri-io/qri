@@ -2,7 +2,7 @@ package cmd
 
 import (
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/version"
 	"github.com/spf13/cobra"
 )
 
@@ -19,7 +19,7 @@ For updates & further information check https://github.com/qri-io/qri/releases`,
 			"group": "other",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
-			printInfo(ioStreams.Out, lib.VersionNumber)
+			printInfo(ioStreams.Out, version.String)
 			return nil
 		},
 	}

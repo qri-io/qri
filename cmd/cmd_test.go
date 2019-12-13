@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/config"
 	libtest "github.com/qri-io/qri/lib/test"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
+	"github.com/qri-io/qri/startf"
 )
 
 func init() {
@@ -373,6 +374,13 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
 	defer run.Delete()
 
+	// TODO(dlong): Move into TestRunner, use this everywhere.
+	prevXformVer := startf.Version
+	startf.Version = "test_version"
+	defer func() {
+		startf.Version = prevXformVer
+	}()
+
 	// Save a version, then save another with a transform
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	run.MustExec(t, "qri save --file=testdata/movies/tf.star me/test_ds")
@@ -382,7 +390,7 @@ func TestSaveThenOverrideTransform(t *testing.T) {
 	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with an added transform section
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmTYAtj8VodsWHi7XyeLp3QzMNL9yxTnnDNm6fdezh4k8L","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.3"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"transform added","path":"/ipfs/QmWq1C8kx6d4Fe5hBsUaqXFh2VDUMzaE5ewTNjqgGnXivV","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"transform added"},"meta":{"qri":"md:0","title":"example movie data"},"path":"/ipfs/QmTPdKe6Erfft7MEfcLufYCn9yBPYCQTvLfViop14rGUGa","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -421,6 +429,13 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_save_file_transform")
 	defer run.Delete()
 
+	// TODO(dlong): Move into TestRunner, use this everywhere.
+	prevXformVer := startf.Version
+	startf.Version = "test_version"
+	defer func() {
+		startf.Version = prevXformVer
+	}()
+
 	// Save a version, then save another with three components at once
 	run.MustExec(t, "qri save --file=testdata/movies/ds_ten.yaml me/test_ds")
 	run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml --file=testdata/movies/tf.star --file=testdata/template.html me/test_ds")
@@ -430,7 +445,7 @@ func TestSaveThenOverrideMetaAndTransformAndViz(t *testing.T) {
 	actual := run.RepoRoot.DatasetMarshalJSON(dsPath)
 
 	// This dataset is ds_ten.yaml, with an added meta component, and transform, and viz
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz:\n\tupdated scriptPath\ntransform added","path":"/ipfs/QmPtYLgM886MQCQhsyJDgb4FnNqNH8FBBDE1NqwJpJi4Js","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmaQoRLoDjbbWa4DM8s9m6b6b34DWXVBRrAHC64ebGWJct","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"0.9.3"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nviz:\n\tupdated scriptPath\ntransform added","path":"/ipfs/QmPtYLgM886MQCQhsyJDgb4FnNqNH8FBBDE1NqwJpJi4Js","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta, viz, and transform"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmSJyjtKNNBoEJGNAXLStagJbziiaBskDbrxJPesg2JLW1","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":true},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"movie_title","type":"string"},{"title":"duration","type":"integer"}],"type":"array"},"type":"array"}},"transform":{"qri":"tf:0","scriptPath":"/ipfs/Qmb69tx5VCL7q7EfkGKpDgESBysmDbohoLvonpbgri48NN","syntax":"starlark","syntaxVersion":"test_version"},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmVrEH7T7XmdJLym8YL9DjwCALbz264h7GQTrjkSGmbvry","scriptPath":"/ipfs/QmRaVGip3V9fVBJheZN6FbUajD3ZLNjHhXdjrmfg2JPoo5"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}

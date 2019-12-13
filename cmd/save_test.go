@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/startf"
 )
 
 func TestSaveComplete(t *testing.T) {
@@ -101,6 +102,12 @@ func TestSaveRun(t *testing.T) {
 	setNoColor(true)
 	setNoPrompt(true)
 
+	prevXformVer := startf.Version
+	startf.Version = "test_version"
+	defer func() {
+		startf.Version = prevXformVer
+	}()
+
 	// to keep hashes consistent, artificially specify the timestamp by overriding
 	// the dsfs.Timestamp func
 	prev := dsfs.Timestamp
@@ -142,7 +149,7 @@ func TestSaveRun(t *testing.T) {
 		{"add rows, save", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "Added 10 more rows", "Adding to the number of rows in dataset", true, false, true, "dataset saved: peer/movies@/map/Qmf516nREprnwE3YnBpZd1y9DkS6e2ktKYDLMtz4L4MgMX\nthis dataset has 1 validation errors\n", "", ""},
 		{"no changes", "me/movies", "testdata/movies/dataset.json", "testdata/movies/body_twenty.csv", "trying to add again", "hopefully this errors", false, false, true, "", "error saving: no changes", ""},
 		{"add viz", "me/movies", "testdata/movies/dataset_with_viz.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmXDKr4ryBuzXFhpKPUAe6GmqEacCjgPkG76NyVLpmPDSt\nthis dataset has 1 validation errors\n", "", ""},
-		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmToQMdjosUuf9MzYxDmLUrXAFWTcrNrYQ74dFXHcMqY2w\nthis dataset has 1 validation errors\n", "", ""},
+		{"add transform", "me/movies", "testdata/movies/dataset_with_tf.json", "", "", "", false, false, false, "dataset saved: peer/movies@/map/QmaYNBGZUxJJZVFFf9LkqomSZQ5kLRCaprKtNDwGUJ2bYy\nthis dataset has 1 validation errors\n", "", ""},
 	}
 
 	for _, c := range cases {
