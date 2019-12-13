@@ -8,6 +8,7 @@ import (
 
 	protocol "github.com/libp2p/go-libp2p-core/protocol"
 	identify "github.com/libp2p/go-libp2p/p2p/protocol/identify"
+	"github.com/qri-io/qri/version"
 )
 
 var log = golog.Logger("qrip2p")
@@ -15,13 +16,14 @@ var log = golog.Logger("qrip2p")
 const (
 	// QriProtocolID is the top level Protocol Identifier
 	QriProtocolID = protocol.ID("/qri")
-	// QriServiceTag tags the type & version of the qri service
-	QriServiceTag = "qri/0.9.3"
 	// default value to give qri peer connections in connmanager, one hunnit
 	qriSupportValue = 100
 	// qriSupportKey is the key we store the flag for qri support under in Peerstores and in ConnManager()
 	qriSupportKey = "qri-support"
 )
+
+// QriServiceTag tags the type & version of the qri service
+var QriServiceTag = fmt.Sprintf("qri/%s", version.String)
 
 func init() {
 	// golog.SetLogLevel("qrip2p", "debug")

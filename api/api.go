@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/apiutil"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/version"
 )
 
 var log = golog.Logger("qriapi")
@@ -107,7 +108,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	for _, a := range node.EncapsulatedAddresses() {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
-	info += fmt.Sprintf("\nYou are running Qri v%s", lib.VersionNumber)
+	info += fmt.Sprintf("\nYou are running Qri v%s", version.String)
 	info += "\n\n"
 
 	node.LocalStreams.Print(info)
@@ -219,7 +220,7 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 // returns the version of qri this node is running, pulled from the lib package
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + lib.VersionNumber + `" }, "data": [] }`))
+	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + version.String + `" }, "data": [] }`))
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
