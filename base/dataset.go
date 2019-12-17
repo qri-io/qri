@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"strings"
+	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
@@ -332,10 +333,15 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 
 	curr := *ref
 
+	// Set a timeout for looking up the previous dataset versions.
+	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 100*time.Millisecond)
+	defer timeoutCancel()
+
 	i := n
 
 	for i != 0 {
-		// decrement our counter
+		// Decrement our counter. If counter was -1, this loop will continue forever, until a
+		// blank PreviousPath is found.
 		i--
 		// unpin dataset, ignoring "not pinned" errors
 		if err = UnpinDataset(ctx, r, curr); err != nil && !strings.Contains(err.Error(), "not pinned") {
@@ -345,11 +351,22 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 		if curr.Dataset.PreviousPath == "" {
 			break
 		}
-		// load previous dataset into prev
-		next, err := dsfs.LoadDatasetRefs(ctx, r.Store(), curr.Dataset.PreviousPath)
+		// Load previous dataset into prev. Use a timeout on this lookup, because we don't want
+		// IPFS to hang if it's not available, since that would only happen if it's not local to
+		// our machine. This situation can occur if we have added a foreign dataset from the
+		// registry, and don't have previous versions. In situations like that, it's okay to
+		// break this loop since the only purpose of loading previous versions is to unpin them;
+		// if we don't have all previous versions, we probably don't have them pinned.
+		// TODO(dlong): If IPFS gains the ability to ask "do I have these blocks locally", use
+		// that instead of the network-aware LoadDatasetRefs.
+		next, err := dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), curr.Dataset.PreviousPath)
 		if err != nil {
 			// Note: We want delete to succeed even if datasets are remote, so we don't fail on
-			// this error, and break early instead
+			// this error, and break early instead.
+			if strings.Contains(err.Error(), "context deadline exceeded") {
+				log.Debugf("could not load dataset ref, not found locally")
+				break
+			}
 			// TODO (b5) - removing dataset versions should rely on logbook, which is able
 			// to traverse across missing datasets in qfs
 			log.Debugf("error fetching previous: %s", err)
