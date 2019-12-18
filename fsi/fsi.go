@@ -228,10 +228,7 @@ func (fsi *FSI) getRepoRef(refStr string) (ref repo.DatasetRef, err error) {
 
 func writeLinkFile(dir, linkstr string) (string, error) {
 	linkFile := filepath.Join(dir, QriRefFilename)
-	if err := ioutil.WriteFile(linkFile, []byte(linkstr), os.ModePerm); err != nil {
-		return "", err
-	}
-	return linkFile, base.SetFileHidden(linkFile)
+	return linkFile, base.WriteHiddenFile(linkFile, linkstr)
 }
 
 func removeLinkFile(dir string) error {
