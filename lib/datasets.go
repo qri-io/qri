@@ -112,8 +112,14 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 				_, err := os.Stat(target)
 				if os.IsNotExist(err) {
 					ref.FSIPath = ""
+					if ref.Path == "" {
+						if err = r.node.Repo.DeleteRef(ref); err != nil {
+							log.Debugf("cannot delete ref for %q, err: %s", ref, err)
+						}
+						continue
+					}
 					if err = r.node.Repo.PutRef(ref); err != nil {
-						return err
+						log.Debugf("cannot put ref for %q, err: %s", ref, err)
 					}
 				}
 			}

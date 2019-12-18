@@ -1215,6 +1215,34 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 	}
 }
 
+// Test that removing a directory before ever saving will remove the reference entirely
+func TestRemoveWithoutAnyHistory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_no_hist")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_no_hist")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_no_hist --format csv")
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	run.Must(t, os.Chdir(parentDir))
+
+	// Remove the directory
+	run.Must(t, os.RemoveAll(workDir))
+
+	// List will detect that the directory is no longer linked
+	run.MustExec(t, "qri list")
+
+	// List datasets, the removed directory is no longer linked
+	output := run.MustExec(t, "qri list --raw")
+	expect := "\n"
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]
