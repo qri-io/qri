@@ -222,6 +222,23 @@ func GetKnownFilenames() map[string][]string {
 	}
 }
 
+// IsKnownFilename returns whether the file is a known component filename.
+func IsKnownFilename(fullpath string, known map[string][]string) bool {
+	basename := filepath.Base(fullpath)
+	ext := filepath.Ext(basename)
+	onlybase := basename[:len(basename)-len(ext)]
+	allowedExtensions, ok := known[onlybase]
+	if !ok {
+		return false
+	}
+	for _, allow := range allowedExtensions {
+		if allow == ext {
+			return true
+		}
+	}
+	return false
+}
+
 func normalizeExtensionFormat(text string) string {
 	if strings.HasPrefix(text, ".") {
 		text = text[1:]

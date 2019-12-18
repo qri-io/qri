@@ -55,6 +55,44 @@ func TestListDirectoryComponents(t *testing.T) {
 	}
 }
 
+func TestIsKnownFilename(t *testing.T) {
+	known := GetKnownFilenames()
+
+	goodCases := []struct {
+		description string
+		filename    string
+	}{
+		{"body csv file", "body.csv"},
+		{"meta json file", "meta.json"},
+		{"readme file", "readme.md"},
+		{"transform file", "transform.star"},
+		{"dataset json", "dataset.json"},
+		{"dataset yaml", "dataset.yaml"},
+	}
+
+	badCases := []struct {
+		description string
+		filename    string
+	}{
+		{"body bad extension", "body.bin"},
+		{"meta bad extension", "meta.jpg"},
+		{"unknown filename", "my_content.csv"},
+		{"vi temporary", ".body.csv.swp"},
+		{"emacs temporary", "#body.csv"},
+	}
+
+	for i, c := range goodCases {
+		if !IsKnownFilename(c.filename, known) {
+			t.Errorf("error for good case %d: %s", i, c.description)
+		}
+	}
+	for i, c := range badCases {
+		if IsKnownFilename(c.filename, known) {
+			t.Errorf("error for bad case %d: %s", i, c.description)
+		}
+	}
+}
+
 func getComponentNames(comp Component) []string {
 	names := make([]string, 0)
 	for _, name := range AllSubcomponentNames() {

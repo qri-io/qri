@@ -17,10 +17,11 @@ require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
+	github.com/fsnotify/fsnotify v1.4.7
 	github.com/ghodss/yaml v1.0.0
 	github.com/gofrs/flock v0.7.1 // indirect
 	github.com/google/flatbuffers v1.11.0
-	github.com/google/go-cmp v0.3.0
+	github.com/google/go-cmp v0.3.1
 	github.com/ipfs/go-cid v0.0.3
 	github.com/ipfs/go-datastore v0.1.1
 	github.com/ipfs/go-ds-badger v0.0.7 // indirect
@@ -68,4 +69,5 @@ require (
 	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b
 	gonum.org/v1/gonum v0.6.0
 	gopkg.in/yaml.v2 v2.2.2
+	nhooyr.io/websocket v1.7.4
 )

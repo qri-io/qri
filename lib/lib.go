@@ -38,6 +38,7 @@ import (
 	"github.com/qri-io/qri/stats"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
+	"github.com/qri-io/qri/watchfs"
 )
 
 var (
@@ -655,6 +656,8 @@ type Instance struct {
 	registry     *regclient.Client
 	stats        *stats.Stats
 	logbook      *logbook.Book
+
+	Watcher *watchfs.FilesysWatcher
 
 	rpc *rpc.Client
 }
