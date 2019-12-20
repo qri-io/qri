@@ -21,6 +21,9 @@ import (
 
 var log = golog.Logger("qriapi")
 
+// APIVersion is the version string that is written in API responses
+var APIVersion = version.String
+
 // LocalHostIP is the IP address for localhost
 const LocalHostIP = "127.0.0.1"
 
@@ -108,7 +111,7 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	for _, a := range node.EncapsulatedAddresses() {
 		info = fmt.Sprintf("%s\n  %s", info, a.String())
 	}
-	info += fmt.Sprintf("\nYou are running Qri v%s", version.String)
+	info += fmt.Sprintf("\nYou are running Qri v%s", APIVersion)
 	info += "\n\n"
 
 	node.LocalStreams.Print(info)
@@ -220,7 +223,7 @@ func readOnlyResponse(w http.ResponseWriter, endpoint string) {
 // returns the version of qri this node is running, pulled from the lib package
 func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.WriteHeader(http.StatusOK)
-	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "version":"` + version.String + `" }, "data": [] }`))
+	w.Write([]byte(`{ "meta": { "code": 200, "status": "ok", "versionzz":"` + APIVersion + `" }, "data": [] }`))
 }
 
 // NewServerRoutes returns a Muxer that has all API routes
