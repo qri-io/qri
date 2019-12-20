@@ -58,6 +58,7 @@ including all your datasets, and de-registers your peername from the registry.`,
 	cmd.Flags().StringVarP(&o.Peername, "peername", "", "", "choose your desired peername")
 	cmd.Flags().StringVarP(&o.IPFSConfigData, "ipfs-config", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
 	cmd.Flags().StringVarP(&o.ConfigData, "config-data", "", "", "json-encoded configuration data, specify a filepath with '@' prefix")
+	cmd.Flags().BoolVar(&o.GimmeDoggo, "gimme-doggo", false, "create and display a doggo name only")
 
 	return cmd
 }
@@ -74,6 +75,7 @@ type SetupOptions struct {
 	Registry       string
 	IPFSConfigData string
 	ConfigData     string
+	GimmeDoggo     bool
 
 	QriRepoPath string
 	IpfsFsPath  string
@@ -90,6 +92,10 @@ func (o *SetupOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the setup command
 func (o *SetupOptions) Run(f Factory) error {
+	if o.GimmeDoggo {
+		return o.CreateAndDisplayDoggo()
+	}
+
 	if o.Remove {
 		cfg, err := f.Config()
 		if err != nil {
@@ -205,6 +211,14 @@ func (o *SetupOptions) DoSetup(f Factory) (err error) {
 		break
 	}
 	return f.Init()
+}
+
+// CreateAndDisplayDoggo creates and display a doggo name
+func (o *SetupOptions) CreateAndDisplayDoggo() error {
+	_, peerID := o.Generator.GeneratePrivateKeyAndPeerID()
+	dognick := o.Generator.GenerateNickname(peerID)
+	printSuccess(o.Out, dognick)
+	return nil
 }
 
 // QRIRepoInitialized checks to see if a repository has been initialized at $QRI_PATH
