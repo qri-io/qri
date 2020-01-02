@@ -142,11 +142,9 @@ func confirmQriNotRunning() error {
 }
 
 func TestServerRoutes(t *testing.T) {
-	node, teardown := newTestNode(t)
-	defer teardown()
+	run := NewAPITestRunner(t)
 
-	inst := newTestInstanceWithProfileFromNode(node)
-	h := NewRootHandler(NewDatasetHandlers(inst, false), NewPeerHandlers(node, false))
+	h := NewRootHandler(NewDatasetHandlers(run.Inst, false), NewPeerHandlers(run.Node, false))
 	rootCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		{"GET", "/", nil},
@@ -165,6 +163,12 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
+	prevXformVer := APIVersion
+	APIVersion = "test_version"
+	defer func() {
+		APIVersion = prevXformVer
+	}()
+
 	// bump up log level to keep test output clean
 	golog.SetLogLevel("qriapi", "error")
 	defer golog.SetLogLevel("qriapi", "info")
@@ -182,6 +186,8 @@ func TestServerReadOnlyRoutes(t *testing.T) {
 		t.Fatalf("error allocating test repo: %s", err.Error())
 	}
 
+	// Cannot use TestRunner because we need to set cfg.API.ReadOnly.
+	// TODO(dlong): Add a testRunner call trace that does this correctly.
 	cfg := config.DefaultConfigForTesting()
 	cfg.API.ReadOnly = true
 	defer func() {

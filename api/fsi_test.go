@@ -77,6 +77,7 @@ type APITestRunner struct {
 	Inst         *lib.Instance
 	TmpDir       string
 	WorkDir      string
+	PrevXformVer string
 }
 
 func NewAPITestRunner(t *testing.T) *APITestRunner {
@@ -88,13 +89,17 @@ func NewAPITestRunner(t *testing.T) *APITestRunner {
 	if err != nil {
 		t.Fatal(err)
 	}
-
 	run.TmpDir = tmpDir
+
+	run.PrevXformVer = APIVersion
+	APIVersion = "test_version"
+
 	return &run
 }
 
 func (r *APITestRunner) Delete() {
 	os.RemoveAll(r.TmpDir)
+	APIVersion = r.PrevXformVer
 	r.NodeTeardown()
 }
 

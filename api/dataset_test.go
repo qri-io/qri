@@ -13,14 +13,15 @@ import (
 )
 
 func TestDatasetHandlers(t *testing.T) {
-	node, teardown := newTestNodeWithNumDatasets(t, 2)
-	defer teardown()
+	run := NewAPITestRunner(t)
+	defer run.Delete()
 
+	// Create a mock data server. Can't move this into the testRunner, because we need to
+	// ensure only this test is using the server's port "55555".
 	s := newMockDataServer(t)
 	defer s.Close()
 
-	inst := newTestInstanceWithProfileFromNode(node)
-	h := NewDatasetHandlers(inst, false)
+	h := NewDatasetHandlers(run.Inst, false)
 
 	listCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
