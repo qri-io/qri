@@ -376,6 +376,11 @@ func isBase58Multihash(hash string) bool {
 	return true
 }
 
+// TODO(dlong): In the near future, switch to a new utility that resolves references to specific
+// versions by using logbook. A ref should resolve to a pair of (init-id, head-ref), where the
+// init-id is the stable unchanging identifier for a dataset (derived from logbook) and head-ref
+// is the current head version. Use that everywhere in the code, instead of CanonicalizeDatasetRef.
+
 // CanonicalizeDatasetRef uses the user's repo to turn any local aliases into full dataset
 // references using known canonical peernames and paths. If the provided reference is not
 // in the local repo, still do the work of handling aliases, but return a repo.ErrNotFound
@@ -387,10 +392,6 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 
 	if err := CanonicalizeProfile(r, ref); err != nil {
 		return err
-	}
-
-	if ref.Path != "" && ref.ProfileID != "" && ref.Name != "" && ref.Peername != "" {
-		return nil
 	}
 
 	got, err := r.GetRef(*ref)
@@ -415,7 +416,7 @@ func CanonicalizeDatasetRef(r Repo, ref *DatasetRef) error {
 	if ref.FSIPath == "" {
 		ref.FSIPath = got.FSIPath
 	}
-	if ref.Path != got.Path || ref.ProfileID != got.ProfileID || ref.Name != got.Name {
+	if ref.ProfileID != got.ProfileID || ref.Name != got.Name {
 		return fmt.Errorf("Given datasetRef %s does not match datasetRef on file: %s", ref.String(), got.String())
 	}
 

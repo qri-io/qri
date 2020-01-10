@@ -8,6 +8,7 @@ import (
 
 	"testing"
 
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -209,18 +210,36 @@ func TestModifyLinkReference(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds_2@/ipfs/QmExample")
+
+	// TODO(dlong): This demonstrates a problem with how FSI is structured. The above call to
+	// fsi.CreateLink will add the ref to the repo if it doesn't already exist. It also writes
+	// to the linkfile (.qri-ref). The below call to ModifyLinkReference will modify the linkfile,
+	// but it fails if the ref does not exist in the repo. The relationship between fsi and repo
+	// is not clear and inconsistent.
+	ref, err := base.ToDatasetRef("me/test_ds", fsi.repo, true)
+	if err != nil {
+		t.Fatal(err)
+	}
+	ref.Name = "test_ds_2"
+	err = fsi.repo.PutRef(*ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Modify the linkfile.
+	err = fsi.ModifyLinkReference(paths.firstDir, "me/test_ds_2")
 	if err != nil {
 		t.Errorf("expected ModifyLinkReference to succeed, got: %s", err.Error())
 	}
 
-	ref, ok := GetLinkedFilesysRef(paths.firstDir)
+	// Verify that the working directory is linked to the expect dataset reference.
+	refStr, ok := GetLinkedFilesysRef(paths.firstDir)
 	if !ok {
 		t.Fatal("expected linked filesys ref, didn't get one")
 	}
 	expect := "peer/test_ds_2"
-	if ref != expect {
-		t.Errorf("expected %s, got %s", expect, ref)
+	if refStr != expect {
+		t.Errorf("expected %s, got %s", expect, refStr)
 	}
 }
 
