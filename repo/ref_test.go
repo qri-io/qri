@@ -439,6 +439,58 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 	}
 }
 
+func TestCanonicalizeDatasetRefFSI(t *testing.T) {
+	peer := "lucille"
+	prof := &profile.Profile{ID: profile.ID("a"), Peername: peer, PrivKey: privKey}
+	store := cafs.NewMapstore()
+	memRepo, err := NewMemRepo(prof, store, qfs.NewMemFS(), profile.NewMemStore())
+	if err != nil {
+		t.Fatal(err)
+	}
+	id := prof.ID
+
+	rs := memRepo.MemRefstore
+	rs.PutRef(DatasetRef{ProfileID: id, Peername: peer, Name: "apple", Path: "/ipfs/QmTest1"})
+	rs.PutRef(DatasetRef{ProfileID: id, Peername: peer, Name: "banana", Path: "/ipfs/QmTest2", FSIPath: "/path/to/dataset"})
+
+	goodCases := []struct {
+		input      string
+		expectPath string
+		expectFSI  string
+	}{
+		{"me/apple", "/ipfs/QmTest1", ""},
+		{"me/apple@/ipfs/QmTest1", "/ipfs/QmTest1", ""},
+		{"me/apple@/ipfs/QmTest1Prev", "/ipfs/QmTest1Prev", ""},
+		{"me/banana", "/ipfs/QmTest2", "/path/to/dataset"},
+		{"me/banana@/ipfs/QmTest2", "/ipfs/QmTest2", "/path/to/dataset"},
+		{"me/banana@/ipfs/QmTest2Prev", "/ipfs/QmTest2Prev", "/path/to/dataset"},
+	}
+
+	for i, c := range goodCases {
+		ref, err := ParseDatasetRef(c.input)
+		if err != nil {
+			t.Errorf("case %d unexpected dataset ref parse error: %s", i, err)
+			continue
+		}
+		got := &ref
+
+		err = CanonicalizeDatasetRef(memRepo, got)
+		if err != nil {
+			t.Errorf("case %d got error: %s", i, err)
+			continue
+		}
+
+		if got.Path != c.expectPath {
+			t.Errorf("case %d expected path: %s, got: %s", i, c.expectPath, got.Path)
+			continue
+		}
+		if got.FSIPath != c.expectFSI {
+			t.Errorf("case %d expected FSI path: %s, got: %s", i, c.expectFSI, got.FSIPath)
+			continue
+		}
+	}
+}
+
 func TestCanonicalizeProfile(t *testing.T) {
 	prof := &profile.Profile{Peername: "lucille", ID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"), PrivKey: privKey}
 	store := cafs.NewMapstore()

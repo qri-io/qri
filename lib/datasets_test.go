@@ -402,12 +402,12 @@ func TestDatasetRequestsGet(t *testing.T) {
 		{"invalid peer name",
 			&GetParams{Path: "peer/ABC@abc"}, "'peer/ABC@abc' is not a valid dataset reference"},
 
-		{"peername with path",
-			&GetParams{Path: fmt.Sprintf("peer/ABC@%s", ref.Path)},
-			componentToString(setDatasetName(moviesDs, "peer/ABC"), "yaml")},
-
 		{"peername without path",
 			&GetParams{Path: "peer/movies"},
+			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
+
+		{"peername with path",
+			&GetParams{Path: fmt.Sprintf("peer/movies@%s", ref.Path)},
 			componentToString(setDatasetName(moviesDs, "peer/movies"), "yaml")},
 
 		{"peername as json format",
