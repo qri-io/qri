@@ -1,116 +1,46 @@
 package base
 
 import (
-	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"io/ioutil"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/dataset/detect"
-	"github.com/qri-io/dataset/dsio"
-	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/jsonschema"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 )
 
-// Validate checks a dataset body for errors based on a schema
-func Validate(ctx context.Context, r repo.Repo, ref repo.DatasetRef, body, schema qfs.File) (errors []jsonschema.ValError, err error) {
-	if !ref.IsEmpty() {
-		err = repo.CanonicalizeDatasetRef(r, &ref)
-		if err != nil && err != repo.ErrNotFound {
-			log.Debug(err.Error())
-			err = fmt.Errorf("error with new reference: %s", err.Error())
-			return
-		}
+// Validate checks a dataset body for errors based on the structure's schema
+func Validate(ctx context.Context, r repo.Repo, body qfs.File, st *dataset.Structure) ([]jsonschema.ValError, error) {
+	if body == nil {
+		return nil, fmt.Errorf("body passed to Validate must not be nil")
+	}
+	if st == nil {
+		return nil, fmt.Errorf("st passed to Validate must not be nil")
 	}
 
-	var (
-		st   = &dataset.Structure{}
-		data []byte
-	)
-
-	// if a dataset is specified, load it
-	if ref.Path != "" {
-		if err = ReadDataset(ctx, r, &ref); err != nil {
-			log.Debug(err.Error())
-			return
+	// jsonschema assumes body is json, convert the format if necessary
+	if st.Format != "json" {
+		convert := dataset.Structure{
+			Format: "json",
+			Schema: st.Schema,
 		}
-
-		ds := ref.Dataset
-		st = ds.Structure
-	} else if body == nil {
-		err = fmt.Errorf("cannot find dataset: %s", ref)
-		return
-	}
-
-	if body != nil {
-		data, err = ioutil.ReadAll(body)
+		file, err := ConvertBodyFormat(body, st, &convert)
 		if err != nil {
-			log.Debug(err.Error())
-			err = fmt.Errorf("error reading data: %s", err.Error())
-			return
+			return nil, err
 		}
-
-		// if no schema, detect one
-		if st.Schema == nil {
-			var df dataset.DataFormat
-			df, err = detect.ExtensionDataFormat(body.FileName())
-			if err != nil {
-				err = fmt.Errorf("detecting data format: %s", err.Error())
-				return
-			}
-			str, _, e := detect.FromReader(df, bytes.NewBuffer(data))
-			if e != nil {
-				err = fmt.Errorf("error detecting from reader: %s", e)
-				return
-			}
-			st = str
-		}
+		body = file
 	}
 
-	// if a schema is specified, override with it
-	if schema != nil {
-		stbytes, e := ioutil.ReadAll(schema)
-		if e != nil {
-			log.Debug(e.Error())
-			err = e
-			return
-		}
-		sch := map[string]interface{}{}
-		if e := json.Unmarshal(stbytes, &sch); e != nil {
-			err = fmt.Errorf("error reading schema: %s", e.Error())
-			return
-		}
-		st.Schema = sch
-	}
-
-	if data == nil && ref.Dataset != nil {
-		ds := ref.Dataset
-
-		f, e := dsfs.LoadBody(ctx, r.Store(), ds)
-		if e != nil {
-			log.Debug(e.Error())
-			err = fmt.Errorf("error loading dataset data: %s", e.Error())
-			return
-		}
-		data, err = ioutil.ReadAll(f)
-		if err != nil {
-			log.Debug(err.Error())
-			err = fmt.Errorf("error loading dataset data: %s", err.Error())
-			return
-		}
-	}
-
-	er, err := dsio.NewEntryReader(st, bytes.NewBuffer(data))
+	// jsonschema does not handle data streams, have to read the whole body
+	data, err := ioutil.ReadAll(body)
 	if err != nil {
-		log.Debug(err.Error())
-		err = fmt.Errorf("error reading data: %s", err.Error())
-		return
+		return nil, err
 	}
-
-	return validate.EntryReader(er)
+	jsch, err := st.JSONSchema()
+	if err != nil {
+		return nil, err
+	}
+	return jsch.ValidateBytes(data)
 }

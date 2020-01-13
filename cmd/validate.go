@@ -2,12 +2,9 @@ package cmd
 
 import (
 	"fmt"
-	"os"
-	"path/filepath"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/jsonschema"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -108,63 +105,19 @@ func (o *ValidateOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the run command
 func (o *ValidateOptions) Run() (err error) {
-	var (
-		bodyFile, schemaFile *os.File
-	)
-
 	printRefSelect(o.Out, o.Refs)
 
 	o.StartSpinner()
 	defer o.StopSpinner()
-
-	if o.Refs.IsLinked() {
-		if o.BodyFilepath == "" {
-			// TODO(dlong): FSI should determine the filename by looking for each known file
-			// extension.
-			if _, err := os.Stat("body.json"); !os.IsNotExist(err) {
-				o.BodyFilepath = "body.json"
-			}
-			if _, err := os.Stat("body.csv"); !os.IsNotExist(err) {
-				o.BodyFilepath = "body.csv"
-			}
-			if err = qfs.AbsPath(&o.BodyFilepath); err != nil {
-				return err
-			}
-		}
-		if o.SchemaFilepath == "" {
-			o.SchemaFilepath = "schema.json"
-			if err = qfs.AbsPath(&o.SchemaFilepath); err != nil {
-				return err
-			}
-		}
-	}
-
-	if o.BodyFilepath != "" {
-		if bodyFile, err = loadFileIfPath(o.BodyFilepath); err != nil {
-			return lib.NewError(err, fmt.Sprintf("error opening body file: could not %s", err))
-		}
-	}
-	if o.SchemaFilepath != "" {
-		if schemaFile, err = loadFileIfPath(o.SchemaFilepath); err != nil {
-			return lib.NewError(err, fmt.Sprintf("error opening schema file: could not %s", err))
-		}
-	}
 
 	ref := o.Refs.Ref()
 	p := &lib.ValidateDatasetParams{
 		Ref: ref,
 		// TODO: restore
 		// URL:          addDsURL,
-		BodyFilename: filepath.Base(o.BodyFilepath),
-	}
-
-	// this is because passing nil to interfaces is bad
-	// see: https://golang.org/doc/faq#nil_error
-	if bodyFile != nil {
-		p.Body = bodyFile
-	}
-	if schemaFile != nil {
-		p.Schema = schemaFile
+		BodyFilename:   o.BodyFilepath,
+		SchemaFilename: o.SchemaFilepath,
+		UseFSI:         o.Refs.IsLinked(),
 	}
 
 	res := []jsonschema.ValError{}

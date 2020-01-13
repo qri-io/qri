@@ -70,12 +70,6 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
-	path, ok := currentPath()
-	if !ok {
-		t.Errorf("error getting path to current folder")
-		return
-	}
-
 	cases := []struct {
 		description    string
 		ref            string
@@ -91,8 +85,8 @@ func TestValidateRun(t *testing.T) {
 		// {"", "", "", "url", "", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
 		{"movie problems", "peer/movies", "", "", "", movieOutput, "", ""},
 		{"dataset not found", "peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset", ""},
-		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
-		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open " + path + "/bad/schema_filepath: no such file or directory", "error opening schema file: could not open " + path + "/bad/schema_filepath: no such file or directory"},
+		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "error opening body file: bad/filepath", ""},
+		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "error opening schema file: bad/schema_filepath", ""},
 		{"validate successfully", "", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
 		// TODO: pull from url
 	}

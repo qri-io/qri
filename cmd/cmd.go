@@ -11,9 +11,7 @@ import (
 	"fmt"
 	"io"
 	"os"
-	"path"
 	"path/filepath"
-	"runtime"
 	"strings"
 
 	golog "github.com/ipfs/go-log"
@@ -120,13 +118,4 @@ func parseCmdLineDatasetRef(ref string) (repo.DatasetRef, error) {
 		ref = "me/" + ref
 	}
 	return repo.ParseDatasetRef(ref)
-}
-
-// currentPath is used for test purposes to get the path from which qri is executing
-func currentPath() (string, bool) {
-	_, filename, _, ok := runtime.Caller(1)
-	if !ok {
-		return "", ok
-	}
-	return path.Dir(filename), true
 }
