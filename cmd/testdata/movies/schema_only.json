@@ -1,0 +1,15 @@
+{
+  "type": "array",
+  "items": {
+    "items": [
+      {
+        "title": "name",
+        "type": "string"
+      },
+      {
+        "title": "duration",
+        "type": "integer"
+      }
+    ]
+  }
+}

@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"strings"
 	"testing"
 
 	"github.com/qri-io/ioes"
@@ -70,12 +71,6 @@ func TestValidateRun(t *testing.T) {
 		return
 	}
 
-	path, ok := currentPath()
-	if !ok {
-		t.Errorf("error getting path to current folder")
-		return
-	}
-
 	cases := []struct {
 		description    string
 		ref            string
@@ -86,13 +81,13 @@ func TestValidateRun(t *testing.T) {
 		err            string
 		msg            string
 	}{
-		{"bad args", "", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema flags with file paths"},
+		{"bad args", "", "", "", "", "", "bad arguments provided", "please provide a dataset name, or a supply the --body and --schema or --structure flags"},
 		// TODO: add back when we again support validating from a URL
 		// {"", "", "", "url", "", "bad arguments provided", "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"},
 		{"movie problems", "peer/movies", "", "", "", movieOutput, "", ""},
 		{"dataset not found", "peer/bad_dataset", "", "", "", "", "cannot find dataset: peer/bad_dataset", ""},
-		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "open " + path + "/bad/filepath: no such file or directory", "error opening body file: could not open " + path + "/bad/filepath: no such file or directory"},
-		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "open " + path + "/bad/schema_filepath: no such file or directory", "error opening schema file: could not open " + path + "/bad/schema_filepath: no such file or directory"},
+		{"body file not found", "", "bad/filepath", "testdata/days_of_week_schema.json", "", "", "error opening body file: bad/filepath", ""},
+		{"schema file not found", "", "testdata/days_of_week.csv", "bad/schema_filepath", "", "", "error opening schema file: bad/schema_filepath", ""},
 		{"validate successfully", "", "testdata/days_of_week.csv", "testdata/days_of_week_schema.json", "", "✔ All good!\n", "", ""},
 		// TODO: pull from url
 	}
@@ -147,3 +142,33 @@ var movieOutput = `0: /4/1: "" type should be integer
 2: /206/1: "" type should be integer
 3: /1510/1: "" type should be integer
 `
+
+func TestValidateCommandlineFlags(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_validate_commandline_flags")
+	defer run.Delete()
+
+	output := run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --structure=testdata/movies/structure_override.json")
+	expectContain := `/4/1: "" type should be integer`
+
+	if !strings.Contains(output, expectContain) {
+		t.Errorf("expected output to contain %q, got %q", expectContain, output)
+	}
+
+	output = run.MustExec(t, "qri validate --body=testdata/movies/body_ten.csv --schema=testdata/movies/schema_only.json")
+	expectContain = `/0/1: "duration" type should be integer
+1: /5/1: "" type should be integer`
+
+	if !strings.Contains(output, expectContain) {
+		t.Errorf("expected output to contain %q, got %q", expectContain, output)
+	}
+
+	// Fail because both --structure and --schema are given
+	err := run.ExecCommand("qri validate --body=testdata/movies/body_ten.csv --structure=testdata/movies/structure_override.json --schema=testdata/movies/schema_only.json")
+	if err == nil {
+		t.Fatal("expected error, did not get one")
+	}
+	expect := "bad arguments provided"
+	if expect != err.Error() {
+		t.Errorf("expected %q, got %q", expect, err.Error())
+	}
+}

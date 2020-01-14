@@ -19,8 +19,10 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
+	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -835,9 +837,10 @@ func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
 type ValidateDatasetParams struct {
 	Ref string
 	// URL          string
-	BodyFilename string
-	Body         io.Reader
-	Schema       io.Reader
+	BodyFilename      string
+	SchemaFilename    string
+	StructureFilename string
+	UseFSI            bool
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
@@ -851,28 +854,114 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
 	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
 	// }
-	if p.Ref == "" && p.Body == nil && p.Schema == nil {
-		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema flags with file paths")
+
+	// Schema can come from either schema.json or structure.json, or the dataset itself.
+	// schemaFlagType determines which of these three contains the schema.
+	schemaFlagType := ""
+	schemaFilename := ""
+	if p.SchemaFilename != "" && p.StructureFilename != "" {
+		return NewError(ErrBadArgs, "cannot provide both --schema and --structure flags")
+	} else if p.SchemaFilename != "" {
+		schemaFlagType = "schema"
+		schemaFilename = p.SchemaFilename
+	} else if p.StructureFilename != "" {
+		schemaFlagType = "structure"
+		schemaFilename = p.StructureFilename
 	}
 
-	var body, schema qfs.File
-	if p.Body != nil {
-		body = qfs.NewMemfileReader(p.BodyFilename, p.Body)
+	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
+		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
-	if p.Schema != nil {
-		schema = qfs.NewMemfileReader("schema.json", p.Schema)
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil && err != repo.ErrEmptyRef {
+		return err
+	}
+	err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref)
+	if err != nil && err != repo.ErrEmptyRef {
+		if err == repo.ErrNotFound {
+			return fmt.Errorf("cannot find dataset: %s", ref)
+		}
+		return err
 	}
 
-	var ref repo.DatasetRef
+	var ds *dataset.Dataset
+
+	// TODO(dlong): This pattern has shown up many places, such as lib.Get.
+	// Should probably combine into a utility function.
+
 	if p.Ref != "" {
-		ref, err = repo.ParseDatasetRef(p.Ref)
-		if err != nil {
+		if p.UseFSI {
+			if ref.FSIPath == "" {
+				return fsi.ErrNoLink
+			}
+			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+				return fmt.Errorf("loading linked dataset: %s", err)
+			}
+		} else {
+			if ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path); err != nil {
+				return fmt.Errorf("loading dataset: %s", err)
+			}
+		}
+		if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 			return err
 		}
 	}
 
-	*errors, err = base.Validate(ctx, r.node.Repo, ref, body, schema)
+	var body qfs.File
+	if p.BodyFilename == "" {
+		body = ds.BodyFile()
+	} else {
+		// Body is set to the provided filename if given
+		fs := localfs.NewFS()
+		body, err = fs.Get(context.Background(), p.BodyFilename)
+		if err != nil {
+			return fmt.Errorf("error opening body file: %s", p.BodyFilename)
+		}
+	}
+
+	var st *dataset.Structure
+	// Schema is set to the provided filename if given, otherwise the dataset's schema
+	if schemaFlagType == "" {
+		st = ds.Structure
+	} else {
+		data, err := ioutil.ReadFile(schemaFilename)
+		if err != nil {
+			return fmt.Errorf("error opening schema file: %s", p.SchemaFilename)
+		}
+		var fileContent map[string]interface{}
+		err = json.Unmarshal(data, &fileContent)
+		if err != nil {
+			return err
+		}
+		if schemaFlagType == "schema" {
+			// If dataset ref was provided, get format from the structure. Otherwise, assume the
+			// format by looking at the body file's extension.
+			var bodyFormat string
+			if ds != nil && ds.Structure != nil {
+				bodyFormat = ds.Structure.Format
+			} else {
+				bodyFormat = filepath.Ext(p.BodyFilename)
+				if strings.HasSuffix(bodyFormat, ".") {
+					bodyFormat = bodyFormat[1:]
+				}
+			}
+			st = &dataset.Structure{
+				Format: bodyFormat,
+				Schema: fileContent,
+			}
+		} else {
+			// schemaFlagType == "structure". Deserialize the provided file into a structure.
+			st = &dataset.Structure{}
+			err = fill.Struct(fileContent, st)
+			if err != nil {
+				return err
+			}
+			// TODO(dlong): What happens if body file extension does not match st.Format?
+		}
+	}
+
+	*errors, err = base.Validate(ctx, r.node.Repo, body, st)
 	return
 }
 

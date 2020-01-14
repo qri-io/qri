@@ -237,8 +237,19 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 
 func (tr *testRunner) writeFile(t *testing.T, filename, data string) (path string) {
 	path = filepath.Join(tr.Dir, filename)
-	if err := ioutil.WriteFile(path, []byte(data), 0x777); err != nil {
+	if err := ioutil.WriteFile(path, []byte(data), 0644); err != nil {
 		t.Fatal(err)
 	}
 	return path
 }
+
+func (tr *testRunner) MustWriteFile(t *testing.T, filename, data string) {
+	if err := ioutil.WriteFile(filename, []byte(data), 0644); err != nil {
+		t.Fatal(err)
+	}
+}
+
+func (tr *testRunner) MakeFilename(filename string) (path string) {
+	return filepath.Join(tr.Dir, filename)
+}
+

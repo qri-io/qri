@@ -120,12 +120,6 @@ func TestSaveRun(t *testing.T) {
 		return
 	}
 
-	_, ok := currentPath()
-	if !ok {
-		t.Errorf("error getting path to current folder")
-		return
-	}
-
 	cases := []struct {
 		description string
 		ref         string

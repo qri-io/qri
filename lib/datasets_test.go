@@ -21,7 +21,6 @@ import (
 	"github.com/qri-io/dataset/dsio"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/jsonschema"
-	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -885,12 +884,14 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 }
 
 func TestDatasetRequestsValidate(t *testing.T) {
-	movieb := []byte(`movie_title,duration
-Avatar ,178
+	run, teardown := newTestRunner(t)
+	defer teardown()
+
+	movieb := `Avatar ,178
 Pirates of the Caribbean: At World's End ,169
 Pirates of the Caribbean: At World's End ,foo
-`)
-	schemaB := []byte(`{
+`
+	schemaB := `{
 	  "type": "array",
 	  "items": {
 	    "type": "array",
@@ -905,12 +906,12 @@ Pirates of the Caribbean: At World's End ,foo
 	      }
 	    ]
 	  }
-	}`)
+	}`
 
-	dataf := qfs.NewMemfileBytes("data.csv", movieb)
-	dataf2 := qfs.NewMemfileBytes("data.csv", movieb)
-	schemaf := qfs.NewMemfileBytes("schema.json", schemaB)
-	schemaf2 := qfs.NewMemfileBytes("schema.json", schemaB)
+	bodyFilename := run.MakeFilename("data.csv")
+	schemaFilename := run.MakeFilename("schema.json")
+	run.MustWriteFile(t, bodyFilename, movieb)
+	run.MustWriteFile(t, schemaFilename, schemaB)
 
 	cases := []struct {
 		p         ValidateDatasetParams
@@ -920,9 +921,9 @@ Pirates of the Caribbean: At World's End ,foo
 		{ValidateDatasetParams{Ref: ""}, 0, "bad arguments provided"},
 		{ValidateDatasetParams{Ref: "me"}, 0, "cannot find dataset: peer"},
 		{ValidateDatasetParams{Ref: "me/movies"}, 4, ""},
-		{ValidateDatasetParams{Ref: "me/movies", Body: dataf, BodyFilename: "data.csv"}, 1, ""},
-		{ValidateDatasetParams{Ref: "me/movies", Schema: schemaf}, 4, ""},
-		{ValidateDatasetParams{Schema: schemaf2, BodyFilename: "data.csv", Body: dataf2}, 1, ""},
+		{ValidateDatasetParams{Ref: "me/movies", BodyFilename: bodyFilename}, 1, ""},
+		{ValidateDatasetParams{Ref: "me/movies", SchemaFilename: schemaFilename}, 5, ""},
+		{ValidateDatasetParams{SchemaFilename: schemaFilename, BodyFilename: bodyFilename}, 1, ""},
 	}
 
 	mr, err := testrepo.NewTestRepo()
