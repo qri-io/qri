@@ -21,27 +21,27 @@ func NewValidateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 			"group": "dataset",
 		},
 		Long: `
-Validate checks data for errors using a schema and then printing a list of 
-issues. By default validate checks a dataset's body against it’s own schema. 
-Validate is a flexible command that works with data and schemas either 
-inside or outside of qri by providing one or both of --body and --schema 
-arguments. 
+Validate checks data for errors using a schema and then printing a list of
+issues. By default validate checks a dataset's body against it’s own schema.
+Validate is a flexible command that works with data and schemas either
+inside or outside of qri by providing the --body and --schema or --structure
+flags.
 
-Providing --schema and --body is an “external validation" that uses nothing 
-stored in qri. When only one of schema or body args are provided, the other 
-comes from a dataset reference. For example, to check how a file “data.csv” 
-validates against a dataset "foo”, we would run:
+Providing either --schema or --structure and --body is an “external
+validation" that uses nothing stored in qri. When only one of these flags,
+are provided, the other comes from a dataset reference. For example, to
+check how a file “data.csv” validates against a dataset "foo”, we would run:
 
   $ qri validate --body data.csv me/foo
 
 In this case, qri will will print any validation as if data.csv was foo’s data.
 
-To see how changes to a schema will validate against a 
-dataset in qri, we would run:
+To see how changes to a schema will validate against a dataset in qri, we
+would run:
 
   $ qri validate --schema schema.json me/foo
 
-In this case, qri will print validation errors as if stucture.json was the
+In this case, qri will print validation errors as if schema.json was the
 schema for dataset "me/foo"
 
 Using validate this way is a great way to see how changes to data or schema
@@ -50,7 +50,8 @@ will affect a dataset before saving changes to a dataset.
 You can get the current schema of a dataset by running the ` + "`qri get structure.schema`" + `
 command.
 
-Note: --body and --schema flags will override the dataset if both flags are provided.`,
+Note: --body and --schema or --structure flags will override the dataset
+if these flags are provided.`,
 		Example: `  # show errors in an existing dataset:
   qri validate b5/comics
 
@@ -71,6 +72,7 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 	// cmd.Flags().StringVarP(&o.URL, "url", "u", "", "url to file to initialize from")
 	cmd.Flags().StringVarP(&o.BodyFilepath, "body", "b", "", "body file to validate")
 	cmd.Flags().StringVarP(&o.SchemaFilepath, "schema", "", "", "json schema file to use for validation")
+	cmd.Flags().StringVarP(&o.StructureFilepath, "structure", "", "", "json structure file to use for validation")
 
 	return cmd
 }
@@ -79,10 +81,11 @@ Note: --body and --schema flags will override the dataset if both flags are prov
 type ValidateOptions struct {
 	ioes.IOStreams
 
-	Refs           *RefSelect
-	BodyFilepath   string
-	SchemaFilepath string
-	URL            string
+	Refs              *RefSelect
+	BodyFilepath      string
+	SchemaFilepath    string
+	StructureFilepath string
+	URL               string
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -115,9 +118,10 @@ func (o *ValidateOptions) Run() (err error) {
 		Ref: ref,
 		// TODO: restore
 		// URL:          addDsURL,
-		BodyFilename:   o.BodyFilepath,
-		SchemaFilename: o.SchemaFilepath,
-		UseFSI:         o.Refs.IsLinked(),
+		BodyFilename:      o.BodyFilepath,
+		SchemaFilename:    o.SchemaFilepath,
+		StructureFilename: o.StructureFilepath,
+		UseFSI:            o.Refs.IsLinked(),
 	}
 
 	res := []jsonschema.ValError{}
