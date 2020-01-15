@@ -242,6 +242,29 @@ func (book *Book) load(ctx context.Context) error {
 	return nil
 }
 
+// WriteAuthorRename adds an operation updating the author's username
+func (book *Book) WriteAuthorRename(ctx context.Context, name string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
+	l := book.authorLog(ctx)
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeAmend,
+		Model:     authorModel,
+		AuthorID:  book.AuthorID(),
+		Name:      name,
+		Timestamp: NewTimestamp(),
+	})
+
+	if err := book.save(ctx); err != nil {
+		return err
+	}
+
+	book.authorName = name
+	return nil
+}
+
 // WriteDatasetInit initializes a new dataset name within the author's namespace
 func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 	if book == nil {
