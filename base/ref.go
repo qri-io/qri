@@ -83,11 +83,11 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 		log.Debug(err.Error())
 		return fmt.Errorf("error with existing reference: %s", err.Error())
 	}
+	// attempt to canonicalize the new reference
 	err = repo.CanonicalizeDatasetRef(r, new)
-	if err == nil {
-		if isRename {
-			return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
-		}
+	if err == nil && isRename {
+		// successful canonicalization on rename is an error
+		return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
 	} else if err != repo.ErrNotFound {
 		log.Debug(err.Error())
 		return fmt.Errorf("error with new reference: %s", err.Error())
