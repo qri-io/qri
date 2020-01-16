@@ -85,9 +85,15 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 	}
 	// attempt to canonicalize the new reference
 	err = repo.CanonicalizeDatasetRef(r, new)
-	if err == nil && isRename {
+	if err == nil {
 		// successful canonicalization on rename is an error
-		return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
+		if isRename {
+			// TODO (b5) - this isn't entirely true. If the provided ref has an absolute path, it'll clean up
+			// the new var, which won't error, but *will* destroy the rename alias. We need more sophisticated
+			// name resolution functions. This test should only be checking if the *alias* portion of the
+			// name already exists for a rename
+			return fmt.Errorf("dataset '%s/%s' already exists", new.Peername, new.Name)
+		}
 	} else if err != repo.ErrNotFound {
 		log.Debug(err.Error())
 		return fmt.Errorf("error with new reference: %s", err.Error())
@@ -108,4 +114,41 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 	}
 
 	return nil
+}
+
+// ModifyRepoUsername performs all tasks necessary to switch a username
+// (formerly: peername) for a local repo, and must be called when a username is
+// changed
+// TODO (b5) - make this transactional
+func ModifyRepoUsername(ctx context.Context, r repo.Repo, book *logbook.Book, from, to string) error {
+	log.Debugf("change peername: %s -> %s", from, to)
+	// TODO (b5) - we need to immidiately update all dataset references in the refstore on rename
+	// because we currently rely on dsref as our source of canonicalization.
+	// Many places in our codebase call repo.CanonicalizeDatasetRef with an alias reference
+	// before doing anything, which means if the refence there is off, Canonicalize will overwrite
+	// with the prior, incorrect name, and cause not-found errors in place that are properly tracking
+	// updates, (like logbook). This is hacky & ugly, but helps us understand how to redesign dsrefs
+	if refs, err := r.References(0, 10000000); err == nil {
+		for _, ref := range refs {
+			if ref.Peername == from {
+				update := repo.DatasetRef{
+					Peername:  to,
+					Name:      ref.Name,
+					Path:      ref.Path,
+					ProfileID: ref.ProfileID,
+					FSIPath:   ref.FSIPath,
+				}
+
+				if err = r.DeleteRef(ref); err != nil {
+					return err
+				}
+				if err = r.PutRef(update); err != nil {
+					return err
+				}
+			}
+		}
+	}
+
+	// we also need to update the logbook
+	return book.WriteAuthorRename(ctx, to)
 }

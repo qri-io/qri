@@ -101,9 +101,11 @@ func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
 	if err != nil {
 		return err
 	}
+
 	if err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref); err != nil {
 		return err
 	}
+	log.Debugf("%v", ref)
 
 	book := r.node.Repo.Logbook()
 	*res, err = book.LogEntries(ctx, repo.ConvertToDsref(ref), p.Offset, p.Limit)
