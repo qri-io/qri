@@ -115,6 +115,8 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 		}
 	}
 
+	// Link the FSIPath to the reference before putting it into the repo
+	log.Debugf("fsi.CreateLink: linking ref=%q, FSIPath=%q", ref, dirPath)
 	ref.FSIPath = dirPath
 	if err = fsi.repo.PutRef(ref); err != nil {
 		return "", rollback, err
@@ -133,9 +135,9 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 	}
 	// If future steps fail, remove the link file we just wrote to
 	removeLinkAndRemoveRefFunc := func() {
-		log.Debugf("removing linkFile \"%s\" during rollback", linkFile)
+		log.Debugf("removing linkFile %q during rollback", linkFile)
 		if err := os.Remove(linkFile); err != nil {
-			log.Debugf("error while removing linkFile %s: \"%s\"", linkFile, err)
+			log.Debugf("error while removing linkFile %q: %s", linkFile, err)
 		}
 		removeRefFunc()
 	}
@@ -160,6 +162,7 @@ func (fsi *FSI) ModifyLinkDirectory(dirPath, refStr string) error {
 		return nil
 	}
 
+	log.Debugf("fsi.ModifyLinkDirectory: modify ref=%q, FSIPath was %q, changing to %q", ref, ref.FSIPath, dirPath)
 	ref.FSIPath = dirPath
 	return fsi.repo.PutRef(ref)
 }
@@ -175,6 +178,7 @@ func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 		return err
 	}
 
+	log.Debugf("fsi.ModifyLinkReference: modify linkfile at %q, ref=%q", dirPath, ref)
 	if _, err = writeLinkFile(dirPath, ref.AliasString()); err != nil {
 		return err
 	}
@@ -250,6 +254,7 @@ func DeleteComponentFiles(dir string) error {
 		}
 		err = os.Remove(comp.Base().SourceFile)
 		if err != nil {
+			log.Errorf("deleting file %q, error: %s", comp.Base().SourceFile, err)
 			return err
 		}
 	}

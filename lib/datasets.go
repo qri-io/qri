@@ -190,20 +190,24 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 
 	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
 	if err != nil {
+		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Path, err)
 		return err
 	}
 
 	var ds *dataset.Dataset
 	if p.UseFSI {
 		if ref.FSIPath == "" {
+			log.Debugf("Get dataset, p.Path %q, ref %q failed, ref.FSIPath is empty", p.Path, ref)
 			return fsi.ErrNoLink
 		}
 		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+			log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
 			return fmt.Errorf("loading linked dataset: %s", err)
 		}
 	} else {
 		ds, err = dsfs.LoadDataset(ctx, r.node.Repo.Store(), ref.Path)
 		if err != nil {
+			log.Debugf("Get dataset, dsfs.LoadDataset %q failed, error: %s", ref, err)
 			return fmt.Errorf("loading dataset: %s", err)
 		}
 	}
@@ -214,7 +218,8 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	res.Dataset = ds
 
 	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
-		return
+		log.Debugf("Get dataset, base.OpenDataset failed, error: %s", err)
+		return err
 	}
 
 	if p.Selector == "body" {
@@ -224,16 +229,19 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		}
 		df, err := dataset.ParseDataFormatString(p.Format)
 		if err != nil {
+			log.Debugf("Get dataset, ParseDataFormatString %q failed, error: %s", p.Format, err)
 			return err
 		}
 
 		var bufData []byte
 		if p.UseFSI {
 			if bufData, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All); err != nil {
+				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", ref.FSIPath, err)
 				return err
 			}
 		} else {
 			if bufData, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
+				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
 				return err
 			}
 		}
