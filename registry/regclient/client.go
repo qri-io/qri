@@ -2,8 +2,14 @@
 package regclient
 
 import (
+	"context"
+	"encoding/json"
 	"errors"
+	"fmt"
 	"net/http"
+	"strings"
+
+	"github.com/qri-io/dataset"
 )
 
 var (
@@ -37,4 +43,43 @@ type Config struct {
 // NewClient creates a registry from a provided Registry configuration
 func NewClient(cfg *Config) *Client {
 	return &Client{cfg, HTTPClient}
+}
+
+// HomeFeed fetches the first page of featured & recent feeds in one call
+func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, error) {
+	if c.cfg.Location == "" {
+		return nil, ErrNoRegistry
+	}
+
+	// TODO (b5) - update registry endpoint name
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/dataset_summary/splash", c.cfg.Location), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such host") {
+			return nil, ErrNoRegistry
+		}
+		return nil, err
+	}
+	// add response to an envelope
+	env := struct {
+		Data map[string][]*dataset.Dataset
+		Meta struct {
+			Error  string
+			Status string
+			Code   int
+		}
+	}{}
+
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
+	}
+	return env.Data, nil
 }
