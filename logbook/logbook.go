@@ -532,7 +532,6 @@ func (book Book) Log(ctx context.Context, id string) (*oplog.Log, error) {
 //       branch
 //       ...
 func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
-	log.Debugf("UserDatasetRef: %s", ref)
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: reference Username is required")
 	}
@@ -564,9 +563,8 @@ func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log,
 // access control changes are kept in the dataset log
 //
 // currently all logs are hardcoded to only accept one branch name. This
-// function will always retunr a singl branch
+// function will always return a single branch
 func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
-	log.Debugf("DatasetRef: %s", ref)
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
 	}
@@ -583,7 +581,6 @@ func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, err
 // currently all logs are hardcoded to only accept one branch name. This
 // function always returns
 func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
-	log.Debugf("BranchRef: %s", ref)
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
 	}

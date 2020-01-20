@@ -122,10 +122,10 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.Datas
 // TODO (b5) - make this transactional
 func ModifyRepoUsername(ctx context.Context, r repo.Repo, book *logbook.Book, from, to string) error {
 	log.Debugf("change peername: %s -> %s", from, to)
-	// TODO (b5) - we need to immidiately update all dataset references in the refstore on rename
+	// TODO (b5) - we need to immediately update all dataset references in the refstore on rename
 	// because we currently rely on dsref as our source of canonicalization.
 	// Many places in our codebase call repo.CanonicalizeDatasetRef with an alias reference
-	// before doing anything, which means if the refence there is off, Canonicalize will overwrite
+	// before doing anything, which means if the reference there is off, Canonicalize will overwrite
 	// with the prior, incorrect name, and cause not-found errors in place that are properly tracking
 	// updates, (like logbook). This is hacky & ugly, but helps us understand how to redesign dsrefs
 	if refs, err := r.References(0, 10000000); err == nil {

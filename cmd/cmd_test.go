@@ -622,3 +622,75 @@ This is a dataset about movies
 		t.Errorf("readme.md contents (-want +got):\n%s", diff)
 	}
 }
+
+// Test that renaming a dataset after registration (which changes the username) works correctly
+func TestRenameAfterRegistration(t *testing.T) {
+	run := NewTestRunnerWithMockRegistry(t, "test_peer", "rename_after_reg")
+	defer run.Delete()
+
+	// Create a dataset, using the "anonymous" generated username.
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/first_name")
+
+	// Verify the raw references in the repo
+	output := run.MustExec(t, "qri list --raw")
+	expect := `0 Peername:  test_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      first_name
+  Path:      /ipfs/QmezSToWr8oAvqFbMGFrMuKj5srNK5YPsN4tHUw2JGnWra
+  FSIPath:   
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Register (using a mock server) which changes the username
+	run.MustExec(t, "qri registry signup --username real_peer --email me@example.com --password hi")
+
+	output = run.MustExec(t, "qri list --raw")
+	expect = `0 Peername:  real_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      first_name
+  Path:      /ipfs/QmezSToWr8oAvqFbMGFrMuKj5srNK5YPsN4tHUw2JGnWra
+  FSIPath:   
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Rename the created dataset, which should work even though our username changed
+	run.MustExec(t, "qri rename me/first_name me/second_name")
+
+	output = run.MustExec(t, "qri list --raw")
+	expect = `0 Peername:  real_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      second_name
+  Path:      /ipfs/QmezSToWr8oAvqFbMGFrMuKj5srNK5YPsN4tHUw2JGnWra
+  FSIPath:   
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+
+	// Rename a second time, make sure this works still
+	run.MustExec(t, "qri rename me/second_name me/third_name")
+
+	output = run.MustExec(t, "qri list --raw")
+	expect = `0 Peername:  real_peer
+  ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+  Name:      third_name
+  Path:      /ipfs/QmezSToWr8oAvqFbMGFrMuKj5srNK5YPsN4tHUw2JGnWra
+  FSIPath:   
+  Published: false
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("unexpected (-want +got):\n%s", diff)
+	}
+	
+}
