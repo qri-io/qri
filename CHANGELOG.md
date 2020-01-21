@@ -1,3 +1,28 @@
+# [v0.9.4](https://github.com/qri-io/qri/compare/v0.9.3...v) (2020-01-21)
+
+This patch release fixes a number of FSI (file system integration) issues and infrastructure changes that will improve Desktop. These include the restoration of the validate command, handling certain changes to the file system done outside of qri, improved logging, and Windows bug fixes.
+
+### Bug Fixes
+
+* **fsi:** Remove references that have no path and no working directory. ([f04981b](https://github.com/qri-io/qri/commit/f04981bd8dbd5f2c42aa18bf95b80e00d4bbd8e7))
+* **log:** Add --log-all flag to enable logging everywhere ([c3c30b1](https://github.com/qri-io/qri/commit/c3c30b1b91d87b8f2aff54ee5f8e8a4a82d8a118))
+* **ref:** CanonicalizeDatasetRef sets fsipath even if ref is full. ([2973bfa](https://github.com/qri-io/qri/commit/2973bfaae85b0f1c492f62ba7602f2e25cc27fce))
+* **registry:** update peername and dsrefs on registy signup name change ([8bc151c](https://github.com/qri-io/qri/commit/8bc151c434fc09863d2754a2ab3d027a67314214))
+* **remove:** Remove foreign datasets while connected, don't hang ([a93470b](https://github.com/qri-io/qri/commit/a93470b958a57b230e28c72721fc8b5c1498616f))
+* **test:** API tests are stable and pass even when version changes ([2c401e5](https://github.com/qri-io/qri/commit/2c401e5d1af63a74f1f15e70ca3272c04c9b206d))
+* **validate:** Allow either --structure or --schema flag. Add cmd/ tests ([6978113](https://github.com/qri-io/qri/commit/69781137253218d047cfb21750e4f26cfa8a2787))
+* **validate:** Improve validate so it works with FSI ([07cde33](https://github.com/qri-io/qri/commit/07cde335259b8248fb68fab2ad5fead4ecc6e048))
+* **windows:** Fix "Access is defined." error on Windows when renaming. ([0d11744](https://github.com/qri-io/qri/commit/0d11744e045a3e1abc07868910e9c98acab29f04))
+
+
+### Features
+
+* **doggo:** Setup flag that only creates a nick and displays it ([a75e2d0](https://github.com/qri-io/qri/commit/a75e2d0885c3ecaac9785d73c72b6e0d1d05ffea))
+* **logbook:** add WriteAuthorRename method to logbook ([d4ac19c](https://github.com/qri-io/qri/commit/d4ac19c6c66eaebe1b377f24996627c8054194c7))
+* **websocket:** Open websocket server, watch filesystem for events. ([1d8e022](https://github.com/qri-io/qri/commit/1d8e022b4bd858d8cba0ee723175772b6daf7ec6))
+
+
+
 # [v0.9.3](https://github.com/qri-io/qri/compare/v0.9.2...v0.9.3) (2019-12-12)
 
 This patch release includes bug fixes and improvements around the working directory, in particular doing better with removing datasets, and generating automatic commit messages. There are also some small feature changes that are mostly laying the groundwork for future features.
