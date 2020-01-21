@@ -6,6 +6,7 @@ package repo
 import (
 	"fmt"
 
+	golog "github.com/ipfs/go-log"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
@@ -14,6 +15,7 @@ import (
 )
 
 var (
+	log = golog.Logger("repo")
 	// DefaultQriLocation is where qri data defaults to storing. The keyword $HOME
 	// (and only $HOME) will be replaced with the current user home directory
 	DefaultQriLocation = "$HOME/.qri"

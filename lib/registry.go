@@ -1,6 +1,9 @@
 package lib
 
 import (
+	"context"
+
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo/profile"
@@ -35,7 +38,7 @@ func (m RegistryClientMethods) CreateProfile(p *RegistryProfile, ok *bool) (err 
 		return err
 	}
 
-	log.Errorf("create profile response: %v", pro)
+	log.Debugf("create profile response: %v", pro)
 	*p = *pro
 
 	return m.updateConfig(pro)
@@ -75,6 +78,7 @@ func (m RegistryClientMethods) configChanges(pro *registry.Profile) *config.Conf
 }
 
 func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
+	ctx := context.TODO()
 	cfg := m.configChanges(pro)
 
 	// TODO (b5) - this should be automatically done by m.inst.ChangeConfig
@@ -82,6 +86,17 @@ func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
 	if err != nil {
 		return err
 	}
+
+	// TODO (b5) - this is the lowest level place I could find to monitor for
+	// profile name changes, not sure this makes the most sense to have this here.
+	// we should consider a separate track for any change that affects the peername,
+	// it should always be verified by any set registry before saving
+	if cfg.Profile.Peername != m.inst.cfg.Profile.Peername {
+		if err := base.ModifyRepoUsername(ctx, m.inst.Repo(), m.inst.logbook, m.inst.cfg.Profile.Peername, cfg.Profile.Peername); err != nil {
+			return err
+		}
+	}
+
 	if err := m.inst.Repo().SetProfile(repoPro); err != nil {
 		return err
 	}

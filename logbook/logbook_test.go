@@ -202,6 +202,9 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteCronJobRan(ctx, 0, dsref.Ref{}); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
+	if err = book.WriteAuthorRename(ctx, ""); err != ErrNoLogbook {
+		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
+	}
 	if err = book.WriteDatasetInit(ctx, ""); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
@@ -584,6 +587,38 @@ func TestLogTransfer(t *testing.T) {
 	if len(revs) == 0 {
 		t.Errorf("expected book 2 to now have versions for world bank ref")
 	}
+}
+
+func TestRenameAuthor(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	tr.WriteWorldBankExample(t)
+
+	// fetching dataset for original author should work
+	if _, err := tr.Book.BranchRef(tr.Ctx, tr.WorldBankRef()); err != nil {
+		t.Fatalf("fetching %s should work. got: %s", tr.WorldBankRef(), err)
+	}
+
+	rename := "changed_username"
+	if err := tr.Book.WriteAuthorRename(tr.Ctx, rename); err != nil {
+		t.Fatalf("error renaming author: %s", err)
+	}
+
+	if rename != tr.Book.AuthorName() {
+		t.Errorf("authorname mismatch. expected: %s, got: %s", rename, tr.Book.AuthorName())
+	}
+
+	// fetching dataset for original author should NOT work
+	if _, err := tr.Book.BranchRef(tr.Ctx, tr.WorldBankRef()); err == nil {
+		t.Fatalf("fetching %s must fail. got: %s", tr.WorldBankRef(), err)
+	}
+
+	r := dsref.Ref{Username: rename, Name: "world_bank_population"}
+	if _, err := tr.Book.BranchRef(tr.Ctx, r); err != nil {
+		t.Fatalf("fetching new ref shouldn't fail. got: %s", err)
+	}
+
 }
 
 func TestRenameDataset(t *testing.T) {

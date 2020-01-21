@@ -46,6 +46,14 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 	return newTestRunnerFromRoot(&root)
 }
 
+// NewTestRunnerWithMockRegistry constructs a test runner with a mock registry connection
+func NewTestRunnerWithMockRegistry(t *testing.T, peerName, testName string) *TestRunner {
+	root := NewTestRepoRoot(t, peerName, testName)
+	root.GetConfig().Registry.Location = "mock"
+	root.WriteConfigFile(t)
+	return newTestRunnerFromRoot(&root)
+}
+
 func newTestRunnerFromRoot(root *TestRepoRoot) *TestRunner {
 	run := TestRunner{}
 	run.RepoRoot = root
@@ -154,6 +162,7 @@ type TestRepoRoot struct {
 	pathFactory PathFactory
 	testCrypto  gen.CryptoGenerator
 	streams     ioes.IOStreams
+	cfg         *config.Config
 	t           *testing.T
 
 	useMockRemoteClient bool
@@ -187,26 +196,39 @@ func NewTestRepoRoot(t *testing.T, peername, prefix string) TestRepoRoot {
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
-	err = cfg.WriteToFile(filepath.Join(qriPath, "config.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
+
 	// PathFactory returns the paths for qri and ipfs roots.
 	pathFactory := NewDirPathFactory(rootPath)
 
-	return TestRepoRoot{
+	root := TestRepoRoot{
 		rootPath:    rootPath,
 		ipfsPath:    ipfsPath,
 		qriPath:     qriPath,
 		pathFactory: pathFactory,
 		testCrypto:  testCrypto,
+		cfg:         cfg,
 		t:           t,
 	}
+	root.WriteConfigFile(t)
+	return root
 }
 
 // Delete removes the test repo on disk.
 func (r *TestRepoRoot) Delete() {
 	os.RemoveAll(r.rootPath)
+}
+
+// WriteConfigFile serializes the config file and writes it to the qri repository
+func (r *TestRepoRoot) WriteConfigFile(t *testing.T) {
+	err := r.cfg.WriteToFile(filepath.Join(r.qriPath, "config.yaml"))
+	if err != nil {
+		t.Fatal(err)
+	}
+}
+
+// GetConfig returns the configuration for the test repo.
+func (r *TestRepoRoot) GetConfig() *config.Config {
+	return r.cfg
 }
 
 // CreateCommandRunner returns a cobra runable command.

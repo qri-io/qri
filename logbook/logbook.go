@@ -242,6 +242,29 @@ func (book *Book) load(ctx context.Context) error {
 	return nil
 }
 
+// WriteAuthorRename adds an operation updating the author's username
+func (book *Book) WriteAuthorRename(ctx context.Context, name string) error {
+	if book == nil {
+		return ErrNoLogbook
+	}
+
+	l := book.authorLog(ctx)
+	l.Append(oplog.Op{
+		Type:      oplog.OpTypeAmend,
+		Model:     authorModel,
+		AuthorID:  book.AuthorID(),
+		Name:      name,
+		Timestamp: NewTimestamp(),
+	})
+
+	if err := book.save(ctx); err != nil {
+		return err
+	}
+
+	book.authorName = name
+	return nil
+}
+
 // WriteDatasetInit initializes a new dataset name within the author's namespace
 func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 	if book == nil {
@@ -540,7 +563,7 @@ func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log,
 // access control changes are kept in the dataset log
 //
 // currently all logs are hardcoded to only accept one branch name. This
-// function always returns
+// function will always return a single branch
 func (book Book) DatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, error) {
 	if ref.Username == "" {
 		return nil, fmt.Errorf("logbook: ref.Username is required")
