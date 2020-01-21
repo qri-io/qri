@@ -194,7 +194,7 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 	}
 }
 
-// OptSetLogAll sets the logAll value so that logging is enabled for all packages
+// OptSetLogAll sets the logAll value so that debug level logging is enabled for all qri packages
 func OptSetLogAll(logAll bool) Option {
 	return func(o *InstanceOptions) error {
 		o.logAll = logAll
@@ -315,8 +315,8 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	// if logAll is enabled, turn on logging for all packages. Packages need to be explicitly
-	// enumerated here
+	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
+	// be explicitly enumerated here
 	if o.logAll {
 		allPackages := []string{"qriapi", "qrip2p", "base", "cmd", "config", "dsref", "fsi", "lib", "logbook", "repo"}
 		for _, name := range allPackages {
