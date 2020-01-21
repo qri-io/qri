@@ -106,6 +106,7 @@ type InstanceOptions struct {
 	regclient  *regclient.Client
 	statsCache *stats.Cache
 	logbook    *logbook.Book
+	logAll     bool
 
 	remoteMockClient bool
 	// use OptRemoteOptions to set this
@@ -189,6 +190,14 @@ func OptCheckConfigMigrations(cfgPath string) Option {
 		if migrated {
 			return o.Cfg.WriteToFile(cfgPath)
 		}
+		return nil
+	}
+}
+
+// OptSetLogAll sets the logAll value so that debug level logging is enabled for all qri packages
+func OptSetLogAll(logAll bool) Option {
+	return func(o *InstanceOptions) error {
+		o.logAll = logAll
 		return nil
 	}
 }
@@ -304,6 +313,16 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		for name, level := range cfg.Logging.Levels {
 			golog.SetLogLevel(name, level)
 		}
+	}
+
+	// if logAll is enabled, turn on debug level logging for all qri packages. Packages need to
+	// be explicitly enumerated here
+	if o.logAll {
+		allPackages := []string{"qriapi", "qrip2p", "base", "cmd", "config", "dsref", "fsi", "lib", "logbook", "repo"}
+		for _, name := range allPackages {
+			golog.SetLogLevel(name, "debug")
+		}
+		log.Debugf("--log-all set: turning on logging for all activity")
 	}
 
 	if inst.cron, err = newCron(cfg, inst.repoPath); err != nil {

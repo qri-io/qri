@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"net/rpc"
+	"os"
 	"sync"
 
 	"github.com/qri-io/ioes"
@@ -37,6 +38,7 @@ https://github.com/qri-io/qri/issues`,
 	cmd.PersistentFlags().BoolVarP(&opt.NoColor, "no-color", "", false, "disable colorized output")
 	cmd.PersistentFlags().StringVar(&opt.RepoPath, "repo", qriPath, "provide a path to load qri from")
 	cmd.PersistentFlags().StringVar(&opt.IpfsPath, "ipfs-path", ipfsPath, "override IPFS path location")
+	cmd.PersistentFlags().BoolVarP(&opt.LogAll, "log-all", "", false, "log all activity")
 
 	cmd.AddCommand(
 		NewAddCommand(opt, ioStreams),
@@ -98,6 +100,8 @@ type QriOptions struct {
 	NoColor bool
 	// path to configuration object
 	ConfigPath string
+	// Whether to log all activity by enabling logging for all packages
+	LogAll bool
 
 	inst        *lib.Instance
 	initialized sync.Once
@@ -121,8 +125,10 @@ func (o *QriOptions) Init() (err error) {
 			lib.OptIOStreams(o.IOStreams), // transfer iostreams to instance
 			lib.OptSetIPFSPath(o.IpfsPath),
 			lib.OptCheckConfigMigrations(""),
+			lib.OptSetLogAll(o.LogAll),
 		}
 		o.inst, err = lib.NewInstance(o.ctx, o.RepoPath, opts...)
+		log.Debugf("running cmd %q", os.Args)
 	}
 	o.initialized.Do(initBody)
 	return

@@ -128,6 +128,8 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 	ctx := context.TODO()
 
+	log.Debugf("Checkout started, stat'ing %q", p.Dir)
+
 	// TODO(dlong): Fail if Dir is "", should be required to specify a location. Should probably
 	// only allow absolute paths. Add tests.
 
@@ -149,29 +151,43 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		return
 	}
 
+	log.Debugf("Checkout for ref %q", ref)
+
 	// Load dataset that is being checked out.
 	ds, err := dsfs.LoadDataset(ctx, m.inst.repo.Store(), ref.Path)
 	if err != nil {
+		log.Debugf("Checkout, dsfs.LoadDataset failed, error: %s", err)
 		return fmt.Errorf("error loading dataset")
 	}
 	ds.Name = ref.Name
 	ds.Peername = ref.Peername
 	if err = base.OpenDataset(ctx, m.inst.repo.Filesystem(), ds); err != nil {
+		log.Debugf("Checkout, base.OpenDataset failed, error: %s", ref)
 		return
 	}
+	log.Debugf("Checkout loaded dataset %q", ref)
 
 	// Create a directory.
 	if err := os.Mkdir(p.Dir, os.ModePerm); err != nil {
+		log.Debugf("Checkout, Mkdir failed, error: %s", ref)
 		return err
 	}
+	log.Debugf("Checkout made directory %q", p.Dir)
 
 	// Create the link file, containing the dataset reference.
 	if _, _, err = m.inst.fsi.CreateLink(p.Dir, p.Ref); err != nil {
+		log.Debugf("Checkout, fsi.CreateLink failed, error: %s", ref)
 		return err
 	}
+	log.Debugf("Checkout created link for %q <-> %q", p.Dir, p.Ref)
 
 	// Write components of the dataset to the working directory.
-	return fsi.WriteComponents(ds, p.Dir, m.inst.node.Repo.Filesystem())
+	err = fsi.WriteComponents(ds, p.Dir, m.inst.node.Repo.Filesystem())
+	if err != nil {
+		log.Debugf("Checkout, fsi.WriteComponents failed, error: %s", ref)
+	}
+	log.Debugf("Checkout wrote components, successfully checked out dataset")
+	return nil
 }
 
 // FSIWriteParams encapsultes arguments for writing to an FSI-linked directory
