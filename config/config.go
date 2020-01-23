@@ -86,6 +86,9 @@ func (cfg Config) SummaryString() (summary string) {
 
 	if cfg.API != nil && cfg.API.Enabled {
 		summary += fmt.Sprintf("API port:\t%d\n", cfg.API.Port)
+		if cfg.API.WebsocketEnabled {
+			summary += fmt.Sprintf("Websocket API Port:\t%d\n", cfg.API.WebsocketPort)
+		}
 	}
 
 	if cfg.RPC != nil && cfg.RPC.Enabled {

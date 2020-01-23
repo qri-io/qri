@@ -8,24 +8,29 @@ import (
 	"github.com/qri-io/jsonschema"
 )
 
-// DefaultAPIPort is local the port webapp serves on by default
-var DefaultAPIPort = 2503
+const (
+	// DefaultAPIPort is local the port the HTTP API serves on by default
+	DefaultAPIPort = 2503
+	// DefaultWebsocketAPIPort is local the port the websocket API serves on by
+	// default
+	DefaultWebsocketAPIPort = 2506
+)
 
 // API holds configuration for the qri JSON api
 type API struct {
 	Enabled bool `json:"enabled"`
-	// APIPort specifies the port to listen for JSON API calls
+	// the port to listen for JSON API calls
 	Port int `json:"port"`
 	// read-only mode
 	ReadOnly bool `json:"readonly"`
 	// remote mode
 	//
 	// Deprecated: use config.Remote instead
-	RemoteMode bool `json:"remotemode"`
+	RemoteMode bool `json:"remotemode,omitempty"`
 	// maximum size of dataset to accept for remote mode
 	//
 	// Deprecated: use config.Remote instead
-	RemoteAcceptSizeMax int64 `json:"remoteacceptsizemax"`
+	RemoteAcceptSizeMax int64 `json:"remoteacceptsizemax,omitempty"`
 	// timeout for remote sessions, in milliseconds
 	//
 	// Deprecated: use config.Remote instead
@@ -44,6 +49,11 @@ type API struct {
 	AllowedOrigins []string `json:"allowedorigins"`
 	// whether to allow requests from addresses other than localhost
 	ServeRemoteTraffic bool `json:"serveremotetraffic"`
+
+	// websocket flag api.Enabled must be true
+	WebsocketEnabled bool `json:"websocketenabled"`
+	// port to serve websocket traffic on
+	WebsocketPort int `json:"websocketport"`
 }
 
 // Validate validates all fields of api returning all errors found.
@@ -89,7 +99,15 @@ func (a API) Validate() error {
         "items": {
           "type": "string"
         }
-      }
+			},
+			"websocketenabled": {
+				"description": "Flag to turn on serving qri api over websockets",
+				"type": "boolean"
+			},
+			"websocketport": {
+				"description": "local port websocket API should listen on",
+				"type": "integer"
+			}
     }
   }`)
 	return validate(schema, &a)
@@ -107,6 +125,8 @@ func DefaultAPI() *API {
 			"http://app.qri.io",
 			"https://app.qri.io",
 		},
+		WebsocketEnabled: true,
+		WebsocketPort:    DefaultWebsocketAPIPort,
 	}
 }
 
@@ -121,6 +141,8 @@ func (a *API) Copy() *API {
 		DisconnectAfter:    a.DisconnectAfter,
 		ProxyForceHTTPS:    a.ProxyForceHTTPS,
 		ServeRemoteTraffic: a.ServeRemoteTraffic,
+		WebsocketEnabled:   a.WebsocketEnabled,
+		WebsocketPort:      a.WebsocketPort,
 	}
 	if a.AllowedOrigins != nil {
 		res.AllowedOrigins = make([]string, len(a.AllowedOrigins))

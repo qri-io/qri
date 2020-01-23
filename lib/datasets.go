@@ -241,7 +241,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 			}
 		} else {
 			if bufData, err = base.ReadBody(ds, df, p.FormatConfig, p.Limit, p.Offset, p.All); err != nil {
-				log.Debugf("Get dataset, base.ReadBody %q failed, error: %s", ds, err)
+				log.Debugf("Get dataset, base.ReadBody %s/%s@%s failed, error: %s", ds.Peername, ds.Name, ds.Path, err)
 				return err
 			}
 		}

@@ -15,14 +15,16 @@ import (
 	"nhooyr.io/websocket/wsjson"
 )
 
-const (
-	// TODO(dlong): Move to cfg
-	websocketPort        = 2506
-	qriWebsocketProtocol = "qri-websocket"
-)
+const qriWebsocketProtocol = "qri-websocket"
 
-// ServeWebsocket creates a websocket that clients can connect to in order to get realtime events
-func (s Server) ServeWebsocket(ctx context.Context) {
+// MaybeServeWebsocket creates a websocket that clients can connect to in order
+// to get realtime events
+func (s Server) MaybeServeWebsocket(ctx context.Context) {
+	apiCfg := s.Config().API
+	if apiCfg == nil || !apiCfg.Enabled || !apiCfg.WebsocketEnabled {
+		return
+	}
+
 	// Watch the filesystem. Events will be sent to websocket connections.
 	node := s.Node()
 	fsmessages, err := s.startFilesysWatcher(node)
@@ -32,9 +34,9 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 	}
 
 	go func() {
-		l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, websocketPort))
+		l, err := net.Listen("tcp", fmt.Sprintf("%s:%d", LocalHostIP, apiCfg.WebsocketPort))
 		if err != nil {
-			log.Infof("Websocket listen on port %d error: %s", websocketPort, err)
+			log.Infof("Websocket listen on port %d error: %s", apiCfg.WebsocketPort, err)
 			return
 		}
 		defer l.Close()
@@ -78,9 +80,6 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 				}
 			}
 		}()
-
-		// TODO(dlong): Move to SummaryString
-		fmt.Printf("Listening for websocket connection at %s\n", l.Addr().String())
 
 		// Start http server for websocket.
 		err = srv.Serve(l)

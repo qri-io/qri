@@ -61,8 +61,8 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	mux := NewServerRoutes(s)
 	server.Handler = mux
 
-	go s.ServeRPC(ctx)
-	go s.ServeWebsocket(ctx)
+	go s.MaybeServeRPC(ctx)
+	go s.MaybeServeWebsocket(ctx)
 
 	if namesys, err := node.GetIPFSNamesys(); err == nil {
 		if pinner, ok := node.Repo.Store().(cafs.Pinner); ok {
@@ -135,10 +135,10 @@ func (s Server) Serve(ctx context.Context) (err error) {
 	return StartServer(cfg.API, server)
 }
 
-// ServeRPC checks for a configured RPC port, and registers a listner if so
-func (s Server) ServeRPC(ctx context.Context) {
+// MaybeServeRPC checks for a configured RPC port, and registers a listner if so
+func (s Server) MaybeServeRPC(ctx context.Context) {
 	cfg := s.Config()
-	if !cfg.RPC.Enabled || cfg.RPC.Port == 0 {
+	if !cfg.RPC.Enabled {
 		return
 	}
 
