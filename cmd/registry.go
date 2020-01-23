@@ -9,15 +9,17 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewRegistryCommand creates a `qri registry` subcommand for working with configured registries
-// TODO - registry command is currently removed in favor of the newer "qri publish" command
+// NewRegistryCommand creates a `qri registry` subcommand for working with the
+// configured registry
+// TODO (b5) - registry publish commands are currently removed in favor of the
+// newer "qri publish" command.
 // we should consider refactoring this code (espcially it's documentation) &
 // use it for registry-specific publication & search interaction
 func NewRegistryCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "registry",
-		Short: "Commands for working with a qri registry",
+		Short: "Commands for working with a qri registry (qri.cloud)",
 		Long: `
 Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
@@ -48,7 +50,7 @@ $ qri config set registry.location ""`,
 		Use:   "status",
 		Short: "get the status of a reference on the registry",
 		Long: `
-	use status to see what version of a dataset the registry has on-record, if any`,
+  use status to see what version of a dataset the registry has on-record, if any`,
 		Example: `  Get status of a dataset reference::
 		$ qri registry status me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
@@ -62,53 +64,63 @@ $ qri config set registry.location ""`,
 	}
 
 	// publish represents the publish command
-	publish := &cobra.Command{
-		Use:   "publish",
-		Short: "Publish dataset info to the registry",
-		Long: `
-Publishes the dataset information onto the registry. There will be a record
-of your dataset on the registry, and if your dataset is less than 20mbs, 
-Qri will back your dataset up onto the registry.
+	// 	publish := &cobra.Command{
+	// 		Use:   "publish",
+	// 		Short: "Publish dataset info to the registry",
+	// 		Long: `
+	// Publishes the dataset information onto the registry. There will be a record
+	// of your dataset on the registry, and if your dataset is less than 20mbs,
+	// Qri will back your dataset up onto the registry.
 
-Published datasets can be found by other peers using the ` + "`qri search`" + ` command.
+	// Published datasets can be found by other peers using the ` + "`qri search`" + ` command.
 
-Datasets are by default published to the registry when they are created.`,
-		Example: `  Publish a dataset you've created to the registry:
-  $ qri registry publish me/dataset_name`,
-		Args: cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
-				return err
-			}
-			// return o.Publish()
-			return fmt.Errorf("TODO (b5): restore")
-		},
-	}
+	// Datasets are by default published to the registry when they are created.`,
+	// 		Example: `  Publish a dataset you've created to the registry:
+	//   $ qri registry publish me/dataset_name`,
+	// 		Args: cobra.MinimumNArgs(1),
+	// 		RunE: func(cmd *cobra.Command, args []string) error {
+	// 			if err := o.Complete(f, args); err != nil {
+	// 				return err
+	// 			}
+	// 			// return o.Publish()
+	// 			return fmt.Errorf("TODO (b5): restore")
+	// 		},
+	// 	}
 
 	// unpublish represents the unpublish command
-	unpublish := &cobra.Command{
-		Use:   "unpublish",
-		Short: "remove dataset info from the registry",
-		Long: `
-Unpublish will remove the reference to your dataset from the registry. If 
-you dataset was previously backed up onto the registry, this backup will 
-be removed.
+	// 	unpublish := &cobra.Command{
+	// 		Use:   "unpublish",
+	// 		Short: "remove dataset info from the registry",
+	// 		Long: `
+	// Unpublish will remove the reference to your dataset from the registry. If
+	// you dataset was previously backed up onto the registry, this backup will
+	// be removed.
 
-This dataset will no longer show up in search results.`,
-		Example: `  Remove a dataset from the registry:
-  $ qri registry unpublish me/dataset_name`,
-		Args: cobra.MinimumNArgs(1),
-		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
-				return err
-			}
-			// return o.Unpublish()
-			return fmt.Errorf("TODO (b5): restore")
-		},
-	}
+	// This dataset will no longer show up in search results.`,
+	// 		Example: `  Remove a dataset from the registry:
+	//   $ qri registry unpublish me/dataset_name`,
+	// 		Args: cobra.MinimumNArgs(1),
+	// 		RunE: func(cmd *cobra.Command, args []string) error {
+	// 			if err := o.Complete(f, args); err != nil {
+	// 				return err
+	// 			}
+	// 			// return o.Unpublish()
+	// 			return fmt.Errorf("TODO (b5): restore")
+	// 		},
+	// 	}
 
 	signup := &cobra.Command{
-		Use: "signup",
+		Use:   "signup",
+		Short: "create a registery profile & connect your repo keypair",
+		Long: `  signup creates a profile for your repo on the configured registry.
+  (qri is configred to use qri.cloud as a registry by default)
+
+  registry signup reserves a unique username, and connects your local keypair,
+  allowing you to use your repo keypair to make authenticated requests on your
+  behalf.
+
+  You'll need to sign up before you can publish to a registry.
+		`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -117,12 +129,25 @@ This dataset will no longer show up in search results.`,
 		},
 	}
 
-	signup.Flags().StringVar(&o.Username, "username", "", "registry username to prove")
-	signup.Flags().StringVar(&o.Password, "password", "", "registry password")
-	signup.Flags().StringVar(&o.Email, "email", "", "email")
+	signup.Flags().StringVar(&o.Username, "username", "", "desired username")
+	signup.Flags().StringVar(&o.Password, "password", "", "a new password for online login")
+	signup.Flags().StringVar(&o.Email, "email", "", "your email address")
+	signup.MarkFlagRequired("password")
+	signup.MarkFlagRequired("username")
+	signup.MarkFlagRequired("email")
 
 	prove := &cobra.Command{
-		Use: "prove",
+		Use:   "prove",
+		Short: "connect your repo keypair to an existing registry profile",
+		Long: `  If you have an existing account on a registry, and a repo that is
+  not yet connected to a registry profile, ` + "`prove`" + ` can connect them.
+
+  The prove command connects the local repo to the registry by sending a signed
+  request to the registry containing login credentials, proving access to both
+  the unregistred keypair and your cloud account. Your repo username will be
+  matched to the on-registry username.
+
+	A repo can only be associated with one registry profile.`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -131,10 +156,13 @@ This dataset will no longer show up in search results.`,
 		},
 	}
 
-	prove.Flags().StringVar(&o.Username, "username", "", "registry username to prove")
-	prove.Flags().StringVar(&o.Password, "password", "", "registry password")
+	prove.Flags().StringVar(&o.Username, "username", "", "your existing registry username")
+	prove.Flags().StringVar(&o.Password, "password", "", "your registry password")
+	prove.MarkFlagRequired("password")
+	prove.MarkFlagRequired("username")
 
-	cmd.AddCommand(publish, unpublish, status, signup, prove)
+	// TODO (b5) - restore publish & unpublish commands
+	cmd.AddCommand( /*publish, unpublish,*/ status, signup, prove)
 	return cmd
 }
 
