@@ -1,9 +1,11 @@
 package test
 
 import (
+	"bytes"
 	"context"
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"os"
@@ -13,14 +15,17 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
+	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -351,3 +356,146 @@ var BadStructureFile = qfs.NewMemfileBytes("badStructure.csv", []byte(`
 colA, colB, colB, colC
 1,2,3,4
 1,2,3,4`))
+
+// MockRepo manages a temporary repository for tesing purposes, adding extra
+// methods for testing convenience
+type MockRepo struct {
+	RootPath            string
+	IPFSPath            string
+	QriPath             string
+	TestCrypto          gen.CryptoGenerator
+	Streams             ioes.IOStreams
+	cfg                 *config.Config
+	UseMockRemoteClient bool
+}
+
+// NewMockRepo constructs the test repo and initializes everything as cheaply as possible.
+func NewMockRepo(peername, prefix string) (r MockRepo, err error) {
+	RootPath, err := ioutil.TempDir("", prefix)
+	if err != nil {
+		return r, err
+	}
+
+	// Create directory for new IPFS repo.
+	IPFSPath := filepath.Join(RootPath, "ipfs")
+	err = os.MkdirAll(IPFSPath, os.ModePerm)
+	if err != nil {
+		return r, err
+	}
+	// Build IPFS repo directory by unzipping an empty repo.
+	TestCrypto := NewTestCrypto()
+	err = TestCrypto.GenerateEmptyIpfsRepo(IPFSPath, "")
+	if err != nil {
+		return r, err
+	}
+	// Create directory for new Qri repo.
+	QriPath := filepath.Join(RootPath, "qri")
+	err = os.MkdirAll(QriPath, os.ModePerm)
+	if err != nil {
+		return r, err
+	}
+	// Create empty config.yaml into the test repo.
+	cfg := config.DefaultConfigForTesting().Copy()
+	cfg.Profile.Peername = peername
+
+	r = MockRepo{
+		RootPath:   RootPath,
+		IPFSPath:   IPFSPath,
+		QriPath:    QriPath,
+		TestCrypto: TestCrypto,
+		cfg:        cfg,
+	}
+	if err := r.WriteConfigFile(); err != nil {
+		return r, err
+	}
+	return r, nil
+}
+
+// Delete removes the test repo on disk.
+func (r *MockRepo) Delete() {
+	os.RemoveAll(r.RootPath)
+}
+
+// WriteConfigFile serializes the config file and writes it to the qri repository
+func (r *MockRepo) WriteConfigFile() error {
+	return r.cfg.WriteToFile(filepath.Join(r.QriPath, "config.yaml"))
+}
+
+// GetConfig returns the configuration for the test repo.
+func (r *MockRepo) GetConfig() *config.Config {
+	return r.cfg
+}
+
+// GetOutput returns the output from the previously executed command.
+func (r *MockRepo) GetOutput() string {
+	buffer, ok := r.Streams.Out.(*bytes.Buffer)
+	if ok {
+		return buffer.String()
+	}
+	return ""
+}
+
+// GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
+func (r *MockRepo) GetPathForDataset(index int) (string, error) {
+	dsRefs := filepath.Join(r.QriPath, "refs.fbs")
+
+	data, err := ioutil.ReadFile(dsRefs)
+	if err != nil {
+		return "", err
+	}
+
+	refs, err := repo.UnmarshalRefsFlatbuffer(data)
+	if err != nil {
+		return "", err
+	}
+
+	// If dataset doesn't exist, return an empty string for the path.
+	if len(refs) == 0 {
+		return "", err
+	}
+
+	return refs[index].Path, nil
+}
+
+// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored
+// in CAFS
+func (r *MockRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
+	ctx := context.Background()
+	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+		cfg.Online = false
+		cfg.FsRepoPath = r.IPFSPath
+	})
+	if err != nil {
+		return "", err
+	}
+
+	bodyFile, err := fs.Get(ctx, keyPath)
+	if err != nil {
+		return "", err
+	}
+
+	bodyBytes, err := ioutil.ReadAll(bodyFile)
+	if err != nil {
+		return "", err
+	}
+
+	return string(bodyBytes), nil
+}
+
+// DatasetMarshalJSON reads the dataset head and marshals it as json.
+func (r *MockRepo) DatasetMarshalJSON(ref string) (string, error) {
+	ctx := context.Background()
+	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
+		cfg.Online = false
+		cfg.FsRepoPath = r.IPFSPath
+	})
+	ds, err := dsfs.LoadDataset(ctx, fs, ref)
+	if err != nil {
+		return "", err
+	}
+	bytes, err := json.Marshal(ds)
+	if err != nil {
+		return "", err
+	}
+	return string(bytes), nil
+}

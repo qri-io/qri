@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/qri-io/ioes"
-	libtest "github.com/qri-io/qri/lib/test"
+	repotest "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
@@ -37,7 +37,7 @@ func TestConnect(t *testing.T) {
 	ctx, done := context.WithTimeout(context.Background(), time.Second)
 	defer done()
 
-	root := NewQriCommand(ctx, NewDirPathFactory(path), libtest.NewTestCrypto(), streams)
+	root := NewQriCommand(ctx, NewDirPathFactory(path), repotest.NewTestCrypto(), streams)
 
 	defer func() {
 		if e := recover(); e != nil {

@@ -7,7 +7,7 @@ import (
 )
 
 func TestFetchCommand(t *testing.T) {
-	r := NewTestRepoRoot(t, "peer_a", "qri_test_fetch_a")
+	r := NewTestRunner(t, "peer_a", "qri_test_fetch_a")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())
@@ -29,7 +29,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	text := r.GetOutput()
+	text := r.GetCommandOutput()
 	// TODO (b5) - make this acutally inspect once we have stable timestamps in logs
 	if len(text) == 0 {
 		t.Errorf("expected log to produce a non-zero length output.")
@@ -50,7 +50,7 @@ func TestFetchCommand(t *testing.T) {
 	// TODO (b5) - this is horrible. we should block on a channel receive for connectedness
 	time.Sleep(time.Second * 5)
 
-	b := NewTestRepoRoot(t, "peer_b", "qri_test_fetch_b")
+	b := NewTestRunner(t, "peer_b", "qri_test_fetch_b")
 	defer b.Delete()
 
 	cmdBr := b.CreateCommandRunner(ctx)
@@ -73,7 +73,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	text = b.GetOutput()
+	text = b.GetCommandOutput()
 	t.Logf("%s", text)
 
 	cmdBr = b.CreateCommandRunner(ctx)
@@ -81,6 +81,6 @@ func TestFetchCommand(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	text = b.GetOutput()
+	text = b.GetCommandOutput()
 	t.Logf("expect log: '%s'", text)
 }

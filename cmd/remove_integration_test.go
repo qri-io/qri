@@ -54,7 +54,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	// Save a dataset containing a body.json, no meta, nothing special.
 	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -62,7 +62,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	// Save another version
 	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -71,7 +71,7 @@ func TestRemoveOneRevisionFromRepo(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=1 me/remove_test")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath3 {
 		t.Errorf("after delete, ref should match the first version, expected: %s\n, got: %s\n",
 			ref1, dsPath3)
@@ -86,7 +86,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	// Save a dataset containing a body.json, no meta, nothing special.
 	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -94,7 +94,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	// Save another version
 	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -103,7 +103,7 @@ func TestRemoveAllRevisionsFromRepo(t *testing.T) {
 	run.MustExec(t, "qri remove --all me/remove_test")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if dsPath3 != "" {
 		t.Errorf("after delete, dataset should not exist, got: %s\n", dsPath3)
 	}
@@ -117,7 +117,7 @@ func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
 	// Save a dataset containing a body.json, no meta, nothing special.
 	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/remove_test")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -125,7 +125,7 @@ func TestRemoveRepoCantUseKeepFiles(t *testing.T) {
 	// Save another version
 	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/remove_test")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -157,7 +157,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	// Save the new dataset.
 	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -169,7 +169,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	// Save the new dataset.
 	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -178,7 +178,7 @@ func TestRemoveOneRevisionFromWorkingDirectory(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=1")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath3 {
 		t.Errorf("after delete, ref should match the first version, expected: %s\n, got: %s\n",
 			ref1, dsPath3)
@@ -259,7 +259,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	// Save the new dataset.
 	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -271,7 +271,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	// Save the new dataset.
 	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -280,7 +280,7 @@ func TestRemoveOneRevisionWillDeleteFilesThatWereNotThereBefore(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=1")
 
 	// Verify that dsref of HEAD is the same as the result of the first save command
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath3 {
 		t.Errorf("after delete, ref should match the first version, expected: %s\n, got: %s\n",
 			ref1, dsPath3)
@@ -330,7 +330,7 @@ func TestRemoveNoHistory(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=1 -f")
 
 	// Verify that dsref of HEAD is empty
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if dsPath3 != "" {
 		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
 	}
@@ -354,7 +354,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	// Save the new dataset.
 	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -365,7 +365,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	// Save the new dataset.
 	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -384,7 +384,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	}
 
 	// Verify that dsref of HEAD is still the result of the second save
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath3 {
 		t.Errorf("no commits should have been removed, expected: %s\n, got: %s\n",
 			ref2, dsPath3)
@@ -394,7 +394,7 @@ func TestRemoveKeepFiles(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=1 --keep-files")
 
 	// Verify that dsref is now the result of the first save because one commit was removed
-	dsPath4 := run.RepoRoot.GetPathForDataset(0)
+	dsPath4 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath4 {
 		t.Errorf("no commits should have been removed, expected: %s\n, got: %s\n",
 			ref1, dsPath4)
@@ -433,7 +433,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	// Save the new dataset.
 	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -444,7 +444,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	// Save the new dataset.
 	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -453,7 +453,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	run.MustExec(t, "qri remove --all=1")
 
 	// Verify that dsref of HEAD is empty
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if dsPath3 != "" {
 		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
 	}
@@ -477,7 +477,7 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	// Save the new dataset.
 	output := run.MustExec(t, "qri save")
 	ref1 := parsePathFromRef(parseRefFromSave(output))
-	dsPath1 := run.RepoRoot.GetPathForDataset(0)
+	dsPath1 := run.GetPathForDataset(t, 0)
 	if ref1 != dsPath1 {
 		t.Fatal("ref from first save should match what is in qri repo")
 	}
@@ -488,7 +488,7 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	// Save the new dataset.
 	output = run.MustExec(t, "qri save")
 	ref2 := parsePathFromRef(parseRefFromSave(output))
-	dsPath2 := run.RepoRoot.GetPathForDataset(0)
+	dsPath2 := run.GetPathForDataset(t, 0)
 	if ref2 != dsPath2 {
 		t.Fatal("ref from second save should match what is in qri repo")
 	}
@@ -497,7 +497,7 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	run.MustExec(t, "qri remove --revisions=all --keep-files")
 
 	// Verify that dsref of HEAD is empty
-	dsPath3 := run.RepoRoot.GetPathForDataset(0)
+	dsPath3 := run.GetPathForDataset(t, 0)
 	if dsPath3 != "" {
 		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
 	}
@@ -557,7 +557,7 @@ func TestRemoveEvenIfLogbookGone(t *testing.T) {
 	os.Chdir(parentDir)
 
 	// Remove the logbook
-	logbookFile := filepath.Join(run.RepoRoot.rootPath, "qri/logbook.qfb")
+	logbookFile := filepath.Join(run.RepoRoot.RootPath, "qri/logbook.qfb")
 	if _, err := os.Stat(logbookFile); os.IsNotExist(err) {
 		t.Fatal("logbook does not exist")
 	}
@@ -595,7 +595,7 @@ func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
 	run.MustExec(t, "qri add other_peer/their_dataset")
 
 	// Remove the logbook
-	logbookFile := filepath.Join(run.RepoRoot.rootPath, "qri/logbook.qfb")
+	logbookFile := filepath.Join(run.RepoRoot.RootPath, "qri/logbook.qfb")
 	if _, err := os.Stat(logbookFile); os.IsNotExist(err) {
 		t.Fatal("logbook does not exist")
 	}
