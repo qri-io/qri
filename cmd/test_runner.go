@@ -3,59 +3,68 @@ package cmd
 import (
 	"bytes"
 	"context"
-	"encoding/json"
 	"io/ioutil"
 	"os"
-	"path/filepath"
 	"runtime"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/qri-io/ioes"
-	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	libtest "github.com/qri-io/qri/lib/test"
-	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/gen"
+	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/spf13/cobra"
 )
 
 // TestRunner holds data used to run tests
 type TestRunner struct {
-	RepoRoot    *TestRepoRoot
+	RepoRoot    *repotest.MockRepo
 	Context     context.Context
 	ContextDone func()
 	TsFunc      func() time.Time
 	CmdR        *cobra.Command
 	Teardown    func()
+
+	pathFactory PathFactory
 }
 
 // NewTestRunner constructs a new TsetRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
-	root := NewTestRepoRoot(t, peerName, testName)
+	root, err := repotest.NewMockRepo(peerName, testName)
+	if err != nil {
+		t.Fatalf("creating temp repo: %s", err)
+	}
 	return newTestRunnerFromRoot(&root)
 }
 
 // NewTestRunnerWithMockRemoteClient constructs a test runner with a mock remote client
 func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) *TestRunner {
-	root := NewTestRepoRoot(t, peerName, testName)
-	root.useMockRemoteClient = true
+	root, err := repotest.NewMockRepo(peerName, testName)
+	if err != nil {
+		t.Fatalf("creating temp repo: %s", err)
+	}
+	root.UseMockRemoteClient = true
 	return newTestRunnerFromRoot(&root)
 }
 
 // NewTestRunnerWithMockRegistry constructs a test runner with a mock registry connection
 func NewTestRunnerWithMockRegistry(t *testing.T, peerName, testName string) *TestRunner {
-	root := NewTestRepoRoot(t, peerName, testName)
+	root, err := repotest.NewMockRepo(peerName, testName)
+	if err != nil {
+		t.Fatalf("creating temp repo: %s", err)
+	}
 	root.GetConfig().Registry.Location = "mock"
-	root.WriteConfigFile(t)
+	if err := root.WriteConfigFile(); err != nil {
+		t.Fatalf("writing config file: %s", err)
+	}
 	return newTestRunnerFromRoot(&root)
 }
 
-func newTestRunnerFromRoot(root *TestRepoRoot) *TestRunner {
-	run := TestRunner{}
+func newTestRunnerFromRoot(root *repotest.MockRepo) *TestRunner {
+	run := TestRunner{
+		pathFactory: NewDirPathFactory(root.RootPath),
+	}
 	run.RepoRoot = root
 	run.Context, run.ContextDone = context.WithCancel(context.Background())
 
@@ -83,8 +92,55 @@ func (run *TestRunner) Delete() {
 
 // ExecCommand executes the given command string
 func (run *TestRunner) ExecCommand(cmdText string) error {
-	run.CmdR = run.RepoRoot.CreateCommandRunner(run.Context)
+	run.CmdR = run.CreateCommandRunner(run.Context)
 	return executeCommand(run.CmdR, cmdText)
+}
+
+// CreateCommandRunner returns a cobra runable command.
+func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
+	in := &bytes.Buffer{}
+	out := &bytes.Buffer{}
+	run.RepoRoot.Streams = ioes.NewIOStreams(in, out, out)
+	setNoColor(true)
+
+	if run.RepoRoot.UseMockRemoteClient {
+		// Set this context value, which is used in lib.NewInstance to construct a
+		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
+		// to pipe parameters into cobra.Command without doing it like this.
+		key := lib.InstanceContextKey("RemoteClient")
+		ctx = context.WithValue(ctx, key, "mock")
+	}
+
+	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.RepoRoot.Streams)
+	cmd.SetOutput(out)
+	return cmd
+}
+
+// GetPathForDataset fetches a path for dataset index
+func (run *TestRunner) GetPathForDataset(t *testing.T, index int) string {
+	path, err := run.RepoRoot.GetPathForDataset(index)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return path
+}
+
+// ReadBodyFromIPFS reads body data from an IPFS repo by path string,
+func (run *TestRunner) ReadBodyFromIPFS(t *testing.T, path string) (body string) {
+	body, err := run.RepoRoot.ReadBodyFromIPFS(path)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return body
+}
+
+// DatasetMarshalJSON reads the dataset head and marshals it as json
+func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) (data string) {
+	data, err := run.RepoRoot.DatasetMarshalJSON(ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return data
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error
@@ -144,184 +200,4 @@ func executeCommandC(root *cobra.Command, args ...string) (err error) {
 	root.SetArgs(args)
 	_, err = root.ExecuteC()
 	return err
-}
-
-// TODO: Perhaps this utility should move to a lower package, and be used as a way to validate the
-// bodies of dataset in more of our test case. That would require extracting some parts out, like
-// pathFactory, which would probably necessitate the pathFactory taking the testRepoRoot as a
-// parameter to its constructor.
-
-// TODO: Also, perhaps a different name would be better. This one is very similar to TestRepo,
-// but does things quite differently.
-
-// TestRepoRoot stores paths to a test repo.
-type TestRepoRoot struct {
-	rootPath    string
-	ipfsPath    string
-	qriPath     string
-	pathFactory PathFactory
-	testCrypto  gen.CryptoGenerator
-	streams     ioes.IOStreams
-	cfg         *config.Config
-	t           *testing.T
-
-	useMockRemoteClient bool
-}
-
-// NewTestRepoRoot constructs the test repo and initializes everything as cheaply as possible.
-func NewTestRepoRoot(t *testing.T, peername, prefix string) TestRepoRoot {
-	rootPath, err := ioutil.TempDir("", prefix)
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// Create directory for new IPFS repo.
-	ipfsPath := filepath.Join(rootPath, "ipfs")
-	err = os.MkdirAll(ipfsPath, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Build IPFS repo directory by unzipping an empty repo.
-	testCrypto := libtest.NewTestCrypto()
-	err = testCrypto.GenerateEmptyIpfsRepo(ipfsPath, "")
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Create directory for new Qri repo.
-	qriPath := filepath.Join(rootPath, "qri")
-	err = os.MkdirAll(qriPath, os.ModePerm)
-	if err != nil {
-		t.Fatal(err)
-	}
-	// Create empty config.yaml into the test repo.
-	cfg := config.DefaultConfigForTesting().Copy()
-	cfg.Profile.Peername = peername
-
-	// PathFactory returns the paths for qri and ipfs roots.
-	pathFactory := NewDirPathFactory(rootPath)
-
-	root := TestRepoRoot{
-		rootPath:    rootPath,
-		ipfsPath:    ipfsPath,
-		qriPath:     qriPath,
-		pathFactory: pathFactory,
-		testCrypto:  testCrypto,
-		cfg:         cfg,
-		t:           t,
-	}
-	root.WriteConfigFile(t)
-	return root
-}
-
-// Delete removes the test repo on disk.
-func (r *TestRepoRoot) Delete() {
-	os.RemoveAll(r.rootPath)
-}
-
-// WriteConfigFile serializes the config file and writes it to the qri repository
-func (r *TestRepoRoot) WriteConfigFile(t *testing.T) {
-	err := r.cfg.WriteToFile(filepath.Join(r.qriPath, "config.yaml"))
-	if err != nil {
-		t.Fatal(err)
-	}
-}
-
-// GetConfig returns the configuration for the test repo.
-func (r *TestRepoRoot) GetConfig() *config.Config {
-	return r.cfg
-}
-
-// CreateCommandRunner returns a cobra runable command.
-func (r *TestRepoRoot) CreateCommandRunner(ctx context.Context) *cobra.Command {
-	in := &bytes.Buffer{}
-	out := &bytes.Buffer{}
-	r.streams = ioes.NewIOStreams(in, out, out)
-	setNoColor(true)
-
-	if r.useMockRemoteClient {
-		// Set this context value, which is used in lib.NewInstance to construct a
-		// remote.MockClient instead. Using context.Value is discouraged, but it's difficult
-		// to pipe parameters into cobra.Command without doing it like this.
-		key := lib.InstanceContextKey("RemoteClient")
-		ctx = context.WithValue(ctx, key, "mock")
-	}
-
-	cmd := NewQriCommand(ctx, r.pathFactory, r.testCrypto, r.streams)
-	cmd.SetOutput(out)
-	return cmd
-}
-
-// GetOutput returns the output from the previously executed command.
-func (r *TestRepoRoot) GetOutput() string {
-	buffer, ok := r.streams.Out.(*bytes.Buffer)
-	if ok {
-		return buffer.String()
-	}
-	return ""
-}
-
-// GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
-func (r *TestRepoRoot) GetPathForDataset(index int) string {
-	dsRefs := filepath.Join(r.qriPath, "refs.fbs")
-
-	data, err := ioutil.ReadFile(dsRefs)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	refs, err := repo.UnmarshalRefsFlatbuffer(data)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	// If dataset doesn't exist, return an empty string for the path.
-	if len(refs) == 0 {
-		return ""
-	}
-
-	return refs[index].Path
-}
-
-// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.
-// TODO (b5): reprecate this rediculous function
-func (r *TestRepoRoot) ReadBodyFromIPFS(keyPath string) string {
-	ctx := context.Background()
-	// TODO: Perhaps there is an existing cafs primitive that does this work instead?
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.ipfsPath
-	})
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	bodyFile, err := fs.Get(ctx, keyPath)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	bodyBytes, err := ioutil.ReadAll(bodyFile)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-
-	return string(bodyBytes)
-}
-
-// DatasetMarshalJSON reads the dataset head and marshals it as json.
-func (r *TestRepoRoot) DatasetMarshalJSON(ref string) string {
-	ctx := context.Background()
-	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
-		cfg.Online = false
-		cfg.FsRepoPath = r.ipfsPath
-	})
-	ds, err := dsfs.LoadDataset(ctx, fs, ref)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-	bytes, err := json.Marshal(ds)
-	if err != nil {
-		r.t.Fatal(err)
-	}
-	return string(bytes)
 }

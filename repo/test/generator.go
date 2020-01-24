@@ -1,5 +1,3 @@
-// Package test defines utilities for testing the lib package, including caches
-// of expensive processes like cryptographic key generation and ipfs repo creation
 package test
 
 import (
@@ -34,10 +32,6 @@ func (g *testCryptoGenerator) GenerateNickname(peerID string) string {
 func (g *testCryptoGenerator) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
 	unzipFile(testdataPath("empty_ipfs_repo.zip"), repoPath)
 	return nil
-}
-
-func testdataPath(path string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/lib/test/testdata", path)
 }
 
 func unzipFile(sourceZip, destDir string) {

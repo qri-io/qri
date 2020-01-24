@@ -72,7 +72,6 @@ ok    github.com/qri-io/qri/config  (cached)
 ?     github.com/qri-io/qri/config/test [no test files]
 ?     github.com/qri-io/qri/docs  [no test files]
 ok    github.com/qri-io/qri/lib 1.064s
-?     github.com/qri-io/qri/lib/test  [no test files]
 ok    github.com/qri-io/qri/p2p (cached)
 ok    github.com/qri-io/qri/p2p/test  (cached)
 ok    github.com/qri-io/qri/repo  (cached)

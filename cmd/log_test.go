@@ -6,7 +6,7 @@ import (
 )
 
 func TestLogbookCommand(t *testing.T) {
-	r := NewTestRepoRoot(t, "test_peer", "qri_test_logbook")
+	r := NewTestRunner(t, "test_peer", "qri_test_logbook")
 	defer r.Delete()
 
 	ctx, done := context.WithCancel(context.Background())

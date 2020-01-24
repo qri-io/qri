@@ -12,7 +12,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	libtest "github.com/qri-io/qri/lib/test"
+	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
@@ -57,7 +57,7 @@ func NewTestFactory() (tf TestFactory, err error) {
 		IOStreams:   ioes.NewDiscardIOStreams(),
 		qriRepoPath: "",
 		ipfsFsPath:  "",
-		generator:   libtest.NewTestCrypto(),
+		generator:   repotest.NewTestCrypto(),
 
 		repo:   repo,
 		rpc:    nil,
@@ -97,7 +97,7 @@ func NewTestFactoryInstanceOptions(opts ...lib.Option) (tf TestFactory, err erro
 		IOStreams:   ioes.NewDiscardIOStreams(),
 		qriRepoPath: "",
 		ipfsFsPath:  "",
-		generator:   libtest.NewTestCrypto(),
+		generator:   repotest.NewTestCrypto(),
 
 		repo:   repo,
 		rpc:    nil,

@@ -19,7 +19,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
-	libtest "github.com/qri-io/qri/lib/test"
+	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -103,7 +103,7 @@ func TestNewDefaultInstance(t *testing.T) {
 		os.RemoveAll(tempDir)
 	}()
 
-	testCrypto := libtest.NewTestCrypto()
+	testCrypto := repotest.NewTestCrypto()
 	if err = testCrypto.GenerateEmptyIpfsRepo(tempDir, ""); err != nil {
 		t.Fatal(err)
 	}
