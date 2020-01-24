@@ -6,5 +6,5 @@ import (
 
 func TestMockServer(t *testing.T) {
 	NewMockServer()
-	NewMockServerRegistry(NewMemRegistry())
+	NewMockServerRegistry(NewMemRegistry(nil))
 }

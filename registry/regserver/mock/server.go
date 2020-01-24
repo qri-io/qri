@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/registry/regserver/handlers"
+	"github.com/qri-io/qri/remote"
 )
 
 func init() {
@@ -18,7 +19,7 @@ func init() {
 // NewMockServer creates an in-memory mock server (with a pinset) without any access protection and
 // a registry client to match
 func NewMockServer() (*regclient.Client, *httptest.Server) {
-	return NewMockServerRegistry(NewMemRegistry())
+	return NewMockServerRegistry(NewMemRegistry(nil))
 }
 
 // NewMockServerRegistry creates a mock server & client with a passed-in registry
@@ -29,8 +30,9 @@ func NewMockServerRegistry(reg registry.Registry) (*regclient.Client, *httptest.
 }
 
 // NewMemRegistry creates a new in-memory registry
-func NewMemRegistry() registry.Registry {
+func NewMemRegistry(rem *remote.Remote) registry.Registry {
 	return registry.Registry{
+		Remote:   rem,
 		Profiles: registry.NewMemProfiles(),
 	}
 }

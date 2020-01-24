@@ -500,7 +500,8 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	if cfg.Registry != nil {
 		switch cfg.Registry.Location {
 		case "mock":
-			cli, server := regmock.NewMockServerRegistry(regmock.NewMemRegistry())
+			// TODO (b5) - need a method to create a mock remote
+			cli, server := regmock.NewMockServerRegistry(regmock.NewMemRegistry(nil))
 			log.Infof("mock registry serving at: '%s'", server.URL)
 			go func() {
 				<-ctx.Done()
