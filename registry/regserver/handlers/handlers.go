@@ -57,9 +57,6 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 	if s := reg.Search; s != nil {
 		m.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
 	}
-	if rs := reg.Reputations; rs != nil {
-		m.HandleFunc("/registry/reputation", (logReq(NewReputationHandler(rs))))
-	}
 
 	return m
 }
