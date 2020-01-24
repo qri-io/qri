@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
@@ -197,7 +197,7 @@ func TestSaveProfile(t *testing.T) {
 func TestProfileRequestsSetPeername(t *testing.T) {
 	cfg := config.DefaultConfigForTesting()
 
-	reg := regmock.NewMemRegistry()
+	reg := regmock.NewMemRegistry(nil)
 	node := newTestQriNode(t)
 
 	// TODO (b5) - hack until tests have better instance-generation primitives

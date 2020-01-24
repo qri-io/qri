@@ -307,8 +307,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
-	fh := NewFeedHandlers(s.Instance)
-	m.Handle("/feed/home", s.middleware(fh.HomeHandler))
+	bh := NewBrowseHandlers(s.Instance)
+	m.Handle("/feed/home", s.middleware(bh.HomeHandler))
 
 	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))

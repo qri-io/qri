@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	repotest "github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/startf"
 )
 

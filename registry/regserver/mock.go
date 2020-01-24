@@ -1,14 +1,17 @@
-// Package mock provides a mock registry server for testing purposes
-// it mocks the behaviour of a registry server with in-memory storage
-package mock
+// Package regserver provides a mock registry server for testing purposes
+package regserver
 
 import (
+	"context"
 	"net/http/httptest"
 
+	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
+	"github.com/qri-io/qri/repo"
 )
 
 func init() {
@@ -16,8 +19,7 @@ func init() {
 	handlers.SetLogLevel("error")
 }
 
-// NewMockServer creates an in-memory mock server (with a pinset) without any access protection and
-// a registry client to match
+// NewMockServer creates an in-memory mock server & matching registry client
 func NewMockServer() (*regclient.Client, *httptest.Server) {
 	return NewMockServerRegistry(NewMemRegistry(nil))
 }
@@ -35,4 +37,25 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 		Remote:   rem,
 		Profiles: registry.NewMemProfiles(),
 	}
+}
+
+// MockRepoSearch proxies search to base.ListDatasets' "term" argument for
+// simple-but-real search
+type MockRepoSearch struct {
+	repo.Repo
+}
+
+// Search implements the registry.Searchable interface
+func (ss MockRepoSearch) Search(p registry.SearchParams) ([]*dataset.Dataset, error) {
+	ctx := context.Background()
+	refs, err := base.ListDatasets(ctx, ss.Repo, p.Q, 1000, 0, false, true, false)
+	if err != nil {
+		return nil, err
+	}
+
+	var res []*dataset.Dataset
+	for _, ref := range refs {
+		res = append(res, ref.Dataset)
+	}
+	return res, nil
 }

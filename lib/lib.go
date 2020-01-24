@@ -30,7 +30,6 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry/regclient"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
@@ -66,7 +65,7 @@ func Receivers(inst *Instance) []Methods {
 
 	return []Methods{
 		NewDatasetRequestsInstance(inst),
-		NewFeedMethods(inst),
+		NewBrowseMethods(inst),
 		NewRegistryClientMethods(inst),
 		NewRemoteMethods(inst),
 		NewLogRequests(node, nil),
@@ -500,15 +499,6 @@ func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, er
 func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client) {
 	if cfg.Registry != nil {
 		switch cfg.Registry.Location {
-		case "mock":
-			// TODO (b5) - need a method to create a mock remote
-			cli, server := regmock.NewMockServerRegistry(regmock.NewMemRegistry(nil))
-			log.Infof("mock registry serving at: '%s'", server.URL)
-			go func() {
-				<-ctx.Done()
-				server.Close()
-			}()
-			return cli
 		case "":
 			return rc
 		default:

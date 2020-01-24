@@ -52,7 +52,7 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	}
 
 	// TODO (b5) - update registry endpoint name
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/dataset_summary/splash", c.cfg.Location), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/feeds", c.cfg.Location), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +66,7 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	}
 	// add response to an envelope
 	env := struct {
-		Data map[string][]*dataset.Dataset
+		Data []*dataset.Dataset
 		Meta struct {
 			Error  string
 			Status string
@@ -81,5 +81,10 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	if res.StatusCode != http.StatusOK {
 		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
 	}
-	return env.Data, nil
+
+	reply := map[string][]*dataset.Dataset{
+		"recent": env.Data,
+	}
+
+	return reply, nil
 }
