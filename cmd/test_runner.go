@@ -29,7 +29,7 @@ type TestRunner struct {
 	pathFactory PathFactory
 }
 
-// NewTestRunner constructs a new TsetRunner
+// NewTestRunner constructs a new TestRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
 	root, err := repotest.NewMockRepo(peerName, testName)
 	if err != nil {

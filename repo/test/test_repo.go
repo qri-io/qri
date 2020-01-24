@@ -398,9 +398,6 @@ func NewMockRepo(peername, prefix string) (r MockRepo, err error) {
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
 
-	// PathFactory returns the paths for qri and ipfs roots.
-	// pathFactory := NewDirPathFactory(RootPath)
-
 	r = MockRepo{
 		RootPath:   RootPath,
 		IPFSPath:   IPFSPath,
@@ -460,11 +457,10 @@ func (r *MockRepo) GetPathForDataset(index int) (string, error) {
 	return refs[index].Path, nil
 }
 
-// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored in CAFS.
-// TODO (b5): reprecate this rediculous function
+// ReadBodyFromIPFS reads the body of the dataset at the given keyPath stored
+// in CAFS
 func (r *MockRepo) ReadBodyFromIPFS(keyPath string) (string, error) {
 	ctx := context.Background()
-	// TODO: Perhaps there is an existing cafs primitive that does this work instead?
 	fs, err := ipfs_filestore.NewFilestore(func(cfg *ipfs_filestore.StoreCfg) {
 		cfg.Online = false
 		cfg.FsRepoPath = r.IPFSPath
