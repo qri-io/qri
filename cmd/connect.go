@@ -40,6 +40,7 @@ peers & swapping data.`,
 
 	cmd.Flags().BoolVarP(&o.Setup, "setup", "", false, "run setup if necessary, reading options from environment variables")
 	cmd.Flags().StringVarP(&o.Registry, "registry", "", "", "specify registry to setup with. only works when --setup is true")
+	cmd.Flags().BoolVarP(&o.NoP2P, "no-p2p", "", false, "configure p2p to be disabled")
 
 	return cmd
 }
@@ -50,6 +51,7 @@ type ConnectOptions struct {
 	inst     *lib.Instance
 	Registry string
 	Setup    bool
+	NoP2P    bool
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
@@ -96,6 +98,10 @@ func (o *ConnectOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the connect command with currently configured state
 func (o *ConnectOptions) Run() (err error) {
+	if o.NoP2P {
+		o.inst.Config().Set("p2p.enabled", false)
+	}
+
 	s := api.New(o.inst)
 	err = s.Serve(o.inst.Context())
 	if err != nil && err.Error() == "http: Server closed" {
