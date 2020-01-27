@@ -15,8 +15,8 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
-	repotest "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/qri/registry/regserver"
+	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -625,7 +625,7 @@ This is a dataset about movies
 
 // Test that renaming a dataset after registration (which changes the username) works correctly
 func TestRenameAfterRegistration(t *testing.T) {
-	run := NewTestRunnerWithMockRegistry(t, "test_peer", "rename_after_reg")
+	run := NewTestRunnerWithTempRegistry(t, "test_peer", "rename_after_reg")
 	defer run.Delete()
 
 	// Create a dataset, using the "anonymous" generated username.

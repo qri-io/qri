@@ -24,7 +24,7 @@ func main() {
 		port = "3000"
 	}
 
-	inst, reg, cleanup, err := NewMockRepoRegistry(ctx)
+	inst, reg, cleanup, err := NewTempRepoRegistry(ctx)
 	if err != nil {
 		log.Fatalf("creating mock registry: %s", err)
 	}

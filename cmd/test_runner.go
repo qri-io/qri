@@ -13,13 +13,15 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/registry"
+	"github.com/qri-io/qri/registry/regserver"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/spf13/cobra"
 )
 
 // TestRunner holds data used to run tests
 type TestRunner struct {
-	RepoRoot    *repotest.MockRepo
+	RepoRoot    *repotest.TempRepo
 	Context     context.Context
 	ContextDone func()
 	TsFunc      func() time.Time
@@ -27,11 +29,13 @@ type TestRunner struct {
 	Teardown    func()
 
 	pathFactory PathFactory
+
+	registry *registry.Registry
 }
 
 // NewTestRunner constructs a new TestRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewMockRepo(peerName, testName)
+	root, err := repotest.NewTempRepo(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
@@ -40,7 +44,7 @@ func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
 
 // NewTestRunnerWithMockRemoteClient constructs a test runner with a mock remote client
 func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewMockRepo(peerName, testName)
+	root, err := repotest.NewTempRepo(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
@@ -48,20 +52,37 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 	return newTestRunnerFromRoot(&root)
 }
 
-// NewTestRunnerWithMockRegistry constructs a test runner with a mock registry connection
-func NewTestRunnerWithMockRegistry(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewMockRepo(peerName, testName)
+// NewTestRunnerWithTempRegistry constructs a test runner with a mock registry connection
+func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *TestRunner {
+	root, err := repotest.NewTempRepo(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
-	root.GetConfig().Registry.Location = "mock"
+
+	reg, teardownRegistry, err := regserver.NewTempRegistry("registry", testName+"_registry")
+	if err != nil {
+		t.Fatalf("creating registry: %s", err)
+	}
+
+	// TODO (b5) - wouldn't it be nice if we could pass the client as an instance configuration
+	// option? that'd require re-thinking the way we do NewQriCommand
+	_, server := regserver.NewMockServerRegistry(*reg)
+
+	runner := newTestRunnerFromRoot(&root)
+	runner.Teardown = func() {
+		teardownRegistry()
+		server.Close()
+	}
+
+	root.GetConfig().Registry.Location = server.URL
 	if err := root.WriteConfigFile(); err != nil {
 		t.Fatalf("writing config file: %s", err)
 	}
-	return newTestRunnerFromRoot(&root)
+
+	return runner
 }
 
-func newTestRunnerFromRoot(root *repotest.MockRepo) *TestRunner {
+func newTestRunnerFromRoot(root *repotest.TempRepo) *TestRunner {
 	run := TestRunner{
 		pathFactory: NewDirPathFactory(root.RootPath),
 	}

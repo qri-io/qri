@@ -13,11 +13,11 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
-// NewMockRepoRegistry creates a temporary repo & builds a registry atop it.
+// NewTempRepoRegistry creates a temporary repo & builds a registry atop it.
 // callers should always call the returned cleanup function when finished to
 // remove temp files
-func NewMockRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry, func(), error) {
-	mock, err := repotest.NewMockRepo("registry", "qri_registry")
+func NewTempRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry, func(), error) {
+	mock, err := repotest.NewTempRepo("registry", "qri_registry")
 	if err != nil {
 		return nil, registry.Registry{}, nil, err
 	}
@@ -52,7 +52,7 @@ func NewMockRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry,
 	reg := registry.Registry{
 		Remote:   rem,
 		Profiles: registry.NewMemProfiles(),
-		Search:   regserver.MockRepoSearch{ Repo: inst.Repo()},
+		Search:   regserver.MockRepoSearch{Repo: inst.Repo()},
 	}
 
 	return inst, reg, cleanup, nil

@@ -1,13 +1,11 @@
-// Package test contains a set of tests to ensure a repo implementation conforms
+// Package spec contains a set of tests to ensure a repo implementation conforms
 // to expected behaviors, calling RunRepoTests on a given repo implementation should
 // pass all checks in order to properly work with Qri.
 // test also has a TestRepo, which uses an in-memory implementation of Repo
 // suited for tests that require a repo
-package test
+package spec
 
 import (
-	"os"
-	"path/filepath"
 	"testing"
 
 	"github.com/qri-io/qri/repo"
@@ -20,10 +18,6 @@ type RepoMakerFunc func(t *testing.T) (r repo.Repo, cleanup func())
 
 // repoTestFunc is a function for testing a repo
 type repoTestFunc func(t *testing.T, rm RepoMakerFunc)
-
-func testdataPath(path string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
-}
 
 // RunRepoTests tests that this repo conforms to expected behaviors
 func RunRepoTests(t *testing.T, rmf RepoMakerFunc) {

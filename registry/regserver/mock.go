@@ -7,11 +7,14 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func init() {
@@ -39,39 +42,49 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 	}
 }
 
-// // NewTempRegistry creates a functioning registry with a teardown function
-// func NewTempRegistry(peername, tmpDirPrefix string) (*registry.Registry, func(), error) {
-// 	mock, err := repotest.NewMockRepo(peername, tmpDirPrefix)
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+// NewTempRegistry creates a functioning registry with a teardown function
+func NewTempRegistry(peername, tmpDirPrefix string) (*registry.Registry, func(), error) {
+	tempRepo, err := repotest.NewTempRepo(peername, tmpDirPrefix)
+	if err != nil {
+		return nil, nil, err
+	}
 
-// 	node, err := p2p.NewQriNode(repo., config.DefaultP2P)
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+	teardown := tempRepo.Delete
 
-// 	cfg := &config.Remote{
-// 		Enabled:          true,
-// 		AcceptSizeMax:    -1,
-// 		AcceptTimeoutMs:  -1,
-// 		RequireAllBlocks: false,
-// 		AllowRemoves:     true,
-// 	}
+	r, err := tempRepo.Repo()
+	if err != nil {
+		return nil, nil, err
+	}
 
-// 	rem, err := remote.NewRemote(node, cfg)
-// 	if err != nil {
-// 		return nil, nil, err
-// 	}
+	p2pCfg := config.DefaultP2P()
+	p2pCfg.PeerID = "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
 
-// 	reg := registry.Registry{
-// 		Remote:   rem,
-// 		Profiles: registry.NewMemProfiles(),
-// 		Search:   MockRepoSearch{Repo: repo},
-// 	}
+	node, err := p2p.NewQriNode(r, p2pCfg)
+	if err != nil {
+		return nil, nil, err
+	}
 
-// 	httptest.NewServer(handlers.NewRoutes(reg))
-// }
+	remoteCfg := &config.Remote{
+		Enabled:          true,
+		AcceptSizeMax:    -1,
+		AcceptTimeoutMs:  -1,
+		RequireAllBlocks: false,
+		AllowRemoves:     true,
+	}
+
+	rem, err := remote.NewRemote(node, remoteCfg)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	reg := &registry.Registry{
+		Remote:   rem,
+		Profiles: registry.NewMemProfiles(),
+		Search:   MockRepoSearch{Repo: r},
+	}
+
+	return reg, teardown, nil
+}
 
 // MockRepoSearch proxies search to base.ListDatasets' "term" argument for
 // simple-but-real search

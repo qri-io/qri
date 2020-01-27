@@ -383,6 +383,11 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.repo != nil {
+		// Try to make the repo a hidden directory, but it's okay if we can't. Ignore the error.
+		// TODO (b5) - this can't happen in the buildrepo package due to import cycles. if SetFileHidden
+		// were somewhere else we could move it there
+		_ = base.SetFileHidden(inst.repoPath)
+
 		inst.fsi = fsi.NewFSI(inst.repo)
 	}
 

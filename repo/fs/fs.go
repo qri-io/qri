@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -36,8 +35,6 @@ type Repo struct {
 	logbook *logbook.Book
 
 	profiles *ProfileStore
-
-	registry *regclient.Client
 }
 
 // NewRepo creates a new file-based repository
