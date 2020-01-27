@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
 	repotest "github.com/qri-io/qri/repo/test"
 	testrepo "github.com/qri-io/qri/repo/test"
@@ -55,7 +56,7 @@ func init() {
 
 	// call LoadPlugins once with the empty string b/c we only rely on standard
 	// plugin set
-	if err := loadIPFSPluginsOnce(""); err != nil {
+	if err := buildrepo.LoadIPFSPluginsOnce(""); err != nil {
 		panic(err)
 	}
 }

@@ -39,6 +39,40 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 	}
 }
 
+// // NewTempRegistry creates a functioning registry with a teardown function
+// func NewTempRegistry(peername, tmpDirPrefix string) (*registry.Registry, func(), error) {
+// 	mock, err := repotest.NewMockRepo(peername, tmpDirPrefix)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	node, err := p2p.NewQriNode(repo., config.DefaultP2P)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	cfg := &config.Remote{
+// 		Enabled:          true,
+// 		AcceptSizeMax:    -1,
+// 		AcceptTimeoutMs:  -1,
+// 		RequireAllBlocks: false,
+// 		AllowRemoves:     true,
+// 	}
+
+// 	rem, err := remote.NewRemote(node, cfg)
+// 	if err != nil {
+// 		return nil, nil, err
+// 	}
+
+// 	reg := registry.Registry{
+// 		Remote:   rem,
+// 		Profiles: registry.NewMemProfiles(),
+// 		Search:   MockRepoSearch{Repo: repo},
+// 	}
+
+// 	httptest.NewServer(handlers.NewRoutes(reg))
+// }
+
 // MockRepoSearch proxies search to base.ListDatasets' "term" argument for
 // simple-but-real search
 type MockRepoSearch struct {

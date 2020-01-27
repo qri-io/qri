@@ -12,17 +12,12 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
-	"sync"
 
 	golog "github.com/ipfs/go-log"
 	homedir "github.com/mitchellh/go-homedir"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
-	ipfs "github.com/qri-io/qfs/cafs/ipfs"
-	ipfs_http "github.com/qri-io/qfs/cafs/ipfs_http"
-	"github.com/qri-io/qfs/httpfs"
-	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
@@ -32,6 +27,7 @@ import (
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/buildrepo"
 	fsrepo "github.com/qri-io/qri/repo/fs"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/stats"
@@ -345,7 +341,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.store != nil {
 		inst.store = o.store
 	} else if inst.store == nil {
-		if inst.store, err = newStore(ctx, cfg); err != nil {
+		if inst.store, err = buildrepo.NewCAFSStore(ctx, cfg); err != nil {
 			log.Error("intializing store:", err.Error())
 			return nil, fmt.Errorf("newStore: %s", err)
 		}
@@ -354,7 +350,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.qfs != nil {
 		inst.qfs = o.qfs
 	} else if inst.qfs == nil {
-		if inst.qfs, err = newFilesystem(cfg, inst.store); err != nil {
+		if inst.qfs, err = buildrepo.NewFilesystem(cfg, inst.store); err != nil {
 			log.Error("intializing filesystem:", err.Error())
 			return nil, fmt.Errorf("newFilesystem: %s", err)
 		}
@@ -440,62 +436,6 @@ func loadRepoConfig(repoPath string) (*config.Config, error) {
 	return config.ReadFromFile(path)
 }
 
-var (
-	pluginLoadLock  sync.Once
-	pluginLoadError error
-)
-
-func loadIPFSPluginsOnce(path string) error {
-	body := func() {
-		pluginLoadError = ipfs.LoadPlugins(path)
-	}
-	pluginLoadLock.Do(body)
-	return pluginLoadError
-}
-
-func newStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore, err error) {
-	switch cfg.Store.Type {
-	case "ipfs":
-		path := cfg.Store.Path
-		if path == "" && os.Getenv("IPFS_PATH") != "" {
-			path = os.Getenv("IPFS_PATH")
-		} else if path == "" {
-			home, err := homedir.Dir()
-			if err != nil {
-				return nil, fmt.Errorf("creating IPFS store: %s", err)
-			}
-			path = filepath.Join(home, ".ipfs")
-		}
-
-		if err := loadIPFSPluginsOnce(path); err != nil {
-			return nil, err
-		}
-
-		fsOpts := []ipfs.Option{
-			func(c *ipfs.StoreCfg) {
-				c.Ctx = ctx
-				c.FsRepoPath = path
-			},
-			ipfs.OptsFromMap(cfg.Store.Options),
-		}
-		return ipfs.NewFilestore(fsOpts...)
-	case "ipfs_http":
-		urli, ok := cfg.Store.Options["url"]
-		if !ok {
-			return nil, fmt.Errorf("ipfs_http store requires 'url' option")
-		}
-		urlStr, ok := urli.(string)
-		if !ok {
-			return nil, fmt.Errorf("ipfs_http 'url' option must be a string")
-		}
-		return ipfs_http.New(urlStr)
-	case "map":
-		return cafs.NewMapstore(), nil
-	default:
-		return nil, fmt.Errorf("unknown store type: %s", cfg.Store.Type)
-	}
-}
-
 func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client) {
 	if cfg.Registry != nil {
 		switch cfg.Registry.Location {
@@ -563,21 +503,6 @@ func newStats(repoPath string, cfg *config.Config) *stats.Stats {
 	default:
 		return stats.New(nil)
 	}
-}
-
-func newFilesystem(cfg *config.Config, store cafs.Filestore) (qfs.Filesystem, error) {
-	mux := map[string]qfs.Filesystem{
-		"local": localfs.NewFS(),
-		"http":  httpfs.NewFS(),
-		"cafs":  store,
-	}
-
-	if ipfss, ok := store.(*ipfs.Filestore); ok {
-		mux["ipfs"] = ipfss
-	}
-
-	fsys := qfs.NewMux(mux)
-	return fsys, nil
 }
 
 func newCron(cfg *config.Config, repoPath string) (cron.Scheduler, error) {
