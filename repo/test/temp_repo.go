@@ -44,8 +44,7 @@ func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
 		return r, err
 	}
 	// Build IPFS repo directory by unzipping an empty repo.
-	TestCrypto := NewTestCrypto()
-	err = TestCrypto.GenerateEmptyIpfsRepo(IPFSPath, "")
+	err = defaultCryptoGenerator.GenerateEmptyIpfsRepo(IPFSPath, "")
 	if err != nil {
 		return r, err
 	}
@@ -55,16 +54,18 @@ func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
 	if err != nil {
 		return r, err
 	}
+
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
+	cfg.Profile.PrivKey, cfg.Profile.ID = defaultCryptoGenerator.GeneratePrivateKeyAndPeerID()
 	cfg.Store.Path = IPFSPath
 
 	r = TempRepo{
 		RootPath:   RootPath,
 		IPFSPath:   IPFSPath,
 		QriPath:    QriPath,
-		TestCrypto: TestCrypto,
+		TestCrypto: defaultCryptoGenerator,
 		cfg:        cfg,
 	}
 	if err := r.WriteConfigFile(); err != nil {

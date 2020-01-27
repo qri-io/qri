@@ -19,6 +19,12 @@ type testCryptoGenerator struct {
 	count int
 }
 
+var defaultCryptoGenerator gen.CryptoGenerator
+
+func init() {
+	defaultCryptoGenerator = NewTestCrypto()
+}
+
 func (g *testCryptoGenerator) GeneratePrivateKeyAndPeerID() (string, string) {
 	info := cfgtest.GetTestPeerInfo(g.count)
 	g.count++

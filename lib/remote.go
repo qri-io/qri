@@ -66,7 +66,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
 type PublicationParams struct {
 	Ref        string
 	RemoteName string
-	// All indicates all versions of a dataset amd the dataset namespace should
+	// All indicates all versions of a dataset and the dataset namespace should
 	// be either published or removed
 	All bool
 }
