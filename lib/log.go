@@ -110,21 +110,20 @@ func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
 	return err
 }
 
-// RawLogsParams enapsulates parameters for the RawLogs methods
-type RawLogsParams struct {
+// PlainLogsParams enapsulates parameters for the PlainLogs methods
+type PlainLogsParams struct {
 	// no options yet
 }
 
-// RawLogs is an alias for a human representation of a raw logbook
-type RawLogs = []logbook.Log
+// PlainLogs is an alias for a human representation of a plain-old-data logbook
+type PlainLogs = []logbook.PlainLog
 
-// RawLogs encodes the full logbook as human-oriented json
-func (r *LogRequests) RawLogs(p *RawLogsParams, res *RawLogs) (err error) {
+// PlainLogs encodes the full logbook as human-oriented json
+func (r *LogRequests) PlainLogs(p *PlainLogsParams, res *PlainLogs) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("LogRequests.RawLogs", p, res)
+		return r.cli.Call("LogRequests.PlainLogs", p, res)
 	}
 	ctx := context.TODO()
-
-	*res, err = r.node.Repo.Logbook().RawLogs(ctx)
+	*res, err = r.node.Repo.Logbook().PlainLogs(ctx)
 	return err
 }

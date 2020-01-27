@@ -1035,9 +1035,8 @@ func TestListRawRefs(t *testing.T) {
 	}
 	req := NewDatasetRequests(node, nil)
 
-	var in bool
 	var text string
-	if err := req.ListRawRefs(&in, &text); err != nil {
+	if err := req.ListRawRefs(&ListParams{}, &text); err != nil {
 		t.Fatal(err)
 	}
 	expect := `0 Peername:  peer

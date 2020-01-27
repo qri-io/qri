@@ -31,6 +31,8 @@ type ListParams struct {
 	ShowNumVersions bool
 	// EnsureFSIExists controls whether to ensure references in the repo have correct FSIPaths
 	EnsureFSIExists bool
+	// ViaDscache controls whether to build a dscache to use to list the references
+	ViaDscache bool
 }
 
 // NewListParams creates a ListParams from page & pagesize, pages are 1-indexed

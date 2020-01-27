@@ -380,45 +380,45 @@ func TestDatasetLogNaming(t *testing.T) {
 		t.Errorf("expected initializing new name with deleted dataset to not error: %s", err)
 	}
 
-	expect := []Log{
+	expect := []PlainLog{
 		{
-			Ops: []Op{
+			Ops: []PlainOp{
 				{Type: "init", Model: "user", Name: "test_author", AuthorID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt", Timestamp: mustTime("1999-12-31T19:00:00-05:00")},
 			},
-			Logs: []Log{
+			Logs: []PlainLog{
 				{
-					Ops: []Op{
+					Ops: []PlainOp{
 						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:01:00-05:00")},
 						{Type: "amend", Model: "dataset", Name: "iata_airport_codes", Timestamp: mustTime("1999-12-31T19:03:00-05:00")},
 						{Type: "remove", Model: "dataset", Timestamp: mustTime("1999-12-31T19:06:00-05:00")},
 					},
-					Logs: []Log{
+					Logs: []PlainLog{
 						{
-							Ops: []Op{
+							Ops: []PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:02:00-05:00")},
 							},
 						},
 					},
 				},
 				{
-					Ops: []Op{
+					Ops: []PlainOp{
 						{Type: "init", Model: "dataset", Name: "airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:04:00-05:00")},
 					},
-					Logs: []Log{
+					Logs: []PlainLog{
 						{
-							Ops: []Op{
+							Ops: []PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:05:00-05:00")},
 							},
 						},
 					},
 				},
 				{
-					Ops: []Op{
+					Ops: []PlainOp{
 						{Type: "init", Model: "dataset", Name: "iata_airport_codes", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:07:00-05:00")},
 					},
-					Logs: []Log{
+					Logs: []PlainLog{
 						{
-							Ops: []Op{
+							Ops: []PlainOp{
 								{Type: "init", Model: "branch", Name: "main", AuthorID: "tz7ffwfj6e6z2xvdqgh2pf6gjkza5nzlncbjrj54s5s5eh46ma3q", Timestamp: mustTime("1999-12-31T19:08:00-05:00")},
 							},
 						},
@@ -428,7 +428,7 @@ func TestDatasetLogNaming(t *testing.T) {
 		},
 	}
 
-	got, err := tr.Book.RawLogs(tr.Ctx)
+	got, err := tr.Book.PlainLogs(tr.Ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -444,7 +444,7 @@ func TestBookRawLog(t *testing.T) {
 
 	tr.WriteWorldBankExample(t)
 
-	got, err := tr.Book.RawLogs(tr.Ctx)
+	got, err := tr.Book.PlainLogs(tr.Ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -455,9 +455,9 @@ func TestBookRawLog(t *testing.T) {
 	// }
 	// t.Logf("%s", string(data))
 
-	expect := []Log{
+	expect := []PlainLog{
 		{
-			Ops: []Op{
+			Ops: []PlainOp{
 				{
 					Type:      "init",
 					Model:     "user",
@@ -466,9 +466,9 @@ func TestBookRawLog(t *testing.T) {
 					Timestamp: mustTime("1999-12-31T19:00:00-05:00"),
 				},
 			},
-			Logs: []Log{
-				Log{
-					Ops: []Op{
+			Logs: []PlainLog{
+				PlainLog{
+					Ops: []PlainOp{
 						{
 							Type:      "init",
 							Model:     "dataset",
@@ -477,9 +477,9 @@ func TestBookRawLog(t *testing.T) {
 							Timestamp: mustTime("1999-12-31T19:01:00-05:00"),
 						},
 					},
-					Logs: []Log{
-						Log{
-							Ops: []Op{
+					Logs: []PlainLog{
+						PlainLog{
+							Ops: []PlainOp{
 								{
 									Type:      "init",
 									Model:     "branch",

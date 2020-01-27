@@ -59,6 +59,7 @@ must have ` + "`qri connect`" + ` running in a separate terminal window.`,
 	cmd.Flags().BoolVarP(&o.ShowNumVersions, "num-versions", "n", false, "show number of versions")
 	cmd.Flags().StringVar(&o.Peername, "peer", "", "peer whose datasets to list")
 	cmd.Flags().BoolVarP(&o.Raw, "raw", "r", false, "to show raw references")
+	cmd.Flags().BoolVarP(&o.ViaDscache, "via-dscache", "", false, "build and use dscache to list")
 
 	return cmd
 }
@@ -75,6 +76,7 @@ type ListOptions struct {
 	Published       bool
 	ShowNumVersions bool
 	Raw             bool
+	ViaDscache      bool
 
 	DatasetRequests *lib.DatasetRequests
 }
@@ -94,9 +96,11 @@ func (o *ListOptions) Run() (err error) {
 	page := util.NewPage(o.Page, o.PageSize)
 
 	if o.Raw {
-		var in bool
 		var text string
-		if err = o.DatasetRequests.ListRawRefs(&in, &text); err != nil {
+		p := &lib.ListParams{
+			ViaDscache: o.ViaDscache,
+		}
+		if err = o.DatasetRequests.ListRawRefs(p, &text); err != nil {
 			return err
 		}
 		printSuccess(o.Out, text)
@@ -112,6 +116,7 @@ func (o *ListOptions) Run() (err error) {
 		Published:       o.Published,
 		ShowNumVersions: o.ShowNumVersions,
 		EnsureFSIExists: true,
+		ViaDscache:      o.ViaDscache,
 	}
 	if err = o.DatasetRequests.List(p, &refs); err != nil {
 		return err

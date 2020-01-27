@@ -42,13 +42,20 @@ var (
 )
 
 const (
-	authorModel uint32 = iota
-	datasetModel
-	branchModel
-	commitModel
-	publicationModel
-	aclModel
-	cronJobModel
+	// AuthorModel is the enum for an author model
+	AuthorModel uint32 = iota
+	// DatasetModel is the enum for a dataset model
+	DatasetModel
+	// BranchModel is the enum for a branch model
+	BranchModel
+	// CommitModel is the enum for a commit model
+	CommitModel
+	// PublicationModel is the enum for a publication model
+	PublicationModel
+	// ACLModel is the enum for a acl model
+	ACLModel
+	// CronJobModel is the enum for a cron-job model
+	CronJobModel
 )
 
 // DefaultBranchName is the default name all branch-level logbook data is read
@@ -59,19 +66,19 @@ const DefaultBranchName = "main"
 // ModelString gets a unique string descriptor for an integral model identifier
 func ModelString(m uint32) string {
 	switch m {
-	case authorModel:
+	case AuthorModel:
 		return "user"
-	case datasetModel:
+	case DatasetModel:
 		return "dataset"
-	case branchModel:
+	case BranchModel:
 		return "branch"
-	case commitModel:
+	case CommitModel:
 		return "commit"
-	case publicationModel:
+	case PublicationModel:
 		return "publication"
-	case aclModel:
+	case ACLModel:
 		return "acl"
-	case cronJobModel:
+	case CronJobModel:
 		return "cronJob"
 	default:
 		return ""
@@ -141,7 +148,7 @@ func (book *Book) initialize(ctx context.Context) error {
 	// initialize author's log of user actions
 	userActions := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     authorModel,
+		Model:     AuthorModel,
 		Name:      book.AuthorName(),
 		AuthorID:  keyID,
 		Timestamp: NewTimestamp(),
@@ -251,7 +258,7 @@ func (book *Book) WriteAuthorRename(ctx context.Context, name string) error {
 	l := book.authorLog(ctx)
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
-		Model:     authorModel,
+		Model:     AuthorModel,
 		AuthorID:  book.AuthorID(),
 		Name:      name,
 		Timestamp: NewTimestamp(),
@@ -285,7 +292,7 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 	log.Debugf("initializing name: '%s'", name)
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     datasetModel,
+		Model:     DatasetModel,
 		AuthorID:  book.AuthorID(),
 		Name:      name,
 		Timestamp: NewTimestamp(),
@@ -293,7 +300,7 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 
 	branch := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     branchModel,
+		Model:     BranchModel,
 		AuthorID:  book.AuthorID(),
 		Name:      DefaultBranchName,
 		Timestamp: NewTimestamp(),
@@ -330,7 +337,7 @@ func (book *Book) WriteDatasetRename(ctx context.Context, ref dsref.Ref, newName
 
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeAmend,
-		Model:     datasetModel,
+		Model:     DatasetModel,
 		Name:      newName,
 		Timestamp: NewTimestamp(),
 	})
@@ -351,7 +358,7 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
-		Model:     datasetModel,
+		Model:     DatasetModel,
 		Timestamp: NewTimestamp(),
 	})
 
@@ -384,7 +391,7 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
 	op := oplog.Op{
 		Type:  oplog.OpTypeInit,
-		Model: commitModel,
+		Model: CommitModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
 
@@ -414,7 +421,7 @@ func (book *Book) WriteVersionAmend(ctx context.Context, ds *dataset.Dataset) er
 
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeAmend,
-		Model: commitModel,
+		Model: CommitModel,
 		Ref:   ds.Path,
 		Prev:  ds.PreviousPath,
 
@@ -441,7 +448,7 @@ func (book *Book) WriteVersionDelete(ctx context.Context, ref dsref.Ref, revisio
 
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeRemove,
-		Model: commitModel,
+		Model: CommitModel,
 		Size:  int64(revisions),
 		// TODO (b5) - finish
 	})
@@ -464,7 +471,7 @@ func (book *Book) WritePublish(ctx context.Context, ref dsref.Ref, revisions int
 
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeInit,
-		Model:     publicationModel,
+		Model:     PublicationModel,
 		Size:      int64(revisions),
 		Relations: destinations,
 		// TODO (b5) - finish
@@ -488,7 +495,7 @@ func (book *Book) WriteUnpublish(ctx context.Context, ref dsref.Ref, revisions i
 
 	l.Append(oplog.Op{
 		Type:      oplog.OpTypeRemove,
-		Model:     publicationModel,
+		Model:     PublicationModel,
 		Size:      int64(revisions),
 		Relations: destinations,
 		// TODO (b5) - finish
@@ -511,12 +518,17 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 
 	l.Append(oplog.Op{
 		Type:  oplog.OpTypeInit,
-		Model: cronJobModel,
+		Model: CronJobModel,
 		Size:  int64(number),
 		// TODO (b5) - finish
 	})
 
 	return book.save(ctx)
+}
+
+// ListAllLogs lists all of the logs in the logbook
+func (book Book) ListAllLogs(ctx context.Context) ([]*oplog.Log, error) {
+	return book.store.Logs(ctx, 0, -1)
 }
 
 // Log gets a log for a given ID
@@ -605,7 +617,7 @@ func DsrefAliasForLog(log *oplog.Log) (dsref.Ref, error) {
 	if log == nil {
 		return ref, fmt.Errorf("logbook: log is required")
 	}
-	if log.Model() != authorModel {
+	if log.Model() != AuthorModel {
 		return ref, fmt.Errorf("logbook: log isn't rooted as an author")
 	}
 	if len(log.Logs) != 1 {
@@ -749,7 +761,7 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 	refs := []DatasetInfo{}
 	for _, op := range l.Ops {
 		switch op.Model {
-		case commitModel:
+		case CommitModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
 				refs = append(refs, infoFromOp(ref, op))
@@ -758,7 +770,7 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 			case oplog.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
-		case publicationModel:
+		case PublicationModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
 				for i := 1; i <= int(op.Size); i++ {
@@ -828,13 +840,13 @@ func (book Book) LogEntries(ctx context.Context, ref dsref.Ref, offset, limit in
 }
 
 var actionStrings = map[uint32][3]string{
-	authorModel:      [3]string{"create profile", "update profile", "delete profile"},
-	datasetModel:     [3]string{"init dataset", "rename dataset", "delete dataset"},
-	branchModel:      [3]string{"init branch", "rename branch", "delete branch"},
-	commitModel:      [3]string{"save commit", "amend commit", "remove commit"},
-	publicationModel: [3]string{"publish", "", "unpublish"},
-	aclModel:         [3]string{"update access", "update access", "remove all access"},
-	cronJobModel:     [3]string{"ran update", "", ""},
+	AuthorModel:      [3]string{"create profile", "update profile", "delete profile"},
+	DatasetModel:     [3]string{"init dataset", "rename dataset", "delete dataset"},
+	BranchModel:      [3]string{"init branch", "rename branch", "delete branch"},
+	CommitModel:      [3]string{"save commit", "amend commit", "remove commit"},
+	PublicationModel: [3]string{"publish", "", "unpublish"},
+	ACLModel:         [3]string{"update access", "update access", "remove all access"},
+	CronJobModel:     [3]string{"ran update", "", ""},
 }
 
 func logEntryFromOp(author string, op oplog.Op) LogEntry {
@@ -850,48 +862,48 @@ func logEntryFromOp(author string, op oplog.Op) LogEntry {
 	}
 }
 
-// RawLogs returns a serialized, complete set of logs keyed by model type logs
-func (book Book) RawLogs(ctx context.Context) ([]Log, error) {
+// PlainLogs returns plain-old-data representations of the logs, intended for serialization
+func (book Book) PlainLogs(ctx context.Context) ([]PlainLog, error) {
 	raw, err := book.store.Logs(ctx, 0, -1)
 	if err != nil {
 		return nil, err
 	}
 
-	logs := make([]Log, len(raw))
+	logs := make([]PlainLog, len(raw))
 	for i, l := range raw {
-		logs[i] = newLog(l)
+		logs[i] = newPlainLog(l)
 	}
 	return logs, nil
 }
 
-// Log is a human-oriented representation of oplog.Log intended for serialization
-type Log struct {
-	Ops  []Op  `json:"ops,omitempty"`
-	Logs []Log `json:"logs,omitempty"`
+// PlainLog is a human-oriented representation of oplog.Log intended for serialization
+type PlainLog struct {
+	Ops  []PlainOp  `json:"ops,omitempty"`
+	Logs []PlainLog `json:"logs,omitempty"`
 }
 
-func newLog(lg *oplog.Log) Log {
-	ops := make([]Op, len(lg.Ops))
+func newPlainLog(lg *oplog.Log) PlainLog {
+	ops := make([]PlainOp, len(lg.Ops))
 	for i, o := range lg.Ops {
-		ops[i] = newOp(o)
+		ops[i] = newPlainOp(o)
 	}
 
-	var ls []Log
+	var ls []PlainLog
 	if len(lg.Logs) > 0 {
-		ls = make([]Log, len(lg.Logs))
+		ls = make([]PlainLog, len(lg.Logs))
 		for i, l := range lg.Logs {
-			ls[i] = newLog(l)
+			ls[i] = newPlainLog(l)
 		}
 	}
 
-	return Log{
+	return PlainLog{
 		Ops:  ops,
 		Logs: ls,
 	}
 }
 
-// Op is a human-oriented representation of oplog.Op intended for serialization
-type Op struct {
+// PlainOp is a human-oriented representation of oplog.Op intended for serialization
+type PlainOp struct {
 	// type of operation
 	Type string `json:"type,omitempty"`
 	// data model to operate on
@@ -914,8 +926,8 @@ type Op struct {
 	Note string `json:"note,omitempty"`
 }
 
-func newOp(op oplog.Op) Op {
-	return Op{
+func newPlainOp(op oplog.Op) PlainOp {
+	return PlainOp{
 		Type:      opTypeString(op.Type),
 		Model:     ModelString(op.Model),
 		Ref:       op.Ref,

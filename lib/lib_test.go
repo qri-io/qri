@@ -252,4 +252,3 @@ func (tr *testRunner) MustWriteFile(t *testing.T, filename, data string) {
 func (tr *testRunner) MakeFilename(filename string) (path string) {
 	return filepath.Join(tr.Dir, filename)
 }
-
