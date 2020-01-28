@@ -38,7 +38,6 @@ require (
 	github.com/libp2p/go-libp2p-peerstore v0.1.3
 	github.com/libp2p/go-libp2p-swarm v0.2.2
 	github.com/microcosm-cc/bluemonday v1.0.2
-	github.com/minio/blake2b-simd v0.0.0-20160723061019-3f5f724cb5b1
 	github.com/mitchellh/go-homedir v1.1.0
 	github.com/mr-tron/base58 v1.1.2
 	github.com/multiformats/go-multiaddr v0.1.1
@@ -55,15 +54,12 @@ require (
 	github.com/qri-io/qfs v0.1.1-0.20191025195012-9971677b190d
 	github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967
 	github.com/qri-io/varName v0.1.0
-	github.com/russross/blackfriday v1.5.2
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887
 	github.com/sergi/go-diff v1.0.0
-	github.com/shurcooL/sanitized_anchor_name v1.0.0 // indirect
 	github.com/sirupsen/logrus v1.2.0
 	github.com/spf13/cobra v0.0.5
 	github.com/theckman/go-flock v0.7.1
 	github.com/ugorji/go/codec v1.1.7
-	github.com/yudai/gojsondiff v1.0.0
 	go.starlark.net v0.0.0-20190528202925-30ae18b8564f
 	golang.org/x/crypto v0.0.0-20190926180335-cea2066c6411
 	golang.org/x/sys v0.0.0-20190926180325-855e68c8590b

@@ -19,11 +19,12 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
-	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
+	repotest "github.com/qri-io/qri/repo/test"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -55,7 +56,7 @@ func init() {
 
 	// call LoadPlugins once with the empty string b/c we only rely on standard
 	// plugin set
-	if err := loadIPFSPluginsOnce(""); err != nil {
+	if err := buildrepo.LoadIPFSPluginsOnce(""); err != nil {
 		panic(err)
 	}
 }
@@ -148,7 +149,7 @@ func TestReceivers(t *testing.T) {
 	inst := &Instance{node: node, cfg: cfg}
 
 	reqs := Receivers(inst)
-	expect := 12
+	expect := 13
 	if len(reqs) != expect {
 		t.Errorf("unexpected number of receivers returned. expected: %d. got: %d\nhave you added/removed a receiver?", expect, len(reqs))
 		return
@@ -252,4 +253,3 @@ func (tr *testRunner) MustWriteFile(t *testing.T, filename, data string) {
 func (tr *testRunner) MakeFilename(filename string) (path string) {
 	return filepath.Join(tr.Dir, filename)
 }
-

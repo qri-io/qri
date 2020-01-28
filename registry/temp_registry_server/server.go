@@ -3,41 +3,38 @@
 package main
 
 import (
+	"context"
 	"net/http"
 	"os"
 
-	"github.com/qri-io/qri/registry"
+	logger "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/registry/regserver/handlers"
-	"github.com/sirupsen/logrus"
 )
 
 var (
-	// logger
-	log = logrus.New()
-
+	log      = logger.Logger("regserver")
 	adminKey string
 )
 
-func init() {
-	adminKey = handlers.NewAdminKey()
-	log.Infof("admin key: %s", adminKey)
-}
-
 func main() {
+	logger.SetLogLevel("regserver", "info")
+	ctx := context.Background()
 	port := os.Getenv("PORT")
 	if port == "" {
 		port = "3000"
 	}
 
-	pro := handlers.NewBAProtector("username", adminKey)
-	ps := registry.NewMemProfiles()
-	reg := registry.Registry{
-		Profiles: ps,
+	inst, reg, cleanup, err := NewTempRepoRegistry(ctx)
+	if err != nil {
+		log.Fatalf("creating temp registry: %s", err)
 	}
+	defer cleanup()
+
+	addBasicDataset(inst)
 
 	s := http.Server{
 		Addr:    ":" + port,
-		Handler: handlers.NewRoutes(reg, handlers.AddProtector(pro)),
+		Handler: handlers.NewRoutes(reg),
 	}
 
 	log.Infof("serving on: %s", s.Addr)

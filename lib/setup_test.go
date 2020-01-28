@@ -6,12 +6,12 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config"
+	regmock "github.com/qri-io/qri/registry/regserver"
 	repotest "github.com/qri-io/qri/repo/test"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
 )
 
 func TestSetupTeardown(t *testing.T) {
-	reg := regmock.NewMemRegistry()
+	reg := regmock.NewMemRegistry(nil)
 	_, registryServer := regmock.NewMockServerRegistry(reg)
 
 	path := filepath.Join(os.TempDir(), "test_lib_setup_teardown")

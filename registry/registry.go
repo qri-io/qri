@@ -22,14 +22,18 @@ tools like servers & (eventually) command-line clients
 */
 package registry
 
-import "fmt"
+import (
+	"fmt"
+
+	"github.com/qri-io/qri/remote"
+)
 
 // Registry a collection of interfaces that together form a registry service
 type Registry struct {
-	Profiles    Profiles
-	Reputations Reputations
-	Search      Searchable
-	Indexer     Indexer
+	Remote   *remote.Remote
+	Profiles Profiles
+	Search   Searchable
+	Indexer  Indexer
 }
 
 var (

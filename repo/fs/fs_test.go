@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
-	"github.com/qri-io/qri/repo/test"
+	"github.com/qri-io/qri/repo/test/spec"
 )
 
 func TestRepo(t *testing.T) {
@@ -48,7 +48,7 @@ func TestRepo(t *testing.T) {
 		return r, cleanup
 	}
 
-	test.RunRepoTests(t, rmf)
+	spec.RunRepoTests(t, rmf)
 
 	if err := os.RemoveAll(path); err != nil {
 		t.Errorf("error cleaning up after test: %s", err.Error())

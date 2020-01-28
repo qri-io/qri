@@ -46,22 +46,28 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 	}
 
 	pro := o.Protector
-	m := http.NewServeMux()
-	m.HandleFunc("/", HealthCheckHandler)
+	mux := http.NewServeMux()
+	mux.HandleFunc("/", HealthCheckHandler)
+
+	if rem := reg.Remote; rem != nil {
+		mux.Handle("/remote/dsync", rem.DsyncHTTPHandler())
+		mux.Handle("/remote/refs", rem.RefsHTTPHandler())
+		mux.Handle("/remote/logsync", rem.LogsyncHTTPHandler())
+		mux.Handle("/remote/feeds/", rem.FeedsHTTPHandler())
+		mux.Handle("/remote/preview/", rem.PreviewHTTPHandler())
+		mux.Handle("/remote/component/", rem.ComponentHTTPHandler())
+	}
 
 	if ps := reg.Profiles; ps != nil {
-		m.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
-		m.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
+		mux.HandleFunc("/registry/profile", logReq(NewProfileHandler(ps)))
+		mux.HandleFunc("/registry/profiles", pro.ProtectMethods("POST")(logReq(NewProfilesHandler(ps))))
 	}
 
 	if s := reg.Search; s != nil {
-		m.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
-	}
-	if rs := reg.Reputations; rs != nil {
-		m.HandleFunc("/registry/reputation", (logReq(NewReputationHandler(rs))))
+		mux.HandleFunc("/registry/search", logReq(NewSearchHandler(s)))
 	}
 
-	return m
+	return mux
 }
 
 func logReq(h http.HandlerFunc) http.HandlerFunc {

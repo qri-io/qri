@@ -1,14 +1,15 @@
-package test
+package spec
 
 import (
 	"testing"
 
 	"github.com/qri-io/qri/repo"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestNewTestRepo(t *testing.T) {
 	rmf := func(t *testing.T) (repo.Repo, func()) {
-		mr, err := NewEmptyTestRepo()
+		mr, err := repotest.NewEmptyTestRepo()
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -19,7 +20,7 @@ func TestNewTestRepo(t *testing.T) {
 }
 
 func TestNewMemRepoFromDir(t *testing.T) {
-	repo, _, err := NewMemRepoFromDir("testdata")
+	repo, _, err := repotest.NewMemRepoFromDir("../testdata")
 	if err != nil {
 		t.Error(err.Error())
 		return
@@ -41,7 +42,7 @@ func TestNewMemRepoFromDir(t *testing.T) {
 }
 
 func TestNewTestRepoWithHistory(t *testing.T) {
-	repo, log, err := NewTestRepoWithHistory()
+	repo, log, err := repotest.NewTestRepoWithHistory()
 	if err != nil {
 		t.Fatal(err)
 	}

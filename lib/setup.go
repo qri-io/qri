@@ -8,6 +8,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -31,14 +32,8 @@ func Setup(p SetupParams) error {
 	}
 
 	if p.SetupIPFS {
-		// need to load plugins before attempting to configure IPFS, flatfs is
-		// specified as part of the default IPFS configuration, but all flatfs
-		// code is loaded as a plugin.  ¯\_(ツ)_/¯
-		//
-		// This works without anything present in the /.ipfs/plugins/ directory b/c
-		// the default plugin set is complied into go-ipfs (and subsequently, the
-		// qri binary) by default
-		if err := loadIPFSPluginsOnce(p.IPFSFsPath); err != nil {
+		// IPFS plugins need to be loaded
+		if err := buildrepo.LoadIPFSPluginsOnce(p.IPFSFsPath); err != nil {
 			return err
 		}
 

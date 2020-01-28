@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/lib"
-	regmock "github.com/qri-io/qri/registry/regserver/mock"
+	regmock "github.com/qri-io/qri/registry/regserver"
 )
 
 func TestSearchHandlers(t *testing.T) {

@@ -1,4 +1,4 @@
-package mock
+package regserver
 
 import (
 	"testing"
@@ -6,5 +6,5 @@ import (
 
 func TestMockServer(t *testing.T) {
 	NewMockServer()
-	NewMockServerRegistry(NewMemRegistry())
+	NewMockServerRegistry(NewMemRegistry(nil))
 }
