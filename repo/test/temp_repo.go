@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qfs/cafs/ipfs"
+	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
@@ -17,7 +17,7 @@ import (
 	"github.com/qri-io/qri/repo/gen"
 )
 
-// TempRepo manages a temporary repository for tesing purposes, adding extra
+// TempRepo manages a temporary repository for testing purposes, adding extra
 // methods for testing convenience
 type TempRepo struct {
 	RootPath            string

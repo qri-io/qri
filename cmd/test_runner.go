@@ -69,9 +69,13 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 	_, server := regserver.NewMockServerRegistry(*reg)
 
 	runner := newTestRunnerFromRoot(&root)
+	prevTeardown := runner.Teardown
 	runner.Teardown = func() {
 		teardownRegistry()
 		server.Close()
+		if prevTeardown != nil {
+			prevTeardown()
+		}
 	}
 
 	root.GetConfig().Registry.Location = server.URL

@@ -17,6 +17,9 @@ import (
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
+// TODO (b5) - this value is used all over the plcae need a better strategy for
+const registryPeerID = "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
+
 func init() {
 	// don't need verbose logging when working with mock servers
 	handlers.SetLogLevel("error")
@@ -57,7 +60,7 @@ func NewTempRegistry(peername, tmpDirPrefix string) (*registry.Registry, func(),
 	}
 
 	p2pCfg := config.DefaultP2P()
-	p2pCfg.PeerID = "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"
+	p2pCfg.PeerID = registryPeerID
 
 	node, err := p2p.NewQriNode(r, p2pCfg)
 	if err != nil {

@@ -26,7 +26,7 @@ func main() {
 
 	inst, reg, cleanup, err := NewTempRepoRegistry(ctx)
 	if err != nil {
-		log.Fatalf("creating mock registry: %s", err)
+		log.Fatalf("creating temp registry: %s", err)
 	}
 	defer cleanup()
 
