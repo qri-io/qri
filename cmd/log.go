@@ -198,8 +198,8 @@ func (o *LogbookOptions) Logbook() error {
 
 // RawLogs executes the rawlogs variant of the logbook command
 func (o *LogbookOptions) RawLogs() error {
-	res := lib.RawLogs{}
-	if err := o.LogRequests.RawLogs(&lib.RawLogsParams{}, &res); err != nil {
+	res := lib.PlainLogs{}
+	if err := o.LogRequests.PlainLogs(&lib.PlainLogsParams{}, &res); err != nil {
 		return err
 	}
 

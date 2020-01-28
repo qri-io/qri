@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -94,7 +95,39 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 	}
 
 	var refs []repo.DatasetRef
-	if ref.Peername == "" || pro.Peername == ref.Peername {
+	if p.ViaDscache {
+		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(r.node.Repo)
+		if err != nil {
+			return err
+		}
+		refs, err = c.ListRefs()
+		if err != nil {
+			return err
+		}
+		// Filter references so that only with a matching name are returned
+		if p.Term != "" {
+			matched := make([]repo.DatasetRef, len(refs))
+			count := 0
+			for _, ref := range refs {
+				if strings.Contains(ref.Name, p.Term) {
+					matched[count] = ref
+					count++
+				}
+			}
+			refs = matched[:count]
+		}
+		// Filter references by skipping to the correct offset
+		if p.Offset > len(refs) {
+			refs = []repo.DatasetRef{}
+		} else {
+			refs = refs[p.Offset:]
+		}
+		// Filter references by limiting how many are returned
+		if p.Limit < len(refs) {
+			refs = refs[:p.Limit]
+		}
+		// TODO(dlong): Filtered by p.Published flag
+	} else if ref.Peername == "" || pro.Peername == ref.Peername {
 		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 	} else {
 
@@ -144,9 +177,18 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 }
 
 // ListRawRefs gets the list of raw references as string
-func (r *DatasetRequests) ListRawRefs(p *bool, text *string) (err error) {
+func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
+	}
+	if p.ViaDscache {
+		// NOTE: Useful for debugging. Only outputting to local terminal for now.
+		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(r.node.Repo)
+		if err != nil {
+			return err
+		}
+		c.Dump()
+		return nil
 	}
 	*text, err = base.RawDatasetRefs(context.TODO(), r.node.Repo)
 	return err

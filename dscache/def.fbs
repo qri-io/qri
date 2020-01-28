@@ -1,0 +1,33 @@
+// IDL file for dscache
+namespace dscachefb;
+
+file_identifier "QFBF";
+file_extension "qfb";
+
+table UserAssoc {
+  username:string;  // human readable user-name
+  profileID:string; // static unchanging profileID, derived from original private key
+}
+
+table RefCache {
+  initID:string;     // init-id derived from logbook, never changes for the same dataset
+  profileID:string;  // profileID for the author of the dataset
+  topIndex:int;      // point to logbook entry for newest commit for this dataset
+  cursorIndex:int;   // point to logbook entry for data that is currently in use
+  prettyName:string; // human readable name for a dataset, can be changed over time
+  metaTitle:string;  // metadata title of the dataset
+  themeList:string;  // metadata theme of the dataset, comma separated list
+  bodySize:long;     // size of the body in bytes
+  bodyRows:int;      // number of row in the body
+  commitTime:long;   // commit timestamp of the dataset
+  numErrors:int;     // number of errors in the structure
+  headRef:string;    // the IPFS hash for the dataset
+  fsiPath:string;    // path to checked out working directory for this dataset
+}
+
+table Dscache {
+  users:[UserAssoc];
+  refs:[RefCache];
+}
+
+root_type Dscache;

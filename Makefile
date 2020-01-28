@@ -37,6 +37,9 @@ update-qri-deps: require-gopath
 	cd $$GOPATH/src/github.com/qri-io/ioes && git checkout master && git pull
 	cd $$GOPATH/src/github.com/qri-io/qri
 
+dscache_fbs:
+	cd dscache && flatc --go def.fbs
+
 workdir:
 	mkdir -p workdir
 
