@@ -116,7 +116,8 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 
 	// Build refs vector, iterating backwards due to using prepend
 	dscachefb.DscacheStartRefsVector(builder, len(dsInfoList))
-	for _, r := range refList {
+	for i := len(refList) - 1; i >= 0; i-- {
+		r := refList[i]
 		builder.PrependUOffsetT(r)
 	}
 	refs := builder.EndVector(len(dsInfoList))

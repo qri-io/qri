@@ -3,6 +3,7 @@ package dscache
 import (
 	"fmt"
 	"io/ioutil"
+	"strings"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
@@ -37,25 +38,55 @@ func (d *Dscache) SaveTo(filename string) error {
 	return ioutil.WriteFile(filename, d.Buffer, 0644)
 }
 
-// Dump is a convenience function that dumps to the console, for debugging
-func (d *Dscache) Dump() {
-	fmt.Printf("Dscache:\n")
+// VerboseString is a convenience function that returns a readable string, for testing and debugging
+func (d *Dscache) VerboseString(showEmpty bool) string {
+	out := strings.Builder{}
+	out.WriteString("Dscache:\n")
+	out.WriteString(" Dscache.Users:\n")
 	for i := 0; i < d.Root.UsersLength(); i++ {
 		userAssoc := dscachefb.UserAssoc{}
 		d.Root.Users(&userAssoc, i)
 		username := userAssoc.Username()
 		profileID := userAssoc.ProfileID()
-		fmt.Printf("%d) user=%s profileID=%s\n", i, username, profileID)
+		fmt.Fprintf(&out, " %2d) user=%s profileID=%s\n", i, username, profileID)
 	}
+	out.WriteString(" Dscache.Refs:\n")
 	for i := 0; i < d.Root.RefsLength(); i++ {
-		refCache := dscachefb.RefCache{}
-		d.Root.Refs(&refCache, i)
-		initID := refCache.InitID()
-		prettyName := refCache.PrettyName()
-		fsiPath := refCache.FsiPath()
-		headRef := refCache.HeadRef()
-		fmt.Printf("%d) initid=%s name=%s fsi=%s head=%s\n", i, initID, prettyName, fsiPath, headRef)
+		r := dscachefb.RefCache{}
+		d.Root.Refs(&r, i)
+		fmt.Fprintf(&out, ` %2d) initID      = %s
+     profileID   = %s
+     topIndex    = %d
+     cursorIndex = %d
+     prettyName  = %s
+`, i, r.InitID(), r.ProfileID(), r.TopIndex(), r.CursorIndex(), r.PrettyName())
+		indent := "     "
+		if len(r.MetaTitle()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%smetaTitle   = %s\n", indent, r.MetaTitle())
+		}
+		if len(r.ThemeList()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%sthemeList   = %s\n", indent, r.ThemeList())
+		}
+		if r.BodySize() != 0 || showEmpty {
+			fmt.Fprintf(&out, "%sbodySize    = %d\n", indent, r.BodySize())
+		}
+		if r.BodyRows() != 0 || showEmpty {
+			fmt.Fprintf(&out, "%sbodyRows    = %d\n", indent, r.BodyRows())
+		}
+		if r.CommitTime() != 0 || showEmpty {
+			fmt.Fprintf(&out, "%scommitTime  = %d\n", indent, r.CommitTime())
+		}
+		if r.NumErrors() != 0 || showEmpty {
+			fmt.Fprintf(&out, "%snumErrors   = %d\n", indent, r.NumErrors())
+		}
+		if len(r.HeadRef()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%sheadRef     = %s\n", indent, r.HeadRef())
+		}
+		if len(r.FsiPath()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%sfsiPath     = %s\n", indent, r.FsiPath())
+		}
 	}
+	return out.String()
 }
 
 // ListRefs returns references to each dataset in the cache

@@ -182,12 +182,11 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
 	}
 	if p.ViaDscache {
-		// NOTE: Useful for debugging. Only outputting to local terminal for now.
 		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(r.node.Repo)
 		if err != nil {
 			return err
 		}
-		c.Dump()
+		*text = c.VerboseString(true)
 		return nil
 	}
 	*text, err = base.RawDatasetRefs(context.TODO(), r.node.Repo)
