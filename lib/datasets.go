@@ -101,8 +101,32 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 			return err
 		}
 		refs, err = c.ListRefs()
-		// TODO(dlong): Set dataset field for each reference, which will end up displaying
-		// title and basic structure stats (such as size, entries, errors).
+		if err != nil {
+			return err
+		}
+		// Filter references so that only with a matching name are returned
+		if p.Term != "" {
+			matched := make([]repo.DatasetRef, len(refs))
+			count := 0
+			for _, ref := range refs {
+				if strings.Contains(ref.Name, p.Term) {
+					matched[count] = ref
+					count++
+				}
+			}
+			refs = matched[:count]
+		}
+		// Filter references by skipping to the correct offset
+		if p.Offset > len(refs) {
+			refs = []repo.DatasetRef{}
+		} else {
+			refs = refs[p.Offset:]
+		}
+		// Filter references by limiting how many are returned
+		if p.Limit < len(refs) {
+			refs = refs[:p.Limit]
+		}
+		// TODO(dlong): Filtered by p.Published flag
 	} else if ref.Peername == "" || pro.Peername == ref.Peername {
 		refs, err = base.ListDatasets(ctx, r.node.Repo, p.Term, p.Limit, p.Offset, p.RPC, p.Published, p.ShowNumVersions)
 	} else {

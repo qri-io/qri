@@ -2,6 +2,7 @@ package dscache
 
 import (
 	"context"
+	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
@@ -46,6 +47,13 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(r repo.Repo) (*Dscache, error) {
 		return nil, err
 	}
 
+	store := r.Store()
+	filesys := r.Filesystem()
+	err = fillInfoForDatasets(ctx, store, filesys, dsInfoList)
+	if err != nil {
+		log.Errorf("%s", err)
+	}
+
 	return buildDscacheFlatbuffer(userProfileList, dsInfoList), nil
 }
 
@@ -81,19 +89,27 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 	// Construct refs, with all pertinent information for each dataset ref
 	refList := make([]flatbuffers.UOffsetT, 0, len(dsInfoList))
 	for _, ds := range dsInfoList {
+		initID := builder.CreateString(ds.InitID)
 		profileID := builder.CreateString(ds.ProfileID)
 		prettyName := builder.CreateString(ds.PrettyName)
-		initID := builder.CreateString(ds.InitID)
-		fsiPath := builder.CreateString(ds.FSIPath)
+		metaTitle := builder.CreateString(ds.MetaTitle)
+		themeList := builder.CreateString(ds.ThemeList)
 		hashRef := builder.CreateString(ds.HeadRef)
+		fsiPath := builder.CreateString(ds.FSIPath)
 		dscachefb.RefCacheStart(builder)
-		dscachefb.RefCacheAddProfileID(builder, profileID)
-		dscachefb.RefCacheAddPrettyName(builder, prettyName)
 		dscachefb.RefCacheAddInitID(builder, initID)
-		dscachefb.RefCacheAddCursorIndex(builder, int32(ds.CursorIndex))
+		dscachefb.RefCacheAddProfileID(builder, profileID)
 		dscachefb.RefCacheAddTopIndex(builder, int32(ds.TopIndex))
-		dscachefb.RefCacheAddFsiPath(builder, fsiPath)
+		dscachefb.RefCacheAddCursorIndex(builder, int32(ds.CursorIndex))
+		dscachefb.RefCacheAddPrettyName(builder, prettyName)
+		dscachefb.RefCacheAddMetaTitle(builder, metaTitle)
+		dscachefb.RefCacheAddThemeList(builder, themeList)
+		dscachefb.RefCacheAddBodySize(builder, int64(ds.BodySize))
+		dscachefb.RefCacheAddBodyRows(builder, int32(ds.BodyRows))
+		dscachefb.RefCacheAddCommitTime(builder, ds.CommitTime.Unix())
+		dscachefb.RefCacheAddNumErrors(builder, int32(ds.NumErrors))
 		dscachefb.RefCacheAddHeadRef(builder, hashRef)
+		dscachefb.RefCacheAddFsiPath(builder, fsiPath)
 		ref := dscachefb.RefCacheEnd(builder)
 		refList = append(refList, ref)
 	}
@@ -123,6 +139,12 @@ type dsInfo struct {
 	TopIndex    int
 	CursorIndex int
 	PrettyName  string
+	MetaTitle   string
+	ThemeList   string
+	BodySize    int64
+	BodyRows    int
+	CommitTime  time.Time
+	NumErrors   int
 	HeadRef     string
 	FSIPath     string
 }

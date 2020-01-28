@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/dataset"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -70,12 +71,25 @@ func (d *Dscache) ListRefs() ([]repo.DatasetRef, error) {
 			log.Errorf("could not parse profileID %q", string(refCache.ProfileID()))
 			continue
 		}
+
 		refs = append(refs, repo.DatasetRef{
 			Peername:  d.ProfileIDToUsername[string(refCache.ProfileID())],
 			ProfileID: profileID,
 			Name:      string(refCache.PrettyName()),
 			Path:      string(refCache.HeadRef()),
 			FSIPath:   string(refCache.FsiPath()),
+			Dataset: &dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title: string(refCache.MetaTitle()),
+				},
+				Structure: &dataset.Structure{
+					ErrCount: int(refCache.NumErrors()),
+					Entries:  int(refCache.BodyRows()),
+					Length:   int(refCache.BodySize()),
+				},
+				Commit:      &dataset.Commit{},
+				NumVersions: int(refCache.TopIndex()),
+			},
 		})
 	}
 	return refs, nil
