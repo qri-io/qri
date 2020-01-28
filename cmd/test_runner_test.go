@@ -35,7 +35,7 @@ type TestRunner struct {
 
 // NewTestRunner constructs a new TestRunner
 func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewTempRepo(peerName, testName)
+	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
@@ -44,7 +44,7 @@ func NewTestRunner(t *testing.T, peerName, testName string) *TestRunner {
 
 // NewTestRunnerWithMockRemoteClient constructs a test runner with a mock remote client
 func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewTempRepo(peerName, testName)
+	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
@@ -54,7 +54,7 @@ func NewTestRunnerWithMockRemoteClient(t *testing.T, peerName, testName string) 
 
 // NewTestRunnerWithTempRegistry constructs a test runner with a mock registry connection
 func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *TestRunner {
-	root, err := repotest.NewTempRepo(peerName, testName)
+	root, err := repotest.NewTempRepoFixedProfileID(peerName, testName)
 	if err != nil {
 		t.Fatalf("creating temp repo: %s", err)
 	}
