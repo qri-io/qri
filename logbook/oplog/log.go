@@ -468,6 +468,16 @@ func (lg Log) Removed() bool {
 	return false
 }
 
+// DeepCopy produces a fresh duplicate of this log
+func (lg *Log) DeepCopy() *Log {
+	lg.FlatbufferBytes()
+	cp := &Log{}
+	if err := cp.UnmarshalFlatbufferBytes(lg.FlatbufferBytes()); err != nil {
+		panic(err)
+	}
+	return cp
+}
+
 // Log fetches a log by ID, checking the current log and all descendants for an
 // exact match
 func (lg *Log) Log(id string) (*Log, error) {
@@ -500,9 +510,18 @@ func (lg *Log) HeadRef(names ...string) (*Log, error) {
 	return nil, ErrNotFound
 }
 
-// AddChild appends a log as a direct descendant of this log
+// AddChild appends a log as a direct descendant of this log, controlling
+// for duplicates
 func (lg *Log) AddChild(l *Log) {
 	l.parent = lg
+	for i, ch := range lg.Logs {
+		if ch.ID() == l.ID() {
+			if len(l.Ops) > len(ch.Ops) {
+				lg.Logs[i] = l
+			}
+			return
+		}
+	}
 	lg.Logs = append(lg.Logs, l)
 }
 

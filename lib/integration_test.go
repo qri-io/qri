@@ -60,10 +60,10 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 	PublishToRegistry(t, nasim, ref.AliasString())
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
-	// TODO (b5) - this needs a lib method
-	regAddress := tr.RegistryHTTPServer.URL
-	if err := hinshun.RemoteClient().PullLogs(tr.Ctx, repo.ConvertToDsref(*ref), regAddress); err != nil {
-		t.Errorf("pulling logs: %s", err)
+	dsm := NewDatasetRequestsInstance(hinshun)
+	res := &repo.DatasetRef{}
+	if err := dsm.Add(&AddParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
+		t.Errorf("cloning logs: %s", err)
 	}
 
 	if err := AssertLogsEqual(nasim, hinshun, ref); err != nil {
