@@ -49,7 +49,7 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 					InsecureSkipVerify: true,
 				})
 				if err != nil {
-					log.Infof("Websocket accept error: %s", err)
+					log.Debugf("Websocket accept error: %s", err)
 					return
 				}
 				connections = append(connections, c)

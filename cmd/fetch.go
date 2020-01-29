@@ -1,9 +1,10 @@
 package cmd
 
 import (
+	"fmt"
+
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
 
@@ -53,7 +54,7 @@ func (o *FetchOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the fetch command
 func (o *FetchOptions) Run() error {
-	var res repo.DatasetRef
+	res := []lib.DatasetLogItem{}
 	for _, ref := range o.Refs {
 		p := lib.FetchParams{
 			Ref:        ref,
@@ -62,7 +63,13 @@ func (o *FetchOptions) Run() error {
 		if err := o.RemoteMethods.Fetch(&p, &res); err != nil {
 			return err
 		}
-		printInfo(o.Out, "fetched dataset %s", res)
+
+		items := make([]fmt.Stringer, len(res))
+		for i, r := range res {
+			items[i] = dslogItemStringer(r)
+		}
+
+		printItems(o.Out, items, 0)
 	}
 	return nil
 }

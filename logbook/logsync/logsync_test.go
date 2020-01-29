@@ -95,8 +95,10 @@ func Example() {
 	if err != nil {
 		panic(err)
 	}
+	// setting merge=true will persist logs to the logbook if the pull succeeds
+	pull.Merge = true
 
-	if err = pull.Do(ctx); err != nil {
+	if _, err = pull.Do(ctx); err != nil {
 		panic(err)
 	}
 
@@ -147,7 +149,9 @@ func TestHookCalls(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := pull.Do(tr.Ctx); err != nil {
+	pull.Merge = true
+
+	if _, err := pull.Do(tr.Ctx); err != nil {
 		t.Fatal(err)
 	}
 
@@ -225,7 +229,9 @@ func TestHookErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := pull.Do(tr.Ctx); err == nil {
+	pull.Merge = true
+
+	if _, err := pull.Do(tr.Ctx); err == nil {
 		t.Fatal(err)
 	}
 	push, err := lsB.NewPush(worldBankRef, s.URL)
@@ -257,7 +263,9 @@ func TestHookErrors(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := pull.Do(tr.Ctx); err != nil {
+	pull.Merge = true
+
+	if _, err := pull.Do(tr.Ctx); err != nil {
 		t.Fatal(err)
 	}
 	push, err = lsB.NewPush(worldBankRef, s.URL)

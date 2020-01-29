@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
 )
@@ -34,7 +35,7 @@ type FetchParams struct {
 }
 
 // Fetch pulls a logbook from a remote
-func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
+func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
 	}
@@ -50,7 +51,6 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
 			return err
 		}
 	}
-	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -59,7 +59,28 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *repo.DatasetRef) error {
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
-	return r.inst.RemoteClient().PullLogs(ctx, repo.ConvertToDsref(ref), addr)
+	logs, err := r.inst.RemoteClient().FetchLogs(ctx, repo.ConvertToDsref(ref), addr)
+
+	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
+	// hierarchy, and we need to descend to the branch oplog to get commit history
+	// info. It might be nicer if FetchLogs instead returned the branch oplog, but
+	// with .Parent() fields loaded & connected
+	if len(logs.Logs) > 0 {
+		logs = logs.Logs[0]
+		if len(logs.Logs) > 0 {
+			logs = logs.Logs[0]
+		}
+	}
+
+	versions := logbook.Versions(logs, repo.ConvertToDsref(ref), 0, -1)
+	log.Debugf("found %d versions: %v", len(versions), versions)
+	info, err := base.DatasetInfoToLogItems(ctx, r.inst.Repo(), versions)
+	if err != nil {
+		return err
+	}
+
+	*res = info
+	return nil
 }
 
 // PublicationParams encapsulates parmeters for dataset publication

@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -17,7 +18,8 @@ type Client interface {
 	AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error
 
 	PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
-	PullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
+	FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error)
+	CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
 	RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
 
 	ResolveHeadRef(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error

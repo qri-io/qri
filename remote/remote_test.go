@@ -93,7 +93,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", worldBankRef, relRef)
 	}
 
-	if err := cli.PullLogs(tr.Ctx, repo.ConvertToDsref(*relRef), server.URL); err != nil {
+	if _, err := cli.FetchLogs(tr.Ctx, repo.ConvertToDsref(*relRef), server.URL); err != nil {
 		t.Error(err)
 	}
 	if err := cli.PullDataset(tr.Ctx, &worldBankRef, server.URL); err != nil {

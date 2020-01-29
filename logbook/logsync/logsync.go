@@ -306,28 +306,37 @@ func (p *Push) Do(ctx context.Context) error {
 	return p.remote.put(ctx, p.book.Author(), buf)
 }
 
-// Pull is a request to move a log from a remote to the local logsync
+// Pull is a request to fetch a log
 type Pull struct {
 	book   *logbook.Book
 	ref    dsref.Ref
 	remote remote
+
+	// set to true to merge these logs into the local store on successful pull
+	Merge bool
 }
 
 // Do executes the pull
-func (p *Pull) Do(ctx context.Context) error {
+func (p *Pull) Do(ctx context.Context) (*oplog.Log, error) {
 	sender, r, err := p.remote.get(ctx, p.book.Author(), p.ref)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	data, err := ioutil.ReadAll(r)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	l := &oplog.Log{}
 	if err := l.UnmarshalFlatbufferBytes(data); err != nil {
-		return err
+		return nil, err
 	}
 
-	return p.book.MergeLog(ctx, sender, l)
+	if p.Merge {
+		if err := p.book.MergeLog(ctx, sender, l); err != nil {
+			return nil, err
+		}
+	}
+
+	return l, nil
 }

@@ -75,12 +75,4 @@ func TestFetchCommand(t *testing.T) {
 
 	text = b.GetCommandOutput()
 	t.Logf("%s", text)
-
-	cmdBr = b.CreateCommandRunner(ctx)
-	if err = executeCommand(cmdBr, "qri log peer_a/test_movies"); err != nil {
-		t.Fatal(err)
-	}
-
-	text = b.GetCommandOutput()
-	t.Logf("expect log: '%s'", text)
 }

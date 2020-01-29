@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/logsync"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -77,10 +78,10 @@ func NewClient(node *p2p.QriNode) (c Client, err error) {
 	}, nil
 }
 
-// PullLogs pulls logbook data from a remote
-func (c *PeerSyncClient) PullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+// FetchLogs pulls logbook data from a remote
+func (c *PeerSyncClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
 	if c == nil {
-		return ErrNoRemoteClient
+		return nil, ErrNoRemoteClient
 	}
 
 	if t := addressType(remoteAddr); t == "http" {
@@ -89,10 +90,30 @@ func (c *PeerSyncClient) PullLogs(ctx context.Context, ref dsref.Ref, remoteAddr
 	log.Debugf("fetching logs for %s from %s", ref.Alias(), remoteAddr)
 	pull, err := c.logsync.NewPull(ref, remoteAddr)
 	if err != nil {
-		return err
+		return nil, err
 	}
 
 	return pull.Do(ctx)
+}
+
+// CloneLogs pulls logbook data from a remote & stores it locally
+func (c *PeerSyncClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+	if c == nil {
+		return ErrNoRemoteClient
+	}
+
+	if t := addressType(remoteAddr); t == "http" {
+		remoteAddr = remoteAddr + "/remote/logsync"
+	}
+	log.Debugf("cloning logs for %s from %s", ref.Alias(), remoteAddr)
+	pull, err := c.logsync.NewPull(ref, remoteAddr)
+	if err != nil {
+		return err
+	}
+
+	pull.Merge = true
+	_, err = pull.Do(ctx)
+	return err
 }
 
 // PushLogs pushes logbook data to a remote address

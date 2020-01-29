@@ -563,6 +563,13 @@ func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log,
 		return nil, err
 	}
 
+	br, err := book.BranchRef(ctx, ref)
+	if err != nil {
+		return nil, err
+	}
+
+	ds.AddChild(br)
+
 	// construct a sparse oplog of just user, dataset, and branches
 	sparseLog := &oplog.Log{Ops: author.Ops}
 	sparseLog.AddChild(ds)
@@ -760,6 +767,11 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 		return nil, err
 	}
 
+	return Versions(l, ref, offset, limit), nil
+}
+
+// Versions interprets a dataset oplog into a commit history
+func Versions(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetInfo {
 	refs := []DatasetInfo{}
 	for _, op := range l.Ops {
 		switch op.Model {
@@ -798,11 +810,11 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 	}
 	refs = refs[offset:]
 
-	if limit < len(refs) {
+	if limit < len(refs) && limit != -1 {
 		refs = refs[:limit]
 	}
 
-	return refs, nil
+	return refs
 }
 
 // LogEntry is a simplified representation of a log operation
@@ -873,7 +885,7 @@ func (book Book) PlainLogs(ctx context.Context) ([]PlainLog, error) {
 
 	logs := make([]PlainLog, len(raw))
 	for i, l := range raw {
-		logs[i] = newPlainLog(l)
+		logs[i] = NewPlainLog(l)
 	}
 	return logs, nil
 }
@@ -884,7 +896,12 @@ type PlainLog struct {
 	Logs []PlainLog `json:"logs,omitempty"`
 }
 
-func newPlainLog(lg *oplog.Log) PlainLog {
+// NewPlainLog converts an oplog to a plain log
+func NewPlainLog(lg *oplog.Log) PlainLog {
+	if lg == nil {
+		return PlainLog{}
+	}
+
 	ops := make([]PlainOp, len(lg.Ops))
 	for i, o := range lg.Ops {
 		ops[i] = newPlainOp(o)
@@ -894,7 +911,7 @@ func newPlainLog(lg *oplog.Log) PlainLog {
 	if len(lg.Logs) > 0 {
 		ls = make([]PlainLog, len(lg.Logs))
 		for i, l := range lg.Logs {
-			ls[i] = newPlainLog(l)
+			ls[i] = NewPlainLog(l)
 		}
 	}
 
