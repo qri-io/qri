@@ -97,9 +97,9 @@ type Book struct {
 	fs         qfs.Filesystem
 }
 
-// NewBook creates a book with an unattributed logstore
-func NewBook(store oplog.Logstore) *Book {
-	return &Book{store: store}
+// NewBook creates a book with a user-provided logstore
+func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
+	return &Book{pk: pk, store: store}
 }
 
 // NewJournal initializes a logbook owned by a single author, reading any
@@ -306,10 +306,10 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 		Timestamp: NewTimestamp(),
 	})
 
-	dsLog.Logs = append(dsLog.Logs, branch)
+	dsLog.AddChild(branch)
 
-	ns := book.authorLog(ctx)
-	ns.Logs = append(ns.Logs, dsLog)
+	nameLog := book.authorLog(ctx)
+	nameLog.AddChild(dsLog)
 	return branch
 }
 
@@ -564,10 +564,9 @@ func (book Book) UserDatasetRef(ctx context.Context, ref dsref.Ref) (*oplog.Log,
 	}
 
 	// construct a sparse oplog of just user, dataset, and branches
-	return &oplog.Log{
-		Ops:  author.Ops,
-		Logs: []*oplog.Log{ds},
-	}, nil
+	sparseLog := &oplog.Log{Ops: author.Ops}
+	sparseLog.AddChild(ds)
+	return sparseLog, nil
 }
 
 // DatasetRef gets a dataset log and all branches. Dataset logs describe
@@ -605,7 +604,10 @@ func (book Book) BranchRef(ctx context.Context, ref dsref.Ref) (*oplog.Log, erro
 
 // LogBytes signs a log with this book's private key and writes to a flatbuffer
 func (book Book) LogBytes(log *oplog.Log) ([]byte, error) {
-	return log.SignedFlatbufferBytes(book.pk)
+	if err := log.Sign(book.pk); err != nil {
+		return nil, err
+	}
+	return log.FlatbufferBytes(), nil
 }
 
 // DsrefAliasForLog parses log data into a dataset alias reference, populating

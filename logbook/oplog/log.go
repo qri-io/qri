@@ -35,7 +35,7 @@ var (
 // Logstore persists a set of operations organized into hierarchical append-only
 // logs
 type Logstore interface {
-	// Merge adds a Log to the store, controlling for conflicts
+	// MergeLog adds a Log to the store, controlling for conflicts
 	// * logs that are already known to the store are merged with a
 	//   longest-log-wins strategy, adding all descendants
 	// * new top level logs are appended to the store, including all descendants
@@ -529,7 +529,7 @@ LOOP:
 			}
 		}
 		// no match, append!
-		lg.Logs = append(lg.Logs, x)
+		lg.AddChild(x)
 	}
 }
 
@@ -567,16 +567,12 @@ func (lg Log) SigningBytes() []byte {
 	return hasher.Sum(nil)
 }
 
-// SignedFlatbufferBytes signs a log then marshals it to a flatbuffer
-func (lg Log) SignedFlatbufferBytes(pk crypto.PrivKey) ([]byte, error) {
-	if err := lg.Sign(pk); err != nil {
-		return nil, err
-	}
-
+// FlatbufferBytes marshals a log to flabuffer-formatted bytes
+func (lg Log) FlatbufferBytes() []byte {
 	builder := flatbuffers.NewBuilder(0)
 	log := lg.MarshalFlatbuffer(builder)
 	builder.Finish(log)
-	return builder.FinishedBytes(), nil
+	return builder.FinishedBytes()
 }
 
 // MarshalFlatbuffer writes log to a flatbuffer, returning the ending byte
