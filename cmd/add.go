@@ -34,6 +34,7 @@ the name of the peer that originally added the dataset. You must have
 	}
 
 	cmd.Flags().StringVar(&o.LinkDir, "link", "", "path to directory to link dataset to")
+	cmd.Flags().BoolVar(&o.LogsOnly, "logs-only", false, "only fetch logs, skipping HEAD data")
 
 	return cmd
 }
@@ -42,6 +43,7 @@ the name of the peer that originally added the dataset. You must have
 type AddOptions struct {
 	ioes.IOStreams
 	LinkDir         string
+	LogsOnly        bool
 	DatasetRequests *lib.DatasetRequests
 }
 
@@ -67,8 +69,9 @@ func (o *AddOptions) Run(args []string) error {
 
 	for _, arg := range args {
 		p := &lib.AddParams{
-			Ref:     arg,
-			LinkDir: o.LinkDir,
+			Ref:      arg,
+			LinkDir:  o.LinkDir,
+			LogsOnly: o.LogsOnly,
 		}
 
 		res := repo.DatasetRef{}

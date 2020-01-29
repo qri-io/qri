@@ -33,8 +33,9 @@ func TestSyncHTTP(t *testing.T) {
 	if err != nil {
 		t.Errorf("creating pull: %s", err)
 	}
+	pull.Merge = true
 
-	if err := pull.Do(tr.Ctx); err != nil {
+	if _, err := pull.Do(tr.Ctx); err != nil {
 		t.Fatalf("pulling nasdaq logs %s", err.Error())
 	}
 

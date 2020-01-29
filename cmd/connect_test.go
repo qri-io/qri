@@ -8,8 +8,8 @@ import (
 	"time"
 
 	"github.com/qri-io/ioes"
-	repotest "github.com/qri-io/qri/repo/test"
 	regmock "github.com/qri-io/qri/registry/regserver"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestConnect(t *testing.T) {

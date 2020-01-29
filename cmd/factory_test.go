@@ -12,11 +12,11 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
 	"github.com/qri-io/qri/repo/test"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // TestFactory is an implementation of the Factory interface for testing purposes

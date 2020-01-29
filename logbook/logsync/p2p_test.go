@@ -49,7 +49,9 @@ func TestP2PLogsync(t *testing.T) {
 	if err != nil {
 		t.Error(err)
 	}
-	if err := pull.Do(tr.Ctx); err != nil {
+	pull.Merge = true
+
+	if _, err := pull.Do(tr.Ctx); err != nil {
 		t.Error(err)
 	}
 

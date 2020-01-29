@@ -36,13 +36,13 @@ func WriteHiddenFile(path, content string) error {
 		return err
 	}
 	h, err := syscall.CreateFile(
-		filenamePtr, // filename
+		filenamePtr,           // filename
 		syscall.GENERIC_WRITE, // access
-		uint32(syscall.FILE_SHARE_READ | syscall.FILE_SHARE_WRITE), // share mode
-		nil, // security attributes
-		syscall.CREATE_ALWAYS, // creation disposition
+		uint32(syscall.FILE_SHARE_READ|syscall.FILE_SHARE_WRITE), // share mode
+		nil,                           // security attributes
+		syscall.CREATE_ALWAYS,         // creation disposition
 		syscall.FILE_ATTRIBUTE_HIDDEN, // flags and attributes
-		0, // template file handle
+		0,                             // template file handle
 	)
 	if err != nil {
 		return err

@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -36,8 +37,13 @@ func (c *MockClient) PushDataset(ctx context.Context, ref repo.DatasetRef, remot
 	return ErrNotImplemented
 }
 
-// PullLogs is not implemented
-func (c *MockClient) PullLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
+// FetchLogs is not implemented
+func (c *MockClient) FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error) {
+	return nil, ErrNotImplemented
+}
+
+// CloneLogs is not implemented
+func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
