@@ -192,10 +192,10 @@ func TestJournalSignLog(t *testing.T) {
 	}, 400)
 
 	pk := tr.PrivKey
-	data, err := lg.SignedFlatbufferBytes(pk)
-	if err != nil {
+	if err := lg.Sign(pk); err != nil {
 		t.Fatal(err)
 	}
+	data := lg.FlatbufferBytes()
 
 	received, err := FromFlatbufferBytes(data)
 	if err != nil {
@@ -274,6 +274,8 @@ func TestLogNameTracking(t *testing.T) {
 	}
 }
 
+// NB: This test currently doesn't / can't confirm merging sets Log.parent.
+// the cmp package can't deal with cyclic references
 func TestLogMerge(t *testing.T) {
 	left := &Log{
 		Signature: []byte{1, 2, 3},
@@ -383,7 +385,7 @@ func TestLogMerge(t *testing.T) {
 		},
 	}
 
-	if diff := cmp.Diff(expect, left, allowUnexported); diff != "" {
+	if diff := cmp.Diff(expect, left, allowUnexported, cmpopts.IgnoreUnexported(Log{})); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }

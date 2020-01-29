@@ -529,7 +529,7 @@ LOOP:
 			}
 		}
 		// no match, append!
-		lg.Logs = append(lg.Logs, x)
+		lg.AddChild(x)
 	}
 }
 
@@ -567,16 +567,12 @@ func (lg Log) SigningBytes() []byte {
 	return hasher.Sum(nil)
 }
 
-// SignedFlatbufferBytes signs a log then marshals it to a flatbuffer
-func (lg Log) SignedFlatbufferBytes(pk crypto.PrivKey) ([]byte, error) {
-	if err := lg.Sign(pk); err != nil {
-		return nil, err
-	}
-
+// FlatbufferBytes marshals a log to flabuffer-formatted bytes
+func (lg Log) FlatbufferBytes() []byte {
 	builder := flatbuffers.NewBuilder(0)
 	log := lg.MarshalFlatbuffer(builder)
 	builder.Finish(log)
-	return builder.FinishedBytes(), nil
+	return builder.FinishedBytes()
 }
 
 // MarshalFlatbuffer writes log to a flatbuffer, returning the ending byte
