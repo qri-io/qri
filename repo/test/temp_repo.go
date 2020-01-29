@@ -30,8 +30,20 @@ type TempRepo struct {
 	UseMockRemoteClient bool
 }
 
-// NewTempRepo constructs the test repo and initializes everything as cheaply as possible.
+// NewTempRepoFixedProfileID creates a temp repo that always uses the same
+// PKI credentials
+func NewTempRepoFixedProfileID(peername, prefix string) (r TempRepo, err error) {
+	return newTempRepo(peername, prefix, NewTestCrypto())
+}
+
+// NewTempRepo constructs the test repo and initializes everything as cheaply
+// as possible. This function is non-deterministic. Each successive call to
+// TempRepo will use different PKI credentials
 func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
+	return newTempRepo(peername, prefix, defaultCryptoGenerator)
+}
+
+func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, err error) {
 	RootPath, err := ioutil.TempDir("", prefix)
 	if err != nil {
 		return r, err
@@ -44,8 +56,7 @@ func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
 		return r, err
 	}
 	// Build IPFS repo directory by unzipping an empty repo.
-	TestCrypto := NewTestCrypto()
-	err = TestCrypto.GenerateEmptyIpfsRepo(IPFSPath, "")
+	err = g.GenerateEmptyIpfsRepo(IPFSPath, "")
 	if err != nil {
 		return r, err
 	}
@@ -55,16 +66,18 @@ func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
 	if err != nil {
 		return r, err
 	}
+
 	// Create empty config.yaml into the test repo.
 	cfg := config.DefaultConfigForTesting().Copy()
 	cfg.Profile.Peername = peername
+	cfg.Profile.PrivKey, cfg.Profile.ID = g.GeneratePrivateKeyAndPeerID()
 	cfg.Store.Path = IPFSPath
 
 	r = TempRepo{
 		RootPath:   RootPath,
 		IPFSPath:   IPFSPath,
 		QriPath:    QriPath,
-		TestCrypto: TestCrypto,
+		TestCrypto: g,
 		cfg:        cfg,
 	}
 	if err := r.WriteConfigFile(); err != nil {
