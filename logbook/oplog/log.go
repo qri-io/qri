@@ -35,7 +35,7 @@ var (
 // Logstore persists a set of operations organized into hierarchical append-only
 // logs
 type Logstore interface {
-	// Merge adds a Log to the store, controlling for conflicts
+	// MergeLog adds a Log to the store, controlling for conflicts
 	// * logs that are already known to the store are merged with a
 	//   longest-log-wins strategy, adding all descendants
 	// * new top level logs are appended to the store, including all descendants

@@ -97,9 +97,9 @@ type Book struct {
 	fs         qfs.Filesystem
 }
 
-// NewBook creates a book with an unattributed logstore
-func NewBook(store oplog.Logstore) *Book {
-	return &Book{store: store}
+// NewBook creates a book with a user-provided logstore
+func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
+	return &Book{pk: pk, store: store}
 }
 
 // NewJournal initializes a logbook owned by a single author, reading any
