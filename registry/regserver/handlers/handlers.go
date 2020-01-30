@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/qri-io/apiutil"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
@@ -95,8 +96,20 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 
 // HomeFeedHandler provides access to the home feed
 func HomeFeedHandler(r repo.Repo) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, req *http.Request) {
+		refs, err := base.ListDatasets(req.Context(), r, "", 30, 0, false, true, false)
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		res := make([]*dataset.Dataset, len(refs))
+		for i, ref := range refs {
+			ref.Dataset.Name = ref.Name
+			ref.Dataset.Peername = ref.Peername
+			res[i] = ref.Dataset
+		}
 
+		apiutil.WriteResponse(w, res)
 	}
 }
 
