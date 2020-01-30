@@ -96,7 +96,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 
 	var refs []repo.DatasetRef
 	if p.ViaDscache {
-		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(r.node.Repo)
+		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, r.node.Repo)
 		if err != nil {
 			return err
 		}
@@ -181,15 +181,16 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
 	}
+	ctx := context.TODO()
 	if p.ViaDscache {
-		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(r.node.Repo)
+		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, r.node.Repo)
 		if err != nil {
 			return err
 		}
 		*text = c.VerboseString(true)
 		return nil
 	}
-	*text, err = base.RawDatasetRefs(context.TODO(), r.node.Repo)
+	*text, err = base.RawDatasetRefs(ctx, r.node.Repo)
 	return err
 }
 

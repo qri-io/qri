@@ -16,7 +16,7 @@ import (
 // Deprecated: Dsref is going away once dscache is in use. For now, only FSIPath is retrieved
 // from dsref, but in the future it will be added directly to dscache, with the file systems's
 // linkfiles (.qri-ref) acting as the authoritative source.
-func BuildDscacheFromLogbookAndProfilesAndDsref(r repo.Repo) (*Dscache, error) {
+func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, r repo.Repo) (*Dscache, error) {
 	num, err := r.RefCount()
 	if err != nil {
 		return nil, err
@@ -41,7 +41,6 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(r repo.Repo) (*Dscache, error) {
 
 	// Convert logbook into dataset info list. Also use refs, but only to get FSI paths.
 	logbook := r.Logbook()
-	ctx := context.Background()
 	dsInfoList, err := convertLogbookAndRefs(ctx, logbook, refs)
 	if err != nil {
 		return nil, err

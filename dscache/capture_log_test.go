@@ -10,9 +10,9 @@ import (
 // captureLog can replace this package's logger so that it counts calls instead of actually logging.
 // To be used only from tests
 type captureLog struct {
-	error int
+	error     int
 	errorLast string
-	total int
+	total     int
 }
 
 func (l *captureLog) Debug(...interface{}) {
@@ -42,7 +42,7 @@ func (l *captureLog) Errorf(tmpl string, vals ...interface{}) {
 }
 func (l *captureLog) Event(context.Context, string, ...golog.Loggable) {
 }
-func (l *captureLog) EventBegin(context.Context, string, ...golog.Loggable) *golog.EventInProgress{
+func (l *captureLog) EventBegin(context.Context, string, ...golog.Loggable) *golog.EventInProgress {
 	return nil
 }
 func (l *captureLog) Start(context.Context, string) context.Context {

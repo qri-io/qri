@@ -6,10 +6,10 @@ import (
 	"time"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
-	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/logbook"
 )
 
 // Builder builds a logbook in a convenient way
