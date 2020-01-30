@@ -184,25 +184,17 @@ func TestConvertLogbookAndRefs(t *testing.T) {
 	}
 }
 
-// Test that convertLogbookAndRefs still works if there's refs in logbook that are not in dsref,
-// but it should also log an error
+// Test that convertLogbookAndRefs still works if there's refs in logbook.
 func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	run := NewDscacheTestRunner()
 	defer run.Delete()
-
-	prevLog := log
-	replaceLog := captureLog{}
-	log = &replaceLog
-	run.teardown = func() {
-		log = prevLog
-	}
 
 	ctx := context.Background()
 
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
 
-	// This is missing the second dsref, which should cause convertLogbookAndRefs to hit an error
+	// This is missing the second dsref
 	dsrefs := []repo.DatasetRef{
 		repo.DatasetRef{
 			Peername:  "test_user",
@@ -215,18 +207,6 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
 	if err != nil {
 		t.Fatal(err)
-	}
-
-	// Got an error because "second_name" is not in the old dsrefs. But it doesn't matter,
-	// because that just means we couldn't get an FSI link.
-	gotNum := replaceLog.NumErrors()
-	if gotNum != 1 {
-		t.Errorf("expected to get 1 call to log.Error, got %d", gotNum)
-	}
-	gotText := replaceLog.ErrorLast()
-	expectText := "could not find dataset second_name in dsrefs"
-	if gotText != expectText {
-		t.Errorf("expected to get %q, got %q", expectText, gotText)
 	}
 
 	expect := []*dsInfo{
