@@ -303,12 +303,11 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/registry/profile/new", s.middleware(rch.CreateProfileHandler))
 	m.Handle("/registry/profile/prove", s.middleware(rch.ProveProfileKeyHandler))
+	m.Handle("/registry/feed/home", s.middleware(rch.HomeHandler))
+	m.Handle("/registry/dataset/preview/", s.middleware(rch.DatasetPreviewHandler))
 
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
-
-	bh := NewBrowseHandlers(s.Instance)
-	m.Handle("/feed/home", s.middleware(bh.HomeHandler))
 
 	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))

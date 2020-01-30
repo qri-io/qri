@@ -43,6 +43,7 @@ require (
 	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.8
+	github.com/prometheus/common v0.6.0
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20191025201336-254aa177fbd7
 	github.com/qri-io/dataset v0.1.5-0.20191126212116-72b5aa69790b

@@ -10,6 +10,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/dsref"
 )
 
 var (
@@ -52,7 +53,7 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	}
 
 	// TODO (b5) - update registry endpoint name
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/feeds", c.cfg.Location), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/feed/home", c.cfg.Location), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -87,4 +88,43 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	}
 
 	return reply, nil
+}
+
+// Preview fetches a dataset preview from the registry
+func (c *Client) Preview(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, error) {
+	if c.cfg.Location == "" {
+		return nil, ErrNoRegistry
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/dataset/preview/%s", c.cfg.Location, ref.String()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	res, err := c.httpClient.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such host") {
+			return nil, ErrNoRegistry
+		}
+		return nil, err
+	}
+	// add response to an envelope
+	env := struct {
+		Data *dataset.Dataset
+		Meta struct {
+			Error  string
+			Status string
+			Code   int
+		}
+	}{}
+
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
+	}
+
+	return env.Data, nil
 }
