@@ -53,6 +53,15 @@ func (b *Builder) DatasetRename(ctx context.Context, t *testing.T, ref dsref.Ref
 	return dsref.Ref{Username: b.AuthorName, Name: newName, Path: ref.Path}
 }
 
+// DatasetDelete deletes a dataset
+func (b *Builder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref.Ref) {
+	b.ensureAuthorAllowed(t, ref.Username)
+	if err := b.Book.WriteDatasetDelete(ctx, ref); err != nil {
+		t.Fatal(err)
+	}
+	delete(b.Dsrefs, ref.Name)
+}
+
 // Commit adds a commit to a dataset
 func (b *Builder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title, ipfsHash string) dsref.Ref {
 	b.ensureAuthorAllowed(t, ref.Username)

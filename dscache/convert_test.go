@@ -130,7 +130,7 @@ func (run *DscacheTestRunner) Delete() {
 }
 
 // Test the convertLogbookAndRefs function, which turns a logbook and dsrefs into a list of dsInfo
-func TestConvertLogbookAndRefs(t *testing.T) {
+func TestConvertLogbookAndRefsBasic(t *testing.T) {
 	run := NewDscacheTestRunner()
 	defer run.Delete()
 
@@ -144,12 +144,14 @@ func TestConvertLogbookAndRefs(t *testing.T) {
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_new_name",
+			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
 		repo.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "second_name",
+			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
 		},
 	}
@@ -200,6 +202,7 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_new_name",
+			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
 	}
@@ -233,12 +236,152 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	}
 }
 
+// Test a logbook missing refs from dsref will add them when making the dscache
+// For now, this should only happen for users that were modifying their logbook or who created
+// datasets before logbook existed. In the future, it shouldn't be necessary to explicitly
+// handle this case. Eventually dsrefs will go away and only dscache will be used in this
+// manner.
+func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
+	run := NewDscacheTestRunner()
+	defer run.Delete()
+
+	ctx := context.Background()
+
+	peerInfo := testPeers.GetTestPeerInfo(0)
+	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+
+	// Dsrefs has a third reference that is not in logbook.
+	dsrefs := []repo.DatasetRef{
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "first_new_name",
+			Path:      "QmHashOfVersion2",
+			FSIPath:   "/path/to/first_workspace",
+		},
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "second_name",
+			Path:      "QmHashOfVersion6",
+			FSIPath:   "/path/to/second_workspace",
+		},
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "third_name",
+			Path:      "QmHashOfVersion100",
+			FSIPath:   "/path/to/third_workspace",
+		},
+	}
+
+	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect := []*dsInfo{
+		&dsInfo{
+			InitID:      "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			TopIndex:    2,
+			CursorIndex: 2,
+			PrettyName:  "first_new_name",
+			HeadRef:     "QmHashOfVersion2",
+			FSIPath:     "/path/to/first_workspace",
+		},
+		&dsInfo{
+			InitID:      "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			TopIndex:    3,
+			CursorIndex: 3,
+			PrettyName:  "second_name",
+			HeadRef:     "QmHashOfVersion6",
+			FSIPath:     "/path/to/second_workspace",
+		},
+		&dsInfo{
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			PrettyName:  "third_name",
+			HeadRef:     "QmHashOfVersion100",
+			FSIPath:     "/path/to/third_workspace",
+		},
+	}
+	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
+	}
+}
+
+// Test a logbook which has a dataset with no history, and a deleted dataset
+func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T) {
+	run := NewDscacheTestRunner()
+	defer run.Delete()
+
+	ctx := context.Background()
+
+	peerInfo := testPeers.GetTestPeerInfo(0)
+	book := makeFakeLogbookWithNoHistoryAndDelete(ctx, t, "test_user", peerInfo.PrivKey)
+
+	// Dsrefs: first_ds is not checked out, second_ds was deleted, third_ds has no history
+	dsrefs := []repo.DatasetRef{
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "first_ds",
+			Path:      "QmHashOfVersion1001",
+		},
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "third_ds",
+			FSIPath:   "/path/to/third_workspace",
+		},
+		repo.DatasetRef{
+			Peername:  "test_user",
+			ProfileID: profile.ID(peerInfo.PeerID),
+			Name:      "fourth_ds",
+			Path:      "QmHashOfVersion1005",
+			FSIPath:   "/path/to/fourth_workspace",
+		},
+	}
+
+	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	expect := []*dsInfo{
+		&dsInfo{
+			InitID:      "3cf4zxzyxug7c2xmheltmnn3smnr3urpcifeyke4or7zunetu4ia",
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			TopIndex:    1,
+			CursorIndex: 1,
+			PrettyName:  "first_ds",
+			HeadRef:     "QmHashOfVersion1001",
+		},
+		&dsInfo{
+			InitID:      "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			PrettyName:  "third_ds",
+			FSIPath:     "/path/to/third_workspace",
+		},
+		&dsInfo{
+			InitID:      "52iu62kxcgix5w7a5vwclf26gmxojnx67dnsddamkxokx7lxisnq",
+			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			TopIndex:    2,
+			CursorIndex: 2,
+			PrettyName:  "fourth_ds",
+			HeadRef:     "QmHashOfVersion1005",
+			FSIPath:     "/path/to/fourth_workspace",
+		},
+	}
+	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
+	}
+}
+
 // TODO(dlong): Test BuildDscacheFromLogbookAndProfilesAndDsref, the top-level function
 // TODO(dlong): Test convertHistoryToIndexAndRef edge-cases, like big deletes, len(logs) > 0, len=0
-// TODO(dlong): Test different fake logbooks aside from the one created by makeFakeLogbook
 // TODO(dlong): Test a logbook where a username is changed after datasets already existed
-// TODO(dlong): Test a logbook with a dataset that has no history (init but no commit)
-// TODO(dlong): Test a dataset being deleted from a logbook
 // TODO(dlong): Test the function fillInfoForDatasets after convertLogbookAndRefs returns []dsInfo
 
 func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey crypto.PrivKey) *logbook.Book {
@@ -250,11 +393,13 @@ func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey
 
 	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
 
+	// A dataset with one commit, then a rename, then another commit
 	refA := builder.DatasetInit(ctx, t, "first_name")
 	refA = builder.Commit(ctx, t, refA, "initial commit", "QmHashOfVersion1")
 	refA = builder.DatasetRename(ctx, t, refA, "first_new_name")
 	refA = builder.Commit(ctx, t, refA, "another commit", "QmHashOfVersion2")
 
+	// A dataset with five commits, two of which were deleted
 	refB := builder.DatasetInit(ctx, t, "second_name")
 	refB = builder.Commit(ctx, t, refB, "initial commit", "QmHashOfVersion3")
 	refB = builder.Commit(ctx, t, refB, "second commit", "QmHashOfVersion4")
@@ -263,6 +408,36 @@ func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey
 	refB = builder.Commit(ctx, t, refB, "third commit", "QmHashOfVersion6")
 	refB = builder.Commit(ctx, t, refB, "whoops", "QmHashOfVersion7")
 	refB = builder.Delete(ctx, t, refB, 1)
+
+	return builder.Logbook()
+}
+
+func makeFakeLogbookWithNoHistoryAndDelete(ctx context.Context, t *testing.T, username string, privKey crypto.PrivKey) *logbook.Book {
+	rootPath, err := ioutil.TempDir("", "logbook_nohist_delete")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := qfs.NewMemFS()
+
+	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+
+	// A dataset with one commit, pretty normal. Corresponding dsref has no FSIPath (no checkout)
+	refA := builder.DatasetInit(ctx, t, "first_ds")
+	refA = builder.Commit(ctx, t, refA, "initial commit", "QmHashOfVersion1001")
+
+	// A dataset with two commits that gets deleted
+	refB := builder.DatasetInit(ctx, t, "second_ds")
+	refB = builder.Commit(ctx, t, refB, "initial commit", "QmHashOfVersion1002")
+	refB = builder.Commit(ctx, t, refB, "another commit", "QmHashOfVersion1003")
+	builder.DatasetDelete(ctx, t, refB)
+
+	// A dataset with no commits, hits the "no history" codepath
+	_ = builder.DatasetInit(ctx, t, "third_ds")
+
+	// A dataset with two commits, pretty normal
+	refD := builder.DatasetInit(ctx, t, "fourth_ds")
+	refD = builder.Commit(ctx, t, refD, "initial commit", "QmHashOfVersion1004")
+	refD = builder.Commit(ctx, t, refD, "another commit", "QmHashOfVersion1005")
 
 	return builder.Logbook()
 }
