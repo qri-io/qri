@@ -4,6 +4,7 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -108,7 +109,7 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 
 	dsm := lib.NewDatasetRequestsInstance(h.inst)
 
-	res := []reporef.DatasetRef{}
+	res := []dsref.DetailedRef{}
 	if err := dsm.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

@@ -8,8 +8,8 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -107,7 +107,7 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	refs := []reporef.DatasetRef{}
+	refs := []dsref.DetailedRef{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
@@ -140,7 +140,7 @@ func (o *ListOptions) Run() (err error) {
 	case "":
 		items := make([]fmt.Stringer, len(refs))
 		for i, r := range refs {
-			items[i] = refStringer(r)
+			items[i] = detailedRefStringer(r)
 		}
 		printItems(o.Out, items, page.Offset())
 		return nil

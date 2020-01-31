@@ -64,7 +64,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]reporef.DatasetRef) error {
+func (r *DatasetRequests) List(p *ListParams, res *[]dsref.DetailedRef) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
@@ -162,17 +162,13 @@ func (r *DatasetRequests) List(p *ListParams, res *[]reporef.DatasetRef) error {
 		}
 	}
 
-	*res = refs
-
-	// TODO (b5) - for now we're removing schemas b/c they don't serialize properly over RPC
-	// update 2019-10-21 - this probably isn't true anymore. should test & remove
-	if p.RPC {
-		for _, rep := range *res {
-			if rep.Dataset != nil && rep.Dataset.Structure != nil {
-				rep.Dataset.Structure.Schema = nil
-			}
-		}
+	// Convert old style DatasetRef list to DetailedRef list.
+	// TODO(dlong): Remove this and convert lower-level functions to return []DetailedRef.
+	details := make([]dsref.DetailedRef, len(refs))
+	for i, r := range refs {
+		details[i] = reporef.ConvertToDetailedRef(&r)
 	}
+	*res = details
 
 	return err
 }
