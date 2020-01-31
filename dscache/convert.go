@@ -39,7 +39,8 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, r repo.Repo
 		userProfileList = append(userProfileList, pair)
 	}
 
-	// Convert logbook into dataset info list. Also use refs, but only to get FSI paths.
+	// Convert logbook into dataset info list. Iterate refs to get FSI paths and anything
+	// missing from logbook.
 	logbook := r.Logbook()
 	dsInfoList, err := convertLogbookAndRefs(ctx, logbook, refs)
 	if err != nil {
@@ -168,9 +169,25 @@ func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []rep
 		infoList := convertLogbookUserToDsInfoList(profileID, userLog.Logs)
 		allInfoList = append(allInfoList, infoList...)
 	}
-	// Add FSIPaths
-	for _, info := range allInfoList {
-		info.FSIPath = findFSIPath(info, dsrefs)
+
+	// Iterate dsrefs, add FSIPaths and any refs that are missing from logbook
+	missingInfoList := make([]*dsInfo, 0)
+	for _, ref := range dsrefs {
+		info := findMatchingInfo(ref, allInfoList)
+		if info != nil {
+			info.FSIPath = ref.FSIPath
+			continue
+		}
+		missingInfoList = append(missingInfoList, &dsInfo{
+			ProfileID:  ref.ProfileID.String(),
+			PrettyName: ref.Name,
+			HeadRef:    ref.Path,
+			FSIPath:    ref.FSIPath,
+		})
+	}
+	// Append any missing dsInfos
+	if len(missingInfoList) > 0 {
+		allInfoList = append(allInfoList, missingInfoList...)
 	}
 	return allInfoList, nil
 }
@@ -244,17 +261,19 @@ func convertHistoryToIndexAndRef(historyLog oplog.Log) (int, string) {
 	return lastIndex, lastRef
 }
 
-func findFSIPath(info *dsInfo, dsrefs []repo.DatasetRef) string {
-	for _, ref := range dsrefs {
+func findMatchingInfo(ref repo.DatasetRef, dsInfoList []*dsInfo) *dsInfo {
+	for _, info := range dsInfoList {
+		if info == nil {
+			continue
+		}
 		// NOTE: This is a bad example of how to find a dataset, and should not be followed in
 		// other code. Comparing ProfileID is okay, because they are stable ids that don't change,
 		// but name is mutable and can be modified at any time. It should not be used as a
 		// primary key, only as for pretty display. We should be using initID everywhere instead,
 		// but dsrefs does not store the initID, which is the whole reason it is going away.
 		if ref.ProfileID.String() == info.ProfileID && ref.Name == info.PrettyName {
-			return ref.FSIPath
+			return info
 		}
 	}
-	log.Errorf("could not find dataset %s in dsrefs", info.PrettyName)
-	return ""
+	return nil
 }
