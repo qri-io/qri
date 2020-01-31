@@ -10,8 +10,8 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestAddDataset(t *testing.T) {

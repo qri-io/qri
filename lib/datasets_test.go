@@ -28,8 +28,8 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 

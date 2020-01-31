@@ -531,10 +531,10 @@ func TestCanonicalizeProfile(t *testing.T) {
 	}
 
 	cases := []struct {
-		input           string
+		input        string
 		inputDataset reporef.DatasetRef
-		expect          reporef.DatasetRef
-		err             string
+		expect       reporef.DatasetRef
+		err          string
 	}{
 		{"me", reporef.DatasetRef{}, lucille, ""},
 		{"lucille", reporef.DatasetRef{}, lucille, ""},

@@ -210,8 +210,8 @@ type GetParams struct {
 // GetResult combines data with it's hashed path
 type GetResult struct {
 	Ref     *reporef.DatasetRef `json:"ref"`
-	Dataset *dataset.Dataset `json:"data"`
-	Bytes   []byte           `json:"bytes"`
+	Dataset *dataset.Dataset    `json:"data"`
+	Bytes   []byte              `json:"bytes"`
 }
 
 // Get retrieves datasets and components for a given reference. If p.Ref is provided, it is

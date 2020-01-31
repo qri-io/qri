@@ -21,8 +21,8 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // ErrNoRemoteClient is returned when no client is allocated
