@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestRecall(t *testing.T) {
@@ -37,7 +37,7 @@ func TestLoadRevisions(t *testing.T) {
 	}
 
 	cases := []struct {
-		ref  repo.DatasetRef
+		ref  reporef.DatasetRef
 		revs string
 		ds   *dataset.Dataset
 		err  string

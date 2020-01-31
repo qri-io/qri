@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/qri/repo/test"
 )
@@ -208,7 +209,7 @@ func ConnectQriNodes(ctx context.Context, nodes []TestablePeerNode) error {
 }
 
 // GetSomeBlocks returns a list of num ids for blocks that are in the referenced dataset.
-func GetSomeBlocks(capi coreiface.CoreAPI, ref repo.DatasetRef, num int) []string {
+func GetSomeBlocks(capi coreiface.CoreAPI, ref reporef.DatasetRef, num int) []string {
 	result := []string{}
 
 	ctx := context.Background()

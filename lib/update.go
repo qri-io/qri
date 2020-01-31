@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/update"
 	"github.com/qri-io/qri/update/cron"
 )
@@ -91,7 +92,7 @@ func (m *UpdateMethods) jobFromScheduleParams(ctx context.Context, p *SchedulePa
 		return update.ShellScriptToJob(p.Name, p.Periodicity, nil)
 	}
 
-	var ref repo.DatasetRef
+	var ref reporef.DatasetRef
 	if ref, err = repo.ParseDatasetRef(p.Name); err != nil {
 		return
 	}
@@ -280,7 +281,7 @@ func (m *UpdateMethods) ServiceRestart(in, out *bool) error {
 
 // Run advances a dataset to the latest known version from either a peer or by
 // re-running a transform in the peer's namespace
-func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
+func (m *UpdateMethods) Run(p *Job, res *reporef.DatasetRef) (err error) {
 	// Make all paths absolute. this must happen *before* any possible RPC call
 	if update.PossibleShellScript(p.Name) {
 		if err = qfs.AbsPath(&p.Name); err != nil {
@@ -324,7 +325,7 @@ func (m *UpdateMethods) Run(p *Job, res *repo.DatasetRef) (err error) {
 				// Config: o.Config
 			}
 		}
-		*res = repo.DatasetRef{}
+		*res = reporef.DatasetRef{}
 		err = m.runDatasetUpdate(ctx, params, res)
 
 	case cron.JTShellScript:
@@ -359,7 +360,7 @@ func absolutizeJobFilepaths(j *Job) error {
 	return nil
 }
 
-func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res *repo.DatasetRef) error {
+func (m *UpdateMethods) runDatasetUpdate(ctx context.Context, p *SaveParams, res *reporef.DatasetRef) error {
 	ref, err := repo.ParseDatasetRef(p.Ref)
 	if err != nil {
 		return err

@@ -6,6 +6,7 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
@@ -151,7 +152,7 @@ type dsInfo struct {
 }
 
 // convertLogbookAndRefs builds dsInfo from each dataset in the logbook, plus FSIPath from old dsrefs
-func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []repo.DatasetRef) ([]*dsInfo, error) {
+func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []reporef.DatasetRef) ([]*dsInfo, error) {
 	userLogs, err := book.ListAllLogs(ctx)
 	if err != nil {
 		return nil, err
@@ -261,7 +262,7 @@ func convertHistoryToIndexAndRef(historyLog oplog.Log) (int, string) {
 	return lastIndex, lastRef
 }
 
-func findMatchingInfo(ref repo.DatasetRef, dsInfoList []*dsInfo) *dsInfo {
+func findMatchingInfo(ref reporef.DatasetRef, dsInfoList []*dsInfo) *dsInfo {
 	for _, info := range dsInfoList {
 		if info == nil {
 			continue

@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // InitParams encapsulates parameters for fsi.InitDataset
@@ -90,7 +91,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		return "", err
 	}
 
-	ref := &repo.DatasetRef{Peername: "me", Name: p.Name}
+	ref := &reporef.DatasetRef{Peername: "me", Name: p.Name}
 
 	// Validate dataset name. The `init` command must only be used for creating new datasets.
 	// Make sure a dataset with this name does not exist in your repo.

@@ -7,7 +7,7 @@ import (
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/multiformats/go-multihash"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var (
@@ -15,7 +15,7 @@ var (
 	nowFunc = time.Now
 )
 
-func sigParams(pk crypto.PrivKey, ref repo.DatasetRef) (map[string]string, error) {
+func sigParams(pk crypto.PrivKey, ref reporef.DatasetRef) (map[string]string, error) {
 	pid, err := calcProfileID(pk)
 	if err != nil {
 		return nil, err

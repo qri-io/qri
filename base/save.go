@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -29,7 +30,7 @@ type SaveDatasetSwitches struct {
 }
 
 // SaveDataset initializes a dataset from a dataset pointer and data file
-func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref repo.DatasetRef, err error) {
+func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *dataset.Dataset, secrets map[string]string, scriptOut io.Writer, sw SaveDatasetSwitches) (ref reporef.DatasetRef, err error) {
 	var (
 		prevPath string
 		pro      *profile.Profile
@@ -153,7 +154,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 
 // CreateDataset uses dsfs to add a dataset to a repo's store, updating all
 // references within the repo if successful
-func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref repo.DatasetRef, err error) {
+func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds, dsPrev *dataset.Dataset, dryRun, pin, force, shouldRender bool) (ref reporef.DatasetRef, err error) {
 	var (
 		pro     *profile.Profile
 		path    string
@@ -173,7 +174,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
-		prev := repo.DatasetRef{
+		prev := reporef.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
 			Name:      ds.Name,
@@ -184,7 +185,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		// reference locally
 		_ = r.DeleteRef(prev)
 	}
-	ref = repo.DatasetRef{
+	ref = reporef.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
 		Name:      ds.Name,
@@ -224,7 +225,7 @@ func GenerateAvailableName(r repo.Repo, peername, prefix string) string {
 	for {
 		counter++
 		tryName := fmt.Sprintf("%s_%d", prefix, counter)
-		lookup := &repo.DatasetRef{Name: tryName, Peername: peername}
+		lookup := &reporef.DatasetRef{Name: tryName, Peername: peername}
 		err := repo.CanonicalizeDatasetRef(r, lookup)
 		if err == repo.ErrNotFound {
 			return tryName

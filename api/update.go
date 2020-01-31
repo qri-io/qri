@@ -8,7 +8,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // UpdateHandlers wraps lib.UpdateMethods, adding HTTP JSON API handles
@@ -163,7 +163,7 @@ func (h UpdateHandlers) RunHandler(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	// TODO (b5) - finish
 	// if err := h.DatasetRequests.Update(p, res); err != nil {
 	// 	util.WriteErrResponse(w, http.StatusInternalServerError, err)

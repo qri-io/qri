@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestRenderHandler(t *testing.T) {
@@ -42,7 +42,7 @@ func TestRenderReadmeHandler(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	if err := dr.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}

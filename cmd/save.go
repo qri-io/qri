@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -188,7 +189,7 @@ continue?`, true) {
 		}
 	}
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err = o.DatasetRequests.Save(p, res); err != nil {
 		return err
 	}

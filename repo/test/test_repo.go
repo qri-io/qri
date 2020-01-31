@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -109,7 +110,7 @@ func NewTestRepo() (mr *repo.MemRepo, err error) {
 }
 
 // NewTestRepoWithHistory generates a repository with a dataset that has a history, usable for testing purposes
-func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []repo.DatasetRef, err error) {
+func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err error) {
 	datasets := []string{"movies", "cities", "counter", "craigslist", "sitemap"}
 
 	mr, err = NewEmptyTestRepo()
@@ -187,7 +188,7 @@ func pkgPath(paths ...string) string {
 // it's tempting to use base.CreateDataset here, but we can't b/c import cycle :/
 // this version of createDataset doesn't run transforms or prepare viz. Test cases
 // should be designed to avoid requiring Tranforms be run or Viz be prepped
-func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err error) {
+func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err error) {
 	var (
 		ctx = context.Background()
 		ds  = tc.Input
@@ -221,7 +222,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err er
 		return
 	}
 	if ds.PreviousPath != "" && ds.PreviousPath != "/" {
-		prev := repo.DatasetRef{
+		prev := reporef.DatasetRef{
 			ProfileID: pro.ID,
 			Peername:  pro.Peername,
 			Name:      ds.Name,
@@ -232,7 +233,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref repo.DatasetRef, err er
 		// reference locally
 		_ = r.DeleteRef(prev)
 	}
-	ref = repo.DatasetRef{
+	ref = reporef.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
 		Name:      ds.Name,

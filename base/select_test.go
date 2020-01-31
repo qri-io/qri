@@ -4,7 +4,7 @@ import (
 	"context"
 	"testing"
 
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestSelect(t *testing.T) {
@@ -12,7 +12,7 @@ func TestSelect(t *testing.T) {
 	r := newTestRepo(t)
 	ref := addCitiesDataset(t, r)
 
-	if _, err := Select(ctx, r, repo.DatasetRef{Peername: "bad", Name: "ref"}, "commit"); err == nil {
+	if _, err := Select(ctx, r, reporef.DatasetRef{Peername: "bad", Name: "ref"}, "commit"); err == nil {
 		t.Error("expected select of bad ref to fail")
 	}
 	if _, err := Select(ctx, r, ref, ""); err != nil {

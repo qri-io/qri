@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // OpenDataset prepares a dataset for use, checking each component
@@ -97,7 +98,7 @@ func CloseDataset(ds *dataset.Dataset) (err error) {
 }
 
 // ListDatasets lists datasets from a repo
-func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []repo.DatasetRef, err error) {
+func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset int, RPC, publishedOnly, showVersions bool) (res []reporef.DatasetRef, err error) {
 	store := r.Store()
 	num, err := r.RefCount()
 	if err != nil {
@@ -110,7 +111,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	}
 
 	if term != "" {
-		matched := make([]repo.DatasetRef, len(res))
+		matched := make([]reporef.DatasetRef, len(res))
 		i := 0
 		for _, ref := range res {
 			if strings.Contains(ref.Name, term) {
@@ -122,7 +123,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	}
 
 	if publishedOnly {
-		pub := make([]repo.DatasetRef, len(res))
+		pub := make([]reporef.DatasetRef, len(res))
 		i := 0
 		for _, ref := range res {
 			if ref.Published {
@@ -134,7 +135,7 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 	}
 	// if offset is too high, return empty list
 	if offset >= len(res) {
-		return []repo.DatasetRef{}, nil
+		return []reporef.DatasetRef{}, nil
 	}
 	res = res[offset:]
 
@@ -209,7 +210,7 @@ func RawDatasetRefs(ctx context.Context, r repo.Repo) (string, error) {
 }
 
 // FetchDataset grabs a dataset from a remote source
-func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, load bool) (err error) {
+func FetchDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, pin, load bool) (err error) {
 	key := strings.TrimSuffix(ref.Path, "/"+dsfs.PackageFileDataset.String())
 	// TODO (b5): use a function from a canonical place to produce this path, possibly from dsfs
 	path := key + "/" + dsfs.PackageFileDataset.String()
@@ -248,7 +249,7 @@ func FetchDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, pin, l
 }
 
 // ReadDatasetPath takes a path string, parses, canonicalizes, loads a dataset pointer, and opens the file
-// The medium-term goal here is to obfuscate use of repo.DatasetRef, which we're hoping to deprecate
+// The medium-term goal here is to obfuscate use of reporef.DatasetRef, which we're hoping to deprecate
 func ReadDatasetPath(ctx context.Context, r repo.Repo, path string) (ds *dataset.Dataset, err error) {
 	ref, err := repo.ParseDatasetRef(path)
 	if err != nil {
@@ -272,7 +273,7 @@ func ReadDatasetPath(ctx context.Context, r repo.Repo, path string) (ds *dataset
 }
 
 // ReadDataset grabs a dataset from the store
-func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err error) {
+func ReadDataset(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef) (err error) {
 	if err = repo.CanonicalizeDatasetRef(r, ref); err != nil {
 		return
 	}
@@ -292,7 +293,7 @@ func ReadDataset(ctx context.Context, r repo.Repo, ref *repo.DatasetRef) (err er
 }
 
 // PinDataset marks a dataset for retention in a store
-func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
+func PinDataset(ctx context.Context, r repo.Repo, ref reporef.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
 		return pinner.Pin(ctx, ref.Path, true)
 	}
@@ -300,7 +301,7 @@ func PinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 }
 
 // UnpinDataset unmarks a dataset for retention in a store
-func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
+func UnpinDataset(ctx context.Context, r repo.Repo, ref reporef.DatasetRef) error {
 	if pinner, ok := r.Store().(cafs.Pinner); ok {
 		return pinner.Unpin(ctx, ref.Path, true)
 	}
@@ -311,7 +312,7 @@ func UnpinDataset(ctx context.Context, r repo.Repo, ref repo.DatasetRef) error {
 // the most recent version
 // when n == -1, remove all versions
 // does not remove the dataset reference
-func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.DatasetRef, n int) (*repo.DatasetRef, error) {
+func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, n int) (*reporef.DatasetRef, error) {
 	var err error
 	if r == nil {
 		return nil, fmt.Errorf("need a repo")
@@ -372,7 +373,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *repo.Datase
 			log.Debugf("error fetching previous: %s", err)
 			break
 		}
-		curr = repo.DatasetRef{
+		curr = reporef.DatasetRef{
 			Path:    next.Path,
 			Dataset: next,
 		}

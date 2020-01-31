@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/update/cron"
 )
 
@@ -134,13 +134,13 @@ func TestDatasetMethodsRun(t *testing.T) {
 	inst := &Instance{node: node}
 
 	m := NewUpdateMethods(inst)
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := m.Run(&Job{Name: "me/bad_dataset", Type: cron.JTDataset}, res); err == nil {
 		t.Error("expected update to nonexistent dataset to error")
 	}
 
 	ref := addNowTransformDataset(t, node)
-	res = &repo.DatasetRef{}
+	res = &reporef.DatasetRef{}
 	if err := m.Run(&Job{Name: ref.AliasString(), Type: cron.JTDataset /* Recall: "tf", ReturnBody: true */}, res); err != nil {
 		t.Errorf("update error: %s", err)
 	}

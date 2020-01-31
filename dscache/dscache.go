@@ -8,7 +8,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -91,9 +91,9 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 
 // ListRefs returns references to each dataset in the cache
 // TODO(dlong): Not alphabetized, which lib assumes it is
-func (d *Dscache) ListRefs() ([]repo.DatasetRef, error) {
+func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	d.ensureProToUserMap()
-	refs := make([]repo.DatasetRef, 0, d.Root.RefsLength())
+	refs := make([]reporef.DatasetRef, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
 		refCache := dscachefb.RefCache{}
 		d.Root.Refs(&refCache, i)
@@ -103,7 +103,7 @@ func (d *Dscache) ListRefs() ([]repo.DatasetRef, error) {
 			continue
 		}
 
-		refs = append(refs, repo.DatasetRef{
+		refs = append(refs, reporef.DatasetRef{
 			Peername:  d.ProfileIDToUsername[string(refCache.ProfileID())],
 			ProfileID: profileID,
 			Name:      string(refCache.PrettyName()),

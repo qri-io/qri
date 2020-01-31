@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -26,14 +27,14 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 
 	hooksCalled := []string{}
 	callCheck := func(s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
 			hooksCalled = append(hooksCalled, s)
 			return nil
 		}
 	}
 
 	requireLogAndRefCallCheck := func(t *testing.T, s string) Hook {
-		return func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error {
+		return func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error {
 			if ref.String() == "" {
 				t.Errorf("hook %s expected reference to be populated", s)
 			}
@@ -84,7 +85,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Error(err)
 	}
 
-	relRef := &repo.DatasetRef{Peername: worldBankRef.Peername, Name: worldBankRef.Name}
+	relRef := &reporef.DatasetRef{Peername: worldBankRef.Peername, Name: worldBankRef.Name}
 	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
 		t.Error(err)
 	}
@@ -207,7 +208,7 @@ func qriNode(t *testing.T, peername string, node *core.IpfsNode, pi *cfgtest.Pee
 	return qriNode
 }
 
-func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) repo.DatasetRef {
+func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ds := &dataset.Dataset{
 		Name: "world_bank_population",
 		Commit: &dataset.Commit{
@@ -231,7 +232,7 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	return ref
 }
 
-func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) repo.DatasetRef {
+func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ds := &dataset.Dataset{
 		Name: "video_view_stats",
 		Commit: &dataset.Commit{

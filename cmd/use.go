@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -92,7 +93,7 @@ func (o *UseOptions) Validate() error {
 
 // Run executes the search command
 func (o *UseOptions) Run() (err error) {
-	var refs []repo.DatasetRef
+	var refs []reporef.DatasetRef
 	fileSelectionPath := filepath.Join(o.QriRepoPath, FileSelectedRefs)
 
 	if o.List {
@@ -129,7 +130,7 @@ func (o *UseOptions) Run() (err error) {
 }
 
 // writeFile serializes the list of refs to a file at path
-func writeFile(path string, refs []repo.DatasetRef) error {
+func writeFile(path string, refs []reporef.DatasetRef) error {
 	data, err := json.Marshal(refs)
 	if err != nil {
 		return err
@@ -138,12 +139,12 @@ func writeFile(path string, refs []repo.DatasetRef) error {
 }
 
 // readFile deserializes a list of refs from a file at path
-func readFile(path string) ([]repo.DatasetRef, error) {
+func readFile(path string) ([]reporef.DatasetRef, error) {
 	data, err := ioutil.ReadFile(path)
 	if err != nil {
 		return nil, err
 	}
-	res := []repo.DatasetRef{}
+	res := []reporef.DatasetRef{}
 	if err = json.Unmarshal(data, &res); err != nil {
 		return nil, err
 	}

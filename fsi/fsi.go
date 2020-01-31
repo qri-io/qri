@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // package level logger
@@ -67,14 +68,14 @@ func NewFSI(r repo.Repo) *FSI {
 }
 
 // LinkedRefs returns a list of linked datasets and their connected directories
-func (fsi *FSI) LinkedRefs(offset, limit int) ([]repo.DatasetRef, error) {
+func (fsi *FSI) LinkedRefs(offset, limit int) ([]reporef.DatasetRef, error) {
 	// TODO (b5) - figure out a better pagination / querying strategy here
 	allRefs, err := fsi.repo.References(offset, 100000)
 	if err != nil {
 		return nil, err
 	}
 
-	var refs []repo.DatasetRef
+	var refs []reporef.DatasetRef
 	for _, ref := range allRefs {
 		if ref.FSIPath != "" {
 			if offset > 0 {
@@ -217,7 +218,7 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	return fsi.repo.PutRef(ref)
 }
 
-func (fsi *FSI) getRepoRef(refStr string) (ref repo.DatasetRef, err error) {
+func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {
 	ref, err = repo.ParseDatasetRef(refStr)
 	if err != nil {
 		return ref, err

@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -18,12 +19,12 @@ func TestInLocalNamespace(t *testing.T) {
 		t.Errorf("expected %s true", ref.String())
 	}
 
-	ref = &repo.DatasetRef{}
+	ref = &reporef.DatasetRef{}
 	if InLocalNamespace(r, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
 
-	ref = &repo.DatasetRef{ProfileID: profile.ID("fake")}
+	ref = &reporef.DatasetRef{ProfileID: profile.ID("fake")}
 	if InLocalNamespace(r, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}
@@ -36,7 +37,7 @@ func TestSetPublishStatus(t *testing.T) {
 	if err := SetPublishStatus(r, &ref, true); err != nil {
 		t.Error(err)
 	}
-	res, err := r.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	res, err := r.GetRef(reporef.DatasetRef{Peername: ref.Peername, Name: ref.Name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -47,7 +48,7 @@ func TestSetPublishStatus(t *testing.T) {
 	if err := SetPublishStatus(r, &ref, false); err != nil {
 		t.Error(err)
 	}
-	res, err = r.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	res, err = r.GetRef(reporef.DatasetRef{Peername: ref.Peername, Name: ref.Name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -55,7 +56,7 @@ func TestSetPublishStatus(t *testing.T) {
 		t.Errorf("expected published to equal false: %s,%s", ref, res)
 	}
 
-	if err := SetPublishStatus(r, &repo.DatasetRef{Name: "foo"}, false); err == nil {
+	if err := SetPublishStatus(r, &reporef.DatasetRef{Name: "foo"}, false); err == nil {
 		t.Error("expected invalid reference to error")
 	}
 
@@ -77,12 +78,12 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 	newer := older.AddDate(1, 0, 0)
 	cases := []struct {
 		description string
-		a, b        repo.DatasetRef
+		a, b        reporef.DatasetRef
 		path        string
 	}{
 		{
 			"first dataset is older then the second",
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_older",
 				Path:      "/map/first",
@@ -93,7 +94,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 					},
 				},
 			},
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_older",
 				Path:      "/map/second",
@@ -108,7 +109,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 		},
 		{
 			"first dataset is newer then the second",
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_newer",
 				Path:      "/map/first",
@@ -119,7 +120,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 					},
 				},
 			},
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_newer",
 				Path:      "/map/second",
@@ -134,7 +135,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 		},
 		{
 			"first dataset is same time as the the second",
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_same",
 				Path:      "/map/first",
@@ -145,7 +146,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 					},
 				},
 			},
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "first_same",
 				Path:      "/map/second",
@@ -167,7 +168,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 		if err := ReplaceRefIfMoreRecent(r, &c.a, &c.b); err != nil {
 			t.Fatal(err)
 		}
-		ref, err := r.GetRef(repo.DatasetRef{Peername: c.a.Peername, Name: c.a.Name})
+		ref, err := r.GetRef(reporef.DatasetRef{Peername: c.a.Peername, Name: c.a.Name})
 		if err != nil {
 			t.Fatal(err)
 		}
@@ -178,18 +179,18 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 
 	casesError := []struct {
 		description string
-		a, b        repo.DatasetRef
+		a, b        reporef.DatasetRef
 		err         string
 	}{
 		{
 			"original ref has no timestamp & should error",
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "err",
 				Path:      "/map/first",
 				ProfileID: "id",
 			},
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "err",
 				Path:      "/map/second",
@@ -204,7 +205,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 		},
 		{
 			"added ref has no timestamp & should error",
-			repo.DatasetRef{
+			reporef.DatasetRef{
 				Peername:  "woo",
 				Name:      "err",
 				Path:      "/map/first",
@@ -215,7 +216,7 @@ func TestReplaceRefIfMoreRecent(t *testing.T) {
 					},
 				},
 			},
-			repo.DatasetRef{},
+			reporef.DatasetRef{},
 			"added dataset ref is not fully dereferenced",
 		},
 	}

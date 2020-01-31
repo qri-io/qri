@@ -3,7 +3,7 @@ package cmd
 import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +74,7 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
-	var res repo.DatasetRef
+	var res reporef.DatasetRef
 	for _, ref := range o.Refs {
 		p := lib.PublicationParams{
 			Ref:        ref,

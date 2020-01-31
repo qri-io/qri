@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -20,7 +21,7 @@ func TestAddDataset(t *testing.T) {
 	var psClient *PeerSyncClient
 	var nilClient Client
 	nilClient = psClient
-	if err := nilClient.AddDataset(tr.Ctx, &repo.DatasetRef{}, ""); err != ErrNoRemoteClient {
+	if err := nilClient.AddDataset(tr.Ctx, &reporef.DatasetRef{}, ""); err != ErrNoRemoteClient {
 		t.Errorf("nil add mismatch. expected: '%s', got: '%s'", ErrNoRemoteClient, err)
 	}
 
@@ -34,7 +35,7 @@ func TestAddDataset(t *testing.T) {
 	tr.NodeA.GoOnline()
 	tr.NodeB.GoOnline()
 
-	if err := cli.AddDataset(tr.Ctx, &repo.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
+	if err := cli.AddDataset(tr.Ctx, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, ""); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 

@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -93,7 +94,7 @@ type PublicationParams struct {
 }
 
 // Publish posts a dataset version to a remote
-func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) error {
+func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Publish", p, res)
 	}
@@ -135,7 +136,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *repo.DatasetRef) erro
 }
 
 // Unpublish asks a remote to remove a dataset
-func (r *RemoteMethods) Unpublish(p *PublicationParams, res *repo.DatasetRef) error {
+func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Unpublish", p, res)
 	}

@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -12,7 +13,7 @@ import (
 const MtResolveDatasetRef = MsgType("resolve_dataset_ref")
 
 // ResolveDatasetRef completes a dataset reference
-func (n *QriNode) ResolveDatasetRef(ctx context.Context, ref *repo.DatasetRef) (err error) {
+func (n *QriNode) ResolveDatasetRef(ctx context.Context, ref *reporef.DatasetRef) (err error) {
 	log.Debugf("%s ResolveDatasetRef %s", n.ID, ref)
 
 	if !n.Online {
@@ -39,7 +40,7 @@ func (n *QriNode) ResolveDatasetRef(ctx context.Context, ref *repo.DatasetRef) (
 		}
 
 		res := <-replies
-		dsr := repo.DatasetRef{}
+		dsr := reporef.DatasetRef{}
 		if err := json.Unmarshal(res.Body, &dsr); err == nil {
 			if dsr.Path != "" {
 				*ref = dsr
@@ -56,7 +57,7 @@ func (n *QriNode) handleResolveDatasetRef(ws *WrappedStream, msg Message) (hangu
 
 	switch msg.Header("phase") {
 	case "request":
-		dsr := &repo.DatasetRef{}
+		dsr := &reporef.DatasetRef{}
 		if err := json.Unmarshal(msg.Body, dsr); err != nil {
 			log.Debug(err.Error())
 			return

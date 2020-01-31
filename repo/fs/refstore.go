@@ -9,9 +9,10 @@ import (
 
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// Refstore is a file-based implementation of the repo.Refstore
+// Refstore is a file-based implementation of the Refstore
 // interface. It stores names in a json file
 type Refstore struct {
 	basepath
@@ -21,8 +22,8 @@ type Refstore struct {
 }
 
 // PutRef adds a reference to the store
-func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
-	var refs repo.Refs
+func (rs Refstore) PutRef(r reporef.DatasetRef) (err error) {
+	var refs repo.RefList
 
 	// remove dataset reference, refstores only store reference details
 	r.Dataset = nil
@@ -57,21 +58,21 @@ func (rs Refstore) PutRef(r repo.DatasetRef) (err error) {
 }
 
 // GetRef completes a partially-known reference
-func (rs Refstore) GetRef(get repo.DatasetRef) (repo.DatasetRef, error) {
+func (rs Refstore) GetRef(get reporef.DatasetRef) (reporef.DatasetRef, error) {
 	refs, err := rs.refs()
 	if err != nil {
-		return repo.DatasetRef{}, err
+		return reporef.DatasetRef{}, err
 	}
 	for _, ref := range refs {
 		if ref.Match(get) {
 			return ref, nil
 		}
 	}
-	return repo.DatasetRef{}, repo.ErrNotFound
+	return reporef.DatasetRef{}, repo.ErrNotFound
 }
 
 // DeleteRef removes a name from the store
-func (rs Refstore) DeleteRef(del repo.DatasetRef) error {
+func (rs Refstore) DeleteRef(del reporef.DatasetRef) error {
 	refs, err := rs.refs()
 	if err != nil {
 		return err
@@ -88,18 +89,18 @@ func (rs Refstore) DeleteRef(del repo.DatasetRef) error {
 }
 
 // References gives a set of dataset references from the store
-func (rs Refstore) References(offset, limit int) ([]repo.DatasetRef, error) {
+func (rs Refstore) References(offset, limit int) ([]reporef.DatasetRef, error) {
 	refs, err := rs.refs()
 	if err != nil {
 		return nil, err
 	}
-	res := make(repo.Refs, limit)
+	res := make(repo.RefList, limit)
 	for i, ref := range refs {
 		if i < offset {
 			continue
 		}
 		if i-offset == limit {
-			return []repo.DatasetRef(res), nil
+			return []reporef.DatasetRef(res), nil
 		}
 		res[i-offset] = ref
 	}
@@ -118,12 +119,12 @@ func (rs Refstore) RefCount() (int, error) {
 	return len(refs), nil
 }
 
-func (rs *Refstore) refs() (repo.Refs, error) {
+func (rs *Refstore) refs() (repo.RefList, error) {
 	data, err := ioutil.ReadFile(rs.filepath(rs.file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			// empty is ok
-			return repo.Refs{}, nil
+			return repo.RefList{}, nil
 		}
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading references: %s", err.Error())
@@ -132,24 +133,24 @@ func (rs *Refstore) refs() (repo.Refs, error) {
 	return repo.UnmarshalRefsFlatbuffer(data)
 }
 
-func (rs *Refstore) jsonRefs() (repo.Refs, error) {
+func (rs *Refstore) jsonRefs() (repo.RefList, error) {
 	data, err := ioutil.ReadFile(rs.filepath(rs.file))
 	if err != nil {
 		if os.IsNotExist(err) {
 			// empty is ok
-			return repo.Refs{}, nil
+			return repo.RefList{}, nil
 		}
 		log.Debug(err.Error())
 		return nil, fmt.Errorf("error loading names: %s", err.Error())
 	}
 
-	refs := repo.Refs{}
+	refs := repo.RefList{}
 	err = json.Unmarshal(data, &refs)
 	return refs, err
 }
 
-func (rs *Refstore) save(refs repo.Refs) error {
+func (rs *Refstore) save(refs repo.RefList) error {
 	sort.Sort(refs)
 	path := rs.basepath.filepath(rs.file)
-	return ioutil.WriteFile(path, refs.FlatbufferBytes(), os.ModePerm)
+	return ioutil.WriteFile(path, repo.FlatbufferBytes(refs), os.ModePerm)
 }

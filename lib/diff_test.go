@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestDatasetRequestsDiff(t *testing.T) {
@@ -19,7 +19,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 	djsOnePath := tr.writeFile(t, "djs_1.json", `{ "dj dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 	djsTwoPath := tr.writeFile(t, "djs_2.json", `{ "DJ dj booth": { "rating": 1, "uses_soundcloud": true } }`)
 
-	dsRef1 := repo.DatasetRef{}
+	dsRef1 := reporef.DatasetRef{}
 	initParams := &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsOnePath,
@@ -28,7 +28,7 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		t.Fatalf("couldn't save: %s", err.Error())
 	}
 
-	dsRef2 := repo.DatasetRef{}
+	dsRef2 := reporef.DatasetRef{}
 	initParams = &SaveParams{
 		Ref:      "me/jobs_ranked_by_automation_prob",
 		BodyPath: jobsTwoPath,

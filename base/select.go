@@ -10,10 +10,11 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // Select loads a dataset value specified by case.Sensitve.dot.separated.paths
-func Select(ctx context.Context, r repo.Repo, ref repo.DatasetRef, path string) (interface{}, error) {
+func Select(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, path string) (interface{}, error) {
 	ds, err := dsfs.LoadDataset(ctx, r.Store(), ref.Path)
 	if err != nil {
 		return nil, err

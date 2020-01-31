@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MtDatasetInfo gets info on a dataset
@@ -16,7 +17,7 @@ const MtDatasetInfo = MsgType("dataset_info")
 // It's expected the local peer has attempted to canonicalize the reference
 // before sending to the network
 // ref is used as an outparam, populating with data on success
-func (n *QriNode) RequestDataset(ctx context.Context, ref *repo.DatasetRef) (err error) {
+func (n *QriNode) RequestDataset(ctx context.Context, ref *reporef.DatasetRef) (err error) {
 	log.Debugf("%s RequestDataset %s", n.ID, ref)
 
 	// if peer ID is *our* peer.ID check for local dataset
@@ -57,7 +58,7 @@ func (n *QriNode) RequestDataset(ctx context.Context, ref *repo.DatasetRef) (err
 		}
 
 		res := <-replies
-		dsr := repo.DatasetRef{}
+		dsr := reporef.DatasetRef{}
 		if err := json.Unmarshal(res.Body, &dsr); err == nil {
 			if dsr.Path != "" && dsr.Dataset != nil {
 				*ref = dsr
@@ -78,7 +79,7 @@ func (n *QriNode) handleDataset(ws *WrappedStream, msg Message) (hangup bool) {
 
 	switch msg.Header("phase") {
 	case "request":
-		dsr := repo.DatasetRef{}
+		dsr := reporef.DatasetRef{}
 		if err := json.Unmarshal(msg.Body, &dsr); err != nil {
 			log.Debug(err.Error())
 			return

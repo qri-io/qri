@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 	"github.com/qri-io/varName"
 )
@@ -34,7 +35,7 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 
 	// Determine if the save is creating a new dataset or updating an existing dataset by
 	// seeing if the name can canonicalize to a repo that we know about
-	lookup := &repo.DatasetRef{Name: name, Peername: peername}
+	lookup := &reporef.DatasetRef{Name: name, Peername: peername}
 	if err = repo.CanonicalizeDatasetRef(r, lookup); err == repo.ErrNotFound || lookup.Path == "" {
 		return &dataset.Dataset{}, &dataset.Dataset{}, "", nil
 	}

@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestFSIHandlers(t *testing.T) {
@@ -289,7 +290,7 @@ func TestFSIWrite(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	if err := dr.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}
@@ -373,7 +374,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 		},
 		BodyPath: "testdata/cities/data.csv",
 	}
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	if err := dr.Save(&saveParams, &res); err != nil {
 		t.Fatal(err)
 	}

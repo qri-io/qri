@@ -5,7 +5,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -74,7 +74,7 @@ func (o *AddOptions) Run(args []string) error {
 			LogsOnly: o.LogsOnly,
 		}
 
-		res := repo.DatasetRef{}
+		res := reporef.DatasetRef{}
 		if err := o.DatasetRequests.Add(p, &res); err != nil {
 			return err
 		}

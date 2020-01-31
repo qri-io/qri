@@ -7,10 +7,11 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // Recall loads revisions of a dataset from history
-func Recall(ctx context.Context, r repo.Repo, str string, ref repo.DatasetRef) (*dataset.Dataset, error) {
+func Recall(ctx context.Context, r repo.Repo, str string, ref reporef.DatasetRef) (*dataset.Dataset, error) {
 	if str == "" {
 		return &dataset.Dataset{}, nil
 	}
@@ -34,7 +35,7 @@ func Recall(ctx context.Context, r repo.Repo, str string, ref repo.DatasetRef) (
 
 // LoadRevs grabs a component of a dataset that exists <n>th generation ancestor
 // of the referenced version, where presence of a component in a previous snapshot constitutes ancestry
-func LoadRevs(ctx context.Context, r repo.Repo, ref repo.DatasetRef, revs []*dsref.Rev) (res *dataset.Dataset, err error) {
+func LoadRevs(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, revs []*dsref.Rev) (res *dataset.Dataset, err error) {
 	var ds *dataset.Dataset
 	res = &dataset.Dataset{}
 	for {

@@ -6,7 +6,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 )
@@ -25,7 +25,7 @@ type DatasetsListParams struct {
 }
 
 // RequestDatasetsList gets a list of a peer's datasets
-func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p DatasetsListParams) ([]repo.DatasetRef, error) {
+func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p DatasetsListParams) ([]reporef.DatasetRef, error) {
 	log.Debugf("%s RequestDatasetList: %s", n.ID, pid)
 
 	if pid == n.ID {
@@ -53,7 +53,7 @@ func (n *QriNode) RequestDatasetsList(ctx context.Context, pid peer.ID, p Datase
 	}
 
 	res := <-replies
-	ref := []repo.DatasetRef{}
+	ref := []reporef.DatasetRef{}
 	err = json.Unmarshal(res.Body, &ref)
 	return ref, err
 }

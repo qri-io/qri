@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -14,19 +15,19 @@ func testRefstoreInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
 
-	err := r.PutRef(repo.DatasetRef{Name: "a", Path: "/path/to/a/thing"})
+	err := r.PutRef(reporef.DatasetRef{Name: "a", Path: "/path/to/a/thing"})
 	if err != repo.ErrPeerIDRequired {
 		t.Errorf("attempting to put empty peerID in refstore should return repo.ErrPeerIDRequired, got: %s", err)
 		return
 	}
 
-	err = r.PutRef(repo.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Path: "/path/to/a/thing"})
+	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Path: "/path/to/a/thing"})
 	if err != repo.ErrNameRequired {
 		t.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired, got: %s", err)
 		return
 	}
 
-	err = r.PutRef(repo.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Name: "a", Path: ""})
+	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Name: "a", Path: ""})
 	if err != repo.ErrPathRequired {
 		t.Errorf("attempting to put empty path in refstore should return repo.ErrPathRequired, got: %s", err)
 		return
@@ -46,16 +47,16 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	ref := repo.DatasetRef{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Name: "test", Path: path, Peername: "peer"}
+	ref := reporef.DatasetRef{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Name: "test", Path: path, Peername: "peer"}
 
 	if err := r.PutRef(ref); err != nil {
 		t.Errorf("repo.PutName: %s", err.Error())
 		return
 	}
 
-	res, err := r.GetRef(repo.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
+	res, err := r.GetRef(reporef.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
 	if err != nil {
-		t.Errorf("repo.GetRef with peerID/name: %s, ref: %s", err.Error(), repo.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
+		t.Errorf("repo.GetRef with peerID/name: %s, ref: %s", err.Error(), reporef.DatasetRef{ProfileID: ref.ProfileID, Name: ref.Name})
 		return
 	}
 	if !ref.Equal(res) {
@@ -63,7 +64,7 @@ func testRefstoreRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	res, err = r.GetRef(repo.DatasetRef{Path: ref.Path})
+	res, err = r.GetRef(reporef.DatasetRef{Path: ref.Path})
 	if err != nil {
 		t.Errorf("repo.GetRef with path: %s", err.Error())
 		return
@@ -97,7 +98,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 	r, cleanup := rmf(t)
 	defer cleanup()
 
-	refs := []repo.DatasetRef{
+	refs := []reporef.DatasetRef{
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_a", Published: true},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_b"},
 		{ProfileID: profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"), Peername: "peer", Name: "test_namespace_c"},
@@ -131,7 +132,7 @@ func testRefstoreMain(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	names := []repo.DatasetRef{}
+	names := []reporef.DatasetRef{}
 	pages := count
 	pageSize := count / pages
 	for i := 0; i <= pages; i++ {

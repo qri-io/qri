@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // DatasetHandlers wraps a requests struct to interface with http.HandlerFunc
@@ -264,7 +265,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 	args.Term = r.FormValue("term")
 
-	res := []repo.DatasetRef{}
+	res := []reporef.DatasetRef{}
 	if err := h.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -297,7 +298,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO (b5) - remove this. res.Ref should be used instead
-	ref := repo.DatasetRef{
+	ref := reporef.DatasetRef{
 		Peername:  res.Dataset.Peername,
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
@@ -358,7 +359,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 		p.Peername = ref.Peername
 	}
 
-	res := []repo.DatasetRef{}
+	res := []reporef.DatasetRef{}
 	if err := h.List(&p, &res); err != nil {
 		log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -387,7 +388,7 @@ func (h *DatasetHandlers) addHandler(w http.ResponseWriter, r *http.Request) {
 		LinkDir: r.FormValue("dir"),
 	}
 
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	err = h.Add(p, &res)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -434,12 +435,12 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 	// DatasetMethods.Save should fold the provided dataset values *then* attempt
 	// to extract a valid dataset reference from the resulting dataset,
 	// and use that as a save target.
-	ref := repo.DatasetRef{
+	ref := reporef.DatasetRef{
 		Name:     ds.Name,
 		Peername: ds.Peername,
 	}
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	scriptOutput := &bytes.Buffer{}
 	p := &lib.SaveParams{
 		Ref:          ref.AliasString(),
@@ -536,7 +537,7 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		New:     n,
 	}
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := h.Rename(p, res); err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)

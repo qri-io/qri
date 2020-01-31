@@ -28,6 +28,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -82,7 +83,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	good := []struct {
 		description string
 		params      SaveParams
-		res         *repo.DatasetRef
+		res         *reporef.DatasetRef
 	}{
 		{"body file", SaveParams{Ref: "me/jobs_ranked_by_automation_prob", BodyPath: jobsBodyPath}, nil},
 		{"meta set title", SaveParams{Ref: "me/cities", FilePaths: []string{citiesMetaOnePath}}, nil},
@@ -90,7 +91,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range good {
-		got := &repo.DatasetRef{}
+		got := &reporef.DatasetRef{}
 		err := req.Save(&c.params, got)
 		if err != nil {
 			t.Errorf("case %d: '%s' unexpected error: %s", i, c.description, err.Error())
@@ -125,7 +126,7 @@ func TestDatasetRequestsSave(t *testing.T) {
 	}
 
 	for i, c := range bad {
-		got := &repo.DatasetRef{}
+		got := &reporef.DatasetRef{}
 		err := req.Save(&c.params, got)
 		if err == nil {
 			t.Errorf("case %d: '%s' returned no error", i, c.description)
@@ -152,7 +153,7 @@ func TestDatasetRequestsForceSave(t *testing.T) {
 	ref := addCitiesDataset(t, node)
 	r := NewDatasetRequests(node, nil)
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := r.Save(&SaveParams{Ref: ref.AliasString()}, res); err == nil {
 		t.Error("expected empty save without force flag to error")
 	}
@@ -177,7 +178,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 		os.RemoveAll(metaTwoPath)
 	}()
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	err := r.Save(&SaveParams{
 		Ref:        ref.AliasString(),
 		FilePaths:  []string{metaOnePath},
@@ -217,7 +218,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 	}
 	req := NewDatasetRequests(node, nil)
 
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	// TODO (b5): import.zip has a ref.txt file that specifies test_user/test_repo as the dataset name,
 	// save now requires a string reference. we need to pick a behaviour here & write a test that enforces it
 	err = req.Save(&SaveParams{Ref: "me/huh", FilePaths: []string{"testdata/import.zip"}}, &res)
@@ -234,7 +235,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 }
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, craigslist, sitemap repo.DatasetRef
+		movies, counter, cities, craigslist, sitemap reporef.DatasetRef
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -273,24 +274,24 @@ func TestDatasetRequestsList(t *testing.T) {
 	cases := []struct {
 		description string
 		p           *ListParams
-		res         []repo.DatasetRef
+		res         []reporef.DatasetRef
 		err         string
 	}{
-		{"list datasets - empty (default)", &ListParams{}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []repo.DatasetRef{cities, counter}, ""},
-		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []repo.DatasetRef{craigslist, movies}, ""},
-		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []repo.DatasetRef{sitemap}, ""},
-		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []repo.DatasetRef{}, ""},
-		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []repo.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
-		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*repo.DatasetRef{cities, counter, movies}, ""},
+		{"list datasets - empty (default)", &ListParams{}, []reporef.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []reporef.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []reporef.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []reporef.DatasetRef{cities, counter}, ""},
+		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []reporef.DatasetRef{craigslist, movies}, ""},
+		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []reporef.DatasetRef{sitemap}, ""},
+		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []reporef.DatasetRef{}, ""},
+		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []reporef.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []reporef.DatasetRef{cities, counter, craigslist, movies, sitemap}, ""},
+		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*reporef.DatasetRef{cities, counter, movies}, ""},
 	}
 
 	req := NewDatasetRequestsInstance(inst)
 	for _, c := range cases {
-		got := []repo.DatasetRef{}
+		got := []reporef.DatasetRef{}
 		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -344,7 +345,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 
 			dsr := NewDatasetRequests(node, nil)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			var res []repo.DatasetRef
+			var res []reporef.DatasetRef
 			err := dsr.List(p, &res)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())
@@ -375,7 +376,7 @@ func TestDatasetRequestsGet(t *testing.T) {
 		t.Fatal(err.Error())
 	}
 
-	ref, err := mr.GetRef(repo.DatasetRef{Peername: "peer", Name: "movies"})
+	ref, err := mr.GetRef(reporef.DatasetRef{Peername: "peer", Name: "movies"})
 	if err != nil {
 		t.Fatalf("error getting path: %s", err.Error())
 	}
@@ -573,7 +574,7 @@ func TestDatasetRequestsGetP2p(t *testing.T) {
 			num := profile.Peername[len(profile.Peername)-1:]
 			index, _ := strconv.ParseInt(num, 10, 32)
 			name := datasets[index]
-			ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
+			ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 
 			dsr := NewDatasetRequests(node, nil)
 			got := &GetResult{}
@@ -608,13 +609,13 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "current name is required to rename a dataset"},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "movies"}, New: repo.DatasetRef{Peername: "peer", Name: "new movies"}}, "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&RenameParams{Current: repo.DatasetRef{Peername: "peer", Name: "cities"}, New: repo.DatasetRef{Peername: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
+		{&RenameParams{Current: reporef.DatasetRef{Peername: "peer", Name: "movies"}, New: reporef.DatasetRef{Peername: "peer", Name: "new movies"}}, "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
+		{&RenameParams{Current: reporef.DatasetRef{Peername: "peer", Name: "cities"}, New: reporef.DatasetRef{Peername: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range bad {
-		got := &repo.DatasetRef{}
+		got := &reporef.DatasetRef{}
 		err := req.Rename(c.p, got)
 
 		if err == nil {
@@ -634,16 +635,16 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	p := &RenameParams{
-		Current: repo.DatasetRef{Peername: "peer", Name: "movies"},
-		New:     repo.DatasetRef{Peername: "peer", Name: "new_movies"},
+		Current: reporef.DatasetRef{Peername: "peer", Name: "movies"},
+		New:     reporef.DatasetRef{Peername: "peer", Name: "new_movies"},
 	}
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := req.Rename(p, res); err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
 
-	expect := &repo.DatasetRef{Peername: "peer", Name: "new_movies"}
+	expect := &reporef.DatasetRef{Peername: "peer", Name: "new_movies"}
 	if expect.AliasString() != res.AliasString() {
 		t.Errorf("response mismatch. expected: %s, got: %s", expect.AliasString(), res.AliasString())
 	}
@@ -708,7 +709,7 @@ func TestDatasetRequestsRemove(t *testing.T) {
 	}
 
 	// add a commit to craigslist
-	saveRes := &repo.DatasetRef{}
+	saveRes := &reporef.DatasetRef{}
 	if err := req.Save(&SaveParams{Ref: "peer/craigslist", Dataset: &dataset.Dataset{Meta: &dataset.Meta{Title: "oh word"}}}, saveRes); err != nil {
 		t.Fatal(err)
 	}
@@ -785,7 +786,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 	t.Skip("TODO (b5)")
 	cases := []struct {
 		p   *AddParams
-		res *repo.DatasetRef
+		res *reporef.DatasetRef
 		err string
 	}{
 		{&AddParams{Ref: "abc/hash###"}, nil, "node is not online and no registry is configured"},
@@ -802,7 +803,7 @@ func TestDatasetRequestsAdd(t *testing.T) {
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range cases {
-		got := &repo.DatasetRef{}
+		got := &reporef.DatasetRef{}
 		err := req.Add(c.p, got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -859,14 +860,14 @@ func TestDatasetRequestsAddP2P(t *testing.T) {
 				num := profile.Peername[len(profile.Peername)-1:]
 				index, _ := strconv.ParseInt(num, 10, 32)
 				name := datasets[index]
-				ref := repo.DatasetRef{Peername: profile.Peername, Name: name}
+				ref := reporef.DatasetRef{Peername: profile.Peername, Name: name}
 				p := &AddParams{
 					Ref: ref.AliasString(),
 				}
 
 				// Build requests for peer1 to peer2.
 				dsr := NewDatasetRequests(p0, nil)
-				got := &repo.DatasetRef{}
+				got := &reporef.DatasetRef{}
 
 				err := dsr.Add(p, got)
 				if err != nil {

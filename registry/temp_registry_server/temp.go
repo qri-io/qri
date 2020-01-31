@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -60,7 +60,7 @@ func NewTempRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry,
 
 func addBasicDataset(inst *lib.Instance) {
 	dsm := lib.NewDatasetRequestsInstance(inst)
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	err := dsm.Save(&lib.SaveParams{
 		Publish: true,
 		Ref:     "me/dataset",

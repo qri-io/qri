@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -61,7 +62,7 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	// 7. hinshun logsyncs with the registry for world bank dataset, sees multiple versions
 	dsm := NewDatasetRequestsInstance(hinshun)
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := dsm.Add(&AddParams{LogsOnly: true, Ref: ref.String()}, res); err != nil {
 		t.Errorf("cloning logs: %s", err)
 	}
@@ -190,7 +191,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 	_, tr.RegistryHTTPServer = regserver.NewMockServerRegistry(tr.Registry)
 }
 
-func AssertLogsEqual(a, b *Instance, ref *repo.DatasetRef) error {
+func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
 	r := repo.ConvertToDsref(*ref)
 
 	aLogs, err := a.logbook.DatasetRef(context.Background(), r)
@@ -214,8 +215,8 @@ func AssertLogsEqual(a, b *Instance, ref *repo.DatasetRef) error {
 	return nil
 }
 
-func InitWorldBankDataset(t *testing.T, inst *Instance) *repo.DatasetRef {
-	res := &repo.DatasetRef{}
+func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
+	res := &reporef.DatasetRef{}
 	err := NewDatasetRequestsInstance(inst).Save(&SaveParams{
 		Publish: true,
 		Ref:     "me/world_bank_population",
@@ -236,8 +237,8 @@ d,e,f,false,3`),
 	return res
 }
 
-func Commit2WorldBank(t *testing.T, inst *Instance) *repo.DatasetRef {
-	res := &repo.DatasetRef{}
+func Commit2WorldBank(t *testing.T, inst *Instance) *reporef.DatasetRef {
+	res := &reporef.DatasetRef{}
 	err := NewDatasetRequestsInstance(inst).Save(&SaveParams{
 		Publish: true,
 		Ref:     "me/world_bank_population",
@@ -259,8 +260,8 @@ g,g,i,true,4`),
 	return res
 }
 
-func PublishToRegistry(t *testing.T, inst *Instance, refstr string) *repo.DatasetRef {
-	res := &repo.DatasetRef{}
+func PublishToRegistry(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
+	res := &reporef.DatasetRef{}
 	err := NewRemoteMethods(inst).Publish(&PublicationParams{
 		Ref: refstr,
 	}, res)
@@ -281,8 +282,8 @@ func SearchFor(t *testing.T, inst *Instance, term string) []SearchResult {
 	return results
 }
 
-func Clone(t *testing.T, inst *Instance, refstr string) *repo.DatasetRef {
-	res := &repo.DatasetRef{}
+func Clone(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
+	res := &reporef.DatasetRef{}
 	if err := NewDatasetRequestsInstance(inst).Add(&AddParams{Ref: refstr}, res); err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}

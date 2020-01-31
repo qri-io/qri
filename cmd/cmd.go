@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -113,7 +114,7 @@ func parseSecrets(secrets ...string) (map[string]string, error) {
 }
 
 // parseCmdLineDatasetRef parses DatasetRefs, assuming peer "me" if none given.
-func parseCmdLineDatasetRef(ref string) (repo.DatasetRef, error) {
+func parseCmdLineDatasetRef(ref string) (reporef.DatasetRef, error) {
 	if !strings.ContainsAny(ref, "@/") {
 		ref = "me/" + ref
 	}

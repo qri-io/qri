@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	ma "github.com/multiformats/go-multiaddr"
@@ -259,7 +260,7 @@ type PeerRefsParams struct {
 }
 
 // GetReferences lists a peer's named datasets
-func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]repo.DatasetRef) error {
+func (d *PeerRequests) GetReferences(p *PeerRefsParams, res *[]reporef.DatasetRef) error {
 	if d.cli != nil {
 		return d.cli.Call("PeerRequests.GetReferences", p, res)
 	}

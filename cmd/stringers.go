@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/update/cron"
 )
 
@@ -57,7 +57,7 @@ func (s stringer) String() string {
 	return string(s) + "\n"
 }
 
-type refStringer repo.DatasetRef
+type refStringer reporef.DatasetRef
 
 // String assumes Peername and Name are present
 func (r refStringer) String() string {
@@ -66,7 +66,7 @@ func (r refStringer) String() string {
 	path := color.New(color.Faint).SprintFunc()
 	warn := color.New(color.FgYellow).SprintFunc()
 	ds := r.Dataset
-	dsr := repo.DatasetRef(r)
+	dsr := reporef.DatasetRef(r)
 
 	fmt.Fprintf(w, "%s", title(dsr.AliasString()))
 	if ds != nil && ds.Meta != nil && ds.Meta.Title != "" {
@@ -145,14 +145,14 @@ func (r searchResultStringer) String() string {
 	return w.String()
 }
 
-type logStringer repo.DatasetRef
+type logStringer reporef.DatasetRef
 
 // String assumes Path, Peername, Timestamp and Title are present
 func (l logStringer) String() string {
 	w := &bytes.Buffer{}
 	// title := color.New(color.Bold).Sprintfunc()
 	path := color.New(color.FgGreen).SprintFunc()
-	dsr := repo.DatasetRef(l)
+	dsr := reporef.DatasetRef(l)
 
 	fmt.Fprintf(w, "%s\n", path("path:   "+dsr.Path))
 	fmt.Fprintf(w, "Author: %s\n", dsr.Peername)

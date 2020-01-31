@@ -4,7 +4,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config/test"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -20,7 +20,7 @@ func TestVerifySigParams(t *testing.T) {
 		t.Errorf(err.Error())
 		return
 	}
-	ref := repo.DatasetRef{
+	ref := reporef.DatasetRef{
 		Path:      "foo",
 		Peername:  "bar",
 		Name:      "baz",

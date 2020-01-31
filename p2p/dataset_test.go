@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	p2ptest "github.com/qri-io/qri/p2p/test"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestRequestDatasetInfo(t *testing.T) {
@@ -22,7 +22,7 @@ func TestRequestDatasetInfo(t *testing.T) {
 
 	peers := asQriNodes(testPeers)
 
-	refs := []repo.DatasetRef{}
+	refs := []reporef.DatasetRef{}
 	for _, c := range peers {
 		if rs, err := c.Repo.References(0, 10); err == nil {
 			refs = append(refs, rs...)
@@ -34,9 +34,9 @@ func TestRequestDatasetInfo(t *testing.T) {
 	for _, p := range peers {
 		for _, ref := range refs {
 			wg.Add(1)
-			go func(p *QriNode, ref repo.DatasetRef) {
+			go func(p *QriNode, ref reporef.DatasetRef) {
 				defer wg.Done()
-				// ref := repo.DatasetRef{Path: "foo"}
+				// ref := reporef.DatasetRef{Path: "foo"}
 				if err := p.RequestDataset(ctx, &ref); err != nil {
 					t.Errorf("%s RequestDataset error: %s", p.ID, err.Error())
 				}

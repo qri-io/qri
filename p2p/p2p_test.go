@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/config"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 type testRunner struct {
@@ -44,7 +45,7 @@ func (tr *testRunner) IPFSBackedQriNode(t *testing.T, username string) *QriNode 
 	return node
 }
 
-func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) repo.DatasetRef {
+func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
 	prevTs := dsfs.Timestamp
 	dsfs.Timestamp = func() time.Time { return time.Time{} }
 	defer func() { dsfs.Timestamp = prevTs }()

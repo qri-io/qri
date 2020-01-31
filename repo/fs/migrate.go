@@ -19,9 +19,9 @@ func maybeCreateFlatbufferRefsFile(repoPath string) (migrated bool, err error) {
 	if _, err := os.Stat(fbPath); os.IsNotExist(err) {
 		jsonPath := filepath.Join(repoPath, Filepath(FileJSONRefs))
 		if jsonData, err := ioutil.ReadFile(jsonPath); err == nil {
-			jsonRefs := repo.Refs{}
+			jsonRefs := repo.RefList{}
 			if err = json.Unmarshal(jsonData, &jsonRefs); err == nil {
-				return true, ioutil.WriteFile(fbPath, jsonRefs.FlatbufferBytes(), os.ModePerm)
+				return true, ioutil.WriteFile(fbPath, repo.FlatbufferBytes(jsonRefs), os.ModePerm)
 			}
 		}
 	}
