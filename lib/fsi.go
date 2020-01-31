@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // FSIMethods encapsulates filesystem integrations methods
@@ -28,7 +29,7 @@ func NewFSIMethods(inst *Instance) *FSIMethods {
 func (m FSIMethods) CoreRequestsName() string { return "fsi" }
 
 // LinkedRefs lists all fsi links
-func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]repo.DatasetRef) (err error) {
+func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]reporef.DatasetRef) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.LinkedRefs", p, res)
 	}
@@ -139,7 +140,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	}
 
 	// Handle the ref to checkout.
-	ref := &repo.DatasetRef{}
+	ref := &reporef.DatasetRef{}
 	if p.Ref == "" {
 		return repo.ErrEmptyRef
 	}
@@ -307,7 +308,7 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 }
 
 // FSIDatasetForRef reads an fsi-linked dataset for a given reference string
-func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *repo.DatasetRef) error {
+func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *reporef.DatasetRef) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
 	}

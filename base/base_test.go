@@ -15,6 +15,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -63,7 +64,7 @@ func newTestRepo(t *testing.T) repo.Repo {
 	return mr
 }
 
-func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
@@ -77,7 +78,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	return ref
 }
 
-func updateCitiesDataset(t *testing.T, r repo.Repo, title string) repo.DatasetRef {
+func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
@@ -88,7 +89,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) repo.DatasetRe
 		t.Fatal(err)
 	}
 
-	ref, err := r.GetRef(repo.DatasetRef{Peername: pro.Peername, Name: tc.Name})
+	ref, err := r.GetRef(reporef.DatasetRef{Peername: pro.Peername, Name: tc.Name})
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -114,7 +115,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) repo.DatasetRe
 	return ref
 }
 
-func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("flourinated_compounds_in_fast_food_packaging"))
 	if err != nil {
@@ -128,7 +129,7 @@ func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
 	return ref
 }
 
-func addNowTransformDataset(t *testing.T, r repo.Repo) repo.DatasetRef {
+func addNowTransformDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ctx := context.Background()
 
 	ds := &dataset.Dataset{

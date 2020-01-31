@@ -5,7 +5,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RemoteClientHandlers provides HTTP handlers for issuing requests to remotes
@@ -79,7 +79,7 @@ func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Req
 		Ref:        ref.String(),
 		RemoteName: r.FormValue("remote"),
 	}
-	var res repo.DatasetRef
+	var res reporef.DatasetRef
 
 	switch r.Method {
 	case "POST":
@@ -108,7 +108,7 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 
 	dsm := lib.NewDatasetRequestsInstance(h.inst)
 
-	res := []repo.DatasetRef{}
+	res := []reporef.DatasetRef{}
 	if err := dsm.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

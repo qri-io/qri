@@ -5,14 +5,14 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestHistoryHandlers(t *testing.T) {
 	node, teardown := newTestNode(t)
 	defer teardown()
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	p := &lib.SaveParams{
 		Ref: "me/cities",
 		Dataset: &dataset.Dataset{

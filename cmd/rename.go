@@ -4,6 +4,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -82,7 +83,7 @@ func (o *RenameOptions) Run() error {
 		Current: current,
 		New:     next,
 	}
-	res := repo.DatasetRef{}
+	res := reporef.DatasetRef{}
 	if err = o.DatasetRequests.Rename(p, &res); err != nil {
 		return err
 	}

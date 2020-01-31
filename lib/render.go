@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RenderRequests encapsulates business logic for this node's
@@ -51,7 +52,7 @@ func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 	}
 	ctx := context.TODO()
 
-	var ref repo.DatasetRef
+	var ref reporef.DatasetRef
 	if ref, err = repo.ParseDatasetRef(p.Ref); err != nil {
 		return
 	}

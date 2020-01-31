@@ -2,13 +2,15 @@ package repo
 
 import (
 	"sort"
+
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MemRefstore is an in-memory implementation of the Namestore interface
-type MemRefstore []DatasetRef
+type MemRefstore []reporef.DatasetRef
 
 // PutRef adds a reference to the namestore. Only complete references may be added
-func (r *MemRefstore) PutRef(put DatasetRef) error {
+func (r *MemRefstore) PutRef(put reporef.DatasetRef) error {
 	if put.ProfileID == "" {
 		return ErrPeerIDRequired
 	} else if put.Peername == "" {
@@ -35,7 +37,7 @@ func (r *MemRefstore) PutRef(put DatasetRef) error {
 
 // GetRef completes a reference with , refs can have either
 // Path or Peername & Name specified, GetRef should fill out the missing pieces
-func (r MemRefstore) GetRef(get DatasetRef) (ref DatasetRef, err error) {
+func (r MemRefstore) GetRef(get reporef.DatasetRef) (ref reporef.DatasetRef, err error) {
 	for _, ref := range r {
 		if ref.Match(get) {
 			return ref, nil
@@ -46,7 +48,7 @@ func (r MemRefstore) GetRef(get DatasetRef) (ref DatasetRef, err error) {
 }
 
 // DeleteRef removes a name from the store
-func (r *MemRefstore) DeleteRef(del DatasetRef) error {
+func (r *MemRefstore) DeleteRef(del reporef.DatasetRef) error {
 	refs := *r
 	for i, ref := range refs {
 		if ref.Match(del) {
@@ -58,8 +60,8 @@ func (r *MemRefstore) DeleteRef(del DatasetRef) error {
 }
 
 // References grabs a set of names from the Store's namespace
-func (r MemRefstore) References(offset, limit int) ([]DatasetRef, error) {
-	res := make([]DatasetRef, limit)
+func (r MemRefstore) References(offset, limit int) ([]reporef.DatasetRef, error) {
+	res := make([]reporef.DatasetRef, limit)
 	for i, ref := range r {
 		if i < offset {
 			continue

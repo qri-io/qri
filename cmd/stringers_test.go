@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/iso8601"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestPeerStringer(t *testing.T) {
@@ -64,11 +64,11 @@ func TestRefStringer(t *testing.T) {
 	setNoColor(false)
 	cases := []struct {
 		description string
-		ref         *repo.DatasetRef
+		ref         *reporef.DatasetRef
 		expect      string
 	}{
 		{"RefStringer - all fields, singular",
-			&repo.DatasetRef{
+			&reporef.DatasetRef{
 				Name:     "ds_name",
 				Peername: "peer",
 				Path:     "/network/hash",
@@ -86,7 +86,7 @@ func TestRefStringer(t *testing.T) {
 			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n1 B, 1 entry, 1 error, 1 version\n\n",
 		},
 		{"RefStringer - all fields, plural",
-			&repo.DatasetRef{
+			&reporef.DatasetRef{
 				Name:     "ds_name",
 				Peername: "peer",
 				Path:     "/network/hash",
@@ -104,7 +104,7 @@ func TestRefStringer(t *testing.T) {
 			}, "\u001b[32;1mpeer/ds_name\u001b[0m\nDataset Title\n\u001b[2m/network/hash\u001b[0m\n10 B, 10 entries, 10 errors, 10 versions\n\n",
 		},
 		{"RefStringer - only peername & name",
-			&repo.DatasetRef{
+			&reporef.DatasetRef{
 				Peername: "peer",
 				Name:     "ds_name",
 			}, "\u001b[32;1mpeer/ds_name\u001b[0m\n\n",
@@ -123,11 +123,11 @@ func TestLogStringer(t *testing.T) {
 	time := time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC)
 	cases := []struct {
 		description string
-		log         *repo.DatasetRef
+		log         *reporef.DatasetRef
 		expect      string
 	}{
 		{"LogStringer - all fields",
-			&repo.DatasetRef{
+			&reporef.DatasetRef{
 				Peername: "peer",
 				Path:     "/network/hash",
 				Dataset: &dataset.Dataset{
@@ -140,7 +140,7 @@ func TestLogStringer(t *testing.T) {
 			}, "\u001b[32mpath:   /network/hash\u001b[0m\nAuthor: peer\nDate:   Jan  1 01:01:01\n\n    commit title\n    commit message\n\n",
 		},
 		{"LogStringer - no message",
-			&repo.DatasetRef{
+			&reporef.DatasetRef{
 				Peername: "peer",
 				Path:     "/network/hash",
 				Dataset: &dataset.Dataset{

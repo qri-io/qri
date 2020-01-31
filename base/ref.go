@@ -8,10 +8,11 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // InLocalNamespace checks if a dataset ref is local, assumes the reference is already canonicalized
-func InLocalNamespace(r repo.Repo, ref *repo.DatasetRef) bool {
+func InLocalNamespace(r repo.Repo, ref *reporef.DatasetRef) bool {
 	p, err := r.Profile()
 	if err != nil {
 		return false
@@ -21,7 +22,7 @@ func InLocalNamespace(r repo.Repo, ref *repo.DatasetRef) bool {
 }
 
 // SetPublishStatus updates the Published field of a dataset ref
-func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef, published bool) error {
+func SetPublishStatus(r repo.Repo, ref *reporef.DatasetRef, published bool) error {
 	if !InLocalNamespace(r, ref) {
 		return fmt.Errorf("can't publish datasets that are not in your namespace")
 	}
@@ -32,7 +33,7 @@ func SetPublishStatus(r repo.Repo, ref *repo.DatasetRef, published bool) error {
 
 // ToDatasetRef parses the dataset ref and returns it, allowing datasets with no history only
 // if FSI is enabled.
-func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*repo.DatasetRef, error) {
+func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*reporef.DatasetRef, error) {
 	if path == "" {
 		return nil, repo.ErrEmptyRef
 	}
@@ -51,7 +52,7 @@ func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*repo.DatasetRef, er
 
 // ReplaceRefIfMoreRecent replaces the given ref in the ref store, if
 // it is more recent then the ref currently in the refstore
-func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *repo.DatasetRef) error {
+func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *reporef.DatasetRef) error {
 	var (
 		prevTime time.Time
 		currTime time.Time
@@ -75,7 +76,7 @@ func ReplaceRefIfMoreRecent(r repo.Repo, prev, curr *repo.DatasetRef) error {
 }
 
 // ModifyDatasetRef alters a reference by changing what dataset it refers to
-func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *repo.DatasetRef, isRename bool) (err error) {
+func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *reporef.DatasetRef, isRename bool) (err error) {
 	if err := validate.ValidName(new.Name); err != nil {
 		return err
 	}
@@ -131,7 +132,7 @@ func ModifyRepoUsername(ctx context.Context, r repo.Repo, book *logbook.Book, fr
 	if refs, err := r.References(0, 10000000); err == nil {
 		for _, ref := range refs {
 			if ref.Peername == from {
-				update := repo.DatasetRef{
+				update := reporef.DatasetRef{
 					Peername:  to,
 					Name:      ref.Name,
 					Path:      ref.Path,

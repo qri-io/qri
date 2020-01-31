@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // DatasetLogItem is a line item in a dataset response
@@ -29,7 +30,7 @@ type DatasetLogItem struct {
 }
 
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref repo.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(ctx, repo.ConvertToDsref(ref), offset, limit); err == nil {
 			return DatasetInfoToLogItems(ctx, r, versions)
@@ -106,7 +107,7 @@ func DatasetInfoToLogItems(ctx context.Context, r repo.Repo, versions []logbook.
 // DatasetLogFromHistory fetches the history of changes to a dataset by walking
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
-func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef, offset, limit int, loadDatasets bool) (rlog []repo.DatasetRef, err error) {
+func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, offset, limit int, loadDatasets bool) (rlog []reporef.DatasetRef, err error) {
 	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
 		return nil, err
 	}
@@ -119,7 +120,7 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef
 	ctx, cancel := context.WithTimeout(ctx, time.Millisecond*700)
 	defer cancel()
 
-	versions := make(chan repo.DatasetRef)
+	versions := make(chan reporef.DatasetRef)
 	done := make(chan struct{})
 	go func() {
 		for {
@@ -167,7 +168,7 @@ func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref repo.DatasetRef
 // constructDatasetLogFromHistory constructs a log for a name if one doesn't
 // exist.
 func constructDatasetLogFromHistory(ctx context.Context, r repo.Repo, ref dsref.Ref) error {
-	repoRef := repo.DatasetRef{Peername: ref.Username, Name: ref.Name, Path: ref.Path}
+	repoRef := reporef.DatasetRef{Peername: ref.Username, Name: ref.Name, Path: ref.Path}
 	refs, err := DatasetLogFromHistory(ctx, r, repoRef, 0, 1000000, true)
 	if err != nil {
 		return err

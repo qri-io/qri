@@ -27,6 +27,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // DatasetRequests encapsulates business logic for working with Datasets on Qri
@@ -63,7 +64,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
+func (r *DatasetRequests) List(p *ListParams, res *[]reporef.DatasetRef) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
@@ -81,7 +82,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 
 	// TODO (b5) - this logic around weather we're listing locally or
 	// a remote peer needs cleanup
-	ref := &repo.DatasetRef{
+	ref := &reporef.DatasetRef{
 		Peername:  p.Peername,
 		ProfileID: p.ProfileID,
 	}
@@ -94,7 +95,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		return err
 	}
 
-	var refs []repo.DatasetRef
+	var refs []reporef.DatasetRef
 	if p.ViaDscache {
 		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, r.node.Repo)
 		if err != nil {
@@ -106,7 +107,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		}
 		// Filter references so that only with a matching name are returned
 		if p.Term != "" {
-			matched := make([]repo.DatasetRef, len(refs))
+			matched := make([]reporef.DatasetRef, len(refs))
 			count := 0
 			for _, ref := range refs {
 				if strings.Contains(ref.Name, p.Term) {
@@ -118,7 +119,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]repo.DatasetRef) error {
 		}
 		// Filter references by skipping to the correct offset
 		if p.Offset > len(refs) {
-			refs = []repo.DatasetRef{}
+			refs = []reporef.DatasetRef{}
 		} else {
 			refs = refs[p.Offset:]
 		}
@@ -212,7 +213,7 @@ type GetParams struct {
 
 // GetResult combines data with it's hashed path
 type GetResult struct {
-	Ref     *repo.DatasetRef `json:"ref"`
+	Ref     *reporef.DatasetRef `json:"ref"`
 	Dataset *dataset.Dataset `json:"data"`
 	Bytes   []byte           `json:"bytes"`
 }
@@ -427,7 +428,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 
 // Save adds a history entry, updating a dataset
 // TODO - need to make sure users aren't forking by referencing commits other than tip
-func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
@@ -480,7 +481,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.Recall != "" {
-		ref := repo.DatasetRef{
+		ref := reporef.DatasetRef{
 			Peername: ds.Peername,
 			Name:     ds.Name,
 			// TODO - fix, but really this should be fine for a while because
@@ -559,7 +560,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *repo.DatasetRef) (err error) 
 	}
 
 	if p.Publish {
-		var publishedRef repo.DatasetRef
+		var publishedRef reporef.DatasetRef
 		err = r.SetPublishStatus(&SetPublishStatusParams{
 			Ref:           ref.String(),
 			PublishStatus: true,
@@ -591,7 +592,7 @@ type SetPublishStatusParams struct {
 }
 
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
-func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef)
 	}
@@ -615,11 +616,11 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 
 // RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
-	Current, New repo.DatasetRef
+	Current, New reporef.DatasetRef
 }
 
 // Rename changes a user's given name for a dataset
-func (r *DatasetRequests) Rename(p *RenameParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Rename(p *RenameParams, res *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Rename", p, res)
 	}
@@ -781,7 +782,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	} else {
 		// Delete the specific number of revisions.
 		dsr := history[p.Revision.Gen]
-		replace := &repo.DatasetRef{
+		replace := &reporef.DatasetRef{
 			Peername:  dsr.Ref.Username,
 			Name:      dsr.Ref.Name,
 			ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
@@ -835,7 +836,7 @@ type AddParams struct {
 }
 
 // Add adds an existing dataset to a peer's repository
-func (r *DatasetRequests) Add(p *AddParams, res *repo.DatasetRef) (err error) {
+func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error) {
 	if err = qfs.AbsPath(&p.LinkDir); err != nil {
 		return
 	}
@@ -1103,7 +1104,7 @@ func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) 
 	}
 	ctx := context.TODO()
 	if p.Dataset == nil {
-		ref := &repo.DatasetRef{}
+		ref := &reporef.DatasetRef{}
 		ref, err = base.ToDatasetRef(p.Ref, r.node.Repo, false)
 		if err != nil {
 			return err

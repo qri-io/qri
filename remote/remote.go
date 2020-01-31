@@ -20,6 +20,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -27,7 +28,7 @@ var log = golog.Logger("remote")
 
 // Hook is a function called at specific points in the sync cycle
 // hook contexts may be populated with request parameters
-type Hook func(ctx context.Context, pid profile.ID, ref repo.DatasetRef) error
+type Hook func(ctx context.Context, pid profile.ID, ref reporef.DatasetRef) error
 
 // Options encapsulates runtime configuration for a remote
 type Options struct {
@@ -150,8 +151,8 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 }
 
 // ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
-func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*repo.DatasetRef, error) {
-	ref := &repo.DatasetRef{
+func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*reporef.DatasetRef, error) {
+	ref := &reporef.DatasetRef{
 		Peername: peername,
 		Name:     name,
 	}
@@ -308,8 +309,8 @@ func (r *Remote) dsGetDagInfo(ctx context.Context, into dag.Info, meta map[strin
 	return nil
 }
 
-func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, repo.DatasetRef, error) {
-	ref := repo.DatasetRef{
+func (r *Remote) pidAndRefFromMeta(meta map[string]string) (profile.ID, reporef.DatasetRef, error) {
+	ref := reporef.DatasetRef{
 		Peername: meta["peername"],
 		Name:     meta["name"],
 		Path:     meta["path"],
@@ -336,7 +337,7 @@ func (r *Remote) logHook(h Hook) logsync.Hook {
 				return err
 			}
 
-			var r repo.DatasetRef
+			var r reporef.DatasetRef
 			if ref.String() != "" {
 				if r, err = repo.ParseDsref(ref); err != nil {
 					return err
@@ -368,7 +369,7 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
 		switch req.Method {
 		case "GET":
-			ref := &repo.DatasetRef{
+			ref := &reporef.DatasetRef{
 				Peername: req.FormValue("peername"),
 				Name:     req.FormValue("name"),
 			}

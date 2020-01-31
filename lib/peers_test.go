@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -158,7 +159,7 @@ func TestGetReferences(t *testing.T) {
 	}
 	req := NewPeerRequests(node, nil)
 	for i, c := range cases {
-		got := []repo.DatasetRef{}
+		got := []reporef.DatasetRef{}
 		err := req.GetReferences(&c.p, &got)
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
 			t.Errorf("case %d error mismatch. expected: %s, got: %s", i, c.err, err)

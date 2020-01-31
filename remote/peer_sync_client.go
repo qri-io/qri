@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -149,7 +150,7 @@ func (c *PeerSyncClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAd
 }
 
 // PushDataset pushes the contents of a dataset to a remote
-func (c *PeerSyncClient) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+func (c *PeerSyncClient) PushDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -188,7 +189,7 @@ func (c *PeerSyncClient) PushDataset(ctx context.Context, ref repo.DatasetRef, r
 }
 
 // PullDataset fetches a dataset from a remote source
-func (c *PeerSyncClient) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func (c *PeerSyncClient) PullDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -217,7 +218,7 @@ func (c *PeerSyncClient) PullDataset(ctx context.Context, ref *repo.DatasetRef, 
 }
 
 // RemoveDataset asks a remote to remove a dataset
-func (c *PeerSyncClient) RemoveDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+func (c *PeerSyncClient) RemoveDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -238,7 +239,7 @@ func (c *PeerSyncClient) RemoveDataset(ctx context.Context, ref repo.DatasetRef,
 
 // ResolveHeadRef asks a remote to complete a dataset reference, adding the
 // latest-known path value
-func (c *PeerSyncClient) ResolveHeadRef(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func (c *PeerSyncClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -251,7 +252,7 @@ func (c *PeerSyncClient) ResolveHeadRef(ctx context.Context, ref *repo.DatasetRe
 	}
 }
 
-func resolveHeadRefHTTP(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func resolveHeadRefHTTP(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	u, err := url.Parse(remoteAddr)
 	if err != nil {
 		return err
@@ -335,7 +336,7 @@ func addressType(remoteAddr string) string {
 }
 
 // ListDatasets shows the reflist of a peer
-func (c *PeerSyncClient) ListDatasets(ctx context.Context, ds *repo.DatasetRef, term string, offset, limit int) (res []repo.DatasetRef, err error) {
+func (c *PeerSyncClient) ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) (res []reporef.DatasetRef, err error) {
 	if c == nil {
 		return nil, ErrNoRemoteClient
 	}
@@ -377,7 +378,7 @@ func (c *PeerSyncClient) ListDatasets(ctx context.Context, ds *repo.DatasetRef, 
 }
 
 // AddDataset fetches & pins a dataset to the store, adding it to the list of stored refs
-func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) (err error) {
+func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) (err error) {
 	if c == nil {
 		return ErrNoRemoteClient
 	}
@@ -395,7 +396,7 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, r
 	node := c.node
 
 	type addResponse struct {
-		Ref   *repo.DatasetRef
+		Ref   *reporef.DatasetRef
 		Error error
 	}
 
@@ -407,14 +408,14 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, r
 	if remoteAddr != "" {
 		tasks++
 
-		refCopy := &repo.DatasetRef{
+		refCopy := &reporef.DatasetRef{
 			Peername:  ref.Peername,
 			ProfileID: ref.ProfileID,
 			Name:      ref.Name,
 			Path:      ref.Path,
 		}
 
-		go func(ref *repo.DatasetRef) {
+		go func(ref *reporef.DatasetRef) {
 			res := addResponse{Ref: ref}
 
 			// always send on responses channel
@@ -465,7 +466,7 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, r
 		return fmt.Errorf("add failed: %s", err.Error())
 	}
 
-	prevRef, err := node.Repo.GetRef(repo.DatasetRef{Peername: ref.Peername, Name: ref.Name})
+	prevRef, err := node.Repo.GetRef(reporef.DatasetRef{Peername: ref.Peername, Name: ref.Name})
 	if err != nil && err == repo.ErrNotFound {
 		if err = node.Repo.PutRef(*ref); err != nil {
 			log.Debug(err.Error())

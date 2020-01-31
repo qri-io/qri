@@ -24,6 +24,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/buildrepo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -162,7 +163,7 @@ func testdataPath(path string) string {
 
 // pulled from base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
-func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
+func addCitiesDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
 	if err != nil {
@@ -179,7 +180,7 @@ func addCitiesDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
 	return ref
 }
 
-func addNowTransformDataset(t *testing.T, node *p2p.QriNode) repo.DatasetRef {
+func addNowTransformDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
 	ctx := context.Background()
 	tc, err := dstest.NewTestCaseFromDir("testdata/now_tf")
 	if err != nil {

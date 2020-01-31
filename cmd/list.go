@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -107,7 +107,7 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	refs := []repo.DatasetRef{}
+	refs := []reporef.DatasetRef{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,

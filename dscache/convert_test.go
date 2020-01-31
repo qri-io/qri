@@ -11,7 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/logbook"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -139,15 +139,15 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 	peerInfo := testPeers.GetTestPeerInfo(0)
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
 
-	dsrefs := []repo.DatasetRef{
-		repo.DatasetRef{
+	dsrefs := []reporef.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
-		repo.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "second_name",
@@ -197,8 +197,8 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// This is missing the second dsref
-	dsrefs := []repo.DatasetRef{
-		repo.DatasetRef{
+	dsrefs := []reporef.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_new_name",
@@ -251,22 +251,22 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// Dsrefs has a third reference that is not in logbook.
-	dsrefs := []repo.DatasetRef{
-		repo.DatasetRef{
+	dsrefs := []reporef.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
-		repo.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "second_name",
 			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
 		},
-		repo.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "third_name",
@@ -322,20 +322,20 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 	book := makeFakeLogbookWithNoHistoryAndDelete(ctx, t, "test_user", peerInfo.PrivKey)
 
 	// Dsrefs: first_ds is not checked out, second_ds was deleted, third_ds has no history
-	dsrefs := []repo.DatasetRef{
-		repo.DatasetRef{
+	dsrefs := []reporef.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "first_ds",
 			Path:      "QmHashOfVersion1001",
 		},
-		repo.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "third_ds",
 			FSIPath:   "/path/to/third_workspace",
 		},
-		repo.DatasetRef{
+		reporef.DatasetRef{
 			Peername:  "test_user",
 			ProfileID: profile.ID(peerInfo.PeerID),
 			Name:      "fourth_ds",

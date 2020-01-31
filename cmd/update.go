@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -458,7 +458,7 @@ func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	o.StartSpinner()
 	defer o.StopSpinner()
 
-	res := &repo.DatasetRef{}
+	res := &reporef.DatasetRef{}
 	if err := o.updateMethods.Run(job, res); err != nil {
 		return err
 	}

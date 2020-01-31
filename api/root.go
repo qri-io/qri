@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -76,7 +77,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	// TODO (b5) - why is this necessary?
-	ref = repo.DatasetRef{
+	ref = reporef.DatasetRef{
 		Peername:  res.Dataset.Peername,
 		ProfileID: profile.ID(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,

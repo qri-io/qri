@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 	"github.com/sergi/go-diff/diffmatchpatch"
 )
@@ -163,7 +164,7 @@ func (r *renderTestRunner) Delete() {
 
 // Save saves a version of the dataset with a body
 func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string) {
-	dsRef := repo.DatasetRef{}
+	dsRef := reporef.DatasetRef{}
 	params := SaveParams{
 		Ref:      ref,
 		Dataset:  ds,

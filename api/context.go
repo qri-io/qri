@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // QriCtxKey defines a distinct type for
@@ -20,27 +21,27 @@ const DatasetRefCtxKey QriCtxKey = "datasetRef"
 
 // DatasetRefFromReq examines the path element of a request URL
 // to
-func DatasetRefFromReq(r *http.Request) (repo.DatasetRef, error) {
+func DatasetRefFromReq(r *http.Request) (reporef.DatasetRef, error) {
 	if r.URL.String() == "" || r.URL.Path == "" {
-		return repo.DatasetRef{}, nil
+		return reporef.DatasetRef{}, nil
 	}
 	return DatasetRefFromPath(r.URL.Path)
 }
 
 // DatasetRefFromPath parses a path and returns a datasetRef
-func DatasetRefFromPath(path string) (repo.DatasetRef, error) {
+func DatasetRefFromPath(path string) (reporef.DatasetRef, error) {
 	refstr := HTTPPathToQriPath(path)
 	return repo.ParseDatasetRef(refstr)
 }
 
 // DatasetRefFromCtx extracts a Dataset reference from a given
 // context if one is set, returning nil otherwise
-func DatasetRefFromCtx(ctx context.Context) repo.DatasetRef {
+func DatasetRefFromCtx(ctx context.Context) reporef.DatasetRef {
 	iface := ctx.Value(DatasetRefCtxKey)
-	if ref, ok := iface.(repo.DatasetRef); ok {
+	if ref, ok := iface.(reporef.DatasetRef); ok {
 		return ref
 	}
-	return repo.DatasetRef{}
+	return reporef.DatasetRef{}
 }
 
 // HTTPPathToQriPath converts a http path to a

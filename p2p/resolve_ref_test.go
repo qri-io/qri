@@ -7,6 +7,7 @@ import (
 
 	"github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestResolveDatasetRef(t *testing.T) {
@@ -31,11 +32,11 @@ func TestResolveDatasetRef(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	ref := repo.DatasetRef{Peername: p.Peername, Name: "bar", ProfileID: p.ID, Path: "/ipfs/QmXSGsgt8Bn8jepw7beXibYUfWSJVU2SzP3TpkioQVUrmM"}
+	ref := reporef.DatasetRef{Peername: p.Peername, Name: "bar", ProfileID: p.ID, Path: "/ipfs/QmXSGsgt8Bn8jepw7beXibYUfWSJVU2SzP3TpkioQVUrmM"}
 	if err := peers[4].Repo.PutRef(ref); err != nil {
 		t.Fatalf("error putting ref in repo: %s", err.Error())
 	}
-	if err := repo.CanonicalizeDatasetRef(peers[4].Repo, &repo.DatasetRef{Peername: p.Peername, Name: "bar"}); err != nil {
+	if err := repo.CanonicalizeDatasetRef(peers[4].Repo, &reporef.DatasetRef{Peername: p.Peername, Name: "bar"}); err != nil {
 		t.Fatalf("peer must be able to resolve local ref. error: %s", err.Error())
 	}
 
@@ -48,7 +49,7 @@ func TestResolveDatasetRef(t *testing.T) {
 			wg.Add(1)
 			go func(p *QriNode) {
 				defer wg.Done()
-				ref := repo.DatasetRef{Peername: "tim", Name: "bar"}
+				ref := reporef.DatasetRef{Peername: "tim", Name: "bar"}
 				if err := p.ResolveDatasetRef(ctx, &ref); err != nil {
 					t.Errorf("%s ResolveDatasetRef error: %s", p.ID, err.Error())
 				}

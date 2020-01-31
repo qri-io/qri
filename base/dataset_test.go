@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestListDatasets(t *testing.T) {
@@ -80,7 +81,7 @@ func TestFetchDataset(t *testing.T) {
 	// Connect in memory Mapstore's behind the scene to simulate IPFS-like behavior.
 	r1.Store().(*cafs.MapStore).AddConnection(r2.Store().(*cafs.MapStore))
 
-	if err := FetchDataset(ctx, r1, &repo.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
+	if err := FetchDataset(ctx, r1, &reporef.DatasetRef{Peername: "foo", Name: "bar"}, true, true); err == nil {
 		t.Error("expected add of invalid ref to error")
 	}
 
@@ -139,14 +140,14 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	bad := []struct {
 		description string
 		store       repo.Repo
-		ref         *repo.DatasetRef
+		ref         *reporef.DatasetRef
 		n           int
 		err         string
 	}{
 		{"No repo", nil, nil, 0, "need a repo"},
 		{"No ref", r, nil, 0, "need a dataset reference with a path"},
-		{"No ref.Path", r, &repo.DatasetRef{}, 0, "need a dataset reference with a path"},
-		{"invalid n", r, &repo.DatasetRef{Path: "path", Dataset: &dataset.Dataset{}}, -2, "invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions"},
+		{"No ref.Path", r, &reporef.DatasetRef{}, 0, "need a dataset reference with a path"},
+		{"invalid n", r, &reporef.DatasetRef{Path: "path", Dataset: &dataset.Dataset{}}, -2, "invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions"},
 	}
 
 	for _, c := range bad {
@@ -163,7 +164,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	// create test repo and history
 	// create history of 10 versions
 	initDs := addCitiesDataset(t, r)
-	refs := []*repo.DatasetRef{&initDs}
+	refs := []*reporef.DatasetRef{&initDs}
 	historyTotal := 10
 	for i := 2; i <= historyTotal; i++ {
 		update := updateCitiesDataset(t, r, fmt.Sprintf("example city data version %d", i))
@@ -208,7 +209,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 	// create test repo and history
 	// create history of 10 versions
 	initDs = addCitiesDataset(t, r)
-	refs = []*repo.DatasetRef{&initDs}
+	refs = []*reporef.DatasetRef{&initDs}
 	for i := 2; i <= historyTotal; i++ {
 		update := updateCitiesDataset(t, r, fmt.Sprintf("example city data version %d", i))
 		refs = append(refs, &update)
@@ -229,7 +230,7 @@ func TestRemoveNVersionsFromStore(t *testing.T) {
 // take int n where n is the number of MOST RECENT datasets that should
 // have been removed
 // assumes that each Dataset has a Meta component with a Title
-func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []*repo.DatasetRef, n int) string {
+func verifyRefsRemoved(ctx context.Context, s cafs.Filestore, refs []*reporef.DatasetRef, n int) string {
 
 	// datasets from index len(refs) - n - 1 SHOULD EXISTS
 	// we should error if they DON't exist
@@ -270,7 +271,7 @@ func TestVerifyRefsRemove(t *testing.T) {
 	initDs := addCitiesDataset(t, r)
 
 	//
-	refs := []*repo.DatasetRef{&initDs}
+	refs := []*reporef.DatasetRef{&initDs}
 	historyTotal := 3
 	for i := 2; i <= historyTotal; i++ {
 		update := updateCitiesDataset(t, r, fmt.Sprintf("example city data version %d", i))
@@ -293,7 +294,7 @@ func TestVerifyRefsRemove(t *testing.T) {
 	}
 
 	for i := 0; i < 3; i++ {
-		fakeRef := repo.DatasetRef{
+		fakeRef := reporef.DatasetRef{
 			Path: fmt.Sprintf("/map/%d", i),
 			Dataset: &dataset.Dataset{
 				Meta: &dataset.Meta{

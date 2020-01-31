@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/logbook"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -96,5 +97,5 @@ type SearchParams struct {
 
 // Searchable is an opt-in interface for supporting repository search
 type Searchable interface {
-	Search(p SearchParams) ([]DatasetRef, error)
+	Search(p SearchParams) ([]reporef.DatasetRef, error)
 }

@@ -10,7 +10,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -28,12 +28,12 @@ func NewMockClient(node *p2p.QriNode) (c Client, err error) {
 }
 
 // ListDatasets is not implemented
-func (c *MockClient) ListDatasets(ctx context.Context, ds *repo.DatasetRef, term string, offset, limit int) (res []repo.DatasetRef, err error) {
+func (c *MockClient) ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) (res []reporef.DatasetRef, err error) {
 	return nil, ErrNotImplemented
 }
 
 // PushDataset is not implemented
-func (c *MockClient) PushDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+func (c *MockClient) PushDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
@@ -48,12 +48,12 @@ func (c *MockClient) CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr st
 }
 
 // RemoveDataset is not implemented
-func (c *MockClient) RemoveDataset(ctx context.Context, ref repo.DatasetRef, remoteAddr string) error {
+func (c *MockClient) RemoveDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
 // AddDataset adds a reference to a dataset using test peer info
-func (c *MockClient) AddDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func (c *MockClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	// Get a test peer, but skip the first peer (usually used for tests)
 	info := cfgtest.GetTestPeerInfo(1)
 
@@ -91,7 +91,7 @@ func (c *MockClient) PushLogs(ctx context.Context, ref dsref.Ref, remoteAddr str
 }
 
 // PullDataset is not implemented
-func (c *MockClient) PullDataset(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func (c *MockClient) PullDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
 
@@ -101,6 +101,6 @@ func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr s
 }
 
 // ResolveHeadRef is not implemented
-func (c *MockClient) ResolveHeadRef(ctx context.Context, ref *repo.DatasetRef, remoteAddr string) error {
+func (c *MockClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
