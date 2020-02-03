@@ -2,9 +2,9 @@ package repo
 
 import (
 	flatbuffers "github.com/google/flatbuffers/go"
-	repofb "github.com/qri-io/qri/repo/repo_fbs"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
+	repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
 
 // RefList is a list of refs

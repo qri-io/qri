@@ -18,8 +18,8 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/gen"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("cmd")

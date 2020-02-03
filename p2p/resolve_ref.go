@@ -5,8 +5,8 @@ import (
 	"encoding/json"
 	"fmt"
 
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MtResolveDatasetRef resolves a dataset reference

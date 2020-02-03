@@ -6,10 +6,10 @@ import (
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // BuildDscacheFromLogbookAndProfilesAndDsref creates a dscache, building it from logbook and

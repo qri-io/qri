@@ -63,6 +63,7 @@ func TestRenameNoHistory(t *testing.T) {
 	output := run.MustExec(t, "qri list")
 	expect = `1   test_peer/remove_second_name
     linked: /tmp/remove_no_history
+    0 B, 0 entries, 0 errors
 
 `
 	if diff := cmp.Diff(expect, output); diff != "" {

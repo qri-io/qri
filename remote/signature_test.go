@@ -4,8 +4,8 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/config/test"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestVerifySigParams(t *testing.T) {

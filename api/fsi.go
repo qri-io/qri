@@ -10,8 +10,8 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // FSIHandlers connects HTTP requests to the FSI subsystem

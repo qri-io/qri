@@ -11,8 +11,8 @@ import (
 	"github.com/qri-io/qfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/logbook"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // Test the buildDscacheFlatbuffer function, which converts plain-old-data structures into dscache
@@ -300,10 +300,10 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 			FSIPath:     "/path/to/second_workspace",
 		},
 		&dsInfo{
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-			PrettyName:  "third_name",
-			HeadRef:     "QmHashOfVersion100",
-			FSIPath:     "/path/to/third_workspace",
+			ProfileID:  "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			PrettyName: "third_name",
+			HeadRef:    "QmHashOfVersion100",
+			FSIPath:    "/path/to/third_workspace",
 		},
 	}
 	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
@@ -359,10 +359,10 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 			HeadRef:     "QmHashOfVersion1001",
 		},
 		&dsInfo{
-			InitID:      "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-			PrettyName:  "third_ds",
-			FSIPath:     "/path/to/third_workspace",
+			InitID:     "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
+			ProfileID:  "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+			PrettyName: "third_ds",
+			FSIPath:    "/path/to/third_workspace",
 		},
 		&dsInfo{
 			InitID:      "52iu62kxcgix5w7a5vwclf26gmxojnx67dnsddamkxokx7lxisnq",

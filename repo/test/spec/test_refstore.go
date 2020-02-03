@@ -7,8 +7,8 @@ import (
 
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func testRefstoreInvalidRefs(t *testing.T, rmf RepoMakerFunc) {

@@ -5,6 +5,7 @@ import (
 )
 
 // Info describes a version of a datsaet
+// TODO(dlong): Switch users of this to use DetailedRef instead
 type Info struct {
 	// Refer
 	Ref Ref `json:"ref,omitempty"`

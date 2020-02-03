@@ -6,8 +6,8 @@ import (
 
 	"github.com/mr-tron/base58/base58"
 	"github.com/multiformats/go-multihash"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // MustParseDatasetRef panics if the reference is invalid. Useful for testing

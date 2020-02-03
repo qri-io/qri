@@ -8,8 +8,8 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var (

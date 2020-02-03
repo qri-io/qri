@@ -10,6 +10,7 @@ import (
 	"github.com/fatih/color"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/qri-io/qri/update/cron"
@@ -99,6 +100,53 @@ func (r refStringer) String() string {
 		} else {
 			fmt.Fprintf(w, ", %d versions", ds.NumVersions)
 		}
+	}
+
+	fmt.Fprintf(w, "\n\n")
+	return w.String()
+}
+
+type detailedRefStringer dsref.DetailedRef
+
+// String assumes Peername and Name are present
+func (drs detailedRefStringer) String() string {
+	w := &bytes.Buffer{}
+	title := color.New(color.FgGreen, color.Bold).SprintFunc()
+	path := color.New(color.Faint).SprintFunc()
+	warn := color.New(color.FgYellow).SprintFunc()
+
+	dr := dsref.DetailedRef(drs)
+	sr := dr.SimpleRef()
+	fmt.Fprintf(w, "%s", title(sr.Alias()))
+
+	if drs.MetaTitle != "" {
+		fmt.Fprintf(w, "\n%s", drs.MetaTitle)
+	}
+	if drs.FSIPath != "" {
+		fmt.Fprintf(w, "\nlinked: %s", path(drs.FSIPath))
+	} else if drs.Path != "" {
+		fmt.Fprintf(w, "\n%s", path(drs.Path))
+	}
+	if drs.Foreign {
+		fmt.Fprintf(w, "\n%s", warn("foreign"))
+	}
+	fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(drs.BodySize)))
+	if drs.BodyRows == 1 {
+		fmt.Fprintf(w, ", %d entry", drs.BodyRows)
+	} else {
+		fmt.Fprintf(w, ", %d entries", drs.BodyRows)
+	}
+	if drs.NumErrors == 1 {
+		fmt.Fprintf(w, ", %d error", drs.NumErrors)
+	} else {
+		fmt.Fprintf(w, ", %d errors", drs.NumErrors)
+	}
+	if drs.NumVersions == 0 {
+		// nothing
+	} else if drs.NumVersions == 1 {
+		fmt.Fprintf(w, ", %d version", drs.NumVersions)
+	} else {
+		fmt.Fprintf(w, ", %d versions", drs.NumVersions)
 	}
 
 	fmt.Fprintf(w, "\n\n")

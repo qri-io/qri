@@ -121,4 +121,3 @@ func (r DatasetRef) IsPeerRef() bool {
 func (r DatasetRef) IsEmpty() bool {
 	return r.Equal(DatasetRef{})
 }
-
