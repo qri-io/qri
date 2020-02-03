@@ -94,10 +94,13 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 	w.Write([]byte(`{"meta":{"code": 200,"status":"ok"},"data":null}`))
 }
 
+// max number of items in a page of feed data
+const feedPageSize = 30
+
 // HomeFeedHandler provides access to the home feed
 func HomeFeedHandler(r repo.Repo) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		refs, err := base.ListDatasets(req.Context(), r, "", 30, 0, false, true, false)
+		refs, err := base.ListDatasets(req.Context(), r, "", feedPageSize, 0, false, true, false)
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return

@@ -11,6 +11,10 @@ import (
 	"github.com/qri-io/qri/repo"
 )
 
+// MaxNumDatasetRowsInPreview is the highest number of rows a dataset preview
+// can contain
+const MaxNumDatasetRowsInPreview = 100
+
 // CreatePreview generates a preview for a dataset version
 func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset.Dataset, err error) {
 	if ref.Path == "" {
@@ -33,7 +37,7 @@ func CreatePreview(ctx context.Context, r repo.Repo, ref dsref.Ref) (ds *dataset
 		Schema: ds.Structure.Schema,
 	}
 
-	data, err := ConvertBodyFile(ds.BodyFile(), ds.Structure, st, 100, 0, false)
+	data, err := ConvertBodyFile(ds.BodyFile(), ds.Structure, st, MaxNumDatasetRowsInPreview, 0, false)
 	if err != nil {
 		log.Errorf("CreatePreview converting body file: %s", err.Error())
 		return nil, err
