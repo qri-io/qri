@@ -22,10 +22,10 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	nasim := tr.InitNasim(t)
 
-	// 1. nasim creates a dataset
+	// - nasim creates a dataset
 	ref := InitWorldBankDataset(t, nasim)
 
-	// 2. nasim publishes to the registry
+	// - nasim publishes to the registry
 	PublishToRegistry(t, nasim, ref.AliasString())
 
 	if err := AssertLogsEqual(nasim, tr.RegistryInst, ref); err != nil {
@@ -41,13 +41,18 @@ func TestTwoActorRegistryIntegration(t *testing.T) {
 
 	hinshun := tr.InitHinshun(t)
 
-	// 3. hinshun searches the registry for nasim's dataset name, gets a result
+	// - hinshun searches the registry for nasim's dataset name, gets a result
 	if results := SearchFor(t, hinshun, "bank"); len(results) < 1 {
 		t.Logf("expected at least one result in registry search")
 		// t.Errorf("expected at least one result in registry search")
 	}
 
-	// 4. hinshun clones nasim's dataset
+	// - hunshun fetches a preview of nasim's dataset
+	// TODO (b5) - need to use the ref returned from search results
+	t.Log(ref.String())
+	Preview(t, hinshun, ref.String())
+
+	// - hinshun clones nasim's dataset
 	Clone(t, hinshun, ref.AliasString())
 
 	if err := AssertLogsEqual(nasim, hinshun, ref); err != nil {
@@ -227,6 +232,10 @@ func InitWorldBankDataset(t *testing.T, inst *Instance) *reporef.DatasetRef {
 			BodyPath: "body.csv",
 			BodyBytes: []byte(`a,b,c,true,2
 d,e,f,false,3`),
+			Readme: &dataset.Readme{
+				ScriptPath:  "readme.md",
+				ScriptBytes: []byte("#World Bank Population\nhow many people live on this planet?"),
+			},
 		},
 	}, res)
 
@@ -287,6 +296,13 @@ func Clone(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
 	if err := NewDatasetRequestsInstance(inst).Add(&AddParams{Ref: refstr}, res); err != nil {
 		t.Fatalf("cloning dataset %s: %s", refstr, err)
 	}
+	return res
+}
 
+func Preview(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+	res := &dataset.Dataset{}
+	if err := NewRegistryClientMethods(inst).Preview(&refstr, res); err != nil {
+		t.Fatal(err)
+	}
 	return res
 }

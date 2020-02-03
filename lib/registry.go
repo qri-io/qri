@@ -2,10 +2,13 @@ package lib
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/registry"
+	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -102,4 +105,58 @@ func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
 	}
 
 	return m.inst.ChangeConfig(cfg)
+}
+
+// Home returns a listing of datasets from a number of feeds like featured and
+// popular. Each feed is keyed by string in the response
+func (m *RegistryClientMethods) Home(p *bool, res *map[string][]*dataset.Dataset) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("RegistryClientMethods.Home", p, res)
+	}
+	ctx := context.TODO()
+
+	if m.inst.registry == nil {
+		return fmt.Errorf("Feed isn't available without a configured registry")
+	}
+
+	feed, err := m.inst.registry.HomeFeed(ctx)
+	if err != nil {
+		return err
+	}
+
+	*res = feed
+	return nil
+}
+
+// Featured asks a registry for a curated list of datasets
+func (m *RegistryClientMethods) Featured(p *ListParams, res *[]*dataset.Dataset) error {
+	return fmt.Errorf("featured dataset feed is not yet implemented")
+}
+
+// Recent is a feed of network datasets in reverse chronological order
+// it currently can only come from a registry, but could easily be assembled
+// via p2p methods
+func (m *RegistryClientMethods) Recent(p *ListParams, res *[]*dataset.Dataset) error {
+	return fmt.Errorf("recent dataset feed is not yet implemented")
+}
+
+// Preview creates
+func (m *RegistryClientMethods) Preview(refstr *string, res *dataset.Dataset) error {
+	if m.inst.rpc != nil {
+		return m.inst.rpc.Call("RegistryClientMethods.Preview", refstr, res)
+	}
+	ctx := context.TODO()
+
+	ref, err := repo.ParseDatasetRef(*refstr)
+	if err != nil {
+		return err
+	}
+
+	pre, err := m.inst.registry.Preview(ctx, repo.ConvertToDsref(ref))
+	if err != nil {
+		return err
+	}
+
+	*res = *pre
+	return nil
 }

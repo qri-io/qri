@@ -9,7 +9,6 @@ import (
 	"time"
 
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/base"
@@ -148,6 +147,14 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 	}
 
 	return r, err
+}
+
+// Node exposes this remote's QriNode
+func (r *Remote) Node() *p2p.QriNode {
+	if r == nil {
+		return nil
+	}
+	return r.node
 }
 
 // ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
@@ -406,35 +413,6 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 		default:
 			w.WriteHeader(http.StatusNotFound)
 		}
-	}
-}
-
-// PreviewHTTPHandler handles dataset preview requests over HTTP
-func (r *Remote) PreviewHTTPHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("unfinished: PreviewHTTPHandler"))
-	}
-}
-
-// ComponentHTTPHandler handles dataset component requests over HTTP
-func (r *Remote) ComponentHTTPHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		w.Write([]byte("unfinished: ComponentHTTPHandler"))
-	}
-}
-
-// FeedsHTTPHandler gives access to lists of dataset feeds constructed by this
-// remote
-func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
-	return func(w http.ResponseWriter, req *http.Request) {
-		page := apiutil.PageFromRequest(req)
-		ctx := req.Context()
-		refs, err := base.ListDatasets(ctx, r.node.Repo, req.FormValue("term"), page.Limit(), page.Offset(), false, true, false)
-		if err != nil {
-			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-		}
-
-		apiutil.WritePageResponse(w, refs, req, page)
 	}
 }
 

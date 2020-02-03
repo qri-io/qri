@@ -23,7 +23,7 @@ func NewTempRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry,
 	}
 	cleanup := mock.Delete
 
-	cfg := mock.GetConfig()
+	cfg := conf(mock)
 	cfg.Registry.Location = ""
 	cfg.Remote = &config.Remote{
 		Enabled:          true,
@@ -56,6 +56,14 @@ func NewTempRepoRegistry(ctx context.Context) (*lib.Instance, registry.Registry,
 	}
 
 	return inst, reg, cleanup, nil
+}
+
+func conf(mock repotest.TempRepo) *config.Config {
+	cfg := mock.GetConfig()
+	cfg.API.Port = 99999
+	cfg.Webapp.Enabled = false
+	cfg.RPC.Enabled = false
+	return cfg
 }
 
 func addBasicDataset(inst *lib.Instance) {

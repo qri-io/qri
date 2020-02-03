@@ -11,6 +11,7 @@ import (
 // Client connects to remotes to perform synchronization tasks
 type Client interface {
 	ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) ([]reporef.DatasetRef, error)
+	ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error
 
 	PushDataset(ctx context.Context, ref reporef.DatasetRef, remoteAddr string) error
 	PullDataset(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error
@@ -21,6 +22,4 @@ type Client interface {
 	FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error)
 	CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
 	RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
-
-	ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error
 }
