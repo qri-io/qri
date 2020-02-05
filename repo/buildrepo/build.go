@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strings"
 	"sync"
 
 	homedir "github.com/mitchellh/go-homedir"
@@ -16,6 +17,7 @@ import (
 	"github.com/qri-io/qfs/httpfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
@@ -69,7 +71,12 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 			return nil, err
 		}
 
-		r, err := fsrepo.NewRepo(store, fs, book, pro, path)
+		cache, err := newDscache(fs, path)
+		if err != nil {
+			return nil, err
+		}
+
+		r, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
 		return r, err
 	case "mem":
 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
@@ -144,4 +151,13 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
 	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+}
+
+func newDscache(fs qfs.Filesystem, repoPath string) (*dscache.Dscache, error) {
+	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
+	if !strings.HasSuffix(repoPath, "qri") {
+		repoPath = repoPath + "/qri"
+	}
+	dscachePath := filepath.Join(repoPath, "dscache.qfb")
+	return dscache.NewDscache(fs, dscachePath), nil
 }

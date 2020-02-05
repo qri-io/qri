@@ -5,10 +5,12 @@ import (
 	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
+	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
-	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -17,24 +19,13 @@ import (
 // Deprecated: Dsref is going away once dscache is in use. For now, only FSIPath is retrieved
 // from dsref, but in the future it will be added directly to dscache, with the file systems's
 // linkfiles (.qri-ref) acting as the authoritative source.
-func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, r repo.Repo) (*Dscache, error) {
-	num, err := r.RefCount()
-	if err != nil {
-		return nil, err
-	}
-	refs, err := r.References(0, num)
-	if err != nil {
-		return nil, err
-	}
-
-	profiles := r.Profiles()
+func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []reporef.DatasetRef, profiles profile.Store, book *logbook.Book, store cafs.Filestore, filesys qfs.Filesystem) (*Dscache, error) {
 	profileList, err := profiles.List()
 	if err != nil {
 		return nil, err
 	}
 
 	userProfileList := make([]userProfilePair, 0, len(profileList))
-
 	for id, pro := range profileList {
 		pair := userProfilePair{Username: pro.Peername, ProfileID: id.String()}
 		userProfileList = append(userProfileList, pair)
@@ -42,14 +33,11 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, r repo.Repo
 
 	// Convert logbook into dataset info list. Iterate refs to get FSI paths and anything
 	// missing from logbook.
-	logbook := r.Logbook()
-	dsInfoList, err := convertLogbookAndRefs(ctx, logbook, refs)
+	dsInfoList, err := convertLogbookAndRefs(ctx, book, refs)
 	if err != nil {
 		return nil, err
 	}
 
-	store := r.Store()
-	filesys := r.Filesystem()
 	err = fillInfoForDatasets(ctx, store, filesys, dsInfoList)
 	if err != nil {
 		log.Errorf("%s", err)

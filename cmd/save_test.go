@@ -7,8 +7,11 @@ import (
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -230,6 +233,78 @@ func TestSaveInferName(t *testing.T) {
 	output = run.MustExec(t, "qri save --body testdata/movies/body_four.json --new")
 	actual = parseDatasetRefFromOutput(output)
 	expect = "dataset saved: test_peer/body_fourjson_2@/ipfs/QmbURFB5RLWN3LdtKe9yX3emiyvNtvtocsoaK8eFFVTXFL\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveDscache(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache")
+	defer run.Delete()
+
+	prevTimestampFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		return 1000
+	}
+	defer func() {
+		logbook.NewTimestamp = prevTimestampFunc
+	}()
+
+	// Save a dataset with an inferred name.
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/movie_ds")
+
+	// List with the --use-dscache flag, which builds the dscache from the logbook.
+	run.MustExec(t, "qri list --use-dscache")
+
+	// Dscache should have one reference. It has topIndex 1 because there are two logbook
+	// elements in the branch, one for "init", one for "commit".
+	cache := run.Dscache(t)
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID      = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID   = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex    = 1
+     cursorIndex = 1
+     prettyName  = movie_ds
+     bodySize    = 79
+     bodyRows    = 2
+     commitTime  = 978310861
+     headRef     = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save a new new commit. Since the dscache exists, it should get updated.
+	run.MustExec(t, "qri save --body testdata/movies/body_four.json me/movie_ds")
+
+	// Because this test is using a memrepo, but the command runner instantiates its own repo
+	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
+	// same filename.
+	fs := localfs.NewFS()
+	cacheFilename := run.Dscache(t).Filename
+
+	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
+	cache = dscache.NewDscache(fs, cacheFilename)
+	actual = cache.VerboseString(false)
+	// TODO(dlong): bodySize, bodyRows, commitTime should all be filled in
+	expect = `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID      = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID   = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex    = 2
+     cursorIndex = 2
+     prettyName  = movie_ds
+     bodySize    = 137
+     bodyRows    = 4
+     commitTime  = 978310921
+     headRef     = /ipfs/QmbKb9dHzcFsngjDUUUZ12XsREuh37Zm7yJ4f3t5BkCdQv
+`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}

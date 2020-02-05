@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -33,6 +34,7 @@ type Repo struct {
 	fsys    qfs.Filesystem
 	graph   map[string]*dsgraph.Node
 	logbook *logbook.Book
+	dscache *dscache.Dscache
 
 	profiles *ProfileStore
 }
@@ -40,7 +42,7 @@ type Repo struct {
 // NewRepo creates a new file-based repository
 //
 // Deprecated: use CreateRepo instead
-func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, pro *profile.Profile, base string) (repo.Repo, error) {
+func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache, pro *profile.Profile, base string) (repo.Repo, error) {
 	if err := os.MkdirAll(base, os.ModePerm); err != nil {
 		return nil, err
 	}
@@ -56,6 +58,7 @@ func NewRepo(store cafs.Filestore, fsys qfs.Filesystem, book *logbook.Book, pro 
 		fsys:     fsys,
 		basepath: bp,
 		logbook:  book,
+		dscache:  cache,
 
 		Refstore: Refstore{basepath: bp, store: store, file: FileRefs},
 
@@ -104,6 +107,11 @@ func (r *Repo) Profile() (*profile.Profile, error) {
 // Logbook stores operation logs for coordinating state across peers
 func (r *Repo) Logbook() *logbook.Book {
 	return r.logbook
+}
+
+// Dscache returns a dscache
+func (r *Repo) Dscache() *dscache.Dscache {
+	return r.dscache
 }
 
 // SetProfile updates this repo's peer profile info

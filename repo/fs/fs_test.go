@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -33,8 +34,10 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
+		cache := dscache.NewDscache(fs, "")
+
 		store := cafs.NewMapstore()
-		r, err := NewRepo(store, fs, book, pro, path)
+		r, err := NewRepo(store, fs, book, cache, pro, path)
 		if err != nil {
 			t.Fatalf("error creating repo: %s", err.Error())
 		}

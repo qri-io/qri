@@ -5,6 +5,7 @@ import (
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
@@ -18,6 +19,7 @@ type MemRepo struct {
 	graph      map[string]*dsgraph.Node
 	refCache   *MemRefstore
 	logbook    *logbook.Book
+	dscache    *dscache.Dscache
 
 	profile  *profile.Profile
 	profiles profile.Store
@@ -37,6 +39,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
+		dscache:     dscache.NewDscache(fsys, ""),
 		profile:     p,
 		profiles:    ps,
 	}, nil
@@ -55,6 +58,11 @@ func (r *MemRepo) Filesystem() qfs.Filesystem {
 // Logbook accesses the mem repo logbook
 func (r *MemRepo) Logbook() *logbook.Book {
 	return r.logbook
+}
+
+// Dscache returns a dscache
+func (r *MemRepo) Dscache() *dscache.Dscache {
+	return r.dscache
 }
 
 // RemoveLogbook drops a MemRepo's logbook pointer. MemRepo gets used in tests

@@ -200,8 +200,17 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	ds.ProfileID = pro.ID.String()
 	ds.Peername = pro.Peername
 	ds.Path = path
-	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
+	action, err := r.Logbook().WriteVersionSave(ctx, ds)
+	if err != nil && err != logbook.ErrNoLogbook {
 		return
+	}
+	dscache := r.Dscache()
+	if dscache != nil && !dscache.IsEmpty() {
+		log.Info("dscache: update and save new version")
+		err = dscache.Update(action)
+		if err != nil {
+			log.Error(err)
+		}
 	}
 
 	if err = ReadDataset(ctx, r, &ref); err != nil {

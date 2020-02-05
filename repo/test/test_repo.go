@@ -248,7 +248,7 @@ func createDataset(r repo.Repo, tc dstest.TestCase) (ref reporef.DatasetRef, err
 	ds.ProfileID = pro.ID.String()
 	ds.Peername = pro.Peername
 	ds.Path = path
-	if err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
+	if _, err = r.Logbook().WriteVersionSave(ctx, ds); err != nil && err != logbook.ErrNoLogbook {
 		return
 	}
 

@@ -367,9 +367,16 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 
 // WriteVersionSave adds an operation to a log marking the creation of a
 // dataset version. Book will copy details from the provided dataset pointer
-func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
+// TODO(dlong): Ideally, a method like this would take an initID to refer to
+// the dataset we're saving, and the logbook.Log that we're appending to. This
+// would make sense as we have to assume that the reference has already been
+// resolved for the dataset we're saving (or, Init has already been called for
+// the dataset we're newly creating). Doing so would move us closer to the
+// world were references are only used in the porcelain of qri, and stable ids
+// like initID would only be used in the plumbling.
+func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) (*Action, error) {
 	if book == nil {
-		return ErrNoLogbook
+		return nil, ErrNoLogbook
 	}
 
 	ref := refFromDataset(ds)
@@ -380,12 +387,28 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 			branchLog = book.initName(ctx, ref.Name)
 			err = nil
 		} else {
-			return err
+			return nil, err
 		}
+	}
+	datasetLog, err := book.DatasetRef(ctx, ref)
+	if err != nil {
+		return nil, err
 	}
 
 	book.appendVersionSave(branchLog, ds)
-	return book.save(ctx)
+	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
+	err = book.save(ctx)
+	if err != nil {
+		return nil, err
+	}
+	// Index of the branch's top is one less than the length
+	topIndex := len(branchLog.Ops) - 1
+	return &Action{
+		InitID:   datasetLog.ID(),
+		TopIndex: topIndex,
+		HeadRef:  ds.Path,
+		Dataset:  ds,
+	}, nil
 }
 
 func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {

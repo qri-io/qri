@@ -75,7 +75,7 @@ func (b *Builder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title
 		Path:         ipfsHash,
 		PreviousPath: ref.Path,
 	}
-	if err := b.Book.WriteVersionSave(ctx, &ds); err != nil {
+	if _, err := b.Book.WriteVersionSave(ctx, &ds); err != nil {
 		t.Fatal(err)
 	}
 	b.Dsrefs[ref.Name] = append(b.Dsrefs[ref.Name], ipfsHash)

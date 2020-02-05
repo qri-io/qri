@@ -21,7 +21,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/base/fill"
-	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook/oplog"
@@ -96,10 +96,18 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.DetailedRef) error {
 	}
 
 	var refs []reporef.DatasetRef
-	if p.ViaDscache {
-		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, r.node.Repo)
-		if err != nil {
-			return err
+	if p.UseDscache {
+		c := r.node.Repo.Dscache()
+		if c.IsEmpty() {
+			log.Infof("building dscache from repo's logbook, profile, and dsref")
+			built, err := build.DscacheFromRepo(ctx, r.node.Repo)
+			if err != nil {
+				return err
+			}
+			err = c.Assign(built)
+			if err != nil {
+				log.Error(err)
+			}
 		}
 		refs, err = c.ListRefs()
 		if err != nil {
@@ -179,10 +187,10 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
 	}
 	ctx := context.TODO()
-	if p.ViaDscache {
-		c, err := dscache.BuildDscacheFromLogbookAndProfilesAndDsref(ctx, r.node.Repo)
-		if err != nil {
-			return err
+	if p.UseDscache {
+		c := r.node.Repo.Dscache()
+		if c == nil || c.IsEmpty() {
+			return fmt.Errorf("repo: dscache not found")
 		}
 		*text = c.VerboseString(true)
 		return nil

@@ -21,6 +21,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
@@ -362,6 +363,13 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.dscache == nil {
+		inst.dscache, err = newDscache(inst.qfs, cfg, inst.repoPath)
+		if err != nil {
+			return nil, fmt.Errorf("newDsache: %w", err)
+		}
+	}
+
 	if inst.registry == nil {
 		inst.registry = newRegClient(ctx, cfg)
 	}
@@ -369,7 +377,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	if o.repo != nil {
 		inst.repo = o.repo
 	} else if inst.repo == nil {
-		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook); err != nil {
+		if inst.repo, err = newRepo(inst.repoPath, cfg, inst.store, inst.qfs, inst.logbook, inst.dscache); err != nil {
 			log.Error("intializing repo:", err.Error())
 			return nil, fmt.Errorf("newRepo: %s", err)
 		}
@@ -466,7 +474,13 @@ func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *l
 	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
 }
 
-func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book) (r repo.Repo, err error) {
+func newDscache(fs qfs.Filesystem, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
+	dscachePath := filepath.Join(repoPath, "dscache.qfb")
+	dscache := dscache.NewDscache(fs, dscachePath)
+	return dscache, nil
+}
+
+func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -474,10 +488,13 @@ func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Files
 
 	switch cfg.Repo.Type {
 	case "fs":
-		repo, err := fsrepo.NewRepo(store, fs, book, pro, path)
+		repo, err := fsrepo.NewRepo(store, fs, book, cache, pro, path)
+		if err != nil {
+			return nil, err
+		}
 		// Try to make the repo a hidden directory, but it's okay if we can't. Ingore the error.
 		_ = base.SetFileHidden(path)
-		return repo, err
+		return repo, nil
 	case "mem":
 		return repo.NewMemRepo(pro, store, fs, profile.NewMemStore())
 	default:
@@ -596,6 +613,7 @@ type Instance struct {
 	registry     *regclient.Client
 	stats        *stats.Stats
 	logbook      *logbook.Book
+	dscache      *dscache.Dscache
 
 	Watcher *watchfs.FilesysWatcher
 
