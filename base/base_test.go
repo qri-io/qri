@@ -49,8 +49,8 @@ func init() {
 func newTestRepo(t *testing.T) repo.Repo {
 	mapStore := cafs.NewMapstore()
 	mux := qfs.NewMux(map[string]qfs.Filesystem{
-		"map":  mapStore,
-		"cafs": mapStore,
+		"local": mapStore,
+		"cafs":  mapStore,
 	})
 	mr, err := repo.NewMemRepo(testPeerProfile, mapStore, mux, profile.NewMemStore())
 	if err != nil {
