@@ -59,7 +59,7 @@ func (m RegistryClientMethods) ProveProfileKey(p *RegistryProfile, ok *bool) err
 		return err
 	}
 
-	log.Errorf("prove profile response: %v", pro)
+	log.Debugf("prove profile response: %v", pro)
 	*p = *pro
 
 	return m.updateConfig(pro)
