@@ -9,6 +9,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qfs/cafs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
@@ -126,6 +127,15 @@ func (run *DscacheTestRunner) Delete() {
 	logbook.NewTimestamp = run.prevTsFunc
 	if run.teardown != nil {
 		run.teardown()
+	}
+}
+
+// MustPutDatasetFileAtKey puts a dataset into the storage at the given key
+func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, store *cafs.MapStore, key, content string) {
+	ctx := context.Background()
+	err := store.PutFileAtKey(ctx, key, qfs.NewMemfileBytes("dataset.json", []byte(content)))
+	if err != nil {
+		t.Fatal(err)
 	}
 }
 
@@ -379,9 +389,60 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 	}
 }
 
-// TODO(dlong): Test BuildDscacheFromLogbookAndProfilesAndDsref, the top-level function
+// Test the top-level build function, and that the references are alphabetized
+func TestBuildDscacheFromLogbookAndProfilesAndDsref(t *testing.T) {
+	run := NewDscacheTestRunner()
+	defer run.Delete()
+
+	ctx := context.Background()
+
+	peerInfo := testPeers.GetTestPeerInfo(0)
+	book := makeFakeLogbookNonAlphabetical(ctx, t, "test_user", peerInfo.PrivKey)
+
+	// Add stub defs, so that fillInfoForDatasets succeeds
+	store := cafs.NewMapstore()
+	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion1", `{}`)
+	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{}`)
+	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion3", `{}`)
+
+	// Add association between profileID and username
+	profiles := profile.NewMemStore()
+	profiles.PutProfile(&profile.Profile{
+		ID:       profile.ID(peerInfo.PeerID),
+		Peername: "test_user",
+	})
+
+	dsrefs := []reporef.DatasetRef{}
+	fs := qfs.NewMemFS()
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	refs, err := cache.ListRefs()
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Verify that there are 3 datasets and that they are alphabetized.
+	expectRefs := []string{
+		"test_user/another_dataset@QmHashOfVersion2",
+		"test_user/some_dataset@QmHashOfVersion1",
+		"test_user/yet_another@QmHashOfVersion3",
+	}
+	if len(expectRefs) != len(refs) {
+		t.Fatalf("expected: %d refs, got %d", len(expectRefs), len(refs))
+	}
+	for i, actualRef := range refs {
+		if expectRefs[i] != actualRef.String() {
+			t.Errorf("ref %d: expected %s, got %s", i, expectRefs[i], actualRef.String())
+		}
+	}
+}
+
 // TODO(dlong): Test convertHistoryToIndexAndRef edge-cases, like big deletes, len(logs) > 0, len=0
 // TODO(dlong): Test a logbook where a username is changed after datasets already existed
+// TODO(dlong): Test a logbook with logs from other peers
 // TODO(dlong): Test the function fillInfoForDatasets after convertLogbookAndRefs returns []dsInfo
 
 func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey crypto.PrivKey) *logbook.Book {
@@ -408,6 +469,30 @@ func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey
 	refB = builder.Commit(ctx, t, refB, "third commit", "QmHashOfVersion6")
 	refB = builder.Commit(ctx, t, refB, "whoops", "QmHashOfVersion7")
 	refB = builder.Delete(ctx, t, refB, 1)
+
+	return builder.Logbook()
+}
+
+func makeFakeLogbookNonAlphabetical(ctx context.Context, t *testing.T, username string, privKey crypto.PrivKey) *logbook.Book {
+	rootPath, err := ioutil.TempDir("", "create_logbook")
+	if err != nil {
+		t.Fatal(err)
+	}
+	fs := qfs.NewMemFS()
+
+	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+
+	// A dataset with one commit
+	refA := builder.DatasetInit(ctx, t, "some_dataset")
+	refA = builder.Commit(ctx, t, refA, "initial commit", "QmHashOfVersion1")
+
+	// Another dataset with one commit
+	refB := builder.DatasetInit(ctx, t, "another_dataset")
+	refB = builder.Commit(ctx, t, refB, "initial commit", "QmHashOfVersion2")
+
+	// Yet another dataset with one commit
+	refC := builder.DatasetInit(ctx, t, "yet_another")
+	refC = builder.Commit(ctx, t, refC, "initial commit", "QmHashOfVersion3")
 
 	return builder.Logbook()
 }

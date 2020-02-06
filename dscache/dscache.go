@@ -127,7 +127,6 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 }
 
 // ListRefs returns references to each dataset in the cache
-// TODO(dlong): Not alphabetized, which lib assumes it is
 func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	if d.IsEmpty() {
 		return nil, ErrNoDscache
@@ -137,14 +136,19 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	for i := 0; i < d.Root.RefsLength(); i++ {
 		refCache := dscachefb.RefCache{}
 		d.Root.Refs(&refCache, i)
-		profileID, err := profile.NewB58ID(string(refCache.ProfileID()))
+
+		proIDStr := string(refCache.ProfileID())
+		profileID, err := profile.NewB58ID(proIDStr)
 		if err != nil {
-			log.Errorf("could not parse profileID %q", string(refCache.ProfileID()))
-			continue
+			log.Errorf("could not parse profileID %q", proIDStr)
+		}
+		username, ok := d.ProfileIDToUsername[proIDStr]
+		if !ok {
+			log.Errorf("no username associated with profileID %q", proIDStr)
 		}
 
 		refs = append(refs, reporef.DatasetRef{
-			Peername:  d.ProfileIDToUsername[string(refCache.ProfileID())],
+			Peername:  username,
 			ProfileID: profileID,
 			Name:      string(refCache.PrettyName()),
 			Path:      string(refCache.HeadRef()),
