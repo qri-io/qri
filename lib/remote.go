@@ -61,6 +61,9 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
 	logs, err := r.inst.RemoteClient().FetchLogs(ctx, repo.ConvertToDsref(ref), addr)
+	if err != nil {
+		return err
+	}
 
 	// TODO (b5) - FetchLogs currently returns oplogs arranged in user > dataset > branch
 	// hierarchy, and we need to descend to the branch oplog to get commit history
