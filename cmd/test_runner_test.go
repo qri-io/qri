@@ -12,7 +12,6 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
@@ -167,15 +166,6 @@ func (run *TestRunner) DatasetMarshalJSON(t *testing.T, ref string) (data string
 		t.Fatal(err)
 	}
 	return data
-}
-
-// Dscache returns the dscache from the repo
-func (run *TestRunner) Dscache(t *testing.T) *dscache.Dscache {
-	repo, err := run.RepoRoot.Repo()
-	if err != nil {
-		t.Fatal(err)
-	}
-	return repo.Dscache()
 }
 
 // MustExec runs a command, returning standard output, failing the test if there's an error

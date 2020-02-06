@@ -364,7 +364,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 	}
 
 	if inst.dscache == nil {
-		inst.dscache, err = newDscache(inst.qfs, cfg, inst.repoPath)
+		inst.dscache, err = newDscache(ctx, inst.qfs, cfg, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("newDsache: %w", err)
 		}
@@ -474,9 +474,9 @@ func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *l
 	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
 }
 
-func newDscache(fs qfs.Filesystem, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	dscache := dscache.NewDscache(fs, dscachePath)
+	dscache := dscache.NewDscache(ctx, fs, dscachePath)
 	return dscache, nil
 }
 

@@ -18,6 +18,8 @@ import (
 
 var (
 	log = golog.Logger("dscache")
+	// ErrNoDscache is returned when methods are called on a non-existant Dscache
+	ErrNoDscache = fmt.Errorf("dscache: does not exist")
 )
 
 // Dscache represents an in-memory serialized dscache flatbuffer
@@ -28,10 +30,9 @@ type Dscache struct {
 	ProfileIDToUsername map[string]string
 }
 
-// NewDscache will construct a dscache from the given file, or will construct an empty dscache
-// that will save to the given filename
-func NewDscache(fsys qfs.Filesystem, filename string) *Dscache {
-	ctx := context.TODO()
+// NewDscache will construct a dscache from the given filename, or will construct an empty dscache
+// that will save to the given filename. Using an empty filename will disable loading and saving
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, filename string) *Dscache {
 	f, err := fsys.Get(ctx, filename)
 	if err != nil {
 		// Ignore error, as dscache loading is optional
@@ -49,11 +50,17 @@ func NewDscache(fsys qfs.Filesystem, filename string) *Dscache {
 
 // IsEmpty returns whether the dscache has any constructed data in it
 func (d *Dscache) IsEmpty() bool {
+	if d == nil {
+		return true
+	}
 	return d.Root == nil
 }
 
 // Assign assigns the data from one dscache to this one
 func (d *Dscache) Assign(other *Dscache) error {
+	if d == nil {
+		return ErrNoDscache
+	}
 	d.Root = other.Root
 	d.Buffer = other.Buffer
 	return d.save()
@@ -116,6 +123,9 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 // ListRefs returns references to each dataset in the cache
 // TODO(dlong): Not alphabetized, which lib assumes it is
 func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
+	if d.IsEmpty() {
+		return nil, ErrNoDscache
+	}
 	d.ensureProToUserMap()
 	refs := make([]reporef.DatasetRef, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
@@ -153,7 +163,7 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 // Update modifies the dscache according to the provided action.
 func (d *Dscache) Update(act *logbook.Action) error {
 	if d.IsEmpty() {
-		return fmt.Errorf("dscache: cannot Update an empty dscache")
+		return ErrNoDscache
 	}
 
 	if act.Type != logbook.ActionMoveCursor {

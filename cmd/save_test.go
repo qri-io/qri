@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"context"
 	"strings"
 	"testing"
 	"time"
@@ -250,15 +251,21 @@ func TestSaveDscache(t *testing.T) {
 		logbook.NewTimestamp = prevTimestampFunc
 	}()
 
-	// Save a dataset with an inferred name.
+	// Save a dataset with one version.
 	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/movie_ds")
 
 	// List with the --use-dscache flag, which builds the dscache from the logbook.
 	run.MustExec(t, "qri list --use-dscache")
 
+	// Access the dscache
+	repo, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := repo.Dscache()
+
 	// Dscache should have one reference. It has topIndex 1 because there are two logbook
 	// elements in the branch, one for "init", one for "commit".
-	cache := run.Dscache(t)
 	actual := cache.VerboseString(false)
 	expect := `Dscache:
  Dscache.Users:
@@ -285,10 +292,11 @@ func TestSaveDscache(t *testing.T) {
 	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
 	// same filename.
 	fs := localfs.NewFS()
-	cacheFilename := run.Dscache(t).Filename
+	cacheFilename := cache.Filename
+	ctx := context.Background()
+	cache = dscache.NewDscache(ctx, fs, cacheFilename)
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
-	cache = dscache.NewDscache(fs, cacheFilename)
 	actual = cache.VerboseString(false)
 	// TODO(dlong): bodySize, bodyRows, commitTime should all be filled in
 	expect = `Dscache:

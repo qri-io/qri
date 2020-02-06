@@ -65,13 +65,13 @@ type Repo interface {
 	Filesystem() qfs.Filesystem
 
 	// All Repos must keep a Refstore, defining a store of known datasets
+	// NOTE(dlong): Refstore is going away soon, everything is going to move to Dscache
 	Refstore
+	// Dscache is a cache of datasets that have been built according to logbook
+	Dscache() *dscache.Dscache
 
 	// Repos have a logbook for recording & storing operation logs
 	Logbook() *logbook.Book
-
-	// Dscache is a cache of datasets that have been built according to logbook
-	Dscache() *dscache.Dscache
 
 	// A repository must maintain profile information about the owner of this dataset.
 	// The value returned by Profile() should represent the peer.

@@ -1,6 +1,8 @@
 package repo
 
 import (
+	"context"
+
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dsgraph"
 	"github.com/qri-io/qfs"
@@ -33,13 +35,14 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 	if err != nil {
 		return nil, err
 	}
+	ctx := context.Background()
 	return &MemRepo{
 		store:       store,
 		filesystem:  fsys,
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
-		dscache:     dscache.NewDscache(fsys, ""),
+		dscache:     dscache.NewDscache(ctx, fsys, ""),
 		profile:     p,
 		profiles:    ps,
 	}, nil

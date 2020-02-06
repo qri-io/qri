@@ -1,6 +1,7 @@
 package fsrepo
 
 import (
+	"context"
 	"os"
 	"path/filepath"
 	"testing"
@@ -34,7 +35,8 @@ func TestRepo(t *testing.T) {
 			t.Fatal(err)
 		}
 
-		cache := dscache.NewDscache(fs, "")
+		ctx := context.Background()
+		cache := dscache.NewDscache(ctx, fs, "")
 
 		store := cafs.NewMapstore()
 		r, err := NewRepo(store, fs, book, cache, pro, path)
