@@ -7,33 +7,37 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-// DatasetLogItem is a line item in a dataset response
-type DatasetLogItem struct {
-	Ref dsref.Ref `json:"ref,omitempty"`
-	// Creation timestamp
-	Timestamp time.Time `json:"timestamp,omitempty"`
-	// Title field from dataset.commit component
-	CommitTitle string `json:"commitTitle,omitempty"`
-	// Message field from dataset.commit component
-	CommitMessage string `json:"commitMessage,omitempty"`
-	// Published indicates if this version has been published
-	Published bool `json:"published,omitempty"`
-	// Size of dataset in bytes
-	Size int64 `json:"size,omitempty"`
-	// Local indicates the connected filesystem has this version available
-	Local bool `json:"local,omitempty"`
-}
-
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(ctx, repo.ConvertToDsref(ref), offset, limit); err == nil {
-			return DatasetInfoToLogItems(ctx, r, versions)
+			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
+			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
+			if len(versions) == 0 {
+				return nil, repo.ErrNoHistory
+			}
+			// Logbook doesn't store the CommitMessage (see infoFromOp in logbook/logbook.go), so we
+			// need to load each dataset, and assign the CommitMessage field.
+			for i, v := range versions {
+				if v.Path != "" {
+					local, err := r.Store().Has(ctx, v.Path)
+					if err != nil {
+						continue
+					}
+					if local {
+						if ds, err := dsfs.LoadDataset(ctx, r.Store(), v.Path); err == nil {
+							if ds.Commit != nil {
+								versions[i].CommitMessage = ds.Commit.Message
+							}
+						}
+					}
+				}
+			}
+			return versions, nil
 		}
 	}
 
@@ -41,14 +45,9 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 	if err != nil {
 		return nil, err
 	}
-	items := make([]DatasetLogItem, len(rlog))
+	items := make([]dsref.VersionInfo, len(rlog))
 	for i, vref := range rlog {
-		items[i] = DatasetLogItem{Ref: repo.ConvertToDsref(vref)}
-		if vref.Dataset != nil && vref.Dataset.Commit != nil {
-			items[i].Timestamp = vref.Dataset.Commit.Timestamp
-			items[i].CommitTitle = vref.Dataset.Commit.Title
-			items[i].CommitMessage = vref.Dataset.Commit.Message
-		}
+		items[i] = reporef.ConvertToVersionInfo(&vref)
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
@@ -63,50 +62,10 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 	return items, err
 }
 
-// DatasetInfoToLogItems converts logbook dataset info to
-// TODO (b5) - we're doing one too many conversions here. This process could
-// be simplified by removing logbook.DatasetInfo
-func DatasetInfoToLogItems(ctx context.Context, r repo.Repo, versions []logbook.DatasetInfo) ([]DatasetLogItem, error) {
-	var err error
-	items := make([]DatasetLogItem, len(versions))
-
-	// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
-	// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
-	if len(versions) == 0 {
-		return nil, repo.ErrNoHistory
-	}
-
-	for i, v := range versions {
-		items[i] = DatasetLogItem{
-			Ref:         v.Ref,
-			Published:   v.Published,
-			Timestamp:   v.Timestamp,
-			CommitTitle: v.CommitTitle,
-			Size:        v.Size,
-		}
-
-		if v.Ref.Path != "" {
-			items[i].Local, err = r.Store().Has(ctx, v.Ref.Path)
-			if err != nil {
-				return nil, err
-			}
-			if items[i].Local {
-				if ds, err := dsfs.LoadDataset(ctx, r.Store(), v.Ref.Path); err == nil {
-					if ds.Commit != nil {
-						items[i].CommitMessage = ds.Commit.Message
-					}
-				}
-			}
-		}
-
-		i--
-	}
-	return items, nil
-}
-
 // DatasetLogFromHistory fetches the history of changes to a dataset by walking
 // backwards through dataset commits. if loadDatasets is true, dataset
 // information will be populated
+// TODO(dlong): Convert to use dsref.Ref (for input) and dsref.VersionInfo (for output)
 func DatasetLogFromHistory(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, offset, limit int, loadDatasets bool) (rlog []reporef.DatasetRef, err error) {
 	if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
 		return nil, err

@@ -31,6 +31,7 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
+// TODO(dlong): Move to dsref package, centralize parsing there
 var isRefString = regexp.MustCompile(`^((\w+)\/(\w+)){0,1}(@(\w*)(\/\w{0,4}\/\w+)){0,1}$`)
 
 // IsRefString checks to see if a reference is a valid dataset ref string
@@ -51,29 +52,6 @@ func ConvertToDsref(ref reporef.DatasetRef) dsref.Ref {
 		Name:      ref.Name,
 		ProfileID: ref.ProfileID.String(),
 		Path:      ref.Path,
-	}
-}
-
-// DatasetInfo describes info aboud a dataset version in a repository
-type DatasetInfo struct {
-	// Reference for this version
-	Ref dsref.Ref `json:"ref,omitempty"`
-
-	// FSIPath is this dataset's link to the local filesystem if one exists
-	FSIPath string `json:"fsiPath,omitempty"`
-	// Published indicates whether this reference is listed as an available dataset
-	Published bool `json:"published"`
-	// If true, this version doesn't exist locally
-	Foreign bool `json:"foreign,omitempty"`
-}
-
-// ConvertToDsinfo is a shim function to transition from a reporef.DatasetRef to Info
-func ConvertToDsinfo(ref reporef.DatasetRef) DatasetInfo {
-	return DatasetInfo{
-		Ref:       ConvertToDsref(ref),
-		FSIPath:   ref.FSIPath,
-		Published: ref.Published,
-		Foreign:   ref.Foreign,
 	}
 }
 

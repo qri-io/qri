@@ -265,7 +265,7 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 
 	args.Term = r.FormValue("term")
 
-	res := []dsref.DetailedRef{}
+	res := []dsref.VersionInfo{}
 	if err := h.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
@@ -359,7 +359,7 @@ func (h *DatasetHandlers) peerListHandler(w http.ResponseWriter, r *http.Request
 		p.Peername = ref.Peername
 	}
 
-	res := []dsref.DetailedRef{}
+	res := []dsref.VersionInfo{}
 	if err := h.List(&p, &res); err != nil {
 		log.Infof("error listing peer's datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

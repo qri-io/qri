@@ -10,19 +10,24 @@ table UserAssoc {
 }
 
 table RefCache {
-  initID:string;     // init-id derived from logbook, never changes for the same dataset
-  profileID:string;  // profileID for the author of the dataset
-  topIndex:int;      // point to logbook entry for newest commit for this dataset
-  cursorIndex:int;   // point to logbook entry for data that is currently in use
-  prettyName:string; // human readable name for a dataset, can be changed over time
-  metaTitle:string;  // metadata title of the dataset
-  themeList:string;  // metadata theme of the dataset, comma separated list
-  bodySize:long;     // size of the body in bytes
-  bodyRows:int;      // number of row in the body
-  commitTime:long;   // commit timestamp of the dataset
-  numErrors:int;     // number of errors in the structure
-  headRef:string;    // the IPFS hash for the dataset
-  fsiPath:string;    // path to checked out working directory for this dataset
+  initID:string;        // init-id derived from logbook, never changes for the same dataset
+  profileID:string;     // profileID for the author of the dataset
+  topIndex:int;         // point to logbook entry for newest commit for this dataset
+  cursorIndex:int;      // point to logbook entry for data that is currently in use
+  prettyName:string;    // human readable name for a dataset, can be changed over time
+  metaTitle:string;     // metadata title of the dataset
+  themeList:string;     // metadata theme of the dataset, comma separated list
+  bodySize:long;        // size of the body in bytes
+  bodyRows:int;         // number of row in the body
+  bodyFormat:string;    // format of the body, such as "csv" or "json"
+  commitTime:long;      // commit timestamp of the dataset version
+  commitTitle:string;   // commit title of the dataset version
+  commitMessage:string; // commit message of the dataset version
+  numErrors:int;        // number of errors in the structure
+  numVersions:int;      // number of versions
+  published:bool;       // whether the dataset has published versions
+  headRef:string;       // the IPFS hash for the dataset
+  fsiPath:string;       // path to checked out working directory for this dataset
 }
 
 table Dscache {

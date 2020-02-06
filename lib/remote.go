@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
@@ -36,7 +37,7 @@ type FetchParams struct {
 }
 
 // Fetch pulls a logbook from a remote
-func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
+func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
 	}
@@ -78,12 +79,10 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 
 	versions := logbook.Versions(logs, repo.ConvertToDsref(ref), 0, -1)
 	log.Debugf("found %d versions: %v", len(versions), versions)
-	info, err := base.DatasetInfoToLogItems(ctx, r.inst.Repo(), versions)
-	if err != nil {
-		return err
+	if len(versions) == 0 {
+		return repo.ErrNoHistory
 	}
-
-	*res = info
+	*res = versions
 	return nil
 }
 

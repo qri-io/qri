@@ -114,8 +114,16 @@ func (rcv *RefCache) MutateBodyRows(n int32) bool {
 	return rcv._tab.MutateInt32Slot(20, n)
 }
 
-func (rcv *RefCache) CommitTime() int64 {
+func (rcv *RefCache) BodyFormat() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefCache) CommitTime() int64 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
 	}
@@ -123,22 +131,10 @@ func (rcv *RefCache) CommitTime() int64 {
 }
 
 func (rcv *RefCache) MutateCommitTime(n int64) bool {
-	return rcv._tab.MutateInt64Slot(22, n)
+	return rcv._tab.MutateInt64Slot(24, n)
 }
 
-func (rcv *RefCache) NumErrors() int32 {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
-	if o != 0 {
-		return rcv._tab.GetInt32(o + rcv._tab.Pos)
-	}
-	return 0
-}
-
-func (rcv *RefCache) MutateNumErrors(n int32) bool {
-	return rcv._tab.MutateInt32Slot(24, n)
-}
-
-func (rcv *RefCache) HeadRef() []byte {
+func (rcv *RefCache) CommitTitle() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -146,7 +142,7 @@ func (rcv *RefCache) HeadRef() []byte {
 	return nil
 }
 
-func (rcv *RefCache) FsiPath() []byte {
+func (rcv *RefCache) CommitMessage() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -154,8 +150,60 @@ func (rcv *RefCache) FsiPath() []byte {
 	return nil
 }
 
+func (rcv *RefCache) NumErrors() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *RefCache) MutateNumErrors(n int32) bool {
+	return rcv._tab.MutateInt32Slot(30, n)
+}
+
+func (rcv *RefCache) NumVersions() int32 {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
+	if o != 0 {
+		return rcv._tab.GetInt32(o + rcv._tab.Pos)
+	}
+	return 0
+}
+
+func (rcv *RefCache) MutateNumVersions(n int32) bool {
+	return rcv._tab.MutateInt32Slot(32, n)
+}
+
+func (rcv *RefCache) Published() bool {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
+	if o != 0 {
+		return rcv._tab.GetBool(o + rcv._tab.Pos)
+	}
+	return false
+}
+
+func (rcv *RefCache) MutatePublished(n bool) bool {
+	return rcv._tab.MutateBoolSlot(34, n)
+}
+
+func (rcv *RefCache) HeadRef() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
+func (rcv *RefCache) FsiPath() []byte {
+	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
+	if o != 0 {
+		return rcv._tab.ByteVector(o + rcv._tab.Pos)
+	}
+	return nil
+}
+
 func RefCacheStart(builder *flatbuffers.Builder) {
-	builder.StartObject(13)
+	builder.StartObject(18)
 }
 func RefCacheAddInitID(builder *flatbuffers.Builder, initID flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(initID), 0)
@@ -184,17 +232,32 @@ func RefCacheAddBodySize(builder *flatbuffers.Builder, bodySize int64) {
 func RefCacheAddBodyRows(builder *flatbuffers.Builder, bodyRows int32) {
 	builder.PrependInt32Slot(8, bodyRows, 0)
 }
+func RefCacheAddBodyFormat(builder *flatbuffers.Builder, bodyFormat flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(9, flatbuffers.UOffsetT(bodyFormat), 0)
+}
 func RefCacheAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
-	builder.PrependInt64Slot(9, commitTime, 0)
+	builder.PrependInt64Slot(10, commitTime, 0)
+}
+func RefCacheAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(commitTitle), 0)
+}
+func RefCacheAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
+	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(commitMessage), 0)
 }
 func RefCacheAddNumErrors(builder *flatbuffers.Builder, numErrors int32) {
-	builder.PrependInt32Slot(10, numErrors, 0)
+	builder.PrependInt32Slot(13, numErrors, 0)
+}
+func RefCacheAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
+	builder.PrependInt32Slot(14, numVersions, 0)
+}
+func RefCacheAddPublished(builder *flatbuffers.Builder, published bool) {
+	builder.PrependBoolSlot(15, published, false)
 }
 func RefCacheAddHeadRef(builder *flatbuffers.Builder, headRef flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(headRef), 0)
+	builder.PrependUOffsetTSlot(16, flatbuffers.UOffsetT(headRef), 0)
 }
 func RefCacheAddFsiPath(builder *flatbuffers.Builder, fsiPath flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(12, flatbuffers.UOffsetT(fsiPath), 0)
+	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(fsiPath), 0)
 }
 func RefCacheEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()

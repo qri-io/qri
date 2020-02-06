@@ -64,7 +64,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]dsref.DetailedRef) error {
+func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
@@ -170,13 +170,13 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.DetailedRef) error {
 		}
 	}
 
-	// Convert old style DatasetRef list to DetailedRef list.
-	// TODO(dlong): Remove this and convert lower-level functions to return []DetailedRef.
-	details := make([]dsref.DetailedRef, len(refs))
+	// Convert old style DatasetRef list to VersionInfo list.
+	// TODO(dlong): Remove this and convert lower-level functions to return []VersionInfo.
+	infos := make([]dsref.VersionInfo, len(refs))
 	for i, r := range refs {
-		details[i] = reporef.ConvertToDetailedRef(&r)
+		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
-	*res = details
+	*res = infos
 
 	return err
 }
@@ -787,10 +787,10 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// Delete the specific number of revisions.
 		dsr := history[p.Revision.Gen]
 		replace := &reporef.DatasetRef{
-			Peername:  dsr.Ref.Username,
-			Name:      dsr.Ref.Name,
+			Peername:  dsr.Username,
+			Name:      dsr.Name,
 			ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
-			Path:      dsr.Ref.Path,
+			Path:      dsr.Path,
 			Published: dsr.Published,
 		}
 		err = base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/)

@@ -149,7 +149,7 @@ func Example() {
 	}
 
 	for _, info := range log {
-		fmt.Println(info.Ref.String())
+		fmt.Println(info.SimpleRef().String())
 	}
 
 	// Output:
@@ -670,32 +670,26 @@ func TestVersions(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect := []DatasetInfo{
+	expect := []dsref.VersionInfo{
 		{
-			Ref: dsref.Ref{
-				Username: "test_author",
-				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion5",
-			},
-			Timestamp:   mustTime("2000-01-04T19:00:00-05:00"),
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion5",
+			CommitTime:  mustTime("2000-01-04T19:00:00-05:00"),
 			CommitTitle: "v5",
 		},
 		{
-			Ref: dsref.Ref{
-				Username: "test_author",
-				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion4",
-			},
-			Timestamp:   mustTime("2000-01-03T19:00:00-05:00"),
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion4",
+			CommitTime:  mustTime("2000-01-03T19:00:00-05:00"),
 			CommitTitle: "v4",
 		},
 		{
-			Ref: dsref.Ref{
-				Username: "test_author",
-				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion3",
-			},
-			Timestamp:   mustTime("2000-01-02T19:00:00-05:00"),
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion3",
+			CommitTime:  mustTime("2000-01-02T19:00:00-05:00"),
 			CommitTitle: "added meta info",
 		},
 	}
@@ -709,14 +703,12 @@ func TestVersions(t *testing.T) {
 		t.Error(err)
 	}
 
-	expect = []DatasetInfo{
+	expect = []dsref.VersionInfo{
 		{
-			Ref: dsref.Ref{
-				Username: "test_author",
-				Name:     "world_bank_population",
-				Path:     "QmHashOfVersion4",
-			},
-			Timestamp:   mustTime("2000-01-03T19:00:00-05:00"),
+			Username:    "test_author",
+			Name:        "world_bank_population",
+			Path:        "QmHashOfVersion4",
+			CommitTime:  mustTime("2000-01-03T19:00:00-05:00"),
 			CommitTitle: "v4",
 		},
 	}

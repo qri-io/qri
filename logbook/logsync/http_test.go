@@ -8,7 +8,6 @@ import (
 
 	cmp "github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 )
 
 func TestSyncHTTP(t *testing.T) {
@@ -39,7 +38,7 @@ func TestSyncHTTP(t *testing.T) {
 		t.Fatalf("pulling nasdaq logs %s", err.Error())
 	}
 
-	var expect, got []logbook.DatasetInfo
+	var expect, got []dsref.VersionInfo
 	if expect, err = tr.A.Versions(tr.Ctx, ref, 0, 100); err != nil {
 		t.Error(err)
 	}

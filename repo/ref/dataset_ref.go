@@ -29,7 +29,8 @@ type DatasetRef struct {
 	Dataset *dataset.Dataset `json:"dataset,omitempty"`
 	// Published indicates whether this reference is listed as an available dataset
 	Published bool `json:"published"`
-	// If true, this reference doesn't exist locally
+	// If true, this reference doesn't exist locally. Only makes sense if path is set, as this
+	// flag refers to specific versions, not to entire dataset histories.
 	Foreign bool `json:"foreign,omitempty"`
 }
 

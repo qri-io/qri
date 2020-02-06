@@ -85,36 +85,42 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 	for i := 0; i < d.Root.RefsLength(); i++ {
 		r := dscachefb.RefCache{}
 		d.Root.Refs(&r, i)
-		fmt.Fprintf(&out, ` %2d) initID      = %s
-     profileID   = %s
-     topIndex    = %d
-     cursorIndex = %d
-     prettyName  = %s
+		fmt.Fprintf(&out, ` %2d) initID        = %s
+     profileID     = %s
+     topIndex      = %d
+     cursorIndex   = %d
+     prettyName    = %s
 `, i, r.InitID(), r.ProfileID(), r.TopIndex(), r.CursorIndex(), r.PrettyName())
 		indent := "     "
 		if len(r.MetaTitle()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%smetaTitle   = %s\n", indent, r.MetaTitle())
+			fmt.Fprintf(&out, "%smetaTitle     = %s\n", indent, r.MetaTitle())
 		}
 		if len(r.ThemeList()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sthemeList   = %s\n", indent, r.ThemeList())
+			fmt.Fprintf(&out, "%sthemeList     = %s\n", indent, r.ThemeList())
 		}
 		if r.BodySize() != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sbodySize    = %d\n", indent, r.BodySize())
+			fmt.Fprintf(&out, "%sbodySize      = %d\n", indent, r.BodySize())
 		}
 		if r.BodyRows() != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sbodyRows    = %d\n", indent, r.BodyRows())
+			fmt.Fprintf(&out, "%sbodyRows      = %d\n", indent, r.BodyRows())
 		}
 		if r.CommitTime() != 0 || showEmpty {
-			fmt.Fprintf(&out, "%scommitTime  = %d\n", indent, r.CommitTime())
+			fmt.Fprintf(&out, "%scommitTime    = %d\n", indent, r.CommitTime())
+		}
+		if len(r.CommitTitle()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%scommitTitle   = %s\n", indent, r.CommitTitle())
+		}
+		if len(r.CommitMessage()) != 0 || showEmpty {
+			fmt.Fprintf(&out, "%scommitMessage = %s\n", indent, r.CommitMessage())
 		}
 		if r.NumErrors() != 0 || showEmpty {
-			fmt.Fprintf(&out, "%snumErrors   = %d\n", indent, r.NumErrors())
+			fmt.Fprintf(&out, "%snumErrors     = %d\n", indent, r.NumErrors())
 		}
 		if len(r.HeadRef()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sheadRef     = %s\n", indent, r.HeadRef())
+			fmt.Fprintf(&out, "%sheadRef       = %s\n", indent, r.HeadRef())
 		}
 		if len(r.FsiPath()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%sfsiPath     = %s\n", indent, r.FsiPath())
+			fmt.Fprintf(&out, "%sfsiPath       = %s\n", indent, r.FsiPath())
 		}
 	}
 	return out.String()
@@ -180,9 +186,13 @@ func (d *Dscache) Update(act *logbook.Action) error {
 			return string(r.InitID()) == act.InitID
 		},
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
-			var metaTitle flatbuffers.UOffsetT
+			var metaTitle, commitTitle, commitMessage flatbuffers.UOffsetT
 			if act.Dataset != nil && act.Dataset.Meta != nil {
 				metaTitle = builder.CreateString(act.Dataset.Meta.Title)
+			}
+			if act.Dataset != nil && act.Dataset.Commit != nil {
+				commitTitle = builder.CreateString(act.Dataset.Commit.Title)
+				commitMessage = builder.CreateString(act.Dataset.Commit.Message)
 			}
 			hashRef := builder.CreateString(string(act.HeadRef))
 			// Start building a ref object, by mutating an existing ref object.
@@ -195,6 +205,8 @@ func (d *Dscache) Update(act *logbook.Action) error {
 			}
 			if act.Dataset != nil && act.Dataset.Commit != nil {
 				dscachefb.RefCacheAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
+				dscachefb.RefCacheAddCommitTitle(builder, commitTitle)
+				dscachefb.RefCacheAddCommitMessage(builder, commitMessage)
 			}
 			if act.Dataset != nil && act.Dataset.Structure != nil {
 				dscachefb.RefCacheAddBodySize(builder, int64(act.Dataset.Structure.Length))

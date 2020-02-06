@@ -107,7 +107,7 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	refs := []dsref.DetailedRef{}
+	infos := []dsref.VersionInfo{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
@@ -118,16 +118,16 @@ func (o *ListOptions) Run() (err error) {
 		EnsureFSIExists: true,
 		UseDscache:      o.UseDscache,
 	}
-	if err = o.DatasetRequests.List(p, &refs); err != nil {
+	if err = o.DatasetRequests.List(p, &infos); err != nil {
 		return err
 	}
 
-	for _, ref := range refs {
+	for _, ref := range infos {
 		// remove profileID so names print pretty
 		ref.ProfileID = ""
 	}
 
-	if len(refs) == 0 {
+	if len(infos) == 0 {
 		if o.Term == "" {
 			printInfo(o.Out, "%s has no datasets", o.Peername)
 		} else {
@@ -138,14 +138,16 @@ func (o *ListOptions) Run() (err error) {
 
 	switch o.Format {
 	case "":
-		items := make([]fmt.Stringer, len(refs))
-		for i, r := range refs {
-			items[i] = detailedRefStringer(r)
+		items := make([]fmt.Stringer, len(infos))
+		for i, r := range infos {
+			items[i] = versionInfoStringer(r)
 		}
 		printItems(o.Out, items, page.Offset())
 		return nil
 	case dataset.JSONDataFormat.String():
-		data, err := json.MarshalIndent(refs, "", "  ")
+		// TODO(dlong): This is broken, and has no tests, otherwise this regression would have
+		// been caught.
+		data, err := json.MarshalIndent(infos, "", "  ")
 		if err != nil {
 			return err
 		}

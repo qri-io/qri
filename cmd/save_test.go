@@ -271,15 +271,17 @@ func TestSaveDscache(t *testing.T) {
  Dscache.Users:
   0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID      = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
-     profileID   = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
-     topIndex    = 1
-     cursorIndex = 1
-     prettyName  = movie_ds
-     bodySize    = 79
-     bodyRows    = 2
-     commitTime  = 978310861
-     headRef     = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
+  0) initID        = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = movie_ds
+     bodySize      = 79
+     bodyRows      = 2
+     commitTime    = 978310861
+     commitTitle   = created dataset
+     commitMessage = created dataset
+     headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
@@ -303,15 +305,20 @@ func TestSaveDscache(t *testing.T) {
  Dscache.Users:
   0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
  Dscache.Refs:
-  0) initID      = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
-     profileID   = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
-     topIndex    = 2
-     cursorIndex = 2
-     prettyName  = movie_ds
-     bodySize    = 137
-     bodyRows    = 4
-     commitTime  = 978310921
-     headRef     = /ipfs/QmbKb9dHzcFsngjDUUUZ12XsREuh37Zm7yJ4f3t5BkCdQv
+  0) initID        = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 2
+     cursorIndex   = 2
+     prettyName    = movie_ds
+     bodySize      = 137
+     bodyRows      = 4
+     commitTime    = 978310921
+     commitTitle   = structure updated 3 fields
+     commitMessage = structure:
+	updated checksum
+	updated entries
+	updated length
+     headRef       = /ipfs/QmbKb9dHzcFsngjDUUUZ12XsREuh37Zm7yJ4f3t5BkCdQv
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)

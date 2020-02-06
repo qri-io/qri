@@ -71,35 +71,35 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
   1) user=test_one profileID=QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   2) user=test_two profileID=QmPeFTNHcZDr3ZFEfFfepxS5PqHAmfBRGQNPJ389Cwh1as
  Dscache.Refs:
-  0) initID      = ds_init_id_0000
-     profileID   = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
-     topIndex    = 0
-     cursorIndex = 0
-     prettyName  = my_ds
-     commitTime  = -62135596800
-     headRef     = /ipfs/QmExampleFirst
-  1) initID      = ds_init_id_0001
-     profileID   = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
-     topIndex    = 0
-     cursorIndex = 0
-     prettyName  = another_ds
-     commitTime  = -62135596800
-     headRef     = /ipfs/QmExampleSecond
-  2) initID      = ds_init_id_0002
-     profileID   = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
-     topIndex    = 0
-     cursorIndex = 0
-     prettyName  = checked_out_ds
-     commitTime  = -62135596800
-     headRef     = /ipfs/QmExampleThird
-     fsiPath     = /path/to/workspace/checked_out_ds
-  3) initID      = ds_init_id_0003
-     profileID   = QmPeFTNHcZDr3ZFEfFfepxS5PqHAmfBRGQNPJ389Cwh1as
-     topIndex    = 0
-     cursorIndex = 0
-     prettyName  = foreign_ds
-     commitTime  = -62135596800
-     headRef     = /ipfs/QmExampleFourth
+  0) initID        = ds_init_id_0000
+     profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = my_ds
+     commitTime    = -62135596800
+     headRef       = /ipfs/QmExampleFirst
+  1) initID        = ds_init_id_0001
+     profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = another_ds
+     commitTime    = -62135596800
+     headRef       = /ipfs/QmExampleSecond
+  2) initID        = ds_init_id_0002
+     profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = checked_out_ds
+     commitTime    = -62135596800
+     headRef       = /ipfs/QmExampleThird
+     fsiPath       = /path/to/workspace/checked_out_ds
+  3) initID        = ds_init_id_0003
+     profileID     = QmPeFTNHcZDr3ZFEfFfepxS5PqHAmfBRGQNPJ389Cwh1as
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = foreign_ds
+     commitTime    = -62135596800
+     headRef       = /ipfs/QmExampleFourth
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("builddscacheFlatbuffer (-want +got):\n%s", diff)
