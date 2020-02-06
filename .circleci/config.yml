@@ -10,6 +10,7 @@ jobs:
           GOSUMDB: "off"
     environment:
       TEST_RESULTS: /tmp/test-results
+      GOFLAGS: -p=8
     # resource_class requires a paid circleci plan:
     resource_class: medium+
     steps:
