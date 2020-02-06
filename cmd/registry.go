@@ -209,7 +209,7 @@ func (o *RegistryOptions) Prove() error {
 	if err := o.RegistryClientMethods.ProveProfileKey(p, &ok); err != nil {
 		return err
 	}
-
+	printSuccess(o.ErrOut, "proved user %s to registry, connected local key", o.Username)
 	return nil
 }
 
