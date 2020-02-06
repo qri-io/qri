@@ -46,6 +46,8 @@ const (
 	// FileJSONRefs is a file for the user's local namespace
 	// No longer in use
 	FileJSONRefs
+	// FileDscache is a flatbuffer file of this repo's dataset cache
+	FileDscache
 	// FileRefs is a flatbuffer file of this repo's dataset references
 	FileRefs
 	// FilePeers holds peer repositories
@@ -69,6 +71,7 @@ var paths = map[File]string{
 	FileDatasets:       "/datasets.json",
 	FileEventLogs:      "/events.json",
 	FileJSONRefs:       "/ds_refs.json",
+	FileDscache:        "/dscache.fbs",
 	FileRefs:           "/refs.fbs",
 	FilePeers:          "/peers.json",
 	FileAnalytics:      "/analytics.json",

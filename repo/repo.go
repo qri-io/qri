@@ -10,6 +10,7 @@ import (
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
+	"github.com/qri-io/qri/dscache"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -64,7 +65,10 @@ type Repo interface {
 	Filesystem() qfs.Filesystem
 
 	// All Repos must keep a Refstore, defining a store of known datasets
+	// NOTE(dlong): Refstore is going away soon, everything is going to move to Dscache
 	Refstore
+	// Dscache is a cache of datasets that have been built according to logbook
+	Dscache() *dscache.Dscache
 
 	// Repos have a logbook for recording & storing operation logs
 	Logbook() *logbook.Book

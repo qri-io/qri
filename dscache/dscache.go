@@ -1,45 +1,76 @@
 package dscache
 
 import (
+	"context"
 	"fmt"
 	"io/ioutil"
 	"strings"
 
+	flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qfs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var (
 	log = golog.Logger("dscache")
+	// ErrNoDscache is returned when methods are called on a non-existant Dscache
+	ErrNoDscache = fmt.Errorf("dscache: does not exist")
 )
 
 // Dscache represents an in-memory serialized dscache flatbuffer
 type Dscache struct {
+	Filename            string
 	Root                *dscachefb.Dscache
 	Buffer              []byte
 	ProfileIDToUsername map[string]string
 }
 
-// LoadDscacheFromFile will load a dscache from the given filename
-func LoadDscacheFromFile(filename string) (*Dscache, error) {
-	buffer, err := ioutil.ReadFile(filename)
+// NewDscache will construct a dscache from the given filename, or will construct an empty dscache
+// that will save to the given filename. Using an empty filename will disable loading and saving
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, filename string) *Dscache {
+	f, err := fsys.Get(ctx, filename)
 	if err != nil {
-		return nil, err
+		// Ignore error, as dscache loading is optional
+		return &Dscache{Filename: filename}
+	}
+	defer f.Close()
+	buffer, err := ioutil.ReadAll(f)
+	if err != nil {
+		// Ignore error, as dscache loading is optional
+		return &Dscache{Filename: filename}
 	}
 	root := dscachefb.GetRootAsDscache(buffer, 0)
-	return &Dscache{Root: root, Buffer: buffer}, nil
+	return &Dscache{Filename: filename, Root: root, Buffer: buffer}
 }
 
-// SaveTo writes the serialized bytes to the given filename
-func (d *Dscache) SaveTo(filename string) error {
-	return ioutil.WriteFile(filename, d.Buffer, 0644)
+// IsEmpty returns whether the dscache has any constructed data in it
+func (d *Dscache) IsEmpty() bool {
+	if d == nil {
+		return true
+	}
+	return d.Root == nil
+}
+
+// Assign assigns the data from one dscache to this one
+func (d *Dscache) Assign(other *Dscache) error {
+	if d == nil {
+		return ErrNoDscache
+	}
+	d.Root = other.Root
+	d.Buffer = other.Buffer
+	return d.save()
 }
 
 // VerboseString is a convenience function that returns a readable string, for testing and debugging
 func (d *Dscache) VerboseString(showEmpty bool) string {
+	if d.IsEmpty() {
+		return "dscache: cannot not stringify an empty dscache"
+	}
 	out := strings.Builder{}
 	out.WriteString("Dscache:\n")
 	out.WriteString(" Dscache.Users:\n")
@@ -92,6 +123,9 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 // ListRefs returns references to each dataset in the cache
 // TODO(dlong): Not alphabetized, which lib assumes it is
 func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
+	if d.IsEmpty() {
+		return nil, ErrNoDscache
+	}
 	d.ensureProToUserMap()
 	refs := make([]reporef.DatasetRef, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
@@ -126,6 +160,57 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
+// Update modifies the dscache according to the provided action.
+func (d *Dscache) Update(act *logbook.Action) error {
+	if d.IsEmpty() {
+		return ErrNoDscache
+	}
+
+	if act.Type != logbook.ActionMoveCursor {
+		return fmt.Errorf("dscache: only ActionMoveCursor is supported")
+	}
+
+	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
+	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
+	builder := flatbuffers.NewBuilder(0)
+	users := d.copyUserAssociationList(builder)
+	refs := d.copyReferenceListWithReplacement(
+		builder,
+		func(r *dscachefb.RefCache) bool {
+			return string(r.InitID()) == act.InitID
+		},
+		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
+			var metaTitle flatbuffers.UOffsetT
+			if act.Dataset != nil && act.Dataset.Meta != nil {
+				metaTitle = builder.CreateString(act.Dataset.Meta.Title)
+			}
+			hashRef := builder.CreateString(string(act.HeadRef))
+			// Start building a ref object, by mutating an existing ref object.
+			refStartMutationFunc(builder)
+			// Add only the fields we want to change.
+			dscachefb.RefCacheAddTopIndex(builder, int32(act.TopIndex))
+			dscachefb.RefCacheAddCursorIndex(builder, int32(act.TopIndex))
+			if act.Dataset != nil && act.Dataset.Meta != nil {
+				dscachefb.RefCacheAddMetaTitle(builder, metaTitle)
+			}
+			if act.Dataset != nil && act.Dataset.Commit != nil {
+				dscachefb.RefCacheAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
+			}
+			if act.Dataset != nil && act.Dataset.Structure != nil {
+				dscachefb.RefCacheAddBodySize(builder, int64(act.Dataset.Structure.Length))
+				dscachefb.RefCacheAddBodyRows(builder, int32(act.Dataset.Structure.Entries))
+				dscachefb.RefCacheAddNumErrors(builder, int32(act.Dataset.Structure.ErrCount))
+			}
+			dscachefb.RefCacheAddHeadRef(builder, hashRef)
+			// Don't call RefCacheEnd, that is handled by copyReferenceListWithReplacement
+		},
+	)
+	root, serialized := d.finishBuilding(builder, users, refs)
+	d.Root = root
+	d.Buffer = serialized
+	return d.save()
+}
+
 func (d *Dscache) ensureProToUserMap() {
 	if d.ProfileIDToUsername != nil {
 		return
@@ -138,4 +223,13 @@ func (d *Dscache) ensureProToUserMap() {
 		profileID := userAssoc.ProfileID()
 		d.ProfileIDToUsername[string(profileID)] = string(username)
 	}
+}
+
+// save writes the serialized bytes to the given filename
+func (d *Dscache) save() error {
+	if d.Filename == "" {
+		log.Infof("dscache: no filename set, will not save")
+		return nil
+	}
+	return ioutil.WriteFile(d.Filename, d.Buffer, 0644)
 }
