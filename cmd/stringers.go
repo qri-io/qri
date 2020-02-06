@@ -106,47 +106,47 @@ func (r refStringer) String() string {
 	return w.String()
 }
 
-type detailedRefStringer dsref.DetailedRef
+type versionInfoStringer dsref.VersionInfo
 
 // String assumes Peername and Name are present
-func (drs detailedRefStringer) String() string {
+func (vis versionInfoStringer) String() string {
 	w := &bytes.Buffer{}
 	title := color.New(color.FgGreen, color.Bold).SprintFunc()
 	path := color.New(color.Faint).SprintFunc()
 	warn := color.New(color.FgYellow).SprintFunc()
 
-	dr := dsref.DetailedRef(drs)
-	sr := dr.SimpleRef()
+	v := dsref.VersionInfo(vis)
+	sr := v.SimpleRef()
 	fmt.Fprintf(w, "%s", title(sr.Alias()))
 
-	if drs.MetaTitle != "" {
-		fmt.Fprintf(w, "\n%s", drs.MetaTitle)
+	if vis.MetaTitle != "" {
+		fmt.Fprintf(w, "\n%s", vis.MetaTitle)
 	}
-	if drs.FSIPath != "" {
-		fmt.Fprintf(w, "\nlinked: %s", path(drs.FSIPath))
-	} else if drs.Path != "" {
-		fmt.Fprintf(w, "\n%s", path(drs.Path))
+	if vis.FSIPath != "" {
+		fmt.Fprintf(w, "\nlinked: %s", path(vis.FSIPath))
+	} else if vis.Path != "" {
+		fmt.Fprintf(w, "\n%s", path(vis.Path))
 	}
-	if drs.Foreign {
+	if vis.Foreign {
 		fmt.Fprintf(w, "\n%s", warn("foreign"))
 	}
-	fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(drs.BodySize)))
-	if drs.BodyRows == 1 {
-		fmt.Fprintf(w, ", %d entry", drs.BodyRows)
+	fmt.Fprintf(w, "\n%s", humanize.Bytes(uint64(vis.BodySize)))
+	if vis.BodyRows == 1 {
+		fmt.Fprintf(w, ", %d entry", vis.BodyRows)
 	} else {
-		fmt.Fprintf(w, ", %d entries", drs.BodyRows)
+		fmt.Fprintf(w, ", %d entries", vis.BodyRows)
 	}
-	if drs.NumErrors == 1 {
-		fmt.Fprintf(w, ", %d error", drs.NumErrors)
+	if vis.NumErrors == 1 {
+		fmt.Fprintf(w, ", %d error", vis.NumErrors)
 	} else {
-		fmt.Fprintf(w, ", %d errors", drs.NumErrors)
+		fmt.Fprintf(w, ", %d errors", vis.NumErrors)
 	}
-	if drs.NumVersions == 0 {
+	if vis.NumVersions == 0 {
 		// nothing
-	} else if drs.NumVersions == 1 {
-		fmt.Fprintf(w, ", %d version", drs.NumVersions)
+	} else if vis.NumVersions == 1 {
+		fmt.Fprintf(w, ", %d version", vis.NumVersions)
 	} else {
-		fmt.Fprintf(w, ", %d versions", drs.NumVersions)
+		fmt.Fprintf(w, ", %d versions", vis.NumVersions)
 	}
 
 	fmt.Fprintf(w, "\n\n")
@@ -281,28 +281,26 @@ func (s logEntryStringer) String() string {
 	)
 }
 
-type dslogItemStringer lib.DatasetLogItem
+type dslogItemStringer dsref.VersionInfo
 
 func (s dslogItemStringer) String() string {
 	yellow := color.New(color.FgYellow).SprintFunc()
 	faint := color.New(color.Faint).SprintFunc()
 
-	var storage string
-	if s.Local {
-		storage = "local"
-	} else {
+	storage := "local"
+	if s.Foreign {
 		storage = faint("remote")
 	}
 
 	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n\n%s\n",
 		faint("Commit:  "),
-		yellow(s.Ref.Path),
+		yellow(s.Path),
 		faint("Date:    "),
-		s.Timestamp.In(StringerLocation).Format(time.UnixDate),
+		s.CommitTime.In(StringerLocation).Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),
-		humanize.Bytes(uint64(s.Size)),
+		humanize.Bytes(uint64(s.BodySize)),
 		s.CommitTitle,
 	)
 	if s.CommitMessage != "" && s.CommitMessage != s.CommitTitle {

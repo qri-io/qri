@@ -607,31 +607,3 @@ func TestConvertToDsref(t *testing.T) {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
-
-func TestConvertToDsinfo(t *testing.T) {
-	ref := reporef.DatasetRef{
-		ProfileID: profile.IDB58MustDecode("QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y"),
-		Peername:  "lucy",
-		Name:      "ball",
-		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-		Published: true,
-		FSIPath:   "/fsi/path",
-		Foreign:   true,
-	}
-	expect := DatasetInfo{
-		Ref: dsref.Ref{
-			Username:  "lucy",
-			Name:      "ball",
-			ProfileID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
-			Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
-		},
-		Published: true,
-		FSIPath:   "/fsi/path",
-		Foreign:   true,
-	}
-
-	got := ConvertToDsinfo(ref)
-	if diff := cmp.Diff(expect, got); diff != "" {
-		t.Errorf("result mismatch (-want +got):\n%s", diff)
-	}
-}

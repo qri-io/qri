@@ -43,7 +43,7 @@ func (h *RemoteClientHandlers) NewFetchHandler(prefix string) http.HandlerFunc {
 			Ref:        ref.String(),
 			RemoteName: r.FormValue("remote"),
 		}
-		res := []lib.DatasetLogItem{}
+		res := []dsref.VersionInfo{}
 		if err := h.Fetch(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -109,7 +109,7 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 
 	dsm := lib.NewDatasetRequestsInstance(h.inst)
 
-	res := []dsref.DetailedRef{}
+	res := []dsref.VersionInfo{}
 	if err := dsm.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

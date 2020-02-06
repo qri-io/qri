@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -54,7 +55,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		ListParams: lp,
 	}
 
-	res := []lib.DatasetLogItem{}
+	res := []dsref.VersionInfo{}
 	if err := h.Log(params, &res); err != nil {
 		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)

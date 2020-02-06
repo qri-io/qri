@@ -83,6 +83,8 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 		prettyName := builder.CreateString(ds.PrettyName)
 		metaTitle := builder.CreateString(ds.MetaTitle)
 		themeList := builder.CreateString(ds.ThemeList)
+		commitTitle := builder.CreateString(ds.CommitTitle)
+		commitMessage := builder.CreateString(ds.CommitMessage)
 		hashRef := builder.CreateString(ds.HeadRef)
 		fsiPath := builder.CreateString(ds.FSIPath)
 		dscachefb.RefCacheStart(builder)
@@ -96,6 +98,8 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 		dscachefb.RefCacheAddBodySize(builder, int64(ds.BodySize))
 		dscachefb.RefCacheAddBodyRows(builder, int32(ds.BodyRows))
 		dscachefb.RefCacheAddCommitTime(builder, ds.CommitTime.Unix())
+		dscachefb.RefCacheAddCommitTitle(builder, commitTitle)
+		dscachefb.RefCacheAddCommitMessage(builder, commitMessage)
 		dscachefb.RefCacheAddNumErrors(builder, int32(ds.NumErrors))
 		dscachefb.RefCacheAddHeadRef(builder, hashRef)
 		dscachefb.RefCacheAddFsiPath(builder, fsiPath)
@@ -124,19 +128,21 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 }
 
 type dsInfo struct {
-	InitID      string
-	ProfileID   string
-	TopIndex    int
-	CursorIndex int
-	PrettyName  string
-	MetaTitle   string
-	ThemeList   string
-	BodySize    int64
-	BodyRows    int
-	CommitTime  time.Time
-	NumErrors   int
-	HeadRef     string
-	FSIPath     string
+	InitID        string
+	ProfileID     string
+	TopIndex      int
+	CursorIndex   int
+	PrettyName    string
+	MetaTitle     string
+	ThemeList     string
+	BodySize      int64
+	BodyRows      int
+	CommitTime    time.Time
+	CommitTitle   string
+	CommitMessage string
+	NumErrors     int
+	HeadRef       string
+	FSIPath       string
 }
 
 // convertLogbookAndRefs builds dsInfo from each dataset in the logbook, plus FSIPath from old dsrefs

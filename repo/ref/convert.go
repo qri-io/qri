@@ -6,9 +6,9 @@ import (
 	"github.com/qri-io/qri/dsref"
 )
 
-// ConvertToDetailedRef converts an old style DatasetRef to the newly preferred dsref.DetailedRef
-func ConvertToDetailedRef(r *DatasetRef) dsref.DetailedRef {
-	build := dsref.DetailedRef{
+// ConvertToVersionInfo converts an old style DatasetRef to the newly preferred dsref.VersionInfo
+func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
+	build := dsref.VersionInfo{
 		Username:  r.Peername,
 		ProfileID: r.ProfileID.String(),
 		Name:      r.Name,
@@ -33,12 +33,18 @@ func ConvertToDetailedRef(r *DatasetRef) dsref.DetailedRef {
 		build.BodySize = ds.Structure.Length
 		build.BodyRows = ds.Structure.Entries
 		build.NumErrors = ds.Structure.ErrCount
+		build.BodyFormat = ds.Structure.Format
 	}
 	if ds != nil && ds.Commit != nil {
 		build.CommitTime = ds.Commit.Timestamp
+		build.CommitTitle = ds.Commit.Title
+		build.CommitMessage = ds.Commit.Message
 	}
 	if ds != nil {
 		build.NumVersions = ds.NumVersions
 	}
+	build.Published = r.Published
+	build.Foreign = r.Foreign
+	// NOTE: InitID is not set when converting from reporef.Dataset
 	return build
 }

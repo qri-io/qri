@@ -235,7 +235,7 @@ func TestDatasetRequestsSaveZip(t *testing.T) {
 }
 func TestDatasetRequestsList(t *testing.T) {
 	var (
-		movies, counter, cities, craigslist, sitemap dsref.DetailedRef
+		movies, counter, cities, craigslist, sitemap dsref.VersionInfo
 	)
 
 	mr, err := testrepo.NewTestRepo()
@@ -257,7 +257,7 @@ func TestDatasetRequestsList(t *testing.T) {
 	inst := NewInstanceFromConfigAndNode(config.DefaultConfigForTesting(), node)
 
 	for _, ref := range refs {
-		dr := reporef.ConvertToDetailedRef(&ref)
+		dr := reporef.ConvertToVersionInfo(&ref)
 		switch dr.Name {
 		case "movies":
 			movies = dr
@@ -275,24 +275,24 @@ func TestDatasetRequestsList(t *testing.T) {
 	cases := []struct {
 		description string
 		p           *ListParams
-		res         []dsref.DetailedRef
+		res         []dsref.VersionInfo
 		err         string
 	}{
-		{"list datasets - empty (default)", &ListParams{}, []dsref.DetailedRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []dsref.DetailedRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []dsref.DetailedRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []dsref.DetailedRef{cities, counter}, ""},
-		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []dsref.DetailedRef{craigslist, movies}, ""},
-		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []dsref.DetailedRef{sitemap}, ""},
-		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []dsref.DetailedRef{}, ""},
-		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.DetailedRef{cities, counter, craigslist, movies, sitemap}, ""},
-		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.DetailedRef{cities, counter, craigslist, movies, sitemap}, ""},
-		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.DetailedRef{cities, counter, movies}, ""},
+		{"list datasets - empty (default)", &ListParams{}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - weird (returns sensible default)", &ListParams{OrderBy: "chaos", Limit: -33, Offset: -50}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - happy path", &ListParams{OrderBy: "", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - limit 2 offset 0", &ListParams{OrderBy: "", Limit: 2, Offset: 0}, []dsref.VersionInfo{cities, counter}, ""},
+		{"list datasets - limit 2 offset 2", &ListParams{OrderBy: "", Limit: 2, Offset: 2}, []dsref.VersionInfo{craigslist, movies}, ""},
+		{"list datasets - limit 2 offset 4", &ListParams{OrderBy: "", Limit: 2, Offset: 4}, []dsref.VersionInfo{sitemap}, ""},
+		{"list datasets - limit 2 offset 5", &ListParams{OrderBy: "", Limit: 2, Offset: 5}, []dsref.VersionInfo{}, ""},
+		{"list datasets - order by timestamp", &ListParams{OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		{"list datasets - peername 'me'", &ListParams{Peername: "me", OrderBy: "timestamp", Limit: 30, Offset: 0}, []dsref.VersionInfo{cities, counter, craigslist, movies, sitemap}, ""},
+		// TODO: re-enable {&ListParams{OrderBy: "name", Limit: 30, Offset: 0}, []*dsref.VersionInfo{cities, counter, movies}, ""},
 	}
 
 	req := NewDatasetRequestsInstance(inst)
 	for _, c := range cases {
-		got := []dsref.DetailedRef{}
+		got := []dsref.VersionInfo{}
 		err := req.List(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -307,7 +307,7 @@ func TestDatasetRequestsList(t *testing.T) {
 			}
 
 			for j, expect := range c.res {
-				if err := compareDetailedRefAsSimple(expect, got[j]); err != nil {
+				if err := compareVersionInfoAsSimple(expect, got[j]); err != nil {
 					t.Errorf("case '%s' expected dataset error. index %d mismatch: %s", c.description, j, err.Error())
 					continue
 				}
@@ -316,7 +316,7 @@ func TestDatasetRequestsList(t *testing.T) {
 	}
 }
 
-func compareDetailedRefAsSimple(a, b dsref.DetailedRef) error {
+func compareVersionInfoAsSimple(a, b dsref.VersionInfo) error {
 	if a.ProfileID != b.ProfileID {
 		return fmt.Errorf("PeerID mismatch. %s != %s", a.ProfileID, b.ProfileID)
 	}
@@ -362,7 +362,7 @@ func TestDatasetRequestsListP2p(t *testing.T) {
 
 			dsr := NewDatasetRequests(node, nil)
 			p := &ListParams{OrderBy: "", Limit: 30, Offset: 0}
-			var res []dsref.DetailedRef
+			var res []dsref.VersionInfo
 			err := dsr.List(p, &res)
 			if err != nil {
 				t.Errorf("error listing dataset: %s", err.Error())

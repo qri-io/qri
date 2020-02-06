@@ -759,32 +759,21 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	return book.save(ctx)
 }
 
-// DatasetInfo describes info aboud a dataset version in a repository
-type DatasetInfo struct {
-	Ref         dsref.Ref // version Reference
-	Published   bool      // indicates whether this reference is listed as an available dataset
-	Timestamp   time.Time // creation timestamp
-	CommitTitle string    // title from commit
-	Size        int64     // size of dataset in bytes
-}
-
-func infoFromOp(ref dsref.Ref, op oplog.Op) DatasetInfo {
-	return DatasetInfo{
-		Ref: dsref.Ref{
-			Username:  ref.Username,
-			ProfileID: ref.ProfileID,
-			Name:      ref.Name,
-			Path:      op.Ref,
-		},
-		Timestamp:   time.Unix(0, op.Timestamp),
+func infoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
+	return dsref.VersionInfo{
+		Username:    ref.Username,
+		ProfileID:   ref.ProfileID,
+		Name:        ref.Name,
+		Path:        op.Ref,
+		CommitTime:  time.Unix(0, op.Timestamp),
 		CommitTitle: op.Note,
-		Size:        op.Size,
+		BodySize:    int(op.Size),
 	}
 }
 
 // Versions plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetInfo, error) {
+func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, error) {
 	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return nil, err
@@ -794,8 +783,8 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 }
 
 // Versions interprets a dataset oplog into a commit history
-func Versions(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetInfo {
-	refs := []DatasetInfo{}
+func Versions(l *oplog.Log, ref dsref.Ref, offset, limit int) []dsref.VersionInfo {
+	refs := []dsref.VersionInfo{}
 	for _, op := range l.Ops {
 		switch op.Model {
 		case CommitModel:

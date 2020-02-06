@@ -31,21 +31,22 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
 	}
 
-	expect := []DatasetLogItem{
+	expect := []dsref.VersionInfo{
 		{
-			Ref: dsref.Ref{
-				Username:  "peer",
-				Name:      "cities",
-				ProfileID: "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
-				// TODO (b5) - use constant time to make timestamp & path comparable
-				Path: "/map/QmfDpSrzqrSM9PctPqDserHRTAaGHUjLLqzYrGEKawU4iN",
-			},
+			Username:  "peer",
+			Name:      "cities",
+			ProfileID: "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			// TODO (b5) - use constant time to make timestamp & path comparable
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
+			MetaTitle:     "this is the new title",
+			BodyFormat:    "csv",
+			BodySize:      155,
+			BodyRows:      5,
 		},
 	}
 
-	if diff := cmp.Diff(expect, log, cmpopts.IgnoreFields(DatasetLogItem{}, "Timestamp"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
+	if diff := cmp.Diff(expect, log, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.VersionInfo{}, "Path")); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -115,14 +116,21 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 		t.Errorf("building dataset history: %s", err)
 	}
 
-	expect := []logbook.DatasetInfo{
+	expect := []dsref.VersionInfo{
 		{
+			Username:    "peer",
 			CommitTitle: "initial commit",
-			Size:        0x9b,
+			BodySize:    0x9b,
+			ProfileID:   "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			Name:        "cities",
+			Path:        "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
 		},
 		{
+			Username:    "peer",
 			CommitTitle: "initial commit",
-			Size:        0x9b,
+			BodySize:    0x9b,
+			ProfileID:   "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			Name:        "cities",
 		},
 	}
 
@@ -132,7 +140,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(logbook.DatasetInfo{}, "Timestamp", "Ref")); diff != "" {
+	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.VersionInfo{}, "Path")); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }

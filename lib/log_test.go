@@ -9,7 +9,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
 
@@ -27,27 +27,23 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	firstRef := refs[0].String()
 
-	items := make([]DatasetLogItem, len(refs))
+	items := make([]dsref.VersionInfo, len(refs))
 	for i, r := range refs {
-		t.Logf("%d: %d %s\t%s\t%s", i, r.Dataset.Structure.Length, r.Dataset.Commit.Title, r.Path, r.Dataset.PreviousPath)
-		items[i] = DatasetLogItem{
-			Ref:           repo.ConvertToDsref(r),
-			Published:     r.Published,
-			CommitTitle:   r.Dataset.Commit.Title,
-			CommitMessage: r.Dataset.Commit.Message,
-			Local:         true,
-			Size:          int64(r.Dataset.Structure.Length),
-		}
+		items[i] = reporef.ConvertToVersionInfo(&r)
+		items[i].MetaTitle = ""
+		items[i].BodyRows = 0
+		items[i].NumErrors = 0
+		items[i].BodyFormat = ""
 	}
 
 	cases := []struct {
 		description string
 		p           *LogParams
-		refs        []DatasetLogItem
+		refs        []dsref.VersionInfo
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, []DatasetLogItem{}, "repo: empty dataset reference"},
+			&LogParams{}, []dsref.VersionInfo{}, "repo: empty dataset reference"},
 		{"log list - bad path",
 			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
 		{"log list - default",
@@ -62,7 +58,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	req := NewLogRequests(node, nil)
 	for _, c := range cases {
-		got := []DatasetLogItem{}
+		got := []dsref.VersionInfo{}
 		err := req.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
@@ -77,10 +73,10 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 		t.Logf("-- %s", c.description)
 		for i, v := range c.refs {
-			t.Logf("expect: %d got: %d", v.Size, got[i].Size)
+			t.Logf("expect: %d got: %d", v.BodySize, got[i].BodySize)
 		}
 
-		if diff := cmp.Diff(c.refs, got, cmpopts.IgnoreFields(DatasetLogItem{}, "Timestamp"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
+		if diff := cmp.Diff(c.refs, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.Ref{}, "Path")); diff != "" {
 			t.Errorf("case '%s' result mismatch (-want +got):\n%s", c.description, diff)
 		}
 	}
