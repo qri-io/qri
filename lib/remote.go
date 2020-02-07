@@ -82,6 +82,15 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 	if len(versions) == 0 {
 		return repo.ErrNoHistory
 	}
+
+	for i, v := range versions {
+		local, hasErr := r.inst.Repo().Store().Has(ctx, v.Path)
+		if hasErr != nil {
+			continue
+		}
+		versions[i].Foreign = !local
+	}
+
 	*res = versions
 	return nil
 }
