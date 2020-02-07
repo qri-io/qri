@@ -2,6 +2,8 @@ package dscache
 
 import (
 	"context"
+	"fmt"
+	"sort"
 	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -42,6 +44,19 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 	if err != nil {
 		log.Errorf("%s", err)
 	}
+
+	// Map profileID to username
+	userMap := make(map[string]string)
+	for _, pair := range userProfileList {
+		userMap[pair.ProfileID] = pair.Username
+	}
+
+	// Sort the dsInfoList, by prettyName
+	sort.Slice(dsInfoList, func(i, j int) bool {
+		leftRef := fmt.Sprintf("%s/%s", userMap[dsInfoList[i].ProfileID], dsInfoList[i].PrettyName)
+		rightRef := fmt.Sprintf("%s/%s", userMap[dsInfoList[j].ProfileID], dsInfoList[j].PrettyName)
+		return leftRef < rightRef
+	})
 
 	return buildDscacheFlatbuffer(userProfileList, dsInfoList), nil
 }
