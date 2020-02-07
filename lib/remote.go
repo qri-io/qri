@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -105,7 +104,7 @@ type PublicationParams struct {
 }
 
 // Publish posts a dataset version to a remote
-func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) error {
+func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Publish", p, res)
 	}
@@ -120,7 +119,6 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) e
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
-	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -142,12 +140,17 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) e
 		return err
 	}
 
-	res.Published = true
-	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
+	ref.Published = true
+	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+		return err
+	}
+
+	*res = ref.SimpleRef()
+	return nil
 }
 
 // Unpublish asks a remote to remove a dataset
-func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef) error {
+func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Unpublish", p, res)
 	}
@@ -164,8 +167,6 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
-
-	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -187,8 +188,13 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 		return err
 	}
 
-	res.Published = false
-	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
+	ref.Published = false
+	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+		return err
+	}
+
+	*res = ref.SimpleRef()
+	return nil
 }
 
 // PullDataset fetches a dataset ref from a remote
