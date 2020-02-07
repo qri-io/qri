@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
+	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -56,7 +57,7 @@ func (c Client) prepPostReq(s *registry.SearchParams) (*http.Request, error) {
 	if err != nil {
 		return nil, err
 	}
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/search", c.cfg.Location), bytes.NewReader(data))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/registry/search", c.cfg.Location), bytes.NewReader(data))
 	if err != nil {
 		return nil, err
 	}
@@ -65,7 +66,7 @@ func (c Client) prepPostReq(s *registry.SearchParams) (*http.Request, error) {
 }
 
 func (c Client) prepGetReq(s *registry.SearchParams) (*http.Request, error) {
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/search", c.cfg.Location), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/search", c.cfg.Location), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -114,7 +115,10 @@ func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (result
 		}
 	}{}
 
-	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+	data, _ := ioutil.ReadAll(res.Body)
+	fmt.Printf("res: %s", string(data))
+
+	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&env); err != nil {
 		return nil, err
 	}
 

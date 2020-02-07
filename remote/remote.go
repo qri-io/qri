@@ -280,6 +280,9 @@ func (r *Remote) dsPushComplete(ctx context.Context, info dag.Info, meta map[str
 		}
 	}
 
+	// mark ref as published b/c someone just published to us
+	ref.Published = true
+
 	// add completed pushed dataset to our refs
 	// TODO (b5) - this could overwrite any FSI links & other ref details,
 	// need to investigate
