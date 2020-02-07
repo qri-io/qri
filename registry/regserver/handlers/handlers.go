@@ -52,7 +52,7 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 
 	pro := o.Protector
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", HealthCheckHandler)
+	mux.HandleFunc("/health", HealthCheckHandler)
 
 	if rem := reg.Remote; rem != nil {
 		mux.Handle("/remote/dsync", rem.DsyncHTTPHandler())

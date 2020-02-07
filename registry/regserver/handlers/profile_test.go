@@ -278,7 +278,7 @@ func TestPostProfiles(t *testing.T) {
   }
 ]`
 
-	req, err := http.NewRequest("POST", fmt.Sprintf("%s/profiles", s.URL), strings.NewReader(profiles))
+	req, err := http.NewRequest("POST", fmt.Sprintf("%s/registry/profiles", s.URL), strings.NewReader(profiles))
 	if err != nil {
 		t.Error(err.Error())
 		return

@@ -82,6 +82,15 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 	if len(versions) == 0 {
 		return repo.ErrNoHistory
 	}
+
+	for i, v := range versions {
+		local, hasErr := r.inst.Repo().Store().Has(ctx, v.Path)
+		if hasErr != nil {
+			continue
+		}
+		versions[i].Foreign = !local
+	}
+
 	*res = versions
 	return nil
 }
@@ -171,7 +180,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
 	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
-		log.Error("removing logs: %s", removeLogsErr.Error())
+		log.Errorf("removing logs: %s", removeLogsErr.Error())
 	}
 
 	if err := r.inst.RemoteClient().RemoveDataset(ctx, ref, addr); err != nil {

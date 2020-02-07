@@ -159,6 +159,8 @@ func ListDatasets(ctx context.Context, r repo.Repo, term string, limit, offset i
 				}
 				return nil, fmt.Errorf("error loading ref: %s, err: %s", ref.String(), err.Error())
 			}
+			ds.Peername = res[i].Peername
+			ds.Name = res[i].Name
 			res[i].Dataset = ds
 			if RPC {
 				res[i].Dataset.Structure.Schema = nil
