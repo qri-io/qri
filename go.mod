@@ -52,7 +52,7 @@ require (
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0
 	github.com/qri-io/jsonschema v0.1.1
-	github.com/qri-io/qfs v0.1.1-0.20200206233417-df98ce6fa36a
+	github.com/qri-io/qfs v0.1.1-0.20200207165332-a6a7b98f0fa0
 	github.com/qri-io/starlib v0.4.2-0.20191025202035-0f16a7d50967
 	github.com/qri-io/varName v0.1.0
 	github.com/russross/blackfriday/v2 v2.0.2-0.20190629151518-3e56bb68c887

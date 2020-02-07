@@ -390,7 +390,7 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 }
 
 // Test the top-level build function, and that the references are alphabetized
-func TestBuildDscacheFromLogbookAndProfilesAndDsref(t *testing.T) {
+func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	run := NewDscacheTestRunner()
 	defer run.Delete()
 
@@ -437,6 +437,85 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsref(t *testing.T) {
 		if expectRefs[i] != actualRef.String() {
 			t.Errorf("ref %d: expected %s, got %s", i, expectRefs[i], actualRef.String())
 		}
+	}
+}
+
+// Test that building dscache will fill info from datasets
+func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
+	run := NewDscacheTestRunner()
+	defer run.Delete()
+
+	ctx := context.Background()
+
+	peerInfo := testPeers.GetTestPeerInfo(0)
+	book := makeFakeLogbook(ctx, t, "test_user", peerInfo.PrivKey)
+
+	// Add test datasets, which fillInfoForDatasets will use to populate dscache
+	store := cafs.NewMapstore()
+	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion2", `{
+  "meta": {
+    "title": "This Is Title",
+    "theme": [
+      "testdata",
+      "example"
+    ]
+  }
+}`)
+	run.MustPutDatasetFileAtKey(t, store, "/map/QmHashOfVersion6", `{
+  "structure": {
+    "entries": 10,
+    "length": 678,
+    "errCount": 3
+  },
+  "commit": {
+    "title": "Yet another commit",
+    "message": "This is the third commit"
+  }
+}`)
+
+	// Add association between profileID and username
+	profiles := profile.NewMemStore()
+	profiles.PutProfile(&profile.Profile{
+		ID:       profile.ID(peerInfo.PeerID),
+		Peername: "test_user",
+	})
+
+	dsrefs := []reporef.DatasetRef{}
+	fs := qfs.NewMemFS()
+	cache, err := BuildDscacheFromLogbookAndProfilesAndDsref(ctx, dsrefs, profiles, book, store, fs)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_user profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 2
+     cursorIndex   = 2
+     prettyName    = first_new_name
+     metaTitle     = This Is Title
+     themeList     = testdata,example
+     commitTime    = -62135596800
+     headRef       = QmHashOfVersion2
+  1) initID        = 7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 3
+     cursorIndex   = 3
+     prettyName    = second_name
+     bodySize      = 678
+     bodyRows      = 10
+     commitTime    = -62135596800
+     commitTitle   = Yet another commit
+     commitMessage = This is the third commit
+     numErrors     = 3
+     headRef       = QmHashOfVersion6
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
 
