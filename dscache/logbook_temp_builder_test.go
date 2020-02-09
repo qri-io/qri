@@ -13,28 +13,28 @@ import (
 )
 
 // Builder builds a logbook in a convenient way
-type Builder struct {
+type BookBuilder struct {
 	Book       *logbook.Book
 	AuthorName string
 	Dsrefs     map[string][]string
 }
 
-// NewLogbookTempBuilder constructs a logbook tmp Builder
-func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string, fs qfs.Filesystem, rootPath string) Builder {
+// NewLogbookTempBuilder constructs a logbook tmp BookBuilder
+func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string, fs qfs.Filesystem, rootPath string) BookBuilder {
 	book, err := logbook.NewJournal(privKey, username, fs, rootPath)
 	if err != nil {
 		t.Fatal(err)
 	}
-	Builder := Builder{
+	builder := BookBuilder{
 		Book:       book,
 		AuthorName: username,
 		Dsrefs:     make(map[string][]string),
 	}
-	return Builder
+	return builder
 }
 
 // DatasetInit initializes a new dataset and return a reference to it
-func (b *Builder) DatasetInit(ctx context.Context, t *testing.T, dsname string) dsref.Ref {
+func (b *BookBuilder) DatasetInit(ctx context.Context, t *testing.T, dsname string) dsref.Ref {
 	if err := b.Book.WriteDatasetInit(ctx, dsname); err != nil {
 		t.Fatal(err)
 	}
@@ -43,7 +43,7 @@ func (b *Builder) DatasetInit(ctx context.Context, t *testing.T, dsname string) 
 }
 
 // DatasetRename changes the name of a dataset
-func (b *Builder) DatasetRename(ctx context.Context, t *testing.T, ref dsref.Ref, newName string) dsref.Ref {
+func (b *BookBuilder) DatasetRename(ctx context.Context, t *testing.T, ref dsref.Ref, newName string) dsref.Ref {
 	b.ensureAuthorAllowed(t, ref.Username)
 	if err := b.Book.WriteDatasetRename(ctx, ref, newName); err != nil {
 		t.Fatal(err)
@@ -54,7 +54,7 @@ func (b *Builder) DatasetRename(ctx context.Context, t *testing.T, ref dsref.Ref
 }
 
 // DatasetDelete deletes a dataset
-func (b *Builder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref.Ref) {
+func (b *BookBuilder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref.Ref) {
 	b.ensureAuthorAllowed(t, ref.Username)
 	if err := b.Book.WriteDatasetDelete(ctx, ref); err != nil {
 		t.Fatal(err)
@@ -63,7 +63,7 @@ func (b *Builder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref.Ref
 }
 
 // Commit adds a commit to a dataset
-func (b *Builder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title, ipfsHash string) dsref.Ref {
+func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title, ipfsHash string) dsref.Ref {
 	b.ensureAuthorAllowed(t, ref.Username)
 	ds := dataset.Dataset{
 		Peername: ref.Username,
@@ -83,7 +83,7 @@ func (b *Builder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, title
 }
 
 // Delete removes some number of commits from a dataset
-func (b *Builder) Delete(ctx context.Context, t *testing.T, ref dsref.Ref, num int) dsref.Ref {
+func (b *BookBuilder) Delete(ctx context.Context, t *testing.T, ref dsref.Ref, num int) dsref.Ref {
 	b.ensureAuthorAllowed(t, ref.Username)
 	if err := b.Book.WriteVersionDelete(ctx, ref, num); err != nil {
 		t.Fatal(err)
@@ -95,13 +95,13 @@ func (b *Builder) Delete(ctx context.Context, t *testing.T, ref dsref.Ref, num i
 	return dsref.Ref{Username: ref.Username, Name: ref.Name, Path: lastRef}
 }
 
-func (b *Builder) ensureAuthorAllowed(t *testing.T, peername string) {
+func (b *BookBuilder) ensureAuthorAllowed(t *testing.T, peername string) {
 	if peername != b.AuthorName {
 		t.Fatalf("cannot rename dataset of %s, book owned by %s", peername, b.AuthorName)
 	}
 }
 
 // Logbook returns the built logbook
-func (b *Builder) Logbook() *logbook.Book {
+func (b *BookBuilder) Logbook() *logbook.Book {
 	return b.Book
 }

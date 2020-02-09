@@ -15,6 +15,9 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 		Path:      r.Path,
 	}
 	ds := r.Dataset
+	// NOTE: InitID is not set when converting from reporef.Dataset
+	build.Published = r.Published
+	build.Foreign = r.Foreign
 	if ds != nil && ds.Meta != nil {
 		if ds.Meta.Title != "" {
 			build.MetaTitle = ds.Meta.Title
@@ -23,17 +26,11 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 			build.ThemeList = strings.Join(ds.Meta.Theme, ",")
 		}
 	}
-	if r.FSIPath != "" {
-		build.FSIPath = r.FSIPath
-	}
-	if r.Foreign {
-		build.Foreign = true
-	}
 	if ds != nil && ds.Structure != nil {
 		build.BodySize = ds.Structure.Length
 		build.BodyRows = ds.Structure.Entries
-		build.NumErrors = ds.Structure.ErrCount
 		build.BodyFormat = ds.Structure.Format
+		build.NumErrors = ds.Structure.ErrCount
 	}
 	if ds != nil && ds.Commit != nil {
 		build.CommitTime = ds.Commit.Timestamp
@@ -43,8 +40,8 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	if ds != nil {
 		build.NumVersions = ds.NumVersions
 	}
-	build.Published = r.Published
-	build.Foreign = r.Foreign
-	// NOTE: InitID is not set when converting from reporef.Dataset
+	if r.FSIPath != "" {
+		build.FSIPath = r.FSIPath
+	}
 	return build
 }

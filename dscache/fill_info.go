@@ -29,15 +29,16 @@ func fillInfoForDatasets(ctx context.Context, store cafs.Filestore, filesys qfs.
 			info.MetaTitle = ds.Meta.Title
 			info.ThemeList = strings.Join(ds.Meta.Theme, ",")
 		}
+		if ds.Structure != nil {
+			info.BodyRows = ds.Structure.Entries
+			info.BodySize = int64(ds.Structure.Length)
+			info.BodyFormat = ds.Structure.Format
+			info.NumErrors = ds.Structure.ErrCount
+		}
 		if ds.Commit != nil {
 			info.CommitTime = ds.Commit.Timestamp
 			info.CommitTitle = ds.Commit.Title
 			info.CommitMessage = ds.Commit.Message
-		}
-		if ds.Structure != nil {
-			info.BodyRows = ds.Structure.Entries
-			info.BodySize = int64(ds.Structure.Length)
-			info.NumErrors = ds.Structure.ErrCount
 		}
 	}
 	return collector.AsSingleError()

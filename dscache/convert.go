@@ -142,22 +142,34 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 	return &Dscache{Root: root, Buffer: serialized}
 }
 
+// TODO(dlong): Replace all these fields with a dsref.VersionInfo. The only additional fields this
+// struct adds are TopIndex and CursorIndex.
 type dsInfo struct {
-	InitID        string
-	ProfileID     string
-	TopIndex      int
-	CursorIndex   int
-	PrettyName    string
-	MetaTitle     string
-	ThemeList     string
-	BodySize      int64
-	BodyRows      int
+	// Keys and indexing values
+	InitID      string
+	ProfileID   string
+	TopIndex    int
+	CursorIndex int
+	// State about the dataset that can change
+	PrettyName string
+	Published  bool
+	Foreign    bool
+	// Meta fields
+	MetaTitle string
+	ThemeList string
+	// Structure fields
+	BodySize   int64
+	BodyRows   int
+	BodyFormat string
+	NumErrors  int
+	// Commit fields
 	CommitTime    time.Time
 	CommitTitle   string
 	CommitMessage string
-	NumErrors     int
-	HeadRef       string
-	FSIPath       string
+	// About the dataset's history and location
+	NumVersions int
+	HeadRef     string
+	FSIPath     string
 }
 
 // convertLogbookAndRefs builds dsInfo from each dataset in the logbook, plus FSIPath from old dsrefs

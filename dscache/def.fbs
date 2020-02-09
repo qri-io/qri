@@ -14,18 +14,24 @@ table RefCache {
   profileID:string;     // profileID for the author of the dataset
   topIndex:int;         // point to logbook entry for newest commit for this dataset
   cursorIndex:int;      // point to logbook entry for data that is currently in use
+  // State about the dataset that can change
   prettyName:string;    // human readable name for a dataset, can be changed over time
+  published:bool;       // whether the dataset has published versions
+  foreign:bool;         // whether the dataset exists locally
+  // Meta fields
   metaTitle:string;     // metadata title of the dataset
   themeList:string;     // metadata theme of the dataset, comma separated list
+  // Structure fields
   bodySize:long;        // size of the body in bytes
   bodyRows:int;         // number of row in the body
   bodyFormat:string;    // format of the body, such as "csv" or "json"
+  numErrors:int;        // number of errors in the structure
+  // Commit fields
   commitTime:long;      // commit timestamp of the dataset version
   commitTitle:string;   // commit title of the dataset version
   commitMessage:string; // commit message of the dataset version
-  numErrors:int;        // number of errors in the structure
+  // About the dataset's history and location
   numVersions:int;      // number of versions
-  published:bool;       // whether the dataset has published versions
   headRef:string;       // the IPFS hash for the dataset
   fsiPath:string;       // path to checked out working directory for this dataset
 }
