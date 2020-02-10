@@ -6,8 +6,8 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"runtime"
 	"path/filepath"
+	"runtime"
 
 	"github.com/ghodss/yaml"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -53,7 +53,8 @@ func init() {
 	testPeerProfile.PrivKey = privKey
 }
 
-func testdataPath(path string) string {
+// TestdataPath returns the absolute path to a file in the testdata diretory
+func TestdataPath(path string) string {
 	// Get the testdata directory relative to this source file.
 	_, currfile, _, _ := runtime.Caller(0)
 	testdataPath := filepath.Join(filepath.Dir(currfile), "testdata")
@@ -99,7 +100,7 @@ func NewTestRepo() (mr *repo.MemRepo, err error) {
 	}
 
 	for _, dsDirName := range datasets {
-		tc, err := dstest.NewTestCaseFromDir(testdataPath(dsDirName))
+		tc, err := dstest.NewTestCaseFromDir(TestdataPath(dsDirName))
 		if err != nil {
 			return nil, err
 		}
@@ -122,7 +123,7 @@ func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err 
 
 	prevPath := ""
 	for _, dsDirName := range datasets {
-		tc, err := dstest.NewTestCaseFromDir(testdataPath(dsDirName))
+		tc, err := dstest.NewTestCaseFromDir(TestdataPath(dsDirName))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -168,7 +169,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return r, nil
 	}
 
-	tc, err := dstest.NewTestCaseFromDir(testdataPath(datasets[dataIndex]))
+	tc, err := dstest.NewTestCaseFromDir(TestdataPath(datasets[dataIndex]))
 	if err != nil {
 		return r, err
 	}

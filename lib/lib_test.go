@@ -157,15 +157,11 @@ func TestReceivers(t *testing.T) {
 	}
 }
 
-func testdataPath(path string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
-}
-
 // pulled from base packages
 // TODO - we should probably get a test package going at github.com/qri-io/qri/test
 func addCitiesDataset(t *testing.T, node *p2p.QriNode) reporef.DatasetRef {
 	ctx := context.Background()
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
+	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}

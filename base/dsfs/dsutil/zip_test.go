@@ -90,7 +90,7 @@ func TestWriteZipArchiveFullDataset(t *testing.T) {
 		return
 	}
 
-	expectFile := testdataFile("testdata/zip/exported.zip")
+	expectFile := zipTestdataFile("exported.zip")
 	expectBytes, err := ioutil.ReadFile(expectFile)
 	if err != nil {
 		t.Errorf("error reading expected bytes: %s", err.Error())
@@ -102,7 +102,7 @@ func TestWriteZipArchiveFullDataset(t *testing.T) {
 }
 
 func TestUnzipDatasetBytes(t *testing.T) {
-	path := testdataFile("testdata/zip/exported.zip")
+	path := zipTestdataFile("exported.zip")
 	zipBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -118,7 +118,7 @@ func TestUnzipDataset(t *testing.T) {
 		t.Error("expected passing bad reader to error")
 	}
 
-	path := testdataFile("testdata/zip/exported.zip")
+	path := zipTestdataFile("exported.zip")
 	zipBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
@@ -134,7 +134,7 @@ func TestUnzipGetContents(t *testing.T) {
 		t.Error("expected passing bad reader to error")
 	}
 
-	path := testdataFile("testdata/zip/exported.zip")
+	path := zipTestdataFile("exported.zip")
 	zipBytes, err := ioutil.ReadFile(path)
 	if err != nil {
 		t.Fatal(err)
