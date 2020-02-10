@@ -36,7 +36,7 @@ func (g *testCryptoGenerator) GenerateNickname(peerID string) string {
 }
 
 func (g *testCryptoGenerator) GenerateEmptyIpfsRepo(repoPath, configPath string) error {
-	unzipFile(testdataPath("empty_ipfs_repo.zip"), repoPath)
+	unzipFile(TestdataPath("empty_ipfs_repo.zip"), repoPath)
 	return nil
 }
 

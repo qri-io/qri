@@ -4,6 +4,7 @@ import (
 	"context"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -125,6 +126,14 @@ func testStoreWithVizAndTransform() (cafs.Filestore, map[string]string, error) {
 	return st, ns, nil
 }
 
-func testdataFile(base string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/base/dsfs/"+base)
+func dstestTestdataFile(path string) string {
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "../dstest/testdata")
+	return filepath.Join(testdataPath, path)
+}
+
+func zipTestdataFile(path string) string {
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "../testdata/zip")
+	return filepath.Join(testdataPath, path)
 }

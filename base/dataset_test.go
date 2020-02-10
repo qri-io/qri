@@ -13,6 +13,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestListDatasets(t *testing.T) {
@@ -104,7 +105,7 @@ func TestDatasetPinning(t *testing.T) {
 		}
 	}
 
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("counter"))
+	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("counter"))
 	if err != nil {
 		t.Error(err.Error())
 		return

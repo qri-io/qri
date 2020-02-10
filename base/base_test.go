@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/base64"
 	"fmt"
-	"os"
-	"path/filepath"
 	"testing"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -17,6 +15,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // base64-encoded Test Private Key, decoded in init
@@ -47,10 +46,6 @@ func init() {
 	testPeerProfile.PrivKey = privKey
 }
 
-func testdataPath(path string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
-}
-
 func newTestRepo(t *testing.T) repo.Repo {
 	mapStore := cafs.NewMapstore()
 	mux := qfs.NewMux(map[string]qfs.Filesystem{
@@ -66,7 +61,7 @@ func newTestRepo(t *testing.T) repo.Repo {
 
 func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ctx := context.Background()
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
+	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -80,7 +75,7 @@ func addCitiesDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 
 func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.DatasetRef {
 	ctx := context.Background()
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("cities"))
+	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("cities"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
@@ -117,7 +112,7 @@ func updateCitiesDataset(t *testing.T, r repo.Repo, title string) reporef.Datase
 
 func addFlourinatedCompoundsDataset(t *testing.T, r repo.Repo) reporef.DatasetRef {
 	ctx := context.Background()
-	tc, err := dstest.NewTestCaseFromDir(testdataPath("flourinated_compounds_in_fast_food_packaging"))
+	tc, err := dstest.NewTestCaseFromDir(repotest.TestdataPath("flourinated_compounds_in_fast_food_packaging"))
 	if err != nil {
 		t.Fatal(err.Error())
 	}
