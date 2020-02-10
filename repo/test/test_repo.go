@@ -6,7 +6,7 @@ import (
 	"encoding/base64"
 	"fmt"
 	"io/ioutil"
-	"os"
+	"runtime"
 	"path/filepath"
 
 	"github.com/ghodss/yaml"
@@ -54,7 +54,10 @@ func init() {
 }
 
 func testdataPath(path string) string {
-	return filepath.Join(os.Getenv("GOPATH"), "/src/github.com/qri-io/qri/repo/test/testdata", path)
+	// Get the testdata directory relative to this source file.
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "testdata")
+	return filepath.Join(testdataPath, path)
 }
 
 // ProfileConfig returns the test profile as a config.Profile
@@ -95,14 +98,13 @@ func NewTestRepo() (mr *repo.MemRepo, err error) {
 		return
 	}
 
-	gopath := os.Getenv("GOPATH")
-	for _, k := range datasets {
-		tc, err := dstest.NewTestCaseFromDir(fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, k))
+	for _, dsDirName := range datasets {
+		tc, err := dstest.NewTestCaseFromDir(testdataPath(dsDirName))
 		if err != nil {
 			return nil, err
 		}
 		if _, err := createDataset(mr, tc); err != nil {
-			return nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
+			return nil, fmt.Errorf("%s error creating dataset: %s", dsDirName, err.Error())
 		}
 	}
 
@@ -118,10 +120,9 @@ func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err 
 		return
 	}
 
-	gopath := os.Getenv("GOPATH")
 	prevPath := ""
-	for _, k := range datasets {
-		tc, err := dstest.NewTestCaseFromDir(fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, k))
+	for _, dsDirName := range datasets {
+		tc, err := dstest.NewTestCaseFromDir(testdataPath(dsDirName))
 		if err != nil {
 			return nil, nil, err
 		}
@@ -129,7 +130,7 @@ func NewTestRepoWithHistory() (mr *repo.MemRepo, refs []reporef.DatasetRef, err 
 		tc.Input.PreviousPath = prevPath
 		ref, err := createDataset(mr, tc)
 		if err != nil {
-			return nil, nil, fmt.Errorf("%s error creating dataset: %s", k, err.Error())
+			return nil, nil, fmt.Errorf("%s error creating dataset: %s", dsDirName, err.Error())
 		}
 		prevPath = ref.Path
 		refs = append(refs, ref)
@@ -167,9 +168,7 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return r, nil
 	}
 
-	gopath := os.Getenv("GOPATH")
-	filepath := fmt.Sprintf("%s/src/github.com/qri-io/qri/repo/test/testdata/%s", gopath, datasets[dataIndex])
-	tc, err := dstest.NewTestCaseFromDir(filepath)
+	tc, err := dstest.NewTestCaseFromDir(testdataPath(datasets[dataIndex]))
 	if err != nil {
 		return r, err
 	}
@@ -178,11 +177,6 @@ func NewTestRepoFromProfileID(id profile.ID, peerNum int, dataIndex int) (repo.R
 		return nil, fmt.Errorf("error creating dataset: %s", err.Error())
 	}
 	return r, nil
-}
-
-func pkgPath(paths ...string) string {
-	gp := os.Getenv("GOPATH")
-	return filepath.Join(append([]string{gp, "src/github.com/qri-io/qri/repo/test"}, paths...)...)
 }
 
 // it's tempting to use base.CreateDataset here, but we can't b/c import cycle :/
