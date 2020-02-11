@@ -64,29 +64,13 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		o.LogRemoved = callCheck("LogRemoved")
 	}
 
-	aCfg := &config.Remote{
-		Enabled:       true,
-		AllowRemoves:  true,
-		AcceptSizeMax: 10000,
-	}
-
-	rem, err := NewRemote(tr.NodeA, aCfg, opts)
-	if err != nil {
-		t.Error(err)
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/remote/refs", rem.RefsHTTPHandler())
-	mux.Handle("/remote/logsync", rem.LogsyncHTTPHandler())
-	mux.Handle("/remote/dsync", rem.DsyncHTTPHandler())
-	server := httptest.NewServer(mux)
+	rem := tr.NodeARemote(t, opts)
+	server := tr.RemoteTestServer(rem)
+	defer server.Close()
 
 	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
-	cli, err := NewClient(tr.NodeB)
-	if err != nil {
-		t.Error(err)
-	}
+	cli := tr.NodeBClient(t)
 
 	relRef := &reporef.DatasetRef{Peername: worldBankRef.Peername, Name: worldBankRef.Name}
 	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
@@ -264,6 +248,34 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 		dsfs.Timestamp = prevTs
 	}
 	return tr, cleanup
+}
+
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...func(o *Options)) *Remote {
+	aCfg := &config.Remote{
+		Enabled:       true,
+		AllowRemoves:  true,
+		AcceptSizeMax: 10000,
+	}
+
+	rem, err := NewRemote(tr.NodeA, aCfg, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rem
+}
+
+func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
+	mux := http.NewServeMux()
+	rem.AddDefaultRoutes(mux)
+	return httptest.NewServer(mux)
+}
+
+func (tr *testRunner) NodeBClient(t *testing.T) Client {
+	cli, err := NewClient(tr.NodeB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cli
 }
 
 func qriNode(t *testing.T, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {

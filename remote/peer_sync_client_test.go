@@ -3,10 +3,12 @@ package remote
 import (
 	"testing"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -41,6 +43,45 @@ func TestAddDataset(t *testing.T) {
 
 	if err := cli.AddDataset(tr.Ctx, &worldBankRef, ""); err != nil {
 		t.Error(err.Error())
+	}
+}
+
+func TestClientFeedsAndPreviews(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
+	publishRef(t, tr.NodeA.Repo, &worldBankRef)
+
+	rem := tr.NodeARemote(t)
+	server := tr.RemoteTestServer(rem)
+	defer server.Close()
+
+	cli := tr.NodeBClient(t)
+
+	feeds, err := cli.Feeds(tr.Ctx, server.URL)
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect := map[string][]dsref.VersionInfo{
+		"recent": {
+			{
+				Username:      "A",
+				Name:          "world_bank_population",
+				Path:          "/ipfs/QmVeWbw4DJQqWjKXohgTu5JdhVniLPiyb6z6m1duwvXdQe",
+				MetaTitle:     "World Bank Population",
+				BodySize:      5,
+				BodyRows:      1,
+				BodyFormat:    "json",
+				CommitTitle:   "initial commit",
+				CommitMessage: "created dataset",
+			},
+		},
+	}
+
+	if diff := cmp.Diff(expect, feeds); diff != "" {
+		t.Errorf("feeds result mismatch (-want +got): \n%s", diff)
 	}
 }
 
