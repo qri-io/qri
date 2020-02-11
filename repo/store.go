@@ -44,17 +44,6 @@ func ParseDsref(r dsref.Ref) (reporef.DatasetRef, error) {
 	return ParseDatasetRef(r.String())
 }
 
-// ConvertToDsref is a shim function to transition from a reporef.DatasetRef to a
-// dsref.Ref while we experiment with dsref as the home of name parsing
-func ConvertToDsref(ref reporef.DatasetRef) dsref.Ref {
-	return dsref.Ref{
-		Username:  ref.Peername,
-		Name:      ref.Name,
-		ProfileID: ref.ProfileID.String(),
-		Path:      ref.Path,
-	}
-}
-
 // TODO(dlong): In the near future, switch to a new utility that resolves references to specific
 // versions by using logbook. A ref should resolve to a pair of (init-id, head-ref), where the
 // init-id is the stable unchanging identifier for a dataset (derived from logbook) and head-ref

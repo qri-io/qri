@@ -12,7 +12,6 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
-	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -198,7 +197,7 @@ func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
 }
 
 func AssertLogsEqual(a, b *Instance, ref *reporef.DatasetRef) error {
-	r := repo.ConvertToDsref(*ref)
+	r := reporef.ConvertToDsref(*ref)
 
 	aLogs, err := a.logbook.DatasetRef(context.Background(), r)
 	if err != nil {

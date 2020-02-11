@@ -601,7 +601,7 @@ func TestConvertToDsref(t *testing.T) {
 		ProfileID: "QmYCvbfNbCwFR45HiNP45rwJgvatpiW38D961L5qAhUM5Y",
 		Path:      "/ipfs/QmRdexT18WuAKVX3vPusqmJTWLeNSeJgjmMbaF5QLGHna1",
 	}
-	got := ConvertToDsref(ref)
+	got := reporef.ConvertToDsref(ref)
 
 	if diff := cmp.Diff(expect, got); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)

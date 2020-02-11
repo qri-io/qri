@@ -341,7 +341,7 @@ func (m *UpdateMethods) Run(p *Job, res *reporef.DatasetRef) (err error) {
 	}
 
 	if p.RunError == "" {
-		err = m.inst.Repo().Logbook().WriteCronJobRan(ctx, p.RunNumber, repo.ConvertToDsref(*res))
+		err = m.inst.Repo().Logbook().WriteCronJobRan(ctx, p.RunNumber, reporef.ConvertToDsref(*res))
 	}
 	return err
 }

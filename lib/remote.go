@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 const allowedDagInfoSize uint64 = 10 * 1024 * 1024
@@ -60,7 +61,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
-	logs, err := r.inst.RemoteClient().FetchLogs(ctx, repo.ConvertToDsref(ref), addr)
+	logs, err := r.inst.RemoteClient().FetchLogs(ctx, reporef.ConvertToDsref(ref), addr)
 	if err != nil {
 		return err
 	}
@@ -76,7 +77,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	versions := logbook.Versions(logs, repo.ConvertToDsref(ref), 0, -1)
+	versions := logbook.Versions(logs, reporef.ConvertToDsref(ref), 0, -1)
 	log.Debugf("found %d versions: %v", len(versions), versions)
 	if len(versions) == 0 {
 		return repo.ErrNoHistory
@@ -132,7 +133,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, repo.ConvertToDsref(ref), addr); pushLogsErr != nil {
+	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, reporef.ConvertToDsref(ref), addr); pushLogsErr != nil {
 		log.Errorf("pushing logs: %s", pushLogsErr)
 	}
 
@@ -145,7 +146,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	*res = ref.SimpleRef()
+	*res = reporef.ConvertToDsref(ref)
 	return nil
 }
 
@@ -180,7 +181,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
+	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, reporef.ConvertToDsref(ref), addr); removeLogsErr != nil {
 		log.Errorf("removing logs: %s", removeLogsErr.Error())
 	}
 
@@ -193,7 +194,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 		return err
 	}
 
-	*res = ref.SimpleRef()
+	*res = reporef.ConvertToDsref(ref)
 	return nil
 }
 

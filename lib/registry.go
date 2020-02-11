@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RegistryClientMethods defines business logic for working with registries
@@ -152,7 +153,7 @@ func (m *RegistryClientMethods) Preview(refstr *string, res *dataset.Dataset) er
 		return err
 	}
 
-	pre, err := m.inst.registry.Preview(ctx, repo.ConvertToDsref(ref))
+	pre, err := m.inst.registry.Preview(ctx, reporef.ConvertToDsref(ref))
 	if err != nil {
 		return err
 	}

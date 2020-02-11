@@ -102,7 +102,7 @@ func ModifyDatasetRef(ctx context.Context, r repo.Repo, current, new *reporef.Da
 	if isRename {
 		new.Path = current.Path
 
-		if err = r.Logbook().WriteDatasetRename(ctx, repo.ConvertToDsref(*current), new.Name); err != nil && err != logbook.ErrNoLogbook {
+		if err = r.Logbook().WriteDatasetRename(ctx, reporef.ConvertToDsref(*current), new.Name); err != nil && err != logbook.ErrNoLogbook {
 			return err
 		}
 	}

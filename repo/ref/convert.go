@@ -48,3 +48,14 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	// NOTE: InitID is not set when converting from reporef.Dataset
 	return build
 }
+
+// ConvertToDsref is a shim function to transition from a reporef.DatasetRef to a
+// dsref.Ref while we experiment with dsref as the home of name parsing
+func ConvertToDsref(ref DatasetRef) dsref.Ref {
+	return dsref.Ref{
+		Username:  ref.Peername,
+		Name:      ref.Name,
+		ProfileID: ref.ProfileID.String(),
+		Path:      ref.Path,
+	}
+}

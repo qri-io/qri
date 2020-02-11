@@ -4,7 +4,6 @@ import (
 	"strings"
 
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -120,14 +119,4 @@ func (r DatasetRef) IsPeerRef() bool {
 // IsEmpty returns true if none of it's fields are set
 func (r DatasetRef) IsEmpty() bool {
 	return r.Equal(DatasetRef{})
-}
-
-// SimpleRef converts a DatasetRef to a dsref.Ref
-func (r DatasetRef) SimpleRef() dsref.Ref {
-	return dsref.Ref{
-		Username:  r.Peername,
-		ProfileID: r.ProfileID.String(),
-		Name:      r.Name,
-		Path:      r.Path,
-	}
 }

@@ -753,7 +753,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 		// Write the deletion to the logbook.
 		book := r.inst.Repo().Logbook()
-		if err := book.WriteDatasetDelete(ctx, repo.ConvertToDsref(ref)); err != nil {
+		if err := book.WriteDatasetDelete(ctx, reporef.ConvertToDsref(ref)); err != nil {
 			// If the logbook is missing, it's not an error worth stopping for, since we're
 			// deleting the dataset anyway. This can happen from adding a foreign dataset.
 			if err != oplog.ErrNotFound {
@@ -859,7 +859,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error)
 		p.RemoteAddr = r.inst.cfg.Registry.Location
 	}
 
-	mergeLogsError := r.inst.RemoteClient().CloneLogs(ctx, repo.ConvertToDsref(ref), p.RemoteAddr)
+	mergeLogsError := r.inst.RemoteClient().CloneLogs(ctx, reporef.ConvertToDsref(ref), p.RemoteAddr)
 	if p.LogsOnly {
 		return mergeLogsError
 	}
