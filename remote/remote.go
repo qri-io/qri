@@ -64,7 +64,16 @@ type Options struct {
 	// called after a log has been removed
 	LogRemoved Hook
 
+	// called before any feed data request is processed
+	FeedPreCheck Hook
+	// called before a preview request is processed
+	PreviewPreCheck Hook
+
+	// Use a custom feeds interface implementation. Default creates a Feeds
+	// instance from node.Repo
 	Feeds
+	// Use a custom previews interface implementation. Default creates a
+	// Previews instance from node.Repo
 	Previews
 }
 
@@ -89,6 +98,8 @@ type Remote struct {
 	datasetRemoved        Hook
 	datasetPullPreCheck   Hook
 	datasetPulled         Hook
+	FeedPreCheck          Hook
+	PreviewPreCheck       Hook
 }
 
 // NewRemote creates a remote
@@ -111,6 +122,9 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		datasetRemoved:        o.DatasetRemoved,
 		datasetPullPreCheck:   o.DatasetPullPreCheck,
 		datasetPulled:         o.DatasetPulled,
+
+		FeedPreCheck:    o.FeedPreCheck,
+		PreviewPreCheck: o.PreviewPreCheck,
 	}
 
 	if o.Feeds != nil {
@@ -431,7 +445,20 @@ func (r *Remote) LogsyncHTTPHandler() http.HandlerFunc {
 // FeedsHTTPHandler provides access to the home feed
 func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		feeds, err := r.Feeds.Feeds(req.Context(), "")
+		ctx := req.Context()
+		if r.FeedPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
+		feeds, err := r.Feeds.Feeds(ctx, "")
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -447,8 +474,21 @@ const feedPageSize = 30
 // FeedHTTPHandler gives access a feed VersionInfos constructed by a remote
 func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		if r.FeedPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
 		page := apiutil.PageFromRequest(req)
-		refs, err := r.Feeds.Feed(req.Context(), "", strings.TrimPrefix(req.URL.Path, prefix), page.Offset(), page.Limit())
+		refs, err := r.Feeds.Feed(ctx, "", strings.TrimPrefix(req.URL.Path, prefix), page.Offset(), page.Limit())
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 		}
@@ -460,6 +500,19 @@ func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
 // PreviewHTTPHandler handles dataset preview requests over HTTP
 func (r *Remote) PreviewHTTPHandler(prefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		if r.PreviewPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.PreviewPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
 		preview, err := r.Previews.Preview(req.Context(), "", strings.TrimPrefix(req.URL.Path, prefix))
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)

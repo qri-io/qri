@@ -24,7 +24,7 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestDatasetPullPushDeleteHTTP(t *testing.T) {
+func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -62,6 +62,9 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		o.LogPulled = callCheck("LogPulled")
 		o.LogRemovePreCheck = callCheck("LogRemovePreCheck")
 		o.LogRemoved = callCheck("LogRemoved")
+
+		o.FeedPreCheck = callCheck("FeedPreCheck")
+		o.PreviewPreCheck = callCheck("PreviewPreCheck")
 	}
 
 	rem := tr.NodeARemote(t, opts)
@@ -104,6 +107,13 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Error(err)
 	}
 
+	if _, err := cli.Feeds(tr.Ctx, server.URL); err != nil {
+		t.Error(err)
+	}
+	if _, err := cli.Preview(tr.Ctx, reporef.ConvertToDsref(worldBankRef), server.URL); err != nil {
+		t.Error(err)
+	}
+
 	expectHooksCallOrder := []string{
 		"LogPullPreCheck",
 		"LogPulled",
@@ -117,6 +127,8 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		"LogRemovePreCheck",
 		"LogRemoved",
 		"DatasetRemoved",
+		"FeedPreCheck",
+		"PreviewPreCheck",
 	}
 
 	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
