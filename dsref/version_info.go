@@ -127,6 +127,7 @@ func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 		vi.BodyFormat = ds.Structure.Format
 		vi.BodySize = ds.Structure.Length
 		vi.BodyRows = ds.Structure.Entries
+		vi.NumErrors = ds.Structure.ErrCount
 	}
 
 	return vi
