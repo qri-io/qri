@@ -104,3 +104,13 @@ func (c *MockClient) RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr s
 func (c *MockClient) ResolveHeadRef(ctx context.Context, ref *reporef.DatasetRef, remoteAddr string) error {
 	return ErrNotImplemented
 }
+
+// Feeds is not implemented
+func (c *MockClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+	return nil, ErrNotImplemented
+}
+
+// Preview is not implemented
+func (c *MockClient) Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	return nil, ErrNotImplemented
+}

@@ -276,6 +276,8 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	remClientH := NewRemoteClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
 	m.Handle("/fetch/", s.middleware(remClientH.NewFetchHandler("/fetch")))
+	m.Handle("/feeds", s.middleware(remClientH.FeedsHandler))
+	m.Handle("/dataset/preview", s.middleware(remClientH.DatasetPreviewHandler))
 
 	uh := UpdateHandlers{
 		UpdateMethods: lib.NewUpdateMethods(s.Instance),
@@ -303,8 +305,6 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	rch := NewRegistryClientHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/registry/profile/new", s.middleware(rch.CreateProfileHandler))
 	m.Handle("/registry/profile/prove", s.middleware(rch.ProveProfileKeyHandler))
-	m.Handle("/registry/feed/home", s.middleware(rch.HomeHandler))
-	m.Handle("/registry/dataset/preview/", s.middleware(rch.DatasetPreviewHandler))
 
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
