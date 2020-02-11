@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/sirupsen/logrus"
 )
 
@@ -130,7 +131,7 @@ func PreviewHandler(prefix string, r repo.Repo) http.HandlerFunc {
 			return
 		}
 
-		preview, err := base.CreatePreview(req.Context(), r, repo.ConvertToDsref(ref))
+		preview, err := base.CreatePreview(req.Context(), r, reporef.ConvertToDsref(ref))
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return

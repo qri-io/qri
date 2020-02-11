@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // httpClient is the request side of doing dsync over HTTP
@@ -155,7 +156,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 				return
 			}
 
-			receiver, r, err := lsync.get(r.Context(), sender, repo.ConvertToDsref(ref))
+			receiver, r, err := lsync.get(r.Context(), sender, reporef.ConvertToDsref(ref))
 			if err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
@@ -172,7 +173,7 @@ func HTTPHandler(lsync *Logsync) http.HandlerFunc {
 				return
 			}
 
-			if err = lsync.del(r.Context(), sender, repo.ConvertToDsref(ref)); err != nil {
+			if err = lsync.del(r.Context(), sender, reporef.ConvertToDsref(ref)); err != nil {
 				w.WriteHeader(http.StatusBadRequest)
 				w.Write([]byte(err.Error()))
 				return

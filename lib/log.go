@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // LogRequests encapsulates business logic for the log
@@ -104,7 +105,7 @@ func (r *LogRequests) Logbook(p *RefListParams, res *[]LogEntry) error {
 	}
 
 	book := r.node.Repo.Logbook()
-	*res, err = book.LogEntries(ctx, repo.ConvertToDsref(ref), p.Offset, p.Limit)
+	*res, err = book.LogEntries(ctx, reporef.ConvertToDsref(ref), p.Offset, p.Limit)
 	return err
 }
 

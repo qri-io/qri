@@ -103,8 +103,6 @@ func (r DatasetRef) Complete() bool {
 // Match checks returns true if Peername and Name are equal,
 // and/or path is equal
 func (r DatasetRef) Match(b DatasetRef) bool {
-	// fmt.Printf("\nr.Peername: %s b.Peername: %s\n", r.Peername, b.Peername)
-	// fmt.Printf("\nr.Name: %s b.Name: %s\n", r.Name, b.Name)
 	return (r.Path != "" && b.Path != "" && r.Path == b.Path) || (r.ProfileID == b.ProfileID || r.Peername == b.Peername) && r.Name == b.Name
 }
 

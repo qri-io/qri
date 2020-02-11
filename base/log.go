@@ -14,7 +14,7 @@ import (
 // DatasetLog fetches the change version history of a dataset
 func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
 	if book := r.Logbook(); book != nil {
-		if versions, err := book.Versions(ctx, repo.ConvertToDsref(ref), offset, limit); err == nil {
+		if versions, err := book.Versions(ctx, reporef.ConvertToDsref(ref), offset, limit); err == nil {
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
 			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
 			if len(versions) == 0 {
@@ -53,7 +53,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 	// add a history entry b/c we didn't have one, but repo didn't error
 	if pro, err := r.Profile(); err == nil && ref.Peername == pro.Peername {
 		go func() {
-			if err := constructDatasetLogFromHistory(context.Background(), r, repo.ConvertToDsref(ref)); err != nil {
+			if err := constructDatasetLogFromHistory(context.Background(), r, reporef.ConvertToDsref(ref)); err != nil {
 				log.Errorf("constructDatasetLogFromHistory: %s", err)
 			}
 		}()

@@ -9,6 +9,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 func TestDatasetLog(t *testing.T) {
@@ -104,7 +105,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 	r.SetLogbook(book)
 
-	cities := repo.ConvertToDsref(ref)
+	cities := reporef.ConvertToDsref(ref)
 
 	// confirm no history exists:
 	if _, err = book.Versions(ctx, cities, 0, 100); err == nil {

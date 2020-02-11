@@ -94,7 +94,7 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Errorf("resolve mismatch. expected:\n%s\ngot:\n%s", worldBankRef, relRef)
 	}
 
-	if _, err := cli.FetchLogs(tr.Ctx, repo.ConvertToDsref(*relRef), server.URL); err != nil {
+	if _, err := cli.FetchLogs(tr.Ctx, reporef.ConvertToDsref(*relRef), server.URL); err != nil {
 		t.Error(err)
 	}
 	if err := cli.PullDataset(tr.Ctx, &worldBankRef, server.URL); err != nil {
@@ -103,14 +103,14 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 
 	videoViewRef := writeVideoViewStats(tr.Ctx, t, tr.NodeB.Repo)
 
-	if err := cli.PushLogs(tr.Ctx, repo.ConvertToDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.PushLogs(tr.Ctx, reporef.ConvertToDsref(videoViewRef), server.URL); err != nil {
 		t.Error(err)
 	}
 	if err := cli.PushDataset(tr.Ctx, videoViewRef, server.URL); err != nil {
 		t.Error(err)
 	}
 
-	if err := cli.RemoveLogs(tr.Ctx, repo.ConvertToDsref(videoViewRef), server.URL); err != nil {
+	if err := cli.RemoveLogs(tr.Ctx, reporef.ConvertToDsref(videoViewRef), server.URL); err != nil {
 		t.Error(err)
 	}
 	if err := cli.RemoveDataset(tr.Ctx, videoViewRef, server.URL); err != nil {

@@ -17,6 +17,7 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/identity"
 	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 const (
@@ -191,7 +192,7 @@ func (c *p2pHandler) HandleGet(ws *p2putil.WrappedStream, msg p2putil.Message) (
 			return true
 		}
 
-		sender, r, err := c.logsync.get(ctx, author, repo.ConvertToDsref(ref))
+		sender, r, err := c.logsync.get(ctx, author, reporef.ConvertToDsref(ref))
 		if err != nil {
 			return true
 		}
@@ -232,7 +233,7 @@ func (c *p2pHandler) HandleDel(ws *p2putil.WrappedStream, msg p2putil.Message) (
 			return true
 		}
 
-		if err = c.logsync.del(ctx, author, repo.ConvertToDsref(ref)); err != nil {
+		if err = c.logsync.del(ctx, author, reporef.ConvertToDsref(ref)); err != nil {
 			return true
 		}
 

@@ -2,8 +2,8 @@ package cmd
 
 import (
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -52,7 +52,7 @@ to a published dataset will be immediately visible to connected peers.
 type PublishOptions struct {
 	ioes.IOStreams
 
-	Refs       []string
+	Refs       *RefSelect
 	Unpublish  bool
 	NoRegistry bool
 	NoPin      bool
@@ -64,33 +64,38 @@ type PublishOptions struct {
 
 // Complete adds any missing configuration that can only be added just before calling Run
 func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
-	o.Refs = args
+
 	if o.DatasetRequests, err = f.DatasetRequests(); err != nil {
 		return err
 	}
+
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, nil); err != nil {
+		return err
+	}
+
 	o.RemoteMethods, err = f.RemoteMethods()
 	return
 }
 
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
-	var res reporef.DatasetRef
-	for _, ref := range o.Refs {
-		p := lib.PublicationParams{
-			Ref:        ref,
-			RemoteName: o.RemoteName,
+	printRefSelect(o.Out, o.Refs)
+
+	p := lib.PublicationParams{
+		Ref:        o.Refs.Ref(),
+		RemoteName: o.RemoteName,
+	}
+	var res dsref.Ref
+	if o.Unpublish {
+		if err := o.RemoteMethods.Unpublish(&p, &res); err != nil {
+			return err
 		}
-		if o.Unpublish {
-			if err := o.RemoteMethods.Unpublish(&p, &res); err != nil {
-				return err
-			}
-			printInfo(o.Out, "unpublished dataset %s", res)
-		} else {
-			if err := o.RemoteMethods.Publish(&p, &res); err != nil {
-				return err
-			}
-			printInfo(o.Out, "published dataset %s", res)
+		printInfo(o.Out, "unpublished dataset %s", res)
+	} else {
+		if err := o.RemoteMethods.Publish(&p, &res); err != nil {
+			return err
 		}
+		printInfo(o.Out, "published dataset %s", res)
 	}
 	return nil
 }

@@ -61,7 +61,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 
 	// TODO (b5) - need contexts yo
 	ctx := context.TODO()
-	logs, err := r.inst.RemoteClient().FetchLogs(ctx, repo.ConvertToDsref(ref), addr)
+	logs, err := r.inst.RemoteClient().FetchLogs(ctx, reporef.ConvertToDsref(ref), addr)
 	if err != nil {
 		return err
 	}
@@ -77,7 +77,7 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	versions := logbook.Versions(logs, repo.ConvertToDsref(ref), 0, -1)
+	versions := logbook.Versions(logs, reporef.ConvertToDsref(ref), 0, -1)
 	log.Debugf("found %d versions: %v", len(versions), versions)
 	if len(versions) == 0 {
 		return repo.ErrNoHistory
@@ -105,7 +105,7 @@ type PublicationParams struct {
 }
 
 // Publish posts a dataset version to a remote
-func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) error {
+func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Publish", p, res)
 	}
@@ -120,7 +120,6 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) e
 	if err = repo.CanonicalizeDatasetRef(r.inst.Repo(), &ref); err != nil {
 		return err
 	}
-	*res = ref
 
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
@@ -134,7 +133,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) e
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, repo.ConvertToDsref(ref), addr); pushLogsErr != nil {
+	if pushLogsErr := r.inst.RemoteClient().PushLogs(ctx, reporef.ConvertToDsref(ref), addr); pushLogsErr != nil {
 		log.Errorf("pushing logs: %s", pushLogsErr)
 	}
 
@@ -142,12 +141,17 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *reporef.DatasetRef) e
 		return err
 	}
 
-	res.Published = true
-	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
+	ref.Published = true
+	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+		return err
+	}
+
+	*res = reporef.ConvertToDsref(ref)
+	return nil
 }
 
 // Unpublish asks a remote to remove a dataset
-func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef) error {
+func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Unpublish", p, res)
 	}
@@ -165,8 +169,6 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 		return err
 	}
 
-	*res = ref
-
 	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
 	if err != nil {
 		return err
@@ -179,7 +181,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 	// while we work to upgrade the stack. Long term we may want to consider a mechanism
 	// for allowing partial completion where only one of logs or dataset pushing works
 	// by doing both in parallel and reporting issues on both
-	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, repo.ConvertToDsref(ref), addr); removeLogsErr != nil {
+	if removeLogsErr := r.inst.RemoteClient().RemoveLogs(ctx, reporef.ConvertToDsref(ref), addr); removeLogsErr != nil {
 		log.Errorf("removing logs: %s", removeLogsErr.Error())
 	}
 
@@ -187,8 +189,13 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *reporef.DatasetRef)
 		return err
 	}
 
-	res.Published = false
-	return base.SetPublishStatus(r.inst.node.Repo, res, res.Published)
+	ref.Published = false
+	if err = base.SetPublishStatus(r.inst.node.Repo, &ref, ref.Published); err != nil {
+		return err
+	}
+
+	*res = reporef.ConvertToDsref(ref)
+	return nil
 }
 
 // PullDataset fetches a dataset ref from a remote

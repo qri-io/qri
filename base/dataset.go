@@ -381,7 +381,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *reporef.Dat
 		}
 	}
 
-	err = r.Logbook().WriteVersionDelete(ctx, repo.ConvertToDsref(*ref), n)
+	err = r.Logbook().WriteVersionDelete(ctx, reporef.ConvertToDsref(*ref), n)
 	if err == logbook.ErrNoLogbook {
 		err = nil
 	}
