@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
@@ -24,6 +25,7 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/version"
 )
 
 var (
@@ -500,6 +502,28 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef
 	return base.ReplaceRefIfMoreRecent(node.Repo, &prevRef, ref)
 }
 
+func (c *PeerSyncClient) signHTTPRequest(req *http.Request) error {
+	pk := c.node.Repo.PrivateKey()
+	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
+
+	// TODO (b5) - we shouldn't be calculating profile IDs here
+	peerID, err := calcProfileID(pk)
+	if err != nil {
+		return err
+	}
+
+	b64Sig, err := signString(pk, requestSigningString(now, peerID, req.URL.Path))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("timestamp", now)
+	req.Header.Add("pid", peerID)
+	req.Header.Add("signature", b64Sig)
+	req.Header.Add("qri-version", version.String)
+	return nil
+}
+
 // Feeds fetches the first page of featured & recent feeds in one call
 func (c *PeerSyncClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
 	if at := addressType(remoteAddr); at != "http" {
@@ -509,6 +533,10 @@ func (c *PeerSyncClient) Feeds(ctx context.Context, remoteAddr string) (map[stri
 	// TODO (b5) - update registry endpoint name
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/feeds", remoteAddr), nil)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := c.signHTTPRequest(req); err != nil {
 		return nil, err
 	}
 
@@ -548,6 +576,10 @@ func (c *PeerSyncClient) Preview(ctx context.Context, ref dsref.Ref, remoteAddr 
 
 	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/dataset/preview/%s", remoteAddr, ref.String()), nil)
 	if err != nil {
+		return nil, err
+	}
+
+	if err := c.signHTTPRequest(req); err != nil {
 		return nil, err
 	}
 
