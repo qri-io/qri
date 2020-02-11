@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
@@ -110,7 +111,7 @@ func (m RegistryClientMethods) updateConfig(pro *registry.Profile) error {
 
 // Home returns a listing of datasets from a number of feeds like featured and
 // popular. Each feed is keyed by string in the response
-func (m *RegistryClientMethods) Home(p *bool, res *map[string][]*dataset.Dataset) error {
+func (m *RegistryClientMethods) Home(p *bool, res *map[string][]dsref.VersionInfo) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("RegistryClientMethods.Home", p, res)
 	}

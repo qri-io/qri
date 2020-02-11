@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"encoding/json"
 	"fmt"
-	"io/ioutil"
 	"net/http"
 	"strings"
 
@@ -115,10 +114,7 @@ func (c Client) doJSONSearchReq(method string, s *registry.SearchParams) (result
 		}
 	}{}
 
-	data, _ := ioutil.ReadAll(res.Body)
-	fmt.Printf("res: %s", string(data))
-
-	if err := json.NewDecoder(bytes.NewReader(data)).Decode(&env); err != nil {
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
 		return nil, err
 	}
 

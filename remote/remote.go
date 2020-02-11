@@ -61,6 +61,9 @@ type Options struct {
 	LogRemovePreCheck Hook
 	// called after a log has been removed
 	LogRemoved Hook
+
+	Feeds
+	Previews
 }
 
 // Remote receives requests from other qri nodes to perform actions on their
@@ -69,6 +72,9 @@ type Remote struct {
 	node    *p2p.QriNode
 	dsync   *dsync.Dsync
 	logsync *logsync.Logsync
+
+	Feeds    Feeds
+	Previews Previews
 
 	acceptSizeMax int64
 	// TODO (b5) - dsync needs to use timeouts
@@ -103,6 +109,18 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		datasetRemoved:        o.DatasetRemoved,
 		datasetPullPreCheck:   o.DatasetPullPreCheck,
 		datasetPulled:         o.DatasetPulled,
+	}
+
+	if o.Feeds != nil {
+		r.Feeds = o.Feeds
+	} else {
+		r.Feeds = RepoFeeds{node.Repo}
+	}
+
+	if o.Previews != nil {
+		r.Previews = o.Previews
+	} else {
+		r.Previews = RepoPreviews{node.Repo}
 	}
 
 	capi, err := node.IPFSCoreAPI()

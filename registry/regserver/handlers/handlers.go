@@ -7,11 +7,8 @@ import (
 	"time"
 
 	"github.com/qri-io/apiutil"
-	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/registry"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/remote"
 	"github.com/sirupsen/logrus"
 )
 
@@ -59,14 +56,15 @@ func NewRoutes(reg registry.Registry, opts ...func(o *RouteOptions)) *http.Serve
 		mux.Handle("/remote/dsync", rem.DsyncHTTPHandler())
 		mux.Handle("/remote/logsync", rem.LogsyncHTTPHandler())
 		mux.Handle("/remote/refs", rem.RefsHTTPHandler())
-	}
 
-	node := reg.Remote.Node()
-	if node != nil && node.Repo != nil {
-		r := node.Repo
-		mux.Handle("/registry/feed/home", HomeFeedHandler(r))
-		mux.Handle("/registry/dataset/preview/", PreviewHandler("/registry/dataset/preview/", r))
-		mux.Handle("/registry/dataset/component/", ComponentHandler(r))
+		if fs := reg.Remote.Feeds; fs != nil {
+			mux.Handle("/remote/feeds", FeedsHandler(fs))
+			mux.Handle("/remote/feeds/", FeedHandler("/remote/feeds/", fs))
+		}
+		if ps := reg.Remote.Previews; ps != nil {
+			mux.Handle("/remote/dataset/preview/", PreviewHandler("/remote/dataset/preview/", ps))
+			mux.Handle("/remote/dataset/component/", ComponentHandler(ps))
+		}
 	}
 
 	if ps := reg.Profiles; ps != nil {
@@ -98,40 +96,36 @@ func HealthCheckHandler(w http.ResponseWriter, r *http.Request) {
 // max number of items in a page of feed data
 const feedPageSize = 30
 
-// HomeFeedHandler provides access to the home feed
-func HomeFeedHandler(r repo.Repo) http.HandlerFunc {
+// FeedsHandler provides access to the home feed
+func FeedsHandler(fs remote.Feeds) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		refs, err := base.ListDatasets(req.Context(), r, "", feedPageSize, 0, false, true, false)
+		feeds, err := fs.Feeds(req.Context(), "")
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
-		res := make([]*dataset.Dataset, len(refs))
-		for i, ref := range refs {
-			ref.Dataset.Name = ref.Name
-			ref.Dataset.Peername = ref.Peername
-			res[i] = ref.Dataset
+
+		apiutil.WriteResponse(w, feeds)
+	}
+}
+
+// FeedHandler gives access a feed VersionInfos constructed by a remote
+func FeedHandler(prefix string, fs remote.Feeds) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		page := apiutil.PageFromRequest(req)
+		refs, err := fs.Feed(req.Context(), "", strings.TrimPrefix(req.URL.Path, prefix), page.Offset(), page.Limit())
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 		}
 
-		apiutil.WriteResponse(w, res)
+		apiutil.WritePageResponse(w, refs, req, page)
 	}
 }
 
 // PreviewHandler handles dataset preview requests over HTTP
-func PreviewHandler(prefix string, r repo.Repo) http.HandlerFunc {
+func PreviewHandler(prefix string, ps remote.Previews) http.HandlerFunc {
 	return func(w http.ResponseWriter, req *http.Request) {
-		ref, err := repo.ParseDatasetRef(strings.TrimPrefix(req.URL.Path, prefix))
-		if err != nil {
-			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		if err := repo.CanonicalizeDatasetRef(r, &ref); err != nil {
-			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-			return
-		}
-
-		preview, err := base.CreatePreview(req.Context(), r, reporef.ConvertToDsref(ref))
+		preview, err := ps.Preview(req.Context(), "", strings.TrimPrefix(req.URL.Path, prefix))
 		if err != nil {
 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
@@ -142,25 +136,8 @@ func PreviewHandler(prefix string, r repo.Repo) http.HandlerFunc {
 }
 
 // ComponentHandler handles dataset component requests over HTTP
-func ComponentHandler(r repo.Repo) http.HandlerFunc {
+func ComponentHandler(fs remote.Previews) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		w.Write([]byte("unfinished: ComponentHTTPHandler"))
 	}
 }
-
-// FeedsHTTPHandler gives access to lists of dataset feeds constructed by this
-// remote
-// TODO (b5) - for now this is just a proxy to list datasets for demonstration
-// purposes
-// func (r *Remote) FeedsHandler(r repo.Repo) http.HandlerFunc {
-// 	return func(w http.ResponseWriter, req *http.Request) {
-// 		page := apiutil.PageFromRequest(req)
-// 		ctx := req.Context()
-// 		refs, err := base.ListDatasets(ctx, r.node.Repo, req.FormValue("term"), page.Limit(), page.Offset(), false, true, false)
-// 		if err != nil {
-// 			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
-// 		}
-
-// 		apiutil.WritePageResponse(w, refs, req, page)
-// 	}
-// }

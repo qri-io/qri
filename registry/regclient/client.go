@@ -47,13 +47,13 @@ func NewClient(cfg *Config) *Client {
 }
 
 // HomeFeed fetches the first page of featured & recent feeds in one call
-func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, error) {
+func (c *Client) HomeFeed(ctx context.Context) (map[string][]dsref.VersionInfo, error) {
 	if c.cfg.Location == "" {
 		return nil, ErrNoRegistry
 	}
 
 	// TODO (b5) - update registry endpoint name
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/feed/home", c.cfg.Location), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/feeds", c.cfg.Location), nil)
 	if err != nil {
 		return nil, err
 	}
@@ -67,7 +67,7 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 	}
 	// add response to an envelope
 	env := struct {
-		Data []*dataset.Dataset
+		Data map[string][]dsref.VersionInfo
 		Meta struct {
 			Error  string
 			Status string
@@ -83,11 +83,7 @@ func (c *Client) HomeFeed(ctx context.Context) (map[string][]*dataset.Dataset, e
 		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
 	}
 
-	reply := map[string][]*dataset.Dataset{
-		"recent": env.Data,
-	}
-
-	return reply, nil
+	return env.Data, nil
 }
 
 // Preview fetches a dataset preview from the registry
@@ -96,7 +92,7 @@ func (c *Client) Preview(ctx context.Context, ref dsref.Ref) (*dataset.Dataset, 
 		return nil, ErrNoRegistry
 	}
 
-	req, err := http.NewRequest("GET", fmt.Sprintf("%s/registry/dataset/preview/%s", c.cfg.Location, ref.String()), nil)
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/dataset/preview/%s", c.cfg.Location, ref.String()), nil)
 	if err != nil {
 		return nil, err
 	}

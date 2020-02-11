@@ -7,6 +7,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -94,7 +95,7 @@ func (h *RegistryClientHandlers) HomeHandler(w http.ResponseWriter, r *http.Requ
 }
 
 func (h *RegistryClientHandlers) homeHandler(w http.ResponseWriter, r *http.Request) {
-	res := map[string][]*dataset.Dataset{}
+	res := map[string][]dsref.VersionInfo{}
 	p := false
 	if err := h.Home(&p, &res); err != nil {
 		log.Infof("home error: %s", err.Error())
