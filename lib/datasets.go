@@ -24,7 +24,6 @@ import (
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
-	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -666,6 +665,7 @@ type RemoveParams struct {
 type RemoveResponse struct {
 	Ref        string
 	NumDeleted int
+	Message    string
 	Unlinked   bool
 }
 
@@ -678,6 +678,8 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		return r.cli.Call("DatasetRequests.Remove", p, res)
 	}
 	ctx := context.TODO()
+
+	log.Debugf("Remove dataset ref %q, revisions %v", p.Ref, p.Revision)
 
 	if p.Revision.Gen == 0 {
 		return fmt.Errorf("invalid number of revisions to delete: 0")
@@ -693,6 +695,15 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
+		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
+		if p.Force {
+			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []dsref.VersionInfo{})
+			if didRemove != "" {
+				log.Debugf("Remove cleaned up data found in %s", didRemove)
+				res.Message = didRemove
+				return nil
+			}
+		}
 		return canonErr
 	}
 	res.Ref = ref.String()
@@ -705,15 +716,17 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			wdErr := r.inst.fsi.IsWorkingDirectoryClean(ctx, ref.FSIPath)
 			if wdErr != nil {
 				if wdErr == fsi.ErrWorkingDirectoryDirty {
+					log.Debugf("Remove, IsWorkingDirectoryDirty")
 					return ErrCantRemoveDirectoryDirty
 				}
 				if strings.Contains(wdErr.Error(), "not a linked directory") {
 					// If the working directory has been removed (or renamed), could not get the
 					// status. However, don't let this stop the remove operation, since the files
 					// are already gone, and therefore won't be removed.
-					log.Debugf("could not get status for %s, maybe removed or renamed", ref.FSIPath)
+					log.Debugf("Remove, couldn't get status for %s, maybe removed or renamed", ref.FSIPath)
 					wdErr = nil
 				} else {
+					log.Debugf("Remove, IsWorkingDirectoryClean error: %s", err)
 					return wdErr
 				}
 			}
@@ -725,46 +738,34 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 
 	// Get the revisions that will be deleted.
 	history, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
-	if err != nil {
-		if err == repo.ErrNoHistory {
-			p.Revision.Gen = dsref.AllGenerations
-		} else {
-			return err
-		}
+	if err == nil && p.Revision.Gen >= len(history) {
+		// If the number of revisions to delete is greater than or equal to the amount in history,
+		// treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err == repo.ErrNoHistory {
+		// If the dataset has no history, treat this operation as deleting everything.
+		p.Revision.Gen = dsref.AllGenerations
+	} else if err != nil {
+		log.Debugf("Remove, base.DatasetLog failed, error: %s", err)
+		// Set history to a list of 0 elements. In the rest of this function, certain operations
+		// check the history to figure out what to delete, they will always see a blank history,
+		// which is a safer option for a destructive option such as remove.
+		history = []dsref.VersionInfo{}
 	}
 
-	if p.Revision.Gen == dsref.AllGenerations || p.Revision.Gen >= len(history) {
+	if p.Revision.Gen == dsref.AllGenerations {
 		// removing all revisions of a dataset must unlink it
 		if ref.FSIPath != "" {
-			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err != nil {
-				return err
+			if err := r.inst.fsi.Unlink(ref.FSIPath, ref.AliasString()); err == nil {
+				res.Unlinked = true
+			} else {
+				log.Errorf("during Remove, dataset did not unlink: %s", err)
 			}
-			res.Unlinked = true
 		}
 
-		// If the dataset has no history (such as running `qri init` without `qri save`), then
-		// the ref has no path. Can't call RemoveNVersionsFromStore without a path, but don't
-		// need to call it anyway. Skip it.
-		if len(history) > 0 {
-			// Delete entire dataset for all generations.
-			if _, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, -1); err != nil {
-				return err
-			}
-		}
-		// Write the deletion to the logbook.
-		book := r.inst.Repo().Logbook()
-		if err := book.WriteDatasetDelete(ctx, reporef.ConvertToDsref(ref)); err != nil {
-			// If the logbook is missing, it's not an error worth stopping for, since we're
-			// deleting the dataset anyway. This can happen from adding a foreign dataset.
-			if err != oplog.ErrNotFound {
-				return err
-			}
-		}
-		// remove the ref from the ref store
-		if err := r.inst.Repo().DeleteRef(ref); err != nil {
-			return err
-		}
+		didRemove, _ := base.RemoveEntireDataset(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), history)
 		res.NumDeleted = dsref.AllGenerations
+		res.Message = didRemove
 
 		if ref.FSIPath != "" && !p.KeepFiles {
 			// Remove all files
@@ -776,14 +777,15 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 					// If the working directory has already been removed (or renamed), it is
 					// not an error that this remove operation fails, since we were trying to
 					// remove them anyway.
-					log.Debugf("could not remove %s, maybe already removed or renamed", ref.FSIPath)
+					log.Debugf("Remove, couldn't remove %s, maybe already removed or renamed", ref.FSIPath)
 					err = nil
 				} else {
+					log.Debugf("Remove, os.Remove failed, error: %s", err)
 					return err
 				}
 			}
 		}
-	} else {
+	} else if len(history) > 0 {
 		// Delete the specific number of revisions.
 		dsr := history[p.Revision.Gen]
 		replace := &reporef.DatasetRef{
@@ -795,10 +797,12 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 		err = base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/)
 		if err != nil {
+			log.Debugf("Remove, base.ModifyDatasetRef failed, error: %s", err)
 			return err
 		}
-		head, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), &ref, p.Revision.Gen)
+		head, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
+			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return err
 		}
 		res.NumDeleted = p.Revision.Gen
@@ -807,11 +811,13 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			// Load dataset version that is at head after newer versions are removed
 			ds, err := dsfs.LoadDataset(ctx, r.inst.Repo().Store(), head.Path)
 			if err != nil {
+				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
 				return err
 			}
 			ds.Name = head.Name
-			ds.Peername = head.Peername
+			ds.Peername = head.Username
 			if err = base.OpenDataset(ctx, r.inst.Repo().Filesystem(), ds); err != nil {
+				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
 				return err
 			}
 
@@ -821,13 +827,14 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			// Delete the old files
 			err = fsi.DeleteComponentFiles(ref.FSIPath)
 			if err != nil {
-				log.Debug("deleting component files: %s", err)
+				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
 			}
 
 			// Update the files in the working directory
 			fsi.WriteComponents(ds, ref.FSIPath, r.inst.node.Repo.Filesystem())
 		}
 	}
+	log.Debugf("Remove finished")
 	return nil
 }
 

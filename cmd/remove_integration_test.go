@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"fmt"
 	"os"
 	"path/filepath"
 	"strings"
@@ -607,5 +608,48 @@ func TestRemoveEvenIfForeignDatasetWithNoOplog(t *testing.T) {
 	// Remove all should still work, even though the dataset is foreign with no logbook
 	if err := run.ExecCommand("qri remove --revisions=all other_peer/their_dataset"); err != nil {
 		t.Error(err)
+	}
+}
+
+// Test that remove can cleanup datasets in an inconsistent state
+func TestRemoveWorksAfterDeletingWorkingDirectoryFromInit(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_rm_wd_from_init")
+	defer run.Delete()
+
+	sourceFile, err := filepath.Abs("testdata/movies/body_ten.csv")
+	if err != nil {
+		panic(err)
+	}
+
+	workDir := run.CreateAndChdirToWorkDir("remove_rm_wd")
+
+	// Init as a linked directory.
+	run.MustExec(t, fmt.Sprintf("qri init --name remove_rm_wd --source-body-path %s", sourceFile))
+
+	// Go up one directory
+	parentDir := filepath.Dir(workDir)
+	os.Chdir(parentDir)
+
+	// Remove the working directory
+	if err = os.RemoveAll(workDir); err != nil {
+		t.Fatal(err)
+	}
+
+	// Running a command will hit the "EnsureRef" path, which removes the reference from the repo.
+	run.ExecCommand("qri list")
+
+	// Reference is no longer in the refstore, but logbook did not have a delete operation written.
+	// Using --force flag will put this into a consistent state.
+	output := run.MustExec(t, "qri remove --all me/remove_rm_wd -f")
+	if !strings.Contains(output, "removed remains of dataset from logbook") {
+		t.Error("expected to clean up remains of dataset from logbook")
+	}
+
+	workDir = run.CreateAndChdirToWorkDir("remove_rm_wd")
+
+	// Init as a linked directory.
+	err = run.ExecCommand(fmt.Sprintf("qri init --name remove_rm_wd --source-body-path %s", sourceFile))
+	if err != nil {
+		t.Errorf("should be able to init dataset with the removed name, got %q", err)
 	}
 }

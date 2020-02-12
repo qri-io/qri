@@ -4,13 +4,11 @@ import (
 	"context"
 	"fmt"
 	"strings"
-	"time"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -308,83 +306,4 @@ func UnpinDataset(ctx context.Context, r repo.Repo, ref reporef.DatasetRef) erro
 		return pinner.Unpin(ctx, ref.Path, true)
 	}
 	return repo.ErrNotPinner
-}
-
-// RemoveNVersionsFromStore removes n versions of a dataset from the store starting with
-// the most recent version
-// when n == -1, remove all versions
-// does not remove the dataset reference
-func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, ref *reporef.DatasetRef, n int) (*reporef.DatasetRef, error) {
-	var err error
-	if r == nil {
-		return nil, fmt.Errorf("need a repo")
-	}
-	// ref is nil or ref has no path err
-	if ref == nil || ref.Path == "" {
-		return nil, fmt.Errorf("need a dataset reference with a path")
-	}
-
-	if n < -1 {
-		return nil, fmt.Errorf("invalid 'n', n should be n >= 0 or n == -1 to indicate removing all versions")
-	}
-
-	// load previous dataset into prev
-	ref.Dataset, err = dsfs.LoadDatasetRefs(ctx, r.Store(), ref.Path)
-	if err != nil {
-		return nil, err
-	}
-
-	curr := *ref
-
-	// Set a timeout for looking up the previous dataset versions.
-	timeoutCtx, timeoutCancel := context.WithTimeout(ctx, 100*time.Millisecond)
-	defer timeoutCancel()
-
-	i := n
-
-	for i != 0 {
-		// Decrement our counter. If counter was -1, this loop will continue forever, until a
-		// blank PreviousPath is found.
-		i--
-		// unpin dataset, ignoring "not pinned" errors
-		if err = UnpinDataset(ctx, r, curr); err != nil && !strings.Contains(err.Error(), "not pinned") {
-			return nil, err
-		}
-		// if no previous path, break
-		if curr.Dataset.PreviousPath == "" {
-			break
-		}
-		// Load previous dataset into prev. Use a timeout on this lookup, because we don't want
-		// IPFS to hang if it's not available, since that would only happen if it's not local to
-		// our machine. This situation can occur if we have added a foreign dataset from the
-		// registry, and don't have previous versions. In situations like that, it's okay to
-		// break this loop since the only purpose of loading previous versions is to unpin them;
-		// if we don't have all previous versions, we probably don't have them pinned.
-		// TODO(dlong): If IPFS gains the ability to ask "do I have these blocks locally", use
-		// that instead of the network-aware LoadDatasetRefs.
-		next, err := dsfs.LoadDatasetRefs(timeoutCtx, r.Store(), curr.Dataset.PreviousPath)
-		if err != nil {
-			// Note: We want delete to succeed even if datasets are remote, so we don't fail on
-			// this error, and break early instead.
-			if strings.Contains(err.Error(), "context deadline exceeded") {
-				log.Debugf("could not load dataset ref, not found locally")
-				break
-			}
-			// TODO (b5) - removing dataset versions should rely on logbook, which is able
-			// to traverse across missing datasets in qfs
-			log.Debugf("error fetching previous: %s", err)
-			break
-		}
-		curr = reporef.DatasetRef{
-			Path:    next.Path,
-			Dataset: next,
-		}
-	}
-
-	err = r.Logbook().WriteVersionDelete(ctx, reporef.ConvertToDsref(*ref), n)
-	if err == logbook.ErrNoLogbook {
-		err = nil
-	}
-
-	return &curr, nil
 }
