@@ -6,9 +6,11 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/apiutil"
 	"github.com/qri-io/dag"
 	"github.com/qri-io/dag/dsync"
 	"github.com/qri-io/qri/base"
@@ -61,6 +63,18 @@ type Options struct {
 	LogRemovePreCheck Hook
 	// called after a log has been removed
 	LogRemoved Hook
+
+	// called before any feed data request is processed
+	FeedPreCheck Hook
+	// called before a preview request is processed
+	PreviewPreCheck Hook
+
+	// Use a custom feeds interface implementation. Default creates a Feeds
+	// instance from node.Repo
+	Feeds
+	// Use a custom previews interface implementation. Default creates a
+	// Previews instance from node.Repo
+	Previews
 }
 
 // Remote receives requests from other qri nodes to perform actions on their
@@ -69,6 +83,9 @@ type Remote struct {
 	node    *p2p.QriNode
 	dsync   *dsync.Dsync
 	logsync *logsync.Logsync
+
+	Feeds    Feeds
+	Previews Previews
 
 	acceptSizeMax int64
 	// TODO (b5) - dsync needs to use timeouts
@@ -81,6 +98,8 @@ type Remote struct {
 	datasetRemoved        Hook
 	datasetPullPreCheck   Hook
 	datasetPulled         Hook
+	FeedPreCheck          Hook
+	PreviewPreCheck       Hook
 }
 
 // NewRemote creates a remote
@@ -103,6 +122,21 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		datasetRemoved:        o.DatasetRemoved,
 		datasetPullPreCheck:   o.DatasetPullPreCheck,
 		datasetPulled:         o.DatasetPulled,
+
+		FeedPreCheck:    o.FeedPreCheck,
+		PreviewPreCheck: o.PreviewPreCheck,
+	}
+
+	if o.Feeds != nil {
+		r.Feeds = o.Feeds
+	} else {
+		r.Feeds = RepoFeeds{node.Repo}
+	}
+
+	if o.Previews != nil {
+		r.Previews = o.Previews
+	} else {
+		r.Previews = RepoPreviews{node.Repo}
 	}
 
 	capi, err := node.IPFSCoreAPI()
@@ -157,12 +191,30 @@ func (r *Remote) Node() *p2p.QriNode {
 	return r.node
 }
 
+// Address extracts the address of a remote from a configuration for a given
+// remote name
+func Address(cfg *config.Config, name string) (addr string, err error) {
+	if name == "" {
+		if cfg.Registry != nil && cfg.Registry.Location != "" {
+			return cfg.Registry.Location, nil
+		}
+		return "", fmt.Errorf("no registry specifiied to use as default remote")
+	}
+
+	if dst, found := cfg.Remotes.Get(name); found {
+		return dst, nil
+	}
+
+	return "", fmt.Errorf(`remote name "%s" not found`, name)
+}
+
 // ResolveHeadRef fetches the current dataset head path for a given peername and dataset name
 func (r *Remote) ResolveHeadRef(ctx context.Context, peername, name string) (*reporef.DatasetRef, error) {
 	ref := &reporef.DatasetRef{
 		Peername: peername,
 		Name:     name,
 	}
+
 	err := repo.CanonicalizeDatasetRef(r.node.Repo, ref)
 	return ref, err
 }
@@ -178,7 +230,7 @@ func (r *Remote) RemoveDataset(ctx context.Context, params map[string]string) er
 	if err != nil {
 		return err
 	}
-	log.Debug("remove dataset ", ref)
+	log.Debugf("remove dataset %s", ref)
 
 	// run pre check hook
 	if r.datasetRemovePreCheck != nil {
@@ -364,6 +416,22 @@ func (r *Remote) logHook(h Hook) logsync.Hook {
 	}
 }
 
+// AddDefaultRoutes attaches routes a remote client will expect to an HTTP muxer
+func (r *Remote) AddDefaultRoutes(mux *http.ServeMux) {
+	mux.Handle("/remote/dsync", r.DsyncHTTPHandler())
+	mux.Handle("/remote/logsync", r.LogsyncHTTPHandler())
+	mux.Handle("/remote/refs", r.RefsHTTPHandler())
+
+	if fs := r.Feeds; fs != nil {
+		mux.Handle("/remote/feeds", r.FeedsHTTPHandler())
+		mux.Handle("/remote/feeds/", r.FeedHTTPHandler("/remote/feeds/"))
+	}
+	if ps := r.Previews; ps != nil {
+		mux.Handle("/remote/dataset/preview/", r.PreviewHTTPHandler("/remote/dataset/preview/"))
+		mux.Handle("/remote/dataset/component/", r.ComponentHTTPHandler("/remote/dataset/component/"))
+	}
+}
+
 // DsyncHTTPHandler provides an http handler for dsync
 func (r *Remote) DsyncHTTPHandler() http.HandlerFunc {
 	return dsync.HTTPRemoteHandler(r.dsync)
@@ -372,6 +440,94 @@ func (r *Remote) DsyncHTTPHandler() http.HandlerFunc {
 // LogsyncHTTPHandler provides an http handler for synchronizing logs
 func (r *Remote) LogsyncHTTPHandler() http.HandlerFunc {
 	return logsync.HTTPHandler(r.logsync)
+}
+
+// FeedsHTTPHandler provides access to the home feed
+func (r *Remote) FeedsHTTPHandler() http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		if r.FeedPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
+		feeds, err := r.Feeds.Feeds(ctx, "")
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		apiutil.WriteResponse(w, feeds)
+	}
+}
+
+// max number of items in a page of feed data
+const feedPageSize = 30
+
+// FeedHTTPHandler gives access a feed VersionInfos constructed by a remote
+func (r *Remote) FeedHTTPHandler(prefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		if r.FeedPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.FeedPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
+		page := apiutil.PageFromRequest(req)
+		refs, err := r.Feeds.Feed(ctx, "", strings.TrimPrefix(req.URL.Path, prefix), page.Offset(), page.Limit())
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+		}
+
+		apiutil.WritePageResponse(w, refs, req, page)
+	}
+}
+
+// PreviewHTTPHandler handles dataset preview requests over HTTP
+func (r *Remote) PreviewHTTPHandler(prefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, req *http.Request) {
+		ctx := req.Context()
+		if r.PreviewPreCheck != nil {
+			id, err := profile.IDB58Decode(req.Header.Get("pid"))
+			if err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+			if err := r.PreviewPreCheck(ctx, id, reporef.DatasetRef{}); err != nil {
+				apiutil.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("missing signature details"))
+				return
+			}
+		}
+
+		preview, err := r.Previews.Preview(req.Context(), "", strings.TrimPrefix(req.URL.Path, prefix))
+		if err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+
+		apiutil.WriteResponse(w, preview)
+	}
+}
+
+// ComponentHTTPHandler handles dataset component requests over HTTP
+func (r *Remote) ComponentHTTPHandler(prefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		w.Write([]byte("unfinished: ComponentHTTPHandler"))
+	}
 }
 
 // RefsHTTPHandler handles requests for dataset references
@@ -417,21 +573,4 @@ func (r *Remote) RefsHTTPHandler() http.HandlerFunc {
 			w.WriteHeader(http.StatusNotFound)
 		}
 	}
-}
-
-// Address extracts the address of a remote from a configuration for a given
-// remote name
-func Address(cfg *config.Config, name string) (addr string, err error) {
-	if name == "" {
-		if cfg.Registry != nil && cfg.Registry.Location != "" {
-			return cfg.Registry.Location, nil
-		}
-		return "", fmt.Errorf("no registry specifiied to use as default remote")
-	}
-
-	if dst, found := cfg.Remotes.Get(name); found {
-		return dst, nil
-	}
-
-	return "", fmt.Errorf(`remote name "%s" not found`, name)
 }

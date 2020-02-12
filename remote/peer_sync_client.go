@@ -8,11 +8,13 @@ import (
 	"net/http"
 	"net/url"
 	"strings"
+	"time"
 
 	coreiface "github.com/ipfs/interface-go-ipfs-core"
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
 	"github.com/qri-io/dag/dsync"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs/cafs"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
@@ -23,10 +25,15 @@ import (
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
+	"github.com/qri-io/qri/version"
 )
 
-// ErrNoRemoteClient is returned when no client is allocated
-var ErrNoRemoteClient = fmt.Errorf("remote: no client to make remote requests")
+var (
+	// ErrNoRemoteClient is returned when no client is allocated
+	ErrNoRemoteClient = fmt.Errorf("remote: no client to make remote requests")
+	// ErrRemoteNotFound indicates a specified remote couldn't be located
+	ErrRemoteNotFound = fmt.Errorf("remote not found")
+)
 
 // PeerSyncClient talks to a remote in order to sync peer data
 type PeerSyncClient struct {
@@ -336,6 +343,8 @@ func addressType(remoteAddr string) string {
 }
 
 // ListDatasets shows the reflist of a peer
+//
+// Deprecated: prefer feed methods instead
 func (c *PeerSyncClient) ListDatasets(ctx context.Context, ds *reporef.DatasetRef, term string, offset, limit int) (res []reporef.DatasetRef, err error) {
 	if c == nil {
 		return nil, ErrNoRemoteClient
@@ -491,4 +500,113 @@ func (c *PeerSyncClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef
 	}
 
 	return base.ReplaceRefIfMoreRecent(node.Repo, &prevRef, ref)
+}
+
+func (c *PeerSyncClient) signHTTPRequest(req *http.Request) error {
+	pk := c.node.Repo.PrivateKey()
+	now := fmt.Sprintf("%d", nowFunc().In(time.UTC).Unix())
+
+	// TODO (b5) - we shouldn't be calculating profile IDs here
+	peerID, err := calcProfileID(pk)
+	if err != nil {
+		return err
+	}
+
+	b64Sig, err := signString(pk, requestSigningString(now, peerID, req.URL.Path))
+	if err != nil {
+		return err
+	}
+
+	req.Header.Add("timestamp", now)
+	req.Header.Add("pid", peerID)
+	req.Header.Add("signature", b64Sig)
+	req.Header.Add("qri-version", version.String)
+	return nil
+}
+
+// Feeds fetches the first page of featured & recent feeds in one call
+func (c *PeerSyncClient) Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error) {
+	if at := addressType(remoteAddr); at != "http" {
+		return nil, fmt.Errorf("feeds are only supported over HTTP")
+	}
+
+	// TODO (b5) - update registry endpoint name
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/feeds", remoteAddr), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.signHTTPRequest(req); err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such host") {
+			return nil, ErrNoRemoteClient
+		}
+		return nil, err
+	}
+	// add response to an envelope
+	env := struct {
+		Data map[string][]dsref.VersionInfo
+		Meta struct {
+			Error  string
+			Status string
+			Code   int
+		}
+	}{}
+
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
+	}
+
+	return env.Data, nil
+}
+
+// Preview fetches a dataset preview from the registry
+func (c *PeerSyncClient) Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error) {
+	if at := addressType(remoteAddr); at != "http" {
+		return nil, fmt.Errorf("feeds are only supported over HTTP")
+	}
+
+	req, err := http.NewRequest("GET", fmt.Sprintf("%s/remote/dataset/preview/%s", remoteAddr, ref.String()), nil)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := c.signHTTPRequest(req); err != nil {
+		return nil, err
+	}
+
+	res, err := http.DefaultClient.Do(req)
+	if err != nil {
+		if strings.Contains(err.Error(), "no such host") {
+			return nil, ErrRemoteNotFound
+		}
+		return nil, err
+	}
+	// add response to an envelope
+	env := struct {
+		Data *dataset.Dataset
+		Meta struct {
+			Error  string
+			Status string
+			Code   int
+		}
+	}{}
+
+	if err := json.NewDecoder(res.Body).Decode(&env); err != nil {
+		return nil, err
+	}
+
+	if res.StatusCode != http.StatusOK {
+		return nil, fmt.Errorf("error %d: %s", res.StatusCode, env.Meta.Error)
+	}
+
+	return env.Data, nil
 }

@@ -2,8 +2,10 @@ package api
 
 import (
 	"net/http"
+	"strings"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 )
@@ -99,6 +101,56 @@ func (h *RemoteClientHandlers) PublishHandler(w http.ResponseWriter, r *http.Req
 	default:
 		util.NotFoundHandler(w, r)
 	}
+}
+
+// FeedsHandler fetches an index of named feeds
+func (h *RemoteClientHandlers) FeedsHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.feedsHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *RemoteClientHandlers) feedsHandler(w http.ResponseWriter, r *http.Request) {
+	res := map[string][]dsref.VersionInfo{}
+	remName := r.FormValue("remote")
+	if err := h.Feeds(&remName, &res); err != nil {
+		log.Infof("home error: %s", err.Error())
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
+}
+
+// DatasetPreviewHandler fetches a dataset preview from the registry
+func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *http.Request) {
+	switch r.Method {
+	case "OPTIONS":
+		util.EmptyOkHandler(w, r)
+	case "GET":
+		h.previewHandler(w, r)
+	default:
+		util.NotFoundHandler(w, r)
+	}
+}
+
+func (h *RemoteClientHandlers) previewHandler(w http.ResponseWriter, r *http.Request) {
+	p := &lib.PreviewParams{
+		RemoteName: r.FormValue("remote"),
+		Ref:        strings.TrimPrefix(r.URL.Path, "/preview/"),
+	}
+	res := &dataset.Dataset{}
+	if err := h.Preview(p, res); err != nil {
+		util.WriteErrResponse(w, http.StatusBadRequest, err)
+		return
+	}
+
+	util.WriteResponse(w, res)
 }
 
 func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *http.Request) {

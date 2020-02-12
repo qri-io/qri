@@ -3,6 +3,7 @@ package remote
 import (
 	"context"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook/oplog"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -22,4 +23,7 @@ type Client interface {
 	FetchLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) (*oplog.Log, error)
 	CloneLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
 	RemoveLogs(ctx context.Context, ref dsref.Ref, remoteAddr string) error
+
+	Feeds(ctx context.Context, remoteAddr string) (map[string][]dsref.VersionInfo, error)
+	Preview(ctx context.Context, ref dsref.Ref, remoteAddr string) (*dataset.Dataset, error)
 }

@@ -1,7 +1,10 @@
 package dsref
 
 import (
+	"strings"
 	"time"
+
+	"github.com/qri-io/dataset"
 )
 
 // VersionInfo is the way that everything talks about information about datasets in the cases
@@ -93,4 +96,40 @@ func (v *VersionInfo) Alias() string {
 		s += "/" + v.Name
 	}
 	return s
+}
+
+// ConvertDatasetToVersionInfo assigns values form a dataset to a VersionInfo
+// This function is a shim while we work on building up dscache as a store of
+// VersionInfo.
+//
+// Deprecated: Don't use this function for new code. Instead reference a
+// VersionInfo that is stored somewhere, or write a function that builds a
+// VersionInfo without needing a dataset
+func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
+	vi := VersionInfo{
+		Username:  ds.Peername,
+		ProfileID: ds.ProfileID,
+		Name:      ds.Name,
+		Path:      ds.Path,
+	}
+	if ds.Commit != nil {
+		vi.CommitTime = ds.Commit.Timestamp
+		vi.CommitTitle = ds.Commit.Title
+		vi.CommitMessage = ds.Commit.Message
+	}
+	if ds.Meta != nil {
+		vi.MetaTitle = ds.Meta.Title
+		if ds.Meta.Theme != nil {
+			vi.ThemeList = strings.Join(ds.Meta.Theme, ",")
+		}
+	}
+
+	if ds.Structure != nil {
+		vi.BodyFormat = ds.Structure.Format
+		vi.BodySize = ds.Structure.Length
+		vi.BodyRows = ds.Structure.Entries
+		vi.NumErrors = ds.Structure.ErrCount
+	}
+
+	return vi
 }

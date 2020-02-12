@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
@@ -214,4 +215,58 @@ func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 
 	err = r.inst.RemoteClient().PullDataset(ctx, &ref, p.RemoteName)
 	return err
+}
+
+// Feeds returns a listing of datasets from a number of feeds like featured and
+// popular. Each feed is keyed by string in the response
+func (r *RemoteMethods) Feeds(remoteName *string, res *map[string][]dsref.VersionInfo) error {
+	if r.inst.rpc != nil {
+		return r.inst.rpc.Call("RemoteMethods.Feeds", remoteName, res)
+	}
+	ctx := context.TODO()
+
+	addr, err := remote.Address(r.inst.Config(), *remoteName)
+	if err != nil {
+		return err
+	}
+
+	feed, err := r.inst.RemoteClient().Feeds(ctx, addr)
+	if err != nil {
+		return err
+	}
+
+	*res = feed
+	return nil
+}
+
+// PreviewParams provides arguments to the preview method
+type PreviewParams struct {
+	RemoteName string
+	Ref        string
+}
+
+// Preview requests a dataset preview from a remote
+func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
+	if r.inst.rpc != nil {
+		return r.inst.rpc.Call("RemoteMethods.Preview", p, res)
+	}
+	ctx := context.TODO()
+
+	ref, err := repo.ParseDatasetRef(p.Ref)
+	if err != nil {
+		return err
+	}
+
+	addr, err := remote.Address(r.inst.Config(), p.RemoteName)
+	if err != nil {
+		return err
+	}
+
+	pre, err := r.inst.RemoteClient().Preview(ctx, reporef.ConvertToDsref(ref), addr)
+	if err != nil {
+		return err
+	}
+
+	*res = *pre
+	return nil
 }

@@ -300,8 +300,11 @@ func Clone(t *testing.T, inst *Instance, refstr string) *reporef.DatasetRef {
 }
 
 func Preview(t *testing.T, inst *Instance, refstr string) *dataset.Dataset {
+	p := &PreviewParams{
+		Ref: refstr,
+	}
 	res := &dataset.Dataset{}
-	if err := NewRegistryClientMethods(inst).Preview(&refstr, res); err != nil {
+	if err := NewRemoteMethods(inst).Preview(p, res); err != nil {
 		t.Fatal(err)
 	}
 	return res

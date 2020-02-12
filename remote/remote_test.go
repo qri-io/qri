@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/google/go-cmp/cmp"
 	core "github.com/ipfs/go-ipfs/core"
@@ -12,8 +13,10 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
 	cfgtest "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/p2p"
 	p2ptest "github.com/qri-io/qri/p2p/test"
 	"github.com/qri-io/qri/repo"
@@ -21,7 +24,7 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestDatasetPullPushDeleteHTTP(t *testing.T) {
+func TestDatasetPullPushDeleteFeedsPreviewHTTP(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -59,31 +62,18 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		o.LogPulled = callCheck("LogPulled")
 		o.LogRemovePreCheck = callCheck("LogRemovePreCheck")
 		o.LogRemoved = callCheck("LogRemoved")
+
+		o.FeedPreCheck = callCheck("FeedPreCheck")
+		o.PreviewPreCheck = callCheck("PreviewPreCheck")
 	}
 
-	aCfg := &config.Remote{
-		Enabled:       true,
-		AllowRemoves:  true,
-		AcceptSizeMax: 10000,
-	}
-
-	rem, err := NewRemote(tr.NodeA, aCfg, opts)
-	if err != nil {
-		t.Error(err)
-	}
-
-	mux := http.NewServeMux()
-	mux.Handle("/remote/refs", rem.RefsHTTPHandler())
-	mux.Handle("/remote/logsync", rem.LogsyncHTTPHandler())
-	mux.Handle("/remote/dsync", rem.DsyncHTTPHandler())
-	server := httptest.NewServer(mux)
+	rem := tr.NodeARemote(t, opts)
+	server := tr.RemoteTestServer(rem)
+	defer server.Close()
 
 	worldBankRef := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
 
-	cli, err := NewClient(tr.NodeB)
-	if err != nil {
-		t.Error(err)
-	}
+	cli := tr.NodeBClient(t)
 
 	relRef := &reporef.DatasetRef{Peername: worldBankRef.Peername, Name: worldBankRef.Name}
 	if err := cli.ResolveHeadRef(tr.Ctx, relRef, server.URL); err != nil {
@@ -117,6 +107,13 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		t.Error(err)
 	}
 
+	if _, err := cli.Feeds(tr.Ctx, server.URL); err != nil {
+		t.Error(err)
+	}
+	if _, err := cli.Preview(tr.Ctx, reporef.ConvertToDsref(worldBankRef), server.URL); err != nil {
+		t.Error(err)
+	}
+
 	expectHooksCallOrder := []string{
 		"LogPullPreCheck",
 		"LogPulled",
@@ -130,6 +127,8 @@ func TestDatasetPullPushDeleteHTTP(t *testing.T) {
 		"LogRemovePreCheck",
 		"LogRemoved",
 		"DatasetRemoved",
+		"FeedPreCheck",
+		"PreviewPreCheck",
 	}
 
 	if diff := cmp.Diff(expectHooksCallOrder, hooksCalled); diff != "" {
@@ -171,6 +170,71 @@ func TestAddress(t *testing.T) {
 	}
 }
 
+func TestFeeds(t *testing.T) {
+	tr, cleanup := newTestRunner(t)
+	defer cleanup()
+
+	wbp := writeWorldBankPopulation(tr.Ctx, t, tr.NodeA.Repo)
+	publishRef(t, tr.NodeA.Repo, &wbp)
+
+	vvs := writeVideoViewStats(tr.Ctx, t, tr.NodeA.Repo)
+	publishRef(t, tr.NodeA.Repo, &vvs)
+
+	aCfg := &config.Remote{
+		Enabled:       true,
+		AllowRemoves:  true,
+		AcceptSizeMax: 10000,
+	}
+
+	rem, err := NewRemote(tr.NodeA, aCfg)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	if rem.Feeds == nil {
+		t.Errorf("expected RepoFeeds to be created by default. got nil")
+	}
+
+	got, err := rem.Feeds.Feeds(tr.Ctx, "")
+	if err != nil {
+		t.Error(err)
+	}
+
+	expect := map[string][]dsref.VersionInfo{
+		"recent": {
+			{
+				Username:      "A",
+				Name:          "video_view_stats",
+				Path:          "/ipfs/QmXKGQuHfYAy9SBaMRMvPW74mQXNVmyMmMXBQjTo21G8yQ",
+				MetaTitle:     "Video View Stats",
+				BodySize:      4,
+				BodyRows:      1,
+				BodyFormat:    "json",
+				CommitTime:    time.Time{},
+				CommitTitle:   "initial commit",
+				CommitMessage: "created dataset",
+			},
+			{
+				Username:      "A",
+				Name:          "world_bank_population",
+				Path:          "/ipfs/QmVeWbw4DJQqWjKXohgTu5JdhVniLPiyb6z6m1duwvXdQe",
+				MetaTitle:     "World Bank Population",
+				BodySize:      5,
+				BodyRows:      1,
+				BodyFormat:    "json",
+				CommitTime:    time.Time{},
+				CommitTitle:   "initial commit",
+				CommitMessage: "created dataset",
+			},
+		},
+	}
+
+	if diff := cmp.Diff(expect, got); diff != "" {
+		t.Errorf("feed mismatch. (-want +got): \n%s", diff)
+	}
+
+}
+
 type testRunner struct {
 	Ctx          context.Context
 	NodeA, NodeB *p2p.QriNode
@@ -181,6 +245,8 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	tr = &testRunner{
 		Ctx: context.Background(),
 	}
+	prevTs := dsfs.Timestamp
+	dsfs.Timestamp = func() time.Time { return time.Time{} }
 
 	nodes, _, err := p2ptest.MakeIPFSSwarm(tr.Ctx, true, 2)
 	if err != nil {
@@ -190,8 +256,38 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	tr.NodeA = qriNode(t, "A", nodes[0], cfgtest.GetTestPeerInfo(0))
 	tr.NodeB = qriNode(t, "B", nodes[1], cfgtest.GetTestPeerInfo(1))
 
-	cleanup = func() {}
+	cleanup = func() {
+		dsfs.Timestamp = prevTs
+	}
 	return tr, cleanup
+}
+
+func (tr *testRunner) NodeARemote(t *testing.T, opts ...func(o *Options)) *Remote {
+	aCfg := &config.Remote{
+		Enabled:       true,
+		AllowRemoves:  true,
+		AcceptSizeMax: 10000,
+	}
+
+	rem, err := NewRemote(tr.NodeA, aCfg, opts...)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return rem
+}
+
+func (tr *testRunner) RemoteTestServer(rem *Remote) *httptest.Server {
+	mux := http.NewServeMux()
+	rem.AddDefaultRoutes(mux)
+	return httptest.NewServer(mux)
+}
+
+func (tr *testRunner) NodeBClient(t *testing.T) Client {
+	cli, err := NewClient(tr.NodeB)
+	if err != nil {
+		t.Fatal(err)
+	}
+	return cli
 }
 
 func qriNode(t *testing.T, peername string, node *core.IpfsNode, pi *cfgtest.PeerInfo) *p2p.QriNode {
@@ -230,6 +326,12 @@ func writeWorldBankPopulation(ctx context.Context, t *testing.T, r repo.Repo) re
 	}
 
 	return ref
+}
+
+func publishRef(t *testing.T, r repo.Repo, ref *reporef.DatasetRef) {
+	if err := base.SetPublishStatus(r, ref, true); err != nil {
+		t.Fatal(err)
+	}
 }
 
 func writeVideoViewStats(ctx context.Context, t *testing.T, r repo.Repo) reporef.DatasetRef {
