@@ -131,6 +131,8 @@ func (o *RemoveOptions) Run() (err error) {
 		printSuccess(o.Out, "removed entire dataset '%s'", res.Ref)
 	} else if res.NumDeleted != 0 {
 		printSuccess(o.Out, "removed %d revisions of dataset '%s'", res.NumDeleted, res.Ref)
+	} else if res.Message != "" {
+		printSuccess(o.Out, "removed remains of dataset from %s", res.Message)
 	}
 	if res.Unlinked {
 		printSuccess(o.Out, "removed dataset link")
