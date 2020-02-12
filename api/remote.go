@@ -142,7 +142,7 @@ func (h *RemoteClientHandlers) DatasetPreviewHandler(w http.ResponseWriter, r *h
 func (h *RemoteClientHandlers) previewHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.PreviewParams{
 		RemoteName: r.FormValue("remote"),
-		Ref:        strings.TrimPrefix(r.URL.Path, "/dataset/preview/"),
+		Ref:        strings.TrimPrefix(r.URL.Path, "/preview/"),
 	}
 	res := &dataset.Dataset{}
 	if err := h.Preview(p, res); err != nil {

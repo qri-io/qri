@@ -277,7 +277,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/publish/", s.middleware(remClientH.PublishHandler))
 	m.Handle("/fetch/", s.middleware(remClientH.NewFetchHandler("/fetch")))
 	m.Handle("/feeds", s.middleware(remClientH.FeedsHandler))
-	m.Handle("/dataset/preview", s.middleware(remClientH.DatasetPreviewHandler))
+	m.Handle("/preview/", s.middleware(remClientH.DatasetPreviewHandler))
 
 	uh := UpdateHandlers{
 		UpdateMethods: lib.NewUpdateMethods(s.Instance),

@@ -107,9 +107,10 @@ func (v *VersionInfo) Alias() string {
 // VersionInfo without needing a dataset
 func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 	vi := VersionInfo{
-		Username: ds.Peername,
-		Name:     ds.Name,
-		Path:     ds.Path,
+		Username:  ds.Peername,
+		ProfileID: ds.ProfileID,
+		Name:      ds.Name,
+		Path:      ds.Path,
 	}
 	if ds.Commit != nil {
 		vi.CommitTime = ds.Commit.Timestamp

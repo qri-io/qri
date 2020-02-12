@@ -10,11 +10,12 @@ import (
 
 func TestConvertToVersionInfo(t *testing.T) {
 	ds := &dataset.Dataset{
-		Peername: "a",
-		Name:     "b",
-		Path:     "c",
+		Peername:  "a",
+		ProfileID: "a's profile ID",
+		Name:      "b",
+		Path:      "c",
 		Commit: &dataset.Commit{
-			Timestamp: time.Time{},
+			Timestamp: time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
 			Title:     "d",
 			Message:   "e",
 		},
@@ -32,9 +33,10 @@ func TestConvertToVersionInfo(t *testing.T) {
 
 	expect := VersionInfo{
 		Username:      "a",
+		ProfileID:     "a's profile ID",
 		Name:          "b",
 		Path:          "c",
-		CommitTime:    time.Time{},
+		CommitTime:    time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
 		CommitTitle:   "d",
 		CommitMessage: "e",
 
