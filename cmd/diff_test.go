@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestDiffComplete(t *testing.T) {
@@ -75,7 +76,12 @@ func TestDiffRun(t *testing.T) {
 				Refs:     NewListOfRefSelects([]string{"me/movies", "me/cities"}),
 				Selector: "meta",
 			},
-			"0 elements. 0 inserts. 0 deletes. 1 update.\n\n~ title: \"example city data\"\n",
+			`0 elements. 1 insert. 1 delete.
+
+ qri: "md:0"
+-title: "example movie data"
++title: "example city data"
+`,
 		},
 		{"diff json output",
 			&DiffOptions{
@@ -83,34 +89,32 @@ func TestDiffRun(t *testing.T) {
 				Selector: "meta",
 				Format:   "json",
 			},
-			`[{"type":"update","path":"/title","value":"example city data","originalValue":"example movie data"}]
+			`{"stat":{"leftNodes":3,"rightNodes":3,"leftWeight":45,"rightWeight":43,"inserts":1,"deletes":1},"diff":[[" ","qri","md:0"],["-","title","example movie data"],["+","title","example city data"]]}
 `,
 		},
 	}
 
 	for _, c := range good {
-		dsr, err := f.DatasetRequests()
-		if err != nil {
-			t.Errorf("case %s, error creating dataset request: %s", c.description, err)
-			continue
-		}
-
-		opt := c.opt
-		opt.IOStreams = streams
-		opt.DatasetRequests = dsr
-
-		if err = opt.Run(); err != nil {
-			t.Errorf("case %s unexpected error: %s", c.description, err)
+		t.Run(c.description, func(t *testing.T) {
+			dsr, err := f.DatasetRequests()
+			if err != nil {
+				t.Fatalf("case %s, error creating dataset request: %s", c.description, err)
+			}
+	
+			opt := c.opt
+			opt.IOStreams = streams
+			opt.DatasetRequests = dsr
+	
+			if err = opt.Run(); err != nil {
+				t.Fatalf("case %s unexpected error: %s", c.description, err)
+			}
+	
+			if diff := cmp.Diff(out.String(), c.stdout); diff != "" {
+				t.Errorf("output mismatch (-want +got):\n%s", diff)
+			}
+			
 			ioReset(in, out, errs)
-			continue
-		}
-
-		if c.stdout != out.String() {
-			t.Errorf("case %s, output mismatch. Expected: '%s', Got: '%s'", c.description, c.stdout, out.String())
-			ioReset(in, out, errs)
-			continue
-		}
-		ioReset(in, out, errs)
+		})
 	}
 
 	bad := []struct {

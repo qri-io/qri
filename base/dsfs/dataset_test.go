@@ -479,37 +479,23 @@ func TestGenerateCommitMessage(t *testing.T) {
 			&dataset.Dataset{
 				Structure: &dataset.Structure{Format: "json"},
 				Body: toqtype.MustParseJSONAsArray(`[
-  {
-    "fruit": "apple", "color": "red"
-  },
-  {
-    "fruit": "banana", "color": "yellow"
-  },
-  {
-    "fruit": "cherry", "color": "red"
-  }
+  { "fruit": "apple", "color": "red" },
+  { "fruit": "banana", "color": "yellow" },
+  { "fruit": "cherry", "color": "red" }
 ]`),
 			},
 			&dataset.Dataset{
 				Structure: &dataset.Structure{Format: "json"},
 				Body: toqtype.MustParseJSONAsArray(`[
-  {
-    "fruit": "apple", "color": "red"
-  },
-  {
-    "fruit": "blueberry", "color": "blue"
-  },
-  {
-    "fruit": "cherry", "color": "red"
-  },
-  {
-    "fruit": "durian", "color": "green"
-  }
+  { "fruit": "apple", "color": "red" },
+  { "fruit": "blueberry", "color": "blue" },
+  { "fruit": "cherry", "color": "red" },
+  { "fruit": "durian", "color": "green" }
 ]`),
 			},
 			false,
-			"body replaced row 1 and added row 3",
-			"body:\n\treplaced row 1\n\tadded row 3",
+			"body updated row 1 and added row 3",
+			"body:\n\tupdated row 1\n\tadded row 3",
 		},
 		{
 			"body with lots of changes",
@@ -665,7 +651,7 @@ hen,twenty-nine,30`),
 	}
 
 	for _, c := range goodCases {
-		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
+		t.Run(c.description, func(t *testing.T) {
 			shortTitle, longMessage, err := generateCommitDescriptions(c.prev, c.ds, c.force)
 			if err != nil {
 				t.Errorf("error: %s", err.Error())

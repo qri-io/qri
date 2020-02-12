@@ -184,7 +184,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 		FilePaths:  []string{metaOnePath},
 		ReturnBody: true}, res)
 	if err != nil {
-		t.Error(err.Error())
+		t.Fatal(err.Error())
 	}
 
 	err = r.Save(&SaveParams{
@@ -192,7 +192,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 		FilePaths: []string{metaOnePath},
 		Recall:    "wut"}, res)
 	if err == nil {
-		t.Error("expected bad recall to error")
+		t.Fatal("expected bad recall to error")
 	}
 
 	err = r.Save(&SaveParams{
@@ -200,7 +200,7 @@ func TestDatasetRequestsSaveRecall(t *testing.T) {
 		FilePaths: []string{metaTwoPath},
 		Recall:    "tf"}, res)
 	if err != nil {
-		t.Error(err)
+		t.Fatal(err)
 	}
 	if res.Dataset.Transform == nil {
 		t.Error("expected transform to exist on recalled save")

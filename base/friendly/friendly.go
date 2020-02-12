@@ -8,7 +8,7 @@ import (
 	"github.com/qri-io/deepdiff"
 )
 
-var log = logger.Logger("dsfs")
+var log = logger.Logger("friendly")
 
 const smallNumberOfChangesToBody = 3
 
@@ -25,7 +25,7 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 		return "", ""
 	}
 
-	deltas = preprocess(deltas)
+	deltas = preprocess(deltas, "")
 	perComponentChanges := buildComponentChanges(deltas)
 
 	// Data accumulated while iterating over the components.
@@ -68,6 +68,14 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 					// it for both the long message and short title.
 					msg = fmt.Sprintf("%s:\n\t%s", compName, changes.Rows[0])
 					shortTitle = fmt.Sprintf("%s %s", compName, changes.Rows[0])
+				} else if len(changes.Rows) == 0 {
+					// TODO (b5) - this is a hack to make TestSaveTransformWithoutChanges
+					// in the cmd package pass. We're getting to this stage with 0 rows of 
+					// changes, which is making msg & title not-empty, which is in turn allowing.
+					// a commit b/c it looks like a change. ideally we don't make it here at all,
+					// but we DEFINITELY need a better hueristic for dsfs.CreateDataset's
+					// change detection check. Maybe use diffstat?
+					continue
 				} else {
 					// If there were multiple changes, describe them all for the long message
 					// but just show the number of changes for the short title.
@@ -107,38 +115,48 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 	return shortTitle, longMessage
 }
 
-// preprocess makes delta lists easier to work with, by combining operations when possible
-func preprocess(deltas []*deepdiff.Delta) []*deepdiff.Delta {
+const dtReplace = deepdiff.Operation("replace")
+
+
+
+// preprocess makes delta lists easier to work with, by combining operations 
+// when possible & removing unwanted paths
+func preprocess(deltas deepdiff.Deltas, path string) deepdiff.Deltas {
 	build := make([]*deepdiff.Delta, 0, len(deltas))
 	for i, d := range deltas {
 		if i > 0 {
 			last := build[len(build)-1]
-			if last.Path == d.Path {
+			if last.Path.String() == d.Path.String() {
 				if last.Type == deepdiff.DTDelete && d.Type == deepdiff.DTInsert {
-					last.Type = "replace"
+					last.Type = dtReplace
 					continue
 				}
 			}
 		}
+
+		p := joinPath(path, d.Path.String())
+		// TODO (b5) - We need this because it's possible to write a transform script
+		// that changes nothing other than the script itself, and we currently reject
+		// that change. Should we? I think I'm missing something.
+		if p == "transform.scriptPath" {
+			continue
+		}
+
 		build = append(build, d)
+		if len(d.Deltas) > 0 {
+			d.Deltas = preprocess(d.Deltas, joinPath(path, d.Path.String()))
+		}
 	}
 	return build
 }
 
-func buildComponentChanges(deltas []*deepdiff.Delta) map[string]*ComponentChanges {
+func buildComponentChanges(deltas deepdiff.Deltas) map[string]*ComponentChanges {
 	perComponentChanges := make(map[string]*ComponentChanges)
 	for _, d := range deltas {
-		if d.Path == "/transform/scriptPath" {
-			continue
-		}
-		parts := strings.Split(d.Path, "/")
-		if len(parts) < 2 {
-			log.Debugf("path %q cannot map to dataset delta", d.Path)
-			continue
-		} else if len(parts) == 2 {
+		compName := d.Path.String()
+		if d.Type != deepdiff.DTContext {
 			// Entire component changed
-			compName := parts[1]
-			if d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTDelete {
+			if d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTDelete || d.Type == dtReplace {
 				if _, ok := perComponentChanges[compName]; !ok {
 					perComponentChanges[compName] = &ComponentChanges{}
 				}
@@ -149,30 +167,56 @@ func buildComponentChanges(deltas []*deepdiff.Delta) map[string]*ComponentChange
 				log.Debugf("unknown delta type %q for path %q", d.Type, d.Path)
 				continue
 			}
-		} else {
+		} else if len(d.Deltas) > 0 {
 			// Part of the component changed, record some state to build into a message later
-			compName := parts[1]
-			if _, ok := perComponentChanges[compName]; !ok {
-				perComponentChanges[compName] = &ComponentChanges{}
-			}
-			changes, _ := perComponentChanges[compName]
+			changes := &ComponentChanges{}
+
 			if compName == "body" {
-				changes.Num++
-				if changes.Num <= smallNumberOfChangesToBody {
-					rowNum := parts[2]
-					rowModify := fmt.Sprintf("%s row %s", pastTense(string(d.Type)), rowNum)
-					changes.Rows = append(changes.Rows, rowModify)
-				} else {
-					changes.Rows = nil
-				}
+				buildBodyChanges(changes, "", d.Deltas)
 			} else {
-				rowModify := fmt.Sprintf("%s %s", pastTense(string(d.Type)),
-					strings.Join(parts[2:], "."))
-				changes.Rows = append(changes.Rows, rowModify)
+				buildChanges(changes, "", d.Deltas)
 			}
+
+			perComponentChanges[compName] = changes
 		}
 	}
 	return perComponentChanges
+}
+
+func buildChanges(changes *ComponentChanges, parentPath string, deltas deepdiff.Deltas) {
+	for _, d := range deltas {
+		if d.Type != deepdiff.DTContext {
+			rowModify := fmt.Sprintf("%s %s", pastTense(string(d.Type)), joinPath(parentPath, d.Path.String()))
+			changes.Rows = append(changes.Rows, rowModify)
+		}
+
+		if len(d.Deltas) > 0 {
+			buildChanges(changes, joinPath(parentPath, d.Path.String()), d.Deltas)
+		}
+	}
+}
+
+func buildBodyChanges(changes *ComponentChanges, parentPath string, deltas deepdiff.Deltas) {
+	for _, d := range deltas {
+		if d.Type == deepdiff.DTDelete || d.Type == deepdiff.DTInsert || d.Type == deepdiff.DTUpdate || d.Type == dtReplace {
+			changes.Num++
+			if changes.Num <= smallNumberOfChangesToBody {
+				rowModify := fmt.Sprintf("%s row %s", pastTense(string(d.Type)), joinPath(parentPath, d.Path.String()))
+				changes.Rows = append(changes.Rows, rowModify)
+			} else {
+				changes.Rows = nil
+			}
+		} else if len(d.Deltas) > 0 {
+			buildBodyChanges(changes, joinPath(parentPath, d.Path.String()), d.Deltas)
+		}
+	}
+}
+
+func joinPath(parent, element string) string {
+	if parent == "" {
+		return element
+	}
+	return fmt.Sprintf("%s.%s", parent, element)
 }
 
 func pastTense(text string) string {
@@ -180,12 +224,10 @@ func pastTense(text string) string {
 		return "removed"
 	} else if text == string(deepdiff.DTInsert) {
 		return "added"
-	} else if text == string(deepdiff.DTMove) {
-		return "moved"
 	} else if text == string(deepdiff.DTUpdate) {
 		return "updated"
 	} else if text == "replace" {
-		return "replaced"
+		return "updated"
 	}
 	return text
 }

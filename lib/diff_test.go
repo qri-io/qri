@@ -1,7 +1,6 @@
 package lib
 
 import (
-	"encoding/json"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -47,31 +46,31 @@ func TestDatasetRequestsDiff(t *testing.T) {
 		{"two fully qualified references",
 			dsRef1.String(), dsRef2.String(),
 			"",
-			&DiffStat{Left: 41, Right: 42, LeftWeight: 2548, RightWeight: 2770, Inserts: 0, Updates: 8, Deletes: 0, Moves: 0},
-			8,
+			&DiffStat{Left: 41, Right: 42, LeftWeight: 2548, RightWeight: 2770, Inserts: 8, Updates: 0, Deletes: 8},
+			9,
 		},
 		{"fill left path from history",
 			dsRef2.AliasString(), dsRef2.AliasString(),
 			"",
-			&DiffStat{Left: 41, Right: 42, LeftWeight: 2548, RightWeight: 2770, Inserts: 0, Updates: 8, Deletes: 0, Moves: 0},
-			8,
+			&DiffStat{Left: 41, Right: 42, LeftWeight: 2548, RightWeight: 2770, Inserts: 8, Updates: 0, Deletes: 8},
+			9,
 		},
 		{"two local file paths",
 			"testdata/jobs_by_automation/body.csv", "testdata/jobs_by_automation_2/body.csv",
 			"",
-			&DiffStat{Left: 151, Right: 151, LeftWeight: 3757, RightWeight: 3757, Inserts: 0, Updates: 1, Deletes: 0, Moves: 0},
-			1,
+			&DiffStat{Left: 151, Right: 151, LeftWeight: 3757, RightWeight: 3757, Inserts: 1, Updates: 0, Deletes: 1},
+			30,
 		},
 		{"diff local csv & json file",
 			"testdata/now_tf/input.dataset.json", "testdata/jobs_by_automation/body.csv",
 			"",
-			&DiffStat{Left: 10, Right: 151, LeftWeight: 162, RightWeight: 3757, Inserts: 151, Updates: 0, Deletes: 151, Moves: 0},
+			&DiffStat{Left: 10, Right: 151, LeftWeight: 162, RightWeight: 3757, Inserts: 1, Updates: 0, Deletes: 1},
 			2,
 		},
 		{"case-sensitive key change",
 			djsOnePath, djsTwoPath,
 			"",
-			&DiffStat{Left: 4, Right: 4, LeftWeight: 18, RightWeight: 18, Inserts: 3, Updates: 0, Deletes: 1, Moves: 0},
+			&DiffStat{Left: 4, Right: 4, LeftWeight: 18, RightWeight: 18, Inserts: 1, Updates: 0, Deletes: 1},
 			2,
 		},
 	}
@@ -99,8 +98,8 @@ func TestDatasetRequestsDiff(t *testing.T) {
 				t.Errorf("result mismatch (-want +got):\n%s", diff)
 			}
 
-			dlt, _ := json.MarshalIndent(res.Diff, "", "  ")
-			t.Logf("%s", dlt)
+			// dlt, _ := json.MarshalIndent(res.Diff, "", "  ")
+			// t.Logf("%s", dlt)
 
 			if len(res.Diff) != c.DeltaLen {
 				t.Errorf("%d: \"%s\" delta length mismatch. want: %d got: %d", i, c.description, c.DeltaLen, len(res.Diff))

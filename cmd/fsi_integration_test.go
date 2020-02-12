@@ -1029,17 +1029,26 @@ run ` + "`qri save`" + ` to commit this dataset
 	output = run.MustExec(t, "qri diff")
 	expect = `for linked dataset [test_peer/diff_change]
 
-+1 element. 1 insert. 0 deletes. 4 updates.
++1 element. 5 inserts. 4 deletes.
 
-body:
-  0:
-    ~ 0: "lucky"
-    ~ 1: "number"
-    ~ 2: 17
-  1:
-    ~ 2: 321
-meta:
-  + title: "hello"
+ body: 
+   0: 
+    -0: "one"
+    +0: "lucky"
+    -1: "two"
+    +1: "number"
+    -2: 3
+    +2: 17
+   1: 
+     0: "four"
+     1: "five"
+    -2: 6
+    +2: 321
+ meta: 
+   qri: "md:0"
+  +title: "hello"
+ qri: "ds:0"
+ structure: {"format":"csv","formatConfig":{"lazyQuotes":true},"qri":"st:0","schema":{"items":{"items":[{"title":"field_1","type":"string"},{"title":"field_2","type":"string"},{"title":"field_3","type":"integer"}],"type":"array"},"type":"array"}}
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)

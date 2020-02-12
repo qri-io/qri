@@ -9,22 +9,21 @@ import (
 )
 
 func TestFriendlyDiffDescriptions(t *testing.T) {
+	// TODO (b5) - we should update this test to use deepdiff to generate these diffs
+	// from actual changes. It'll make the test here sensitive to changes in
+	// deepdiff output
 	// Change both the meta and structure
-	deltas := []*deepdiff.Delta{
-		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/meta/title",
-			Value:       "def",
-			SourcePath:  "/meta/title",
-			SourceValue: "abc",
-		},
-		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/structure/formatConfig/headerRow",
-			Value:       true,
-			SourcePath:  "/structure/formatConfig/headerRow",
-			SourceValue: false,
-		},
+	deltas := deepdiff.Deltas{
+		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("meta"), Deltas: deepdiff.Deltas{
+			{Type: deepdiff.DTDelete, Path: deepdiff.StringAddr("title"), Value: "abc"},
+			{Type: deepdiff.DTInsert, Path: deepdiff.StringAddr("title"), Value: "def"},
+		}},
+		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("structure"), Deltas: deepdiff.Deltas{
+			{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("formatConfig"), Deltas: deepdiff.Deltas{
+				{Type: deepdiff.DTDelete, Path: deepdiff.StringAddr("headerRow"), Value: false},
+				{Type: deepdiff.DTInsert, Path: deepdiff.StringAddr("headerRow"), Value: true},
+			}},
+		}},
 	}
 	stats := deepdiff.Stats{
 		Left: 46,
@@ -48,11 +47,11 @@ func TestBuildComponentChanges(t *testing.T) {
 	// Change the meta.title
 	deltas := []*deepdiff.Delta{
 		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/meta/title",
-			Value:       "def",
-			SourcePath:  "/meta/title",
-			SourceValue: "abc",
+			Type: deepdiff.DTContext,
+			Path: deepdiff.StringAddr("meta"),
+			Deltas: deepdiff.Deltas{
+				{Type: deepdiff.DTUpdate, Path: deepdiff.StringAddr("title"), Value: "def", SourceValue: "abc"},
+			},
 		},
 	}
 	m := buildComponentChanges(deltas)
@@ -69,14 +68,12 @@ func TestBuildComponentChanges(t *testing.T) {
 	}
 
 	// Change the structure
-	deltas = []*deepdiff.Delta{
-		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/structure/formatConfig/headerRow",
-			Value:       true,
-			SourcePath:  "/structure/formatConfig/headerRow",
-			SourceValue: false,
-		},
+	deltas = deepdiff.Deltas{
+		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("structure"), Deltas: deepdiff.Deltas{
+			{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("formatConfig"), Deltas: deepdiff.Deltas{
+				{Type: deepdiff.DTUpdate, Path: deepdiff.StringAddr("headerRow"), Value: true, SourceValue: false},
+			}},
+		}},
 	}
 	m = buildComponentChanges(deltas)
 	keys = getKeys(m)
@@ -92,21 +89,15 @@ func TestBuildComponentChanges(t *testing.T) {
 	}
 
 	// Change both the meta and structure
-	deltas = []*deepdiff.Delta{
-		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/meta/title",
-			Value:       "def",
-			SourcePath:  "/meta/title",
-			SourceValue: "abc",
-		},
-		&deepdiff.Delta{
-			Type:        deepdiff.DTUpdate,
-			Path:        "/structure/formatConfig/headerRow",
-			Value:       true,
-			SourcePath:  "/structure/formatConfig/headerRow",
-			SourceValue: false,
-		},
+	deltas = deepdiff.Deltas{
+		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("meta"), Deltas: deepdiff.Deltas{
+			{Type: deepdiff.DTUpdate, Path: deepdiff.StringAddr("title"), Value: "def", SourceValue: "abc"},
+		}},
+		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("structure"), Deltas: deepdiff.Deltas{
+			{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("formatConfig"), Deltas: deepdiff.Deltas{
+				{Type: deepdiff.DTUpdate, Path: deepdiff.StringAddr("headerRow"), Value: true, SourceValue: false},
+			}},
+		}},
 	}
 	m = buildComponentChanges(deltas)
 	keys = getKeys(m)

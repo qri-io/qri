@@ -475,6 +475,8 @@ func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, l
 		return "created dataset", "created dataset", nil
 	}
 
+	ctx := context.TODO()
+
 	// TODO(dlong): Inline body if it is a reasonable size, in order to get information about
 	// how the body has changed.
 	// TODO(dlong): Also should ignore derived fields, like structure.{checksum,entries,length}.
@@ -491,13 +493,12 @@ func generateCommitDescriptions(prev, ds *dataset.Dataset, force bool) (short, l
 		return "", "", err
 	}
 
-	stat := deepdiff.Stats{}
-	diff, err := deepdiff.Diff(prevData, nextData, deepdiff.OptionSetStats(&stat))
+	diff, stat, err := deepdiff.New().StatDiff(ctx, prevData, nextData)
 	if err != nil {
 		return "", "", err
 	}
 
-	shortTitle, longMessage := friendly.DiffDescriptions(diff, &stat)
+	shortTitle, longMessage := friendly.DiffDescriptions(diff, stat)
 	if shortTitle == "" {
 		if force {
 			return "forced update", "forced update", nil
