@@ -45,10 +45,29 @@ func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	return
 }
 
+// IDRawBytes constructs an ID from raw bytes. No decoding happens. Should only be used in tests
+func IDRawBytes(data string) ID {
+	return ID(data)
+}
+
+// IDFromPeerID type casts a peer.ID from ipfs into an ID
+func IDFromPeerID(pid peer.ID) ID {
+	return ID(pid)
+}
+
 // IDB58Decode proxies a lower level API b/c I'm lazy & don't like
 func IDB58Decode(proid string) (ID, error) {
 	pid, err := peer.IDB58Decode(proid)
 	return ID(pid), err
+}
+
+// IDB58DecodeOrEmpty decodes an ID, or returns an empty ID if decoding fails
+func IDB58DecodeOrEmpty(proid string) ID {
+	pid, err := peer.IDB58Decode(proid)
+	if err != nil {
+		pid = ""
+	}
+	return ID(pid)
 }
 
 // IDB58MustDecode panics if an ID doesn't decode. useful for testing

@@ -75,7 +75,7 @@ func (c *MockClient) AddDataset(ctx context.Context, ref *reporef.DatasetRef, re
 	}
 
 	// Fill in details for the reference
-	ref.ProfileID = profile.ID(info.PeerID)
+	ref.ProfileID = profile.IDFromPeerID(info.PeerID)
 	ref.Path = path
 
 	// Store ref for a mock dataset.

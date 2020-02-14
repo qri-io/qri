@@ -28,7 +28,7 @@ import (
 // MakeRepoFromIPFSNode wraps an ipfs node with a mock qri repo
 func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, error) {
 	p := &profile.Profile{
-		ID:       profile.ID(node.Identity),
+		ID:       profile.IDFromPeerID(node.Identity),
 		Peername: username,
 		PrivKey:  node.PrivateKey,
 	}

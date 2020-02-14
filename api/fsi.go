@@ -154,7 +154,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		// TODO (b5) - why is this necessary?
 		ref := reporef.DatasetRef{
 			Peername:  res.Dataset.Peername,
-			ProfileID: profile.ID(res.Dataset.ProfileID),
+			ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 			Name:      res.Dataset.Name,
 			Path:      res.Dataset.Path,
 			FSIPath:   res.Ref.FSIPath,
