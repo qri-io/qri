@@ -19,7 +19,13 @@ func TestFilesysWatcher(t *testing.T) {
 	watchdir := filepath.Join(tmpdir, "watch_me")
 	_ = os.Mkdir(watchdir, 0755)
 	w := NewFilesysWatcher()
-	messages := w.Begin([]string{watchdir})
+	messages := w.Begin([]EventPath{
+		{
+			Username: "test_peer",
+			Dsname:   "ds_name",
+			Path:     watchdir,
+		},
+	})
 	target := filepath.Join(watchdir, "body.csv")
 
 	// Write a file to the watched directory, get event
@@ -30,6 +36,8 @@ func TestFilesysWatcher(t *testing.T) {
 
 	expect := FilesysEvent{
 		Type:        CreateNewFileEvent,
+		Username:    "test_peer",
+		Dsname:      "ds_name",
 		Source:      target,
 		Destination: "",
 		Time:        got.Time,

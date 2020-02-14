@@ -23,6 +23,8 @@ const (
 // FilesysEvent represents events for filesystem changes
 type FilesysEvent struct {
 	Type        EventType
+	Username    string
+	Dsname      string
 	Source      string
 	Destination string
 	Time        time.Time

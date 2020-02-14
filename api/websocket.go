@@ -96,14 +96,19 @@ func (s Server) startFilesysWatcher(node *p2p.QriNode) (chan watchfs.FilesysEven
 		return nil, err
 	}
 	// Extract fsi paths for all working directories.
-	paths := make([]string, 0, len(refs))
+	paths := make([]watchfs.EventPath, 0, len(refs))
 	for _, ref := range refs {
 		if ref.FSIPath != "" {
-			paths = append(paths, ref.FSIPath)
+			paths = append(paths, watchfs.EventPath{
+				Path:     ref.FSIPath,
+				Username: ref.Peername,
+				Dsname:   ref.Name,
+			})
 		}
 	}
 	// Watch those paths.
-	// TODO(dlong): When datasets are init'd, or checked out, or removed, update the watchlist.
+	// TODO(dlong): When datasets are init'd, or checked out, or removed, or renamed, update
+	// the watchlist.
 	s.Instance.Watcher = watchfs.NewFilesysWatcher()
 	fsmessages := s.Instance.Watcher.Begin(paths)
 	return fsmessages, nil

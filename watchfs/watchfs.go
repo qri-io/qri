@@ -1,6 +1,7 @@
 package watchfs
 
 import (
+	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
@@ -8,6 +9,13 @@ import (
 )
 
 var log = golog.Logger("watchfs")
+
+// EventPath stores information about a path that is capable of generating events
+type EventPath struct {
+	Path     string
+	Username string
+	Dsname   string
+}
 
 // FilesysWatcher will watch a set of directory paths, and send messages on a channel for events
 // concerning those paths. These events are:
@@ -20,6 +28,7 @@ var log = golog.Logger("watchfs")
 type FilesysWatcher struct {
 	Watcher *fsnotify.Watcher
 	Sender  chan FilesysEvent
+	Assoc   map[string]EventPath
 }
 
 // NewFilesysWatcher returns a new FilesysWatcher
@@ -32,16 +41,21 @@ func NewFilesysWatcher() *FilesysWatcher {
 }
 
 // Begin will start watching the given directory paths
-func (w *FilesysWatcher) Begin(directoryPaths []string) chan FilesysEvent {
-	for _, p := range directoryPaths {
-		err := w.Watcher.Add(p)
+func (w *FilesysWatcher) Begin(paths []EventPath) chan FilesysEvent {
+	// Associate paths with additional information
+	assoc := make(map[string]EventPath)
+
+	for _, p := range paths {
+		err := w.Watcher.Add(p.Path)
 		if err != nil {
 			log.Errorf("%s", err)
 		}
+		assoc[p.Path] = p
 	}
 
 	messages := make(chan FilesysEvent)
 	w.Sender = messages
+	w.Assoc = assoc
 
 	// Dispatch filesystem events
 	go func() {
@@ -72,11 +86,15 @@ func (w *FilesysWatcher) Begin(directoryPaths []string) chan FilesysEvent {
 
 // sendEvent sends a message on the channel about an event
 func (w *FilesysWatcher) sendEvent(etype EventType, sour, dest string) {
-	e := FilesysEvent{
+	dir := filepath.Dir(sour)
+	ep := w.Assoc[dir]
+	event := FilesysEvent{
 		Type:        etype,
+		Username:    ep.Username,
+		Dsname:      ep.Dsname,
 		Source:      sour,
 		Destination: dest,
 		Time:        time.Now(),
 	}
-	w.Sender <- e
+	w.Sender <- event
 }
