@@ -11,16 +11,16 @@ import (
 	"github.com/qri-io/qri/base/fill"
 )
 
-// fillInfoForDatasets iterates over the dsInfo list, looks up each dataset and adds relevent info
-// from dsfs. If there are errors loading any datasets, we keep going, collecting such errors
+// fillInfoForDatasets iterates over the entryInfo list, looks up each dataset and adds relevent
+// info from dsfs. If there are errors loading any datasets, we keep going, collecting such errors
 // until the list iteration is done. Returns nil if there are no errors.
-func fillInfoForDatasets(ctx context.Context, store cafs.Filestore, filesys qfs.Filesystem, dsInfoList []*dsInfo) error {
+func fillInfoForDatasets(ctx context.Context, store cafs.Filestore, filesys qfs.Filesystem, entryInfoList []*entryInfo) error {
 	collector := fill.NewErrorCollector()
-	for _, info := range dsInfoList {
-		if info.HeadRef == "" {
+	for _, info := range entryInfoList {
+		if info.Path == "" {
 			continue
 		}
-		ds, err := dsfs.LoadDataset(ctx, store, info.HeadRef)
+		ds, err := dsfs.LoadDataset(ctx, store, info.Path)
 		if err != nil {
 			collector.Add(fmt.Errorf("for initID %q: %s", info.InitID, err))
 			continue
@@ -31,7 +31,7 @@ func fillInfoForDatasets(ctx context.Context, store cafs.Filestore, filesys qfs.
 		}
 		if ds.Structure != nil {
 			info.BodyRows = ds.Structure.Entries
-			info.BodySize = int64(ds.Structure.Length)
+			info.BodySize = ds.Structure.Length
 			info.BodyFormat = ds.Structure.Format
 			info.NumErrors = ds.Structure.ErrCount
 		}

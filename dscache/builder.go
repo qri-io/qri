@@ -8,14 +8,14 @@ import (
 type Builder struct {
 	filename string
 	users    []userProfilePair
-	infos    []*dsInfo
+	infos    []*entryInfo
 }
 
 // NewBuilder returns a new dscache builder
 func NewBuilder() *Builder {
 	return &Builder{
 		users: []userProfilePair{},
-		infos: []*dsInfo{},
+		infos: []*entryInfo{},
 	}
 }
 
@@ -31,26 +31,10 @@ func (b *Builder) AddUser(username, profileID string) {
 
 // AddDsVersionInfo adds a versionInfo to the dscache
 func (b *Builder) AddDsVersionInfo(initID string, ver dsref.VersionInfo) {
-	b.infos = append(b.infos, &dsInfo{
-		InitID:        initID,
-		ProfileID:     ver.ProfileID,
-		TopIndex:      -1,
-		CursorIndex:   -1,
-		PrettyName:    ver.Name,
-		Published:     ver.Published,
-		Foreign:       ver.Foreign,
-		MetaTitle:     ver.MetaTitle,
-		ThemeList:     ver.ThemeList,
-		BodySize:      int64(ver.BodySize),
-		BodyRows:      ver.BodyRows,
-		BodyFormat:    ver.BodyFormat,
-		NumErrors:     ver.NumErrors,
-		CommitTime:    ver.CommitTime,
-		CommitTitle:   ver.CommitTitle,
-		CommitMessage: ver.CommitMessage,
-		NumVersions:   ver.NumVersions,
-		HeadRef:       ver.Path,
-		FSIPath:       ver.FSIPath,
+	b.infos = append(b.infos, &entryInfo{
+		VersionInfo: ver,
+		TopIndex:    -1,
+		CursorIndex: -1,
 	})
 }
 

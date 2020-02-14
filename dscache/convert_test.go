@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	testPeers "github.com/qri-io/qri/config/test"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -36,34 +37,42 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 			ProfileID: pid2.String(),
 		},
 	}
-	dsInfoList := []*dsInfo{
-		&dsInfo{
-			InitID:     "ds_init_id_0000",
-			ProfileID:  pid1.String(),
-			PrettyName: "my_ds",
-			HeadRef:    "/ipfs/QmExampleFirst",
+	entryInfoList := []*entryInfo{
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "ds_init_id_0000",
+				ProfileID: pid1.String(),
+				Name:      "my_ds",
+				Path:      "/ipfs/QmExampleFirst",
+			},
 		},
-		&dsInfo{
-			InitID:     "ds_init_id_0001",
-			ProfileID:  pid1.String(),
-			PrettyName: "another_ds",
-			HeadRef:    "/ipfs/QmExampleSecond",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "ds_init_id_0001",
+				ProfileID: pid1.String(),
+				Name:      "another_ds",
+				Path:      "/ipfs/QmExampleSecond",
+			},
 		},
-		&dsInfo{
-			InitID:     "ds_init_id_0002",
-			ProfileID:  pid1.String(),
-			PrettyName: "checked_out_ds",
-			HeadRef:    "/ipfs/QmExampleThird",
-			FSIPath:    "/path/to/workspace/checked_out_ds",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "ds_init_id_0002",
+				ProfileID: pid1.String(),
+				Name:      "checked_out_ds",
+				Path:      "/ipfs/QmExampleThird",
+				FSIPath:   "/path/to/workspace/checked_out_ds",
+			},
 		},
-		&dsInfo{
-			InitID:     "ds_init_id_0003",
-			ProfileID:  pid2.String(),
-			PrettyName: "foreign_ds",
-			HeadRef:    "/ipfs/QmExampleFourth",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "ds_init_id_0003",
+				ProfileID: pid2.String(),
+				Name:      "foreign_ds",
+				Path:      "/ipfs/QmExampleFourth",
+			},
 		},
 	}
-	dscache := buildDscacheFlatbuffer(userList, dsInfoList)
+	dscache := buildDscacheFlatbuffer(userList, entryInfoList)
 	actual := dscache.VerboseString(false)
 
 	expect := `Dscache:
@@ -139,7 +148,7 @@ func (run *DscacheTestRunner) MustPutDatasetFileAtKey(t *testing.T, store *cafs.
 	}
 }
 
-// Test the convertLogbookAndRefs function, which turns a logbook and dsrefs into a list of dsInfo
+// Test the convertLogbookAndRefs function, which turns a logbook and dsrefs into a list of entryInfo
 func TestConvertLogbookAndRefsBasic(t *testing.T) {
 	run := NewDscacheTestRunner()
 	defer run.Delete()
@@ -166,32 +175,36 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 		},
 	}
 
-	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	entryInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expect := []*dsInfo{
-		&dsInfo{
-			InitID:      "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+	expect := []*entryInfo{
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "first_new_name",
+				Path:      "QmHashOfVersion2",
+				FSIPath:   "/path/to/first_workspace",
+			},
 			TopIndex:    2,
 			CursorIndex: 2,
-			PrettyName:  "first_new_name",
-			HeadRef:     "QmHashOfVersion2",
-			FSIPath:     "/path/to/first_workspace",
 		},
-		&dsInfo{
-			InitID:      "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "second_name",
+				Path:      "QmHashOfVersion6",
+				FSIPath:   "/path/to/second_workspace",
+			},
 			TopIndex:    3,
 			CursorIndex: 3,
-			PrettyName:  "second_name",
-			HeadRef:     "QmHashOfVersion6",
-			FSIPath:     "/path/to/second_workspace",
 		},
 	}
-	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+	if diff := cmp.Diff(expect, entryInfoList); diff != "" {
 		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
 	}
 }
@@ -217,31 +230,35 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 		},
 	}
 
-	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	entryInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expect := []*dsInfo{
-		&dsInfo{
-			InitID:      "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+	expect := []*entryInfo{
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "first_new_name",
+				Path:      "QmHashOfVersion2",
+				FSIPath:   "/path/to/first_workspace",
+			},
 			TopIndex:    2,
 			CursorIndex: 2,
-			PrettyName:  "first_new_name",
-			HeadRef:     "QmHashOfVersion2",
-			FSIPath:     "/path/to/first_workspace",
 		},
-		&dsInfo{
-			InitID:      "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "second_name",
+				Path:      "QmHashOfVersion6",
+			},
 			TopIndex:    3,
 			CursorIndex: 3,
-			PrettyName:  "second_name",
-			HeadRef:     "QmHashOfVersion6",
 		},
 	}
-	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+	if diff := cmp.Diff(expect, entryInfoList); diff != "" {
 		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
 	}
 }
@@ -285,38 +302,44 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 		},
 	}
 
-	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	entryInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expect := []*dsInfo{
-		&dsInfo{
-			InitID:      "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+	expect := []*entryInfo{
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "htkkr2g4st3atjmxhkar3kjpv6x3xgls7sdkh4rm424v45tqpt6q",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "first_new_name",
+				Path:      "QmHashOfVersion2",
+				FSIPath:   "/path/to/first_workspace",
+			},
 			TopIndex:    2,
 			CursorIndex: 2,
-			PrettyName:  "first_new_name",
-			HeadRef:     "QmHashOfVersion2",
-			FSIPath:     "/path/to/first_workspace",
 		},
-		&dsInfo{
-			InitID:      "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "7n6dyt5aabo6j4fl2dbwwymoznsnd255egn6rb5cwchwetsoowzq",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "second_name",
+				Path:      "QmHashOfVersion6",
+				FSIPath:   "/path/to/second_workspace",
+			},
 			TopIndex:    3,
 			CursorIndex: 3,
-			PrettyName:  "second_name",
-			HeadRef:     "QmHashOfVersion6",
-			FSIPath:     "/path/to/second_workspace",
 		},
-		&dsInfo{
-			ProfileID:  "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-			PrettyName: "third_name",
-			HeadRef:    "QmHashOfVersion100",
-			FSIPath:    "/path/to/third_workspace",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "third_name",
+				Path:      "QmHashOfVersion100",
+				FSIPath:   "/path/to/third_workspace",
+			},
 		},
 	}
-	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+	if diff := cmp.Diff(expect, entryInfoList); diff != "" {
 		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
 	}
 }
@@ -354,37 +377,43 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 		},
 	}
 
-	dsInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
+	entryInfoList, err := convertLogbookAndRefs(ctx, book, dsrefs)
 	if err != nil {
 		t.Fatal(err)
 	}
 
-	expect := []*dsInfo{
-		&dsInfo{
-			InitID:      "3cf4zxzyxug7c2xmheltmnn3smnr3urpcifeyke4or7zunetu4ia",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+	expect := []*entryInfo{
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "3cf4zxzyxug7c2xmheltmnn3smnr3urpcifeyke4or7zunetu4ia",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "first_ds",
+				Path:      "QmHashOfVersion1001",
+			},
 			TopIndex:    1,
 			CursorIndex: 1,
-			PrettyName:  "first_ds",
-			HeadRef:     "QmHashOfVersion1001",
 		},
-		&dsInfo{
-			InitID:     "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
-			ProfileID:  "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
-			PrettyName: "third_ds",
-			FSIPath:    "/path/to/third_workspace",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "n6bxzf53b3g4gugtn7svgpz2xmmbxp5ls6witdilt7oh5dtdnxwa",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "third_ds",
+				FSIPath:   "/path/to/third_workspace",
+			},
 		},
-		&dsInfo{
-			InitID:      "52iu62kxcgix5w7a5vwclf26gmxojnx67dnsddamkxokx7lxisnq",
-			ProfileID:   "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+		&entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				InitID:    "52iu62kxcgix5w7a5vwclf26gmxojnx67dnsddamkxokx7lxisnq",
+				ProfileID: "QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B",
+				Name:      "fourth_ds",
+				Path:      "QmHashOfVersion1005",
+				FSIPath:   "/path/to/fourth_workspace",
+			},
 			TopIndex:    2,
 			CursorIndex: 2,
-			PrettyName:  "fourth_ds",
-			HeadRef:     "QmHashOfVersion1005",
-			FSIPath:     "/path/to/fourth_workspace",
 		},
 	}
-	if diff := cmp.Diff(expect, dsInfoList); diff != "" {
+	if diff := cmp.Diff(expect, entryInfoList); diff != "" {
 		t.Errorf("convertLogbookAndRefs (-want +got):\n%s", diff)
 	}
 }
@@ -522,7 +551,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 // TODO(dlong): Test convertHistoryToIndexAndRef edge-cases, like big deletes, len(logs) > 0, len=0
 // TODO(dlong): Test a logbook where a username is changed after datasets already existed
 // TODO(dlong): Test a logbook with logs from other peers
-// TODO(dlong): Test the function fillInfoForDatasets after convertLogbookAndRefs returns []dsInfo
+// TODO(dlong): Test the function fillInfoForDatasets after convertLogbookAndRefs returns []entryInfo
 
 func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey crypto.PrivKey) *logbook.Book {
 	rootPath, err := ioutil.TempDir("", "create_logbook")

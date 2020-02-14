@@ -6,27 +6,27 @@ import (
 	flatbuffers "github.com/google/flatbuffers/go"
 )
 
-type RefCache struct {
+type RefEntryInfo struct {
 	_tab flatbuffers.Table
 }
 
-func GetRootAsRefCache(buf []byte, offset flatbuffers.UOffsetT) *RefCache {
+func GetRootAsRefEntryInfo(buf []byte, offset flatbuffers.UOffsetT) *RefEntryInfo {
 	n := flatbuffers.GetUOffsetT(buf[offset:])
-	x := &RefCache{}
+	x := &RefEntryInfo{}
 	x.Init(buf, n+offset)
 	return x
 }
 
-func (rcv *RefCache) Init(buf []byte, i flatbuffers.UOffsetT) {
+func (rcv *RefEntryInfo) Init(buf []byte, i flatbuffers.UOffsetT) {
 	rcv._tab.Bytes = buf
 	rcv._tab.Pos = i
 }
 
-func (rcv *RefCache) Table() flatbuffers.Table {
+func (rcv *RefEntryInfo) Table() flatbuffers.Table {
 	return rcv._tab
 }
 
-func (rcv *RefCache) InitID() []byte {
+func (rcv *RefEntryInfo) InitID() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(4))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -34,7 +34,7 @@ func (rcv *RefCache) InitID() []byte {
 	return nil
 }
 
-func (rcv *RefCache) ProfileID() []byte {
+func (rcv *RefEntryInfo) ProfileID() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -42,7 +42,7 @@ func (rcv *RefCache) ProfileID() []byte {
 	return nil
 }
 
-func (rcv *RefCache) TopIndex() int32 {
+func (rcv *RefEntryInfo) TopIndex() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(8))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -50,11 +50,11 @@ func (rcv *RefCache) TopIndex() int32 {
 	return 0
 }
 
-func (rcv *RefCache) MutateTopIndex(n int32) bool {
+func (rcv *RefEntryInfo) MutateTopIndex(n int32) bool {
 	return rcv._tab.MutateInt32Slot(8, n)
 }
 
-func (rcv *RefCache) CursorIndex() int32 {
+func (rcv *RefEntryInfo) CursorIndex() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(10))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -62,11 +62,11 @@ func (rcv *RefCache) CursorIndex() int32 {
 	return 0
 }
 
-func (rcv *RefCache) MutateCursorIndex(n int32) bool {
+func (rcv *RefEntryInfo) MutateCursorIndex(n int32) bool {
 	return rcv._tab.MutateInt32Slot(10, n)
 }
 
-func (rcv *RefCache) PrettyName() []byte {
+func (rcv *RefEntryInfo) PrettyName() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(12))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -74,7 +74,7 @@ func (rcv *RefCache) PrettyName() []byte {
 	return nil
 }
 
-func (rcv *RefCache) Published() bool {
+func (rcv *RefEntryInfo) Published() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(14))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -82,11 +82,11 @@ func (rcv *RefCache) Published() bool {
 	return false
 }
 
-func (rcv *RefCache) MutatePublished(n bool) bool {
+func (rcv *RefEntryInfo) MutatePublished(n bool) bool {
 	return rcv._tab.MutateBoolSlot(14, n)
 }
 
-func (rcv *RefCache) Foreign() bool {
+func (rcv *RefEntryInfo) Foreign() bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(16))
 	if o != 0 {
 		return rcv._tab.GetBool(o + rcv._tab.Pos)
@@ -94,11 +94,11 @@ func (rcv *RefCache) Foreign() bool {
 	return false
 }
 
-func (rcv *RefCache) MutateForeign(n bool) bool {
+func (rcv *RefEntryInfo) MutateForeign(n bool) bool {
 	return rcv._tab.MutateBoolSlot(16, n)
 }
 
-func (rcv *RefCache) MetaTitle() []byte {
+func (rcv *RefEntryInfo) MetaTitle() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(18))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -106,7 +106,7 @@ func (rcv *RefCache) MetaTitle() []byte {
 	return nil
 }
 
-func (rcv *RefCache) ThemeList() []byte {
+func (rcv *RefEntryInfo) ThemeList() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(20))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -114,7 +114,7 @@ func (rcv *RefCache) ThemeList() []byte {
 	return nil
 }
 
-func (rcv *RefCache) BodySize() int64 {
+func (rcv *RefEntryInfo) BodySize() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(22))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -122,11 +122,11 @@ func (rcv *RefCache) BodySize() int64 {
 	return 0
 }
 
-func (rcv *RefCache) MutateBodySize(n int64) bool {
+func (rcv *RefEntryInfo) MutateBodySize(n int64) bool {
 	return rcv._tab.MutateInt64Slot(22, n)
 }
 
-func (rcv *RefCache) BodyRows() int32 {
+func (rcv *RefEntryInfo) BodyRows() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(24))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -134,11 +134,11 @@ func (rcv *RefCache) BodyRows() int32 {
 	return 0
 }
 
-func (rcv *RefCache) MutateBodyRows(n int32) bool {
+func (rcv *RefEntryInfo) MutateBodyRows(n int32) bool {
 	return rcv._tab.MutateInt32Slot(24, n)
 }
 
-func (rcv *RefCache) BodyFormat() []byte {
+func (rcv *RefEntryInfo) BodyFormat() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(26))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -146,7 +146,7 @@ func (rcv *RefCache) BodyFormat() []byte {
 	return nil
 }
 
-func (rcv *RefCache) NumErrors() int32 {
+func (rcv *RefEntryInfo) NumErrors() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(28))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -154,11 +154,11 @@ func (rcv *RefCache) NumErrors() int32 {
 	return 0
 }
 
-func (rcv *RefCache) MutateNumErrors(n int32) bool {
+func (rcv *RefEntryInfo) MutateNumErrors(n int32) bool {
 	return rcv._tab.MutateInt32Slot(28, n)
 }
 
-func (rcv *RefCache) CommitTime() int64 {
+func (rcv *RefEntryInfo) CommitTime() int64 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(30))
 	if o != 0 {
 		return rcv._tab.GetInt64(o + rcv._tab.Pos)
@@ -166,11 +166,11 @@ func (rcv *RefCache) CommitTime() int64 {
 	return 0
 }
 
-func (rcv *RefCache) MutateCommitTime(n int64) bool {
+func (rcv *RefEntryInfo) MutateCommitTime(n int64) bool {
 	return rcv._tab.MutateInt64Slot(30, n)
 }
 
-func (rcv *RefCache) CommitTitle() []byte {
+func (rcv *RefEntryInfo) CommitTitle() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -178,7 +178,7 @@ func (rcv *RefCache) CommitTitle() []byte {
 	return nil
 }
 
-func (rcv *RefCache) CommitMessage() []byte {
+func (rcv *RefEntryInfo) CommitMessage() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -186,7 +186,7 @@ func (rcv *RefCache) CommitMessage() []byte {
 	return nil
 }
 
-func (rcv *RefCache) NumVersions() int32 {
+func (rcv *RefEntryInfo) NumVersions() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
 	if o != 0 {
 		return rcv._tab.GetInt32(o + rcv._tab.Pos)
@@ -194,11 +194,11 @@ func (rcv *RefCache) NumVersions() int32 {
 	return 0
 }
 
-func (rcv *RefCache) MutateNumVersions(n int32) bool {
+func (rcv *RefEntryInfo) MutateNumVersions(n int32) bool {
 	return rcv._tab.MutateInt32Slot(36, n)
 }
 
-func (rcv *RefCache) HeadRef() []byte {
+func (rcv *RefEntryInfo) HeadRef() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(38))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -206,7 +206,7 @@ func (rcv *RefCache) HeadRef() []byte {
 	return nil
 }
 
-func (rcv *RefCache) FsiPath() []byte {
+func (rcv *RefEntryInfo) FsiPath() []byte {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(40))
 	if o != 0 {
 		return rcv._tab.ByteVector(o + rcv._tab.Pos)
@@ -214,66 +214,66 @@ func (rcv *RefCache) FsiPath() []byte {
 	return nil
 }
 
-func RefCacheStart(builder *flatbuffers.Builder) {
+func RefEntryInfoStart(builder *flatbuffers.Builder) {
 	builder.StartObject(19)
 }
-func RefCacheAddInitID(builder *flatbuffers.Builder, initID flatbuffers.UOffsetT) {
+func RefEntryInfoAddInitID(builder *flatbuffers.Builder, initID flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(0, flatbuffers.UOffsetT(initID), 0)
 }
-func RefCacheAddProfileID(builder *flatbuffers.Builder, profileID flatbuffers.UOffsetT) {
+func RefEntryInfoAddProfileID(builder *flatbuffers.Builder, profileID flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(1, flatbuffers.UOffsetT(profileID), 0)
 }
-func RefCacheAddTopIndex(builder *flatbuffers.Builder, topIndex int32) {
+func RefEntryInfoAddTopIndex(builder *flatbuffers.Builder, topIndex int32) {
 	builder.PrependInt32Slot(2, topIndex, 0)
 }
-func RefCacheAddCursorIndex(builder *flatbuffers.Builder, cursorIndex int32) {
+func RefEntryInfoAddCursorIndex(builder *flatbuffers.Builder, cursorIndex int32) {
 	builder.PrependInt32Slot(3, cursorIndex, 0)
 }
-func RefCacheAddPrettyName(builder *flatbuffers.Builder, prettyName flatbuffers.UOffsetT) {
+func RefEntryInfoAddPrettyName(builder *flatbuffers.Builder, prettyName flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(4, flatbuffers.UOffsetT(prettyName), 0)
 }
-func RefCacheAddPublished(builder *flatbuffers.Builder, published bool) {
+func RefEntryInfoAddPublished(builder *flatbuffers.Builder, published bool) {
 	builder.PrependBoolSlot(5, published, false)
 }
-func RefCacheAddForeign(builder *flatbuffers.Builder, foreign bool) {
+func RefEntryInfoAddForeign(builder *flatbuffers.Builder, foreign bool) {
 	builder.PrependBoolSlot(6, foreign, false)
 }
-func RefCacheAddMetaTitle(builder *flatbuffers.Builder, metaTitle flatbuffers.UOffsetT) {
+func RefEntryInfoAddMetaTitle(builder *flatbuffers.Builder, metaTitle flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(7, flatbuffers.UOffsetT(metaTitle), 0)
 }
-func RefCacheAddThemeList(builder *flatbuffers.Builder, themeList flatbuffers.UOffsetT) {
+func RefEntryInfoAddThemeList(builder *flatbuffers.Builder, themeList flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(8, flatbuffers.UOffsetT(themeList), 0)
 }
-func RefCacheAddBodySize(builder *flatbuffers.Builder, bodySize int64) {
+func RefEntryInfoAddBodySize(builder *flatbuffers.Builder, bodySize int64) {
 	builder.PrependInt64Slot(9, bodySize, 0)
 }
-func RefCacheAddBodyRows(builder *flatbuffers.Builder, bodyRows int32) {
+func RefEntryInfoAddBodyRows(builder *flatbuffers.Builder, bodyRows int32) {
 	builder.PrependInt32Slot(10, bodyRows, 0)
 }
-func RefCacheAddBodyFormat(builder *flatbuffers.Builder, bodyFormat flatbuffers.UOffsetT) {
+func RefEntryInfoAddBodyFormat(builder *flatbuffers.Builder, bodyFormat flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(11, flatbuffers.UOffsetT(bodyFormat), 0)
 }
-func RefCacheAddNumErrors(builder *flatbuffers.Builder, numErrors int32) {
+func RefEntryInfoAddNumErrors(builder *flatbuffers.Builder, numErrors int32) {
 	builder.PrependInt32Slot(12, numErrors, 0)
 }
-func RefCacheAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
+func RefEntryInfoAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
 	builder.PrependInt64Slot(13, commitTime, 0)
 }
-func RefCacheAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
+func RefEntryInfoAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(commitTitle), 0)
 }
-func RefCacheAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
+func RefEntryInfoAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(commitMessage), 0)
 }
-func RefCacheAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
+func RefEntryInfoAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
 	builder.PrependInt32Slot(16, numVersions, 0)
 }
-func RefCacheAddHeadRef(builder *flatbuffers.Builder, headRef flatbuffers.UOffsetT) {
+func RefEntryInfoAddHeadRef(builder *flatbuffers.Builder, headRef flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(17, flatbuffers.UOffsetT(headRef), 0)
 }
-func RefCacheAddFsiPath(builder *flatbuffers.Builder, fsiPath flatbuffers.UOffsetT) {
+func RefEntryInfoAddFsiPath(builder *flatbuffers.Builder, fsiPath flatbuffers.UOffsetT) {
 	builder.PrependUOffsetTSlot(18, flatbuffers.UOffsetT(fsiPath), 0)
 }
-func RefCacheEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
+func RefEntryInfoEnd(builder *flatbuffers.Builder) flatbuffers.UOffsetT {
 	return builder.EndObject()
 }

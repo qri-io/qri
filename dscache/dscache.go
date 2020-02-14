@@ -83,7 +83,7 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 	}
 	out.WriteString(" Dscache.Refs:\n")
 	for i := 0; i < d.Root.RefsLength(); i++ {
-		r := dscachefb.RefCache{}
+		r := dscachefb.RefEntryInfo{}
 		d.Root.Refs(&r, i)
 		fmt.Fprintf(&out, ` %2d) initID        = %s
      profileID     = %s
@@ -134,7 +134,7 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	d.ensureProToUserMap()
 	refs := make([]reporef.DatasetRef, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
-		refCache := dscachefb.RefCache{}
+		refCache := dscachefb.RefEntryInfo{}
 		d.Root.Refs(&refCache, i)
 
 		proIDStr := string(refCache.ProfileID())
@@ -186,7 +186,7 @@ func (d *Dscache) Update(act *logbook.Action) error {
 	users := d.copyUserAssociationList(builder)
 	refs := d.copyReferenceListWithReplacement(
 		builder,
-		func(r *dscachefb.RefCache) bool {
+		func(r *dscachefb.RefEntryInfo) bool {
 			return string(r.InitID()) == act.InitID
 		},
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
@@ -202,23 +202,23 @@ func (d *Dscache) Update(act *logbook.Action) error {
 			// Start building a ref object, by mutating an existing ref object.
 			refStartMutationFunc(builder)
 			// Add only the fields we want to change.
-			dscachefb.RefCacheAddTopIndex(builder, int32(act.TopIndex))
-			dscachefb.RefCacheAddCursorIndex(builder, int32(act.TopIndex))
+			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.TopIndex))
+			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.TopIndex))
 			if act.Dataset != nil && act.Dataset.Meta != nil {
-				dscachefb.RefCacheAddMetaTitle(builder, metaTitle)
+				dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
 			}
 			if act.Dataset != nil && act.Dataset.Commit != nil {
-				dscachefb.RefCacheAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
-				dscachefb.RefCacheAddCommitTitle(builder, commitTitle)
-				dscachefb.RefCacheAddCommitMessage(builder, commitMessage)
+				dscachefb.RefEntryInfoAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
+				dscachefb.RefEntryInfoAddCommitTitle(builder, commitTitle)
+				dscachefb.RefEntryInfoAddCommitMessage(builder, commitMessage)
 			}
 			if act.Dataset != nil && act.Dataset.Structure != nil {
-				dscachefb.RefCacheAddBodySize(builder, int64(act.Dataset.Structure.Length))
-				dscachefb.RefCacheAddBodyRows(builder, int32(act.Dataset.Structure.Entries))
-				dscachefb.RefCacheAddNumErrors(builder, int32(act.Dataset.Structure.ErrCount))
+				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Dataset.Structure.Length))
+				dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.Dataset.Structure.Entries))
+				dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.Dataset.Structure.ErrCount))
 			}
-			dscachefb.RefCacheAddHeadRef(builder, hashRef)
-			// Don't call RefCacheEnd, that is handled by copyReferenceListWithReplacement
+			dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
+			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
 		},
 	)
 	root, serialized := d.finishBuilding(builder, users, refs)

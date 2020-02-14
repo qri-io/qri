@@ -12,10 +12,8 @@ import (
 // as List, and Log.
 // If any fields are added to this struct, keep it in sync with:
 //   dscache/def.fbs       dscache
-//   dscache/builder.go    func AddDsVersionInfo
-//   dscache/convert.go    dsInfo struct
 //   dscache/fill_info.go  func fillInfoForDatasets
-//   repo/ref/convert.go   func ConvertFromDatasetRef
+//   repo/ref/convert.go   func ConvertToVersionInfo
 
 // VersionInfo describes a dataset reference and detailed information about it
 type VersionInfo struct {
