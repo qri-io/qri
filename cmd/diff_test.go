@@ -119,7 +119,7 @@ func TestDiffRun(t *testing.T) {
 	}{
 		{
 			&DiffOptions{},
-			"repo: empty dataset reference",
+			"nothing to diff",
 		},
 	}
 

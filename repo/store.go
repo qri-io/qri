@@ -2,13 +2,8 @@ package repo
 
 import (
 	"fmt"
-	"regexp"
 
-	//flatbuffers "github.com/google/flatbuffers/go"
-	"github.com/qri-io/qri/dsref"
 	reporef "github.com/qri-io/qri/repo/ref"
-	//"github.com/qri-io/qri/repo/profile"
-	//repofb "github.com/qri-io/qri/repo/repo_fbs"
 )
 
 // Refstore keeps a collection of dataset references, Refstores require complete
@@ -31,23 +26,10 @@ type Refstore interface {
 	RefCount() (int, error)
 }
 
-// TODO(dlong): Move to dsref package, centralize parsing there
-var isRefString = regexp.MustCompile(`^((\w+)\/(\w+)){0,1}(@(\w*)(\/\w{0,4}\/\w+)){0,1}$`)
-
-// IsRefString checks to see if a reference is a valid dataset ref string
-func IsRefString(path string) bool {
-	return isRefString.MatchString(path)
-}
-
-// ParseDsref is a shim to convert dsrefs back to reporef.DatasetRef
-func ParseDsref(r dsref.Ref) (reporef.DatasetRef, error) {
-	return ParseDatasetRef(r.String())
-}
-
 // TODO(dlong): In the near future, switch to a new utility that resolves references to specific
 // versions by using logbook. A ref should resolve to a pair of (init-id, head-ref), where the
 // init-id is the stable unchanging identifier for a dataset (derived from logbook) and head-ref
-// is the current head version. Use that everywhere in the code, instead of Canonicalizereporef.DatasetRef.
+// is the current head version. Use that everywhere in the code, instead of CanonicalizeDatasetRef.
 
 // CanonicalizeDatasetRef uses the user's repo to turn any local aliases into full dataset
 // references using known canonical peernames and paths. If the provided reference is not

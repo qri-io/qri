@@ -527,17 +527,17 @@ func (h DatasetHandlers) renameHandler(w http.ResponseWriter, r *http.Request) {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing current param: %s", err.Error()))
 		return
 	}
-	n, err := repo.ParseDatasetRef(reqParams.New)
+	next, err := repo.ParseDatasetRef(reqParams.New)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("error parsing new param: %s", err.Error()))
 		return
 	}
 	p = &lib.RenameParams{
-		Current: current,
-		New:     n,
+		Current: reporef.ConvertToDsref(current),
+		Next:    reporef.ConvertToDsref(next),
 	}
 
-	res := &reporef.DatasetRef{}
+	res := &dsref.VersionInfo{}
 	if err := h.Rename(p, res); err != nil {
 		log.Infof("error renaming dataset: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusBadRequest, err)

@@ -403,8 +403,11 @@ func (r *Remote) logHook(h Hook) logsync.Hook {
 
 			var r reporef.DatasetRef
 			if ref.String() != "" {
-				if r, err = repo.ParseDsref(ref); err != nil {
-					return err
+				r = reporef.DatasetRef{
+					Peername:  ref.Username,
+					ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
+					Name:      ref.Name,
+					Path:      ref.Path,
 				}
 			}
 

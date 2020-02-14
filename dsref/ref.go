@@ -35,3 +35,13 @@ func (r Ref) String() (s string) {
 	}
 	return s
 }
+
+// IsEmpty returns whether the reference is empty
+func (r Ref) IsEmpty() bool {
+	return r.Username == "" && r.ProfileID == "" && r.Name == "" && r.Path == ""
+}
+
+// Equals returns whether the reference equals another
+func (r Ref) Equals(t Ref) bool {
+	return r.Username == t.Username && r.ProfileID == t.ProfileID && r.Name == t.Name && r.Path == t.Path
+}
