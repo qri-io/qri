@@ -45,8 +45,9 @@ func (id *ID) UnmarshalYAML(unmarshal func(interface{}) error) (err error) {
 	return
 }
 
-// IDRawBytes constructs an ID from raw bytes. No decoding happens. Should only be used in tests
-func IDRawBytes(data string) ID {
+// IDRawByteString constructs an ID from a raw byte string. No decoding happens. Should only
+// be used in tests
+func IDRawByteString(data string) ID {
 	return ID(data)
 }
 

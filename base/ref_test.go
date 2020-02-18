@@ -24,7 +24,7 @@ func TestInLocalNamespace(t *testing.T) {
 		t.Errorf("expected %s false", ref.String())
 	}
 
-	ref = &reporef.DatasetRef{ProfileID: profile.IDRawBytes("fake")}
+	ref = &reporef.DatasetRef{ProfileID: profile.IDRawByteString("fake")}
 	if InLocalNamespace(r, ref) {
 		t.Errorf("expected %s false", ref.String())
 	}

@@ -44,7 +44,7 @@ func TestPeerID(t *testing.T) {
 		t.Errorf("unexpected value for encoded peerID, got %s", wellformedProfileID1)
 	}
 
-	wellformedProfileID2 := IDRawBytes(string(peerInfo.PeerID))
+	wellformedProfileID2 := IDRawByteString(string(peerInfo.PeerID))
 	if wellformedProfileID2.String() != idStr {
 		t.Errorf("unexpected value for encoded peerID, got %s", wellformedProfileID2)
 	}

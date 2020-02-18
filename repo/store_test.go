@@ -93,7 +93,7 @@ var cases = []struct {
 	// TODO - this used to be me@badId, which isn't very useful, but at least provided coding parity
 	// might be worth revisiting
 	{reporef.DatasetRef{
-		ProfileID: profile.IDRawBytes("badID"),
+		ProfileID: profile.IDRawByteString("badID"),
 		Peername:  "me",
 	}, "me", "me@C6mUq3y", "me"},
 }
@@ -341,7 +341,7 @@ func TestIsEmpty(t *testing.T) {
 		{reporef.DatasetRef{Peername: "a"}, false},
 		{reporef.DatasetRef{Name: "a"}, false},
 		{reporef.DatasetRef{Path: "a"}, false},
-		{reporef.DatasetRef{ProfileID: profile.IDRawBytes("a")}, false},
+		{reporef.DatasetRef{ProfileID: profile.IDRawByteString("a")}, false},
 	}
 
 	for i, c := range cases {
@@ -375,8 +375,8 @@ func TestCompareDatasets(t *testing.T) {
 }
 
 func TestCanonicalizeDatasetRef(t *testing.T) {
-	lucille := &profile.Profile{ID: profile.IDRawBytes("a"), Peername: "lucille", PrivKey: privKey}
-	carla := &profile.Profile{ID: profile.IDRawBytes("b"), Peername: "carla"}
+	lucille := &profile.Profile{ID: profile.IDRawByteString("a"), Peername: "lucille", PrivKey: privKey}
+	carla := &profile.Profile{ID: profile.IDRawByteString("b"), Peername: "carla"}
 
 	store := cafs.NewMapstore()
 	memRepo, err := NewMemRepo(lucille, store, qfs.NewMemFS(), profile.NewMemStore())
@@ -441,7 +441,7 @@ func TestCanonicalizeDatasetRef(t *testing.T) {
 
 func TestCanonicalizeDatasetRefFSI(t *testing.T) {
 	peer := "lucille"
-	prof := &profile.Profile{ID: profile.IDRawBytes("a"), Peername: peer, PrivKey: privKey}
+	prof := &profile.Profile{ID: profile.IDRawByteString("a"), Peername: peer, PrivKey: privKey}
 	store := cafs.NewMapstore()
 	memRepo, err := NewMemRepo(prof, store, qfs.NewMemFS(), profile.NewMemStore())
 	if err != nil {
@@ -526,7 +526,7 @@ func TestCanonicalizeProfile(t *testing.T) {
 	}
 
 	badProfileIDGoodName := reporef.DatasetRef{
-		ProfileID: profile.IDRawBytes("badID"),
+		ProfileID: profile.IDRawByteString("badID"),
 		Peername:  "me",
 	}
 
