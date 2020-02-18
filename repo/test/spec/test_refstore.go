@@ -21,13 +21,13 @@ func testRefstoreInvalidRefs(t *testing.T, rmf RepoMakerFunc) {
 		return
 	}
 
-	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Path: "/path/to/a/thing"})
+	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.IDRawByteString("badProfileID"), Peername: "peer", Path: "/path/to/a/thing"})
 	if err != repo.ErrNameRequired {
 		t.Errorf("attempting to put empty name in refstore should return repo.ErrNameRequired, got: %s", err)
 		return
 	}
 
-	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.ID("badProfileID"), Peername: "peer", Name: "a", Path: ""})
+	err = r.PutRef(reporef.DatasetRef{ProfileID: profile.IDRawByteString("badProfileID"), Peername: "peer", Name: "a", Path: ""})
 	if err != repo.ErrPathRequired {
 		t.Errorf("attempting to put empty path in refstore should return repo.ErrPathRequired, got: %s", err)
 		return

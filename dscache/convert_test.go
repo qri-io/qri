@@ -18,9 +18,9 @@ import (
 
 // Test the buildDscacheFlatbuffer function, which converts plain-old-data structures into dscache
 func TestBuildDscacheFlatbuffer(t *testing.T) {
-	pid0 := profile.ID(testPeers.GetTestPeerInfo(0).PeerID)
-	pid1 := profile.ID(testPeers.GetTestPeerInfo(1).PeerID)
-	pid2 := profile.ID(testPeers.GetTestPeerInfo(2).PeerID)
+	pid0 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(0).PeerID)
+	pid1 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(1).PeerID)
+	pid2 := profile.IDFromPeerID(testPeers.GetTestPeerInfo(2).PeerID)
 
 	userList := []userProfilePair{
 		userProfilePair{
@@ -152,14 +152,14 @@ func TestConvertLogbookAndRefsBasic(t *testing.T) {
 	dsrefs := []reporef.DatasetRef{
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "second_name",
 			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
@@ -210,7 +210,7 @@ func TestConvertLogbookAndRefsMissingDsref(t *testing.T) {
 	dsrefs := []reporef.DatasetRef{
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
@@ -264,21 +264,21 @@ func TestConvertLogbookAndRefsMissingFromLogbook(t *testing.T) {
 	dsrefs := []reporef.DatasetRef{
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "first_new_name",
 			Path:      "QmHashOfVersion2",
 			FSIPath:   "/path/to/first_workspace",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "second_name",
 			Path:      "QmHashOfVersion6",
 			FSIPath:   "/path/to/second_workspace",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "third_name",
 			Path:      "QmHashOfVersion100",
 			FSIPath:   "/path/to/third_workspace",
@@ -335,19 +335,19 @@ func TestConvertLogbookAndRefsWithNoHistoryDatasetAndDeletedDataset(t *testing.T
 	dsrefs := []reporef.DatasetRef{
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "first_ds",
 			Path:      "QmHashOfVersion1001",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "third_ds",
 			FSIPath:   "/path/to/third_workspace",
 		},
 		reporef.DatasetRef{
 			Peername:  "test_user",
-			ProfileID: profile.ID(peerInfo.PeerID),
+			ProfileID: profile.IDFromPeerID(peerInfo.PeerID),
 			Name:      "fourth_ds",
 			Path:      "QmHashOfVersion1005",
 			FSIPath:   "/path/to/fourth_workspace",
@@ -408,7 +408,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefAlphabetized(t *testing.T) {
 	// Add association between profileID and username
 	profiles := profile.NewMemStore()
 	profiles.PutProfile(&profile.Profile{
-		ID:       profile.ID(peerInfo.PeerID),
+		ID:       profile.IDFromPeerID(peerInfo.PeerID),
 		Peername: "test_user",
 	})
 
@@ -476,7 +476,7 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
 	// Add association between profileID and username
 	profiles := profile.NewMemStore()
 	profiles.PutProfile(&profile.Profile{
-		ID:       profile.ID(peerInfo.PeerID),
+		ID:       profile.IDFromPeerID(peerInfo.PeerID),
 		Peername: "test_user",
 	})
 

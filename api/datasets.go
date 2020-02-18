@@ -300,7 +300,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	// TODO (b5) - remove this. res.Ref should be used instead
 	ref := reporef.DatasetRef{
 		Peername:  res.Dataset.Peername,
-		ProfileID: profile.ID(res.Dataset.ProfileID),
+		ProfileID: profile.IDB58DecodeOrEmpty(res.Dataset.ProfileID),
 		Name:      res.Dataset.Name,
 		Path:      res.Dataset.Path,
 		FSIPath:   res.Ref.FSIPath,

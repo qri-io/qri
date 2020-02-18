@@ -130,7 +130,7 @@ func newMemRepoTestNode(t *testing.T) *p2p.QriNode {
 	pi := cfgtest.GetTestPeerInfo(0)
 	pro := &profile.Profile{
 		Peername: "remote_test_peer",
-		ID:       profile.ID(pi.PeerID),
+		ID:       profile.IDFromPeerID(pi.PeerID),
 		PrivKey:  pi.PrivKey,
 	}
 	mr, err := repo.NewMemRepo(pro, ms, newTestFS(ms), profile.NewMemStore())

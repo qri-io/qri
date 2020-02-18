@@ -50,7 +50,7 @@ func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, histor
 		Peername:  ref.Username,
 		Name:      ref.Name,
 		Path:      ref.Path,
-		ProfileID: profile.ID(ref.ProfileID),
+		ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
 	}
 	if _, err := r.GetRef(datasetRef); err == nil {
 		didRemove = appendString(didRemove, "refstore")
@@ -100,7 +100,7 @@ func RemoveNVersionsFromStore(ctx context.Context, r repo.Repo, curr dsref.Ref, 
 			Peername:  curr.Username,
 			Name:      curr.Name,
 			Path:      curr.Path,
-			ProfileID: profile.ID(curr.ProfileID),
+			ProfileID: profile.IDB58DecodeOrEmpty(curr.ProfileID),
 		}
 		if err = UnpinDataset(ctx, r, datasetRef); err != nil && !strings.Contains(err.Error(), "not pinned") {
 			return curr, err

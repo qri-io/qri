@@ -74,7 +74,7 @@ func NewTestNetwork(ctx context.Context, f *TestNodeFactory, num int) ([]Testabl
 	nodes := make([]TestablePeerNode, num)
 	for i := 0; i < num; i++ {
 		info := f.NextInfo()
-		r, err := test.NewTestRepoFromProfileID(profile.ID(info.PeerID), i, i)
+		r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), i, i)
 		if err != nil {
 			return nil, fmt.Errorf("error creating test repo: %s", err.Error())
 		}

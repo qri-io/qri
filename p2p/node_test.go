@@ -11,7 +11,7 @@ import (
 
 func TestNewNode(t *testing.T) {
 	info := cfgtest.GetTestPeerInfo(0)
-	r, err := test.NewTestRepoFromProfileID(profile.ID(info.PeerID), 0, -1)
+	r, err := test.NewTestRepoFromProfileID(profile.IDFromPeerID(info.PeerID), 0, -1)
 	if err != nil {
 		t.Errorf("error creating test repo: %s", err.Error())
 		return
