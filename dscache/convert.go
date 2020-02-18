@@ -4,12 +4,12 @@ import (
 	"context"
 	"fmt"
 	"sort"
-	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/logbook/oplog"
 	"github.com/qri-io/qri/repo/profile"
@@ -35,12 +35,12 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 
 	// Convert logbook into dataset info list. Iterate refs to get FSI paths and anything
 	// missing from logbook.
-	dsInfoList, err := convertLogbookAndRefs(ctx, book, refs)
+	entryInfoList, err := convertLogbookAndRefs(ctx, book, refs)
 	if err != nil {
 		return nil, err
 	}
 
-	err = fillInfoForDatasets(ctx, store, filesys, dsInfoList)
+	err = fillInfoForDatasets(ctx, store, filesys, entryInfoList)
 	if err != nil {
 		log.Errorf("%s", err)
 	}
@@ -51,14 +51,16 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 		userMap[pair.ProfileID] = pair.Username
 	}
 
-	// Sort the dsInfoList, by prettyName
-	sort.Slice(dsInfoList, func(i, j int) bool {
-		leftRef := fmt.Sprintf("%s/%s", userMap[dsInfoList[i].ProfileID], dsInfoList[i].PrettyName)
-		rightRef := fmt.Sprintf("%s/%s", userMap[dsInfoList[j].ProfileID], dsInfoList[j].PrettyName)
+	// Sort the entryInfoList, by prettyName
+	sort.Slice(entryInfoList, func(i, j int) bool {
+		leftEntry := entryInfoList[i]
+		rightEntry := entryInfoList[j]
+		leftRef := fmt.Sprintf("%s/%s", userMap[leftEntry.ProfileID], leftEntry.Name)
+		rightRef := fmt.Sprintf("%s/%s", userMap[rightEntry.ProfileID], rightEntry.Name)
 		return leftRef < rightRef
 	})
 
-	return buildDscacheFlatbuffer(userProfileList, dsInfoList), nil
+	return buildDscacheFlatbuffer(userProfileList, entryInfoList), nil
 }
 
 type userProfilePair struct {
@@ -67,7 +69,7 @@ type userProfilePair struct {
 }
 
 // buildDscacheFlatbuffer constructs the flatbuffer from the users and refs
-func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo) *Dscache {
+func buildDscacheFlatbuffer(userPairList []userProfilePair, entryInfoList []*entryInfo) *Dscache {
 	builder := flatbuffers.NewBuilder(0)
 
 	// Construct user associations, between human-readable usernames and profileIDs
@@ -91,44 +93,44 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 	users := builder.EndVector(len(userList))
 
 	// Construct refs, with all pertinent information for each dataset ref
-	refList := make([]flatbuffers.UOffsetT, 0, len(dsInfoList))
-	for _, ds := range dsInfoList {
-		initID := builder.CreateString(ds.InitID)
-		profileID := builder.CreateString(ds.ProfileID)
-		prettyName := builder.CreateString(ds.PrettyName)
-		metaTitle := builder.CreateString(ds.MetaTitle)
-		themeList := builder.CreateString(ds.ThemeList)
-		commitTitle := builder.CreateString(ds.CommitTitle)
-		commitMessage := builder.CreateString(ds.CommitMessage)
-		hashRef := builder.CreateString(ds.HeadRef)
-		fsiPath := builder.CreateString(ds.FSIPath)
-		dscachefb.RefCacheStart(builder)
-		dscachefb.RefCacheAddInitID(builder, initID)
-		dscachefb.RefCacheAddProfileID(builder, profileID)
-		dscachefb.RefCacheAddTopIndex(builder, int32(ds.TopIndex))
-		dscachefb.RefCacheAddCursorIndex(builder, int32(ds.CursorIndex))
-		dscachefb.RefCacheAddPrettyName(builder, prettyName)
-		dscachefb.RefCacheAddMetaTitle(builder, metaTitle)
-		dscachefb.RefCacheAddThemeList(builder, themeList)
-		dscachefb.RefCacheAddBodySize(builder, int64(ds.BodySize))
-		dscachefb.RefCacheAddBodyRows(builder, int32(ds.BodyRows))
-		dscachefb.RefCacheAddCommitTime(builder, ds.CommitTime.Unix())
-		dscachefb.RefCacheAddCommitTitle(builder, commitTitle)
-		dscachefb.RefCacheAddCommitMessage(builder, commitMessage)
-		dscachefb.RefCacheAddNumErrors(builder, int32(ds.NumErrors))
-		dscachefb.RefCacheAddHeadRef(builder, hashRef)
-		dscachefb.RefCacheAddFsiPath(builder, fsiPath)
-		ref := dscachefb.RefCacheEnd(builder)
+	refList := make([]flatbuffers.UOffsetT, 0, len(entryInfoList))
+	for _, ce := range entryInfoList {
+		initID := builder.CreateString(ce.InitID)
+		profileID := builder.CreateString(ce.ProfileID)
+		prettyName := builder.CreateString(ce.Name)
+		metaTitle := builder.CreateString(ce.MetaTitle)
+		themeList := builder.CreateString(ce.ThemeList)
+		commitTitle := builder.CreateString(ce.CommitTitle)
+		commitMessage := builder.CreateString(ce.CommitMessage)
+		headRef := builder.CreateString(ce.Path)
+		fsiPath := builder.CreateString(ce.FSIPath)
+		dscachefb.RefEntryInfoStart(builder)
+		dscachefb.RefEntryInfoAddInitID(builder, initID)
+		dscachefb.RefEntryInfoAddProfileID(builder, profileID)
+		dscachefb.RefEntryInfoAddTopIndex(builder, int32(ce.TopIndex))
+		dscachefb.RefEntryInfoAddCursorIndex(builder, int32(ce.CursorIndex))
+		dscachefb.RefEntryInfoAddPrettyName(builder, prettyName)
+		dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
+		dscachefb.RefEntryInfoAddThemeList(builder, themeList)
+		dscachefb.RefEntryInfoAddBodySize(builder, int64(ce.BodySize))
+		dscachefb.RefEntryInfoAddBodyRows(builder, int32(ce.BodyRows))
+		dscachefb.RefEntryInfoAddCommitTime(builder, ce.CommitTime.Unix())
+		dscachefb.RefEntryInfoAddCommitTitle(builder, commitTitle)
+		dscachefb.RefEntryInfoAddCommitMessage(builder, commitMessage)
+		dscachefb.RefEntryInfoAddNumErrors(builder, int32(ce.NumErrors))
+		dscachefb.RefEntryInfoAddHeadRef(builder, headRef)
+		dscachefb.RefEntryInfoAddFsiPath(builder, fsiPath)
+		ref := dscachefb.RefEntryInfoEnd(builder)
 		refList = append(refList, ref)
 	}
 
 	// Build refs vector, iterating backwards due to using prepend
-	dscachefb.DscacheStartRefsVector(builder, len(dsInfoList))
+	dscachefb.DscacheStartRefsVector(builder, len(entryInfoList))
 	for i := len(refList) - 1; i >= 0; i-- {
 		r := refList[i]
 		builder.PrependUOffsetT(r)
 	}
-	refs := builder.EndVector(len(dsInfoList))
+	refs := builder.EndVector(len(entryInfoList))
 
 	// Construct top-level dscache
 	dscachefb.DscacheStart(builder)
@@ -142,44 +144,24 @@ func buildDscacheFlatbuffer(userPairList []userProfilePair, dsInfoList []*dsInfo
 	return &Dscache{Root: root, Buffer: serialized}
 }
 
-// TODO(dlong): Replace all these fields with a dsref.VersionInfo. The only additional fields this
-// struct adds are TopIndex and CursorIndex.
-type dsInfo struct {
+// entryInfo is a VersionInfo plus the position that maps it to the logbook's structure. Maps
+// directly to the flatbuffer defined in def.fbs
+type entryInfo struct {
+	dsref.VersionInfo
 	// Keys and indexing values
-	InitID      string
-	ProfileID   string
 	TopIndex    int
 	CursorIndex int
-	// State about the dataset that can change
-	PrettyName string
-	Published  bool
-	Foreign    bool
-	// Meta fields
-	MetaTitle string
-	ThemeList string
-	// Structure fields
-	BodySize   int64
-	BodyRows   int
-	BodyFormat string
-	NumErrors  int
-	// Commit fields
-	CommitTime    time.Time
-	CommitTitle   string
-	CommitMessage string
-	// About the dataset's history and location
-	NumVersions int
-	HeadRef     string
-	FSIPath     string
 }
 
-// convertLogbookAndRefs builds dsInfo from each dataset in the logbook, plus FSIPath from old dsrefs
-func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []reporef.DatasetRef) ([]*dsInfo, error) {
+// convertLogbookAndRefs builds entryInfo from each dataset in the logbook, plus FSIPath from
+// old dsrefs
+func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []reporef.DatasetRef) ([]*entryInfo, error) {
 	userLogs, err := book.ListAllLogs(ctx)
 	if err != nil {
 		return nil, err
 	}
 
-	allInfoList := make([]*dsInfo, 0)
+	allInfoList := make([]*entryInfo, 0)
 	for _, userLog := range userLogs {
 		if len(userLog.Ops) < 1 {
 			log.Debugf("empty operation list found for user, cannot proceed")
@@ -193,29 +175,31 @@ func convertLogbookAndRefs(ctx context.Context, book *logbook.Book, dsrefs []rep
 	}
 
 	// Iterate dsrefs, add FSIPaths and any refs that are missing from logbook
-	missingInfoList := make([]*dsInfo, 0)
+	missingInfoList := make([]*entryInfo, 0)
 	for _, ref := range dsrefs {
 		info := findMatchingInfo(ref, allInfoList)
 		if info != nil {
 			info.FSIPath = ref.FSIPath
 			continue
 		}
-		missingInfoList = append(missingInfoList, &dsInfo{
-			ProfileID:  ref.ProfileID.String(),
-			PrettyName: ref.Name,
-			HeadRef:    ref.Path,
-			FSIPath:    ref.FSIPath,
+		missingInfoList = append(missingInfoList, &entryInfo{
+			VersionInfo: dsref.VersionInfo{
+				ProfileID: ref.ProfileID.String(),
+				Name:      ref.Name,
+				Path:      ref.Path,
+				FSIPath:   ref.FSIPath,
+			},
 		})
 	}
-	// Append any missing dsInfos
+	// Append any missing entryInfos
 	if len(missingInfoList) > 0 {
 		allInfoList = append(allInfoList, missingInfoList...)
 	}
 	return allInfoList, nil
 }
 
-func convertLogbookUserToDsInfoList(profileID string, dsLogs []*oplog.Log) []*dsInfo {
-	infoList := make([]*dsInfo, 0, len(dsLogs))
+func convertLogbookUserToDsInfoList(profileID string, dsLogs []*oplog.Log) []*entryInfo {
+	infoList := make([]*entryInfo, 0, len(dsLogs))
 	for _, dsLog := range dsLogs {
 		info := convertDatasetHistoryToDsInfo(*dsLog)
 		if info == nil {
@@ -227,7 +211,7 @@ func convertLogbookUserToDsInfoList(profileID string, dsLogs []*oplog.Log) []*ds
 	return infoList
 }
 
-func convertDatasetHistoryToDsInfo(dsLog oplog.Log) *dsInfo {
+func convertDatasetHistoryToDsInfo(dsLog oplog.Log) *entryInfo {
 	// Get the final pretty name, most recently ammended.
 	prettyName := ""
 	for _, op := range dsLog.Ops {
@@ -252,12 +236,14 @@ func convertDatasetHistoryToDsInfo(dsLog oplog.Log) *dsInfo {
 	historyLog := dsLog.Logs[0]
 	topIndex, headRef := convertHistoryToIndexAndRef(*historyLog)
 	cursorIndex := topIndex
-	return &dsInfo{
-		InitID:      initID,
+	return &entryInfo{
+		VersionInfo: dsref.VersionInfo{
+			InitID: initID,
+			Name:   prettyName,
+			Path:   headRef,
+		},
 		TopIndex:    topIndex,
 		CursorIndex: cursorIndex,
-		PrettyName:  prettyName,
-		HeadRef:     headRef,
 	}
 }
 
@@ -283,8 +269,8 @@ func convertHistoryToIndexAndRef(historyLog oplog.Log) (int, string) {
 	return lastIndex, lastRef
 }
 
-func findMatchingInfo(ref reporef.DatasetRef, dsInfoList []*dsInfo) *dsInfo {
-	for _, info := range dsInfoList {
+func findMatchingInfo(ref reporef.DatasetRef, entryInfoList []*entryInfo) *entryInfo {
+	for _, info := range entryInfoList {
 		if info == nil {
 			continue
 		}
@@ -293,7 +279,7 @@ func findMatchingInfo(ref reporef.DatasetRef, dsInfoList []*dsInfo) *dsInfo {
 		// but name is mutable and can be modified at any time. It should not be used as a
 		// primary key, only as for pretty display. We should be using initID everywhere instead,
 		// but dsrefs does not store the initID, which is the whole reason it is going away.
-		if ref.ProfileID.String() == info.ProfileID && ref.Name == info.PrettyName {
+		if ref.ProfileID.String() == info.ProfileID && ref.Name == info.Name {
 			return info
 		}
 	}

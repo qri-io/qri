@@ -46,7 +46,7 @@ func (rcv *Dscache) UsersLength() int {
 	return 0
 }
 
-func (rcv *Dscache) Refs(obj *RefCache, j int) bool {
+func (rcv *Dscache) Refs(obj *RefEntryInfo, j int) bool {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(6))
 	if o != 0 {
 		x := rcv._tab.Vector(o)

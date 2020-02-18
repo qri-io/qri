@@ -9,7 +9,7 @@ table UserAssoc {
   profileID:string; // static unchanging profileID, derived from original private key
 }
 
-table RefCache {
+table RefEntryInfo {
   initID:string;        // init-id derived from logbook, never changes for the same dataset
   profileID:string;     // profileID for the author of the dataset
   topIndex:int;         // point to logbook entry for newest commit for this dataset
@@ -38,7 +38,7 @@ table RefCache {
 
 table Dscache {
   users:[UserAssoc];
-  refs:[RefCache];
+  refs:[RefEntryInfo];
 }
 
 root_type Dscache;

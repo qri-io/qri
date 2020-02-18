@@ -24,13 +24,13 @@ func (d *Dscache) copyUserAssociationList(builder *flatbuffers.Builder) flatbuff
 
 func (d *Dscache) copyReferenceListWithReplacement(
 	builder *flatbuffers.Builder,
-	findMatchFunc func(*dscachefb.RefCache) bool,
+	findMatchFunc func(*dscachefb.RefEntryInfo) bool,
 	replaceRefFunc func(func(*flatbuffers.Builder))) flatbuffers.UOffsetT {
 
 	// Construct refs, with all pertinent information for each dataset ref
 	refList := make([]flatbuffers.UOffsetT, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
-		r := dscachefb.RefCache{}
+		r := dscachefb.RefEntryInfo{}
 		d.Root.Refs(&r, i)
 		// Check if this entry is the one that we want to modify.
 		if findMatchFunc(&r) {
@@ -42,12 +42,12 @@ func (d *Dscache) copyReferenceListWithReplacement(
 				d.copyReference(builder, &r)
 			}
 			replaceRefFunc(startRefBuildFunc)
-			ref := dscachefb.RefCacheEnd(builder)
+			ref := dscachefb.RefEntryInfoEnd(builder)
 			refList = append(refList, ref)
 			continue
 		}
 		d.copyReference(builder, &r)
-		ref := dscachefb.RefCacheEnd(builder)
+		ref := dscachefb.RefEntryInfoEnd(builder)
 		refList = append(refList, ref)
 	}
 	dscachefb.DscacheStartRefsVector(builder, len(refList))
@@ -76,7 +76,7 @@ func (d *Dscache) copyUserAssoc(builder *flatbuffers.Builder, ua *dscachefb.User
 	dscachefb.UserAssocAddProfileID(builder, profileID)
 }
 
-func (d *Dscache) copyReference(builder *flatbuffers.Builder, r *dscachefb.RefCache) {
+func (d *Dscache) copyReference(builder *flatbuffers.Builder, r *dscachefb.RefEntryInfo) {
 	initID := builder.CreateString(string(r.InitID()))
 	profileID := builder.CreateString(string(r.ProfileID()))
 	prettyName := builder.CreateString(string(r.PrettyName()))
@@ -84,18 +84,18 @@ func (d *Dscache) copyReference(builder *flatbuffers.Builder, r *dscachefb.RefCa
 	themeList := builder.CreateString(string(r.ThemeList()))
 	hashRef := builder.CreateString(string(r.HeadRef()))
 	fsiPath := builder.CreateString(string(r.FsiPath()))
-	dscachefb.RefCacheStart(builder)
-	dscachefb.RefCacheAddInitID(builder, initID)
-	dscachefb.RefCacheAddProfileID(builder, profileID)
-	dscachefb.RefCacheAddTopIndex(builder, int32(r.TopIndex()))
-	dscachefb.RefCacheAddCursorIndex(builder, int32(r.CursorIndex()))
-	dscachefb.RefCacheAddPrettyName(builder, prettyName)
-	dscachefb.RefCacheAddMetaTitle(builder, metaTitle)
-	dscachefb.RefCacheAddThemeList(builder, themeList)
-	dscachefb.RefCacheAddBodySize(builder, int64(r.BodySize()))
-	dscachefb.RefCacheAddBodyRows(builder, int32(r.BodyRows()))
-	dscachefb.RefCacheAddCommitTime(builder, r.CommitTime())
-	dscachefb.RefCacheAddNumErrors(builder, int32(r.NumErrors()))
-	dscachefb.RefCacheAddHeadRef(builder, hashRef)
-	dscachefb.RefCacheAddFsiPath(builder, fsiPath)
+	dscachefb.RefEntryInfoStart(builder)
+	dscachefb.RefEntryInfoAddInitID(builder, initID)
+	dscachefb.RefEntryInfoAddProfileID(builder, profileID)
+	dscachefb.RefEntryInfoAddTopIndex(builder, int32(r.TopIndex()))
+	dscachefb.RefEntryInfoAddCursorIndex(builder, int32(r.CursorIndex()))
+	dscachefb.RefEntryInfoAddPrettyName(builder, prettyName)
+	dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
+	dscachefb.RefEntryInfoAddThemeList(builder, themeList)
+	dscachefb.RefEntryInfoAddBodySize(builder, int64(r.BodySize()))
+	dscachefb.RefEntryInfoAddBodyRows(builder, int32(r.BodyRows()))
+	dscachefb.RefEntryInfoAddCommitTime(builder, r.CommitTime())
+	dscachefb.RefEntryInfoAddNumErrors(builder, int32(r.NumErrors()))
+	dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
+	dscachefb.RefEntryInfoAddFsiPath(builder, fsiPath)
 }
