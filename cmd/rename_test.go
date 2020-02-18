@@ -114,11 +114,11 @@ func TestRenameRun(t *testing.T) {
 		err      string
 		msg      string
 	}{
-		{"", "", "", "repo: empty dataset reference", ""},
-		{"me/from", "", "", "repo: empty dataset reference", ""},
-		{"", "me/to", "", "repo: empty dataset reference", ""},
+		{"", "", "", "empty reference", ""},
+		{"me/from", "", "", "empty reference", ""},
+		{"", "me/to", "", "empty reference", ""},
 		{"me/bad_name", "me/bad_name_too", "", "error with existing reference: repo: not found", ""},
-		{"me/cities", "me/cities_too", "renamed dataset cities_too\n", "", ""},
+		{"me/cities", "me/cities_too", "renamed dataset to cities_too\n", "", ""},
 	}
 
 	for i, c := range cases {

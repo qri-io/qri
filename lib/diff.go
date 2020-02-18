@@ -8,6 +8,7 @@ import (
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -47,12 +48,12 @@ type DiffResponse struct {
 // Diff computes the diff of two datasets
 func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	// absolutize any local paths before a possible trip over RPC to another local process
-	if !repo.IsRefString(p.LeftPath) {
+	if !dsref.IsRefString(p.LeftPath) {
 		if err = qfs.AbsPath(&p.LeftPath); err != nil {
 			return
 		}
 	}
-	if !repo.IsRefString(p.RightPath) {
+	if !dsref.IsRefString(p.RightPath) {
 		if err = qfs.AbsPath(&p.RightPath); err != nil {
 			return
 		}
@@ -63,7 +64,9 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 	ctx := context.TODO()
 
-	if !repo.IsRefString(p.LeftPath) && !repo.IsRefString(p.RightPath) {
+	if p.LeftPath == "" && p.RightPath == "" {
+		return fmt.Errorf("nothing to diff")
+	} else if !dsref.IsRefString(p.LeftPath) && !dsref.IsRefString(p.RightPath) {
 		// Compare body files.
 		leftComp := component.NewBodyComponent(p.LeftPath)
 		leftData, err := leftComp.StructuredData()
@@ -82,7 +85,12 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		res.B = rightData
 		res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(res.Stat))
 		return err
-	} else if !repo.IsRefString(p.LeftPath) || !repo.IsRefString(p.RightPath) {
+	} else if dsref.IsRefString(p.LeftPath) && p.RightPath == "" {
+		// Left parameter with a blank right parameter needs either working directory or as-previous
+		if !p.IsLeftAsPrevious && p.WorkingDir == "" {
+			return fmt.Errorf("Cannot compare a reference to a blank parameter")
+		}
+	} else if !dsref.IsRefString(p.LeftPath) || !dsref.IsRefString(p.RightPath) {
 		// Only one is a file path, other is a reference. Cannot compare.
 		return fmt.Errorf("Cannot compare a dataset reference against a body file")
 	}

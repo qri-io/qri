@@ -11,6 +11,7 @@ import (
 	"github.com/qri-io/dataset/validate"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -133,8 +134,8 @@ func InferValues(pro *profile.Profile, ds *dataset.Dataset) error {
 
 // ValidateDataset checks that a dataset is semantically valid
 func ValidateDataset(ds *dataset.Dataset) (err error) {
-	if err = validate.ValidName(ds.Name); err != nil {
-		return fmt.Errorf("invalid name: %s", err.Error())
+	if !dsref.IsValidName(ds.Name) {
+		return fmt.Errorf("invalid name: %s", dsref.ErrDescribeValidName)
 	}
 
 	// Ensure that dataset structure is valid

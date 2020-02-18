@@ -11,37 +11,6 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
-func TestIsRefString(t *testing.T) {
-	trueCases := []string{
-		"me/dataset",
-		"super_dee_duper/dataset",
-		"@/ipfs/Qmfoo",
-		"super_dee_duper/dataset@/ipfs/Qergsde",
-		"super_dee_duper/dataset@QmFodjd/ipfs/Qergsde",
-	}
-
-	for i, c := range trueCases {
-		if !IsRefString(c) {
-			t.Errorf("true case %d: '%s' returned false", i, c)
-		}
-	}
-
-	falseCases := []string{
-		"foo",
-		"https://apple.com",
-		"apple.com",
-		"foo.json",
-		"/usr/local/bin/file.cbor",
-		"/usr/local/bin",
-	}
-
-	for i, c := range falseCases {
-		if IsRefString(c) {
-			t.Errorf("false case %d: '%s' returned true", i, c)
-		}
-	}
-}
-
 var cases = []struct {
 	ref         reporef.DatasetRef
 	String      string

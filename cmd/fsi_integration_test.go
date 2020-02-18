@@ -113,6 +113,22 @@ func (run *FSITestRunner) CreateAndChdirToWorkDir(subdir string) string {
 	return run.WorkPath
 }
 
+// Test using "init" with invalid names will return an error
+func TestInitBadName(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_init_invalid_name")
+	defer run.Delete()
+
+	// Init with an invalid dataset name
+	err := run.ExecCommand("qri init --name invalid-dataset-name --format csv")
+	if err == nil {
+		t.Fatal("expected error trying to init, did not get an error")
+	}
+	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+}
+
 // Test using "init" to create a new linked directory, using status to see the added files,
 // then saving to create the dataset, leading to a clean status in the directory.
 func TestInitStatusSave(t *testing.T) {

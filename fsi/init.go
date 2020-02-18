@@ -9,6 +9,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -48,6 +49,9 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		}
 	}()
 
+	if !dsref.IsValidName(p.Name) {
+		return "", dsref.ErrDescribeValidName
+	}
 	if p.Dir == "" {
 		return "", fmt.Errorf("directory is required to initialize a dataset")
 	}

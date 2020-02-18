@@ -626,13 +626,13 @@ func TestDatasetRequestsRename(t *testing.T) {
 		err string
 	}{
 		{&RenameParams{}, "current name is required to rename a dataset"},
-		{&RenameParams{Current: reporef.DatasetRef{Peername: "peer", Name: "movies"}, New: reporef.DatasetRef{Peername: "peer", Name: "new movies"}}, "error: illegal name 'new movies', names must start with a letter and consist of only a-z,0-9, and _. max length 144 characters"},
-		{&RenameParams{Current: reporef.DatasetRef{Peername: "peer", Name: "cities"}, New: reporef.DatasetRef{Peername: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
+		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "movies"}, Next: dsref.Ref{Username: "peer", Name: "new movies"}}, "dataset name must start with a letter, and only contain letters, numbers, and underscore"},
+		{&RenameParams{Current: dsref.Ref{Username: "peer", Name: "cities"}, Next: dsref.Ref{Username: "peer", Name: "sitemap"}}, "dataset 'peer/sitemap' already exists"},
 	}
 
 	req := NewDatasetRequests(node, nil)
 	for i, c := range bad {
-		got := &reporef.DatasetRef{}
+		got := &dsref.VersionInfo{}
 		err := req.Rename(c.p, got)
 
 		if err == nil {
@@ -652,18 +652,18 @@ func TestDatasetRequestsRename(t *testing.T) {
 	}
 
 	p := &RenameParams{
-		Current: reporef.DatasetRef{Peername: "peer", Name: "movies"},
-		New:     reporef.DatasetRef{Peername: "peer", Name: "new_movies"},
+		Current: dsref.Ref{Username: "peer", Name: "movies"},
+		Next:    dsref.Ref{Username: "peer", Name: "new_movies"},
 	}
 
-	res := &reporef.DatasetRef{}
+	res := &dsref.VersionInfo{}
 	if err := req.Rename(p, res); err != nil {
 		t.Errorf("unexpected error renaming: %s", err)
 	}
 
-	expect := &reporef.DatasetRef{Peername: "peer", Name: "new_movies"}
-	if expect.AliasString() != res.AliasString() {
-		t.Errorf("response mismatch. expected: %s, got: %s", expect.AliasString(), res.AliasString())
+	expect := &dsref.Ref{Username: "peer", Name: "new_movies"}
+	if expect.Alias() != res.Alias() {
+		t.Errorf("response mismatch. expected: %s, got: %s", expect.Alias(), res.Alias())
 	}
 
 	// get log by id this time

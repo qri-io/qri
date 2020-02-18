@@ -2,9 +2,8 @@ package cmd
 
 import (
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
 )
 
@@ -69,25 +68,24 @@ func (o *RenameOptions) Validate() error {
 
 // Run executes the rename command
 func (o *RenameOptions) Run() error {
-	current, err := repo.ParseDatasetRef(o.From)
+	current, err := dsref.ParseHumanFriendly(o.From)
 	if err != nil {
 		return err
 	}
-
-	next, err := repo.ParseDatasetRef(o.To)
+	next, err := dsref.ParseHumanFriendly(o.To)
 	if err != nil {
 		return err
 	}
 
 	p := &lib.RenameParams{
 		Current: current,
-		New:     next,
+		Next:    next,
 	}
-	res := reporef.DatasetRef{}
+	res := dsref.VersionInfo{}
 	if err = o.DatasetRequests.Rename(p, &res); err != nil {
 		return err
 	}
 
-	printSuccess(o.Out, "renamed dataset %s", res.Name)
+	printSuccess(o.Out, "renamed dataset to %s", res.Name)
 	return nil
 }

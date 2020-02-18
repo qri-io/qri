@@ -26,6 +26,7 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -619,11 +620,11 @@ func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedR
 
 // RenameParams defines parameters for Dataset renaming
 type RenameParams struct {
-	Current, New reporef.DatasetRef
+	Current, Next dsref.Ref
 }
 
 // Rename changes a user's given name for a dataset
-func (r *DatasetRequests) Rename(p *RenameParams, res *reporef.DatasetRef) (err error) {
+func (r *DatasetRequests) Rename(p *RenameParams, res *dsref.VersionInfo) (err error) {
 	if r.cli != nil {
 		return r.cli.Call("DatasetRequests.Rename", p, res)
 	}
@@ -634,22 +635,35 @@ func (r *DatasetRequests) Rename(p *RenameParams, res *reporef.DatasetRef) (err 
 	}
 
 	// Update the reference stored in the repo
-	if err := base.ModifyDatasetRef(ctx, r.node.Repo, &p.Current, &p.New, true /*isRename*/); err != nil {
+	info, err := base.ModifyDatasetRef(ctx, r.node.Repo, p.Current, p.Next)
+	if err != nil {
 		return err
 	}
 
 	// If the dataset is linked to a working directory, update the ref
-	if p.New.FSIPath != "" {
-		if err = r.inst.fsi.ModifyLinkReference(p.New.FSIPath, p.New.String()); err != nil {
+	if info.FSIPath != "" {
+		if err = r.inst.fsi.ModifyLinkReference(info.FSIPath, info.Alias()); err != nil {
 			return err
 		}
 	}
 
-	if err = base.ReadDataset(ctx, r.node.Repo, &p.New); err != nil && err != repo.ErrNoHistory {
+	pid, err := profile.IDB58Decode(info.ProfileID)
+	if err != nil {
+		pid = ""
+	}
+
+	readRef := reporef.DatasetRef{
+		Peername:  info.Username,
+		ProfileID: pid,
+		Name:      info.Name,
+		Path:      info.Path,
+	}
+
+	if err = base.ReadDataset(ctx, r.node.Repo, &readRef); err != nil && err != repo.ErrNoHistory {
 		log.Debug(err.Error())
 		return err
 	}
-	*res = p.New
+	*res = *info
 	return nil
 }
 
@@ -787,35 +801,30 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		}
 	} else if len(history) > 0 {
 		// Delete the specific number of revisions.
-		dsr := history[p.Revision.Gen]
-		replace := &reporef.DatasetRef{
-			Peername:  dsr.Username,
-			Name:      dsr.Name,
-			ProfileID: ref.ProfileID, // TODO (b5) - this is a cheat for now
-			Path:      dsr.Path,
-			Published: dsr.Published,
-		}
-		err = base.ModifyDatasetRef(ctx, r.node.Repo, &ref, replace, false /*isRename*/)
+		hist := history[p.Revision.Gen]
+		next := hist.SimpleRef()
+
+		info, err := base.ModifyDatasetRef(ctx, r.node.Repo, reporef.ConvertToDsref(ref), next)
 		if err != nil {
 			log.Debugf("Remove, base.ModifyDatasetRef failed, error: %s", err)
 			return err
 		}
-		head, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), p.Revision.Gen)
+		newHead, err := base.RemoveNVersionsFromStore(ctx, r.inst.Repo(), reporef.ConvertToDsref(ref), p.Revision.Gen)
 		if err != nil {
 			log.Debugf("Remove, base.RemoveNVersionsFromStore failed, error: %s", err)
 			return err
 		}
 		res.NumDeleted = p.Revision.Gen
 
-		if ref.FSIPath != "" && !p.KeepFiles {
+		if info.FSIPath != "" && !p.KeepFiles {
 			// Load dataset version that is at head after newer versions are removed
-			ds, err := dsfs.LoadDataset(ctx, r.inst.Repo().Store(), head.Path)
+			ds, err := dsfs.LoadDataset(ctx, r.inst.Repo().Store(), newHead.Path)
 			if err != nil {
 				log.Debugf("Remove, dsfs.LoadDataset failed, error: %s", err)
 				return err
 			}
-			ds.Name = head.Name
-			ds.Peername = head.Username
+			ds.Name = newHead.Name
+			ds.Peername = newHead.Username
 			if err = base.OpenDataset(ctx, r.inst.Repo().Filesystem(), ds); err != nil {
 				log.Debugf("Remove, base.OpenDataset failed, error: %s", err)
 				return err
@@ -825,13 +834,13 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 			// and also for Restore() in lib/fsi.go and also maybe WriteComponents in fsi/mapping.go
 
 			// Delete the old files
-			err = fsi.DeleteComponentFiles(ref.FSIPath)
+			err = fsi.DeleteComponentFiles(info.FSIPath)
 			if err != nil {
 				log.Debug("Remove, fsi.DeleteComponentFiles failed, error: %s", err)
 			}
 
 			// Update the files in the working directory
-			fsi.WriteComponents(ds, ref.FSIPath, r.inst.node.Repo.Filesystem())
+			fsi.WriteComponents(ds, info.FSIPath, r.inst.node.Repo.Filesystem())
 		}
 	}
 	log.Debugf("Remove finished")
