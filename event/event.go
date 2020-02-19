@@ -31,7 +31,7 @@ type Bus interface {
 	// Publish an event to the bus
 	Publish(t Topic, data interface{})
 	// Subscribe to one or more topics
-	Subscribe(ch chan Event, topics ...Topic)
+	Subscribe(topics ...Topic) <-chan Event
 	// SubscribeOnce to one or more topics. the returned channel will only fire
 	// once, when the first event that matches any of the given topics
 	// the common use case for multiple subscriptions is subscribing to both
@@ -78,6 +78,7 @@ func NewBus(ctx context.Context) Bus {
 	return b
 }
 
+// Publish sends an event to the bus
 func (b *bus) Publish(topic Topic, data interface{}) {
 	b.lk.RLock()
 	defer b.lk.RUnlock()
@@ -114,10 +115,13 @@ func (b *bus) Publish(topic Topic, data interface{}) {
 	}(event)
 }
 
-func (b *bus) Subscribe(ch chan Event, topics ...Topic) {
+// Subscribe requests events from the given topic, returning a channel of those events
+func (b *bus) Subscribe(topics ...Topic) <-chan Event {
 	b.lk.Lock()
 	defer b.lk.Unlock()
 	log.Debugf("Subscribe: %v", topics)
+
+	ch := make(chan Event)
 
 	for _, topic := range topics {
 		if prev, ok := b.subs[topic]; ok {
@@ -126,8 +130,11 @@ func (b *bus) Subscribe(ch chan Event, topics ...Topic) {
 			b.subs[topic] = dataChannels{ch}
 		}
 	}
+
+	return ch
 }
 
+// SubscribeOnce will only get one event of the topic, then close itself
 func (b *bus) SubscribeOnce(topics ...Topic) <-chan Event {
 	b.onceLk.Lock()
 	defer b.onceLk.Unlock()

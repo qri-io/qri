@@ -22,6 +22,7 @@ import (
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/config/migrate"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
@@ -370,6 +371,10 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.bus == nil {
+		inst.bus = newEventBus(ctx)
+	}
+
 	if inst.registry == nil {
 		inst.registry = newRegClient(ctx, cfg)
 	}
@@ -478,6 +483,10 @@ func newDscache(ctx context.Context, fs qfs.Filesystem, cfg *config.Config, repo
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
 	dscache := dscache.NewDscache(ctx, fs, dscachePath)
 	return dscache, nil
+}
+
+func newEventBus(ctx context.Context) event.Bus {
+	return event.NewBus(ctx)
 }
 
 func newRepo(path string, cfg *config.Config, store cafs.Filestore, fs qfs.Filesystem, book *logbook.Book, cache *dscache.Dscache) (r repo.Repo, err error) {
@@ -614,6 +623,7 @@ type Instance struct {
 	stats        *stats.Stats
 	logbook      *logbook.Book
 	dscache      *dscache.Dscache
+	bus          event.Bus
 
 	Watcher *watchfs.FilesysWatcher
 
@@ -653,6 +663,11 @@ func (inst *Instance) Config() *config.Config {
 // FSI returns methods for using filesystem integration
 func (inst *Instance) FSI() *fsi.FSI {
 	return inst.fsi
+}
+
+// Bus returns the event.Bus
+func (inst *Instance) Bus() event.Bus {
+	return inst.bus
 }
 
 // ChangeConfig implements the ConfigSetter interface

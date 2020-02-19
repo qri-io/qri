@@ -14,13 +14,9 @@ func Example() {
 
 	ctx, done := context.WithCancel(context.Background())
 	bus := NewBus(ctx)
-	ch1 := make(chan Event)
-	ch2 := make(chan Event)
-	ch3 := make(chan Event)
-
-	bus.Subscribe(ch1, ETMainSaidHello)
-	bus.Subscribe(ch2, ETMainSaidHello)
-	bus.Subscribe(ch3, ETMainSaidHello)
+	ch1 := bus.Subscribe(ETMainSaidHello)
+	ch2 := bus.Subscribe(ETMainSaidHello)
+	ch3 := bus.Subscribe(ETMainSaidHello)
 
 	go bus.Publish(ETMainSaidHello, "hello")
 
