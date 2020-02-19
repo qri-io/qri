@@ -84,8 +84,15 @@ func (w *FilesysWatcher) Begin(paths []EventPath) chan FilesysEvent {
 	return messages
 }
 
+// Add starts watching an additional path
+func (w *FilesysWatcher) Add(path EventPath) {
+	w.Assoc[path.Path] = path
+	w.Watcher.Add(path.Path)
+}
+
 // sendEvent sends a message on the channel about an event
 func (w *FilesysWatcher) sendEvent(etype EventType, sour, dest string) {
+	log.Debugf("filesystem event %q %s -> %s\n", etype, sour, dest)
 	dir := filepath.Dir(sour)
 	ep := w.Assoc[dir]
 	event := FilesysEvent{

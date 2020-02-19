@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -188,6 +189,16 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 		log.Debugf("Checkout, fsi.WriteComponents failed, error: %s", ref)
 	}
 	log.Debugf("Checkout wrote components, successfully checked out dataset")
+
+	// Send an event to the bus about this checkout
+	m.inst.Bus().Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
+		FSIPath:  p.Dir,
+		Username: ref.Peername,
+		Dsname:   ref.Name,
+	})
+	log.Debugf("Checkout published an event")
+
+	log.Debugf("Checkout successfully checked out dataset")
 	return nil
 }
 
