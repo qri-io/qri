@@ -191,7 +191,7 @@ func (m *FSIMethods) Checkout(p *CheckoutParams, out *string) (err error) {
 	log.Debugf("Checkout wrote components, successfully checked out dataset")
 
 	// Send an event to the bus about this checkout
-	m.inst.Bus().Publish(event.ETFSICheckoutEvent, event.FSICheckoutEvent{
+	m.inst.Bus().Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
 		FSIPath:  p.Dir,
 		Username: ref.Peername,
 		Dsname:   ref.Name,

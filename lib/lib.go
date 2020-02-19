@@ -592,6 +592,7 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		inst.store = node.Repo.Store()
 		inst.qfs = node.Repo.Filesystem()
 		inst.fsi = fsi.NewFSI(inst.repo)
+		inst.bus = event.NewBus(ctx)
 	}
 
 	return inst
