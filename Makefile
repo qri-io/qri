@@ -2,7 +2,7 @@
 default: build
 
 require-goversion:
-	$(eval minver := go1.12)
+	$(eval minver := go1.13)
 # Get the version of the current go binary
 	$(eval havever := $(shell go version | awk '{print $$3}'))
 # Magic happens. Sort using "." as the tab, keyed by groups of numbers,

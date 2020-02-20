@@ -102,7 +102,9 @@ The following packages are not under Qri, but are important dependencies, so we 
 <a id="build"></a>
 ## Building From Source
 
-To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.12 to build qri.
+To build qri you'll need the [go programming language](https://golang.org/dl/) on your machine. We require at least `go` version 1.13 to build qri.
+
+If you are new to using `go`, you should set your PATH environment variable to include the location that your go tool installs binaries to, which is usually `~/go/bin`. For more information about environment variables see [this tutorial](https://www.twilio.com/blog/2017/01/how-to-set-environment-variables.html).
 
 Building then depends upon your operating system:
 
@@ -111,8 +113,6 @@ Building then depends upon your operating system:
 Having `go` installed is enough, proceed to <a href="#building">building</a>.
 
 ### Windows
-
-Unfortunately, we do not have distributable single exe releases of `qri` yet, but those are planned. For now, you will need to build `qri` from source.
 
 To start, make sure that you have enabled [Developer Mode](https://docs.microsoft.com/en-us/windows/uwp/get-started/enable-your-device-for-development). A library that we depend on needs it enabled in order to properly handle symlinks. If not done, you'll likely get the error message "A required privilege is not held by the client".
 
@@ -130,23 +130,9 @@ Building depends upon having `git` and `make` installed. If using `msys2`, you c
 pacman -S git make
 ```
 
-Assuming you've also installed `go` using the official Windows installer linked above, you will also need to add `go` to your `PATH` by modifying your environment variable.
-
-#### Environment variables
-
-To set Environment variables, open Windows Settings, and search for "Environment variables". This will open System Properties -> Advanced; on this dialog click "Environment Variables...". Here you can edit `PATH` by adding a new entry. The value of `PATH` is multiple locations on your file system, separated by a semi-colon (;) character. Using the list based editor will insert these semi-colons for you.
+Assuming you've also installed `go` using the official Windows installer linked above, you will also need to add `go` to your `PATH` by modifying your environment variable. See the next section on "Environment variables" for more information.
 
 Due to how msys2 treats the `PATH` variable, you also need to add a new environment variable `MSYS2_PATH_TYPE`, with the value `inherit`, using the same procedure.
-
-Alternatively, you can assign environment variables by modifying `.bash_profile` in `msys2`. Lookup bash documentation for more information on this approach.
-
-You will also need to set your `GOPATH` using these same methods. Read the next section for more information.
-
-#### Go workspaces
-
-If you are new to developing `go`, you should know that `go` prefers to work a bit differently than most languages. Please read this guide [How to Write Go Code](https://golang.org/doc/code.html), so that you understand how to create a workspace. Once you have your workspace decided upon, set your `GOPATH` and `PATH` variables setup as described in that guide.
-
-Let's say, for example, that your workspace lives at "c:\Users\me\go", and `go` was installed at "c:\Go". Then you should have your `GOPATH` be equal to "c:\Users\me\go" and your `PATH` something like "...;c:\Go;$GOPATH\bin".
 
 Once these steps are complete, proceed to <a href="#building">building</a>.
 
@@ -178,26 +164,23 @@ Otherwise linux machines with reduced memory will have other ways to increase th
 
 ### Building
 
-In your shell, navigate to your `go` workspace, and get the source code for this repository.
+In your terminal, navigate to some directory that you want to work within. Let's say we're using a directory in our home folder called "go-code".
 
 ```shell
-$ cd $GOPATH
-$ mkdir -p src/github.com/qri-io
-$ cd src/github.com/qri-io
+$ cd go-code
 $ git clone https://github.com/qri-io/qri
 ```
 
-Now enter this main source repo, make sure [go modules](https://github.com/golang/go/wiki/Modules) are enabled, and finally build:
+Once this repository is cloned, enter it and install:
 
 ```shell
 $ cd qri
-$ export GO111MODULE=on
-$ make build
+$ go install
 ```
 
-The `make build` command will have a lot of output. That's good! Its means it's working :)
+If this is your first time building, this command will have a lot of output. That's good! Its means it's working :) It'll take a minute or two to build.
 
-It'll take a minute, but once everything's finished a new binary `qri` will appear in the `$GOPATH/bin` directory. You should be able to run:
+After this is done, there will be a new binary `qri` in your `~/go/bin` directory if using go modules, and `$GOPATH/bin` directory otherwise. You should be able to run:
 
 ```shell
 $ qri help
