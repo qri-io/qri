@@ -5,13 +5,15 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
-	"github.com/qri-io/qri/logbook"
+	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -27,7 +29,9 @@ type Dscache struct {
 	Filename            string
 	Root                *dscachefb.Dscache
 	Buffer              []byte
+	CreateNewEnabled    bool
 	ProfileIDToUsername map[string]string
+	Messages            <-chan event.Event
 }
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
@@ -170,16 +174,74 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
+// Subscribe watches a logbook for actions that change the state
+func (d *Dscache) Subscribe(bus event.Bus) {
+	d.Messages = bus.Subscribe(event.ETDatasetInit, event.ETDatasetChange)
+	go func() {
+		for {
+			e := <-d.Messages
+			if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
+				if e.Topic == event.ETDatasetInit {
+					if err := d.updateInitDataset(dsChange); err != nil {
+						log.Error(err)
+					}
+				} else if e.Topic == event.ETDatasetChange {
+					if err := d.updateMoveCursor(dsChange); err != nil {
+						log.Error(err)
+					}
+				}
+			}
+		}
+	}()
+}
+
+func (d *Dscache) updateInitDataset(e event.DatasetChangeEvent) error {
+	if d.IsEmpty() {
+		// Only create a new dscache if that feature is enabled. This way no one is forced to
+		// use dscache without opting in.
+		if !d.CreateNewEnabled {
+			return nil
+		}
+		builder := NewBuilder()
+		builder.AddUser(e.Username, e.ProfileID)
+		builder.AddDsVersionInfo(dsref.VersionInfo{
+			InitID:    e.InitID,
+			ProfileID: e.ProfileID,
+			Name:      e.PrettyName,
+		})
+		cache := builder.Build()
+		d.Assign(cache)
+		return nil
+	}
+	builder := NewBuilder()
+	// copy users
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		up := dscachefb.UserAssoc{}
+		d.Root.Users(&up, i)
+		builder.AddUser(string(up.Username()), string(up.ProfileID()))
+	}
+	// copy ds versions
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		r := dscachefb.RefEntryInfo{}
+		d.Root.Refs(&r, i)
+		builder.AddDsVersionInfoWithIndexes(convertEntryToVersionInfo(&r), int(r.TopIndex()), int(r.CursorIndex()))
+	}
+	// Add new ds version info
+	builder.AddDsVersionInfo(dsref.VersionInfo{
+		InitID:    e.InitID,
+		ProfileID: e.ProfileID,
+		Name:      e.PrettyName,
+	})
+	cache := builder.Build()
+	d.Assign(cache)
+	return nil
+}
+
 // Update modifies the dscache according to the provided action.
-func (d *Dscache) Update(act *logbook.Action) error {
+func (d *Dscache) updateMoveCursor(e event.DatasetChangeEvent) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
-
-	if act.Type != logbook.ActionMoveCursor {
-		return fmt.Errorf("dscache: only ActionMoveCursor is supported")
-	}
-
 	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
 	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
 	builder := flatbuffers.NewBuilder(0)
@@ -187,35 +249,35 @@ func (d *Dscache) Update(act *logbook.Action) error {
 	refs := d.copyReferenceListWithReplacement(
 		builder,
 		func(r *dscachefb.RefEntryInfo) bool {
-			return string(r.InitID()) == act.InitID
+			return string(r.InitID()) == e.InitID
 		},
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
 			var metaTitle, commitTitle, commitMessage flatbuffers.UOffsetT
-			if act.Dataset != nil && act.Dataset.Meta != nil {
-				metaTitle = builder.CreateString(act.Dataset.Meta.Title)
+			if e.Dataset != nil && e.Dataset.Meta != nil {
+				metaTitle = builder.CreateString(e.Dataset.Meta.Title)
 			}
-			if act.Dataset != nil && act.Dataset.Commit != nil {
-				commitTitle = builder.CreateString(act.Dataset.Commit.Title)
-				commitMessage = builder.CreateString(act.Dataset.Commit.Message)
+			if e.Dataset != nil && e.Dataset.Commit != nil {
+				commitTitle = builder.CreateString(e.Dataset.Commit.Title)
+				commitMessage = builder.CreateString(e.Dataset.Commit.Message)
 			}
-			hashRef := builder.CreateString(string(act.HeadRef))
+			hashRef := builder.CreateString(string(e.HeadRef))
 			// Start building a ref object, by mutating an existing ref object.
 			refStartMutationFunc(builder)
 			// Add only the fields we want to change.
-			dscachefb.RefEntryInfoAddTopIndex(builder, int32(act.TopIndex))
-			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(act.TopIndex))
-			if act.Dataset != nil && act.Dataset.Meta != nil {
+			dscachefb.RefEntryInfoAddTopIndex(builder, int32(e.TopIndex))
+			dscachefb.RefEntryInfoAddCursorIndex(builder, int32(e.TopIndex))
+			if e.Dataset != nil && e.Dataset.Meta != nil {
 				dscachefb.RefEntryInfoAddMetaTitle(builder, metaTitle)
 			}
-			if act.Dataset != nil && act.Dataset.Commit != nil {
-				dscachefb.RefEntryInfoAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
+			if e.Dataset != nil && e.Dataset.Commit != nil {
+				dscachefb.RefEntryInfoAddCommitTime(builder, e.Dataset.Commit.Timestamp.Unix())
 				dscachefb.RefEntryInfoAddCommitTitle(builder, commitTitle)
 				dscachefb.RefEntryInfoAddCommitMessage(builder, commitMessage)
 			}
-			if act.Dataset != nil && act.Dataset.Structure != nil {
-				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Dataset.Structure.Length))
-				dscachefb.RefEntryInfoAddBodyRows(builder, int32(act.Dataset.Structure.Entries))
-				dscachefb.RefEntryInfoAddNumErrors(builder, int32(act.Dataset.Structure.ErrCount))
+			if e.Dataset != nil && e.Dataset.Structure != nil {
+				dscachefb.RefEntryInfoAddBodySize(builder, int64(e.Dataset.Structure.Length))
+				dscachefb.RefEntryInfoAddBodyRows(builder, int32(e.Dataset.Structure.Entries))
+				dscachefb.RefEntryInfoAddNumErrors(builder, int32(e.Dataset.Structure.ErrCount))
 			}
 			dscachefb.RefEntryInfoAddHeadRef(builder, hashRef)
 			// Don't call RefEntryInfoEnd, that is handled by copyReferenceListWithReplacement
@@ -225,6 +287,28 @@ func (d *Dscache) Update(act *logbook.Action) error {
 	d.Root = root
 	d.Buffer = serialized
 	return d.save()
+}
+
+func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
+	return dsref.VersionInfo{
+		InitID:        string(r.InitID()),
+		ProfileID:     string(r.ProfileID()),
+		Name:          string(r.PrettyName()),
+		Path:          string(r.HeadRef()),
+		Published:     r.Published(),
+		Foreign:       r.Foreign(),
+		MetaTitle:     string(r.MetaTitle()),
+		ThemeList:     string(r.ThemeList()),
+		BodySize:      int(r.BodySize()),
+		BodyRows:      int(r.BodyRows()),
+		BodyFormat:    string(r.BodyFormat()),
+		NumErrors:     int(r.NumErrors()),
+		CommitTime:    time.Unix(r.CommitTime(), 0),
+		CommitTitle:   string(r.CommitTitle()),
+		CommitMessage: string(r.CommitMessage()),
+		NumVersions:   int(r.NumVersions()),
+		FSIPath:       string(r.FsiPath()),
+	}
 }
 
 func (d *Dscache) ensureProToUserMap() {

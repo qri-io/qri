@@ -21,7 +21,7 @@ type BookBuilder struct {
 
 // NewLogbookTempBuilder constructs a logbook tmp BookBuilder
 func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string, fs qfs.Filesystem, rootPath string) BookBuilder {
-	book, err := logbook.NewJournal(privKey, username, fs, rootPath)
+	book, err := logbook.NewJournal(privKey, username, fs, nil, rootPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -75,7 +75,7 @@ func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, t
 		Path:         ipfsHash,
 		PreviousPath: ref.Path,
 	}
-	if _, err := b.Book.WriteVersionSave(ctx, &ds); err != nil {
+	if err := b.Book.WriteVersionSave(ctx, &ds); err != nil {
 		t.Fatal(err)
 	}
 	b.Dsrefs[ref.Name] = append(b.Dsrefs[ref.Name], ipfsHash)

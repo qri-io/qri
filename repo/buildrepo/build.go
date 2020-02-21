@@ -18,6 +18,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dscache"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/fs"
@@ -64,6 +65,8 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 		return nil, err
 	}
 
+	bus := newEventBus(ctx)
+
 	switch cfg.Repo.Type {
 	case "fs":
 		book, err := newLogbook(fs, pro, path)
@@ -71,7 +74,7 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 			return nil, err
 		}
 
-		cache, err := newDscache(ctx, fs, path)
+		cache, err := newDscache(ctx, fs, bus, path)
 		if err != nil {
 			return nil, err
 		}
@@ -150,14 +153,20 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 // TODO (b5) - if we had a better logbook constructor, this wouldn't need to exist
 func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, nil, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, repoPath string) (*dscache.Dscache, error) {
+func newEventBus(ctx context.Context) event.Bus {
+	return event.NewBus(ctx)
+}
+
+func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, repoPath string) (*dscache.Dscache, error) {
 	// This seems to be a bug, the repoPath does not end in "qri" in some tests.
 	if !strings.HasSuffix(repoPath, "qri") {
 		repoPath = repoPath + "/qri"
 	}
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	return dscache.NewDscache(ctx, fs, dscachePath), nil
+	cache := dscache.NewDscache(ctx, fs, dscachePath)
+	cache.Subscribe(bus)
+	return cache, nil
 }

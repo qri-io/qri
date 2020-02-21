@@ -30,7 +30,7 @@ func TestRepo(t *testing.T) {
 		}
 
 		fs := qfs.NewMemFS()
-		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, path)
+		book, err := logbook.NewJournal(pro.PrivKey, pro.Peername, fs, nil, path)
 		if err != nil {
 			t.Fatal(err)
 		}

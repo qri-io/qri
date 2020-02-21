@@ -43,7 +43,7 @@ func Example() {
 	//  * a base path on the filesystem to read & write the logbook to
 	// Initializing a logbook ensures the author has an user opset that matches
 	// their current state. It will error if a stored book can't be decrypted
-	book, err := NewJournal(pk, "b5", fs, "/mem/logset")
+	book, err := NewJournal(pk, "b5", fs, nil, "/mem/logset")
 	if err != nil {
 		panic(err) // real programs don't panic
 	}
@@ -73,7 +73,7 @@ func Example() {
 
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if _, err := book.WriteVersionSave(ctx, ds); err != nil {
+	if err := book.WriteVersionSave(ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -93,7 +93,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if _, err := book.WriteVersionSave(ctx, ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, ds2); err != nil {
 		panic(err)
 	}
 
@@ -136,7 +136,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if _, err := book.WriteVersionSave(ctx, ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, ds3); err != nil {
 		panic(err)
 	}
 
@@ -161,20 +161,20 @@ func TestNewJournal(t *testing.T) {
 	pk := testPrivKey(t)
 	fs := qfs.NewMemFS()
 
-	if _, err := NewJournal(nil, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(nil, "b5", nil, nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing private key arg to error")
 	}
-	if _, err := NewJournal(pk, "", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(pk, "", nil, nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing author arg to error")
 	}
-	if _, err := NewJournal(pk, "b5", nil, "/mem/logset"); err == nil {
+	if _, err := NewJournal(pk, "b5", nil, nil, "/mem/logset"); err == nil {
 		t.Errorf("expected missing filesystem arg to error")
 	}
-	if _, err := NewJournal(pk, "b5", fs, ""); err == nil {
+	if _, err := NewJournal(pk, "b5", fs, nil, ""); err == nil {
 		t.Errorf("expected missing location arg to error")
 	}
 
-	_, err := NewJournal(pk, "b5", fs, "/mem/logset")
+	_, err := NewJournal(pk, "b5", fs, nil, "/mem/logset")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -226,7 +226,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteVersionDelete(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if _, err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
+	if err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 }
@@ -563,7 +563,7 @@ func TestLogTransfer(t *testing.T) {
 
 	pk2 := testPrivKey2(t)
 	fs2 := qfs.NewMemFS()
-	book2, err := NewJournal(pk2, "user2", fs2, "/mem/fs2_location")
+	book2, err := NewJournal(pk2, "user2", fs2, nil, "/mem/fs2_location")
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -807,7 +807,7 @@ func newTestRunner(t *testing.T) (tr *testRunner, cleanup func()) {
 	NewTimestamp = tr.newTimestamp
 
 	var err error
-	tr.Book, err = NewJournal(pk, authorName, fs, "/mem/logset")
+	tr.Book, err = NewJournal(pk, authorName, fs, nil, "/mem/logset")
 	if err != nil {
 		t.Fatalf("creating book: %s", err.Error())
 	}
@@ -850,7 +850,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -862,7 +862,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		t.Fatal(err)
 	}
 
@@ -901,7 +901,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion3",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -916,7 +916,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion4",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 }
@@ -951,7 +951,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -966,7 +966,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		t.Fatal(err)
 	}
 

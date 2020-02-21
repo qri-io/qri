@@ -410,7 +410,7 @@ func newTestbook(username string, pk crypto.PrivKey) (*logbook.Book, error) {
 	// logbook relies on a qfs.Filesystem for read & write. create an in-memory
 	// filesystem we can play with
 	fs := qfs.NewMemFS()
-	return logbook.NewJournal(pk, username, fs, "/mem/logset")
+	return logbook.NewJournal(pk, username, fs, nil, "/mem/logset")
 }
 
 func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, err error) {
@@ -430,14 +430,14 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 		PreviousPath: "",
 	}
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
@@ -464,21 +464,21 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		PreviousPath: "",
 	}
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v2"
 	ds.PreviousPath = "v1"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 

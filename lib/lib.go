@@ -357,22 +357,22 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
+	if inst.bus == nil {
+		inst.bus = newEventBus(ctx)
+	}
+
 	if inst.logbook == nil {
-		inst.logbook, err = newLogbook(inst.qfs, cfg, inst.repoPath)
+		inst.logbook, err = newLogbook(inst.qfs, inst.bus, cfg, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("newLogbook: %w", err)
 		}
 	}
 
 	if inst.dscache == nil {
-		inst.dscache, err = newDscache(ctx, inst.qfs, cfg, inst.repoPath)
+		inst.dscache, err = newDscache(ctx, inst.qfs, inst.bus, cfg, inst.repoPath)
 		if err != nil {
 			return nil, fmt.Errorf("newDsache: %w", err)
 		}
-	}
-
-	if inst.bus == nil {
-		inst.bus = newEventBus(ctx)
 	}
 
 	if inst.registry == nil {
@@ -468,7 +468,7 @@ func newRegClient(ctx context.Context, cfg *config.Config) (rc *regclient.Client
 	return nil
 }
 
-func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *logbook.Book, err error) {
+func newLogbook(fs qfs.Filesystem, bus event.Bus, cfg *config.Config, repoPath string) (book *logbook.Book, err error) {
 	var pro *profile.Profile
 	if pro, err = profile.NewProfile(cfg.Profile); err != nil {
 		return
@@ -476,13 +476,14 @@ func newLogbook(fs qfs.Filesystem, cfg *config.Config, repoPath string) (book *l
 
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
 
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, logbookPath)
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, bus, logbookPath)
 }
 
-func newDscache(ctx context.Context, fs qfs.Filesystem, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
+func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	dscache := dscache.NewDscache(ctx, fs, dscachePath)
-	return dscache, nil
+	cache := dscache.NewDscache(ctx, fs, dscachePath)
+	cache.Subscribe(bus)
+	return cache, nil
 }
 
 func newEventBus(ctx context.Context) event.Bus {
