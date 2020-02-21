@@ -105,7 +105,7 @@ func (o *RemoveOptions) Validate() error {
 
 // Run executes the remove command
 func (o *RemoveOptions) Run() (err error) {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	params := lib.RemoveParams{
 		Ref:       o.Refs.Ref(),

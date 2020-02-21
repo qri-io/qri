@@ -71,7 +71,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the log command
 func (o *LogOptions) Run() error {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
@@ -166,7 +166,7 @@ func (o *LogbookOptions) Complete(f Factory, args []string) (err error) {
 
 // Logbook executes the Logbook command
 func (o *LogbookOptions) Logbook() error {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)

@@ -119,7 +119,7 @@ func (o *RenderOptions) RunVizRender() (err error) {
 
 // RunReadmeRender renders a readme file as html
 func (o *RenderOptions) RunReadmeRender() error {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	p := &lib.RenderParams{
 		Ref:       o.Refs.Ref(),

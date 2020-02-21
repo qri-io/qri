@@ -123,7 +123,7 @@ func (o *GetOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the get command
 func (o *GetOptions) Run() (err error) {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	// Pretty maps to a key in the FormatConfig map.
 	var fc dataset.FormatConfig

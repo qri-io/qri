@@ -79,7 +79,7 @@ func (o *PublishOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the publish command
 func (o *PublishOptions) Run() error {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	p := lib.PublicationParams{
 		Ref:        o.Refs.Ref(),
