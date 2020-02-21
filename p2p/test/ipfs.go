@@ -40,9 +40,11 @@ func MakeRepoFromIPFSNode(node *core.IpfsNode, username string) (qrirepo.Repo, e
 		return nil, err
 	}
 
+	memFS := qfs.NewMemFS()
 	fsys := qfs.NewMux(map[string]qfs.Filesystem{
-		"cafs": qfs.NewMemFS(),
-		"ipfs": store,
+		"cafs":  memFS,
+		"local": memFS,
+		"ipfs":  store,
 	})
 
 	return qrirepo.NewMemRepo(p, store, fsys, profile.NewMemStore())
