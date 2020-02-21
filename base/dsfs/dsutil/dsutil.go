@@ -56,3 +56,28 @@ func WriteDir(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, pa
 
 	return nil
 }
+
+// InlineScriptsToBytes consumes all open script files for dataset components
+// other than the body, inlining file data to scriptBytes fields
+func InlineScriptsToBytes(ds *dataset.Dataset) error {
+	var err error
+	if ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		if ds.Readme.ScriptBytes, err = ioutil.ReadAll(ds.Readme.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		if ds.Transform.ScriptBytes, err = ioutil.ReadAll(ds.Transform.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		if ds.Viz.ScriptBytes, err = ioutil.ReadAll(ds.Viz.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}

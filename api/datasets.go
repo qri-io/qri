@@ -297,6 +297,11 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
+	if err := dsutil.InlineScriptsToBytes(res.Dataset); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
+		return
+	}
+
 	// TODO (b5) - remove this. res.Ref should be used instead
 	ref := reporef.DatasetRef{
 		Peername:  res.Dataset.Peername,

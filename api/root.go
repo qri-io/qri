@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
+	"github.com/qri-io/qri/base/dsfs/dsutil"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
@@ -73,6 +74,11 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 
 	if res.Dataset == nil || res.Dataset.IsEmpty() {
 		util.WriteErrResponse(w, http.StatusNotFound, errors.New("cannot find peer dataset"))
+		return
+	}
+
+	if err := dsutil.InlineScriptsToBytes(res.Dataset); err != nil {
+		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
 
