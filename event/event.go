@@ -37,6 +37,10 @@ type Bus interface {
 	// the common use case for multiple subscriptions is subscribing to both
 	// success and error events
 	SubscribeOnce(types ...Topic) <-chan Event
+    // Unsubscribe cleans up a channel that no longer need to receive events
+	Unsubscribe(<-chan Event)
+	// NumSubscriptions returns the number of subscribers to the bus's events
+	NumSubscribers() int
 }
 
 type dataChannels []chan Event
@@ -152,4 +156,41 @@ func (b *bus) SubscribeOnce(topics ...Topic) <-chan Event {
 	})
 
 	return ch
+}
+
+// Unsubscribe cleans up a channel that no longer need to receive events
+func (b *bus) Unsubscribe(unsub <-chan Event) {
+	for topic, channels := range b.subs {
+		var replace dataChannels
+		for i, ch := range channels {
+			if ch == unsub {
+				replace = append(channels[:i], channels[i+1:]...)
+			}
+		}
+		if replace != nil {
+			b.subs[topic] = replace
+		}
+	}
+}
+
+// NumSubscribers returns the number of subscribers to the bus's events
+func (b *bus) NumSubscribers() int {
+	total := 0
+	for _, channels := range b.subs {
+		total += len(channels)
+	}
+	return total
+}
+
+// Publisher is an interface that can only publish an event
+type Publisher interface {
+	Publish(t Topic, data interface{})
+}
+
+// NilPublisher replaces a nil value, does nothing
+type NilPublisher struct {
+}
+
+// Publish does nothing with the event
+func (n *NilPublisher) Publish(t Topic, data interface{}) {
 }

@@ -43,7 +43,7 @@ func NewMemRepo(p *profile.Profile, store cafs.Filestore, fsys qfs.Filesystem, p
 		MemRefstore: &MemRefstore{},
 		refCache:    &MemRefstore{},
 		logbook:     book,
-		dscache:     dscache.NewDscache(ctx, fsys, ""),
+		dscache:     dscache.NewDscache(ctx, fsys, nil, ""),
 		profile:     p,
 		profiles:    ps,
 	}, nil

@@ -293,7 +293,7 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
 	fs := localfs.NewFS()
 	cacheFilename := cache.Filename
 	ctx := context.Background()
-	cache = dscache.NewDscache(ctx, fs, cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
 
 	// Dscache should have two entries now. They are alphabetized by pretty name, and have all
 	// the expected data.
@@ -387,7 +387,7 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	fs := localfs.NewFS()
 	cacheFilename := cache.Filename
 	ctx := context.Background()
-	cache = dscache.NewDscache(ctx, fs, cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
 	actual = cache.VerboseString(false)

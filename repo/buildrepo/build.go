@@ -69,7 +69,7 @@ func New(ctx context.Context, path string, cfg *config.Config) (repo.Repo, error
 
 	switch cfg.Repo.Type {
 	case "fs":
-		book, err := newLogbook(fs, pro, path)
+		book, err := newLogbook(fs, pro, bus, path)
 		if err != nil {
 			return nil, err
 		}
@@ -151,9 +151,9 @@ func NewCAFSStore(ctx context.Context, cfg *config.Config) (store cafs.Filestore
 }
 
 // TODO (b5) - if we had a better logbook constructor, this wouldn't need to exist
-func newLogbook(fs qfs.Filesystem, pro *profile.Profile, repoPath string) (book *logbook.Book, err error) {
+func newLogbook(fs qfs.Filesystem, pro *profile.Profile, bus event.Bus, repoPath string) (book *logbook.Book, err error) {
 	logbookPath := filepath.Join(repoPath, "logbook.qfb")
-	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, nil, logbookPath)
+	return logbook.NewJournal(pro.PrivKey, pro.Peername, fs, bus, logbookPath)
 }
 
 func newEventBus(ctx context.Context) event.Bus {
@@ -166,7 +166,5 @@ func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, repoPath 
 		repoPath = repoPath + "/qri"
 	}
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	cache := dscache.NewDscache(ctx, fs, dscachePath)
-	cache.Subscribe(bus)
-	return cache, nil
+	return dscache.NewDscache(ctx, fs, bus, dscachePath), nil
 }

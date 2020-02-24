@@ -31,25 +31,28 @@ type Dscache struct {
 	Buffer              []byte
 	CreateNewEnabled    bool
 	ProfileIDToUsername map[string]string
-	Messages            <-chan event.Event
 }
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
 // that will save to the given filename. Using an empty filename will disable loading and saving
-func NewDscache(ctx context.Context, fsys qfs.Filesystem, filename string) *Dscache {
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, bus event.Bus, filename string) *Dscache {
+	cache := Dscache{Filename: filename}
 	f, err := fsys.Get(ctx, filename)
-	if err != nil {
-		// Ignore error, as dscache loading is optional
-		return &Dscache{Filename: filename}
+	if err == nil {
+		// Ignore non-nil error, as dscache loading is optional
+		defer f.Close()
+		buffer, err := ioutil.ReadAll(f)
+		if err != nil {
+			log.Error(err)
+		} else {
+			root := dscachefb.GetRootAsDscache(buffer, 0)
+			cache = Dscache{Filename: filename, Root: root, Buffer: buffer}
+		}
 	}
-	defer f.Close()
-	buffer, err := ioutil.ReadAll(f)
-	if err != nil {
-		// Ignore error, as dscache loading is optional
-		return &Dscache{Filename: filename}
+	if bus != nil {
+		cache.subscribe(ctx, bus)
 	}
-	root := dscachefb.GetRootAsDscache(buffer, 0)
-	return &Dscache{Filename: filename, Root: root, Buffer: buffer}
+	return &cache
 }
 
 // IsEmpty returns whether the dscache has any constructed data in it
@@ -174,20 +177,24 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
-// Subscribe watches a logbook for actions that change the state
-func (d *Dscache) Subscribe(bus event.Bus) {
-	d.Messages = bus.Subscribe(event.ETDatasetInit, event.ETDatasetChange)
+func (d *Dscache) subscribe(ctx context.Context, bus event.Bus) {
+	eventsCh := bus.Subscribe(event.ETDatasetInit, event.ETDatasetChange)
 	go func() {
 		for {
-			e := <-d.Messages
-			if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
-				if e.Topic == event.ETDatasetInit {
-					if err := d.updateInitDataset(dsChange); err != nil {
-						log.Error(err)
-					}
-				} else if e.Topic == event.ETDatasetChange {
-					if err := d.updateMoveCursor(dsChange); err != nil {
-						log.Error(err)
+			select {
+			case <-ctx.Done():
+				bus.Unsubscribe(eventsCh)
+				break
+			case e := <-eventsCh:
+				if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
+					if e.Topic == event.ETDatasetInit {
+						if err := d.updateInitDataset(dsChange); err != nil {
+							log.Error(err)
+						}
+					} else if e.Topic == event.ETDatasetChange {
+						if err := d.updateMoveCursor(dsChange); err != nil {
+							log.Error(err)
+						}
 					}
 				}
 			}

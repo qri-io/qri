@@ -481,9 +481,7 @@ func newLogbook(fs qfs.Filesystem, bus event.Bus, cfg *config.Config, repoPath s
 
 func newDscache(ctx context.Context, fs qfs.Filesystem, bus event.Bus, cfg *config.Config, repoPath string) (*dscache.Dscache, error) {
 	dscachePath := filepath.Join(repoPath, "dscache.qfb")
-	cache := dscache.NewDscache(ctx, fs, dscachePath)
-	cache.Subscribe(bus)
-	return cache, nil
+	return dscache.NewDscache(ctx, fs, bus, dscachePath), nil
 }
 
 func newEventBus(ctx context.Context) event.Bus {

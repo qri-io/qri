@@ -57,11 +57,11 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 
 	// A dscache that will save when it is assigned
 	dscacheFile := filepath.Join(tmpdir, "dscache.qfb")
-	saveable := NewDscache(ctx, fs, dscacheFile)
+	saveable := NewDscache(ctx, fs, nil, dscacheFile)
 	saveable.Assign(constructed)
 
 	// Load the dscache from its serialized file, verify it has correct data
-	loadable := NewDscache(ctx, fs, dscacheFile)
+	loadable := NewDscache(ctx, fs, nil, dscacheFile)
 	if loadable.Root.UsersLength() != 1 {
 		t.Errorf("expected, 1 user, got %d users", loadable.Root.UsersLength())
 	}

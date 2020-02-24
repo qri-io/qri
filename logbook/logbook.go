@@ -93,7 +93,7 @@ type Book struct {
 	pk         crypto.PrivKey
 	authorID   string
 	authorName string
-	bus        event.Bus
+	publisher  event.Publisher
 
 	fsLocation string
 	fs         qfs.Filesystem
@@ -107,7 +107,7 @@ func NewBook(pk crypto.PrivKey, store oplog.Logstore) *Book {
 // NewJournal initializes a logbook owned by a single author, reading any
 // existing data at the given filesystem location.
 // logbooks are encrypted at rest with the given private key
-func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, bus event.Bus, location string) (*Book, error) {
+func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, pub event.Publisher, location string) (*Book, error) {
 	ctx := context.Background()
 	if pk == nil {
 		return nil, fmt.Errorf("logbook: private key is required")
@@ -123,9 +123,12 @@ func NewJournal(pk crypto.PrivKey, username string, fs qfs.Filesystem, bus event
 		store:      &oplog.Journal{},
 		fs:         fs,
 		pk:         pk,
-		bus:        bus,
+		publisher:  pub,
 		authorName: username,
 		fsLocation: location,
+	}
+	if pub == nil {
+		book.publisher = &event.NilPublisher{}
 	}
 
 	if err := book.load(ctx); err != nil {
@@ -315,19 +318,17 @@ func (book Book) initName(ctx context.Context, profileID, username, name string)
 	nameLog := book.authorLog(ctx)
 	nameLog.AddChild(dsLog)
 
-	if book.bus != nil {
-		book.bus.Publish(
-			event.ETDatasetInit,
-			event.DatasetChangeEvent{
-				InitID:     dsLog.ID(),
-				TopIndex:   0,
-				Username:   username,
-				ProfileID:  profileID,
-				PrettyName: name,
-				HeadRef:    "",
-				Dataset:    nil,
-			})
-	}
+	book.publisher.Publish(
+		event.ETDatasetInit,
+		event.DatasetChangeEvent{
+			InitID:     dsLog.ID(),
+			TopIndex:   0,
+			Username:   username,
+			ProfileID:  profileID,
+			PrettyName: name,
+			HeadRef:    "",
+			Dataset:    nil,
+		})
 
 	return branch
 }
@@ -423,16 +424,14 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) err
 	// Index of the branch's top is one less than the length
 	topIndex := len(branchLog.Ops) - 1
 
-	if book.bus != nil {
-		book.bus.Publish(
-			event.ETDatasetChange,
-			event.DatasetChangeEvent{
-				InitID:   datasetLog.ID(),
-				TopIndex: topIndex,
-				HeadRef:  ds.Path,
-				Dataset:  ds,
-			})
-	}
+	book.publisher.Publish(
+		event.ETDatasetChange,
+		event.DatasetChangeEvent{
+			InitID:   datasetLog.ID(),
+			TopIndex: topIndex,
+			HeadRef:  ds.Path,
+			Dataset:  ds,
+		})
 	return nil
 }
 

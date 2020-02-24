@@ -4,11 +4,11 @@ import (
 	"github.com/qri-io/dataset"
 )
 
-var (
+const (
 	// ETDatasetInit is for events that initialize datasets
-	ETDatasetInit = Topic("ds:init")
+	ETDatasetInit = Topic("logbook:DatasetNameInitialized")
 	// ETDatasetChange is for events that change an existing dataset
-	ETDatasetChange = Topic("ds:change")
+	ETDatasetChange = Topic("logbook:DatasetChange")
 )
 
 // DatasetChangeEvent describes a change to a dataset
