@@ -103,7 +103,7 @@ func (o *FSIOptions) Unlink() error {
 	var res string
 
 	for _, ref := range o.Refs.RefList() {
-		printRefSelect(o.Out, o.Refs)
+		printRefSelect(o.ErrOut, o.Refs)
 
 		p := &lib.LinkParams{
 			Dir: o.Refs.Dir(),

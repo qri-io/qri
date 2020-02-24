@@ -100,7 +100,7 @@ func (o *RestoreOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the `restore` command
 func (o *RestoreOptions) Run() (err error) {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	ref := o.Refs.Ref()
 	if o.Path != "" {

@@ -141,7 +141,7 @@ func (o *SaveOptions) Validate() error {
 
 // Run executes the save command
 func (o *SaveOptions) Run() (err error) {
-	printRefSelect(o.Out, o.Refs)
+	printRefSelect(o.ErrOut, o.Refs)
 
 	o.StartSpinner()
 	defer o.StopSpinner()
