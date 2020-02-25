@@ -39,7 +39,11 @@ func (RenderRequests) CoreRequestsName() string { return "render" }
 
 // RenderParams defines parameters for the Render method
 type RenderParams struct {
-	Ref       string
+	// Ref is a string reference to the dataset to render
+	Ref string
+	// Optionally pass an entire dataset in for rendering, overrides ref param
+	Dataset *dataset.Dataset
+	// Optional template override
 	Template  []byte
 	UseFSI    bool
 	OutFormat string
@@ -74,23 +78,27 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 	}
 	ctx := context.TODO()
 
-	ref, err := base.ToDatasetRef(p.Ref, r.repo, p.UseFSI)
-	if err != nil {
-		return err
-	}
-
 	var ds *dataset.Dataset
-	if p.UseFSI {
-		if ref.FSIPath == "" {
-			return fsi.ErrNoLink
-		}
-		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
-			return fmt.Errorf("loading linked dataset: %s", err)
-		}
+	if p.Dataset != nil {
+		ds = p.Dataset
 	} else {
-		ds, err = dsfs.LoadDataset(ctx, r.repo.Store(), ref.Path)
+		ref, err := base.ToDatasetRef(p.Ref, r.repo, p.UseFSI)
 		if err != nil {
-			return fmt.Errorf("loading dataset: %s", err)
+			return err
+		}
+
+		if p.UseFSI {
+			if ref.FSIPath == "" {
+				return fsi.ErrNoLink
+			}
+			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
+				return fmt.Errorf("loading linked dataset: %s", err)
+			}
+		} else {
+			ds, err = dsfs.LoadDataset(ctx, r.repo.Store(), ref.Path)
+			if err != nil {
+				return fmt.Errorf("loading dataset: %s", err)
+			}
 		}
 	}
 
@@ -98,11 +106,9 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 		return fmt.Errorf("no readme to render")
 	}
 
-	err = ds.Readme.OpenScriptFile(ctx, r.repo.Filesystem())
-	if err != nil {
+	if err = ds.Readme.OpenScriptFile(ctx, r.repo.Filesystem()); err != nil {
 		return err
 	}
-
 	if ds.Readme.ScriptFile() == nil {
 		return fmt.Errorf("no readme to render")
 	}
