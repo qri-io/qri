@@ -9,7 +9,6 @@ import (
 	"time"
 
 	"github.com/qri-io/qri/base/component"
-	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/watchfs"
 	"nhooyr.io/websocket"
@@ -31,7 +30,7 @@ const (
 func (s Server) ServeWebsocket(ctx context.Context) {
 	// Watch the filesystem. Events will be sent to websocket connections.
 	node := s.Node()
-	fsmessages, err := s.startFilesysWatcher(node)
+	fsmessages, err := s.startFilesysWatcher(ctx, node)
 	if err != nil {
 		log.Infof("Watching filesystem error: %s", err)
 		return
@@ -65,12 +64,6 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 		}
 		defer srv.Close()
 
-		// Subscribe to FSI link creation events, which will affect filesystem watching
-		// TODO(dlong): A good example of tight coupling causing an issue: The Websocket
-		// implementation doesn't need to know about these events, but the FilesystemWatcher
-		// does. Ideally, this Subscribe call would happen along with the latter, not the former.
-		busEvents := s.Instance.Bus().Subscribe(event.ETFSICreateLinkEvent)
-
 		known := component.GetKnownFilenames()
 
 		// Filesystem events are forwarded to the websocket. In the future, this may be
@@ -78,24 +71,13 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 		// and DiffProgressEvent, but this is fine for now.
 		go func() {
 			for {
-				select {
-				case e := <-busEvents:
-					log.Debugf("bus event: %s\n", e)
-					if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
-						s.Instance.Watcher.Add(watchfs.EventPath{
-							Path:     fce.FSIPath,
-							Username: fce.Username,
-							Dsname:   fce.Dsname,
-						})
-					}
-				case fse := <-fsmessages:
-					if s.filterEvent(fse, known) {
-						log.Debugf("filesys event: %s\n", fse)
-						for k, c := range connections {
-							err = wsjson.Write(ctx, c, fse)
-							if err != nil {
-								log.Errorf("connection %d: wsjson write error: %s", k, err)
-							}
+				fse := <-fsmessages
+				if s.filterEvent(fse, known) {
+					log.Debugf("filesys event: %s\n", fse)
+					for k, c := range connections {
+						err = wsjson.Write(ctx, c, fse)
+						if err != nil {
+							log.Errorf("connection %d: wsjson write error: %s", k, err)
 						}
 					}
 				}
@@ -113,7 +95,7 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 	}()
 }
 
-func (s Server) startFilesysWatcher(node *p2p.QriNode) (chan watchfs.FilesysEvent, error) {
+func (s Server) startFilesysWatcher(ctx context.Context, node *p2p.QriNode) (chan watchfs.FilesysEvent, error) {
 	refs, err := node.Repo.References(0, 100)
 	if err != nil {
 		return nil, err
@@ -131,7 +113,7 @@ func (s Server) startFilesysWatcher(node *p2p.QriNode) (chan watchfs.FilesysEven
 	}
 	// Watch those paths.
 	// TODO(dlong): When datasets are removed or renamed update the watchlist.
-	s.Instance.Watcher = watchfs.NewFilesysWatcher()
+	s.Instance.Watcher = watchfs.NewFilesysWatcher(ctx, s.Instance.Bus())
 	fsmessages := s.Instance.Watcher.Begin(paths)
 	return fsmessages, nil
 }

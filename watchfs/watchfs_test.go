@@ -1,11 +1,13 @@
 package watchfs
 
 import (
-	"github.com/google/go-cmp/cmp"
+	"context"
 	"io/ioutil"
 	"os"
 	"path/filepath"
 	"testing"
+
+	"github.com/google/go-cmp/cmp"
 )
 
 func TestFilesysWatcher(t *testing.T) {
@@ -15,10 +17,12 @@ func TestFilesysWatcher(t *testing.T) {
 	}
 	defer os.RemoveAll(tmpdir)
 
+	ctx := context.Background()
+
 	// Create a directory, and watch it
 	watchdir := filepath.Join(tmpdir, "watch_me")
 	_ = os.Mkdir(watchdir, 0755)
-	w := NewFilesysWatcher()
+	w := NewFilesysWatcher(ctx, nil)
 	messages := w.Begin([]EventPath{
 		{
 			Username: "test_peer",

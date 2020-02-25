@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"sync"
 	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
@@ -27,6 +28,7 @@ var (
 // Dscache represents an in-memory serialized dscache flatbuffer
 type Dscache struct {
 	Filename            string
+	Lock                sync.RWMutex
 	Root                *dscachefb.Dscache
 	Buffer              []byte
 	CreateNewEnabled    bool
@@ -68,6 +70,12 @@ func (d *Dscache) Assign(other *Dscache) error {
 	if d == nil {
 		return ErrNoDscache
 	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
+	return d.assignWithLock(other)
+}
+
+func (d *Dscache) assignWithLock(other *Dscache) error {
 	d.Root = other.Root
 	d.Buffer = other.Buffer
 	return d.save()
@@ -78,6 +86,8 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 	if d.IsEmpty() {
 		return "dscache: cannot not stringify an empty dscache"
 	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	out := strings.Builder{}
 	out.WriteString("Dscache:\n")
 	out.WriteString(" Dscache.Users:\n")
@@ -138,6 +148,8 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	if d.IsEmpty() {
 		return nil, ErrNoDscache
 	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	d.ensureProToUserMap()
 	refs := make([]reporef.DatasetRef, 0, d.Root.RefsLength())
 	for i := 0; i < d.Root.RefsLength(); i++ {
@@ -187,18 +199,19 @@ func (d *Dscache) subscribe(ctx context.Context, bus event.Bus) {
 				break
 			case e := <-eventsCh:
 				go func() {
+					var err error
 					if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
 						if e.Topic == event.ETDatasetInit {
-							if err := d.updateInitDataset(dsChange); err != nil {
+							if err = d.updateInitDataset(dsChange); err != nil {
 								log.Error(err)
 							}
 						} else if e.Topic == event.ETDatasetChange {
-							if err := d.updateMoveCursor(dsChange); err != nil {
+							if err = d.updateMoveCursor(dsChange); err != nil {
 								log.Error(err)
 							}
 						}
 					}
-					bus.Acknowledge(e)
+					bus.Acknowledge(e, err)
 				}()
 			}
 		}
@@ -212,6 +225,8 @@ func (d *Dscache) updateInitDataset(e event.DatasetChangeEvent) error {
 		if !d.CreateNewEnabled {
 			return nil
 		}
+		d.Lock.Lock()
+		defer d.Lock.Unlock()
 		builder := NewBuilder()
 		builder.AddUser(e.Username, e.ProfileID)
 		builder.AddDsVersionInfo(dsref.VersionInfo{
@@ -220,9 +235,11 @@ func (d *Dscache) updateInitDataset(e event.DatasetChangeEvent) error {
 			Name:      e.PrettyName,
 		})
 		cache := builder.Build()
-		d.Assign(cache)
+		d.assignWithLock(cache)
 		return nil
 	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	builder := NewBuilder()
 	// copy users
 	for i := 0; i < d.Root.UsersLength(); i++ {
@@ -243,15 +260,17 @@ func (d *Dscache) updateInitDataset(e event.DatasetChangeEvent) error {
 		Name:      e.PrettyName,
 	})
 	cache := builder.Build()
-	d.Assign(cache)
+	d.assignWithLock(cache)
 	return nil
 }
 
 // Update modifies the dscache according to the provided action.
 func (d *Dscache) updateMoveCursor(e event.DatasetChangeEvent) error {
 	if d.IsEmpty() {
-		return ErrNoDscache
+		return nil
 	}
+	d.Lock.Lock()
+	defer d.Lock.Unlock()
 	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
 	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
 	builder := flatbuffers.NewBuilder(0)

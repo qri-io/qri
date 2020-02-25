@@ -44,7 +44,7 @@ type Bus interface {
 	// Synchronizer allows event synchronization for the current scope
 	Synchronizer() *Sync
 	// Acknowledge tells active synchronization points that an event has finished being processed
-	Acknowledge(Event)
+	Acknowledge(Event, error)
 }
 
 type dataChannels []chan Event
@@ -108,7 +108,7 @@ func (b *bus) Publish(topic Topic, data interface{}) {
 	}
 
 	for _, s := range b.syns {
-		s.Outstanding(topic)
+		s.Outstanding(topic, len(b.subs[topic]))
 	}
 
 	go func(e Event) {
@@ -194,19 +194,27 @@ func (b *bus) NumSubscribers() int {
 
 // Synchronizer adds a sync object that will count the number of published events
 func (b *bus) Synchronizer() *Sync {
-	s := Sync{topics: make(map[string]bool)}
+	s := Sync{topics: make(map[string]bool), owner: b}
 	b.syns = append(b.syns, &s)
 	return &s
 }
 
 // Acknowledge counts when an event has finished being handled
-func (b *bus) Acknowledge(event Event) {
+func (b *bus) Acknowledge(event Event, err error) {
 	topic := event.Topic
 	for _, s := range b.syns {
-		if s.Finish(topic) {
-			// TODO(dlong): Remove from b.syns
+		s.Finish(topic, err)
+	}
+}
+
+func (b *bus) removeSync(sync *Sync) {
+	replace := make([]*Sync, 0, len(b.syns))
+	for _, s := range b.syns {
+		if s != sync {
+			replace = append(replace, s)
 		}
 	}
+	b.syns = replace
 }
 
 // Publisher is an interface that can only publish an event

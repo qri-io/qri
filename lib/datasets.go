@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -440,9 +441,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 	ctx := context.TODO()
 
+	var sync *event.Sync
+	// TODO(dustmop): For some reasons, certain cases have r.inst == nil. Fix those cases to
+	// remove this conditional.
 	if r.inst != nil && r.inst.bus != nil {
-		sync := r.inst.bus.Synchronizer()
-		defer sync.Wait()
+		sync = r.inst.bus.Synchronizer()
 	}
 
 	if p.Private {
@@ -597,7 +600,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		// properly back to disk.
 		fsi.WriteComponents(res.Dataset, ref.FSIPath, r.inst.node.Repo.Filesystem())
 	}
-	return nil
+
+	return sync.Wait()
 }
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset
