@@ -46,7 +46,7 @@ func TestNewRenderRequests(t *testing.T) {
 		t.Errorf("invalid requests name. expected: '%s', got: '%s'", "render", reqs.CoreRequestsName())
 	}
 
-	// this should panic:
+	// this should panic, triggering the defer statement above
 	NewRenderRequests(tr, rpc.NewClient(conn))
 }
 
@@ -176,6 +176,35 @@ func (r *renderTestRunner) Save(ref string, ds *dataset.Dataset, bodyPath string
 	}
 }
 
+func TestRenderRequestsRenderViz(t *testing.T) {
+	runner := newRenderTestRunner(t, "render_viz")
+	defer runner.Delete()
+
+	params := RenderParams{
+		Ref: "foo/bar",
+		Dataset: &dataset.Dataset{
+			Readme: &dataset.Readme{
+				ScriptBytes: []byte("# hi\n\nhello"),
+			},
+		},
+	}
+	var data []byte
+	if err := runner.RenderReqs.RenderViz(&params, &data); err == nil {
+		t.Errorf("expected RenderReadme with both ref & dataset to error")
+	}
+
+	params = RenderParams{
+		Dataset: &dataset.Dataset{
+			Readme: &dataset.Readme{
+				ScriptBytes: []byte("# hi\n\nhello"),
+			},
+		},
+	}
+	if err := runner.RenderReqs.RenderViz(&params, &data); err == nil {
+		t.Errorf("expected attempt to dynamic-render viz to fail")
+	}
+}
+
 // Test that render with a readme returns an html string
 func TestRenderReadme(t *testing.T) {
 	runner := newRenderTestRunner(t, "render_readme")
@@ -203,5 +232,32 @@ func TestRenderReadme(t *testing.T) {
 	expect := "<h1>hi</h1>\n\n<p>hello</p>\n"
 	if diff := cmp.Diff(expect, text); diff != "" {
 		t.Errorf("response mismatch (-want +got):\n%s", diff)
+	}
+
+	params = RenderParams{
+		Dataset: &dataset.Dataset{
+			Readme: &dataset.Readme{
+				ScriptBytes: []byte("# hi\n\nhello"),
+			},
+		},
+	}
+	if err = runner.RenderReqs.RenderReadme(&params, &text); err != nil {
+		t.Errorf("dynamic dataset render error: %s", err)
+	}
+
+	if diff := cmp.Diff(expect, text); diff != "" {
+		t.Errorf("dynamic dataset render response mismatch (-want +got):\n%s", diff)
+	}
+
+	params = RenderParams{
+		Ref: "foo/bar",
+		Dataset: &dataset.Dataset{
+			Readme: &dataset.Readme{
+				ScriptBytes: []byte("# hi\n\nhello"),
+			},
+		},
+	}
+	if err = runner.RenderReqs.RenderReadme(&params, &text); err == nil {
+		t.Errorf("expected RenderReadme with both ref & dataset to error")
 	}
 }

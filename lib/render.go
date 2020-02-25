@@ -41,12 +41,23 @@ func (RenderRequests) CoreRequestsName() string { return "render" }
 type RenderParams struct {
 	// Ref is a string reference to the dataset to render
 	Ref string
-	// Optionally pass an entire dataset in for rendering, overrides ref param
+	// Optionally pass an entire dataset in for rendering, if providing a dataset,
+	// the Ref field must be empty
 	Dataset *dataset.Dataset
 	// Optional template override
-	Template  []byte
-	UseFSI    bool
+	Template []byte
+	// If true,
+	UseFSI bool
+	// Output format. defaults to "html"
 	OutFormat string
+}
+
+// Validate checks if render parameters are valid
+func (p *RenderParams) Validate() error {
+	if p.Ref != "" && p.Dataset != nil {
+		return fmt.Errorf("cannot provide both a reference and a dataset to render")
+	}
+	return nil
 }
 
 // RenderViz renders a viz component as html
@@ -55,6 +66,14 @@ func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 		return r.cli.Call("RenderRequests.RenderViz", p, res)
 	}
 	ctx := context.TODO()
+
+	if err = p.Validate(); err != nil {
+		return err
+	}
+
+	if p.Dataset != nil {
+		return fmt.Errorf("rendering dynamic dataset viz component is not supported")
+	}
 
 	var ref reporef.DatasetRef
 	if ref, err = repo.ParseDatasetRef(p.Ref); err != nil {
@@ -77,6 +96,10 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 		return r.cli.Call("RenderRequests.RenderReadme", p, res)
 	}
 	ctx := context.TODO()
+
+	if err = p.Validate(); err != nil {
+		return err
+	}
 
 	var ds *dataset.Dataset
 	if p.Dataset != nil {
