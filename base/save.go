@@ -211,7 +211,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	ds.Path = path
 
 	if !dryRun {
-		action, err := r.Logbook().WriteVersionSave(ctx, ds)
+		err := r.Logbook().WriteVersionSave(ctx, ds)
 		if err != nil && err != logbook.ErrNoLogbook {
 			return ref, err
 		}

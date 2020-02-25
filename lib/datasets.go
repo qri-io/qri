@@ -440,6 +440,11 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 	ctx := context.TODO()
 
+	if r.inst != nil && r.inst.bus != nil {
+		sync := r.inst.bus.Synchronizer()
+		defer sync.Wait()
+	}
+
 	if p.Private {
 		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}

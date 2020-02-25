@@ -186,17 +186,20 @@ func (d *Dscache) subscribe(ctx context.Context, bus event.Bus) {
 				bus.Unsubscribe(eventsCh)
 				break
 			case e := <-eventsCh:
-				if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
-					if e.Topic == event.ETDatasetInit {
-						if err := d.updateInitDataset(dsChange); err != nil {
-							log.Error(err)
-						}
-					} else if e.Topic == event.ETDatasetChange {
-						if err := d.updateMoveCursor(dsChange); err != nil {
-							log.Error(err)
+				go func() {
+					if dsChange, ok := e.Payload.(event.DatasetChangeEvent); ok {
+						if e.Topic == event.ETDatasetInit {
+							if err := d.updateInitDataset(dsChange); err != nil {
+								log.Error(err)
+							}
+						} else if e.Topic == event.ETDatasetChange {
+							if err := d.updateMoveCursor(dsChange); err != nil {
+								log.Error(err)
+							}
 						}
 					}
-				}
+					bus.Acknowledge(e)
+				}()
 			}
 		}
 	}()

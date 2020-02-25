@@ -41,6 +41,10 @@ type Bus interface {
 	Unsubscribe(<-chan Event)
 	// NumSubscriptions returns the number of subscribers to the bus's events
 	NumSubscribers() int
+	// Synchronizer allows event synchronization for the current scope
+	Synchronizer() *Sync
+	// Acknowledge tells active synchronization points that an event has finished being processed
+	Acknowledge(Event)
 }
 
 type dataChannels []chan Event
@@ -50,6 +54,7 @@ type bus struct {
 
 	lk   sync.RWMutex
 	subs map[Topic]dataChannels
+	syns []*Sync
 
 	onceLk sync.RWMutex
 	onces  []onceSub
@@ -69,6 +74,7 @@ func NewBus(ctx context.Context) Bus {
 	b := &bus{
 		ctx:  ctx,
 		subs: map[Topic]dataChannels{},
+		syns: []*Sync{},
 	}
 
 	go func(b *bus) {
@@ -99,6 +105,10 @@ func (b *bus) Publish(topic Topic, data interface{}) {
 				ch <- e
 			}
 		}(event, channels)
+	}
+
+	for _, s := range b.syns {
+		s.Outstanding(topic)
 	}
 
 	go func(e Event) {
@@ -180,6 +190,23 @@ func (b *bus) NumSubscribers() int {
 		total += len(channels)
 	}
 	return total
+}
+
+// Synchronizer adds a sync object that will count the number of published events
+func (b *bus) Synchronizer() *Sync {
+	s := Sync{topics: make(map[string]bool)}
+	b.syns = append(b.syns, &s)
+	return &s
+}
+
+// Acknowledge counts when an event has finished being handled
+func (b *bus) Acknowledge(event Event) {
+	topic := event.Topic
+	for _, s := range b.syns {
+		if s.Finish(topic) {
+			// TODO(dlong): Remove from b.syns
+		}
+	}
 }
 
 // Publisher is an interface that can only publish an event
