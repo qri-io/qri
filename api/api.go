@@ -297,6 +297,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	m.Handle("/fsi/write/", s.middleware(fsih.WriteHandler("/fsi/write")))
 
 	renderh := NewRenderHandlers(node.Repo)
+	m.Handle("/render", s.middleware(renderh.RenderHandler))
 	m.Handle("/render/", s.middleware(renderh.RenderHandler))
 
 	lh := NewLogHandlers(node)

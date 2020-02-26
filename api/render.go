@@ -1,9 +1,11 @@
 package api
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/qri-io/apiutil"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 )
@@ -31,6 +33,16 @@ func (h *RenderHandlers) RenderHandler(w http.ResponseWriter, r *http.Request) {
 	p := &lib.RenderParams{
 		Ref:       HTTPPathToQriPath(r.URL.Path[len("/render"):]),
 		OutFormat: "html",
+	}
+
+	// support rendering a passed-in JSON dataset document
+	if r.Header.Get("Content-Type") == "application/json" {
+		ds := &dataset.Dataset{}
+		if err := json.NewDecoder(r.Body).Decode(ds); err != nil {
+			apiutil.WriteErrResponse(w, http.StatusBadRequest, err)
+			return
+		}
+		p.Dataset = ds
 	}
 
 	// Old style viz component rendering
