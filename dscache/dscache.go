@@ -178,12 +178,13 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 }
 
 func (d *Dscache) update(act *logbook.Action) {
-	if act.Type == logbook.ActionDatasetNameInit {
-		if err := d.updateInitDataset(act); err != nil {
+	switch act.Type {
+	case logbook.ActionDatasetNameInit:
+		if err := d.updateInitDataset(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
-	} else if act.Type == logbook.ActionDatasetChange {
-		if err := d.updateMoveCursor(act); err != nil {
+	case logbook.ActionDatasetChange:
+		if err := d.updateMoveCursor(act); err != nil && err != ErrNoDscache {
 			log.Error(err)
 		}
 	}

@@ -1,11 +1,13 @@
 package watchfs
 
 import (
+	"context"
 	"path/filepath"
 	"time"
 
 	"github.com/fsnotify/fsnotify"
 	golog "github.com/ipfs/go-log"
+	"github.com/qri-io/qri/event"
 )
 
 var log = golog.Logger("watchfs")
@@ -32,12 +34,45 @@ type FilesysWatcher struct {
 }
 
 // NewFilesysWatcher returns a new FilesysWatcher
-func NewFilesysWatcher() *FilesysWatcher {
+func NewFilesysWatcher(ctx context.Context, bus event.Bus) *FilesysWatcher {
 	watcher, err := fsnotify.NewWatcher()
 	if err != nil {
 		log.Fatal(err)
 	}
-	return &FilesysWatcher{Watcher: watcher}
+
+	w := FilesysWatcher{Watcher: watcher}
+	if bus != nil {
+		w.subscribe(ctx, bus)
+	}
+	return &w
+}
+
+func (w *FilesysWatcher) subscribe(ctx context.Context, bus event.Bus) {
+	eventsCh := bus.Subscribe(event.ETFSICreateLinkEvent)
+	go func() {
+		for {
+			select {
+			case <-ctx.Done():
+				bus.Unsubscribe(eventsCh)
+				break
+			case e, ok := <-eventsCh:
+				if !ok {
+					// bus is closed, break
+					break
+				}
+				go func() {
+					log.Debugf("bus event: %s\n", e)
+					if fce, ok := e.Payload.(event.FSICreateLinkEvent); ok {
+						w.Add(EventPath{
+							Path:     fce.FSIPath,
+							Username: fce.Username,
+							Dsname:   fce.Dsname,
+						})
+					}
+				}()
+			}
+		}
+	}()
 }
 
 // Begin will start watching the given directory paths

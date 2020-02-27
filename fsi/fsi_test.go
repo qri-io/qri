@@ -55,7 +55,7 @@ func TestCreateLink(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	link, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -89,7 +89,7 @@ func TestCreateLinkTwice(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -142,7 +142,7 @@ func TestCreateLinkAlreadyLinked(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -163,7 +163,7 @@ func TestCreateLinkAgainOnceQriRefRemoved(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
@@ -205,7 +205,7 @@ func TestModifyLinkReference(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatal(err)
@@ -248,7 +248,7 @@ func TestModifyLinkDirectory(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/another_dataset")
 	if err != nil {
 		t.Fatal(err)
@@ -277,7 +277,7 @@ func TestUnlink(t *testing.T) {
 	paths := NewTmpPaths()
 	defer paths.Close()
 
-	fsi := NewFSI(paths.testRepo)
+	fsi := NewFSI(paths.testRepo, nil)
 	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())

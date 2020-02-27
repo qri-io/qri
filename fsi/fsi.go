@@ -21,6 +21,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -60,11 +61,15 @@ func RepoPath(repoPath string) string {
 type FSI struct {
 	// repository for resolving dataset names
 	repo repo.Repo
+	pub  event.Publisher
 }
 
 // NewFSI creates an FSI instance from a path to a links flatbuffer file
-func NewFSI(r repo.Repo) *FSI {
-	return &FSI{repo: r}
+func NewFSI(r repo.Repo, pub event.Publisher) *FSI {
+	if pub == nil {
+		pub = &event.NilPublisher{}
+	}
+	return &FSI{repo: r, pub: pub}
 }
 
 // LinkedRefs returns a list of linked datasets and their connected directories
@@ -142,6 +147,13 @@ func (fsi *FSI) CreateLink(dirPath, refStr string) (alias string, rollback func(
 		}
 		removeRefFunc()
 	}
+
+	// Send an event to the bus about this checkout
+	fsi.pub.Publish(event.ETFSICreateLinkEvent, event.FSICreateLinkEvent{
+		FSIPath:  dirPath,
+		Username: ref.Peername,
+		Dsname:   ref.Name,
+	})
 
 	return ref.AliasString(), removeLinkAndRemoveRefFunc, err
 }

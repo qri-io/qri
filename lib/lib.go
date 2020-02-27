@@ -302,6 +302,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		streams:  o.Streams,
 		registry: o.regclient,
 		logbook:  o.logbook,
+		bus:      event.NewBus(ctx),
 	}
 	qri = inst
 
@@ -371,10 +372,6 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		}
 	}
 
-	if inst.bus == nil {
-		inst.bus = newEventBus(ctx)
-	}
-
 	if inst.registry == nil {
 		inst.registry = newRegClient(ctx, cfg)
 	}
@@ -400,7 +397,7 @@ func NewInstance(ctx context.Context, repoPath string, opts ...Option) (qri *Ins
 		// were somewhere else we could move it there
 		_ = base.SetFileHidden(inst.repoPath)
 
-		inst.fsi = fsi.NewFSI(inst.repo)
+		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 	}
 
 	if inst.node == nil {
@@ -590,8 +587,8 @@ func NewInstanceFromConfigAndNode(cfg *config.Config, node *p2p.QriNode) *Instan
 		inst.repo = node.Repo
 		inst.store = node.Repo.Store()
 		inst.qfs = node.Repo.Filesystem()
-		inst.fsi = fsi.NewFSI(inst.repo)
 		inst.bus = event.NewBus(ctx)
+		inst.fsi = fsi.NewFSI(inst.repo, inst.bus)
 	}
 
 	return inst
