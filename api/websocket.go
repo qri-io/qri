@@ -31,7 +31,7 @@ const (
 func (s Server) ServeWebsocket(ctx context.Context) {
 	// Watch the filesystem. Events will be sent to websocket connections.
 	node := s.Node()
-	fsmessages, err := s.startFilesysWatcher(node)
+	fsmessages, err := s.startFilesysWatcher(ctx, node)
 	if err != nil {
 		log.Infof("Watching filesystem error: %s", err)
 		return
@@ -113,7 +113,7 @@ func (s Server) ServeWebsocket(ctx context.Context) {
 	}()
 }
 
-func (s Server) startFilesysWatcher(node *p2p.QriNode) (chan watchfs.FilesysEvent, error) {
+func (s Server) startFilesysWatcher(ctx context.Context, node *p2p.QriNode) (chan watchfs.FilesysEvent, error) {
 	refs, err := node.Repo.References(0, 100)
 	if err != nil {
 		return nil, err
@@ -131,7 +131,7 @@ func (s Server) startFilesysWatcher(node *p2p.QriNode) (chan watchfs.FilesysEven
 	}
 	// Watch those paths.
 	// TODO(dlong): When datasets are removed or renamed update the watchlist.
-	s.Instance.Watcher = watchfs.NewFilesysWatcher()
+	s.Instance.Watcher = watchfs.NewFilesysWatcher(ctx, s.Instance.Bus())
 	fsmessages := s.Instance.Watcher.Begin(paths)
 	return fsmessages, nil
 }

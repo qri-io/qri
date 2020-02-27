@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"fmt"
+	"testing"
 )
 
 func Example() {
@@ -50,4 +51,29 @@ func Example() {
 	// hello
 	// hello
 	// it didn't work?
+}
+
+func TestSubscribeUnsubscribe(t *testing.T) {
+	ctx := context.Background()
+	const testTopic = Topic("test_event")
+
+	b := NewBus(ctx)
+	ch1 := b.Subscribe(testTopic)
+	ch2 := b.Subscribe(testTopic)
+
+	if b.NumSubscribers() != 2 {
+		t.Errorf("expected 2 subscribers, got %d", b.NumSubscribers())
+	}
+
+	b.Unsubscribe(ch1)
+
+	if b.NumSubscribers() != 1 {
+		t.Errorf("expected 1 subscribers, got %d", b.NumSubscribers())
+	}
+
+	b.Unsubscribe(ch2)
+
+	if b.NumSubscribers() != 0 {
+		t.Errorf("expected 1 subscribers, got %d", b.NumSubscribers())
+	}
 }
