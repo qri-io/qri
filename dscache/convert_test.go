@@ -75,27 +75,21 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
 	dscache := buildDscacheFlatbuffer(userList, entryInfoList)
 	actual := dscache.VerboseString(false)
 
+	// Dscache results sorted alphabetically by username/dsname
 	expect := `Dscache:
  Dscache.Users:
   0) user=test_zero profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   1) user=test_one profileID=QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
   2) user=test_two profileID=QmPeFTNHcZDr3ZFEfFfepxS5PqHAmfBRGQNPJ389Cwh1as
  Dscache.Refs:
-  0) initID        = ds_init_id_0000
-     profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
-     topIndex      = 0
-     cursorIndex   = 0
-     prettyName    = my_ds
-     commitTime    = -62135596800
-     headRef       = /ipfs/QmExampleFirst
-  1) initID        = ds_init_id_0001
+  0) initID        = ds_init_id_0001
      profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
      topIndex      = 0
      cursorIndex   = 0
      prettyName    = another_ds
      commitTime    = -62135596800
      headRef       = /ipfs/QmExampleSecond
-  2) initID        = ds_init_id_0002
+  1) initID        = ds_init_id_0002
      profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
      topIndex      = 0
      cursorIndex   = 0
@@ -103,6 +97,13 @@ func TestBuildDscacheFlatbuffer(t *testing.T) {
      commitTime    = -62135596800
      headRef       = /ipfs/QmExampleThird
      fsiPath       = /path/to/workspace/checked_out_ds
+  2) initID        = ds_init_id_0000
+     profileID     = QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD
+     topIndex      = 0
+     cursorIndex   = 0
+     prettyName    = my_ds
+     commitTime    = -62135596800
+     headRef       = /ipfs/QmExampleFirst
   3) initID        = ds_init_id_0003
      profileID     = QmPeFTNHcZDr3ZFEfFfepxS5PqHAmfBRGQNPJ389Cwh1as
      topIndex      = 0

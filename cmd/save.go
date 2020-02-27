@@ -72,6 +72,7 @@ commit message and title to the save.`,
 	// TODO(dlong): --no-render is deprecated, viz are being phased out, in favor of readme.
 	cmd.Flags().BoolVar(&o.NoRender, "no-render", false, "don't store a rendered version of the the vizualization ")
 	cmd.Flags().BoolVarP(&o.NewName, "new", "n", false, "save a new dataset only, using an available name")
+	cmd.Flags().BoolVarP(&o.UseDscache, "use-dscache", "", false, "build and use dscache if none exists")
 
 	return cmd
 }
@@ -98,6 +99,7 @@ type SaveOptions struct {
 	NoRender       bool
 	Secrets        []string
 	NewName        bool
+	UseDscache     bool
 
 	DatasetRequests *lib.DatasetRequests
 	FSIMethods      *lib.FSIMethods
@@ -170,6 +172,7 @@ func (o *SaveOptions) Run() (err error) {
 		ReturnBody:          o.DryRun,
 		ShouldRender:        !o.NoRender,
 		NewName:             o.NewName,
+		UseDscache:          o.UseDscache,
 	}
 
 	if o.Secrets != nil {

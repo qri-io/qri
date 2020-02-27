@@ -11,7 +11,6 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 )
 
@@ -35,9 +34,6 @@ func TestNilCallable(t *testing.T) {
 	if _, err = cache.ListRefs(); err != ErrNoDscache {
 		t.Errorf("expected '%s': got '%s'", ErrNoDscache, err)
 	}
-	if err = cache.Update(&logbook.Action{}); err != ErrNoDscache {
-		t.Errorf("expected '%s': got '%s'", ErrNoDscache, err)
-	}
 }
 
 func TestDscacheAssignSaveAndLoad(t *testing.T) {
@@ -55,17 +51,17 @@ func TestDscacheAssignSaveAndLoad(t *testing.T) {
 	// Construct a dscache, will not save without a filename
 	builder := NewBuilder()
 	builder.AddUser("test_user", profile.IDFromPeerID(peerInfo.PeerID).String())
-	builder.AddDsVersionInfo("abcd1", dsref.VersionInfo{})
-	builder.AddDsVersionInfo("efgh2", dsref.VersionInfo{})
+	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "abcd1"})
+	builder.AddDsVersionInfo(dsref.VersionInfo{InitID: "efgh2"})
 	constructed := builder.Build()
 
 	// A dscache that will save when it is assigned
 	dscacheFile := filepath.Join(tmpdir, "dscache.qfb")
-	saveable := NewDscache(ctx, fs, dscacheFile)
+	saveable := NewDscache(ctx, fs, nil, dscacheFile)
 	saveable.Assign(constructed)
 
 	// Load the dscache from its serialized file, verify it has correct data
-	loadable := NewDscache(ctx, fs, dscacheFile)
+	loadable := NewDscache(ctx, fs, nil, dscacheFile)
 	if loadable.Root.UsersLength() != 1 {
 		t.Errorf("expected, 1 user, got %d users", loadable.Root.UsersLength())
 	}

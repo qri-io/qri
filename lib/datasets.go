@@ -409,6 +409,8 @@ type SaveParams struct {
 	ShouldRender bool
 	// new dataset only, don't create a commit on an existing dataset, name will be unused
 	NewName bool
+	// whether to create a new dscache if none exists
+	UseDscache bool
 }
 
 // AbsolutizePaths converts any relative path references to their absolute
@@ -529,6 +531,12 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	if err = base.OpenDataset(ctx, r.node.Repo.Filesystem(), ds); err != nil {
 		log.Debugf("open ds error: %s", err.Error())
 		return
+	}
+
+	// If the dscache doesn't exist yet, it will only be created if the appropriate flag enables it.
+	if p.UseDscache {
+		c := r.node.Repo.Dscache()
+		c.CreateNewEnabled = true
 	}
 
 	// TODO (b5) - this should be integrated into base.SaveDataset

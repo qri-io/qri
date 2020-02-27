@@ -8,15 +8,20 @@ import (
 type ActionType byte
 
 const (
-	// ActionMoveCursor is an action that moves the cursor for a dataset
-	ActionMoveCursor ActionType = iota
+	// ActionDatasetNameInit is an action that inits a dataset name
+	ActionDatasetNameInit ActionType = iota
+	// ActionDatasetChange is an action for when a dataset changes
+	ActionDatasetChange
 )
 
 // Action represents the result of an action that logbook just completed
 type Action struct {
-	Type     ActionType
-	InitID   string
-	TopIndex int
-	HeadRef  string
-	Dataset  *dataset.Dataset
+	Type       ActionType
+	InitID     string
+	TopIndex   int
+	ProfileID  string
+	Username   string
+	PrettyName string
+	HeadRef    string
+	Dataset    *dataset.Dataset
 }

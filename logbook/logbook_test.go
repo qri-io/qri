@@ -73,7 +73,7 @@ func Example() {
 
 	// create a log record of the version of a dataset. In practice this'll be
 	// part of the overall save routine that created the above ds variable
-	if _, err := book.WriteVersionSave(ctx, ds); err != nil {
+	if err := book.WriteVersionSave(ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -93,7 +93,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if _, err := book.WriteVersionSave(ctx, ds2); err != nil {
+	if err := book.WriteVersionSave(ctx, ds2); err != nil {
 		panic(err)
 	}
 
@@ -136,7 +136,7 @@ func Example() {
 	}
 
 	// once again, write to the log
-	if _, err := book.WriteVersionSave(ctx, ds3); err != nil {
+	if err := book.WriteVersionSave(ctx, ds3); err != nil {
 		panic(err)
 	}
 
@@ -226,7 +226,7 @@ func TestNilCallable(t *testing.T) {
 	if err = book.WriteVersionDelete(ctx, dsref.Ref{}, 0); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
-	if _, err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
+	if err = book.WriteVersionSave(ctx, nil); err != ErrNoLogbook {
 		t.Errorf("expected '%s', got: %v", ErrNoLogbook, err)
 	}
 }
@@ -850,7 +850,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -862,7 +862,7 @@ func (tr *testRunner) WriteWorldBankExample(t *testing.T) {
 	ds.Path = "QmHashOfVersion2"
 	ds.PreviousPath = "QmHashOfVersion1"
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		t.Fatal(err)
 	}
 
@@ -901,7 +901,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion3",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -916,7 +916,7 @@ func (tr *testRunner) WriteMoreWorldBankCommits(t *testing.T) {
 		PreviousPath: "QmHashOfVersion4",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 }
@@ -951,7 +951,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		PreviousPath: "",
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		panic(err)
 	}
 
@@ -966,7 +966,7 @@ func (tr *testRunner) WriteRenameExample(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	if _, err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
+	if err := book.WriteVersionSave(tr.Ctx, ds); err != nil {
 		t.Fatal(err)
 	}
 
