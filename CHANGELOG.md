@@ -1,4 +1,52 @@
-# [v0.9.4](https://github.com/qri-io/qri/compare/v0.9.3...v) (2020-01-21)
+<a name="v0.9.5"></a>
+# [v0.9.5](https://github.com/qri-io/qri/compare/v0.9.4...v0.9.5) (2020-02-27)
+
+This patch release is focused on a number of API refactors, and sets the stage for a new subsystem we're working on called dscache. It's a small release, but should help stabilize communication between peer remotes & the registry.
+
+
+### Bug Fixes
+
+* **api:** inline script bytes for get requests ([4d4794f](https://github.com/qri-io/qri/commit/4d4794f))
+* **cli:** remove extraneous logging from `qri registry prove` ([de640a2](https://github.com/qri-io/qri/commit/de640a2)), closes [#1096](https://github.com/qri-io/qri/issues/1096)
+* **cmd:** refSelect always writes to stderr ([b88eb0c](https://github.com/qri-io/qri/commit/b88eb0c))
+* **dry-run:** fix logbook conflict with dry-run ([4c051b6](https://github.com/qri-io/qri/commit/4c051b6))
+* **dscache:** A few dscache improvements ([a7c7d36](https://github.com/qri-io/qri/commit/a7c7d36))
+* **dscache:** Add refs in dsref that logbook is missing. More tests. ([2ddd3b6](https://github.com/qri-io/qri/commit/2ddd3b6))
+* **dscache:** Alphabetize refs in the dscache. Add tests. ([8f4943c](https://github.com/qri-io/qri/commit/8f4943c))
+* **dsref:** Parse dsref from strings. Use for rename and init. ([338e700](https://github.com/qri-io/qri/commit/338e700))
+* **lint:** Fix style problems, event name change ([2f90119](https://github.com/qri-io/qri/commit/2f90119))
+* **logbook:** addChild should not create duplicate children ([9a41b6b](https://github.com/qri-io/qri/commit/9a41b6b))
+* **logbook:** always provide a privateKey to logbook ([ae68ccc](https://github.com/qri-io/qri/commit/ae68ccc))
+* **logbook:** use AddChild so oplogs set ancestry ([be633b9](https://github.com/qri-io/qri/commit/be633b9))
+* **p2p:** add local to p2ptest muxer ([4937997](https://github.com/qri-io/qri/commit/4937997))
+* **profileID:** Disambiguate profileID construction to avoid subtle bugs ([a41d41a](https://github.com/qri-io/qri/commit/a41d41a))
+* **publish:** Use Refselect for publish, so FSI works. Use dsref, add tests. ([68dfff3](https://github.com/qri-io/qri/commit/68dfff3))
+* **regclient:** update to new search endpoint, fix response ds.Name ([d3fbce4](https://github.com/qri-io/qri/commit/d3fbce4))
+* **registry:** fix inaccurate tests covered by catch-all-200 repsonse regserver handler ([1d30975](https://github.com/qri-io/qri/commit/1d30975))
+* **remote:** fetching logs populates VersionInfo.Foreign ([e50cd19](https://github.com/qri-io/qri/commit/e50cd19))
+* **remote:** Handle error in order to avoid nil pointer ([4a88b52](https://github.com/qri-io/qri/commit/4a88b52))
+* **remove:** RemoveEntireDataset is better at cleaning up broken states ([efaf600](https://github.com/qri-io/qri/commit/efaf600))
+* **temp registry:** make configuration not interrupt common config ([b618472](https://github.com/qri-io/qri/commit/b618472))
+
+
+### Features
+
+* **api:** support for dynamic dataset readme rendering ([ef06599](https://github.com/qri-io/qri/commit/ef06599))
+* **dscache:** Dscache holds info about datasets based upon logbook ([28811d7](https://github.com/qri-io/qri/commit/28811d7))
+* **dscache:** Dscache will get updated by save, if it exists in the repo ([21c5ca7](https://github.com/qri-io/qri/commit/21c5ca7))
+* **dscache:** Fill dataset details, filter when listing ([e460a7c](https://github.com/qri-io/qri/commit/e460a7c))
+* **event:** package event implements an event bus ([6068f88](https://github.com/qri-io/qri/commit/6068f88))
+* **event:** When a folder is checked out, add it to watchfs ([7536221](https://github.com/qri-io/qri/commit/7536221))
+* **feed:** add feed methods to lib backed by registry ([53e6eb3](https://github.com/qri-io/qri/commit/53e6eb3))
+* **registry:** add preview support to registry fetching ([19f12bd](https://github.com/qri-io/qri/commit/19f12bd))
+* **remote:** add FeedsPreCheck and PreviewPreCheck hooks ([97fb2be](https://github.com/qri-io/qri/commit/97fb2be))
+* **remote:** ephemeral log fetching with remoteClient.FetchLogs ([1651def](https://github.com/qri-io/qri/commit/1651def))
+* **remote:** remote client signs HTTP feed and preview requests ([a742faa](https://github.com/qri-io/qri/commit/a742faa))
+* **watchfs:** Watched filesystem folders send dataset names as well ([f7c7bfb](https://github.com/qri-io/qri/commit/f7c7bfb))
+
+
+
+# [v0.9.4](https://github.com/qri-io/qri/compare/v0.9.3...v0.9.4) (2020-01-21)
 
 This patch release fixes a number of FSI (file system integration) issues and infrastructure changes that will improve Desktop. These include the restoration of the validate command, handling certain changes to the file system done outside of qri, improved logging, and Windows bug fixes.
 
