@@ -5,12 +5,14 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
+	"time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	dscachefb "github.com/qri-io/qri/dscache/dscachefb"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -27,25 +29,30 @@ type Dscache struct {
 	Filename            string
 	Root                *dscachefb.Dscache
 	Buffer              []byte
+	CreateNewEnabled    bool
 	ProfileIDToUsername map[string]string
 }
 
 // NewDscache will construct a dscache from the given filename, or will construct an empty dscache
 // that will save to the given filename. Using an empty filename will disable loading and saving
-func NewDscache(ctx context.Context, fsys qfs.Filesystem, filename string) *Dscache {
+func NewDscache(ctx context.Context, fsys qfs.Filesystem, book *logbook.Book, filename string) *Dscache {
+	cache := Dscache{Filename: filename}
 	f, err := fsys.Get(ctx, filename)
-	if err != nil {
+	if err == nil {
 		// Ignore error, as dscache loading is optional
-		return &Dscache{Filename: filename}
+		defer f.Close()
+		buffer, err := ioutil.ReadAll(f)
+		if err != nil {
+			log.Error(err)
+		} else {
+			root := dscachefb.GetRootAsDscache(buffer, 0)
+			cache = Dscache{Filename: filename, Root: root, Buffer: buffer}
+		}
 	}
-	defer f.Close()
-	buffer, err := ioutil.ReadAll(f)
-	if err != nil {
-		// Ignore error, as dscache loading is optional
-		return &Dscache{Filename: filename}
+	if book != nil {
+		book.Observe(cache.update)
 	}
-	root := dscachefb.GetRootAsDscache(buffer, 0)
-	return &Dscache{Filename: filename, Root: root, Buffer: buffer}
+	return &cache
 }
 
 // IsEmpty returns whether the dscache has any constructed data in it
@@ -170,16 +177,65 @@ func (d *Dscache) ListRefs() ([]reporef.DatasetRef, error) {
 	return refs, nil
 }
 
+func (d *Dscache) update(act *logbook.Action) {
+	if act.Type == logbook.ActionDatasetNameInit {
+		if err := d.updateInitDataset(act); err != nil {
+			log.Error(err)
+		}
+	} else if act.Type == logbook.ActionDatasetChange {
+		if err := d.updateMoveCursor(act); err != nil {
+			log.Error(err)
+		}
+	}
+}
+
+func (d *Dscache) updateInitDataset(act *logbook.Action) error {
+	if d.IsEmpty() {
+		// Only create a new dscache if that feature is enabled. This way no one is forced to
+		// use dscache without opting in.
+		if !d.CreateNewEnabled {
+			return nil
+		}
+		builder := NewBuilder()
+		builder.AddUser(act.Username, act.ProfileID)
+		builder.AddDsVersionInfo(dsref.VersionInfo{
+			InitID:    act.InitID,
+			ProfileID: act.ProfileID,
+			Name:      act.PrettyName,
+		})
+		cache := builder.Build()
+		d.Assign(cache)
+		return nil
+	}
+	builder := NewBuilder()
+	// copy users
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		up := dscachefb.UserAssoc{}
+		d.Root.Users(&up, i)
+		builder.AddUser(string(up.Username()), string(up.ProfileID()))
+	}
+	// copy ds versions
+	for i := 0; i < d.Root.UsersLength(); i++ {
+		r := dscachefb.RefEntryInfo{}
+		d.Root.Refs(&r, i)
+		builder.AddDsVersionInfoWithIndexes(convertEntryToVersionInfo(&r), int(r.TopIndex()), int(r.CursorIndex()))
+	}
+	// Add new ds version info
+	builder.AddDsVersionInfo(dsref.VersionInfo{
+		InitID:    act.InitID,
+		ProfileID: act.ProfileID,
+		Name:      act.PrettyName,
+	})
+	cache := builder.Build()
+	d.Assign(cache)
+	return nil
+}
+
 // Update modifies the dscache according to the provided action.
-func (d *Dscache) Update(act *logbook.Action) error {
+func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 	if d.IsEmpty() {
 		return ErrNoDscache
 	}
-
-	if act.Type != logbook.ActionMoveCursor {
-		return fmt.Errorf("dscache: only ActionMoveCursor is supported")
-	}
-
 	// Flatbuffers for go do not allow mutation (for complex types like strings). So we construct
 	// a new flatbuffer entirely, copying the old one while replacing the entry we care to change.
 	builder := flatbuffers.NewBuilder(0)
@@ -225,6 +281,28 @@ func (d *Dscache) Update(act *logbook.Action) error {
 	d.Root = root
 	d.Buffer = serialized
 	return d.save()
+}
+
+func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
+	return dsref.VersionInfo{
+		InitID:        string(r.InitID()),
+		ProfileID:     string(r.ProfileID()),
+		Name:          string(r.PrettyName()),
+		Path:          string(r.HeadRef()),
+		Published:     r.Published(),
+		Foreign:       r.Foreign(),
+		MetaTitle:     string(r.MetaTitle()),
+		ThemeList:     string(r.ThemeList()),
+		BodySize:      int(r.BodySize()),
+		BodyRows:      int(r.BodyRows()),
+		BodyFormat:    string(r.BodyFormat()),
+		NumErrors:     int(r.NumErrors()),
+		CommitTime:    time.Unix(r.CommitTime(), 0),
+		CommitTitle:   string(r.CommitTitle()),
+		CommitMessage: string(r.CommitMessage()),
+		NumVersions:   int(r.NumVersions()),
+		FSIPath:       string(r.FsiPath()),
+	}
 }
 
 func (d *Dscache) ensureProToUserMap() {

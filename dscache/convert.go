@@ -45,21 +45,6 @@ func BuildDscacheFromLogbookAndProfilesAndDsref(ctx context.Context, refs []repo
 		log.Errorf("%s", err)
 	}
 
-	// Map profileID to username
-	userMap := make(map[string]string)
-	for _, pair := range userProfileList {
-		userMap[pair.ProfileID] = pair.Username
-	}
-
-	// Sort the entryInfoList, by prettyName
-	sort.Slice(entryInfoList, func(i, j int) bool {
-		leftEntry := entryInfoList[i]
-		rightEntry := entryInfoList[j]
-		leftRef := fmt.Sprintf("%s/%s", userMap[leftEntry.ProfileID], leftEntry.Name)
-		rightRef := fmt.Sprintf("%s/%s", userMap[rightEntry.ProfileID], rightEntry.Name)
-		return leftRef < rightRef
-	})
-
 	return buildDscacheFlatbuffer(userProfileList, entryInfoList), nil
 }
 
@@ -71,6 +56,21 @@ type userProfilePair struct {
 // buildDscacheFlatbuffer constructs the flatbuffer from the users and refs
 func buildDscacheFlatbuffer(userPairList []userProfilePair, entryInfoList []*entryInfo) *Dscache {
 	builder := flatbuffers.NewBuilder(0)
+
+	// Map profileID to username
+	userMap := make(map[string]string)
+	for _, pair := range userPairList {
+		userMap[pair.ProfileID] = pair.Username
+	}
+
+	// Sort the dsInfoList, by prettyName
+	sort.Slice(entryInfoList, func(i, j int) bool {
+		leftEntry := entryInfoList[i]
+		rightEntry := entryInfoList[j]
+		leftRef := fmt.Sprintf("%s/%s", userMap[leftEntry.ProfileID], leftEntry.Name)
+		rightRef := fmt.Sprintf("%s/%s", userMap[rightEntry.ProfileID], rightEntry.Name)
+		return leftRef < rightRef
+	})
 
 	// Construct user associations, between human-readable usernames and profileIDs
 	userList := make([]flatbuffers.UOffsetT, 0, len(userPairList))

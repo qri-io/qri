@@ -430,14 +430,14 @@ func writeNasdaqLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref, er
 		PreviousPath: "",
 	}
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
@@ -464,21 +464,21 @@ func writeWorldBankLogs(ctx context.Context, book *logbook.Book) (ref dsref.Ref,
 		PreviousPath: "",
 	}
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v1"
 	ds.PreviousPath = "v0"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 
 	ds.Path = "v2"
 	ds.PreviousPath = "v1"
 
-	if _, err = book.WriteVersionSave(ctx, ds); err != nil {
+	if err = book.WriteVersionSave(ctx, ds); err != nil {
 		return ref, err
 	}
 

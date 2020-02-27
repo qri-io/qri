@@ -95,6 +95,8 @@ type Book struct {
 
 	fsLocation string
 	fs         qfs.Filesystem
+
+	listener   func(*Action)
 }
 
 // NewBook creates a book with a user-provided logstore
@@ -284,11 +286,12 @@ func (book *Book) WriteDatasetInit(ctx context.Context, name string) error {
 		return fmt.Errorf("logbook: dataset named '%s' already exists", name)
 	}
 
-	book.initName(ctx, name)
+	book.initName(ctx, book.AuthorID(), book.AuthorName(), name)
 	return book.save(ctx)
 }
 
-func (book Book) initName(ctx context.Context, name string) *oplog.Log {
+func (book Book) initName(ctx context.Context, profileID, username, name string) *oplog.Log {
+
 	log.Debugf("initializing name: '%s'", name)
 	dsLog := oplog.InitLog(oplog.Op{
 		Type:      oplog.OpTypeInit,
@@ -310,6 +313,17 @@ func (book Book) initName(ctx context.Context, name string) *oplog.Log {
 
 	nameLog := book.authorLog(ctx)
 	nameLog.AddChild(dsLog)
+
+	if book.listener != nil {
+		book.listener(&Action{
+			Type:       ActionDatasetNameInit,
+			InitID:     dsLog.ID(),
+			Username:   username,
+			ProfileID:  profileID,
+			PrettyName: name,
+		})
+	}
+
 	return branch
 }
 
@@ -374,9 +388,9 @@ func (book *Book) WriteDatasetDelete(ctx context.Context, ref dsref.Ref) error {
 // the dataset we're newly creating). Doing so would move us closer to the
 // world were references are only used in the porcelain of qri, and stable ids
 // like initID would only be used in the plumbling.
-func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) (*Action, error) {
+func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) error {
 	if book == nil {
-		return nil, ErrNoLogbook
+		return ErrNoLogbook
 	}
 
 	ref := refFromDataset(ds)
@@ -384,31 +398,36 @@ func (book *Book) WriteVersionSave(ctx context.Context, ds *dataset.Dataset) (*A
 	branchLog, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		if err == oplog.ErrNotFound {
-			branchLog = book.initName(ctx, ref.Name)
+			branchLog = book.initName(ctx, ds.ProfileID, ref.Username, ref.Name)
 			err = nil
 		} else {
-			return nil, err
+			return err
 		}
 	}
 	datasetLog, err := book.DatasetRef(ctx, ref)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
 	book.appendVersionSave(branchLog, ds)
 	// TODO(dlong): Think about how to handle a failure exactly here, what needs to be rolled back?
 	err = book.save(ctx)
 	if err != nil {
-		return nil, err
+		return err
 	}
 	// Index of the branch's top is one less than the length
 	topIndex := len(branchLog.Ops) - 1
-	return &Action{
-		InitID:   datasetLog.ID(),
-		TopIndex: topIndex,
-		HeadRef:  ds.Path,
-		Dataset:  ds,
-	}, nil
+
+	if book.listener != nil {
+		book.listener(&Action{
+			Type:     ActionDatasetChange,
+			InitID:   datasetLog.ID(),
+			TopIndex: topIndex,
+			HeadRef:  ds.Path,
+			Dataset:  ds,
+		})
+	}
+	return nil
 }
 
 func (book *Book) appendVersionSave(l *oplog.Log, ds *dataset.Dataset) {
@@ -547,6 +566,11 @@ func (book *Book) WriteCronJobRan(ctx context.Context, number int64, ref dsref.R
 	})
 
 	return book.save(ctx)
+}
+
+// Observe saves a function which listens for changes
+func (book *Book) Observe(listener func(*Action)) {
+	book.listener = listener
 }
 
 // ListAllLogs lists all of the logs in the logbook
@@ -751,7 +775,7 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 		return ErrLogTooShort
 	}
 
-	branchLog = book.initName(ctx, ref.Name)
+	branchLog = book.initName(ctx, ref.ProfileID, ref.Username, ref.Name)
 	for _, ds := range history {
 		book.appendVersionSave(branchLog, ds)
 	}

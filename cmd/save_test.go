@@ -239,7 +239,99 @@ func TestSaveInferName(t *testing.T) {
 	}
 }
 
-func TestSaveDscache(t *testing.T) {
+func TestSaveDscacheFirstCommit(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_test_dscache_first")
+	defer run.Delete()
+
+	prevTimestampFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		return 1000
+	}
+	defer func() {
+		logbook.NewTimestamp = prevTimestampFunc
+	}()
+
+	// Save a dataset with one version.
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json me/movie_ds --use-dscache")
+
+	// Access the dscache
+	repo, err := run.RepoRoot.Repo()
+	if err != nil {
+		t.Fatal(err)
+	}
+	cache := repo.Dscache()
+
+	// Dscache should have one reference. It has topIndex 1 because there are two logbook
+	// elements in the branch, one for "init", one for "commit".
+	actual := cache.VerboseString(false)
+	expect := `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = movie_ds
+     bodySize      = 79
+     bodyRows      = 2
+     commitTime    = 978310861
+     commitTitle   = created dataset
+     commitMessage = created dataset
+     headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save a different dataset, but dscache already exists.
+	run.MustExec(t, "qri save --body testdata/movies/body_four.json me/another_ds --use-dscache")
+
+	// Because this test is using a memrepo, but the command runner instantiates its own repo
+	// the dscache is not reloaded. Manually reload it here by constructing a dscache from the
+	// same filename.
+	fs := localfs.NewFS()
+	cacheFilename := cache.Filename
+	ctx := context.Background()
+	// TODO(dustmop): Do we need to pass a book?
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
+
+	// Dscache should have two entries now. They are alphabetized by pretty name, and have all
+	// the expected data.
+	actual = cache.VerboseString(false)
+	expect = `Dscache:
+ Dscache.Users:
+  0) user=test_peer profileID=QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+ Dscache.Refs:
+  0) initID        = mji5zbbkphzl7unnngzzgel3yqnlzoa2x5w4segq2x2o3pv6o6da
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = another_ds
+     bodySize      = 137
+     bodyRows      = 4
+     commitTime    = 978310921
+     commitTitle   = created dataset
+     commitMessage = created dataset
+     headRef       = /ipfs/QmVjFS46hBiyuCjg7zYUijmCCZz1GG53ZSgNFKw4hbjWnY
+  1) initID        = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
+     profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
+     topIndex      = 1
+     cursorIndex   = 1
+     prettyName    = movie_ds
+     bodySize      = 79
+     bodyRows      = 2
+     commitTime    = 978310861
+     commitTitle   = created dataset
+     commitMessage = created dataset
+     headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
+`
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
+func TestSaveDscacheExistingDataset(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_save_dscache")
 	defer run.Delete()
 
@@ -296,7 +388,7 @@ func TestSaveDscache(t *testing.T) {
 	fs := localfs.NewFS()
 	cacheFilename := cache.Filename
 	ctx := context.Background()
-	cache = dscache.NewDscache(ctx, fs, cacheFilename)
+	cache = dscache.NewDscache(ctx, fs, nil, cacheFilename)
 
 	// Dscache should now have one reference. Now topIndex is 2 because there is another "commit".
 	actual = cache.VerboseString(false)
