@@ -2,21 +2,15 @@ package cmd
 
 import (
 	"bytes"
-	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
 	"os"
-	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
 	golog "github.com/ipfs/go-log"
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
-	regmock "github.com/qri-io/qri/registry/regserver"
-	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/qri-io/qri/startf"
 )
 
@@ -108,116 +102,6 @@ const profileData = `
 	"description" : "I'm a description!"
 }
 `
-
-// This is a basic integration test that makes sure basic happy paths work on the CLI
-func TestCommandsIntegration(t *testing.T) {
-	if err := confirmQriNotRunning(); err != nil {
-		t.Skip(err.Error())
-	}
-
-	reg, cleanup, err := regmock.NewTempRegistry("registry", "qri_test_commands_integration")
-	if err != nil {
-		t.Fatal(err)
-	}
-	defer cleanup()
-	_, registryServer := regmock.NewMockServerRegistry(*reg)
-
-	path := filepath.Join(os.TempDir(), "qri_test_commands_integration")
-	// fmt.Printf("test filepath: %s\n", path)
-
-	//clean up if previous cleanup failed
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		if err := os.RemoveAll(path); err != nil {
-			t.Fatalf("failed to cleanup from previous test execution: %s", err.Error())
-		}
-	}
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		t.Errorf("error creating test path: %s", err.Error())
-		return
-	}
-	defer os.RemoveAll(path)
-
-	moviesFilePath := filepath.Join(path, "/movies.csv")
-	if err := ioutil.WriteFile(moviesFilePath, []byte(moviesCSVData), os.ModePerm); err != nil {
-		t.Errorf("error writing csv file: %s", err.Error())
-		return
-	}
-
-	movies2FilePath := filepath.Join(path, "/movies2.csv")
-	if err := ioutil.WriteFile(movies2FilePath, []byte(moviesCSVData2), os.ModePerm); err != nil {
-		t.Errorf("error writing csv file: %s", err.Error())
-		return
-	}
-
-	linksFilepath := filepath.Join(path, "/links.json")
-	if err := ioutil.WriteFile(linksFilepath, []byte(linksJSONData), os.ModePerm); err != nil {
-		t.Errorf("error writing json file: %s", err.Error())
-		return
-	}
-
-	profileDataFilepath := filepath.Join(path, "/profile")
-	if err := ioutil.WriteFile(profileDataFilepath, []byte(profileData), os.ModePerm); err != nil {
-		t.Errorf("error profile json file: %s", err.Error())
-		return
-	}
-
-	commands := []string{
-		"qri help",
-		"qri version",
-		fmt.Sprintf("qri setup --peername=alan --registry=%s", registryServer.URL),
-		"qri config get -c",
-		"qri config get profile",
-		"qri config set webapp.port 3505",
-		fmt.Sprintf("qri save --body=%s me/movies", moviesFilePath),
-		fmt.Sprintf("qri save --body=%s me/movies2", movies2FilePath),
-		fmt.Sprintf("qri save --body=%s me/links", linksFilepath),
-		"qri list",
-		"qri list me/movies",
-		fmt.Sprintf("qri save --body=%s -t=commit_1 me/movies", movies2FilePath),
-		"qri log me/movies",
-		"qri diff me/movies me/movies2",
-		fmt.Sprintf("qri export -o=%s me/movies --zip", path),
-		fmt.Sprintf("qri export -o=%s/ds.yaml --format=yaml me/movies", path),
-		"qri publish me/movies",
-		"qri ls -p",
-		"qri publish --unpublish me/movies",
-		// TODO - currently removed, see TODO in cmd/registry.go
-		// "qri registry unpublish me/movies",
-		// "qri registry publish me/movies",
-		"qri rename me/movies me/movie",
-		"qri get body --page-size=1 --format=cbor me/movie",
-		"qri validate me/movie",
-		"qri remove me/movie --revisions=all",
-		fmt.Sprintf("qri export --blank -o=%s/blank_dataset.yaml", path),
-		"qri setup --remove",
-	}
-
-	streams, _, _, _ := ioes.NewTestIOStreams()
-	ctx, done := context.WithCancel(context.Background())
-	defer done()
-
-	root := NewQriCommand(ctx, NewDirPathFactory(path), repotest.NewTestCrypto(), streams)
-	root.SetOutput(ioutil.Discard)
-
-	for i, command := range commands {
-		func() {
-			defer func() {
-				if e := recover(); e != nil {
-					t.Errorf("case %d unexpected panic executing command\n%s\n%s", i, command, e)
-					return
-				}
-			}()
-
-			er := executeCommand(root, command)
-			if er != nil {
-				t.Errorf("case %d unexpected error executing command\n%s\n%s", i, command, er.Error())
-				return
-			}
-
-			time.Sleep(500 * time.Millisecond)
-		}()
-	}
-}
 
 // Test that saving a dataset with a relative body path works, and validate the contents of that
 // body match what was given to the save command.
