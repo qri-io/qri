@@ -1,4 +1,5 @@
-version: '2'
+version: '2.1'
+
 jobs:
   build:
     working_directory: /go/src/github.com/qri-io/qri
@@ -44,3 +45,40 @@ jobs:
           destination: raw-test-output
       - store_test_results:
           path: /tmp/test-results
+  qri_benchmarks:
+    working_directory: ~/perf
+    docker:
+      - image: alpine:latest
+    resource_class: medium+
+    steps:
+      - checkout:
+          path: ~/perf
+      - run: "apk add --update curl bash"
+      - run:
+          name: Install Qri
+          command: curl -fsSL https://qri.io/install.sh | sh && qri setup
+      - run:
+          name: Run User Benchmarks
+          command: .circleci/user_benchmarks.sh
+      - run: head -n 20 perf.csv
+      - store_artifacts:
+          path: perf.csv
+          destination: perf.csv
+      - run:
+          name: Publish Results to Qri
+          command: |
+            qri add qri_eng/qri_cli_user_benchmarks &&\
+            qri save --body ./perf.csv qri_eng/qri_cli_user_benchmarks &&\
+            qri publish qri_eng/qri_cli_user_benchmarks
+
+workflows:
+  version: 2
+  test:
+    jobs:
+      - build
+  perf:
+    jobs:
+    - qri_benchmarks:
+        filters:
+          branches:
+            only: master
