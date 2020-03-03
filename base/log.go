@@ -35,6 +35,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 							}
 						}
 					}
+					versions[i].Foreign = !local
 				}
 			}
 			return versions, nil
