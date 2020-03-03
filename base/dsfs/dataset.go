@@ -262,52 +262,57 @@ func prepareDataset(store cafs.Filestore, ds, dsPrev *dataset.Dataset, privKey c
 		return fmt.Errorf("bodyfile or previous bodyfile needed")
 	}
 
+	// If bf is nil, this is a metadata update and we will assume that the
+	// previous version of the file had passed validation.
 	if bf == nil {
 		bf = bfPrev
-	}
+	} else {
+		errR, errW := io.Pipe()
+		entryR, entryW := io.Pipe()
+		hashR, hashW := io.Pipe()
+		done := make(chan error)
+		tasks := 3
+		valChan := make(chan []jsonschema.ValError)
 
-	errR, errW := io.Pipe()
-	entryR, entryW := io.Pipe()
-	hashR, hashW := io.Pipe()
-	done := make(chan error)
-	tasks := 3
-	valChan := make(chan []jsonschema.ValError)
+		go setErrCount(ds, qfs.NewMemfileReader(bf.FileName(), errR), &mu, done, valChan)
+		go setDepthAndEntryCount(ds, qfs.NewMemfileReader(bf.FileName(), entryR), &mu, done)
+		go setChecksumAndLength(ds, qfs.NewMemfileReader(bf.FileName(), hashR), &buf, &mu, done)
 
-	go setErrCount(ds, qfs.NewMemfileReader(bf.FileName(), errR), &mu, done, valChan)
-	go setDepthAndEntryCount(ds, qfs.NewMemfileReader(bf.FileName(), entryR), &mu, done)
-	go setChecksumAndLength(ds, qfs.NewMemfileReader(bf.FileName(), hashR), &buf, &mu, done)
+		go func() {
+			// Manually closed in order to correctly trigger EOF when reading
+			// from the pipes.
+			defer errW.Close()
+			defer entryW.Close()
+			defer hashW.Close()
 
-	go func() {
-		// pipes must be manually closed to trigger EOF
-		defer errW.Close()
-		defer entryW.Close()
-		defer hashW.Close()
+			// Use a MultiWriter to dispatch the body file to all three
+			// routines.
+			mw := io.MultiWriter(errW, entryW, hashW)
+			io.Copy(mw, bf)
+		}()
 
-		// allocate a multiwriter that writes to each pipe when
-		// mw.Write() is called
-		mw := io.MultiWriter(errW, entryW, hashW)
-		// copy file bytes to multiwriter from input file
-		io.Copy(mw, bf)
-	}()
+		// Get validation errors from the setErrCount goroutine.
+		// TODO: does this mean that the next block of code only needs to wait
+		//       for the other two routines to finish? I.E. can we get results
+		//       out of valChan without a matching value in `done`?
+		var validationErrors []jsonschema.ValError
+		validationErrors = <-valChan
 
-	// Get validation errors because trying to join the main tasks.
-	var validationErrors []jsonschema.ValError
-	validationErrors = <-valChan
-
-	// Join the outstanding tasks, wait until all are cmoplete.
-	for i := 0; i < tasks; i++ {
-		if err := <-done; err != nil {
-			return err
+		// Join the outstanding tasks, waiting until all are complete.
+		for i := 0; i < tasks; i++ {
+			if err := <-done; err != nil {
+				return err
+			}
 		}
-	}
 
-	// If in strict mode, fail if there were any errors.
-	if ds.Structure.Strict && ds.Structure.ErrCount > 0 {
-		fmt.Fprintf(os.Stderr, "\nShowing errors at each /row/column of the dataset body:\n")
-		for i, v := range validationErrors {
-			fmt.Fprintf(os.Stderr, "%d) %v\n", i, v)
+		// If in strict mode, fail if there were any errors.
+		if ds.Structure.Strict && ds.Structure.ErrCount > 0 {
+			fmt.Fprintf(os.Stderr, "\nShowing errors at each /row/column of the dataset body:\n")
+			for i, v := range validationErrors {
+				fmt.Fprintf(os.Stderr, "%d) %v\n", i, v)
+			}
+			return fmt.Errorf("strict mode: dataset body did not validate against its schema")
 		}
-		return fmt.Errorf("strict mode: dataset body did not validate against its schema")
 	}
 
 	if err = generateCommit(dsPrev, ds, privKey, force); err != nil {
