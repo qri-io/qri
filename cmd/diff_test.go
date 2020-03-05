@@ -4,9 +4,9 @@ import (
 	"testing"
 	"time"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base/dsfs"
-	"github.com/google/go-cmp/cmp"
 )
 
 func TestDiffComplete(t *testing.T) {
@@ -100,19 +100,19 @@ func TestDiffRun(t *testing.T) {
 			if err != nil {
 				t.Fatalf("case %s, error creating dataset request: %s", c.description, err)
 			}
-	
+
 			opt := c.opt
 			opt.IOStreams = streams
 			opt.DatasetRequests = dsr
-	
+
 			if err = opt.Run(); err != nil {
 				t.Fatalf("case %s unexpected error: %s", c.description, err)
 			}
-	
+
 			if diff := cmp.Diff(out.String(), c.stdout); diff != "" {
 				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
-			
+
 			ioReset(in, out, errs)
 		})
 	}

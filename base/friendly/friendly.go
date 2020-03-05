@@ -70,7 +70,7 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 					shortTitle = fmt.Sprintf("%s %s", compName, changes.Rows[0])
 				} else if len(changes.Rows) == 0 && compName == "transform" {
 					// TODO (b5) - this is a hack to make TestSaveTransformWithoutChanges
-					// in the cmd package pass. We're getting to this stage with 0 rows of 
+					// in the cmd package pass. We're getting to this stage with 0 rows of
 					// changes, which is making msg & title not-empty, which is in turn allowing
 					// a commit b/c it looks like a change. ideally we don't make it here at all,
 					// but we DEFINITELY need a better hueristic for dsfs.CreateDataset's
@@ -117,7 +117,7 @@ func DiffDescriptions(deltas []*deepdiff.Delta, stats *deepdiff.Stats) (string, 
 
 const dtReplace = deepdiff.Operation("replace")
 
-// preprocess makes delta lists easier to work with, by combining operations 
+// preprocess makes delta lists easier to work with, by combining operations
 // when possible & removing unwanted paths
 func preprocess(deltas deepdiff.Deltas, path string) deepdiff.Deltas {
 	build := make([]*deepdiff.Delta, 0, len(deltas))
