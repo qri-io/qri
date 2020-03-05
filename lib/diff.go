@@ -258,7 +258,9 @@ func schemaDiff(ctx context.Context, left, right *component.BodyComponent) ([]*D
 	return dd.StatDiff(ctx, left.InferredSchema, right.InferredSchema)
 }
 
-// TODO - holy shit dis so bad. fix
+// TODO (b5) - this is terrible. We need better logic error handling for
+// jsonschemas describing CSV data. We're relying too heavily on the schema
+// being well-formed
 func terribleHackToGetHeaderRow(sch map[string]interface{}) ([]string, error) {
 	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
 		if itemArr, ok := itemObj["items"].([]interface{}); ok {

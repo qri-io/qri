@@ -172,7 +172,7 @@ func printDiff(w io.Writer, res *lib.DiffResponse, summaryOnly bool) (err error)
 	// should use the IsATTY package from mattn
 	deepdiff.FormatPrettyStats(buf, res.Stat, !color.NoColor)
 	if !summaryOnly {
-		buf.Write([]byte("\n"))
+		buf.WriteByte('\n')
 		if err = deepdiff.FormatPretty(buf, res.Diff, !color.NoColor); err != nil {
 			return err
 		}

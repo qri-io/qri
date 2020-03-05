@@ -9,9 +9,6 @@ import (
 )
 
 func TestFriendlyDiffDescriptions(t *testing.T) {
-	// TODO (b5) - we should update this test to use deepdiff to generate these diffs
-	// from actual changes. It'll make the test here sensitive to changes in
-	// deepdiff output
 	// Change both the meta and structure
 	deltas := deepdiff.Deltas{
 		{Type: deepdiff.DTContext, Path: deepdiff.StringAddr("meta"), Deltas: deepdiff.Deltas{
