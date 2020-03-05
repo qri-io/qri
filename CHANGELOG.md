@@ -1,3 +1,20 @@
+# [v0.9.6](https://github.com/qri-io/qri/compare/v0.9.5...v0.9.6) (2020-03-05)
+
+This patch release fixes a number of small bugs, mainly in support of our Desktop app, and continues infrastructural improvements in preparation for larger feature releases. These include: our improved diff experience, significantly better filesystem integration, and a new method of dataset name resolution that better handles changes across a peer network.
+
+### Bug Fixes
+
+* **cmd/list:** show username with no datasets to list ([a7cbde6](https://github.com/qri-io/qri/commit/a7cbde674b4eab23ea8b566c7c96f08f0353f220))
+* **history:** Include the foreign field in history requests ([52c5cc1](https://github.com/qri-io/qri/commit/52c5cc1e9bb4978cee156a6f583afc3be9709773))
+
+
+### Features
+
+* **diff:** show context in diffs ([6d6abb2](https://github.com/qri-io/qri/commit/6d6abb279745810668bf40edfe3b4fc622c0d545))
+* **dscache:** Fill dscache when saving, using func pointer in logbook. ([438fd03](https://github.com/qri-io/qri/commit/438fd039dd308a8ff072fb32bed3fcc2ddb74aca))
+
+
+
 <a name="v0.9.5"></a>
 # [v0.9.5](https://github.com/qri-io/qri/compare/v0.9.4...v0.9.5) (2020-02-27)
 
