@@ -128,10 +128,15 @@ func (o *ListOptions) Run() (err error) {
 	}
 
 	if len(infos) == 0 {
+		pn := fmt.Sprintf("%s has", o.Peername)
+		if o.Peername == "" {
+			pn = "you have"
+		}
+
 		if o.Term == "" {
-			printInfo(o.Out, "%s has no datasets", o.Peername)
+			printInfo(o.Out, "%s no datasets", pn)
 		} else {
-			printInfo(o.Out, "%s has no datasets that match \"%s\"", o.Peername, o.Term)
+			printInfo(o.Out, "%s no datasets that match \"%s\"", pn, o.Term)
 		}
 		return
 	}
