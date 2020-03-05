@@ -248,7 +248,7 @@ func TestSaveTwoComponents(t *testing.T) {
 
 	// This dataset is ds_ten.yaml, with the meta replaced by meta_override ("different title") and
 	// the structure replaced by structure_override (lazyQuotes: false && title: "name").
-	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tremoved schema.items.type\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/QmSktsfiF2KG8APBVuqDntSMn34xHvXvG4rQ1tdRaXHboN","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmbeXDJqjurBe9b2jEm6uKMqxZnBLCM9V3LpVS6Q6pvNs2","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
+	expect := `{"bodyPath":"/ipfs/QmXhsUK6vGZrqarhw9Z8RCXqhmEpvtVByKtaYVarbDZ5zn","commit":{"author":{"id":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B"},"message":"meta:\n\tupdated title\nstructure:\n\tupdated formatConfig.lazyQuotes\n\tupdated schema.items.items.0.title","path":"/ipfs/Qmf51CD3zW64ffoWja32bKh3BSyMwvMSbh9A8PtrA7fDJi","qri":"cm:0","signature":"njCFxpGqq0xJSrjgxC289KncjflqA0e00txweEqIyUTvEKSUBKHcfQmx4OQIJzJqQJdcjIEzFrwP9cdquozRgsnrpsSfKb+wBWdtbnrg8zfat0X/Dqjro6JD7afJf0gU9s5SDi/s8g/qZOLwWh1nuoH4UAeUX+l3DH0ocFjeD6r/YkMJ0KXaWaFloKP8UPasfqoei9PxxmYQuAnFMqpXFisB7mKFAbgbpF3eL80UcbQPTih7WF11SBym/AzJhGNvOivOjmRxKGEuqEH9g3NPTEQr+LnP415X4qiaZA6MVmOO66vC0diUN4vJUMvhTsWnVEBtgqjTRYlSaYwabHv/gA==","timestamp":"2001-01-01T01:02:01.000000001Z","title":"updated meta and structure"},"meta":{"qri":"md:0","title":"different title"},"path":"/ipfs/QmcSJnaS6xwcJXMKS3SPbyCnvorTefpMeMMJeXyMfxtTq8","peername":"me","previousPath":"/ipfs/QmVdDACqmUoFGCotChqSuYJMnocPwkXPifEB6kGqiTjhiL","qri":"ds:0","structure":{"checksum":"QmcXDEGeWdyzfFRYyPsQVab5qszZfKqxTMEoXRDSZMyrhf","depth":2,"errCount":1,"entries":8,"format":"csv","formatConfig":{"headerRow":true,"lazyQuotes":false},"length":224,"qri":"st:0","schema":{"items":{"items":[{"title":"name","type":"string"},{"title":"duration","type":"integer"}]},"type":"array"}},"viz":{"format":"html","qri":"vz:0","renderedPath":"/ipfs/QmXkN5J5yCAtF8GCxwRXARzAQhj3bPaSv1VHoyCCXzQRzN","scriptPath":"/ipfs/QmVM37PFzBcZn3qqKvyQ9rJ1jC8NkS8kYZNJke1Wje1jor"}}`
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("dataset (-want +got):\n%s", diff)
 	}
@@ -441,21 +441,39 @@ func TestDiffRevisions(t *testing.T) {
 	run.MustExec(t, "qri save --body=testdata/movies/body_thirty.csv me/test_movies")
 	output := run.MustExec(t, "qri diff body me/test_movies")
 
-	expect := `+30 elements. 30 inserts. 0 deletes. 0 updates.
+	expect := `+30 elements. 10 inserts. 0 deletes.
 
-+ 18: ["Dragonfly ",104]
-+ 19: ["The Black Dahlia ",121]
-+ 20: ["Flyboys ",140]
-+ 21: ["The Last Castle ",131]
-+ 22: ["Supernova ",91]
-+ 23: ["Winter's Tale ",118]
-+ 24: ["The Mortal Instruments: City of Bones ",130]
-+ 25: ["Meet Dave ",90]
-+ 26: ["Dark Water ",103]
-+ 27: ["Edtv ",122]
+ 0: ["Avatar ",178]
+ 1: ["Pirates of the Caribbean: At World's End ",169]
+ 2: ["Spectre ",148]
+ 3: ["The Dark Knight Rises ",164]
+ 4: ["Star Wars: Episode VII - The Force Awakens             ",""]
+ 5: ["John Carter ",132]
+ 6: ["Spider-Man 3 ",156]
+ 7: ["Tangled ",100]
+ 8: ["Avengers: Age of Ultron ",141]
+ 9: ["Harry Potter and the Half-Blood Prince ",153]
+ 10: ["Batman v Superman: Dawn of Justice ",183]
+ 11: ["Superman Returns ",169]
+ 12: ["Quantum of Solace ",106]
+ 13: ["Pirates of the Caribbean: Dead Man's Chest ",151]
+ 14: ["The Lone Ranger ",150]
+ 15: ["Man of Steel ",143]
+ 16: ["The Chronicles of Narnia: Prince Caspian ",150]
+ 17: ["The Avengers ",173]
++18: ["Dragonfly ",104]
++19: ["The Black Dahlia ",121]
++20: ["Flyboys ",140]
++21: ["The Last Castle ",131]
++22: ["Supernova ",91]
++23: ["Winter's Tale ",118]
++24: ["The Mortal Instruments: City of Bones ",130]
++25: ["Meet Dave ",90]
++26: ["Dark Water ",103]
++27: ["Edtv ",122]
 `
-	if output != expect {
-		t.Errorf("error, did not match actual:\n\"%v\"\nexpect:\n\"%v\"\n", output, expect)
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("output mismatch (-want +got):\n%s", diff)
 	}
 }
 

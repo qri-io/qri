@@ -47,7 +47,7 @@ require (
 	github.com/qri-io/apiutil v0.1.0
 	github.com/qri-io/dag v0.2.1-0.20191025201336-254aa177fbd7
 	github.com/qri-io/dataset v0.1.5-0.20191126212116-72b5aa69790b
-	github.com/qri-io/deepdiff v0.1.1-0.20191118194347-ac31500b9917
+	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
 	github.com/qri-io/iso8601 v0.1.0

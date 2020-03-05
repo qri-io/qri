@@ -96,7 +96,7 @@ type Book struct {
 	fsLocation string
 	fs         qfs.Filesystem
 
-	listener   func(*Action)
+	listener func(*Action)
 }
 
 // NewBook creates a book with a user-provided logstore

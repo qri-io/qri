@@ -132,7 +132,7 @@ func (o *DiffOptions) Run() (err error) {
 	}
 
 	if o.Format == "json" {
-		json.NewEncoder(o.Out).Encode(res.Diff)
+		json.NewEncoder(o.Out).Encode(res)
 		return
 	}
 

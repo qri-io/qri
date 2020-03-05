@@ -167,26 +167,17 @@ func doesCommandExist(cmdName string) bool {
 }
 
 func printDiff(w io.Writer, res *lib.DiffResponse, summaryOnly bool) (err error) {
-	var stats, text string
+	buf := &bytes.Buffer{}
 	// TODO (b5): this reading from a package variable is pretty hacky :/
-	if color.NoColor {
-		stats = deepdiff.FormatPrettyStats(res.Stat)
-		if !summaryOnly {
-			text, err = deepdiff.FormatPretty(res.Diff)
-			if err != nil {
-				return err
-			}
-		}
-	} else {
-		stats = deepdiff.FormatPrettyStatsColor(res.Stat)
-		if !summaryOnly {
-			text, err = deepdiff.FormatPrettyColor(res.Diff)
-			if err != nil {
-				return err
-			}
+	// should use the IsATTY package from mattn
+	deepdiff.FormatPrettyStats(buf, res.Stat, !color.NoColor)
+	if !summaryOnly {
+		buf.WriteByte('\n')
+		if err = deepdiff.FormatPretty(buf, res.Diff, !color.NoColor); err != nil {
+			return err
 		}
 	}
-	buf := bytes.NewBuffer([]byte(stats + "\n" + text))
+
 	printToPager(w, buf)
 	return nil
 }

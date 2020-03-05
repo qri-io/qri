@@ -39,10 +39,10 @@ type DiffParams struct {
 
 // DiffResponse is the result of a call to diff
 type DiffResponse struct {
-	Stat *DiffStat   `json:"stat,omitempty"`
-	Diff []*Delta    `json:"diff,omitempty"`
-	A    interface{} `json:"b,omitempty"`
-	B    interface{} `json:"a,omitempty"`
+	Stat       *DiffStat `json:"stat,omitempty"`
+	SchemaStat *DiffStat `json:"schemaStat,omitempty"`
+	Schema     []*Delta  `json:"schema,omitempty"`
+	Diff       []*Delta  `json:"diff,omitempty"`
 }
 
 // Diff computes the diff of two datasets
@@ -80,10 +80,13 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 			return err
 		}
 
-		res.Stat = &deepdiff.Stats{}
-		res.A = leftData
-		res.B = rightData
-		res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(res.Stat))
+		res.Schema, res.SchemaStat, err = schemaDiff(ctx, leftComp, rightComp)
+		if err != nil {
+			return err
+		}
+
+		dd := deepdiff.New()
+		res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
 		return err
 	} else if dsref.IsRefString(p.LeftPath) && p.RightPath == "" {
 		// Left parameter with a blank right parameter needs either working directory or as-previous
@@ -232,9 +235,46 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 		return err
 	}
 
-	res.Stat = &deepdiff.Stats{}
-	res.A = leftData
-	res.B = rightData
-	res.Diff, err = deepdiff.Diff(leftData, rightData, deepdiff.OptionSetStats(res.Stat))
+	dd := deepdiff.New()
+	res.Diff, res.Stat, err = dd.StatDiff(ctx, leftData, rightData)
 	return err
+}
+
+func schemaDiff(ctx context.Context, left, right *component.BodyComponent) ([]*Delta, *DiffStat, error) {
+	dd := deepdiff.New()
+	if left.Format == ".csv" && right.Format == ".csv" {
+		left, err := terribleHackToGetHeaderRow(left.InferredSchema)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		right, err := terribleHackToGetHeaderRow(right.InferredSchema)
+		if err != nil {
+			return nil, nil, err
+		}
+
+		return dd.StatDiff(ctx, left, right)
+	}
+	return dd.StatDiff(ctx, left.InferredSchema, right.InferredSchema)
+}
+
+// TODO (b5) - this is terrible. We need better logic error handling for
+// jsonschemas describing CSV data. We're relying too heavily on the schema
+// being well-formed
+func terribleHackToGetHeaderRow(sch map[string]interface{}) ([]string, error) {
+	if itemObj, ok := sch["items"].(map[string]interface{}); ok {
+		if itemArr, ok := itemObj["items"].([]interface{}); ok {
+			titles := make([]string, len(itemArr))
+			for i, f := range itemArr {
+				if field, ok := f.(map[string]interface{}); ok {
+					if title, ok := field["title"].(string); ok {
+						titles[i] = title
+					}
+				}
+			}
+			return titles, nil
+		}
+	}
+	log.Debug("that terrible hack to detect header row & types just failed")
+	return nil, fmt.Errorf("nope")
 }
