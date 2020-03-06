@@ -1,4 +1,4 @@
-package dscache
+package logbook
 
 import (
 	"context"
@@ -9,19 +9,18 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/logbook"
 )
 
 // Builder builds a logbook in a convenient way
 type BookBuilder struct {
-	Book       *logbook.Book
+	Book       *Book
 	AuthorName string
 	Dsrefs     map[string][]string
 }
 
 // NewLogbookTempBuilder constructs a logbook tmp BookBuilder
 func NewLogbookTempBuilder(t *testing.T, privKey crypto.PrivKey, username string, fs qfs.Filesystem, rootPath string) BookBuilder {
-	book, err := logbook.NewJournal(privKey, username, fs, rootPath)
+	book, err := NewJournal(privKey, username, fs, rootPath)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -69,7 +68,7 @@ func (b *BookBuilder) Commit(ctx context.Context, t *testing.T, ref dsref.Ref, t
 		Peername: ref.Username,
 		Name:     ref.Name,
 		Commit: &dataset.Commit{
-			Timestamp: time.Unix(0, logbook.NewTimestamp()),
+			Timestamp: time.Unix(0, NewTimestamp()),
 			Title:     title,
 		},
 		Path:         ipfsHash,
@@ -102,6 +101,6 @@ func (b *BookBuilder) ensureAuthorAllowed(t *testing.T, peername string) {
 }
 
 // Logbook returns the built logbook
-func (b *BookBuilder) Logbook() *logbook.Book {
+func (b *BookBuilder) Logbook() *Book {
 	return b.Book
 }

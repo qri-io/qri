@@ -561,7 +561,7 @@ func makeFakeLogbook(ctx context.Context, t *testing.T, username string, privKey
 	}
 	fs := qfs.NewMemFS()
 
-	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
 
 	// A dataset with one commit, then a rename, then another commit
 	refA := builder.DatasetInit(ctx, t, "first_name")
@@ -589,7 +589,7 @@ func makeFakeLogbookNonAlphabetical(ctx context.Context, t *testing.T, username 
 	}
 	fs := qfs.NewMemFS()
 
-	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
 
 	// A dataset with one commit
 	refA := builder.DatasetInit(ctx, t, "some_dataset")
@@ -613,7 +613,7 @@ func makeFakeLogbookWithNoHistoryAndDelete(ctx context.Context, t *testing.T, us
 	}
 	fs := qfs.NewMemFS()
 
-	builder := NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
+	builder := logbook.NewLogbookTempBuilder(t, privKey, username, fs, rootPath)
 
 	// A dataset with one commit, pretty normal. Corresponding dsref has no FSIPath (no checkout)
 	refA := builder.DatasetInit(ctx, t, "first_ds")
