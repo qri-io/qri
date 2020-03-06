@@ -12,6 +12,7 @@ import (
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
 	"github.com/qri-io/qri/remote"
+	"github.com/qri-io/qri/repo/gen"
 	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 )
@@ -90,14 +91,16 @@ type NetworkIntegrationTestRunner struct {
 	nasimRepo, hinshunRepo, registryRepo *repotest.TempRepo
 	Nasim, Hinshun, RegistryInst         *Instance
 
+	TestCrypto         gen.CryptoGenerator
 	Registry           registry.Registry
 	RegistryHTTPServer *httptest.Server
 }
 
 func NewNetworkIntegrationTestRunner(t *testing.T, prefix string) *NetworkIntegrationTestRunner {
 	tr := &NetworkIntegrationTestRunner{
-		Ctx:    context.Background(),
-		prefix: prefix,
+		Ctx:        context.Background(),
+		prefix:     prefix,
+		TestCrypto: repotest.NewTestCrypto(),
 	}
 
 	tr.InitRegistry(t)
@@ -117,7 +120,7 @@ func (tr *NetworkIntegrationTestRunner) Cleanup() {
 }
 
 func (tr *NetworkIntegrationTestRunner) InitNasim(t *testing.T) *Instance {
-	r, err := repotest.NewTempRepo("nasim", fmt.Sprintf("%s_nasim", tr.prefix))
+	r, err := repotest.NewTempRepo("nasim", fmt.Sprintf("%s_nasim", tr.prefix), tr.TestCrypto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -135,7 +138,7 @@ func (tr *NetworkIntegrationTestRunner) InitNasim(t *testing.T) *Instance {
 }
 
 func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
-	r, err := repotest.NewTempRepo("hinshun", fmt.Sprintf("%s_hinshun", tr.prefix))
+	r, err := repotest.NewTempRepo("hinshun", fmt.Sprintf("%s_hinshun", tr.prefix), tr.TestCrypto)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -153,7 +156,7 @@ func (tr *NetworkIntegrationTestRunner) InitHinshun(t *testing.T) *Instance {
 }
 
 func (tr *NetworkIntegrationTestRunner) InitRegistry(t *testing.T) {
-	rr, err := repotest.NewTempRepo("registry", fmt.Sprintf("%s_registry", tr.prefix))
+	rr, err := repotest.NewTempRepo("registry", fmt.Sprintf("%s_registry", tr.prefix), tr.TestCrypto)
 	if err != nil {
 		t.Fatal(err)
 	}

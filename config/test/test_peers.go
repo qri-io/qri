@@ -5,6 +5,7 @@ package test
 
 import (
 	"encoding/base64"
+	"fmt"
 
 	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	peer "github.com/libp2p/go-libp2p-core/peer"
@@ -42,6 +43,9 @@ var peerInfo []PeerInfo
 
 // GetTestPeerInfo gets PeerInfo for constructing a peer for testing.
 func GetTestPeerInfo(i int) *PeerInfo {
+	if i >= len(encoded) {
+		panic(fmt.Sprintf("exhausted the available test peers! Requested #%d but only %d exist", i, len(encoded)))
+	}
 	if peerInfo == nil {
 		peerInfo = make([]PeerInfo, len(encoded))
 	}

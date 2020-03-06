@@ -39,8 +39,8 @@ func NewTempRepoFixedProfileID(peername, prefix string) (r TempRepo, err error) 
 // NewTempRepo constructs the test repo and initializes everything as cheaply
 // as possible. This function is non-deterministic. Each successive call to
 // TempRepo will use different PKI credentials
-func NewTempRepo(peername, prefix string) (r TempRepo, err error) {
-	return newTempRepo(peername, prefix, defaultCryptoGenerator)
+func NewTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, err error) {
+	return newTempRepo(peername, prefix, g)
 }
 
 func newTempRepo(peername, prefix string, g gen.CryptoGenerator) (r TempRepo, err error) {
