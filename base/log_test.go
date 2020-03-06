@@ -2,13 +2,19 @@ package base
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
 	"github.com/google/go-cmp/cmp/cmpopts"
+	"github.com/qri-io/qfs/localfs"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -44,6 +50,77 @@ func TestDatasetLog(t *testing.T) {
 			BodyFormat:    "csv",
 			BodySize:      155,
 			BodyRows:      5,
+		},
+	}
+
+	if diff := cmp.Diff(expect, log, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.VersionInfo{}, "Path")); diff != "" {
+		t.Errorf("result mismatch (-want +got):\n%s", diff)
+	}
+}
+
+func TestDatasetLogForeign(t *testing.T) {
+	tmpdir, err := ioutil.TempDir("", "")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer os.RemoveAll(tmpdir)
+
+	// Create two logbooks, mine and theirs
+	myBookPath := filepath.Join(tmpdir, "my_logbook.qfs")
+	theirBookPath := filepath.Join(tmpdir, "their_logbook.qfs")
+
+	ctx := context.Background()
+	mr := newTestRepo(t).(*repo.MemRepo)
+	fs := localfs.NewFS()
+
+	// Construct a logbook for another user
+	theirRefStr := "them/foreign"
+	otherPeerInfo := testPeers.GetTestPeerInfo(1)
+	foreignBuilder := logbook.NewLogbookTempBuilder(t, otherPeerInfo.PrivKey, "them", fs, theirBookPath)
+	foreignBuilder.DatasetInit(ctx, t, theirRefStr)
+	ref, err := dsref.Parse(theirRefStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	// NOTE: Need to assign ProfileID because nothing is resolving the username
+	ref.ProfileID = otherPeerInfo.EncodedPeerID
+	foreignBuilder.Commit(ctx, t, ref, "their commit", "QmExample")
+	foreignBook := foreignBuilder.Logbook()
+	foreignLog, err := foreignBook.UserDatasetRef(ctx, ref)
+	if err != nil {
+		t.Fatal(err)
+	}
+
+	// Construct our own logbook, and merge in the foreign oplog
+	peerInfo := testPeers.GetTestPeerInfo(0)
+	builder := logbook.NewLogbookTempBuilder(t, peerInfo.PrivKey, "peer", fs, myBookPath)
+	builder.AddForeign(ctx, t, foreignLog)
+
+	// Inject that log into our mem repo
+	book := builder.Logbook()
+	mr.SetLogbook(book)
+
+	// Get the log, test against expectation
+	r := reporef.DatasetRef{
+		Peername:  ref.Username,
+		ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
+		Name:      ref.Name,
+		Path:      ref.Path,
+	}
+	log, err := DatasetLog(ctx, mr, r, 1, 0, true)
+	if err != nil {
+		t.Error(err)
+	}
+	if len(log) != 1 {
+		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
+	}
+	expect := []dsref.VersionInfo{
+		{
+			Username:    "them",
+			Name:        "foreign",
+			ProfileID:   "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
+			Foreign:     true,
+			CommitTitle: "their commit",
 		},
 	}
 

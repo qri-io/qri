@@ -9,9 +9,10 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/logbook/oplog"
 )
 
-// Builder builds a logbook in a convenient way
+// BookBuilder builds a logbook in a convenient way
 type BookBuilder struct {
 	Book       *Book
 	AuthorName string
@@ -59,6 +60,14 @@ func (b *BookBuilder) DatasetDelete(ctx context.Context, t *testing.T, ref dsref
 		t.Fatal(err)
 	}
 	delete(b.Dsrefs, ref.Name)
+}
+
+// AddForeign merges a foreign log into this book
+func (b *BookBuilder) AddForeign(ctx context.Context, t *testing.T, log *oplog.Log) {
+	log.Sign(b.Book.pk)
+	if err := b.Book.MergeLog(ctx, b.Book.Author(), log); err != nil {
+		t.Fatal(err)
+	}
 }
 
 // Commit adds a commit to a dataset
