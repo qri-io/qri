@@ -66,7 +66,7 @@ func TestInferValues(t *testing.T) {
 	if err = InferValues(pro, ds); err != nil {
 		t.Error(err)
 	}
-	expectAuthorID := `9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb`
+	expectAuthorID := `QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt`
 	if diff := cmp.Diff(expectAuthorID, ds.Commit.Author.ID); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}

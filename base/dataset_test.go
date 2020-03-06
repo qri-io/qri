@@ -152,7 +152,7 @@ func TestRawDatasetRefs(t *testing.T) {
 		t.Fatal(err)
 	}
 	expect := `0 Peername:  peer
-  ProfileID: 9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb
+  ProfileID: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
   Name:      cities
   Path:      /map/QmbU34XVYPGeEGjJ93rBm4Nac2g4hBYFouDnu9p9psccDB
   FSIPath:   

@@ -36,7 +36,7 @@ func TestDatasetLog(t *testing.T) {
 		{
 			Username:  "peer",
 			Name:      "cities",
-			ProfileID: "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 			// TODO (b5) - use constant time to make timestamp & path comparable
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
@@ -122,7 +122,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 			Username:    "peer",
 			CommitTitle: "initial commit",
 			BodySize:    0x9b,
-			ProfileID:   "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			ProfileID:   "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 			Name:        "cities",
 			Path:        "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
 		},
@@ -130,7 +130,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 			Username:    "peer",
 			CommitTitle: "initial commit",
 			BodySize:    0x9b,
-			ProfileID:   "9tmwSYB7dPRUXaEwJRNgzb6NbwPYNXrYyeahyHPAUqrTYd3Z6bVS9z1mCDsRmvb",
+			ProfileID:   "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
 			Name:        "cities",
 		},
 	}

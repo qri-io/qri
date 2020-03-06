@@ -26,7 +26,7 @@ var (
 
 	testPeerProfile = &profile.Profile{
 		Peername: "peer",
-		ID:       "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+		ID:       profile.IDB58MustDecode("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
 	}
 
 	devNull = ioes.NewDiscardIOStreams()
