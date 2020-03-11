@@ -24,7 +24,7 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Short: "link a dataset to a directory on disk",
 		Example: `link a dataset to the current working directory:
   $ qri fsi link peername/dataset .`,
-		Args: cobra.MinimumNArgs(2),
+		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -36,6 +36,7 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	unlink := &cobra.Command{
 		Use:   "unlink [DATASET]",
 		Short: "unlink a dataset from a directory on disk",
+		Args:  cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -67,7 +68,7 @@ func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
 	if err != nil {
 		return err
 	}
-	if o.Refs, err = GetCurrentRefSelect(f, args, -1, o.FSIMethods); err != nil {
+	if o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods); err != nil {
 		return err
 	}
 
