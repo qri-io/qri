@@ -108,8 +108,8 @@ func (r *RefSelect) String() string {
 // selected by the `use` command. This order is also the precendence, from most important to least.
 // This is the recommended method for command-line commands to get references, unless they have a
 // special way of interacting with datasets (for example, `qri status`).
-// If fsi pointer is passed in, use it to ensure that the ref in the .qri-ref linkfile matches
-// what is in the repo
+// If an fsi pointer is passed in, use it to ensure that the ref in the .qri-ref linkfile matches
+// what is in the repo.
 func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMethods) (*RefSelect, error) {
 	// TODO(dlong): Respect `allowed`, number of refs the command uses. -1 means any.
 	// TODO(dlong): For example, `get` allows -1, `diff` allows 2, `save` allows 1
