@@ -79,7 +79,7 @@ func TestDAGComplete(t *testing.T) {
 			IOStreams: streams,
 		}
 
-		opt.Complete(f, c.args)
+		opt.Complete(f, c.args, true)
 		if c.err != errs.String() {
 			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
 			ioReset(in, out, errs)

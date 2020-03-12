@@ -28,16 +28,16 @@ func NewDAGCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	}
 
 	manifest := &cobra.Command{
-		Use:    "manifest",
-		Hidden: true,
-		Short:  "dataset manifest interaction",
+		Use:   "manifest",
+		Short: "dataset manifest interaction",
 	}
 
 	get := &cobra.Command{
-		Use:   "get",
-		Short: "get one or more manifests for a given reference",
+		Use:   "get DATASET [DATASET...]",
+		Short: "get manifests for one or more dataset references",
+		Args:  cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
+			if err := o.Complete(f, args, false); err != nil {
 				return err
 			}
 			return o.Get()
@@ -45,10 +45,11 @@ func NewDAGCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	}
 
 	missing := &cobra.Command{
-		Use:   "missing",
+		Use:   "missing --file MANIFEST_PATH",
 		Short: "list blocks not present in this repo for a given manifest",
+		Args:  cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
+			if err := o.Complete(f, args, false); err != nil {
 				return err
 			}
 			return o.Missing()
@@ -63,15 +64,15 @@ func NewDAGCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	missing.Flags().BoolVar(&o.Pretty, "pretty", false, "print output without indentation, only applies to json format")
 	missing.Flags().BoolVar(&o.Hex, "hex", false, "hex-encode output")
 	missing.Flags().StringVar(&o.File, "file", "", "manifest file")
+	missing.MarkFlagRequired("file")
 
 	manifest.AddCommand(get, missing)
 
 	info := &cobra.Command{
-		Use:    "info",
-		Hidden: true,
-		Short:  "dataset dag info interaction",
+		Use:   "info [LABEL] DATASET [DATASET...]",
+		Short: "dataset dag info interaction",
 		RunE: func(cmd *cobra.Command, args []string) error {
-			if err := o.Complete(f, args); err != nil {
+			if err := o.Complete(f, args, true); err != nil {
 				return err
 			}
 			return o.Info()
@@ -102,8 +103,8 @@ type DAGOptions struct {
 }
 
 // Complete adds any missing configuration that can only be added just before calling Run
-func (o *DAGOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) > 0 {
+func (o *DAGOptions) Complete(f Factory, args []string, parseLabel bool) (err error) {
+	if parseLabel && len(args) > 0 {
 		if component.IsDatasetField.MatchString(args[0]) {
 			o.Label = fullFieldToAbbr(args[0])
 			args = args[1:]
@@ -114,7 +115,7 @@ func (o *DAGOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// Get executes the manigest get command
+// Get executes the manifest get command
 func (o *DAGOptions) Get() (err error) {
 	mf := &dag.Manifest{}
 	for _, refstr := range o.Refs {
@@ -149,10 +150,6 @@ func (o *DAGOptions) Get() (err error) {
 
 // Missing executes the manifest missing command
 func (o *DAGOptions) Missing() error {
-	if o.File == "" {
-		return fmt.Errorf("manifest file is required")
-	}
-
 	in := &dag.Manifest{}
 	data, err := ioutil.ReadFile(o.File)
 	if err != nil {
