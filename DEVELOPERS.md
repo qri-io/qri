@@ -3,9 +3,8 @@
 * [Development Setup](#setup)
 * [Coding Rules](#rules)
 * [Commit Message Guidelines](#commits)
-* [Writing Documentation](#documentation)
 
-## <a name="setup"> Development Setup
+## <a name="setup"></a> Development Setup
 
 This document describes how to set up your development environment to build and test Qri, and
 explains the basic mechanics of using `git`, `golint` and `go test`.
