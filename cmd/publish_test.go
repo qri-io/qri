@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
+	repotest "github.com/qri-io/qri/repo/test"
 )
 
 // Test publishing to a mock registry
@@ -12,7 +13,8 @@ func TestPublish(t *testing.T) {
 	run := NewTestRunner(t, "test_peer", "qri_test_registry_publish")
 	defer run.Delete()
 
-	reg, cleanup, err := regserver.NewTempRegistry("temp_registry", "")
+	// TODO(dustmop): Move into test runner
+	reg, cleanup, err := regserver.NewTempRegistry("temp_registry", "", repotest.NewTestCrypto())
 	if err != nil {
 		t.Fatal(err)
 	}

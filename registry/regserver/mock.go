@@ -14,6 +14,7 @@ import (
 	"github.com/qri-io/qri/registry/regserver/handlers"
 	"github.com/qri-io/qri/remote"
 	"github.com/qri-io/qri/repo"
+	"github.com/qri-io/qri/repo/gen"
 	repotest "github.com/qri-io/qri/repo/test"
 )
 
@@ -46,8 +47,8 @@ func NewMemRegistry(rem *remote.Remote) registry.Registry {
 }
 
 // NewTempRegistry creates a functioning registry with a teardown function
-func NewTempRegistry(peername, tmpDirPrefix string) (*registry.Registry, func(), error) {
-	tempRepo, err := repotest.NewTempRepo(peername, tmpDirPrefix)
+func NewTempRegistry(peername, tmpDirPrefix string, g gen.CryptoGenerator) (*registry.Registry, func(), error) {
+	tempRepo, err := repotest.NewTempRepo(peername, tmpDirPrefix, g)
 	if err != nil {
 		return nil, nil, err
 	}

@@ -59,7 +59,8 @@ func NewTestRunnerWithTempRegistry(t *testing.T, peerName, testName string) *Tes
 		t.Fatalf("creating temp repo: %s", err)
 	}
 
-	reg, teardownRegistry, err := regserver.NewTempRegistry("registry", testName+"_registry")
+	g := repotest.NewTestCrypto()
+	reg, teardownRegistry, err := regserver.NewTempRegistry("registry", testName+"_registry", g)
 	if err != nil {
 		t.Fatalf("creating registry: %s", err)
 	}
