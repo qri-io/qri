@@ -3,6 +3,7 @@
 * [Development Setup](#setup)
 * [Coding Rules](#rules)
 * [Commit Message Guidelines](#commits)
+* [Troubleshooting](#troubleshooting)
 
 ## <a name="setup"></a> Development Setup
 
@@ -18,8 +19,6 @@ machine:
   Installing Git][git-setup] is a good source of information.
 
 * [The Go Programming Language](https://golang.org): see golang.org to get started
-
-* [gx](https://github.com/whyrusleeping/gx/): gx is a distributed package management tool needed to build IPFS.
 
 * [golint](https://github.com/golang/lint): Golint is a linter for Go source code
 
@@ -164,5 +163,19 @@ A detailed explanation can be found in this [document][commit-message-format].
 [style]: https://standardjs.com
 [yarn-install]: https://yarnpkg.com/en/docs/install
 
+
+## <a name="troubleshooting"> Troubleshooting
+
+#### "Too Many Open Files" on MacOS
+
+If, while running the test suite, you get failing tests with "too many open files", you may need to adjust the number of files your shell process is willing to open. This is particularly common with the `p2p` and `cmd` pacakges. Both rely heavily on interacting temporary directories on the file system to run tests.
+
+Often this is caused by having too low a file limit for your shell. You can use the [`ulimit` command](https://ss64.com/osx/ulimit.html) to check out or change the limits. Try the following command to set the shell limit to 1000 open files:
+
+```
+ulimit -S -n 1000
+```
+
+We recommend a ulimit value of at least 1000; feel free to go higher if you need. Some other software require values as high as 10000 to avoid the max open file issue.
 
 ###### This documentation has been adapted from the [Data Together](https://github.com/datatogether/datatogether), [Hyper](https://github.com/zeit/hyper), and [AngularJS](https://github.com/angular/angularJS) documentation, all of which are projects we :heart:
