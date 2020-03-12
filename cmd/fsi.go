@@ -34,9 +34,10 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	}
 
 	unlink := &cobra.Command{
-		Use:   "unlink [DATASET]",
+		Use:   "unlink DATASET",
 		Short: "unlink a dataset from a directory on disk",
-		Args:  cobra.MaximumNArgs(1),
+		// Use max instead of exact args so we can provide a nicer error.
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
