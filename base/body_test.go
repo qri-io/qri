@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -59,7 +60,7 @@ func TestDatasetBodyFile(t *testing.T) {
 		{&dataset.Dataset{Structure: &dataset.Structure{Format: "csv"}, BodyBytes: []byte("a,b,c\n1,2,3")}, "body.csv", 11, ""},
 
 		// urlz
-		{&dataset.Dataset{BodyPath: "http://"}, "", 0, "fetching body url: Get http:: http: no Host in request URL"},
+		{&dataset.Dataset{BodyPath: "http://"}, "", 0, "http: no Host in request URL"},
 		{&dataset.Dataset{BodyPath: fmt.Sprintf("%s/foobar.json", badS.URL)}, "", 0, "invalid status code fetching body url: 500"},
 		{&dataset.Dataset{BodyPath: fmt.Sprintf("%s/foobar.json", s.URL)}, "foobar.json", 15, ""},
 
@@ -73,7 +74,7 @@ func TestDatasetBodyFile(t *testing.T) {
 
 	for i, c := range cases {
 		file, err := DatasetBodyFile(ctx, nil, c.ds)
-		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {
+		if !(err == nil && c.err == "" || err != nil && strings.Contains(err.Error(), c.err)) {
 			t.Errorf("case %d error mismatch. expected: '%s', got: '%s'", i, c.err, err)
 			continue
 		}
