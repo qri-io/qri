@@ -19,6 +19,7 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+// Perm is the file permission for the generated files
 const Perm = os.FileMode(int(0644))
 
 // FilesysComponent represents a collection of components existing as files on a filesystem
