@@ -36,7 +36,7 @@ Afterwards, go ahead and [fork](http://help.github.com/forking) the
 ### Building Qri
 
 
-Check out this documentation on [how to build Qri from source](https://github.com/qri-io/qri/README.md#build)
+Check out this documentation on [how to build Qri from source](https://github.com/qri-io/qri/README.md#building-from-source)
 
 
 ## <a name="rules"></a> Coding Rules
