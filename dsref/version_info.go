@@ -2,7 +2,6 @@ package dsref
 
 import (
 	"strings"
-	"time"
 
 	"github.com/qri-io/dataset"
 )
@@ -60,15 +59,6 @@ type VersionInfo struct {
 	// Number of errors from the structure
 	NumErrors int `json:"numErrors,omitempty"`
 	//
-	// Commit fields
-	//
-	// Timestamp field from the commit
-	CommitTime time.Time `json:"commitTime,omitempty"`
-	// Title field from the commit
-	CommitTitle string `json:"commitTitle,omitempty"`
-	// Message field from the commit
-	CommitMessage string `json:"commitMessage,omitempty"`
-	//
 	// About the dataset's history and location
 	//
 	// Number of versions that the dataset has
@@ -109,11 +99,6 @@ func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 		ProfileID: ds.ProfileID,
 		Name:      ds.Name,
 		Path:      ds.Path,
-	}
-	if ds.Commit != nil {
-		vi.CommitTime = ds.Commit.Timestamp
-		vi.CommitTitle = ds.Commit.Title
-		vi.CommitMessage = ds.Commit.Message
 	}
 	if ds.Meta != nil {
 		vi.MetaTitle = ds.Meta.Title

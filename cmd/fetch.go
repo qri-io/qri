@@ -67,7 +67,7 @@ func (o *FetchOptions) Run() error {
 
 		items := make([]fmt.Stringer, len(res))
 		for i, r := range res {
-			items[i] = dslogItemStringer(r)
+			items[i] = versionInfoStringer(r)
 		}
 
 		printItems(o.Out, items, 0)

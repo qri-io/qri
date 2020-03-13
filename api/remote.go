@@ -160,7 +160,7 @@ func (h *RemoteClientHandlers) listPublishedHandler(w http.ResponseWriter, r *ht
 
 	dsm := lib.NewDatasetRequestsInstance(h.inst)
 
-	res := []dsref.VersionInfo{}
+	res := []DatasetLogItem{}
 	if err := dsm.List(&args, &res); err != nil {
 		log.Infof("error listing datasets: %s", err.Error())
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)

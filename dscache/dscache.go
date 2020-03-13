@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"strings"
-	"time"
+	// "time"
 
 	flatbuffers "github.com/google/flatbuffers/go"
 	golog "github.com/ipfs/go-log"
@@ -298,9 +298,9 @@ func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 		BodyRows:      int(r.BodyRows()),
 		BodyFormat:    string(r.BodyFormat()),
 		NumErrors:     int(r.NumErrors()),
-		CommitTime:    time.Unix(r.CommitTime(), 0),
-		CommitTitle:   string(r.CommitTitle()),
-		CommitMessage: string(r.CommitMessage()),
+		// CommitTime:    time.Unix(r.CommitTime(), 0),
+		// CommitTitle:   string(r.CommitTitle()),
+		// CommitMessage: string(r.CommitMessage()),
 		NumVersions:   int(r.NumVersions()),
 		FSIPath:       string(r.FsiPath()),
 	}

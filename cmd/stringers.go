@@ -281,26 +281,26 @@ func (s logEntryStringer) String() string {
 	)
 }
 
-type dslogItemStringer dsref.VersionInfo
+type dslogItemStringer DatasetLogItem
 
 func (s dslogItemStringer) String() string {
 	yellow := color.New(color.FgYellow).SprintFunc()
 	faint := color.New(color.Faint).SprintFunc()
 
 	storage := "local"
-	if s.Foreign {
+	if s.VersionInfo.Foreign {
 		storage = faint("remote")
 	}
 
 	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n\n%s\n",
 		faint("Commit:  "),
-		yellow(s.Path),
+		yellow(s.VersionInfo.Path),
 		faint("Date:    "),
 		s.CommitTime.In(StringerLocation).Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),
-		humanize.Bytes(uint64(s.BodySize)),
+		humanize.Bytes(uint64(s.VersionInfo.BodySize)),
 		s.CommitTitle,
 	)
 	if s.CommitMessage != "" && s.CommitMessage != s.CommitTitle {

@@ -64,7 +64,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
+func (r *DatasetRequests) List(p *ListParams, res *[]DatasetLogItem) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
@@ -170,15 +170,29 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	// Convert old style DatasetRef list to VersionInfo list.
-	// TODO(dlong): Remove this and convert lower-level functions to return []VersionInfo.
-	infos := make([]dsref.VersionInfo, len(refs))
+	// Convert old style DatasetRef list to DatasetLogItem list.
+	// TODO(dlong): Remove this and convert lower-level functions to return []DatasetLogItem.
+	dataLogs := make([]DatasetLogItem, len(refs))
 	for i, r := range refs {
-		infos[i] = reporef.ConvertToVersionInfo(&r)
+		dataLogs[i] = ConvertToDatasetLogItem(&r)
 	}
-	*res = infos
+	*res = dataLogs
 
 	return err
+}
+
+// ConvertToVersionInfo converts an old style DatasetRef to the newly preferred DatasetLogItem
+func ConvertToDatasetLogItem(r *reporef.DatasetRef) DatasetLogItem {
+	versionInfo := reporef.ConvertToVersionInfo(r)
+	build := DatasetLogItem{
+		VersionInfo:  versionInfo,
+	}
+	ds := r.Dataset
+	if ds != nil && ds.Commit != nil {
+		build.CommitMessage = ds.Commit.Message
+		build.CommitTitle = ds.Commit.Title
+	}
+	return build
 }
 
 // ListRawRefs gets the list of raw references as string
@@ -759,11 +773,15 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	history, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
-	if err == nil && p.Revision.Gen >= len(history) {
+	historyDataLog, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
+	history := make([]dsref.VersionInfo, len(historyDataLog))
+	if err == nil && p.Revision.Gen >= len(historyDataLog) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
+		for i, h := range historyDataLog {
+			history[i] = h.VersionInfo
+		}
 	} else if err == repo.ErrNoHistory {
 		// If the dataset has no history, treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations

@@ -11,10 +11,22 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
+type DatasetLogItem struct {
+	// Decription of a dataset reference
+	VersionInfo dsref.VersionInfo `json:"versionInfo,omitempty"`
+	// Timestamp field from the commit
+	CommitTime time.Time `json:"commitTime,omitempty"`
+	// Title field from the commit
+	CommitTitle string `json:"commitTitle,omitempty"`
+	// Message field from the commit
+	CommitMessage string `json:"commitMessage,omitempty"`
+}
+
 // DatasetLog fetches the change version history of a dataset
-func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]dsref.VersionInfo, error) {
+func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
 	if book := r.Logbook(); book != nil {
 		if versions, err := book.Versions(ctx, reporef.ConvertToDsref(ref), offset, limit); err == nil {
+			items := make([]DatasetLogItem, len(versions))
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
 			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
 			if len(versions) == 0 {
@@ -31,14 +43,17 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 					if local {
 						if ds, err := dsfs.LoadDataset(ctx, r.Store(), v.Path); err == nil {
 							if ds.Commit != nil {
-								versions[i].CommitMessage = ds.Commit.Message
+								items[i].CommitMessage = ds.Commit.Message
+								items[i].CommitTitle = ds.Commit.Title
+								items[i].CommitTime = ds.Commit.Timestamp
 							}
 						}
 					}
 					versions[i].Foreign = !local
+					items[i].VersionInfo = versions[i]
 				}
 			}
-			return versions, nil
+			return items, nil
 		}
 	}
 
@@ -46,9 +61,14 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 	if err != nil {
 		return nil, err
 	}
-	items := make([]dsref.VersionInfo, len(rlog))
+	items := make([]DatasetLogItem, len(rlog))
 	for i, vref := range rlog {
-		items[i] = reporef.ConvertToVersionInfo(&vref)
+		items[i].VersionInfo = reporef.ConvertToVersionInfo(&vref)
+		if vref.Dataset != nil && vref.Dataset.Commit != nil {
+			items[i].CommitTitle = vref.Dataset.Commit.Title
+			items[i].CommitMessage = vref.Dataset.Commit.Message
+			items[i].CommitTime = vref.Dataset.Commit.Timestamp
+		}
 	}
 
 	// add a history entry b/c we didn't have one, but repo didn't error
