@@ -19,6 +19,8 @@ import (
 	"gopkg.in/yaml.v2"
 )
 
+const Perm = os.FileMode(int(0644))
+
 // FilesysComponent represents a collection of components existing as files on a filesystem
 type FilesysComponent struct {
 	BaseComponent
@@ -499,7 +501,7 @@ func (bc *BodyComponent) WriteTo(dirPath string) (targetFile string, err error) 
 	}
 	bodyFilename := fmt.Sprintf("body.%s", bc.Format)
 	targetFile = filepath.Join(dirPath, bodyFilename)
-	return targetFile, ioutil.WriteFile(targetFile, data, os.ModePerm)
+	return targetFile, ioutil.WriteFile(targetFile, data, Perm)
 }
 
 // RemoveFrom removes the component file from the directory
@@ -579,7 +581,7 @@ func (rc *ReadmeComponent) WriteTo(dirPath string) (targetFile string, err error
 	}
 	if rc.Value != nil && !rc.Value.IsEmpty() {
 		targetFile = filepath.Join(dirPath, fmt.Sprintf("readme.%s", rc.Format))
-		if err = ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, os.ModePerm); err != nil {
+		if err = ioutil.WriteFile(targetFile, rc.Value.ScriptBytes, Perm); err != nil {
 			return
 		}
 	}
@@ -672,7 +674,7 @@ func (tc *TransformComponent) WriteTo(dirPath string) (targetFile string, err er
 	}
 	if tc.Value != nil && !tc.Value.IsEmpty() {
 		targetFile = filepath.Join(dirPath, fmt.Sprintf("transform.%s", tc.Format))
-		if err = ioutil.WriteFile(targetFile, tc.Value.ScriptBytes, os.ModePerm); err != nil {
+		if err = ioutil.WriteFile(targetFile, tc.Value.ScriptBytes, Perm); err != nil {
 			return
 		}
 	}
@@ -833,7 +835,7 @@ func writeComponentFile(value interface{}, dirPath string, basefile string) (str
 	}
 	// TODO(dlong): How does this relate to Base.SourceFile? Should respect that.
 	targetFile := filepath.Join(dirPath, basefile)
-	err = ioutil.WriteFile(targetFile, data, os.ModePerm)
+	err = ioutil.WriteFile(targetFile, data, Perm)
 	if err != nil {
 		return "", err
 	}
