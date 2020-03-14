@@ -66,6 +66,7 @@ https://github.com/qri-io/qri/issues`,
 		NewSetupCommand(opt, ioStreams),
 		NewStatsCommand(opt, ioStreams),
 		NewStatusCommand(opt, ioStreams),
+		NewSQLCommand(opt, ioStreams),
 		NewUseCommand(opt, ioStreams),
 		NewUpdateCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
@@ -244,6 +245,14 @@ func (o *QriOptions) SearchMethods() (*lib.SearchMethods, error) {
 		return nil, err
 	}
 	return lib.NewSearchMethods(o.inst), nil
+}
+
+// SQLMethods generates a lib.SQLMethods from internal state
+func (o *QriOptions) SQLMethods() (*lib.SQLMethods, error) {
+	if err := o.Init(); err != nil {
+		return nil, err
+	}
+	return lib.NewSQLMethods(o.inst), nil
 }
 
 // RenderRequests generates a lib.RenderRequests from internal state

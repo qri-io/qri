@@ -225,9 +225,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	case "xlsx":
 		st := &dataset.Structure{
 			Format: "xlsx",
-			// FormatConfig: map[string]interface{}{
-			// 	"sheetName": "body",
-			// },
+			Schema: ds.Structure.Schema,
 		}
 		w, err := dsio.NewEntryWriter(st, writer)
 		if err != nil {

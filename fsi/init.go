@@ -114,7 +114,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 
 	// Validate dataset format
 	if p.Format != "csv" && p.Format != "json" {
-		return "", fmt.Errorf("invalid format \"%s\", only \"csv\" and \"json\" accepted", p.Format)
+		return "", fmt.Errorf(`invalid format "%s", only "csv" and "json" accepted`, p.Format)
 	}
 
 	// Create the link file, containing the dataset reference.
@@ -144,6 +144,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		// TODO(dlong): This should move into `dsio` package.
 		entries, err := component.OpenEntryReader(file, p.Format)
 		if err != nil {
+			log.Errorf("opening entry reader: %s", err)
 			return "", err
 		}
 		initDs.Structure = entries.Structure()
@@ -177,6 +178,7 @@ func (fsi *FSI) InitDataset(p InitParams) (name string, err error) {
 		if aComp != nil {
 			wroteFile, err := aComp.WriteTo(targetPath)
 			if err != nil {
+				log.Errorf("writing component file %s: %s", compName, err)
 				return "", err
 			}
 			// If future steps fail, rollback the components that have been written

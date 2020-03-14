@@ -6,8 +6,10 @@ import (
 	"io/ioutil"
 	"os"
 	"runtime"
+	"strconv"
 	"strings"
 	"testing"
+	"text/scanner"
 	"time"
 
 	"github.com/qri-io/dataset"
@@ -143,6 +145,20 @@ func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinT
 func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
 	run.CmdR = run.CreateCommandRunner(ctx)
 	return executeCommand(run.CmdR, cmdText)
+}
+
+func (run *TestRunner) MustExecuteQuotedCommand(t *testing.T, quotedCmdText string) string {
+	run.CmdR = run.CreateCommandRunner(run.Context)
+
+	if err := executeQuotedCommand(run.CmdR, quotedCmdText); err != nil {
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
+	}
+	return run.GetCommandOutput()
 }
 
 // CreateCommandRunner returns a cobra runable command.
@@ -308,8 +324,25 @@ func (run *TestRunner) GetCommandErrOutput() string {
 
 func executeCommand(root *cobra.Command, cmd string) error {
 	cmd = strings.TrimPrefix(cmd, "qri ")
-	// WARNING - currently doesn't support quoted strings as input
 	args := strings.Split(cmd, " ")
+	return executeCommandC(root, args...)
+}
+
+func executeQuotedCommand(root *cobra.Command, cmd string) error {
+	cmd = strings.TrimPrefix(cmd, "qri ")
+
+	var s scanner.Scanner
+	s.Init(strings.NewReader(cmd))
+	var args []string
+	for tok := s.Scan(); tok != scanner.EOF; tok = s.Scan() {
+		arg := s.TokenText()
+		if unquoted, err := strconv.Unquote(arg); err == nil {
+			arg = unquoted
+		}
+
+		args = append(args, arg)
+	}
+
 	return executeCommandC(root, args...)
 }
 

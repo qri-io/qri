@@ -35,6 +35,7 @@ type Factory interface {
 	PeerRequests() (*lib.PeerRequests, error)
 	ProfileMethods() (*lib.ProfileMethods, error)
 	SearchMethods() (*lib.SearchMethods, error)
+	SQLMethods() (*lib.SQLMethods, error)
 	RenderRequests() (*lib.RenderRequests, error)
 	FSIMethods() (*lib.FSIMethods, error)
 }

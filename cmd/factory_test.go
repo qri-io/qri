@@ -196,6 +196,11 @@ func (t TestFactory) SearchMethods() (*lib.SearchMethods, error) {
 	return lib.NewSearchMethods(t.inst), nil
 }
 
+// SQLMethods generates a lib.SQLhMethods from internal state
+func (t TestFactory) SQLMethods() (*lib.SQLMethods, error) {
+	return lib.NewSQLMethods(t.inst), nil
+}
+
 // RenderRequests generates a lib.RenderRequests from internal state
 func (t TestFactory) RenderRequests() (*lib.RenderRequests, error) {
 	return lib.NewRenderRequests(t.repo, t.rpc), nil

@@ -535,6 +535,20 @@ func OpenEntryReader(file *os.File, format string) (dsio.EntryReader, error) {
 // TODO(dlong): Move this to dataset.dsio
 func SerializeBody(source interface{}, st *dataset.Structure) ([]byte, error) {
 	buff := bytes.Buffer{}
+
+	// ensure tabular data formats have a schema
+	if st.RequiresTabularSchema() && st.Schema == nil {
+		schema, err := detect.TabularSchemaFromTabularData(source)
+		if err != nil {
+			return nil, fmt.Errorf("serializing body: %w", err)
+		}
+		st2 := &dataset.Structure{
+			Schema: schema,
+		}
+		st2.Assign(st)
+		st = st2
+	}
+
 	writer, err := dsio.NewEntryWriter(st, &buff)
 	if err != nil {
 		return nil, err

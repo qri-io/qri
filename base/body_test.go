@@ -104,9 +104,17 @@ func TestDatasetBodyFile(t *testing.T) {
 	}
 }
 
+var baseCSVSchema = map[string]interface{}{
+	"type": "array",
+	"items": map[string]interface{}{
+		"type":  "array",
+		"items": []interface{}{},
+	},
+}
+
 func TestConvertBodyFormat(t *testing.T) {
 	jsonStructure := &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray}
-	csvStructure := &dataset.Structure{Format: "csv", Schema: dataset.BaseSchemaArray}
+	csvStructure := &dataset.Structure{Format: "csv", Schema: baseCSVSchema}
 
 	// CSV -> JSON
 	body := qfs.NewMemfileBytes("", []byte("a,b,c"))

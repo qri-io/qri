@@ -15,6 +15,7 @@ replace (
 
 require (
 	github.com/beme/abide v0.0.0-20181227202223-4c487ef9d895
+	github.com/cube2222/octosql v0.2.1-0.20200319150444-e5a71fa20dbe
 	github.com/dustin/go-humanize v1.0.0
 	github.com/fatih/color v1.7.0
 	github.com/fsnotify/fsnotify v1.4.7
@@ -43,9 +44,10 @@ require (
 	github.com/multiformats/go-multiaddr v0.1.1
 	github.com/multiformats/go-multicodec v0.1.6
 	github.com/multiformats/go-multihash v0.0.8
+	github.com/pkg/errors v0.8.1
 	github.com/qri-io/apiutil v0.1.0
-	github.com/qri-io/dag v0.2.1-0.20200317231253-5cd938b03caf
-	github.com/qri-io/dataset v0.1.5-0.20191126212116-72b5aa69790b
+	github.com/qri-io/dag v0.2.1-0.20191025201336-254aa177fbd7
+	github.com/qri-io/dataset v0.1.5-0.20200324184139-108a69072ede
 	github.com/qri-io/deepdiff v0.1.1-0.20200305020550-8173efebcaa1
 	github.com/qri-io/doggos v0.1.0
 	github.com/qri-io/ioes v0.1.0
