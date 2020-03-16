@@ -16,18 +16,17 @@ import (
 func NewSearchCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SearchOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "search",
-		Short: "Search qri",
-		Long: `
-Search datasets & peers that match your query. Search pings the qri registry. 
+		Use:   "search QUERY",
+		Short: "search the registry for datasets",
+		Long: `Search datasets & peers that match your query. Search pings the qri registry. 
 
 Any dataset that has been published to the registry is available for search.`,
-		Example: `
-  # search 
+		Example: `  # Search for datasets featuring "annual population":
   $ qri search "annual population"`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

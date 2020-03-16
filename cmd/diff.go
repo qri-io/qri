@@ -13,9 +13,9 @@ import (
 func NewDiffCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := DiffOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "diff",
-		Short: "Compare differences between two data sources",
-		Long: `diff is a new & experimental feature, please report bugs here:
+		Use:   "diff ([COMPONENT] [DATASET [DATASET]])|(PATH PATH)",
+		Short: "compare differences between two data sources",
+		Long: `'qri diff' is a new & experimental feature, please report bugs here:
 https://github.com/qri-io/deepdiff
 
 Diff compares two data sources & generates a description of the difference
@@ -29,22 +29,22 @@ qri diff works on structured data. qri diffs are measured in elements
 elements), delete (removed elements), or update (changed values).
 
 Each change has a path that locates it within the document`,
-		Example: `  diff between a latest version & the next one back:
+		Example: `  # Diff between a latest version & the next one back:
   $ qri diff me/annual_pop
 
-  diff current "qri use" selection:
+  # Diff current "qri use" selection:
   $ qri diff
 
-  diff dataset body against it's last version
+  # Diff dataset body against its last version:
   $ qri diff body me/annual_pop
 
-  diff two dataset meta sections:
+  # Diff two dataset meta components:
   $ qri diff meta me/population_2016 me/population_2017
 
-  diff two local json files:
+  # Diff two local json files:
   $ qri diff a.json b.json
 
-  diff a json & csv file
+  # Diff a json & csv file:
   $ qri diff some_table.csv b.json`,
 		Annotations: map[string]string{
 			"group": "dataset",

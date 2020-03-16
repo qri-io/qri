@@ -13,13 +13,14 @@ import (
 func NewFetchCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &FetchOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "fetch",
-		Short:   "fetch logbook info for a dataset reference",
+		Use:     "fetch DATASET [DATASET...]",
+		Short:   "show log of remote dataset commits",
 		Long:    ``,
 		Example: ``,
 		Annotations: map[string]string{
 			"group": "network",
 		},
+		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

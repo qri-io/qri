@@ -20,8 +20,7 @@ func NewQriCommand(ctx context.Context, pf PathFactory, generator gen.CryptoGene
 	cmd := &cobra.Command{
 		Use:   "qri",
 		Short: "qri GDVCS CLI",
-		Long: `
-qri ("query") is a global dataset version control system 
+		Long: `qri ("query") is a global dataset version control system 
 on the distributed web.
 
 https://qri.io

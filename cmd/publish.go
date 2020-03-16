@@ -11,27 +11,38 @@ import (
 func NewPublishCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &PublishOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "publish",
-		Short: "Set dataset publicity",
+		Use:   "publish [DATASET]",
+		Short: "set dataset publicity",
 		Long: `Publish makes your dataset available to others. While online, peers that connect 
 to you can only see datasets and versions that you've published. Publishing a 
 dataset always makes all previous history entries available, and any updates
 to a published dataset will be immediately visible to connected peers.
+
+Publishing a dataset also uploads it to the Qri Cloud registry
+(https://qri.cloud/).
+
+Note that publishing makes a single version of the dataset public (by default,
+that's the current version). When you update a dataset, those updates need to
+be explicitly published to be made public.
+
+Use the --unpublish option to make a dataset private and remove it from a
+registry.
 `,
-		Example: `  # publish a dataset
+		Example: `  # Publish a dataset:
   $ qri publish me/dataset
 
-  # publish a few datasets
+  # Publish a few datasets:
   $ qri publish me/dataset me/other_dataset
 
-  # unpublish a dataset
+  # Unpublish a dataset:
   $ qri publish --unpublish me/dataset
 
-  # publish a few dataset on p2p only
+  # Publish a few dataset on p2p only:
   $ qri publish --no-registry me/dataset_2`,
 		Annotations: map[string]string{
 			"group": "network",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

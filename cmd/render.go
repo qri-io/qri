@@ -15,9 +15,8 @@ func NewRenderCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RenderOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "render",
-		Short: "Render a dataset readme or a dataset template",
-		Long: `
-Render a dataset either by converting its readme from markdown to
+		Short: "render a dataset readme or a dataset template",
+		Long: `Render a dataset either by converting its readme from markdown to
 html, or by filling in a template using the go/html template style.
 
 Use the ` + "`--output`" + ` flag to save the rendered html to a file.
@@ -26,10 +25,10 @@ Use the ` + "`--viz`" + ` flag to render the viz. Default is to use readme.
 
 Use the ` + "`--template`" + ` flag to use a custom template. If no template is
 provided, Qri will render the dataset with a default template.`,
-		Example: `  render the readme of a dataset called me/schools:
+		Example: `  # Render the readme of a dataset called me/schools:
   $ qri render -o=schools.html me/schools
 
-  render a dataset with a custom template:
+  # Render a dataset with a custom template:
   $ qri render --viz --template=template.html me/schools`,
 		Annotations: map[string]string{
 			"group": "dataset",
@@ -74,8 +73,11 @@ func (o *RenderOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the render command
 func (o *RenderOptions) Run() error {
+	// NOTE: `--viz` is required even if we could infer it from `--template` in
+	// order to make extra sure the user is not mixing up possible args when
+	// rendering the readme.
 	if o.Template != "" && !o.UseViz {
-		return fmt.Errorf("can not specify both --template without --viz flag")
+		return fmt.Errorf("you must specify --viz when using --template")
 	}
 
 	if o.UseViz {

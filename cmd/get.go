@@ -16,32 +16,27 @@ import (
 func NewGetCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &GetOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "get",
-		Short: "Get elements of qri datasets",
-		Long: `Get the qri dataset (except for the body). You can also get portions of 
+		Use:   "get [COMPONENT] [DATASET]",
+		Short: "get components of qri datasets",
+		Long: `Get the qri dataset (except for the body). You can also get components of 
 the dataset: meta, structure, viz, transform, and commit. To narrow down
 further to specific fields in each section, use dot notation. The get 
 command prints to the console in yaml format, by default.
 
-You can get pertinent information on multiple datasets at the same time
-by supplying more than one dataset reference.
-
 Check out https://qri.io/docs/reference/dataset/ to learn about each section of the 
 dataset and its fields.`,
-		Example: `  # print the entire dataset to the console
-  qri get me/annual_pop
+		Example: `  # Print the entire dataset to the console:
+  $ qri get me/annual_pop
 
-  # print the meta to the console
-  qri get meta me/annual_pop
+  # Print the meta to the console:
+  $ qri get meta me/annual_pop
 
-  # print the dataset body size to the console
-  qri get structure.length me/annual_pop
-
-  # print the dataset body size for two different datasets
-  qri get structure.length me/annual_pop me/annual_gdp`,
+  # Print the dataset body size to the console:
+  $ qri get structure.length me/annual_pop`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// Special case for --pretty, check if it was passed vs if the default was used.
 			if cmd.Flags().Changed("pretty") {
@@ -135,7 +130,6 @@ func (o *GetOptions) Run() (err error) {
 
 	// convert Page and PageSize to Limit and Offset
 	page := util.NewPage(o.Page, o.PageSize)
-	// TODO(dlong): Restore ability to `get` from multiple datasets at once.
 	p := lib.GetParams{
 		Path:         o.Refs.Ref(),
 		Selector:     o.Selector,

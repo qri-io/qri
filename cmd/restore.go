@@ -14,10 +14,32 @@ import (
 func NewRestoreCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RestoreOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "restore",
-		Short:   "restore returns part or all of a dataset to a previous state",
-		Long:    ``,
-		Example: ``,
+		Use:   "restore [DATASET] [VERSION] [COMPONENT]",
+		Short: "restore a checked out dataset's files to a previous state",
+		Long: `Restore resets some or all the files in a checked out dataset to a previous
+state (it does not alter the dataset's history or commits). It will operate on
+the current directory unless a DATASET name is specified, in which case it will
+alter the directory that dataset is checked out to.
+
+Specify a specific VERSION (e.g. ` + "`/ipfs/QmU...`" + `) to restore to that
+version. (Use ` + "`qri log`" + ` to find a version's name.)
+
+Specify a COMPONENT to only restore a particular component (e.g. ` + "`structure`" + `).
+Note this is the *component* name, not the file name (e.g. ` + "`structure`" + `,
+not ` + "`structure.json`" + `)`,
+		Example: `  # Discard all the changes in the current directory:
+  $ qri restore
+  
+  # Reset the files in a directory to an earlier version (note you need to run
+  # ` + "`qri save`" + ` afterward to actually save a commit reverting the
+  # dataset to this version):
+  $ qri restore /ipfs/QmU1grTDSM375BvdNirYLgLTgNkUHPss3FnGxkHHVXwQmk
+  
+  # Discard just the changes to structure.json:
+  $ qri restore structure
+  
+  # Reset the structure.json file to a specific version:
+  $ qri restore /ipfs/QmU1grTDSM375BvdNirYLgLTgNkUHPss3FnGxkHHVXwQmk structure`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},

@@ -21,27 +21,31 @@ const FileSelectedRefs = "/selected_refs.json"
 func NewUseCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UseOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "use",
-		Short: "Select datasets for use with the qri get command",
-		Long: `
-Run the ` + "`use`" + ` command to have Qri remember references to a specific datasets. 
+		Use:   "use [DATASET]",
+		Short: "select datasets for use with the qri get command",
+		Long: `Run the ` + "`use`" + ` command to have Qri remember references to a specific datasets. 
 These datasets will be referenced for future commands, if no dataset reference 
-is explicitly given for those commands.
+is explicitly given for those commands or they are not run from the checkout
+directory of a dataset.
+
+To show the current reference, use the ` + "`--list`" + ` option instead of
+providing a DATASET name. To forget the current reference, use the ` + "`--clear`" + `
+option.
 
 We created this command to ease the typing/copy and pasting burden while using
 Qri to explore a dataset.`,
-		Example: `  # use dataset me/dataset_name, then get meta.title:
-  qri use me/dataset_name
-  qri get meta.title
+		Example: `  # Use dataset me/dataset_name, then get meta.title:
+  $ qri use me/dataset_name
+  $ qri get meta.title
 
-  # clear current selection:
-  qri use --clear
+  # Clear current selection:
+  $ qri use --clear
 
-  # show current selected dataset references:
-  qri use --list
+  # Show current selected dataset references:
+  $ qri use --list
 
-  # add multiple references to the remembered list
-  qri use me/population_2017 me/population_2018`,
+  # Add multiple references to the remembered list:
+  $ qri use me/population_2017 me/population_2018`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},

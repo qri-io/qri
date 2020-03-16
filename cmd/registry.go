@@ -13,22 +13,21 @@ import (
 // configured registry
 // TODO (b5) - registry publish commands are currently removed in favor of the
 // newer "qri publish" command.
-// we should consider refactoring this code (espcially it's documentation) &
+// we should consider refactoring this code (espcially its documentation) &
 // use it for registry-specific publication & search interaction
 func NewRegistryCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RegistryOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "registry",
-		Short: "Commands for working with a qri registry (qri.cloud)",
-		Long: `
-Registries are federated public records of datasets and peers.
+		Short: "commands for working with a qri registry (qri.cloud)",
+		Long: `Registries are federated public records of datasets and peers.
 These records form a public facing central lookup for your datasets, so others
 can find them through search tools and via web links. You can use registry 
 commands to control how your datasets are published to registries, opting 
 in or out on a dataset-by-dataset basis.
 
 Unpublished dataset info will be held locally so you can still interact
-with it. And your datasets will be available to others peers when you run 
+with it. And your datasets will be available to other peers when you run 
 "qri connect", but will not show up in search results, and will not be 
 displayed on lists of registry datasets.
 
@@ -47,12 +46,11 @@ $ qri config set registry.location ""`,
 
 	// status represents the status command
 	status := &cobra.Command{
-		Use:   "status",
+		Use:   "status DATASET",
 		Short: "get the status of a reference on the registry",
-		Long: `
-  use status to see what version of a dataset the registry has on-record, if any`,
-		Example: `  Get status of a dataset reference::
-		$ qri registry status me/dataset_name`,
+		Long:  `Use status to see what version of a dataset the registry has on-record, if any.`,
+		Example: `  # Get status of a dataset reference:
+  $ qri registry status me/dataset_name`,
 		Args: cobra.MinimumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
@@ -111,16 +109,16 @@ $ qri config set registry.location ""`,
 
 	signup := &cobra.Command{
 		Use:   "signup",
-		Short: "create a registery profile & connect your repo keypair",
-		Long: `  signup creates a profile for your repo on the configured registry.
-  (qri is configred to use qri.cloud as a registry by default)
+		Short: "create a registery profile & connect your local keypair",
+		Long: `Signup creates a profile for you on the configured registry.
+(qri is configred to use qri.cloud as a registry by default.)
 
-  registry signup reserves a unique username, and connects your local keypair,
-  allowing you to use your repo keypair to make authenticated requests on your
-  behalf.
+Registry signup reserves a unique username, and connects your local keypair,
+allowing your local copy of qri to make authenticated requests on your behalf.
 
-  You'll need to sign up before you can publish to a registry.
-		`,
+You'll need to sign up before you can use ` + "`qri publish`" + ` to publish a
+dataset on a registry.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -138,16 +136,18 @@ $ qri config set registry.location ""`,
 
 	prove := &cobra.Command{
 		Use:   "prove",
-		Short: "connect your repo keypair to an existing registry profile",
-		Long: `  If you have an existing account on a registry, and a repo that is
-  not yet connected to a registry profile, ` + "`prove`" + ` can connect them.
+		Short: "authorize your local keypair for an existing registry profile",
+		Long: `If you have an existing account on a registry, and local keypair
+that is not yet connected to a registry profile, ` + "`prove`" + ` can connect
+them.
 
-  The prove command connects the local repo to the registry by sending a signed
-  request to the registry containing login credentials, proving access to both
-  the unregistred keypair and your cloud account. Your repo username will be
-  matched to the on-registry username.
+The prove command connects the local repo to the registry by sending a signed
+request to the registry containing login credentials, proving access to both
+the unregistred keypair and your registry account. Your repo username will be
+matched to the on-registry username.
 
-	A repo can only be associated with one registry profile.`,
+A repo can only be associated with one registry profile.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
