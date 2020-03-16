@@ -170,22 +170,6 @@ func (rcv *RefEntryInfo) MutateCommitTime(n int64) bool {
 	return rcv._tab.MutateInt64Slot(30, n)
 }
 
-func (rcv *RefEntryInfo) CommitTitle() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(32))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
-func (rcv *RefEntryInfo) CommitMessage() []byte {
-	o := flatbuffers.UOffsetT(rcv._tab.Offset(34))
-	if o != 0 {
-		return rcv._tab.ByteVector(o + rcv._tab.Pos)
-	}
-	return nil
-}
-
 func (rcv *RefEntryInfo) NumVersions() int32 {
 	o := flatbuffers.UOffsetT(rcv._tab.Offset(36))
 	if o != 0 {
@@ -258,12 +242,6 @@ func RefEntryInfoAddNumErrors(builder *flatbuffers.Builder, numErrors int32) {
 }
 func RefEntryInfoAddCommitTime(builder *flatbuffers.Builder, commitTime int64) {
 	builder.PrependInt64Slot(13, commitTime, 0)
-}
-func RefEntryInfoAddCommitTitle(builder *flatbuffers.Builder, commitTitle flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(14, flatbuffers.UOffsetT(commitTitle), 0)
-}
-func RefEntryInfoAddCommitMessage(builder *flatbuffers.Builder, commitMessage flatbuffers.UOffsetT) {
-	builder.PrependUOffsetTSlot(15, flatbuffers.UOffsetT(commitMessage), 0)
 }
 func RefEntryInfoAddNumVersions(builder *flatbuffers.Builder, numVersions int32) {
 	builder.PrependInt32Slot(16, numVersions, 0)

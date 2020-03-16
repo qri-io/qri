@@ -37,8 +37,6 @@ func TestConvertToVersionInfo(t *testing.T) {
 		Name:          "b",
 		Path:          "c",
 		CommitTime:    time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
-		CommitTitle:   "d",
-		CommitMessage: "e",
 
 		MetaTitle: "f",
 		ThemeList: "g",

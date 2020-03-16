@@ -211,8 +211,6 @@ func TestFeeds(t *testing.T) {
 				BodyRows:      1,
 				BodyFormat:    "json",
 				CommitTime:    time.Time{},
-				CommitTitle:   "initial commit",
-				CommitMessage: "created dataset",
 			},
 			{
 				Username:      "A",
@@ -223,8 +221,6 @@ func TestFeeds(t *testing.T) {
 				BodyRows:      1,
 				BodyFormat:    "json",
 				CommitTime:    time.Time{},
-				CommitTitle:   "initial commit",
-				CommitMessage: "created dataset",
 			},
 		},
 	}

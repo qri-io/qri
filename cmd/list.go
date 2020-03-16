@@ -8,6 +8,7 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -106,7 +107,7 @@ func (o *ListOptions) Run() (err error) {
 		return nil
 	}
 
-	infos := []DatasetLogItem{}
+	infos := []dsref.VersionInfo{}
 	p := &lib.ListParams{
 		Term:            o.Term,
 		Peername:        o.Peername,
@@ -123,7 +124,7 @@ func (o *ListOptions) Run() (err error) {
 
 	for _, ref := range infos {
 		// remove profileID so names print pretty
-		ref.VersionInfo.ProfileID = ""
+		ref.ProfileID = ""
 	}
 
 	if len(infos) == 0 {
@@ -144,7 +145,7 @@ func (o *ListOptions) Run() (err error) {
 	case "":
 		items := make([]fmt.Stringer, len(infos))
 		for i, r := range infos {
-			items[i] = versionInfoStringer(r.VersionInfo)
+			items[i] = versionInfoStringer(r)
 		}
 		printItems(o.Out, items, page.Offset())
 		return nil

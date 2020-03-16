@@ -13,9 +13,7 @@ import (
 
 type DatasetLogItem struct {
 	// Decription of a dataset reference
-	VersionInfo dsref.VersionInfo `json:"versionInfo,omitempty"`
-	// Timestamp field from the commit
-	CommitTime time.Time `json:"commitTime,omitempty"`
+	dsref.VersionInfo `json:"versionInfo,omitempty"`
 	// Title field from the commit
 	CommitTitle string `json:"commitTitle,omitempty"`
 	// Message field from the commit
@@ -45,7 +43,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 							if ds.Commit != nil {
 								items[i].CommitMessage = ds.Commit.Message
 								items[i].CommitTitle = ds.Commit.Title
-								items[i].CommitTime = ds.Commit.Timestamp
+								items[i].VersionInfo.CommitTime = ds.Commit.Timestamp
 							}
 						}
 					}
@@ -67,7 +65,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 		if vref.Dataset != nil && vref.Dataset.Commit != nil {
 			items[i].CommitTitle = vref.Dataset.Commit.Title
 			items[i].CommitMessage = vref.Dataset.Commit.Message
-			items[i].CommitTime = vref.Dataset.Commit.Timestamp
+			items[i].VersionInfo.CommitTime = vref.Dataset.Commit.Timestamp
 		}
 	}
 

@@ -75,8 +75,6 @@ func TestClientFeedsAndPreviews(t *testing.T) {
 				BodySize:      5,
 				BodyRows:      1,
 				BodyFormat:    "json",
-				CommitTitle:   "initial commit",
-				CommitMessage: "created dataset",
 			},
 		},
 	}

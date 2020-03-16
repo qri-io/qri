@@ -296,7 +296,7 @@ func (s dslogItemStringer) String() string {
 		faint("Commit:  "),
 		yellow(s.VersionInfo.Path),
 		faint("Date:    "),
-		s.CommitTime.In(StringerLocation).Format(time.UnixDate),
+		s.VersionInfo.CommitTime.In(StringerLocation).Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),

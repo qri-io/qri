@@ -64,7 +64,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 }
 
 // List gets the reflist for either the local repo or a peer
-func (r *DatasetRequests) List(p *ListParams, res *[]DatasetLogItem) error {
+func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	if r.cli != nil {
 		p.RPC = true
 		return r.cli.Call("DatasetRequests.List", p, res)
@@ -170,29 +170,15 @@ func (r *DatasetRequests) List(p *ListParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	// Convert old style DatasetRef list to DatasetLogItem list.
-	// TODO(dlong): Remove this and convert lower-level functions to return []DatasetLogItem.
-	dataLogs := make([]DatasetLogItem, len(refs))
+    // Convert old style DatasetRef list to VersionInfo list.
+	// TODO(dlong): Remove this and convert lower-level functions to return []VersionInfo.
+	infos := make([]dsref.VersionInfo, len(refs))
 	for i, r := range refs {
-		dataLogs[i] = ConvertToDatasetLogItem(&r)
+		infos[i] = reporef.ConvertToVersionInfo(&r)
 	}
-	*res = dataLogs
+	*res = infos
 
 	return err
-}
-
-// ConvertToVersionInfo converts an old style DatasetRef to the newly preferred DatasetLogItem
-func ConvertToDatasetLogItem(r *reporef.DatasetRef) DatasetLogItem {
-	versionInfo := reporef.ConvertToVersionInfo(r)
-	build := DatasetLogItem{
-		VersionInfo:  versionInfo,
-	}
-	ds := r.Dataset
-	if ds != nil && ds.Commit != nil {
-		build.CommitMessage = ds.Commit.Message
-		build.CommitTitle = ds.Commit.Title
-	}
-	return build
 }
 
 // ListRawRefs gets the list of raw references as string

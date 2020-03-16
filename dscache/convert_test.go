@@ -539,8 +539,6 @@ func TestBuildDscacheFromLogbookAndProfilesAndDsrefFillInfo(t *testing.T) {
      bodySize      = 678
      bodyRows      = 10
      commitTime    = -62135596800
-     commitTitle   = Yet another commit
-     commitMessage = This is the third commit
      numErrors     = 3
      headRef       = QmHashOfVersion6
 `

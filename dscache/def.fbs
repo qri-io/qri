@@ -28,8 +28,6 @@ table RefEntryInfo {
   numErrors:int;        // number of errors in the structure
   // Commit fields
   commitTime:long;      // commit timestamp of the dataset version
-  commitTitle:string;   // commit title of the dataset version
-  commitMessage:string; // commit message of the dataset version
   // About the dataset's history and location
   numVersions:int;      // number of versions
   headRef:string;       // the IPFS hash for the dataset

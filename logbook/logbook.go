@@ -789,6 +789,7 @@ func infoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 		ProfileID:   ref.ProfileID,
 		Name:        ref.Name,
 		Path:        op.Ref,
+		CommitTime:  time.Unix(0, op.Timestamp),
 		BodySize:    int(op.Size),
 	}
 }
