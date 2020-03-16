@@ -184,6 +184,16 @@ run ` + "`qri save`" + ` to commit this dataset
 		t.Errorf(".qri-ref contents (-want +got):\n%s", diff)
 	}
 
+	// Verify the permissions for each generated file.
+	files := filesDirectory(workDir)
+	mode := int(0644)
+	expectPermission := os.FileMode(mode)
+	for _, file := range files {
+		if file.Mode() != expectPermission {
+			t.Errorf("%s does not have the correct permission", file.Name())
+		}
+	}
+
 	// Status again, check that the working directory is clean.
 	output = run.MustExec(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/brand_new"), output); diff != "" {
@@ -1291,6 +1301,14 @@ func listDirectory(path string) []string {
 	}
 	sort.Strings(contents)
 	return contents
+}
+
+func filesDirectory(path string) []os.FileInfo {
+	finfos, err := ioutil.ReadDir(path)
+	if err != nil {
+		return nil
+	}
+	return finfos
 }
 
 func modifyFileUsingStringReplace(filename, find, replace string) {
