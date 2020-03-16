@@ -104,9 +104,9 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 	return err
 }
 
-// StatusAtVersion gets changes that happened at a particular version in the history of the given
+// ShowCommit gets changes that happened at a particular version in the history of the given
 // dataset reference. Not used for FSI.
-func (m *FSIMethods) StatusAtVersion(ref *string, res *[]StatusItem) (err error) {
+func (m *FSIMethods) ShowCommit(ref *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
 	}

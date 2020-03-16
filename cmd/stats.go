@@ -8,7 +8,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-// NewStatsCommand creates a new `qri search` command that searches for datasets
+// NewStatsCommand creates a new `qri stats` command that display stats of datasets
 func NewStatsCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &StatsOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
@@ -23,7 +23,6 @@ func NewStatsCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
-				fmt.Println("errorrrr")
 				return err
 			}
 			if err := o.Validate(); err != nil {
@@ -38,11 +37,11 @@ func NewStatsCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	return cmd
 }
 
-// StatsOptions encapsulates state for the search command
+// StatsOptions encapsulates state for the stats command
 type StatsOptions struct {
 	ioes.IOStreams
 
-	Ref    string
+	Refs   *RefSelect
 	Pretty bool
 
 	DatasetRequests *lib.DatasetRequests
@@ -57,26 +56,29 @@ func (o *StatsOptions) Complete(f Factory, args []string) (err error) {
 	if len(args) < 1 {
 		return fmt.Errorf("need a dataset reference, eg: me/dataset_name")
 	}
-	o.Ref = args[0]
+
+	o.Refs, err = GetCurrentRefSelect(f, args, 1, nil)
+	if err != nil {
+		return err
+	}
 	return
 }
 
-// Validate checks that any user input is valide
+// Validate checks that any user input is valid
 func (o *StatsOptions) Validate() error {
 	return nil
 }
 
-// Run executes the search command
+// Run executes the stats command
 func (o *StatsOptions) Run() (err error) {
-	p := &lib.StatsParams{Ref: o.Ref}
+	printRefSelect(o.ErrOut, o.Refs)
+
+	p := &lib.StatsParams{Ref: o.Refs.Ref()}
 	r := &lib.StatsResponse{}
 	if err = o.DatasetRequests.Stats(p, r); err != nil {
 		return err
 	}
 
-	// if o.Pretty {
-	// some nicely formatted stats
-	// }
 	r.StatsBytes = append(r.StatsBytes, byte('\n'))
 	printInfo(o.Out, string(r.StatsBytes))
 	return nil

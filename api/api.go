@@ -291,6 +291,7 @@ func NewServerRoutes(s Server) *http.ServeMux {
 
 	fsih := NewFSIHandlers(s.Instance, cfg.API.ReadOnly)
 	m.Handle("/status/", s.middleware(fsih.StatusHandler("/status")))
+	m.Handle("/showcommit/", s.middleware(fsih.ShowCommitHandler("/showcommit")))
 	m.Handle("/init/", s.middleware(fsih.InitHandler("/init")))
 	m.Handle("/checkout/", s.middleware(fsih.CheckoutHandler("/checkout")))
 	m.Handle("/restore/", s.middleware(fsih.RestoreHandler("/restore")))

@@ -41,9 +41,6 @@ a commit alongside a dataset like:
 			if err := o.Complete(f, args); err != nil {
 				return err
 			}
-			if !o.Refs.IsLinked() {
-				return o.RunAtVersion()
-			}
 			return o.Run()
 		},
 	}
@@ -70,9 +67,13 @@ func (o *StatusOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 
-	o.Refs, err = GetCurrentRefSelect(f, args, 1, o.FSIMethods)
+	o.Refs, err = GetCurrentRefSelect(f, args, 0, o.FSIMethods)
 	if err != nil {
 		return err
+	}
+	// Cannot pass explicit reference, must be run in a working directory
+	if !o.Refs.IsLinked() {
+		return fmt.Errorf("can only get status of the current working directory")
 	}
 
 	return nil
@@ -131,23 +132,5 @@ func (o *StatusOptions) Run() (err error) {
 	} else {
 		printErr(o.Out, fmt.Errorf("\nfix these problems before saving this dataset"))
 	}
-	return nil
-}
-
-// RunAtVersion displays status for a reference at a specific version
-func (o *StatusOptions) RunAtVersion() (err error) {
-	printRefSelect(o.ErrOut, o.Refs)
-
-	res := []lib.StatusItem{}
-	ref := o.Refs.Ref()
-	if err := o.FSIMethods.StatusAtVersion(&ref, &res); err != nil {
-		printErr(o.ErrOut, err)
-		return nil
-	}
-
-	for _, si := range res {
-		printInfo(o.Out, fmt.Sprintf("  %s: %s", si.Component, si.Type))
-	}
-
 	return nil
 }
