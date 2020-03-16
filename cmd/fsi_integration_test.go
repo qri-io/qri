@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"sort"
 	"strings"
+	"syscall"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -147,6 +148,21 @@ func TestInitStatusSave(t *testing.T) {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
 	}
 
+	// File permissions are affected by the user's umask setting.
+	mask := syscall.Umask(0)
+	syscall.Umask(mask)
+
+	// Verify the permissions for each generated file.
+	files := filesDirectory(workDir)
+	mode := 0644 & (^mask)
+
+	expectPermission := os.FileMode(mode)
+	for _, file := range files {
+		if file.Mode() != expectPermission {
+			t.Errorf("%s does not have the correct permission, has: %s", file.Name(), file.Mode())
+		}
+	}
+
 	// Verify contents of the structure, there should not be a schema.
 	expectText := `{
  "format": "csv",
@@ -182,16 +198,6 @@ run ` + "`qri save`" + ` to commit this dataset
 	expect = "test_peer/brand_new"
 	if diff := cmp.Diff(expect, contents); diff != "" {
 		t.Errorf(".qri-ref contents (-want +got):\n%s", diff)
-	}
-
-	// Verify the permissions for each generated file.
-	files := filesDirectory(workDir)
-	mode := int(0644)
-	expectPermission := os.FileMode(mode)
-	for _, file := range files {
-		if file.Mode() != expectPermission {
-			t.Errorf("%s does not have the correct permission", file.Name())
-		}
 	}
 
 	// Status again, check that the working directory is clean.
