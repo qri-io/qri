@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io/ioutil"
 	"net"
@@ -552,8 +553,13 @@ func TestRenameAfterRegistration(t *testing.T) {
 		t.Errorf("unexpected (-want +got):\n%s", diff)
 	}
 
+	ctx := context.Background()
+
 	// Register (using a mock server) which changes the username
-	run.MustExec(t, "qri registry signup --username real_peer --email me@example.com --password hi")
+	err := run.ExecCommandWithStdin(ctx, "qri registry signup --username real_peer --email me@example.com", "myPassword")
+	if err != nil {
+		t.Fatal(err)
+	}
 
 	output = run.MustExec(t, "qri list --raw")
 	expect = `0 Peername:  real_peer

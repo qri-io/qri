@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
 	"syscall"
 
 	"github.com/qri-io/ioes"
@@ -221,11 +224,18 @@ func (o *RegistryOptions) Prove() error {
 
 // PromptForPassword will prompt the user for a password without echoing it to the screen
 func (o *RegistryOptions) PromptForPassword() (string, error) {
-	fmt.Print("password: ")
+	io.WriteString(o.Out, "password: ")
 	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
-	fmt.Print("\n")
+	io.WriteString(o.Out, "\n")
 	if err != nil {
-		return "", err
+		// Reading from string buffer fails with one of these errors, depending on operating system
+		// "inappropriate ioctl for device"
+		// "operation not supported by device"
+		if strings.Contains(err.Error(), "device") {
+			bytePassword, err = ioutil.ReadAll(o.In)
+		} else {
+			return "", err
+		}
 	}
 	return string(bytePassword), nil
 }

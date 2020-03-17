@@ -122,6 +122,18 @@ func (run *TestRunner) ExecCommand(cmdText string) error {
 	return executeCommand(run.CmdR, cmdText)
 }
 
+// ExecCommandWithStdin executes the given command string with the string as stdin content
+func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinText string) error {
+	in := bytes.NewBufferString(stdinText)
+	out := &bytes.Buffer{}
+	run.RepoRoot.Streams = ioes.NewIOStreams(in, out, out)
+	setNoColor(true)
+	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.RepoRoot.Streams)
+	cmd.SetOutput(out)
+	run.CmdR = cmd
+	return executeCommand(run.CmdR, cmdText)
+}
+
 // CreateCommandRunner returns a cobra runable command.
 func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	in := &bytes.Buffer{}
