@@ -31,10 +31,10 @@ func TestHistoryRequestsLog(t *testing.T) {
 	for i, r := range refs {
 		ds := r.Dataset
 		items[i].VersionInfo = reporef.ConvertToVersionInfo(&r)
-		items[i].VersionInfo.MetaTitle = ""
-		items[i].VersionInfo.BodyRows = 0
-		items[i].VersionInfo.NumErrors = 0
-		items[i].VersionInfo.BodyFormat = ""
+		items[i].MetaTitle = ""
+		items[i].BodyRows = 0
+		items[i].NumErrors = 0
+		items[i].BodyFormat = ""
 		if ds != nil && ds.Commit != nil {
 			items[i].CommitTitle = ds.Commit.Title
 			items[i].CommitMessage = ds.Commit.Message

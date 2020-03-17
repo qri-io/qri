@@ -11,6 +11,7 @@ import (
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
+// DatasetLogItem is a line item in a dataset response
 type DatasetLogItem struct {
 	// Decription of a dataset reference
 	dsref.VersionInfo `json:"versionInfo,omitempty"`
@@ -30,8 +31,9 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 			if len(versions) == 0 {
 				return nil, repo.ErrNoHistory
 			}
-			// Logbook doesn't store the CommitMessage (see infoFromOp in logbook/logbook.go), so we
-			// need to load each dataset, and assign the CommitMessage field.
+			// Logbook doesn't store the CommitMessage and CommitTitle
+			// (see infoFromOp in logbook/logbook.go), so we need to load
+			// each dataset, and assign the CommitMessage and CommitTitle field.
 			for i, v := range versions {
 				if v.Path != "" {
 					local, err := r.Store().Has(ctx, v.Path)
@@ -43,7 +45,6 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 							if ds.Commit != nil {
 								items[i].CommitMessage = ds.Commit.Message
 								items[i].CommitTitle = ds.Commit.Title
-								items[i].VersionInfo.CommitTime = ds.Commit.Timestamp
 							}
 						}
 					}
@@ -65,7 +66,7 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 		if vref.Dataset != nil && vref.Dataset.Commit != nil {
 			items[i].CommitTitle = vref.Dataset.Commit.Title
 			items[i].CommitMessage = vref.Dataset.Commit.Message
-			items[i].VersionInfo.CommitTime = vref.Dataset.Commit.Timestamp
+			items[i].CommitTime = vref.Dataset.Commit.Timestamp
 		}
 	}
 

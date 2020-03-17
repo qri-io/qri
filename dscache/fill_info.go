@@ -35,6 +35,9 @@ func fillInfoForDatasets(ctx context.Context, store cafs.Filestore, filesys qfs.
 			info.BodyFormat = ds.Structure.Format
 			info.NumErrors = ds.Structure.ErrCount
 		}
+		if ds.Commit != nil {
+			info.CommitTime = ds.Commit.Timestamp
+		}
 	}
 	return collector.AsSingleError()
 }

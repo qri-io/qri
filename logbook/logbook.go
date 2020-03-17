@@ -785,12 +785,12 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 
 func infoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
 	return dsref.VersionInfo{
-		Username:    ref.Username,
-		ProfileID:   ref.ProfileID,
-		Name:        ref.Name,
-		Path:        op.Ref,
-		CommitTime:  time.Unix(0, op.Timestamp),
-		BodySize:    int(op.Size),
+		Username:   ref.Username,
+		ProfileID:  ref.ProfileID,
+		Name:       ref.Name,
+		Path:       op.Ref,
+		CommitTime: time.Unix(0, op.Timestamp),
+		BodySize:   int(op.Size),
 	}
 }
 

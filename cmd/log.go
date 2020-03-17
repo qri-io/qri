@@ -69,6 +69,7 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
+// DatasetLogItem aliases the type from base
 type DatasetLogItem = base.DatasetLogItem
 
 // Run executes the log command

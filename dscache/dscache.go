@@ -274,21 +274,21 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 
 func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 	return dsref.VersionInfo{
-		InitID:        string(r.InitID()),
-		ProfileID:     string(r.ProfileID()),
-		Name:          string(r.PrettyName()),
-		Path:          string(r.HeadRef()),
-		Published:     r.Published(),
-		Foreign:       r.Foreign(),
-		MetaTitle:     string(r.MetaTitle()),
-		ThemeList:     string(r.ThemeList()),
-		BodySize:      int(r.BodySize()),
-		BodyRows:      int(r.BodyRows()),
-		BodyFormat:    string(r.BodyFormat()),
-		NumErrors:     int(r.NumErrors()),
-		CommitTime:    time.Unix(r.CommitTime(), 0),
-		NumVersions:   int(r.NumVersions()),
-		FSIPath:       string(r.FsiPath()),
+		InitID:      string(r.InitID()),
+		ProfileID:   string(r.ProfileID()),
+		Name:        string(r.PrettyName()),
+		Path:        string(r.HeadRef()),
+		Published:   r.Published(),
+		Foreign:     r.Foreign(),
+		MetaTitle:   string(r.MetaTitle()),
+		ThemeList:   string(r.ThemeList()),
+		BodySize:    int(r.BodySize()),
+		BodyRows:    int(r.BodyRows()),
+		BodyFormat:  string(r.BodyFormat()),
+		NumErrors:   int(r.NumErrors()),
+		CommitTime:  time.Unix(r.CommitTime(), 0),
+		NumVersions: int(r.NumVersions()),
+		FSIPath:     string(r.FsiPath()),
 	}
 }
 

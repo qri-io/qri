@@ -35,6 +35,7 @@ func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DatasetLogItem aliases the type from base
 type DatasetLogItem = base.DatasetLogItem
 
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {

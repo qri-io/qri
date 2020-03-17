@@ -288,19 +288,19 @@ func (s dslogItemStringer) String() string {
 	faint := color.New(color.Faint).SprintFunc()
 
 	storage := "local"
-	if s.VersionInfo.Foreign {
+	if s.Foreign {
 		storage = faint("remote")
 	}
 
 	msg := fmt.Sprintf("%s%s\n%s%s\n%s%s\n%s%s\n\n%s\n",
 		faint("Commit:  "),
-		yellow(s.VersionInfo.Path),
+		yellow(s.Path),
 		faint("Date:    "),
-		s.VersionInfo.CommitTime.In(StringerLocation).Format(time.UnixDate),
+		s.CommitTime.In(StringerLocation).Format(time.UnixDate),
 		faint("Storage: "),
 		storage,
 		faint("Size:    "),
-		humanize.Bytes(uint64(s.VersionInfo.BodySize)),
+		humanize.Bytes(uint64(s.BodySize)),
 		s.CommitTitle,
 	)
 	if s.CommitMessage != "" && s.CommitMessage != s.CommitTitle {

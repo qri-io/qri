@@ -170,7 +170,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-    // Convert old style DatasetRef list to VersionInfo list.
+	// Convert old style DatasetRef list to VersionInfo list.
 	// TODO(dlong): Remove this and convert lower-level functions to return []VersionInfo.
 	infos := make([]dsref.VersionInfo, len(refs))
 	for i, r := range refs {
@@ -719,7 +719,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
 		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
 		if p.Force {
-			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []dsref.VersionInfo{})
+			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []DatasetLogItem{})
 			if didRemove != "" {
 				log.Debugf("Remove cleaned up data found in %s", didRemove)
 				res.Message = didRemove
@@ -759,15 +759,11 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	}
 
 	// Get the revisions that will be deleted.
-	historyDataLog, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
-	history := make([]dsref.VersionInfo, len(historyDataLog))
-	if err == nil && p.Revision.Gen >= len(historyDataLog) {
+	history, err := base.DatasetLog(ctx, r.node.Repo, ref, p.Revision.Gen+1, 0, false)
+	if err == nil && p.Revision.Gen >= len(history) {
 		// If the number of revisions to delete is greater than or equal to the amount in history,
 		// treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
-		for i, h := range historyDataLog {
-			history[i] = h.VersionInfo
-		}
 	} else if err == repo.ErrNoHistory {
 		// If the dataset has no history, treat this operation as deleting everything.
 		p.Revision.Gen = dsref.AllGenerations
@@ -776,7 +772,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// Set history to a list of 0 elements. In the rest of this function, certain operations
 		// check the history to figure out what to delete, they will always see a blank history,
 		// which is a safer option for a destructive option such as remove.
-		history = []dsref.VersionInfo{}
+		history = []DatasetLogItem{}
 	}
 
 	if p.Revision.Gen == dsref.AllGenerations {
