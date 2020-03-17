@@ -17,11 +17,10 @@ import (
 func NewLogCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &LogOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "log",
+		Use:     "log [DATASET]",
 		Aliases: []string{"history"},
-		Short:   "Show log of dataset commits",
-		Long: `
-` + "`qri log`" + ` lists dataset commits over time. Each entry in the log is a 
+		Short:   "show log of dataset commits",
+		Long: "`qri log`" + ` lists dataset commits over time. Each entry in the log is a 
 snapshot of a dataset taken at the moment it was saved that keeps exact details 
 about how that dataset looked at at that point in time. 
 
@@ -29,11 +28,12 @@ We call these snapshots versions. Each version has an author (the peer that
 created the version) and a message explaining what changed. Log prints these 
 details in order of occurrence, starting with the most recent known version, 
 working backwards in time.`,
-		Example: `  show log for the dataset b5/precip:
+		Example: `  # Show log for the dataset b5/precip:
   $ qri log b5/precip`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -108,10 +108,10 @@ func (o *LogOptions) Run() error {
 func NewLogbookCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &LogbookOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "logbook",
-		Short: "Show a detailed list of changes on a dataset name",
-		Example: `  show log for the dataset bob/precip:
-		$ qri logbook bob/precip`,
+		Use:   "logbook [DATASET]",
+		Short: "show a detailed list of changes on a dataset name",
+		Example: `  # Show log for the dataset bob/precip:
+  $ qri logbook bob/precip`,
 		Long: `Logbooks are records of changes to a dataset. The logbook is more detailed
 than a dataset history, recording the steps taken to construct a dataset history
 without including dataset data. Logbooks can be synced with other users.

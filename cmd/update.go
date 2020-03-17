@@ -18,7 +18,7 @@ func NewUpdateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &UpdateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "update",
-		Short: "Schedule dataset updates",
+		Short: "schedule dataset updates",
 		Long: `The qri update commands allow you to schedule automatic,
 periodic udates to your dataset. It also allows you to start & stop the
 updating daemon, to view the log of past updates and list of upcoming
@@ -31,8 +31,8 @@ updates.
 	}
 
 	scheduleCmd := &cobra.Command{
-		Use:   "schedule",
-		Short: "Schedule an update",
+		Use:   "schedule DATASET [PERIOD]",
+		Short: "schedule an update",
 		Long: `Schedule a dataset using all the same flags as the save command,
 except you must provide a periodicity (or have a periodicity set in your 
 dataset's Meta component. The given periodicity must be in the ISO 8601
@@ -47,17 +47,17 @@ a dataset you are creating for the first time, or a shell script that
 calls "qri save" to update a dataset.
 
 IMPORTANT: use the "qri update service" status command to ensure that the process
-responsible for executing your scheduled updates is currently active.
-	`,
-		Example: `  schedule the weekly update of a dataset you have already created
-	$ qri update schedule b5/my_dataset R/P1W
-	qri scheduled b5/my_dataset, next update: 2019-05-14 20:15:13.191602 +0000 UTC
-	
-	schedule the daily update of a dataset that you are creating for the first 
-	time:
-	$ qri update schedule --file dataset.yaml b5/my_dataset R/P1D
-	qri scheduled b5/my_dataset, next update: 2019-05-08 20:15:13.191602 +0000 UTC
-	`,
+responsible for executing your scheduled updates is currently active.`,
+		Example: `  # Schedule the weekly update of a dataset you have already created:
+  $ qri update schedule b5/my_dataset R/P1W
+  qri scheduled b5/my_dataset, next update: 2019-05-14 20:15:13.191602 +0000 UTC
+
+  # Schedule the daily update of a dataset that you are creating for the first 
+  # time:
+  $ qri update schedule --file dataset.yaml b5/my_dataset R/P1D
+  qri scheduled b5/my_dataset, next update: 2019-05-08 20:15:13.191602 +0000 UTC
+  `,
+		Args: cobra.MaximumNArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -80,16 +80,16 @@ responsible for executing your scheduled updates is currently active.
 	scheduleCmd.Flags().StringVar(&o.RepoPath, "use-repo", "", "experiment. run update on behalf of another repo")
 
 	unscheduleCmd := &cobra.Command{
-		Use:   "unschedule",
-		Short: "Unschedule an update",
+		Use:   "unschedule DATASET",
+		Short: "unschedule an update",
 		Long: `Unscheduling an update removes that dataset from the list of
 scheduled updates.
 	`,
-		Example: `  unschedule an update using the dataset name
-	$ qri update unschedule b5/my_dataset
-	unscheduled b5/my_dataset
-	
-	`,
+		Example: `  # Unschedule an update using the dataset name:
+  $ qri update unschedule b5/my_dataset
+  unscheduled b5/my_dataset
+  `,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -100,19 +100,19 @@ scheduled updates.
 	listCmd := &cobra.Command{
 		Use:     "list",
 		Aliases: []string{"ls"},
-		Short:   "List scheduled updates",
+		Short:   "list scheduled updates",
 		Long: `Update list gives you a view into the upcoming scheduled updates, starting
 with the most immediate update.
 	`,
-		Example: `  list the upcoming updates:
+		Example: `  # List the upcoming updates:
   $ qri update list
   1. b5/my_dataset
   in 4 hours 4:19PM | dataset
 
   2. b5/my_next_dataset
   in 2 days 5:22PM | dataset
-
-	`,
+  `,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -125,9 +125,9 @@ with the most immediate update.
 	listCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 
 	logsCmd := &cobra.Command{
-		Use:     "logs",
+		Use:     "logs [LOGNAME]",
 		Aliases: []string{"log"},
-		Short:   "Show log of dataset updates",
+		Short:   "show log of dataset updates",
 		Long: `Update logs shows the log of the updates that have already run,
 starting with the most recent. The log includes a timestamped name, the type of
 update that occured (dataset or shell), and the time it occured.
@@ -135,7 +135,7 @@ update that occured (dataset or shell), and the time it occured.
 Using the name of a specific log as a parameter gives you the output of that
 update.
 	`,
-		Example: `  list the log of previous updates:
+		Example: `  # List the log of previous updates:
   $ qri update logs
   1. 1557173933-my_dataset
   1 day ago | no changes to save
@@ -144,10 +144,11 @@ update.
   1 day ago | no changes to save
   ...
 
-  get the output of one specific update:
+  # Get the output of one specific update:
   $ qri update log 1557173933-my_dataset
-  dataset saved: b5/my_dataset@MSN9/ipfs/BntM
+  dataset saved: b5/my_dataset@MSN9/ipfs/BntM
 	`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -160,19 +161,19 @@ update.
 	logsCmd.Flags().IntVar(&o.PageSize, "page-size", 25, "page size of results, default 25")
 
 	runCmd := &cobra.Command{
-		Use:   "run",
-		Short: "Execute an update immediately",
+		Use:   "run DATASET",
+		Short: "execute an update immediately",
 		Long: `Run allows you to execute an update immediately, rather then wait for
 its scheduled time. Run uses the same parameters as the Save command, but
 but assumes you want to recall the most recent transform in the dataset.
 	`,
-		Example: `  run an update
+		Example: `  # Run an update:
   $ qri update run b5/my_dataset
   🤖  running transform...
   ✅ transform complete
   dataset saved: b5/my_dataset@MSN9/ipfs/2BntM
-
 	`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -195,14 +196,15 @@ but assumes you want to recall the most recent transform in the dataset.
 
 	serviceCmd := &cobra.Command{
 		Use:   "service",
-		Short: "Control qri update daemon",
+		Short: "control qri update daemon",
 		Long: `The qri service commands allow you to start, stop, and check the 
-status of update daemon that executes the dataset updates.`,
+status of the update daemon that executes the dataset updates.`,
 	}
 
 	serviceStatusCmd := &cobra.Command{
 		Use:   "status",
-		Short: "Show update daemon status",
+		Short: "show update daemon status",
+		Args:  cobra.NoArgs,
 		RunE: func(c *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
@@ -212,11 +214,12 @@ status of update daemon that executes the dataset updates.`,
 	}
 	serviceStartCmd := &cobra.Command{
 		Use:   "start",
-		Short: "Start update daemon",
+		Short: "start update daemon",
 		Long: `Use the "qri update service start" command to begin the process 
 responsible for executing your scheduled updates. Any updates that were
 scheduled before the update daemon has started will be run as soon as the 
 updating process initiates.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			// warning: need to be very careful to *not* initialize an instance here
 			// which is usually done by calling complete to trigger initialization
@@ -229,10 +232,11 @@ updating process initiates.`,
 
 	serviceStopCmd := &cobra.Command{
 		Use:   "stop",
-		Short: "Stop update daemon",
+		Short: "stop update daemon",
 		Long: `Use the "qri update service stop" command to end the process 
 responsible for executing your scheduled updates. With this process terminated,
 your scheduled updates will not run.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

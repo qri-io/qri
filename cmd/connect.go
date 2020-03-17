@@ -14,12 +14,11 @@ func NewConnectCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := ConnectOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "connect",
-		Short: "Connect to the distributed web by spinning up a Qri node",
+		Short: "connect to the distributed web by spinning up a Qri node",
 		Annotations: map[string]string{
 			"group": "network",
 		},
-		Long: `
-While it’s not totally accurate, connect is like starting a server. Running 
+		Long: `While it’s not totally accurate, connect is like starting a server. Running 
 connect will start a process and stay there until you exit the process 
 (ctrl+c from the terminal, or killing the process using tools like activity 
 monitor on the mac, or the aptly-named “kill” command). Connect does three main 
@@ -30,6 +29,7 @@ things:
 
 When you run connect you are connecting to the distributed web, interacting with
 peers & swapping data.`,
+		Args: cobra.NoArgs,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

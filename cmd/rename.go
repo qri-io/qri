@@ -13,22 +13,24 @@ func NewRenameCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:     "rename",
 		Aliases: []string{"mv"},
-		Short:   "Change the name of a dataset",
-		Long: `
-Rename changes the name of a dataset.
+		Short:   "change the name of a dataset",
+		Long: `Rename changes the name of a dataset.
 
 Note that if someone has added your dataset to their qri node, and then
 you rename your local dataset, your peer's version of your dataset will
 not have the updated name. While this won't break anything, it will
 confuse anyone who has added your dataset before the change. Try to keep
 renames to a minimum.`,
-		Example: `  rename a dataset named annual_pop to annual_population:
+		Example: `  # Rename a dataset named annual_pop to annual_population:
   $ qri rename me/annual_pop me/annual_population`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Validate(); err != nil {
 				return err
 			}
 			return o.Run()

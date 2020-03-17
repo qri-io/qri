@@ -17,11 +17,10 @@ import (
 func NewListCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ListOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "list",
+		Use:     "list [FILTER]",
 		Aliases: []string{"ls"},
-		Short:   "Show a list of datasets",
-		Long: `
-List shows lists of datasets, including names and current hashes. 
+		Short:   "show a list of datasets",
+		Long: `List shows lists of datasets, including names and current hashes. 
 
 The default list is the latest version of all datasets you have on your local 
 qri repository. The first argument can be used to find datasets with a certain 
@@ -29,21 +28,21 @@ substring in their name.
 
 When used in conjunction with ` + "`qri connect`" + `, list can list a peer's dataset. You
 must have ` + "`qri connect`" + ` running in a separate terminal window.`,
-		Example: `  # show all of your datasets:
-  qri list
+		Example: `  # Show all of your datasets:
+  $ qri list
 
-  # show datasets with the substring "new" in their name
-  qri list new
+  # Show datasets with the substring "new" in their name:
+  $ qri list new
 
-  # to view the list of your peer's dataset,
-  # in one terminal window:
-  qri connect
-
-  # in a separate terminal window, to show all of b5's datasets:
-  qri list --peer b5`,
+  # To view the list of a peer's datasets...
+  # In one terminal window:
+  $ qri connect
+  # In a separate terminal window, show all of b5's datasets:
+  $ qri list --peer b5`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

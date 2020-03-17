@@ -20,12 +20,11 @@ func NewConfigCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := ConfigOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "config",
-		Short: "Get and set local configuration information",
+		Short: "get and set local configuration information",
 		Annotations: map[string]string{
 			"group": "other",
 		},
-		Long: `
-'qri config' encapsulates all settings that control the behaviour of qri.
+		Long: `'qri config' encapsulates all settings that control the behaviour of qri.
 This includes all kinds of stuff: your profile details; enabling & disabling 
 different services; what kind of output qri logs to; 
 which ports on qri serves on; etc.
@@ -35,20 +34,20 @@ runtime via command a line argument.
 
 For details on each config field checkout: 
 https://github.com/qri-io/qri/blob/master/config/readme.md`,
-		Example: `  # get your profile information
+		Example: `  # Get your profile information:
   $ qri config get profile
 
-  # set your api port to 4444
+  # Set your API port to 4444:
   $ qri config set api.port 4444
 
-  # disable rpc connections:
+  # Disable RPC connections:
   $ qri config set rpc.enabled false`,
 	}
 
 	get := &cobra.Command{
-		Use:   "get",
+		Use:   "get [FIELD]",
 		Short: "get configuration settings",
-		Long: `get outputs your current configuration file with private keys 
+		Long: `'qri config get' outputs your current configuration file with private keys 
 removed by default, making it easier to share your qri configuration settings.
 
 You can get particular parts of the config by using dot notation to
@@ -58,14 +57,14 @@ https://github.com/qri-io/qri/blob/master/config/readme.md
 The --with-private-keys option will show private keys.
 PLEASE PLEASE PLEASE NEVER SHARE YOUR PRIVATE KEYS WITH ANYONE. EVER.
 Anyone with your private keys can impersonate you on qri.`,
-		Example: `  # get the entire config
-  qri config get
+		Example: `  # Get the entire config:
+  $ qri config get
 
-  # get the config profile
-  qri config get profile
+  # Get the config profile:
+  $ qri config get profile
 
-  # get the profile description
-  qri config get profile.description`,
+  # Get the profile description:
+  $ qri config get profile.description`,
 		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f); err != nil {
@@ -76,8 +75,8 @@ Anyone with your private keys can impersonate you on qri.`,
 	}
 
 	set := &cobra.Command{
-		Use:   "set",
-		Short: "Set configuration options",
+		Use:   "set FIELD VALUE [FIELD VALUE ...]",
+		Short: "set configuration options",
 		Long: `'qri config set' allows you to set configuration options. You can set 
 particular parts of the config by using dot notation to traverse the 
 config object. 
@@ -89,12 +88,20 @@ If the config object were a tree and each field a branch, you can only
 set the leaves of the branches. In other words, the you cannot set a 
 field that is itself an object or array. For details on each config 
 field checkout: https://github.com/qri-io/qri/blob/master/config/readme.md`,
-		Example: `  # set a profile description
-  qri config set profile.description "This is my new description that I
+		Example: `  # Set a profile description:
+  $ qri config set profile.description "This is my new description that I
   am very proud of and want displayed in my profile"
 
-  # disable rpc communication
-  qri config set rpc.enabled false`,
+  # Disable rpc communication:
+  $ qri config set rpc.enabled false`,
+		Args: func(cmd *cobra.Command, args []string) error {
+			if len(args)%2 != 0 {
+				return fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]")
+			} else if len(args) < 2 {
+				return fmt.Errorf("please provide at least one field-value pair to set")
+			}
+			return nil
+		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			cmd.SilenceUsage = true
 			if err := o.Complete(f); err != nil {
@@ -172,9 +179,6 @@ func (o *ConfigOptions) Get(args []string) (err error) {
 
 // Set a configuration option
 func (o *ConfigOptions) Set(args []string) (err error) {
-	if len(args)%2 != 0 {
-		return fmt.Errorf("wrong number of arguments. arguments must be in the form: [path value]")
-	}
 	ip := config.ImmutablePaths()
 	photoPaths := map[string]bool{
 		"profile.photo":  true,
@@ -204,7 +208,7 @@ func (o *ConfigOptions) Set(args []string) (err error) {
 			}
 			profileChanged = true
 		} else {
-			// TODO (b5): I think this'll resule in configuration not getting set. should investigate
+			// TODO (b5): I think this'll result in configuration not getting set. should investigate
 			if err = o.inst.Config().Set(path, value); err != nil {
 				return err
 			}

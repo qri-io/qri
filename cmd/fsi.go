@@ -22,7 +22,7 @@ func NewFSICommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	link := &cobra.Command{
 		Use:   "link DATASET PATH",
 		Short: "link a dataset to a directory on disk",
-		Example: `link a dataset to the current working directory:
+		Example: `  # Link a dataset to the current working directory:
   $ qri fsi link peername/dataset .`,
 		Args: cobra.ExactArgs(2),
 		RunE: func(cmd *cobra.Command, args []string) error {

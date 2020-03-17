@@ -15,13 +15,12 @@ import (
 func NewValidateCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &ValidateOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "validate",
-		Short: "Show schema validation errors",
+		Use:   "validate [DATASET]",
+		Short: "show schema validation errors",
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Long: `
-Validate checks data for errors using a schema and then printing a list of
+		Long: `Validate checks data for errors using a schema and then printing a list of
 issues. By default validate checks a dataset's body against it’s own schema.
 Validate is a flexible command that works with data and schemas either
 inside or outside of qri by providing the --body and --schema or --structure
@@ -52,14 +51,15 @@ command.
 
 Note: --body and --schema or --structure flags will override the dataset
 if these flags are provided.`,
-		Example: `  # show errors in an existing dataset:
-  qri validate b5/comics
+		Example: `  # Show errors in an existing dataset:
+  $ qri validate b5/comics
 
-  # validate a new body against an existing schema
-  qri validate --body new_data.csv me/annual_pop
+  # Validate a new body against an existing schema:
+  $ qri validate --body new_data.csv me/annual_pop
 
-  # validate data against a new schema
-  qri validate --body data.csv --schema schema.json`,
+  # Validate data against a new schema:
+  $ qri validate --body data.csv --schema schema.json`,
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

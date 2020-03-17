@@ -12,15 +12,15 @@ import (
 func NewStatsCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &StatsOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "stats",
-		Short: "Get aggregated stats for a dataset",
-		Long: `
-Run the ` + "`stats`" + ` to generate and view stats for a dataset using a dataset reference.`,
-		Example: `  # get stats for me/dataset_name:
-  qri stats me/dataset_name`,
+		Use:   "stats DATASET",
+		Short: "get aggregated stats for a dataset",
+		Long:  `Run the ` + "`stats`" + ` to generate and view stats for a dataset using a dataset reference.`,
+		Example: `  # Get stats for me/dataset_name:
+  $ qri stats me/dataset_name`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				fmt.Println("errorrrr")

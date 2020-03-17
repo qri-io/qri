@@ -13,17 +13,16 @@ import (
 func NewAddCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &AddOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "add",
-		Short: "Add a dataset from another peer",
+		Use:   "add DATASET [DATASET...]",
+		Short: "add datasets from other peers",
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
-		Long: `
-Add retrieves a dataset owned by another peer and adds it to your repo. 
-The dataset reference of the dataset will remain the same, including 
+		Long: `Add retrieves datasets owned by other peers and adds them to your repo. 
+The reference names of the datasets will remain the same, including 
 the name of the peer that originally added the dataset. You must have 
 ` + "`qri connect`" + ` running in another terminal to use this command.`,
-		Example: `  add a dataset named their_data, owned by other_peer:
+		Example: `  # Add a dataset named their_data, owned by other_peer:
   $ qri add other_peer/their_data`,
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f); err != nil {

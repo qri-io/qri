@@ -17,11 +17,10 @@ import (
 func NewSaveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &SaveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "save",
+		Use:     "save [DATASET]",
 		Aliases: []string{"commit"},
-		Short:   "Save changes to a dataset",
-		Long: `
-Save is how you change a dataset, updating one or more of data, metadata, and structure. 
+		Short:   "save changes to a dataset",
+		Long: `Save is how you change a dataset, updating one or more of data, metadata, and structure. 
 You can also update your data via url. Every time you run save, an entry is added to 
 your dataset’s log (which you can see by running ` + "`qri log <dataset_reference>`" + `).
 
@@ -36,17 +35,18 @@ peer, the dataset gets renamed from ` + "`peers_name/dataset_name`" + ` to ` + "
 
 The ` + "`--message`" + `" and ` + "`--title`" + ` flags allow you to add a 
 commit message and title to the save.`,
-		Example: `  # save updated data to dataset annual_pop:
-  qri save --body /path/to/data.csv me/annual_pop
+		Example: `  # Save updated data to dataset annual_pop:
+  $ qri save --body /path/to/data.csv me/annual_pop
 
-  # save updated dataset (no data) to annual_pop:
-  qri save --file /path/to/dataset.yaml me/annual_pop
+  # Save updated dataset (no data) to annual_pop:
+  $ qri save --file /path/to/dataset.yaml me/annual_pop
   
-  # re-execute a dataset that has a transform:
-  qri save me/tf_dataset`,
+  # Re-execute a dataset that has a transform:
+  $ qri save me/tf_dataset`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

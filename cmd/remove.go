@@ -14,11 +14,10 @@ import (
 func NewRemoveCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &RemoveOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "remove",
+		Use:     "remove [DATASET]",
 		Aliases: []string{"rm", "delete"},
-		Short:   "Remove a dataset from your local repository",
-		Long: `
-Remove gets rid of a dataset from your qri node. After running remove, qri will
+		Short:   "remove a dataset from your local repository",
+		Long: `Remove gets rid of a dataset from your qri node. After running remove, qri will
 no longer list your dataset as being available locally. By default, remove frees
 up the space taken up by the dataset, but not right away. The IPFS repo that’s
 storing the data will need to garbage-collect that data when it’s good & ready,
@@ -30,13 +29,18 @@ adjust this cap using IPFS, qri will respect it.
 
 In the future we’ll add a flag that’ll force immediate removal of a dataset from
 both qri & IPFS. Promise.`,
-		Example: `  remove a dataset named annual_pop:
+		Example: `  # Remove a dataset named ` + "`annual_pop`" + `:
   $ qri remove me/annual_pop --all`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		// Use *max* so we can print a nicer message for no or malformed args
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
+				return err
+			}
+			if err := o.Validate(); err != nil {
 				return err
 			}
 			return o.Run()
@@ -72,7 +76,11 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 		return err
 	}
 	if o.Refs, err = GetCurrentRefSelect(f, args, -1, nil); err != nil {
-		return err
+		// This error will be handled during validation
+		if err != repo.ErrEmptyRef {
+			return err
+		}
+		err = nil
 	}
 	if o.All {
 		o.Revision = dsref.NewAllRevisions()

@@ -16,13 +16,15 @@ import (
 func NewCheckoutCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &CheckoutOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "checkout",
-		Short:   "checkout creates a linked directory and writes dataset files to that directory",
-		Long:    ``,
-		Example: ``,
+		Use:   "checkout DATASET",
+		Short: "checkout creates a linked directory and writes dataset files to that directory",
+		Long:  ``,
+		Example: `  # Place a copy of me/annual_pop in the ./annual_pop directory:
+  $ qri checkout me/annual_pop`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

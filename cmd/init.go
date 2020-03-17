@@ -16,9 +16,10 @@ import (
 func NewInitCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &InitOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "init",
-		Short:   "initialize a dataset directory",
-		Long:    ``,
+		Use:   "init [PATH]",
+		Short: "initialize a dataset directory",
+		Long: `'initialize' creates a new dataset, links it to the current or specified
+directory, and creates starter files for the dataset's components.`,
 		Example: ``,
 		Annotations: map[string]string{
 			"group": "dataset",

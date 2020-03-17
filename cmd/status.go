@@ -15,13 +15,28 @@ import (
 func NewStatusCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &StatusOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:     "status",
-		Short:   "Show status of working directory",
-		Long:    ``,
-		Example: ``,
+		Use:   "status [DATASET]",
+		Short: "show what components of a dataset have been changed",
+		Long: `List what components and files of the working directory's dataset have been
+added, removed, or changed.
+
+If you specify a DATASET, this will list what components were changed in a
+particular commit (or the latest commit if none is specified). You can specify
+a commit alongside a dataset like:
+
+    me/dataset_name@/ipfs/Qmu...`,
+		Example: `  # List what components in the working directory have changed:
+  $ qri status
+  
+  # List what changed in version /ipfs/Qmuabcd of me/my_dataset:
+  $ qri status me/my_dataset@/ipfs/Qmuabcd
+  
+  # List what changed in the latest commit of the working directory:
+  $ qri status $(cat .qri-ref)`,
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.MaximumNArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
