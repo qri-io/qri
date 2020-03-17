@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -35,6 +35,9 @@ func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
+// DatasetLogItem aliases the type from base
+type DatasetLogItem = base.DatasetLogItem
+
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])
 	if err != nil {
@@ -55,7 +58,7 @@ func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 		ListParams: lp,
 	}
 
-	res := []dsref.VersionInfo{}
+	res := []DatasetLogItem{}
 	if err := h.Log(params, &res); err != nil {
 		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)

@@ -34,8 +34,6 @@ func ConvertToVersionInfo(r *DatasetRef) dsref.VersionInfo {
 	}
 	if ds != nil && ds.Commit != nil {
 		build.CommitTime = ds.Commit.Timestamp
-		build.CommitTitle = ds.Commit.Title
-		build.CommitMessage = ds.Commit.Message
 	}
 	if ds != nil {
 		build.NumVersions = ds.NumVersions

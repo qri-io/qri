@@ -114,12 +114,6 @@ func (d *Dscache) VerboseString(showEmpty bool) string {
 		if r.CommitTime() != 0 || showEmpty {
 			fmt.Fprintf(&out, "%scommitTime    = %d\n", indent, r.CommitTime())
 		}
-		if len(r.CommitTitle()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%scommitTitle   = %s\n", indent, r.CommitTitle())
-		}
-		if len(r.CommitMessage()) != 0 || showEmpty {
-			fmt.Fprintf(&out, "%scommitMessage = %s\n", indent, r.CommitMessage())
-		}
 		if r.NumErrors() != 0 || showEmpty {
 			fmt.Fprintf(&out, "%snumErrors     = %d\n", indent, r.NumErrors())
 		}
@@ -247,13 +241,9 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 			return string(r.InitID()) == act.InitID
 		},
 		func(refStartMutationFunc func(builder *flatbuffers.Builder)) {
-			var metaTitle, commitTitle, commitMessage flatbuffers.UOffsetT
+			var metaTitle flatbuffers.UOffsetT
 			if act.Dataset != nil && act.Dataset.Meta != nil {
 				metaTitle = builder.CreateString(act.Dataset.Meta.Title)
-			}
-			if act.Dataset != nil && act.Dataset.Commit != nil {
-				commitTitle = builder.CreateString(act.Dataset.Commit.Title)
-				commitMessage = builder.CreateString(act.Dataset.Commit.Message)
 			}
 			hashRef := builder.CreateString(string(act.HeadRef))
 			// Start building a ref object, by mutating an existing ref object.
@@ -266,8 +256,6 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 			}
 			if act.Dataset != nil && act.Dataset.Commit != nil {
 				dscachefb.RefEntryInfoAddCommitTime(builder, act.Dataset.Commit.Timestamp.Unix())
-				dscachefb.RefEntryInfoAddCommitTitle(builder, commitTitle)
-				dscachefb.RefEntryInfoAddCommitMessage(builder, commitMessage)
 			}
 			if act.Dataset != nil && act.Dataset.Structure != nil {
 				dscachefb.RefEntryInfoAddBodySize(builder, int64(act.Dataset.Structure.Length))
@@ -286,23 +274,21 @@ func (d *Dscache) updateMoveCursor(act *logbook.Action) error {
 
 func convertEntryToVersionInfo(r *dscachefb.RefEntryInfo) dsref.VersionInfo {
 	return dsref.VersionInfo{
-		InitID:        string(r.InitID()),
-		ProfileID:     string(r.ProfileID()),
-		Name:          string(r.PrettyName()),
-		Path:          string(r.HeadRef()),
-		Published:     r.Published(),
-		Foreign:       r.Foreign(),
-		MetaTitle:     string(r.MetaTitle()),
-		ThemeList:     string(r.ThemeList()),
-		BodySize:      int(r.BodySize()),
-		BodyRows:      int(r.BodyRows()),
-		BodyFormat:    string(r.BodyFormat()),
-		NumErrors:     int(r.NumErrors()),
-		CommitTime:    time.Unix(r.CommitTime(), 0),
-		CommitTitle:   string(r.CommitTitle()),
-		CommitMessage: string(r.CommitMessage()),
-		NumVersions:   int(r.NumVersions()),
-		FSIPath:       string(r.FsiPath()),
+		InitID:      string(r.InitID()),
+		ProfileID:   string(r.ProfileID()),
+		Name:        string(r.PrettyName()),
+		Path:        string(r.HeadRef()),
+		Published:   r.Published(),
+		Foreign:     r.Foreign(),
+		MetaTitle:   string(r.MetaTitle()),
+		ThemeList:   string(r.ThemeList()),
+		BodySize:    int(r.BodySize()),
+		BodyRows:    int(r.BodyRows()),
+		BodyFormat:  string(r.BodyFormat()),
+		NumErrors:   int(r.NumErrors()),
+		CommitTime:  time.Unix(r.CommitTime(), 0),
+		NumVersions: int(r.NumVersions()),
+		FSIPath:     string(r.FsiPath()),
 	}
 }
 

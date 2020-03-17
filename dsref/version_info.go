@@ -64,10 +64,6 @@ type VersionInfo struct {
 	//
 	// Timestamp field from the commit
 	CommitTime time.Time `json:"commitTime,omitempty"`
-	// Title field from the commit
-	CommitTitle string `json:"commitTitle,omitempty"`
-	// Message field from the commit
-	CommitMessage string `json:"commitMessage,omitempty"`
 	//
 	// About the dataset's history and location
 	//
@@ -112,8 +108,6 @@ func ConvertDatasetToVersionInfo(ds *dataset.Dataset) VersionInfo {
 	}
 	if ds.Commit != nil {
 		vi.CommitTime = ds.Commit.Timestamp
-		vi.CommitTitle = ds.Commit.Title
-		vi.CommitMessage = ds.Commit.Message
 	}
 	if ds.Meta != nil {
 		vi.MetaTitle = ds.Meta.Title

@@ -38,18 +38,20 @@ func TestDatasetLog(t *testing.T) {
 		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
 	}
 
-	expect := []dsref.VersionInfo{
+	expect := []DatasetLogItem{
 		{
-			Username:  "peer",
-			Name:      "cities",
-			ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-			// TODO (b5) - use constant time to make timestamp & path comparable
+			VersionInfo: dsref.VersionInfo{
+				Username:  "peer",
+				Name:      "cities",
+				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+				// TODO (b5) - use constant time to make timestamp & path comparable
+				MetaTitle:  "this is the new title",
+				BodyFormat: "csv",
+				BodySize:   155,
+				BodyRows:   5,
+			},
 			CommitTitle:   "initial commit",
 			CommitMessage: "created dataset",
-			MetaTitle:     "this is the new title",
-			BodyFormat:    "csv",
-			BodySize:      155,
-			BodyRows:      5,
 		},
 	}
 
@@ -114,13 +116,16 @@ func TestDatasetLogForeign(t *testing.T) {
 	if len(log) != 1 {
 		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
 	}
-	expect := []dsref.VersionInfo{
+
+	// Foreign log so not counting on the commit title/message
+	expect := []DatasetLogItem{
 		{
-			Username:    "them",
-			Name:        "foreign",
-			ProfileID:   "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
-			Foreign:     true,
-			CommitTitle: "their commit",
+			VersionInfo: dsref.VersionInfo{
+				Username:  "them",
+				Name:      "foreign",
+				ProfileID: "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
+				Foreign:   true,
+			},
 		},
 	}
 
@@ -162,25 +167,25 @@ func TestDatasetLogFromHistory(t *testing.T) {
 
 func TestConstructDatasetLogFromHistory(t *testing.T) {
 	ctx := context.Background()
-	r := newTestRepo(t).(*repo.MemRepo)
+	mr := newTestRepo(t).(*repo.MemRepo)
 
 	// remove the logbook
-	r.RemoveLogbook()
+	mr.RemoveLogbook()
 
 	// create some history
-	addCitiesDataset(t, r)
-	ref := updateCitiesDataset(t, r, "")
+	addCitiesDataset(t, mr)
+	ref := updateCitiesDataset(t, mr, "")
 
 	// add the logbook back
-	p, err := r.Profile()
+	p, err := mr.Profile()
 	if err != nil {
 		t.Fatal(err)
 	}
-	book, err := logbook.NewJournal(p.PrivKey, p.Peername, r.Filesystem(), "/map/logbook")
+	book, err := logbook.NewJournal(p.PrivKey, p.Peername, mr.Filesystem(), "/map/logbook")
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.SetLogbook(book)
+	mr.SetLogbook(book)
 
 	cities := reporef.ConvertToDsref(ref)
 
@@ -190,35 +195,47 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	}
 
 	// create some history
-	if err := constructDatasetLogFromHistory(ctx, r, cities); err != nil {
+	if err := constructDatasetLogFromHistory(ctx, mr, cities); err != nil {
 		t.Errorf("building dataset history: %s", err)
 	}
+	expect := []DatasetLogItem{
+		{
+			VersionInfo: dsref.VersionInfo{
+				Username:  "peer",
+				BodySize:  0x9b,
+				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+				Name:      "cities",
+			},
+			CommitTitle:   "initial commit",
+			CommitMessage: "created dataset",
+		},
+		{
+			VersionInfo: dsref.VersionInfo{
+				Username:  "peer",
+				BodySize:  0x9b,
+				ProfileID: "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
+				Name:      "cities",
+				Path:      "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
+			},
+			CommitTitle:   "initial commit",
+			CommitMessage: "created dataset",
+		},
+	}
 
-	expect := []dsref.VersionInfo{
-		{
-			Username:    "peer",
-			CommitTitle: "initial commit",
-			BodySize:    0x9b,
-			ProfileID:   "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-			Name:        "cities",
-			Path:        "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
-		},
-		{
-			Username:    "peer",
-			CommitTitle: "initial commit",
-			BodySize:    0x9b,
-			ProfileID:   "QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt",
-			Name:        "cities",
-		},
+	r := reporef.DatasetRef{
+		Peername:  "peer",
+		ProfileID: profile.IDB58DecodeOrEmpty("QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt"),
+		Name:      "cities",
+		Path:      "/map/QmaTfAQNUKqtPe2EUcCELJNprRLJWswsVPHHNhiKgZoTMR",
 	}
 
 	// confirm history exists:
-	got, err := book.Versions(ctx, cities, 0, 100)
+	log, err := DatasetLog(ctx, mr, r, 100, 0, true)
 	if err != nil {
 		t.Error(err)
 	}
 
-	if diff := cmp.Diff(expect, got, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.VersionInfo{}, "Path")); diff != "" {
+	if diff := cmp.Diff(expect, log, cmpopts.IgnoreFields(dsref.VersionInfo{}, "CommitTime"), cmpopts.IgnoreFields(dsref.VersionInfo{}, "Path")); diff != "" {
 		t.Errorf("result mismatch. (-want +got):\n%s", diff)
 	}
 }

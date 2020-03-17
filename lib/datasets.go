@@ -719,7 +719,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if canonErr := repo.CanonicalizeDatasetRef(r.node.Repo, &ref); canonErr != nil && canonErr != repo.ErrNoHistory {
 		log.Debugf("Remove, repo.CanonicalizeDatasetRef failed, error: %s", canonErr)
 		if p.Force {
-			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []dsref.VersionInfo{})
+			didRemove, _ := base.RemoveEntireDataset(ctx, r.node.Repo, reporef.ConvertToDsref(ref), []DatasetLogItem{})
 			if didRemove != "" {
 				log.Debugf("Remove cleaned up data found in %s", didRemove)
 				res.Message = didRemove
@@ -772,7 +772,7 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		// Set history to a list of 0 elements. In the rest of this function, certain operations
 		// check the history to figure out what to delete, they will always see a blank history,
 		// which is a safer option for a destructive option such as remove.
-		history = []dsref.VersionInfo{}
+		history = []DatasetLogItem{}
 	}
 
 	if p.Revision.Gen == dsref.AllGenerations {

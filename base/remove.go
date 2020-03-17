@@ -20,7 +20,7 @@ import (
 // was removed from, as well the last error that occured, if any.
 // Note that in particular, FSI is not handled at all by this function. Callers should also
 // call any relevent FSI operations.
-func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, history []dsref.VersionInfo) (didRemove string, removeErr error) {
+func RemoveEntireDataset(ctx context.Context, r repo.Repo, ref dsref.Ref, history []DatasetLogItem) (didRemove string, removeErr error) {
 	// If the dataset has no history (such as running `qri init` without `qri save`), then
 	// the ref has no path. Can't call RemoveNVersionsFromStore without a path, but don't
 	// need to call it anyway. Skip it.

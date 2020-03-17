@@ -276,8 +276,6 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     commitTitle   = created dataset
-     commitMessage = created dataset
      headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -311,8 +309,6 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978310921
-     commitTitle   = created dataset
-     commitMessage = created dataset
      headRef       = /ipfs/QmVjFS46hBiyuCjg7zYUijmCCZz1GG53ZSgNFKw4hbjWnY
   1) initID        = gdulisqthishkm3rrrk4sals4hnnljkgurxteqwnlq5kssxqpp3q
      profileID     = QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
@@ -322,8 +318,6 @@ func TestSaveDscacheFirstCommit(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     commitTitle   = created dataset
-     commitMessage = created dataset
      headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -371,8 +365,6 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      bodySize      = 79
      bodyRows      = 2
      commitTime    = 978310861
-     commitTitle   = created dataset
-     commitMessage = created dataset
      headRef       = /ipfs/QmYFApC68tU71We4rJ3Rp4k2tJhFuknfS8MvcJJfaLPAEi
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -405,11 +397,6 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
      bodySize      = 137
      bodyRows      = 4
      commitTime    = 978310921
-     commitTitle   = structure updated 3 fields
-     commitMessage = structure:
-	updated checksum
-	updated entries
-	updated length
      headRef       = /ipfs/QmbKb9dHzcFsngjDUUUZ12XsREuh37Zm7yJ4f3t5BkCdQv
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {

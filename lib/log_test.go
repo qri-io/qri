@@ -27,23 +27,28 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	firstRef := refs[0].String()
 
-	items := make([]dsref.VersionInfo, len(refs))
+	items := make([]DatasetLogItem, len(refs))
 	for i, r := range refs {
-		items[i] = reporef.ConvertToVersionInfo(&r)
+		ds := r.Dataset
+		items[i].VersionInfo = reporef.ConvertToVersionInfo(&r)
 		items[i].MetaTitle = ""
 		items[i].BodyRows = 0
 		items[i].NumErrors = 0
 		items[i].BodyFormat = ""
+		if ds != nil && ds.Commit != nil {
+			items[i].CommitTitle = ds.Commit.Title
+			items[i].CommitMessage = ds.Commit.Message
+		}
 	}
 
 	cases := []struct {
 		description string
 		p           *LogParams
-		refs        []dsref.VersionInfo
+		refs        []DatasetLogItem
 		err         string
 	}{
 		{"log list - empty",
-			&LogParams{}, []dsref.VersionInfo{}, "repo: empty dataset reference"},
+			&LogParams{}, []DatasetLogItem{}, "repo: empty dataset reference"},
 		{"log list - bad path",
 			&LogParams{Ref: "/badpath"}, nil, "repo: not found"},
 		{"log list - default",
@@ -58,7 +63,7 @@ func TestHistoryRequestsLog(t *testing.T) {
 
 	req := NewLogRequests(node, nil)
 	for _, c := range cases {
-		got := []dsref.VersionInfo{}
+		got := []DatasetLogItem{}
 		err := req.Log(c.p, &got)
 
 		if !(err == nil && c.err == "" || err != nil && err.Error() == c.err) {

@@ -32,13 +32,11 @@ func TestConvertToVersionInfo(t *testing.T) {
 	}
 
 	expect := VersionInfo{
-		Username:      "a",
-		ProfileID:     "a's profile ID",
-		Name:          "b",
-		Path:          "c",
-		CommitTime:    time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
-		CommitTitle:   "d",
-		CommitMessage: "e",
+		Username:   "a",
+		ProfileID:  "a's profile ID",
+		Name:       "b",
+		Path:       "c",
+		CommitTime: time.Date(2000, 1, 1, 1, 1, 1, 1, time.UTC),
 
 		MetaTitle: "f",
 		ThemeList: "g",
