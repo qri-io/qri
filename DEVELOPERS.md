@@ -45,7 +45,7 @@ When you push your branch to github and open up a pull request, it will automati
 
 In order to catch linting and testing errors before pushing the code to github, be sure to run `golint` and `go test`.
 
-##### golint
+##### `golint`
 
 Use `golint` to lint your code. Using `./...` indicates to `golint` that you want to lint each file in the current directory, and each file in each sub-directory you must be in the top level directory of the project in order to lint every file in the project:
 ```shell
@@ -83,6 +83,51 @@ ok    github.com/qri-io/qri/rev (cached)
 Depending on what work you are doing and what has changed, tests may take up to a minute.
 
 If everything is marked "ok", you are in the clear. Any extended output is a sign that a test has failed. Be sure to fix any bugs that are indicated or tests that no longer pass.
+
+#### CLI Help Style
+
+When creating or editing CLI commands, we try and follow a few style rules to keep things consistent:
+
+- Make sure to mention all the positional arguments in the `Use` string. Choose descriptive names in all capital letters, and put optional arguments in square brackets.
+
+- Always include a `Short` description. It should be a phrase, not a sentence: it starts with a lower-case letter and ends without a period.
+
+- Long descriptions should be full sentences and start with a captial letter unless the first word is the name of a command or special word that should never be upper-case.
+
+- Examples should be…
+    - Indented with two spaces.
+    - Example descriptions start with `#`.
+    - Lines that should be typed start with `$`.
+
+- Long text fields should not have leading or trailing blank lines.
+
+- Try to use active, rather than passive, voice wherever possible.
+
+- Use the `Args` field for limiting the number of arguments (or even better, for doing more detailed validation). Cobra has [some nice built-ins for this](https://github.com/spf13/cobra/#positional-and-custom-arguments).
+
+Example:
+
+```go
+	cmd := &cobra.Command{
+		Use:   "add DATASET [DATASET...]",
+		Short: "add datasets from other peers",
+		Long: `Add retrieves datasets owned by other peers and adds them to your repo. 
+The reference names of the datasets will remain the same, including
+the name of the peer that originally added the dataset. You must have 
+` + "`qri connect`" + ` running in another terminal to use this command.`,
+		Example: `  # Add a dataset named their_data, owned by other_peer:
+  $ qri add other_peer/their_data`,
+		Annotations: map[string]string{
+			"group": "dataset",
+		},
+		RunE: func(cmd *cobra.Command, args []string) error {
+			if err := o.Complete(f); err != nil {
+				return err
+			}
+			return o.Run(args)
+		},
+	}
+```
 
 
 ## <a name="commits"></a> Git Commit Guidelines
