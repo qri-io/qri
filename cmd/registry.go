@@ -2,11 +2,16 @@ package cmd
 
 import (
 	"fmt"
+	"io"
+	"io/ioutil"
+	"strings"
+	"syscall"
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry"
 	"github.com/spf13/cobra"
+	"golang.org/x/crypto/ssh/terminal"
 )
 
 // NewRegistryCommand creates a `qri registry` subcommand for working with the
@@ -128,9 +133,7 @@ dataset on a registry.`,
 	}
 
 	signup.Flags().StringVar(&o.Username, "username", "", "desired username")
-	signup.Flags().StringVar(&o.Password, "password", "", "a new password for online login")
 	signup.Flags().StringVar(&o.Email, "email", "", "your email address")
-	signup.MarkFlagRequired("password")
 	signup.MarkFlagRequired("username")
 	signup.MarkFlagRequired("email")
 
@@ -157,8 +160,6 @@ A repo can only be associated with one registry profile.`,
 	}
 
 	prove.Flags().StringVar(&o.Username, "username", "", "your existing registry username")
-	prove.Flags().StringVar(&o.Password, "password", "", "your registry password")
-	prove.MarkFlagRequired("password")
 	prove.MarkFlagRequired("username")
 
 	// TODO (b5) - restore publish & unpublish commands
@@ -187,10 +188,14 @@ func (o *RegistryOptions) Complete(f Factory, args []string) (err error) {
 
 // Signup registers a handle with the registry
 func (o *RegistryOptions) Signup() error {
+	password, err := o.PromptForPassword()
+	if err != nil {
+		return err
+	}
 	p := &registry.Profile{
 		Username: o.Username,
 		Email:    o.Email,
-		Password: o.Password,
+		Password: password,
 	}
 	var ok bool
 	if err := o.RegistryClientMethods.CreateProfile(p, &ok); err != nil {
@@ -201,9 +206,13 @@ func (o *RegistryOptions) Signup() error {
 
 // Prove associates a keypair with an account
 func (o *RegistryOptions) Prove() error {
+	password, err := o.PromptForPassword()
+	if err != nil {
+		return err
+	}
 	p := &registry.Profile{
 		Username: o.Username,
-		Password: o.Password,
+		Password: password,
 	}
 	var ok bool
 	if err := o.RegistryClientMethods.ProveProfileKey(p, &ok); err != nil {
@@ -211,6 +220,24 @@ func (o *RegistryOptions) Prove() error {
 	}
 	printSuccess(o.ErrOut, "proved user %s to registry, connected local key", o.Username)
 	return nil
+}
+
+// PromptForPassword will prompt the user for a password without echoing it to the screen
+func (o *RegistryOptions) PromptForPassword() (string, error) {
+	io.WriteString(o.Out, "password: ")
+	bytePassword, err := terminal.ReadPassword(int(syscall.Stdin))
+	io.WriteString(o.Out, "\n")
+	if err != nil {
+		// Reading from string buffer fails with one of these errors, depending on operating system
+		// "inappropriate ioctl for device"
+		// "operation not supported by device"
+		if strings.Contains(err.Error(), "device") {
+			bytePassword, err = ioutil.ReadAll(o.In)
+		} else {
+			return "", err
+		}
+	}
+	return string(bytePassword), nil
 }
 
 // // Publish executes the publish command
