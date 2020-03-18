@@ -104,11 +104,11 @@ func (m *FSIMethods) StatusForAlias(alias *string, res *[]StatusItem) (err error
 	return err
 }
 
-// ShowCommit gets changes that happened at a particular version in the history of the given
+// WhatChanged gets changes that happened at a particular version in the history of the given
 // dataset reference. Not used for FSI.
-func (m *FSIMethods) ShowCommit(ref *string, res *[]StatusItem) (err error) {
+func (m *FSIMethods) WhatChanged(ref *string, res *[]StatusItem) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.StoredStatus", ref, res)
+		return m.inst.rpc.Call("FSIMethods.WhatChanged", ref, res)
 	}
 	ctx := context.TODO()
 

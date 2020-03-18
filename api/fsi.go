@@ -73,9 +73,9 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
-		// TODO(dustmop): This is going away in the future, switch to /showcommit instead.
+		// TODO(dustmop): This is going away in the future, switch to /whatchanged instead.
 		refStr := ref.String()
-		err = h.ShowCommit(&refStr, &res)
+		err = h.WhatChanged(&refStr, &res)
 		if err != nil {
 			if err == repo.ErrNoHistory {
 				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
@@ -88,9 +88,9 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 	}
 }
 
-// ShowCommitHandler is the endpoint for showing a commit at a specific reference
-func (h *FSIHandlers) ShowCommitHandler(routePrefix string) http.HandlerFunc {
-	handleStatus := h.showCommitHandler(routePrefix)
+// WhatChangedHandler is the endpoint for showing what changed for a specific commit
+func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
+	handleStatus := h.whatChangedHandler(routePrefix)
 
 	return func(w http.ResponseWriter, r *http.Request) {
 		if h.ReadOnly {
@@ -109,7 +109,7 @@ func (h *FSIHandlers) ShowCommitHandler(routePrefix string) http.HandlerFunc {
 	}
 }
 
-func (h *FSIHandlers) showCommitHandler(routePrefix string) http.HandlerFunc {
+func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
 		if err != nil {
@@ -119,7 +119,7 @@ func (h *FSIHandlers) showCommitHandler(routePrefix string) http.HandlerFunc {
 
 		res := []lib.StatusItem{}
 		refStr := ref.String()
-		err = h.ShowCommit(&refStr, &res)
+		err = h.WhatChanged(&refStr, &res)
 		if err != nil {
 			if err == repo.ErrNoHistory {
 				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)

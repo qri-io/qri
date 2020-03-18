@@ -61,14 +61,14 @@ func TestFSIHandlers(t *testing.T) {
 	}
 	runHandlerTestCases(t, "status", h.StatusHandler(""), statusCases, true)
 
-	showCommitCases := []handlerTestCase{
+	whatChangedCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},
 		// TODO (b5) - can't ask for an FSI-linked status b/c the responses change with
 		// temp directory names
 		{"GET", "/me/movies", nil},
 		{"DELETE", "/", nil},
 	}
-	runHandlerTestCases(t, "showcommit", h.ShowCommitHandler(""), showCommitCases, true)
+	runHandlerTestCases(t, "whatchanged", h.WhatChangedHandler(""), whatChangedCases, true)
 
 	checkoutCases := []handlerTestCase{
 		{"OPTIONS", "/", nil},

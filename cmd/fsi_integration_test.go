@@ -598,8 +598,8 @@ fix these problems before saving this dataset
 	}
 }
 
-// Test show commit command
-func TestShowCommit(t *testing.T) {
+// Test what changed command
+func TestWhatChanged(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_status_at_version")
 	defer run.Delete()
 
@@ -619,43 +619,43 @@ func TestShowCommit(t *testing.T) {
 	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/status_ver")
 	ref4 := parseRefFromSave(output)
 
-	// Status for the first version of the dataset, both body and schema were added.
-	output = run.MustExec(t, fmt.Sprintf("qri showcommit %s", ref1))
+	// What changed for the first version of the dataset, both body and schema were added.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref1))
 	expect := `  structure: add
   body: add
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri showcommit (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the second version, meta added.
-	output = run.MustExec(t, fmt.Sprintf("qri showcommit %s", ref2))
+	// What changed for the second version, meta added.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref2))
 	expect = `  meta: add
   structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri showcommit (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the third version, meta modified.
-	output = run.MustExec(t, fmt.Sprintf("qri showcommit %s", ref3))
+	// What changed for the third version, meta modified.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref3))
 	expect = `  meta: modified
   structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri showcommit (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the fourth version, body modified.
-	output = run.MustExec(t, fmt.Sprintf("qri showcommit %s", ref4))
+	// What changed for the fourth version, body modified.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref4))
 	expect = `  meta: unmodified
   structure: unmodified
   body: modified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri showcommit (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 }
 

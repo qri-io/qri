@@ -64,13 +64,13 @@ https://github.com/qri-io/qri/issues`,
 		NewSaveCommand(opt, ioStreams),
 		NewSearchCommand(opt, ioStreams),
 		NewSetupCommand(opt, ioStreams),
-		NewShowCommitCommand(opt, ioStreams),
 		NewStatsCommand(opt, ioStreams),
 		NewStatusCommand(opt, ioStreams),
 		NewUseCommand(opt, ioStreams),
 		NewUpdateCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
 		NewVersionCommand(opt, ioStreams),
+		NewWhatChangedCommand(opt, ioStreams),
 	)
 
 	for _, sub := range cmd.Commands() {
