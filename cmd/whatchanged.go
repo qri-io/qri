@@ -13,15 +13,13 @@ func NewWhatChangedCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &WhatChangedOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
 		Use:   "whatchanged DATASET",
+		Hidden: true,
 		Short: "shows what changed at a particular commit",
 		Long: `Shows what changed for components at a particular commit, that is, which
 were added, modified or removed. This is analagous to the status command,
 except only available for dataset versions in history.`,
 		Example: `  # Show what changed for the head commit
   $ qri whatchanged me/dataset_name`,
-		Annotations: map[string]string{
-			"group": "dataset",
-		},
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err
