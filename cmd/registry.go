@@ -160,7 +160,9 @@ A repo can only be associated with one registry profile.`,
 	}
 
 	prove.Flags().StringVar(&o.Username, "username", "", "your existing registry username")
+	prove.Flags().StringVar(&o.Email, "email", "", "your email address")
 	prove.MarkFlagRequired("username")
+	prove.MarkFlagRequired("email")
 
 	// TODO (b5) - restore publish & unpublish commands
 	cmd.AddCommand( /*publish, unpublish,*/ status, signup, prove)
@@ -212,6 +214,7 @@ func (o *RegistryOptions) Prove() error {
 	}
 	p := &registry.Profile{
 		Username: o.Username,
+		Email:    o.Email,
 		Password: password,
 	}
 	var ok bool
