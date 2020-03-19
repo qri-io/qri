@@ -477,8 +477,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	// Parsed human-friendly dsref can only have username and name.
 	datasetRef := reporef.DatasetRef{
-		Peername:  ref.Username,
-		Name:      ref.Name,
+		Peername: ref.Username,
+		Name:     ref.Name,
 	}
 
 	ds := &dataset.Dataset{}

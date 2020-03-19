@@ -274,19 +274,21 @@ func TestSaveBasicCommands(t *testing.T) {
 		//},
 	}
 	for _, c := range goodCases {
-		// TODO(dustmop): Would be preferable to instead have a way to clear the refstore
-		run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
-		defer run.Delete()
+		t.Run(c.description, func(t *testing.T) {
+			// TODO(dustmop): Would be preferable to instead have a way to clear the refstore
+			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			defer run.Delete()
 
-		err := run.ExecCommand(c.command)
-		if err != nil {
-			t.Errorf("%s: error %s\n", c.description, err)
-			continue
-		}
-		actual := parseDatasetRefFromOutput(run.GetCommandOutput())
-		if diff := cmp.Diff(c.expect, actual); diff != "" {
-			t.Errorf("%s: result mismatch (-want +got):%s\n", c.description, diff)
-		}
+			err := run.ExecCommand(c.command)
+			if err != nil {
+				t.Errorf("error %s\n", err)
+				return
+			}
+			actual := parseDatasetRefFromOutput(run.GetCommandOutput())
+			if diff := cmp.Diff(c.expect, actual); diff != "" {
+				t.Errorf("result mismatch (-want +got):%s\n", diff)
+			}
+		})
 	}
 
 	badCases := []struct {
@@ -311,19 +313,20 @@ func TestSaveBasicCommands(t *testing.T) {
 		},
 	}
 	for _, c := range badCases {
-		run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
-		defer run.Delete()
+		t.Run(c.description, func(t *testing.T) {
+			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			defer run.Delete()
 
-		err := run.ExecCommand(c.command)
-		if err == nil {
-			output := run.GetCommandOutput()
-			t.Errorf("%s: expected an error, did not get one, output: %s\n", c.description, output)
-			continue
-		}
-		if err.Error() != c.expectErr {
-			t.Errorf("%s: mismatch, expect: %s, got: %s\n", c.description, c.expectErr, err.Error())
-			continue
-		}
+			err := run.ExecCommand(c.command)
+			if err == nil {
+				output := run.GetCommandOutput()
+				t.Errorf("expected an error, did not get one, output: %s\n", output)
+				return
+			}
+			if err.Error() != c.expectErr {
+				t.Errorf("mismatch, expect: %s, got: %s\n", c.expectErr, err.Error())
+			}
+		})
 	}
 }
 
