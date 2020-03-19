@@ -10,7 +10,7 @@ type Update struct {
 }
 
 // DefaultUpdateAddress is the local address Update serves on by default
-var DefaultUpdateAddress = "127.0.0.1:2506"
+var DefaultUpdateAddress = "127.0.0.1:2507"
 
 // DefaultUpdate creates a new default Update configuration
 func DefaultUpdate() *Update {
