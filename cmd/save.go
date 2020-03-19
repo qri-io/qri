@@ -160,6 +160,7 @@ func (o *SaveOptions) Run() (err error) {
 		Title:    o.Title,
 		Message:  o.Message,
 
+		ScriptOutput:        o.ErrOut,
 		ReadFSI:             o.UsingFSI,
 		WriteFSI:            o.UsingFSI,
 		FilePaths:           o.FilePaths,

@@ -121,6 +121,15 @@ func (r *TempRepo) GetOutput() string {
 	return ""
 }
 
+// GetErrOutput returns the "stderr" output from the previously executed command
+func (r *TempRepo) GetErrOutput() string {
+	buffer, ok := r.Streams.ErrOut.(*bytes.Buffer)
+	if ok {
+		return buffer.String()
+	}
+	return ""
+}
+
 // GetPathForDataset returns the path to where the index'th dataset is stored on CAFS.
 func (r *TempRepo) GetPathForDataset(index int) (string, error) {
 	dsRefs := filepath.Join(r.QriPath, "refs.fbs")
