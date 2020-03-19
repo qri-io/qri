@@ -32,7 +32,7 @@ func TestStatsComplete(t *testing.T) {
 		err := opt.Complete(f, c.args)
 
 		if c.err != err.Error() {
-			t.Errorf("%d. case %s, error mismatch. Expected: '%s', Got: '%s'", i, c.description, err, err.Error())
+			t.Errorf("%d. case %s, error mismatch. Expected: '%s', Got: '%s'", i, c.description, c.err, err.Error())
 			ioReset(in, out, errs)
 			continue
 		}
@@ -58,8 +58,8 @@ func TestStatsComplete(t *testing.T) {
 			t.Errorf("%d. case %s, unexpected error: '%s'", i, c.description, err.Error())
 		}
 
-		if c.expectedRef != opt.Ref {
-			t.Errorf("%d. case %s, incorrect ref. Expected: '%s', Got: '%s'", i, c.description, c.expectedRef, opt.Ref)
+		if c.expectedRef != opt.Refs.Ref() {
+			t.Errorf("%d. case %s, incorrect ref. Expected: '%s', Got: '%s'", i, c.description, c.expectedRef, opt.Refs.Ref())
 			ioReset(in, out, errs)
 			continue
 		}
@@ -101,7 +101,7 @@ func TestStatsRun(t *testing.T) {
 
 		opt := &StatsOptions{
 			IOStreams:       streams,
-			Ref:             c.ref,
+			Refs:            NewExplicitRefSelect(c.ref),
 			DatasetRequests: dsr,
 		}
 
@@ -128,7 +128,7 @@ func TestStatsRun(t *testing.T) {
 
 		opt := &StatsOptions{
 			IOStreams:       streams,
-			Ref:             c.ref,
+			Refs:            NewExplicitRefSelect(c.ref),
 			DatasetRequests: dsr,
 		}
 

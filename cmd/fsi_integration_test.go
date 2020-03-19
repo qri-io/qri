@@ -119,6 +119,8 @@ func TestInitBadName(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_init_invalid_name")
 	defer run.Delete()
 
+	_ = run.CreateAndChdirToWorkDir("invalid_dataset_name")
+
 	// Init with an invalid dataset name
 	err := run.ExecCommand("qri init --name invalid-dataset-name --format csv")
 	if err == nil {
@@ -221,6 +223,27 @@ func TestInitExplicitDirectory(t *testing.T) {
 	expectContents := []string{".qri-ref", "body.csv", "meta.json", "structure.json"}
 	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
+// Test that status cannot accept a dataset reference
+func TestStatusCannotUseRef(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_repo")
+	defer run.Delete()
+
+	_ = run.CreateAndChdirToWorkDir("fsi_repo")
+
+	// Init with an invalid dataset name
+	run.MustExec(t, "qri init --name fsi_repo")
+
+	// Status cannot take a dataset reference
+	err := run.ExecCommand("qri status me/fsi_repo")
+	if err == nil {
+		t.Fatal("expected error trying to get status, did not get an error")
+	}
+	expect := "can only get status of the current working directory"
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
 }
 
@@ -575,8 +598,8 @@ fix these problems before saving this dataset
 	}
 }
 
-// Test status at specific versions
-func TestStatusAtVersion(t *testing.T) {
+// Test what changed command
+func TestWhatChanged(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_status_at_version")
 	defer run.Delete()
 
@@ -596,43 +619,43 @@ func TestStatusAtVersion(t *testing.T) {
 	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/status_ver")
 	ref4 := parseRefFromSave(output)
 
-	// Status for the first version of the dataset, both body and schema were added.
-	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref1))
+	// What changed for the first version of the dataset, both body and schema were added.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref1))
 	expect := `  structure: add
   body: add
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri status (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the second version, meta added.
-	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref2))
+	// What changed for the second version, meta added.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref2))
 	expect = `  meta: add
   structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri status (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the third version, meta modified.
-	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref3))
+	// What changed for the third version, meta modified.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref3))
 	expect = `  meta: modified
   structure: unmodified
   body: unmodified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri status (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 
-	// Status for the fourth version, body modified.
-	output = run.MustExec(t, fmt.Sprintf("qri status %s", ref4))
+	// What changed for the fourth version, body modified.
+	output = run.MustExec(t, fmt.Sprintf("qri whatchanged %s", ref4))
 	expect = `  meta: unmodified
   structure: unmodified
   body: modified
 `
 	if diff := cmpTextLines(expect, output); diff != "" {
-		t.Errorf("qri status (-want +got):\n%s", diff)
+		t.Errorf("qri whatchanged (-want +got):\n%s", diff)
 	}
 }
 

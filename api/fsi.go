@@ -73,8 +73,53 @@ func (h *FSIHandlers) statusHandler(routePrefix string) http.HandlerFunc {
 			return
 		}
 
+		// TODO(dustmop): This is going away in the future, switch to /whatchanged instead.
 		refStr := ref.String()
-		err = h.StatusAtVersion(&refStr, &res)
+		err = h.WhatChanged(&refStr, &res)
+		if err != nil {
+			if err == repo.ErrNoHistory {
+				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
+				return
+			}
+			util.WriteErrResponse(w, http.StatusInternalServerError, fmt.Errorf("error getting status: %s", err.Error()))
+			return
+		}
+		util.WriteResponse(w, res)
+	}
+}
+
+// WhatChangedHandler is the endpoint for showing what changed for a specific commit
+func (h *FSIHandlers) WhatChangedHandler(routePrefix string) http.HandlerFunc {
+	handleStatus := h.whatChangedHandler(routePrefix)
+
+	return func(w http.ResponseWriter, r *http.Request) {
+		if h.ReadOnly {
+			readOnlyResponse(w, routePrefix)
+			return
+		}
+
+		switch r.Method {
+		case "OPTIONS":
+			util.EmptyOkHandler(w, r)
+		default:
+			util.NotFoundHandler(w, r)
+		case "GET":
+			handleStatus(w, r)
+		}
+	}
+}
+
+func (h *FSIHandlers) whatChangedHandler(routePrefix string) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ref, err := DatasetRefFromPath(r.URL.Path[len(routePrefix):])
+		if err != nil {
+			util.WriteErrResponse(w, http.StatusBadRequest, fmt.Errorf("bad reference: %s", err.Error()))
+			return
+		}
+
+		res := []lib.StatusItem{}
+		refStr := ref.String()
+		err = h.WhatChanged(&refStr, &res)
 		if err != nil {
 			if err == repo.ErrNoHistory {
 				util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)

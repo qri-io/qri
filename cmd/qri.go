@@ -70,6 +70,7 @@ https://github.com/qri-io/qri/issues`,
 		NewUpdateCommand(opt, ioStreams),
 		NewValidateCommand(opt, ioStreams),
 		NewVersionCommand(opt, ioStreams),
+		NewWhatChangedCommand(opt, ioStreams),
 	)
 
 	for _, sub := range cmd.Commands() {
