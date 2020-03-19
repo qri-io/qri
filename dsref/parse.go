@@ -3,6 +3,7 @@ package dsref
 import (
 	"fmt"
 	"regexp"
+	"unicode"
 )
 
 // These functions parse a string to create a dsref. We refer to a "human-friendly reference"
@@ -41,12 +42,18 @@ var (
 	concreteRef    = regexp.MustCompile(`^@(` + b58Id + `)?\/(` + alphaNumeric + `)\/(` + b58Id + `)`)
 	b58StrictCheck = regexp.MustCompile(`^Qm[1-9A-HJ-NP-Za-km-z]*$`)
 
+	// ErrEmptyRef is an error for when a reference is empty
+	ErrEmptyRef = fmt.Errorf("empty reference")
 	// ErrParseError is an error returned when parsing fails
 	ErrParseError = fmt.Errorf("could not parse ref")
 	// ErrNotHumanFriendly is an error returned when a reference is not human-friendly
 	ErrNotHumanFriendly = fmt.Errorf("ref can only have username/name")
+	// ErrBadCaseName is the error when a bad case is used in the dataset name
+	ErrBadCaseName = fmt.Errorf("dataset name may not contain any upper-case letters")
+	// ErrBadCaseShouldRename is the error when a dataset should be renamed to not use upper case letters
+	ErrBadCaseShouldRename = fmt.Errorf("dataset name should not contain any upper-case letters, rename it to only use lower-case letters, numbers, and underscores")
 	// ErrDescribeValidName is an error describing a valid dataset name
-	ErrDescribeValidName = fmt.Errorf("dataset name must start with a letter, and only contain letters, numbers, and underscore")
+	ErrDescribeValidName = fmt.Errorf("dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters")
 )
 
 // Parse a reference from a string
@@ -54,7 +61,7 @@ func Parse(text string) (Ref, error) {
 	var r Ref
 	origLength := len(text)
 	if origLength == 0 {
-		return r, fmt.Errorf("empty reference")
+		return r, ErrEmptyRef
 	}
 
 	remain, partial, err := parseHumanFriendly(text)
@@ -80,6 +87,14 @@ func Parse(text string) (Ref, error) {
 		return r, fmt.Errorf("parsing ref, unexpected character at position %d: '%c'", pos, text[0])
 	}
 
+	// Dataset names are not supposed to contain upper-case characters. For now, return an error
+	// but also the reference; callers should display a warning, but continue to work for now.
+	for _, rune := range r.Name {
+		if unicode.IsUpper(rune) {
+			return r, ErrBadCaseName
+		}
+	}
+
 	return r, nil
 }
 
@@ -88,7 +103,7 @@ func ParseHumanFriendly(text string) (Ref, error) {
 	var r Ref
 	origLength := len(text)
 	if origLength == 0 {
-		return r, fmt.Errorf("empty reference")
+		return r, ErrEmptyRef
 	}
 
 	remain, partial, err := parseHumanFriendly(text)
@@ -108,13 +123,21 @@ func ParseHumanFriendly(text string) (Ref, error) {
 		return r, fmt.Errorf("parsing ref, unexpected character at position %d: '%c'", pos, text[0])
 	}
 
+	// Dataset names are not supposed to contain upper-case characters. For now, return an error
+	// but also the reference; callers should display a warning, but continue to work for now.
+	for _, rune := range r.Name {
+		if unicode.IsUpper(rune) {
+			return r, ErrBadCaseName
+		}
+	}
+
 	return r, nil
 }
 
 // IsRefString returns whether the string parses as a valid reference
 func IsRefString(text string) bool {
 	_, err := Parse(text)
-	return err == nil
+	return err == nil || err == ErrBadCaseName
 }
 
 // IsValidName returns whether the dataset name is valid

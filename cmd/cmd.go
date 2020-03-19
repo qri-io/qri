@@ -12,14 +12,11 @@ import (
 	"io"
 	"os"
 	"path/filepath"
-	"strings"
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
-	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/repo/gen"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 var log = golog.Logger("cmd")
@@ -111,12 +108,4 @@ func parseSecrets(secrets ...string) (map[string]string, error) {
 		s[secrets[i]] = secrets[i+1]
 	}
 	return s, nil
-}
-
-// parseCmdLineDatasetRef parses DatasetRefs, assuming peer "me" if none given.
-func parseCmdLineDatasetRef(ref string) (reporef.DatasetRef, error) {
-	if !strings.ContainsAny(ref, "@/") {
-		ref = "me/" + ref
-	}
-	return repo.ParseDatasetRef(ref)
 }

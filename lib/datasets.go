@@ -235,6 +235,11 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 	ctx := context.TODO()
 
+	// Check if the dataset ref uses bad-case characters, show a warning.
+	if _, err := dsref.Parse(p.Path); err == dsref.ErrBadCaseName {
+		log.Error(dsref.ErrBadCaseShouldRename)
+	}
+
 	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
 	if err != nil {
 		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Path, err)
@@ -433,7 +438,6 @@ func (p *SaveParams) AbsolutizePaths() error {
 }
 
 // Save adds a history entry, updating a dataset
-// TODO - need to make sure users aren't forking by referencing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
 		p.ScriptOutput = nil
@@ -445,27 +449,50 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		return fmt.Errorf("option to make dataset private not yet implemented, refer to https://github.com/qri-io/qri/issues/291 for updates")
 	}
 
-	// From cmd/, an empty reference becomes "me/", but from api/, it becomes "" (empty string).
-	// We must allow empty references for the case when the --new flag is being used, since it
-	// can be used to generate a name from a bodypath.
-	// TODO(dlong): Fix me! Check for these cases, return reasonable errors, test at lib/ level.
-	ref, err := repo.ParseDatasetRef(p.Ref)
-	if err != nil && err != repo.ErrEmptyRef {
+	ref, err := dsref.ParseHumanFriendly(p.Ref)
+	if err == dsref.ErrBadCaseName {
+		// If dataset name is using bad-case characters, and is not yet in use, fail with error.
+		if !r.nameIsInUse(ref) {
+			return err
+		}
+		// If dataset name already exists, just log a warning and then continue.
+		log.Error(dsref.ErrBadCaseShouldRename)
+	} else if err == dsref.ErrEmptyRef {
+		// Okay if reference is empty. Later code will try to infer the name from other parameters.
+	} else if err != nil {
+		// If some other error happened, return that error.
 		return err
+	}
+
+	// Validate that username is our own, it's not valid to try to save a dataset with someone
+	// else's username. Without this check, base will replace the username with our own regardless,
+	// it's better to have an error to display, rather than silently ignore it.
+	pro, err := r.node.Repo.Profile()
+	if err != nil {
+		return err
+	}
+	if ref.Username != "" && ref.Username != "me" && ref.Username != pro.Peername {
+		return fmt.Errorf("cannot save using a different username than \"%s\"", pro.Peername)
+	}
+
+	// Parsed human-friendly dsref can only have username and name.
+	datasetRef := reporef.DatasetRef{
+		Peername:  ref.Username,
+		Name:      ref.Name,
 	}
 
 	ds := &dataset.Dataset{}
 
 	if p.ReadFSI {
-		err = repo.CanonicalizeDatasetRef(r.node.Repo, &ref)
+		err = repo.CanonicalizeDatasetRef(r.node.Repo, &datasetRef)
 		if err != nil && err != repo.ErrNoHistory {
 			return err
 		}
-		if ref.FSIPath == "" {
+		if datasetRef.FSIPath == "" {
 			return fsi.ErrNoLink
 		}
 
-		ds, err = fsi.ReadDir(ref.FSIPath)
+		ds, err = fsi.ReadDir(datasetRef.FSIPath)
 		if err != nil {
 			return
 		}
@@ -473,8 +500,8 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	// add param-supplied changes
 	ds.Assign(&dataset.Dataset{
-		Name:     ref.Name,
-		Peername: ref.Peername,
+		Name:     datasetRef.Name,
+		Peername: datasetRef.Peername,
 		BodyPath: p.BodyPath,
 		Commit: &dataset.Commit{
 			Title:   p.Title,
@@ -488,7 +515,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 
 	if p.Recall != "" {
-		ref := reporef.DatasetRef{
+		datasetRef := reporef.DatasetRef{
 			Peername: ds.Peername,
 			Name:     ds.Name,
 			// TODO - fix, but really this should be fine for a while because
@@ -496,7 +523,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 			// ProfileID: ds.ProfileID,
 			Path: ds.Path,
 		}
-		recall, err := base.Recall(ctx, r.node.Repo, p.Recall, ref)
+		recall, err := base.Recall(ctx, r.node.Repo, p.Recall, datasetRef)
 		if err != nil {
 			return err
 		}
@@ -541,7 +568,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	}
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
-	fsiPath := ref.FSIPath
+	fsiPath := datasetRef.FSIPath
 
 	switches := base.SaveDatasetSwitches{
 		Replace:             p.Replace,
@@ -552,7 +579,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		ShouldRender:        p.ShouldRender,
 		NewName:             p.NewName,
 	}
-	ref, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
+	datasetRef, err = base.SaveDataset(ctx, r.node.Repo, r.node.LocalStreams, ds, p.Secrets, p.ScriptOutput, switches)
 	if err != nil {
 		log.Debugf("create ds error: %s\n", err.Error())
 		return err
@@ -560,14 +587,14 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	// TODO (b5) - this should be integrated into base.SaveDataset
 	if fsiPath != "" {
-		ref.FSIPath = fsiPath
-		if err = r.node.Repo.PutRef(ref); err != nil {
+		datasetRef.FSIPath = fsiPath
+		if err = r.node.Repo.PutRef(datasetRef); err != nil {
 			return err
 		}
 	}
 
 	if p.ReturnBody {
-		if err = base.InlineJSONBody(ref.Dataset); err != nil {
+		if err = base.InlineJSONBody(datasetRef.Dataset); err != nil {
 			return err
 		}
 	}
@@ -575,7 +602,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 	if p.Publish {
 		var publishedRef reporef.DatasetRef
 		err = r.SetPublishStatus(&SetPublishStatusParams{
-			Ref:           ref.String(),
+			Ref:           datasetRef.String(),
 			PublishStatus: true,
 			// UpdateRegistry:    true,
 			// UpdateRegistryPin: true,
@@ -586,14 +613,36 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 		}
 	}
 
-	*res = ref
+	*res = datasetRef
 
 	if p.WriteFSI {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
-		fsi.WriteComponents(res.Dataset, ref.FSIPath, r.inst.node.Repo.Filesystem())
+		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, r.inst.node.Repo.Filesystem())
 	}
 	return nil
+}
+
+// This is somewhat of a hack, we shouldn't need to lookup anything about the dataset reference
+// before running Save. However, we need to check for now until we solve the problem of
+// dataset names existing with bad-case characters.
+// See this issue: https://github.com/qri-io/qri/issues/1132
+func (r *DatasetRequests) nameIsInUse(ref dsref.Ref) bool {
+	param := GetParams{
+		Path: ref.Alias(),
+	}
+	res := GetResult{}
+	err := r.Get(&param, &res)
+	if err == repo.ErrNotFound {
+		return false
+	}
+	if err != nil {
+		// TODO(dustmop): Unsure if this is correct. If `Get` hits some other error, we aren't
+		// sure if the dataset name is in use. Log the error and assume the dataset does in fact
+		// exist.
+		log.Error(err)
+	}
+	return true
 }
 
 // SetPublishStatusParams encapsulates parameters for setting the publication status of a dataset

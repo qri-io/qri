@@ -51,6 +51,17 @@ func TestParse(t *testing.T) {
 	}
 }
 
+func TestParseBadCase(t *testing.T) {
+	ref, err := Parse("test_peer/a_New_Dataset")
+	if err != ErrBadCaseName {
+		t.Errorf("expected to get error %s, but got %s", ErrBadCaseName, err)
+	}
+	expect := Ref{Username: "test_peer", Name: "a_New_Dataset"}
+	if !ref.Equals(expect) {
+		t.Errorf("mismatch: expect %s, got %s", expect, ref)
+	}
+}
+
 func TestParseHumanFriendly(t *testing.T) {
 	goodCases := []struct {
 		description string

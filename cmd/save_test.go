@@ -10,7 +10,9 @@ import (
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
@@ -286,6 +288,43 @@ func TestSaveBasicCommands(t *testing.T) {
 			t.Errorf("%s: result mismatch (-want +got):%s\n", c.description, diff)
 		}
 	}
+
+	badCases := []struct {
+		description string
+		command     string
+		expectErr   string
+	}{
+		{
+			"dataset file other username",
+			"qri save --file dataset.yaml other/my_dataset",
+			"cannot save using a different username than \"test_peer\"",
+		},
+		{
+			"dataset file explicit version",
+			"qri save --file dataset.yaml me/my_dataset@/ipfs/QmVersion",
+			"ref can only have username/name",
+		},
+		{
+			"body file other username",
+			"qri save --body body_ten.csv other/my_dataset",
+			"cannot save using a different username than \"test_peer\"",
+		},
+	}
+	for _, c := range badCases {
+		run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+		defer run.Delete()
+
+		err := run.ExecCommand(c.command)
+		if err == nil {
+			output := run.GetCommandOutput()
+			t.Errorf("%s: expected an error, did not get one, output: %s\n", c.description, output)
+			continue
+		}
+		if err.Error() != c.expectErr {
+			t.Errorf("%s: mismatch, expect: %s, got: %s\n", c.description, c.expectErr, err.Error())
+			continue
+		}
+	}
 }
 
 func TestSaveInferName(t *testing.T) {
@@ -490,6 +529,45 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
+}
+
+func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_save_bad_case")
+	defer run.Delete()
+
+	prevTimestampFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		return 1000
+	}
+	defer func() {
+		logbook.NewTimestamp = prevTimestampFunc
+	}()
+
+	// Try to save a new dataset, but its name has upper-case characters.
+	err := run.ExecCommand("qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expect := `dataset name may not contain any upper-case letters`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Construct a dataset in order to have an existing version in the repo.
+	ds := dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaArray,
+		},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
+
+	// Add the dataset to the repo directly, which avoids the name validation check.
+	ctx := context.Background()
+	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+
+	// Save the dataset, which will work now that a version already exists.
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
 }
 
 func parseDatasetRefFromOutput(text string) string {

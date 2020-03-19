@@ -126,7 +126,7 @@ func TestInitBadName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore`
+	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters`
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
