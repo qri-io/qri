@@ -2,6 +2,9 @@ package cmd
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
@@ -195,6 +198,92 @@ func TestSaveRun(t *testing.T) {
 			t.Errorf("case '%s', err output mismatch. Expected: '%s', Got: '%s'", c.description, c.expect, errs.String())
 
 			continue
+		}
+	}
+}
+
+func TestSaveBasicCommands(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpPath, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		os.Chdir(pwd)
+		os.RemoveAll(tmpPath)
+	}()
+
+	// Copy some files into tmpPath, change to it
+	copyFile(t, "testdata/movies/ds_ten.yaml", filepath.Join(tmpPath, "dataset.yaml"))
+	copyFile(t, "testdata/movies/body_ten.csv", filepath.Join(tmpPath, "body_ten.csv"))
+	copyFile(t, "testdata/movies/structure_override.json", filepath.Join(tmpPath, "structure.json"))
+	os.Chdir(tmpPath)
+
+	goodCases := []struct {
+		description string
+		command     string
+		expect      string
+	}{
+		{
+			"dataset file infer name",
+			"qri save --file dataset.yaml",
+			"dataset saved: test_peer/ten_movies@/ipfs/QmU935SkFafE786u7jQPknB858PDrJRFUJboxbS4vKkAe7\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"dataset file me ref",
+			"qri save --file dataset.yaml me/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmSSTAcuehjFFiHNBFicTXJv2uhbKg4hjGgCL8W46D3jGG\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"dataset file explicit ref",
+			"qri save --file dataset.yaml test_peer/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmeW1M8W9yj69pxE3uJZbYVBCaEARYkrkje3NHY1s6tHtP\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file infer name",
+			"qri save --body body_ten.csv",
+			"dataset saved: test_peer/body_tencsv@/ipfs/QmWaS8ndeAhAWWSUmwJ6HiXKMNWnsL1LYhzrWJyzCgR9pd\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file me ref",
+			"qri save --body body_ten.csv me/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmeyznW4FBaLY8rk5xpZyFHXixrq8qFJrFf8v1REZzmLLg\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file explicit ref",
+			"qri save --body body_ten.csv test_peer/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmP9yay2KwPnyDLLhGXZsLdKG31qMAR3CSBAmscz3znC9C\nthis dataset has 1 validation errors\n",
+		},
+		// TODO(dustmop): It's intended that a user can save a dataset with a structure but no
+		// body. At some point that functionality broke, because there was no test for it. Fix that
+		// in a follow-up change.
+		//{
+		//	"structure file me ref",
+		//	"qri save --file structure.json me/my_dataset",
+		//	"TODO(dustmop): Should be possible to save a dataset with structure and no body",
+		//},
+		//{
+		//	"structure file explicit ref",
+		//	"qri save --file structure.json test_peer/my_dataset",
+		//	"TODO(dustmop): Should be possible to save a dataset with structure and no body",
+		//},
+	}
+	for _, c := range goodCases {
+		// TODO(dustmop): Would be preferable to instead have a way to clear the refstore
+		run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+		defer run.Delete()
+
+		err := run.ExecCommand(c.command)
+		if err != nil {
+			t.Errorf("%s: error %s\n", c.description, err)
+			continue
+		}
+		actual := parseDatasetRefFromOutput(run.GetCommandOutput())
+		if diff := cmp.Diff(c.expect, actual); diff != "" {
+			t.Errorf("%s: result mismatch (-want +got):%s\n", c.description, diff)
 		}
 	}
 }
@@ -409,4 +498,15 @@ func parseDatasetRefFromOutput(text string) string {
 		return ""
 	}
 	return text[pos:]
+}
+
+func copyFile(t *testing.T, source, destin string) {
+	data, err := ioutil.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(destin, data, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

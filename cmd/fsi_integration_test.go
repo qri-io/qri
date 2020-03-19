@@ -411,9 +411,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	run.MustExec(t, "qri status")
-
-	output = run.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: body (source: body.csv)
