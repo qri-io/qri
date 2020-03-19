@@ -33,13 +33,13 @@ func TestOpts(t *testing.T) {
 	o := &ExecOpts{}
 	SetSecrets(nil)(o)
 	SetSecrets(map[string]string{"a": "b"})(o)
-	SetOutWriter(nil)(o)
+	SetErrWriter(nil)(o)
 	AddQriRepo(nil)(o)
 	AddMutateFieldCheck(nil)(o)
 
 	expect := &ExecOpts{
 		Secrets:   map[string]interface{}{"a": "b"},
-		OutWriter: nil,
+		ErrWriter: nil,
 	}
 
 	if diff := cmp.Diff(expect, o); diff != "" {
@@ -55,7 +55,7 @@ func TestExecScript(t *testing.T) {
 	ds.Transform.SetScriptFile(scriptFile(t, "testdata/tf.star"))
 
 	stderr := &bytes.Buffer{}
-	err := ExecScript(ctx, ds, nil, SetOutWriter(stderr))
+	err := ExecScript(ctx, ds, nil, SetErrWriter(stderr))
 	if err != nil {
 		t.Error(err.Error())
 		return

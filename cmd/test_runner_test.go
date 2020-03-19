@@ -222,9 +222,16 @@ func (run *TestRunner) Must(t *testing.T, err error) {
 	}
 }
 
-// GetCommandOutput returns the standard output from the previously executed command
+// GetCommandOutput returns the standard output from the previously executed
+// command
 func (run *TestRunner) GetCommandOutput() string {
 	return run.RepoRoot.GetOutput()
+}
+
+// GetCommandErrOutput fetches the stderr value from the previously executed
+// command
+func (run *TestRunner) GetCommandErrOutput() string {
+	return run.RepoRoot.GetErrOutput()
 }
 
 func executeCommand(root *cobra.Command, cmd string) error {

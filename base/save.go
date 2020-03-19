@@ -97,7 +97,7 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 		opts := []func(*startf.ExecOpts){
 			startf.AddQriRepo(r),
 			startf.AddMutateFieldCheck(mutateCheck),
-			startf.SetOutWriter(scriptOut),
+			startf.SetErrWriter(scriptOut),
 			startf.SetSecrets(secrets),
 		}
 

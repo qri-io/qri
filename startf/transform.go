@@ -27,16 +27,26 @@ var Version = version.String
 
 // ExecOpts defines options for execution
 type ExecOpts struct {
-	Repo             repo.Repo                  // supply a repo to make the 'qri' module available in starlark
-	AllowFloat       bool                       // allow floating-point numbers
-	AllowSet         bool                       // allow set data type
-	AllowLambda      bool                       // allow lambda expressions
-	AllowNestedDef   bool                       // allow nested def statements
-	Secrets          map[string]interface{}     // passed-in secrets (eg: API keys)
-	Globals          starlark.StringDict        // global values to pass for script execution
-	MutateFieldCheck func(path ...string) error // func that errors if field specified by path is mutated
-	OutWriter        io.Writer                  // provide a writer to record script "stdout" to
-	ModuleLoader     ModuleLoader               // starlark module loader function
+	// supply a repo to make the 'qri' module available in starlark
+	Repo repo.Repo
+	// allow floating-point numbers
+	AllowFloat bool
+	// allow set data type
+	AllowSet bool
+	// allow lambda expressions
+	AllowLambda bool
+	// allow nested def statements
+	AllowNestedDef bool
+	// passed-in secrets (eg: API keys)
+	Secrets map[string]interface{}
+	// global values to pass for script execution
+	Globals starlark.StringDict
+	// func that errors if field specified by path is mutated
+	MutateFieldCheck func(path ...string) error
+	// provide a writer to record script "stderr" output to
+	ErrWriter io.Writer
+	// starlark module loader function
+	ModuleLoader ModuleLoader
 }
 
 // AddQriRepo adds a qri repo to execution options, providing scripted access
@@ -54,11 +64,12 @@ func AddMutateFieldCheck(check func(path ...string) error) func(o *ExecOpts) {
 	}
 }
 
-// SetOutWriter provides a writer to record the "stderr" diagnostic output of the transform script
-func SetOutWriter(w io.Writer) func(o *ExecOpts) {
+// SetErrWriter provides a writer to record the "stderr" diagnostic output of
+// the transform script
+func SetErrWriter(w io.Writer) func(o *ExecOpts) {
 	return func(o *ExecOpts) {
 		if w != nil {
-			o.OutWriter = w
+			o.ErrWriter = w
 		}
 	}
 }
@@ -84,7 +95,7 @@ func DefaultExecOpts(o *ExecOpts) {
 	o.AllowSet = true
 	o.AllowLambda = true
 	o.Globals = starlark.StringDict{}
-	o.OutWriter = ioutil.Discard
+	o.ErrWriter = ioutil.Discard
 	o.ModuleLoader = DefaultModuleLoader
 }
 
@@ -158,7 +169,7 @@ func ExecScript(ctx context.Context, next, prev *dataset.Dataset, opts ...func(o
 		prev:         prev,
 		skyqri:       skyqri.NewModule(o.Repo),
 		checkFunc:    o.MutateFieldCheck,
-		stderr:       o.OutWriter,
+		stderr:       o.ErrWriter,
 		moduleLoader: o.ModuleLoader,
 	}
 

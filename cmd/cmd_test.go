@@ -7,6 +7,7 @@ import (
 	"io/ioutil"
 	"net"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
@@ -393,6 +394,12 @@ func TestSaveTransformWithoutChanges(t *testing.T) {
 
 	// Save a version, then another with no changes
 	run.MustExec(t, "qri save --file=testdata/movies/tf_123.star me/test_ds")
+
+	errOut := run.GetCommandErrOutput()
+	if !strings.Contains(errOut, "setting body") {
+		t.Errorf("expected ErrOutput to contain print statement from transform script. errOutput:\n%s", errOut)
+	}
+
 	err := run.ExecCommand("qri save --file=testdata/movies/tf_123.star me/test_ds")
 	expect := `error saving: no changes`
 	if err == nil {

@@ -436,6 +436,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 // TODO - need to make sure users aren't forking by referencing commits other than tip
 func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
+		p.ScriptOutput = nil
 		return r.cli.Call("DatasetRequests.Save", p, res)
 	}
 	ctx := context.TODO()
