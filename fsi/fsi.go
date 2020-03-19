@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	golog "github.com/ipfs/go-log"
@@ -210,6 +211,11 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	}
 
 	defer func() {
+		// clean up low value files before running Remove
+		err := removeLowValueFiles(dirPath)
+		if err != nil {
+			log.Errorf("removing directory: %s", err.Error())
+		}
 		// always attempt to remove the directory, ignoring "directory not empty" errors
 		// os.Remove will fail if the directory isn't empty, which is the behaviour
 		// we want
@@ -251,6 +257,48 @@ func writeLinkFile(dir, linkstr string) (string, error) {
 func removeLinkFile(dir string) error {
 	dir = filepath.Join(dir, QriRefFilename)
 	return os.Remove(dir)
+}
+
+func deleteLowValueFiles(path string, f os.FileInfo, err error) error {
+	if f != nil {
+		filesToBeRemoved := []string{
+			// generic files
+			"^\\..*\\.swp$", // Swap file for vim state
+
+			// macOS specific files
+			"^\\.DS_Store$", // Stores custom folder attributes
+			"^\\.AppleDouble$", // Stores additional file resources
+			"^\\.LSOverride$", // Contains the absolute path to the app to be used
+			"^Icon\\r$", // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
+			"^\\._.*", // Thumbnail
+			"^\\.Spotlight-V100(?:$|\\/)", // Directory that might appear on external disk
+			"\\.Trashes", // File that might appear on external disk
+			"^__MACOSX$", // Resource fork
+
+			// linux specific files
+			"~$", // Backup file
+
+			// Windows specific files
+			"^Thumbs\\.db$", // Image file cache
+			"^ehthumbs\\.db$", // Folder config file
+			"^Desktop\\.ini$", // Stores custom folder attributes
+			"@eaDir$", // Synology Diskstation "hidden" folder where the server stores thumbnails
+		}
+
+		pattern := strings.Join(filesToBeRemoved, "|")
+		matched, err := regexp.MatchString(pattern, filepath.Base(f.Name()))
+		if err != nil {
+			return err
+		}
+		if matched {
+			os.Remove(path)
+		}
+	}
+	return nil
+ }
+
+func removeLowValueFiles(dir string) error {
+	return filepath.Walk(dir, deleteLowValueFiles)
 }
 
 // DeleteComponentFiles deletes all component files in the directory. Should only be used if
