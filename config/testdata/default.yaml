@@ -37,7 +37,7 @@ webapp:
 update:
   type: fs
   daemonize: true
-  address: "127.0.0.1:2506"
+  address: "127.0.0.1:2507"
 rpc:
   enabled: true
   port: 2504
