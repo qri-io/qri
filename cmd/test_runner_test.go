@@ -10,8 +10,11 @@ import (
 	"testing"
 	"time"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
@@ -245,4 +248,50 @@ func executeCommandC(root *cobra.Command, args ...string) (err error) {
 	root.SetArgs(args)
 	_, err = root.ExecuteC()
 	return err
+}
+
+// AddDatasetToRefstore adds a dataset to the test runner's refstore. It ignores the upper-levels
+// of our stack, namely cmd/ and lib/, which means it can be used to add a dataset with a name
+// that is using upper-case characters.
+func (run *TestRunner) AddDatasetToRefstore(ctx context.Context, t *testing.T, refStr string, ds *dataset.Dataset) {
+	ref, err := dsref.ParseHumanFriendly(refStr)
+	if err != nil && err != dsref.ErrBadCaseName {
+		t.Fatal(err)
+	}
+
+	ds.Peername = ref.Username
+	ds.Name = ref.Name
+
+	inst, err := lib.NewInstance(ctx, run.RepoRoot.QriPath)
+	// NOTE(dustmop): There's a bug with TestRepo that I don't understand completely. The commands
+	// are run using a different refstore than the refstore returned by accessing the fields of the
+	// TestRepo directly. The command runner constructs a repo and then refstore which has a path
+	// similar to "/var/folders/tmpDir/T/qri_save_bad_case1234" with "qri" and "ipfs" directories
+	// within. However, trying to directly access the Repo object from TestRepo will return a
+	// refstore with the path "/var/folders/tmpDir/T/qri_save_bad_case1234" as the *qri repository*.
+	//
+	// So doing:
+	//   run.RepoRoot.Repo()
+	// gives a refstore that saves to:
+	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/refs.fbs"
+	// While the commandRunner is using:
+	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/qri/refs.fbs"
+	//
+	// We work around this by constructing a lib.Instance, which uses the PathFactory to get the
+	// qri subfolder and correctly use the refstore at:
+	//   "/var/folders/tmpDir/T/qri_save_bad_case1234/qri/refs.fbs"
+	//
+	// This is probably the same bug that is handled in repo/buildrepo/build.go with a hack that
+	// appends "/qri" to the repoPath.
+	r := inst.Repo()
+
+	str := ioes.NewStdIOStreams()
+	secrets := make(map[string]string)
+	scriptOut := &bytes.Buffer{}
+	sw := base.SaveDatasetSwitches{}
+
+	_, err = base.SaveDataset(ctx, r, str, ds, secrets, scriptOut, sw)
+	if err != nil {
+		t.Fatal(err)
+	}
 }

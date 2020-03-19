@@ -126,7 +126,7 @@ func TestInitBadName(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error trying to init, did not get an error")
 	}
-	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore`
+	expect := `dataset name must start with a letter, and only contain letters, numbers, and underscore. Maximum length is 144 characters`
 	if err.Error() != expect {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
@@ -411,9 +411,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	run.MustExec(t, "qri status")
-
-	output = run.GetCommandOutput()
+	output = run.MustExec(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: body (source: body.csv)

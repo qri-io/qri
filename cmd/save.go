@@ -148,14 +148,8 @@ func (o *SaveOptions) Run() (err error) {
 	o.StartSpinner()
 	defer o.StopSpinner()
 
-	// TODO (b5): cmd should never need to parse a dataset reference
-	ref, err := parseCmdLineDatasetRef(o.Refs.Ref())
-	if err != nil && len(o.FilePaths) == 0 {
-		return lib.NewError(lib.ErrBadArgs, "error parsing dataset reference '"+o.Refs.Ref()+"'")
-	}
-
 	p := &lib.SaveParams{
-		Ref:      ref.AliasString(),
+		Ref:      o.Refs.Ref(),
 		BodyPath: o.BodyPath,
 		Title:    o.Title,
 		Message:  o.Message,

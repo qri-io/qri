@@ -12,9 +12,9 @@ import (
 func NewWhatChangedCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	o := &WhatChangedOptions{IOStreams: ioStreams}
 	cmd := &cobra.Command{
-		Use:   "whatchanged DATASET",
+		Use:    "whatchanged DATASET",
 		Hidden: true,
-		Short: "shows what changed at a particular commit",
+		Short:  "shows what changed at a particular commit",
 		Long: `Shows what changed for components at a particular commit, that is, which
 were added, modified or removed. This is analagous to the status command,
 except only available for dataset versions in history.`,

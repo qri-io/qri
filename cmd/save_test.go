@@ -2,12 +2,17 @@ package cmd
 
 import (
 	"context"
+	"io/ioutil"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
 	"github.com/google/go-cmp/cmp"
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
@@ -196,6 +201,132 @@ func TestSaveRun(t *testing.T) {
 
 			continue
 		}
+	}
+}
+
+func TestSaveBasicCommands(t *testing.T) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		t.Fatal(err)
+	}
+	tmpPath, err := ioutil.TempDir("", "")
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() {
+		os.Chdir(pwd)
+		os.RemoveAll(tmpPath)
+	}()
+
+	// Copy some files into tmpPath, change to it
+	copyFile(t, "testdata/movies/ds_ten.yaml", filepath.Join(tmpPath, "dataset.yaml"))
+	copyFile(t, "testdata/movies/body_ten.csv", filepath.Join(tmpPath, "body_ten.csv"))
+	copyFile(t, "testdata/movies/structure_override.json", filepath.Join(tmpPath, "structure.json"))
+	os.Chdir(tmpPath)
+
+	goodCases := []struct {
+		description string
+		command     string
+		expect      string
+	}{
+		{
+			"dataset file infer name",
+			"qri save --file dataset.yaml",
+			"dataset saved: test_peer/ten_movies@/ipfs/QmU935SkFafE786u7jQPknB858PDrJRFUJboxbS4vKkAe7\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"dataset file me ref",
+			"qri save --file dataset.yaml me/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmSSTAcuehjFFiHNBFicTXJv2uhbKg4hjGgCL8W46D3jGG\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"dataset file explicit ref",
+			"qri save --file dataset.yaml test_peer/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmeW1M8W9yj69pxE3uJZbYVBCaEARYkrkje3NHY1s6tHtP\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file infer name",
+			"qri save --body body_ten.csv",
+			"dataset saved: test_peer/body_tencsv@/ipfs/QmWaS8ndeAhAWWSUmwJ6HiXKMNWnsL1LYhzrWJyzCgR9pd\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file me ref",
+			"qri save --body body_ten.csv me/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmeyznW4FBaLY8rk5xpZyFHXixrq8qFJrFf8v1REZzmLLg\nthis dataset has 1 validation errors\n",
+		},
+		{
+			"body file explicit ref",
+			"qri save --body body_ten.csv test_peer/my_dataset",
+			"dataset saved: test_peer/my_dataset@/ipfs/QmP9yay2KwPnyDLLhGXZsLdKG31qMAR3CSBAmscz3znC9C\nthis dataset has 1 validation errors\n",
+		},
+		// TODO(dustmop): It's intended that a user can save a dataset with a structure but no
+		// body. At some point that functionality broke, because there was no test for it. Fix that
+		// in a follow-up change.
+		//{
+		//	"structure file me ref",
+		//	"qri save --file structure.json me/my_dataset",
+		//	"TODO(dustmop): Should be possible to save a dataset with structure and no body",
+		//},
+		//{
+		//	"structure file explicit ref",
+		//	"qri save --file structure.json test_peer/my_dataset",
+		//	"TODO(dustmop): Should be possible to save a dataset with structure and no body",
+		//},
+	}
+	for _, c := range goodCases {
+		t.Run(c.description, func(t *testing.T) {
+			// TODO(dustmop): Would be preferable to instead have a way to clear the refstore
+			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			defer run.Delete()
+
+			err := run.ExecCommand(c.command)
+			if err != nil {
+				t.Errorf("error %s\n", err)
+				return
+			}
+			actual := parseDatasetRefFromOutput(run.GetCommandOutput())
+			if diff := cmp.Diff(c.expect, actual); diff != "" {
+				t.Errorf("result mismatch (-want +got):%s\n", diff)
+			}
+		})
+	}
+
+	badCases := []struct {
+		description string
+		command     string
+		expectErr   string
+	}{
+		{
+			"dataset file other username",
+			"qri save --file dataset.yaml other/my_dataset",
+			"cannot save using a different username than \"test_peer\"",
+		},
+		{
+			"dataset file explicit version",
+			"qri save --file dataset.yaml me/my_dataset@/ipfs/QmVersion",
+			"ref can only have username/name",
+		},
+		{
+			"body file other username",
+			"qri save --body body_ten.csv other/my_dataset",
+			"cannot save using a different username than \"test_peer\"",
+		},
+	}
+	for _, c := range badCases {
+		t.Run(c.description, func(t *testing.T) {
+			run := NewTestRunner(t, "test_peer", "qri_test_save_basic")
+			defer run.Delete()
+
+			err := run.ExecCommand(c.command)
+			if err == nil {
+				output := run.GetCommandOutput()
+				t.Errorf("expected an error, did not get one, output: %s\n", output)
+				return
+			}
+			if err.Error() != c.expectErr {
+				t.Errorf("mismatch, expect: %s, got: %s\n", c.expectErr, err.Error())
+			}
+		})
 	}
 }
 
@@ -403,10 +534,60 @@ func TestSaveDscacheExistingDataset(t *testing.T) {
 	}
 }
 
+func TestSaveBadCaseCantBeUsedForNewDatasets(t *testing.T) {
+	run := NewTestRunner(t, "test_peer", "qri_save_bad_case")
+	defer run.Delete()
+
+	prevTimestampFunc := logbook.NewTimestamp
+	logbook.NewTimestamp = func() int64 {
+		return 1000
+	}
+	defer func() {
+		logbook.NewTimestamp = prevTimestampFunc
+	}()
+
+	// Try to save a new dataset, but its name has upper-case characters.
+	err := run.ExecCommand("qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
+	if err == nil {
+		t.Fatal("expected error trying to save, did not get an error")
+	}
+	expect := `dataset name may not contain any upper-case letters`
+	if err.Error() != expect {
+		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	}
+
+	// Construct a dataset in order to have an existing version in the repo.
+	ds := dataset.Dataset{
+		Structure: &dataset.Structure{
+			Format: "json",
+			Schema: dataset.BaseSchemaArray,
+		},
+	}
+	ds.SetBodyFile(qfs.NewMemfileBytes("body.json", []byte("[[\"one\",2],[\"three\",4]]")))
+
+	// Add the dataset to the repo directly, which avoids the name validation check.
+	ctx := context.Background()
+	run.AddDatasetToRefstore(ctx, t, "test_peer/a_New_Dataset", &ds)
+
+	// Save the dataset, which will work now that a version already exists.
+	run.MustExec(t, "qri save --body testdata/movies/body_two.json test_peer/a_New_Dataset")
+}
+
 func parseDatasetRefFromOutput(text string) string {
 	pos := strings.Index(text, "dataset saved:")
 	if pos == -1 {
 		return ""
 	}
 	return text[pos:]
+}
+
+func copyFile(t *testing.T, source, destin string) {
+	data, err := ioutil.ReadFile(source)
+	if err != nil {
+		t.Fatal(err)
+	}
+	err = ioutil.WriteFile(destin, data, 0644)
+	if err != nil {
+		t.Fatal(err)
+	}
 }
