@@ -30,7 +30,7 @@ func TestBasicRefSelect(t *testing.T) {
 		t.Errorf("expected ref isLinked false, got %t", refs.IsLinked())
 	}
 
-	refs = NewExplicitRefSelect("peername/test_ds")
+	refs = NewExplicitRefSelect("peername/test_ds", nil)
 	if refs.Ref() != "peername/test_ds" {
 		t.Errorf("expected ref \"peername/test_ds\", got %s", refs.Ref())
 	}

@@ -101,7 +101,7 @@ func TestValidateRun(t *testing.T) {
 
 		opt := &ValidateOptions{
 			IOStreams:       streams,
-			Refs:            NewExplicitRefSelect(c.ref),
+			Refs:            NewExplicitRefSelect(c.ref, nil),
 			BodyFilepath:    c.bodyFilePath,
 			SchemaFilepath:  c.schemaFilePath,
 			URL:             c.url,

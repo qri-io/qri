@@ -83,7 +83,7 @@ func TestSaveValidate(t *testing.T) {
 	}
 	for i, c := range cases {
 		opt := &SaveOptions{
-			Refs:      NewExplicitRefSelect(c.ref),
+			Refs:      NewExplicitRefSelect(c.ref, nil),
 			FilePaths: []string{c.filepath},
 			BodyPath:  c.bodypath,
 		}
@@ -169,7 +169,7 @@ func TestSaveRun(t *testing.T) {
 
 		opt := &SaveOptions{
 			IOStreams:       streams,
-			Refs:            NewExplicitRefSelect(c.ref),
+			Refs:            NewExplicitRefSelect(c.ref, nil),
 			FilePaths:       pathList,
 			BodyPath:        c.bodypath,
 			Title:           c.title,
