@@ -109,6 +109,10 @@ func NewRemote(node *p2p.QriNode, cfg *config.Remote, opts ...func(o *Options)) 
 		opt(o)
 	}
 
+	if node == nil {
+		return nil, fmt.Errorf("remote requires a non-nil node")
+	}
+
 	r := &Remote{
 		node: node,
 
