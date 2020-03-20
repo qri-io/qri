@@ -9,7 +9,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
-	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // RefSelect represents zero or more references, either explicitly provided or implied
@@ -41,14 +40,7 @@ func NewEmptyRefSelect() *RefSelect {
 }
 
 // NewExplicitRefSelect returns a single explicitly provided reference
-func NewExplicitRefSelect(ref string, fsi *lib.FSIMethods) *RefSelect {
-	if fsi != nil {
-		dsRef := reporef.DatasetRef{}
-		err := fsi.FSIDatasetForRef(&ref, &dsRef)
-		if err == nil {
-			return &RefSelect{kind: "for linked", refs: []string{ref}, dir: dsRef.Path}	
-		}
-	}
+func NewExplicitRefSelect(ref string) *RefSelect {
 	return &RefSelect{refs: []string{ref}}
 }
 
@@ -127,7 +119,7 @@ func GetCurrentRefSelect(f Factory, args []string, allowed int, fsi *lib.FSIMeth
 			// Diff allows multiple explicit references.
 			return NewListOfRefSelects(args), nil
 		}
-		return NewExplicitRefSelect(args[0], fsi), nil
+		return NewExplicitRefSelect(args[0]), nil
 	}
 	// If in a working directory that is linked to a dataset, use that link's reference.
 	refs, err := GetLinkedRefSelect()
