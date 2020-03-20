@@ -7,6 +7,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
+	reporef "github.com/qri-io/qri/repo/ref"
 )
 
 // NewFSICommand creates a new `qri fsi` command for working with file system
@@ -108,8 +109,14 @@ func (o *FSIOptions) Unlink() error {
 		printRefSelect(o.ErrOut, o.Refs)
 
 		p := &lib.LinkParams{
-			Dir: o.Refs.Dir(),
 			Ref: ref,
+		}
+
+		dsRef := reporef.DatasetRef{}
+		if err := o.FSIMethods.FSIDatasetForRef(&ref, &dsRef); err != nil {
+			p.Dir = o.Refs.Dir()
+		} else {
+			p.Dir = dsRef.FSIPath
 		}
 
 		if err := o.FSIMethods.Unlink(p, &res); err != nil {
