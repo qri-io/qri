@@ -103,6 +103,16 @@ func (run *FSITestRunner) ChdirToWorkDir(subdir string) string {
 	return run.WorkPath
 }
 
+// CreateSubDir creates a sub directory from the current working directory
+func (run *FSITestRunner) CreateSubDir(subdir string) string {
+	subDirPath := filepath.Join(run.WorkPath, subdir)
+	err := os.MkdirAll(subDirPath, os.ModePerm)
+	if err != nil {
+		panic(err)
+	}
+	return subDirPath
+}
+
 // CreateAndChangeToWorkDir creates and changes to the working directory
 func (run *FSITestRunner) CreateAndChdirToWorkDir(subdir string) string {
 	run.WorkPath = filepath.Join(run.RootPath, subdir)
