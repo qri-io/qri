@@ -210,20 +210,6 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 		log.Debugf("removing link file: %s", removeLinkErr.Error())
 	}
 
-	defer func() {
-		// clean up low value files before running Remove
-		err := removeLowValueFiles(dirPath)
-		if err != nil {
-			log.Errorf("removing directory: %s", err.Error())
-		}
-		// always attempt to remove the directory, ignoring "directory not empty" errors
-		// os.Remove will fail if the directory isn't empty, which is the behaviour
-		// we want
-		if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
-			log.Errorf("removing directory: %s", err.Error())
-		}
-	}()
-
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
 		if err == repo.ErrNoHistory {
 			// if we're unlinking a ref without history, delete it
@@ -234,6 +220,36 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 
 	ref.FSIPath = ""
 	return fsi.repo.PutRef(ref)
+}
+
+// Remove unlinks the dataset and removes link and low value files associated files
+func (fsi *FSI) Remove(dirPath, refStr string) error {
+	// clean up low value files before running Remove
+	err := removeLowValueFiles(dirPath)
+	if err != nil {
+		log.Errorf("removing low value files: %s", err.Error())
+	}
+	if err := fsi.Unlink(dirPath, refStr); err != nil {
+		return err
+	}
+	// always attempt to remove the directory, ignoring "directory not empty" errors
+	// os.Remove will fail if the directory isn't empty, which is the behaviour
+	// we want
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		log.Errorf("removing directory: %s", err.Error())
+	}
+	return nil
+}
+
+// RemoveAll unlinks the dataset and removes all associated files
+func (fsi *FSI) RemoveAll(dirPath, refStr string) error {
+	if err := fsi.Unlink(dirPath, refStr); err != nil {
+		return err
+	}
+	if err := os.RemoveAll(dirPath); err != nil {
+		log.Errorf("removing directory: %s", err.Error())
+	}
+	return nil
 }
 
 func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {
@@ -259,7 +275,7 @@ func removeLinkFile(dir string) error {
 	return os.Remove(dir)
 }
 
-func deleteLowValueFiles(path string, f os.FileInfo, err error) error {
+func isLowValueFile(f os.FileInfo) bool {
 	if f != nil {
 		filesToBeRemoved := []string{
 			// generic files
@@ -288,17 +304,39 @@ func deleteLowValueFiles(path string, f os.FileInfo, err error) error {
 		pattern := strings.Join(filesToBeRemoved, "|")
 		matched, err := regexp.MatchString(pattern, filepath.Base(f.Name()))
 		if err != nil {
-			return err
+			return false
 		}
 		if matched {
-			os.Remove(path)
+			return true
 		}
 	}
-	return nil
- }
+	return false
+}
+
+func getLowValueFiles(files *[]string) filepath.WalkFunc {
+	return func(path string, f os.FileInfo, err error) error {
+        if err != nil {
+            return nil
+        }
+        if isLowValueFile(f) {
+        	*files = append(*files, path)
+        }
+        return nil
+    }
+}
 
 func removeLowValueFiles(dir string) error {
-	return filepath.Walk(dir, deleteLowValueFiles)
+	var lowValueFiles []string
+	err := filepath.Walk(dir, getLowValueFiles(&lowValueFiles))
+	if err != nil {
+		return err
+	}
+	for _, file := range lowValueFiles {
+        if err = os.Remove(file); err != nil {
+        	return err
+        }
+    }
+    return nil
 }
 
 // DeleteComponentFiles deletes all component files in the directory. Should only be used if
