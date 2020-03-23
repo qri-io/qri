@@ -451,7 +451,7 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	}
 
 	// Remove all versions
-	run.MustExec(t, "qri remove --all=1")
+	run.MustExec(t, "qri remove --all")
 
 	// Verify that dsref of HEAD is empty
 	dsPath3 := run.GetPathForDataset(t, 0)
@@ -460,6 +460,144 @@ func TestRemoveAllVersionsWorkingDirectory(t *testing.T) {
 	}
 
 	// Verify the directory no longer exists
+	if _, err := os.Stat(workDir); !os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to not exist", workDir)
+	}
+}
+
+// Test removing all versions from a working directory with low value files
+func TestRemoveAllVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_all_work_dir")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_all")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_all --format csv")
+
+	// Save the new dataset.
+	output := run.MustExec(t, "qri save")
+	ref1 := parsePathFromRef(parseRefFromSave(output))
+	dsPath1 := run.GetPathForDataset(t, 0)
+	if ref1 != dsPath1 {
+		t.Fatal("ref from first save should match what is in qri repo")
+	}
+
+	// Modify body.csv.
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
+
+	// Save the new dataset.
+	output = run.MustExec(t, "qri save")
+	ref2 := parsePathFromRef(parseRefFromSave(output))
+	dsPath2 := run.GetPathForDataset(t, 0)
+	if ref2 != dsPath2 {
+		t.Fatal("ref from second save should match what is in qri repo")
+	}
+
+	lowValueFiles := []string{
+		// generic files
+		".test.swp", // Swap file for vim state
+
+		// macOS specific files
+		".DS_Store",    // Stores custom folder attributes
+		".AppleDouble", // Stores additional file resources
+		".LSOverride",  // Contains the absolute path to the app to be used
+		"Icon\r",       // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
+		"._test",       // Thumbnail
+		".Trashes",     // File that might appear on external disk
+		"__MACOSX",     // Resource fork
+
+		// Windows specific files
+		"Thumbs.db",   // Image file cache
+		"ehthumbs.db", // Folder config file
+		"Desktop.ini", // Stores custom folder attributes
+
+	}
+
+	// Add low value files
+	for _, file := range lowValueFiles {
+		run.MustWriteFile(t, file, "\n")
+	}
+
+	// Remove all versions
+	run.MustExec(t, "qri remove --all")
+
+	// Verify that dsref of HEAD is empty
+	dsPath3 := run.GetPathForDataset(t, 0)
+	if dsPath3 != "" {
+		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
+	}
+
+	// Verify the directory still exists
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to still exist", workDir)
+	}
+}
+
+// Test removing all versions from a working directory with --force due to low value files
+func TestRemoveAllForceVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_all_work_dir")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_all")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_all --format csv")
+
+	// Save the new dataset.
+	output := run.MustExec(t, "qri save")
+	ref1 := parsePathFromRef(parseRefFromSave(output))
+	dsPath1 := run.GetPathForDataset(t, 0)
+	if ref1 != dsPath1 {
+		t.Fatal("ref from first save should match what is in qri repo")
+	}
+
+	// Modify body.csv.
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
+
+	// Save the new dataset.
+	output = run.MustExec(t, "qri save")
+	ref2 := parsePathFromRef(parseRefFromSave(output))
+	dsPath2 := run.GetPathForDataset(t, 0)
+	if ref2 != dsPath2 {
+		t.Fatal("ref from second save should match what is in qri repo")
+	}
+
+	lowValueFiles := []string{
+		// generic files
+		".test.swp", // Swap file for vim state
+
+		// macOS specific files
+		".DS_Store",    // Stores custom folder attributes
+		".AppleDouble", // Stores additional file resources
+		".LSOverride",  // Contains the absolute path to the app to be used
+		"Icon\r",       // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
+		"._test",       // Thumbnail
+		".Trashes",     // File that might appear on external disk
+		"__MACOSX",     // Resource fork
+
+		// Windows specific files
+		"Thumbs.db",   // Image file cache
+		"ehthumbs.db", // Folder config file
+		"Desktop.ini", // Stores custom folder attributes
+
+	}
+
+	// Add low value files
+	for _, file := range lowValueFiles {
+		run.MustWriteFile(t, file, "\n")
+	}
+
+	// Remove all versions
+	run.MustExec(t, "qri remove --all --force")
+
+	// Verify that dsref of HEAD is empty
+	dsPath3 := run.GetPathForDataset(t, 0)
+	if dsPath3 != "" {
+		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
+	}
+
+	// Verify the directory still exists
 	if _, err := os.Stat(workDir); !os.IsNotExist(err) {
 		t.Errorf("expected \"%s\" to not exist", workDir)
 	}
@@ -508,6 +646,109 @@ func TestRemoveAllAndKeepFiles(t *testing.T) {
 	expectContents := []string{"body.csv", "meta.json", "structure.json"}
 	if diff := cmp.Diff(expectContents, dirContents); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
+	}
+}
+
+// Test removing all versions and files
+func TestRemoveAllForce(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_all_force")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_all")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_all --format csv")
+
+	// Save the new dataset.
+	output := run.MustExec(t, "qri save")
+	ref1 := parsePathFromRef(parseRefFromSave(output))
+	dsPath1 := run.GetPathForDataset(t, 0)
+	if ref1 != dsPath1 {
+		t.Fatal("ref from first save should match what is in qri repo")
+	}
+
+	// Modify body.csv.
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
+
+	// Save the new dataset.
+	output = run.MustExec(t, "qri save")
+	ref2 := parsePathFromRef(parseRefFromSave(output))
+	dsPath2 := run.GetPathForDataset(t, 0)
+	if ref2 != dsPath2 {
+		t.Fatal("ref from second save should match what is in qri repo")
+	}
+
+	// Add low value files
+	run.MustWriteFile(t, ".DS_Store", "\n")
+
+	// Remove all with force
+	run.MustExec(t, "qri remove --all --force")
+
+	// Verify that dsref of HEAD is empty
+	dsPath3 := run.GetPathForDataset(t, 0)
+	if dsPath3 != "" {
+		t.Errorf("after delete, ref should be empty, got: '%s'", dsPath3)
+	}
+
+	// Verify the directory longer still exists
+	if _, err := os.Stat(workDir); !os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to not exist", workDir)
+	}
+}
+
+// Test removing all versions and files, should fail to remove the directory
+// if other files are present (not including low value files)
+func TestRemoveAllForceShouldFailIfDirty(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_remove_all_force")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("remove_all")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name remove_all --format csv")
+
+	// Save the new dataset.
+	output := run.MustExec(t, "qri save")
+	ref1 := parsePathFromRef(parseRefFromSave(output))
+	dsPath1 := run.GetPathForDataset(t, 0)
+	if ref1 != dsPath1 {
+		t.Fatal("ref from first save should match what is in qri repo")
+	}
+
+	// Modify body.csv.
+	run.MustWriteFile(t, "body.csv", "seven,eight,9\n")
+
+	// Save the new dataset.
+	output = run.MustExec(t, "qri save")
+	ref2 := parsePathFromRef(parseRefFromSave(output))
+	dsPath2 := run.GetPathForDataset(t, 0)
+	if ref2 != dsPath2 {
+		t.Fatal("ref from second save should match what is in qri repo")
+	}
+
+	// Add low value files
+	run.MustWriteFile(t, ".DS_Store", "\n")
+	// Add other files
+	run.MustWriteFile(t, "test.sh", "echo test\n")
+
+	// Remove all with force
+	run.MustExec(t, "qri remove --all --force")
+
+	// Verify that dsref of HEAD is empty
+	dsPath3 := run.GetPathForDataset(t, 0)
+	if dsPath3 != "" {
+		t.Errorf("after delete, ref should be empty, got: %s", dsPath3)
+	}
+
+	// Verify the directory no longer exists
+	if _, err := os.Stat(workDir); os.IsNotExist(err) {
+		t.Errorf("expected \"%s\" to still exist", workDir)
+	}
+	// Verify other files still exist
+	actual := run.MustReadFile(t, "test.sh")
+	expect := "echo test\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("test.sh contents (-want +got):\n%s", diff)
 	}
 }
 

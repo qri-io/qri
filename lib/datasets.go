@@ -842,8 +842,12 @@ func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 		if ref.FSIPath != "" && !p.KeepFiles {
 			// Remove all files
 			fsi.DeleteComponentFiles(ref.FSIPath)
-			// Delete the directory
-			err = os.Remove(ref.FSIPath)
+			var err error
+			if p.Force {
+				err = r.inst.fsi.RemoveAll(ref.FSIPath)
+			} else {
+				err = r.inst.fsi.Remove(ref.FSIPath)
+			}
 			if err != nil {
 				if strings.Contains(err.Error(), "no such file or directory") {
 					// If the working directory has already been removed (or renamed), it is

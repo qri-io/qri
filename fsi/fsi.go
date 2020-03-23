@@ -16,6 +16,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	golog "github.com/ipfs/go-log"
@@ -209,15 +210,6 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 		log.Debugf("removing link file: %s", removeLinkErr.Error())
 	}
 
-	defer func() {
-		// always attempt to remove the directory, ignoring "directory not empty" errors
-		// os.Remove will fail if the directory isn't empty, which is the behaviour
-		// we want
-		if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
-			log.Errorf("removing directory: %s", err.Error())
-		}
-	}()
-
 	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
 		if err == repo.ErrNoHistory {
 			// if we're unlinking a ref without history, delete it
@@ -228,6 +220,31 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 
 	ref.FSIPath = ""
 	return fsi.repo.PutRef(ref)
+}
+
+// Remove attempts to remove the dataset directory
+func (fsi *FSI) Remove(dirPath string) error {
+	// always attempt to remove the directory, ignoring "directory not empty" errors
+	// os.Remove will fail if the directory isn't empty, which is the behaviour
+	// we want
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		log.Errorf("removing directory: %s", err.Error())
+	}
+	return nil
+}
+
+// RemoveAll attempts to remove the dataset directory
+// but also removes low value files first
+func (fsi *FSI) RemoveAll(dirPath string) error {
+	// clean up low value files before running Remove
+	err := removeLowValueFiles(dirPath)
+	if err != nil {
+		log.Errorf("removing low value files: %s", err.Error())
+	}
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
+		log.Errorf("removing directory: %s", err.Error())
+	}
+	return nil
 }
 
 func (fsi *FSI) getRepoRef(refStr string) (ref reporef.DatasetRef, err error) {
@@ -251,6 +268,65 @@ func writeLinkFile(dir, linkstr string) (string, error) {
 func removeLinkFile(dir string) error {
 	dir = filepath.Join(dir, QriRefFilename)
 	return os.Remove(dir)
+}
+
+func isLowValueFile(f os.FileInfo) bool {
+	if f != nil {
+		filesToBeRemoved := []string{
+			// generic files
+			"^\\..*\\.swp$", // Swap file for vim state
+
+			// macOS specific files
+			"^\\.DS_Store$",    // Stores custom folder attributes
+			"^\\.AppleDouble$", // Stores additional file resources
+			"^\\.LSOverride$",  // Contains the absolute path to the app to be used
+			"^Icon\\r$",        // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
+			"^\\._.*",          // Thumbnail
+			"\\.Trashes",       // File that might appear on external disk
+			"^__MACOSX$",       // Resource fork
+
+			// Windows specific files
+			"^Thumbs\\.db$",   // Image file cache
+			"^ehthumbs\\.db$", // Folder config file
+			"^Desktop\\.ini$", // Stores custom folder attributes
+		}
+
+		pattern := strings.Join(filesToBeRemoved, "|")
+		matched, err := regexp.MatchString(pattern, filepath.Base(f.Name()))
+		if err != nil {
+			return false
+		}
+		if matched {
+			return true
+		}
+	}
+	return false
+}
+
+func getLowValueFiles(files *[]string) filepath.WalkFunc {
+	return func(path string, f os.FileInfo, err error) error {
+		if err != nil {
+			return nil
+		}
+		if isLowValueFile(f) {
+			*files = append(*files, path)
+		}
+		return nil
+	}
+}
+
+func removeLowValueFiles(dir string) error {
+	var lowValueFiles []string
+	err := filepath.Walk(dir, getLowValueFiles(&lowValueFiles))
+	if err != nil {
+		return err
+	}
+	for _, file := range lowValueFiles {
+		if err = os.Remove(file); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DeleteComponentFiles deletes all component files in the directory. Should only be used if
