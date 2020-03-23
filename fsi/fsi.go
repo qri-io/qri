@@ -222,16 +222,8 @@ func (fsi *FSI) Unlink(dirPath, refStr string) error {
 	return fsi.repo.PutRef(ref)
 }
 
-// Remove unlinks the dataset and removes link and low value files associated files
-func (fsi *FSI) Remove(dirPath, refStr string) error {
-	// clean up low value files before running Remove
-	err := removeLowValueFiles(dirPath)
-	if err != nil {
-		log.Errorf("removing low value files: %s", err.Error())
-	}
-	if err := fsi.Unlink(dirPath, refStr); err != nil {
-		return err
-	}
+// Remove attempts to remove the dataset directory
+func (fsi *FSI) Remove(dirPath string) error {
 	// always attempt to remove the directory, ignoring "directory not empty" errors
 	// os.Remove will fail if the directory isn't empty, which is the behaviour
 	// we want
@@ -241,12 +233,15 @@ func (fsi *FSI) Remove(dirPath, refStr string) error {
 	return nil
 }
 
-// RemoveAll unlinks the dataset and removes all associated files
-func (fsi *FSI) RemoveAll(dirPath, refStr string) error {
-	if err := fsi.Unlink(dirPath, refStr); err != nil {
-		return err
+// RemoveAll attempts to remove the dataset directory
+// but also removes low value files first
+func (fsi *FSI) RemoveAll(dirPath string) error {
+	// clean up low value files before running Remove
+	err := removeLowValueFiles(dirPath)
+	if err != nil {
+		log.Errorf("removing low value files: %s", err.Error())
 	}
-	if err := os.RemoveAll(dirPath); err != nil {
+	if err := os.Remove(dirPath); err != nil && !strings.Contains(err.Error(), "directory not empty") {
 		log.Errorf("removing directory: %s", err.Error())
 	}
 	return nil
@@ -282,23 +277,20 @@ func isLowValueFile(f os.FileInfo) bool {
 			"^\\..*\\.swp$", // Swap file for vim state
 
 			// macOS specific files
-			"^\\.DS_Store$", // Stores custom folder attributes
-			"^\\.AppleDouble$", // Stores additional file resources
-			"^\\.LSOverride$", // Contains the absolute path to the app to be used
-			"^Icon\\r$", // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
-			"^\\._.*", // Thumbnail
+			"^\\.DS_Store$",               // Stores custom folder attributes
+			"^\\.AppleDouble$",            // Stores additional file resources
+			"^\\.LSOverride$",             // Contains the absolute path to the app to be used
+			"^Icon\\r$",                   // Custom Finder icon: http://superuser.com/questions/298785/icon-file-on-os-x-desktop
+			"^\\._.*",                     // Thumbnail
 			"^\\.Spotlight-V100(?:$|\\/)", // Directory that might appear on external disk
-			"\\.Trashes", // File that might appear on external disk
-			"^__MACOSX$", // Resource fork
-
-			// linux specific files
-			"~$", // Backup file
+			"\\.Trashes",                  // File that might appear on external disk
+			"^__MACOSX$",                  // Resource fork
 
 			// Windows specific files
-			"^Thumbs\\.db$", // Image file cache
+			"^Thumbs\\.db$",   // Image file cache
 			"^ehthumbs\\.db$", // Folder config file
 			"^Desktop\\.ini$", // Stores custom folder attributes
-			"@eaDir$", // Synology Diskstation "hidden" folder where the server stores thumbnails
+			"@eaDir$",         // Synology Diskstation "hidden" folder where the server stores thumbnails
 		}
 
 		pattern := strings.Join(filesToBeRemoved, "|")
@@ -315,14 +307,14 @@ func isLowValueFile(f os.FileInfo) bool {
 
 func getLowValueFiles(files *[]string) filepath.WalkFunc {
 	return func(path string, f os.FileInfo, err error) error {
-        if err != nil {
-            return nil
-        }
-        if isLowValueFile(f) {
-        	*files = append(*files, path)
-        }
-        return nil
-    }
+		if err != nil {
+			return nil
+		}
+		if isLowValueFile(f) {
+			*files = append(*files, path)
+		}
+		return nil
+	}
 }
 
 func removeLowValueFiles(dir string) error {
@@ -332,11 +324,11 @@ func removeLowValueFiles(dir string) error {
 		return err
 	}
 	for _, file := range lowValueFiles {
-        if err = os.Remove(file); err != nil {
-        	return err
-        }
-    }
-    return nil
+		if err = os.Remove(file); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 // DeleteComponentFiles deletes all component files in the directory. Should only be used if
