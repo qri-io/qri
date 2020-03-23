@@ -514,19 +514,9 @@ func TestRemoveAllVersionsWorkingDirectoryLowValueFiles(t *testing.T) {
 
 	}
 
-	lowValueDirs := []string{
-		".Spotlight-V100", // Directory that might appear on external disk
-		"@eaDir",          // Synology Diskstation "hidden" folder where the server stores thumbnails
-	}
-
 	// Add low value files
 	for _, file := range lowValueFiles {
 		run.MustWriteFile(t, file, "\n")
-	}
-
-	// Add low value dirs
-	for _, dir := range lowValueDirs {
-		run.CreateSubDir(t, dir)
 	}
 
 	// Remove all versions
