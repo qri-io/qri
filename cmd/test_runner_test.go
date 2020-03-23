@@ -137,6 +137,12 @@ func (run *TestRunner) ExecCommandWithStdin(ctx context.Context, cmdText, stdinT
 	return executeCommand(run.CmdR, cmdText)
 }
 
+// ExecCommandWithContext executes the given command with a context
+func (run *TestRunner) ExecCommandWithContext(ctx context.Context, cmdText string) error {
+	run.CmdR = run.CreateCommandRunner(ctx)
+	return executeCommand(run.CmdR, cmdText)
+}
+
 // CreateCommandRunner returns a cobra runable command.
 func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	in := &bytes.Buffer{}

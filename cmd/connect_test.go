@@ -2,14 +2,10 @@ package cmd
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/qri-io/ioes"
 	regmock "github.com/qri-io/qri/registry/regserver"
-	repotest "github.com/qri-io/qri/repo/test"
 )
 
 func TestConnect(t *testing.T) {
@@ -17,27 +13,22 @@ func TestConnect(t *testing.T) {
 		t.Skip(err.Error())
 	}
 
+	// Setup the test repo so that connect can run
+	run := NewTestRunner(t, "test_peer", "qri_test_connect")
+	defer run.Delete()
+
+	// Construct a mock registry to pass to the connect command
 	_, registryServer := regmock.NewMockServer()
 
-	path := filepath.Join(os.TempDir(), "qri_test_commands_connect")
-	t.Logf("temp path: %s", path)
+	// Configure ports such that other tests do not conflict with the connection ports
+	// TODO(dustmop): Add websocket.port to config, set that here
+	run.MustExec(t, "qri config set api.port 9871 rpc.port 9872")
 
-	//clean up if previous cleanup failed
-	if _, err := os.Stat(path); os.IsNotExist(err) {
-		os.RemoveAll(path)
-	}
-	if err := os.MkdirAll(path, os.ModePerm); err != nil {
-		t.Errorf("error creating test path: %s", err.Error())
-		return
-	}
-	defer os.RemoveAll(path)
+	cmd := "qri connect --registry=" + registryServer.URL
 
-	cmd := "qri connect --setup --registry=" + registryServer.URL
-	streams, _, _, _ := ioes.NewTestIOStreams()
+	// Run the command for 1 second
 	ctx, done := context.WithTimeout(context.Background(), time.Second)
 	defer done()
-
-	root := NewQriCommand(ctx, NewDirPathFactory(path), repotest.NewTestCrypto(), streams)
 
 	defer func() {
 		if e := recover(); e != nil {
@@ -46,7 +37,7 @@ func TestConnect(t *testing.T) {
 		}
 	}()
 
-	err := executeCommand(root, cmd)
+	err := run.ExecCommandWithContext(ctx, cmd)
 	if err != nil {
 		t.Errorf("unexpected error executing command\n%s\n%s", cmd, err.Error())
 		return
