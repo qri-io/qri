@@ -9,6 +9,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo"
 	testrepo "github.com/qri-io/qri/repo/test"
 )
@@ -278,16 +279,16 @@ func TestUnlink(t *testing.T) {
 	defer paths.Close()
 
 	fsi := NewFSI(paths.testRepo, nil)
-	_, _, err := fsi.CreateLink(paths.firstDir, "me/test_ds")
+	_, _, err := fsi.CreateLink(paths.firstDir, "peer/test_ds")
 	if err != nil {
 		t.Fatalf(err.Error())
 	}
 
-	if err := fsi.Unlink(paths.firstDir, "me/mismatched_reference"); err == nil {
+	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/mismatched_reference")); err == nil {
 		t.Errorf("expected unlinking mismatched reference to error")
 	}
 
-	if err := fsi.Unlink(paths.firstDir, "me/test_ds"); err != nil {
+	if err := fsi.Unlink(paths.firstDir, dsref.MustParse("peer/test_ds")); err != nil {
 		t.Errorf("unlinking valid reference: %s", err.Error())
 	}
 }

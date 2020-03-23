@@ -10,6 +10,7 @@ import (
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
 	"github.com/qri-io/qri/base/dsfs"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -40,9 +41,8 @@ func (m *FSIMethods) LinkedRefs(p *ListParams, res *[]reporef.DatasetRef) (err e
 
 // LinkParams encapsulate parameters to the link method
 type LinkParams struct {
-	Dir      string
-	Ref      string
-	ToModify string
+	Dir string
+	Ref string
 }
 
 // CreateLink creates a connection between a working drirectory and a dataset history
@@ -52,7 +52,6 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 	if err != nil {
 		return err
 	}
-
 	p.Dir = path
 
 	if m.inst.rpc != nil {
@@ -63,13 +62,43 @@ func (m *FSIMethods) CreateLink(p *LinkParams, res *string) (err error) {
 	return err
 }
 
-// Unlink rmeoves a connection between a working drirectory and a dataset history
+// Unlink removes the connection between a working directory and a dataset. If given only a
+// directory, will remove the link file from that directory. If given only a reference,
+// will remove the fsi path from that reference, and remove the link file from that fsi path
 func (m *FSIMethods) Unlink(p *LinkParams, res *string) (err error) {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("FSIMethods.Unlink", p, res)
 	}
 
-	return m.inst.fsi.Unlink(p.Dir, p.Ref)
+	if p.Dir != "" && p.Ref != "" {
+		return fmt.Errorf("Unlink should be called with either Dir or Ref, not both")
+	}
+
+	var ref dsref.Ref
+	if p.Dir == "" {
+		// If only ref provided, canonicalize it to get its ref
+		datasetRef, err := repo.ParseDatasetRef(p.Ref)
+		if err != nil {
+			return err
+		}
+		if err = repo.CanonicalizeDatasetRef(m.inst.repo, &datasetRef); err != nil {
+			if err != repo.ErrNoHistory {
+				return err
+			}
+		}
+		if datasetRef.FSIPath == "" {
+			return fmt.Errorf("%s is not linked to a directory", p.Ref)
+		}
+		p.Dir = datasetRef.FSIPath
+		ref = reporef.ConvertToDsref(datasetRef)
+	}
+
+	if err := m.inst.fsi.Unlink(p.Dir, ref); err != nil {
+		return err
+	}
+
+	*res = ref.Alias()
+	return nil
 }
 
 // StatusItem is an alias for an fsi.StatusItem
@@ -307,75 +336,6 @@ func (m *FSIMethods) Restore(p *RestoreParams, out *string) (err error) {
 		}
 	}
 	return nil
-}
-
-// FSIDatasetForRef reads an fsi-linked dataset for a given reference string
-func (m *FSIMethods) FSIDatasetForRef(refStr *string, res *reporef.DatasetRef) error {
-	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.FSIDatasetForRef", refStr, res)
-	}
-
-	ref, err := repo.ParseDatasetRef(*refStr)
-	if err != nil {
-		return err
-	}
-
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
-		return err
-	}
-
-	ds, err := fsi.ReadDir(ref.FSIPath)
-	if err != nil {
-		return err
-	}
-
-	// TODO (b5) - these transient fields should probably be set by fsi.ReadDir
-	ds.Peername = ref.Peername
-	ds.Name = ref.Name
-	ds.Path = ref.FSIPath
-	ds.PreviousPath = ref.Path
-	ref.Dataset = ds
-
-	*res = ref
-	return nil
-}
-
-// FSIBodyParams defines parameters for looking up the body of a dataset
-// This structure is based on GetParams.
-// TODO (@b5) - refactor this away. It's too much like other things
-type FSIBodyParams struct {
-	// Path to get, this will often be a dataset reference like me/dataset
-	Path string
-
-	Format       string
-	FormatConfig dataset.FormatConfig
-
-	Offset, Limit int
-	All           bool
-}
-
-// FSIDatasetBody grabs the body of a dataset
-func (m *FSIMethods) FSIDatasetBody(p *FSIBodyParams, res *[]byte) error {
-	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("FSIMethods.FSIDatasetBody", p, res)
-	}
-
-	df, err := dataset.ParseDataFormatString(p.Format)
-	if err != nil {
-		return err
-	}
-
-	ref, err := repo.ParseDatasetRef(p.Path)
-	if err != nil {
-		return err
-	}
-
-	if err = repo.CanonicalizeDatasetRef(m.inst.repo, &ref); err != nil {
-		return err
-	}
-
-	*res, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All)
-	return err
 }
 
 // InitFSIDatasetParams proxies parameters to initialization
