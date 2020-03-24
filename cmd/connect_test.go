@@ -22,7 +22,7 @@ func TestConnect(t *testing.T) {
 
 	// Configure ports such that other tests do not conflict with the connection ports
 	// TODO(dustmop): Add websocket.port to config, set that here
-	run.MustExec(t, "qri config set api.port 9871 rpc.port 9872")
+	run.MustExec(t, "qri config set api.port 0 rpc.port 0")
 
 	cmd := "qri connect --registry=" + registryServer.URL
 
