@@ -25,7 +25,6 @@ import (
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
-	"github.com/qri-io/qri/repo/profile"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -214,12 +213,7 @@ func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
 	}
 
 	// The FSIPath is *not* set, which removes it from the refstore
-	datasetRef := reporef.DatasetRef{
-		Peername:  ref.Username,
-		ProfileID: profile.IDB58DecodeOrEmpty(ref.ProfileID),
-		Name:      ref.Name,
-		Path:      ref.Path,
-	}
+	datasetRef := reporef.RefFromDsref(ref)
 
 	// if we're unlinking a ref without history, delete it
 	if datasetRef.Path == "" {

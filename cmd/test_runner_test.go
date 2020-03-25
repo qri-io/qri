@@ -182,10 +182,7 @@ func (run *TestRunner) LookupVersionInfo(refStr string) *dsref.VersionInfo {
 	if err != nil {
 		return nil
 	}
-	datasetRef := reporef.DatasetRef{
-		Peername: dr.Username,
-		Name:     dr.Name,
-	}
+	datasetRef := reporef.RefFromDsref(dr)
 	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
 	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
 	ctx := context.Background()
@@ -210,10 +207,7 @@ func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	datasetRef := reporef.DatasetRef{
-		Peername: dr.Username,
-		Name:     dr.Name,
-	}
+	datasetRef := reporef.RefFromDsref(dr)
 	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
 	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
 	ctx := context.Background()
