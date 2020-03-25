@@ -8,6 +8,7 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -90,7 +91,7 @@ func (o *LogOptions) Run() error {
 	refs := []DatasetLogItem{}
 	if err := o.LogRequests.Log(p, &refs); err != nil {
 		if err == repo.ErrEmptyRef {
-			return lib.NewError(err, "please provide a dataset reference")
+			return errors.New(err, "please provide a dataset reference")
 		}
 		return err
 	}
@@ -183,7 +184,7 @@ func (o *LogbookOptions) Logbook() error {
 	res := []lib.LogEntry{}
 	if err := o.LogRequests.Logbook(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
-			return lib.NewError(err, "please provide a dataset reference")
+			return errors.New(err, "please provide a dataset reference")
 		}
 		return err
 	}

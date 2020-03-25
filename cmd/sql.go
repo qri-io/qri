@@ -14,8 +14,11 @@ func NewSQLCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "sql QUERY",
 		Short: "run a SQL query on local dataset(s)",
-		Long: `The qri sql command differs from classic relational databases like MySQL or
-  PostgreSQL in a few ways:
+		Long: `sql runs Structured Query Language (SQL) commands, using local datasets 
+as tables.
+
+The qri sql command differs from classic relational databases like MySQL or
+PostgreSQL in a few ways:
   * sql queries datasets as if they were tables, Any valid dataset reference
     can be used as a table name
   * to query a dataset, it must be in your local qri repo
@@ -26,7 +29,9 @@ func NewSQLCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
     throwing an error`,
 		Example: `  # first, fetch the dataset b5/world_bank_population:
   $ qri add b5/world_bank_population
-  $ qri sql "select wbp.country_name, wbp.year_2018 from b5/world_bank_population as wbp"
+  $ qri sql "SELECT 
+    wbp.country_name, wbp.year_2018
+    FROM b5/world_bank_population as wbp"
 
   # join b5/world_bank_population with b5/country_codes
   $ qri add b5/country_codes
@@ -39,6 +44,7 @@ func NewSQLCommand(f Factory, ioStreams ioes.IOStreams) *cobra.Command {
 		Annotations: map[string]string{
 			"group": "dataset",
 		},
+		Args: cobra.ExactArgs(1),
 		RunE: func(cmd *cobra.Command, args []string) error {
 			if err := o.Complete(f, args); err != nil {
 				return err

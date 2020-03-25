@@ -1,6 +1,4 @@
-package lib
-
-import "errors"
+package errors
 
 // Error wraps an error and satisfies the error interface
 // It couples more developer focused errors with more
@@ -11,23 +9,25 @@ type Error struct {
 	msg string
 }
 
-// Error let's the Error struct satisfy the error interface
-func (e Error) Error() string {
-	return e.err.Error()
-}
-
-// Message returns the e.msg string
-func (e Error) Message() string {
-	return e.msg
-}
-
-// NewError creates an Error from an error and string
-func NewError(err error, msg string) Error {
+// New creates an Error from an error and string
+func New(err error, msg string) Error {
 	return Error{
 		err: err,
 		msg: msg,
 	}
 }
 
-// ErrBadArgs is an error for when a user provides bad arguments
-var ErrBadArgs = errors.New("bad arguments provided")
+// Error let's the Error struct satisfy the error interface
+func (e Error) Error() string {
+	return e.err.Error()
+}
+
+// Unwrap implements error unwrapping
+func (e Error) Unwrap() error {
+	return e.err
+}
+
+// Message returns the e.msg string
+func (e Error) Message() string {
+	return e.msg
+}

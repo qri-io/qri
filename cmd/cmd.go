@@ -8,6 +8,7 @@ package cmd
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -15,7 +16,7 @@ import (
 
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo/gen"
 )
 
@@ -58,8 +59,9 @@ func Execute() {
 // ErrExit writes an error to the given io.Writer & exits
 func ErrExit(w io.Writer, err error) {
 	log.Debug(err.Error())
-	if e, ok := err.(lib.Error); ok && e.Message() != "" {
-		printErr(w, fmt.Errorf(e.Message()))
+	var qerr qrierr.Error
+	if errors.As(err, &qerr) {
+		printErr(w, fmt.Errorf(qerr.Message()))
 	} else {
 		printErr(w, err)
 	}

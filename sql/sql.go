@@ -16,6 +16,8 @@ import (
 	"github.com/cube2222/octosql/parser/sqlparser"
 	"github.com/cube2222/octosql/physical"
 	golog "github.com/ipfs/go-log"
+	"github.com/pkg/errors"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 	"github.com/qri-io/qri/sql/preprocess"
 	"github.com/qri-io/qri/sql/qds"
@@ -108,5 +110,20 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 	}
 
 	// Run query
-	return app.RunPlan(ctx, plan)
+	err = app.RunPlan(ctx, plan)
+	return unwrapErr(err)
+}
+
+// octosql uses the errors package, which doesn't support errors.Unwrap,
+// so we unwrap before returning
+func unwrapErr(err error) error {
+	if err != nil {
+		switch e := errors.Cause(err).(type) {
+		case qrierr.Error:
+			return qrierr.New(err, e.Message())
+		default:
+			return err
+		}
+	}
+	return nil
 }

@@ -6,6 +6,7 @@ package lib
 import (
 	"context"
 	"encoding/gob"
+	"errors"
 	"fmt"
 	"net"
 	"net/rpc"
@@ -39,6 +40,9 @@ import (
 )
 
 var (
+	// ErrBadArgs is an error for when a user provides bad arguments
+	ErrBadArgs = errors.New("bad arguments provided")
+
 	// defaultIPFSLocation is where qri data defaults to looking for / setting up
 	// IPFS. The keyword $HOME will be replaced with the current user home
 	// directory. only $HOME is replaced (no other $ env vars).

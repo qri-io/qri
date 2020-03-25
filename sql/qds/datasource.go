@@ -16,6 +16,7 @@ import (
 	"github.com/qri-io/dataset/tabular"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/dsfs"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
@@ -52,6 +53,9 @@ func NewDataSourceBuilderFactory(r repo.Repo) physical.DataSourceBuilderFactory 
 			ref, err := base.ToDatasetRef(refstr, r, false)
 			if err != nil {
 				log.Errorf("buildSource: base.ToDatasetRef '%s': %s", refstr, err)
+				if err == repo.ErrNotFound {
+					return nil, qrierr.New(err, fmt.Sprintf("couldn't find '%s' in local dataset collection.\nhave you added it?", refstr))
+				}
 				return nil, errors.Wrap(err, "preparing SQL data souce: bad dataset reference.")
 			}
 
@@ -94,7 +98,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 		return nil, err
 	}
 
-	aliasedFields, err := initializeColumns(qds.alias, ds.Structure)
+	aliasedFields, err := initializeColumns(qds.alias, qds.ref, ds.Structure)
 	if err != nil {
 		return nil, errors.Wrap(err, "couldn't initialize columns for record stream")
 	}
@@ -126,14 +130,18 @@ func (rs *RecordStream) Close() error {
 	return nil
 }
 
-func initializeColumns(alias string, st *dataset.Structure) ([]octosql.VariableName, error) {
+func initializeColumns(alias string, ref *reporef.DatasetRef, st *dataset.Structure) ([]octosql.VariableName, error) {
 	cols, _, err := tabular.ColumnsFromJSONSchema(st.Schema)
 	if err != nil {
-		return nil, err
+		// the tabular package emits nice errors we can use as user-facing messages
+		// so we wrap in a qri error
+		err = fmt.Errorf("cannot use '%s' as sql table.\n%w", ref, err)
+		return nil, qrierr.New(err, err.Error())
 	}
 
 	if err := cols.ValidMachineTitles(); err != nil {
-		return nil, err
+		err = fmt.Errorf("cannot use '%s' as sql table.\n%w", ref, err)
+		return nil, qrierr.New(err, err.Error())
 	}
 
 	titles := cols.Titles()

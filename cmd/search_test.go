@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry/regclient"
 )
@@ -79,7 +80,7 @@ func TestSearchValidate(t *testing.T) {
 			t.Errorf("case %d, mismatched error. Expected: %s, Got: %s", i, c.err, err)
 			continue
 		}
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
@@ -181,7 +182,7 @@ func TestSearchRun(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				ioReset(in, out, errs)

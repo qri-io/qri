@@ -5,6 +5,7 @@ import (
 
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -106,7 +107,7 @@ func (o *RemoveOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that all user input is valid
 func (o *RemoveOptions) Validate() error {
 	if o.Refs.Ref() == "" {
-		return lib.NewError(lib.ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
+		return errors.New(lib.ErrBadArgs, "please specify a dataset path or name you would like to remove from your qri node")
 	}
 	return nil
 }
@@ -125,7 +126,7 @@ func (o *RemoveOptions) Run() (err error) {
 	res := lib.RemoveResponse{}
 	if err = o.DatasetRequests.Remove(&params, &res); err != nil {
 		if err == repo.ErrNotFound {
-			return lib.NewError(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
+			return errors.New(err, fmt.Sprintf("could not find dataset '%s'", o.Refs.Ref()))
 		}
 		if err == lib.ErrCantRemoveDirectoryDirty {
 			printErr(o.ErrOut, err)

@@ -3,6 +3,7 @@ package cmd
 import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -63,7 +64,7 @@ func (o *RenameOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that all user input is valid
 func (o *RenameOptions) Validate() error {
 	if o.From == "" || o.To == "" {
-		return lib.NewError(lib.ErrBadArgs, "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details")
+		return errors.New(lib.ErrBadArgs, "please provide two dataset names, the original and the new name, for example:\n    $ qri rename me/old_name me/new_name\nsee `qri rename --help` for more details")
 	}
 	return nil
 }

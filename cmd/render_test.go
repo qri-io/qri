@@ -7,7 +7,7 @@ import (
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qri/base"
-	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/repo"
 )
 
@@ -143,7 +143,7 @@ func TestRenderRun(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				ioReset(in, out, errs)
