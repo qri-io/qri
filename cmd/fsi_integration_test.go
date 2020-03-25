@@ -1315,6 +1315,259 @@ func TestRemoveWithoutAnyHistory(t *testing.T) {
 	}
 }
 
+// Test that a reference with an FSIPath, and link file, gets unlinked
+func TestUnlinkBasic(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	if output != "unlinked: test_peer/unlink_me\n" {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref is gone
+	if run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to be gone")
+	}
+
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
+}
+
+// Test that a reference with an FSIPath, but a missing .qri-ref file, can be unlinked
+func TestUnlinkMissingLinkFile(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Remove the link file (.qri-ref)
+	if err := os.Remove(filepath.Join(workDir, ".qri-ref")); err != nil {
+		t.Fatal(err)
+	}
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	if output != "unlinked: test_peer/unlink_me\n" {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref is gone
+	if run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to be gone")
+	}
+
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
+}
+
+// Test that a reference with an FSIPath, but no history, can be unlinked which removes it
+func TestUnlinkNoHistory(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	if output != "unlinked: test_peer/unlink_me\n" {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref is gone
+	if run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to be gone")
+	}
+
+	// Verify that reference hsa been removed from refstore
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo != nil {
+		t.Errorf("dataset should have been removed from refstore")
+	}
+}
+
+// Test that a dataset can be unlinked using an implicit reference
+func TestUnlinkImplicitRef(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink")
+	expect := `for linked dataset [test_peer/unlink_me]
+
+unlinked: test_peer/unlink_me
+`
+	if output != expect {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref is gone
+	if run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to be gone")
+	}
+
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
+}
+
+// Test that if the FSIPath is somehow removed (can happen if the folder is duplicated), then
+// trying to unlink using the reference will fail
+func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Remove the FSIPath in the refstore
+	run.ClearFSIPath(t, "me/unlink_me")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	if output != "me/unlink_me is not linked to a directory\n" {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref still exists
+	if !run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to still exist")
+	}
+
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
+}
+
+// Test that if the FSIPath is somehow removed (can happen if the folder is duplicated), then
+// the .qri-ref link file may still be removed using the implicit reference
+func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Remove the FSIPath in the refstore
+	run.ClearFSIPath(t, "me/unlink_me")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink")
+	if output != `for linked dataset [test_peer/unlink_me]
+
+unlinked: test_peer/unlink_me
+` {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref is gone
+	if run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to be gone")
+	}
+
+	// Verify that reference in refstore does not have FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath != "" {
+		t.Errorf("expected FSIPath to be empty")
+	}
+}
+
+// Test that if the reference is not found, the .qri-ref link file still exists, and FSIPath is
+// unmodified
+func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_fsi_unlink")
+	defer run.Delete()
+
+	workDir := run.CreateAndChdirToWorkDir("unlink_me")
+
+	// Init as a linked directory.
+	run.MustExec(t, "qri init --name unlink_me --format csv")
+
+	// Save the new dataset.
+	run.MustExec(t, "qri save")
+
+	// Unlink the dataset
+	output := run.MustExec(t, "qri fsi unlink me/not_found")
+	if output != "repo: not found\n" {
+		t.Errorf("expected output mismatch, got %q", output)
+	}
+
+	// Verify that .qri-ref still exists
+	if !run.FileExists(filepath.Join(workDir, ".qri-ref")) {
+		t.Errorf("expected .qri-ref link file to still exist")
+	}
+
+	// Verify that reference in refstore still has FSIPath
+	vinfo := run.LookupVersionInfo("me/unlink_me")
+	if vinfo == nil {
+		t.Fatal("not found: me/unlink_me")
+	}
+	if vinfo.FSIPath == "" {
+		t.Errorf("expected FSIPath to still be set")
+	}
+}
+
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
 	ref := output[pos+7:]

@@ -22,6 +22,7 @@ import (
 	golog "github.com/ipfs/go-log"
 	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/base/component"
+	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/event"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -199,27 +200,27 @@ func (fsi *FSI) ModifyLinkReference(dirPath, refStr string) error {
 	return nil
 }
 
-// Unlink breaks the connection between a directory and a dataset
-func (fsi *FSI) Unlink(dirPath, refStr string) error {
-	ref, err := repo.ParseDatasetRef(refStr)
-	if err != nil {
-		return err
-	}
-
+// Unlink removes the link file (.qri-ref) in the directory, and removes the fsi path
+// from the reference in the refstore
+func (fsi *FSI) Unlink(dirPath string, ref dsref.Ref) error {
 	if removeLinkErr := removeLinkFile(dirPath); removeLinkErr != nil {
 		log.Debugf("removing link file: %s", removeLinkErr.Error())
 	}
 
-	if err = repo.CanonicalizeDatasetRef(fsi.repo, &ref); err != nil {
-		if err == repo.ErrNoHistory {
-			// if we're unlinking a ref without history, delete it
-			return fsi.repo.DeleteRef(ref)
-		}
-		return err
+	// Ref may be empty, which will mean only the link file should be removed
+	if ref.IsEmpty() {
+		return nil
 	}
 
-	ref.FSIPath = ""
-	return fsi.repo.PutRef(ref)
+	// The FSIPath is *not* set, which removes it from the refstore
+	datasetRef := reporef.RefFromDsref(ref)
+
+	// if we're unlinking a ref without history, delete it
+	if datasetRef.Path == "" {
+		return fsi.repo.DeleteRef(datasetRef)
+	}
+	// Otherwise just update the refstore
+	return fsi.repo.PutRef(datasetRef)
 }
 
 // Remove attempts to remove the dataset directory

@@ -134,6 +134,15 @@ func ParseHumanFriendly(text string) (Ref, error) {
 	return r, nil
 }
 
+// MustParse parses a dsref from a string, or panics if it fails
+func MustParse(text string) Ref {
+	ref, err := Parse(text)
+	if err != nil {
+		panic(err)
+	}
+	return ref
+}
+
 // IsRefString returns whether the string parses as a valid reference
 func IsRefString(text string) bool {
 	_, err := Parse(text)

@@ -1,7 +1,6 @@
 package cmd
 
 import (
-	"fmt"
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
@@ -62,9 +61,6 @@ type FSIOptions struct {
 // Complete adds any missing configuration that can only be added just before
 // calling Run
 func (o *FSIOptions) Complete(f Factory, args []string) (err error) {
-	if len(args) < 1 {
-		return fmt.Errorf("please provide the name of a dataset")
-	}
 	o.FSIMethods, err = f.FSIMethods()
 	if err != nil {
 		return err
@@ -108,10 +104,8 @@ func (o *FSIOptions) Unlink() error {
 		printRefSelect(o.ErrOut, o.Refs)
 
 		p := &lib.LinkParams{
-			Dir: o.Refs.Dir(),
 			Ref: ref,
 		}
-
 		if err := o.FSIMethods.Unlink(p, &res); err != nil {
 			printErr(o.ErrOut, err)
 			return nil

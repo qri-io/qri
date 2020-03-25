@@ -18,6 +18,8 @@ import (
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/registry"
 	"github.com/qri-io/qri/registry/regserver"
+	"github.com/qri-io/qri/repo"
+	reporef "github.com/qri-io/qri/repo/ref"
 	repotest "github.com/qri-io/qri/repo/test"
 	"github.com/spf13/cobra"
 )
@@ -161,6 +163,67 @@ func (run *TestRunner) CreateCommandRunner(ctx context.Context) *cobra.Command {
 	cmd := NewQriCommand(ctx, run.pathFactory, run.RepoRoot.TestCrypto, run.RepoRoot.Streams)
 	cmd.SetOutput(out)
 	return cmd
+}
+
+// FileExists returns whether the file exists
+func (run *TestRunner) FileExists(file string) bool {
+	if _, err := os.Stat(file); os.IsNotExist(err) {
+		return false
+	}
+	return true
+}
+
+// LookupVersionInfo returns a versionInfo for the ref, or nil if not found
+func (run *TestRunner) LookupVersionInfo(refStr string) *dsref.VersionInfo {
+	// TODO(dustmop): Could directly parse reporef.DatasetRef instead, but we should transition
+	// to dsref's data structures where possible. This will make it easier to switch to dscache
+	// once it exists.
+	dr, err := dsref.Parse(refStr)
+	if err != nil {
+		return nil
+	}
+	datasetRef := reporef.RefFromDsref(dr)
+	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
+	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
+	ctx := context.Background()
+	inst, err := lib.NewInstance(
+		ctx,
+		run.RepoRoot.QriPath,
+		lib.OptStdIOStreams(),
+		lib.OptSetIPFSPath(run.RepoRoot.IPFSPath),
+	)
+	r := inst.Repo()
+	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
+	if err != nil {
+		return nil
+	}
+	vinfo := reporef.ConvertToVersionInfo(&datasetRef)
+	return &vinfo
+}
+
+// ClearFSIPath clears the FSIPath for a reference in the refstore
+func (run *TestRunner) ClearFSIPath(t *testing.T, refStr string) {
+	dr, err := dsref.Parse(refStr)
+	if err != nil {
+		t.Fatal(err)
+	}
+	datasetRef := reporef.RefFromDsref(dr)
+	// TODO(dustmop): Work-around for https://github.com/qri-io/qri/issues/1209
+	// Would rather do `run.RepoRoot.Repo()` but that doesn't work.
+	ctx := context.Background()
+	inst, err := lib.NewInstance(
+		ctx,
+		run.RepoRoot.QriPath,
+		lib.OptStdIOStreams(),
+		lib.OptSetIPFSPath(run.RepoRoot.IPFSPath),
+	)
+	r := inst.Repo()
+	err = repo.CanonicalizeDatasetRef(r, &datasetRef)
+	if err != nil {
+		t.Fatal(err)
+	}
+	datasetRef.FSIPath = ""
+	r.PutRef(datasetRef)
 }
 
 // GetPathForDataset fetches a path for dataset index

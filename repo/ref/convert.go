@@ -4,6 +4,7 @@ import (
 	"strings"
 
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/repo/profile"
 )
 
 // ConvertToVersionInfo converts an old style DatasetRef to the newly preferred dsref.VersionInfo
@@ -52,5 +53,16 @@ func ConvertToDsref(ref DatasetRef) dsref.Ref {
 		Name:      ref.Name,
 		ProfileID: ref.ProfileID.String(),
 		Path:      ref.Path,
+	}
+}
+
+// RefFromDsref creates a datasetRef from a dsref.Ref. The profileID field will be
+// an empty string if the input profileID is blank or otherwise cannot be decoded.
+func RefFromDsref(r dsref.Ref) DatasetRef {
+	return DatasetRef{
+		Peername:  r.Username,
+		ProfileID: profile.IDB58DecodeOrEmpty(r.ProfileID),
+		Name:      r.Name,
+		Path:      r.Path,
 	}
 }
