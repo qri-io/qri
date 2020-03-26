@@ -3,8 +3,13 @@ package cmd
 import (
 	"context"
 	"fmt"
+	"io/ioutil"
 	"net/http"
+	"net/http/httptest"
+	"net/url"
 	"regexp"
+	"strconv"
+	"strings"
 	"testing"
 	"time"
 
@@ -124,8 +129,10 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("error mismatch, expect: %s, got: %s", expectErr, err)
 	}
 
+	RemoteHost := fmt.Sprintf("http://localhost:%d", RemotePort)
+
 	// Assign peer A as a remote for peer B
-	cfgCmdText := fmt.Sprintf("qri config set remotes.a_node http://localhost:%d", RemotePort)
+	cfgCmdText := fmt.Sprintf("qri config set remotes.a_node %s", RemoteHost)
 	b.MustExec(t, cfgCmdText)
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
@@ -146,7 +153,7 @@ func TestFetchCommand(t *testing.T) {
 	}
 
 	// Regex that replaces the timestamp with just static text
-	fixTs := regexp.MustCompile(`"timestamp":"[0-9TZ.:-]*"`)
+	fixTs := regexp.MustCompile(`"timestamp":"[0-9TZ.:+-]*"`)
 
 	// Verify the logbook on peer B doesn't contain the fetched info
 	output := b.MustExec(t, "qri logbook --raw")
@@ -155,4 +162,73 @@ func TestFetchCommand(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
+
+	localInst, err := lib.NewInstance(
+		ctx,
+		b.RepoRoot.QriPath,
+		lib.OptStdIOStreams(),
+		lib.OptSetIPFSPath(b.RepoRoot.IPFSPath),
+	)
+
+	// Validate the outputs of history and fetch
+
+	logHandler := api.NewLogHandlers(remoteServer.Node())
+
+	// Get dataset history
+	actualStatusCode, actualBody := APICall(
+		"GET",
+		"/history/peer_a/test_movies",
+		nil,
+		logHandler.LogHandler)
+	if actualStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	}
+	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA","bodySize":720,"commitTime":"2001-01-01T02:02:01.000000001+01:00","commitTitle":"structure updated 3 fields","commitMessage":"structure:\n\tupdated checksum\n\tupdated entries\n\tupdated length"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","bodySize":224,"commitTime":"2001-01-01T02:01:01.000000001+01:00","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
+	if expectBody != actualBody {
+		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	}
+
+	remClientHandler := api.NewRemoteClientHandlers(localInst, false)
+
+	// Fetch dataset info
+	// Validates output of fetch for a remote dataset
+	actualStatusCode, actualBody = APICall(
+		"POST",
+		"/fetch/peer_a/test_movies",
+		map[string]string{
+			"remote": "a_node",
+		},
+		// httpServer.Handler)
+		remClientHandler.NewFetchHandler("/fetch"))
+	if actualStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", actualStatusCode)
+	}
+	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA","foreign":true,"bodySize":720,"commitTime":"2001-01-01T02:02:01.000000001+01:00","commitTitle":"structure updated 3 fields"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","foreign":true,"bodySize":224,"commitTime":"2001-01-01T02:01:01.000000001+01:00","commitTitle":"created dataset"}],"meta":{"code":200}}`
+	if expectBody != actualBody {
+		t.Errorf("expected body %s, got %s", expectBody, actualBody)
+	}
+}
+
+// APICallWithParams calls the api and returns the status code and body
+func APICall(method, reqURL string, params map[string]string, hf http.HandlerFunc) (int, string) {
+	// Add parameters from map
+	reqParams := url.Values{}
+	if params != nil {
+		for key := range params {
+			reqParams.Set(key, params[key])
+		}
+	}
+	req := httptest.NewRequest(method, reqURL, strings.NewReader(reqParams.Encode()))
+	// Set form-encoded header so server will find the parameters
+	req.Header.Add("Content-Type", "application/x-www-form-urlencoded")
+	req.Header.Add("Content-Length", strconv.Itoa(len(reqParams.Encode())))
+	w := httptest.NewRecorder()
+	hf(w, req)
+	res := w.Result()
+	statusCode := res.StatusCode
+	bodyBytes, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		panic(err)
+	}
+	return statusCode, string(bodyBytes)
 }

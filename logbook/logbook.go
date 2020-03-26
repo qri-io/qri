@@ -805,6 +805,72 @@ func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int)
 	return Versions(l, ref, offset, limit), nil
 }
 
+// VersionsWithNotes plays a set of operations for a given log, producing a State struct
+// that describes the current state of a dataset
+func (book Book) VersionsWithNotes(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, []string, error) {
+	l, err := book.BranchRef(ctx, ref)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	vInfo, notes := VersionsWithNotes(l, ref, offset, limit)
+	return vInfo, notes, nil
+}
+
+// VersionsWithNotes interprets a dataset oplog into a commit history with Commit Title
+func VersionsWithNotes(l *oplog.Log, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, []string) {
+	refs := []dsref.VersionInfo{}
+	refNotes := []string{}
+	for _, op := range l.Ops {
+		switch op.Model {
+		case CommitModel:
+			switch op.Type {
+			case oplog.OpTypeInit:
+				refs = append(refs, infoFromOp(ref, op))
+				refNotes = append(refNotes, op.Note)
+			case oplog.OpTypeAmend:
+				refs[len(refs)-1] = infoFromOp(ref, op)
+				refNotes[len(refs)-1] = op.Note
+			case oplog.OpTypeRemove:
+				refs = refs[:len(refs)-int(op.Size)]
+				refNotes = refNotes[:len(refNotes)-int(op.Size)]
+			}
+		case PublicationModel:
+			switch op.Type {
+			case oplog.OpTypeInit:
+				for i := 1; i <= int(op.Size); i++ {
+					refs[len(refs)-i].Published = true
+				}
+			case oplog.OpTypeRemove:
+				for i := 1; i <= int(op.Size); i++ {
+					refs[len(refs)-i].Published = false
+				}
+			}
+		}
+	}
+
+	// reverse the slice, placing newest first
+	// https://github.com/golang/go/wiki/SliceTricks#reversing
+	for i := len(refs)/2 - 1; i >= 0; i-- {
+		opp := len(refs) - 1 - i
+		refs[i], refs[opp] = refs[opp], refs[i]
+		refNotes[i], refNotes[opp] = refNotes[opp], refNotes[i]
+	}
+
+	if offset > len(refs) {
+		offset = len(refs)
+	}
+	refs = refs[offset:]
+	refNotes = refNotes[offset:]
+
+	if limit < len(refs) && limit != -1 {
+		refs = refs[:limit]
+		refNotes = refNotes[:limit]
+	}
+
+	return refs, refNotes
+}
+
 // Versions interprets a dataset oplog into a commit history
 func Versions(l *oplog.Log, ref dsref.Ref, offset, limit int) []dsref.VersionInfo {
 	refs := []dsref.VersionInfo{}

@@ -14,7 +14,7 @@ import (
 // DatasetLogItem is a line item in a dataset response
 type DatasetLogItem struct {
 	// Decription of a dataset reference
-	dsref.VersionInfo `json:"versionInfo,omitempty"`
+	dsref.VersionInfo
 	// Title field from the commit
 	CommitTitle string `json:"commitTitle,omitempty"`
 	// Message field from the commit
@@ -24,7 +24,7 @@ type DatasetLogItem struct {
 // DatasetLog fetches the change version history of a dataset
 func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit, offset int, loadDatasets bool) ([]DatasetLogItem, error) {
 	if book := r.Logbook(); book != nil {
-		if versions, err := book.Versions(ctx, reporef.ConvertToDsref(ref), offset, limit); err == nil {
+		if versions, notes, err := book.VersionsWithNotes(ctx, reporef.ConvertToDsref(ref), offset, limit); err == nil {
 			items := make([]DatasetLogItem, len(versions))
 			// logs are ok with history not existing. This keeps FSI interaction behaviour consistent
 			// TODO (b5) - we should consider having "empty history" be an ok state, instead of marking as an error
@@ -44,12 +44,12 @@ func DatasetLog(ctx context.Context, r repo.Repo, ref reporef.DatasetRef, limit,
 						if ds, err := dsfs.LoadDataset(ctx, r.Store(), v.Path); err == nil {
 							if ds.Commit != nil {
 								items[i].CommitMessage = ds.Commit.Message
-								items[i].CommitTitle = ds.Commit.Title
 							}
 						}
 					}
 					versions[i].Foreign = !local
 					items[i].VersionInfo = versions[i]
+					items[i].CommitTitle = notes[i]
 				}
 			}
 			return items, nil

@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
@@ -38,7 +39,7 @@ type FetchParams struct {
 }
 
 // Fetch pulls a logbook from a remote
-func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
+func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
 	}
@@ -78,21 +79,35 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	versions := logbook.Versions(logs, reporef.ConvertToDsref(ref), 0, -1)
+	versions, notes := logbook.VersionsWithNotes(logs, reporef.ConvertToDsref(ref), 0, -1)
 	log.Debugf("found %d versions: %v", len(versions), versions)
 	if len(versions) == 0 {
 		return repo.ErrNoHistory
 	}
 
+	dsLogItems := make([]DatasetLogItem, len(versions))
+
 	for i, v := range versions {
 		local, hasErr := r.inst.Repo().Store().Has(ctx, v.Path)
 		if hasErr != nil {
+			dsLogItems[i].VersionInfo = versions[i]
+			dsLogItems[i].CommitTitle = notes[i]
 			continue
 		}
 		versions[i].Foreign = !local
+		dsLogItems[i].VersionInfo = versions[i]
+		dsLogItems[i].CommitTitle = notes[i]
+
+		if local {
+			if ds, err := dsfs.LoadDataset(ctx, r.inst.repo.Store(), v.Path); err == nil {
+				if ds.Commit != nil {
+					dsLogItems[i].CommitMessage = ds.Commit.Message
+				}
+			}
+		}
 	}
 
-	*res = versions
+	*res = dsLogItems
 	return nil
 }
 
