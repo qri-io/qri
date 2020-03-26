@@ -57,16 +57,14 @@ func TestFetchCommand(t *testing.T) {
 
 	// Get the log, should have two versions.
 	actual := a.MustExec(t, "qri log peer_a/test_movies")
-	expect := `1   Commit:  /ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA
+	expect := `1   Commit:  /ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    720 B
 
-    structure updated 3 fields
-    structure:
-    	updated checksum
-    	updated entries
-    	updated length
+    body changed by 70%
+    body:
+    	changed by 70%
 
 2   Commit:  /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
     Date:    Sun Dec 31 20:01:01 EST 2000
@@ -137,12 +135,12 @@ func TestFetchCommand(t *testing.T) {
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
 	actual = b.MustExec(t, "qri fetch peer_a/test_movies --remote a_node")
-	expect = `1   Commit:  /ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA
+	expect = `1   Commit:  /ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: remote
     Size:    720 B
 
-    structure updated 3 fields
+    body changed by 70%
 
 2   Commit:  /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
     Date:    Sun Dec 31 20:01:01 EST 2000
@@ -190,7 +188,8 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA","bodySize":720,"commitTime":"timeStampHere","commitTitle":"structure updated 3 fields","commitMessage":"structure:\n\tupdated checksum\n\tupdated entries\n\tupdated length"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
+	expectBody := `{"data":[{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4","bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%","commitMessage":"body:\n\tchanged by 70%"},{"username":"peer_a","profileID":"QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset","commitMessage":"created dataset"}],"meta":{"code":200},"pagination":{"nextUrl":"/history/peer_a/test_movies?page=2"}}`
+
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}
@@ -209,7 +208,7 @@ func TestFetchCommand(t *testing.T) {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
 	}
 	actualBody = string(fixTs.ReplaceAll([]byte(actualBody), []byte(`"commitTime":"timeStampHere"`)))
-	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"structure updated 3 fields"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset"}],"meta":{"code":200}}`
+	expectBody = `{"data":[{"username":"peer_a","name":"test_movies","path":"/ipfs/Qmb6eo8uyhbKVtB3BJqNGejxxyA17Y9N6uLwv24thudbK4","foreign":true,"bodySize":720,"commitTime":"timeStampHere","commitTitle":"body changed by 70%"},{"username":"peer_a","name":"test_movies","path":"/ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6","foreign":true,"bodySize":224,"commitTime":"timeStampHere","commitTitle":"created dataset"}],"meta":{"code":200}}`
 	if expectBody != actualBody {
 		t.Errorf("expected body %s, got %s", expectBody, actualBody)
 	}

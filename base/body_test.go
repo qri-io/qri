@@ -12,6 +12,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
+	"github.com/qri-io/qri/base/dsfs"
 )
 
 func TestReadBody(t *testing.T) {
@@ -104,17 +105,9 @@ func TestDatasetBodyFile(t *testing.T) {
 	}
 }
 
-var baseCSVSchema = map[string]interface{}{
-	"type": "array",
-	"items": map[string]interface{}{
-		"type":  "array",
-		"items": []interface{}{},
-	},
-}
-
 func TestConvertBodyFormat(t *testing.T) {
 	jsonStructure := &dataset.Structure{Format: "json", Schema: dataset.BaseSchemaArray}
-	csvStructure := &dataset.Structure{Format: "csv", Schema: baseCSVSchema}
+	csvStructure := &dataset.Structure{Format: "csv", Schema: dsfs.BaseTabularSchema}
 
 	// CSV -> JSON
 	body := qfs.NewMemfileBytes("", []byte("a,b,c"))

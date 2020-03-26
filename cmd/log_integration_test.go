@@ -74,16 +74,15 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmafMDc2BZQfg1fsnpBmsK9J1jciPgnMfWdgPiNTjjW84j
+	expect = `1   Commit:  /ipfs/Qmc8y4MH4pZcMxPuiw9PTF4S4D3iKu8Mg5QVGjBzTXf2Jt
     Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    137 B
 
-    structure updated 3 fields
-    structure:
-    	updated checksum
-    	updated entries
-    	updated length
+    body added row 2 and added row 3
+    body:
+    	added row 2
+    	added row 3
 
 2   Commit:  /ipfs/QmeDCtiNtcomDT6tm1kBCFD16pyHsZW5dRZGSo7Uwk4QKg
     Date:    Sun Dec 31 20:01:01 EST 2000

@@ -7,9 +7,9 @@ import (
 	"io/ioutil"
 	"testing"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs/cafs"
+	testPeers "github.com/qri-io/qri/config/test"
 )
 
 func TestLoadTransform(t *testing.T) {
@@ -31,12 +31,11 @@ func TestLoadTransform(t *testing.T) {
 func TestLoadTransformScript(t *testing.T) {
 	ctx := context.Background()
 	store := cafs.NewMapstore()
-	privKey, err := crypto.UnmarshalPrivateKey(testPk)
-	if err != nil {
-		t.Fatalf("error unmarshaling private key: %s", err.Error())
-	}
 
-	_, err = LoadTransformScript(ctx, store, "")
+	info := testPeers.GetTestPeerInfo(10)
+	privKey := info.PrivKey
+
+	_, err := LoadTransformScript(ctx, store, "")
 	if err == nil {
 		t.Error("expected load empty key to fail")
 	}

@@ -22,11 +22,8 @@ func TestFriendlyDiffDescriptions(t *testing.T) {
 			}},
 		}},
 	}
-	stats := deepdiff.Stats{
-		Left: 46,
-	}
 
-	shortTitle, longMessage := DiffDescriptions(deltas, &stats)
+	shortTitle, longMessage := DiffDescriptions(deltas, nil, nil, false)
 	expect := "updated meta and structure"
 	if shortTitle != expect {
 		t.Errorf("error comparing short title, expect: %s\ngot: %s", expect, shortTitle)
@@ -51,7 +48,7 @@ func TestBuildComponentChanges(t *testing.T) {
 			},
 		},
 	}
-	m := buildComponentChanges(deltas)
+	m := buildComponentChanges(deltas, nil, nil, false)
 	keys := getKeys(m)
 	expectList := []string{"meta"}
 	if diff := cmp.Diff(expectList, keys); diff != "" {
@@ -72,7 +69,7 @@ func TestBuildComponentChanges(t *testing.T) {
 			}},
 		}},
 	}
-	m = buildComponentChanges(deltas)
+	m = buildComponentChanges(deltas, nil, nil, false)
 	keys = getKeys(m)
 	expectList = []string{"structure"}
 	if diff := cmp.Diff(expectList, keys); diff != "" {
@@ -96,7 +93,7 @@ func TestBuildComponentChanges(t *testing.T) {
 			}},
 		}},
 	}
-	m = buildComponentChanges(deltas)
+	m = buildComponentChanges(deltas, nil, nil, false)
 	keys = getKeys(m)
 	expectList = []string{"meta", "structure"}
 	if diff := cmp.Diff(expectList, keys); diff != "" {

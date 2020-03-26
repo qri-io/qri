@@ -2,34 +2,25 @@ package dsfs
 
 import (
 	"context"
-	"encoding/base64"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
+	"path/filepath"
 	"strings"
 	"testing"
 	"time"
 
-	crypto "github.com/libp2p/go-libp2p-core/crypto"
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/dstest"
 	"github.com/qri-io/qfs"
 	"github.com/qri-io/qfs/cafs"
 	ipfs_filestore "github.com/qri-io/qfs/cafs/ipfs"
 	"github.com/qri-io/qri/base/toqtype"
+	testPeers "github.com/qri-io/qri/config/test"
 )
 
-// Test Private Key. peerId: QmZePf5LeXow3RW5U1AgEiNbW46YnRGhZ7HPvm1UmPFPwt
-var testPk = []byte(`CAASpgkwggSiAgEAAoIBAQC/7Q7fILQ8hc9g07a4HAiDKE4FahzL2eO8OlB1K99Ad4L1zc2dCg+gDVuGwdbOC29IngMA7O3UXijycckOSChgFyW3PafXoBF8Zg9MRBDIBo0lXRhW4TrVytm4Etzp4pQMyTeRYyWR8e2hGXeHArXM1R/A/SjzZUbjJYHhgvEE4OZy7WpcYcW6K3qqBGOU5GDMPuCcJWac2NgXzw6JeNsZuTimfVCJHupqG/dLPMnBOypR22dO7yJIaQ3d0PFLxiDG84X9YupF914RzJlopfdcuipI+6gFAgBw3vi6gbECEzcohjKf/4nqBOEvCDD6SXfl5F/MxoHurbGBYB2CJp+FAgMBAAECggEAaVOxe6Y5A5XzrxHBDtzjlwcBels3nm/fWScvjH4dMQXlavwcwPgKhy2NczDhr4X69oEw6Msd4hQiqJrlWd8juUg6vIsrl1wS/JAOCS65fuyJfV3Pw64rWbTPMwO3FOvxj+rFghZFQgjg/i45uHA2UUkM+h504M5Nzs6Arr/rgV7uPGR5e5OBw3lfiS9ZaA7QZiOq7sMy1L0qD49YO1ojqWu3b7UaMaBQx1Dty7b5IVOSYG+Y3U/dLjhTj4Hg1VtCHWRm3nMOE9cVpMJRhRzKhkq6gnZmni8obz2BBDF02X34oQLcHC/Wn8F3E8RiBjZDI66g+iZeCCUXvYz0vxWAQQKBgQDEJu6flyHPvyBPAC4EOxZAw0zh6SF/r8VgjbKO3n/8d+kZJeVmYnbsLodIEEyXQnr35o2CLqhCvR2kstsRSfRz79nMIt6aPWuwYkXNHQGE8rnCxxyJmxV4S63GczLk7SIn4KmqPlCI08AU0TXJS3zwh7O6e6kBljjPt1mnMgvr3QKBgQD6fAkdI0FRZSXwzygx4uSg47Co6X6ESZ9FDf6ph63lvSK5/eue/ugX6p/olMYq5CHXbLpgM4EJYdRfrH6pwqtBwUJhlh1xI6C48nonnw+oh8YPlFCDLxNG4tq6JVo071qH6CFXCIank3ThZeW5a3ZSe5pBZ8h4bUZ9H8pJL4C7yQKBgFb8SN/+/qCJSoOeOcnohhLMSSD56MAeK7KIxAF1jF5isr1TP+rqiYBtldKQX9bIRY3/8QslM7r88NNj+aAuIrjzSausXvkZedMrkXbHgS/7EAPflrkzTA8fyH10AsLgoj/68mKr5bz34nuY13hgAJUOKNbvFeC9RI5g6eIqYH0FAoGAVqFTXZp12rrK1nAvDKHWRLa6wJCQyxvTU8S1UNi2EgDJ492oAgNTLgJdb8kUiH0CH0lhZCgr9py5IKW94OSM6l72oF2UrS6PRafHC7D9b2IV5Al9lwFO/3MyBrMocapeeyaTcVBnkclz4Qim3OwHrhtFjF1ifhP9DwVRpuIg+dECgYANwlHxLe//tr6BM31PUUrOxP5Y/cj+ydxqM/z6papZFkK6Mvi/vMQQNQkh95GH9zqyC5Z/yLxur4ry1eNYty/9FnuZRAkEmlUSZ/DobhU0Pmj8Hep6JsTuMutref6vCk2n02jc9qYmJuD7iXkdXDSawbEG6f5C4MUkJ38z1t1OjA==`)
-
 func init() {
-	data, err := base64.StdEncoding.DecodeString(string(testPk))
-	if err != nil {
-		log.Error(err.Error())
-		panic(err)
-	}
-	testPk = data
-
 	// call LoadPlugins once with the empty string b/c we only rely on standard
 	// plugins
 	if err := ipfs_filestore.LoadPlugins(""); err != nil {
@@ -134,13 +125,11 @@ func TestCreateDataset(t *testing.T) {
 	defer func() { Timestamp = prev }()
 	Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
 
-	privKey, err := crypto.UnmarshalPrivateKey(testPk)
-	if err != nil {
-		t.Errorf("error unmarshaling private key: %s", err.Error())
-		return
-	}
+	// These tests are using hard-coded ids that require this exact peer's private key.
+	info := testPeers.GetTestPeerInfo(10)
+	privKey := info.PrivKey
 
-	_, err = CreateDataset(ctx, store, nil, nil, nil, false, false, true)
+	_, err := CreateDataset(ctx, store, nil, nil, nil, false, false, true)
 	if err == nil {
 		t.Errorf("expected call without prvate key to error")
 		return
@@ -277,6 +266,67 @@ func TestCreateDataset(t *testing.T) {
 	// case: previous dataset isn't valid
 }
 
+// Test that if the body is too large, the commit message just assumes the body changed
+func TestCreateDatasetBodyTooLarge(t *testing.T) {
+	ctx := context.Background()
+	store := cafs.NewMapstore()
+
+	prevTs := Timestamp
+	defer func() { Timestamp = prevTs }()
+	Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+
+	// Set the limit for the body to be 100 bytes
+	prevBodySizeLimit := BodySizeSmallEnoughToDiff
+	defer func() { BodySizeSmallEnoughToDiff = prevBodySizeLimit }()
+	BodySizeSmallEnoughToDiff = 100
+
+	info := testPeers.GetTestPeerInfo(10)
+	privKey := info.PrivKey
+
+	// Need a previous commit, otherwise we just get the "created dataset" message
+	prevDs := dataset.Dataset{
+		Commit: &dataset.Commit{},
+		Structure: &dataset.Structure{
+			Format: "csv",
+			Schema: BaseTabularSchema,
+		},
+	}
+
+	testBodyPath, _ := filepath.Abs("testdata/movies/body.csv")
+	testBodyBytes, _ := ioutil.ReadFile(testBodyPath)
+
+	// Create a new version and add the body
+	nextDs := dataset.Dataset{
+		Commit: &dataset.Commit{},
+		Structure: &dataset.Structure{
+			Format: "csv",
+			Schema: BaseTabularSchema,
+		},
+	}
+	nextDs.SetBodyFile(qfs.NewMemfileBytes(testBodyPath, testBodyBytes))
+
+	path, err := CreateDataset(ctx, store, &nextDs, &prevDs, privKey, false, false, true)
+	if err != nil {
+		t.Fatalf("CreateDataset: %s", err)
+	}
+
+	// Load the created dataset to inspect the commit message
+	result, err := LoadDataset(ctx, store, path)
+	if err != nil {
+		t.Fatalf("LoadDataset: %s", err)
+	}
+
+	commitBytes, err := json.Marshal(result.Commit)
+	if err != nil {
+		t.Fatalf("commit.Marshal: %s", err)
+	}
+	expectBytes := `{"message":"body changed","path":"/map/Qmf23yGuYSW7uWtDeV8qpJkbch5PQjcJ2GQK1y1C4Ynv4i","qri":"cm:0","signature":"tH8RcOEjyev68eY4SewmDDUnwVqqJX5ckoUzHVGHGn93YW5TQz51EoslLP6ovrOUKx+MaOGqE05bDpD943SDo10eU023R+wEci+V2Z/WFffN0u39tz1a3KObql5kkC+DynXx7UJo/xpfa7KzH/BLvZDtEnwavu3HqL/CoiPEN6bipjlNG7qu47tifAaOQGgCQ2/3Cufm2ejJ90RPUi+kV1/jdPYU3vPu7ijfIAULM+7ZqZ44b4t+B15UUnCaP/Tk8I+/v855v4syZ2iW3UTR0hSyHwdSW2PkxyuRAU0hLSgHS0iw8vwudnjQuFPTd3Cyh+VWf5FDSd7YbO3Oj24JXg==","timestamp":"2001-01-01T01:01:01.000000001Z","title":"body changed"}`
+
+	if diff := cmp.Diff(expectBytes, string(commitBytes)); diff != "" {
+		t.Fatalf("result mismatch (-want +got):%s\n", diff)
+	}
+}
+
 func TestWriteDataset(t *testing.T) {
 	ctx := context.Background()
 	store := cafs.NewMapstore()
@@ -401,9 +451,11 @@ func TestGenerateCommitMessage(t *testing.T) {
 		},
 	}
 
+	store := cafs.NewMapstore()
+
 	for _, c := range badCases {
 		t.Run(fmt.Sprintf("%s", c.description), func(t *testing.T) {
-			_, _, err := generateCommitDescriptions(c.prev, c.ds, c.force)
+			_, _, err := generateCommitDescriptions(store, c.prev, c.ds, BodySame, c.force)
 			if err == nil {
 				t.Errorf("error expected, did not get one")
 			} else if c.errMsg != err.Error() {
@@ -526,8 +578,8 @@ twenty-five,giraffe,200
 hen,twenty-nine,30`),
 			},
 			false,
-			"body changed by 17%",
-			"body:\n\tchanged by 17%",
+			"body changed by 19%",
+			"body:\n\tchanged by 19%",
 		},
 		{
 			"meta and structure and readme changes",
@@ -635,10 +687,10 @@ twenty-eight,twenty-nine,30`),
 				Structure: &dataset.Structure{Format: "csv"},
 				Body: toqtype.MustParseCsvAsArray(`one,two,3
 four,five,6
-seven,eight,cat
+something,eight,cat
 dog,eleven,12
 thirteen,eel,15
-sixteen,seventeen,100
+sixteen,60,100
 frog,twenty,21
 twenty-two,twenty-three,24
 twenty-five,giraffe,200
@@ -646,13 +698,47 @@ hen,twenty-nine,30`),
 			},
 			false,
 			"updated meta and body",
-			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title\nbody:\n\tchanged by 16%",
+			"meta:\n\tupdated description\n\tadded homeURL\n\tupdated title\nbody:\n\tchanged by 24%",
+		},
+		{
+			"meta changed but body stays the same",
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title: "new dataset",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,9
+ten,eleven,12
+thirteen,fourteen,15
+sixteen,seventeen,18`),
+			},
+			&dataset.Dataset{
+				Meta: &dataset.Meta{
+					Title: "dataset of a bunch of numbers",
+				},
+				Structure: &dataset.Structure{Format: "csv"},
+				Body: toqtype.MustParseCsvAsArray(`one,two,3
+four,five,6
+seven,eight,9
+ten,eleven,12
+thirteen,fourteen,15
+sixteen,seventeen,18`),
+			},
+			false,
+			"meta updated title",
+			"meta:\n\tupdated title",
 		},
 	}
 
 	for _, c := range goodCases {
 		t.Run(c.description, func(t *testing.T) {
-			shortTitle, longMessage, err := generateCommitDescriptions(c.prev, c.ds, c.force)
+			bodyAct := BodyDefault
+			if compareBody(c.prev.Body, c.ds.Body) {
+				bodyAct = BodySame
+			}
+			shortTitle, longMessage, err := generateCommitDescriptions(store, c.prev, c.ds, bodyAct, c.force)
 			if err != nil {
 				t.Errorf("error: %s", err.Error())
 				return
@@ -665,7 +751,18 @@ hen,twenty-nine,30`),
 			}
 		})
 	}
+}
 
+func compareBody(left, right interface{}) bool {
+	leftData, err := json.Marshal(left)
+	if err != nil {
+		panic(err)
+	}
+	rightData, err := json.Marshal(right)
+	if err != nil {
+		panic(err)
+	}
+	return string(leftData) == string(rightData)
 }
 
 func TestGetDepth(t *testing.T) {
