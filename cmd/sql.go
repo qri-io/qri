@@ -80,7 +80,7 @@ func (o *SQLOptions) Complete(f Factory, args []string) (err error) {
 func (o *SQLOptions) Run() (err error) {
 	o.StartSpinner()
 
-	p := &lib.SQLExecParams{
+	p := &lib.SQLQueryParams{
 		Query:        o.Query,
 		OutputFormat: o.Format,
 	}

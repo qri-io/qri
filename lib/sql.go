@@ -22,15 +22,15 @@ func NewSQLMethods(inst *Instance) *SQLMethods {
 // CoreRequestsName implements the requests interface
 func (m SQLMethods) CoreRequestsName() string { return "sql" }
 
-// SQLExecParams defines paremeters for the exec Method
+// SQLQueryParams defines paremeters for the exec Method
 // ExecParams provides parameters to the execute command
-type SQLExecParams struct {
+type SQLQueryParams struct {
 	Query        string
 	OutputFormat string
 }
 
 // Exec runs an SQL query
-func (m *SQLMethods) Exec(p *SQLExecParams, results *[]byte) error {
+func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
 	if m.inst.rpc != nil {
 		return m.inst.rpc.Call("SQLMethods.Exec", p, results)
 	}

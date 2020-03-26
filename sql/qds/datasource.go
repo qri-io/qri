@@ -52,7 +52,7 @@ func NewDataSourceBuilderFactory(r repo.Repo) physical.DataSourceBuilderFactory 
 
 			ref, err := base.ToDatasetRef(refstr, r, false)
 			if err != nil {
-				log.Errorf("buildSource: base.ToDatasetRef '%s': %s", refstr, err)
+				log.Debugf("buildSource: base.ToDatasetRef '%s': %s", refstr, err)
 				if err == repo.ErrNotFound {
 					return nil, qrierr.New(err, fmt.Sprintf("couldn't find '%s' in local dataset collection.\nhave you added it?", refstr))
 				}
@@ -76,7 +76,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 	ref := qds.ref
 	ds, err := dsfs.LoadDataset(ctx, qds.r.Store(), ref.Path)
 	if err != nil {
-		log.Errorf("buildSource: dsfs.LoadDataset '%s': %s", qds.ref, err)
+		log.Debugf("buildSource: dsfs.LoadDataset '%s': %s", qds.ref, err)
 		return nil, errors.Wrap(err, "preparing SQL data source: couldn't load dataset")
 	}
 
@@ -89,7 +89,7 @@ func (qds *DataSource) Get(ctx context.Context, variables octosql.Variables) (ex
 	}
 
 	if err = base.OpenDataset(ctx, qds.r.Filesystem(), ds); err != nil {
-		log.Errorf("buildSource: base.OpenDataset '%s': %s", qds.ref, err)
+		log.Debugf("buildSource: base.OpenDataset '%s': %s", qds.ref, err)
 		return nil, errors.Wrap(err, "couldn't open ")
 	}
 
@@ -167,7 +167,7 @@ func (rs *RecordStream) Next(ctx context.Context) (*execution.Record, error) {
 			rs.r.Close()
 			return nil, execution.ErrEndOfStream
 		}
-		log.Error(err)
+		log.Debug(err)
 		return nil, err
 	}
 
@@ -190,7 +190,7 @@ func (rs *RecordStream) Next(ctx context.Context) (*execution.Record, error) {
 			}
 		}
 	} else {
-		log.Errorf("returned record is not an array type. got: %q", ent)
+		log.Debugf("returned record is not an array type. got: %q", ent)
 		return nil, fmt.Errorf("returned record is not an array type. got: %q", ent)
 	}
 

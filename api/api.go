@@ -311,6 +311,9 @@ func NewServerRoutes(s Server) *http.ServeMux {
 	sh := NewSearchHandlers(s.Instance)
 	m.Handle("/search", s.middleware(sh.SearchHandler))
 
+	sqlh := NewSQLHandlers(s.Instance, cfg.API.ReadOnly)
+	m.Handle("/sql", s.middleware(sqlh.QueryHandler("/sql")))
+
 	rh := NewRootHandler(dsh, ph)
 	m.Handle("/", s.datasetRefMiddleware(s.middleware(rh.Handler)))
 

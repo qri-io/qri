@@ -75,6 +75,7 @@ func Receivers(inst *Instance) []Methods {
 		NewProfileMethods(inst),
 		NewConfigMethods(inst),
 		NewSearchMethods(inst),
+		NewSQLMethods(inst),
 		NewRenderRequests(r, nil),
 		NewUpdateMethods(inst),
 		NewFSIMethods(inst),
