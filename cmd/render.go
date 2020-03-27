@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
@@ -106,7 +107,7 @@ func (o *RenderOptions) RunVizRender() (err error) {
 	res := []byte{}
 	if err := o.RenderRequests.RenderViz(p, &res); err != nil {
 		if err == repo.ErrEmptyRef {
-			return lib.NewError(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
+			return errors.New(err, "peername and dataset name needed in order to render, for example:\n   $ qri render me/dataset_name\nsee `qri render --help` from more info")
 		}
 		return err
 	}

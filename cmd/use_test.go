@@ -7,6 +7,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -79,7 +80,7 @@ func TestUseValidate(t *testing.T) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%s'", i, c.err, err)
 			continue
 		}
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue

@@ -48,10 +48,12 @@ func SaveDataset(ctx context.Context, r repo.Repo, str ioes.IOStreams, changes *
 
 	prev, mutable, prevPath, err := PrepareDatasetSave(ctx, r, changes.Peername, changes.Name)
 	if err != nil {
+		log.Errorf("preparing dataset: %s", err)
 		return
 	}
 
 	if prevPath != "" {
+		log.Debugf("loading previous path: %s", prevPath)
 		if sw.NewName && isInferredName {
 			// Using --new flag, name was inferred, but it's already in use. Because the --new
 			// flag was given, user is requesting we invent a unique name. Increment a counter
@@ -189,6 +191,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 		// reference locally
 		_ = r.DeleteRef(prev)
 	}
+
 	ref = reporef.DatasetRef{
 		ProfileID: pro.ID,
 		Peername:  pro.Peername,
@@ -211,6 +214,7 @@ func CreateDataset(ctx context.Context, r repo.Repo, streams ioes.IOStreams, ds,
 	ds.Path = path
 
 	if !dryRun {
+
 		err := r.Logbook().WriteVersionSave(ctx, ds)
 		if err != nil && err != logbook.ErrNoLogbook {
 			return ref, err

@@ -16,7 +16,7 @@ import (
 	"github.com/qri-io/qfs/localfs"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dscache"
-	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/startf"
 )
@@ -94,7 +94,7 @@ func TestSaveValidate(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				continue
@@ -186,7 +186,7 @@ func TestSaveRun(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case '%s', mismatched user-friendly message. Expected: '%s', Got: '%s'", c.description, c.msg, libErr.Message())
 				continue

@@ -8,6 +8,7 @@ import (
 	"path/filepath"
 
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
@@ -87,10 +88,10 @@ func (o *UseOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that any user input is valide
 func (o *UseOptions) Validate() error {
 	if o.Clear == false && o.List == false && len(o.Refs) == 0 {
-		return lib.NewError(lib.ErrBadArgs, "please provide dataset name, or --clear flag, or --list flag\nsee `qri use --help` for more info")
+		return errors.New(lib.ErrBadArgs, "please provide dataset name, or --clear flag, or --list flag\nsee `qri use --help` for more info")
 	}
 	if o.Clear == true && o.List == true || o.Clear == true && len(o.Refs) != 0 || o.List == true && len(o.Refs) != 0 {
-		return lib.NewError(lib.ErrBadArgs, "please only give a dataset name, or a --clear flag, or  a --list flag")
+		return errors.New(lib.ErrBadArgs, "please only give a dataset name, or a --clear flag, or  a --list flag")
 	}
 	return nil
 }

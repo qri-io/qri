@@ -42,6 +42,7 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 	}
 
 	prevPath = lookup.Path
+	log.Debugf("loading prevPath: %s. lookup result: %v", prevPath, lookup)
 
 	if prev, err = dsfs.LoadDataset(ctx, r.Store(), prevPath); err != nil {
 		return

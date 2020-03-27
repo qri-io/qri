@@ -23,6 +23,7 @@ import (
 	"github.com/qri-io/qri/base/fill"
 	"github.com/qri-io/qri/dscache/build"
 	"github.com/qri-io/qri/dsref"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -976,15 +977,15 @@ type ValidateDatasetParams struct {
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
-func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschema.ValError) (err error) {
+func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Validate", p, errors)
+		return r.cli.Call("DatasetRequests.Validate", p, valerrs)
 	}
 	ctx := context.TODO()
 
 	// TODO: restore validating data from a URL
 	// if p.URL != "" && ref.IsEmpty() && o.Schema == nil {
-	//   return (lib.NewError(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
+	//   return (errors.New(ErrBadArgs, "if you are validating data from a url, please include a dataset name or supply the --schema flag with a file path that Qri can validate against"))
 	// }
 
 	// Schema can come from either schema.json or structure.json, or the dataset itself.
@@ -992,7 +993,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	schemaFlagType := ""
 	schemaFilename := ""
 	if p.SchemaFilename != "" && p.StructureFilename != "" {
-		return NewError(ErrBadArgs, "cannot provide both --schema and --structure flags")
+		return errors.New(ErrBadArgs, "cannot provide both --schema and --structure flags")
 	} else if p.SchemaFilename != "" {
 		schemaFlagType = "schema"
 		schemaFilename = p.SchemaFilename
@@ -1002,7 +1003,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 	}
 
 	if p.Ref == "" && (p.BodyFilename == "" || schemaFlagType == "") {
-		return NewError(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
+		return errors.New(ErrBadArgs, "please provide a dataset name, or a supply the --body and --schema or --structure flags")
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -1093,7 +1094,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, errors *[]jsonschem
 		}
 	}
 
-	*errors, err = base.Validate(ctx, r.node.Repo, body, st)
+	*valerrs, err = base.Validate(ctx, r.node.Repo, body, st)
 	return
 }
 

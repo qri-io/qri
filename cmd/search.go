@@ -8,6 +8,7 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/ioes"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -70,7 +71,7 @@ func (o *SearchOptions) Complete(f Factory, args []string) (err error) {
 // Validate checks that any user inputs are valid
 func (o *SearchOptions) Validate() error {
 	if o.Query == "" {
-		return lib.NewError(lib.ErrBadArgs, "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information")
+		return errors.New(lib.ErrBadArgs, "please provide search parameters, for example:\n    $ qri search census\n    $ qri search 'census 2018'\nsee `qri search --help` for more information")
 	}
 	return nil
 }

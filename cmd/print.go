@@ -2,6 +2,7 @@ package cmd
 
 import (
 	"bytes"
+	"errors"
 	"fmt"
 	"io"
 	"os"
@@ -11,6 +12,7 @@ import (
 
 	"github.com/fatih/color"
 	"github.com/qri-io/deepdiff"
+	qrierr "github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
@@ -41,11 +43,17 @@ func printWarning(w io.Writer, msg string, params ...interface{}) {
 }
 
 func printErr(w io.Writer, err error, params ...interface{}) {
-	if e, ok := err.(lib.Error); ok && e.Message() != "" {
-		fmt.Fprintln(w, color.New(color.FgRed).Sprintf(e.Message(), params...))
+	var qerr qrierr.Error
+	if errors.As(err, &qerr) {
+		// printErr(w, fmt.Errorf(qerr.Message()))
+		fmt.Fprintln(w, color.New(color.FgRed).Sprintf(qerr.Message()))
 		return
 	}
 	fmt.Fprintln(w, color.New(color.FgRed).Sprintf(err.Error(), params...))
+	// if e, ok := err.(lib.Error); ok && e.Message() != "" {
+	// 	fmt.Fprintln(w, color.New(color.FgRed).Sprintf(e.Message(), params...))
+	// 	return
+	// }
 }
 
 // print a slice of stringer items to io.Writer as an indented & numbered list

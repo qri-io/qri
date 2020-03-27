@@ -405,7 +405,10 @@ func TestDatasetRequestsGet(t *testing.T) {
 
 	moviesDs.OpenBodyFile(ctx, node.Repo.Filesystem())
 	moviesBodyFile := moviesDs.BodyFile()
-	reader := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
+	reader, err := dsio.NewCSVReader(moviesDs.Structure, moviesBodyFile)
+	if err != nil {
+		t.Fatalf("creating CSV reader: %s", err)
+	}
 	moviesBody := mustBeArray(base.ReadEntries(reader))
 
 	prettyJSONConfig, _ := dataset.NewJSONOptions(map[string]interface{}{"pretty": true})

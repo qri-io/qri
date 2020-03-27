@@ -8,6 +8,7 @@ import (
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/config"
+	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 	reporef "github.com/qri-io/qri/repo/ref"
 	"github.com/spf13/cobra"
@@ -303,7 +304,7 @@ func (o *UpdateOptions) Complete(f Factory, args []string) (err error) {
 // Schedule adds a job to the update scheduler
 func (o *UpdateOptions) Schedule(args []string) (err error) {
 	if len(args) < 1 {
-		return lib.NewError(lib.ErrBadArgs, "please provide a dataset reference for updating")
+		return errors.New(lib.ErrBadArgs, "please provide a dataset reference for updating")
 	}
 	p := &lib.ScheduleParams{
 		Name:       args[0],
@@ -326,7 +327,7 @@ func (o *UpdateOptions) Schedule(args []string) (err error) {
 // Unschedule removes a job from the scheduler
 func (o *UpdateOptions) Unschedule(args []string) (err error) {
 	if len(args) < 1 {
-		return lib.NewError(lib.ErrBadArgs, "please provide a name to unschedule")
+		return errors.New(lib.ErrBadArgs, "please provide a name to unschedule")
 	}
 
 	var (
@@ -449,7 +450,7 @@ func (o *UpdateOptions) ServiceStop() (err error) {
 // RunUpdate executes an update immediately
 func (o *UpdateOptions) RunUpdate(args []string) (err error) {
 	if len(args) < 1 {
-		return lib.NewError(lib.ErrBadArgs, "please provide the name of an update to run")
+		return errors.New(lib.ErrBadArgs, "please provide the name of an update to run")
 	}
 
 	var (

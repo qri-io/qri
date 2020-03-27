@@ -5,7 +5,7 @@ import (
 	"testing"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/errors"
 )
 
 func TestValidateComplete(t *testing.T) {
@@ -115,7 +115,7 @@ func TestValidateRun(t *testing.T) {
 			continue
 		}
 
-		if libErr, ok := err.(lib.Error); ok {
+		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
 				ioReset(in, out, errs)

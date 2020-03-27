@@ -392,7 +392,7 @@ func TestJSON(t *testing.T) {
 		}, {
 			"csv: an array of strings",
 			"csv",
-			`{"type":"array"}`,
+			`{"type":"array", "items": { "type": "array", "items": [{ "title": "str_col", "type": "string" }] }}`,
 			"a\na\nbb\nccc\ndddd",
 			[]byte(`[{"count":5,"frequencies":{"a":2},"maxLength":4,"minLength":1,"type":"string","unique":3}]`),
 		}, {
