@@ -367,6 +367,22 @@ func TestSaveInferName(t *testing.T) {
 	if diff := cmp.Diff(expect, actual); diff != "" {
 		t.Errorf("result mismatch (-want +got):%s\n", diff)
 	}
+
+	// Save a dataset whose body filename starts with a number
+	output = run.MustExec(t, "qri save --body testdata/movies/2018_winners.csv")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/winnerscsv@/ipfs/Qmbis26hHj7o4XiYnYoKqTLYkvtxhWyyifR1PUz2rrnAcn\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
+
+	// Save a dataset whose body filename is non-alphabetic
+	output = run.MustExec(t, "qri save --body testdata/2015-09-16--2016-09-30.csv")
+	actual = parseDatasetRefFromOutput(output)
+	expect = "dataset saved: test_peer/dataset_09_16_2016_09_30csv@/ipfs/Qmcg4Bm7fghMWZUb7Szi8eeAjZtwSQTVMpc2XZy5GhJ3WH\n"
+	if diff := cmp.Diff(expect, actual); diff != "" {
+		t.Errorf("result mismatch (-want +got):%s\n", diff)
+	}
 }
 
 func TestSaveDscacheFirstCommit(t *testing.T) {

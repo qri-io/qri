@@ -5,6 +5,7 @@ import (
 	"context"
 	"fmt"
 	"io"
+	"unicode"
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
@@ -70,6 +71,10 @@ func PrepareDatasetSave(ctx context.Context, r repo.Repo, peername, name string)
 func MaybeInferName(ds *dataset.Dataset) bool {
 	if ds.Name == "" {
 		ds.Name = varName.CreateVarNameFromString(ds.BodyFile().FileName())
+		first := []rune(ds.Name)[0]
+		if !unicode.IsLower(first) {
+			ds.Name = "dataset_" + ds.Name
+		}
 		return true
 	}
 	return false
