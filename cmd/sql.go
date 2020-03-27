@@ -87,6 +87,7 @@ func (o *SQLOptions) Run() (err error) {
 
 	res := []byte{}
 	if err := o.SQLMethods.Exec(p, &res); err != nil {
+		o.StopSpinner()
 		return err
 	}
 

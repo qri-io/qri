@@ -95,18 +95,26 @@ func (svc *Service) Exec(ctx context.Context, w io.Writer, outFormat, query stri
 	// Parse query
 	stmt, err := sqlparser.Parse(processedQuery)
 	if err != nil {
-		log.Errorf("couldn't parse query: %s", err)
-		return fmt.Errorf("couldn't parse query: %s", err)
+		log.Debugf("couldn't parse query: %s", err)
+		return qrierr.New(err, fmt.Sprintf("Parsing SQL:\n%s", err.Error()))
 	}
 	typed, ok := stmt.(sqlparser.SelectStatement)
 	if !ok {
+		log.Debugf("%v is not a select statement", reflect.TypeOf(stmt))
 		err := fmt.Errorf("invalid statement type, wanted sqlparser.SelectStatement got %v", reflect.TypeOf(stmt))
-		log.Error(err)
-		return err
+		return qrierr.New(err, "only SELECT statements are supported")
 	}
 	plan, err := parser.ParseNode(typed)
 	if err != nil {
-		log.Fatal("couldn't parse query: ", err)
+		log.Debugf("couldn't generate plan: ", err)
+		msg := `Qri was able to parse your SQL statement, but can't execute it. 
+Some SQL functions and features are not yet implemented. 
+Check our issue tracker for SQL support & feature requests:
+  https://github.com/qri-io/qri/issues?q=is:issue+label:SQL
+
+Error:
+%s`
+		return qrierr.New(err, fmt.Sprintf(msg, err.Error()))
 	}
 
 	// Run query
