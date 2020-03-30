@@ -7,9 +7,9 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/repo"
 	"github.com/spf13/cobra"
 )
@@ -70,8 +70,8 @@ func (o *LogOptions) Complete(f Factory, args []string) (err error) {
 	return
 }
 
-// DatasetLogItem aliases the type from base
-type DatasetLogItem = base.DatasetLogItem
+// DatasetLogItem aliases the type from logbook
+type DatasetLogItem = logbook.DatasetLogItem
 
 // Run executes the log command
 func (o *LogOptions) Run() error {

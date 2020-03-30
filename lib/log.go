@@ -42,8 +42,8 @@ type LogParams struct {
 	Ref string
 }
 
-// DatasetLogItem is a line item in a dataset response
-type DatasetLogItem = base.DatasetLogItem
+// DatasetLogItem is a line item in a dataset logbook
+type DatasetLogItem = logbook.DatasetLogItem
 
 // Log returns the history of changes for a given dataset
 func (r *LogRequests) Log(params *LogParams, res *[]DatasetLogItem) (err error) {

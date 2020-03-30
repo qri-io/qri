@@ -191,7 +191,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	cities := reporef.ConvertToDsref(ref)
 
 	// confirm no history exists:
-	if _, err = book.Versions(ctx, cities, 0, 100); err == nil {
+	if _, err = book.Items(ctx, cities, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 

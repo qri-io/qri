@@ -57,11 +57,11 @@ func Example() {
 	// johnathon creates a dataset with a bunch of history:
 	worldBankDatasetRef := makeWorldBankLogs(ctx, johnathonsLogbook)
 
-	ver, err := johnathonsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100)
+	items, err := johnathonsLogbook.Items(ctx, worldBankDatasetRef, 0, 100)
 	if err != nil {
 		panic(err)
 	}
-	fmt.Printf("johnathon has %d references for %s\n", len(ver), worldBankDatasetRef)
+	fmt.Printf("johnathon has %d references for %s\n", len(items), worldBankDatasetRef)
 
 	// johnathon creates a new push
 	johnathonLogsync := New(johnathonsLogbook)
@@ -77,18 +77,18 @@ func Example() {
 
 	// wait for sync to complete
 	<-wait
-	if ver, err = basitsLogbook.Versions(ctx, worldBankDatasetRef, 0, 100); err != nil {
+	if items, err = basitsLogbook.Items(ctx, worldBankDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("basit has %d references for %s\n", len(ver), worldBankDatasetRef)
+	fmt.Printf("basit has %d references for %s\n", len(items), worldBankDatasetRef)
 
 	// this time basit creates a history
 	nasdaqDatasetRef := makeNasdaqLogs(ctx, basitsLogbook)
 
-	if ver, err = basitsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
+	if items, err = basitsLogbook.Items(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("basit has %d references for %s\n", len(ver), nasdaqDatasetRef)
+	fmt.Printf("basit has %d references for %s\n", len(items), nasdaqDatasetRef)
 
 	// prepare to pull nasdaq refs from basit
 	pull, err := johnathonLogsync.NewPull(nasdaqDatasetRef, server.URL)
@@ -102,10 +102,10 @@ func Example() {
 		panic(err)
 	}
 
-	if ver, err = johnathonsLogbook.Versions(ctx, nasdaqDatasetRef, 0, 100); err != nil {
+	if items, err = johnathonsLogbook.Items(ctx, nasdaqDatasetRef, 0, 100); err != nil {
 		panic(err)
 	}
-	fmt.Printf("johnathon has %d references for %s\n", len(ver), nasdaqDatasetRef)
+	fmt.Printf("johnathon has %d references for %s\n", len(items), nasdaqDatasetRef)
 
 	// Output: johnathon has 3 references for johnathon/world_bank_population
 	// basit has 3 references for johnathon/world_bank_population

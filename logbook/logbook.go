@@ -783,105 +783,42 @@ func (book *Book) ConstructDatasetLog(ctx context.Context, ref dsref.Ref, histor
 	return book.save(ctx)
 }
 
-func infoFromOp(ref dsref.Ref, op oplog.Op) dsref.VersionInfo {
-	return dsref.VersionInfo{
-		Username:   ref.Username,
-		ProfileID:  ref.ProfileID,
-		Name:       ref.Name,
-		Path:       op.Ref,
-		CommitTime: time.Unix(0, op.Timestamp),
-		BodySize:   int(op.Size),
+func itemFromOp(ref dsref.Ref, op oplog.Op) DatasetLogItem {
+	return DatasetLogItem{
+		VersionInfo: dsref.VersionInfo{
+			Username:   ref.Username,
+			ProfileID:  ref.ProfileID,
+			Name:       ref.Name,
+			Path:       op.Ref,
+			CommitTime: time.Unix(0, op.Timestamp),
+			BodySize:   int(op.Size),
+		},
+		CommitTitle: op.Note,
 	}
 }
 
-// Versions plays a set of operations for a given log, producing a State struct
+// Items plays a set of operations for a given log, producing a State struct
 // that describes the current state of a dataset
-func (book Book) Versions(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, error) {
+func (book Book) Items(ctx context.Context, ref dsref.Ref, offset, limit int) ([]DatasetLogItem, error) {
 	l, err := book.BranchRef(ctx, ref)
 	if err != nil {
 		return nil, err
 	}
 
-	return Versions(l, ref, offset, limit), nil
+	return Items(l, ref, offset, limit), nil
 }
 
-// VersionsWithNotes plays a set of operations for a given log, producing a State struct
-// that describes the current state of a dataset
-func (book Book) VersionsWithNotes(ctx context.Context, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, []string, error) {
-	l, err := book.BranchRef(ctx, ref)
-	if err != nil {
-		return nil, nil, err
-	}
-
-	vInfo, notes := VersionsWithNotes(l, ref, offset, limit)
-	return vInfo, notes, nil
-}
-
-// VersionsWithNotes interprets a dataset oplog into a commit history with Commit Title
-func VersionsWithNotes(l *oplog.Log, ref dsref.Ref, offset, limit int) ([]dsref.VersionInfo, []string) {
-	refs := []dsref.VersionInfo{}
-	refNotes := []string{}
+// Items interprets a dataset oplog into a commit history
+func Items(l *oplog.Log, ref dsref.Ref, offset, limit int) []DatasetLogItem {
+	refs := []DatasetLogItem{}
 	for _, op := range l.Ops {
 		switch op.Model {
 		case CommitModel:
 			switch op.Type {
 			case oplog.OpTypeInit:
-				refs = append(refs, infoFromOp(ref, op))
-				refNotes = append(refNotes, op.Note)
+				refs = append(refs, itemFromOp(ref, op))
 			case oplog.OpTypeAmend:
-				refs[len(refs)-1] = infoFromOp(ref, op)
-				refNotes[len(refs)-1] = op.Note
-			case oplog.OpTypeRemove:
-				refs = refs[:len(refs)-int(op.Size)]
-				refNotes = refNotes[:len(refNotes)-int(op.Size)]
-			}
-		case PublicationModel:
-			switch op.Type {
-			case oplog.OpTypeInit:
-				for i := 1; i <= int(op.Size); i++ {
-					refs[len(refs)-i].Published = true
-				}
-			case oplog.OpTypeRemove:
-				for i := 1; i <= int(op.Size); i++ {
-					refs[len(refs)-i].Published = false
-				}
-			}
-		}
-	}
-
-	// reverse the slice, placing newest first
-	// https://github.com/golang/go/wiki/SliceTricks#reversing
-	for i := len(refs)/2 - 1; i >= 0; i-- {
-		opp := len(refs) - 1 - i
-		refs[i], refs[opp] = refs[opp], refs[i]
-		refNotes[i], refNotes[opp] = refNotes[opp], refNotes[i]
-	}
-
-	if offset > len(refs) {
-		offset = len(refs)
-	}
-	refs = refs[offset:]
-	refNotes = refNotes[offset:]
-
-	if limit < len(refs) && limit != -1 {
-		refs = refs[:limit]
-		refNotes = refNotes[:limit]
-	}
-
-	return refs, refNotes
-}
-
-// Versions interprets a dataset oplog into a commit history
-func Versions(l *oplog.Log, ref dsref.Ref, offset, limit int) []dsref.VersionInfo {
-	refs := []dsref.VersionInfo{}
-	for _, op := range l.Ops {
-		switch op.Model {
-		case CommitModel:
-			switch op.Type {
-			case oplog.OpTypeInit:
-				refs = append(refs, infoFromOp(ref, op))
-			case oplog.OpTypeAmend:
-				refs[len(refs)-1] = infoFromOp(ref, op)
+				refs[len(refs)-1] = itemFromOp(ref, op)
 			case oplog.OpTypeRemove:
 				refs = refs[:len(refs)-int(op.Size)]
 			}
@@ -1020,6 +957,16 @@ func NewPlainLog(lg *oplog.Log) PlainLog {
 		Ops:  ops,
 		Logs: ls,
 	}
+}
+
+// DatasetLogItem is a line item in a dataset response
+type DatasetLogItem struct {
+	// Decription of a dataset reference
+	dsref.VersionInfo
+	// Title field from the commit
+	CommitTitle string `json:"commitTitle,omitempty"`
+	// Message field from the commit
+	CommitMessage string `json:"commitMessage,omitempty"`
 }
 
 // PlainOp is a human-oriented representation of oplog.Op intended for serialization

@@ -79,35 +79,29 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 		}
 	}
 
-	versions, notes := logbook.VersionsWithNotes(logs, reporef.ConvertToDsref(ref), 0, -1)
-	log.Debugf("found %d versions: %v", len(versions), versions)
-	if len(versions) == 0 {
+	items := logbook.Items(logs, reporef.ConvertToDsref(ref), 0, -1)
+	log.Debugf("found %d items: %v", len(items), items)
+	if len(items) == 0 {
 		return repo.ErrNoHistory
 	}
 
-	dsLogItems := make([]DatasetLogItem, len(versions))
-
-	for i, v := range versions {
-		local, hasErr := r.inst.Repo().Store().Has(ctx, v.Path)
+	for i, item := range items {
+		local, hasErr := r.inst.Repo().Store().Has(ctx, item.Path)
 		if hasErr != nil {
-			dsLogItems[i].VersionInfo = versions[i]
-			dsLogItems[i].CommitTitle = notes[i]
 			continue
 		}
-		versions[i].Foreign = !local
-		dsLogItems[i].VersionInfo = versions[i]
-		dsLogItems[i].CommitTitle = notes[i]
+		items[i].Foreign = !local
 
 		if local {
-			if ds, err := dsfs.LoadDataset(ctx, r.inst.repo.Store(), v.Path); err == nil {
+			if ds, err := dsfs.LoadDataset(ctx, r.inst.repo.Store(), item.Path); err == nil {
 				if ds.Commit != nil {
-					dsLogItems[i].CommitMessage = ds.Commit.Message
+					items[i].CommitMessage = ds.Commit.Message
 				}
 			}
 		}
 	}
 
-	*res = dsLogItems
+	*res = items
 	return nil
 }
 

@@ -137,15 +137,19 @@ func TestFetchCommand(t *testing.T) {
 
 	// Have peer B fetch from peer A, output correlates to the log from peer A earlier
 	actual = b.MustExec(t, "qri fetch peer_a/test_movies --remote a_node")
-	expect = `1   peer_a/test_movies
-    /ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA
-    foreign
-    720 B, 0 entries, 0 errors
+	expect = `1   Commit:  /ipfs/QmbjY9YG6xKfrPxiXA9eBkJSZiiRRtfKoaS9LSnyVvCAuA
+    Date:    Sun Dec 31 20:02:01 EST 2000
+    Storage: remote
+    Size:    720 B
 
-2   peer_a/test_movies
-    /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
-    foreign
-    224 B, 0 entries, 0 errors
+    structure updated 3 fields
+
+2   Commit:  /ipfs/QmXfgnK7XmyZcRfKrhDysRh5AcHqQntLy98i4joDqopqx6
+    Date:    Sun Dec 31 20:01:01 EST 2000
+    Storage: remote
+    Size:    224 B
+
+    created dataset
 
 `
 	if diff := cmp.Diff(expect, actual); diff != "" {
@@ -170,11 +174,13 @@ func TestFetchCommand(t *testing.T) {
 		lib.OptSetIPFSPath(b.RepoRoot.IPFSPath),
 	)
 
+	//
 	// Validate the outputs of history and fetch
+	//
 
 	logHandler := api.NewLogHandlers(remoteServer.Node())
 
-	// Get dataset history
+	// Validates output of history for a remote dataset
 	actualStatusCode, actualBody := APICall(
 		"GET",
 		"/history/peer_a/test_movies",
@@ -190,7 +196,6 @@ func TestFetchCommand(t *testing.T) {
 
 	remClientHandler := api.NewRemoteClientHandlers(localInst, false)
 
-	// Fetch dataset info
 	// Validates output of fetch for a remote dataset
 	actualStatusCode, actualBody = APICall(
 		"POST",
@@ -198,7 +203,6 @@ func TestFetchCommand(t *testing.T) {
 		map[string]string{
 			"remote": "a_node",
 		},
-		// httpServer.Handler)
 		remClientHandler.NewFetchHandler("/fetch"))
 	if actualStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", actualStatusCode)
@@ -209,7 +213,7 @@ func TestFetchCommand(t *testing.T) {
 	}
 }
 
-// APICallWithParams calls the api and returns the status code and body
+// APICall calls the api and returns the status code and body
 func APICall(method, reqURL string, params map[string]string, hf http.HandlerFunc) (int, string) {
 	// Add parameters from map
 	reqParams := url.Values{}
