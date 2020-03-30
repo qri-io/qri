@@ -3,6 +3,7 @@ package lib
 import (
 	"fmt"
 
+	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/registry/regclient"
 	"github.com/qri-io/qri/repo"
 )
@@ -32,7 +33,7 @@ type SearchParams struct {
 type SearchResult struct {
 	Type, ID string
 	URL      string
-	Value    interface{}
+	Value    *dataset.Dataset
 }
 
 // Search queries for items on qri related to given parameters
