@@ -10,6 +10,7 @@ import (
 	"time"
 
 	"github.com/ghodss/yaml"
+	"github.com/google/go-cmp/cmp"
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/config"
@@ -40,76 +41,105 @@ func TestExport(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	cases := []struct {
-		description string
-		params      ExportParams
-		output      string // error or output filename
-	}{
-		{"empty ref error", ExportParams{}, "repo: empty dataset reference"},
-
-		{"export default", ExportParams{Ref: "peer/movies"},
-			"peer-movies_-_0001-01-01-00-00-00.json"},
-
-		{"export yaml", ExportParams{Ref: "peer/movies", Format: "yaml"},
-			"peer-movies_-_0001-01-01-00-00-00.yaml"},
-
-		{"set output name", ExportParams{Ref: "peer/movies", Output: "ds.json"}, "ds.json"},
-
-		{"already exists", ExportParams{Ref: "peer/movies", Output: "ds.json"},
-			"already exists: \"ds.json\""},
-
-		{"set output name, yaml", ExportParams{Ref: "peer/movies", Output: "ds.yaml"}, "ds.yaml"},
-
-		{"output to directory", ExportParams{Ref: "peer/cities", Output: "./"},
-			"peer-cities_-_0001-01-01-00-00-00.json"},
-
-		{"export xlsx", ExportParams{Ref: "peer/movies", Format: "xlsx"},
-			"peer-movies_-_0001-01-01-00-00-00.xlsx"},
-
-		{"export zip", ExportParams{Ref: "peer/movies", Format: "zip"},
-			"peer-movies_-_0001-01-01-00-00-00.zip"},
-
-		{"export zip", ExportParams{Ref: "peer/cities", Zipped: true},
-			"peer-cities_-_0001-01-01-00-00-00.zip"},
-
-		{"export zip", ExportParams{Ref: "peer/counter", Format: "yaml", Zipped: true},
-			"peer-counter_-_0001-01-01-00-00-00.zip"},
-
-		{"export zip", ExportParams{Ref: "peer/sitemap", Format: "zip", Zipped: true},
-			"peer-sitemap_-_0001-01-01-00-00-00.zip"},
+	if err := ioutil.WriteFile(filepath.Join(tmpDir, "existing_file.json"), []byte("true"), 0664); err != nil {
+		t.Fatal(err)
 	}
 
-	for _, c := range cases {
+	bad := []struct {
+		params ExportParams
+		err    string // error or output filename
+	}{
+		{ExportParams{},
+			"repo: empty dataset reference",
+		},
+		{ExportParams{Ref: "peer/movies", Output: "existing_file.json"},
+			`already exists: "existing_file.json"`,
+		},
+	}
+
+	for _, c := range bad {
 		c.params.TargetDir = tmpDir
-		err := req.Export(&c.params, &fileWritten)
 
-		if err != nil {
-			if c.output != err.Error() {
-				t.Errorf("case \"%s\" error mismatch: expected: \"%s\", got: \"%s\"",
-					c.description, c.output, err)
+		t.Run(c.err, func(t *testing.T) {
+			err := req.Export(&c.params, &fileWritten)
+
+			if err == nil {
+				t.Fatal("expected error, got nil")
 			}
-			continue
-		}
-
-		if c.output != fileWritten {
-			t.Errorf("case \"%s\" incorrect output: expected: \"%s\", got: \"%s\"",
-				c.description, c.output, fileWritten)
-		}
-
-		var ds dataset.Dataset
-		err = readDataset(filepath.Join(c.params.TargetDir, fileWritten), &ds)
-		if err != nil {
-			if err.Error() == "SKIP" {
-				continue
+			if diff := cmp.Diff(c.err, err.Error()); diff != "" {
+				t.Errorf("error response mismatch (-want +got):\n%s", diff)
 			}
-			t.Fatal(err)
-		}
+		})
+	}
 
-		ref := fmt.Sprintf("%s/%s", ds.Peername, ds.Name)
-		if c.params.Ref != ref {
-			t.Errorf("case \"%s\" mismatched ds name: expected: \"%s\", got: \"%s\"",
-				c.description, c.params.Ref, ref)
-		}
+	good := []struct {
+		description string
+		params      ExportParams
+		filename    string
+	}{
+		{"set output name",
+			ExportParams{Ref: "peer/movies", Output: "ds.json"},
+			"ds.json",
+		},
+		{"set output name, yaml",
+			ExportParams{Ref: "peer/movies", Output: "ds.yaml"},
+			"ds.yaml",
+		},
+		{"output to directory",
+			ExportParams{Ref: "peer/cities", Output: "./"},
+			"peer-cities_-_0001-01-01-00-00-00.json",
+		},
+		{"export xlsx",
+			ExportParams{Ref: "peer/movies", Format: "xlsx"},
+			"peer-movies_-_0001-01-01-00-00-00.xlsx",
+		},
+		{"export zip",
+			ExportParams{Ref: "peer/movies", Format: "zip"},
+			"peer-movies_-_0001-01-01-00-00-00.zip",
+		},
+		{"export zip",
+			ExportParams{Ref: "peer/cities", Zipped: true},
+			"peer-cities_-_0001-01-01-00-00-00.zip",
+		},
+		{"export zip, yaml",
+			ExportParams{Ref: "peer/counter", Format: "yaml", Zipped: true},
+			"peer-counter_-_0001-01-01-00-00-00.zip",
+		},
+		{"export zip",
+			ExportParams{Ref: "peer/sitemap", Format: "zip", Zipped: true},
+			"peer-sitemap_-_0001-01-01-00-00-00.zip",
+		},
+	}
+
+	for _, c := range good {
+		c.params.TargetDir = tmpDir
+
+		t.Run(c.description, func(t *testing.T) {
+			err := req.Export(&c.params, &fileWritten)
+
+			if err != nil {
+				t.Fatalf("unexpected error: %s", err)
+			}
+
+			if c.filename != fileWritten {
+				t.Errorf(`incorrect filename. expected: "%s", got: "%s"`, c.filename, fileWritten)
+			}
+
+			var ds dataset.Dataset
+			err = readDataset(filepath.Join(c.params.TargetDir, fileWritten), &ds)
+			if err != nil {
+				if err.Error() == "SKIP" {
+					return
+				}
+				t.Fatal(err)
+			}
+
+			ref := fmt.Sprintf("%s/%s", ds.Peername, ds.Name)
+			if c.params.Ref != ref {
+				t.Errorf("case \"%s\" mismatched ds name: expected: \"%s\", got: \"%s\"",
+					c.description, c.params.Ref, ref)
+			}
+		})
 	}
 }
 
