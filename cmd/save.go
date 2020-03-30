@@ -89,7 +89,6 @@ type SaveOptions struct {
 	Title   string
 	Message string
 
-	UsingFSI       bool
 	Replace        bool
 	ShowValidation bool
 	Publish        bool
@@ -117,8 +116,6 @@ func (o *SaveOptions) Complete(f Factory, args []string) (err error) {
 			return err
 		}
 	}
-
-	o.UsingFSI = o.Refs.IsLinked()
 
 	// Make all paths absolute. Especially important if we are running
 	// `qri connect` in a different terminal, and that instance is in a different directory;
@@ -155,8 +152,6 @@ func (o *SaveOptions) Run() (err error) {
 		Message:  o.Message,
 
 		ScriptOutput:        o.ErrOut,
-		ReadFSI:             o.UsingFSI,
-		WriteFSI:            o.UsingFSI,
 		FilePaths:           o.FilePaths,
 		Private:             false,
 		Publish:             o.Publish,

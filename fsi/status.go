@@ -64,7 +64,7 @@ func (fsi *FSI) AliasToLinkedDir(alias string) (string, error) {
 		return "", err
 	}
 	if ref.FSIPath == "" {
-		return "", fmt.Errorf("StatusForAlias may only be used with linked datasets")
+		return "", ErrNoLink
 	}
 	return ref.FSIPath, nil
 }

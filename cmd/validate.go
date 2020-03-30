@@ -121,7 +121,6 @@ func (o *ValidateOptions) Run() (err error) {
 		BodyFilename:      o.BodyFilepath,
 		SchemaFilename:    o.SchemaFilepath,
 		StructureFilename: o.StructureFilepath,
-		UseFSI:            o.Refs.IsLinked(),
 	}
 
 	res := []jsonschema.ValError{}

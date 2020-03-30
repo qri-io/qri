@@ -50,8 +50,7 @@ func TestDatasetHandlers(t *testing.T) {
 		{"GET", "/me/family_relationships", nil},
 		{"GET", "/me/family_relationships/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
 		{"GET", "/at/map/Qme7LVBp6hfi4Y5N29CXeXjpAqgT3fWtAmQWtZgjpQAZph", nil},
-		// test that when fsi=true on a request that does not have a link to the filesystem
-		// we get the correct error code & message
+		// test that when fsi=true parameter doesn't affect the api response
 		{"GET", "/me/family_relationships?fsi=true", nil},
 		{"DELETE", "/", nil},
 	}
@@ -191,7 +190,7 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	// Name is inferred from the body path
 	expectText := `"name":"datacsv"`
 	if !strings.Contains(bodyText, expectText) {
-		t.Errorf("expected, body response to contain %q, not found", expectText)
+		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
 	}
 
 	// Save a second time
@@ -202,7 +201,7 @@ func TestSaveWithInferredNewName(t *testing.T) {
 	// Name is guaranteed to be unique
 	expectText = `"name":"datacsv_1"`
 	if !strings.Contains(bodyText, expectText) {
-		t.Errorf("expected, body response to contain %q, not found", expectText)
+		t.Errorf("expected, body response to contain %q, not found. got %q", expectText, bodyText)
 	}
 }
 

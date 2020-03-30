@@ -110,10 +110,7 @@ func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) 
 			return err
 		}
 
-		if p.UseFSI {
-			if ref.FSIPath == "" {
-				return fsi.ErrNoLink
-			}
+		if ref.FSIPath != "" {
 			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}

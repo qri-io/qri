@@ -42,14 +42,10 @@ func TestRenameNoHistory(t *testing.T) {
 		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
 	}
 
-	// New dataset name can be used, but still has no history
+	// New dataset name can be used
 	err = run.ExecCommand("qri get me/remove_second_name")
-	if err == nil {
-		t.Error("expected error, did not get one")
-	}
-	expect = "repo: no history"
-	if err.Error() != expect {
-		t.Errorf("error mismatch, expect: %s, got: %s", expect, err.Error())
+	if err != nil {
+		t.Errorf("unexpected error: %s", err)
 	}
 
 	// Read .qri-ref file, it contains the new reference name
