@@ -117,7 +117,7 @@ func TestDatasetLogForeign(t *testing.T) {
 		t.Errorf("log length mismatch. expected: %d, got: %d", 1, len(log))
 	}
 
-	// Foreign log so not counting on the commit title/message
+	// Foreign log so not counting on the commit message
 	expect := []DatasetLogItem{
 		{
 			VersionInfo: dsref.VersionInfo{
@@ -126,6 +126,7 @@ func TestDatasetLogForeign(t *testing.T) {
 				ProfileID: "QmWYgD49r9HnuXEppQEq1a7SUUryja4QNs9E6XCH2PayCD",
 				Foreign:   true,
 			},
+			CommitTitle: "their commit",
 		},
 	}
 
@@ -190,7 +191,7 @@ func TestConstructDatasetLogFromHistory(t *testing.T) {
 	cities := reporef.ConvertToDsref(ref)
 
 	// confirm no history exists:
-	if _, err = book.Versions(ctx, cities, 0, 100); err == nil {
+	if _, err = book.Items(ctx, cities, 0, 100); err == nil {
 		t.Errorf("expected versions for nonexistent history to fail")
 	}
 

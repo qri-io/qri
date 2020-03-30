@@ -5,8 +5,8 @@ import (
 	"net/http"
 
 	util "github.com/qri-io/apiutil"
-	"github.com/qri-io/qri/base"
 	"github.com/qri-io/qri/lib"
+	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
 )
@@ -35,8 +35,8 @@ func (h *LogHandlers) LogHandler(w http.ResponseWriter, r *http.Request) {
 	}
 }
 
-// DatasetLogItem aliases the type from base
-type DatasetLogItem = base.DatasetLogItem
+// DatasetLogItem aliases the type from logbook
+type DatasetLogItem = logbook.DatasetLogItem
 
 func (h *LogHandlers) logHandler(w http.ResponseWriter, r *http.Request) {
 	args, err := DatasetRefFromPath(r.URL.Path[len("/history"):])

@@ -44,7 +44,7 @@ func (h *RemoteClientHandlers) NewFetchHandler(prefix string) http.HandlerFunc {
 			Ref:        ref.String(),
 			RemoteName: r.FormValue("remote"),
 		}
-		res := []dsref.VersionInfo{}
+		res := []DatasetLogItem{}
 		if err := h.Fetch(p, &res); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return

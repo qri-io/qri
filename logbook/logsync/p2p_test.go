@@ -55,12 +55,12 @@ func TestP2PLogsync(t *testing.T) {
 		t.Error(err)
 	}
 
-	vs, err := tr.B.Versions(tr.Ctx, worldBankRef, 0, 10)
+	items, err := tr.B.Items(tr.Ctx, worldBankRef, 0, 10)
 	if err != nil {
-		t.Errorf("expected no error fetching versions after pull. got: %s", err)
+		t.Errorf("expected no error fetching dslog items after pull. got: %s", err)
 	}
-	if len(vs) == 0 {
-		t.Errorf("expected some length of logs. got: %d", len(vs))
+	if len(items) == 0 {
+		t.Errorf("expected some length of logs. got: %d", len(items))
 	}
 
 	// add moar logs to A
@@ -84,20 +84,20 @@ func TestP2PLogsync(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	vs, err = tr.B.Versions(tr.Ctx, nasdaqRef, 0, 10)
+	items, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10)
 	if err != nil {
-		t.Errorf("expected no error fetching versions after pull. got: %s", err)
+		t.Errorf("expected no error fetching dslog items after pull. got: %s", err)
 	}
-	if len(vs) == 0 {
-		t.Errorf("expected some length of logs. got: %d", len(vs))
+	if len(items) == 0 {
+		t.Errorf("expected some length of logs. got: %d", len(items))
 	}
 
 	// A request B removes nasdaq
 	if err := lsA.DoRemove(tr.Ctx, nasdaqRef, bID); err != nil {
 		t.Errorf("unexpected error doing remove request: %s", err)
 	}
-	if _, err = tr.B.Versions(tr.Ctx, nasdaqRef, 0, 10); err == nil {
-		t.Errorf("expected error fetching versions. got nil")
+	if _, err = tr.B.Items(tr.Ctx, nasdaqRef, 0, 10); err == nil {
+		t.Errorf("expected error fetching dslog items. got nil")
 	}
 }
 

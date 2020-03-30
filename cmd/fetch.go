@@ -4,7 +4,6 @@ import (
 	"fmt"
 
 	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
 	"github.com/spf13/cobra"
 )
@@ -56,7 +55,7 @@ func (o *FetchOptions) Complete(f Factory, args []string) (err error) {
 
 // Run executes the fetch command
 func (o *FetchOptions) Run() error {
-	res := []dsref.VersionInfo{}
+	res := []DatasetLogItem{}
 	for _, ref := range o.Refs {
 		p := lib.FetchParams{
 			Ref:        ref,
@@ -68,7 +67,7 @@ func (o *FetchOptions) Run() error {
 
 		items := make([]fmt.Stringer, len(res))
 		for i, r := range res {
-			items[i] = versionInfoStringer(r)
+			items[i] = dslogItemStringer(r)
 		}
 
 		printItems(o.Out, items, 0)

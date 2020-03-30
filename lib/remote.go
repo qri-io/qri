@@ -6,6 +6,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base"
+	"github.com/qri-io/qri/base/dsfs"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/logbook"
 	"github.com/qri-io/qri/remote"
@@ -38,7 +39,7 @@ type FetchParams struct {
 }
 
 // Fetch pulls a logbook from a remote
-func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
+func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 	if r.inst.rpc != nil {
 		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
 	}
@@ -78,21 +79,29 @@ func (r *RemoteMethods) Fetch(p *FetchParams, res *[]dsref.VersionInfo) error {
 		}
 	}
 
-	versions := logbook.Versions(logs, reporef.ConvertToDsref(ref), 0, -1)
-	log.Debugf("found %d versions: %v", len(versions), versions)
-	if len(versions) == 0 {
+	items := logbook.Items(logs, reporef.ConvertToDsref(ref), 0, -1)
+	log.Debugf("found %d items: %v", len(items), items)
+	if len(items) == 0 {
 		return repo.ErrNoHistory
 	}
 
-	for i, v := range versions {
-		local, hasErr := r.inst.Repo().Store().Has(ctx, v.Path)
+	for i, item := range items {
+		local, hasErr := r.inst.Repo().Store().Has(ctx, item.Path)
 		if hasErr != nil {
 			continue
 		}
-		versions[i].Foreign = !local
+		items[i].Foreign = !local
+
+		if local {
+			if ds, err := dsfs.LoadDataset(ctx, r.inst.repo.Store(), item.Path); err == nil {
+				if ds.Commit != nil {
+					items[i].CommitMessage = ds.Commit.Message
+				}
+			}
+		}
 	}
 
-	*res = versions
+	*res = items
 	return nil
 }
 

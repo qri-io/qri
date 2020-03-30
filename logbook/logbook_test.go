@@ -143,7 +143,7 @@ func Example() {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	log, err := book.Versions(ctx, ref, 0, 100)
+	log, err := book.Items(ctx, ref, 0, 100)
 	if err != nil {
 		panic(err)
 	}
@@ -580,7 +580,7 @@ func TestLogTransfer(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	revs, err := book2.Versions(tr.Ctx, tr.WorldBankRef(), 0, 30)
+	revs, err := book2.Items(tr.Ctx, tr.WorldBankRef(), 0, 30)
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -657,7 +657,7 @@ func TestRenameDataset(t *testing.T) {
 	}
 }
 
-func TestVersions(t *testing.T) {
+func TestItems(t *testing.T) {
 	tr, cleanup := newTestRunner(t)
 	defer cleanup()
 
@@ -665,50 +665,62 @@ func TestVersions(t *testing.T) {
 	tr.WriteMoreWorldBankCommits(t)
 	book := tr.Book
 
-	versions, err := book.Versions(tr.Ctx, tr.WorldBankRef(), 0, 10)
+	items, err := book.Items(tr.Ctx, tr.WorldBankRef(), 0, 10)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expect := []dsref.VersionInfo{
+	expect := []DatasetLogItem{
 		{
-			Username:   "test_author",
-			Name:       "world_bank_population",
-			Path:       "QmHashOfVersion5",
-			CommitTime: mustTime("2000-01-04T19:00:00-05:00"),
+			VersionInfo: dsref.VersionInfo{
+				Username:   "test_author",
+				Name:       "world_bank_population",
+				Path:       "QmHashOfVersion5",
+				CommitTime: mustTime("2000-01-04T19:00:00-05:00"),
+			},
+			CommitTitle: "v5",
 		},
 		{
-			Username:   "test_author",
-			Name:       "world_bank_population",
-			Path:       "QmHashOfVersion4",
-			CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
+			VersionInfo: dsref.VersionInfo{
+				Username:   "test_author",
+				Name:       "world_bank_population",
+				Path:       "QmHashOfVersion4",
+				CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
+			},
+			CommitTitle: "v4",
 		},
 		{
-			Username:   "test_author",
-			Name:       "world_bank_population",
-			Path:       "QmHashOfVersion3",
-			CommitTime: mustTime("2000-01-02T19:00:00-05:00"),
+			VersionInfo: dsref.VersionInfo{
+				Username:   "test_author",
+				Name:       "world_bank_population",
+				Path:       "QmHashOfVersion3",
+				CommitTime: mustTime("2000-01-02T19:00:00-05:00"),
+			},
+			CommitTitle: "added meta info",
 		},
 	}
 
-	if diff := cmp.Diff(expect, versions); diff != "" {
+	if diff := cmp.Diff(expect, items); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 
-	versions, err = book.Versions(tr.Ctx, tr.WorldBankRef(), 1, 1)
+	items, err = book.Items(tr.Ctx, tr.WorldBankRef(), 1, 1)
 	if err != nil {
 		t.Error(err)
 	}
 
-	expect = []dsref.VersionInfo{
+	expect = []DatasetLogItem{
 		{
-			Username:   "test_author",
-			Name:       "world_bank_population",
-			Path:       "QmHashOfVersion4",
-			CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
+			VersionInfo: dsref.VersionInfo{
+				Username:   "test_author",
+				Name:       "world_bank_population",
+				Path:       "QmHashOfVersion4",
+				CommitTime: mustTime("2000-01-03T19:00:00-05:00"),
+			},
+			CommitTitle: "v4",
 		},
 	}
-	if diff := cmp.Diff(expect, versions); diff != "" {
+	if diff := cmp.Diff(expect, items); diff != "" {
 		t.Errorf("result mismatch (-want +got):\n%s", diff)
 	}
 }
@@ -763,13 +775,13 @@ func TestConstructDatasetLog(t *testing.T) {
 	// now for the fun bit. When we ask for the state of the log, it will
 	// play our opsets forward and get us the current state of tne log
 	// we can also get the state of a log from the book:
-	versions, err := book.Versions(tr.Ctx, ref, 0, 100)
+	items, err := book.Items(tr.Ctx, ref, 0, 100)
 	if err != nil {
-		t.Errorf("getting versions: %s", err)
+		t.Errorf("getting items: %s", err)
 	}
 
-	if len(versions) != 3 {
-		t.Errorf("expected 3 versions to return from history. got: %d", len(versions))
+	if len(items) != 3 {
+		t.Errorf("expected 3 dslog items to return from history. got: %d", len(items))
 	}
 }
 
