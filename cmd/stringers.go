@@ -8,7 +8,6 @@ import (
 
 	"github.com/dustin/go-humanize"
 	"github.com/fatih/color"
-	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/config"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/lib"
@@ -159,7 +158,7 @@ func (r searchResultStringer) String() string {
 	w := &strings.Builder{}
 	title := color.New(color.FgGreen, color.Bold).SprintFunc()
 	path := color.New(color.Faint).SprintFunc()
-	ds := r.Value.(*dataset.Dataset)
+	ds := r.Value
 
 	fmt.Fprintf(w, "%s/%s", title(ds.Peername), title(ds.Name))
 	fmt.Fprintf(w, "\n%s", r.URL)
