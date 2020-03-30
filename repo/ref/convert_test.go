@@ -4,9 +4,9 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
+	testPeers "github.com/qri-io/qri/config/test"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/repo/profile"
-	testPeers "github.com/qri-io/qri/config/test"
 )
 
 func TestRefFromDsref(t *testing.T) {
