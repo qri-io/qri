@@ -1,4 +1,4 @@
-package dsutil
+package archive
 
 import (
 	"archive/zip"
@@ -14,7 +14,7 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 )
 
-func TestWriteZipArchive(t *testing.T) {
+func TestWriteZip(t *testing.T) {
 	ctx := context.Background()
 	store, names, err := testStore()
 	if err != nil {
@@ -29,7 +29,7 @@ func TestWriteZipArchive(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZipArchive(ctx, store, ds, "yaml", "peer/ref@a/ipfs/b", buf); err != nil {
+	if err = WriteZip(ctx, store, ds, "yaml", "peer/ref@a/ipfs/b", buf); err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}
@@ -55,7 +55,7 @@ func TestWriteZipArchive(t *testing.T) {
 	}
 }
 
-func TestWriteZipArchiveFullDataset(t *testing.T) {
+func TestWriteZipFullDataset(t *testing.T) {
 	ctx := context.Background()
 	store, names, err := testStoreWithVizAndTransform()
 	if err != nil {
@@ -76,7 +76,7 @@ func TestWriteZipArchiveFullDataset(t *testing.T) {
 	}
 
 	buf := &bytes.Buffer{}
-	if err = WriteZipArchive(ctx, store, ds, "json", "peer/ref@a/ipfs/b", buf); err != nil {
+	if err = WriteZip(ctx, store, ds, "json", "peer/ref@a/ipfs/b", buf); err != nil {
 		t.Errorf("error writing zip archive: %s", err.Error())
 		return
 	}

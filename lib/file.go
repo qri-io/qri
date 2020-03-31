@@ -11,7 +11,7 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qfs"
-	"github.com/qri-io/qri/base/dsfs/dsutil"
+	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/base/fill"
 	"gopkg.in/yaml.v2"
 )
@@ -66,7 +66,7 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 			return nil, "", err
 		}
 		resp.Body.Close()
-		err = dsutil.UnzipDatasetBytes(data, &ds)
+		err = archive.UnzipDatasetBytes(data, &ds)
 		return &ds, "zip", nil
 
 	case "ipfs":
@@ -110,7 +110,7 @@ func readSingleFile(path string) (*dataset.Dataset, string, error) {
 			if err != nil {
 				return nil, "", err
 			}
-			err = dsutil.UnzipDatasetBytes(data, &ds)
+			err = archive.UnzipDatasetBytes(data, &ds)
 			return &ds, "zip", err
 
 		case ".star":

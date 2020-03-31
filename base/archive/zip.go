@@ -1,4 +1,4 @@
-package dsutil
+package archive
 
 import (
 	"archive/zip"
@@ -17,8 +17,8 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 )
 
-// WriteZipArchive generates a zip archive of a dataset and writes it to w
-func WriteZipArchive(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format string, ref string, w io.Writer) error {
+// WriteZip generates a zip archive of a dataset and writes it to w
+func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format string, ref string, w io.Writer) error {
 	zw := zip.NewWriter(w)
 
 	// Dataset header, contains meta, structure, and commit
