@@ -6,6 +6,7 @@ package lib
 import (
 	"context"
 	"encoding/gob"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"net"
@@ -56,6 +57,7 @@ func init() {
 	// Fields like dataset.Structure.Schema contain data of arbitrary types,
 	// registering with the gob package prevents errors when sending them
 	// over net/rpc calls.
+	gob.Register(json.RawMessage{})
 	gob.Register([]interface{}{})
 	gob.Register(map[string]interface{}{})
 }
