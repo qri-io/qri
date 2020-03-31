@@ -1,4 +1,4 @@
-package dsutil
+package api
 
 import (
 	"bytes"
@@ -8,6 +8,7 @@ import (
 	"net/http/httptest"
 	"os"
 	"path/filepath"
+	"runtime"
 	"testing"
 
 	"github.com/qri-io/dataset"
@@ -16,7 +17,7 @@ import (
 func TestFormFileDataset(t *testing.T) {
 	r := newFormFileRequest(t, nil, nil)
 	dsp := &dataset.Dataset{}
-	if err := FormFileDataset(r, dsp); err != nil {
+	if err := formFileDataset(r, dsp); err != nil {
 		t.Error("expected 'empty' request to be ok")
 	}
 
@@ -26,7 +27,7 @@ func TestFormFileDataset(t *testing.T) {
 		"transform": dstestTestdataFile("complete/transform.star"),
 		"body":      dstestTestdataFile("complete/body.csv"),
 	}, nil)
-	if err := FormFileDataset(r, dsp); err != nil {
+	if err := formFileDataset(r, dsp); err != nil {
 		t.Error(err)
 	}
 
@@ -34,7 +35,7 @@ func TestFormFileDataset(t *testing.T) {
 		"file": "testdata/dataset.yml",
 		"body": dstestTestdataFile("complete/body.csv"),
 	}, nil)
-	if err := FormFileDataset(r, dsp); err != nil {
+	if err := formFileDataset(r, dsp); err != nil {
 		t.Error(err)
 	}
 }
@@ -71,4 +72,10 @@ func newFormFileRequest(t *testing.T, files, params map[string]string) *http.Req
 	req := httptest.NewRequest("POST", "/", body)
 	req.Header.Add("Content-Type", writer.FormDataContentType())
 	return req
+}
+
+func dstestTestdataFile(path string) string {
+	_, currfile, _, _ := runtime.Caller(0)
+	testdataPath := filepath.Join(filepath.Dir(currfile), "testdata")
+	return filepath.Join(testdataPath, path)
 }

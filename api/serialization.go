@@ -1,4 +1,4 @@
-package dsutil
+package api
 
 import (
 	"bytes"
@@ -11,10 +11,37 @@ import (
 
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/dataset/detect"
+	"github.com/qri-io/qri/base/fill"
+	"gopkg.in/yaml.v2"
 )
 
-// FormFileDataset extracts a dataset document from a http Request
-func FormFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
+// inlineScriptsToBytes consumes all open script files for dataset components
+// other than the body, inlining file data to scriptBytes fields
+func inlineScriptsToBytes(ds *dataset.Dataset) error {
+	var err error
+	if ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		if ds.Readme.ScriptBytes, err = ioutil.ReadAll(ds.Readme.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		if ds.Transform.ScriptBytes, err = ioutil.ReadAll(ds.Transform.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	if ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		if ds.Viz.ScriptBytes, err = ioutil.ReadAll(ds.Viz.ScriptFile()); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// formFileDataset extracts a dataset document from a http Request
+func formFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 	datafile, dataHeader, err := r.FormFile("file")
 	if err == http.ErrMissingFile {
 		err = nil
@@ -28,11 +55,15 @@ func FormFileDataset(r *http.Request, ds *dataset.Dataset) (err error) {
 			var data []byte
 			data, err = ioutil.ReadAll(datafile)
 			if err != nil {
-				err = fmt.Errorf("error reading dataset file: %s", err)
+				err = fmt.Errorf("reading dataset file: %w", err)
 				return
 			}
-			if err = UnmarshalYAMLDataset(data, ds); err != nil {
-				err = fmt.Errorf("error unmarshaling yaml file: %s", err)
+			fields := make(map[string]interface{})
+			if err = yaml.Unmarshal(data, fields); err != nil {
+				err = fmt.Errorf("deserializing YAML file: %w", err)
+				return
+			}
+			if err = fill.Struct(fields, ds); err != nil {
 				return
 			}
 		case ".json":

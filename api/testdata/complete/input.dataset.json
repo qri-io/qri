@@ -1,0 +1,132 @@
+{
+  "qri": "ds:0",
+  "commit": {
+    "qri": "cm:0",
+    "title": "I'm a commit"
+  },
+  "meta": {
+    "qri": "md:0",
+    "title": "dataset with all submodels example"
+  },
+  "transform": {
+    "qri": "tf:0",
+    "syntax": "sql",
+    "data": "select * from foo",
+    "structure": {
+      "qri": "st:0",
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": [
+            {
+              "title": "title",
+              "type": "string"
+            },
+            {
+              "title": "duration",
+              "type": "integer"
+            }
+          ]
+        }
+      }
+    },
+    "resources": {
+      "foo": "/not/a/real/path"
+    }
+  },
+  "abstractTransform": {
+    "qri": "tf:0",
+    "data": "select * from a",
+    "structure": {
+      "qri": "st:0",
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": [
+            {
+              "title": "a",
+              "type": "string"
+            },
+            {
+              "title": "b",
+              "type": "integer"
+            }
+          ]
+        }
+      }
+    },
+    "resources": {
+      "a": "/fake/path/to/abstract/dataset/"
+    }
+  },
+  "abstract": {
+    "qri": "ds:0",
+    "structure": {
+      "qri": "st:0",
+      "format": "csv",
+      "formatConfig": {
+        "headerRow": true
+      },
+      "schema": {
+        "type": "array",
+        "items": {
+          "type": "array",
+          "items": [
+            {
+              "title": "a",
+              "type": "string"
+            },
+            {
+              "title": "b",
+              "type": "integer"
+            }
+          ]
+        }
+      }
+    }
+  },
+  "structure": {
+    "qri": "st:0",
+    "format": "csv",
+    "formatConfig": {
+      "headerRow": true
+    },
+    "schema": {
+      "type": "array",
+      "items": {
+        "type": "array",
+        "items": [
+          {
+            "title": "title",
+            "type": "string"
+          },
+          {
+            "title": "duration",
+            "type": "integer"
+          }
+        ]
+      }
+    }
+  },
+  "visconfig":{
+    "format": "foo",
+    "qri": "vc:0",
+    "visualizations": {
+      "type": "bar",
+      "colors": {
+        "bars": "#ffffff",
+        "background": "#000000"
+      }
+    }
+  }
+}
