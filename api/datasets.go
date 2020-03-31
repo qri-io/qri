@@ -14,7 +14,7 @@ import (
 
 	util "github.com/qri-io/apiutil"
 	"github.com/qri-io/dataset"
-	"github.com/qri-io/qri/base/dsfs/dsutil"
+	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/dsref"
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
@@ -297,7 +297,7 @@ func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if err := dsutil.InlineScriptsToBytes(res.Dataset); err != nil {
+	if err := inlineScriptsToBytes(res.Dataset); err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return
 	}
@@ -430,7 +430,7 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 			}
 		}
 	} else {
-		if err := dsutil.FormFileDataset(r, ds); err != nil {
+		if err := formFileDataset(r, ds); err != nil {
 			util.WriteErrResponse(w, http.StatusBadRequest, err)
 			return
 		}
@@ -639,7 +639,7 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 	download := r.FormValue("download") == "true"
 	if download {
-		filename, err := lib.GenerateFilename(result.Dataset, p.Format)
+		filename, err := archive.GenerateFilename(result.Dataset, p.Format)
 		if err != nil {
 			util.WriteErrResponse(w, http.StatusInternalServerError, err)
 			return
@@ -694,7 +694,7 @@ func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 }
 
 func (h DatasetHandlers) unpackHandler(w http.ResponseWriter, r *http.Request, postData []byte) {
-	contents, err := dsutil.UnzipGetContents(postData)
+	contents, err := archive.UnzipGetContents(postData)
 	if err != nil {
 		util.WriteErrResponse(w, http.StatusInternalServerError, err)
 		return

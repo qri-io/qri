@@ -1,4 +1,4 @@
-package dsutil
+package archive
 
 import (
 	"archive/zip"
@@ -17,8 +17,8 @@ import (
 	"github.com/qri-io/qri/base/dsfs"
 )
 
-// WriteZipArchive generates a zip archive of a dataset and writes it to w
-func WriteZipArchive(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format string, ref string, w io.Writer) error {
+// WriteZip generates a zip archive of a dataset and writes it to w
+func WriteZip(ctx context.Context, store cafs.Filestore, ds *dataset.Dataset, format string, ref string, w io.Writer) error {
 	zw := zip.NewWriter(w)
 
 	// Dataset header, contains meta, structure, and commit
@@ -94,22 +94,7 @@ func WriteZipArchive(ctx context.Context, store cafs.Filestore, ds *dataset.Data
 		}
 
 		if ds.Viz.RenderedPath != "" {
-			// TODO (b5) - rendered viz isn't always being properly added to the
-			// encoded DAG, causing this to hang indefinitely on a network lookup.
-			// Use a short timeout for now to prevent the process from running too
-			// long. We should come up with a more permanent fix for this.
-			withTimeout, done := context.WithTimeout(ctx, time.Millisecond*250)
-			defer done()
-			rendered, err := store.Get(withTimeout, ds.Viz.RenderedPath)
-			if err != nil {
-				return err
-			}
-			target, err := zw.Create("index.html")
-			if err != nil {
-				return err
-			}
-			_, err = io.Copy(target, rendered)
-			if err != nil {
+			if err = maybeWriteRenderedViz(ctx, store, zw, ds.Viz.RenderedPath); err != nil {
 				return err
 			}
 		}
@@ -133,6 +118,29 @@ func WriteZipArchive(ctx context.Context, store cafs.Filestore, ds *dataset.Data
 		return err
 	}
 	return zw.Close()
+}
+
+// TODO (b5) - rendered viz isn't always being properly added to the
+// encoded DAG, causing this to hang indefinitely on a network lookup.
+// Use a short timeout for now to prevent the process from running too
+// long. We should come up with a more permanent fix for this.
+func maybeWriteRenderedViz(ctx context.Context, store cafs.Filestore, zw *zip.Writer, vizPath string) error {
+	withTimeout, done := context.WithTimeout(ctx, time.Millisecond*250)
+	defer done()
+	rendered, err := store.Get(withTimeout, vizPath)
+	if err != nil {
+		if strings.Contains(err.Error(), "not found") {
+			return nil
+		}
+		return err
+	}
+
+	target, err := zw.Create("index.html")
+	if err != nil {
+		return err
+	}
+	_, err = io.Copy(target, rendered)
+	return err
 }
 
 // UnzipDatasetBytes is a convenince wrapper for UnzipDataset
