@@ -9,6 +9,8 @@ import (
 )
 
 // BaseTabularSchema is the base schema for tabular data
+// NOTE: Do not use if possible, prefer github.com/qri-io/dataset/tabular
+// TODO(dustmop): Possibly move this to tabular package
 var BaseTabularSchema = map[string]interface{}{
 	"type": "array",
 	"items": map[string]interface{}{

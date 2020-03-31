@@ -27,10 +27,19 @@ import (
 	"github.com/qri-io/qri/base/toqtype"
 )
 
-var (
-	// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
-	BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
-)
+// BodySizeSmallEnoughToDiff sets how small a body must be to generate a message from it
+var BodySizeSmallEnoughToDiff = 20000000 // 20M or less is small
+
+// TODO(dustmop): Limiting the body size for diffs causes an undesirable side-effect: if a user
+// has a dataset body larger than this size, then any `save` operation will create a commit, even
+// if no changes have been made, since our change detection will see BodyTooBig and assume
+// something changed. Some solutions to this:
+//   * above 20M start using a less-accurate non-structured checksum instead of deepdiff
+//   * calculate a structured checksum and compare that to the last commit's checksum
+//   * immitate "redo" (https://apenwarr.ca/log/20181113), store file attributes, see if any change
+//   * at a large enough size, like 4G, just assume the file is always changed. don't be expensive
+// We should make this algorithm agree with how `status` works.
+// See issue: https://github.com/qri-io/qri/issues/1150
 
 // LoadDataset reads a dataset from a cafs and dereferences structure, transform, and commitMsg if they exist,
 // returning a fully-hydrated dataset
@@ -635,6 +644,7 @@ func generateCommitDescriptions(store cafs.Filestore, prev, ds *dataset.Dataset,
 }
 
 // copied from base/body.go to avoid circular dependency
+// TODO(dustmop): Move from base/body.go into this package
 func readAllEntries(reader dsio.EntryReader) (interface{}, error) {
 	obj := make(map[string]interface{})
 	array := make([]interface{}, 0)
