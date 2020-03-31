@@ -53,8 +53,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := lib.GetParams{
-		Path:   ref.String(),
-		UseFSI: r.FormValue("fsi") == "true",
+		Ref: ref.String(),
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)

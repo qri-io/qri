@@ -16,7 +16,6 @@ import (
 	"github.com/qri-io/dataset"
 	"github.com/qri-io/qri/base/archive"
 	"github.com/qri-io/qri/dsref"
-	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
 	"github.com/qri-io/qri/repo"
@@ -283,13 +282,12 @@ func (h *DatasetHandlers) listHandler(w http.ResponseWriter, r *http.Request) {
 // otherwise, resolve the peername and proceed as normal
 func (h *DatasetHandlers) getHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Path:   HTTPPathToQriPath(r.URL.Path),
-		UseFSI: r.FormValue("fsi") == "true",
+		Ref: HTTPPathToQriPath(r.URL.Path),
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
 	if err != nil {
-		if err == repo.ErrNoHistory || err == fsi.ErrNoLink {
+		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
 		}
@@ -455,8 +453,6 @@ func (h *DatasetHandlers) saveHandler(w http.ResponseWriter, r *http.Request) {
 		ReturnBody:   r.FormValue("return_body") == "true",
 		Force:        r.FormValue("force") == "true",
 		ShouldRender: !(r.FormValue("no_render") == "true"),
-		ReadFSI:      r.FormValue("fsi") == "true",
-		WriteFSI:     r.FormValue("fsi") == "true",
 		NewName:      r.FormValue("new") == "true",
 		BodyPath:     r.FormValue("bodypath"),
 
@@ -586,10 +582,9 @@ func getParamsFromRequest(r *http.Request, readOnly bool, path string) (*lib.Get
 	}
 
 	p := &lib.GetParams{
-		Path:     path,
+		Ref:      path,
 		Format:   format,
 		Selector: "body",
-		UseFSI:   r.FormValue("fsi") == "true",
 		Limit:    listParams.Limit,
 		Offset:   listParams.Offset,
 		All:      r.FormValue("all") == "true" && !readOnly,
@@ -652,9 +647,6 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 	page := util.PageFromRequest(r)
 	path := result.Dataset.BodyPath
-	if p.UseFSI {
-		path = result.Dataset.Path
-	}
 
 	dataResponse := DataResponse{
 		Path: path,
@@ -667,14 +659,13 @@ func (h DatasetHandlers) bodyHandler(w http.ResponseWriter, r *http.Request) {
 
 func (h DatasetHandlers) statsHandler(w http.ResponseWriter, r *http.Request) {
 	p := lib.GetParams{
-		Path:     HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
-		UseFSI:   r.FormValue("fsi") == "true",
+		Ref:      HTTPPathToQriPath(r.URL.Path[len("/stats/"):]),
 		Selector: "stats",
 	}
 	res := lib.GetResult{}
 	err := h.Get(&p, &res)
 	if err != nil {
-		if err == repo.ErrNoHistory || err == fsi.ErrNoLink {
+		if err == repo.ErrNoHistory {
 			util.WriteErrResponse(w, http.StatusUnprocessableEntity, err)
 			return
 		}

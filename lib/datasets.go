@@ -202,11 +202,10 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 
 // GetParams defines parameters for looking up the body of a dataset
 type GetParams struct {
-	// Path to get, this will often be a dataset reference like me/dataset
-	Path string
+	// Ref to get, for example a dataset reference like me/dataset
+	Ref string
 
 	// read from a filesystem link instead of stored version
-	UseFSI       bool
 	Format       string
 	FormatConfig dataset.FormatConfig
 
@@ -224,7 +223,7 @@ type GetResult struct {
 }
 
 // Get retrieves datasets and components for a given reference. If p.Ref is provided, it is
-// used to load the dataset, otherwise p.Path is parsed to create a reference. The
+// used to load the dataset, otherwise p.Ref is parsed to create a reference. The
 // dataset will be loaded from the local repo if available, or by asking peers for it.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
@@ -237,22 +236,19 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ctx := context.TODO()
 
 	// Check if the dataset ref uses bad-case characters, show a warning.
-	if _, err := dsref.Parse(p.Path); err == dsref.ErrBadCaseName {
+	dr, err := dsref.Parse(p.Ref)
+	if err == dsref.ErrBadCaseName {
 		log.Error(dsref.ErrBadCaseShouldRename)
 	}
 
-	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, p.UseFSI)
+	ref, err := base.ToDatasetRef(p.Ref, r.node.Repo, true)
 	if err != nil {
-		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Path, err)
+		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Ref, err)
 		return err
 	}
 
 	var ds *dataset.Dataset
-	if p.UseFSI {
-		if ref.FSIPath == "" {
-			log.Debugf("Get dataset, p.Path %q, ref %q failed, ref.FSIPath is empty", p.Path, ref)
-			return fsi.ErrNoLink
-		}
+	if dr.Path == "" && ref.FSIPath != "" {
 		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
 			log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
 			return fmt.Errorf("loading linked dataset: %s", err)
@@ -287,7 +283,10 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		}
 
 		var bufData []byte
-		if p.UseFSI {
+		if dr.Path == "" && ref.FSIPath != "" {
+			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
+			// but no structure, which should infer a schema in order to read the body. Once that
+			// works we can remove the fsi.GetBody call and just use base.ReadBody.
 			if bufData, err = fsi.GetBody(ref.FSIPath, df, p.FormatConfig, p.Offset, p.Limit, p.All); err != nil {
 				log.Debugf("Get dataset, fsi.GetBody %q failed, error: %s", ref.FSIPath, err)
 				return err
@@ -301,22 +300,9 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 
 		res.Bytes = bufData
 		return err
-	} else if p.Selector == "transform.script" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
-		// `qri get transform.script` loads the transform script, as a special case
-		// TODO (b5): this is a hack that should be generalized
-		res.Bytes, err = ioutil.ReadAll(ds.Transform.ScriptFile())
-		return err
-	} else if p.Selector == "readme.script" && ds.Readme != nil && ds.Readme.ScriptFile() != nil {
-		// `qri get readme.script` loads the readme source, as a special case
-		res.Bytes, err = ioutil.ReadAll(ds.Readme.ScriptFile())
-		return err
-	} else if p.Selector == "viz.script" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
-		// `qri get viz.script` loads the visualization script, as a special case
-		res.Bytes, err = ioutil.ReadAll(ds.Viz.ScriptFile())
-		return err
-	} else if p.Selector == "rendered" && ds.Viz != nil && ds.Viz.RenderedFile() != nil {
-		// `qri get rendered` loads the rendered visualization script, as a special case
-		res.Bytes, err = ioutil.ReadAll(ds.Viz.RenderedFile())
+	} else if scriptFile, ok := scriptFileSelection(ds, p.Selector); ok {
+		// Fields that have qfs.File types should be read and returned
+		res.Bytes, err = ioutil.ReadAll(scriptFile)
 		return err
 	} else if p.Selector == "stats" {
 		statsParams := &StatsParams{
@@ -364,6 +350,26 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	}
 }
 
+func scriptFileSelection(ds *dataset.Dataset, selector string) (qfs.File, bool) {
+	parts := strings.Split(selector, ".")
+	if len(parts) != 2 {
+		return nil, false
+	}
+	if parts[1] != "script" {
+		return nil, false
+	}
+	if parts[0] == "transform" && ds.Transform != nil && ds.Transform.ScriptFile() != nil {
+		return ds.Transform.ScriptFile(), true
+	} else if parts[0] == "readme" && ds.Readme != nil && ds.Readme.ScriptFile() != nil {
+		return ds.Readme.ScriptFile(), true
+	} else if parts[0] == "viz" && ds.Viz != nil && ds.Viz.ScriptFile() != nil {
+		return ds.Viz.ScriptFile(), true
+	} else if parts[0] == "rendered" && ds.Viz != nil && ds.Viz.RenderedFile() != nil {
+		return ds.Viz.RenderedFile(), true
+	}
+	return nil, false
+}
+
 // SaveParams encapsulates arguments to Save
 type SaveParams struct {
 	// dataset supplies params directly, all other param fields override values
@@ -386,13 +392,6 @@ type SaveParams struct {
 	// note: this won't work over RPC, only on local calls
 	ScriptOutput io.Writer
 
-	// load FSI-linked dataset before saving. anything provided in the Dataset
-	// field and any param field will override the FSI dataset
-	// read & write FSI should almost always be used in tandem, either setting
-	// both to true or leaving both false
-	ReadFSI bool
-	// true save will write the dataset to the designated
-	WriteFSI bool
 	// Replace writes the entire given dataset as a new snapshot instead of
 	// applying save params as augmentations to the existing history
 	Replace bool
@@ -484,19 +483,22 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	ds := &dataset.Dataset{}
 
-	if p.ReadFSI {
-		err = repo.CanonicalizeDatasetRef(r.node.Repo, &datasetRef)
-		if err != nil && err != repo.ErrNoHistory {
-			return err
+	// Check if the dataset has an FSIPath, which requires a different save codepath.
+	err = repo.CanonicalizeDatasetRef(r.node.Repo, &datasetRef)
+	// Ignore errors that happen when saving a new dataset for the first time
+	if err == repo.ErrNotFound || err == repo.ErrEmptyRef {
+		// do nothing
+	} else if err == nil || err == repo.ErrNoHistory {
+		// When saving in an FSI directory, the ref should exist (due to `qri init`), and we
+		// need to load the previous version from the working directory.
+		if datasetRef.FSIPath != "" {
+			ds, err = fsi.ReadDir(datasetRef.FSIPath)
+			if err != nil {
+				return err
+			}
 		}
-		if datasetRef.FSIPath == "" {
-			return fsi.ErrNoLink
-		}
-
-		ds, err = fsi.ReadDir(datasetRef.FSIPath)
-		if err != nil {
-			return
-		}
+	} else {
+		return err
 	}
 
 	// add param-supplied changes
@@ -509,6 +511,15 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 			Message: p.Message,
 		},
 	})
+
+	// TODO(dustmop): A hack! Before, we were only calling CanonializeDatasetRef when saving to
+	// an FSI linked directory, so the Username "me" was not being replaced by the true username.
+	// Somehow this value is getting into IPFS, and a lot of tests break due to ipfs hashes
+	// changing. Fix this in a follow-up change, and verify that usernames are never saved into
+	// filestore.
+	if ref.Username == "me" {
+		ds.Peername = "me"
+	}
 
 	if p.Dataset != nil {
 		p.Dataset.Assign(ds)
@@ -616,7 +627,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 
 	*res = datasetRef
 
-	if p.WriteFSI {
+	if fsiPath != "" {
 		// Need to pass filesystem here so that we can read the README component and write it
 		// properly back to disk.
 		fsi.WriteComponents(res.Dataset, datasetRef.FSIPath, r.inst.node.Repo.Filesystem())
@@ -630,7 +641,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 // See this issue: https://github.com/qri-io/qri/issues/1132
 func (r *DatasetRequests) nameIsInUse(ref dsref.Ref) bool {
 	param := GetParams{
-		Path: ref.Alias(),
+		Ref: ref.Alias(),
 	}
 	res := GetResult{}
 	err := r.Get(&param, &res)
@@ -973,7 +984,6 @@ type ValidateDatasetParams struct {
 	BodyFilename      string
 	SchemaFilename    string
 	StructureFilename string
-	UseFSI            bool
 }
 
 // Validate gives a dataset of errors and issues for a given dataset
@@ -1024,10 +1034,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 	// Should probably combine into a utility function.
 
 	if p.Ref != "" {
-		if p.UseFSI {
-			if ref.FSIPath == "" {
-				return fsi.ErrNoLink
-			}
+		if ref.FSIPath != "" {
 			if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
 				return fmt.Errorf("loading linked dataset: %s", err)
 			}

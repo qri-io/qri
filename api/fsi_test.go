@@ -20,7 +20,6 @@ import (
 	"github.com/qri-io/qri/fsi"
 	"github.com/qri-io/qri/lib"
 	"github.com/qri-io/qri/p2p"
-	"github.com/qri-io/qri/repo"
 	reporef "github.com/qri-io/qri/repo/ref"
 )
 
@@ -149,13 +148,6 @@ func TestNoHistory(t *testing.T) {
 		t.Errorf("expected ref to be \"peer/test_ds\", got \"%s\"", ref)
 	}
 
-	expectNoHistoryBody := map[string]interface{}{
-		"meta": map[string]interface{}{
-			"code":  float64(422),
-			"error": repo.ErrNoHistory.Error(),
-		},
-	}
-
 	// Get mtimes for the component files
 	st, _ := os.Stat(filepath.Join(workDir, "meta.json"))
 	metaMtime := st.ModTime().Format(time.RFC3339)
@@ -166,19 +158,17 @@ func TestNoHistory(t *testing.T) {
 
 	dsHandler := NewDatasetHandlers(run.Inst, false)
 
+	// Expected response for dataset head, regardless of fsi parameter
+	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
+
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=false
 	gotStatusCode, gotBodyString := APICall("/peer/test_ds", dsHandler.GetHandler)
-	if gotStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", gotStatusCode)
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-
-	gotBody := map[string]interface{}{}
-	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
-		t.Errorf("could not unmarshal response into struct: %s", err)
-	}
-
-	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	actualBody := strings.Replace(gotBodyString, workDir, subDir, -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
 
 	// Dataset with a link to the filesystem, but no history and the api request says fsi=true
@@ -186,49 +176,49 @@ func TestNoHistory(t *testing.T) {
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody := strings.Replace(gotBodyString, workDir, subDir, -1)
-	expectBody := `{"data":{"peername":"peer","name":"test_ds","fsiPath":"fsi_init_dir","dataset":{"bodyPath":"fsi_init_dir/body.csv","meta":{"qri":"md:0"},"name":"test_ds","peername":"peer","qri":"ds:0","structure":{"format":"csv","qri":"st:0"}},"published":false},"meta":{"code":200}}`
-	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
-	// Body with no history
+	// Expected response for body of the dataset
+	expectBody = `{"data":{"path":"fsi_init_dir/body.csv","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?page=2"}}`
+
+	// Body with no history, but fsi working directory has body
 	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds", dsHandler.BodyHandler)
-	if gotStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", gotStatusCode)
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
-		t.Errorf("could not unmarshal response into struct: %s", err)
-	}
-
-	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
 
-	// Body with no history, but FSI working directory has body
+	// Body with no history, but fsi working directory has body
 	gotStatusCode, gotBodyString = APICall("/body/peer/test_ds?fsi=true", dsHandler.BodyHandler)
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-	expectBody = `{"data":{"path":"","data":[["one","two",3],["four","five",6]]},"meta":{"code":200},"pagination":{"nextUrl":"/body/peer/test_ds?fsi=true\u0026page=2"}}`
-	if expectBody != gotBodyString {
-		t.Errorf("expected body %s, got %s", expectBody, gotBodyString)
+	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	actualBody = strings.Replace(actualBody, `fsi=true\u0026`, "", -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
 
 	fsiHandler := NewFSIHandlers(run.Inst, false)
 
+	// Expected response for status of the dataset
+	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/structure.json","component":"structure","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
+	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
+
 	// Status at version with no history
 	gotStatusCode, gotBodyString = APICall("/status/peer/test_ds", fsiHandler.StatusHandler("/status"))
-	if gotStatusCode != 422 {
-		t.Errorf("expected status code 422, got %d", gotStatusCode)
+	if gotStatusCode != 200 {
+		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
-		t.Errorf("could not unmarshal response into struct: %s", err)
-	}
-
-	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectBody, actualBody, diff)
 	}
 
 	// Status with no history, but FSI working directory has contents
@@ -236,27 +226,27 @@ func TestNoHistory(t *testing.T) {
 	if gotStatusCode != 200 {
 		t.Errorf("expected status code 200, got %d", gotStatusCode)
 	}
-	// Handle temporary directory by replacing the temp part with a shorter string.
-	resultBody = strings.Replace(gotBodyString, workDir, subDir, -1)
-	templateBody := `{"data":[{"sourceFile":"fsi_init_dir/meta.json","component":"meta","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/structure.json","component":"structure","type":"add","message":"","mtime":"%s"},{"sourceFile":"fsi_init_dir/body.csv","component":"body","type":"add","message":"","mtime":"%s"}],"meta":{"code":200}}`
-	expectBody = fmt.Sprintf(templateBody, metaMtime, structureMtime, bodyMtime)
-	if diff := cmp.Diff(expectBody, resultBody); diff != "" {
+	actualBody = strings.Replace(gotBodyString, workDir, subDir, -1)
+	if diff := cmp.Diff(expectBody, actualBody); diff != "" {
 		t.Errorf("api response (-want +got):\n%s", diff)
 	}
 
 	logHandler := NewLogHandlers(run.Node)
+
+	expectNoHistoryBody := `{
+  "meta": {
+    "code": 422,
+    "error": "repo: no history"
+  }
+}`
 
 	// History with no history
 	gotStatusCode, gotBodyString = APICall("/history/peer/test_ds", logHandler.LogHandler)
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
-		t.Errorf("could not unmarshal response into struct: %s", err)
-	}
-
-	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	if diff := cmp.Diff(expectNoHistoryBody, gotBodyString); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBodyString, diff)
 	}
 
 	// History with no history, still returns ErrNoHistory since this route ignores fsi param
@@ -264,12 +254,8 @@ func TestNoHistory(t *testing.T) {
 	if gotStatusCode != 422 {
 		t.Errorf("expected status code 422, got %d", gotStatusCode)
 	}
-	if err := json.Unmarshal([]byte(gotBodyString), &gotBody); err != nil {
-		t.Errorf("could not unmarshal response into struct: %s", err)
-	}
-
-	if diff := cmp.Diff(expectNoHistoryBody, gotBody); diff != "" {
-		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBody, diff)
+	if diff := cmp.Diff(expectNoHistoryBody, gotBodyString); diff != "" {
+		t.Errorf("expected body %v, got %v\ndiff:%v", expectNoHistoryBody, gotBodyString, diff)
 	}
 }
 

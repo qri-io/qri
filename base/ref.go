@@ -32,9 +32,9 @@ func SetPublishStatus(r repo.Repo, ref *reporef.DatasetRef, published bool) erro
 	return r.PutRef(*ref)
 }
 
-// ToDatasetRef parses the dataset ref and returns it, allowing datasets with no history only
-// if FSI is enabled.
-func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*reporef.DatasetRef, error) {
+// ToDatasetRef parses the dataset ref and looks it up in the refstore, allows refs with no history
+// TODO(dustmop): In a future change, remove the third parameter from this function
+func ToDatasetRef(path string, r repo.Repo, _ bool) (*reporef.DatasetRef, error) {
 	if path == "" {
 		return nil, repo.ErrEmptyRef
 	}
@@ -43,10 +43,8 @@ func ToDatasetRef(path string, r repo.Repo, allowFSI bool) (*reporef.DatasetRef,
 		return nil, fmt.Errorf("'%s' is not a valid dataset reference", path)
 	}
 	err = repo.CanonicalizeDatasetRef(r, &ref)
-	if err != nil {
-		if err != repo.ErrNoHistory || !allowFSI {
-			return nil, err
-		}
+	if err != nil && err != repo.ErrNoHistory {
+		return nil, err
 	}
 	return &ref, nil
 }
