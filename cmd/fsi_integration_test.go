@@ -731,6 +731,68 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 }
 
+// Test that get for a previous version works for checked out datasets
+func TestGetPreviousVersionExplicitPath(t *testing.T) {
+	run := NewFSITestRunner(t, "qri_test_get_prev_version")
+	defer run.Delete()
+
+	// First version has only a body
+	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/get_ver")
+	ref1 := parseRefFromSave(output)
+
+	// Add a meta
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/get_ver")
+	_ = parseRefFromSave(output)
+
+	// Modify the body
+	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/get_ver")
+	ref3 := parseRefFromSave(output)
+
+	// Change the meta
+	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/get_ver")
+	_ = parseRefFromSave(output)
+
+	run.ChdirToRoot()
+
+	// Checkout the newly created dataset.
+	run.MustExec(t, "qri checkout me/get_ver")
+
+	// Get meta from an old reference
+	output = run.MustExec(t, fmt.Sprintf("qri get meta %s", ref1))
+	expect := `null
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("get mismatch (-want +got):\n%s", diff)
+	}
+
+	// Get meta from another reference
+	output = run.MustExec(t, fmt.Sprintf("qri get meta %s", ref3))
+	expect = `qri: md:0
+title: different title
+
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("get mismatch (-want +got):\n%s", diff)
+	}
+
+	// Get body from an old reference
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref1))
+	expect = `[["Avatar",178],["Pirates of the Caribbean: At World's End",169]]
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("get mismatch (-want +got):\n%s", diff)
+	}
+
+	// Get body from another reference
+	output = run.MustExec(t, fmt.Sprintf("qri get body %s", ref3))
+	expect = `[["Avatar",178],["Pirates of the Caribbean: At World's End",169],["Spectre",148],["The Dark Knight Rises",164]]
+`
+	if diff := cmp.Diff(expect, output); diff != "" {
+		t.Errorf("get mismatch (-want +got):\n%s", diff)
+	}
+}
+
 // Test restoring previous version
 func TestRestorePreviousVersion(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_restore_prev_version")

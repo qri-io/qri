@@ -202,8 +202,8 @@ func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 
 // GetParams defines parameters for looking up the body of a dataset
 type GetParams struct {
-	// Path to get, this will often be a dataset reference like me/dataset
-	Path string
+	// Ref to get, for example a dataset reference like me/dataset
+	Ref string
 
 	// read from a filesystem link instead of stored version
 	Format       string
@@ -223,7 +223,7 @@ type GetResult struct {
 }
 
 // Get retrieves datasets and components for a given reference. If p.Ref is provided, it is
-// used to load the dataset, otherwise p.Path is parsed to create a reference. The
+// used to load the dataset, otherwise p.Ref is parsed to create a reference. The
 // dataset will be loaded from the local repo if available, or by asking peers for it.
 // Using p.Selector will control what components are returned in res.Bytes. The default,
 // a blank selector, will also fill the entire dataset at res.Data. If the selector is "body"
@@ -236,18 +236,19 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	ctx := context.TODO()
 
 	// Check if the dataset ref uses bad-case characters, show a warning.
-	if _, err := dsref.Parse(p.Path); err == dsref.ErrBadCaseName {
+	dr, err := dsref.Parse(p.Ref)
+	if err == dsref.ErrBadCaseName {
 		log.Error(dsref.ErrBadCaseShouldRename)
 	}
 
-	ref, err := base.ToDatasetRef(p.Path, r.node.Repo, true)
+	ref, err := base.ToDatasetRef(p.Ref, r.node.Repo, true)
 	if err != nil {
-		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Path, err)
+		log.Debugf("Get dataset, base.ToDatasetRef %q failed, error: %s", p.Ref, err)
 		return err
 	}
 
 	var ds *dataset.Dataset
-	if ref.FSIPath != "" {
+	if dr.Path == "" && ref.FSIPath != "" {
 		if ds, err = fsi.ReadDir(ref.FSIPath); err != nil {
 			log.Debugf("Get dataset, fsi.ReadDir %q failed, error: %s", ref.FSIPath, err)
 			return fmt.Errorf("loading linked dataset: %s", err)
@@ -282,7 +283,7 @@ func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 		}
 
 		var bufData []byte
-		if ref.FSIPath != "" {
+		if dr.Path == "" && ref.FSIPath != "" {
 			// TODO(dustmop): Need to handle the special case where an FSI directory has a body
 			// but no structure, which should infer a schema in order to read the body. Once that
 			// works we can remove the fsi.GetBody call and just use base.ReadBody.
@@ -640,7 +641,7 @@ func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err erro
 // See this issue: https://github.com/qri-io/qri/issues/1132
 func (r *DatasetRequests) nameIsInUse(ref dsref.Ref) bool {
 	param := GetParams{
-		Path: ref.Alias(),
+		Ref: ref.Alias(),
 	}
 	res := GetResult{}
 	err := r.Get(&param, &res)

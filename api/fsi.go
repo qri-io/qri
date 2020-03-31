@@ -165,7 +165,7 @@ func (h *FSIHandlers) initHandler(routePrefix string) http.HandlerFunc {
 		// Get code taken
 		// taken from ./root.go
 		gp := lib.GetParams{
-			Path:   name,
+			Ref: name,
 		}
 		res := lib.GetResult{}
 		err := h.dsm.Get(&gp, &res)

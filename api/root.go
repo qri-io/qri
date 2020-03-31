@@ -53,7 +53,7 @@ func (mh *RootHandler) Handler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	p := lib.GetParams{
-		Path:   ref.String(),
+		Ref: ref.String(),
 	}
 	res := lib.GetResult{}
 	err := mh.dsh.Get(&p, &res)
