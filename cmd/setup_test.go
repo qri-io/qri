@@ -4,12 +4,11 @@ import (
 	"testing"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/ioes"
 )
 
 func TestSetupComplete(t *testing.T) {
-	streams, _, _, _ := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_setup_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -18,14 +17,15 @@ func TestSetupComplete(t *testing.T) {
 	}
 
 	opt := &SetupOptions{
-		IOStreams: streams,
+		IOStreams: run.Streams,
 	}
 
 	opt.Complete(f, nil)
 }
 
 func TestSetupGimmeDoggo(t *testing.T) {
-	run := NewTestRunner(t, "test_peer", "")
+	run := NewTestRunner(t, "test_peer", "qri_test_gimme_doggo")
+	defer run.Delete()
 
 	actual := run.MustExec(t, "qri setup --gimme-doggo")
 	expect := "testnick\n"

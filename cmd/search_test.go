@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"bytes"
 	"io/ioutil"
 	"net/http"
 	"net/http/httptest"
@@ -14,8 +15,8 @@ import (
 )
 
 func TestSearchComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_search_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -35,29 +36,29 @@ func TestSearchComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &SearchOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if c.expect != opt.Query {
 			t.Errorf("case %d, opt.Ref not set correctly. Expected: '%s', Got: '%s'", i, c.expect, opt.Query)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.SearchMethods == nil {
 			t.Errorf("case %d, opt.SearchMethods not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
@@ -93,15 +94,23 @@ func TestSearchValidate(t *testing.T) {
 }
 
 // SearchTestRunner holds state used by the search test
+// TODO(dustmop): Compose this with TestRunner instead
 type SearchTestRunner struct {
-	Pwd      string
-	RootPath string
-	Teardown func()
+	Pwd       string
+	RootPath  string
+	Teardown  func()
+	Streams   ioes.IOStreams
+	InStream  *bytes.Buffer
+	OutStream *bytes.Buffer
+	ErrStream *bytes.Buffer
 }
 
 // NewSearchTestRunner sets up state needed for the search test
 func NewSearchTestRunner(t *testing.T) *SearchTestRunner {
 	run := SearchTestRunner{}
+
+	// Set IOStreams
+	run.Streams, run.InStream, run.OutStream, run.ErrStream = ioes.NewTestIOStreams()
 
 	// Get current directory
 	var err error
@@ -130,12 +139,16 @@ func (r *SearchTestRunner) Close() {
 	r.Teardown()
 }
 
+// IOReset resets the io streams
+func (r *SearchTestRunner) IOReset() {
+	r.InStream.Reset()
+	r.OutStream.Reset()
+	r.ErrStream.Reset()
+}
+
 func TestSearchRun(t *testing.T) {
 	run := NewSearchTestRunner(t)
 	defer run.Close()
-
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
 
 	// mock registry server that returns cached response data
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
@@ -168,7 +181,7 @@ func TestSearchRun(t *testing.T) {
 		}
 
 		opt := &SearchOptions{
-			IOStreams:     streams,
+			IOStreams:     run.Streams,
 			Query:         c.query,
 			Format:        c.format,
 			SearchMethods: sr,
@@ -178,28 +191,28 @@ func TestSearchRun(t *testing.T) {
 
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expected != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-			ioReset(in, out, errs)
+		if c.expected != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 

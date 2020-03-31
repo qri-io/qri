@@ -2,16 +2,13 @@ package cmd
 
 import (
 	"testing"
-	"time"
 
 	"github.com/google/go-cmp/cmp"
-	"github.com/qri-io/ioes"
-	"github.com/qri-io/qri/base/dsfs"
 )
 
 func TestDiffComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_diff_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -30,35 +27,29 @@ func TestDiffComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &DiffOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
 func TestDiffRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
-
-	// to keep hashes consistent, artificially specify the timestamp by overriding
-	// the dsfs.Timestamp func
-	prev := dsfs.Timestamp
-	defer func() { dsfs.Timestamp = prev }()
-	dsfs.Timestamp = func() time.Time { return time.Date(2001, 01, 01, 01, 01, 01, 01, time.UTC) }
+	run := NewTestRunner(t, "test_peer", "qri_test_dag_info")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -102,18 +93,18 @@ func TestDiffRun(t *testing.T) {
 			}
 
 			opt := c.opt
-			opt.IOStreams = streams
+			opt.IOStreams = run.Streams
 			opt.DatasetRequests = dsr
 
 			if err = opt.Run(); err != nil {
 				t.Fatalf("case %s unexpected error: %s", c.description, err)
 			}
 
-			if diff := cmp.Diff(out.String(), c.stdout); diff != "" {
+			if diff := cmp.Diff(run.OutStream.String(), c.stdout); diff != "" {
 				t.Errorf("output mismatch (-want +got):\n%s", diff)
 			}
 
-			ioReset(in, out, errs)
+			run.IOReset()
 		})
 	}
 
@@ -136,19 +127,19 @@ func TestDiffRun(t *testing.T) {
 
 		opt := c.opt
 		opt.Refs = NewListOfRefSelects([]string{})
-		opt.IOStreams = streams
+		opt.IOStreams = run.Streams
 		opt.DatasetRequests = dsr
 
 		err = opt.Run()
 
 		if err == nil {
 			t.Errorf("expected: '%s', got no error", c.err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 		if c.err != err.Error() {
 			t.Errorf("error mismatch. expected: '%s', got: '%s'", c.err, err.Error())
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }

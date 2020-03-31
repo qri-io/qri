@@ -3,14 +3,13 @@ package cmd
 import (
 	"testing"
 
-	"github.com/qri-io/ioes"
 	"github.com/qri-io/qri/errors"
 	"github.com/qri-io/qri/lib"
 )
 
 func TestRenameComplete(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_rename_complete")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -31,35 +30,35 @@ func TestRenameComplete(t *testing.T) {
 
 	for i, c := range cases {
 		opt := &RenameOptions{
-			IOStreams: streams,
+			IOStreams: run.Streams,
 		}
 
 		opt.Complete(f, c.args)
 
-		if c.err != errs.String() {
-			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, errs.String())
-			ioReset(in, out, errs)
+		if c.err != run.ErrStream.String() {
+			t.Errorf("case %d, error mismatch. Expected: '%s', Got: '%s'", i, c.err, run.ErrStream.String())
+			run.IOReset()
 			continue
 		}
 
 		if c.expectFrom != opt.From {
 			t.Errorf("case %d, opt.From not set correctly. Expected: '%s', Got: '%s'", i, c.expectFrom, opt.From)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if c.expectTo != opt.To {
 			t.Errorf("case %d, opt.From not set correctly. Expected: '%s', Got: '%s'", i, c.expectTo, opt.To)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if opt.DatasetRequests == nil {
 			t.Errorf("case %d, opt.DatasetRequests not set.", i)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }
 
@@ -99,8 +98,8 @@ func TestRenameValidate(t *testing.T) {
 }
 
 func TestRenameRun(t *testing.T) {
-	streams, in, out, errs := ioes.NewTestIOStreams()
-	setNoColor(true)
+	run := NewTestRunner(t, "test_peer", "qri_test_rename_run")
+	defer run.Delete()
 
 	f, err := NewTestFactory()
 	if err != nil {
@@ -130,7 +129,7 @@ func TestRenameRun(t *testing.T) {
 		}
 
 		opt := &RenameOptions{
-			IOStreams:       streams,
+			IOStreams:       run.Streams,
 			From:            c.from,
 			To:              c.to,
 			DatasetRequests: dsr,
@@ -139,27 +138,27 @@ func TestRenameRun(t *testing.T) {
 		err = opt.Run()
 		if (err == nil && c.err != "") || (err != nil && c.err != err.Error()) {
 			t.Errorf("case %d, mismatched error. Expected: '%s', Got: '%v'", i, c.err, err)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
 		if libErr, ok := err.(errors.Error); ok {
 			if libErr.Message() != c.msg {
 				t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: '%s'", i, c.msg, libErr.Message())
-				ioReset(in, out, errs)
+				run.IOReset()
 				continue
 			}
 		} else if c.msg != "" {
 			t.Errorf("case %d, mismatched user-friendly message. Expected: '%s', Got: ''", i, c.msg)
-			ioReset(in, out, errs)
+			run.IOReset()
 			continue
 		}
 
-		if c.expected != out.String() {
-			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, out.String())
-			ioReset(in, out, errs)
+		if c.expected != run.OutStream.String() {
+			t.Errorf("case %d, output mismatch. Expected: '%s', Got: '%s'", i, c.expected, run.OutStream.String())
+			run.IOReset()
 			continue
 		}
-		ioReset(in, out, errs)
+		run.IOReset()
 	}
 }

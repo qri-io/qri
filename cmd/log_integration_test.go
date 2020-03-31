@@ -2,40 +2,11 @@ package cmd
 
 import (
 	"testing"
-	"time"
 )
-
-// LogTestRunner holds test info integration tests
-type LogTestRunner struct {
-	TestRunner
-	LocOrig *time.Location
-}
-
-// newLogTestRunner returns a new FSITestRunner.
-func newLogTestRunner(t *testing.T, peerName, testName string) *LogTestRunner {
-	run := LogTestRunner{
-		TestRunner: *NewTestRunner(t, peerName, testName),
-	}
-
-	// Set the location to New York so that timezone printing is consistent
-	location, err := time.LoadLocation("America/New_York")
-	if err != nil {
-		panic(err)
-	}
-	run.LocOrig = location
-	StringerLocation = location
-
-	// Restore the location function
-	run.Teardown = func() {
-		StringerLocation = run.LocOrig
-	}
-
-	return &run
-}
 
 // Test that deleting an entire dataset works properly with the logbook.
 func TestLogAndDeletes(t *testing.T) {
-	run := newLogTestRunner(t, "test_peer", "qri_test_log_and_deletes")
+	run := NewTestRunner(t, "test_peer", "qri_test_log_and_deletes")
 	defer run.Delete()
 
 	// Save a dataset containing a body.json, no meta, nothing special.
@@ -50,8 +21,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output := run.GetCommandOutput()
-	expect := `1   Commit:  /ipfs/QmeDCtiNtcomDT6tm1kBCFD16pyHsZW5dRZGSo7Uwk4QKg
-    Date:    Sun Dec 31 20:01:01 EST 2000
+	expect := `1   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
@@ -74,8 +45,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/Qmc8y4MH4pZcMxPuiw9PTF4S4D3iKu8Mg5QVGjBzTXf2Jt
-    Date:    Sun Dec 31 20:02:01 EST 2000
+	expect = `1   Commit:  /ipfs/QmbZbGWMoc8oNgy9r718eH1nJJZjXCRHKHgF1J58F3cEQg
+    Date:    Sun Dec 31 20:05:01 EST 2000
     Storage: local
     Size:    137 B
 
@@ -84,8 +55,8 @@ func TestLogAndDeletes(t *testing.T) {
     	added row 2
     	added row 3
 
-2   Commit:  /ipfs/QmeDCtiNtcomDT6tm1kBCFD16pyHsZW5dRZGSo7Uwk4QKg
-    Date:    Sun Dec 31 20:01:01 EST 2000
+2   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
@@ -108,8 +79,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmeDCtiNtcomDT6tm1kBCFD16pyHsZW5dRZGSo7Uwk4QKg
-    Date:    Sun Dec 31 20:01:01 EST 2000
+	expect = `1   Commit:  /ipfs/QmUZ5CjiQ7hgAk9oRRQmwsUXrpm71Xg2DXpZNVTcpWxf9E
+    Date:    Sun Dec 31 20:02:01 EST 2000
     Storage: local
     Size:    79 B
 
@@ -142,8 +113,8 @@ func TestLogAndDeletes(t *testing.T) {
 		t.Fatal(err)
 	}
 	output = run.GetCommandOutput()
-	expect = `1   Commit:  /ipfs/QmXcjQ9CaF9RmQgHE7jdBCLsiNRfUniWUJurkn4Cv54Kwc
-    Date:    Sun Dec 31 20:03:01 EST 2000
+	expect = `1   Commit:  /ipfs/QmdV1msRdqijFjSTd47XKyykj6q28cghVq98KA7SZtJwww
+    Date:    Sun Dec 31 20:07:01 EST 2000
     Storage: local
     Size:    224 B
 

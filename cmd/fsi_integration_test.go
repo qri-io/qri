@@ -1,12 +1,12 @@
 package cmd
 
 import (
+	"bytes"
 	"fmt"
-	"runtime"
-
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"runtime"
 	"sort"
 	"strings"
 	"syscall"
@@ -44,9 +44,27 @@ func (run *FSITestRunner) MustExec(t *testing.T, cmdText string) string {
 	return run.GetCommandOutput()
 }
 
+// MustExec runs a command, returning combined standard output and standard err
+func (run *FSITestRunner) MustExecCombinedOutErr(t *testing.T, cmdText string) string {
+	run.CmdR = run.CreateCommandRunnerCombinedOutErr(run.Context)
+	err := executeCommand(run.CmdR, cmdText)
+	if err != nil {
+		_, callerFile, callerLine, ok := runtime.Caller(1)
+		if !ok {
+			t.Fatal(err)
+		} else {
+			t.Fatalf("%s:%d: %s", callerFile, callerLine, err)
+		}
+	}
+	return run.GetCommandOutput()
+}
+
 // GetCommandOutput returns standard output from the previous command, removing tmp directories
 func (run *FSITestRunner) GetCommandOutput() string {
-	outputText := run.RepoRoot.GetOutput()
+	outputText := ""
+	if buffer, ok := run.Streams.Out.(*bytes.Buffer); ok {
+		outputText = buffer.String()
+	}
 	realRoot, err := filepath.EvalSymlinks(run.RepoRoot.RootPath)
 	if err == nil {
 		outputText = strings.Replace(outputText, realRoot, "/root", -1)
@@ -186,7 +204,7 @@ func TestInitStatusSave(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/brand_new]
 
   add: meta (source: meta.json)
@@ -213,7 +231,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Status again, check that the working directory is clean.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/brand_new"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -280,7 +298,7 @@ func TestGetBodyWithoutStructure(t *testing.T) {
 	}
 
 	// Get the body, even though there's no structure. One will be inferred.
-	output := run.MustExec(t, "qri get body")
+	output := run.MustExecCombinedOutErr(t, "qri get body")
 	expectBody := "for linked dataset [test_peer/body_only]\n\none,two,3\nfour,five,6\n\n"
 	if diff := cmp.Diff(expectBody, output); diff != "" {
 		t.Errorf("directory contents (-want +got):\n%s", diff)
@@ -352,7 +370,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/two_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -361,7 +379,7 @@ func TestCheckoutSimpleStatus(t *testing.T) {
 	modifyFileUsingStringReplace("body.json", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/two_movies]
 
   modified: body (source: body.json)
@@ -376,7 +394,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status yet again, check that the meta is added.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect = `for linked dataset [test_peer/two_movies]
 
   add: meta (source: meta.json)
@@ -412,7 +430,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -421,7 +439,7 @@ func TestCheckoutWithStructure(t *testing.T) {
 	modifyFileUsingStringReplace("body.csv", "Avatar", "The Avengers")
 
 	// Status again, check that the body is changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: body (source: body.csv)
@@ -436,7 +454,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status yet again, check that the meta is changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: meta (source: meta.json)
@@ -454,7 +472,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Status one last time, check that the meta was removed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   removed:  meta
@@ -490,7 +508,7 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 	}
 
 	// Status, check that the working directory is clean.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/more_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -499,7 +517,7 @@ func TestCheckoutAndModifyStructure(t *testing.T) {
 	run.MustWriteFile(t, "structure.json", `{ "format": "csv", "schema": {"type": "array"}}`)
 
 	// Status again, check that the body is changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/more_movies]
 
   modified: structure (source: structure.json)
@@ -531,7 +549,7 @@ func TestStatusParseError(t *testing.T) {
 	run.MustWriteFile(t, "meta.json", `{"title": "hello}`)
 
 	// Status, check that status shows the parse error.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/bad_movies]
 
   parse error: meta (source: meta.json)
@@ -563,7 +581,7 @@ func TestBodyParseError(t *testing.T) {
 	run.MustWriteFile(t, "body.json", `{"title": "hello}`)
 
 	// Status, check that status shows the parse error.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/bad_body]
 
   parse error: body (source: body.json)
@@ -594,7 +612,7 @@ func TestStatusParseErrorForStructure(t *testing.T) {
 	run.MustWriteFile(t, "structure.json", `{"format":`)
 
 	// Status, check that status shows the parse error.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   parse error: structure (source: structure.json)
@@ -611,20 +629,23 @@ func TestWhatChanged(t *testing.T) {
 	run := NewFSITestRunner(t, "qri_test_status_at_version")
 	defer run.Delete()
 
+	// TODO(dustmop): Investigate why `qri save` writes the dataset ref to stderr, writes nothing
+	// to stdout.
+
 	// First version has only a body
-	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/status_ver")
+	output := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_two.json me/status_ver")
 	ref1 := parseRefFromSave(output)
 
 	// Add a meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/status_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_override.yaml me/status_ver")
 	ref2 := parseRefFromSave(output)
 
 	// Change the meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/status_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_another.yaml me/status_ver")
 	ref3 := parseRefFromSave(output)
 
 	// Change the body
-	output = run.MustExec(t, "qri save --body=testdata/movies/body_four.json me/status_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_four.json me/status_ver")
 	ref4 := parseRefFromSave(output)
 
 	// What changed for the first version of the dataset, both body and schema were added.
@@ -686,7 +707,7 @@ func TestCheckoutAndRestore(t *testing.T) {
 	run.MustWriteFile(t, "meta.json", `{"title": "hello"}`)
 
 	// Status to check that the meta is changed.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/ten_movies]
 
   modified: meta (source: meta.json)
@@ -701,7 +722,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustExec(t, "qri restore meta")
 
 	// Status again, to validate that meta is no longer changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -710,7 +731,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustWriteFile(t, "structure.json", `{ "format" : "csv", "schema": {"type": "array"}}`)
 
 	// Status to check that the schema is changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	expect = `for linked dataset [test_peer/ten_movies]
 
   modified: structure (source: structure.json)
@@ -725,7 +746,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustExec(t, "qri restore structure")
 
 	// Status again, to validate that schema is no longer changed.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/ten_movies"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -737,15 +758,15 @@ func TestRestorePreviousVersion(t *testing.T) {
 	defer run.Delete()
 
 	// First version has only a body
-	output := run.MustExec(t, "qri save --body=testdata/movies/body_two.json me/prev_ver")
+	output := run.MustExecCombinedOutErr(t, "qri save --body=testdata/movies/body_two.json me/prev_ver")
 	_ = parseRefFromSave(output)
 
 	// Add a meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_override.yaml me/prev_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_override.yaml me/prev_ver")
 	ref2 := parseRefFromSave(output)
 
 	// Change the meta
-	output = run.MustExec(t, "qri save --file=testdata/movies/meta_another.yaml me/prev_ver")
+	output = run.MustExecCombinedOutErr(t, "qri save --file=testdata/movies/meta_another.yaml me/prev_ver")
 	_ = parseRefFromSave(output)
 
 	run.ChdirToRoot()
@@ -756,7 +777,7 @@ func TestRestorePreviousVersion(t *testing.T) {
 	_ = run.ChdirToWorkDir("prev_ver")
 
 	// Verify that the status is clean
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/prev_ver"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -790,8 +811,7 @@ func TestRestoreDeleteComponent(t *testing.T) {
 	defer run.Delete()
 
 	// First version has only a body
-	output := run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/del_cmp")
-	_ = parseRefFromSave(output)
+	run.MustExec(t, "qri save --body=testdata/movies/body_ten.csv me/del_cmp")
 
 	run.ChdirToRoot()
 
@@ -817,7 +837,7 @@ func TestRestoreDeleteComponent(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	output = run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/del_cmp]
 
   modified: body (source: body.csv)
@@ -850,7 +870,7 @@ func TestRestoreWithNoHistory(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/new_folder]
 
   add: structure (source: structure.json)
@@ -877,7 +897,7 @@ func TestRenderReadme(t *testing.T) {
 	run.MustWriteFile(t, "readme.md", "# hi\nhello\n")
 
 	// Status, check that the working directory has added files including readme.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/render_readme]
 
   add: meta (source: meta.json)
@@ -895,13 +915,13 @@ run ` + "`qri save`" + ` to commit this dataset
 	run.MustExec(t, "qri save")
 
 	// Status again, check that the working directory is clean.
-	output = run.MustExec(t, "qri status")
+	output = run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/render_readme"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
 
 	// Render the readme, check the html.
-	output = run.MustExec(t, "qri render")
+	output = run.MustExecCombinedOutErr(t, "qri render")
 	expectBody := `for linked dataset [test_peer/render_readme]
 
 <h1>hi</h1>
@@ -966,7 +986,7 @@ func TestInitWithSourceBodyPath(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/init_source]
 
   add: meta (source: meta.json)
@@ -1017,7 +1037,7 @@ func TestInitWithDirectory(t *testing.T) {
 	}
 
 	// Status, check that the working directory has added files.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/init_dir]
 
   add: meta (source: meta.json)
@@ -1060,7 +1080,7 @@ four,five,321
 `)
 
 	// Status to see changes
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	expect := `for linked dataset [test_peer/diff_change]
 
   modified: meta (source: meta.json)
@@ -1073,7 +1093,7 @@ run ` + "`qri save`" + ` to commit this dataset
 	}
 
 	// Diff to see changes
-	output = run.MustExec(t, "qri diff")
+	output = run.MustExecCombinedOutErr(t, "qri diff")
 	expect = `for linked dataset [test_peer/diff_change]
 
 +1 element. 5 inserts. 4 deletes.
@@ -1229,7 +1249,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 	run.Must(t, os.Chdir(newNameDir))
 
 	// Status again, check that the working directory is clean.
-	output := run.MustExec(t, "qri status")
+	output := run.MustExecCombinedOutErr(t, "qri status")
 	if diff := cmpTextLines(cleanStatusMessage("test_peer/move_dir"), output); diff != "" {
 		t.Errorf("qri status (-want +got):\n%s", diff)
 	}
@@ -1239,7 +1259,7 @@ func TestMoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      move_dir
-  Path:      /ipfs/QmZoN7BrAb6a7ydQSahYKsrb4vKHdC5u6b2EVAm3GpZmve
+  Path:      /ipfs/QmVGjeX4jNpZoBBCyx1zfroH8LoURCydZWWwj22LKumr1W
   FSIPath:   /tmp/new_name_dir
   Published: false
 
@@ -1277,7 +1297,7 @@ func TestRemoveWorkingDirectory(t *testing.T) {
 	expect := `0 Peername:  test_peer
   ProfileID: QmeL2mdVka1eahKENjehK6tBxkkpk5dNQ1qMcgWi7Hrb4B
   Name:      remove_dir
-  Path:      /ipfs/QmSR1QEtRjTAYiHCr2213E8VtWamfXf4S9D9unXLQHTiMf
+  Path:      /ipfs/QmW4RZLEZuHVY4zzi2o8hmp2UtJJup3njnbvTX1nh5PmwE
   FSIPath:   
   Published: false
 
@@ -1430,7 +1450,7 @@ func TestUnlinkImplicitRef(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink")
+	output := run.MustExecCombinedOutErr(t, "qri fsi unlink")
 	expect := `for linked dataset [test_peer/unlink_me]
 
 unlinked: test_peer/unlink_me
@@ -1472,7 +1492,7 @@ func TestUnlinkLinkFileButNoFSIPath(t *testing.T) {
 	run.ClearFSIPath(t, "me/unlink_me")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink me/unlink_me")
+	output := run.MustExecCombinedOutErr(t, "qri fsi unlink me/unlink_me")
 	if output != "me/unlink_me is not linked to a directory\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1510,7 +1530,7 @@ func TestUnlinkLinkFileWithNoFSIPathUsingImplicit(t *testing.T) {
 	run.ClearFSIPath(t, "me/unlink_me")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink")
+	output := run.MustExecCombinedOutErr(t, "qri fsi unlink")
 	if output != `for linked dataset [test_peer/unlink_me]
 
 unlinked: test_peer/unlink_me
@@ -1548,7 +1568,7 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 	run.MustExec(t, "qri save")
 
 	// Unlink the dataset
-	output := run.MustExec(t, "qri fsi unlink me/not_found")
+	output := run.MustExecCombinedOutErr(t, "qri fsi unlink me/not_found")
 	if output != "repo: not found\n" {
 		t.Errorf("expected output mismatch, got %q", output)
 	}
@@ -1570,6 +1590,9 @@ func TestUnlinkDirectoryButRefNotFound(t *testing.T) {
 
 func parseRefFromSave(output string) string {
 	pos := strings.Index(output, "saved: ")
+	if pos == -1 {
+		panic(fmt.Errorf("expected output to start with \"saved:\", got %q", output))
+	}
 	ref := output[pos+7:]
 	return strings.TrimSpace(ref)
 }
