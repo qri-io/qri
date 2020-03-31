@@ -39,7 +39,7 @@ type SearchResult struct {
 // Search queries for items on qri related to given parameters
 func (m *SearchMethods) Search(p *SearchParams, results *[]SearchResult) error {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("SearchMethods.Search", p, results)
+		return checkRPCError(m.inst.rpc.Call("SearchMethods.Search", p, results))
 	}
 	if p == nil {
 		return fmt.Errorf("error: search params cannot be nil")

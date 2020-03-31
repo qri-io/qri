@@ -64,7 +64,7 @@ func (r *ExportRequests) Export(p *ExportParams, fileWritten *string) (err error
 	}
 
 	if r.cli != nil {
-		return r.cli.Call("ExportRequests.Export", p, fileWritten)
+		return checkRPCError(r.cli.Call("ExportRequests.Export", p, fileWritten))
 	}
 	ctx := context.TODO()
 

@@ -68,7 +68,7 @@ func NewDatasetRequestsInstance(inst *Instance) *DatasetRequests {
 func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 	if r.cli != nil {
 		p.RPC = true
-		return r.cli.Call("DatasetRequests.List", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.List", p, res))
 	}
 	ctx := context.TODO()
 
@@ -185,7 +185,7 @@ func (r *DatasetRequests) List(p *ListParams, res *[]dsref.VersionInfo) error {
 // ListRawRefs gets the list of raw references as string
 func (r *DatasetRequests) ListRawRefs(p *ListParams, text *string) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.ListRawRefs", p, text)
+		return checkRPCError(r.cli.Call("DatasetRequests.ListRawRefs", p, text))
 	}
 	ctx := context.TODO()
 	if p.UseDscache {
@@ -232,7 +232,7 @@ type GetResult struct {
 // with the generated stats.
 func (r *DatasetRequests) Get(p *GetParams, res *GetResult) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Get", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Get", p, res))
 	}
 	ctx := context.TODO()
 
@@ -442,7 +442,7 @@ func (p *SaveParams) AbsolutizePaths() error {
 func (r *DatasetRequests) Save(p *SaveParams, res *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
 		p.ScriptOutput = nil
-		return r.cli.Call("DatasetRequests.Save", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Save", p, res))
 	}
 	ctx := context.TODO()
 
@@ -657,7 +657,7 @@ type SetPublishStatusParams struct {
 // SetPublishStatus updates the publicity of a reference in the peer's namespace
 func (r *DatasetRequests) SetPublishStatus(p *SetPublishStatusParams, publishedRef *reporef.DatasetRef) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef)
+		return checkRPCError(r.cli.Call("DatasetRequests.SetPublishStatus", p, publishedRef))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -685,7 +685,7 @@ type RenameParams struct {
 // Rename changes a user's given name for a dataset
 func (r *DatasetRequests) Rename(p *RenameParams, res *dsref.VersionInfo) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Rename", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Rename", p, res))
 	}
 	ctx := context.TODO()
 
@@ -748,7 +748,7 @@ var ErrCantRemoveDirectoryDirty = fmt.Errorf("cannot remove files while working 
 // Remove a dataset entirely or remove a certain number of revisions
 func (r *DatasetRequests) Remove(p *RemoveParams, res *RemoveResponse) error {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Remove", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Remove", p, res))
 	}
 	ctx := context.TODO()
 
@@ -926,7 +926,7 @@ func (r *DatasetRequests) Add(p *AddParams, res *reporef.DatasetRef) (err error)
 	}
 
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Add", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Add", p, res))
 	}
 	ctx := context.TODO()
 
@@ -979,7 +979,7 @@ type ValidateDatasetParams struct {
 // Validate gives a dataset of errors and issues for a given dataset
 func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonschema.ValError) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Validate", p, valerrs)
+		return checkRPCError(r.cli.Call("DatasetRequests.Validate", p, valerrs))
 	}
 	ctx := context.TODO()
 
@@ -1101,7 +1101,7 @@ func (r *DatasetRequests) Validate(p *ValidateDatasetParams, valerrs *[]jsonsche
 // Manifest generates a manifest for a dataset path
 func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Manifest", refstr, m)
+		return checkRPCError(r.cli.Call("DatasetRequests.Manifest", refstr, m))
 	}
 	ctx := context.TODO()
 
@@ -1125,7 +1125,7 @@ func (r *DatasetRequests) Manifest(refstr *string, m *dag.Manifest) (err error) 
 // ManifestMissing generates a manifest of blocks that are not present on this repo for a given manifest
 func (r *DatasetRequests) ManifestMissing(a, b *dag.Manifest) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Manifest", a, b)
+		return checkRPCError(r.cli.Call("DatasetRequests.Manifest", a, b))
 	}
 	ctx := context.TODO()
 
@@ -1146,7 +1146,7 @@ type DAGInfoParams struct {
 // DAGInfo generates a dag.Info for a dataset path. If a label is given, DAGInfo will generate a sub-dag.Info at that label.
 func (r *DatasetRequests) DAGInfo(s *DAGInfoParams, i *dag.Info) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.DAGInfo", s, i)
+		return checkRPCError(r.cli.Call("DatasetRequests.DAGInfo", s, i))
 	}
 	ctx := context.TODO()
 
@@ -1184,7 +1184,7 @@ type StatsResponse struct {
 // Stats generates stats for a dataset
 func (r *DatasetRequests) Stats(p *StatsParams, res *StatsResponse) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Stats", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Stats", p, res))
 	}
 	ctx := context.TODO()
 	if p.Dataset == nil {

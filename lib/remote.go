@@ -41,7 +41,7 @@ type FetchParams struct {
 // Fetch pulls a logbook from a remote
 func (r *RemoteMethods) Fetch(p *FetchParams, res *[]DatasetLogItem) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.Fetch", p, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Fetch", p, res))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -117,7 +117,7 @@ type PublicationParams struct {
 // Publish posts a dataset version to a remote
 func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.Publish", p, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Publish", p, res))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -163,7 +163,7 @@ func (r *RemoteMethods) Publish(p *PublicationParams, res *dsref.Ref) error {
 // Unpublish asks a remote to remove a dataset
 func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.Unpublish", p, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Unpublish", p, res))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -211,7 +211,7 @@ func (r *RemoteMethods) Unpublish(p *PublicationParams, res *dsref.Ref) error {
 // PullDataset fetches a dataset ref from a remote
 func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.PullDataset", p, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.PullDataset", p, res))
 	}
 
 	ref, err := repo.ParseDatasetRef(p.Ref)
@@ -230,7 +230,7 @@ func (r *RemoteMethods) PullDataset(p *PublicationParams, res *bool) error {
 // popular. Each feed is keyed by string in the response
 func (r *RemoteMethods) Feeds(remoteName *string, res *map[string][]dsref.VersionInfo) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.Feeds", remoteName, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Feeds", remoteName, res))
 	}
 	ctx := context.TODO()
 
@@ -257,7 +257,7 @@ type PreviewParams struct {
 // Preview requests a dataset preview from a remote
 func (r *RemoteMethods) Preview(p *PreviewParams, res *dataset.Dataset) error {
 	if r.inst.rpc != nil {
-		return r.inst.rpc.Call("RemoteMethods.Preview", p, res)
+		return checkRPCError(r.inst.rpc.Call("RemoteMethods.Preview", p, res))
 	}
 	ctx := context.TODO()
 

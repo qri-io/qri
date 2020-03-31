@@ -32,7 +32,7 @@ type SQLQueryParams struct {
 // Exec runs an SQL query
 func (m *SQLMethods) Exec(p *SQLQueryParams, results *[]byte) error {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("SQLMethods.Exec", p, results)
+		return checkRPCError(m.inst.rpc.Call("SQLMethods.Exec", p, results))
 	}
 	if p == nil {
 		return fmt.Errorf("error: search params cannot be nil")

@@ -60,7 +60,7 @@ func (r *DatasetRequests) Diff(p *DiffParams, res *DiffResponse) (err error) {
 	}
 
 	if r.cli != nil {
-		return r.cli.Call("DatasetRequests.Diff", p, res)
+		return checkRPCError(r.cli.Call("DatasetRequests.Diff", p, res))
 	}
 	ctx := context.TODO()
 

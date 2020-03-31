@@ -34,7 +34,7 @@ type GetConfigParams struct {
 // as a slice of bytes the bytes can be formatted as json, concise json, or yaml
 func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("ConfigMethods.GetConfig", p, res)
+		return checkRPCError(m.inst.rpc.Call("ConfigMethods.GetConfig", p, res))
 	}
 
 	var (
@@ -77,7 +77,7 @@ func (m *ConfigMethods) GetConfig(p *GetConfigParams, res *[]byte) (err error) {
 // SetConfig validates, updates and saves the config
 func (m *ConfigMethods) SetConfig(update *config.Config, set *bool) (err error) {
 	if m.inst.rpc != nil {
-		return m.inst.rpc.Call("ConfigMethods.SetConfig", update, set)
+		return checkRPCError(m.inst.rpc.Call("ConfigMethods.SetConfig", update, set))
 	}
 
 	if err = update.Validate(); err != nil {

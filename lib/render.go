@@ -63,7 +63,7 @@ func (p *RenderParams) Validate() error {
 // RenderViz renders a viz component as html
 func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RenderRequests.RenderViz", p, res)
+		return checkRPCError(r.cli.Call("RenderRequests.RenderViz", p, res))
 	}
 	ctx := context.TODO()
 
@@ -93,7 +93,7 @@ func (r *RenderRequests) RenderViz(p *RenderParams, res *[]byte) (err error) {
 // RenderReadme renders the readme into html for the given dataset
 func (r *RenderRequests) RenderReadme(p *RenderParams, res *string) (err error) {
 	if r.cli != nil {
-		return r.cli.Call("RenderRequests.RenderReadme", p, res)
+		return checkRPCError(r.cli.Call("RenderRequests.RenderReadme", p, res))
 	}
 	ctx := context.TODO()
 
