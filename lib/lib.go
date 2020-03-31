@@ -748,8 +748,11 @@ func (inst *Instance) Teardown() {
 // checkRPCError validates RPC errors and in case of EOF returns a
 // more user friendly message
 func checkRPCError(err error) error {
+	if err == nil {
+		return nil
+	}
 	if strings.Contains(err.Error(), "EOF") {
-		msg := `Qri wasn't able to execute your command. 
+		msg := `Qri couldn't parse the response and is unsure if it was successful. 
 It is possible you have a Qri node running or the Desktop app is open.
 Try closing them and running the command again.
 Check our issue tracker for RPC issues & feature requests:
